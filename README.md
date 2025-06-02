@@ -1,2 +1,3 @@
 # keeper-platform
-The Keeper platform is being re-built ground up.
+Keeper Platform
+Platform reset for AI-assisted memory, media, and development.

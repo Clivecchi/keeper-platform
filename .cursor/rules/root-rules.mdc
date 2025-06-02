@@ -1,0 +1,65 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Purpose
+
+This document establishes consistent development rules and practices for all AI-assisted coding within the Keeper Platform. Cursor will adhere to these rules to ensure clarity, maintainability, and architectural fidelity. All folder-level README files will act as living micro-specs and must be updated automatically by Cursor during development.
+
+⚙️ Cursor Rules
+
+1. Tech Stack Awareness
+
+Cursor must conform to the platform's defined stack:
+
+Frontend: React + TypeScript + TailwindCSS + Shadcn + Framer Motion
+
+Backend: Express.js + Prisma + Zod + Railway PostgreSQL
+
+Infrastructure: Vercel (Blob, Hosting), Railway (DB)
+
+Use pnpm for all package management: Never mix with npm or yarn
+
+Use npx only for one-time CLI utilities like prisma or tailwindcss init
+
+2. File & Folder Conventions
+
+/components/FeatureName/ with index.tsx, types.ts, colocated subcomponents
+
+Use .ts for type/config-only files; .tsx only for files with JSX
+
+Route handlers go in /api/feature/route.ts
+
+Place all schemas next to their route or usage
+
+3. Theme Assignment
+
+All users must be assigned the Keeper Classic theme by default upon signup.
+
+Theme is stored in the UserSettings model (relation to Theme via preferred_theme_id)
+
+4. Strict Type Discipline
+
+All functions and components must have explicit types.
+
+Zod validation must accompany all user input and API request bodies.
+
+Do not use any. Use unknown + narrowing when required.
+
+5. Dynamic Theming
+
+Dynamic theming must be initialized through user settings.
+
+Theme tokens come from database-linked Theme model.
+
+Do not hardcode colors. Use Tailwind and/or CSS variables based on theme structure.
+
+6. Authentication
+
+Use kam (Keeper Auth Module) structure to scaffold all auth routes and logic.
+
+
+Cursor must never expose or hardcode secrets.
+
+7. Reference ...\prisma\MODEL_REFERENCE.MD for an index of data models and relationships

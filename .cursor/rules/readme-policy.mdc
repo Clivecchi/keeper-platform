@@ -1,0 +1,69 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Every folder (especially under /components, /routes, /lib, /api) must have a README.md that is:
+
+Automatically updated by Cursor
+
+Structured consistently
+
+Used as a local specification for the folder
+
+Duplicated to /docs/modules/<folder>.md for long-term tracking
+
+README.md Structure
+
+# <ComponentName | ModuleName>
+
+## 📌 Purpose
+Explain what this folder/module does in 1-2 sentences.
+
+## 🧱 Key Files
+- `index.tsx`
+- `types.ts`
+- `helpers.ts`
+
+## 🔄 Data & Behavior
+Explain what data flows through and any state, context, or hooks used.
+
+## ⚠️ Notes & ToDo
+- [ ] Pending issues or improvements
+- [ ] Behavior to confirm with Kip
+
+# <ComponentName | ModuleName>
+
+## 📌 Purpose
+Explain what this folder/module does in 1-2 sentences.
+
+## 🧱 Key Files
+- `index.tsx`
+- `types.ts`
+- `helpers.ts`
+
+## 🔄 Data & Behavior
+Explain what data flows through and any state, context, or hooks used.
+
+## ⚠️ Notes & ToDo
+- [ ] Pending issues or improvements
+- [ ] Behavior to confirm with Kip
+
+Cursor Update Rule
+
+Whenever Cursor adds, removes, or modifies any file in a folder, it must:
+
+Check for a README.md.
+
+If found, append a timestamped ## 📆 Update Log section (if not present) and describe the change.
+
+If not found, create a new README.md with the standard structure.
+
+Copy the file to /docs/modules/<folder>.md.
+
+🛠️ Notes
+
+Readme changes should never overwrite existing context without preserving history.
+
+
+When uncertain, Cursor must annotate its update with // TODO: Verify and describe assumptions.
