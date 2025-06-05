@@ -2,7 +2,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -199,11 +198,11 @@ model UserApiCredential {
 model UserSettings {
   id                 String   @id
   userId             String   @unique
-  preferred_theme_id String  @default("4b5cf27f-06b1-4aed-95a4-fbfdb610dfc8")   // ✅ required
   themeMode          String?
   respectSystemTheme Boolean? @default(true)
   createdAt          DateTime @default(now())
   updatedAt          DateTime
+  preferred_theme_id String   @default("4b5cf27f-06b1-4aed-95a4-fbfdb610dfc8")
   users              users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -357,7 +356,6 @@ model notes {
   updatedAt DateTime
   note_tags note_tags[]
 }
-
 
 model roles {
   id                  String                @id @db.Uuid
