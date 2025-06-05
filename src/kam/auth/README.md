@@ -17,7 +17,7 @@ This module is central to Keeper's user authentication processes. It contains th
 - `session.ts`: Contains `getSessionHandler` and potentially `refreshSessionHandler` for managing user sessions.
 
 ### Important Considerations:
-- **Security**: Password hashing and secure session token management are paramount (though actual hashing/token generation logic may reside in `/kam/lib`).
+- **Security**: Password hashing (using bcryptjs) and secure session token management are paramount (though actual hashing/token generation logic may reside in `/kam/lib`).
 - **Validation**: All inputs are validated using Zod schemas defined in `types.ts`.
 - **Database Interaction**: Primarily interacts with the `User` model via Prisma Client.
 - **Modularity**: Designed to be independent of UI components and specific routing frameworks, exporting only handler logic. 

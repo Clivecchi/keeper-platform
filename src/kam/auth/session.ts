@@ -2,69 +2,77 @@
 // Based on KAM and Prisma Model Reference
 // KAM Rules headers as in register.ts...
 
-import { PrismaClient } from '@prisma/client';
-import type { UserSession } from './types'; 
+import jwt from 'jsonwebtoken';
+import type { UserSession } from './types';
+// PrismaClient is not strictly needed here anymore if we don't look up users in getSessionHandler directly,
+// but it might be used if we decide to enrich session data from DB. For now, keeping it commented.
+// import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient(); // Not used with pure JWT verification
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret'; // Secure this in production!
 
 /**
- * Placeholder for creating a user session.
- * In a real app, this would generate a secure session token, store it (e.g., Redis, DB),
- * and set appropriate cookies or return the token.
- * 
- * @param user - The user object (or relevant parts like id, email, name) for whom to create a session.
- * @returns A UserSession object or null/error.
+ * Creates a JWT session token for the given user.
+ *
+ * @param user - The user object (id, email, name) for whom to create a session.
+ * @returns A UserSession object containing the token and user details.
  */
-export async function createSession(user: { id: string; email: string | null; name?: string | null }): Promise<UserSession | null> {
-    console.log(`Placeholder: Creating session for user ${user.id}`);
-    // Mock session creation
-    const session: UserSession = {
-        userId: user.id,
-        email: user.email,
-        name: user.name,
-        // issuedAt: Date.now(),
-        // expiresAt: Date.now() + (24 * 60 * 60 * 1000), // Example: 24hr expiry
+export async function createSession(user: { id:string; email: string | null; name?: string | null }): Promise<UserSession> {
+  const payload = {
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+  };
+
+  const token = jwt.sign(
+    payload,
+    JWT_SECRET,
+    { expiresIn: '7d' } // Example: 7-day expiry
+  );
+
+  return {
+    token,
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+  };
+}
+
+/**
+ * Verifies and decodes a session token into a UserSession.
+ * @param token - The JWT token from headers or cookies
+ * @returns UserSession or null
+ */
+export async function getSessionHandler(token: string): Promise<UserSession | null> {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
+
+    if (!decoded || typeof decoded !== 'object' || !decoded.userId) return null;
+
+    return {
+      userId: decoded.userId,
+      email: decoded.email || null,
+      name: decoded.name || null,
+      token, // Optional: echo token if you need it downstream
     };
-    // In real app: save session to store, return session ID or token
-    return session; 
-}
-
-/**
- * Placeholder for retrieving session information.
- * This would typically involve validating a session token from a request.
- * 
- * @param sessionIdOrToken - The session identifier or token.
- * @returns The UserSession data if valid, otherwise null.
- */
-export async function getSessionHandler(sessionIdOrToken?: string): Promise<UserSession | null> {
-  if (!sessionIdOrToken) return null;
-  
-  console.log(`Placeholder: Validating session ${sessionIdOrToken}`);
-  // Mock session retrieval: In a real app, look up and validate session token
-  // For now, if a token is provided, assume it's for a mock user.
-  // This part would typically involve a database lookup for the session and then the user.
-  const mockUserId = 'mock-user-id-from-session';
-  const user = await prisma.users.findUnique({
-      where: { id: mockUserId }, // This will likely fail as mockUserId doesn't exist
-      select: { id: true, email: true, name: true }
-  });
-
-  if (user) {
-      return {
-          userId: user.id,
-          email: user.email,
-          name: user.name,
-      };
+  } catch (err) {
+    console.error('Invalid session token:', err);
+    return null;
   }
-  return null; 
 }
 
 /**
- * Placeholder for invalidating a session (e.g., on logout).
- * 
- * @param sessionIdOrToken - The session identifier to invalidate.
+ * Invalidates a session (e.g., on logout).
+ * For JWTs, this is typically handled client-side by deleting the token.
+ * Server-side blocklisting can be implemented if needed but is not standard for JWTs.
+ *
+ * @param token - The session token to invalidate.
  */
-export async function invalidateSession(sessionIdOrToken: string): Promise<void> {
-    console.log(`Placeholder: Invalidating session ${sessionIdOrToken}`);
-    // In real app: remove session from store
+export async function invalidateSession(token: string): Promise<void> {
+    console.log(`Placeholder: Invalidate session for token ${token}. For JWT, client should discard the token.`);
+    // No server-side action is typically required for stateless JWT invalidation
+    // unless a token blocklist strategy is in place.
+    // If a blocklist is used, this function would add the token (or its jti) to the list.
+    return Promise.resolve();
 } 

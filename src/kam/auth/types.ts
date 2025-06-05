@@ -60,6 +60,7 @@ export interface AuthUser {
  * Represents the structure of a user session.
  */
 export interface UserSession {
+  token: string;
   userId: string;
   email: string | null;
   name?: string | null;

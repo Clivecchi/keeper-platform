@@ -12,16 +12,22 @@
     "db:pull": "dotenv -e .env -- pnpm prisma db pull",
     "db:push": "dotenv -e .env -- pnpm prisma db push",
     "db:generate": "dotenv -e .env -- pnpm prisma generate",
-    "db:studio": "dotenv -e .env -- pnpm prisma studio"
+    "db:studio": "dotenv -e .env -- pnpm prisma studio",
+    "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
     "@prisma/client": "^6.7.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zod": "^3.25.45"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
+    "@types/express": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^22.15.30",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",

@@ -12,6 +12,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import { RegisterInputSchema } from './types';
 import type { RegisterInput, AuthResponse, AuthUser } from './types';
 // import { hashPassword } from '../lib/hashPassword'; // CRITICAL: Implement and use this for actual password hashing.
@@ -58,7 +59,8 @@ export async function registerUserHandler(data: RegisterInput): Promise<AuthResp
 
     // const actualHashedPassword = await hashPassword(password); // CRITICAL: Use this in production.
     // For now, using a placeholder for the hashedPassword field as per instructions.
-    const tempHashedPassword = password + '_hashed'; // MOCK HASHING - REPLACE IMMEDIATELY
+    // const tempHashedPassword = password + '_hashed'; // MOCK HASHING - REPLACE IMMEDIATELY
+    const hashedPassword = bcrypt.hashSync(password, 10);
 
     const newUserId = crypto.randomUUID();
     const currentTime = new Date();
@@ -68,7 +70,7 @@ export async function registerUserHandler(data: RegisterInput): Promise<AuthResp
       data: {
         id: newUserId,
         email,
-        hashedPassword: tempHashedPassword, 
+        hashedPassword: hashedPassword, 
         name: name || null,
         updatedAt: currentTime,
         // avatar_url can be set here if provided, or later via profile update

@@ -9,4 +9,5 @@
  */
 
 export { updateUserSettingsHandler } from './updateSettings';
+export * from './getSettings';
 // Add other exports for retrieving settings etc. when implemented 

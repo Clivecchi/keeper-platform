@@ -5,6 +5,7 @@
 import { PrismaClient } from '@prisma/client';
 import { LoginInputSchema } from './types';
 import type { LoginInput, AuthResponse, AuthUser } from './types';
+import bcrypt from 'bcryptjs';
 // import { verifyPassword } from '../lib/hashPassword'; // Crucial for password verification
 // import { createSession } from './session'; // For creating a session on login
 
@@ -50,7 +51,7 @@ export async function loginUserHandler(data: LoginInput): Promise<AuthResponse<A
 
     // const isValidPassword = await verifyPassword(password, user.hashedPassword); // CRITICAL
     // MOCK PASSWORD VERIFICATION - REPLACE IMMEDIATELY
-    const isValidPassword = (password + '_hashed' === user.hashedPassword);
+    const isValidPassword = bcrypt.compareSync(password, user.hashedPassword);
 
     if (!isValidPassword) {
       return {

@@ -63,3 +63,13 @@ Use kam (Keeper Auth Module) structure to scaffold all auth routes and logic.
 Cursor must never expose or hardcode secrets.
 
 7. Reference ...\prisma\MODEL_REFERENCE.MD for an index of data models and relationships
+
+8. 📦 Use `pnpm` exclusively for all package installations and dependency management.
+
+❌ Do not use `npm install` or `yarn add`. This breaks lockfile integrity and may corrupt the build environment.
+
+✅ When adding new packages, always run: `pnpm add <package>`
+
+📂 This project uses `pnpm-lock.yaml` as the source of truth for dependencies.
+
+💡 If you're unsure, refer to the `preinstall` script in `package.json` which enforces this policy.
