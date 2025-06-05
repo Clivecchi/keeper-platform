@@ -3,7 +3,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import type { UserSettings, Prisma } from '@prisma/client'; // Import Prisma namespace for input types
-import crypto from 'crypto'; // For generating ID if creating settings
+import * as crypto from 'crypto'; // For generating ID if creating settings
 import { UpdateUserSettingsSchema } from './types';
 import type { UpdateUserSettingsInput, SettingsResponse } from './types';
 

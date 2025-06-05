@@ -11,7 +11,7 @@
 // 8. Use npx only for one-time CLI utilities.
 
 import { PrismaClient } from '@prisma/client';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { RegisterInputSchema } from './types';
 import type { RegisterInput, AuthResponse, AuthUser } from './types';
