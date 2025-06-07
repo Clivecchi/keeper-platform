@@ -12,6 +12,16 @@ interface UserSettings {
   // Add any other settings fields as needed
 }
 
+type UserSettingsResponse =
+  | {
+      success: true;
+      data: UserSettings;
+    }
+  | {
+      success: false;
+      error: string;
+    };
+
 interface UseUserSettingsResult {
   settings: UserSettings | null;
   loading: boolean;
@@ -33,7 +43,7 @@ export function useUserSettings(): UseUserSettingsResult {
           },
         });
 
-        const data = await res.json();
+        const data = (await res.json()) as UserSettingsResponse;
         if (data.success) {
           setSettings(data.data);
         } else {

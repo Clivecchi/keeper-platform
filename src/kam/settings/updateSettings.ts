@@ -4,8 +4,8 @@
 import { PrismaClient } from '@prisma/client';
 import type { UserSettings, Prisma } from '@prisma/client'; // Import Prisma namespace for input types
 import * as crypto from 'crypto'; // For generating ID if creating settings
-import { UpdateUserSettingsSchema } from './types';
-import type { UpdateUserSettingsInput, SettingsResponse } from './types';
+import { UpdateUserSettingsSchema } from './types.js';
+import type { UpdateUserSettingsInput, SettingsResponse } from './types.js';
 
 const prisma = new PrismaClient();
 

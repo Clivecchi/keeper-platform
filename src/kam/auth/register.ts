@@ -13,8 +13,8 @@
 import { PrismaClient } from '@prisma/client';
 import * as crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import { RegisterInputSchema } from './types';
-import type { RegisterInput, AuthResponse, AuthUser } from './types';
+import { RegisterInputSchema } from './types.js';
+import type { RegisterInput, AuthResponse, AuthUser } from './types.js';
 // import { hashPassword } from '../lib/hashPassword'; // CRITICAL: Implement and use this for actual password hashing.
 
 const prisma = new PrismaClient();

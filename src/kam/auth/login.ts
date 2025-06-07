@@ -3,8 +3,8 @@
 // KAM Rules headers as in register.ts...
 
 import { PrismaClient } from '@prisma/client';
-import { LoginInputSchema } from './types';
-import type { LoginInput, AuthResponse, AuthUser } from './types';
+import { LoginInputSchema } from './types.js';
+import type { LoginInput, AuthResponse, AuthUser } from './types.js';
 import bcrypt from 'bcryptjs';
 // import { verifyPassword } from '../lib/hashPassword'; // Crucial for password verification
 // import { createSession } from './session'; // For creating a session on login
