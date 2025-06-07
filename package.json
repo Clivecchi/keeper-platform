@@ -5,18 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b tsconfig.app.json && vite build",
     "build:server": "tsc --project tsconfig.node.json",
     "start": "node dist/index.js",
     "lint": "eslint .",
-    "preview": "vite pr eview",
+    "preview": "vite preview",
     "tailwind:init": "tailwindcss init -p",
     "db:pull": "dotenv -e .env -- pnpm prisma db pull",
     "db:push": "dotenv -e .env -- pnpm prisma db push",
     "db:generate": "dotenv -e .env -- pnpm prisma generate",
     "db:studio": "dotenv -e .env -- pnpm prisma studio",
     "preinstall": "npx only-allow pnpm"
-    
   },
   "dependencies": {
     "@prisma/client": "^6.7.0",
