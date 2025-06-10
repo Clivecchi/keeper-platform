@@ -1,7 +1,7 @@
 // TASK: Create an authenticated route to return user settings
 // 📄 File: src/api/kam/settings.ts
-import { getSessionHandler } from '../../kam/auth/session';
-import { getUserSettingsHandler } from '../../kam/settings';
+import { getSessionHandler } from '../../kam/auth/session.js';
+import { getUserSettingsHandler } from '../../kam/settings/index.js';
 export default async function handler(req, res) {
     const authHeader = req.headers.authorization;
     const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;

@@ -15,6 +15,6 @@
 // Example usage:
 // export * from '../auth/types'; 
 //Use this file as the source of truth for type imports across KAM modules.
-export * from '../auth/types';
-export * from '../api/types';
-export * from '../hooks/types';
+export * from '../auth/types.js';
+export * from '../api/types.js';
+export * from '../hooks/types.js';

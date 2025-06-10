@@ -12,7 +12,8 @@
 import { PrismaClient } from '@prisma/client';
 import * as crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import { RegisterInputSchema } from './types';
+import { RegisterInputSchema } from './types.js';
+import { createSession } from './session.js';
 // import { hashPassword } from '../lib/hashPassword'; // CRITICAL: Implement and use this for actual password hashing.
 const prisma = new PrismaClient();
 // const KEEPER_CLASSIC_THEME_ID = 'keeper-classic-theme-id'; // No longer needed
@@ -31,7 +32,7 @@ export async function registerUserHandler(data) {
             return {
                 success: false,
                 error: {
-                    message: 'Invalid registration data',
+                    message: validationResult.error.errors.map(e => e.message).join(', '),
                     code: 'VALIDATION_ERROR',
                 },
             };
@@ -83,9 +84,13 @@ export async function registerUserHandler(data) {
                 // respectSystemTheme: true, // Optional: set default respectSystemTheme (Prisma default is true)
             }
         });
+        const session = await createSession(newUser);
         return {
             success: true,
-            data: newUser,
+            data: {
+                user: newUser,
+                token: session.token,
+            },
         };
     }
     catch (error) {

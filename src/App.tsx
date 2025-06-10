@@ -1,25 +1,22 @@
-import { useState } from 'react';
-import './index.css'; // Make sure this includes Tailwind directives
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import { AppLayout } from './layouts/AppLayout';
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import RootKeeperPage from './pages/RootKeeperPage';
 
-function App() {
-  const [count, setCount] = useState(0);
-
+const App: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
-      <h1 className="text-4xl font-bold text-blue-600 mb-4">
-        Tailwind is finally working.
-      </h1>
-      <div className="bg-white shadow p-6 rounded-lg">
-        <p className="text-lg mb-2">This is a basic Tailwind-styled box.</p>
-        <button
-          onClick={() => setCount((count) => count + 1)}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-        >
-          Count is {count}
-        </button>
-      </div>
-    </div>
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route path="/root" element={<RootKeeperPage />} />
+      </Route>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+    </Routes>
   );
-}
+};
 
 export default App;

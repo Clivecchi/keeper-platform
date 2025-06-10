@@ -1,15 +1,14 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "lib": ["DOM", "DOM.Iterable", "ES2020"],
-    "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
+    "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true
+    "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.tsx", "src/**/*.ts", "vite.config.ts"]
+  "include": ["src/**/*.tsx", "src/**/*.ts"],
+  "exclude": ["src/index.ts", "src/**/*.test.ts", "dist"]
 }

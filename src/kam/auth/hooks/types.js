@@ -1,4 +1,4 @@
-export {};
+"use strict";
 /**
  * Type definitions for client-side hooks.
  * Used to strongly type hook returns (e.g., session shape, status enum).

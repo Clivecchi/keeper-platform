@@ -14,7 +14,8 @@ import { PrismaClient } from '@prisma/client';
 import * as crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { RegisterInputSchema } from './types.js';
-import type { RegisterInput, AuthResponse, AuthUser } from './types.js';
+import type { RegisterInput, AuthResponse, AuthUser, AuthSuccessData } from './types.js';
+import { createSession } from './session.js';
 // import { hashPassword } from '../lib/hashPassword'; // CRITICAL: Implement and use this for actual password hashing.
 
 const prisma = new PrismaClient();
@@ -28,14 +29,14 @@ const prisma = new PrismaClient();
  * @param data - The registration input data (email, password, name?).
  * @returns AuthResponse containing AuthUser data (id, email, name, avatar_url) or an error.
  */
-export async function registerUserHandler(data: RegisterInput): Promise<AuthResponse<AuthUser>> {
+export async function registerUserHandler(data: RegisterInput): Promise<AuthResponse<AuthSuccessData>> {
   try {
     const validationResult = RegisterInputSchema.safeParse(data);
     if (!validationResult.success) {
       return {
         success: false,
         error: {
-          message: 'Invalid registration data',
+          message: validationResult.error.errors.map(e => e.message).join(', '),
           code: 'VALIDATION_ERROR',
         },
       };
@@ -96,9 +97,14 @@ export async function registerUserHandler(data: RegisterInput): Promise<AuthResp
         }
     });
 
+    const session = await createSession(newUser);
+
     return {
       success: true,
-      data: newUser, 
+      data: {
+        user: newUser,
+        token: session.token,
+      },
     };
 
   } catch (error) {

@@ -2,7 +2,7 @@
 // Based on KAM architectural rules and Prisma Model Reference
 import { PrismaClient } from '@prisma/client';
 import * as crypto from 'crypto'; // For generating ID if creating settings
-import { UpdateUserSettingsSchema } from './types';
+import { UpdateUserSettingsSchema } from './types.js';
 const prisma = new PrismaClient();
 // const DEFAULT_PREFERRED_THEME_ID = 'default-theme-id-placeholder'; // No longer needed due to Prisma @default
 /**

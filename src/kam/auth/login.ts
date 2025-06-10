@@ -4,8 +4,9 @@
 
 import { PrismaClient } from '@prisma/client';
 import { LoginInputSchema } from './types.js';
-import type { LoginInput, AuthResponse, AuthUser } from './types.js';
+import type { LoginInput, AuthResponse, AuthUser, AuthSuccessData } from './types.js';
 import bcrypt from 'bcryptjs';
+import { createSession } from './session.js';
 // import { verifyPassword } from '../lib/hashPassword'; // Crucial for password verification
 // import { createSession } from './session'; // For creating a session on login
 
@@ -18,13 +19,16 @@ const prisma = new PrismaClient();
  * @param data - The login input data (email, password).
  * @returns AuthResponse containing AuthUser data or an error.
  */
-export async function loginUserHandler(data: LoginInput): Promise<AuthResponse<AuthUser>> {
+export async function loginUserHandler(data: LoginInput): Promise<AuthResponse<AuthSuccessData>> {
   try {
     const validationResult = LoginInputSchema.safeParse(data);
     if (!validationResult.success) {
       return {
         success: false,
-        error: { message: 'Invalid login data', code: 'VALIDATION_ERROR' },
+        error: {
+          message: validationResult.error.errors.map(e => e.message).join(', '),
+          code: 'VALIDATION_ERROR',
+        },
       };
     }
 
@@ -61,8 +65,7 @@ export async function loginUserHandler(data: LoginInput): Promise<AuthResponse<A
     }
 
     // Session creation logic would go here, e.g.:
-    // const session = await createSession({ userId: user.id, email: user.email, name: user.name });
-    // For now, just returning user data as per AuthUser.
+    const session = await createSession(user);
 
     const authUser: AuthUser = {
         id: user.id,
@@ -73,7 +76,10 @@ export async function loginUserHandler(data: LoginInput): Promise<AuthResponse<A
 
     return {
       success: true,
-      data: authUser,
+      data: {
+        user: authUser,
+        token: session.token,
+      },
     };
 
   } catch (error) {

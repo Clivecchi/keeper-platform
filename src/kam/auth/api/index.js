@@ -1,4 +1,4 @@
-export {};
+"use strict";
 /**
  * This file will export all authentication-related API handlers.
  * For example:

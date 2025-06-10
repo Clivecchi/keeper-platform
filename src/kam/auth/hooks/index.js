@@ -1,4 +1,4 @@
-export {};
+"use strict";
 /**
  * Export client-side hooks related to authentication.
  * Examples:

@@ -57,6 +57,15 @@ export interface AuthUser {
 }
 
 /**
+ * Represents the successful response from an authentication request.
+ * Includes user data and an optional token.
+ */
+export interface AuthSuccessData {
+  user: AuthUser;
+  token?: string;
+}
+
+/**
  * Represents the structure of a user session.
  */
 export interface UserSession {
@@ -70,7 +79,7 @@ export interface UserSession {
 /**
  * Generic success response for auth operations.
  */
-export interface AuthSuccessResponse<T = AuthUser | UserSession> {
+export interface AuthSuccessResponse<T = AuthSuccessData> {
   success: true;
   data: T;
 }
@@ -87,4 +96,4 @@ export interface AuthErrorResponse {
 }
 
 // Union type for auth responses
-export type AuthResponse<T = AuthUser | UserSession> = AuthSuccessResponse<T> | AuthErrorResponse; 
+export type AuthResponse<T = AuthSuccessData> = AuthSuccessResponse<T> | AuthErrorResponse; 

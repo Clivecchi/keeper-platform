@@ -2,8 +2,9 @@
 // Based on KAM and Prisma Model Reference
 // KAM Rules headers as in register.ts...
 import { PrismaClient } from '@prisma/client';
-import { LoginInputSchema } from './types';
+import { LoginInputSchema } from './types.js';
 import bcrypt from 'bcryptjs';
+import { createSession } from './session.js';
 // import { verifyPassword } from '../lib/hashPassword'; // Crucial for password verification
 // import { createSession } from './session'; // For creating a session on login
 const prisma = new PrismaClient();
@@ -20,7 +21,10 @@ export async function loginUserHandler(data) {
         if (!validationResult.success) {
             return {
                 success: false,
-                error: { message: 'Invalid login data', code: 'VALIDATION_ERROR' },
+                error: {
+                    message: validationResult.error.errors.map(e => e.message).join(', '),
+                    code: 'VALIDATION_ERROR',
+                },
             };
         }
         const { email, password } = validationResult.data;
@@ -50,8 +54,7 @@ export async function loginUserHandler(data) {
             };
         }
         // Session creation logic would go here, e.g.:
-        // const session = await createSession({ userId: user.id, email: user.email, name: user.name });
-        // For now, just returning user data as per AuthUser.
+        const session = await createSession(user);
         const authUser = {
             id: user.id,
             email: user.email,
@@ -60,7 +63,10 @@ export async function loginUserHandler(data) {
         };
         return {
             success: true,
-            data: authUser,
+            data: {
+                user: authUser,
+                token: session.token,
+            },
         };
     }
     catch (error) {

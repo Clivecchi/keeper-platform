@@ -2,7 +2,7 @@
 // Based on KAM and Prisma Model Reference
 // KAM Rules headers as in register.ts...
 
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import type { UserSession } from './types.js';
 // PrismaClient is not strictly needed here anymore if we don't look up users in getSessionHandler directly,
 // but it might be used if we decide to enrich session data from DB. For now, keeping it commented.
