@@ -1,6 +1,7 @@
 // TASK: Create a React hook that fetches the current user's settings
 // 📄 File: src/hooks/useUserSettings.ts
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 export function useUserSettings() {
     const [settings, setSettings] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -9,12 +10,11 @@ export function useUserSettings() {
         async function fetchSettings() {
             try {
                 const token = localStorage.getItem('token'); // Or fetch from context
-                const res = await fetch('/api/kam/settings', {
+                const data = (await apiFetch('/api/kam/settings', {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
-                });
-                const data = (await res.json());
+                }));
                 if (data.success) {
                     setSettings(data.data);
                 }

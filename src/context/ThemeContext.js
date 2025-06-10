@@ -2,6 +2,7 @@ import { jsx as _jsx } from "react/jsx-runtime";
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { fetchThemeById } from '../lib/themeApi';
+import { apiFetch } from '@/lib/api';
 // Hardcoded fallback theme to guarantee UI rendering if the API fails.
 const KEEPER_CLASSIC_FALLBACK = {
     id: 'caa32a04-cd5a-4538-8572-f5ff5add85d0',
@@ -34,13 +35,10 @@ export const ThemeProvider = ({ children }) => {
             let themeIdToLoad = KEEPER_CLASSIC_ID;
             if (isAuthenticated && token) {
                 try {
-                    const response = await fetch('/api/kam/settings', {
+                    const settings = await apiFetch('/api/kam/settings', {
                         headers: { Authorization: `Bearer ${token}` },
                     });
-                    if (response.ok) {
-                        const settings = await response.json();
-                        themeIdToLoad = settings.data?.preferred_theme_id || KEEPER_CLASSIC_ID;
-                    }
+                    themeIdToLoad = settings.data?.preferred_theme_id || KEEPER_CLASSIC_ID;
                 }
                 catch (error) {
                     console.error('Failed to fetch user settings, will use default theme.', error);

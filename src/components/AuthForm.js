@@ -2,6 +2,7 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { apiFetch } from '@/lib/api';
 export const AuthForm = ({ isRegister = false }) => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -20,12 +21,10 @@ export const AuthForm = ({ isRegister = false }) => {
             payload.name = name;
         }
         try {
-            const response = await fetch(endpoint, {
+            const result = await apiFetch(endpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
-            const result = await response.json();
             if (result.success) {
                 auth.login(result.data);
                 navigate('/root');

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { apiFetch } from '@/lib/api';
 
 interface AuthFormProps {
   isRegister?: boolean;
@@ -29,13 +30,10 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false }) => {
     }
 
     try {
-      const response = await fetch(endpoint, {
+      const result = await apiFetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-
-      const result = await response.json();
 
       if (result.success) {
         auth.login(result.data);

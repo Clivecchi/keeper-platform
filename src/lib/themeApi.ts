@@ -1,3 +1,5 @@
+import { apiFetch } from '@/lib/api';
+
 /**
  * Represents the structure of color tokens for a single mode (light or dark).
  */
@@ -74,14 +76,7 @@ export const fetchThemeById = async (themeId: string, token?: string): Promise<T
   }
 
   try {
-    const response = await fetch(`/api/themes/${themeId}`, { headers });
-
-    if (!response.ok) {
-      console.error(`Failed to fetch theme ${themeId}. Status: ${response.status}`);
-      return null;
-    }
-
-    const data: FetchedTheme = await response.json();
+    const data: FetchedTheme = await apiFetch(`/api/themes/${themeId}`, { headers });
 
     if (!data.data) {
       console.error(`API response for theme ${themeId} is missing the 'data' field.`);

@@ -2,6 +2,7 @@
 // 📄 File: src/hooks/useUserSettings.ts
 
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 
 interface UserSettings {
   id: string;
@@ -37,13 +38,12 @@ export function useUserSettings(): UseUserSettingsResult {
     async function fetchSettings() {
       try {
         const token = localStorage.getItem('token'); // Or fetch from context
-        const res = await fetch('/api/kam/settings', {
+        const data = (await apiFetch('/api/kam/settings', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        });
+        })) as UserSettingsResponse;
 
-        const data = (await res.json()) as UserSettingsResponse;
         if (data.success) {
           setSettings(data.data);
         } else {

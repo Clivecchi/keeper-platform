@@ -1,3 +1,4 @@
+import { apiFetch } from '@/lib/api';
 const hexToHslString = (hex) => {
     if (!hex)
         return '0 0% 0%';
@@ -38,12 +39,7 @@ export const fetchThemeById = async (themeId, token) => {
         headers['Authorization'] = `Bearer ${token}`;
     }
     try {
-        const response = await fetch(`/api/themes/${themeId}`, { headers });
-        if (!response.ok) {
-            console.error(`Failed to fetch theme ${themeId}. Status: ${response.status}`);
-            return null;
-        }
-        const data = await response.json();
+        const data = await apiFetch(`/api/themes/${themeId}`, { headers });
         if (!data.data) {
             console.error(`API response for theme ${themeId} is missing the 'data' field.`);
             return null;

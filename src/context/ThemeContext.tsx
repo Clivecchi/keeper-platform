@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { Theme, ThemeTokens, fetchThemeById } from '../lib/themeApi';
+import { apiFetch } from '@/lib/api';
 
 // Hardcoded fallback theme to guarantee UI rendering if the API fails.
 const KEEPER_CLASSIC_FALLBACK: Theme = {
@@ -53,13 +54,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       
       if (isAuthenticated && token) {
         try {
-          const response = await fetch('/api/kam/settings', {
+          const settings = await apiFetch('/api/kam/settings', {
             headers: { Authorization: `Bearer ${token}` },
           });
-          if (response.ok) {
-            const settings = await response.json();
-            themeIdToLoad = settings.data?.preferred_theme_id || KEEPER_CLASSIC_ID;
-          }
+          themeIdToLoad = settings.data?.preferred_theme_id || KEEPER_CLASSIC_ID;
         } catch (error) {
           console.error('Failed to fetch user settings, will use default theme.', error);
         }
