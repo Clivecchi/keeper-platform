@@ -3,7 +3,7 @@
     "env": {
       "NODE_ENV": "production"
     },
-    "command": "pnpm install && pnpm run build:server"
+    "command": "pnpm install && pnpm run build && pnpm run build:server"
   },
   "start": {
     "command": "pnpm start"
