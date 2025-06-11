@@ -11,13 +11,18 @@ import type { Request, Response } from 'express';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-console.log('✅ Keeper backend server running');
-
-// Handle OPTIONS preflight requests
+// ✅ Respond to all CORS preflight requests
 app.options('*', cors());
+
+// ✅ Enable actual CORS for all methods
 app.use(cors({ origin: true, credentials: true }));
 
+// ✅ Parse incoming JSON bodies
 app.use(express.json());
+
+// ✅ Startup log
+console.log('✅ Keeper backend server started');
+
 app.use(logRequestMiddleware);
 
 // Simple test route to confirm routing and CORS
