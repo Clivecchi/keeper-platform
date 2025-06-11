@@ -1,6 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 dotenv.config();
 import settingsHandler from './api/kam/settings.js'; // NOTE: must end in .js when compiled
 import { loginUserHandler } from './kam/auth/login.js';
@@ -8,6 +10,7 @@ import { registerUserHandler } from './kam/auth/register.js';
 import { logRequestMiddleware } from './middleware/logRequestMiddleware.js';
 import type { Request, Response } from 'express';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -66,6 +69,16 @@ app.use('/api/kam/settings', cors(corsOptions), async (req, res) => {
   } catch (err) {
     console.error('Handler error:', err);
     res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Serve index.html for non-API routes
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   }
 });
 
