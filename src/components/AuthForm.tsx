@@ -35,13 +35,25 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false }) => {
         body: JSON.stringify(payload),
       });
 
+      if (!isRegister) {
+        console.log('✅ Login success:', result);
+      }
+
       if (result.success) {
         auth.login(result.data);
         navigate('/root');
       } else {
         setError(result.error?.message || 'An unknown error occurred.');
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (!isRegister) {
+        // Debug logging for login failures
+        console.error('❌ Login failed:', err);
+        if (err instanceof Response) {
+          const text = await err.text();
+          console.log('⚠️ Raw response body:', text);
+        }
+      }
       setError('Failed to connect to the server. Please try again later.');
     } finally {
       setIsLoading(false);
