@@ -11,27 +11,26 @@ import type { Request, Response } from 'express';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ✅ Respond to all CORS preflight requests
-app.options('*', cors());
+// ✅ Startup log
+console.log('✅ Keeper backend server started');
 
-// ✅ Enable actual CORS for all methods
-app.use(cors({ origin: true, credentials: true }));
+const corsOptions = { origin: true, credentials: true };
+
+// Handle OPTIONS preflight requests
+app.options('*', cors(corsOptions));
 
 // ✅ Parse incoming JSON bodies
 app.use(express.json());
 
-// ✅ Startup log
-console.log('✅ Keeper backend server started');
-
 app.use(logRequestMiddleware);
 
 // Simple test route to confirm routing and CORS
-app.get('/api/test', (req, res) => {
+app.get('/api/test', cors(corsOptions), (req, res) => {
   res.json({ message: '✅ Test route working', origin: req.headers.origin });
 });
 
 // Auth routes
-app.post('/api/kam/auth/register', async (req, res) => {
+app.post('/api/kam/auth/register', cors(corsOptions), async (req, res) => {
   try {
     const result = await registerUserHandler(req.body);
     res.status(result.success ? 200 : 400).json(result);
@@ -52,10 +51,10 @@ const loginRouteHandler = async (req: Request, res: Response) => {
   }
 };
 
-app.post('/api/kam/auth/login', loginRouteHandler);
+app.post('/api/kam/auth/login', cors(corsOptions), loginRouteHandler);
 
 // Settings route
-app.use('/api/kam/settings', async (req, res) => {
+app.use('/api/kam/settings', cors(corsOptions), async (req, res) => {
   try {
     await settingsHandler(req, res);
   } catch (err) {
