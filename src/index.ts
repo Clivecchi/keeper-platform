@@ -1,21 +1,28 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
 dotenv.config();
 import settingsHandler from './api/kam/settings.js'; // NOTE: must end in .js when compiled
 import { loginUserHandler } from './kam/auth/login.js';
 import { registerUserHandler } from './kam/auth/register.js';
 import { logRequestMiddleware } from './middleware/logRequestMiddleware.js';
 import type { Request, Response } from 'express';
-import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+console.log('✅ Keeper server started');
+
+// Apply CORS as the very first middleware
+app.use(cors({ origin: true, credentials: true }));
+
 app.use(express.json());
 app.use(logRequestMiddleware);
 
-// Temporarily open CORS for debugging
-app.use(cors({ origin: true, credentials: true }));
+// Simple test route to confirm routing and CORS
+app.get('/api/test', (req, res) => {
+  res.json({ message: '✅ Test route working', origin: req.headers.origin });
+});
 
 // Auth routes
 app.post('/api/kam/auth/register', async (req, res) => {
