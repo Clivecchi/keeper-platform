@@ -11,9 +11,10 @@ import type { Request, Response } from 'express';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-console.log('✅ Keeper server started');
+console.log('✅ Keeper backend server running');
 
-// Apply CORS as the very first middleware
+// Handle OPTIONS preflight requests
+app.options('*', cors());
 app.use(cors({ origin: true, credentials: true }));
 
 app.use(express.json());
