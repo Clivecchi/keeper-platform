@@ -21,6 +21,7 @@ const corsOptions = { origin: true, credentials: true };
 
 // Handle OPTIONS preflight requests
 app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
 
 // ✅ Parse incoming JSON bodies
 app.use(express.json());
@@ -28,12 +29,12 @@ app.use(express.json());
 app.use(logRequestMiddleware);
 
 // Simple test route to confirm routing and CORS
-app.get('/api/test', cors(corsOptions), (req, res) => {
+app.get('/api/test', (req, res) => {
   res.json({ message: '✅ Test route working', origin: req.headers.origin });
 });
 
 // Auth routes
-app.post('/api/kam/auth/register', cors(corsOptions), async (req, res) => {
+app.post('/api/kam/auth/register', async (req, res) => {
   try {
     const result = await registerUserHandler(req.body);
     res.status(result.success ? 200 : 400).json(result);
@@ -54,16 +55,15 @@ const loginRouteHandler = async (req: Request, res: Response) => {
   }
 };
 
-app.options('/api/kam/auth/login', cors(corsOptions));
-app.post('/api/kam/auth/login', cors(corsOptions), loginRouteHandler);
+app.post('/api/kam/auth/login', loginRouteHandler);
 
 // Fallback debug handler
-app.all('/api/kam/auth/login', cors(corsOptions), (req, res) => {
+app.all('/api/kam/auth/login', (req, res) => {
   res.status(200).json({ debug: true, method: req.method });
 });
 
 // Settings route
-app.use('/api/kam/settings', cors(corsOptions), async (req, res) => {
+app.use('/api/kam/settings', async (req, res) => {
   try {
     await settingsHandler(req, res);
   } catch (err) {
