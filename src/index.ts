@@ -54,6 +54,11 @@ const loginRouteHandler = async (req: Request, res: Response) => {
 app.options('/api/kam/auth/login', cors(corsOptions));
 app.post('/api/kam/auth/login', cors(corsOptions), loginRouteHandler);
 
+// Fallback debug handler
+app.all('/api/kam/auth/login', cors(corsOptions), (req, res) => {
+  res.status(200).json({ debug: true, method: req.method });
+});
+
 // Settings route
 app.use('/api/kam/settings', cors(corsOptions), async (req, res) => {
   try {
