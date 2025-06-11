@@ -6,12 +6,18 @@ import { loginUserHandler } from './kam/auth/login.js';
 import { registerUserHandler } from './kam/auth/register.js';
 import { logRequestMiddleware } from './middleware/logRequestMiddleware.js';
 import type { Request, Response } from 'express';
+import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
 app.use(logRequestMiddleware);
+
+app.use(cors({
+  origin: 'https://v0-keeper.vercel.app',
+  credentials: true
+}));
 
 // Auth routes
 app.post('/api/kam/auth/register', async (req, res) => {
