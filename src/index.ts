@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 dotenv.config();
 import settingsHandler from './api/kam/settings.js'; // NOTE: must end in .js when compiled
 import { loginUserHandler } from './kam/auth/login.js';
@@ -80,6 +81,18 @@ app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   }
+});
+
+app.get('/debug/index-code', (req, res) => {
+  const filePath = path.resolve('./dist/index.js');
+  fs.readFile(filePath, 'utf8', (err, data) => {
+    if (err) {
+      console.error('Failed to read index.js:', err);
+      res.status(500).send('Error reading file.');
+    } else {
+      res.type('text/plain').send(data);
+    }
+  });
 });
 
 console.log('✅ Keeper Express server starting...');
