@@ -51,6 +51,7 @@ const loginRouteHandler = async (req: Request, res: Response) => {
   }
 };
 
+app.options('/api/kam/auth/login', cors(corsOptions));
 app.post('/api/kam/auth/login', cors(corsOptions), loginRouteHandler);
 
 // Settings route
