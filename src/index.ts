@@ -14,10 +14,8 @@ const PORT = process.env.PORT || 3001;
 app.use(express.json());
 app.use(logRequestMiddleware);
 
-app.use(cors({
-  origin: 'https://v0-keeper.vercel.app',
-  credentials: true
-}));
+// Temporarily open CORS for debugging
+app.use(cors({ origin: true, credentials: true }));
 
 // Auth routes
 app.post('/api/kam/auth/register', async (req, res) => {
@@ -31,6 +29,7 @@ app.post('/api/kam/auth/register', async (req, res) => {
 });
 
 const loginRouteHandler = async (req: Request, res: Response) => {
+  console.log('🔐 Login route hit');
   try {
     const result = await loginUserHandler(req.body);
     res.status(result.success ? 200 : 401).json(result);
@@ -52,6 +51,7 @@ app.use('/api/kam/settings', async (req, res) => {
   }
 });
 
+console.log('✅ Keeper Express server starting...');
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 }); 
