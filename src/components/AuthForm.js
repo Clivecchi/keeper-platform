@@ -25,6 +25,9 @@ export const AuthForm = ({ isRegister = false }) => {
                 method: 'POST',
                 body: JSON.stringify(payload),
             });
+            if (!isRegister) {
+                console.log('✅ Login success:', result);
+            }
             if (result.success) {
                 auth.login(result.data);
                 navigate('/root');
@@ -34,6 +37,14 @@ export const AuthForm = ({ isRegister = false }) => {
             }
         }
         catch (err) {
+            if (!isRegister) {
+                // Debug logging for login failures
+                console.error('❌ Login failed:', err);
+                if (err instanceof Response) {
+                    const text = await err.text();
+                    console.log('⚠️ Raw response body:', text);
+                }
+            }
             setError('Failed to connect to the server. Please try again later.');
         }
         finally {
