@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prepare":"pnpm prisma generate",
     "build": "tsc -b tsconfig.app.json && vite build",
     "build:server": "tsc --project tsconfig.node.json",
     "start": "node dist/index.js",

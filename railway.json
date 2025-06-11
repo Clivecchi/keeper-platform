@@ -1,15 +1,14 @@
 {
-    "build": {
-      "env": {
-        "NODE_ENV": "production"
-      },
-      "command": "pnpm install && pnpm prisma generate && pnpm run build:server"
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
     },
-    "start": {
-      "command": "pnpm start"
-    },
-    "deploy": {
-      "entrypoint": "."
-    }
+    "command": "pnpm install && pnpm run build:server"
+  },
+  "start": {
+    "command": "pnpm start"
+  },
+  "deploy": {
+    "entrypoint": "."
   }
-  
+}
