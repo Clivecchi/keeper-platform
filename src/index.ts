@@ -84,14 +84,13 @@ app.get('*', (req, res) => {
 });
 
 app.get('/debug/index-code', (req, res) => {
-  const filePath = path.resolve('./dist/index.js');
+  const filePath = path.resolve('dist', 'index.js');
   fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) {
-      console.error('Failed to read index.js:', err);
-      res.status(500).send('Error reading file.');
-    } else {
-      res.type('text/plain').send(data);
+      console.error('Error reading index.js:', err);
+      return res.status(500).send('Error reading deployed index.js');
     }
+    res.type('text/plain').send(data);
   });
 });
 
