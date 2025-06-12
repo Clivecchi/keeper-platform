@@ -25,22 +25,12 @@ const allowedOrigins = process.env.CORS_ORIGINS
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // allow REST tools or same-origin server-to-server calls (no origin header)
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error('Not allowed by CORS'));
-    },
+    origin: allowedOrigins,
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type,Authorization',
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
-// Explicit pre-flight response
-app.options('*', (_req, res, _next) => {
-  res.sendStatus(204);
-});
 
 // ✅ Parse incoming JSON bodies
 app.use(express.json());
