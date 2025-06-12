@@ -23,14 +23,17 @@ const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
   : ['https://v0-keeper.vercel.app', 'http://localhost:5173'];
 
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
+const corsOptions = {
+  origin: allowedOrigins,
+  credentials: true,
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+// Handle preflight explicitly for all routes
+app.options('*', cors(corsOptions));
 
 // ✅ Parse incoming JSON bodies
 app.use(express.json());
