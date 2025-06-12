@@ -31,9 +31,17 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
+// Log every incoming request (for debugging in Railway logs)
+app.use((req, _res, next) => {
+  console.log(`[IN] ${req.method} ${req.path}`);
+  next();
+});
+
+// Apply CORS
 app.use(cors(corsOptions));
-// Handle preflight explicitly for all routes
-app.options('*', cors(corsOptions));
+
+// Explicit preflight handler for all API routes (covers nested paths)
+app.options('/api/*', cors(corsOptions));
 
 // ✅ Parse incoming JSON bodies
 app.use(express.json());
