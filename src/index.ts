@@ -18,11 +18,29 @@ const PORT = process.env.PORT || 3001;
 // ✅ Startup log
 console.log('✅ Keeper backend server started');
 
-const corsOptions = { origin: true, credentials: true };
+// 🚦 CORS setup
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+  : ['https://v0-keeper.vercel.app', 'http://localhost:5173'];
 
-// Handle OPTIONS preflight requests
-app.options('*', cors(corsOptions));
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow REST tools or same-origin server-to-server calls (no origin header)
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type,Authorization',
+  })
+);
+// Explicit pre-flight response
+app.options('*', (_req, res, _next) => {
+  res.sendStatus(204);
+});
 
 // ✅ Parse incoming JSON bodies
 app.use(express.json());
@@ -57,11 +75,6 @@ const loginRouteHandler = async (req: Request, res: Response) => {
 };
 
 app.post('/api/kam/auth/login', loginRouteHandler);
-
-// Fallback debug handler
-app.all('/api/kam/auth/login', (req, res) => {
-  res.status(200).json({ debug: true, method: req.method });
-});
 
 // Settings route
 app.use('/api/kam/settings', async (req, res) => {

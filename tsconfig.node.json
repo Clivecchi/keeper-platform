@@ -3,12 +3,12 @@
     "outDir": "dist",
     "module": "NodeNext",
     "target": "es2020",
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "nodenext",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/index.ts", "src/kam/**/*"],
+  "include": ["src/index.ts", "src/kam/**/*", "src/api/**/*", "src/middleware/**/*"],
   "exclude": ["src/components", "src/context", "src/hooks", "src/pages", "src/lib"]
 }
