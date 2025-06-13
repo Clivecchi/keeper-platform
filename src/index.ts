@@ -28,12 +28,19 @@ const allowedOrigins = process.env.CORS_ORIGINS
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('🔒 CORS: Allowing request with no origin');
+      return callback(null, true);
+    }
     
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+    console.log('🔒 CORS: Checking origin:', origin);
+    console.log('🔒 CORS: Allowed origins:', allowedOrigins);
+    
+    if (allowedOrigins.includes(origin)) {
+      console.log('🔒 CORS: Origin allowed');
       callback(null, true);
     } else {
-      console.log('CORS blocked request from origin:', origin);
+      console.log('🔒 CORS: Origin blocked:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -47,20 +54,21 @@ const corsOptions = {
 console.log('🔒 CORS Configuration:', {
   allowedOrigins,
   environment: process.env.NODE_ENV,
-  corsOriginsEnv: process.env.CORS_ORIGINS
+  corsOriginsEnv: process.env.CORS_ORIGINS,
+  port: process.env.PORT
 });
+
+// Apply CORS before other middleware
+app.use(cors(corsOptions));
+
+// Explicit preflight handler for all API routes
+app.options('*', cors(corsOptions));
 
 // Log every incoming request (for debugging in Railway logs)
 app.use((req, _res, next) => {
-  console.log(`[IN] ${req.method} ${req.path}`);
+  console.log(`[IN] ${req.method} ${req.path} (Origin: ${req.headers.origin || 'none'})`);
   next();
 });
-
-// Apply CORS
-app.use(cors(corsOptions));
-
-// Explicit preflight handler for all API routes (covers nested paths)
-app.options('/api/*', cors(corsOptions));
 
 // ✅ Parse incoming JSON bodies
 app.use(express.json());
