@@ -21,15 +21,34 @@ console.log('✅ Keeper backend server started');
 // 🚦 CORS setup
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
-  : ['https://v0-keeper.vercel.app', 'http://localhost:5173'];
+  : process.env.NODE_ENV === 'production'
+    ? ['https://v0-keeper.vercel.app']
+    : ['http://localhost:5173', 'http://localhost:3000'];
 
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked request from origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   optionsSuccessStatus: 204,
 };
+
+// Log CORS configuration on startup
+console.log('🔒 CORS Configuration:', {
+  allowedOrigins,
+  environment: process.env.NODE_ENV,
+  corsOriginsEnv: process.env.CORS_ORIGINS
+});
 
 // Log every incoming request (for debugging in Railway logs)
 app.use((req, _res, next) => {
