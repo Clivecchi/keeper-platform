@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "prepare": "pnpm prisma generate",
-    "build": "pnpm prisma generate && tsc --project tsconfig.backend.json && vite build && ls -la dist/",
-    "build:backend": "tsc --project tsconfig.backend.json",
+    "build": "pnpm prisma generate && tsc --project tsconfig.backend.json && tsc-alias && vite build && ls -la dist/",
+    "build:backend": "tsc --project tsconfig.backend.json && tsc-alias",
     "start": "node --experimental-specifier-resolution=node dist/index.js",
     "start:debug": "node --experimental-specifier-resolution=node --trace-warnings dist/index.js",
     "lint": "eslint .",
@@ -56,6 +56,7 @@
     "postcss": "^8.5.4",
     "prisma": "^6.9.0",
     "tailwindcss": "^4.1.8",
+    "tsc-alias": "^1.8.16",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
     "vite": "^6.3.5"
