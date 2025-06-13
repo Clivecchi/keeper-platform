@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "prepare": "pnpm prisma generate",
-    "build": "pnpm prisma generate && vite build && tsc --project tsconfig.node.json",
+    "build": "pnpm prisma generate && tsc --project tsconfig.node.json && vite build",
     "build:backend": "tsc --project tsconfig.node.json",
     "start": "node dist/index.js",
     "lint": "eslint .",
