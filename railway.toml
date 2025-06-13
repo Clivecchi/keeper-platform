@@ -6,8 +6,8 @@ buildCommand = "pnpm install && pnpm run build"
 startCommand = "node --experimental-specifier-resolution=node --trace-warnings dist/index.js"
 healthcheckPath = "/api/test"
 healthcheckTimeout = 100
-restartPolicyType = "on-failure"
+restartPolicy = "on-failure"
 restartPolicyMaxRetries = 10
 
-[env]
+[deploy.env]
 NODE_ENV = "production" 
