@@ -18,6 +18,27 @@ const PORT = parseInt(process.env.PORT || '3001', 10);
 // ✅ Startup log
 console.log('✅ Keeper backend server started');
 
+// Add process signal handlers
+process.on('SIGTERM', () => {
+  console.log('📢 Received SIGTERM signal');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('📢 Received SIGINT signal');
+  process.exit(0);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
 try {
   console.log('1️⃣ Starting server initialization...');
 
