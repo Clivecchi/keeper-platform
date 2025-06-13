@@ -18,15 +18,37 @@ const PORT = parseInt(process.env.PORT || '3001', 10);
 // ✅ Startup log
 console.log('✅ Keeper backend server started');
 
+let server: any;
+
 // Add process signal handlers
 process.on('SIGTERM', () => {
   console.log('📢 Received SIGTERM signal');
-  process.exit(0);
+  console.log('🔄 Starting graceful shutdown...');
+  
+  if (server) {
+    server.close(() => {
+      console.log('✅ Server closed successfully');
+      process.exit(0);
+    });
+  } else {
+    console.log('⚠️ No server instance to close');
+    process.exit(0);
+  }
 });
 
 process.on('SIGINT', () => {
   console.log('📢 Received SIGINT signal');
-  process.exit(0);
+  console.log('🔄 Starting graceful shutdown...');
+  
+  if (server) {
+    server.close(() => {
+      console.log('✅ Server closed successfully');
+      process.exit(0);
+    });
+  } else {
+    console.log('⚠️ No server instance to close');
+    process.exit(0);
+  }
 });
 
 process.on('uncaughtException', (error) => {
@@ -162,7 +184,7 @@ try {
   });
 
   console.log('🚀 Attempting to start server...');
-  app.listen(PORT, '0.0.0.0', () => {
+  server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Server successfully bound to port ${PORT}`);
     console.log(`📡 Accepting connections on all interfaces (0.0.0.0)`);
   });
