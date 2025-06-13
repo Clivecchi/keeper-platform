@@ -32,17 +32,15 @@ const getCorsOrigins = () => {
     ];
   }
   
-  // First replace any semicolons with commas, then split
-  const cleanOrigins = envOrigins.replace(/;/g, ',');
-  console.log('Cleaned CORS_ORIGINS:', cleanOrigins);
-  
-  // Split by comma and clean each origin
-  const origins = cleanOrigins
+  // Simple split and trim
+  const origins = envOrigins
     .split(',')
     .map(origin => origin.trim())
-    .filter(origin => origin.length > 0); // Remove any empty strings
+    .filter(origin => origin.length > 0);
     
-  console.log('Parsed CORS origins:', JSON.stringify(origins, null, 2));
+  // Log each origin individually to see actual values
+  origins.forEach((o, i) => console.log(`Origin [${i}]:`, JSON.stringify(o)));
+  
   return origins;
 };
 
@@ -52,18 +50,12 @@ const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
-      console.log('🔒 CORS: Allowing request with no origin');
       return callback(null, true);
     }
     
-    console.log('🔒 CORS: Checking origin:', origin);
-    console.log('🔒 CORS: Allowed origins:', allowedOrigins);
-    
     if (allowedOrigins.includes(origin)) {
-      console.log('🔒 CORS: Origin allowed');
       callback(null, true);
     } else {
-      console.log('🔒 CORS: Origin blocked:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
