@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "NodeNext",
+    "target": "es2020",
+    "moduleResolution": "nodenext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src/index.ts", "src/kam/**/*", "src/api/**/*", "src/middleware/**/*"],
+  "exclude": ["node_modules", "dist", "src/components", "src/context", "src/hooks", "src/pages", "src/lib"]
+} 

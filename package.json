@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "prepare": "pnpm prisma generate",
-    "build": "pnpm prisma generate && tsc --project tsconfig.node.json && vite build && ls -la dist/",
-    "build:backend": "tsc --project tsconfig.node.json",
+    "build": "pnpm prisma generate && tsc --project tsconfig.backend.json && vite build",
+    "build:backend": "tsc --project tsconfig.backend.json",
     "start": "node --experimental-specifier-resolution=node dist/index.js",
     "lint": "eslint .",
     "preview": "vite preview",
