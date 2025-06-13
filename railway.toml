@@ -1,12 +1,12 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm run build"
+buildCommand = "pnpm install && pnpm run build"
 
 [deploy]
-startCommand = "npm start"
+startCommand = "pnpm start"
 healthcheckPath = "/api/test"
 healthcheckTimeout = 100
-restartPolicyType = "on-failure"
+restartPolicy = "on-failure"
 restartPolicyMaxRetries = 10
 
 [env]

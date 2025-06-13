@@ -1,0 +1,6 @@
+{
+  "buildCommand": "pnpm install && pnpm prisma generate && pnpm run build",
+  "installCommand": "pnpm install",
+  "framework": "vite",
+  "outputDirectory": "dist"
+} 
