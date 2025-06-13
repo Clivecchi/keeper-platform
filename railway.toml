@@ -1,12 +1,12 @@
 [build]
 builder = "nixpacks"
-buildCommand = "pnpm install && pnpm run build"
+buildCommand = "cd backend && pnpm install && pnpm prisma:generate && pnpm build"
 
 [deploy]
-startCommand = "node --experimental-specifier-resolution=node --trace-warnings dist/index.js"
+startCommand = "cd backend && pnpm start"
 healthcheckPath = "/api/test"
 healthcheckTimeout = 100
-restartPolicy = "on-failure"
+restartPolicyType = "on-failure"
 restartPolicyMaxRetries = 10
 
 [deploy.env]
