@@ -19,24 +19,35 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret'; // Secure this in pro
  * @returns A UserSession object containing the token and user details.
  */
 export async function createSession(user: { id:string; email: string | null; name?: string | null }): Promise<UserSession> {
+  console.log('[SESSION] Creating session for user:', user.id);
+  
   const payload = {
     userId: user.id,
     email: user.email,
     name: user.name,
   };
+  console.log('[SESSION] JWT payload:', payload);
+
+  if (!process.env.JWT_SECRET) {
+    console.warn('[SESSION] WARNING: Using fallback JWT_SECRET. This should not happen in production!');
+  }
 
   const token = jwt.sign(
     payload,
-    JWT_SECRET,
-    { expiresIn: '7d' } // Example: 7-day expiry
+    process.env.JWT_SECRET || 'dev_secret',
+    { expiresIn: '7d' }
   );
+  console.log('[SESSION] JWT token created successfully');
 
-  return {
+  const session = {
     token,
     userId: user.id,
     email: user.email,
     name: user.name,
   };
+  console.log('[SESSION] Session created successfully for user:', user.id);
+  
+  return session;
 }
 
 /**

@@ -21,8 +21,11 @@ const prisma = new PrismaClient();
  */
 export async function loginUserHandler(data: LoginInput): Promise<AuthResponse<AuthSuccessData>> {
   try {
+    console.log('[LOGIN] Starting login process for email:', data.email);
+    
     const validationResult = LoginInputSchema.safeParse(data);
     if (!validationResult.success) {
+      console.log('[LOGIN] Validation failed:', validationResult.error.errors);
       return {
         success: false,
         error: {
@@ -31,49 +34,56 @@ export async function loginUserHandler(data: LoginInput): Promise<AuthResponse<A
         },
       };
     }
+    console.log('[LOGIN] Input validation successful');
 
     const { email, password } = validationResult.data;
 
+    console.log('[LOGIN] Looking up user in database...');
     const user = await prisma.users.findUnique({
       where: { email },
     });
 
     if (!user) {
+      console.log('[LOGIN] User not found for email:', email);
       return {
         success: false,
         error: { message: 'User not found', code: 'USER_NOT_FOUND' },
       };
     }
+    console.log('[LOGIN] User found:', { id: user.id, email: user.email });
 
     if (!user.hashedPassword) {
-        // Should not happen for a registered user, but good to check
-        return {
-            success: false,
-            error: { message: 'User account not properly configured', code: 'ACCOUNT_ERROR' },
-        };
+      console.log('[LOGIN] User found but has no password hash:', user.id);
+      return {
+        success: false,
+        error: { message: 'User account not properly configured', code: 'ACCOUNT_ERROR' },
+      };
     }
 
-    // const isValidPassword = await verifyPassword(password, user.hashedPassword); // CRITICAL
-    // MOCK PASSWORD VERIFICATION - REPLACE IMMEDIATELY
+    console.log('[LOGIN] Verifying password...');
     const isValidPassword = bcrypt.compareSync(password, user.hashedPassword);
 
     if (!isValidPassword) {
+      console.log('[LOGIN] Password verification failed for user:', user.id);
       return {
         success: false,
         error: { message: 'Invalid password', code: 'INVALID_PASSWORD' },
       };
     }
+    console.log('[LOGIN] Password verified successfully');
 
-    // Session creation logic would go here, e.g.:
+    console.log('[LOGIN] Creating session...');
     const session = await createSession(user);
+    console.log('[LOGIN] Session created successfully');
 
     const authUser: AuthUser = {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatar_url: user.avatar_url,
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      avatar_url: user.avatar_url,
     };
 
+    console.log('[LOGIN] Login successful for user:', user.id);
     return {
       success: true,
       data: {
@@ -83,7 +93,7 @@ export async function loginUserHandler(data: LoginInput): Promise<AuthResponse<A
     };
 
   } catch (error) {
-    console.error('Error during user login:', error);
+    console.error('[LOGIN] Error during user login:', error);
     return {
       success: false,
       error: { message: 'An unexpected error occurred during login.', code: 'INTERNAL_SERVER_ERROR' },

@@ -18,13 +18,20 @@ const PORT = parseInt(process.env.PORT || '3001', 10);
 // ✅ Startup log
 console.log('✅ Keeper backend server started');
 
-let server: any;
+let server: any = null;
 let isShuttingDown = false;
 
-// Add process signal handlers
-process.on('SIGTERM', () => {
-  console.log('📢 Received SIGTERM signal');
-  
+// Health check endpoint for Railway
+app.get('/health', (req, res) => {
+  if (isShuttingDown) {
+    res.status(503).json({ status: 'shutting_down' });
+  } else {
+    res.status(200).json({ status: 'healthy' });
+  }
+});
+
+// Graceful shutdown handling
+const gracefulShutdown = async () => {
   if (isShuttingDown) {
     console.log('⚠️ Already shutting down, forcing exit');
     process.exit(0);
@@ -51,37 +58,16 @@ process.on('SIGTERM', () => {
     clearTimeout(forceExit);
     process.exit(0);
   }
+};
+
+process.on('SIGTERM', () => {
+  console.log('📢 Received SIGTERM signal');
+  gracefulShutdown();
 });
 
 process.on('SIGINT', () => {
   console.log('📢 Received SIGINT signal');
-  
-  if (isShuttingDown) {
-    console.log('⚠️ Already shutting down, forcing exit');
-    process.exit(0);
-    return;
-  }
-  
-  isShuttingDown = true;
-  console.log('🔄 Starting graceful shutdown...');
-  
-  // Force exit after 5 seconds
-  const forceExit = setTimeout(() => {
-    console.log('⚠️ Force exit after timeout');
-    process.exit(0);
-  }, 5000);
-  
-  if (server) {
-    server.close(() => {
-      console.log('✅ Server closed successfully');
-      clearTimeout(forceExit);
-      process.exit(0);
-    });
-  } else {
-    console.log('⚠️ No server instance to close');
-    clearTimeout(forceExit);
-    process.exit(0);
-  }
+  gracefulShutdown();
 });
 
 process.on('uncaughtException', (error) => {
@@ -226,10 +212,16 @@ try {
 
   console.log('🚀 Attempting to start server...');
   server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Server successfully bound to port ${PORT}`);
-    console.log(`📡 Accepting connections on all interfaces (0.0.0.0)`);
+    console.log('✅ Server successfully bound to port', PORT);
+    console.log('📡 Accepting connections on all interfaces (0.0.0.0)');
   });
+
+  server.on('error', (error: any) => {
+    console.error('❌ Server error:', error);
+    process.exit(1);
+  });
+
 } catch (error) {
-  console.error('❌ Server startup failed:', error);
+  console.error('❌ Fatal error during startup:', error);
   process.exit(1);
 } 
