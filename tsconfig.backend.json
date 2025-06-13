@@ -13,7 +13,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": false,
-    "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true
   },
   "include": [
