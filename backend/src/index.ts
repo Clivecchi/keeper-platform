@@ -19,34 +19,67 @@ const PORT = parseInt(process.env.PORT || '3001', 10);
 console.log('✅ Keeper backend server started');
 
 let server: any;
+let isShuttingDown = false;
 
 // Add process signal handlers
 process.on('SIGTERM', () => {
   console.log('📢 Received SIGTERM signal');
+  
+  if (isShuttingDown) {
+    console.log('⚠️ Already shutting down, forcing exit');
+    process.exit(0);
+    return;
+  }
+  
+  isShuttingDown = true;
   console.log('🔄 Starting graceful shutdown...');
+  
+  // Force exit after 5 seconds
+  const forceExit = setTimeout(() => {
+    console.log('⚠️ Force exit after timeout');
+    process.exit(0);
+  }, 5000);
   
   if (server) {
     server.close(() => {
       console.log('✅ Server closed successfully');
+      clearTimeout(forceExit);
       process.exit(0);
     });
   } else {
     console.log('⚠️ No server instance to close');
+    clearTimeout(forceExit);
     process.exit(0);
   }
 });
 
 process.on('SIGINT', () => {
   console.log('📢 Received SIGINT signal');
+  
+  if (isShuttingDown) {
+    console.log('⚠️ Already shutting down, forcing exit');
+    process.exit(0);
+    return;
+  }
+  
+  isShuttingDown = true;
   console.log('🔄 Starting graceful shutdown...');
+  
+  // Force exit after 5 seconds
+  const forceExit = setTimeout(() => {
+    console.log('⚠️ Force exit after timeout');
+    process.exit(0);
+  }, 5000);
   
   if (server) {
     server.close(() => {
       console.log('✅ Server closed successfully');
+      clearTimeout(forceExit);
       process.exit(0);
     });
   } else {
     console.log('⚠️ No server instance to close');
+    clearTimeout(forceExit);
     process.exit(0);
   }
 });
