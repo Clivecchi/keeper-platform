@@ -17,11 +17,12 @@ const PORT = parseInt(process.env.PORT || '3001', 10);
 
 // ✅ Startup log
 console.log('✅ Keeper backend server started');
+console.log('1️⃣ Starting server initialization...');
 
 // 🚦 CORS setup
-console.log('Starting CORS setup...');
+console.log('2️⃣ Starting CORS setup...');
 const getCorsOrigins = () => {
-  console.log('Getting CORS origins...');
+  console.log('3️⃣ Getting CORS origins...');
   const envOrigins = process.env.CORS_ORIGINS;
   console.log('Raw CORS_ORIGINS:', envOrigins);
   
@@ -34,7 +35,7 @@ const getCorsOrigins = () => {
     ];
   }
   
-  console.log('Parsing CORS origins...');
+  console.log('4️⃣ Parsing CORS origins...');
   // Simple split and trim
   const origins = envOrigins
     .split(',')
@@ -47,9 +48,9 @@ const getCorsOrigins = () => {
   return origins;
 };
 
-console.log('Getting allowed origins...');
+console.log('5️⃣ Getting allowed origins...');
 const allowedOrigins = getCorsOrigins();
-console.log('CORS origins setup complete');
+console.log('6️⃣ CORS origins setup complete');
 
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -70,13 +71,13 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
-console.log('Applying CORS middleware...');
+console.log('7️⃣ Applying CORS middleware...');
 // Apply CORS before other middleware
 app.use(cors(corsOptions));
 
 // Explicit preflight handler for all API routes
 app.options('*', cors(corsOptions));
-console.log('CORS middleware applied');
+console.log('8️⃣ CORS middleware applied');
 
 // Log every incoming request (for debugging in Railway logs)
 app.use((req, _res, next) => {
@@ -85,7 +86,9 @@ app.use((req, _res, next) => {
 });
 
 // ✅ Parse incoming JSON bodies
+console.log('9️⃣ Setting up JSON parsing...');
 app.use(express.json());
+console.log('🔟 JSON parsing setup complete');
 
 app.use(logRequestMiddleware);
 
@@ -135,7 +138,8 @@ console.log('🔧 Environment:', {
   HOST: process.env.HOST || '0.0.0.0'
 });
 
+console.log('🚀 Attempting to start server...');
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`✅ Server successfully bound to port ${PORT}`);
   console.log(`📡 Accepting connections on all interfaces (0.0.0.0)`);
 }); 
