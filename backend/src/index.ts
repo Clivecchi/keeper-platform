@@ -32,11 +32,14 @@ const getCorsOrigins = () => {
     ];
   }
   
+  // First replace any semicolons with commas, then split
+  const cleanOrigins = envOrigins.replace(/;/g, ',');
+  console.log('Cleaned CORS_ORIGINS:', cleanOrigins);
+  
   // Split by comma and clean each origin
-  const origins = envOrigins
+  const origins = cleanOrigins
     .split(',')
     .map(origin => origin.trim())
-    .map(origin => origin.replace(/[;,]+$/, '')) // Remove trailing semicolons and commas
     .filter(origin => origin.length > 0); // Remove any empty strings
     
   console.log('Parsed CORS origins:', JSON.stringify(origins, null, 2));
