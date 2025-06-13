@@ -1,0 +1,1 @@
+For full schema cross-reference, see [MODEL_REFERENCE.md](./MODEL_REFERENCE.md)
