@@ -19,7 +19,9 @@ const PORT = process.env.PORT || 3001;
 console.log('✅ Keeper backend server started');
 
 // 🚦 CORS setup
+console.log('Starting CORS setup...');
 const getCorsOrigins = () => {
+  console.log('Getting CORS origins...');
   const envOrigins = process.env.CORS_ORIGINS;
   console.log('Raw CORS_ORIGINS:', envOrigins);
   
@@ -32,6 +34,7 @@ const getCorsOrigins = () => {
     ];
   }
   
+  console.log('Parsing CORS origins...');
   // Simple split and trim
   const origins = envOrigins
     .split(',')
@@ -44,7 +47,9 @@ const getCorsOrigins = () => {
   return origins;
 };
 
+console.log('Getting allowed origins...');
 const allowedOrigins = getCorsOrigins();
+console.log('CORS origins setup complete');
 
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -65,18 +70,13 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
-// Log CORS configuration on startup
-console.log('🔒 CORS Configuration:', {
-  allowedOrigins,
-  environment: process.env.NODE_ENV,
-  port: process.env.PORT
-});
-
+console.log('Applying CORS middleware...');
 // Apply CORS before other middleware
 app.use(cors(corsOptions));
 
 // Explicit preflight handler for all API routes
 app.options('*', cors(corsOptions));
+console.log('CORS middleware applied');
 
 // Log every incoming request (for debugging in Railway logs)
 app.use((req, _res, next) => {
