@@ -19,11 +19,11 @@ const PORT = process.env.PORT || 3001;
 console.log('✅ Keeper backend server started');
 
 // 🚦 CORS setup
-const allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
-  : process.env.NODE_ENV === 'production'
-    ? ['https://v0-keeper.vercel.app']
-    : ['http://localhost:5173', 'http://localhost:3000'];
+const allowedOrigins = [
+  'https://v0-keeper.vercel.app',
+  'http://localhost:5173',
+  'http://livecchi.biz'
+];
 
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -54,7 +54,6 @@ const corsOptions = {
 console.log('🔒 CORS Configuration:', {
   allowedOrigins,
   environment: process.env.NODE_ENV,
-  corsOriginsEnv: process.env.CORS_ORIGINS,
   port: process.env.PORT
 });
 
