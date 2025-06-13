@@ -7,8 +7,10 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "resolveJsonModule": true
   },
-  "include": ["src/index.ts", "src/kam/**/*", "src/api/**/*", "src/middleware/**/*"],
-  "exclude": ["src/components", "src/context", "src/hooks", "src/pages", "src/lib"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

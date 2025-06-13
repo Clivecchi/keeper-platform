@@ -1,9 +1,9 @@
 [build]
 builder = "nixpacks"
-buildCommand = "pnpm install && pnpm run build && ls -la dist/"
+buildCommand = "pnpm install && pnpm run build"
 
 [deploy]
-startCommand = "pnpm start"
+startCommand = "node --experimental-specifier-resolution=node dist/index.js"
 healthcheckPath = "/api/test"
 healthcheckTimeout = 100
 restartPolicy = "on-failure"
