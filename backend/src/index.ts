@@ -160,6 +160,8 @@ try {
   // Log every incoming request (for debugging in Railway logs)
   app.use((req, _res, next) => {
     console.log(`[IN] ${req.method} ${req.path} (Origin: ${req.headers.origin || 'none'})`);
+    console.log('[REQ] Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('[REQ] Body:', JSON.stringify(req.body, null, 2));
     next();
   });
 
@@ -172,27 +174,33 @@ try {
 
   // Simple test route to confirm routing and CORS
   app.get('/api/test', (req, res) => {
+    console.log('[TEST] Test route hit');
     res.json({ message: '✅ Test route working', origin: req.headers.origin });
   });
 
   // Auth routes
   app.post('/api/kam/auth/register', async (req, res) => {
+    console.log('[REGISTER] Register route hit');
     try {
       const result = await registerUserHandler(req.body);
+      console.log('[REGISTER] Result:', JSON.stringify(result, null, 2));
       res.status(result.success ? 200 : 400).json(result);
     } catch (err) {
-      console.error('Register handler error:', err);
+      console.error('[REGISTER] Handler error:', err);
       res.status(500).json({ success: false, error: 'Internal Server Error' });
     }
   });
 
   const loginRouteHandler = async (req: Request, res: Response) => {
     console.log('🔐 Login route hit');
+    console.log('[LOGIN] Request body:', JSON.stringify(req.body, null, 2));
+    console.log('[LOGIN] Headers:', JSON.stringify(req.headers, null, 2));
     try {
       const result = await loginUserHandler(req.body);
+      console.log('[LOGIN] Result:', JSON.stringify(result, null, 2));
       res.status(result.success ? 200 : 401).json(result);
     } catch (err) {
-      console.error('Login handler error:', err);
+      console.error('[LOGIN] Handler error:', err);
       res.status(500).json({ success: false, error: 'Internal Server Error' });
     }
   };
