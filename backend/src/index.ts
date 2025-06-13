@@ -22,7 +22,8 @@ console.log('✅ Keeper backend server started');
 const allowedOrigins = [
   'https://v0-keeper.vercel.app',
   'http://localhost:5173',
-  'http://livecchi.biz'
+  'http://livecchi.biz',
+  'https://keeper-platform-production.up.railway.app'
 ];
 
 const corsOptions = {
@@ -111,27 +112,6 @@ app.use('/api/kam/settings', async (req, res) => {
     console.error('Handler error:', err);
     res.status(500).json({ success: false, error: 'Internal Server Error' });
   }
-});
-
-// Serve frontend static files
-app.use(express.static(path.join(__dirname, 'dist')));
-
-// Serve index.html for non-API routes
-app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  }
-});
-
-app.get('/debug/index-code', (req, res) => {
-  const filePath = path.resolve('dist', 'index.js');
-  fs.readFile(filePath, 'utf8', (err, data) => {
-    if (err) {
-      console.error('Error reading index.js:', err);
-      return res.status(500).send('Error reading deployed index.js');
-    }
-    res.type('text/plain').send(data);
-  });
 });
 
 console.log('✅ Keeper Express server starting...');
