@@ -13,7 +13,7 @@ import type { Request, Response } from 'express';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3001', 10);
 
 // ✅ Startup log
 console.log('✅ Keeper backend server started');
@@ -129,6 +129,13 @@ app.use('/api/kam/settings', async (req, res) => {
 });
 
 console.log('✅ Keeper Express server starting...');
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+console.log('🔧 Environment:', {
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: process.env.PORT,
+  HOST: process.env.HOST || '0.0.0.0'
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Accepting connections on all interfaces (0.0.0.0)`);
 }); 
