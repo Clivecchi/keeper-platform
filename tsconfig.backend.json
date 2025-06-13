@@ -1,16 +1,35 @@
 {
   "compilerOptions": {
-    "outDir": "dist",
+    "target": "ES2020",
     "module": "NodeNext",
-    "target": "es2020",
-    "moduleResolution": "nodenext",
-    "strict": true,
+    "moduleResolution": "NodeNext",
     "esModuleInterop": true,
-    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "rootDir": "src",
     "allowJs": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": false,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true
   },
-  "include": ["src/index.ts", "src/kam/**/*", "src/api/**/*", "src/middleware/**/*"],
-  "exclude": ["node_modules", "dist", "src/components", "src/context", "src/hooks", "src/pages", "src/lib"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.stories.tsx",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.tsx",
+    "src/**/*.stories.jsx",
+    "src/**/*.test.jsx",
+    "src/**/*.spec.jsx"
+  ]
 } 

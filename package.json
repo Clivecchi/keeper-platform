@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "vite",
     "prepare": "pnpm prisma generate",
-    "build": "pnpm prisma generate && tsc --project tsconfig.backend.json && vite build",
+    "build": "pnpm prisma generate && tsc --project tsconfig.backend.json && vite build && ls -la dist/",
     "build:backend": "tsc --project tsconfig.backend.json",
     "start": "node --experimental-specifier-resolution=node dist/index.js",
+    "start:debug": "node --experimental-specifier-resolution=node --trace-warnings dist/index.js",
     "lint": "eslint .",
     "preview": "vite preview",
     "tailwind:init": "tailwindcss init -p",
