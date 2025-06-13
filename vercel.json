@@ -1,6 +1,12 @@
 {
-  "buildCommand": "pnpm install && pnpm prisma generate && pnpm run build",
+  "buildCommand": "pnpm install && pnpm add -D prisma && pnpm prisma generate && pnpm run build",
   "installCommand": "pnpm install",
   "framework": "vite",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/node"
+    }
+  ]
 } 
