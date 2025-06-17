@@ -1,6 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { AuthForm } from '../components/AuthForm';
+<<<<<<< HEAD
+=======
+import { motion } from 'framer-motion';
+import { DebugButton } from '@/components/DebugButton';
+>>>>>>> parent of 34c5178 (Debug Button Working)
 
 const LoginPage: React.FC = () => {
   return (

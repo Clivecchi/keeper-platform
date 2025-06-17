@@ -1,4 +1,3 @@
-console.log('🧭 DEBUG: Loaded settings.ts');
 // TASK: Create an authenticated route to return user settings
 // 📄 File: src/api/kam/settings.ts
 

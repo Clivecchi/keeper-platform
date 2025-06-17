@@ -1,4 +1,3 @@
-console.log('🧭 DEBUG: Loaded register.ts');
 // 🔒 Uses canonical users model 
 // Based on KAM and Prisma Model Reference
 // KAM Rules:

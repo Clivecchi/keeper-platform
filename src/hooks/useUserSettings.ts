@@ -2,7 +2,7 @@
 // 📄 File: src/hooks/useUserSettings.ts
 
 import { useEffect, useState } from 'react';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch } from '@/lib/api';
 
 interface UserSettings {
   id: string;

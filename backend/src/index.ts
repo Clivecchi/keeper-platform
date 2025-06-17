@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
+import debugRouter from './api/debug.js';
 dotenv.config();
 import settingsHandler from './api/kam/settings.js';
 import { loginUserHandler } from './kam/auth/login.js';
@@ -12,12 +13,7 @@ import { registerUserHandler } from './kam/auth/register.js';
 import { logRequestMiddleware } from './middleware/logRequestMiddleware.js';
 import type { Request, Response } from 'express';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-console.log('🧭 DEBUG: Entrypoint:', __filename);
-console.log('🧭 DEBUG: CWD:', process.cwd());
-
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const prisma = new PrismaClient();
@@ -227,6 +223,9 @@ try {
     }
   });
 
+  // Debug diagnostics route
+  app.use('/api/debug', debugRouter);
+
   console.log('✅ Keeper Express server starting...');
   console.log('🔧 Environment:', {
     NODE_ENV: process.env.NODE_ENV,
@@ -235,7 +234,6 @@ try {
   });
 
   console.log('🚀 Attempting to start server...');
-  console.log('🧭 DEBUG: About to start Express app on port', PORT);
   server = app.listen(PORT, '0.0.0.0', () => {
     console.log('✅ Server successfully bound to port', PORT);
     console.log('📡 Accepting connections on all interfaces (0.0.0.0)');

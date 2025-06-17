@@ -7,8 +7,6 @@ import RegisterPage from './pages/RegisterPage';
 import RootKeeperPage from './pages/RootKeeperPage';
 import { DebugButton } from './components/DebugButton';
 
-console.log('🧭 DEBUG: Rendering App');
-
 const App: React.FC = () => {
   return (
     <>
