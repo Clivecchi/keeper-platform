@@ -1,6 +1,6 @@
 {
   "framework": "vite",
-  "buildCommand": "cd frontend && pnpm install && pnpm run build",
+  "buildCommand": "cd frontend && pnpm install --no-frozen-lockfile && pnpm run build",
   "outputDirectory": "frontend/dist",
   "installCommand": "cd frontend && pnpm install"
 } 
