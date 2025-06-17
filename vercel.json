@@ -1,12 +1,12 @@
 {
-  "buildCommand": "pnpm install && pnpm add -D prisma && pnpm prisma generate && pnpm run build",
-  "installCommand": "pnpm install",
+  "buildCommand": "cd frontend && pnpm install && pnpm run build",
+  "installCommand": "cd frontend && pnpm install",
   "framework": "vite",
-  "outputDirectory": "dist",
+  "outputDirectory": "frontend/dist",
   "builds": [
     {
-      "src": "package.json",
-      "use": "@vercel/node"
+      "src": "frontend/package.json",
+      "use": "@vercel/static"
     }
   ]
 } 
