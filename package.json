@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "prepare": "pnpm prisma generate",
-    "build": "pnpm prisma generate && tsc --project tsconfig.backend.json && tsc-alias && vite build && ls -la dist/",
-    "build:backend": "tsc --project tsconfig.backend.json && tsc-alias",
+    "build": "pnpm prisma generate && tsc --project tsconfig.backend.json && tsc-alias -p tsconfig.backend.json && vite build && ls -la dist/",
+    "build:backend": "tsc --project tsconfig.backend.json && tsc-alias -p tsconfig.backend.json",
     "start": "node --experimental-specifier-resolution=node dist/index.js",
     "start:debug": "node --experimental-specifier-resolution=node --trace-warnings dist/index.js",
     "lint": "eslint .",
@@ -17,7 +17,13 @@
     "db:push": "dotenv -e .env -- pnpm prisma db push",
     "db:generate": "dotenv -e .env -- pnpm prisma generate",
     "db:studio": "dotenv -e .env -- pnpm prisma studio",
-    "preinstall": "npx only-allow pnpm"
+    "preinstall": "npx only-allow pnpm",
+    "dev:frontend": "cd frontend && pnpm dev",
+    "dev:backend": "ts-node-dev backend/src/index.ts",
+    "keeper:dev": "pnpm install && pnpm exec concurrently \"pnpm run dev:frontend\" \"pnpm run dev:backend\"",
+    "build:frontend": "cd frontend && pnpm run build",
+    "keeper:serv": "pnpm run build:frontend && pnpm run build:backend && pnpm run start:backend",
+    "start:backend": "node dist/index.js"
   },
   "dependencies": {
     "@prisma/client": "^6.7.0",
@@ -48,6 +54,7 @@
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^9.1.2",
     "dotenv-cli": "^8.0.0",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -56,6 +63,7 @@
     "postcss": "^8.5.4",
     "prisma": "^6.9.0",
     "tailwindcss": "^4.1.8",
+    "ts-node-dev": "^2.0.0",
     "tsc-alias": "^1.8.16",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",

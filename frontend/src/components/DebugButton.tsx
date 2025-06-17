@@ -1,105 +1,98 @@
 import { useState } from 'react';
-import { Bug } from 'lucide-react';
-
-interface DiagnosticInfo {
-  timestamp: string;
-  userAgent: string;
-  url: string;
-  apiBaseUrl: string;
-  localStorage: Record<string, string>;
-  sessionStorage: Record<string, string>;
-  cookies: string;
-  networkInfo: {
-    online: boolean;
-    effectiveType?: string;
-    downlink?: number;
-    rtt?: number;
-  };
-  screenInfo: {
-    width: number;
-    height: number;
-    colorDepth: number;
-    pixelRatio: number;
-  };
-  timezone: string;
-  language: string;
-}
+import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { ScrollArea } from './ui/scroll-area';
 
 export function DebugButton() {
-  const [isCopied, setIsCopied] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
-  const collectDiagnostics = (): DiagnosticInfo => {
-    // Get network information
-    const connection = (navigator as any).connection;
-    const networkInfo = {
-      online: navigator.onLine,
-      effectiveType: connection?.effectiveType,
-      downlink: connection?.downlink,
-      rtt: connection?.rtt,
-    };
-
-    // Get screen information
-    const screenInfo = {
-      width: window.screen.width,
-      height: window.screen.height,
-      colorDepth: window.screen.colorDepth,
-      pixelRatio: window.devicePixelRatio,
-    };
-
-    // Get storage information
-    const localStore: Record<string, string> = {};
-    const sessionStore: Record<string, string> = {};
-
-    try {
-      // Safely access localStorage
-      Object.keys(window.localStorage).forEach(key => {
-        localStore[key] = window.localStorage.getItem(key) || '';
-      });
-
-      // Safely access sessionStorage
-      Object.keys(window.sessionStorage).forEach(key => {
-        sessionStore[key] = window.sessionStorage.getItem(key) || '';
-      });
-    } catch (error) {
-      console.error('Error accessing storage:', error);
-    }
-
-    return {
+  const collectDebugInfo = () => {
+    const info = {
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
       url: window.location.href,
       apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'not set',
-      localStorage: localStore,
-      sessionStorage: sessionStore,
+      deploymentInfo: {
+        vercel: {
+          env: import.meta.env.VITE_VERCEL_ENV || 'not set',
+          url: import.meta.env.VITE_VERCEL_URL || 'not set'
+        },
+        railway: {
+          env: import.meta.env.VITE_RAILWAY_ENV || 'not set',
+          url: import.meta.env.VITE_RAILWAY_URL || 'not set'
+        }
+      },
+      corsInfo: {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+      },
+      localStorage: Object.fromEntries(
+        Object.entries(localStorage).filter(([key]) => key.startsWith('keeper_'))
+      ),
+      sessionStorage: Object.fromEntries(
+        Object.entries(sessionStorage).filter(([key]) => key.startsWith('keeper_'))
+      ),
       cookies: document.cookie,
-      networkInfo,
-      screenInfo,
+      networkInfo: {
+        online: navigator.onLine,
+        effectiveType: (navigator as any).connection?.effectiveType,
+        downlink: (navigator as any).connection?.downlink,
+        rtt: (navigator as any).connection?.rtt
+      },
+      screenInfo: {
+        width: window.screen.width,
+        height: window.screen.height,
+        colorDepth: window.screen.colorDepth,
+        pixelRatio: window.devicePixelRatio
+      },
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       language: navigator.language,
+      recentErrors: (window as any).__RECENT_ERRORS__ || [],
+      apiStatus: {
+        baseUrl: import.meta.env.VITE_API_BASE_URL,
+        corsEnabled: true,
+        credentials: 'include',
+        allowedOrigins: import.meta.env.VITE_ALLOWED_ORIGINS?.split(',') || []
+      }
     };
+    setDebugInfo(info);
   };
 
-  const handleCopy = async () => {
-    try {
-      const diagnostics = collectDiagnostics();
-      const formattedDiagnostics = JSON.stringify(diagnostics, null, 2);
-      await navigator.clipboard.writeText(formattedDiagnostics);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy diagnostics:', error);
+  const copyToClipboard = () => {
+    if (debugInfo) {
+      navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2));
     }
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999]">
-      <button
-        onClick={handleCopy}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors"
-      >
-        <Bug className="w-4 h-4" />
-        <span>{isCopied ? 'Copied!' : 'Copy Debug Info'}</span>
-      </button>
-    </div>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="fixed bottom-4 right-4 z-50"
+          onClick={collectDebugInfo}
+        >
+          Debug
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>Debug Information</DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="h-[60vh]">
+          <pre className="p-4 text-sm">
+            {JSON.stringify(debugInfo, null, 2)}
+          </pre>
+        </ScrollArea>
+        <Button onClick={copyToClipboard} className="mt-4">
+          Copy to Clipboard
+        </Button>
+      </DialogContent>
+    </Dialog>
   );
 } 

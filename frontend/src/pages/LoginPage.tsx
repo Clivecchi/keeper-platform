@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { AuthForm } from '../components/AuthForm';
-import { motion } from 'framer-motion';
 import { DebugButton } from '@/components/DebugButton';
 
 const LoginPage: React.FC = () => {

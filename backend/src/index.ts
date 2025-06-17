@@ -12,7 +12,12 @@ import { registerUserHandler } from './kam/auth/register.js';
 import { logRequestMiddleware } from './middleware/logRequestMiddleware.js';
 import type { Request, Response } from 'express';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+console.log('🧭 DEBUG: Entrypoint:', __filename);
+console.log('🧭 DEBUG: CWD:', process.cwd());
+
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const prisma = new PrismaClient();
@@ -230,6 +235,7 @@ try {
   });
 
   console.log('🚀 Attempting to start server...');
+  console.log('🧭 DEBUG: About to start Express app on port', PORT);
   server = app.listen(PORT, '0.0.0.0', () => {
     console.log('✅ Server successfully bound to port', PORT);
     console.log('📡 Accepting connections on all interfaces (0.0.0.0)');

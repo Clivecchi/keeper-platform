@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 
+console.log('🧭 DEBUG: Loaded logRequestMiddleware.ts');
+
 export const logRequestMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   const { method, path } = req;

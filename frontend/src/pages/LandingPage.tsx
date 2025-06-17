@@ -11,7 +11,7 @@ const LandingPage: React.FC = () => {
         transition={{ duration: 0.8, ease: 'easeOut' }}
       >
         <h1 className="font-display text-6xl md:text-7xl font-bold text-foreground leading-tight">
-          Begin the journey of<br />what's worth keeping.
+          Start the journey of<br />what's worth keeping.
         </h1>
         <p className="font-serif text-xl md:text-2xl text-secondary mt-6 max-w-2xl mx-auto">
           This is a space for the quiet moments, the sacred memories, and the stories that define you. A digital journal for a life lived with intention.

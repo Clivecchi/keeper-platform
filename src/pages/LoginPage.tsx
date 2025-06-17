@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { AuthForm } from '../components/AuthForm';
 import { motion } from 'framer-motion';
 
+throw new Error("This is the LoginPage in src/pages/LoginPage.tsx!");
+
 const LoginPage: React.FC = () => {
   return (
     <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

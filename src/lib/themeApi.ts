@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api';
+import { apiFetch } from './api.js';
 
 /**
  * Represents the structure of color tokens for a single mode (light or dark).

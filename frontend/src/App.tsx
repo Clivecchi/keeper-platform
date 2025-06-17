@@ -6,6 +6,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import RootKeeperPage from './pages/RootKeeperPage';
 
+console.log('🧭 DEBUG: Rendering App');
+
 const App: React.FC = () => {
   return (
     <Routes>

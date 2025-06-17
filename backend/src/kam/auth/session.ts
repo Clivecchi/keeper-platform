@@ -1,3 +1,4 @@
+console.log('🧭 DEBUG: Loaded session.ts');
 // 🔒 Uses canonical User model (not PublicUser)
 // Based on KAM and Prisma Model Reference
 // KAM Rules headers as in register.ts...
