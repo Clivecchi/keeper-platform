@@ -4,8 +4,8 @@ buildCommand = "pnpm install && pnpm prisma:generate && pnpm build"
 
 [deploy]
 startCommand = "node dist/index.js"
-healthcheckPath = "/api/test"
-healthcheckTimeout = 100
+healthcheckPath = "/health"
+healthcheckTimeout = 5000
 restartPolicy = "on-failure"
 restartPolicyMaxRetries = 10
 

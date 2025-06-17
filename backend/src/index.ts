@@ -4,6 +4,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { PrismaClient } from '@prisma/client';
 dotenv.config();
 import settingsHandler from './api/kam/settings.js';
 import { loginUserHandler } from './kam/auth/login.js';
@@ -14,6 +15,7 @@ import type { Request, Response } from 'express';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
+const prisma = new PrismaClient();
 
 // ✅ Startup log
 console.log('✅ Keeper backend server started');
@@ -22,11 +24,28 @@ let server: any = null;
 let isShuttingDown = false;
 
 // Health check endpoint for Railway
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
   if (isShuttingDown) {
     res.status(503).json({ status: 'shutting_down' });
-  } else {
-    res.status(200).json({ status: 'healthy' });
+    return;
+  }
+
+  try {
+    // Check database connectivity
+    await prisma.$queryRaw`SELECT 1`;
+    
+    res.status(200).json({ 
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage()
+    });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(503).json({ 
+      status: 'unhealthy',
+      error: 'Database connection failed'
+    });
   }
 });
 

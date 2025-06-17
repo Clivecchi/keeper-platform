@@ -5,7 +5,7 @@ buildCommand = "cd backend && pnpm install && pnpm prisma:generate && pnpm build
 [deploy]
 startCommand = "cd backend && pnpm start"
 healthcheckPath = "/health"
-healthcheckTimeout = 100
+healthcheckTimeout = 5000
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 
