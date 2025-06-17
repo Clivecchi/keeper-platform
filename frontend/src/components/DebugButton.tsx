@@ -74,22 +74,25 @@ export function DebugButton() {
         <Button
           variant="outline"
           size="sm"
-          className="fixed bottom-4 right-4 z-50"
+          className="fixed bottom-4 right-4 z-50 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
           onClick={collectDebugInfo}
         >
           Debug
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
+      <DialogContent className="max-w-2xl max-h-[80vh] bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700">
         <DialogHeader>
-          <DialogTitle>Debug Information</DialogTitle>
+          <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">Debug Information</DialogTitle>
         </DialogHeader>
         <ScrollArea className="h-[60vh]">
-          <pre className="p-4 text-sm">
+          <pre className="p-4 text-sm bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md">
             {JSON.stringify(debugInfo, null, 2)}
           </pre>
         </ScrollArea>
-        <Button onClick={copyToClipboard} className="mt-4">
+        <Button 
+          onClick={copyToClipboard} 
+          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"
+        >
           Copy to Clipboard
         </Button>
       </DialogContent>
