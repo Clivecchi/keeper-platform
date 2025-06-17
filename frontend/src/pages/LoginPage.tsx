@@ -2,16 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { AuthForm } from '../components/AuthForm';
 import { motion } from 'framer-motion';
+import { DebugButton } from '@/components/DebugButton';
 
 const LoginPage: React.FC = () => {
   return (
-    <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <motion.div
-        className="max-w-md w-full space-y-8 bg-card p-10 rounded-xl shadow-lg border border-card-border"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-      >
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-full max-w-md p-8">
+        <h1 className="text-2xl font-bold text-center mb-8">Welcome Back</h1>
         <AuthForm />
         <p className="mt-6 text-center text-md text-secondary">
           Don't have a keeper yet?{' '}
@@ -19,7 +16,8 @@ const LoginPage: React.FC = () => {
             Begin here.
           </Link>
         </p>
-      </motion.div>
+      </div>
+      <DebugButton />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://keeper-platform-production.up.railway.app';
 console.log('[API] Base URL:', BASE_URL);
 
 export async function apiFetch(path: string, options: RequestInit = {}) {
