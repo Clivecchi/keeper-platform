@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from './ui/scroll-area';
 
 export function DebugButton() {
+  console.log('🧭 DEBUG: DebugButton component rendering');
   const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const collectDebugInfo = () => {
