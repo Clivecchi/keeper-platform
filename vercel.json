@@ -1,6 +1,5 @@
 {
   "framework": "vite",
   "buildCommand": "cd frontend && pnpm install && pnpm run build",
-  "outputDirectory": "frontend/dist",
-  "rootDirectory": "frontend"
+  "outputDirectory": "frontend/dist"
 } 
