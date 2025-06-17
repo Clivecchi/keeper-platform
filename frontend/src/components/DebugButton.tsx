@@ -92,13 +92,14 @@ export function DebugButton() {
   };
 
   return (
-    <button
-      onClick={handleCopy}
-      className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-      style={{ minWidth: '160px' }}
-    >
-      <Bug className="w-4 h-4" />
-      <span>{isCopied ? 'Copied!' : 'Copy Debug Info'}</span>
-    </button>
+    <div className="fixed bottom-4 right-4 z-[9999]">
+      <button
+        onClick={handleCopy}
+        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-md shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors"
+      >
+        <Bug className="w-4 h-4" />
+        <span>{isCopied ? 'Copied!' : 'Copy Debug Info'}</span>
+      </button>
+    </div>
   );
 } 
