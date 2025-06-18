@@ -8,10 +8,10 @@ import { logger } from '@keeper/shared';
 import debugRouter from './api/debug.js';
 
 // Reuse existing business logic from root src for now
-import settingsHandler from '../../../src/api/kam/settings.js';
-import { loginUserHandler } from '../../../src/kam/auth/login.js';
-import { registerUserHandler } from '../../../src/kam/auth/register.js';
-import { logRequestMiddleware } from '../../../src/middleware/logRequestMiddleware.js';
+import settingsHandler from './api/kam/settings.js';
+import { loginUserHandler } from './kam/auth/login.js';
+import { registerUserHandler } from './kam/auth/register.js';
+import { logRequestMiddleware } from './middleware/logRequestMiddleware.js';
 
 dotenv.config();
 
