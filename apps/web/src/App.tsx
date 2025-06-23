@@ -1,11 +1,11 @@
-import React from 'react';
+import * as React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AppLayout } from './layouts/AppLayout';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import RootKeeperPage from './pages/RootKeeperPage';
-import { DebugButton } from './components/DebugButton';
+import DebugButton from './components/DebugButton';
 
 const App: React.FC = () => {
   return (
