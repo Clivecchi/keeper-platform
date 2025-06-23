@@ -21,7 +21,9 @@
     "db:push": "dotenv -e .env -- pnpm prisma db push",
     "db:generate": "dotenv -e .env -- pnpm prisma generate",
     "db:studio": "dotenv -e .env -- pnpm prisma studio",
-    "preinstall": "npx only-allow pnpm"
+    "preinstall": "npx only-allow pnpm",
+    "keeper:dev": "pnpm run dev",
+    "keeper:serv": "pnpm run dev:api"
   },
   "dependencies": {
     "@prisma/client": "^6.7.0",
