@@ -10,6 +10,11 @@ export const DebugButton: React.FC = () => {
 
   console.debug('[DebugButton] rendered');
 
+  // Hide the button in production builds
+  if (import.meta.env.PROD) {
+    return null;
+  }
+
   return (
     <button
       type="button"

@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import RootKeeperPage from './pages/RootKeeperPage';
 import DebugButton from './components/DebugButton';
+import DebugPage from './pages/DebugPage';
 
 const App: React.FC = () => {
   return (
@@ -17,6 +18,7 @@ const App: React.FC = () => {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/debug" element={<DebugPage />} />
       </Routes>
       <DebugButton />
     </>
