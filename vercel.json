@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm install && pnpm --filter apps/web... build",
+  "version": 2,
+  "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter @keeper/shared build && pnpm --filter keeper-web build",
   "outputDirectory": "apps/web/dist",
-  "installCommand": "pnpm install"
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": null,
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./apps/web/"
 } 

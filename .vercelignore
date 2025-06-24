@@ -1,0 +1,40 @@
+# Node modules and build artifacts
+node_modules/
+**/.next/
+**/dist/
+**/build/
+**/.turbo/
+
+# Source maps and TypeScript
+**/*.map
+**/*.d.ts
+**/tsconfig.tsbuildinfo
+
+# Development files
+**/.vscode/
+**/.idea/
+**/*.log
+**/.DS_Store
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+
+# API and backend code (only web app should be deployed)
+apps/api/
+packages/database/prisma/migrations/
+
+# Documentation and tooling
+docs/
+tools/
+README.md
+*.md
+.eslintrc*
+.prettierrc*
+
+# Keep only what's needed for the web app
+!apps/web/
+!packages/shared/
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml 
