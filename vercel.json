@@ -1,11 +1,9 @@
 {
   "version": 2,
-  "name": "keeper-web",
-  "buildCommand": "pnpm run build",
-  "outputDirectory": "dist",
+  "buildCommand": "pnpm install && pnpm --filter keeper-web build",
+  "outputDirectory": "apps/web/dist",
   "installCommand": "pnpm install",
   "framework": null,
-  "rootDirectory": "apps/web",
   "rewrites": [
     {
       "source": "/(.*)",
