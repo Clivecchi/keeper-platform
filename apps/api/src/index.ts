@@ -5,12 +5,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { logger } from '@keeper/shared';
+import { loginUserHandler, registerUserHandler } from '@keeper/kam';
 import debugRouter from './api/debug.js';
-
-// Reuse existing business logic from root src for now
 import settingsHandler from './api/kam/settings.js';
-import { loginUserHandler } from './kam/auth/login.js';
-import { registerUserHandler } from './kam/auth/register.js';
 import { logRequestMiddleware } from './middleware/logRequestMiddleware.js';
 
 dotenv.config();

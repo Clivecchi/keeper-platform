@@ -5,21 +5,26 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json && tsc-alias",
-    "start": "node dist/index.js"
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "express": "^4.21.2",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
-    "@prisma/client": "^6.7.0",
-    "@keeper/shared": "workspace:*"
+    "@keeper/kam": "workspace:*",
+    "@keeper/shared": "workspace:*",
+    "@keeper/database": "workspace:*"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.19",
     "@types/node": "^22.15.30",
     "tsx": "^4.7.1",
     "typescript": "~5.8.3",
-    "tsc-alias": "^1.8.16"
+    "@keeper/eslint-config": "workspace:*"
   }
 } 

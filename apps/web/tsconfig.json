@@ -1,18 +1,14 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../../tools/tsconfig/react.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],
-      "@keeper/shared": ["../../packages/shared/src/index.ts"]
-    },
-    "jsx": "react-jsx",
-    "module": "ESNext",
-    "target": "ES2020",
-    "esModuleInterop": true
+      "@keeper/kam": ["../../packages/kam/src/index.ts"],
+      "@keeper/shared": ["../../packages/shared/src/index.ts"],
+      "@keeper/database": ["../../packages/database/src/index.ts"]
+    }
   },
-  "include": ["src", "index.html"],
+  "include": ["src", "../index.html"],
   "exclude": ["node_modules", "dist"]
 } 

@@ -2,8 +2,7 @@
 // 📄 File: src/api/kam/settings.ts
 
 import type { Request, Response } from 'express';
-import { getSessionHandler } from '../../kam/auth/session.js';
-import { getUserSettingsHandler } from '../../kam/settings/index.js';
+import { getSessionHandler, getUserSettingsHandler } from '@keeper/kam';
 
 export default async function handler(req: Request, res: Response) {
   const authHeader = req.headers.authorization;

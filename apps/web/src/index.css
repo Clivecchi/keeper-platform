@@ -1,1 +1,39 @@
 @import "tailwindcss";
+
+@theme {
+  --color-background: 0 0% 100%;  /* Pure white background */
+  --color-foreground: 0 0% 10%;   /* Very dark text */
+  --color-card: 0 0% 98%;
+  --color-card-foreground: 0 0% 15%;
+  --color-popover: 0 0% 100%;
+  --color-popover-foreground: 0 0% 10%;
+  --color-primary: 13 83% 21%;     /* Keep original primary color */
+  --color-primary-foreground: 0 0% 100%;
+  --color-secondary: 35 48% 87%;
+  --color-secondary-foreground: 15 72% 38%;
+  --color-muted: 37 24% 95%;       /* Very light muted background */
+  --color-muted-foreground: 13 100% 18%;
+  --color-accent: 35 63% 69%;
+  --color-accent-foreground: 25 80% 25%;
+  --color-destructive: 15 72% 38%;
+  --color-destructive-foreground: 33 97% 83%;
+  --color-border: 16 11% 80%;      /* Light border */
+  --color-input: 0 0% 98%;         /* Very light input background */
+  --color-ring: 33 97% 83%;
+  
+  /* Alias common theme colors */
+  --color-button: var(--color-primary);
+  --color-button-foreground: var(--color-primary-foreground);
+
+  /* Fonts */
+  --font-family-display: Inter, system-ui, sans-serif;
+  --font-family-serif: Georgia, Times, serif;
+  --font-family-sans: Inter, system-ui, sans-serif;
+}
+
+body {
+  background-color: hsl(var(--color-background));
+  color: hsl(var(--color-foreground));
+  font-family: var(--font-family-sans);
+  font-feature-settings: "rlig" 1, "calt" 1;
+}

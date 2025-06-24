@@ -1,5 +1,17 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import type { AuthUser, AuthSuccessData } from '../kam/auth/types';
+
+// Frontend types (no need to import backend types)
+interface AuthUser {
+  id: string;
+  email: string | null;
+  name: string | null;
+  avatar_url: string | null;
+}
+
+interface AuthSuccessData {
+  user: AuthUser;
+  token?: string;
+}
 
 interface AuthContextType {
   user: AuthUser | null;

@@ -12,3 +12,4 @@ function App() {
     return (_jsx("div", { className: "h-screen w-screen bg-red-500 text-white flex items-center justify-center text-2xl font-bold", children: "If you can see this red screen, Tailwind CSS is working." }));
 }
 export default App;
+//# sourceMappingURL=app-old.js.map

@@ -3,12 +3,9 @@
     "env": {
       "NODE_ENV": "production"
     },
-    "command": "pnpm install && pnpm run build && pnpm run build:server"
+    "command": "pnpm install && pnpm --filter @keeper/database generate && pnpm --filter apps/api... build"
   },
   "start": {
-    "command": "pnpm start"
-  },
-  "deploy": {
-    "entrypoint": "."
+    "command": "pnpm --filter apps/api start"
   }
 }

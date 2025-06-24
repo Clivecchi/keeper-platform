@@ -7,3 +7,4 @@ export const Navbar = () => {
     const { isAuthenticated } = useAuth();
     return (_jsx("header", { className: "py-8", children: _jsxs("nav", { className: "container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center", children: [_jsx(NavLink, { to: isAuthenticated ? '/root' : '/', className: "font-display text-3xl font-bold text-stone-800", children: "Keeper" }), _jsx("div", { className: "flex items-center space-x-12", children: isAuthenticated ? (_jsxs(_Fragment, { children: [_jsx(NavItem, { to: "/root", children: "Root" }), _jsx(NavItem, { to: "/journeys", children: "Journeys" }), _jsx(NavItem, { to: "/moments", children: "Moments" }), _jsx(NavItem, { to: "/themes", children: "Themes" })] })) : (_jsxs(_Fragment, { children: [_jsx(NavItem, { to: "/", children: "Home" }), _jsx(NavItem, { to: "/register", children: "Begin" }), _jsx(NavItem, { to: "/login", children: "Login" })] })) })] }) }));
 };
+//# sourceMappingURL=Navbar.js.map

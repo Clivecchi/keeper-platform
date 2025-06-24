@@ -34,3 +34,4 @@ export function useUserSettings() {
     }, []);
     return { settings, loading, error };
 }
+//# sourceMappingURL=useUserSettings.js.map
