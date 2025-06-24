@@ -4,5 +4,11 @@
   "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter keeper-web build",
   "outputDirectory": "apps/web/dist",
   "installCommand": "pnpm install --frozen-lockfile",
-  "framework": null
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ]
 } 
