@@ -3,7 +3,7 @@
     "env": {
       "NODE_ENV": "production"
     },
-    "command": "pnpm install && pnpm --filter @keeper/database generate && pnpm --filter apps/api... build"
+    "command": "pnpm install && pnpm --filter @keeper/database generate && pnpm turbo build --filter=apps/api..."
   },
   "start": {
     "command": "pnpm --filter apps/api start"
