@@ -19,17 +19,17 @@
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.2",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5",
+    "@vitejs/plugin-react": "^4.4.1",
+    "@tailwindcss/postcss": "^4.1.10",
+    "tailwindcss": "^4.1.10",
+    "autoprefixer": "^10.4.21"
   },
   "devDependencies": {
     "@keeper/eslint-config": "workspace:*",
-    "@tailwindcss/postcss": "^4.1.10",
     "@types/react": "^19.1.2",
-    "@types/react-dom": "^19.1.2",
-    "@vitejs/plugin-react": "^4.4.1",
-    "autoprefixer": "^10.4.21",
-    "tailwindcss": "^4.1.10",
-    "typescript": "~5.8.3",
-    "vite": "^6.3.5"
+    "@types/react-dom": "^19.1.2"
   }
 }
