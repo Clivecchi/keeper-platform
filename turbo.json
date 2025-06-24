@@ -10,6 +10,11 @@
       "outputs": ["dist/**", ".next/**", "build/**"],
       "env": ["NODE_ENV"]
     },
+    "start": {
+      "cache": false,
+      "persistent": true,
+      "env": ["NODE_ENV", "PORT", "DATABASE_URL"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
