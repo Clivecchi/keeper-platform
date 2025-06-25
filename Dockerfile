@@ -18,24 +18,32 @@ COPY apps/api ./apps/api
 # Debug: Check source files before building
 RUN echo "=== Checking source files ===" && \
     ls -la packages/kam/src/auth/ && \
-    echo "=== KAM auth index.ts content ===" && \
-    cat packages/kam/src/auth/index.ts
+    echo "=== register.ts exists? ===" && \
+    test -f packages/kam/src/auth/register.ts && echo "Yes" || echo "No"
 
 # Install all dependencies
 RUN pnpm install --frozen-lockfile
 
-# Build everything with verbose output
-RUN echo "=== Starting build ===" && \
-    pnpm turbo build --filter=keeper-api...
+# Build each package individually to catch specific errors
+RUN echo "=== Building database package ===" && \
+    pnpm --filter @keeper/database build
 
-# Debug: List built files to ensure they exist
-RUN echo "=== Checking built files ===" && \
+RUN echo "=== Building shared package ===" && \
+    pnpm --filter @keeper/shared build
+
+RUN echo "=== Building KAM package ===" && \
+    pnpm --filter @keeper/kam build
+
+RUN echo "=== Building API package ===" && \
+    pnpm --filter keeper-api build
+
+# Debug: Verify all built files exist
+RUN echo "=== Checking KAM built files ===" && \
     ls -la packages/kam/dist/auth/ && \
-    echo "=== Contents of kam auth index.js ===" && \
-    cat packages/kam/dist/auth/index.js && \
-    echo "=== Checking if register.js exists ===" && \
-    ls -la packages/kam/dist/auth/register.js && \
-    echo "=== End debug ==="
+    echo "=== register.js exists? ===" && \
+    test -f packages/kam/dist/auth/register.js && echo "Yes - $(ls -la packages/kam/dist/auth/register.js)" || echo "No" && \
+    echo "=== Contents of auth index.js ===" && \
+    cat packages/kam/dist/auth/index.js
 
 # Remove dev dependencies to reduce image size
 RUN pnpm prune --prod
