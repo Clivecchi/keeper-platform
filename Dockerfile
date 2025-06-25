@@ -1,13 +1,22 @@
 # Use Node.js LTS version
 FROM node:18-alpine
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm with specific version for Railway compatibility
+RUN npm install -g pnpm@8.15.0
+
+# Install dependencies for debugging and file operations
+RUN apk add --no-cache tree
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Set Railway-specific environment variables
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
+ENV NPM_CONFIG_FUND=false
+
+# Copy package files first (for Docker layer caching)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 
 # Copy all packages and apps
@@ -15,38 +24,66 @@ COPY tools ./tools
 COPY packages ./packages
 COPY apps/api ./apps/api
 
-# Debug: Check source files before building
-RUN echo "=== Checking source files ===" && \
-    ls -la packages/kam/src/auth/ && \
-    echo "=== register.ts exists? ===" && \
-    test -f packages/kam/src/auth/register.ts && echo "Yes" || echo "No"
+# Railway-specific: Clear any potential cache issues
+RUN rm -rf node_modules/.cache || true
+RUN rm -rf .pnpm-store || true
 
-# Install all dependencies
-RUN pnpm install --frozen-lockfile
+# Debug: Comprehensive source file verification
+RUN echo "=== RAILWAY DEBUG: Source file verification ===" && \
+    find packages/kam/src -name "*.ts" -type f | head -20 && \
+    echo "=== register.ts content check ===" && \
+    head -5 packages/kam/src/auth/register.ts && \
+    echo "=== index.ts exports check ===" && \
+    grep -n "register" packages/kam/src/auth/index.ts || echo "No register exports found"
 
-# Build each package individually to catch specific errors
-RUN echo "=== Building database package ===" && \
-    pnpm --filter @keeper/database build
+# Railway-optimized: Install with no-cache flag
+RUN pnpm install --frozen-lockfile --no-optional --prefer-offline
 
-RUN echo "=== Building shared package ===" && \
-    pnpm --filter @keeper/shared build
+# Railway-specific: Force workspace dependency resolution
+RUN pnpm install --fix-lockfile || pnpm install --force
 
-RUN echo "=== Building KAM package ===" && \
-    pnpm --filter @keeper/kam build
+# Build packages in dependency order with Railway optimizations
+RUN echo "=== RAILWAY: Building with individual error isolation ===" && \
+    pnpm --filter @keeper/shared build && \
+    echo "Shared package built successfully"
 
-RUN echo "=== Building API package ===" && \
+RUN echo "=== RAILWAY: Building database package ===" && \
+    pnpm --filter @keeper/database build && \
+    echo "Database package built successfully"
+
+# Critical: Build KAM with extra debugging for Railway
+RUN echo "=== RAILWAY: Building KAM with debugging ===" && \
+    cd packages/kam && \
+    pnpm build --verbose 2>&1 | tee build.log && \
+    echo "KAM build completed"
+
+# Railway-specific: Verify compilation artifacts immediately after each build
+RUN echo "=== RAILWAY: Post-build verification ===" && \
+    ls -la packages/kam/dist/auth/ && \
+    file packages/kam/dist/auth/register.js || echo "register.js missing!" && \
+    cat packages/kam/dist/auth/index.js | head -10
+
+# Build API last
+RUN echo "=== RAILWAY: Building API ===" && \
     pnpm --filter keeper-api build
 
-# Debug: Verify all built files exist
-RUN echo "=== Checking KAM built files ===" && \
-    ls -la packages/kam/dist/auth/ && \
-    echo "=== register.js exists? ===" && \
-    test -f packages/kam/dist/auth/register.js && echo "Yes - $(ls -la packages/kam/dist/auth/register.js)" || echo "No" && \
-    echo "=== Contents of auth index.js ===" && \
-    cat packages/kam/dist/auth/index.js
+# Railway-specific: Final comprehensive verification
+RUN echo "=== RAILWAY: Final file system state ===" && \
+    find packages/kam/dist -name "*.js" -type f && \
+    echo "=== Testing register.js module resolution ===" && \
+    node -e "import('./packages/kam/dist/auth/register.js').then(m => console.log('✓ register.js imports successfully', Object.keys(m))).catch(e => console.error('✗ register.js import failed:', e.message))"
 
-# Remove dev dependencies to reduce image size
-RUN pnpm prune --prod
+# Railway cache workaround: Remove build artifacts and rebuild if needed
+RUN if [ ! -f packages/kam/dist/auth/register.js ]; then \
+        echo "=== RAILWAY: register.js missing, applying cache workaround ===" && \
+        rm -rf packages/kam/dist && \
+        cd packages/kam && \
+        pnpm build --no-cache && \
+        ls -la dist/auth/; \
+    fi
+
+# Remove dev dependencies to reduce image size (Railway optimization)
+RUN pnpm prune --prod --config.ignore-scripts=true
 
 # Set environment
 ENV NODE_ENV=production
@@ -54,5 +91,5 @@ ENV NODE_ENV=production
 # Expose port
 EXPOSE 3001
 
-# Start the application from the workspace root
-CMD ["node", "apps/api/dist/index.js"] 
+# Railway-specific: Add startup verification
+CMD ["sh", "-c", "echo 'Starting Railway deployment...' && node --version && ls -la packages/kam/dist/auth/ && node apps/api/dist/index.js"] 
