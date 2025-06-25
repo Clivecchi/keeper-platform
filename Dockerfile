@@ -26,7 +26,7 @@ RUN pnpm install --frozen-lockfile
 
 # Build everything with verbose output
 RUN echo "=== Starting build ===" && \
-    pnpm turbo build --filter=keeper-api... --verbose
+    pnpm turbo build --filter=keeper-api...
 
 # Debug: List built files to ensure they exist
 RUN echo "=== Checking built files ===" && \
