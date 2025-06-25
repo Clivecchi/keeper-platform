@@ -14,7 +14,7 @@ import { createUserWithDefaultSettings, emailExists } from '@keeper/database';
 import { RegisterInputSchema } from './types.js';
 import type { RegisterInput, AuthResponse, AuthUser, AuthSuccessData } from './types.js';
 import { createSession } from './session.js';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 
 /**
  * Handles new user registration.
