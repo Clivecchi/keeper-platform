@@ -52,20 +52,32 @@ RUN echo "=== RAILWAY: Building database package ===" && \
     pnpm --filter @keeper/database build && \
     echo "Database package built successfully"
 
-# Critical: Build KAM with extra debugging for Railway
-RUN echo "=== RAILWAY: Building KAM with debugging ===" && \
+# Critical: Build KAM with proper error handling (NO --verbose flag)
+RUN echo "=== RAILWAY: Building KAM package ===" && \
     cd packages/kam && \
-    pnpm build --verbose 2>&1 | tee build.log && \
-    echo "KAM build completed"
+    echo "Current directory: $(pwd)" && \
+    echo "Running: pnpm build" && \
+    pnpm build && \
+    echo "KAM build completed successfully" && \
+    ls -la dist/ && \
+    echo "Checking auth directory:" && \
+    ls -la dist/auth/ || echo "Auth directory not found"
 
-# Railway-specific: Verify compilation artifacts immediately after each build
-RUN echo "=== RAILWAY: Post-build verification ===" && \
+# Railway-specific: Verify compilation artifacts immediately after KAM build
+RUN echo "=== RAILWAY: Post-KAM-build verification ===" && \
+    echo "Checking if KAM dist exists:" && \
+    ls -la packages/kam/dist/ && \
+    echo "Checking if auth directory exists:" && \
     ls -la packages/kam/dist/auth/ && \
-    file packages/kam/dist/auth/register.js || echo "register.js missing!" && \
+    echo "Checking for register.js:" && \
+    test -f packages/kam/dist/auth/register.js && echo "✓ register.js found!" || echo "✗ register.js missing!" && \
+    echo "Contents of auth index.js:" && \
     cat packages/kam/dist/auth/index.js | head -10
 
-# Build API last
+# Build API last - only after KAM is confirmed built
 RUN echo "=== RAILWAY: Building API ===" && \
+    echo "Verifying KAM is available before API build:" && \
+    ls -la packages/kam/dist/auth/ && \
     pnpm --filter keeper-api build
 
 # Railway-specific: Final comprehensive verification
@@ -79,7 +91,7 @@ RUN if [ ! -f packages/kam/dist/auth/register.js ]; then \
         echo "=== RAILWAY: register.js missing, applying cache workaround ===" && \
         rm -rf packages/kam/dist && \
         cd packages/kam && \
-        pnpm build --no-cache && \
+        pnpm build && \
         ls -la dist/auth/; \
     fi
 
