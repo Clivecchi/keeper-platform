@@ -3,7 +3,7 @@
     "env": {
       "NODE_ENV": "production"
     },
-    "command": "pnpm install && pnpm turbo build --filter=keeper-api..."
+    "command": "pnpm install && pnpm turbo build --filter=keeper-api... --force && ls -la packages/kam/dist/auth/ && ls -la packages/database/dist/ && ls -la packages/shared/dist/"
   },
   "start": {
     "command": "pnpm --filter keeper-api start"

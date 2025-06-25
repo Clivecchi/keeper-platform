@@ -49,5 +49,6 @@
     "tsconfig.json",
     "tools/tsconfig/**",
     "tools/eslint-config/**"
-  ]
+  ],
+  "globalEnv": ["NODE_ENV"]
 } 
