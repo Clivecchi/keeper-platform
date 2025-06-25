@@ -1,11 +1,10 @@
 {
+  "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "env": {
-      "NODE_ENV": "production"
-    },
-    "command": "pnpm install && pnpm turbo build --filter=keeper-api... --force && ls -la packages/kam/dist/auth/ && ls -la packages/database/dist/ && ls -la packages/shared/dist/"
+    "builder": "NIXPACKS",
+    "buildCommand": "pnpm install && pnpm turbo build --filter=keeper-api..."
   },
-  "start": {
-    "command": "pnpm --filter keeper-api start"
+  "deploy": {
+    "startCommand": "pnpm --filter keeper-api start"
   }
 }
