@@ -180,12 +180,10 @@ app.use('/api/protected', async (req, res, next) => {
 
 ## ⚠️ Notes & ToDo
 
-- [ ] Add password reset functionality
-- [ ] Implement email verification flow
-- [ ] Add multi-factor authentication support
-- [ ] Enhance session security with refresh tokens
-- [ ] Add audit logging for auth events
-- [ ] Consider social login integration
+- [x] Fixed dev environment build issues by changing TypeScript moduleResolution from "bundler" to "node"
+- [x] Ensured JavaScript files are generated for workspace consumption
+- [ ] Add comprehensive testing for all auth flows
+- [ ] Behavior to confirm with Kip
 
 ## 🔄 Migration Notes
 
@@ -202,6 +200,7 @@ This package was extracted from the previous `apps/web/src/kam` and `apps/api/sr
 - **2025-06-23**: Consolidated auth logic from web and API apps
 - **2025-06-23**: Added comprehensive TypeScript configurations
 - **2025-06-23**: Implemented package exports for modular imports
+- **2025-06-25T02:03:00Z**: Dev Environment Fix
 
 ---
 
