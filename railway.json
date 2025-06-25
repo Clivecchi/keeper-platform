@@ -2,7 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "pnpm install && pnpm turbo build --filter=keeper-api... && pnpm --filter keeper-api --prod deploy /tmp/keeper-api"
+    "buildCommand": "pnpm install && pnpm turbo build --filter=keeper-api... && pnpm --filter keeper-api --prod deploy --legacy /tmp/keeper-api"
   },
   "deploy": {
     "startCommand": "cd /tmp/keeper-api && node apps/api/dist/index.js"
