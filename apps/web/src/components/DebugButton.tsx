@@ -8,7 +8,9 @@ import { useNavigate } from 'react-router-dom';
 export const DebugButton: React.FC = () => {
   const navigate = useNavigate();
 
-  console.debug('[DebugButton] rendered');
+  console.log('[DebugButton] Component rendered in environment:', import.meta.env.MODE);
+  console.log('[DebugButton] Is production:', import.meta.env.PROD);
+  console.log('[DebugButton] Is development:', import.meta.env.DEV);
 
   // Show in both dev and production for debugging connection issues
   // TODO: Remove or make conditional once issues are resolved
@@ -17,11 +19,28 @@ export const DebugButton: React.FC = () => {
     <button
       type="button"
       aria-label="Debug"
-      onClick={() => navigate('/debug')}
-      style={{position:'fixed',bottom:'16px',right:'16px',zIndex:99999,background:'#dc2626',color:'#fff',padding:'8px 16px',borderRadius:'9999px',fontSize:'0.875rem',boxShadow:'0 4px 6px rgba(0,0,0,0.1)'}}
-      className="hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-red-300"
+      onClick={() => {
+        console.log('[DebugButton] Button clicked, navigating to debug page');
+        navigate('/debug');
+      }}
+      style={{
+        position: 'fixed',
+        bottom: '16px',
+        right: '16px',
+        zIndex: 999999,
+        background: import.meta.env.PROD ? '#059669' : '#dc2626', // Green in prod, red in dev
+        color: '#fff',
+        padding: '12px 20px',
+        borderRadius: '9999px',
+        fontSize: '0.875rem',
+        fontWeight: 'bold',
+        boxShadow: '0 8px 16px rgba(0,0,0,0.3)',
+        border: '2px solid white',
+        cursor: 'pointer'
+      }}
+      className="hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
     >
-      {import.meta.env.PROD ? 'Debug (PROD)' : 'Debug'}
+      {import.meta.env.PROD ? 'DEBUG (PROD)' : 'DEBUG (DEV)'}
     </button>
   );
 };
