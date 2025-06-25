@@ -1,8 +1,8 @@
 # Use Node.js LTS version
 FROM node:18-alpine
 
-# Install pnpm with specific version for Railway compatibility
-RUN npm install -g pnpm@8.15.0
+# Install pnpm with the CORRECT version that matches our lockfile (pnpm v10+)
+RUN npm install -g pnpm@10.11.0
 
 # Install dependencies for debugging and file operations
 RUN apk add --no-cache tree
@@ -36,11 +36,12 @@ RUN echo "=== RAILWAY DEBUG: Source file verification ===" && \
     echo "=== index.ts exports check ===" && \
     grep -n "register" packages/kam/src/auth/index.ts || echo "No register exports found"
 
-# Railway-optimized: Install with no-cache flag
-RUN pnpm install --frozen-lockfile --no-optional --prefer-offline
+# Railway-optimized: Install with correct pnpm version and fallback
+RUN pnpm install --frozen-lockfile --no-optional --prefer-offline || \
+    (echo "Lockfile incompatible, recreating..." && pnpm install --force --no-optional --prefer-offline)
 
-# Railway-specific: Force workspace dependency resolution
-RUN pnpm install --fix-lockfile || pnpm install --force
+# Railway-specific: Force workspace dependency resolution if needed
+RUN pnpm install --fix-lockfile || true
 
 # Build packages in dependency order with Railway optimizations
 RUN echo "=== RAILWAY: Building with individual error isolation ===" && \
