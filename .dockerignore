@@ -2,9 +2,9 @@
 node_modules
 .pnpm-store
 
-# Build outputs (will be generated during build)
-dist
-build
+# Build outputs that will be regenerated
+# dist - Commented out so source dist files can be copied
+# build
 .next
 
 # Development files

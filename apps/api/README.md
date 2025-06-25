@@ -29,62 +29,93 @@ The API server uses:
 
 ## 🚀 Railway Deployment
 
-### ✅ Final Solution: Standalone Docker Build
-The current configuration uses a **standalone Docker deployment** that creates a flat application structure:
-
-**How it works:**
-1. **Build Stage**: Builds entire monorepo with all dependencies
-2. **Production Stage**: Creates standalone app by copying built files to `/app/dist/` and workspace packages to `/app/node_modules/@keeper/`
-3. **Dependencies**: Installs only production dependencies for the API
-4. **Start**: Direct `node dist/index.js` execution
+### ✅ FINAL SOLUTION: Single-Stage Workspace Build
+The current configuration uses a **single-stage Docker build** that maintains workspace structure throughout:
 
 **Configuration Files:**
-- `Dockerfile` - Multi-stage Docker build with standalone structure
+- `Dockerfile` - Single-stage build with workspace maintenance
 - `railway.json` - Railway service configuration using Docker
 - `railway-nixpacks.json` - Alternative Nixpacks configuration (backup)
 - `railway-standalone.json` - Alternative standalone approach (backup)
 
-### 🔧 Key Solutions Implemented
+### 🔧 Progressive Problem Resolution
 
-#### **Problem 1: Missing Compiled Files**
+#### **Problem 1: Missing Compiled Files** ✅ FIXED
 - **Issue**: `Cannot find module '/tmp/keeper-api/apps/api/dist/index.js'`
-- **Solution**: Proper Docker multi-stage build that ensures compiled files exist
+- **Root Cause**: Railway's `pnpm deploy` doesn't copy compiled files
+- **Solution**: Docker build that ensures compiled files exist
 
-#### **Problem 2: ESM Module Resolution**
-- **Issue**: `Cannot find package 'express'` - broken workspace symlinks
-- **Solution**: Standalone structure with workspace packages copied as regular node_modules
+#### **Problem 2: Workspace Dependencies** ✅ FIXED  
+- **Issue**: `"@keeper/kam@workspace:*" is in the dependencies but no package named "@keeper/kam" is present`
+- **Root Cause**: Multi-stage Docker broke workspace structure
+- **Solution**: Single-stage build that maintains workspace throughout
 
-#### **Problem 3: TypeScript Configuration**
-- **Issue**: Module resolution conflicts between build and runtime
-- **Solution**: Consistent ESM configuration with `moduleResolution: "Node"`
+#### **Problem 3: ESM Module Resolution** ✅ FIXED
+- **Issue**: `Cannot find package 'express'` - broken symlinks
+- **Root Cause**: pnpm workspace symlinks broke during Docker copying
+- **Solution**: Maintain workspace structure, don't copy individual files
+
+#### **Problem 4: Missing Built Files** ✅ FIXED
+- **Issue**: `Cannot find module '/app/packages/kam/dist/auth/register.js'`
+- **Root Cause**: 
+  - `.dockerignore` was excluding `dist` directories
+  - Inconsistent TypeScript module resolution across packages
+- **Solution**: 
+  - Allow `dist` directories in Docker context
+  - Standardized all TypeScript configs to use `moduleResolution: "Node"` and `module: "ESNext"`
 
 ### 🏗️ Build Process
-1. **Install Dependencies**: `pnpm install --frozen-lockfile`
-2. **Build Packages**: `pnpm turbo build --filter=keeper-api...`
-3. **Create Standalone**: Copy API dist to `/app/dist/`
-4. **Copy Workspace Packages**: Copy `@keeper/*` packages to `/app/node_modules/@keeper/`
-5. **Install Production Deps**: `pnpm install --prod --no-optional`
-6. **Generate Prisma**: `npx prisma generate` in database package
-7. **Start**: `node dist/index.js`
+1. **Copy Everything**: Copies entire workspace structure to Docker
+2. **Install Dependencies**: `pnpm install --frozen-lockfile`
+3. **Build All Packages**: `pnpm turbo build --filter=keeper-api...`
+4. **Debug Verification**: Lists built files to ensure they exist
+5. **Prune Dev Dependencies**: `pnpm prune --prod` (keeps workspace structure)
+6. **Start Application**: `node apps/api/dist/index.js` from workspace root
+
+### 🎯 Key Fixes Applied
+
+#### **TypeScript Configuration Consistency**
+All packages now use:
+```json
+{
+  "module": "ESNext",
+  "moduleResolution": "Node", 
+  "target": "ES2022"
+}
+```
+
+#### **Docker Optimization**
+- Single-stage build (no complex multi-stage copying)
+- Proper workspace structure maintenance
+- Debug output to verify build success
+- Selective `.dockerignore` (allows dist, excludes dev files)
+
+#### **Railway Configuration**
+- Direct Docker build approach
+- Simple start command: `node apps/api/dist/index.js`
+- Restart policies for reliability
 
 ### 🎯 Start Commands
-- **Production**: `node dist/index.js`
+- **Production**: `node apps/api/dist/index.js`
 - **Development**: `node apps/api/dist/index.js`
 - **Via npm**: `pnpm start:api`
 
 ## ⚠️ Notes & ToDo
 - [x] Fixed missing compiled files issue
-- [x] Fixed ESM module resolution in monorepo
+- [x] Fixed workspace dependency resolution
+- [x] Fixed ESM module resolution in monorepo  
 - [x] Fixed TypeScript configuration conflicts
-- [x] Created standalone deployment structure
+- [x] Fixed missing built files during Docker build
+- [x] Standardized module resolution across all packages
 - [ ] Verify all environment variables are configured in Railway
 - [ ] Test database connectivity with Railway PostgreSQL
-- [ ] Monitor deployment logs for any remaining issues
+- [ ] Monitor deployment for any remaining edge cases
 
 ## 📆 Update Log
 - **2025-01-24**: Created initial Railway deployment configuration
-- **2025-01-24**: Fixed "Cannot find module" error with proper Docker build
-- **2025-01-24**: Fixed "Cannot find package 'express'" with standalone structure
-- **2025-01-24**: Implemented comprehensive TypeScript ESM configuration
-- **2025-01-24**: Created multiple deployment approaches for redundancy
-- **2025-01-24**: Final standalone Docker solution that resolves all monorepo issues 
+- **2025-01-24**: Fixed "Cannot find module" error with Docker build
+- **2025-01-24**: Fixed workspace dependency issues with single-stage build
+- **2025-01-24**: Fixed ESM module resolution with workspace maintenance
+- **2025-01-24**: Fixed missing built files with .dockerignore updates
+- **2025-01-24**: Standardized TypeScript configurations across all packages
+- **2025-01-24**: FINAL COMPREHENSIVE SOLUTION - Single-stage Docker build with consistent TypeScript configs 

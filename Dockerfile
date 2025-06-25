@@ -15,11 +15,27 @@ COPY tools ./tools
 COPY packages ./packages
 COPY apps/api ./apps/api
 
+# Debug: Check source files before building
+RUN echo "=== Checking source files ===" && \
+    ls -la packages/kam/src/auth/ && \
+    echo "=== KAM auth index.ts content ===" && \
+    cat packages/kam/src/auth/index.ts
+
 # Install all dependencies
 RUN pnpm install --frozen-lockfile
 
-# Build everything
-RUN pnpm turbo build --filter=keeper-api...
+# Build everything with verbose output
+RUN echo "=== Starting build ===" && \
+    pnpm turbo build --filter=keeper-api... --verbose
+
+# Debug: List built files to ensure they exist
+RUN echo "=== Checking built files ===" && \
+    ls -la packages/kam/dist/auth/ && \
+    echo "=== Contents of kam auth index.js ===" && \
+    cat packages/kam/dist/auth/index.js && \
+    echo "=== Checking if register.js exists ===" && \
+    ls -la packages/kam/dist/auth/register.js && \
+    echo "=== End debug ==="
 
 # Remove dev dependencies to reduce image size
 RUN pnpm prune --prod
