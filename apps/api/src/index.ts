@@ -26,6 +26,16 @@ app.use(logRequestMiddleware);
 
 app.use('/api/debug', debugRouter);
 
+// Health check endpoint for Railway
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    service: 'keeper-api'
+  });
+});
+
 app.get('/api/test', (req, res) => {
   res.json({ message: '✅ Test route working', origin: req.headers.origin });
 });
