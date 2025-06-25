@@ -7,22 +7,21 @@ RUN npm install -g pnpm
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY turbo.json ./
+# Copy package files first for better layer caching
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 
-# Copy tools and packages
+# Copy all workspace packages and apps
 COPY tools ./tools
 COPY packages ./packages
 COPY apps/api ./apps/api
 
-# Install dependencies
+# Install all dependencies
 RUN pnpm install --frozen-lockfile
 
-# Build the project (this will generate Prisma client and build all packages)
+# Build everything
 RUN pnpm turbo build --filter=keeper-api...
 
-# Production stage
+# Production stage - Create standalone app
 FROM node:18-alpine AS production
 
 # Install pnpm
@@ -30,31 +29,38 @@ RUN npm install -g pnpm
 
 WORKDIR /app
 
-# Copy built application
-COPY --from=base /app/apps/api/dist ./apps/api/dist
-COPY --from=base /app/apps/api/package.json ./apps/api/package.json
+# Create a standalone application structure
+# Copy the API's built code
+COPY --from=base /app/apps/api/dist ./dist
+COPY --from=base /app/apps/api/package.json ./package.json
 
-# Copy built packages with their dist folders
-COPY --from=base /app/packages/database/dist ./packages/database/dist
-COPY --from=base /app/packages/database/package.json ./packages/database/package.json
-COPY --from=base /app/packages/database/prisma ./packages/database/prisma
+# Copy built workspace packages as regular node_modules
+RUN mkdir -p node_modules/@keeper
 
-COPY --from=base /app/packages/kam/dist ./packages/kam/dist
-COPY --from=base /app/packages/kam/package.json ./packages/kam/package.json
+# Copy shared package
+COPY --from=base /app/packages/shared/dist ./node_modules/@keeper/shared/dist
+COPY --from=base /app/packages/shared/package.json ./node_modules/@keeper/shared/package.json
 
-COPY --from=base /app/packages/shared/dist ./packages/shared/dist
-COPY --from=base /app/packages/shared/package.json ./packages/shared/package.json
+# Copy kam package  
+COPY --from=base /app/packages/kam/dist ./node_modules/@keeper/kam/dist
+COPY --from=base /app/packages/kam/package.json ./node_modules/@keeper/kam/package.json
 
-# Copy root package files
-COPY --from=base /app/package.json ./package.json
-COPY --from=base /app/pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --from=base /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+# Copy database package
+COPY --from=base /app/packages/database/dist ./node_modules/@keeper/database/dist
+COPY --from=base /app/packages/database/package.json ./node_modules/@keeper/database/package.json
+COPY --from=base /app/packages/database/prisma ./node_modules/@keeper/database/prisma
 
-# Copy node_modules with Prisma client
-COPY --from=base /app/node_modules ./node_modules
+# Install only the API's production dependencies
+RUN pnpm install --prod --no-optional
+
+# Generate Prisma client for production
+RUN cd node_modules/@keeper/database && npx prisma generate
+
+# Set environment
+ENV NODE_ENV=production
 
 # Expose port
 EXPOSE 3001
 
 # Start the application
-CMD ["node", "apps/api/dist/index.js"] 
+CMD ["node", "dist/index.js"] 
