@@ -16,6 +16,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Railway Environment Debug
+console.log('🚂 RAILWAY DEBUG INFO:');
+console.log('- PORT assigned by Railway:', process.env.PORT);
+console.log('- Final PORT to bind:', PORT);
+console.log('- NODE_ENV:', process.env.NODE_ENV);
+console.log('- Railway Service:', process.env.RAILWAY_SERVICE_NAME);
+console.log('- All RAILWAY_ env vars:', 
+  Object.keys(process.env)
+    .filter(k => k.startsWith('RAILWAY_'))
+    .map(k => `${k}=${process.env[k]}`)
+);
+
 logger.info('✅ Keeper API starting');
 
 // Enhanced CORS configuration for production
@@ -94,8 +106,31 @@ app.use('/api/kam/settings', async (req, res) => {
 });
 
 logger.info('✅ Keeper Express server starting...');
-app.listen(PORT, () => {
+
+// Add error handling for Railway
+process.on('uncaughtException', (error) => {
+  console.error('🚨 UNCAUGHT EXCEPTION:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 UNHANDLED REJECTION at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+const server = app.listen(Number(PORT), '0.0.0.0', () => {
+  console.log(`🚀 ✅ SERVER SUCCESSFULLY STARTED!`);
+  console.log(`🚀 Server binding to 0.0.0.0:${PORT}`);
+  console.log(`🚀 Railway Service: ${process.env.RAILWAY_SERVICE_NAME || 'unknown'}`);
+  console.log(`🚀 Environment: ${process.env.NODE_ENV || 'unknown'}`);
+  console.log(`🚀 Health check available at: /health`);
+  
   logger.info(`🚀 Server running on http://localhost:${PORT}`);
   logger.info(`🚀 Railway Service: ${process.env.RAILWAY_SERVICE_NAME || 'unknown'}`);
   logger.info(`🚀 Environment: ${process.env.NODE_ENV || 'unknown'}`);
+});
+
+server.on('error', (error) => {
+  console.error('🚨 SERVER ERROR:', error);
+  process.exit(1);
 }); 
