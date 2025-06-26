@@ -46,7 +46,7 @@ const corsOptions = {
 };
 
 // Handle preflight OPTIONS requests explicitly
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next) => {
   console.log(`🌐 ${req.method} ${req.path} from origin: ${req.headers.origin}`);
   if (req.method === 'OPTIONS') {
     console.log('🔄 Handling OPTIONS preflight request');
@@ -54,7 +54,8 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
-    return res.status(200).end();
+    res.status(200).end();
+    return;
   }
   next();
 });
