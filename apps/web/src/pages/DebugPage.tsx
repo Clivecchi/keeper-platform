@@ -51,6 +51,41 @@ const DebugPage: React.FC = () => {
     }
   };
 
+  const handleTestRailwayDirect = async () => {
+    setLoading(true);
+    setError(null);
+    setResponse('');
+    try {
+      const railwayUrl = 'https://keeper-platform-production.up.railway.app/health';
+      const data = await fetch(railwayUrl, { 
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      const text = await data.text();
+      setResponse(`Railway direct response: ${text}`);
+    } catch (err: any) {
+      setError(`Railway direct test failed - ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    const debugInfo = {
+      environment: envInfo,
+      testResults: {
+        response,
+        error,
+        timestamp: new Date().toISOString()
+      }
+    };
+    navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2));
+    alert('Debug info copied to clipboard!');
+  };
+
   // Environment information
   const envInfo = {
     'Environment': import.meta.env.MODE,
@@ -82,14 +117,14 @@ const DebugPage: React.FC = () => {
       <div className="space-y-4">
         <h2 className="text-lg font-medium">API Connection Tests</h2>
         
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <button
             type="button"
             className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
             onClick={handleTestLogin}
             disabled={loading}
           >
-            {loading ? 'Testing…' : 'Test /api/test endpoint'}
+            {loading ? 'Testing…' : 'Test /api/test (via proxy)'}
           </button>
           
           <button
@@ -98,7 +133,24 @@ const DebugPage: React.FC = () => {
             onClick={handleSend}
             disabled={loading}
           >
-            {loading ? 'Sending…' : 'Test /api/debug endpoint'}
+            {loading ? 'Sending…' : 'Test /api/debug (via proxy)'}
+          </button>
+
+          <button
+            type="button"
+            className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+            onClick={handleTestRailwayDirect}
+            disabled={loading}
+          >
+            {loading ? 'Testing…' : 'Test Railway Direct'}
+          </button>
+
+          <button
+            type="button"
+            className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700"
+            onClick={copyToClipboard}
+          >
+            📋 Copy Debug Info
           </button>
         </div>
       </div>
