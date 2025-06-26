@@ -15,28 +15,7 @@ import { fileURLToPath } from 'url';
 
 console.log('🚀 [STARTUP] Imports loaded successfully');
 
-console.log('🚀 [STARTUP] Importing @keeper/shared...');
-import { logger } from '@keeper/shared';
-console.log('🚀 [STARTUP] ✓ @keeper/shared imported');
-
-console.log('🚀 [STARTUP] Importing @keeper/kam...');
-import { loginUserHandler, registerUserHandler } from '@keeper/kam';
-console.log('🚀 [STARTUP] ✓ @keeper/kam imported');
-
-console.log('🚀 [STARTUP] Importing debug router...');
-import debugRouter from './api/debug.js';
-console.log('🚀 [STARTUP] ✓ debug router imported');
-
-console.log('🚀 [STARTUP] Importing settings handler...');
-import settingsHandler from './api/kam/settings.js';
-console.log('🚀 [STARTUP] ✓ settings handler imported');
-
-console.log('🚀 [STARTUP] Importing request middleware...');
-import { logRequestMiddleware } from './middleware/logRequestMiddleware.js';
-console.log('🚀 [STARTUP] ✓ request middleware imported');
-
-console.log('🚀 [STARTUP] All modules imported successfully');
-
+// Load environment first
 dotenv.config();
 console.log('🚀 [STARTUP] Environment variables loaded');
 
@@ -78,133 +57,12 @@ console.log('- All RAILWAY_ env vars:',
     .map(k => `${k}=${process.env[k]}`)
 );
 
-logger.info('✅ Keeper API starting');
-console.log('🚀 [MIDDLEWARE] Starting middleware setup...');
-
-// CRITICAL: Add raw request logging FIRST - before any other middleware
-console.log('🚀 [MIDDLEWARE] Adding raw request logger...');
-app.use((req, res, next) => {
-  console.log(`🚨 RAW REQUEST: ${req.method} ${req.url} - Headers: ${JSON.stringify(req.headers)}`);
-  next();
-});
-console.log('🚀 [MIDDLEWARE] Raw request logger added');
-
-// Enhanced CORS configuration for production
-const corsOptions = { 
-  origin: [
-    'http://localhost:5173',           // Local development
-    'https://v0-keeper.vercel.app',    // Production Vercel
-    'https://keeper-platform-95osbe8hw-clivecchis-projects.vercel.app', // Vercel preview
-    /\.vercel\.app$/,                  // Any Vercel domain
-    true                              // Allow all others for now
-  ], 
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 200          // For legacy browser support
-};
-
-// SIMPLE CORS handling - handle OPTIONS first, before everything else
-console.log('🚀 [MIDDLEWARE] Adding CORS handler...');
-app.use((req: Request, res: Response, next): void => {
-  console.log(`🌐 PROCESSING: ${req.method} ${req.path} from origin: ${req.headers.origin}`);
-  
-  // Set CORS headers for ALL requests
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    console.log('🔄 OPTIONS request - sending 200 OK');
-    res.status(200).json({ message: 'CORS OK' });
-    return;
-  }
-  
-  next();
-});
-console.log('🚀 [MIDDLEWARE] CORS handler added');
-
-console.log('🚀 [MIDDLEWARE] Adding JSON parser...');
-app.use(express.json());
-console.log('🚀 [MIDDLEWARE] JSON parser added');
-
-console.log('🚀 [MIDDLEWARE] Adding request logger...');
-app.use(logRequestMiddleware);
-console.log('🚀 [MIDDLEWARE] Request logger added');
-
-console.log('🚀 [ROUTES] Adding debug router...');
-app.use('/api/debug', debugRouter);
-console.log('🚀 [ROUTES] Debug router added');
-
-// Root endpoint for basic connectivity testing
-console.log('🚀 [ROUTES] Adding root endpoint...');
-app.get('/', (req, res) => {
-  console.log(`🏠 Root endpoint hit from origin: ${req.headers.origin}`);
-  res.json({ 
-    message: '✅ Keeper API is running',
-    timestamp: new Date().toISOString(),
-    service: 'keeper-api',
-    environment: process.env.NODE_ENV,
-    railway_service: process.env.RAILWAY_SERVICE_NAME
-  });
-});
-
-// Health check endpoint for Railway
-app.get('/health', (req, res) => {
-  logger.info(`🏥 Health check requested from origin: ${req.headers.origin}`);
-  res.status(200).json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    service: 'keeper-api',
-    railway_service: process.env.RAILWAY_SERVICE_NAME || 'unknown',
-    environment: process.env.NODE_ENV || 'unknown'
-  });
-});
-
-app.get('/api/test', (req, res) => {
-  logger.info(`🧪 Test endpoint hit from origin: ${req.headers.origin}`);
-  res.json({ 
-    message: '✅ Test route working', 
-    origin: req.headers.origin,
-    timestamp: new Date().toISOString(),
-    railway_service: process.env.RAILWAY_SERVICE_NAME || 'unknown'
-  });
-});
-
-app.post('/api/kam/auth/register', async (req, res) => {
-  try {
-    const result = await registerUserHandler(req.body);
-    res.status(result.success ? 200 : 400).json(result);
-  } catch (err) {
-    logger.error('Register handler error', err);
-    res.status(500).json({ success: false, error: 'Internal Server Error' });
-  }
-});
-
-const loginRouteHandler = async (req: Request, res: Response) => {
-  logger.info('🔐 Login route hit');
-  try {
-    const result = await loginUserHandler(req.body);
-    res.status(result.success ? 200 : 401).json(result);
-  } catch (err) {
-    logger.error('Login handler error', err);
-    res.status(500).json({ success: false, error: 'Internal Server Error' });
-  }
-};
-app.post('/api/kam/auth/login', loginRouteHandler);
-
-app.use('/api/kam/settings', async (req, res) => {
-  try {
-    await settingsHandler(req, res);
-  } catch (err) {
-    logger.error('Settings handler error', err);
-    res.status(500).json({ success: false, error: 'Internal Server Error' });
-  }
-});
-
-logger.info('✅ Keeper Express server starting...');
+// Add startup error logging
+console.log('🚀 [STARTUP] Checking critical environment variables...');
+console.log('🚀 [ENV] NODE_ENV:', process.env.NODE_ENV);
+console.log('🚀 [ENV] PORT:', process.env.PORT);
+console.log('🚀 [ENV] JWT_SECRET:', process.env.JWT_SECRET ? '✓ SET' : '✗ MISSING');
+console.log('🚀 [ENV] DATABASE_URL:', process.env.DATABASE_URL ? '✓ SET' : '✗ MISSING');
 
 // Add error handling for Railway
 process.on('uncaughtException', (error) => {
@@ -219,28 +77,51 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
-// Add startup error logging
-console.log('🚀 [STARTUP] Checking critical environment variables...');
-console.log('🚀 [ENV] NODE_ENV:', process.env.NODE_ENV);
-console.log('🚀 [ENV] PORT:', process.env.PORT);
-console.log('🚀 [ENV] JWT_SECRET:', process.env.JWT_SECRET ? '✓ SET' : '✗ MISSING');
-console.log('🚀 [ENV] DATABASE_URL:', process.env.DATABASE_URL ? '✓ SET' : '✗ MISSING');
+// CRITICAL: Add basic ping endpoint BEFORE any complex imports
+console.log('🚀 [ROUTES] Adding basic ping endpoint...');
+app.get('/ping', (req, res) => {
+  console.log(`🏓 Ping endpoint hit from origin: ${req.headers.origin}`);
+  res.json({ 
+    message: '🏓 PONG - Railway Express server is alive!',
+    timestamp: new Date().toISOString(),
+    port: PORT,
+    env: process.env.NODE_ENV,
+    uptime: process.uptime()
+  });
+});
+console.log('🚀 [ROUTES] ✓ Basic ping endpoint added');
 
-// Try to start server with comprehensive error handling
-console.log('🚀 [SERVER] All setup complete, starting server...');
+// Health check endpoint for Railway (before complex imports)
+console.log('🚀 [ROUTES] Adding basic health endpoint...');
+app.get('/health', (req, res) => {
+  console.log(`🏥 Health check requested from origin: ${req.headers.origin}`);
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    service: 'keeper-api-basic',
+    port: PORT,
+    env: process.env.NODE_ENV || 'unknown'
+  });
+});
+console.log('🚀 [ROUTES] ✓ Basic health endpoint added');
+
+// Try to start server BEFORE complex imports to test basic functionality
+console.log('🚀 [SERVER] Starting basic server first...');
 console.log(`🚀 [SERVER] Attempting to bind to 0.0.0.0:${PORT}...`);
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 ✅ SERVER SUCCESSFULLY STARTED!`);
+  console.log(`🚀 ✅ BASIC SERVER SUCCESSFULLY STARTED!`);
   console.log(`🚀 Server binding to 0.0.0.0:${PORT}`);
   console.log(`🚀 Railway Service: ${process.env.RAILWAY_SERVICE_NAME || 'unknown'}`);
   console.log(`🚀 Environment: ${process.env.NODE_ENV || 'unknown'}`);
-  console.log(`🚀 Health check available at: /health`);
+  console.log(`🚀 Basic health check available at: /health`);
+  console.log(`🚀 Basic ping available at: /ping`);
   console.log(`🚀 Process ID: ${process.pid}`);
   
-  logger.info(`🚀 Server running on http://localhost:${PORT}`);
-  logger.info(`🚀 Railway Service: ${process.env.RAILWAY_SERVICE_NAME || 'unknown'}`);
-  logger.info(`🚀 Environment: ${process.env.NODE_ENV || 'unknown'}`);
+  // Now load complex imports AFTER server is started
+  console.log('🚀 [STARTUP] Basic server started, now loading complex modules...');
+  loadComplexModules();
 });
 
 server.on('error', (error: any) => {
@@ -256,10 +137,157 @@ server.on('error', (error: any) => {
 });
 
 server.on('listening', () => {
-  console.log(`🎯 [SERVER] Server is now listening on 0.0.0.0:${PORT}`);
+  console.log(`🎯 [SERVER] Basic server is now listening on 0.0.0.0:${PORT}`);
   console.log(`🎯 [SERVER] Server address:`, server.address());
   console.log(`🎯 [SERVER] Ready to accept connections`);
 });
+
+// Function to load complex modules after basic server is running
+async function loadComplexModules() {
+  try {
+    console.log('🚀 [STARTUP] Importing @keeper/shared...');
+    const { logger } = await import('@keeper/shared');
+    console.log('🚀 [STARTUP] ✓ @keeper/shared imported');
+
+    console.log('🚀 [STARTUP] Importing @keeper/kam...');
+    const { loginUserHandler, registerUserHandler } = await import('@keeper/kam');
+    console.log('🚀 [STARTUP] ✓ @keeper/kam imported');
+
+    console.log('🚀 [STARTUP] Importing debug router...');
+    const debugRouterModule = await import('./api/debug.js');
+    const debugRouter = debugRouterModule.default;
+    console.log('🚀 [STARTUP] ✓ debug router imported');
+
+    console.log('🚀 [STARTUP] Importing settings handler...');
+    const settingsHandlerModule = await import('./api/kam/settings.js');
+    const settingsHandler = settingsHandlerModule.default;
+    console.log('🚀 [STARTUP] ✓ settings handler imported');
+
+    console.log('🚀 [STARTUP] Importing request middleware...');
+    const { logRequestMiddleware } = await import('./middleware/logRequestMiddleware.js');
+    console.log('🚀 [STARTUP] ✓ request middleware imported');
+
+    console.log('🚀 [STARTUP] All modules imported successfully');
+
+    // Now add complex middleware and routes
+    setupComplexRoutes(app, logger, loginUserHandler, registerUserHandler, debugRouter, settingsHandler, logRequestMiddleware);
+    
+  } catch (error) {
+    console.error('🚨 ERROR loading complex modules:', error);
+    console.error('🚨 Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
+    // Don't exit - keep basic server running
+  }
+}
+
+// Function to setup complex routes after modules are loaded
+function setupComplexRoutes(app: any, logger: any, loginUserHandler: any, registerUserHandler: any, debugRouter: any, settingsHandler: any, logRequestMiddleware: any) {
+  try {
+    logger.info('✅ Keeper API starting');
+    console.log('🚀 [MIDDLEWARE] Starting middleware setup...');
+
+    // CRITICAL: Add raw request logging FIRST - before any other middleware
+    console.log('🚀 [MIDDLEWARE] Adding raw request logger...');
+    app.use((req: any, res: any, next: any) => {
+      console.log(`🚨 RAW REQUEST: ${req.method} ${req.url} - Headers: ${JSON.stringify(req.headers)}`);
+      next();
+    });
+    console.log('🚀 [MIDDLEWARE] Raw request logger added');
+
+    // SIMPLE CORS handling - handle OPTIONS first, before everything else
+    console.log('🚀 [MIDDLEWARE] Adding CORS handler...');
+    app.use((req: Request, res: Response, next: any): void => {
+      console.log(`🌐 PROCESSING: ${req.method} ${req.path} from origin: ${req.headers.origin}`);
+      
+      // Set CORS headers for ALL requests
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      
+      if (req.method === 'OPTIONS') {
+        console.log('🔄 OPTIONS request - sending 200 OK');
+        res.status(200).json({ message: 'CORS OK' });
+        return;
+      }
+      
+      next();
+    });
+    console.log('🚀 [MIDDLEWARE] CORS handler added');
+
+    console.log('🚀 [MIDDLEWARE] Adding JSON parser...');
+    app.use(express.json());
+    console.log('🚀 [MIDDLEWARE] JSON parser added');
+
+    console.log('🚀 [MIDDLEWARE] Adding request logger...');
+    app.use(logRequestMiddleware);
+    console.log('🚀 [MIDDLEWARE] Request logger added');
+
+    console.log('🚀 [ROUTES] Adding debug router...');
+    app.use('/api/debug', debugRouter);
+    console.log('🚀 [ROUTES] Debug router added');
+
+    // Root endpoint for basic connectivity testing
+    console.log('🚀 [ROUTES] Adding root endpoint...');
+    app.get('/', (req: any, res: any) => {
+      console.log(`🏠 Root endpoint hit from origin: ${req.headers.origin}`);
+      res.json({ 
+        message: '✅ Keeper API is running',
+        timestamp: new Date().toISOString(),
+        service: 'keeper-api',
+        environment: process.env.NODE_ENV,
+        railway_service: process.env.RAILWAY_SERVICE_NAME
+      });
+    });
+
+    app.get('/api/test', (req: any, res: any) => {
+      logger.info(`🧪 Test endpoint hit from origin: ${req.headers.origin}`);
+      res.json({ 
+        message: '✅ Test route working', 
+        origin: req.headers.origin,
+        timestamp: new Date().toISOString(),
+        railway_service: process.env.RAILWAY_SERVICE_NAME || 'unknown'
+      });
+    });
+
+    app.post('/api/kam/auth/register', async (req: any, res: any) => {
+      try {
+        const result = await registerUserHandler(req.body);
+        res.status(result.success ? 200 : 400).json(result);
+      } catch (err) {
+        logger.error('Register handler error', err);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+      }
+    });
+
+    const loginRouteHandler = async (req: Request, res: Response) => {
+      logger.info('🔐 Login route hit');
+      try {
+        const result = await loginUserHandler(req.body);
+        res.status(result.success ? 200 : 401).json(result);
+      } catch (err) {
+        logger.error('Login handler error', err);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+      }
+    };
+    app.post('/api/kam/auth/login', loginRouteHandler);
+
+    app.use('/api/kam/settings', async (req: any, res: any) => {
+      try {
+        await settingsHandler(req, res);
+      } catch (err) {
+        logger.error('Settings handler error', err);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+      }
+    });
+
+    console.log('🚀 [SETUP] Complex routes and middleware setup complete');
+    logger.info('✅ Keeper Express server fully configured');
+    
+  } catch (error) {
+    console.error('🚨 ERROR setting up complex routes:', error);
+    console.error('🚨 Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
+  }
+}
 
 // Add connection-level debugging
 server.on('connection', (socket) => {
