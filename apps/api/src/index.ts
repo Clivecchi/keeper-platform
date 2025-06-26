@@ -1,8 +1,19 @@
+// ===== EARLIEST POSSIBLE DEBUG POINT =====
+console.log('🚀 [STARTUP] Node.js process starting...');
+console.log('🚀 [STARTUP] Process ID:', process.pid);
+console.log('🚀 [STARTUP] Node version:', process.version);
+console.log('🚀 [STARTUP] Platform:', process.platform);
+console.log('🚀 [STARTUP] Architecture:', process.arch);
+console.log('🚀 [STARTUP] Working directory:', process.cwd());
+console.log('🚀 [STARTUP] Script arguments:', process.argv);
+
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+console.log('🚀 [STARTUP] Imports loaded successfully');
 
 import { logger } from '@keeper/shared';
 import { loginUserHandler, registerUserHandler } from '@keeper/kam';
@@ -10,12 +21,21 @@ import debugRouter from './api/debug.js';
 import settingsHandler from './api/kam/settings.js';
 import { logRequestMiddleware } from './middleware/logRequestMiddleware.js';
 
+console.log('🚀 [STARTUP] All modules imported successfully');
+
 dotenv.config();
+console.log('🚀 [STARTUP] Environment variables loaded');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+console.log('🚀 [STARTUP] Directory resolved:', __dirname);
+
+console.log('🚀 [EXPRESS] Creating Express application...');
 const app = express();
+console.log('🚀 [EXPRESS] Express app created successfully');
+
 // Railway typically assigns PORT dynamically, fallback to 3001 for local dev
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+console.log('🚀 [CONFIG] Port configuration complete:', PORT);
 
 // CRITICAL: Log if Railway assigned a different port than expected
 if (process.env.PORT && process.env.PORT !== '3001') {
@@ -37,12 +57,15 @@ console.log('- All RAILWAY_ env vars:',
 );
 
 logger.info('✅ Keeper API starting');
+console.log('🚀 [MIDDLEWARE] Starting middleware setup...');
 
 // CRITICAL: Add raw request logging FIRST - before any other middleware
+console.log('🚀 [MIDDLEWARE] Adding raw request logger...');
 app.use((req, res, next) => {
   console.log(`🚨 RAW REQUEST: ${req.method} ${req.url} - Headers: ${JSON.stringify(req.headers)}`);
   next();
 });
+console.log('🚀 [MIDDLEWARE] Raw request logger added');
 
 // Enhanced CORS configuration for production
 const corsOptions = { 
@@ -60,6 +83,7 @@ const corsOptions = {
 };
 
 // SIMPLE CORS handling - handle OPTIONS first, before everything else
+console.log('🚀 [MIDDLEWARE] Adding CORS handler...');
 app.use((req: Request, res: Response, next): void => {
   console.log(`🌐 PROCESSING: ${req.method} ${req.path} from origin: ${req.headers.origin}`);
   
@@ -77,12 +101,22 @@ app.use((req: Request, res: Response, next): void => {
   
   next();
 });
-app.use(express.json());
-app.use(logRequestMiddleware);
+console.log('🚀 [MIDDLEWARE] CORS handler added');
 
+console.log('🚀 [MIDDLEWARE] Adding JSON parser...');
+app.use(express.json());
+console.log('🚀 [MIDDLEWARE] JSON parser added');
+
+console.log('🚀 [MIDDLEWARE] Adding request logger...');
+app.use(logRequestMiddleware);
+console.log('🚀 [MIDDLEWARE] Request logger added');
+
+console.log('🚀 [ROUTES] Adding debug router...');
 app.use('/api/debug', debugRouter);
+console.log('🚀 [ROUTES] Debug router added');
 
 // Root endpoint for basic connectivity testing
+console.log('🚀 [ROUTES] Adding root endpoint...');
 app.get('/', (req, res) => {
   console.log(`🏠 Root endpoint hit from origin: ${req.headers.origin}`);
   res.json({ 
@@ -162,7 +196,8 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Try to start server with comprehensive error handling
-console.log(`🚀 Attempting to start server on port ${PORT}...`);
+console.log('🚀 [SERVER] All setup complete, starting server...');
+console.log(`🚀 [SERVER] Attempting to bind to 0.0.0.0:${PORT}...`);
 
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 ✅ SERVER SUCCESSFULLY STARTED!`);
@@ -190,5 +225,26 @@ server.on('error', (error: any) => {
 });
 
 server.on('listening', () => {
-  console.log(`🎯 Server is now listening on 0.0.0.0:${PORT}`);
+  console.log(`🎯 [SERVER] Server is now listening on 0.0.0.0:${PORT}`);
+  console.log(`🎯 [SERVER] Server address:`, server.address());
+  console.log(`🎯 [SERVER] Ready to accept connections`);
+});
+
+// Add connection-level debugging
+server.on('connection', (socket) => {
+  console.log(`🔌 [CONNECTION] New connection from ${socket.remoteAddress}:${socket.remotePort}`);
+  
+  socket.on('close', () => {
+    console.log(`🔌 [CONNECTION] Connection closed from ${socket.remoteAddress}:${socket.remotePort}`);
+  });
+  
+  socket.on('error', (err) => {
+    console.log(`🔌 [CONNECTION] Socket error from ${socket.remoteAddress}:${socket.remotePort}:`, err);
+  });
+});
+
+// Add request-level debugging at the HTTP level
+server.on('request', (req, res) => {
+  console.log(`📥 [HTTP] Incoming HTTP request: ${req.method} ${req.url}`);
+  console.log(`📥 [HTTP] Request headers:`, req.headers);
 }); 
