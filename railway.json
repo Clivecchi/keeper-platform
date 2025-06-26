@@ -7,7 +7,7 @@
   "deploy": {
     "startCommand": "node apps/api/dist/index.js",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 100
+    "healthcheckTimeout": 300
   },
   "variables": {
     "RAILWAY_DISABLE_BUILD_CACHE": "true",

@@ -41,15 +41,41 @@ const corsOptions = {
   ], 
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200          // For legacy browser support
 };
 
-app.options('*', cors(corsOptions));
+// Handle preflight OPTIONS requests explicitly
+app.use((req, res, next) => {
+  console.log(`🌐 ${req.method} ${req.path} from origin: ${req.headers.origin}`);
+  if (req.method === 'OPTIONS') {
+    console.log('🔄 Handling OPTIONS preflight request');
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    return res.status(200).end();
+  }
+  next();
+});
+
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(logRequestMiddleware);
 
 app.use('/api/debug', debugRouter);
+
+// Root endpoint for basic connectivity testing
+app.get('/', (req, res) => {
+  console.log(`🏠 Root endpoint hit from origin: ${req.headers.origin}`);
+  res.json({ 
+    message: '✅ Keeper API is running',
+    timestamp: new Date().toISOString(),
+    service: 'keeper-api',
+    environment: process.env.NODE_ENV,
+    railway_service: process.env.RAILWAY_SERVICE_NAME
+  });
+});
 
 // Health check endpoint for Railway
 app.get('/health', (req, res) => {
