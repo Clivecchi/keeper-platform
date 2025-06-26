@@ -17,6 +17,13 @@ const app = express();
 // Railway typically assigns PORT dynamically, fallback to 3001 for local dev
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
+// CRITICAL: Log if Railway assigned a different port than expected
+if (process.env.PORT && process.env.PORT !== '3001') {
+  console.log(`🚨 RAILWAY PORT MISMATCH: Railway assigned ${process.env.PORT}, but we might expect 3001!`);
+} else if (!process.env.PORT) {
+  console.log(`⚠️ WARNING: No PORT env var from Railway, using fallback 3001`);
+}
+
 // Railway Environment Debug
 console.log('🚂 RAILWAY DEBUG INFO:');
 console.log('- PORT assigned by Railway:', process.env.PORT);
