@@ -73,6 +73,27 @@ const DebugPage: React.FC = () => {
     }
   };
 
+  const handleTestRailwayLogs = async () => {
+    setLoading(true);
+    setError(null);
+    setResponse('');
+    try {
+      const data = await apiFetch('/api/debug/railway-logs', { method: 'GET' });
+      setResponse(`Railway Debug Info:\n${JSON.stringify(data, null, 2)}`);
+    } catch (err: unknown) {
+      if (err instanceof Response) {
+        const text = await err.text();
+        setError(`Railway logs failed - HTTP ${err.status}: ${text}`);
+      } else if (err instanceof Error) {
+        setError(`Railway logs failed - ${err.message}`);
+      } else {
+        setError('Railway logs failed - Unknown error');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const copyToClipboard = () => {
     const debugInfo = {
       environment: envInfo,
@@ -143,6 +164,15 @@ const DebugPage: React.FC = () => {
             disabled={loading}
           >
             {loading ? 'Testing…' : 'Test Railway Direct'}
+          </button>
+
+          <button
+            type="button"
+            className="px-4 py-2 rounded-md bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50"
+            onClick={handleTestRailwayLogs}
+            disabled={loading}
+          >
+            {loading ? 'Fetching…' : '🚂 Get Railway Debug Info'}
           </button>
 
           <button
