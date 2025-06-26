@@ -1,7 +1,8 @@
-import express from 'express';
+import express, { Router } from 'express';
+import type { Router as ExpressRouter } from 'express';
 import { logger } from '@keeper/shared';
 
-const router = express.Router();
+const router: ExpressRouter = Router();
 
 // Debug endpoint for testing connectivity
 router.post('/', (req, res) => {
