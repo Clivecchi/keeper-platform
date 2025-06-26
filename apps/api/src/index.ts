@@ -108,11 +108,11 @@ console.log('🚀 [ROUTES] ✓ Basic health endpoint added');
 
 // Try to start server BEFORE complex imports to test basic functionality
 console.log('🚀 [SERVER] Starting basic server first...');
-console.log(`🚀 [SERVER] Attempting to bind to 0.0.0.0:${PORT}...`);
+console.log(`🚀 [SERVER] Attempting to bind to [::]:${PORT} (IPv6 + IPv4)...`);
 
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '::', () => {
   console.log(`🚀 ✅ BASIC SERVER SUCCESSFULLY STARTED!`);
-  console.log(`🚀 Server binding to 0.0.0.0:${PORT}`);
+  console.log(`🚀 Server binding to [::]:${PORT} (IPv6 + IPv4)`);
   console.log(`🚀 Railway Service: ${process.env.RAILWAY_SERVICE_NAME || 'unknown'}`);
   console.log(`🚀 Environment: ${process.env.NODE_ENV || 'unknown'}`);
   console.log(`🚀 Basic health check available at: /health`);
@@ -137,7 +137,7 @@ server.on('error', (error: any) => {
 });
 
 server.on('listening', () => {
-  console.log(`🎯 [SERVER] Basic server is now listening on 0.0.0.0:${PORT}`);
+  console.log(`🎯 [SERVER] Basic server is now listening on [::]:${PORT} (IPv6 + IPv4)`);
   console.log(`🎯 [SERVER] Server address:`, server.address());
   console.log(`🎯 [SERVER] Ready to accept connections`);
 });
