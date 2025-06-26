@@ -15,11 +15,25 @@ import { fileURLToPath } from 'url';
 
 console.log('🚀 [STARTUP] Imports loaded successfully');
 
+console.log('🚀 [STARTUP] Importing @keeper/shared...');
 import { logger } from '@keeper/shared';
+console.log('🚀 [STARTUP] ✓ @keeper/shared imported');
+
+console.log('🚀 [STARTUP] Importing @keeper/kam...');
 import { loginUserHandler, registerUserHandler } from '@keeper/kam';
+console.log('🚀 [STARTUP] ✓ @keeper/kam imported');
+
+console.log('🚀 [STARTUP] Importing debug router...');
 import debugRouter from './api/debug.js';
+console.log('🚀 [STARTUP] ✓ debug router imported');
+
+console.log('🚀 [STARTUP] Importing settings handler...');
 import settingsHandler from './api/kam/settings.js';
+console.log('🚀 [STARTUP] ✓ settings handler imported');
+
+console.log('🚀 [STARTUP] Importing request middleware...');
 import { logRequestMiddleware } from './middleware/logRequestMiddleware.js';
+console.log('🚀 [STARTUP] ✓ request middleware imported');
 
 console.log('🚀 [STARTUP] All modules imported successfully');
 
@@ -33,18 +47,23 @@ console.log('🚀 [EXPRESS] Creating Express application...');
 const app = express();
 console.log('🚀 [EXPRESS] Express app created successfully');
 
-// Railway expects port 8080, fallback to 3001 for local dev
-const PORT = process.env.NODE_ENV === 'production' ? 8080 : (process.env.PORT ? parseInt(process.env.PORT, 10) : 3001);
+// Railway assigns PORT dynamically, respect that first, then fallback to 8080 for production, 3001 for dev
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : (process.env.NODE_ENV === 'production' ? 8080 : 3001);
 console.log('🚀 [CONFIG] Port configuration complete:', PORT);
 console.log('🚀 [CONFIG] Environment:', process.env.NODE_ENV);
 
 // CRITICAL: Railway port configuration debug
-if (process.env.NODE_ENV === 'production') {
-  console.log(`🚂 RAILWAY: Using production port 8080 (Railway's expected port)`);
-} else if (process.env.PORT && process.env.PORT !== '3001') {
-  console.log(`🚨 DEV PORT: Using assigned port ${process.env.PORT}`);
-} else if (!process.env.PORT) {
-  console.log(`⚠️ DEV FALLBACK: No PORT env var, using fallback 3001`);
+console.log(`🚂 RAILWAY PORT LOGIC:`);
+console.log(`  - process.env.PORT: ${process.env.PORT || 'undefined'}`);
+console.log(`  - process.env.NODE_ENV: ${process.env.NODE_ENV || 'undefined'}`);
+console.log(`  - Final PORT: ${PORT}`);
+
+if (process.env.PORT) {
+  console.log(`✅ RAILWAY: Using Railway-assigned port ${process.env.PORT}`);
+} else if (process.env.NODE_ENV === 'production') {
+  console.log(`🚂 PRODUCTION: No Railway PORT assigned, using fallback 8080`);
+} else {
+  console.log(`💻 DEVELOPMENT: Using local development port 3001`);
 }
 
 // Railway Environment Debug
@@ -190,13 +209,22 @@ logger.info('✅ Keeper Express server starting...');
 // Add error handling for Railway
 process.on('uncaughtException', (error) => {
   console.error('🚨 UNCAUGHT EXCEPTION:', error);
+  console.error('🚨 Stack trace:', error.stack);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('🚨 UNHANDLED REJECTION at:', promise, 'reason:', reason);
+  console.error('🚨 Full error object:', reason);
   process.exit(1);
 });
+
+// Add startup error logging
+console.log('🚀 [STARTUP] Checking critical environment variables...');
+console.log('🚀 [ENV] NODE_ENV:', process.env.NODE_ENV);
+console.log('🚀 [ENV] PORT:', process.env.PORT);
+console.log('🚀 [ENV] JWT_SECRET:', process.env.JWT_SECRET ? '✓ SET' : '✗ MISSING');
+console.log('🚀 [ENV] DATABASE_URL:', process.env.DATABASE_URL ? '✓ SET' : '✗ MISSING');
 
 // Try to start server with comprehensive error handling
 console.log('🚀 [SERVER] All setup complete, starting server...');

@@ -100,9 +100,8 @@ RUN pnpm prune --prod --config.ignore-scripts=true
 
 # Set environment
 ENV NODE_ENV=production
-ENV PORT=8080
 
-# Expose port 8080 for Railway
+# Railway will set PORT dynamically, but expose 8080 as default
 EXPOSE 8080
 
 # Railway-specific: Add startup verification
