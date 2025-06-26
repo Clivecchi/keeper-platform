@@ -53,17 +53,29 @@ const corsOptions = {
   optionsSuccessStatus: 200          // For legacy browser support
 };
 
-// Handle preflight OPTIONS requests explicitly
+// Handle ALL requests with extensive logging
 app.use((req: Request, res: Response, next) => {
-  console.log(`🌐 ${req.method} ${req.path} from origin: ${req.headers.origin}`);
+  console.log(`🌐 INCOMING REQUEST: ${req.method} ${req.path} from origin: ${req.headers.origin}`);
+  console.log(`🔍 Headers:`, JSON.stringify(req.headers, null, 2));
+  
   if (req.method === 'OPTIONS') {
     console.log('🔄 Handling OPTIONS preflight request');
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.status(200).end();
-    return;
+    console.log('🔄 Setting CORS headers...');
+    
+    try {
+      res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      console.log('🔄 CORS headers set, sending 200 response');
+      res.status(200).end();
+      console.log('🔄 OPTIONS response sent successfully');
+      return;
+    } catch (error) {
+      console.error('🚨 ERROR handling OPTIONS request:', error);
+      res.status(500).end();
+      return;
+    }
   }
   next();
 });
