@@ -12,6 +12,7 @@
   "variables": {
     "RAILWAY_DISABLE_BUILD_CACHE": "true",
     "NODE_ENV": "production",
+    "PORT": "8080",
     "PNPM_HOME": "/pnpm",
     "NPM_CONFIG_UPDATE_NOTIFIER": "false",
     "NPM_CONFIG_FUND": "false"

@@ -33,15 +33,18 @@ console.log('🚀 [EXPRESS] Creating Express application...');
 const app = express();
 console.log('🚀 [EXPRESS] Express app created successfully');
 
-// Railway typically assigns PORT dynamically, fallback to 3001 for local dev
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+// Railway expects port 8080, fallback to 3001 for local dev
+const PORT = process.env.NODE_ENV === 'production' ? 8080 : (process.env.PORT ? parseInt(process.env.PORT, 10) : 3001);
 console.log('🚀 [CONFIG] Port configuration complete:', PORT);
+console.log('🚀 [CONFIG] Environment:', process.env.NODE_ENV);
 
-// CRITICAL: Log if Railway assigned a different port than expected
-if (process.env.PORT && process.env.PORT !== '3001') {
-  console.log(`🚨 RAILWAY PORT MISMATCH: Railway assigned ${process.env.PORT}, but we might expect 3001!`);
+// CRITICAL: Railway port configuration debug
+if (process.env.NODE_ENV === 'production') {
+  console.log(`🚂 RAILWAY: Using production port 8080 (Railway's expected port)`);
+} else if (process.env.PORT && process.env.PORT !== '3001') {
+  console.log(`🚨 DEV PORT: Using assigned port ${process.env.PORT}`);
 } else if (!process.env.PORT) {
-  console.log(`⚠️ WARNING: No PORT env var from Railway, using fallback 3001`);
+  console.log(`⚠️ DEV FALLBACK: No PORT env var, using fallback 3001`);
 }
 
 // Railway Environment Debug

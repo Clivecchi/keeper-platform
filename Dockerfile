@@ -100,9 +100,10 @@ RUN pnpm prune --prod --config.ignore-scripts=true
 
 # Set environment
 ENV NODE_ENV=production
+ENV PORT=8080
 
-# Let Railway handle port assignment dynamically
-# EXPOSE 3001
+# Expose port 8080 for Railway
+EXPOSE 8080
 
 # Railway-specific: Add startup verification
 CMD ["sh", "-c", "echo 'Starting Railway deployment...' && node --version && ls -la packages/kam/dist/auth/ && node apps/api/dist/index.js"] 
