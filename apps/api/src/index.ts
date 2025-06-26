@@ -38,6 +38,12 @@ console.log('- All RAILWAY_ env vars:',
 
 logger.info('✅ Keeper API starting');
 
+// CRITICAL: Add raw request logging FIRST - before any other middleware
+app.use((req, res, next) => {
+  console.log(`🚨 RAW REQUEST: ${req.method} ${req.url} - Headers: ${JSON.stringify(req.headers)}`);
+  next();
+});
+
 // Enhanced CORS configuration for production
 const corsOptions = { 
   origin: [
@@ -53,34 +59,23 @@ const corsOptions = {
   optionsSuccessStatus: 200          // For legacy browser support
 };
 
-// Handle ALL requests with extensive logging
+// SIMPLE CORS handling - handle OPTIONS first, before everything else
 app.use((req: Request, res: Response, next) => {
-  console.log(`🌐 INCOMING REQUEST: ${req.method} ${req.path} from origin: ${req.headers.origin}`);
-  console.log(`🔍 Headers:`, JSON.stringify(req.headers, null, 2));
+  console.log(`🌐 PROCESSING: ${req.method} ${req.path} from origin: ${req.headers.origin}`);
+  
+  // Set CORS headers for ALL requests
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
   
   if (req.method === 'OPTIONS') {
-    console.log('🔄 Handling OPTIONS preflight request');
-    console.log('🔄 Setting CORS headers...');
-    
-    try {
-      res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-      res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-      res.header('Access-Control-Allow-Credentials', 'true');
-      console.log('🔄 CORS headers set, sending 200 response');
-      res.status(200).end();
-      console.log('🔄 OPTIONS response sent successfully');
-      return;
-    } catch (error) {
-      console.error('🚨 ERROR handling OPTIONS request:', error);
-      res.status(500).end();
-      return;
-    }
+    console.log('🔄 OPTIONS request - sending 200 OK');
+    return res.status(200).json({ message: 'CORS OK' });
   }
+  
   next();
 });
-
-app.use(cors(corsOptions));
 app.use(express.json());
 app.use(logRequestMiddleware);
 
