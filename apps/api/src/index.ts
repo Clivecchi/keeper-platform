@@ -1,11 +1,19 @@
-// ===== EARLIEST POSSIBLE DEBUG POINT =====
+// ===== MINIMAL STARTUP FOR RAILWAY DEBUGGING =====
 console.log('🚀 [STARTUP] Node.js process starting...');
 console.log('🚀 [STARTUP] Process ID:', process.pid);
 console.log('🚀 [STARTUP] Node version:', process.version);
 console.log('🚀 [STARTUP] Platform:', process.platform);
-console.log('🚀 [STARTUP] Architecture:', process.arch);
 console.log('🚀 [STARTUP] Working directory:', process.cwd());
-console.log('🚀 [STARTUP] Script arguments:', process.argv);
+
+// Log ALL environment variables to see what Railway is providing
+console.log('🚀 [ENV] All environment variables:');
+Object.keys(process.env).sort().forEach(key => {
+  if (key.includes('PASSWORD') || key.includes('SECRET') || key.includes('TOKEN')) {
+    console.log(`${key}=***HIDDEN***`);
+  } else {
+    console.log(`${key}=${process.env[key]}`);
+  }
+});
 
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
