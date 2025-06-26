@@ -14,7 +14,8 @@ dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const PORT = process.env.PORT || 3001;
+// Railway typically assigns PORT dynamically, fallback to 3001 for local dev
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
 // Railway Environment Debug
 console.log('🚂 RAILWAY DEBUG INFO:');
@@ -145,19 +146,34 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
-const server = app.listen(Number(PORT), '0.0.0.0', () => {
+// Try to start server with comprehensive error handling
+console.log(`🚀 Attempting to start server on port ${PORT}...`);
+
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 ✅ SERVER SUCCESSFULLY STARTED!`);
   console.log(`🚀 Server binding to 0.0.0.0:${PORT}`);
   console.log(`🚀 Railway Service: ${process.env.RAILWAY_SERVICE_NAME || 'unknown'}`);
   console.log(`🚀 Environment: ${process.env.NODE_ENV || 'unknown'}`);
   console.log(`🚀 Health check available at: /health`);
+  console.log(`🚀 Process ID: ${process.pid}`);
   
   logger.info(`🚀 Server running on http://localhost:${PORT}`);
   logger.info(`🚀 Railway Service: ${process.env.RAILWAY_SERVICE_NAME || 'unknown'}`);
   logger.info(`🚀 Environment: ${process.env.NODE_ENV || 'unknown'}`);
 });
 
-server.on('error', (error) => {
+server.on('error', (error: any) => {
   console.error('🚨 SERVER ERROR:', error);
+  console.error('🚨 Error code:', error.code);
+  console.error('🚨 Error message:', error.message);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`🚨 Port ${PORT} is already in use!`);
+  } else if (error.code === 'EACCES') {
+    console.error(`🚨 Permission denied to bind to port ${PORT}!`);
+  }
   process.exit(1);
+});
+
+server.on('listening', () => {
+  console.log(`🎯 Server is now listening on 0.0.0.0:${PORT}`);
 }); 
