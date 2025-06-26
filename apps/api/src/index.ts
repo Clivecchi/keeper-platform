@@ -60,7 +60,7 @@ const corsOptions = {
 };
 
 // SIMPLE CORS handling - handle OPTIONS first, before everything else
-app.use((req: Request, res: Response, next) => {
+app.use((req: Request, res: Response, next): void => {
   console.log(`🌐 PROCESSING: ${req.method} ${req.path} from origin: ${req.headers.origin}`);
   
   // Set CORS headers for ALL requests
@@ -71,7 +71,8 @@ app.use((req: Request, res: Response, next) => {
   
   if (req.method === 'OPTIONS') {
     console.log('🔄 OPTIONS request - sending 200 OK');
-    return res.status(200).json({ message: 'CORS OK' });
+    res.status(200).json({ message: 'CORS OK' });
+    return;
   }
   
   next();
