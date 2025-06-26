@@ -5,7 +5,7 @@
     "buildCommand": null
   },
   "deploy": {
-    "startCommand": "node apps/api/dist/minimal-test.js",
+    "startCommand": "node apps/api/dist/index.js",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300
   },
