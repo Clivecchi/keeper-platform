@@ -18,6 +18,7 @@ The Database package provides centralized database access and management for the
 - `src/types.ts` - Extended database types and utilities
 - `prisma/schema.prisma` - Database schema definition
 - `prisma/MODEL_REFERENCE.MD` - Database model documentation
+- `prisma/seeds/` - Database seed files
 
 ## 🔄 Data & Behavior
 
@@ -311,9 +312,50 @@ This package was created during the monorepo migration to centralize all databas
 - **2025-06-23**: Added query helpers for user and theme operations
 - **2025-06-23**: Implemented Prisma client singleton pattern
 - **2025-06-23**: Added comprehensive TypeScript type definitions
+- **2025-06-23**: Added KIP agents table and queries
+- **2025-06-23**: Implemented fallback mock data for development
+- **2025-06-23**: Added development setup documentation
 
 ---
 
 **Authored by**: Platform Engineering Team  
 **Architecture Partner**: Kip  
 **Package Version**: 0.1.0 
+
+## 🛠️ Development Setup
+
+### Environment Variables
+The database requires a `DATABASE_URL` environment variable. Create a `.env` file in the project root:
+
+```env
+# For local development with PostgreSQL
+DATABASE_URL="postgresql://username:password@localhost:5432/keeper_dev"
+
+# For Railway deployment (provided automatically)
+DATABASE_URL="postgresql://..."
+
+# Other required variables
+JWT_SECRET="your-jwt-secret-here"
+```
+
+### Local Development Commands
+```bash
+# Generate Prisma client
+pnpm run generate
+
+# Push schema to database (for development)
+pnpm run db:push
+
+# Run migrations (for production)
+pnpm run migrate
+
+# Seed the database
+pnpm run seed
+```
+
+### Database Schema
+The schema includes:
+- User management (users, UserSettings, themes)
+- Content management (MemoryCard, ThreadBlob, notes)
+- KIP agents (kip_agents table)
+- Platform configuration (themes, StudioModule, etc.)

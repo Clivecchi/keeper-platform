@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 
@@ -50,6 +51,15 @@ const RootKeeperPage: React.FC = () => {
         <section className="bg-card text-card-foreground border border-border rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-medium">Configuration</h2>
           <ul className="mt-4 divide-y divide-border">
+            <li className="py-3 flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">API Keys</span>
+              <Link 
+                to="/root/settings/api-keys"
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Manage
+              </Link>
+            </li>
             <li className="py-3 flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Theme Settings</span>
               <button className="text-sm font-medium text-primary hover:underline">Change</button>

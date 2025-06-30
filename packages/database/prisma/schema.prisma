@@ -421,6 +421,86 @@ model user_roles {
   @@unique([userId, roleId])
 }
 
+model kip_agents {
+  id             String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  slug           String   @unique
+  name           String
+  purpose        String
+  model          String
+  agent_class    String   @default("Standard")
+  context_scope  String?
+  memory_enabled Boolean  @default(false)
+  tools          String[] @default([])
+  permissions    String[] @default([])
+  config         Json     @default("{}")
+  status         String   @default("ready")
+  model_provider String   @default("openai")
+  model_settings Json     @default("{}")
+  visibility     String   @default("private")
+  created_by     String?  @db.Uuid
+  created_at     DateTime @default(now())
+  updated_at     DateTime @default(now())
+  
+  // Relations
+  kip_agent_logs kip_agent_logs[]
+  kip_sessions   kip_sessions[]
+  kip_agent_permissions kip_agent_permissions[]
+}
+
+model kip_agent_logs {
+  id                String    @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  agent_id          String    @db.Uuid
+  user_id           String?
+  input             String
+  output            String?
+  error             String?
+  model             String?
+  execution_time_ms Int?
+  created_at        DateTime  @default(now())
+  
+  // Relations
+  agent kip_agents @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+  user  users?     @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  
+  @@index([agent_id])
+  @@index([user_id])
+  @@index([created_at])
+}
+
+model kip_sessions {
+  id           String        @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  agent_id     String        @db.Uuid
+  user_id      String?
+  session_name String?
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @default(now())
+  
+  // Relations
+  agent       kip_agents     @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+  user        users?         @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  messages    kip_messages[]
+  
+  @@index([agent_id])
+  @@index([user_id])
+  @@index([created_at])
+}
+
+model kip_messages {
+  id         String      @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  session_id String      @db.Uuid
+  sender     String      // 'user' or 'agent'
+  content    String
+  role       String      @default("assistant") // 'user', 'assistant', or future roles
+  metadata   Json        @default("{}")
+  created_at DateTime    @default(now())
+  
+  // Relations
+  session kip_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  
+  @@index([session_id])
+  @@index([created_at])
+}
+
 model users {
   id                              String              @id
   createdAt                       DateTime            @default(now())
@@ -439,4 +519,46 @@ model users {
   UserApiCredential               UserApiCredential[]
   UserSettings                    UserSettings?
   UserStorageConfig               UserStorageConfig?
+  kip_agent_logs                  kip_agent_logs[]
+  kip_sessions                    kip_sessions[]
+}
+
+model kip_user_keys {
+  id         String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  user_id    String   @db.Uuid
+  provider   String
+  api_key    String
+  created_at DateTime @default(now())
+  
+  @@unique([user_id, provider])
+  @@index([user_id])
+}
+
+model kip_agent_permissions {
+  id         String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  agent_id   String   @db.Uuid
+  user_id    String   @db.Uuid
+  permission String
+  created_at DateTime @default(now())
+  
+  // Relations
+  agent kip_agents @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+  
+  @@unique([agent_id, user_id, permission])
+  @@index([agent_id])
+  @@index([user_id])
+}
+
+model kip_platform_keys {
+  id         String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  provider   String   @unique
+  api_key    String
+  label      String?
+  is_active  Boolean  @default(true)
+  created_by String?  @db.Uuid
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+  
+  @@index([provider])
+  @@index([is_active])
 }

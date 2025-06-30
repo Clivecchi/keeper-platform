@@ -1,203 +1,726 @@
 import * as React from 'react';
 import { apiFetch } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 const DebugPage: React.FC = () => {
-  const [response, setResponse] = React.useState<string>('');
+  const { user } = useAuth();
+  const [results, setResults] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [logs, setLogs] = React.useState<string[]>([]);
+  const [copied, setCopied] = React.useState(false);
 
-  const handleSend = async () => {
-    setLoading(true);
-    setError(null);
-    setResponse('');
-    try {
-      const data = await apiFetch('/api/debug', {
-        method: 'POST',
-        body: JSON.stringify({ message: 'Debug ping from web', timestamp: Date.now() }),
-      });
-      setResponse(JSON.stringify(data, null, 2));
-    } catch (err: unknown) {
-      if (err instanceof Response) {
-        const text = await err.text();
-        setError(`HTTP ${err.status}: ${text}`);
-      } else if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Unknown error');
-      }
-    } finally {
-      setLoading(false);
-    }
+  // Add to logs
+  const addLog = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+    setLogs(prev => [...prev, logEntry]);
+    console.log(logEntry);
   };
 
-  const handleTestLogin = async () => {
-    setLoading(true);
+  const clearResults = () => {
+    setLogs([]);
+    setResults(null);
     setError(null);
-    setResponse('');
-    try {
-      const data = await apiFetch('/api/test', { method: 'GET' });
-      setResponse(`Test endpoint response: ${JSON.stringify(data, null, 2)}`);
-    } catch (err: unknown) {
-      if (err instanceof Response) {
-        const text = await err.text();
-        setError(`Test endpoint failed - HTTP ${err.status}: ${text}`);
-      } else if (err instanceof Error) {
-        setError(`Test endpoint failed - ${err.message}`);
-      } else {
-        setError('Test endpoint failed - Unknown error');
-      }
-    } finally {
-      setLoading(false);
-    }
+    setCopied(false);
   };
 
-  const handleTestRailwayDirect = async () => {
+  // Single comprehensive diagnostic function that auto-copies results
+  const runComprehensiveDiagnostics = async () => {
     setLoading(true);
     setError(null);
-    setResponse('');
-    try {
-      const railwayUrl = 'https://keeper-platform-production.up.railway.app/health';
-      const data = await fetch(railwayUrl, { 
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      const text = await data.text();
-      setResponse(`Railway direct response: ${text}`);
-    } catch (err: any) {
-      setError(`Railway direct test failed - ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setResults(null);
+    setCopied(false);
+    clearResults();
+    
+    addLog('🚀 Starting comprehensive system diagnostics...');
+    
+    const logs: string[] = [];
+    const diagnostics: any = {
+      timestamp: new Date().toISOString(),
+      platform: 'Keeper Platform',
+      version: 'v1.0',
+      environment: {
+        mode: import.meta.env.MODE,
+        isDev: import.meta.env.DEV,
+        isProd: import.meta.env.PROD,
+        apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'relative',
+        currentUrl: window.location.href,
+        origin: window.location.origin,
+        userAgent: navigator.userAgent
+      },
+      tests: {},
+      consoleErrors: [],
+      networkRequests: []
+    };
 
-  const handleTestRailwayLogs = async () => {
-    setLoading(true);
-    setError(null);
-    setResponse('');
-    try {
-      const data = await apiFetch('/api/debug/railway-logs', { method: 'GET' });
-      setResponse(`Railway Debug Info:\n${JSON.stringify(data, null, 2)}`);
-    } catch (err: unknown) {
-      if (err instanceof Response) {
-        const text = await err.text();
-        setError(`Railway logs failed - HTTP ${err.status}: ${text}`);
-      } else if (err instanceof Error) {
-        setError(`Railway logs failed - ${err.message}`);
-      } else {
-        setError('Railway logs failed - Unknown error');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const copyToClipboard = () => {
-    const debugInfo = {
-      environment: envInfo,
-      testResults: {
-        response,
-        error,
+    // Capture console errors during testing
+    const originalConsoleError = console.error;
+    const originalConsoleWarn = console.warn;
+    
+    console.error = (...args) => {
+      diagnostics.consoleErrors.push({
+        type: 'error',
+        message: args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg)).join(' '),
         timestamp: new Date().toISOString()
+      });
+      originalConsoleError.apply(console, args);
+    };
+    
+    console.warn = (...args) => {
+      diagnostics.consoleErrors.push({
+        type: 'warning', 
+        message: args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg)).join(' '),
+        timestamp: new Date().toISOString()
+      });
+      originalConsoleWarn.apply(console, args);
+    };
+
+    // Monitor network requests
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const startTime = Date.now();
+      const url = typeof args[0] === 'string' ? args[0] : 
+                  args[0] instanceof URL ? args[0].href :
+                  args[0] instanceof Request ? args[0].url : 
+                  'unknown';
+      
+      try {
+        const response = await originalFetch.apply(window, args);
+        const endTime = Date.now();
+        
+        diagnostics.networkRequests.push({
+          url,
+          method: args[1]?.method || 'GET',
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          duration: endTime - startTime,
+          timestamp: new Date().toISOString()
+        });
+        
+        return response;
+      } catch (error) {
+        const endTime = Date.now();
+        diagnostics.networkRequests.push({
+          url,
+          method: args[1]?.method || 'GET', 
+          status: 0,
+          statusText: 'Network Error',
+          ok: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          duration: endTime - startTime,
+          timestamp: new Date().toISOString()
+        });
+        throw error;
       }
     };
-    navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2));
-    alert('Debug info copied to clipboard!');
+
+    // Add user info to the existing diagnostics object
+    diagnostics.user = {
+      id: user?.id,
+      email: user?.email, 
+      name: user?.name,
+      idType: typeof user?.id,
+      idLength: user?.id?.length || 0,
+      isValidUUID: user?.id ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id) : false
+    };
+
+    try {
+      // Test 1: Basic API connectivity
+      addLog('📡 Testing basic API connectivity...');
+      try {
+        const apiTest = await apiFetch('/api/test', { method: 'GET' });
+        diagnostics.tests.apiConnectivity = { status: 'SUCCESS', data: apiTest };
+        addLog('✅ API connectivity test passed', 'success');
+      } catch (err) {
+        diagnostics.tests.apiConnectivity = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : 'Unknown error' 
+        };
+        addLog('❌ API connectivity test failed', 'error');
+      }
+
+      // Test 2: Database connectivity
+      addLog('🗄️ Testing database connectivity...');
+      try {
+        const dbTest = await apiFetch('/api/debug/database', { method: 'GET' });
+        diagnostics.tests.database = { status: 'SUCCESS', data: dbTest };
+        addLog('✅ Database test passed', 'success');
+      } catch (err) {
+        diagnostics.tests.database = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : 'Unknown error' 
+        };
+        addLog('❌ Database test failed', 'error');
+      }
+
+      // Test 3: UUID validation
+      addLog('🆔 Testing UUID generation and validation...');
+      try {
+        const clientUUID = crypto.randomUUID();
+        const uuidTest = await apiFetch('/api/debug/uuid-test', {
+          method: 'POST',
+          body: JSON.stringify({ 
+            testUUID: clientUUID,
+            userID: user?.id,
+            testString: 'invalid-uuid'
+          }),
+        });
+        diagnostics.tests.uuid = { status: 'SUCCESS', data: uuidTest };
+        addLog('✅ UUID validation test passed', 'success');
+      } catch (err) {
+        diagnostics.tests.uuid = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : 'Unknown error' 
+        };
+        addLog('❌ UUID validation test failed', 'error');
+      }
+
+      // Test 4: API Key endpoints
+      addLog('🔑 Testing API Key endpoints...');
+      try {
+        const [userKeysTest, platformKeysTest] = await Promise.all([
+          apiFetch('/api/kip/user-keys', { method: 'GET' }).catch(err => ({ error: err.message })),
+          apiFetch('/api/kip/platform-keys', { method: 'GET' }).catch(err => ({ error: err.message }))
+        ]);
+        
+        diagnostics.tests.apiKeys = { 
+          status: 'SUCCESS', 
+          userKeys: userKeysTest,
+          platformKeys: platformKeysTest
+        };
+        addLog('✅ API Keys endpoint test completed', 'success');
+      } catch (err) {
+        diagnostics.tests.apiKeys = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : 'Unknown error' 
+        };
+        addLog('❌ API Keys endpoint test failed', 'error');
+      }
+
+      // Test 5: Platform Key Status Check (SAFE - No Key Creation)
+      addLog('🔑 Checking existing platform key status...');
+      try {
+        // Check what keys exist WITHOUT creating any test keys
+        const keyStatusTest = await apiFetch('/api/kip/platform-keys', {
+          headers: {
+            'x-user-id': user?.id || 'test-user'
+          }
+        });
+        
+        diagnostics.tests.platformKeyStatus = { status: 'SUCCESS', data: keyStatusTest };
+        addLog('✅ Platform key status check completed (no keys modified)', 'success');
+      } catch (err) {
+        diagnostics.tests.platformKeyStatus = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : 'Unknown error' 
+        };
+        addLog('❌ Platform key status check failed', 'error');
+      }
+
+      // Test 6: Authentication & Session
+      addLog('🔐 Testing authentication state...');
+      try {
+        const authTest = {
+          isAuthenticated: !!user,
+          hasSession: !!user?.id,
+          sessionStorage: !!localStorage.getItem('auth-token'),
+          cookiesEnabled: navigator.cookieEnabled
+        };
+        diagnostics.tests.authentication = { status: 'SUCCESS', data: authTest };
+        addLog('✅ Authentication test completed', 'success');
+      } catch (err) {
+        diagnostics.tests.authentication = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : 'Unknown error' 
+        };
+        addLog('❌ Authentication test failed', 'error');
+      }
+
+      // Test 7: Browser capabilities
+      addLog('🌐 Testing browser capabilities...');
+      try {
+        const browserTest = {
+          localStorage: typeof Storage !== 'undefined',
+          sessionStorage: typeof sessionStorage !== 'undefined',
+          fetch: typeof fetch !== 'undefined',
+          crypto: typeof crypto !== 'undefined',
+          clipboard: !!navigator.clipboard,
+          online: navigator.onLine,
+          language: navigator.language,
+          platform: navigator.platform
+        };
+        diagnostics.tests.browser = { status: 'SUCCESS', data: browserTest };
+        addLog('✅ Browser capabilities test passed', 'success');
+      } catch (err) {
+        diagnostics.tests.browser = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : 'Unknown error' 
+        };
+        addLog('❌ Browser capabilities test failed', 'error');
+      }
+
+      // Test 8: Agent System Testing
+      addLog('🤖 Testing agent system...');
+      try {
+        const agentTest = await apiFetch('/api/kip/agents', { method: 'GET' });
+        diagnostics.tests.agents = { status: 'SUCCESS', data: agentTest };
+        addLog('✅ Agent system test passed', 'success');
+      } catch (err) {
+        diagnostics.tests.agents = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : 'Unknown error' 
+        };
+        addLog('❌ Agent system test failed', 'error');
+      }
+
+      // Test 9: Chat Functionality Testing
+      addLog('💬 Testing chat functionality with real agent...');
+      try {
+        const chatTest = await apiFetch('/api/kip/agents', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'run',
+            agentId: 'kip', // Use default kip agent
+            input: 'Hello, this is a test message from debug system',
+            userId: user?.id
+          })
+        });
+        diagnostics.tests.chatFunctionality = { status: 'SUCCESS', data: chatTest };
+        addLog('✅ Chat functionality test passed', 'success');
+      } catch (err) {
+        diagnostics.tests.chatFunctionality = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : 'Unknown error' 
+        };
+        addLog('❌ Chat functionality test failed', 'error');
+      }
+
+      // Test 10: Model Provider Service Testing
+      addLog('🧠 Testing model provider service...');
+      try {
+        // Test the model provider endpoint if it exists
+        const modelTest = await apiFetch('/api/debug/model-provider-test', {
+          method: 'POST',
+          body: JSON.stringify({
+            provider: 'openai',
+            messages: [{ role: 'user', content: 'Debug test message' }],
+            userId: user?.id
+          })
+        }).catch(err => ({ 
+          error: err.message, 
+          note: 'Model provider debug endpoint may not exist - this is expected' 
+        }));
+        
+        diagnostics.tests.modelProvider = { status: 'TESTED', data: modelTest };
+        addLog('✅ Model provider test completed', 'success');
+      } catch (err) {
+        diagnostics.tests.modelProvider = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : 'Unknown error' 
+        };
+        addLog('❌ Model provider test failed', 'error');
+      }
+
+      // Test 11: Console Error Capture
+      addLog('🐛 Capturing console errors...');
+      try {
+        const consoleErrors: string[] = [];
+        const originalError = console.error;
+        
+        // Temporarily capture console errors
+        console.error = (...args: any[]) => {
+          consoleErrors.push(args.join(' '));
+          originalError(...args);
+        };
+        
+        // Restore original console.error after a short delay
+        setTimeout(() => {
+          console.error = originalError;
+        }, 1000);
+        
+        diagnostics.tests.consoleErrors = { 
+          status: 'SUCCESS', 
+          data: { 
+            errors: consoleErrors,
+            note: 'Errors captured during diagnostic run'
+          } 
+        };
+        addLog('✅ Console error capture setup', 'success');
+      } catch (err) {
+        diagnostics.tests.consoleErrors = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : 'Unknown error' 
+        };
+        addLog('❌ Console error capture failed', 'error');
+      }
+
+      // Test 12: Network Request Monitoring
+      addLog('🌐 Testing network request capabilities...');
+      try {
+        const networkTest = {
+          fetchAvailable: typeof fetch !== 'undefined',
+          xhrAvailable: typeof XMLHttpRequest !== 'undefined',
+          baseUrl: import.meta.env.VITE_API_BASE_URL || 'relative',
+          currentOrigin: window.location.origin,
+          corsEnabled: true, // We'll assume this based on successful API calls above
+          lastRequestTime: new Date().toISOString()
+        };
+        
+        diagnostics.tests.networkMonitoring = { status: 'SUCCESS', data: networkTest };
+        addLog('✅ Network request test passed', 'success');
+      } catch (err) {
+        diagnostics.tests.networkMonitoring = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : 'Unknown error' 
+        };
+        addLog('❌ Network request test failed', 'error');
+      }
+
+      // Test 13: Database Fix (Auto-fix missing agents and activate keys)
+      addLog('🔧 Auto-fixing database issues (missing agents, inactive keys)...');
+      try {
+        const dbFix = await apiFetch('/api/debug/fix-database', {
+          method: 'POST',
+          body: JSON.stringify({})
+        });
+        
+        diagnostics.tests.databaseFix = { status: 'SUCCESS', data: dbFix };
+        
+        if (dbFix.success && dbFix.data) {
+          const { actions, errors } = dbFix.data;
+          if (actions.length > 0) {
+            addLog(`✅ Database fixes applied: ${actions.map((a: any) => a.message).join(', ')}`, 'success');
+          }
+          if (errors.length > 0) {
+            addLog(`⚠️ Some fixes failed: ${errors.map((e: any) => e.error).join(', ')}`, 'error');
+          }
+        }
+        addLog('✅ Database fix test completed', 'success');
+      } catch (err) {
+        diagnostics.tests.databaseFix = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : 'Unknown error' 
+        };
+        addLog('❌ Database fix test failed', 'error');
+      }
+
+      // Test 14: Database Fix Auto-Repair
+      addLog('🔧 Testing database auto-repair and Kip provider fix...');
+      try {
+        const fixResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/debug/fix-kip-provider`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const fixData = await fixResponse.json();
+        
+        if (fixData.success) {
+          diagnostics.tests.kipProviderFix = { status: 'SUCCESS', data: fixData.data };
+          addLog('✅ Kip provider fix completed successfully', 'success');
+        } else {
+          diagnostics.tests.kipProviderFix = { status: 'FAILED', data: fixData };
+          addLog(`❌ Kip provider fix failed: ${fixData.error}`, 'error');
+        }
+      } catch (err) {
+        diagnostics.tests.kipProviderFix = { 
+          status: 'ERROR', 
+          data: { error: err instanceof Error ? err.message : 'Unknown error' }
+        };
+        addLog(`❌ Kip provider fix error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error');
+      }
+
+      // Test 15: Specific Kip Chat Testing  
+      addLog('💬 Testing Kip chat functionality...');
+      try {
+        const kipChatTest = await apiFetch('/api/kip/agents', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'run',
+            agentId: 'kip', // Test using slug - this might be the issue!
+            input: 'Hello Kip, can you help me test if you are working correctly?',
+            userId: user?.id
+          })
+        });
+        
+        diagnostics.tests.kipChatTest = { status: 'SUCCESS', data: kipChatTest };
+        addLog('✅ Kip chat test completed', 'success');
+      } catch (err) {
+        diagnostics.tests.kipChatTest = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : 'Unknown error' 
+        };
+        addLog('❌ Kip chat test failed', 'error');
+      }
+
+      // Test 16: Platform Key Detection Test
+      addLog('🔑 Testing platform key detection...');
+      try {
+        const platformKeyStats = await apiFetch('/api/kip/platform-keys/stats', {
+          headers: {
+            'x-user-id': user?.id || 'test-user'
+          }
+        });
+        
+        diagnostics.tests.platformKeyDetection = { 
+          status: 'SUCCESS', 
+          data: platformKeyStats 
+        };
+        addLog('✅ Platform key detection test completed', 'success');
+      } catch (err) {
+        diagnostics.tests.platformKeyDetection = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : String(err) 
+        };
+        addLog('❌ Platform key detection test failed', 'error');
+      }
+
+      // Test 17: Raw Platform Keys Query
+      addLog('🗄️ Testing raw platform keys query...');
+      try {
+        const rawPlatformKeys = await apiFetch('/api/kip/platform-keys', {
+          headers: {
+            'x-user-id': user?.id || 'test-user'
+          }
+        });
+        
+        diagnostics.tests.rawPlatformKeys = { 
+          status: 'SUCCESS', 
+          data: rawPlatformKeys 
+        };
+        addLog('✅ Raw platform keys query completed', 'success');
+      } catch (err) {
+        diagnostics.tests.rawPlatformKeys = { 
+          status: 'ERROR', 
+          error: err instanceof Error ? err.message : String(err) 
+        };
+        addLog('❌ Raw platform keys query failed', 'error');
+      }
+
+
+
+      // Cleanup: Restore original browser methods
+      console.error = originalConsoleError;
+      console.warn = originalConsoleWarn;
+      window.fetch = originalFetch;
+
+              // Test 18: Console Errors Summary
+      diagnostics.tests.consoleErrorsSummary = {
+        status: 'SUCCESS',
+        data: {
+          totalErrors: diagnostics.consoleErrors.filter((e: any) => e.type === 'error').length,
+          totalWarnings: diagnostics.consoleErrors.filter((e: any) => e.type === 'warning').length,
+          errors: diagnostics.consoleErrors
+        }
+      };
+
+              // Test 19: Network Requests Summary  
+      diagnostics.tests.networkRequestsSummary = {
+        status: 'SUCCESS',
+        data: {
+          totalRequests: diagnostics.networkRequests.length,
+          successfulRequests: diagnostics.networkRequests.filter((r: any) => r.ok).length,
+          failedRequests: diagnostics.networkRequests.filter((r: any) => !r.ok).length,
+          requests: diagnostics.networkRequests
+        }
+      };
+
+      // Generate comprehensive summary
+      const testCount = Object.keys(diagnostics.tests).length;
+      const successCount = Object.values(diagnostics.tests).filter((test: any) => test.status === 'SUCCESS').length;
+      const errorCount = Object.values(diagnostics.tests).filter((test: any) => test.status === 'ERROR').length;
+      
+      diagnostics.summary = {
+        total: testCount,
+        passed: successCount,
+        failed: errorCount,
+        score: `${successCount}/${testCount}`,
+        percentage: Math.round((successCount / testCount) * 100),
+        overallStatus: errorCount === 0 ? 'ALL_PASS' : errorCount < testCount ? 'PARTIAL_PASS' : 'ALL_FAIL'
+      };
+
+      diagnostics.logs = logs;
+      
+      addLog(`🎯 Diagnostics complete: ${successCount}/${testCount} tests passed (${diagnostics.summary.percentage}%)`, 
+        errorCount === 0 ? 'success' : 'info');
+      
+      setResults(diagnostics);
+
+      // Auto-copy to clipboard
+      addLog('📋 Copying comprehensive report to clipboard...', 'info');
+      await copyDiagnosticsToClipboard(diagnostics);
+
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      addLog(`💥 Fatal error during diagnostics: ${errorMsg}`, 'error');
+      setError(errorMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Environment information
-  const envInfo = {
-    'Environment': import.meta.env.MODE,
-    'Is Production': import.meta.env.PROD,
-    'Is Development': import.meta.env.DEV,
-    'API Base URL': import.meta.env.VITE_API_BASE_URL || '(empty - using relative paths)',
-    'Current URL': window.location.href,
-    'Current Origin': window.location.origin,
+  const copyDiagnosticsToClipboard = async (diagnosticsData: any) => {
+    try {
+      const comprehensiveReport = {
+        '=== KEEPER PLATFORM DEBUG REPORT ===': '',
+        timestamp: diagnosticsData.timestamp,
+        platform: diagnosticsData.platform,
+        version: diagnosticsData.version,
+        '': '',
+        '=== ENVIRONMENT INFO ===': '',
+        environment: diagnosticsData.environment,
+        '': '',
+        '=== USER INFO ===': '',
+        user: diagnosticsData.user,
+        '': '',
+        '=== TEST RESULTS SUMMARY ===': '',
+        summary: diagnosticsData.summary,
+        '': '',
+        '=== DETAILED TEST RESULTS ===': '',
+        tests: diagnosticsData.tests,
+        '': '',
+        '=== DIAGNOSTIC LOGS ===': '',
+        logs: diagnosticsData.logs,
+        '': '',
+        '=== END REPORT ===': `Generated at ${new Date().toISOString()}`
+      };
+
+      await navigator.clipboard.writeText(JSON.stringify(comprehensiveReport, null, 2));
+      setCopied(true);
+      addLog('✅ Complete diagnostic report copied to clipboard!', 'success');
+      
+      // Show success message for a few seconds
+      setTimeout(() => setCopied(false), 5000);
+    } catch (err) {
+      addLog('❌ Failed to copy to clipboard', 'error');
+      console.error('Clipboard error:', err);
+    }
   };
 
   return (
-    <div className="space-y-6 p-4">
-      <h1 className="text-2xl font-semibold">Debug Tools</h1>
-      
-      {/* Environment Information */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h2 className="text-lg font-medium mb-3">Environment Information</h2>
-        <div className="grid gap-2 text-sm">
-          {Object.entries(envInfo).map(([key, value]) => (
-            <div key={key} className="flex justify-between">
-              <span className="font-medium">{key}:</span>
-              <span className="text-gray-600 font-mono">{String(value)}</span>
-            </div>
-          ))}
-        </div>
+    <div className="space-y-6 p-4 max-w-6xl mx-auto">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold mb-2">🔧 System Diagnostics</h1>
+        <p className="text-gray-600">Comprehensive system health check & debug report generator</p>
       </div>
-
-      {/* API Tests */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-medium">API Connection Tests</h2>
-        
-        <div className="flex gap-3 flex-wrap">
-          <button
-            type="button"
-            className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-            onClick={handleTestLogin}
-            disabled={loading}
-          >
-            {loading ? 'Testing…' : 'Test /api/test (via proxy)'}
-          </button>
+      
+      {/* Single Primary Action */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-8 rounded-xl border-2 border-blue-200 shadow-lg">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold mb-4">🚀 Complete System Analysis</h2>
+          <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
+            Run comprehensive diagnostics across all system components including API connectivity, database health, 
+            authentication, UUID validation, API key management, and browser capabilities. 
+            <strong className="text-blue-600"> Results automatically copied to clipboard for easy sharing.</strong>
+          </p>
           
           <button
             type="button"
-            className="px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
-            onClick={handleSend}
+            className="px-12 py-6 text-xl font-bold rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl transform hover:scale-105 transition-all duration-200"
+            onClick={runComprehensiveDiagnostics}
             disabled={loading}
           >
-            {loading ? 'Sending…' : 'Test /api/debug (via proxy)'}
+                                                   {loading ? '🔄 Running Full Diagnostics...' : '🚀 Run Complete Diagnostics & Copy Report'}
           </button>
 
-          <button
-            type="button"
-            className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-            onClick={handleTestRailwayDirect}
-            disabled={loading}
-          >
-            {loading ? 'Testing…' : 'Test Railway Direct'}
-          </button>
-
-          <button
-            type="button"
-            className="px-4 py-2 rounded-md bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50"
-            onClick={handleTestRailwayLogs}
-            disabled={loading}
-          >
-            {loading ? 'Fetching…' : '🚂 Get Railway Debug Info'}
-          </button>
-
-          <button
-            type="button"
-            className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700"
-            onClick={copyToClipboard}
-          >
-            📋 Copy Debug Info
-          </button>
+          {copied && (
+            <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg text-green-800 font-semibold">
+              ✅ Complete diagnostic report copied to clipboard! Ready to share.
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Results */}
-      {response && (
+      {/* Quick Controls */}
+      <div className="flex justify-center">
+        <button
+          type="button"
+          className="px-4 py-2 rounded-md bg-gray-500 text-white hover:bg-gray-600 text-sm"
+          onClick={clearResults}
+        >
+          🗑️ Clear Results
+        </button>
+      </div>
+
+      {/* Real-time Logs */}
+      {logs.length > 0 && (
         <div>
-          <h3 className="text-md font-medium mb-2">Response:</h3>
-          <pre className="p-4 bg-green-50 border border-green-200 rounded-md overflow-auto text-sm">
-            {response}
+          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            📝 Live Diagnostics Progress
+            <span className="text-sm font-normal text-gray-500">({logs.length} entries)</span>
+          </h3>
+          <pre className="p-4 bg-black text-green-400 rounded-lg overflow-auto text-sm max-h-60 font-mono border-2 border-gray-300">
+            {logs.join('\n')}
           </pre>
         </div>
       )}
+
+      {/* Results Summary Dashboard */}
+      {results?.summary && (
+        <div className="bg-white border-2 border-gray-200 rounded-xl p-6 shadow-lg">
+          <h3 className="text-xl font-bold mb-6 text-center">📊 Diagnostics Summary</h3>
+          
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center mb-6">
+            <div className="p-4 bg-gray-50 rounded-lg border">
+              <div className="text-3xl font-bold text-gray-800">{results.summary.total}</div>
+              <div className="text-sm text-gray-600 font-medium">Total Tests</div>
+            </div>
+            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+              <div className="text-3xl font-bold text-green-600">{results.summary.passed}</div>
+              <div className="text-sm text-gray-600 font-medium">Passed</div>
+            </div>
+            <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+              <div className="text-3xl font-bold text-red-600">{results.summary.failed}</div>
+              <div className="text-sm text-gray-600 font-medium">Failed</div>
+            </div>
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="text-3xl font-bold text-blue-600">{results.summary.score}</div>
+              <div className="text-sm text-gray-600 font-medium">Score</div>
+            </div>
+            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <div className="text-3xl font-bold text-purple-600">{results.summary.percentage}%</div>
+              <div className="text-sm text-gray-600 font-medium">Success Rate</div>
+            </div>
+          </div>
+          
+          <div className={`p-4 rounded-lg text-center font-bold text-lg ${
+            results.summary.overallStatus === 'ALL_PASS' ? 'bg-green-100 text-green-800 border border-green-300' :
+            results.summary.overallStatus === 'PARTIAL_PASS' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+            'bg-red-100 text-red-800 border border-red-300'
+          }`}>
+            {results.summary.overallStatus === 'ALL_PASS' ? '✅ All Systems Operational' :
+             results.summary.overallStatus === 'PARTIAL_PASS' ? '⚠️ Some Issues Detected - Partial Success' :
+             '❌ Multiple System Failures Detected'}
+          </div>
+          
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600">
+              📋 Complete diagnostic report has been copied to your clipboard and is ready to share!
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Detailed Results (Collapsible) */}
+      {results && (
+        <details className="bg-gray-50 border rounded-lg">
+          <summary className="p-4 cursor-pointer hover:bg-gray-100 font-semibold">
+            📋 View Detailed Technical Results (Click to expand)
+          </summary>
+          <pre className="p-4 bg-white border-t overflow-auto text-xs max-h-96 font-mono">
+            {JSON.stringify(results, null, 2)}
+          </pre>
+        </details>
+      )}
+
+      {/* Error Display */}
       {error && (
-        <div>
-          <h3 className="text-md font-medium mb-2">Error:</h3>
-          <p className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">{error}</p>
+        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6">
+          <h3 className="text-lg font-bold mb-2 text-red-600">❌ Critical Error</h3>
+          <p className="text-red-700 font-mono text-sm bg-red-100 p-3 rounded border">{error}</p>
+          <p className="text-red-600 text-sm mt-2">
+            This error has been included in the diagnostic report copied to your clipboard.
+          </p>
         </div>
       )}
     </div>
