@@ -6,10 +6,8 @@
  * Handles who can view, run, edit, and share agents.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@keeper/database';
 import type { AgentPermission, AgentVisibility } from '@keeper/database/types';
-
-const prisma = new PrismaClient();
 
 export class KipAgentPermissionService {
   /**
@@ -127,7 +125,7 @@ export class KipAgentPermissionService {
         },
       });
 
-      return permissions.map((p: any) => ({
+      return permissions.map((p) => ({
         user_id: p.user_id,
         permission: p.permission as AgentPermission,
       }));

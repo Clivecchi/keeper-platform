@@ -6,12 +6,12 @@
  * These keys serve as fallbacks when users don't provide their own keys
  */
 
-import express from 'express';
+import express, { Router } from 'express';
 import { z } from 'zod';
 import { PlatformApiKeyService } from '../../services/PlatformApiKeyService';
 import { ModelProvider } from '@keeper/database/types';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Validation schemas
 const PlatformKeyInputSchema = z.object({

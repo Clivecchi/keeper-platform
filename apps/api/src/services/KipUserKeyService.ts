@@ -6,10 +6,8 @@
  * Users can store their own API keys which take precedence over system keys.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@keeper/database';
 import type { ModelProvider } from '@keeper/database/types';
-
-const prisma = new PrismaClient();
 
 export class KipUserKeyService {
   /**
@@ -122,7 +120,7 @@ export class KipUserKeyService {
         },
       });
 
-      return userKeys.map((key: any) => key.provider as ModelProvider);
+      return userKeys.map((key) => key.provider as ModelProvider);
     } catch (error) {
       console.error('Error fetching user providers:', error);
       return [];
@@ -146,7 +144,7 @@ export class KipUserKeyService {
         },
       });
 
-      return userKeys.map((key: any) => ({
+      return userKeys.map((key) => ({
         provider: key.provider as ModelProvider,
         maskedKey: `****${key.api_key.slice(-4)}`,
       }));
