@@ -38,7 +38,12 @@ process.on('unhandledRejection', (reason, promise) => {
 // 🔧 CRITICAL FIX: Setup CORS immediately before any routes
 console.log('⚙️ Setting up CORS...');
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://keeper-platform-hm1kukq25-clivecchis-projects.vercel.app', '*'],
+  origin: [
+    'http://localhost:5173', 
+    'https://keeper-platform-hm1kukq25-clivecchis-projects.vercel.app',
+    'https://v0-keeper.vercel.app',  // ✅ Added the correct Vercel domain
+    '*'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id']
@@ -79,6 +84,34 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Railway-specific debug endpoint
+app.get('/railway-status', (req, res) => {
+  console.log('📍 /railway-status endpoint hit');
+  res.json({
+    status: 'running',
+    environment: {
+      NODE_ENV: process.env.NODE_ENV,
+      PORT: process.env.PORT,
+      RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT,
+      RAILWAY_SERVICE_NAME: process.env.RAILWAY_SERVICE_NAME,
+      RAILWAY_DEPLOYMENT_ID: process.env.RAILWAY_DEPLOYMENT_ID,
+      RAILWAY_REPLICA_ID: process.env.RAILWAY_REPLICA_ID,
+      RAILWAY_PUBLIC_DOMAIN: process.env.RAILWAY_PUBLIC_DOMAIN,
+      RAILWAY_PRIVATE_DOMAIN: process.env.RAILWAY_PRIVATE_DOMAIN
+    },
+    server: {
+      platform: process.platform,
+      arch: process.arch,
+      nodeVersion: process.version,
+      pid: process.pid,
+      uptime: process.uptime(),
+      memoryUsage: process.memoryUsage(),
+      cpuUsage: process.cpuUsage()
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
 // 🔧 CRITICAL FIX: Initialize server with all modules loaded
 async function initializeServer() {
   try {
@@ -112,6 +145,7 @@ async function initializeServer() {
       console.log('🔗 Routes available:');
       console.log('  - GET  /ping');
       console.log('  - GET  /health');
+      console.log('  - GET  /railway-status');
       console.log('  - GET  /api/test');
       console.log('  - POST /api/kam/auth/login');
       console.log('  - POST /api/kam/auth/register');

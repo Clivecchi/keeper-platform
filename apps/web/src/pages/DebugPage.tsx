@@ -126,6 +126,175 @@ const DebugPage: React.FC = () => {
       isValidUUID: user?.id ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id) : false
     };
 
+    // ENHANCED NETWORK DIAGNOSTICS - Let's understand the exact failure point
+    addLog('🔍 Running detailed network diagnostics...');
+    
+    const baseUrl = diagnostics.environment.apiBaseUrl;
+    diagnostics.detailedNetworkDiagnostics = {};
+    
+    // Test 1: Basic connectivity to Railway domain
+    try {
+      addLog('Testing basic Railway domain connectivity...');
+      const urlTest = new URL(baseUrl);
+      diagnostics.detailedNetworkDiagnostics.domain = {
+        host: urlTest.host,
+        protocol: urlTest.protocol,
+        port: urlTest.port || (urlTest.protocol === 'https:' ? '443' : '80'),
+        pathname: urlTest.pathname,
+        reachable: true
+      };
+      addLog(`✅ Domain parsed: ${urlTest.host}`, 'success');
+    } catch (e) {
+      diagnostics.detailedNetworkDiagnostics.domain = {
+        error: e instanceof Error ? e.message : 'Unknown error',
+        reachable: false
+      };
+      addLog(`❌ Domain parsing failed: ${e instanceof Error ? e.message : 'Unknown error'}`, 'error');
+    }
+
+    // Test 2: Try different request methods to understand CORS behavior
+    addLog('Testing CORS preflight vs actual requests...');
+    const corsTests: any = {};
+    
+    // Test OPTIONS (preflight) - this should work based on Railway logs
+    try {
+      addLog('Testing OPTIONS preflight request...');
+      const optionsResponse = await fetch(`${baseUrl}/ping`, {
+        method: 'OPTIONS',
+        mode: 'cors'
+      });
+      corsTests.options = {
+        status: optionsResponse.status,
+        statusText: optionsResponse.statusText,
+        headers: {
+          'access-control-allow-origin': optionsResponse.headers.get('access-control-allow-origin'),
+          'access-control-allow-methods': optionsResponse.headers.get('access-control-allow-methods'),
+          'access-control-allow-headers': optionsResponse.headers.get('access-control-allow-headers'),
+          'access-control-allow-credentials': optionsResponse.headers.get('access-control-allow-credentials')
+        },
+        success: optionsResponse.ok
+      };
+      addLog(`✅ OPTIONS /ping: ${optionsResponse.status} ${optionsResponse.statusText}`, 'success');
+    } catch (e) {
+      corsTests.options = {
+        error: e instanceof Error ? e.message : 'Unknown error',
+        success: false
+      };
+      addLog(`❌ OPTIONS /ping failed: ${e instanceof Error ? e.message : 'Unknown error'}`, 'error');
+    }
+
+    // Test 3: Try GET request with different approaches
+    addLog('Testing GET requests with different configurations...');
+    
+    // Test basic GET without custom headers
+    try {
+      addLog('Testing simple GET /ping...');
+      const response = await fetch(`${baseUrl}/ping`, {
+        method: 'GET',
+        mode: 'cors'
+      });
+      corsTests.get_simple = {
+        status: response.status,
+        statusText: response.statusText,
+        success: response.ok,
+        approach: 'simple_get'
+      };
+      addLog(`✅ Simple GET /ping: ${response.status} ${response.statusText}`, 'success');
+    } catch (e) {
+      corsTests.get_simple = {
+        error: e instanceof Error ? e.message : 'Unknown error',
+        success: false,
+        approach: 'simple_get'
+      };
+      addLog(`❌ Simple GET /ping failed: ${e instanceof Error ? e.message : 'Unknown error'}`, 'error');
+    }
+
+    // Test GET with headers (triggers preflight)
+    try {
+      addLog('Testing GET /ping with custom headers...');
+      const response = await fetch(`${baseUrl}/ping`, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      corsTests.get_with_headers = {
+        status: response.status,
+        statusText: response.statusText,
+        success: response.ok,
+        approach: 'get_with_headers'
+      };
+      addLog(`✅ GET /ping with headers: ${response.status} ${response.statusText}`, 'success');
+    } catch (e) {
+      corsTests.get_with_headers = {
+        error: e instanceof Error ? e.message : 'Unknown error',
+        success: false,
+        approach: 'get_with_headers'
+      };
+      addLog(`❌ GET /ping with headers failed: ${e instanceof Error ? e.message : 'Unknown error'}`, 'error');
+    }
+
+    // Test 4: Check if server is responding to basic health checks
+    try {
+      addLog('Testing /health endpoint...');
+      const response = await fetch(`${baseUrl}/health`, {
+        method: 'GET',
+        mode: 'cors'
+      });
+      corsTests.health_check = {
+        status: response.status,
+        statusText: response.statusText,
+        success: response.ok,
+        endpoint: '/health'
+      };
+      addLog(`✅ Health check: ${response.status} ${response.statusText}`, 'success');
+    } catch (e) {
+      corsTests.health_check = {
+        error: e instanceof Error ? e.message : 'Unknown error',
+        success: false,
+        endpoint: '/health'
+      };
+      addLog(`❌ Health check failed: ${e instanceof Error ? e.message : 'Unknown error'}`, 'error');
+    }
+
+    // Test 5: Check Railway-specific status endpoint
+    try {
+      addLog('Testing /railway-status endpoint...');
+      const response = await fetch(`${baseUrl}/railway-status`, {
+        method: 'GET',
+        mode: 'cors'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        corsTests.railway_status = {
+          status: response.status,
+          statusText: response.statusText,
+          success: response.ok,
+          endpoint: '/railway-status',
+          data: data
+        };
+        addLog(`✅ Railway status: ${response.status} ${response.statusText}`, 'success');
+      } else {
+        corsTests.railway_status = {
+          status: response.status,
+          statusText: response.statusText,
+          success: response.ok,
+          endpoint: '/railway-status'
+        };
+        addLog(`⚠️ Railway status: ${response.status} ${response.statusText}`, 'error');
+      }
+    } catch (e) {
+      corsTests.railway_status = {
+        error: e instanceof Error ? e.message : 'Unknown error',
+        success: false,
+        endpoint: '/railway-status'
+      };
+      addLog(`❌ Railway status failed: ${e instanceof Error ? e.message : 'Unknown error'}`, 'error');
+    }
+    
+    diagnostics.detailedNetworkDiagnostics.corsTests = corsTests;
+
     try {
       // Test 1: Basic API connectivity
       addLog('📡 Testing basic API connectivity...');
