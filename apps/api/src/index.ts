@@ -13,6 +13,8 @@ const app = express();
 // Railway assigns PORT dynamically, respect that first, then fallback to 8080 for production, 3001 for dev
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : (process.env.NODE_ENV === 'production' ? 8080 : 3001);
 
+console.log(`🔧 Server initializing on port ${PORT} (NODE_ENV: ${process.env.NODE_ENV})`);
+
 // Environment validation
 const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -33,8 +35,32 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
+// 🔧 CRITICAL FIX: Setup CORS immediately before any routes
+console.log('⚙️ Setting up CORS...');
+app.use(cors({
+  origin: ['http://localhost:5173', 'https://keeper-platform-hm1kukq25-clivecchis-projects.vercel.app', '*'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id']
+}));
+
+// Handle preflight requests explicitly
+app.options('*', (req, res) => {
+  console.log(`📋 CORS preflight for: ${req.method} ${req.path}`);
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,x-user-id');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.status(200).json({ message: 'CORS preflight OK' });
+});
+
+// Basic middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // Basic endpoints (available immediately)
 app.get('/ping', (req, res) => {
+  console.log('📍 /ping endpoint hit');
   res.json({ 
     message: '🏓 PONG - Keeper API is alive!',
     timestamp: new Date().toISOString(),
@@ -44,6 +70,7 @@ app.get('/ping', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
+  console.log('📍 /health endpoint hit');
   res.status(200).json({ 
     status: 'healthy', 
     timestamp: new Date().toISOString(),
@@ -52,30 +79,12 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Start server
-const server = app.listen(PORT, '::', () => {
-  console.log('\n🚀 Keeper API Server');
-  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 Server running on port ${PORT}\n`);
-  
-  // Load complex modules after basic server is running
-  loadComplexModules();
-});
-
-server.on('error', (error: any) => {
-  if (error.code === 'EADDRINUSE') {
-    console.error(`❌ Port ${PORT} is already in use`);
-  } else if (error.code === 'EACCES') {
-    console.error(`❌ Permission denied to bind to port ${PORT}`);
-  } else {
-    console.error('❌ Server error:', error.message);
-  }
-  process.exit(1);
-});
-
-// Load complex modules after basic server is running
-async function loadComplexModules() {
+// 🔧 CRITICAL FIX: Initialize server with all modules loaded
+async function initializeServer() {
   try {
+    console.log('⚙️ Loading all modules synchronously...');
+
+    // Load all modules immediately
     const { logger } = await import('@keeper/shared');
     const { loginUserHandler, registerUserHandler } = await import('@keeper/kam');
     const debugRouterModule = await import('./api/debug.js');
@@ -90,45 +99,61 @@ async function loadComplexModules() {
     const kipPlatformKeysHandlerModule = await import('./api/kip/platform-keys.js');
     const kipPlatformKeysHandler = kipPlatformKeysHandlerModule.default;
 
-    setupComplexRoutes(app, logger, loginUserHandler, registerUserHandler, debugRouter, settingsHandler, logRequestMiddleware, kipAgentsHandler, kipUserKeysHandler, kipPlatformKeysHandler);
-    
     console.log('✅ All modules loaded successfully');
-    
-    // Show frontend link at the end
-    console.log('\n🔗 Frontend: http://localhost:5173\n');
-    
+
+    // Setup all routes BEFORE starting server
+    setupRoutes(logger, loginUserHandler, registerUserHandler, debugRouter, settingsHandler, logRequestMiddleware, kipAgentsHandler, kipUserKeysHandler, kipPlatformKeysHandler);
+
+    // Start server AFTER all routes are registered
+    const server = app.listen(PORT, '::', () => {
+      console.log('\n🚀 Keeper API Server');
+      console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🌐 Server running on port ${PORT}`);
+      console.log('🔗 Routes available:');
+      console.log('  - GET  /ping');
+      console.log('  - GET  /health');
+      console.log('  - GET  /api/test');
+      console.log('  - POST /api/kam/auth/login');
+      console.log('  - POST /api/kam/auth/register');
+      console.log('  - ALL  /api/debug/*');
+      console.log('  - ALL  /api/kip/*');
+      console.log('\n🔗 Frontend: http://localhost:5173\n');
+    });
+
+    server.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use`);
+      } else if (error.code === 'EACCES') {
+        console.error(`❌ Permission denied to bind to port ${PORT}`);
+      } else {
+        console.error('❌ Server error:', error.message);
+      }
+      process.exit(1);
+    });
+
   } catch (error) {
-    console.error('❌ Error loading modules:', error instanceof Error ? error.message : error);
+    console.error('❌ Failed to initialize server:', error instanceof Error ? error.message : error);
+    process.exit(1);
   }
 }
 
-// Setup routes after modules are loaded
-function setupComplexRoutes(app: any, logger: any, loginUserHandler: any, registerUserHandler: any, debugRouter: any, settingsHandler: any, logRequestMiddleware: any, kipAgentsHandler: any, kipUserKeysHandler: any, kipPlatformKeysHandler: any) {
-  try {
-    // CORS middleware
-    app.use((req: Request, res: Response, next: any): void => {
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-      res.header('Access-Control-Allow-Credentials', 'true');
-      
-      if (req.method === 'OPTIONS') {
-        res.status(200).json({ message: 'CORS OK' });
-        return;
-      }
-      
-      next();
-    });
+// Start the server
+initializeServer();
 
-    // Middleware
-    app.use(express.json());
+// Setup routes after modules are loaded
+function setupRoutes(logger: any, loginUserHandler: any, registerUserHandler: any, debugRouter: any, settingsHandler: any, logRequestMiddleware: any, kipAgentsHandler: any, kipUserKeysHandler: any, kipPlatformKeysHandler: any) {
+  try {
+    console.log('⚙️ Setting up routes...');
+
+    // Request logging middleware
     app.use(logRequestMiddleware);
 
     // Routes
     app.use('/api/debug', debugRouter);
 
     // Root endpoint
-    app.get('/', (req: any, res: any) => {
+    app.get('/', (req: Request, res: Response) => {
+      console.log('📍 / endpoint hit');
       res.json({ 
         message: '✅ Keeper API is running',
         timestamp: new Date().toISOString(),
@@ -137,7 +162,8 @@ function setupComplexRoutes(app: any, logger: any, loginUserHandler: any, regist
       });
     });
 
-    app.get('/api/test', (req: any, res: any) => {
+    app.get('/api/test', (req: Request, res: Response) => {
+      console.log('📍 /api/test endpoint hit');
       res.json({ 
         message: '✅ Test route working', 
         timestamp: new Date().toISOString()
@@ -145,7 +171,8 @@ function setupComplexRoutes(app: any, logger: any, loginUserHandler: any, regist
     });
 
     // Auth routes
-    app.post('/api/kam/auth/register', async (req: any, res: any) => {
+    app.post('/api/kam/auth/register', async (req: Request, res: Response) => {
+      console.log('📍 /api/kam/auth/register endpoint hit');
       try {
         const result = await registerUserHandler(req.body);
         res.status(result.success ? 200 : 400).json(result);
@@ -156,6 +183,7 @@ function setupComplexRoutes(app: any, logger: any, loginUserHandler: any, regist
     });
 
     app.post('/api/kam/auth/login', async (req: Request, res: Response) => {
+      console.log('📍 /api/kam/auth/login endpoint hit');
       try {
         const result = await loginUserHandler(req.body);
         res.status(result.success ? 200 : 401).json(result);
@@ -166,43 +194,12 @@ function setupComplexRoutes(app: any, logger: any, loginUserHandler: any, regist
     });
 
     // Settings and KIP routes
-    app.use('/api/kam/settings', async (req: any, res: any) => {
-      try {
-        await settingsHandler(req, res);
-      } catch (err) {
-        logger.error('Settings handler error', err);
-        res.status(500).json({ success: false, error: 'Internal Server Error' });
-      }
-    });
+    app.use('/api/kam/settings', settingsHandler);
+    app.use('/api/kip/agents', kipAgentsHandler);
+    app.use('/api/kip/user-keys', kipUserKeysHandler);
+    app.use('/api/kip/platform-keys', kipPlatformKeysHandler);
 
-    app.use('/api/kip/agents', async (req: any, res: any) => {
-      try {
-        await kipAgentsHandler(req, res);
-      } catch (err) {
-        logger.error('KIP Agents handler error', err);
-        res.status(500).json({ success: false, error: 'Internal Server Error' });
-      }
-    });
-
-    app.use('/api/kip/user-keys', async (req: any, res: any) => {
-      try {
-        await kipUserKeysHandler(req, res);
-      } catch (err) {
-        logger.error('KIP User Keys handler error', err);
-        res.status(500).json({ success: false, error: 'Internal Server Error' });
-      }
-    });
-
-    app.use('/api/kip/platform-keys', async (req: any, res: any) => {
-      try {
-        await kipPlatformKeysHandler(req, res);
-      } catch (err) {
-        logger.error('KIP Platform Keys handler error', err);
-        res.status(500).json({ success: false, error: 'Internal Server Error' });
-      }
-    });
-
-    logger.info('✅ Keeper API fully configured');
+    console.log('✅ All routes registered successfully');
     
   } catch (error) {
     console.error('❌ Error setting up routes:', error instanceof Error ? error.message : error);

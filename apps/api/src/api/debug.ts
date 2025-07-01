@@ -25,6 +25,31 @@ router.post('/', (req, res) => {
   });
 });
 
+// Railway status endpoint
+router.get('/railway-status', (req, res) => {
+  logger.info('Railway status endpoint hit');
+  res.json({
+    success: true,
+    message: '✅ Railway API is responding',
+    railway_info: {
+      service: process.env.RAILWAY_SERVICE_NAME || 'unknown',
+      environment: process.env.RAILWAY_ENVIRONMENT || 'unknown',
+      deployment: process.env.RAILWAY_DEPLOYMENT_ID || 'unknown',
+      public_domain: process.env.RAILWAY_PUBLIC_DOMAIN || 'not_set',
+      private_domain: process.env.RAILWAY_PRIVATE_DOMAIN || 'not_set',
+      port: process.env.PORT || 'not_set',
+      node_env: process.env.NODE_ENV || 'not_set'
+    },
+    server_info: {
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      node_version: process.version,
+      platform: process.platform
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Database connectivity test endpoint
 router.get('/database', async (req, res) => {
   logger.info('Database test endpoint hit');
