@@ -35,7 +35,7 @@ import type {
   ModelProvider,
   ModelSettings
 } from '@keeper/database/types';
-import { ModelProviderService, ModelMessage } from '../../services/ModelProviderService';
+import { ModelProviderService, ModelMessage } from '../../services/ModelProviderService.js';
 
 /**
  * KipAgentService - Core agent management functions

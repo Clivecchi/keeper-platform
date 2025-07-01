@@ -6,7 +6,7 @@
  */
 
 import type { Request, Response } from 'express';
-import { KipUserKeyService } from '../../services/KipUserKeyService';
+import { KipUserKeyService } from '../../services/KipUserKeyService.js';
 import type { ModelProvider } from '@keeper/database/types';
 
 /**
