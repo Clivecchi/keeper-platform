@@ -1,21 +1,23 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { Navbar } from '../components/layout/Navbar';
+import { Sidebar } from '../components/layout/Sidebar';
 import { motion } from 'framer-motion';
 
 export const AppLayout: React.FC = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Navbar />
+    <div className="flex h-screen bg-background text-foreground">
+      <Sidebar />
       <motion.main
-        className="flex-grow"
+        className="flex-1 overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <Outlet />
+        <div className="h-full overflow-y-auto">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Outlet />
+          </div>
         </div>
       </motion.main>
     </div>

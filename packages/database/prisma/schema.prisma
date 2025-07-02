@@ -51,8 +51,12 @@ model Keeper {
   title                String
   purpose              String
   keeperTypeId         String?
+  keeperType           String?                // New field for direct keeper type
+  memoryPattern        String?                // New field for memory organization pattern
   ownerId              String
   theme_id             String?                @db.Uuid
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
   Journey              Journey[]
   KeeperType           KeeperType?            @relation(fields: [keeperTypeId], references: [id])
   themes               themes?                @relation(fields: [theme_id], references: [id])
