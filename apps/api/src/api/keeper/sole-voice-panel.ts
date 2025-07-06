@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@keeper/database';
 import { z } from 'zod';
-
-const prisma = new PrismaClient();
 
 // Validation schemas
 const CreateVoiceEntrySchema = z.object({

@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@keeper/database';
 import { z } from 'zod';
 import SoleMemoryService from '../../services/SoleMemoryService';
-
-const prisma = new PrismaClient();
 
 // Validation schemas
 const CreateKeeperSchema = z.object({
@@ -58,7 +56,7 @@ export const getAllKeepers = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: keepers
     });
@@ -114,7 +112,7 @@ export const getKeeperById = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Keeper not found' });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: keeper
     });
@@ -184,7 +182,7 @@ export const createKeeper = async (req: Request, res: Response) => {
       }
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: keeper
     });
@@ -237,7 +235,7 @@ export const updateKeeper = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: keeper
     });
@@ -283,7 +281,7 @@ export const deleteKeeper = async (req: Request, res: Response) => {
       where: { id: id }
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Keeper deleted successfully'
     });
@@ -312,7 +310,7 @@ export const getKeeperTypes = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: keeperTypes
     });
@@ -337,7 +335,7 @@ export const createKeeperType = async (req: Request, res: Response) => {
       }
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: keeperType
     });
@@ -381,7 +379,7 @@ export const getEngagementTemplatesByType = async (req: Request, res: Response) 
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: templates
     });
@@ -473,7 +471,7 @@ export const assignEngagementTemplate = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Engagement template assigned successfully'
     });
@@ -555,7 +553,7 @@ export const proposeSoleDraft = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: updatedKeeper,
       message: 'SOLE draft proposed successfully'
@@ -607,7 +605,7 @@ export const approveSoleDraft = async (req: Request, res: Response) => {
       where: { id: id },
       data: {
         sole: keeper.soleDraft,
-        soleDraft: null,
+        soleDraft: undefined,
         soleSubmittedAt: null
       },
       include: {
@@ -615,7 +613,7 @@ export const approveSoleDraft = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: updatedKeeper,
       message: 'SOLE draft approved successfully'
@@ -659,7 +657,7 @@ export const rejectSoleDraft = async (req: Request, res: Response) => {
     const updatedKeeper = await prisma.keeper.update({
       where: { id: id },
       data: {
-        soleDraft: null,
+        soleDraft: undefined,
         soleSubmittedAt: null
       },
       include: {
@@ -667,7 +665,7 @@ export const rejectSoleDraft = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: updatedKeeper,
       message: 'SOLE draft rejected successfully'
@@ -709,9 +707,9 @@ export const getAgentKeeperTypes = async (req: Request, res: Response) => {
       }
     });
 
-    const keeperTypes = assignments.map(assignment => assignment.keeper_type);
+    const keeperTypes = assignments.map((assignment: any) => assignment.keeper_type);
 
-    res.json({
+    return res.json({
       success: true,
       data: keeperTypes
     });
@@ -772,7 +770,7 @@ export const assignKeeperTypeToAgent = async (req: Request, res: Response) => {
       }
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: assignment.keeper_type,
       message: 'Keeper type assigned to agent successfully'
@@ -815,7 +813,7 @@ export const unassignKeeperTypeFromAgent = async (req: Request, res: Response) =
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Keeper type unassigned from agent successfully'
     });

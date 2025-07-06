@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@keeper/database';
 import { z } from 'zod';
-
-const prisma = new PrismaClient();
 
 // Validation schemas
 const UpdateMemoryCardSchema = z.object({
@@ -116,7 +114,7 @@ export const getMemoryCardsByTopic = async (req: Request, res: Response) => {
     });
 
     // Group by topic
-    const groupedByTopic = memoryCards.reduce((acc, card) => {
+    const groupedByTopic = memoryCards.reduce((acc: Record<string, typeof memoryCards>, card: any) => {
       const topic = card.topic || 'Uncategorized';
       if (!acc[topic]) {
         acc[topic] = [];
@@ -176,7 +174,7 @@ export const getEmbeddingStatus = async (req: Request, res: Response) => {
       pending: 0
     };
 
-    stats.forEach(stat => {
+    stats.forEach((stat: any) => {
       const count = stat._count.id;
       result.total += count;
       if (stat.embedded) {
