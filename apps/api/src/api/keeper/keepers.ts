@@ -287,7 +287,7 @@ export const deleteKeeper = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error deleting keeper:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to delete keeper',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -316,7 +316,7 @@ export const getKeeperTypes = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching keeper types:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to fetch keeper types',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -348,7 +348,7 @@ export const createKeeperType = async (req: Request, res: Response) => {
     }
     
     console.error('Error creating keeper type:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to create keeper type',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -385,7 +385,7 @@ export const getEngagementTemplatesByType = async (req: Request, res: Response) 
     });
   } catch (error) {
     console.error('Error fetching engagement templates:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to fetch engagement templates',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -419,13 +419,13 @@ export const getEngagementTemplatesByKeeperType = async (req: Request, res: Resp
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: templates
     });
   } catch (error) {
     console.error('Error fetching engagement templates by keeper type:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to fetch engagement templates',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -477,7 +477,7 @@ export const assignEngagementTemplate = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error assigning engagement template:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to assign engagement template',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -567,7 +567,7 @@ export const proposeSoleDraft = async (req: Request, res: Response) => {
     }
     
     console.error('Error proposing SOLE draft:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to propose SOLE draft',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -620,7 +620,7 @@ export const approveSoleDraft = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error approving SOLE draft:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to approve SOLE draft',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -672,7 +672,7 @@ export const rejectSoleDraft = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error rejecting SOLE draft:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to reject SOLE draft',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -715,7 +715,7 @@ export const getAgentKeeperTypes = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching agent keeper types:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to fetch agent keeper types',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -777,7 +777,7 @@ export const assignKeeperTypeToAgent = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error assigning keeper type to agent:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to assign keeper type to agent',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -819,7 +819,7 @@ export const unassignKeeperTypeFromAgent = async (req: Request, res: Response) =
     });
   } catch (error) {
     console.error('Error unassigning keeper type from agent:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to unassign keeper type from agent',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
