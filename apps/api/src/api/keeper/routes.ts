@@ -16,7 +16,7 @@ import {
   getAgentKeeperTypes,
   assignKeeperTypeToAgent,
   unassignKeeperTypeFromAgent
-} from './keepers';
+} from './keepers.js';
 
 // Import SOLE API functions
 import {
@@ -26,7 +26,7 @@ import {
   updateReflection,
   deleteReflection,
   promoteReflectionToMemoryCard
-} from './sole-reflections';
+} from './sole-reflections.js';
 
 import {
   getMemoryCardsByKeeper,
@@ -36,14 +36,14 @@ import {
   deleteMemoryCard,
   generateEmbeddings,
   searchMemoryCards
-} from './sole-memory-cards';
+} from './sole-memory-cards.js';
 
 import {
   getVoiceEntriesByKeeper,
   createVoiceEntry,
   updateVoiceEntry,
   deleteVoiceEntry
-} from './sole-voice-panel';
+} from './sole-voice-panel.js';
 
 import {
   getEchoesByKeeper,
@@ -52,7 +52,7 @@ import {
   updateEcho,
   deliverEcho,
   deleteEcho
-} from './sole-echo-writer';
+} from './sole-echo-writer.js';
 
 import {
   getLogbookEntriesByKeeper,
@@ -61,7 +61,7 @@ import {
   createLogbookEntry,
   updateLogbookEntry,
   deleteLogbookEntry
-} from './sole-identity-logbook';
+} from './sole-identity-logbook.js';
 
 const router: express.Router = express.Router();
 
