@@ -19,11 +19,19 @@ import AdminPage from './pages/studio/AdminPage';
 
 // Keeper Pages
 import AllKeepersPage from './pages/keeper/AllKeepersPage';
+import KeeperManagePage from './pages/keeper/KeeperManagePage';
 import CreateKeeperPage from './pages/keeper/CreateKeeperPage';
 import KeeperDashboardPage from './pages/keeper/KeeperDashboardPage';
 import KeeperJourneysPage from './pages/keeper/KeeperJourneysPage';
 import KeeperMomentsPage from './pages/keeper/KeeperMomentsPage';
 import KeeperMemoryPage from './pages/keeper/KeeperMemoryPage';
+import KeeperTypesPage from './pages/keeper/KeeperTypesPage';
+import SelectedKeeperMetadataPage from './pages/keeper/SelectedKeeperMetadataPage';
+import ReflectionJournalPage from './pages/keeper/ReflectionJournalPage';
+import MemoryCardManagerPage from './pages/keeper/MemoryCardManagerPage';
+import VoicePanelPage from './pages/keeper/VoicePanelPage';
+import EchoWriterPage from './pages/keeper/EchoWriterPage';
+import IdentityLogbookPage from './pages/keeper/IdentityLogbookPage';
 
 // Legacy Pages
 import UserApiKeyManagerPage from './pages/UserApiKeyManagerPage';
@@ -75,14 +83,26 @@ const App: React.FC = () => {
           
           {/* Keeper Section */}
           <Route path="/keeper" element={<AllKeepersPage />} />
+          <Route path="/keeper/manage" element={<KeeperManagePage />} />
+          <Route path="/keeper/types" element={<KeeperTypesPage />} />
           <Route path="/keeper/new" element={<CreateKeeperPage />} />
           <Route path="/keeper/:id/dashboard" element={<KeeperDashboardPage />} />
           <Route path="/keeper/:id/memory" element={<KeeperMemoryPage />} />
           <Route path="/keeper/:id/journeys" element={<KeeperJourneysPage />} />
           <Route path="/keeper/:id/moments" element={<KeeperMomentsPage />} />
+          <Route path="/keeper/:id/reflection-journal" element={<ReflectionJournalPage />} />
+          <Route path="/keeper/:id/memory-cards" element={<MemoryCardManagerPage />} />
+          <Route path="/keeper/:id/voice-panel" element={<VoicePanelPage />} />
+          <Route path="/keeper/:id/echo-writer" element={<EchoWriterPage />} />
+          <Route path="/keeper/:id/identity-logbook" element={<IdentityLogbookPage />} />
           <Route path="/keeper/:id/topics" element={<KeeperDashboardPage />} />
           <Route path="/keeper/:id/voice" element={<KeeperDashboardPage />} />
           <Route path="/keeper/:id/logbook" element={<KeeperDashboardPage />} />
+          
+          {/* Architect Mode - Selected Keeper Routes */}
+          <Route path="/keeper/selected/metadata" element={<SelectedKeeperMetadataPage />} />
+          <Route path="/keeper/selected/engagement-templates" element={<SelectedKeeperMetadataPage />} />
+          <Route path="/keeper/selected/memory-tools" element={<SelectedKeeperMetadataPage />} />
           
           {/* Legacy Routes - maintain compatibility */}
           <Route path="/root/settings/api-keys" element={<UserApiKeyManagerPage />} />

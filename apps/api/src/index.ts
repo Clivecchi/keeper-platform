@@ -131,11 +131,13 @@ async function initializeServer() {
     const kipUserKeysHandler = kipUserKeysHandlerModule.default;
     const kipPlatformKeysHandlerModule = await import('./api/kip/platform-keys.js');
     const kipPlatformKeysHandler = kipPlatformKeysHandlerModule.default;
+    const keeperRouterModule = await import('./api/keeper/routes.js');
+    const keeperRouter = keeperRouterModule.default;
 
     console.log('✅ All modules loaded successfully');
 
     // Setup all routes BEFORE starting server
-    setupRoutes(logger, loginUserHandler, registerUserHandler, debugRouter, settingsHandler, logRequestMiddleware, kipAgentsHandler, kipUserKeysHandler, kipPlatformKeysHandler);
+    setupRoutes(logger, loginUserHandler, registerUserHandler, debugRouter, settingsHandler, logRequestMiddleware, kipAgentsHandler, kipUserKeysHandler, kipPlatformKeysHandler, keeperRouter);
 
     // Start server AFTER all routes are registered
     const server = app.listen(PORT, '::', () => {
@@ -151,6 +153,7 @@ async function initializeServer() {
       console.log('  - POST /api/kam/auth/register');
       console.log('  - ALL  /api/debug/*');
       console.log('  - ALL  /api/kip/*');
+      console.log('  - ALL  /api/keeper/*');
       console.log('\n🔗 Frontend: http://localhost:5173\n');
     });
 
@@ -175,7 +178,7 @@ async function initializeServer() {
 initializeServer();
 
 // Setup routes after modules are loaded
-function setupRoutes(logger: any, loginUserHandler: any, registerUserHandler: any, debugRouter: any, settingsHandler: any, logRequestMiddleware: any, kipAgentsHandler: any, kipUserKeysHandler: any, kipPlatformKeysHandler: any) {
+function setupRoutes(logger: any, loginUserHandler: any, registerUserHandler: any, debugRouter: any, settingsHandler: any, logRequestMiddleware: any, kipAgentsHandler: any, kipUserKeysHandler: any, kipPlatformKeysHandler: any, keeperRouter: any) {
   try {
     console.log('⚙️ Setting up routes...');
 
@@ -232,6 +235,9 @@ function setupRoutes(logger: any, loginUserHandler: any, registerUserHandler: an
     app.use('/api/kip/agents', kipAgentsHandler);
     app.use('/api/kip/user-keys', kipUserKeysHandler);
     app.use('/api/kip/platform-keys', kipPlatformKeysHandler);
+
+    // Keeper routes
+    app.use('/api/keeper', keeperRouter);
 
     console.log('✅ All routes registered successfully');
     

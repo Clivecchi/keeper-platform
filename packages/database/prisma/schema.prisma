@@ -53,6 +53,9 @@ model Keeper {
   keeperTypeId         String?
   keeperType           String?                // New field for direct keeper type
   memoryPattern        String?                // New field for memory organization pattern
+  sole                 Json?                  // Approved agent-authored memory architecture
+  soleDraft            Json?                  // Proposed draft structure by agent
+  soleSubmittedAt      DateTime?              // Timestamp when soleDraft was submitted
   ownerId              String
   theme_id             String?                @db.Uuid
   createdAt            DateTime               @default(now())
@@ -62,6 +65,11 @@ model Keeper {
   themes               themes?                @relation(fields: [theme_id], references: [id])
   Path                 Path[]
   engagement_templates engagement_templates[]
+  soleReflections      SoleReflection[]
+  soleMemoryCards      SoleMemoryCard[]
+  soleVoiceEntries     SoleVoiceEntry[]
+  soleEchoes           SoleEcho[]
+  soleLogbookEntries   SoleLogbookEntry[]
 }
 
 model KeeperMapping {
@@ -78,9 +86,14 @@ model KeeperMapping {
 }
 
 model KeeperType {
-  id     String   @id
-  name   String
-  Keeper Keeper[]
+  id            String   @id
+  name          String
+  memoryPattern String?
+  system        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  Keeper        Keeper[]
+  kip_agent_keeper_types kip_agent_keeper_types[]
+  keeper_type_engagement_templates keeper_type_engagement_templates[]
 }
 
 model MediaContent {
@@ -266,12 +279,14 @@ model engagement_templates {
   icon              String?
   style             Json?
   config            Json?
+  system            Boolean             @default(false)
   createdAt         DateTime            @default(now()) @db.Timestamptz(6)
   updatedAt         DateTime            @db.Timestamptz(6)
   keeperId          String?
   engagement_fields engagement_fields[]
   engagement_styles engagement_styles[]
   Keeper            Keeper?             @relation(fields: [keeperId], references: [id])
+  keeper_type_engagement_templates keeper_type_engagement_templates[]
 }
 
 model engagements {
@@ -449,6 +464,7 @@ model kip_agents {
   kip_agent_logs kip_agent_logs[]
   kip_sessions   kip_sessions[]
   kip_agent_permissions kip_agent_permissions[]
+  kip_agent_keeper_types kip_agent_keeper_types[]
 }
 
 model kip_agent_logs {
@@ -565,4 +581,134 @@ model kip_platform_keys {
   
   @@index([provider])
   @@index([is_active])
+}
+
+model kip_agent_keeper_types {
+  id             String      @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  agent_id       String      @db.Uuid
+  keeper_type_id String
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @default(now())
+  
+  // Relations
+  agent       kip_agents @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+  keeper_type KeeperType @relation(fields: [keeper_type_id], references: [id], onDelete: Cascade)
+  
+  @@unique([agent_id, keeper_type_id])
+  @@index([agent_id])
+  @@index([keeper_type_id])
+}
+
+model keeper_type_engagement_templates {
+  id                     String               @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  keeper_type_id         String
+  engagement_template_id String               @db.Uuid
+  created_at             DateTime             @default(now())
+  
+  // Relations
+  keeper_type         KeeperType            @relation(fields: [keeper_type_id], references: [id], onDelete: Cascade)
+  engagement_template engagement_templates  @relation(fields: [engagement_template_id], references: [id], onDelete: Cascade)
+  
+  @@unique([keeper_type_id, engagement_template_id])
+  @@index([keeper_type_id])
+  @@index([engagement_template_id])
+}
+
+// SOLE Engagement Models
+
+model SoleReflection {
+  id                     String           @id @default(cuid())
+  keeperId               String
+  agentId                String
+  content                String
+  topic                  String?
+  createdAt              DateTime         @default(now())
+  promotedToMemoryCard   Boolean          @default(false)
+  promotedAt             DateTime?
+  
+  // Relations
+  keeper        Keeper             @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+  memoryCards   SoleMemoryCard[]
+  
+  @@index([keeperId])
+  @@index([agentId])
+  @@index([createdAt])
+  @@index([promotedToMemoryCard])
+}
+
+model SoleMemoryCard {
+  id           String         @id @default(cuid())
+  keeperId     String
+  reflectionId String
+  content      String
+  topic        String?
+  embedding    String?        // JSON array string for now, will upgrade to pgvector later
+  embedded     Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  
+  // Relations
+  keeper     Keeper         @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+  reflection SoleReflection @relation(fields: [reflectionId], references: [id], onDelete: Cascade)
+  
+  @@index([keeperId])
+  @@index([reflectionId])
+  @@index([embedded])
+  @@index([topic])
+  @@index([createdAt])
+}
+
+model SoleVoiceEntry {
+  id        String   @id @default(cuid())
+  keeperId  String
+  agentId   String
+  label     String
+  belief    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  keeper Keeper @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+  
+  @@index([keeperId])
+  @@index([agentId])
+  @@index([createdAt])
+}
+
+model SoleEcho {
+  id                String    @id @default(cuid())
+  keeperId          String
+  agentId           String
+  message           String
+  triggerDate       DateTime?
+  triggerConditions Json?
+  createdAt         DateTime  @default(now())
+  delivered         Boolean   @default(false)
+  
+  // Relations
+  keeper Keeper @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+  
+  @@index([keeperId])
+  @@index([agentId])
+  @@index([triggerDate])
+  @@index([delivered])
+  @@index([createdAt])
+}
+
+model SoleLogbookEntry {
+  id        String   @id @default(cuid())
+  keeperId  String
+  agentId   String
+  entry     String
+  label     String
+  category  String
+  createdAt DateTime @default(now())
+  tags      String[]
+  
+  // Relations
+  keeper Keeper @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+  
+  @@index([keeperId])
+  @@index([agentId])
+  @@index([category])
+  @@index([createdAt])
 }

@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { ViewModeProvider } from './context/ViewModeContext'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
@@ -11,7 +12,9 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <AuthProvider>
         <ThemeProvider>
-          <App />
+          <ViewModeProvider>
+            <App />
+          </ViewModeProvider>
         </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>

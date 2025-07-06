@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { useViewMode } from '../../context/ViewModeContext';
+import { ViewMode } from '../../types/viewMode';
 import DebugButton from '../DebugButton';
 import { 
   ChevronLeftIcon, 
@@ -16,7 +18,14 @@ import {
   MicrophoneIcon,
   ClipboardDocumentListIcon,
   PlusIcon,
-  HomeIcon
+  HomeIcon,
+  CogIcon,
+  WrenchScrewdriverIcon,
+  UserGroupIcon,
+  KeyIcon,
+  DocumentDuplicateIcon,
+  EyeIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 
 interface SidebarItemProps {
@@ -104,14 +113,94 @@ const SidebarSection: React.FC<SidebarSectionProps> = ({
   </div>
 );
 
+const ViewModeToggle: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
+  const { currentMode, setViewMode } = useViewMode();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const modes = [
+    { mode: ViewMode.Architect, icon: <WrenchScrewdriverIcon className="w-4 h-4" /> },
+    { mode: ViewMode.MyKeeper, icon: <BookOpenIcon className="w-4 h-4" /> },
+    { mode: ViewMode.Admin, icon: <CogIcon className="w-4 h-4" /> }
+  ];
+
+  if (isCollapsed) {
+    return (
+      <div className="relative">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="p-2 rounded-md hover:bg-muted/50 transition-colors w-full flex items-center justify-center"
+        >
+          {modes.find(m => m.mode === currentMode)?.icon}
+        </button>
+        {isOpen && (
+          <div className="absolute left-full ml-2 top-0 bg-card border border-border rounded-md shadow-lg py-1 z-50">
+            {modes.map(({ mode, icon }) => (
+              <button
+                key={mode}
+                onClick={() => {
+                  setViewMode(mode);
+                  setIsOpen(false);
+                }}
+                className={`flex items-center px-3 py-2 text-sm w-full text-left hover:bg-muted/50 transition-colors ${
+                  currentMode === mode ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
+                }`}
+              >
+                <span className="mr-3">{icon}</span>
+                {mode}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors rounded-md"
+      >
+        <div className="flex items-center">
+          {modes.find(m => m.mode === currentMode)?.icon}
+          <span className="ml-3">{currentMode}</span>
+        </div>
+        <ArrowPathIcon className="w-4 h-4" />
+      </button>
+      {isOpen && (
+        <div className="absolute bottom-full mb-2 left-0 right-0 bg-card border border-border rounded-md shadow-lg py-1 z-50">
+          {modes.map(({ mode, icon }) => (
+            <button
+              key={mode}
+              onClick={() => {
+                setViewMode(mode);
+                setIsOpen(false);
+              }}
+              className={`flex items-center px-3 py-2 text-sm w-full text-left hover:bg-muted/50 transition-colors ${
+                currentMode === mode ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <span className="mr-3">{icon}</span>
+              {mode}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const Sidebar: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
-    root: true,
-    studio: true,
-    keeper: true
+    aiDesignBuild: true,
+    keeperDesignBuild: true,
+    themes: true,
+    myKeeper: true,
+    admin: true
   });
   const { user, logout } = useAuth();
+  const { currentMode } = useViewMode();
   const location = useLocation();
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -124,6 +213,122 @@ export const Sidebar: React.FC = () => {
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
   };
+
+  const renderArchitectMode = () => (
+    <>
+      {/* AI Design Build Section */}
+      <SidebarSection
+        title="AI Design Build"
+        isCollapsed={isCollapsed}
+        isExpanded={expandedSections.aiDesignBuild}
+        onToggle={() => toggleSection('aiDesignBuild')}
+      >
+        <SidebarItem to="/studio/agents" icon={<BeakerIcon />} isCollapsed={isCollapsed}>
+          Manage Agents
+        </SidebarItem>
+        <div className={`${isCollapsed ? '' : 'ml-3 pl-3 border-l border-border'}`}>
+          <div className={`${isCollapsed ? '' : 'py-2'}`}>
+            {!isCollapsed && (
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                AI Admin
+              </span>
+            )}
+            <div className="space-y-1 mt-2">
+              <SidebarItem to="/studio/admin/api-keys" icon={<KeyIcon />} isCollapsed={isCollapsed}>
+                API Key Vault
+              </SidebarItem>
+              <SidebarItem to="/studio/admin/logs" icon={<DocumentTextIcon />} isCollapsed={isCollapsed}>
+                System Logs
+              </SidebarItem>
+            </div>
+          </div>
+        </div>
+      </SidebarSection>
+
+      {/* Keeper Design Build Section */}
+      <SidebarSection
+        title="Keeper Design Build"
+        isCollapsed={isCollapsed}
+        isExpanded={expandedSections.keeperDesignBuild}
+        onToggle={() => toggleSection('keeperDesignBuild')}
+      >
+        <SidebarItem to="/keeper/manage" icon={<BookOpenIcon />} isCollapsed={isCollapsed}>
+          Manage Keepers
+        </SidebarItem>
+        <SidebarItem to="/keeper/types" icon={<SparklesIcon />} isCollapsed={isCollapsed}>
+          Keeper Types
+        </SidebarItem>
+      </SidebarSection>
+
+      {/* Themes Section - Future stub */}
+      <SidebarSection
+        title="Themes"
+        isCollapsed={isCollapsed}
+        isExpanded={expandedSections.themes}
+        onToggle={() => toggleSection('themes')}
+      >
+        <SidebarItem to="/studio/themes" icon={<PaintBrushIcon />} isCollapsed={isCollapsed}>
+          Theme Library
+        </SidebarItem>
+      </SidebarSection>
+    </>
+  );
+
+  const renderMyKeeperMode = () => (
+    <>
+      {/* My Keeper Section */}
+      <SidebarSection
+        title="My Keeper"
+        isCollapsed={isCollapsed}
+        isExpanded={expandedSections.myKeeper}
+        onToggle={() => toggleSection('myKeeper')}
+      >
+        <SidebarItem to="/keeper/1/dashboard" icon={<HomeIcon />} isCollapsed={isCollapsed}>
+          Dashboard
+        </SidebarItem>
+        <SidebarItem to="/keeper/1/journeys" icon={<BookOpenIcon />} isCollapsed={isCollapsed}>
+          Journeys
+        </SidebarItem>
+        <SidebarItem to="/keeper/1/moments" icon={<DocumentTextIcon />} isCollapsed={isCollapsed}>
+          Moments
+        </SidebarItem>
+        <SidebarItem to="/keeper/1/topics" icon={<ChatBubbleLeftRightIcon />} isCollapsed={isCollapsed}>
+          Topics
+        </SidebarItem>
+        <SidebarItem to="/keeper/1/voice" icon={<MicrophoneIcon />} isCollapsed={isCollapsed}>
+          Voice Panel
+        </SidebarItem>
+        <SidebarItem to="/keeper/1/logbook" icon={<ClipboardDocumentListIcon />} isCollapsed={isCollapsed}>
+          Logbook
+        </SidebarItem>
+      </SidebarSection>
+    </>
+  );
+
+  const renderAdminMode = () => (
+    <>
+      {/* System Admin Section */}
+      <SidebarSection
+        title="System Administration"
+        isCollapsed={isCollapsed}
+        isExpanded={expandedSections.admin}
+        onToggle={() => toggleSection('admin')}
+      >
+        <SidebarItem to="/root" icon={<HomeIcon />} isCollapsed={isCollapsed}>
+          Root Dashboard
+        </SidebarItem>
+        <SidebarItem to="/root/profile" icon={<UserGroupIcon />} isCollapsed={isCollapsed}>
+          User Management
+        </SidebarItem>
+        <SidebarItem to="/root/api-keys" icon={<KeyIcon />} isCollapsed={isCollapsed}>
+          API Key Management
+        </SidebarItem>
+        <SidebarItem to="/studio/admin/logs" icon={<DocumentTextIcon />} isCollapsed={isCollapsed}>
+          System Logs
+        </SidebarItem>
+      </SidebarSection>
+    </>
+  );
 
   return (
     <div className={`flex flex-col h-screen bg-card border-r border-border shadow-sm transition-all duration-300 ${
@@ -153,102 +358,22 @@ export const Sidebar: React.FC = () => {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
-        {/* Root Section */}
-        <SidebarSection
-          title="Root"
-          isCollapsed={isCollapsed}
-          isExpanded={expandedSections.root}
-          onToggle={() => toggleSection('root')}
-        >
-          <SidebarItem to="/root" icon={<HomeIcon />} isCollapsed={isCollapsed}>
-            Dashboard
-          </SidebarItem>
-        </SidebarSection>
-
-        {/* Studio Section */}
-        <SidebarSection
-          title="Studio"
-          isCollapsed={isCollapsed}
-          isExpanded={expandedSections.studio}
-          onToggle={() => toggleSection('studio')}
-        >
-          <SidebarItem to="/studio/agents" icon={<BeakerIcon />} isCollapsed={isCollapsed}>
-            Agents
-          </SidebarItem>
-          <SidebarItem to="/studio/engagement-templates" icon={<ChatBubbleLeftRightIcon />} isCollapsed={isCollapsed}>
-            Engagement Templates
-          </SidebarItem>
-          <SidebarItem to="/studio/themes" icon={<PaintBrushIcon />} isCollapsed={isCollapsed}>
-            Themes
-          </SidebarItem>
-          <div className={`${isCollapsed ? '' : 'ml-3 pl-3 border-l border-border'}`}>
-            <div className={`${isCollapsed ? '' : 'py-2'}`}>
-              {!isCollapsed && (
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Admin Tools
-                </span>
-              )}
-              <div className="space-y-1 mt-2">
-                <SidebarItem to="/studio/admin/api-keys" icon={<ShieldCheckIcon />} isCollapsed={isCollapsed}>
-                  API Key Vault
-                </SidebarItem>
-                <SidebarItem to="/studio/admin/logs" icon={<DocumentTextIcon />} isCollapsed={isCollapsed}>
-                  System Logs
-                </SidebarItem>
-              </div>
-            </div>
-          </div>
-        </SidebarSection>
-
-        {/* Keeper Section */}
-        <SidebarSection
-          title="Keeper"
-          isCollapsed={isCollapsed}
-          isExpanded={expandedSections.keeper}
-          onToggle={() => toggleSection('keeper')}
-        >
-          <SidebarItem to="/keeper" icon={<BookOpenIcon />} isCollapsed={isCollapsed}>
-            All Keepers
-          </SidebarItem>
-          <SidebarItem to="/keeper/new" icon={<PlusIcon />} isCollapsed={isCollapsed}>
-            Create New Keeper
-          </SidebarItem>
-          
-          {/* Selected Keeper submenu - This will be dynamic in the future */}
-          <div className={`${isCollapsed ? '' : 'ml-3 pl-3 border-l border-border'}`}>
-            <div className={`${isCollapsed ? '' : 'py-2'}`}>
-              {!isCollapsed && (
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Selected Keeper
-                </span>
-              )}
-              <div className="space-y-1 mt-2">
-                <SidebarItem to="/keeper/1/dashboard" icon={<HomeIcon />} isCollapsed={isCollapsed}>
-                  Dashboard
-                </SidebarItem>
-                <SidebarItem to="/keeper/1/memory" icon={<SparklesIcon />} isCollapsed={isCollapsed}>
-                  Memory (SOLE)
-                </SidebarItem>
-                <SidebarItem to="/keeper/1/journeys" icon={<BookOpenIcon />} isCollapsed={isCollapsed}>
-                  Journeys
-                </SidebarItem>
-                <SidebarItem to="/keeper/1/moments" icon={<DocumentTextIcon />} isCollapsed={isCollapsed}>
-                  Moments
-                </SidebarItem>
-                <SidebarItem to="/keeper/1/topics" icon={<ChatBubbleLeftRightIcon />} isCollapsed={isCollapsed}>
-                  Topics
-                </SidebarItem>
-                <SidebarItem to="/keeper/1/voice" icon={<MicrophoneIcon />} isCollapsed={isCollapsed}>
-                  Voice Panel
-                </SidebarItem>
-                <SidebarItem to="/keeper/1/logbook" icon={<ClipboardDocumentListIcon />} isCollapsed={isCollapsed}>
-                  Logbook
-                </SidebarItem>
-              </div>
-            </div>
-          </div>
-        </SidebarSection>
+        {currentMode === ViewMode.Architect && renderArchitectMode()}
+        {currentMode === ViewMode.MyKeeper && renderMyKeeperMode()}
+        {currentMode === ViewMode.Admin && renderAdminMode()}
       </nav>
+
+      {/* ViewMode Toggle */}
+      {!isCollapsed && (
+        <div className="px-4 py-2 border-t border-border">
+          <ViewModeToggle isCollapsed={isCollapsed} />
+        </div>
+      )}
+      {isCollapsed && (
+        <div className="px-2 py-2 border-t border-border">
+          <ViewModeToggle isCollapsed={isCollapsed} />
+        </div>
+      )}
 
       {/* Debug Button */}
       {!isCollapsed && (

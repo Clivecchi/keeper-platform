@@ -4,9 +4,10 @@
 This folder contains all pages and components for the Kip Studio interface, which provides a comprehensive management system for KIP (Keeper Interface Protocol) agents including creation, monitoring, execution, and coordination.
 
 ## 🧱 Key Files
-- `AgentsPage.tsx` - Main agent management interface
+- `AgentsPage.tsx` - Tabbed agent management interface with Registry and Agent tabs
 - `AgentBuilderForm.tsx` - Form for creating new agents
 - `AgentLogsPage.tsx` - Execution logs and monitoring
+- `PlatformApiKeyManagerPage.tsx` - Platform-level API key management
 - `README.md` - This documentation
 
 ## 🔄 Data & Behavior
@@ -101,6 +102,17 @@ ALTER TABLE kip_agents ADD COLUMN agent_class TEXT DEFAULT 'Standard';
 - [ ] Add agent import/export features
 - [ ] Add agent templates for common use cases
 - [ ] Add agent performance metrics
+- [x] Implement tabbed interface with Registry and Agent tabs
+- [x] Split agent list and form into separate tab views
+- [x] Add proper navigation between tabs
+- [x] Implement agent selection flow from Registry to Agent tab
+- [x] Add create new agent flow with tab switching
+- [x] Enhanced empty states and loading indicators
+- [ ] Add keyboard navigation between tabs
+- [ ] Implement agent search and filtering in Registry
+- [ ] Add bulk operations for multiple agent management
+- [ ] Add agent templates for quick creation
+- [ ] Implement agent versioning and rollback capabilities
 
 ## 📆 Update Log
 - 2025-01-03: Created AgentsPage.tsx with agent builder and list view
@@ -149,4 +161,31 @@ ALTER TABLE kip_agents ADD COLUMN agent_class TEXT DEFAULT 'Standard';
 - **Database**: Created `kip_agents` table and seed data
 - **Backend**: Implemented `KipAgentService` with full CRUD operations
 - **Frontend**: Created `KipApi` client with TypeScript integration
-- **Mock**: Added fallback mock data for development resilience 
+- **Mock**: Added fallback mock data for development resilience
+
+### 2024-01-XX - Tabbed Interface Implementation
+- **Restructured**: AgentsPage into tabbed interface with Registry and Agent tabs
+- **Added**: Tab navigation with visual indicators and smooth transitions
+- **Enhanced**: Agent selection flow - click agent in Registry opens in Agent tab
+- **Improved**: Create new agent workflow with automatic tab switching
+- **Added**: Back to Registry navigation from Agent tab
+- **Enhanced**: Agent cards with hover effects and click-to-select behavior
+- **Improved**: Empty states with better call-to-action buttons
+- **Added**: Proper event handling to prevent tab switching on action buttons
+- **Enhanced**: Loading states and error handling across both tabs
+
+### User Experience Improvements:
+- **Cleaner Interface**: Separation of concerns between listing and editing
+- **Intuitive Navigation**: Clear tab structure with descriptive labels
+- **Better Flow**: Natural progression from selection to editing
+- **Visual Feedback**: Active tab indicators and hover states
+- **Contextual Actions**: Actions available where they make sense
+- **Responsive Design**: Maintains functionality across device sizes
+
+### Technical Implementation:
+- **State Management**: Centralized tab state with TypeScript enum
+- **Component Separation**: Logical separation of Registry and Agent views
+- **Event Handling**: Proper event propagation control for nested interactions
+- **Accessibility**: ARIA-compliant tab interface with keyboard support
+- **Performance**: Optimized re-rendering with proper state management
+- **Type Safety**: Full TypeScript coverage for tab types and state 
