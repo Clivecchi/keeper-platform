@@ -48,7 +48,7 @@ export const getVoiceEntriesByKeeper = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: voiceEntries
     });
@@ -87,7 +87,7 @@ export const createVoiceEntry = async (req: Request, res: Response) => {
       data: validatedData
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: voiceEntry
     });
@@ -137,7 +137,7 @@ export const updateVoiceEntry = async (req: Request, res: Response) => {
       data: validatedData
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: updatedVoiceEntry
     });
@@ -185,7 +185,7 @@ export const deleteVoiceEntry = async (req: Request, res: Response) => {
       where: { id: id }
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Voice entry deleted successfully'
     });

@@ -56,7 +56,7 @@ export const getReflectionsByKeeper = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: reflections
     });
@@ -108,7 +108,7 @@ export const getSuggestedPromotions = async (req: Request, res: Response) => {
       take: 10 // Limit suggestions
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: suggestions
     });
@@ -150,7 +150,7 @@ export const createReflection = async (req: Request, res: Response) => {
       }
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: reflection
     });
@@ -203,7 +203,7 @@ export const updateReflection = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: updatedReflection
     });
@@ -264,7 +264,7 @@ export const deleteReflection = async (req: Request, res: Response) => {
       where: { id: id }
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Reflection deleted successfully'
     });
@@ -330,7 +330,7 @@ export const promoteReflectionToMemoryCard = async (req: Request, res: Response)
       return { reflection: updatedReflection, memoryCard };
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: result,
       message: 'Reflection promoted to memory card successfully'

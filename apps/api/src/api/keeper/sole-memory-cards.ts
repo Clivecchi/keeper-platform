@@ -62,7 +62,7 @@ export const getMemoryCardsByKeeper = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: memoryCards
     });
@@ -125,7 +125,7 @@ export const getMemoryCardsByTopic = async (req: Request, res: Response) => {
       return acc;
     }, {} as Record<string, typeof memoryCards>);
 
-    res.json({
+    return res.json({
       success: true,
       data: groupedByTopic
     });
@@ -186,7 +186,7 @@ export const getEmbeddingStatus = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: result
     });
@@ -245,7 +245,7 @@ export const updateMemoryCard = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: updatedMemoryCard
     });
@@ -293,7 +293,7 @@ export const deleteMemoryCard = async (req: Request, res: Response) => {
       where: { id: id }
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Memory card deleted successfully'
     });
@@ -356,7 +356,7 @@ export const generateEmbeddings = async (req: Request, res: Response) => {
       updatedCards.push(updated);
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: updatedCards,
       message: `Generated embeddings for ${updatedCards.length} memory cards`
@@ -431,7 +431,7 @@ export const searchMemoryCards = async (req: Request, res: Response) => {
       take: 20
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: searchResults,
       query: query

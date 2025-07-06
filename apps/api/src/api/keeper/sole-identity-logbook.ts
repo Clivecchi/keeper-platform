@@ -66,7 +66,7 @@ export const getLogbookEntriesByKeeper = async (req: Request, res: Response) => 
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: logbookEntries
     });
@@ -111,9 +111,9 @@ export const getCategoriesByKeeper = async (req: Request, res: Response) => {
       distinct: ['category']
     });
 
-    res.json({
+    return res.json({
       success: true,
-      data: categories.map(c => c.category)
+      data: categories.map((c: any) => c.category)
     });
   } catch (error) {
         console.error('Error fetching categories:', error);
