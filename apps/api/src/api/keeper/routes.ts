@@ -63,7 +63,7 @@ import {
   deleteLogbookEntry
 } from './sole-identity-logbook';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // Keeper routes
 router.get('/keepers', getAllKeepers);

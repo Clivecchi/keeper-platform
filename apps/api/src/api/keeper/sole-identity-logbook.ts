@@ -113,7 +113,7 @@ export const getCategoriesByKeeper = async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      data: categories.map((c: any) => c.category)
+      data: categories.map((c: { category: string }) => c.category)
     });
   } catch (error) {
         console.error('Error fetching categories:', error);
@@ -156,10 +156,10 @@ export const getTagsByKeeper = async (req: Request, res: Response) => {
     });
 
     // Flatten and deduplicate tags
-    const allTags = entries.flatMap(entry => entry.tags);
+    const allTags = entries.flatMap((entry: { tags: string[] }) => entry.tags);
     const uniqueTags = Array.from(new Set(allTags));
 
-    res.json({
+    return res.json({
       success: true,
       data: uniqueTags
     });
@@ -198,7 +198,7 @@ export const createLogbookEntry = async (req: Request, res: Response) => {
       data: validatedData
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: logbookEntry
     });
@@ -248,7 +248,7 @@ export const updateLogbookEntry = async (req: Request, res: Response) => {
       data: validatedData
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: updatedLogbookEntry
     });
@@ -296,7 +296,7 @@ export const deleteLogbookEntry = async (req: Request, res: Response) => {
       where: { id: id }
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Logbook entry deleted successfully'
     });

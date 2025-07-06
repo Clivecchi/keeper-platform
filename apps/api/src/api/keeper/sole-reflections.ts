@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 const prisma = new PrismaClient();
@@ -306,7 +306,7 @@ export const promoteReflectionToMemoryCard = async (req: Request, res: Response)
     }
 
     // Use transaction to ensure consistency
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Mark reflection as promoted
       const updatedReflection = await tx.soleReflection.update({
         where: { id: id },

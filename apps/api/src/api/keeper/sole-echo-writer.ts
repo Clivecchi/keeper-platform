@@ -63,7 +63,7 @@ export const getEchoesByKeeper = async (req: Request, res: Response) => {
       ]
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: echoes
     });
@@ -114,7 +114,7 @@ export const getTriggeredEchoes = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: triggeredEchoes
     });
@@ -159,7 +159,7 @@ export const createEcho = async (req: Request, res: Response) => {
       data: echoData
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: echo
     });
@@ -215,7 +215,7 @@ export const updateEcho = async (req: Request, res: Response) => {
       data: updateData
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: updatedEcho
     });
@@ -270,7 +270,7 @@ export const deliverEcho = async (req: Request, res: Response) => {
       }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: updatedEcho,
       message: 'Echo marked as delivered'
@@ -312,7 +312,7 @@ export const deleteEcho = async (req: Request, res: Response) => {
       where: { id: id }
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Echo deleted successfully'
     });

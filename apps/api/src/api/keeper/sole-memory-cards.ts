@@ -34,11 +34,11 @@ export const getMemoryCardsByKeeper = async (req: Request, res: Response) => {
     }
 
     // Build where clause with optional filters
-    const whereClause: any = {
+    const whereClause: { keeperId: string; topic?: string; embedded?: boolean } = {
       keeperId: keeperId
     };
 
-    if (topic) {
+    if (topic && typeof topic === 'string') {
       whereClause.topic = topic;
     }
 
@@ -225,7 +225,7 @@ export const updateMemoryCard = async (req: Request, res: Response) => {
     }
 
     // If content is being updated, mark as needing re-embedding
-    const updateData: any = { ...validatedData };
+    const updateData: typeof validatedData & { embedded?: boolean; embedding?: string | null } = { ...validatedData };
     if (validatedData.content && validatedData.content !== memoryCard.content) {
       updateData.embedded = false;
       updateData.embedding = null;
