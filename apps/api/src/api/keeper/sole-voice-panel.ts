@@ -54,7 +54,7 @@ export const getVoiceEntriesByKeeper = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching voice entries:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to fetch voice entries',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -100,7 +100,7 @@ export const createVoiceEntry = async (req: Request, res: Response) => {
     }
     
     console.error('Error creating voice entry:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to create voice entry',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -150,7 +150,7 @@ export const updateVoiceEntry = async (req: Request, res: Response) => {
     }
     
     console.error('Error updating voice entry:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to update voice entry',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -191,7 +191,7 @@ export const deleteVoiceEntry = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error deleting voice entry:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to delete voice entry',
       details: error instanceof Error ? error.message : 'Unknown error'
     });

@@ -64,7 +64,7 @@ export const getAllKeepers = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching keepers:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to fetch keepers',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -120,7 +120,7 @@ export const getKeeperById = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching keeper:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to fetch keeper',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -197,7 +197,7 @@ export const createKeeper = async (req: Request, res: Response) => {
     }
     
     console.error('Error creating keeper:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to create keeper',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -250,7 +250,7 @@ export const updateKeeper = async (req: Request, res: Response) => {
     }
     
     console.error('Error updating keeper:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to update keeper',
       details: error instanceof Error ? error.message : 'Unknown error'
     });

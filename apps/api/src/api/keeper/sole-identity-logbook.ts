@@ -71,8 +71,8 @@ export const getLogbookEntriesByKeeper = async (req: Request, res: Response) => 
       data: logbookEntries
     });
   } catch (error) {
-    console.error('Error fetching logbook entries:', error);
-    res.status(500).json({ 
+        console.error('Error fetching logbook entries:', error);
+    return res.status(500).json({
       error: 'Failed to fetch logbook entries',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -116,8 +116,8 @@ export const getCategoriesByKeeper = async (req: Request, res: Response) => {
       data: categories.map(c => c.category)
     });
   } catch (error) {
-    console.error('Error fetching categories:', error);
-    res.status(500).json({ 
+        console.error('Error fetching categories:', error);
+    return res.status(500).json({
       error: 'Failed to fetch categories',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -164,8 +164,8 @@ export const getTagsByKeeper = async (req: Request, res: Response) => {
       data: uniqueTags
     });
   } catch (error) {
-    console.error('Error fetching tags:', error);
-    res.status(500).json({ 
+        console.error('Error fetching tags:', error);
+    return res.status(500).json({
       error: 'Failed to fetch tags',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -210,8 +210,8 @@ export const createLogbookEntry = async (req: Request, res: Response) => {
       });
     }
     
-    console.error('Error creating logbook entry:', error);
-    res.status(500).json({ 
+        console.error('Error creating logbook entry:', error);
+    return res.status(500).json({
       error: 'Failed to create logbook entry',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -260,8 +260,8 @@ export const updateLogbookEntry = async (req: Request, res: Response) => {
       });
     }
     
-    console.error('Error updating logbook entry:', error);
-    res.status(500).json({ 
+        console.error('Error updating logbook entry:', error);
+    return res.status(500).json({
       error: 'Failed to update logbook entry',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -301,8 +301,8 @@ export const deleteLogbookEntry = async (req: Request, res: Response) => {
       message: 'Logbook entry deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting logbook entry:', error);
-    res.status(500).json({ 
+        console.error('Error deleting logbook entry:', error);
+    return res.status(500).json({
       error: 'Failed to delete logbook entry',
       details: error instanceof Error ? error.message : 'Unknown error'
     });

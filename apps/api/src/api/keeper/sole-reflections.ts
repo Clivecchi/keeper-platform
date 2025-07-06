@@ -61,8 +61,8 @@ export const getReflectionsByKeeper = async (req: Request, res: Response) => {
       data: reflections
     });
   } catch (error) {
-    console.error('Error fetching reflections:', error);
-    res.status(500).json({ 
+        console.error('Error fetching reflections:', error);
+    return res.status(500).json({
       error: 'Failed to fetch reflections',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -114,7 +114,7 @@ export const getSuggestedPromotions = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching suggested promotions:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to fetch suggested promotions',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -162,8 +162,8 @@ export const createReflection = async (req: Request, res: Response) => {
       });
     }
     
-    console.error('Error creating reflection:', error);
-    res.status(500).json({ 
+        console.error('Error creating reflection:', error);
+    return res.status(500).json({
       error: 'Failed to create reflection',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -215,8 +215,8 @@ export const updateReflection = async (req: Request, res: Response) => {
       });
     }
     
-    console.error('Error updating reflection:', error);
-    res.status(500).json({ 
+        console.error('Error updating reflection:', error);
+    return res.status(500).json({
       error: 'Failed to update reflection',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -269,8 +269,8 @@ export const deleteReflection = async (req: Request, res: Response) => {
       message: 'Reflection deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting reflection:', error);
-    res.status(500).json({ 
+        console.error('Error deleting reflection:', error);
+    return res.status(500).json({
       error: 'Failed to delete reflection',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -336,8 +336,8 @@ export const promoteReflectionToMemoryCard = async (req: Request, res: Response)
       message: 'Reflection promoted to memory card successfully'
     });
   } catch (error) {
-    console.error('Error promoting reflection:', error);
-    res.status(500).json({ 
+        console.error('Error promoting reflection:', error);
+    return res.status(500).json({
       error: 'Failed to promote reflection',
       details: error instanceof Error ? error.message : 'Unknown error'
     });

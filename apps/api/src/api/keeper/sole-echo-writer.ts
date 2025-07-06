@@ -69,7 +69,7 @@ export const getEchoesByKeeper = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching echoes:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to fetch echoes',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -120,7 +120,7 @@ export const getTriggeredEchoes = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching triggered echoes:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to fetch triggered echoes',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -172,7 +172,7 @@ export const createEcho = async (req: Request, res: Response) => {
     }
     
     console.error('Error creating echo:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to create echo',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -228,7 +228,7 @@ export const updateEcho = async (req: Request, res: Response) => {
     }
     
     console.error('Error updating echo:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to update echo',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -277,7 +277,7 @@ export const deliverEcho = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error delivering echo:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to deliver echo',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -318,7 +318,7 @@ export const deleteEcho = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error deleting echo:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to delete echo',
       details: error instanceof Error ? error.message : 'Unknown error'
     });

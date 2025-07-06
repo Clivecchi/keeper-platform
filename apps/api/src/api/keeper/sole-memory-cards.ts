@@ -67,8 +67,8 @@ export const getMemoryCardsByKeeper = async (req: Request, res: Response) => {
       data: memoryCards
     });
   } catch (error) {
-    console.error('Error fetching memory cards:', error);
-    res.status(500).json({ 
+        console.error('Error fetching memory cards:', error);
+    return res.status(500).json({
       error: 'Failed to fetch memory cards',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -130,8 +130,8 @@ export const getMemoryCardsByTopic = async (req: Request, res: Response) => {
       data: groupedByTopic
     });
   } catch (error) {
-    console.error('Error fetching memory cards by topic:', error);
-    res.status(500).json({ 
+        console.error('Error fetching memory cards by topic:', error);
+    return res.status(500).json({
       error: 'Failed to fetch memory cards by topic',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -192,7 +192,7 @@ export const getEmbeddingStatus = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching embedding status:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to fetch embedding status',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -257,8 +257,8 @@ export const updateMemoryCard = async (req: Request, res: Response) => {
       });
     }
     
-    console.error('Error updating memory card:', error);
-    res.status(500).json({ 
+        console.error('Error updating memory card:', error);
+    return res.status(500).json({
       error: 'Failed to update memory card',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -298,8 +298,8 @@ export const deleteMemoryCard = async (req: Request, res: Response) => {
       message: 'Memory card deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting memory card:', error);
-    res.status(500).json({ 
+        console.error('Error deleting memory card:', error);
+    return res.status(500).json({
       error: 'Failed to delete memory card',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -363,7 +363,7 @@ export const generateEmbeddings = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error generating embeddings:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to generate embeddings',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -437,8 +437,8 @@ export const searchMemoryCards = async (req: Request, res: Response) => {
       query: query
     });
   } catch (error) {
-    console.error('Error searching memory cards:', error);
-    res.status(500).json({ 
+        console.error('Error searching memory cards:', error);
+    return res.status(500).json({
       error: 'Failed to search memory cards',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
