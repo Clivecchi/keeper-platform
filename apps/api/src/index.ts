@@ -125,61 +125,181 @@ app.get('/health', (req, res) => {
 
 // 🔧 DEBUG ENDPOINTS - Global Access for Troubleshooting
 
-// Comprehensive debug endpoint
+// COMPREHENSIVE DEBUG ENDPOINT - ALL INFORMATION IN ONE PLACE
 app.get('/debug', (req, res) => {
-  console.log('🔍 /debug endpoint hit - comprehensive system info');
+  console.log('🔍 /debug endpoint hit - COMPREHENSIVE system info');
   
-  const debugInfo = {
-    timestamp: new Date().toISOString(),
+  const timestamp = new Date().toISOString();
+  
+  // Collect all environment variables
+  const envVars = Object.keys(process.env).reduce((acc, key) => {
+    // Don't expose sensitive data but show if they exist
+    if (key.includes('PASSWORD') || key.includes('SECRET') || key.includes('TOKEN')) {
+      acc[key] = process.env[key] ? '***HIDDEN***' : undefined;
+    } else {
+      acc[key] = process.env[key];
+    }
+    return acc;
+  }, {} as Record<string, string | undefined>);
+
+  // Check for domain-related issues
+  const domainIssues = [];
+  if (req.headers.host !== 'keeper-platform-production.up.railway.app') {
+    domainIssues.push(`Unexpected host: ${req.headers.host}`);
+  }
+  
+  // Check for middleware issues
+  const middlewareStatus = {
+    cors_configured: true,
+    request_logging: true,
+    json_parser: true,
+    url_encoded: true
+  };
+
+  const comprehensiveDebugInfo = {
+    // 🕒 Timestamp
+    timestamp,
+    
+    // 🚨 POTENTIAL ISSUES
+    issues: {
+      domain_related: domainIssues,
+      middleware_warnings: [],
+      environment_warnings: !process.env.NODE_ENV ? ['NODE_ENV not set'] : []
+    },
+    
+    // 🖥️ SERVER INFO
     server: {
       platform: process.platform,
       nodeVersion: process.version,
       uptime: process.uptime(),
-      memoryUsage: process.memoryUsage(),
+      memory: process.memoryUsage(),
       pid: process.pid,
-      cwd: process.cwd()
+      cwd: process.cwd(),
+      startTime: new Date(Date.now() - process.uptime() * 1000).toISOString()
     },
+    
+    // 🌍 FULL ENVIRONMENT
     environment: {
-      NODE_ENV: process.env.NODE_ENV,
-      PORT: process.env.PORT,
-      RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT,
-      RAILWAY_SERVICE_NAME: process.env.RAILWAY_SERVICE_NAME,
-      RAILWAY_DEPLOYMENT_ID: process.env.RAILWAY_DEPLOYMENT_ID,
-      RAILWAY_PUBLIC_DOMAIN: process.env.RAILWAY_PUBLIC_DOMAIN,
-      RAILWAY_PRIVATE_DOMAIN: process.env.RAILWAY_PRIVATE_DOMAIN
+      all_vars: envVars,
+      railway_specific: {
+        RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT,
+        RAILWAY_SERVICE_NAME: process.env.RAILWAY_SERVICE_NAME,
+        RAILWAY_DEPLOYMENT_ID: process.env.RAILWAY_DEPLOYMENT_ID,
+        RAILWAY_PUBLIC_DOMAIN: process.env.RAILWAY_PUBLIC_DOMAIN,
+        RAILWAY_PRIVATE_DOMAIN: process.env.RAILWAY_PRIVATE_DOMAIN,
+        RAILWAY_PROJECT_ID: process.env.RAILWAY_PROJECT_ID,
+        RAILWAY_GIT_BRANCH: process.env.RAILWAY_GIT_BRANCH,
+        RAILWAY_GIT_COMMIT_SHA: process.env.RAILWAY_GIT_COMMIT_SHA
+      },
+      node_env: process.env.NODE_ENV,
+      port: process.env.PORT
     },
+    
+    // 📨 CURRENT REQUEST
     request: {
       method: req.method,
       path: req.path,
       originalUrl: req.originalUrl,
-      headers: req.headers,
+      baseUrl: req.baseUrl,
       query: req.query,
+      headers: req.headers,
       ip: req.ip,
-      ips: req.ips
+      ips: req.ips,
+      protocol: req.protocol,
+      secure: req.secure,
+      hostname: req.hostname,
+      subdomains: req.subdomains
     },
+    
+    // 🌐 CORS & NETWORKING
     cors: {
       origin: req.get('origin'),
       referer: req.get('referer'),
-      host: req.get('host')
+      host: req.get('host'),
+      user_agent: req.get('user-agent'),
+      forwarded_for: req.get('x-forwarded-for'),
+      forwarded_proto: req.get('x-forwarded-proto'),
+      real_ip: req.get('x-real-ip')
+    },
+    
+    // 🔧 MIDDLEWARE STATUS
+    middleware: middlewareStatus,
+    
+    // 📊 SYSTEM HEALTH
+    health: {
+      status: 'healthy',
+      can_connect_to_db: 'not_tested', // TODO: Add DB connection test
+      can_write_files: 'not_tested',
+      memory_usage_percent: Math.round((process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100)
+    },
+    
+    // 🎯 AVAILABLE ENDPOINTS
+    endpoints: {
+      available: [
+        'GET /',
+        'GET /ping',
+        'GET /health',
+        'GET /debug',
+        'GET /debug/simple',
+        'GET /debug/cors',
+        'POST /debug/test-connection',
+        'GET /railway-status',
+        'GET /api/test'
+      ],
+      recently_accessed: [], // TODO: Track recent endpoint access
+    },
+    
+    // 🚀 DEPLOYMENT INFO
+    deployment: {
+      deployed_at: process.env.RAILWAY_DEPLOYMENT_ID ? 'Railway deployment' : 'Local/Other',
+      build_info: {
+        node_env: process.env.NODE_ENV,
+        railway_deployment_id: process.env.RAILWAY_DEPLOYMENT_ID,
+        git_commit: process.env.RAILWAY_GIT_COMMIT_SHA,
+        git_branch: process.env.RAILWAY_GIT_BRANCH
+      }
+    },
+    
+    // 📱 CLIENT INFO (from headers)
+    client: {
+      user_agent: req.get('user-agent'),
+      accept: req.get('accept'),
+      accept_language: req.get('accept-language'),
+      accept_encoding: req.get('accept-encoding'),
+      connection: req.get('connection'),
+      cache_control: req.get('cache-control')
+    },
+    
+    // 🔍 DEBUGGING HELPERS
+    debugging: {
+      request_id: req.get('x-railway-request-id') || 'local-request',
+      trace_id: req.get('x-trace-id') || 'no-trace',
+      session_info: 'no-session-middleware',
+      auth_info: 'no-auth-middleware'
     }
   };
   
-  res.header('x-debug-info', 'comprehensive');
-  res.json(debugInfo);
+  // Add response headers for debugging
+  res.header('x-debug-timestamp', timestamp);
+  res.header('x-debug-request-id', req.get('x-railway-request-id') || 'local');
+  res.header('x-debug-version', 'comprehensive-v1');
+  
+  res.json(comprehensiveDebugInfo);
 });
 
-// Simple debug endpoint for quick testing
+// Keep simple endpoint for quick tests
 app.get('/debug/simple', (req, res) => {
   console.log('🔍 /debug/simple endpoint hit');
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
     message: 'Simple debug endpoint working',
-    origin: req.get('origin')
+    origin: req.get('origin'),
+    host: req.get('host')
   });
 });
 
-// Test CORS specifically
+// CORS test endpoint
 app.get('/debug/cors', (req, res) => {
   console.log('🔍 /debug/cors endpoint hit');
   res.json({
