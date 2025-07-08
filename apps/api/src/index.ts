@@ -1,11 +1,12 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+import type { Request, Response, Express } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
 // Load environment variables
 dotenv.config();
 
-const app = express();
+const app: Express = express();
 
 // Railway assigns PORT dynamically, respect that first, then fallback to 8080 for production, 3001 for dev
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : (process.env.NODE_ENV === 'production' ? 8080 : 3001);

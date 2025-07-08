@@ -6,6 +6,11 @@
     "baseUrl": "./src",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
     "paths": {
       "@/*": ["*"]
     }
