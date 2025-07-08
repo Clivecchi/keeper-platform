@@ -55,9 +55,33 @@ export { PrismaClient } from '@prisma/client'
 export * from './queries/index.js'
 
 // =============================================================================
+// SERVICES EXPORT
+// =============================================================================
+export { DomainService } from './services/DomainService.js'
+export { DomainPermissionService } from './services/DomainPermissionService.js'
+export { DomainCacheService } from './services/DomainCacheService.js'
+export { SslCertificateService } from './services/SslCertificateService.js'
+export { DomainHealthMonitoringService } from './services/DomainHealthMonitoringService.js'
+
+// =============================================================================
 // TYPE EXPORTS
 // =============================================================================
 export * from './types.js'
+
+// Export domain-specific types
+export type {
+  DomainRole,
+  DomainPermissionType,
+  PermissionCheck,
+  UserPermissionSummary,
+  GrantPermissionRequest,
+} from './types/domain.js'
+
+// Export health monitoring types
+export type {
+  DomainHealthMetrics,
+  AlertSeverity
+} from './services/DomainHealthMonitoringService.js'
 
 // Re-export Prisma generated types for convenience
 export type {

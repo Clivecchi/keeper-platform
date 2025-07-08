@@ -25,7 +25,11 @@ import {
   KeyIcon,
   DocumentDuplicateIcon,
   EyeIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  CpuChipIcon,
+  TagIcon,
+  RectangleStackIcon,
+  FolderOpenIcon
 } from '@heroicons/react/24/outline';
 
 interface SidebarItemProps {
@@ -133,7 +137,7 @@ const ViewModeToggle: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => 
           {modes.find(m => m.mode === currentMode)?.icon}
         </button>
         {isOpen && (
-          <div className="absolute left-full ml-2 top-0 bg-card border border-border rounded-md shadow-lg py-1 z-50">
+          <div className="absolute left-full ml-2 top-0 bg-background/95 backdrop-blur-sm border border-border rounded-md shadow-lg py-1 z-[60] min-w-[140px]">
             {modes.map(({ mode, icon }) => (
               <button
                 key={mode}
@@ -168,7 +172,7 @@ const ViewModeToggle: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => 
         <ArrowPathIcon className="w-4 h-4" />
       </button>
       {isOpen && (
-        <div className="absolute bottom-full mb-2 left-0 right-0 bg-card border border-border rounded-md shadow-lg py-1 z-50">
+        <div className="absolute bottom-full mb-2 left-0 right-0 bg-background/95 backdrop-blur-sm border border-border rounded-md shadow-lg py-1 z-[60]">
           {modes.map(({ mode, icon }) => (
             <button
               key={mode}
@@ -196,6 +200,7 @@ export const Sidebar: React.FC = () => {
     aiDesignBuild: true,
     keeperDesignBuild: true,
     themes: true,
+    library: true,
     myKeeper: true,
     admin: true
   });
@@ -226,23 +231,12 @@ export const Sidebar: React.FC = () => {
         <SidebarItem to="/studio/agents" icon={<BeakerIcon />} isCollapsed={isCollapsed}>
           Manage Agents
         </SidebarItem>
-        <div className={`${isCollapsed ? '' : 'ml-3 pl-3 border-l border-border'}`}>
-          <div className={`${isCollapsed ? '' : 'py-2'}`}>
-            {!isCollapsed && (
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                AI Admin
-              </span>
-            )}
-            <div className="space-y-1 mt-2">
-              <SidebarItem to="/studio/admin/api-keys" icon={<KeyIcon />} isCollapsed={isCollapsed}>
-                API Key Vault
-              </SidebarItem>
-              <SidebarItem to="/studio/admin/logs" icon={<DocumentTextIcon />} isCollapsed={isCollapsed}>
-                System Logs
-              </SidebarItem>
-            </div>
-          </div>
-        </div>
+        <SidebarItem to="/studio/memory-patterns" icon={<CpuChipIcon />} isCollapsed={isCollapsed}>
+          Memory Patterns
+        </SidebarItem>
+        <SidebarItem to="/studio/agent-classes" icon={<TagIcon />} isCollapsed={isCollapsed}>
+          Agent Classes
+        </SidebarItem>
       </SidebarSection>
 
       {/* Keeper Design Build Section */}
@@ -258,6 +252,9 @@ export const Sidebar: React.FC = () => {
         <SidebarItem to="/keeper/types" icon={<SparklesIcon />} isCollapsed={isCollapsed}>
           Keeper Types
         </SidebarItem>
+        <SidebarItem to="/keeper/engagement-templates" icon={<RectangleStackIcon />} isCollapsed={isCollapsed}>
+          Engagement Templates
+        </SidebarItem>
       </SidebarSection>
 
       {/* Themes Section - Future stub */}
@@ -269,6 +266,18 @@ export const Sidebar: React.FC = () => {
       >
         <SidebarItem to="/studio/themes" icon={<PaintBrushIcon />} isCollapsed={isCollapsed}>
           Theme Library
+        </SidebarItem>
+      </SidebarSection>
+
+      {/* Library Section */}
+      <SidebarSection
+        title="Library"
+        isCollapsed={isCollapsed}
+        isExpanded={expandedSections.library}
+        onToggle={() => toggleSection('library')}
+      >
+        <SidebarItem to="/library" icon={<FolderOpenIcon />} isCollapsed={isCollapsed}>
+          Documents
         </SidebarItem>
       </SidebarSection>
     </>

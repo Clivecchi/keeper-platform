@@ -1,6 +1,6 @@
 export enum ViewMode {
-  Architect = 'Design Build',
-  MyKeeper = 'My Keeper',
+  Architect = 'Architect',
+  MyKeeper = 'My Keepers',
   Admin = 'System Admin'
 }
 

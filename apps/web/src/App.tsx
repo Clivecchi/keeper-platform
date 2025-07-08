@@ -16,6 +16,8 @@ import AgentsPage from './pages/studio/kip/AgentsPage';
 import AgentLogsPage from './pages/studio/kip/AgentLogsPage';
 import PlatformApiKeyManagerPage from './pages/studio/kip/PlatformApiKeyManagerPage';
 import AdminPage from './pages/studio/AdminPage';
+import MemoryPatternsPage from './pages/studio/MemoryPatternsPage';
+import AgentClassesPage from './pages/studio/AgentClassesPage';
 
 // Keeper Pages
 import AllKeepersPage from './pages/keeper/AllKeepersPage';
@@ -32,11 +34,15 @@ import MemoryCardManagerPage from './pages/keeper/MemoryCardManagerPage';
 import VoicePanelPage from './pages/keeper/VoicePanelPage';
 import EchoWriterPage from './pages/keeper/EchoWriterPage';
 import IdentityLogbookPage from './pages/keeper/IdentityLogbookPage';
+import EngagementTemplatesPage from './pages/keeper/EngagementTemplatesPage';
 
 // Legacy Pages
 import UserApiKeyManagerPage from './pages/UserApiKeyManagerPage';
 import LeadAgentPage from './pages/LeadAgentPage';
 import DebugPage from './pages/DebugPage';
+
+// Library Pages
+import LibraryPage from './pages/LibraryPage';
 
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -69,6 +75,8 @@ const App: React.FC = () => {
           {/* Studio Section */}
           <Route path="/studio" element={<Navigate to="/studio/agents" replace />} />
           <Route path="/studio/agents" element={<AgentsPage />} />
+          <Route path="/studio/memory-patterns" element={<MemoryPatternsPage />} />
+          <Route path="/studio/agent-classes" element={<AgentClassesPage />} />
           <Route path="/studio/engagement-templates" element={<KipStudioPage />} />
           <Route path="/studio/themes" element={<KipStudioPage />} />
           <Route path="/studio/admin/api-keys" element={<PlatformApiKeyManagerPage />} />
@@ -81,10 +89,14 @@ const App: React.FC = () => {
           <Route path="/studio/kip/logs" element={<AgentLogsPage />} />
           <Route path="/studio/kip/api-keys" element={<PlatformApiKeyManagerPage />} />
           
+          {/* Library Section */}
+          <Route path="/library" element={<LibraryPage />} />
+          
           {/* Keeper Section */}
           <Route path="/keeper" element={<AllKeepersPage />} />
           <Route path="/keeper/manage" element={<KeeperManagePage />} />
           <Route path="/keeper/types" element={<KeeperTypesPage />} />
+          <Route path="/keeper/engagement-templates" element={<EngagementTemplatesPage />} />
           <Route path="/keeper/new" element={<CreateKeeperPage />} />
           <Route path="/keeper/:id/dashboard" element={<KeeperDashboardPage />} />
           <Route path="/keeper/:id/memory" element={<KeeperMemoryPage />} />
