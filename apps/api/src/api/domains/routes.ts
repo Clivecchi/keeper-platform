@@ -3,15 +3,13 @@
  * RESTful endpoints for domain CRUD operations, permissions, and verification
  */
 
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
-import { DomainService } from '../../../../packages/database/src/services/DomainService';
-import { DomainPermissionService } from '../../../../packages/database/src/services/DomainPermissionService';
-import { DomainResolutionService } from '../../../../packages/database/src/services/DomainResolutionService';
-import { DomainCacheService } from '../../../../packages/database/src/services/DomainCacheService';
-import { authMiddleware } from '../../middleware/authMiddleware';
-import { validationMiddleware } from '../../middleware/validationMiddleware';
+import { PrismaClient } from '@keeper/database';
+import { DomainService, DomainPermissionService, DomainCacheService, DomainVerificationService, type DomainPermissionType } from '@keeper/database';
+import { Redis } from 'ioredis';
+import { AuthenticatedRequest, authMiddleware } from '../../middleware/authMiddleware.js';
+import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { getFeatureFlagService } from '../../../../packages/database/src/services/FeatureFlagService';
 import customDomainRoutes from './custom-domain-routes.js';
 import { createDynamicCorsMiddleware } from '../../middleware/dynamicCorsMiddleware.js';
@@ -19,10 +17,11 @@ import { createDomainResolutionMiddleware } from '../../middleware/domainResolut
 
 const router = Router();
 const prisma = new PrismaClient();
-const cacheService = new DomainCacheService();
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
 const permissionService = new DomainPermissionService(prisma, cacheService);
-const resolutionService = new DomainResolutionService(domainService, cacheService);
+const verificationService = new DomainVerificationService(prisma);
 const featureFlags = getFeatureFlagService();
 
 // Apply dynamic CORS middleware
@@ -317,7 +316,7 @@ router.delete('/:id/permissions/:userId', authMiddleware, async (req, res) => {
 router.get('/resolve/:hostname', async (req, res) => {
   try {
     const hostname = req.params.hostname;
-    const resolution = await resolutionService.resolveDomain(hostname);
+    const resolution = await verificationService.resolveDomain(hostname);
 
     res.json(resolution);
   } catch (error) {

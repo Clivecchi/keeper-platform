@@ -5,17 +5,19 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
-import { CrossDomainSharingService } from '../../../../packages/database/src/services/CrossDomainSharingService';
-import { DomainCacheService } from '../../../../packages/database/src/services/DomainCacheService';
-import { authMiddleware } from '../../middleware/authMiddleware';
-import { domainPermissionMiddleware } from '../../middleware/domainPermissionMiddleware';
-import { rateLimit } from 'express-rate-limit';
+import { PrismaClient } from '@keeper/database';
+import { CrossDomainSharingService, DomainCacheService, ShareWorkflowAutomationService } from '@keeper/database';
+import { authMiddleware } from '../../middleware/authMiddleware.js';
+import { domainPermissionMiddleware } from '../../middleware/domainPermissionMiddleware.js';
+import rateLimit from 'express-rate-limit';
+import { Redis } from 'ioredis';
 
 const router = Router();
 const prisma = new PrismaClient();
-const cacheService = new DomainCacheService();
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const cacheService = new DomainCacheService(redis);
 const sharingService = new CrossDomainSharingService(prisma, cacheService);
+const workflowService = new ShareWorkflowAutomationService(prisma, cacheService);
 
 // Rate limiting for sharing operations
 const sharingRateLimit = rateLimit({

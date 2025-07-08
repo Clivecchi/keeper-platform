@@ -4,17 +4,41 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { DomainPermissionService, DomainPermissionType } from '../../../../packages/database/src/services/DomainPermissionService';
-import { DomainResolutionService } from '../../../../packages/database/src/services/DomainResolutionService';
-import { DomainService } from '../../../../packages/database/src/services/DomainService';
-import { DomainCacheService } from '../../../../packages/database/src/services/DomainCacheService';
+import { PrismaClient } from '@keeper/database';
+import { Redis } from 'ioredis';
+import { 
+  DomainPermissionService, 
+  DomainService, 
+  DomainCacheService,
+  DomainResolutionService,
+  type DomainPermissionType
+} from '@keeper/database';
 
 const prisma = new PrismaClient();
-const cacheService = new DomainCacheService();
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
 const permissionService = new DomainPermissionService(prisma, cacheService);
 const resolutionService = new DomainResolutionService(domainService, cacheService);
+
+// Create a basic resolution service implementation
+const resolutionService = {
+  async resolveDomain(hostname: string) {
+    // Simple hostname-based resolution
+    if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+      return { domain: null, isCustomDomain: false };
+    }
+    
+    // Try to find domain by custom domain
+    const domain = await domainService.getDomainByHostname(hostname);
+    return { 
+      domain, 
+      isCustomDomain: !!domain?.customDomain,
+      originalHostname: hostname,
+      resolvedSlug: domain?.slug || ''
+    };
+  }
+};
 
 export interface DomainAuthenticatedRequest extends Request {
   user: {

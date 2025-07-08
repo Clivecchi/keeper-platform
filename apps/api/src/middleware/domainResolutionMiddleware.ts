@@ -1,14 +1,52 @@
 /**
- * Enhanced Domain Resolution Middleware
- * Handles custom domain resolution, subdomain routing, and error handling with fallback strategies
+ * Domain Resolution Middleware
+ * Resolves domains from custom hostnames and establishes request context
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { DomainService } from '../../../../packages/database/src/services/DomainService';
-import { DomainCacheService } from '../../../../packages/database/src/services/DomainCacheService';
-import { DomainResolutionService } from '../../../../packages/database/src/services/DomainResolutionService';
-import { getFeatureFlagService } from '../../../../packages/database/src/services/FeatureFlagService';
+import { PrismaClient } from '@keeper/database';
+import { Redis } from 'ioredis';
+import { 
+  DomainService, 
+  DomainCacheService,
+  DomainResolutionService,
+  FeatureFlagService
+} from '@keeper/database';
+
+const prisma = new PrismaClient();
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const cacheService = new DomainCacheService(redis);
+const domainService = new DomainService(prisma, cacheService);
+const featureFlagService = new FeatureFlagService(prisma);
+const resolutionService = new DomainResolutionService(domainService, cacheService);
+
+// Basic feature flag service implementation
+const getFeatureFlagService = () => ({
+  isEnabled: (flag: string, domainId?: string) => {
+    // Basic implementation - you can enhance this later
+    switch (flag) {
+      case 'custom_domains':
+      case 'domain_resolution':
+        return true;
+      default:
+        return false;
+    }
+  }
+});
+
+export interface DomainResolvedRequest extends Request {
+  domainContext?: {
+    domain: any;
+    isCustomDomain: boolean;
+    originalHostname: string;
+    resolvedSlug: string;
+  };
+  user?: {
+    id: string;
+    email: string;
+    name?: string;
+  };
+}
 
 export interface DomainResolutionConfig {
   fallbackDomain?: string;

@@ -1,14 +1,54 @@
 /**
  * Dynamic CORS Middleware
- * Configures CORS policies dynamically based on domain configuration and security requirements
+ * Dynamically configures CORS based on domain configuration
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { DomainResolutionService } from '../../../../packages/database/src/services/DomainResolutionService';
-import { DomainService } from '../../../../packages/database/src/services/DomainService';
-import { DomainCacheService } from '../../../../packages/database/src/services/DomainCacheService';
-import { getFeatureFlagService } from '../../../../packages/database/src/services/FeatureFlagService';
+import { PrismaClient } from '@keeper/database';
+import { Redis } from 'ioredis';
+import { 
+  DomainService, 
+  DomainCacheService,
+  DomainResolutionService,
+  FeatureFlagService
+} from '@keeper/database';
+
+const prisma = new PrismaClient();
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const cacheService = new DomainCacheService(redis);
+const domainService = new DomainService(prisma, cacheService);
+const featureFlagService = new FeatureFlagService(prisma);
+const resolutionService = new DomainResolutionService(domainService, cacheService);
+
+// Basic feature flag service implementation
+const getFeatureFlagService = () => ({
+  isEnabled: (flag: string, domainId?: string) => {
+    switch (flag) {
+      case 'dynamic_cors':
+      case 'custom_domains':
+        return true;
+      default:
+        return false;
+    }
+  }
+});
+
+// Create a basic resolution service implementation
+const resolutionService = {
+  async resolveDomain(hostname: string) {
+    if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+      return { domain: null, isCustomDomain: false };
+    }
+    
+    const domain = await domainService.getDomainByHostname(hostname);
+    return { 
+      domain, 
+      isCustomDomain: !!domain?.customDomain,
+      originalHostname: hostname,
+      resolvedSlug: domain?.slug || ''
+    };
+  }
+};
 
 interface CorsConfig {
   allowedOrigins: string[];

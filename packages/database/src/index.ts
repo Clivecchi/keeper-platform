@@ -62,6 +62,17 @@ export { DomainPermissionService } from './services/DomainPermissionService.js'
 export { DomainCacheService } from './services/DomainCacheService.js'
 export { SslCertificateService } from './services/SslCertificateService.js'
 export { DomainHealthMonitoringService } from './services/DomainHealthMonitoringService.js'
+export { CrossDomainSharingService } from './services/CrossDomainSharingService.js'
+export { ShareWorkflowAutomationService } from './services/ShareWorkflowAutomationService.js'
+export { SoleMemoryIsolationService } from './services/SoleMemoryIsolationService.js'
+export { FeatureFlagService } from './services/FeatureFlagService.js'
+export { DomainResolutionService } from './services/DomainResolutionService.js'
+export { DomainVerificationService } from './services/DomainVerificationService.js'
+export { MemoryMigrationService } from './services/MemoryMigrationService.js'
+export { MonitoringService } from './services/MonitoringService.js'
+export { ProductionConfigService } from './services/ProductionConfigService.js'
+export { DeploymentAutomationService } from './services/DeploymentAutomationService.js'
+export { SlugValidationService } from './services/SlugValidationService.js'
 
 // =============================================================================
 // TYPE EXPORTS
