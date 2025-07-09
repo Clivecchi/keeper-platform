@@ -4,25 +4,25 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "baseUrl": "./src",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "declarationMap": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "paths": {
       "@/*": ["*"]
     }
   },
   "include": [
     "src/index.ts",
-    "src/middleware/logRequestMiddleware.ts"
+    "src/middleware/logRequestMiddleware.ts",
+    "src/api/kam/settings.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "src/api",
     "src/middleware/authMiddleware.ts",
     "src/middleware/domainPermissionMiddleware.ts", 
     "src/middleware/domainResolutionMiddleware.ts",

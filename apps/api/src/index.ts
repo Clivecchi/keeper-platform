@@ -362,6 +362,42 @@ app.get('/api/test', (req, res) => {
   });
 });
 
+// KAM Auth endpoints that the frontend is trying to access
+app.post('/api/kam/auth/login', (req, res) => {
+  console.log('📍 /api/kam/auth/login endpoint hit');
+  console.log('📦 Request body:', req.body);
+  
+  // For now, return a simple response to test connectivity
+  res.json({
+    message: 'Login endpoint reached',
+    timestamp: new Date().toISOString(),
+    received: req.body,
+    note: 'This is a temporary endpoint for testing - full auth logic needed'
+  });
+});
+
+app.post('/api/kam/auth/register', (req, res) => {
+  console.log('📍 /api/kam/auth/register endpoint hit');
+  console.log('📦 Request body:', req.body);
+  
+  res.json({
+    message: 'Register endpoint reached',
+    timestamp: new Date().toISOString(),
+    received: req.body,
+    note: 'This is a temporary endpoint for testing - full auth logic needed'
+  });
+});
+
+app.post('/api/kam/auth/logout', (req, res) => {
+  console.log('📍 /api/kam/auth/logout endpoint hit');
+  
+  res.json({
+    message: 'Logout endpoint reached',
+    timestamp: new Date().toISOString(),
+    note: 'This is a temporary endpoint for testing - full auth logic needed'
+  });
+});
+
 // Catch-all error handler
 app.use((err: any, req: Request, res: Response, next: any) => {
   console.error('❌ Error caught by handler:', err.message);
