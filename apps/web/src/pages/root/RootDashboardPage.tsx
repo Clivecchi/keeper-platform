@@ -33,13 +33,111 @@ const Tab: React.FC<TabProps> = ({ id, label, icon, isActive, onClick }) => (
 
 const RootDashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('profile');
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  
+  // Profile form state
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name || '',
+    email: user?.email || ''
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+
+  // Domain form state
+  const [domainForm, setDomainForm] = useState({
+    customDomain: '',
+    corsOrigins: ''
+  });
+  const [domainSaving, setDomainSaving] = useState(false);
+  const [domainError, setDomainError] = useState<string | null>(null);
+  const [domainSuccess, setDomainSuccess] = useState<string | null>(null);
 
   const tabs = [
     { id: 'profile', label: 'Profile', icon: <UserIcon /> },
     { id: 'domain', label: 'Domain Settings', icon: <CogIcon /> },
     { id: 'api-keys', label: 'API Keys', icon: <KeyIcon /> },
   ];
+
+  const handleProfileSave = async () => {
+    if (!user?.id) return;
+    
+    setProfileSaving(true);
+    setProfileError(null);
+    setProfileSuccess(null);
+
+    try {
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: profileForm.name
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update auth context with new user data
+        updateUser(data.data);
+        setProfileSuccess('Profile updated successfully!');
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => setProfileSuccess(null), 3000);
+      } else {
+        setProfileError(data.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      setProfileError('Failed to update profile. Please try again.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleDomainSave = async () => {
+    if (!user?.id) return;
+    
+    setDomainSaving(true);
+    setDomainError(null);
+    setDomainSuccess(null);
+
+    try {
+      // For now, we'll create a domain since domain management is complex
+      // In a real implementation, this would update existing domain settings
+      const response = await fetch('/api/domains', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: `${user.name}'s Domain`,
+          customDomain: domainForm.customDomain,
+          settings: {
+            cors: {
+              additionalOrigins: domainForm.corsOrigins.split('\n').filter(origin => origin.trim())
+            }
+          }
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.domain) {
+        setDomainSuccess('Domain configuration saved successfully!');
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => setDomainSuccess(null), 3000);
+      } else {
+        setDomainError(data.error || 'Failed to save domain configuration');
+      }
+    } catch (error) {
+      setDomainError('Failed to save domain configuration. Please try again.');
+    } finally {
+      setDomainSaving(false);
+    }
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -57,12 +155,26 @@ const RootDashboardPage: React.FC = () => {
                   </p>
                 </div>
               </div>
+              
+              {profileError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-800">{profileError}</p>
+                </div>
+              )}
+              
+              {profileSuccess && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-sm text-green-800">{profileSuccess}</p>
+                </div>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Full Name</label>
                   <input
                     type="text"
-                    value={user?.name || ''}
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
                     className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
                     placeholder="Enter your full name"
                   />
@@ -71,15 +183,19 @@ const RootDashboardPage: React.FC = () => {
                   <label className="block text-sm font-medium text-foreground mb-2">Email</label>
                   <input
                     type="email"
-                    value={user?.email || ''}
+                    value={profileForm.email}
                     className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
                     disabled
                   />
                 </div>
               </div>
               <div className="mt-6">
-                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-                  Save Changes
+                <button 
+                  onClick={handleProfileSave}
+                  disabled={profileSaving || !profileForm.name.trim()}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {profileSaving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>
@@ -91,11 +207,26 @@ const RootDashboardPage: React.FC = () => {
           <div className="space-y-6">
             <div className="bg-card border border-border rounded-lg p-6">
               <h3 className="text-lg font-medium text-card-foreground mb-4">Domain Configuration</h3>
+              
+              {domainError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-800">{domainError}</p>
+                </div>
+              )}
+              
+              {domainSuccess && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-sm text-green-800">{domainSuccess}</p>
+                </div>
+              )}
+              
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Custom Domain</label>
                   <input
                     type="text"
+                    value={domainForm.customDomain}
+                    onChange={(e) => setDomainForm(prev => ({ ...prev, customDomain: e.target.value }))}
                     className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
                     placeholder="keeper.yourdomain.com"
                   />
@@ -107,6 +238,8 @@ const RootDashboardPage: React.FC = () => {
                   <label className="block text-sm font-medium text-foreground mb-2">CORS Origins</label>
                   <textarea
                     rows={3}
+                    value={domainForm.corsOrigins}
+                    onChange={(e) => setDomainForm(prev => ({ ...prev, corsOrigins: e.target.value }))}
                     className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
                     placeholder="https://yourdomain.com&#10;https://app.yourdomain.com"
                   />
@@ -115,11 +248,14 @@ const RootDashboardPage: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="mt-6 flex items-center space-x-2">
-                <ExclamationTriangleIcon className="w-4 h-4 text-yellow-500" />
-                <p className="text-sm text-muted-foreground">
-                  Domain configuration will be available in a future update
-                </p>
+              <div className="mt-6">
+                <button 
+                  onClick={handleDomainSave}
+                  disabled={domainSaving || !domainForm.customDomain.trim()}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {domainSaving ? 'Saving...' : 'Save Domain Configuration'}
+                </button>
               </div>
             </div>
           </div>
@@ -200,14 +336,9 @@ const RootDashboardPage: React.FC = () => {
       </div>
 
       {/* Tab Content */}
-      <motion.div
-        key={activeTab}
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.3 }}
-      >
+      <div className="min-h-[400px]">
         {renderTabContent()}
-      </motion.div>
+      </div>
     </motion.div>
   );
 };

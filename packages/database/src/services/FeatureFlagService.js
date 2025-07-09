@@ -30,8 +30,8 @@ export class FeatureFlagService {
                 name: 'Custom Domains',
                 description: 'Allow users to configure custom domains',
                 enabled: true,
-                rolloutPercentage: 50,
-                environments: ['development', 'staging'],
+                rolloutPercentage: 100,
+                environments: ['development', 'staging', 'production'],
                 metadata: { category: 'domains', priority: 'medium' }
             },
             {

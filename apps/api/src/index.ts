@@ -3,6 +3,11 @@ import type { Request, Response, Express } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
+// Import domain routes
+import domainRoutes from './api/domains/routes.js';
+import { updateUser } from '@keeper/database';
+import { z } from 'zod';
+
 // Load environment variables
 dotenv.config();
 
@@ -431,6 +436,47 @@ app.post('/api/kam/auth/logout', (req, res) => {
     }
   });
 });
+
+// User profile update endpoint
+app.put('/api/users/:id', async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { name, avatar_url } = req.body;
+    
+    // Basic validation
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Name is required and must be a non-empty string'
+      });
+    }
+    
+    // Update user
+    const updatedUser = await updateUser(userId, {
+      name: name.trim(),
+      ...(avatar_url && { avatar_url })
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        avatar_url: updatedUser.avatar_url
+      }
+    });
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update user profile'
+    });
+  }
+});
+
+// Connect domain routes
+app.use('/api/domains', domainRoutes);
 
 // Catch-all error handler
 app.use((err: any, req: Request, res: Response, next: any) => {
