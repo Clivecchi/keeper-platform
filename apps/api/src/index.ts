@@ -244,7 +244,10 @@ app.get('/debug', (req, res) => {
         'GET /debug/cors',
         'POST /debug/test-connection',
         'GET /railway-status',
-        'GET /api/test'
+        'GET /api/test',
+        'POST /api/kam/auth/login',
+        'POST /api/kam/auth/register',
+        'POST /api/kam/auth/logout'
       ],
       recently_accessed: [], // TODO: Track recent endpoint access
     },
@@ -367,34 +370,55 @@ app.post('/api/kam/auth/login', (req, res) => {
   console.log('📍 /api/kam/auth/login endpoint hit');
   console.log('📦 Request body:', req.body);
   
-  // For now, return a simple response to test connectivity
-  res.json({
-    message: 'Login endpoint reached',
-    timestamp: new Date().toISOString(),
-    received: req.body,
-    note: 'This is a temporary endpoint for testing - full auth logic needed'
-  });
+  // Return proper AuthResponse format expected by frontend
+  const authResponse = {
+    success: true,
+    data: {
+      user: {
+        id: "temp-user-123",
+        email: req.body.email || "test@example.com",
+        name: "Test User",
+        avatar_url: null
+      },
+      token: "temporary-jwt-token-for-testing"
+    }
+  };
+  
+  console.log('✅ Returning auth response:', authResponse);
+  res.json(authResponse);
 });
 
 app.post('/api/kam/auth/register', (req, res) => {
   console.log('📍 /api/kam/auth/register endpoint hit');
   console.log('📦 Request body:', req.body);
   
-  res.json({
-    message: 'Register endpoint reached',
-    timestamp: new Date().toISOString(),
-    received: req.body,
-    note: 'This is a temporary endpoint for testing - full auth logic needed'
-  });
+  // Return proper AuthResponse format expected by frontend
+  const authResponse = {
+    success: true,
+    data: {
+      user: {
+        id: "temp-user-456",
+        email: req.body.email || "newuser@example.com", 
+        name: req.body.name || "New User",
+        avatar_url: null
+      },
+      token: "temporary-jwt-token-for-testing"
+    }
+  };
+  
+  console.log('✅ Returning register response:', authResponse);
+  res.json(authResponse);
 });
 
 app.post('/api/kam/auth/logout', (req, res) => {
   console.log('📍 /api/kam/auth/logout endpoint hit');
   
+  // Return simple success response for logout
   res.json({
-    message: 'Logout endpoint reached',
-    timestamp: new Date().toISOString(),
-    note: 'This is a temporary endpoint for testing - full auth logic needed'
+    success: true,
+    data: {
+      message: 'Logged out successfully'
+    }
   });
 });
 
