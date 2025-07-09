@@ -105,7 +105,7 @@ router.get('/', authMiddleware, validationMiddleware(searchDomainsSchema, 'query
 });
 
 // GET /api/domains/my - Get user's domains
-router.get('/my', authMiddleware, async (req, res) => {
+router.get('/my', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED')) {
       return res.status(403).json({ error: 'Domain functionality is currently disabled' });
@@ -122,7 +122,7 @@ router.get('/my', authMiddleware, async (req, res) => {
 });
 
 // POST /api/domains - Create a new domain
-router.post('/', authMiddleware, validationMiddleware(createDomainSchema), async (req, res) => {
+router.post('/', authMiddleware, validationMiddleware(createDomainSchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED')) {
       return res.status(403).json({ error: 'Domain functionality is currently disabled' });

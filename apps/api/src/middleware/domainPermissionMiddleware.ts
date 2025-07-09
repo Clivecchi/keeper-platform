@@ -1,418 +1,462 @@
 /**
  * Domain Permission Middleware
- * Validates domain permissions for API requests and adds domain context
+ * Handles domain-based access control and permission checking
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { PrismaClient } from '@keeper/database';
-import { Redis } from 'ioredis';
-import { 
-  DomainPermissionService, 
-  DomainService, 
-  DomainCacheService,
-  DomainResolutionService,
-  type DomainPermissionType
-} from '@keeper/database';
+import { DomainPermissionService } from '@keeper/database';
+import { AuthenticatedRequest } from './authMiddleware';
 
 const prisma = new PrismaClient();
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-const cacheService = new DomainCacheService(redis);
-const domainService = new DomainService(prisma, cacheService);
-const permissionService = new DomainPermissionService(prisma, cacheService);
-const resolutionService = new DomainResolutionService(domainService, cacheService);
+const permissionService = new DomainPermissionService(prisma);
 
-export interface DomainAuthenticatedRequest extends Request {
-  user: {
-    id: string;
-    email: string | null;
-    name?: string | null;
-  };
-  domainContext?: {
-    domain: any;
-    isCustomDomain: boolean;
-    originalHostname: string;
-    resolvedSlug: string;
-    permissions?: DomainPermissionType[];
-    role?: string;
-    isOwner?: boolean;
-  };
+export type DomainPermissionType = 'read' | 'write' | 'share' | 'admin' | 'invite' | 'delete';
+
+export interface DomainContext {
+  domain: any;
+  isCustomDomain: boolean;
+  originalHostname: string;
+  resolvedSlug: string;
+  permissions?: DomainPermissionType[];
+  role?: string;
+  isOwner?: boolean;
 }
 
-export interface DomainPermissionOptions {
-  requiredPermission?: DomainPermissionType;
-  allowOwnerBypass?: boolean;
-  domainIdParam?: string; // Parameter name for domain ID (e.g., 'domainId', 'id')
-  contentType?: 'keeper' | 'journey' | 'moment' | 'general';
-  optional?: boolean; // Don't fail if no domain context
+export interface DomainPermissionRequest extends AuthenticatedRequest {
+  domainContext?: DomainContext;
+}
+
+export interface DomainPermissionConfig {
+  allowPublicRead?: boolean;
+  requireOwnershipForAdmin?: boolean;
+  cacheTtl?: number;
+  fallbackPermissions?: DomainPermissionType[];
 }
 
 /**
- * Middleware to establish domain context for requests
+ * Domain Permission Middleware
+ * Checks if user has required permissions for domain operations
  */
-export const domainContextMiddleware = async (
-  req: DomainAuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    // Get domain from various sources
-    let domainId: string | undefined;
-    
-    // 1. Check URL parameters
-    domainId = req.params.domainId || req.params.id;
-    
-    // 2. Check query parameters
-    if (!domainId) {
-      domainId = req.query.domainId as string;
-    }
-    
-    // 3. Check request body
-    if (!domainId && req.body) {
-      domainId = req.body.domainId;
-    }
-    
-    // 4. Check domain resolution from hostname
-    if (!domainId) {
-      const hostname = req.headers.host || req.headers['x-forwarded-host'] as string;
-      if (hostname) {
-        const resolution = await resolutionService.resolveDomain(hostname);
-        if (resolution.domain) {
-          domainId = resolution.domain.id;
-        }
-      }
-    }
+export class DomainPermissionMiddleware {
+  private config: DomainPermissionConfig;
 
-    // If no domain found, continue without domain context
-    if (!domainId) {
-      return next();
-    }
-
-    // Get domain and user permissions
-    const domain = await domainService.getDomainById(domainId);
-    if (!domain) {
-      return next();
-    }
-
-    // Check user permissions for this domain
-    const permissionResult = await permissionService.checkPermission({
-      userId: req.user.id,
-      domainId: domain.id,
-      permission: 'read', // Base permission check
-    });
-
-    // Add domain context to request
-    req.domainContext = {
-      domain,
-      permissions: permissionResult.permissions,
-      role: permissionResult.role || 'none',
-      isOwner: domain.ownerId === req.user.id,
+  constructor(config: DomainPermissionConfig = {}) {
+    this.config = {
+      allowPublicRead: false,
+      requireOwnershipForAdmin: true,
+      cacheTtl: 300, // 5 minutes
+      fallbackPermissions: ['read'],
+      ...config,
     };
-
-    next();
-  } catch (error) {
-    console.error('Error in domain context middleware:', error);
-    next(); // Continue without domain context on error
   }
-};
 
-/**
- * Middleware to check specific domain permissions
- */
-export const requireDomainPermission = (options: DomainPermissionOptions = {}) => {
-  return async (req: DomainAuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      const {
-        requiredPermission = 'read',
-        allowOwnerBypass = true,
-        domainIdParam = 'domainId',
-        contentType = 'general',
-        optional = false,
-      } = options;
-
-      // Get domain ID from request
-      let domainId: string | undefined;
-      
-      if (domainIdParam === 'id') {
-        domainId = req.params.id;
-      } else {
-        domainId = req.params[domainIdParam] || req.query[domainIdParam] as string;
-      }
-
-      // Check if domain context was established
-      if (!domainId && !req.domainContext) {
-        if (optional) {
-          return next();
+  /**
+   * Create permission check middleware
+   */
+  checkPermission(requiredPermissions: DomainPermissionType | DomainPermissionType[]) {
+    const permissions = Array.isArray(requiredPermissions) ? requiredPermissions : [requiredPermissions];
+    
+    return async (req: DomainPermissionRequest, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        // Check if domain context exists
+        if (!req.domainContext) {
+          res.status(400).json({ error: 'Domain context not available' });
+          return;
         }
-        return res.status(400).json({ 
-          error: 'Domain context required',
-          code: 'DOMAIN_REQUIRED'
-        });
-      }
 
-      // Use domain from context if available
-      if (req.domainContext && !domainId) {
-        domainId = req.domainContext.domain.id;
-      }
+        // Check if user is authenticated for non-public operations
+        if (!req.user && !this.config.allowPublicRead) {
+          res.status(401).json({ error: 'Authentication required' });
+          return;
+        }
 
-      // Get or verify domain
-      let domain = req.domainContext?.domain;
-      if (!domain && domainId) {
-        domain = await domainService.getDomainById(domainId);
-        if (!domain) {
-          return res.status(404).json({ 
-            error: 'Domain not found',
-            code: 'DOMAIN_NOT_FOUND'
+        // Check permissions
+        const hasPermission = await this.hasPermission(req, permissions);
+        
+        if (!hasPermission) {
+          res.status(403).json({ 
+            error: 'Insufficient permissions',
+            required: permissions,
+            current: req.domainContext.permissions || []
           });
+          return;
         }
-      }
 
-      // Check if user is domain owner (bypass permission check)
-      if (allowOwnerBypass && domain?.ownerId === req.user.id) {
+        next();
+      } catch (error) {
+        console.error('Permission check error:', error);
+        res.status(500).json({ error: 'Permission check failed' });
+      }
+    };
+  }
+
+  /**
+   * Require domain ownership
+   */
+  requireOwnership() {
+    return async (req: DomainPermissionRequest, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        if (!req.domainContext) {
+          res.status(400).json({ error: 'Domain context not available' });
+          return;
+        }
+
+        if (!req.user) {
+          res.status(401).json({ error: 'Authentication required' });
+          return;
+        }
+
+        const isOwner = await this.isDomainOwner(req.user.id, req.domainContext.domain);
+        
+        if (!isOwner) {
+          res.status(403).json({ error: 'Domain ownership required' });
+          return;
+        }
+
+        // Update domain context with ownership info
         req.domainContext = {
-          domain,
+          ...req.domainContext,
           permissions: ['read', 'write', 'share', 'admin', 'invite', 'delete'],
-          role: 'admin',
+          role: 'owner',
           isOwner: true,
         };
-        return next();
+
+        next();
+      } catch (error) {
+        console.error('Ownership check error:', error);
+        res.status(500).json({ error: 'Ownership check failed' });
       }
+    };
+  }
 
-      // Check specific permission
-      const permissionResult = await permissionService.checkPermission({
-        userId: req.user.id,
-        domainId: domain.id,
-        permission: requiredPermission,
-      });
+  /**
+   * Load user permissions for domain
+   */
+  loadPermissions() {
+    return async (req: DomainPermissionRequest, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        if (!req.domainContext) {
+          res.status(400).json({ error: 'Domain context not available' });
+          return;
+        }
 
-      if (!permissionResult.hasPermission) {
-        return res.status(403).json({ 
-          error: `Insufficient ${contentType} permissions`,
-          code: 'INSUFFICIENT_PERMISSIONS',
-          required: requiredPermission,
-          current: permissionResult.permissions,
-        });
-      }
+        // If no user, set public permissions
+        if (!req.user) {
+          req.domainContext = {
+            ...req.domainContext,
+            permissions: this.config.allowPublicRead ? ['read'] : [],
+            role: 'guest',
+            isOwner: false,
+          };
+          next();
+          return;
+        }
 
-      // Add or update domain context
-      req.domainContext = {
-        domain,
-        permissions: permissionResult.permissions,
-        role: permissionResult.role || 'none',
-        isOwner: domain.ownerId === req.user.id,
-      };
+        // Check if user is domain owner
+        const isOwner = await this.isDomainOwner(req.user.id, req.domainContext.domain);
+        
+        if (isOwner) {
+          req.domainContext = {
+            ...req.domainContext,
+            permissions: ['read', 'write', 'share', 'admin', 'invite', 'delete'],
+            role: 'owner',
+            isOwner: true,
+          };
+          next();
+          return;
+        }
 
-      next();
-    } catch (error) {
-      console.error('Error in domain permission middleware:', error);
-      res.status(500).json({ 
-        error: 'Internal server error',
-        code: 'PERMISSION_CHECK_ERROR'
-      });
-    }
-  };
-};
-
-/**
- * Middleware to check permissions for content within a domain
- */
-export const requireContentPermission = (
-  contentType: 'keeper' | 'journey' | 'moment',
-  permission: DomainPermissionType = 'read'
-) => {
-  return async (req: DomainAuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      const contentId = req.params.id;
-      if (!contentId) {
-        return res.status(400).json({ 
-          error: 'Content ID required',
-          code: 'CONTENT_ID_REQUIRED'
-        });
-      }
-
-      // Get content and its domain
-      let content: any;
-      let domainId: string;
-
-      switch (contentType) {
-        case 'keeper':
-          content = await prisma.keeper.findUnique({
-            where: { id: contentId },
-            select: { id: true, domainId: true, userId: true, name: true }
-          });
-          break;
-        case 'journey':
-          content = await prisma.journey.findUnique({
-            where: { id: contentId },
-            select: { id: true, domainId: true, userId: true, title: true }
-          });
-          break;
-        case 'moment':
-          content = await prisma.moment.findUnique({
-            where: { id: contentId },
-            select: { id: true, domainId: true, userId: true, title: true }
-          });
-          break;
-      }
-
-      if (!content) {
-        return res.status(404).json({ 
-          error: `${contentType} not found`,
-          code: 'CONTENT_NOT_FOUND'
-        });
-      }
-
-      if (!content.domainId) {
-        return res.status(400).json({ 
-          error: `${contentType} not associated with domain`,
-          code: 'CONTENT_NO_DOMAIN'
-        });
-      }
-
-      domainId = content.domainId;
-
-      // Check if user owns the content (bypass domain permission check)
-      if (content.userId === req.user.id) {
-        const domain = await domainService.getDomainById(domainId);
+        // Load user permissions from database
+        const userPermissions = await this.getUserPermissions(req.user.id, req.domainContext.domain);
+        
         req.domainContext = {
-          domain,
-          permissions: ['read', 'write', 'share', 'admin', 'invite', 'delete'],
-          role: 'admin',
-          isOwner: domain?.ownerId === req.user.id,
+          ...req.domainContext,
+          permissions: userPermissions.permissions,
+          role: userPermissions.role,
+          isOwner: false,
         };
-        return next();
+
+        next();
+      } catch (error) {
+        console.error('Permission loading error:', error);
+        res.status(500).json({ error: 'Failed to load permissions' });
       }
+    };
+  }
 
-      // Check domain permission
-      const permissionResult = await permissionService.checkPermission({
-        userId: req.user.id,
-        domainId,
-        permission,
-      });
-
-      if (!permissionResult.hasPermission) {
-        return res.status(403).json({ 
-          error: `Insufficient permissions for ${contentType}`,
-          code: 'INSUFFICIENT_CONTENT_PERMISSIONS',
-          required: permission,
-          current: permissionResult.permissions,
-        });
-      }
-
-      // Add domain context
-      const domain = await domainService.getDomainById(domainId);
-      req.domainContext = {
-        domain,
-        permissions: permissionResult.permissions,
-        role: permissionResult.role || 'none',
-        isOwner: domain?.ownerId === req.user.id,
-      };
-
-      next();
-    } catch (error) {
-      console.error('Error in content permission middleware:', error);
-      res.status(500).json({ 
-        error: 'Internal server error',
-        code: 'CONTENT_PERMISSION_ERROR'
-      });
+  /**
+   * Check if user has required permissions
+   */
+  private async hasPermission(req: DomainPermissionRequest, requiredPermissions: DomainPermissionType[]): Promise<boolean> {
+    if (!req.domainContext) {
+      return false;
     }
-  };
-};
 
-/**
- * Middleware to filter query results by domain permissions
- */
-export const domainScopedQuery = (defaultScope: 'user' | 'domain' | 'public' = 'user') => {
-  return async (req: DomainAuthenticatedRequest, res: Response, next: NextFunction) => {
+    const userPermissions = req.domainContext.permissions || [];
+    
+    // Check if user has all required permissions
+    return requiredPermissions.every(permission => 
+      userPermissions.includes(permission) || 
+      (req.domainContext?.isOwner && permission !== 'delete') // Owner has all permissions except delete (which requires explicit permission)
+    );
+  }
+
+  /**
+   * Check if user is domain owner
+   */
+  private async isDomainOwner(userId: string, domain: any): Promise<boolean> {
+    if (!domain) {
+      return false;
+    }
+
+    return domain.ownerId === userId;
+  }
+
+  /**
+   * Get user permissions for domain
+   */
+  private async getUserPermissions(userId: string, domain: any): Promise<{
+    permissions: DomainPermissionType[];
+    role: string;
+  }> {
+    if (!domain) {
+      return { permissions: [], role: 'guest' };
+    }
+
     try {
-      const userId = req.user.id;
-      
-      // Get user's domains
-      const userDomains = await domainService.getUserDomains(userId);
-      const domainIds = userDomains.map(d => d.id);
-
-      // Add domain scope to request for use in route handlers
-      req.domainScope = {
-        userDomains: domainIds,
-        defaultScope,
-        canAccessDomain: async (domainId: string) => {
-          const result = await permissionService.checkPermission({
-            userId,
-            domainId,
-            permission: 'read',
-          });
-          return result.hasPermission;
+      // Check for explicit domain permissions
+      const domainPermission = await prisma.domainPermission.findFirst({
+        where: {
+          domainId: domain.id,
+          userId: userId,
+          isActive: true,
         },
-      };
+      });
 
-      next();
+      if (domainPermission) {
+        return {
+          permissions: domainPermission.permissions as DomainPermissionType[],
+          role: domainPermission.role,
+        };
+      }
+
+      // Check for inherited permissions through domain relationships
+      const relationshipPermissions = await this.getRelationshipPermissions(userId, domain.id);
+      
+      return {
+        permissions: relationshipPermissions,
+        role: 'member',
+      };
     } catch (error) {
-      console.error('Error in domain scoped query middleware:', error);
-      next(); // Continue without domain scope on error
+      console.error('Error getting user permissions:', error);
+      return { permissions: [], role: 'guest' };
     }
-  };
-};
+  }
 
-/**
- * Utility function to check if user can access multiple domains
- */
-export const checkMultipleDomainAccess = async (
-  userId: string,
-  domainIds: string[],
-  permission: DomainPermissionType = 'read'
-): Promise<Map<string, boolean>> => {
-  const results = new Map<string, boolean>();
-  
-  const checks = domainIds.map(domainId => ({
-    userId,
-    domainId,
-    permission,
-  }));
+  /**
+   * Get permissions through domain relationships
+   */
+  private async getRelationshipPermissions(userId: string, domainId: string): Promise<DomainPermissionType[]> {
+    try {
+      // Check if user has access through keeper relationships
+      const keeperAccess = await prisma.keeper.findFirst({
+        where: {
+          domainId: domainId,
+          ownerId: userId,
+          isActive: true,
+        },
+      });
 
-  const permissionResults = await permissionService.checkPermissions(checks);
-  
-  checks.forEach(check => {
-    const key = `${check.userId}:${check.domainId}:${check.permission}`;
-    const result = permissionResults.get(key);
-    results.set(check.domainId, result?.hasPermission || false);
-  });
+      if (keeperAccess) {
+        return ['read', 'write'];
+      }
 
-  return results;
-};
+      // Check if user has access through journey relationships
+      const journeyAccess = await prisma.journey.findFirst({
+        where: {
+          domainId: domainId,
+          ownerId: userId,
+          isActive: true,
+        },
+      });
 
-/**
- * Utility function to filter content by domain permissions
- */
-export const filterContentByDomainPermissions = async <T extends { domainId: string }>(
-  content: T[],
-  userId: string,
-  permission: DomainPermissionType = 'read'
-): Promise<T[]> => {
-  if (content.length === 0) return content;
+      if (journeyAccess) {
+        return ['read', 'write'];
+      }
 
-  const domainIds = [...new Set(content.map(item => item.domainId))];
-  const accessMap = await checkMultipleDomainAccess(userId, domainIds, permission);
+      // Check if user has access through moment relationships
+      const momentAccess = await prisma.moment.findFirst({
+        where: {
+          domainId: domainId,
+          ownerId: userId,
+          isActive: true,
+        },
+      });
 
-  return content.filter(item => accessMap.get(item.domainId) === true);
-};
+      if (momentAccess) {
+        return ['read', 'write'];
+      }
 
-// Extend Express Request interface
-declare global {
-  namespace Express {
-    interface Request {
-      domainScope?: {
-        userDomains: string[];
-        defaultScope: 'user' | 'domain' | 'public';
-        canAccessDomain: (domainId: string) => Promise<boolean>;
-      };
+      // Check for shared access
+      const sharedAccess = await this.getSharedAccess(userId, domainId);
+      if (sharedAccess.length > 0) {
+        return sharedAccess;
+      }
+
+      // Default fallback permissions
+      return this.config.fallbackPermissions || [];
+    } catch (error) {
+      console.error('Error getting relationship permissions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get shared access permissions
+   */
+  private async getSharedAccess(userId: string, domainId: string): Promise<DomainPermissionType[]> {
+    try {
+      // Check cross-domain sharing
+      const sharedDomain = await prisma.crossDomainShare.findFirst({
+        where: {
+          targetDomainId: domainId,
+          isActive: true,
+        },
+        include: {
+          sourceDomain: true,
+        },
+      });
+
+      if (sharedDomain) {
+        // Check if user has access to source domain
+        const sourceAccess = await this.getUserPermissions(userId, sharedDomain.sourceDomain);
+        if (sourceAccess.permissions.includes('read')) {
+          return ['read']; // Shared domains typically only allow read access
+        }
+      }
+
+      return [];
+    } catch (error) {
+      console.error('Error getting shared access:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Grant permission to user
+   */
+  async grantPermission(
+    domainId: string,
+    userId: string,
+    permissions: DomainPermissionType[],
+    role: string,
+    grantedBy: string
+  ): Promise<void> {
+    try {
+      await prisma.domainPermission.upsert({
+        where: {
+          domainId_userId: {
+            domainId,
+            userId,
+          },
+        },
+        update: {
+          permissions,
+          role,
+          grantedBy,
+          grantedAt: new Date(),
+          isActive: true,
+        },
+        create: {
+          domainId,
+          userId,
+          permissions,
+          role,
+          grantedBy,
+          grantedAt: new Date(),
+          isActive: true,
+        },
+      });
+    } catch (error) {
+      console.error('Error granting permission:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Revoke permission from user
+   */
+  async revokePermission(domainId: string, userId: string): Promise<void> {
+    try {
+      await prisma.domainPermission.updateMany({
+        where: {
+          domainId,
+          userId,
+        },
+        data: {
+          isActive: false,
+        },
+      });
+    } catch (error) {
+      console.error('Error revoking permission:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get domain users with their permissions
+   */
+  async getDomainUsers(domainId: string): Promise<Array<{
+    userId: string;
+    permissions: DomainPermissionType[];
+    role: string;
+    isOwner: boolean;
+  }>> {
+    try {
+      const domainPermissions = await prisma.domainPermission.findMany({
+        where: {
+          domainId,
+          isActive: true,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      return domainPermissions.map(permission => ({
+        userId: permission.userId,
+        permissions: permission.permissions as DomainPermissionType[],
+        role: permission.role,
+        isOwner: false, // Owner is handled separately
+      }));
+    } catch (error) {
+      console.error('Error getting domain users:', error);
+      throw error;
     }
   }
 }
 
-export default {
-  domainContextMiddleware,
-  requireDomainPermission,
-  requireContentPermission,
-  domainScopedQuery,
-  checkMultipleDomainAccess,
-  filterContentByDomainPermissions,
-}; 
+/**
+ * Create domain permission middleware instance
+ */
+export function createDomainPermissionMiddleware(config?: DomainPermissionConfig): DomainPermissionMiddleware {
+  return new DomainPermissionMiddleware(config);
+}
+
+/**
+ * Common permission check functions
+ */
+export const domainPermissionMiddleware = new DomainPermissionMiddleware();
+
+export const requireDomainRead = domainPermissionMiddleware.checkPermission('read');
+export const requireDomainWrite = domainPermissionMiddleware.checkPermission('write');
+export const requireDomainAdmin = domainPermissionMiddleware.checkPermission('admin');
+export const requireDomainOwnership = domainPermissionMiddleware.requireOwnership();
+export const loadDomainPermissions = domainPermissionMiddleware.loadPermissions(); 

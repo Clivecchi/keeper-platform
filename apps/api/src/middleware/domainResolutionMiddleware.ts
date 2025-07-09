@@ -9,7 +9,6 @@ import { Redis } from 'ioredis';
 import { 
   DomainService, 
   DomainCacheService,
-  DomainResolutionService,
   FeatureFlagService
 } from '@keeper/database';
 
@@ -17,8 +16,7 @@ const prisma = new PrismaClient();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
-const featureFlagService = new FeatureFlagService(prisma);
-const resolutionService = new DomainResolutionService(domainService, cacheService);
+const featureFlagService = new FeatureFlagService();
 
 // Basic feature flag service implementation
 const getFeatureFlagService = () => ({
@@ -79,7 +77,6 @@ export class DomainResolutionMiddleware {
   private prisma: PrismaClient;
   private domainService: DomainService;
   private cacheService: DomainCacheService;
-  private resolutionService: DomainResolutionService;
   private featureFlags = getFeatureFlagService();
 
   private readonly config: DomainResolutionConfig;
@@ -117,13 +114,11 @@ export class DomainResolutionMiddleware {
     prisma: PrismaClient,
     domainService: DomainService,
     cacheService: DomainCacheService,
-    resolutionService: DomainResolutionService,
     config: DomainResolutionConfig = {}
   ) {
     this.prisma = prisma;
     this.domainService = domainService;
     this.cacheService = cacheService;
-    this.resolutionService = resolutionService;
     this.config = {
       fallbackDomain: 'keeper.tools',
       redirectSubdomains: true,
@@ -139,19 +134,21 @@ export class DomainResolutionMiddleware {
    * Create domain resolution middleware
    */
   createMiddleware() {
-    return async (req: Request, res: Response, next: NextFunction) => {
+    return async (req: DomainResolvedRequest, res: Response, next: NextFunction): Promise<void> => {
       try {
         const hostname = this.extractHostname(req);
         const resolution = await this.resolveDomain(hostname, req);
 
         // Handle errors
         if (resolution.errorType) {
-          return this.handleResolutionError(resolution, req, res);
+          this.handleResolutionError(resolution, req, res);
+          return;
         }
 
         // Handle redirects
         if (resolution.redirectUrl) {
-          return this.handleRedirect(resolution.redirectUrl, req, res);
+          this.handleRedirect(resolution.redirectUrl, req, res);
+          return;
         }
 
         // Set domain context in request
@@ -167,13 +164,14 @@ export class DomainResolutionMiddleware {
 
         // Log resolution if analytics enabled
         if (this.config.enableAnalytics) {
-          this.logDomainResolution(resolution, req);
+          await this.logDomainResolution(resolution, req);
         }
 
         next();
       } catch (error) {
         console.error('Domain resolution error:', error);
-        return this.handleFallback(req, res, next);
+        this.handleFallback(req, res, next);
+        return;
       }
     };
   }
@@ -181,7 +179,7 @@ export class DomainResolutionMiddleware {
   /**
    * Resolve domain from hostname
    */
-  private async resolveDomain(hostname: string, req: Request): Promise<ResolvedDomain> {
+  private async resolveDomain(hostname: string, req: DomainResolvedRequest): Promise<ResolvedDomain> {
     // Validate hostname
     if (!this.isValidHostname(hostname)) {
       return {
@@ -206,31 +204,19 @@ export class DomainResolutionMiddleware {
       };
     }
 
-    // Try to resolve as custom domain first
-    const customDomainResult = await this.resolveCustomDomain(hostname);
-    if (customDomainResult) {
-      return customDomainResult;
+    // Try custom domain resolution first
+    let resolution = await this.resolveCustomDomain(hostname);
+    if (resolution) {
+      return resolution;
     }
 
-    // Try to resolve as subdomain
-    const subdomainResult = await this.resolveSubdomain(hostname);
-    if (subdomainResult) {
-      return subdomainResult;
+    // Try subdomain resolution
+    resolution = await this.resolveSubdomain(hostname);
+    if (resolution) {
+      return resolution;
     }
 
-    // Check if this is a platform subdomain
-    if (this.isPlatformSubdomain(hostname)) {
-      return {
-        domain: null,
-        isCustomDomain: false,
-        originalHostname: hostname,
-        resolvedSlug: '',
-        errorType: 'NOT_FOUND',
-        errorMessage: 'Platform subdomain not configured for domain resolution',
-      };
-    }
-
-    // Domain not found
+    // Not found
     return {
       domain: null,
       isCustomDomain: false,
@@ -247,29 +233,28 @@ export class DomainResolutionMiddleware {
   private async resolveCustomDomain(hostname: string): Promise<ResolvedDomain | null> {
     try {
       // Check cache first
-      const cached = await this.cacheService.getDomainByHostname(hostname);
-      if (cached) {
-        return this.validateDomainResult(cached, hostname, true);
-      }
-
-      // Query database
-      const domain = await this.prisma.domain.findFirst({
-        where: {
-          customDomain: hostname,
-          isActive: true,
-        },
-      });
-
+      let domain = await this.cacheService.getDomainByHostname(hostname);
+      
       if (!domain) {
-        return null;
+        // Check database
+        domain = await this.domainService.getDomainByCustomDomain(hostname);
+        
+        if (domain) {
+          // Cache the result
+          await this.cacheService.cacheDomain(domain);
+        } else {
+          // Cache negative result
+          await this.cacheService.cacheNegativeResult('domain:hostname:', hostname);
+        }
       }
 
-      // Cache the result
-      await this.cacheService.setDomainByHostname(hostname, domain);
+      if (domain) {
+        return this.validateDomainResult(domain, hostname, true);
+      }
 
-      return this.validateDomainResult(domain, hostname, true);
+      return null;
     } catch (error) {
-      console.error('Custom domain resolution error:', error);
+      console.error('Error resolving custom domain:', error);
       return null;
     }
   }
@@ -278,105 +263,89 @@ export class DomainResolutionMiddleware {
    * Resolve subdomain
    */
   private async resolveSubdomain(hostname: string): Promise<ResolvedDomain | null> {
-    // Extract subdomain from hostname
-    const parts = hostname.split('.');
-    if (parts.length < 3) {
-      return null; // Not a subdomain
-    }
-
-    const subdomain = parts[0];
-    const baseDomain = parts.slice(1).join('.');
-
-    // Check if base domain is keeper.tools or configured platform domain
-    if (!this.isPlatformBaseDomain(baseDomain)) {
-      return null;
-    }
-
-    // Check if subdomain is a platform subdomain
-    if (this.PLATFORM_SUBDOMAINS.includes(subdomain)) {
-      return null; // Platform subdomain, not user domain
-    }
-
     try {
-      // Check cache first
-      const cached = await this.cacheService.getDomainBySlug(subdomain);
-      if (cached) {
-        return this.validateDomainResult(cached, hostname, false);
-      }
-
-      // Query database
-      const domain = await this.prisma.domain.findFirst({
-        where: {
-          slug: subdomain,
-          isActive: true,
-        },
-      });
-
-      if (!domain) {
+      // Extract subdomain (assuming format: subdomain.keeper.tools)
+      const parts = hostname.split('.');
+      if (parts.length < 3) {
         return null;
       }
 
-      // Cache the result
-      await this.cacheService.setDomainBySlug(subdomain, domain);
+      const subdomain = parts[0];
+      const baseDomain = parts.slice(1).join('.');
 
-      return this.validateDomainResult(domain, hostname, false);
+      // Check if it's a platform base domain
+      if (!this.isPlatformBaseDomain(baseDomain)) {
+        return null;
+      }
+
+      // Check cache first
+      let domain = await this.cacheService.getDomainBySlug(subdomain);
+      
+      if (!domain) {
+        // Check database
+        domain = await this.domainService.getDomainBySlug(subdomain);
+        
+        if (domain) {
+          // Cache the result
+          await this.cacheService.cacheDomain(domain);
+        } else {
+          // Cache negative result
+          await this.cacheService.cacheNegativeResult('domain:slug:', subdomain);
+        }
+      }
+
+      if (domain) {
+        return this.validateDomainResult(domain, hostname, false);
+      }
+
+      return null;
     } catch (error) {
-      console.error('Subdomain resolution error:', error);
+      console.error('Error resolving subdomain:', error);
       return null;
     }
   }
 
   /**
-   * Validate domain result
+   * Validate domain result and return resolved domain
    */
   private validateDomainResult(
     domain: any,
     hostname: string,
     isCustomDomain: boolean
   ): ResolvedDomain {
-    // Check if domain is suspended
-    if (domain.status === 'suspended') {
+    // Check if domain is active
+    if (!domain.isActive) {
       return {
-        domain: null,
+        domain,
         isCustomDomain,
         originalHostname: hostname,
         resolvedSlug: domain.slug,
         errorType: 'SUSPENDED',
-        errorMessage: 'Domain has been suspended',
+        errorMessage: 'Domain is suspended',
       };
     }
 
-    // Check if custom domain verification is required
+    // Check domain status
+    if (domain.status !== 'active') {
+      return {
+        domain,
+        isCustomDomain,
+        originalHostname: hostname,
+        resolvedSlug: domain.slug,
+        errorType: 'SUSPENDED',
+        errorMessage: `Domain status: ${domain.status}`,
+      };
+    }
+
+    // Check if custom domain is verified
     if (isCustomDomain && !domain.customDomainVerified) {
       return {
-        domain: null,
+        domain,
         isCustomDomain,
         originalHostname: hostname,
         resolvedSlug: domain.slug,
         errorType: 'VERIFICATION_REQUIRED',
-        errorMessage: 'Custom domain verification required',
-      };
-    }
-
-    // Check for HTTPS enforcement
-    if (this.config.enforceHttps && !this.isHttpsRequest(hostname)) {
-      return {
-        domain,
-        isCustomDomain,
-        originalHostname: hostname,
-        resolvedSlug: domain.slug,
-        redirectUrl: `https://${hostname}`,
-      };
-    }
-
-    // Check for subdomain redirects
-    if (this.config.redirectSubdomains && !isCustomDomain && domain.customDomain && domain.customDomainVerified) {
-      return {
-        domain,
-        isCustomDomain,
-        originalHostname: hostname,
-        resolvedSlug: domain.slug,
-        redirectUrl: `https://${domain.customDomain}`,
+        errorMessage: 'Custom domain not verified',
       };
     }
 
@@ -394,7 +363,7 @@ export class DomainResolutionMiddleware {
    */
   private handleResolutionError(
     resolution: ResolvedDomain,
-    req: Request,
+    req: DomainResolvedRequest,
     res: Response
   ): void {
     const error: DomainResolutionError = {
@@ -403,27 +372,6 @@ export class DomainResolutionMiddleware {
       hostname: resolution.originalHostname,
     };
 
-    // Add suggested actions
-    switch (error.type) {
-      case 'NOT_FOUND':
-        error.suggestedAction = 'Check the URL or contact the domain owner';
-        error.redirectUrl = `https://${this.config.fallbackDomain}/404?domain=${encodeURIComponent(error.hostname)}`;
-        break;
-      case 'SUSPENDED':
-        error.suggestedAction = 'Contact support for assistance';
-        error.redirectUrl = `https://${this.config.fallbackDomain}/suspended?domain=${encodeURIComponent(error.hostname)}`;
-        break;
-      case 'VERIFICATION_REQUIRED':
-        error.suggestedAction = 'Complete domain verification';
-        error.redirectUrl = `https://${this.config.fallbackDomain}/verify-domain?domain=${encodeURIComponent(error.hostname)}`;
-        break;
-      case 'MALFORMED':
-        error.suggestedAction = 'Check the URL format';
-        error.redirectUrl = `https://${this.config.fallbackDomain}/400?domain=${encodeURIComponent(error.hostname)}`;
-        break;
-    }
-
-    // Custom error handling
     if (this.config.customErrorHandling) {
       this.handleCustomError(error, req, res);
     } else {
@@ -434,89 +382,61 @@ export class DomainResolutionMiddleware {
   /**
    * Handle custom error responses
    */
-  private handleCustomError(error: DomainResolutionError, req: Request, res: Response): void {
-    // Set appropriate status code
+  private handleCustomError(error: DomainResolutionError, req: DomainResolvedRequest, res: Response): void {
     const statusCode = this.getStatusCodeForError(error.type);
     
-    // Add error headers
-    res.setHeader('X-Domain-Error', error.type);
-    res.setHeader('X-Domain-Message', error.message);
-    
-    // Check if client accepts JSON
-    if (req.accepts('json')) {
-      res.status(statusCode).json({
-        error: error.type,
-        message: error.message,
-        hostname: error.hostname,
-        suggestedAction: error.suggestedAction,
-        redirectUrl: error.redirectUrl,
-      });
-    } else {
-      // Redirect to error page
-      res.redirect(statusCode, error.redirectUrl || `https://${this.config.fallbackDomain}/error`);
-    }
+    res.status(statusCode).json({
+      error: error.type,
+      message: error.message,
+      hostname: error.hostname,
+      suggestedAction: error.suggestedAction,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   /**
    * Handle default error responses
    */
-  private handleDefaultError(error: DomainResolutionError, req: Request, res: Response): void {
+  private handleDefaultError(error: DomainResolutionError, req: DomainResolvedRequest, res: Response): void {
     const statusCode = this.getStatusCodeForError(error.type);
-    
-    if (error.redirectUrl) {
-      res.redirect(statusCode, error.redirectUrl);
-    } else {
-      res.status(statusCode).send(error.message);
-    }
+    res.status(statusCode).send(error.message);
   }
 
   /**
    * Handle redirects
    */
-  private handleRedirect(redirectUrl: string, req: Request, res: Response): void {
-    // Preserve query parameters
-    const url = new URL(redirectUrl);
-    const queryParams = new URLSearchParams(req.url.split('?')[1]);
-    
-    for (const [key, value] of queryParams) {
-      url.searchParams.set(key, value);
+  private handleRedirect(redirectUrl: string, req: DomainResolvedRequest, res: Response): void {
+    if (this.config.enforceHttps && !req.secure) {
+      const httpsUrl = redirectUrl.replace('http://', 'https://');
+      res.redirect(301, httpsUrl);
+    } else {
+      res.redirect(302, redirectUrl);
     }
-
-    // Preserve path
-    if (req.path && req.path !== '/') {
-      url.pathname = req.path;
-    }
-
-    res.redirect(301, url.toString());
   }
 
   /**
    * Handle fallback when resolution fails
    */
-  private handleFallback(req: Request, res: Response, next: NextFunction): void {
-    // Set empty domain context
-    req.domainContext = {
-      domain: null,
-      isCustomDomain: false,
-      originalHostname: this.extractHostname(req),
-      resolvedSlug: '',
-    };
-
-    // Add fallback headers
-    res.setHeader('X-Domain-Fallback', 'true');
-    res.setHeader('X-Domain-Resolution', 'failed');
-
-    next();
+  private handleFallback(req: DomainResolvedRequest, res: Response, next: NextFunction): void {
+    if (this.config.fallbackDomain) {
+      req.domainContext = {
+        domain: null,
+        isCustomDomain: false,
+        originalHostname: req.get('host') || 'unknown',
+        resolvedSlug: '',
+      };
+      next();
+    } else {
+      res.status(404).json({ error: 'Domain not found' });
+    }
   }
 
   /**
-   * Add domain headers to response
+   * Add domain-specific headers
    */
   private addDomainHeaders(res: Response, resolution: ResolvedDomain): void {
-    res.setHeader('X-Domain-Resolved', 'true');
+    res.setHeader('X-Domain-Resolution', resolution.isCustomDomain ? 'custom' : 'subdomain');
     res.setHeader('X-Domain-Slug', resolution.resolvedSlug);
-    res.setHeader('X-Domain-Type', resolution.isCustomDomain ? 'custom' : 'subdomain');
-    
     if (resolution.domain?.id) {
       res.setHeader('X-Domain-ID', resolution.domain.id);
     }
@@ -525,94 +445,91 @@ export class DomainResolutionMiddleware {
   /**
    * Log domain resolution for analytics
    */
-  private async logDomainResolution(resolution: ResolvedDomain, req: Request): Promise<void> {
+  private async logDomainResolution(resolution: ResolvedDomain, req: DomainResolvedRequest): Promise<void> {
     try {
-      if (resolution.domain?.id) {
+      if (resolution.domain?.id && req.user?.id) {
         await this.prisma.domainUsage.create({
           data: {
             domainId: resolution.domain.id,
-            userId: req.user?.id || null,
-            action: 'domain_resolution',
+            userId: req.user.id,
+            action: 'domain_access',
             metadata: {
               hostname: resolution.originalHostname,
               isCustomDomain: resolution.isCustomDomain,
-              resolvedSlug: resolution.resolvedSlug,
-              userAgent: req.headers['user-agent'],
-              referer: req.headers.referer,
-              method: req.method,
-              path: req.path,
+              userAgent: req.get('user-agent'),
             },
-            timestamp: new Date(),
             ipAddress: req.ip,
-            userAgent: req.headers['user-agent'],
+            userAgent: req.get('user-agent'),
           },
         });
       }
     } catch (error) {
-      console.error('Failed to log domain resolution:', error);
+      console.error('Error logging domain resolution:', error);
     }
   }
 
   /**
-   * Utility methods
+   * Extract hostname from request
    */
   private extractHostname(req: Request): string {
-    const host = req.headers.host || 
-                 req.headers['x-forwarded-host'] || 
-                 req.headers['x-original-host'] ||
-                 'localhost:3000';
-    
-    // Handle string array case
-    return Array.isArray(host) ? host[0] : host;
+    return req.get('host') || req.hostname || 'localhost';
   }
 
+  /**
+   * Validate hostname format
+   */
   private isValidHostname(hostname: string): boolean {
-    const hostnameRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9])*$/;
-    return hostnameRegex.test(hostname.split(':')[0]);
+    return /^[a-zA-Z0-9.-]+$/.test(hostname) && hostname.length > 0;
   }
 
+  /**
+   * Check if hostname is reserved
+   */
   private isReservedHostname(hostname: string): boolean {
-    const baseName = hostname.split('.')[0];
-    return this.RESERVED_HOSTNAMES.includes(baseName.toLowerCase());
+    const parts = hostname.split('.');
+    return this.RESERVED_HOSTNAMES.includes(parts[0]);
   }
 
+  /**
+   * Check if subdomain is a platform subdomain
+   */
   private isPlatformSubdomain(hostname: string): boolean {
     const parts = hostname.split('.');
-    if (parts.length < 3) return false;
-    
-    const subdomain = parts[0];
-    const baseDomain = parts.slice(1).join('.');
-    
-    return this.PLATFORM_SUBDOMAINS.includes(subdomain) && 
-           this.isPlatformBaseDomain(baseDomain);
+    if (parts.length >= 2) {
+      const subdomain = parts[0];
+      const baseDomain = parts.slice(1).join('.');
+      return this.PLATFORM_SUBDOMAINS.includes(subdomain) && 
+             this.isPlatformBaseDomain(baseDomain);
+    }
+    return false;
   }
 
+  /**
+   * Check if domain is a platform base domain
+   */
   private isPlatformBaseDomain(baseDomain: string): boolean {
-    const platformDomains = [
-      'keeper.tools',
-      'localhost:3000',
-      'localhost:5173',
-      '127.0.0.1:3000',
-    ];
-    
-    return platformDomains.includes(baseDomain.toLowerCase());
+    const platformDomains = ['keeper.tools', 'localhost:3000', 'localhost:5173'];
+    return platformDomains.includes(baseDomain);
   }
 
+  /**
+   * Check if request is HTTPS
+   */
   private isHttpsRequest(hostname: string): boolean {
-    return hostname.startsWith('https://') || 
-           process.env.NODE_ENV === 'development' ||
-           hostname.includes('localhost') ||
-           hostname.includes('127.0.0.1');
+    return hostname.startsWith('https://');
   }
 
+  /**
+   * Get HTTP status code for error type
+   */
   private getStatusCodeForError(errorType: string): number {
     switch (errorType) {
       case 'NOT_FOUND':
         return 404;
       case 'SUSPENDED':
-        return 403;
+        return 503;
       case 'VERIFICATION_REQUIRED':
-        return 412; // Precondition Failed
+        return 403;
       case 'MALFORMED':
         return 400;
       case 'RATE_LIMITED':
@@ -623,7 +540,7 @@ export class DomainResolutionMiddleware {
   }
 
   /**
-   * Get domain resolution statistics
+   * Get resolution statistics
    */
   async getResolutionStats(days: number = 7): Promise<{
     totalResolutions: number;
@@ -634,48 +551,46 @@ export class DomainResolutionMiddleware {
     topDomains: Array<{ domain: string; count: number }>;
     errorBreakdown: Array<{ errorType: string; count: number }>;
   }> {
-    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    
-    // This would integrate with your analytics system
-    // For now, return mock data
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const stats = await this.prisma.domainUsage.groupBy({
+      by: ['domainId', 'action'],
+      where: {
+        timestamp: {
+          gte: startDate,
+        },
+        action: 'domain_access',
+      },
+      _count: true,
+    });
+
+    // Process and return formatted stats
     return {
-      totalResolutions: 5000,
-      successfulResolutions: 4750,
-      failedResolutions: 250,
-      customDomainResolutions: 2000,
-      subdomainResolutions: 2750,
-      topDomains: [
-        { domain: 'example.com', count: 500 },
-        { domain: 'mysite.keeper.tools', count: 300 },
-      ],
-      errorBreakdown: [
-        { errorType: 'NOT_FOUND', count: 200 },
-        { errorType: 'VERIFICATION_REQUIRED', count: 30 },
-        { errorType: 'SUSPENDED', count: 20 },
-      ],
+      totalResolutions: stats.reduce((sum, stat) => sum + stat._count, 0),
+      successfulResolutions: stats.reduce((sum, stat) => sum + stat._count, 0),
+      failedResolutions: 0, // Would need separate tracking
+      customDomainResolutions: 0, // Would need metadata analysis
+      subdomainResolutions: 0, // Would need metadata analysis
+      topDomains: [],
+      errorBreakdown: [],
     };
   }
 }
 
 /**
- * Factory function to create domain resolution middleware
+ * Create domain resolution middleware instance
  */
 export function createDomainResolutionMiddleware(
   config?: DomainResolutionConfig
 ): (req: Request, res: Response, next: NextFunction) => Promise<void> {
-  const prisma = new PrismaClient();
-  const cacheService = new DomainCacheService();
-  const domainService = new DomainService(prisma, cacheService);
-  const resolutionService = new DomainResolutionService(domainService, cacheService);
-  
   const middleware = new DomainResolutionMiddleware(
     prisma,
     domainService,
     cacheService,
-    resolutionService,
     config
   );
-
+  
   return middleware.createMiddleware();
 }
 
@@ -691,6 +606,4 @@ declare global {
       };
     }
   }
-}
-
-export default DomainResolutionMiddleware; 
+} 

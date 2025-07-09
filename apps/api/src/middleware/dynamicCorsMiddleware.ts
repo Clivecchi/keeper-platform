@@ -1,559 +1,353 @@
 /**
  * Dynamic CORS Middleware
- * Dynamically configures CORS based on domain configuration
+ * Handles CORS configuration based on domain context
  */
 
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@keeper/database';
+import cors from 'cors';
+import { DomainService, DomainCacheService } from '@keeper/database';
 import { Redis } from 'ioredis';
-import { 
-  DomainService, 
-  DomainCacheService,
-  DomainResolutionService,
-  FeatureFlagService
-} from '@keeper/database';
 
 const prisma = new PrismaClient();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
-const featureFlagService = new FeatureFlagService(prisma);
-const resolutionService = new DomainResolutionService(domainService, cacheService);
 
-// Basic feature flag service implementation
-const getFeatureFlagService = () => ({
-  isEnabled: (flag: string, domainId?: string) => {
-    switch (flag) {
-      case 'dynamic_cors':
-      case 'custom_domains':
-        return true;
-      default:
-        return false;
-    }
-  }
-});
+export interface DomainCorsConfig {
+  allowedOrigins?: string[];
+  allowedMethods?: string[];
+  allowedHeaders?: string[];
+  exposedHeaders?: string[];
+  credentials?: boolean;
+  maxAge?: number;
+  preflightContinue?: boolean;
+  optionsSuccessStatus?: number;
+}
 
-// Create a basic resolution service implementation
-const resolutionService = {
-  async resolveDomain(hostname: string) {
-    if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
-      return { domain: null, isCustomDomain: false };
-    }
-    
-    const domain = await domainService.getDomainByHostname(hostname);
-    return { 
-      domain, 
-      isCustomDomain: !!domain?.customDomain,
-      originalHostname: hostname,
-      resolvedSlug: domain?.slug || ''
+export interface CorsContext {
+  domain: any;
+  isCustomDomain: boolean;
+  originalHostname: string;
+  resolvedSlug: string;
+}
+
+export interface DynamicCorsRequest extends Request {
+  domainContext?: CorsContext;
+}
+
+/**
+ * Dynamic CORS Middleware
+ * Configures CORS settings based on domain configuration
+ */
+export class DynamicCorsMiddleware {
+  private defaultConfig: DomainCorsConfig;
+
+  constructor(config: DomainCorsConfig = {}) {
+    this.defaultConfig = {
+      allowedOrigins: ['https://keeper.tools', 'https://app.keeper.tools'],
+      allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+      exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
+      credentials: true,
+      maxAge: 86400, // 24 hours
+      preflightContinue: false,
+      optionsSuccessStatus: 200,
+      ...config,
     };
-  }
-};
-
-interface CorsConfig {
-  allowedOrigins: string[];
-  allowedMethods: string[];
-  allowedHeaders: string[];
-  exposedHeaders: string[];
-  credentials: boolean;
-  maxAge: number;
-  preflightContinue: boolean;
-  optionsSuccessStatus: number;
-}
-
-interface DomainCorsSettings {
-  additionalOrigins?: string[];
-  restrictedMethods?: string[];
-  customHeaders?: string[];
-  allowCredentials?: boolean;
-  corsMaxAge?: number;
-  embedAllowed?: boolean;
-  apiAccessAllowed?: boolean;
-  developmentMode?: boolean;
-}
-
-export class DynamicCorsManager {
-  private prisma: PrismaClient;
-  private domainService: DomainService;
-  private resolutionService: DomainResolutionService;
-  private cacheService: DomainCacheService;
-  private featureFlags = getFeatureFlagService();
-
-  // Default platform origins
-  private readonly PLATFORM_ORIGINS = [
-    'https://keeper.tools',
-    'https://app.keeper.tools',
-    'https://studio.keeper.tools',
-    'https://api.keeper.tools',
-  ];
-
-  // Development origins
-  private readonly DEVELOPMENT_ORIGINS = [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'http://localhost:8080',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:5173',
-  ];
-
-  // Default CORS configuration
-  private readonly DEFAULT_CONFIG: CorsConfig = {
-    allowedOrigins: [...this.PLATFORM_ORIGINS],
-    allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: [
-      'Origin',
-      'Content-Type',
-      'Accept',
-      'Authorization',
-      'X-Requested-With',
-      'X-Domain-Context',
-      'X-API-Key',
-      'X-Client-Version',
-    ],
-    exposedHeaders: [
-      'X-RateLimit-Limit',
-      'X-RateLimit-Remaining',
-      'X-RateLimit-Reset',
-      'X-Domain-Context',
-      'X-Request-ID',
-    ],
-    credentials: true,
-    maxAge: 86400, // 24 hours
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-  };
-
-  constructor(
-    prisma: PrismaClient,
-    domainService: DomainService,
-    resolutionService: DomainResolutionService,
-    cacheService: DomainCacheService
-  ) {
-    this.prisma = prisma;
-    this.domainService = domainService;
-    this.resolutionService = resolutionService;
-    this.cacheService = cacheService;
   }
 
   /**
    * Create dynamic CORS middleware
    */
   createMiddleware() {
-    return async (req: Request, res: Response, next: NextFunction) => {
+    return async (req: DynamicCorsRequest, res: Response, next: NextFunction): Promise<void> => {
       try {
-        const origin = this.extractOrigin(req);
-        const hostname = this.extractHostname(req);
+        const corsConfig = await this.getDomainCorsConfig(req);
         
-        // Get domain context
-        const domainContext = await this.resolutionService.createDomainContext(hostname);
-        
-        // Generate CORS configuration
-        const corsConfig = await this.generateCorsConfig(domainContext.domain, origin);
-        
-        // Apply CORS headers
-        this.applyCorsHeaders(req, res, corsConfig, origin);
-        
-        // Handle preflight requests
-        if (req.method === 'OPTIONS') {
-          return res.status(corsConfig.optionsSuccessStatus).end();
-        }
-        
-        next();
+        // Create CORS middleware with dynamic configuration
+        const corsMiddleware = cors({
+          origin: this.createOriginFunction(corsConfig, req),
+          methods: corsConfig.allowedMethods,
+          allowedHeaders: corsConfig.allowedHeaders,
+          exposedHeaders: corsConfig.exposedHeaders,
+          credentials: corsConfig.credentials,
+          maxAge: corsConfig.maxAge,
+          preflightContinue: corsConfig.preflightContinue,
+          optionsSuccessStatus: corsConfig.optionsSuccessStatus,
+        });
+
+        // Apply CORS middleware
+        corsMiddleware(req, res, (err) => {
+          if (err) {
+            console.error('CORS error:', err);
+            res.status(500).json({ error: 'CORS configuration error' });
+            return;
+          }
+          next();
+        });
       } catch (error) {
-        console.error('CORS middleware error:', error);
-        // Fall back to default CORS on error
-        this.applyCorsHeaders(req, res, this.DEFAULT_CONFIG, this.extractOrigin(req));
-        
-        if (req.method === 'OPTIONS') {
-          return res.status(204).end();
-        }
-        
-        next();
+        console.error('Dynamic CORS error:', error);
+        next(error);
       }
     };
   }
 
   /**
-   * Generate CORS configuration for domain
+   * Get CORS configuration for domain
    */
-  private async generateCorsConfig(domain: any, requestOrigin?: string): Promise<CorsConfig> {
-    // Start with default configuration
-    const config: CorsConfig = { ...this.DEFAULT_CONFIG };
-    
-    // Add development origins in development mode
-    if (process.env.NODE_ENV === 'development') {
-      config.allowedOrigins.push(...this.DEVELOPMENT_ORIGINS);
+  private async getDomainCorsConfig(req: DynamicCorsRequest): Promise<DomainCorsConfig> {
+    // Use domain context if available
+    if (req.domainContext?.domain) {
+      const domainConfig = await this.getDomainSpecificConfig(req.domainContext.domain);
+      return { ...this.defaultConfig, ...domainConfig };
     }
 
-    // If no domain context, return default + development origins
-    if (!domain) {
+    // Fallback to default configuration
+    return this.defaultConfig;
+  }
+
+  /**
+   * Get domain-specific CORS configuration
+   */
+  private async getDomainSpecificConfig(domain: any): Promise<Partial<DomainCorsConfig>> {
+    try {
+      const corsSettings = domain.settings?.cors || {};
+      
+      const config: Partial<DomainCorsConfig> = {
+        credentials: corsSettings.credentials ?? true,
+        maxAge: corsSettings.maxAge ?? 86400,
+      };
+
+      // Add custom domain to allowed origins
+      if (domain.customDomain && domain.customDomainVerified) {
+        config.allowedOrigins = [
+          ...this.defaultConfig.allowedOrigins!,
+          `https://${domain.customDomain}`,
+          `http://${domain.customDomain}`, // For development
+        ];
+      }
+
+      // Add subdomain to allowed origins
+      config.allowedOrigins = config.allowedOrigins || [...this.defaultConfig.allowedOrigins!];
+      config.allowedOrigins.push(`https://${domain.slug}.keeper.tools`);
+
+      // Add development origins
+      if (process.env.NODE_ENV === 'development') {
+        config.allowedOrigins.push(
+          'http://localhost:3000',
+          'http://localhost:5173',
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:5173'
+        );
+      }
+
       return config;
+    } catch (error) {
+      console.error('Error getting domain CORS config:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Create origin validation function
+   */
+  private createOriginFunction(config: DomainCorsConfig, req: DynamicCorsRequest) {
+    return (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      // Check if origin is in allowed list
+      if (config.allowedOrigins?.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      // Check if origin matches domain patterns
+      if (this.isOriginAllowed(origin, req.domainContext)) {
+        callback(null, true);
+        return;
+      }
+
+      // Development mode - allow localhost
+      if (process.env.NODE_ENV === 'development' && this.isLocalhostOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      // Log blocked origin for debugging
+      console.log(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'), false);
+    };
+  }
+
+  /**
+   * Check if origin is allowed based on domain context
+   */
+  private isOriginAllowed(origin: string, domainContext?: CorsContext): boolean {
+    if (!domainContext) {
+      return false;
     }
 
-    // Get domain-specific CORS settings
-    const domainSettings = this.extractDomainCorsSettings(domain);
+    const { domain, isCustomDomain } = domainContext;
     
-    // Add domain-specific origins
-    const domainOrigins = this.generateDomainOrigins(domain, domainSettings);
-    config.allowedOrigins.push(...domainOrigins);
-
-    // Apply domain-specific settings
-    if (domainSettings.additionalOrigins) {
-      config.allowedOrigins.push(...domainSettings.additionalOrigins);
+    if (!domain) {
+      return false;
     }
 
-    if (domainSettings.restrictedMethods) {
-      config.allowedMethods = config.allowedMethods.filter(
-        method => !domainSettings.restrictedMethods!.includes(method)
-      );
-    }
-
-    if (domainSettings.customHeaders) {
-      config.allowedHeaders.push(...domainSettings.customHeaders);
-    }
-
-    if (domainSettings.allowCredentials !== undefined) {
-      config.credentials = domainSettings.allowCredentials;
-    }
-
-    if (domainSettings.corsMaxAge) {
-      config.maxAge = domainSettings.corsMaxAge;
-    }
-
-    // Handle embedding permissions
-    if (domainSettings.embedAllowed) {
-      config.allowedHeaders.push('X-Frame-Options', 'X-Embed-Context');
-      config.exposedHeaders.push('X-Frame-Options');
-    }
-
-    // Handle API access permissions
-    if (!domainSettings.apiAccessAllowed) {
-      config.allowedMethods = config.allowedMethods.filter(
-        method => ['GET', 'OPTIONS'].includes(method)
-      );
-    }
-
-    // Remove duplicates and sort
-    config.allowedOrigins = [...new Set(config.allowedOrigins)].sort();
-    config.allowedHeaders = [...new Set(config.allowedHeaders)].sort();
-    config.exposedHeaders = [...new Set(config.exposedHeaders)].sort();
-
-    return config;
-  }
-
-  /**
-   * Generate origins for domain
-   */
-  private generateDomainOrigins(domain: any, settings: DomainCorsSettings): string[] {
-    const origins: string[] = [];
-
-    // Add domain slug origin
-    if (domain.slug) {
-      origins.push(`https://${domain.slug}.keeper.tools`);
-      
-      // Add development variant
-      if (settings.developmentMode) {
-        origins.push(`http://${domain.slug}.localhost:3000`);
+    // Check custom domain
+    if (isCustomDomain && domain.customDomain && domain.customDomainVerified) {
+      const customDomainOrigin = `https://${domain.customDomain}`;
+      if (origin === customDomainOrigin) {
+        return true;
       }
     }
 
-    // Add custom domain origin
-    if (domain.customDomain && domain.customDomainVerified) {
-      origins.push(`https://${domain.customDomain}`);
-      
-      // Add HTTP variant for development
-      if (settings.developmentMode) {
-        origins.push(`http://${domain.customDomain}`);
+    // Check subdomain
+    const subdomainOrigin = `https://${domain.slug}.keeper.tools`;
+    if (origin === subdomainOrigin) {
+      return true;
+    }
+
+    // Check for wildcard subdomains (if enabled)
+    if (domain.settings?.cors?.allowWildcardSubdomains) {
+      const baseDomain = domain.customDomain || `${domain.slug}.keeper.tools`;
+      const wildcardPattern = new RegExp(`^https://[a-zA-Z0-9-]+\\.${baseDomain.replace('.', '\\.')}$`);
+      if (wildcardPattern.test(origin)) {
+        return true;
       }
     }
 
-    return origins;
+    return false;
   }
 
   /**
-   * Extract domain CORS settings
+   * Check if origin is localhost (for development)
    */
-  private extractDomainCorsSettings(domain: any): DomainCorsSettings {
-    const settings = domain.settings || {};
-    const features = domain.features || {};
+  private isLocalhostOrigin(origin: string): boolean {
+    const localhostPatterns = [
+      /^https?:\/\/localhost(:\d+)?$/,
+      /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+      /^https?:\/\/\[::1\](:\d+)?$/,
+    ];
+
+    return localhostPatterns.some(pattern => pattern.test(origin));
+  }
+
+  /**
+   * Get CORS preflight response
+   */
+  async getPreflightResponse(req: DynamicCorsRequest): Promise<{
+    allowOrigin: string;
+    allowMethods: string;
+    allowHeaders: string;
+    maxAge: number;
+  }> {
+    const config = await this.getDomainCorsConfig(req);
     
     return {
-      additionalOrigins: settings.cors?.additional_origins || settings.additional_origins,
-      restrictedMethods: settings.cors?.restricted_methods,
-      customHeaders: settings.cors?.custom_headers,
-      allowCredentials: settings.cors?.allow_credentials ?? true,
-      corsMaxAge: settings.cors?.max_age,
-      embedAllowed: features.allow_embedding ?? false,
-      apiAccessAllowed: features.api_access_enabled ?? true,
-      developmentMode: settings.development_mode ?? (process.env.NODE_ENV === 'development'),
+      allowOrigin: req.headers.origin || '*',
+      allowMethods: config.allowedMethods?.join(', ') || 'GET, POST, PUT, DELETE, OPTIONS',
+      allowHeaders: config.allowedHeaders?.join(', ') || 'Content-Type, Authorization',
+      maxAge: config.maxAge || 86400,
     };
-  }
-
-  /**
-   * Apply CORS headers to response
-   */
-  private applyCorsHeaders(
-    req: Request,
-    res: Response,
-    config: CorsConfig,
-    requestOrigin?: string
-  ): void {
-    // Check if origin is allowed
-    const isOriginAllowed = !requestOrigin || 
-      config.allowedOrigins.includes('*') ||
-      config.allowedOrigins.includes(requestOrigin) ||
-      this.isOriginAllowedByPattern(requestOrigin, config.allowedOrigins);
-
-    // Access-Control-Allow-Origin
-    if (isOriginAllowed) {
-      if (config.credentials && requestOrigin) {
-        res.setHeader('Access-Control-Allow-Origin', requestOrigin);
-      } else if (config.allowedOrigins.includes('*')) {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-      } else if (requestOrigin && config.allowedOrigins.includes(requestOrigin)) {
-        res.setHeader('Access-Control-Allow-Origin', requestOrigin);
-      }
-    }
-
-    // Access-Control-Allow-Methods
-    res.setHeader('Access-Control-Allow-Methods', config.allowedMethods.join(', '));
-
-    // Access-Control-Allow-Headers
-    if (req.method === 'OPTIONS' || config.allowedHeaders.length > 0) {
-      const requestedHeaders = req.headers['access-control-request-headers'];
-      if (requestedHeaders) {
-        // Allow requested headers if they're in our allowed list
-        const requestedHeadersArray = requestedHeaders
-          .split(',')
-          .map(h => h.trim())
-          .filter(h => config.allowedHeaders.includes(h));
-        
-        if (requestedHeadersArray.length > 0) {
-          res.setHeader('Access-Control-Allow-Headers', 
-            [...new Set([...config.allowedHeaders, ...requestedHeadersArray])].join(', ')
-          );
-        } else {
-          res.setHeader('Access-Control-Allow-Headers', config.allowedHeaders.join(', '));
-        }
-      } else {
-        res.setHeader('Access-Control-Allow-Headers', config.allowedHeaders.join(', '));
-      }
-    }
-
-    // Access-Control-Expose-Headers
-    if (config.exposedHeaders.length > 0) {
-      res.setHeader('Access-Control-Expose-Headers', config.exposedHeaders.join(', '));
-    }
-
-    // Access-Control-Allow-Credentials
-    if (config.credentials) {
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-    }
-
-    // Access-Control-Max-Age
-    if (req.method === 'OPTIONS' && config.maxAge > 0) {
-      res.setHeader('Access-Control-Max-Age', config.maxAge.toString());
-    }
-
-    // Vary header to indicate that response varies by Origin
-    const existingVary = res.getHeader('Vary');
-    if (existingVary) {
-      if (!existingVary.toString().includes('Origin')) {
-        res.setHeader('Vary', `${existingVary}, Origin`);
-      }
-    } else {
-      res.setHeader('Vary', 'Origin');
-    }
-
-    // Add security headers
-    this.addSecurityHeaders(res, isOriginAllowed, requestOrigin);
-  }
-
-  /**
-   * Add security headers
-   */
-  private addSecurityHeaders(res: Response, isOriginAllowed: boolean, requestOrigin?: string): void {
-    // X-Content-Type-Options
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-
-    // X-Frame-Options (allow embedding from allowed origins)
-    if (isOriginAllowed && requestOrigin) {
-      res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-    } else {
-      res.setHeader('X-Frame-Options', 'DENY');
-    }
-
-    // Referrer-Policy
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-
-    // X-Permitted-Cross-Domain-Policies
-    res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
-  }
-
-  /**
-   * Check if origin matches any pattern
-   */
-  private isOriginAllowedByPattern(origin: string, allowedOrigins: string[]): boolean {
-    return allowedOrigins.some(allowedOrigin => {
-      // Handle wildcard subdomains (e.g., *.example.com)
-      if (allowedOrigin.includes('*')) {
-        const pattern = allowedOrigin.replace(/\*/g, '.*');
-        const regex = new RegExp(`^${pattern}$`, 'i');
-        return regex.test(origin);
-      }
-      return false;
-    });
-  }
-
-  /**
-   * Extract origin from request
-   */
-  private extractOrigin(req: Request): string | undefined {
-    return req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/');
-  }
-
-  /**
-   * Extract hostname from request
-   */
-  private extractHostname(req: Request): string {
-    const hostname = req.headers.host || 
-                    req.headers['x-forwarded-host'] || 
-                    req.headers['x-original-host'] ||
-                    'localhost:3000';
-    
-    // Remove port if present
-    return hostname.split(':')[0];
   }
 
   /**
    * Validate CORS configuration
    */
-  async validateCorsConfig(domainId: string): Promise<{
-    isValid: boolean;
-    issues: string[];
-    recommendations: string[];
-  }> {
-    const domain = await this.domainService.getDomainById(domainId);
-    if (!domain) {
-      return {
-        isValid: false,
-        issues: ['Domain not found'],
-        recommendations: [],
-      };
-    }
+  validateCorsConfig(config: DomainCorsConfig): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
 
-    const issues: string[] = [];
-    const recommendations: string[] = [];
-    const settings = this.extractDomainCorsSettings(domain);
-
-    // Validate additional origins
-    if (settings.additionalOrigins) {
-      settings.additionalOrigins.forEach(origin => {
+    // Validate allowed origins
+    if (config.allowedOrigins) {
+      config.allowedOrigins.forEach(origin => {
         try {
           new URL(origin);
-        } catch (error) {
-          issues.push(`Invalid additional origin: ${origin}`);
+        } catch {
+          errors.push(`Invalid origin: ${origin}`);
         }
       });
     }
 
-    // Check for overly permissive settings
-    if (settings.additionalOrigins?.includes('*')) {
-      issues.push('Wildcard origin (*) is not recommended for production');
-      recommendations.push('Use specific origins for better security');
+    // Validate methods
+    const validMethods = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'];
+    if (config.allowedMethods) {
+      config.allowedMethods.forEach(method => {
+        if (!validMethods.includes(method.toUpperCase())) {
+          errors.push(`Invalid method: ${method}`);
+        }
+      });
     }
 
-    // Check credentials with wildcard
-    if (settings.allowCredentials && settings.additionalOrigins?.includes('*')) {
-      issues.push('Credentials cannot be used with wildcard origin');
-    }
-
-    // Check custom domain verification
-    if (domain.customDomain && !domain.customDomainVerified) {
-      recommendations.push('Verify custom domain to enable CORS for custom domain origins');
+    // Validate max age
+    if (config.maxAge && (config.maxAge < 0 || config.maxAge > 86400)) {
+      errors.push('Max age must be between 0 and 86400 seconds');
     }
 
     return {
-      isValid: issues.length === 0,
-      issues,
-      recommendations,
+      valid: errors.length === 0,
+      errors,
     };
   }
 
   /**
-   * Test CORS configuration
+   * Update domain CORS configuration
    */
-  async testCorsConfig(domainId: string, testOrigin: string): Promise<{
-    allowed: boolean;
-    config: CorsConfig;
-    explanation: string;
-  }> {
-    const domain = await this.domainService.getDomainById(domainId);
-    const config = await this.generateCorsConfig(domain, testOrigin);
-    
-    const allowed = config.allowedOrigins.includes('*') ||
-                   config.allowedOrigins.includes(testOrigin) ||
-                   this.isOriginAllowedByPattern(testOrigin, config.allowedOrigins);
+  async updateDomainCorsConfig(domainId: string, config: Partial<DomainCorsConfig>): Promise<void> {
+    try {
+      const validation = this.validateCorsConfig(config as DomainCorsConfig);
+      if (!validation.valid) {
+        throw new Error(`Invalid CORS configuration: ${validation.errors.join(', ')}`);
+      }
 
-    let explanation: string;
-    if (allowed) {
-      explanation = `Origin "${testOrigin}" is allowed by CORS configuration`;
-    } else {
-      explanation = `Origin "${testOrigin}" is not in the allowed origins list: ${config.allowedOrigins.join(', ')}`;
+      await prisma.domain.update({
+        where: { id: domainId },
+        data: {
+          settings: {
+            cors: config,
+          },
+        },
+      });
+
+      // Clear cache
+      await cacheService.invalidateDomain(domainId);
+    } catch (error) {
+      console.error('Error updating domain CORS config:', error);
+      throw error;
     }
-
-    return {
-      allowed,
-      config,
-      explanation,
-    };
   }
 
   /**
-   * Get CORS statistics for domain
+   * Get domain CORS statistics
    */
   async getCorsStats(domainId: string, days: number = 7): Promise<{
     totalRequests: number;
-    allowedRequests: number;
     blockedRequests: number;
+    allowedOrigins: string[];
     topOrigins: Array<{ origin: string; count: number }>;
-    topBlockedOrigins: Array<{ origin: string; count: number }>;
   }> {
-    // This would typically integrate with your logging/analytics system
+    // This would integrate with your analytics system
     // For now, return mock data
     return {
       totalRequests: 1000,
-      allowedRequests: 950,
       blockedRequests: 50,
+      allowedOrigins: this.defaultConfig.allowedOrigins || [],
       topOrigins: [
-        { origin: 'https://app.keeper.tools', count: 500 },
-        { origin: 'https://studio.keeper.tools', count: 300 },
-      ],
-      topBlockedOrigins: [
-        { origin: 'https://malicious.com', count: 30 },
-        { origin: 'https://unknown.com', count: 20 },
+        { origin: 'https://keeper.tools', count: 500 },
+        { origin: 'https://app.keeper.tools', count: 300 },
       ],
     };
   }
 }
 
 /**
- * Factory function to create CORS middleware
+ * Create dynamic CORS middleware instance
  */
-export function createDynamicCorsMiddleware(): (req: Request, res: Response, next: NextFunction) => Promise<void> {
-  const prisma = new PrismaClient();
-  const cacheService = new DomainCacheService();
-  const domainService = new DomainService(prisma, cacheService);
-  const resolutionService = new DomainResolutionService(domainService, cacheService);
-  
-  const corsManager = new DynamicCorsManager(
-    prisma,
-    domainService,
-    resolutionService,
-    cacheService
-  );
-
-  return corsManager.createMiddleware();
-}
-
-export default DynamicCorsManager; 
+export function createDynamicCorsMiddleware(config?: DomainCorsConfig) {
+  const middleware = new DynamicCorsMiddleware(config);
+  return middleware.createMiddleware();
+} 
