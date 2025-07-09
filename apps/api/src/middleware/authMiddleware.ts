@@ -12,8 +12,8 @@ const prisma = new PrismaClient();
 export interface AuthenticatedRequest extends Request {
   user: {
     id: string;
-    email: string;
-    name?: string;
+    email: string | null;
+    name?: string | null;
   };
 }
 
@@ -58,7 +58,7 @@ export const authMiddleware = async (
     req.user = {
       id: user.id,
       email: user.email,
-      name: user.name || undefined
+      name: user.name
     };
 
     next();
@@ -104,7 +104,7 @@ export const optionalAuthMiddleware = async (
       req.user = {
         id: user.id,
         email: user.email,
-        name: user.name || undefined
+        name: user.name
       };
     }
 

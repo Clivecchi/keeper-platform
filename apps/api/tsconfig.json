@@ -20,17 +20,17 @@
     "src/middleware/logRequestMiddleware.ts",
     "src/middleware/authMiddleware.ts",
     "src/middleware/validationMiddleware.ts",
-    "src/middleware/dynamicCorsMiddleware.ts",
-    "src/middleware/domainResolutionMiddleware.ts",
-    "src/api/kam/settings.ts",
-    "src/api/domains/routes.ts",
-    "src/api/domains/custom-domain-routes.ts"
+    "src/api/kam/settings.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "src/middleware/domainPermissionMiddleware.ts", 
+    "src/middleware/domainResolutionMiddleware.ts",
+    "src/middleware/dynamicCorsMiddleware.ts",
     "src/middleware/memoryAccessMiddleware.ts",
+    "src/api/domains/routes.ts",
+    "src/api/domains/custom-domain-routes.ts",
     "src/__tests__"
   ]
 } 

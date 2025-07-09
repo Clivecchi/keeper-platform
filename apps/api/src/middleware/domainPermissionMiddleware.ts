@@ -21,36 +21,20 @@ const domainService = new DomainService(prisma, cacheService);
 const permissionService = new DomainPermissionService(prisma, cacheService);
 const resolutionService = new DomainResolutionService(domainService, cacheService);
 
-// Create a basic resolution service implementation
-const resolutionService = {
-  async resolveDomain(hostname: string) {
-    // Simple hostname-based resolution
-    if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
-      return { domain: null, isCustomDomain: false };
-    }
-    
-    // Try to find domain by custom domain
-    const domain = await domainService.getDomainByHostname(hostname);
-    return { 
-      domain, 
-      isCustomDomain: !!domain?.customDomain,
-      originalHostname: hostname,
-      resolvedSlug: domain?.slug || ''
-    };
-  }
-};
-
 export interface DomainAuthenticatedRequest extends Request {
   user: {
     id: string;
-    email: string;
-    name?: string;
+    email: string | null;
+    name?: string | null;
   };
   domainContext?: {
     domain: any;
-    permissions: DomainPermissionType[];
-    role: string;
-    isOwner: boolean;
+    isCustomDomain: boolean;
+    originalHostname: string;
+    resolvedSlug: string;
+    permissions?: DomainPermissionType[];
+    role?: string;
+    isOwner?: boolean;
   };
 }
 

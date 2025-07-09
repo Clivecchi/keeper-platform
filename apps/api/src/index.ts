@@ -3,9 +3,6 @@ import type { Request, Response, Express } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
-// Import domain routes
-import domainRoutes from './api/domains/routes.js';
-
 // Load environment variables
 dotenv.config();
 
@@ -377,9 +374,6 @@ app.get('/api/test', (req, res) => {
     headers: req.headers
   });
 });
-
-// Mount API routes
-app.use('/api/domains', domainRoutes);
 
 // KAM Auth endpoints that the frontend is trying to access
 app.post('/api/kam/auth/login', (req, res) => {

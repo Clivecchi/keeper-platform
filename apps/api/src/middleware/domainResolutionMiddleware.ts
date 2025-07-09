@@ -265,7 +265,7 @@ export class DomainResolutionMiddleware {
       }
 
       // Cache the result
-      await this.cacheService.cacheDomainByHostname(hostname, domain);
+      await this.cacheService.setDomainByHostname(hostname, domain);
 
       return this.validateDomainResult(domain, hostname, true);
     } catch (error) {
@@ -317,7 +317,7 @@ export class DomainResolutionMiddleware {
       }
 
       // Cache the result
-      await this.cacheService.cacheDomainBySlug(subdomain, domain);
+      await this.cacheService.setDomainBySlug(subdomain, domain);
 
       return this.validateDomainResult(domain, hostname, false);
     } catch (error) {
@@ -557,10 +557,13 @@ export class DomainResolutionMiddleware {
    * Utility methods
    */
   private extractHostname(req: Request): string {
-    return req.headers.host || 
-           req.headers['x-forwarded-host'] || 
-           req.headers['x-original-host'] ||
-           'localhost:3000';
+    const host = req.headers.host || 
+                 req.headers['x-forwarded-host'] || 
+                 req.headers['x-original-host'] ||
+                 'localhost:3000';
+    
+    // Handle string array case
+    return Array.isArray(host) ? host[0] : host;
   }
 
   private isValidHostname(hostname: string): boolean {
