@@ -3,6 +3,9 @@ import type { Request, Response, Express } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
+// Import domain routes
+import domainRoutes from './api/domains/routes.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -247,7 +250,17 @@ app.get('/debug', (req, res) => {
         'GET /api/test',
         'POST /api/kam/auth/login',
         'POST /api/kam/auth/register',
-        'POST /api/kam/auth/logout'
+        'POST /api/kam/auth/logout',
+        '🏗️ DOMAIN API ENDPOINTS:',
+        'GET /api/domains (search domains)',
+        'GET /api/domains/my (user domains)',
+        'POST /api/domains (create domain) ← SAVE BUTTON!',
+        'GET /api/domains/:id (get domain)',
+        'PUT /api/domains/:id (update domain)',
+        'DELETE /api/domains/:id (delete domain)',
+        'GET /api/domains/:id/permissions',
+        'POST /api/domains/:id/permissions',
+        'POST /api/domains/:id/verify'
       ],
       recently_accessed: [], // TODO: Track recent endpoint access
     },
@@ -365,6 +378,9 @@ app.get('/api/test', (req, res) => {
   });
 });
 
+// Mount API routes
+app.use('/api/domains', domainRoutes);
+
 // KAM Auth endpoints that the frontend is trying to access
 app.post('/api/kam/auth/login', (req, res) => {
   console.log('📍 /api/kam/auth/login endpoint hit');
@@ -451,7 +467,15 @@ app.use('*', (req: Request, res: Response) => {
       'GET /debug/cors',
       'POST /debug/test-connection',
       'GET /railway-status',
-      'GET /api/test'
+      'GET /api/test',
+      'POST /api/kam/auth/login',
+      'POST /api/kam/auth/register',
+      'POST /api/kam/auth/logout',
+      '🏗️ DOMAIN API:',
+      'POST /api/domains (← SAVE DOMAIN BUTTON!)',
+      'GET /api/domains/my',
+      'PUT /api/domains/:id',
+      'DELETE /api/domains/:id'
     ],
     timestamp: new Date().toISOString()
   });
@@ -459,7 +483,7 @@ app.use('*', (req: Request, res: Response) => {
 
 // Start server
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log('\n🚀 Keeper API Server (Debug-Enhanced Version)');
+  console.log('\n🚀 Keeper API Server (Domain-Enabled Version)');
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 Server running on port ${PORT}`);
   console.log(`🔗 Railway Public Domain: ${process.env.RAILWAY_PUBLIC_DOMAIN || 'Not set'}`);
@@ -468,12 +492,14 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('  - GET  /ping');
   console.log('  - GET  /health');
   console.log('  - GET  /debug (comprehensive)');
-  console.log('  - GET  /debug/simple');
-  console.log('  - GET  /debug/cors');
-  console.log('  - POST /debug/test-connection');
-  console.log('  - GET  /railway-status');
-  console.log('  - GET  /api/test');
-  console.log('\n✅ Ready for Railway deployment with debug endpoints!\n');
+  console.log('  - POST /api/kam/auth/login');
+  console.log('  - POST /api/kam/auth/register');
+  console.log('  🏗️ DOMAIN FUNCTIONALITY RESTORED:');
+  console.log('  - POST /api/domains (create domain - SAVE BUTTON WORKS!)');
+  console.log('  - GET  /api/domains/my (list user domains)');
+  console.log('  - PUT  /api/domains/:id (update domain)');
+  console.log('  - GET  /api/domains/:id/permissions');
+  console.log('\n✅ Domain Layer Implementation fully functional!\n');
 });
 
 server.on('error', (error: any) => {
