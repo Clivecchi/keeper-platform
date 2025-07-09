@@ -507,4 +507,4 @@ server.on('error', (error: any) => {
   process.exit(1);
 });
 
-export default app; 
+// Server is already started with app.listen() above 
