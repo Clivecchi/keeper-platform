@@ -26,7 +26,7 @@ import { PrismaClient } from '@prisma/client'
 
 // Global singleton to prevent multiple instances in development
 declare global {
-  var __prisma: PrismaClient | undefined
+  var __prisma: InstanceType<typeof PrismaClient> | undefined
 }
 
 /**
@@ -58,6 +58,7 @@ export * from './queries/index.js'
 // SERVICES EXPORT
 // =============================================================================
 export { DomainService } from './services/DomainService.js'
+export { DomainServiceFactory } from './services/DomainServiceFactory.js'
 export { DomainPermissionService } from './services/DomainPermissionService.js'
 export { DomainCacheService } from './services/DomainCacheService.js'
 export { SslCertificateService } from './services/SslCertificateService.js'
@@ -65,7 +66,7 @@ export { DomainHealthMonitoringService } from './services/DomainHealthMonitoring
 export { CrossDomainSharingService } from './services/CrossDomainSharingService.js'
 export { ShareWorkflowAutomationService } from './services/ShareWorkflowAutomationService.js'
 export { SoleMemoryIsolationService } from './services/SoleMemoryIsolationService.js'
-export { FeatureFlagService } from './services/FeatureFlagService.js'
+export { FeatureFlagService, getFeatureFlagService } from './services/FeatureFlagService.js'
 export { DomainResolutionService } from './services/DomainResolutionService.js'
 export { DomainVerificationService } from './services/DomainVerificationService.js'
 export { MemoryMigrationService } from './services/MemoryMigrationService.js'

@@ -4,9 +4,9 @@
  */
 
 import { PrismaClient, Domain, DomainPermission } from '@prisma/client';
-import { SlugValidationService } from './SlugValidationService';
-import { DomainCacheService } from './DomainCacheService';
-import { getFeatureFlagService } from './FeatureFlagService';
+import { SlugValidationService } from './SlugValidationService.js';
+import { DomainCacheService } from './DomainCacheService.js';
+import { getFeatureFlagService } from './FeatureFlagService.js';
 
 // Define the Domain with includes type for Prisma queries
 export type DomainWithIncludes = Domain & {

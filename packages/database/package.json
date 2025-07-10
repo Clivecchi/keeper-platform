@@ -8,15 +8,21 @@
   "exports": {
     ".": {
       "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./queries": {
       "import": "./dist/queries/index.js",
-      "types": "./dist/queries/index.d.ts"
+      "require": "./dist/queries/index.js",
+      "types": "./dist/queries/index.d.ts",
+      "default": "./dist/queries/index.js"
     },
     "./types": {
       "import": "./dist/types.js",
-      "types": "./dist/types.d.ts"
+      "require": "./dist/types.js",
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
     }
   },
   "scripts": {

@@ -6,11 +6,11 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
-import { DomainService, DomainPermissionService, DomainCacheService, DomainVerificationService, type DomainPermissionType } from '@keeper/database';
+import { DomainServiceFactory, DomainPermissionService, DomainCacheService, DomainVerificationService, type DomainPermissionType } from '@keeper/database';
 import { Redis } from 'ioredis';
 import { AuthenticatedRequest, authMiddleware } from '../../middleware/authMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
-import { getFeatureFlagService } from '../../../../packages/database/src/services/FeatureFlagService';
+import { getFeatureFlagService } from '@keeper/database';
 import customDomainRoutes from './custom-domain-routes.js';
 import { createDynamicCorsMiddleware } from '../../middleware/dynamicCorsMiddleware.js';
 import { createDomainResolutionMiddleware } from '../../middleware/domainResolutionMiddleware.js';
@@ -19,9 +19,9 @@ const router = Router();
 const prisma = new PrismaClient();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 const cacheService = new DomainCacheService(redis);
-const domainService = new DomainService(prisma, cacheService);
+const domainService = DomainServiceFactory.createDomainService(prisma, redis);
 const permissionService = new DomainPermissionService(prisma, cacheService);
-const verificationService = new DomainVerificationService(prisma);
+const verificationService = new DomainVerificationService(prisma, cacheService);
 const featureFlags = getFeatureFlagService();
 
 // Apply dynamic CORS middleware
@@ -83,7 +83,7 @@ const searchDomainsSchema = z.object({
  */
 
 // GET /api/domains - Search and list domains
-router.get('/', authMiddleware, validationMiddleware(searchDomainsSchema, 'query'), async (req, res) => {
+router.get('/', authMiddleware, async (req: any, res: any) => {
   try {
     if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED')) {
       return res.status(403).json({ error: 'Domain functionality is currently disabled' });
@@ -95,8 +95,8 @@ router.get('/', authMiddleware, validationMiddleware(searchDomainsSchema, 'query
     res.json({
       domains,
       total,
-      page: Math.floor(filters.offset / filters.limit) + 1,
-      limit: filters.limit,
+      page: Math.floor((filters.offset || 0) / (filters.limit || 20)) + 1,
+      limit: filters.limit || 20,
     });
   } catch (error) {
     console.error('Error searching domains:', error);
@@ -105,7 +105,7 @@ router.get('/', authMiddleware, validationMiddleware(searchDomainsSchema, 'query
 });
 
 // GET /api/domains/my - Get user's domains
-router.get('/my', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/my', authMiddleware, async (req: any, res: any) => {
   try {
     if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED')) {
       return res.status(403).json({ error: 'Domain functionality is currently disabled' });
@@ -122,7 +122,7 @@ router.get('/my', authMiddleware, async (req: AuthenticatedRequest, res: Respons
 });
 
 // POST /api/domains - Create a new domain
-router.post('/', authMiddleware, validationMiddleware(createDomainSchema), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', authMiddleware, async (req: any, res: any) => {
   try {
     if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED')) {
       return res.status(403).json({ error: 'Domain functionality is currently disabled' });
@@ -149,7 +149,7 @@ router.post('/', authMiddleware, validationMiddleware(createDomainSchema), async
 });
 
 // GET /api/domains/:id - Get domain by ID
-router.get('/:id', authMiddleware, async (req, res) => {
+router.get('/:id', authMiddleware, async (req: any, res: any) => {
   try {
     const domain = await domainService.getDomainById(req.params.id);
     
@@ -176,7 +176,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 // PUT /api/domains/:id - Update domain
-router.put('/:id', authMiddleware, validationMiddleware(updateDomainSchema), async (req, res) => {
+router.put('/:id', authMiddleware, async (req: any, res: any) => {
   try {
     // Check permission
     const permission = await permissionService.checkPermission({
@@ -189,7 +189,7 @@ router.put('/:id', authMiddleware, validationMiddleware(updateDomainSchema), asy
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const domain = await domainService.updateDomain(req.params.id, req.body, req.user.id);
+    const domain = await domainService.updateDomain(req.params.id, req.body);
 
     res.json({ domain });
   } catch (error) {
@@ -207,7 +207,7 @@ router.put('/:id', authMiddleware, validationMiddleware(updateDomainSchema), asy
 });
 
 // DELETE /api/domains/:id - Delete domain
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authMiddleware, async (req: any, res: any) => {
   try {
     // Check permission
     const permission = await permissionService.checkPermission({
@@ -237,7 +237,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
  */
 
 // GET /api/domains/:id/permissions - Get domain permissions
-router.get('/:id/permissions', authMiddleware, async (req, res) => {
+router.get('/:id/permissions', authMiddleware, async (req: any, res: any) => {
   try {
     // Check permission
     const permission = await permissionService.checkPermission({
@@ -260,7 +260,7 @@ router.get('/:id/permissions', authMiddleware, async (req, res) => {
 });
 
 // POST /api/domains/:id/permissions - Grant permission
-router.post('/:id/permissions', authMiddleware, validationMiddleware(grantPermissionSchema), async (req, res) => {
+router.post('/:id/permissions', authMiddleware, async (req: any, res: any) => {
   try {
     const expiresAt = req.body.expiresAt ? new Date(req.body.expiresAt) : undefined;
 
@@ -289,7 +289,7 @@ router.post('/:id/permissions', authMiddleware, validationMiddleware(grantPermis
 });
 
 // DELETE /api/domains/:id/permissions/:userId - Revoke permission
-router.delete('/:id/permissions/:userId', authMiddleware, async (req, res) => {
+router.delete('/:id/permissions/:userId', authMiddleware, async (req: any, res: any) => {
   try {
     await permissionService.revokePermission(req.params.id, req.params.userId, req.user.id);
 

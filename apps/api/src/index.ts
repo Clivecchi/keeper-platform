@@ -4,8 +4,8 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import { z } from 'zod';
 
-// Import domain routes - temporarily disabled due to TypeScript errors
-// import domainRoutes from './api/domains/routes.js';
+// Import domain routes
+import domainRoutes from './api/domains/routes.js';
 import { updateUser } from '@keeper/database';
 import { authMiddleware, AuthenticatedRequest } from './middleware/authMiddleware.js';
 
@@ -444,9 +444,7 @@ app.post('/api/kam/auth/logout', (req, res) => {
   });
 });
 
-// User profile update route - temporarily commented out due to TypeScript middleware issues
-// Will be restored after fixing middleware typing
-/*
+// User profile update route
 app.put('/api/users/:id', authMiddleware, async (req: any, res: Response) => {
   try {
     const userId = req.params.id;
@@ -483,40 +481,9 @@ app.put('/api/users/:id', authMiddleware, async (req: any, res: Response) => {
     });
   }
 });
-*/
-
-// Basic user profile update route without auth middleware for testing
-app.put('/api/users/:id', async (req: Request, res: Response) => {
-  try {
-    const userId = req.params.id;
-    
-    // Validate input
-    const updateData = UpdateUserSchema.parse(req.body);
-    
-    // Update user
-    const updatedUser = await updateUser(userId, updateData);
-    
-    res.json({
-      success: true,
-      data: {
-        id: updatedUser.id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        avatar_url: updatedUser.avatar_url,
-      },
-    });
-  } catch (error) {
-    console.error('User update error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update user profile',
-    });
-  }
-});
 
 // Connect domain routes
-// Temporarily disabled domain routes due to TypeScript compilation errors
-// app.use('/api/domains', domainRoutes);
+app.use('/api/domains', domainRoutes);
 
 // Catch-all error handler
 app.use((err: any, req: Request, res: Response, next: any) => {
