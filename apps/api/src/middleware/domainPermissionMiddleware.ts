@@ -3,13 +3,16 @@
  * Handles domain-based access control and permission checking
  */
 
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@keeper/database';
-import { DomainPermissionService } from '@keeper/database';
+import { DomainPermissionService, DomainCacheService } from '@keeper/database';
 import { AuthenticatedRequest } from './authMiddleware';
+import { Redis } from 'ioredis';
 
 const prisma = new PrismaClient();
-const permissionService = new DomainPermissionService(prisma);
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const cacheService = new DomainCacheService(redis);
+const permissionService = new DomainPermissionService(prisma, cacheService);
 
 export type DomainPermissionType = 'read' | 'write' | 'share' | 'admin' | 'invite' | 'delete';
 
@@ -230,7 +233,6 @@ export class DomainPermissionMiddleware {
         where: {
           domainId: domain.id,
           userId: userId,
-          isActive: true,
         },
       });
 
@@ -264,7 +266,6 @@ export class DomainPermissionMiddleware {
         where: {
           domainId: domainId,
           ownerId: userId,
-          isActive: true,
         },
       });
 
@@ -277,7 +278,6 @@ export class DomainPermissionMiddleware {
         where: {
           domainId: domainId,
           ownerId: userId,
-          isActive: true,
         },
       });
 
@@ -290,7 +290,6 @@ export class DomainPermissionMiddleware {
         where: {
           domainId: domainId,
           ownerId: userId,
-          isActive: true,
         },
       });
 
@@ -321,7 +320,6 @@ export class DomainPermissionMiddleware {
       const sharedDomain = await prisma.crossDomainShare.findFirst({
         where: {
           targetDomainId: domainId,
-          isActive: true,
         },
         include: {
           sourceDomain: true,
@@ -366,7 +364,6 @@ export class DomainPermissionMiddleware {
           role,
           grantedBy,
           grantedAt: new Date(),
-          isActive: true,
         },
         create: {
           domainId,
@@ -375,7 +372,6 @@ export class DomainPermissionMiddleware {
           role,
           grantedBy,
           grantedAt: new Date(),
-          isActive: true,
         },
       });
     } catch (error) {
@@ -389,13 +385,12 @@ export class DomainPermissionMiddleware {
    */
   async revokePermission(domainId: string, userId: string): Promise<void> {
     try {
-      await prisma.domainPermission.updateMany({
+      await prisma.domainPermission.delete({
         where: {
-          domainId,
-          userId,
-        },
-        data: {
-          isActive: false,
+          domainId_userId: {
+            domainId,
+            userId,
+          },
         },
       });
     } catch (error) {
@@ -417,7 +412,6 @@ export class DomainPermissionMiddleware {
       const domainPermissions = await prisma.domainPermission.findMany({
         where: {
           domainId,
-          isActive: true,
         },
         include: {
           user: {
@@ -459,4 +453,29 @@ export const requireDomainRead = domainPermissionMiddleware.checkPermission('rea
 export const requireDomainWrite = domainPermissionMiddleware.checkPermission('write');
 export const requireDomainAdmin = domainPermissionMiddleware.checkPermission('admin');
 export const requireDomainOwnership = domainPermissionMiddleware.requireOwnership();
-export const loadDomainPermissions = domainPermissionMiddleware.loadPermissions(); 
+export const loadDomainPermissions = domainPermissionMiddleware.loadPermissions();
+
+/**
+ * Express-compatible middleware wrappers
+ * These work with standard Express Request type and handle internal type conversion
+ */
+
+export const requireDomainReadCompat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return requireDomainRead(req as DomainPermissionRequest, res, next);
+};
+
+export const requireDomainWriteCompat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return requireDomainWrite(req as DomainPermissionRequest, res, next);
+};
+
+export const requireDomainAdminCompat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return requireDomainAdmin(req as DomainPermissionRequest, res, next);
+};
+
+export const requireDomainOwnershipCompat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return requireDomainOwnership(req as DomainPermissionRequest, res, next);
+};
+
+export const loadDomainPermissionsCompat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return loadDomainPermissions(req as DomainPermissionRequest, res, next);
+}; 

@@ -3,12 +3,13 @@
  * RESTful endpoints for domain CRUD operations, permissions, and verification
  */
 
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
 import { DomainServiceFactory, DomainPermissionService, DomainCacheService, DomainVerificationService, type DomainPermissionType } from '@keeper/database';
 import { Redis } from 'ioredis';
-import { AuthenticatedRequest, authMiddleware } from '../../middleware/authMiddleware.js';
+import { AuthenticatedRequest, authMiddlewareCompat } from '../../middleware/authMiddleware.js';
+import { requireDomainAdminCompat, requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { getFeatureFlagService } from '@keeper/database';
 import customDomainRoutes from './custom-domain-routes.js';
@@ -83,49 +84,63 @@ const searchDomainsSchema = z.object({
  */
 
 // GET /api/domains - Search and list domains
-router.get('/', authMiddleware, async (req: any, res: any) => {
+router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
     if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED')) {
-      return res.status(403).json({ error: 'Domain functionality is currently disabled' });
+      return res.status(404).json({ error: 'Feature not enabled' });
     }
 
-    const filters = req.query;
+    const { search, limit = 20, offset = 0 } = req.query;
+    const filters = { 
+      search: typeof search === 'string' ? search : undefined, 
+      limit: Number(limit), 
+      offset: Number(offset) 
+    };
+
     const { domains, total } = await domainService.searchDomains(filters);
 
-    res.json({
+    return res.json({
       domains,
       total,
-      page: Math.floor((filters.offset || 0) / (filters.limit || 20)) + 1,
-      limit: filters.limit || 20,
+      page: Math.floor((Number(filters.offset) || 0) / (Number(filters.limit) || 20)) + 1,
+      limit: Number(filters.limit) || 20,
     });
   } catch (error) {
     console.error('Error searching domains:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // GET /api/domains/my - Get user's domains
-router.get('/my', authMiddleware, async (req: any, res: any) => {
+router.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
     if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED')) {
-      return res.status(403).json({ error: 'Domain functionality is currently disabled' });
+      return res.status(404).json({ error: 'Feature not enabled' });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
     const userId = req.user.id;
     const domains = await domainService.getUserDomains(userId);
 
-    res.json({ domains });
+    return res.json(domains);
   } catch (error) {
     console.error('Error fetching user domains:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // POST /api/domains - Create a new domain
-router.post('/', authMiddleware, async (req: any, res: any) => {
+router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
     if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED')) {
-      return res.status(403).json({ error: 'Domain functionality is currently disabled' });
+      return res.status(404).json({ error: 'Feature not enabled' });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
     const domain = await domainService.createDomain({
@@ -133,28 +148,29 @@ router.post('/', authMiddleware, async (req: any, res: any) => {
       ownerId: req.user.id,
     });
 
-    res.status(201).json({ domain });
+    return res.status(201).json({ domain });
   } catch (error) {
     console.error('Error creating domain:', error);
     if (error instanceof Error) {
       if (error.message.includes('already exists')) {
         return res.status(409).json({ error: error.message });
       }
-      if (error.message.includes('Invalid slug')) {
-        return res.status(400).json({ error: error.message });
-      }
     }
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // GET /api/domains/:id - Get domain by ID
-router.get('/:id', authMiddleware, async (req: any, res: any) => {
+router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
     const domain = await domainService.getDomainById(req.params.id);
     
     if (!domain) {
       return res.status(404).json({ error: 'Domain not found' });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
     // Check permission
@@ -168,16 +184,20 @@ router.get('/:id', authMiddleware, async (req: any, res: any) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    res.json({ domain });
+    return res.json({ domain });
   } catch (error) {
     console.error('Error fetching domain:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // PUT /api/domains/:id - Update domain
-router.put('/:id', authMiddleware, async (req: any, res: any) => {
+router.put('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     // Check permission
     const permission = await permissionService.checkPermission({
       userId: req.user.id,
@@ -191,7 +211,7 @@ router.put('/:id', authMiddleware, async (req: any, res: any) => {
 
     const domain = await domainService.updateDomain(req.params.id, req.body);
 
-    res.json({ domain });
+    return res.json({ domain });
   } catch (error) {
     console.error('Error updating domain:', error);
     if (error instanceof Error) {
@@ -202,13 +222,17 @@ router.put('/:id', authMiddleware, async (req: any, res: any) => {
         return res.status(409).json({ error: error.message });
       }
     }
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // DELETE /api/domains/:id - Delete domain
-router.delete('/:id', authMiddleware, async (req: any, res: any) => {
+router.delete('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     // Check permission
     const permission = await permissionService.checkPermission({
       userId: req.user.id,
@@ -222,13 +246,13 @@ router.delete('/:id', authMiddleware, async (req: any, res: any) => {
 
     await domainService.deleteDomain(req.params.id, req.user.id);
 
-    res.status(204).send();
+    return res.status(204).send();
   } catch (error) {
     console.error('Error deleting domain:', error);
     if (error instanceof Error && error.message.includes('not found')) {
       return res.status(404).json({ error: error.message });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -237,8 +261,12 @@ router.delete('/:id', authMiddleware, async (req: any, res: any) => {
  */
 
 // GET /api/domains/:id/permissions - Get domain permissions
-router.get('/:id/permissions', authMiddleware, async (req: any, res: any) => {
+router.get('/:id/permissions', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     // Check permission
     const permission = await permissionService.checkPermission({
       userId: req.user.id,
@@ -252,16 +280,20 @@ router.get('/:id/permissions', authMiddleware, async (req: any, res: any) => {
 
     const users = await permissionService.getDomainUsers(req.params.id);
 
-    res.json({ users });
+    return res.json({ users });
   } catch (error) {
     console.error('Error fetching domain permissions:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // POST /api/domains/:id/permissions - Grant permission
-router.post('/:id/permissions', authMiddleware, async (req: any, res: any) => {
+router.post('/:id/permissions', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     const expiresAt = req.body.expiresAt ? new Date(req.body.expiresAt) : undefined;
 
     const permission = await permissionService.grantPermission({
@@ -273,7 +305,7 @@ router.post('/:id/permissions', authMiddleware, async (req: any, res: any) => {
       expiresAt,
     });
 
-    res.status(201).json({ permission });
+    return res.status(201).json({ permission });
   } catch (error) {
     console.error('Error granting permission:', error);
     if (error instanceof Error) {
@@ -284,16 +316,20 @@ router.post('/:id/permissions', authMiddleware, async (req: any, res: any) => {
         return res.status(404).json({ error: error.message });
       }
     }
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // DELETE /api/domains/:id/permissions/:userId - Revoke permission
-router.delete('/:id/permissions/:userId', authMiddleware, async (req: any, res: any) => {
+router.delete('/:id/permissions/:userId', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
     await permissionService.revokePermission(req.params.id, req.params.userId, req.user.id);
 
-    res.status(204).send();
+    return res.status(204).send();
   } catch (error) {
     console.error('Error revoking permission:', error);
     if (error instanceof Error) {
@@ -304,7 +340,7 @@ router.delete('/:id/permissions/:userId', authMiddleware, async (req: any, res: 
         return res.status(400).json({ error: error.message });
       }
     }
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -313,23 +349,27 @@ router.delete('/:id/permissions/:userId', authMiddleware, async (req: any, res: 
  */
 
 // GET /api/domains/resolve/:hostname - Resolve domain by hostname
-router.get('/resolve/:hostname', async (req, res) => {
+router.get('/resolve/:hostname', async (req: Request, res: Response) => {
   try {
     const hostname = req.params.hostname;
-    const resolution = await verificationService.resolveDomain(hostname);
+    const domain = await domainService.getDomainByHostname(hostname);
 
-    res.json(resolution);
+    return res.json({ domain });
   } catch (error) {
     console.error('Error resolving domain:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // POST /api/domains/:id/verify - Verify custom domain
-router.post('/:id/verify', authMiddleware, async (req, res) => {
+router.post('/:id/verify', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
     if (!featureFlags.isEnabled('CUSTOM_DOMAINS_ENABLED')) {
       return res.status(403).json({ error: 'Custom domains are currently disabled' });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
     // Check permission
@@ -352,22 +392,28 @@ router.post('/:id/verify', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'No custom domain configured' });
     }
 
-    // In a real implementation, this would perform actual DNS/HTTP verification
-    // For now, we'll simulate verification
-    const isVerified = await simulateCustomDomainVerification(domain.customDomain);
+    // Simulate verification
+    const verified = await simulateCustomDomainVerification(domain.customDomain);
 
-    if (isVerified) {
+    if (verified) {
       await domainService.updateDomain(req.params.id, {
-        customDomain: domain.customDomain,
-      }, req.user.id);
+        customDomainVerified: true,
+      });
 
-      res.json({ success: true, message: 'Domain verified successfully' });
+      return res.json({
+        success: true,
+        message: 'Custom domain verified successfully',
+        domain: { ...domain, customDomainVerified: true },
+      });
     } else {
-      res.status(400).json({ error: 'Domain verification failed' });
+      return res.status(400).json({
+        success: false,
+        message: 'Domain verification failed. Please check your DNS settings.',
+      });
     }
   } catch (error) {
     console.error('Error verifying domain:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -376,54 +422,34 @@ router.post('/:id/verify', authMiddleware, async (req, res) => {
  */
 
 // GET /api/domains/:id/stats - Get domain statistics
-router.get('/:id/stats', authMiddleware, async (req, res) => {
+router.get('/:id/stats', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
-    // Check permission
-    const permission = await permissionService.checkPermission({
-      userId: req.user.id,
-      domainId: req.params.id,
-      permission: 'read',
-    });
-
-    if (!permission.hasPermission) {
-      return res.status(403).json({ error: 'Access denied' });
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const [domainStats, permissionStats] = await Promise.all([
-      domainService.getDomainStats(req.params.id),
-      permissionService.getPermissionStats(req.params.id),
-    ]);
+    const stats = await domainService.getDomainStats(req.params.id);
 
-    res.json({
-      ...domainStats,
-      permissions: permissionStats,
-    });
+    return res.json({ stats });
   } catch (error) {
     console.error('Error fetching domain stats:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // GET /api/domains/:id/health - Check domain health
-router.get('/:id/health', authMiddleware, async (req, res) => {
+router.get('/:id/health', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
-    // Check permission
-    const permission = await permissionService.checkPermission({
-      userId: req.user.id,
-      domainId: req.params.id,
-      permission: 'read',
-    });
-
-    if (!permission.hasPermission) {
-      return res.status(403).json({ error: 'Access denied' });
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
     const health = await domainService.checkDomainHealth(req.params.id);
 
-    res.json(health);
+    return res.json({ health });
   } catch (error) {
     console.error('Error checking domain health:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
