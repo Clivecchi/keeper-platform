@@ -663,7 +663,7 @@ export function createProductionRoutes(
     try {
       const { reason } = req.body;
       
-      monitoringService.log('critical', 'Emergency shutdown initiated', 'production-api', { 
+      monitoringService.log('error', 'Emergency shutdown initiated', 'production-api', { 
         reason,
         userId: req.user?.id 
       });

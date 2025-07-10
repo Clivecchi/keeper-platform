@@ -9,25 +9,20 @@ import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../../middleware/authMiddleware';
 import { validationMiddleware } from '../../middleware/validationMiddleware';
 import { 
-  domainContextMiddleware, 
-  requireDomainPermission, 
-  requireContentPermission,
-  domainScopedQuery,
-  filterContentByDomainPermissions,
-  type DomainAuthenticatedRequest 
+  requireDomainReadCompat, 
+  requireDomainWriteCompat, 
+  requireDomainAdminCompat,
+  AuthenticatedRequest as DomainAuthenticatedRequest 
 } from '../../middleware/domainPermissionMiddleware';
-import { DomainService } from '../../../../packages/database/src/services/DomainService';
-import { DomainCacheService } from '../../../../packages/database/src/services/DomainCacheService';
-import { getFeatureFlagService } from '../../../../packages/database/src/services/FeatureFlagService';
+import { DomainService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
+import { Redis } from 'ioredis';
 
 const router = Router();
 const prisma = new PrismaClient();
-const cacheService = new DomainCacheService();
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
 const featureFlags = getFeatureFlagService();
-
-// Apply domain context middleware to all routes
-router.use(domainContextMiddleware);
 
 // Validation schemas
 const createKeeperSchema = z.object({
@@ -68,7 +63,7 @@ const keeperSearchSchema = z.object({
  */
 router.get('/', 
   authMiddleware,
-  domainScopedQuery('user'),
+  requireDomainReadCompat,
   validationMiddleware(keeperSearchSchema, 'query'),
   async (req: DomainAuthenticatedRequest, res) => {
     try {
@@ -167,17 +162,10 @@ router.get('/:id',
               ownerId: true,
             },
           },
-          journeys: {
+          Journey: {
             select: {
               id: true,
-              title: true,
-              createdAt: true,
-            },
-          },
-          moments: {
-            select: {
-              id: true,
-              title: true,
+              name: true,
               createdAt: true,
             },
           },

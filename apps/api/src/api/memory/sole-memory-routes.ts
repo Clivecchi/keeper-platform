@@ -6,16 +6,21 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
-import { SoleMemoryIsolationService } from '../../../../packages/database/src/services/SoleMemoryIsolationService';
-import { DomainCacheService } from '../../../../packages/database/src/services/DomainCacheService';
+import { SoleMemoryIsolationService, DomainCacheService } from '@keeper/database';
 import { authMiddleware } from '../../middleware/authMiddleware';
-import { domainPermissionMiddleware } from '../../middleware/domainPermissionMiddleware';
+import { 
+  requireDomainReadCompat, 
+  requireDomainWriteCompat, 
+  requireDomainAdminCompat 
+} from '../../middleware/domainPermissionMiddleware';
 import { createMemoryAccessMiddleware, createCrossDomainMemoryMiddleware } from '../../middleware/memoryAccessMiddleware';
 import { rateLimit } from 'express-rate-limit';
+import { Redis } from 'ioredis';
 
 const router = Router();
 const prisma = new PrismaClient();
-const cacheService = new DomainCacheService();
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const cacheService = new DomainCacheService(redis);
 const memoryService = new SoleMemoryIsolationService(prisma, cacheService);
 
 // Rate limiting for memory operations
@@ -111,7 +116,7 @@ router.use(authMiddleware);
  */
 router.get(
   '/:domainId/scope',
-  domainPermissionMiddleware(['admin', 'user']),
+  requireDomainReadCompat,
   createMemoryAccessMiddleware({ minAccessLevel: 'read' }),
   async (req: Request, res: Response) => {
     try {
@@ -144,12 +149,21 @@ router.get(
  */
 router.post(
   '/:domainId/query',
-  domainPermissionMiddleware(['admin', 'user']),
+  requireDomainReadCompat,
   createMemoryAccessMiddleware({ minAccessLevel: 'read' }),
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
-      const userId = req.user!.id;
+      
+      // Check if user is authenticated
+      if (!req.user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Authentication required' 
+        });
+      }
+      
+      const userId = req.user.id;
       const validation = memoryQuerySchema.parse(req.body);
 
       const query = {

@@ -147,14 +147,12 @@ router.get('/',
                 type: true,
               },
             },
-            moments: {
+            Moment: {
               select: {
                 id: true,
                 title: true,
                 createdAt: true,
               },
-              orderBy: { createdAt: 'desc' },
-              take: 5,
             },
           },
         }),
