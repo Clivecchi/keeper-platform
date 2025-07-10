@@ -16,7 +16,7 @@ const prisma = new PrismaClient();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 const cacheService = new DomainCacheService(redis);
 const soleMemoryService = new SoleMemoryIsolationService(prisma, cacheService);
-const featureFlagService = new FeatureFlagService(prisma);
+const featureFlagService = new FeatureFlagService();
 
 // Basic feature flag service implementation
 const getFeatureFlagService = () => ({
@@ -54,16 +54,27 @@ const getSoleMemoryService = () => ({
 export type MemoryAccessType = 'read' | 'write' | 'admin';
 
 export interface MemoryAccessRequest extends Request {
-  user: {
+  user?: {
     id: string;
-    email: string;
-    name?: string;
+    email: string | null;
+    name?: string | null;
+    role?: string | null;
   };
   memoryContext?: {
     memoryId: string;
     accessType: MemoryAccessType;
     permissions: string[];
     domainId?: string;
+    memoryScope?: any;
+    accessLevel?: string;
+    quotaStatus?: {
+      current: number;
+      max: number;
+      percentage: number;
+      exceeded: boolean;
+    };
+    restrictions?: string[];
+    allowedCategories?: string[];
   };
 }
 
@@ -185,6 +196,9 @@ export class MemoryAccessManager {
 
         // Set memory context
         req.memoryContext = {
+          memoryId: domainId! + '_memory',
+          accessType: minAccessLevel as MemoryAccessType,
+          permissions: allowedCategories,
           domainId: domainId!,
           memoryScope,
           accessLevel,
@@ -595,11 +609,12 @@ export class MemoryAccessManager {
           accessType: accessLevel as any,
           operation,
           requestSource: 'api',
-          sessionId: req.sessionID,
+          sessionId: (req as any).sessionId || 'unknown',
           ipAddress: req.ip,
           userAgent: req.headers['user-agent'],
           accessGranted: true,
           timestamp: new Date(),
+          memoryCategory: 'general',
         },
       });
     } catch (error) {

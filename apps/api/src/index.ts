@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express from 'express';
 import type { Request, Response, Express } from 'express';
 import dotenv from 'dotenv';
@@ -8,7 +7,7 @@ import { z } from 'zod';
 // Import domain routes
 import domainRoutes from './api/domains/routes.js';
 import { updateUser } from '@keeper/database';
-import { authMiddleware, AuthenticatedRequest } from './middleware/authMiddleware.js';
+import { authMiddleware, authMiddlewareCompat, AuthenticatedRequest } from './middleware/authMiddleware.js';
 
 // Load environment variables
 dotenv.config();
@@ -446,9 +445,18 @@ app.post('/api/kam/auth/logout', (req, res) => {
 });
 
 // User profile update route
-app.put('/api/users/:id', authMiddleware, async (req: Request, res: Response) => {
+app.put('/api/users/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
+    
+    // Check if user is authenticated
+    if (!req.user) {
+      res.status(401).json({ 
+        success: false, 
+        error: 'Authentication required' 
+      });
+      return;
+    }
     
     // Ensure user can only update their own profile
     if (userId !== req.user.id) {

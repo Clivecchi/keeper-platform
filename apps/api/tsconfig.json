@@ -4,9 +4,9 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "baseUrl": "./src",
-    "module": "CommonJS",
-    "target": "ES2020",
-    "moduleResolution": "node",
+    "module": "ESNext",
+    "target": "ES2022",
+    "moduleResolution": "bundler",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
@@ -18,21 +18,11 @@
     }
   },
   "include": [
-    "src/index.ts",
-    "src/middleware/logRequestMiddleware.ts",
-    "src/middleware/authMiddleware.ts",
-    "src/middleware/validationMiddleware.ts",
-    "src/api/kam/settings.ts"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "src/middleware/domainPermissionMiddleware.ts", 
-    "src/middleware/domainResolutionMiddleware.ts",
-    "src/middleware/dynamicCorsMiddleware.ts",
-    "src/middleware/memoryAccessMiddleware.ts",
-    "src/api/domains/routes.ts",
-    "src/api/domains/custom-domain-routes.ts",
     "src/__tests__"
   ]
 } 
