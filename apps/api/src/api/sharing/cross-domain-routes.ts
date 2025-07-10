@@ -1,36 +1,22 @@
 /**
  * Cross-Domain Sharing API Routes
- * Comprehensive endpoints for secure cross-domain sharing and collaboration
+ * Endpoints for managing cross-domain content sharing and permissions
  */
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@keeper/database';
-import { CrossDomainSharingService, DomainCacheService, ShareWorkflowAutomationService } from '@keeper/database';
-import { authMiddleware } from '../../middleware/authMiddleware.js';
-import { domainPermissionMiddleware } from '../../middleware/domainPermissionMiddleware.js';
-import rateLimit from 'express-rate-limit';
+import { PrismaClient } from '@prisma/client';
+import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
+import { requireDomainAdminCompat, requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
+import { validationMiddleware } from '../../middleware/validationMiddleware.js';
+import { CrossDomainSharingService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
 import { Redis } from 'ioredis';
 
-const router = Router();
+const router: Router = Router();
 const prisma = new PrismaClient();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-const cacheService = new DomainCacheService(redis);
-const sharingService = new CrossDomainSharingService(prisma, cacheService);
-const workflowService = new ShareWorkflowAutomationService(prisma, cacheService);
-
-// Rate limiting for sharing operations
-const sharingRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // limit each IP to 200 requests per windowMs
-  message: 'Too many sharing requests from this IP, please try again later.',
-});
-
-const approvalRateLimit = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 50, // limit each IP to 50 approval requests per minute
-  message: 'Too many approval requests, please try again later.',
-});
+const sharingService = new CrossDomainSharingService(prisma, new DomainCacheService(redis));
+const featureFlags = getFeatureFlagService();
 
 // Validation schemas
 const shareRequestSchema = z.object({
@@ -109,8 +95,7 @@ const activationSchema = z.object({
 });
 
 // Apply middleware
-router.use(sharingRateLimit);
-router.use(authMiddleware);
+router.use(authMiddlewareCompat);
 
 /**
  * @route POST /api/sharing/:sourceDomainId/requests
@@ -119,7 +104,7 @@ router.use(authMiddleware);
  */
 router.post(
   '/:sourceDomainId/requests',
-  domainPermissionMiddleware(['admin', 'user']),
+  requireDomainWriteCompat,
   async (req: Request, res: Response) => {
     try {
       const { sourceDomainId } = req.params;
@@ -156,7 +141,7 @@ router.post(
  */
 router.get(
   '/:domainId/requests',
-  domainPermissionMiddleware(['admin', 'user']),
+  requireDomainReadCompat,
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
@@ -276,7 +261,6 @@ router.get(
  */
 router.post(
   '/requests/:requestId/approve',
-  approvalRateLimit,
   async (req: Request, res: Response) => {
     try {
       const { requestId } = req.params;
@@ -306,7 +290,6 @@ router.post(
  */
 router.post(
   '/requests/:requestId/reject',
-  approvalRateLimit,
   async (req: Request, res: Response) => {
     try {
       const { requestId } = req.params;
@@ -408,7 +391,7 @@ router.get(
  */
 router.post(
   '/:domainId/workflows',
-  domainPermissionMiddleware(['admin']),
+  requireDomainAdminCompat,
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
@@ -439,7 +422,7 @@ router.post(
  */
 router.get(
   '/:domainId/workflows',
-  domainPermissionMiddleware(['admin']),
+  requireDomainReadCompat,
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
@@ -486,7 +469,7 @@ router.get(
  */
 router.post(
   '/:domainId/templates',
-  domainPermissionMiddleware(['admin']),
+  requireDomainAdminCompat,
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
@@ -517,7 +500,7 @@ router.post(
  */
 router.get(
   '/:domainId/templates',
-  domainPermissionMiddleware(['admin', 'user']),
+  requireDomainReadCompat,
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
@@ -563,7 +546,7 @@ router.get(
  */
 router.post(
   '/:domainId/collaborations',
-  domainPermissionMiddleware(['admin']),
+  requireDomainAdminCompat,
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
@@ -604,7 +587,7 @@ router.post(
  */
 router.get(
   '/:domainId/collaborations',
-  domainPermissionMiddleware(['admin', 'user']),
+  requireDomainReadCompat,
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
@@ -656,7 +639,7 @@ router.get(
  */
 router.get(
   '/:domainId/metrics',
-  domainPermissionMiddleware(['admin']),
+  requireDomainReadCompat,
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
@@ -688,7 +671,7 @@ router.get(
  */
 router.get(
   '/:domainId/pending',
-  domainPermissionMiddleware(['admin', 'user']),
+  requireDomainReadCompat,
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
@@ -792,7 +775,7 @@ router.get(
  */
 router.post(
   '/bulk/approve',
-  domainPermissionMiddleware(['admin']),
+  requireDomainAdminCompat,
   async (req: Request, res: Response) => {
     try {
       const { requestIds, comments } = req.body;

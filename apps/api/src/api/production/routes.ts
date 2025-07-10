@@ -6,12 +6,15 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
-import { ProductionConfigService } from '../../services/ProductionConfigService';
-import { MonitoringService } from '../../services/MonitoringService';
-import { DeploymentAutomationService } from '../../services/DeploymentAutomationService';
-import { DomainCacheService } from '../../services/DomainCacheService';
-import { authMiddleware } from '../../middleware/authMiddleware';
-import { domainPermissionMiddleware } from '../../middleware/domainPermissionMiddleware';
+import { 
+  ProductionConfigService, 
+  MonitoringService, 
+  DeploymentAutomationService, 
+  DomainCacheService 
+} from '@keeper/database';
+import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
+import { requireDomainAdminCompat } from '../../middleware/domainPermissionMiddleware.js';
+import { Redis } from 'ioredis';
 
 // Validation schemas
 const UpdateConfigSchema = z.object({
@@ -111,10 +114,10 @@ export function createProductionRoutes(
   const router = Router();
 
   // Apply authentication middleware to all routes
-  router.use(authMiddleware);
+  router.use(authMiddlewareCompat);
 
   // Apply domain permission middleware (admin only for production endpoints)
-  router.use(domainPermissionMiddleware(['admin']));
+  router.use(requireDomainAdminCompat);
 
   // ================================
   // Configuration Management Routes

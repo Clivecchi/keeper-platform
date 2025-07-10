@@ -647,7 +647,8 @@ export function createMemoryAccessMiddleware(
   config?: MemoryAccessConfig
 ): (req: MemoryAccessRequest, res: Response, next: NextFunction) => Promise<void> {
   const prisma = new PrismaClient();
-  const cacheService = new DomainCacheService();
+  const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+  const cacheService = new DomainCacheService(redis);
   const memoryService = new SoleMemoryIsolationService(prisma, cacheService);
   
   const manager = new MemoryAccessManager(prisma, memoryService, cacheService);
@@ -663,7 +664,8 @@ export function createCrossDomainMemoryMiddleware(): (
   next: NextFunction
 ) => Promise<void> {
   const prisma = new PrismaClient();
-  const cacheService = new DomainCacheService();
+  const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+  const cacheService = new DomainCacheService(redis);
   const memoryService = new SoleMemoryIsolationService(prisma, cacheService);
   
   const manager = new MemoryAccessManager(prisma, memoryService, cacheService);
