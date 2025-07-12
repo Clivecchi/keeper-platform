@@ -3,7 +3,7 @@
  * Core service for managing domain-scoped memory isolation for AI agents
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { DomainCacheService } from './DomainCacheService';
 import { getFeatureFlagService } from './FeatureFlagService';
 import * as crypto from 'crypto';
@@ -74,9 +74,9 @@ export interface MemoryMigrationRequest {
   migrationType: MigrationType;
   memoryCategories: MemoryCategory[];
   preserveSource: boolean;
-  transformRules?: Record<string, unknown>;
-  mappingRules?: Record<string, unknown>;
-  validationRules?: Record<string, unknown>;
+  transformRules?: Prisma.InputJsonValue;
+  mappingRules?: Prisma.InputJsonValue;
+  validationRules?: Prisma.InputJsonValue;
   initiatedBy: string;
 }
 
@@ -127,7 +127,7 @@ export interface MemoryScope {
   episodicMemory: Record<string, MemoryContent>;
   semanticMemory: Record<string, MemoryContent>;
   compressionLevel: string;
-  retentionPolicy: Record<string, unknown>;
+  retentionPolicy: Prisma.InputJsonValue;
   readAccess: string[];
   writeAccess: string[];
   adminAccess: string[];
@@ -176,7 +176,7 @@ function convertToMemoryScope(record: unknown): MemoryScope {
     episodicMemory: (obj.episodicMemory as Record<string, MemoryContent>) || {},
     semanticMemory: (obj.semanticMemory as Record<string, MemoryContent>) || {},
     compressionLevel: obj.compressionLevel as string,
-    retentionPolicy: (obj.retentionPolicy as Record<string, unknown>) || {},
+    retentionPolicy: (obj.retentionPolicy as Prisma.InputJsonValue) || {},
     readAccess: obj.readAccess as string[],
     writeAccess: obj.writeAccess as string[],
     adminAccess: obj.adminAccess as string[],
@@ -452,8 +452,8 @@ export class SoleMemoryIsolationService {
 
     // Update database with specific category field
     const updateData: any = {
-      currentMemorySize: memoryScope.currentMemorySize + contentSize,
-      updatedAt: new Date(),
+        currentMemorySize: memoryScope.currentMemorySize + contentSize,
+        updatedAt: new Date(),
     };
     
     // Set the specific category field
@@ -887,7 +887,7 @@ export class SoleMemoryIsolationService {
     alertType: string,
     severity: string,
     message: string,
-    metadata?: Record<string, unknown>
+    metadata?: Prisma.InputJsonValue
   ): Promise<void> {
     try {
       await this.prisma.memoryAlert.create({

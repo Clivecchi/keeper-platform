@@ -127,7 +127,7 @@ export class DynamicCorsMiddleware {
    */
   private async getDomainSpecificConfig(domain: CorsContext['domain']): Promise<Partial<DomainCorsConfig>> {
     try {
-              const corsSettings = domain.settings?.cors || {};
+      const corsSettings = domain.settings?.cors || {};
       
       const config: Partial<DomainCorsConfig> = {
         credentials: corsSettings.credentials ?? true,
