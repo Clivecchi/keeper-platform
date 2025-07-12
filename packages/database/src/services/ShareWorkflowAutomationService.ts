@@ -275,7 +275,7 @@ export class ShareWorkflowAutomationService {
             stepNumber: step.stepNumber,
             status: index === 0 ? 'pending' : 'pending',
             timeoutAt,
-            inputData: context,
+            inputData: JSON.parse(JSON.stringify(context)),
           },
         });
       })
@@ -428,10 +428,10 @@ export class ShareWorkflowAutomationService {
       data: {
         status: 'completed',
         completedAt: new Date(),
-        outputData: {
+        outputData: JSON.parse(JSON.stringify({
           notificationsSent: notificationConfig.length,
           timestamp: new Date(),
-        },
+        })),
       },
     });
 
@@ -702,7 +702,11 @@ export class ShareWorkflowAutomationService {
 
       case 'time':
         actualValue = new Date();
-        isValid = this.evaluateTimeCondition(actualValue, condition);
+        if (actualValue instanceof Date) {
+          isValid = this.evaluateTimeCondition(actualValue, condition);
+        } else {
+          isValid = false;
+        }
         break;
 
       case 'approval_count':

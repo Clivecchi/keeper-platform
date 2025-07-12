@@ -7,6 +7,7 @@
  */
 
 import { prisma } from '../index.js'
+import { PrismaClient } from '@prisma/client';
 import type { users as User, UserSettings, themes as Theme, Prisma } from '@prisma/client'
 import * as crypto from 'crypto'
 
@@ -345,12 +346,19 @@ export async function updateKipAgent(id: string, data: Partial<{
   config: Record<string, unknown>;
   status: string;
 }>) {
+  const updateData: any = {
+    ...data,
+    updated_at: new Date()
+  };
+
+  // If config is present, serialize it properly for Prisma
+  if (data.config) {
+    updateData.config = JSON.parse(JSON.stringify(data.config)) as Prisma.InputJsonValue;
+  }
+
   return prisma.kip_agents.update({
     where: { id },
-    data: {
-      ...data,
-      updated_at: new Date()
-    }
+    data: updateData
   })
 }
 
