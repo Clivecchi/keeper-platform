@@ -35,6 +35,67 @@ export interface RenewalResult {
   error?: string | null;
 }
 
+// Add interfaces for database records
+interface CertificateRecord {
+  id: string;
+  domainId: string;
+  customDomain: string;
+  provider: string;
+  status: string;
+  validFrom: Date;
+  validUntil: Date;
+  commonName?: string;
+  serialNumber?: string;
+  fingerprintSha256?: string;
+  metadata?: Record<string, unknown>;
+  certificateChain?: string;
+  challengeType?: string;
+  issuedAt?: Date;
+  lastRenewalAttempt?: Date;
+}
+
+interface CertificateWithMetadata extends CertificateRecord {
+  metadata: {
+    keyAlgorithm?: string;
+    [key: string]: unknown;
+  };
+}
+
+interface CertificateWithDomain extends CertificateRecord {
+  domain: string;
+  commonName?: string;
+}
+
+// Type guards
+function isCertificateRecord(obj: unknown): obj is CertificateRecord {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'id' in obj &&
+    'domainId' in obj &&
+    'customDomain' in obj &&
+    'provider' in obj &&
+    'status' in obj
+  );
+}
+
+function hasCertificateMetadata(obj: unknown): obj is CertificateWithMetadata {
+  return (
+    isCertificateRecord(obj) &&
+    'metadata' in obj &&
+    typeof obj.metadata === 'object' &&
+    obj.metadata !== null
+  );
+}
+
+function hasDomainField(obj: unknown): obj is CertificateWithDomain {
+  return (
+    isCertificateRecord(obj) &&
+    'domain' in obj &&
+    typeof obj.domain === 'string'
+  );
+}
+
 export class SslCertificateService {
   private prisma: PrismaClient;
   private cacheService: DomainCacheService;
@@ -252,14 +313,14 @@ export class SslCertificateService {
       }
 
       // Check key algorithm
-      const keyAlgorithm = certificate.metadata.keyAlgorithm || 'RSA-2048';
+      const keyAlgorithm = certificate.metadata?.keyAlgorithm || 'RSA-2048';
       if (keyAlgorithm === 'RSA-2048') {
         recommendations.push('Consider upgrading to RSA-4096 or ECDSA for better security');
         securityScore -= 5;
       }
 
       // Check domain validation
-      const domainValidated = certificate.domain === domain;
+      const domainValidated = certificate.customDomain === domain;
       if (!domainValidated) {
         issues.push('Certificate domain does not match requested domain');
         securityScore -= 30;
@@ -545,7 +606,7 @@ export class SslCertificateService {
   private async sendRenewalNotifications(
     certificate: CertificateInfo,
     success: boolean,
-    error?: any
+    error?: unknown
   ): Promise<string[]> {
     const notifications: string[] = [];
     
@@ -553,10 +614,10 @@ export class SslCertificateService {
     // For now, we'll just log the notifications
     
     if (success) {
-      console.log(`SSL certificate renewed successfully for ${certificate.domain}`);
+      console.log(`SSL certificate renewed successfully for ${certificate.customDomain}`);
       notifications.push('renewal_success');
     } else {
-      console.log(`SSL certificate renewal failed for ${certificate.domain}:`, error);
+      console.log(`SSL certificate renewal failed for ${certificate.customDomain}:`, error);
       notifications.push('renewal_failure');
     }
 
@@ -564,6 +625,10 @@ export class SslCertificateService {
   }
 
   private transformCertificateRecord(record: unknown): CertificateInfo {
+    if (!isCertificateRecord(record)) {
+      throw new Error('Invalid certificate record');
+    }
+
     return {
       id: record.id,
       domainId: record.domainId,
@@ -746,6 +811,10 @@ export class SslCertificateService {
    * Convert database certificate to CertificateInfo format
    */
   private certificateToInfo(cert: unknown): CertificateInfo {
+    if (!isCertificateRecord(cert)) {
+      throw new Error('Invalid certificate record');
+    }
+
     return {
       id: cert.id,
       domainId: cert.domainId,
@@ -758,7 +827,7 @@ export class SslCertificateService {
       serialNumber: cert.serialNumber,
       fingerprintSha256: cert.fingerprintSha256,
       metadata: {
-        challengeType: cert.challengeType,
+        challengeType: (cert.challengeType as 'http-01' | 'dns-01' | 'tls-alpn-01') || 'http-01',
         issuedAt: cert.issuedAt,
         lastRenewalAttempt: cert.lastRenewalAttempt,
       },
@@ -782,7 +851,7 @@ export class SslCertificateService {
           provider: certificate.provider,
           status: renewalResult.status,
           validUntil: renewalResult.validUntil,
-          error: renewalResult.status === 'failed' ? renewalResult.metadata.error : null,
+          error: renewalResult.status === 'failed' ? renewalResult.metadata?.error as string : null,
         });
       } catch (error) {
         results.push({

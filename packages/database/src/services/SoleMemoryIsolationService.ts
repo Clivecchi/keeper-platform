@@ -74,9 +74,9 @@ export interface MemoryMigrationRequest {
   migrationType: MigrationType;
   memoryCategories: MemoryCategory[];
   preserveSource: boolean;
-  transformRules?: any;
-  mappingRules?: any;
-  validationRules?: any;
+  transformRules?: Record<string, unknown>;
+  mappingRules?: Record<string, unknown>;
+  validationRules?: Record<string, unknown>;
   initiatedBy: string;
 }
 
@@ -112,6 +112,83 @@ export interface MemoryAnalytics {
   };
 }
 
+// Add proper interfaces for memory scope data
+export interface MemoryScope {
+  id: string;
+  domainId: string;
+  createdBy: string;
+  isolationLevel: IsolationLevel;
+  allowCrossDomain: boolean;
+  maxMemorySize: number;
+  currentMemorySize: number;
+  conversationMemory: Record<string, MemoryContent>;
+  factualMemory: Record<string, MemoryContent>;
+  proceduralMemory: Record<string, MemoryContent>;
+  episodicMemory: Record<string, MemoryContent>;
+  semanticMemory: Record<string, MemoryContent>;
+  compressionLevel: string;
+  retentionPolicy: Record<string, unknown>;
+  readAccess: string[];
+  writeAccess: string[];
+  adminAccess: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  // Optional relations from Prisma
+  domain?: unknown;
+  creator?: unknown;
+  sharedFrom?: unknown;
+  sharedTo?: unknown;
+}
+
+// Type guard for MemoryScope
+function isMemoryScope(obj: unknown): obj is MemoryScope {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'domainId' in obj &&
+    'readAccess' in obj &&
+    'writeAccess' in obj &&
+    'adminAccess' in obj &&
+    'currentMemorySize' in obj &&
+    'maxMemorySize' in obj
+  );
+}
+
+// Type guard for category memory
+function isCategoryMemory(obj: unknown): obj is Record<string, MemoryContent> {
+  return typeof obj === 'object' && obj !== null;
+}
+
+// Helper function to convert database record to MemoryScope
+function convertToMemoryScope(record: unknown): MemoryScope {
+  const obj = record as Record<string, unknown>;
+  return {
+    id: obj.id as string,
+    domainId: obj.domainId as string,
+    createdBy: obj.createdBy as string,
+    isolationLevel: obj.isolationLevel as IsolationLevel,
+    allowCrossDomain: obj.allowCrossDomain as boolean,
+    maxMemorySize: obj.maxMemorySize as number,
+    currentMemorySize: obj.currentMemorySize as number,
+    conversationMemory: (obj.conversationMemory as Record<string, MemoryContent>) || {},
+    factualMemory: (obj.factualMemory as Record<string, MemoryContent>) || {},
+    proceduralMemory: (obj.proceduralMemory as Record<string, MemoryContent>) || {},
+    episodicMemory: (obj.episodicMemory as Record<string, MemoryContent>) || {},
+    semanticMemory: (obj.semanticMemory as Record<string, MemoryContent>) || {},
+    compressionLevel: obj.compressionLevel as string,
+    retentionPolicy: (obj.retentionPolicy as Record<string, unknown>) || {},
+    readAccess: obj.readAccess as string[],
+    writeAccess: obj.writeAccess as string[],
+    adminAccess: obj.adminAccess as string[],
+    createdAt: obj.createdAt as Date,
+    updatedAt: obj.updatedAt as Date,
+    domain: obj.domain,
+    creator: obj.creator,
+    sharedFrom: obj.sharedFrom,
+    sharedTo: obj.sharedTo,
+  };
+}
+
 export class SoleMemoryIsolationService {
   private prisma: PrismaClient;
   private cacheService: DomainCacheService;
@@ -142,7 +219,7 @@ export class SoleMemoryIsolationService {
   /**
    * Initialize memory scope for a domain
    */
-  async initializeMemoryScope(domainId: string, createdBy: string): Promise<unknown> {
+  async initializeMemoryScope(domainId: string, createdBy: string): Promise<MemoryScope> {
     if (!this.featureFlags.isEnabled('SOLE_MEMORY_ISOLATION')) {
       throw new Error('SOLE memory isolation is not enabled');
     }
@@ -153,7 +230,7 @@ export class SoleMemoryIsolationService {
     });
 
     if (existingScope) {
-      return existingScope;
+      return convertToMemoryScope(existingScope);
     }
 
     // Create new memory scope
@@ -185,22 +262,23 @@ export class SoleMemoryIsolationService {
     });
 
     // Cache the new memory scope
+    const typedMemoryScope = convertToMemoryScope(memoryScope);
     await this.cacheService.cacheData(
       `memory_scope:${domainId}`,
-      memoryScope,
+      typedMemoryScope,
       this.CACHE_TTL.memory_metadata
     );
 
-    return memoryScope;
+    return typedMemoryScope;
   }
 
   /**
    * Get memory scope for domain
    */
-  async getMemoryScope(domainId: string): Promise<unknown> {
+  async getMemoryScope(domainId: string): Promise<MemoryScope> {
     // Check cache first
     const cached = await this.cacheService.getData(`memory_scope:${domainId}`);
-    if (cached) {
+    if (cached && isMemoryScope(cached)) {
       return cached;
     }
 
@@ -219,14 +297,16 @@ export class SoleMemoryIsolationService {
       throw new Error(`Memory scope not found for domain: ${domainId}`);
     }
 
+    const typedMemoryScope = convertToMemoryScope(memoryScope);
+
     // Cache the result
     await this.cacheService.cacheData(
       `memory_scope:${domainId}`,
-      memoryScope,
+      typedMemoryScope,
       this.CACHE_TTL.memory_metadata
     );
 
-    return memoryScope;
+    return typedMemoryScope;
   }
 
   /**
@@ -303,8 +383,9 @@ export class SoleMemoryIsolationService {
 
     for (const category of categories) {
       if (this.isValidMemoryCategory(category)) {
-        const categoryMemory = memoryScope[`${category}Memory`];
-        if (categoryMemory && typeof categoryMemory === 'object') {
+        const categoryMemoryField = `${category}Memory` as keyof MemoryScope;
+        const categoryMemory = memoryScope[categoryMemoryField];
+        if (isCategoryMemory(categoryMemory)) {
           const filteredMemories = this.filterMemoryContent(
             categoryMemory,
             query.query,
@@ -365,17 +446,38 @@ export class SoleMemoryIsolationService {
     };
 
     // Update memory scope
-    const categoryField = `${insert.category}Memory`;
-    const currentMemory = memoryScope[categoryField] || {};
+    const categoryField = `${insert.category}Memory` as keyof MemoryScope;
+    const currentMemory = memoryScope[categoryField] as Record<string, MemoryContent> || {};
     currentMemory[memoryId] = memoryContent;
+
+    // Update database with specific category field
+    const updateData: any = {
+      currentMemorySize: memoryScope.currentMemorySize + contentSize,
+      updatedAt: new Date(),
+    };
+    
+    // Set the specific category field
+    switch (insert.category) {
+      case 'conversational':
+        updateData.conversationMemory = JSON.parse(JSON.stringify(currentMemory));
+        break;
+      case 'factual':
+        updateData.factualMemory = JSON.parse(JSON.stringify(currentMemory));
+        break;
+      case 'procedural':
+        updateData.proceduralMemory = JSON.parse(JSON.stringify(currentMemory));
+        break;
+      case 'episodic':
+        updateData.episodicMemory = JSON.parse(JSON.stringify(currentMemory));
+        break;
+      case 'semantic':
+        updateData.semanticMemory = JSON.parse(JSON.stringify(currentMemory));
+        break;
+    }
 
     await this.prisma.soleMemoryScope.update({
       where: { domainId: insert.domainId },
-      data: {
-        [categoryField]: currentMemory,
-        currentMemorySize: memoryScope.currentMemorySize + contentSize,
-        updatedAt: new Date(),
-      },
+      data: updateData,
     });
 
     // Invalidate cache
@@ -416,8 +518,8 @@ export class SoleMemoryIsolationService {
     let updated = false;
     for (const category of Object.keys(memoryScope)) {
       if (category.endsWith('Memory')) {
-        const categoryMemory = memoryScope[category];
-        if (categoryMemory && categoryMemory[memoryId]) {
+        const categoryMemory = memoryScope[category as keyof MemoryScope];
+        if (isCategoryMemory(categoryMemory) && categoryMemory[memoryId]) {
           categoryMemory[memoryId] = {
             ...categoryMemory[memoryId],
             ...updates,
@@ -436,15 +538,15 @@ export class SoleMemoryIsolationService {
       throw new Error('Memory content not found');
     }
 
-    // Update database
+    // Update database with JSON serialization
     await this.prisma.soleMemoryScope.update({
       where: { domainId },
       data: {
-        conversationMemory: memoryScope.conversationMemory,
-        factualMemory: memoryScope.factualMemory,
-        proceduralMemory: memoryScope.proceduralMemory,
-        episodicMemory: memoryScope.episodicMemory,
-        semanticMemory: memoryScope.semanticMemory,
+        conversationMemory: JSON.parse(JSON.stringify(memoryScope.conversationMemory)),
+        factualMemory: JSON.parse(JSON.stringify(memoryScope.factualMemory)),
+        proceduralMemory: JSON.parse(JSON.stringify(memoryScope.proceduralMemory)),
+        episodicMemory: JSON.parse(JSON.stringify(memoryScope.episodicMemory)),
+        semanticMemory: JSON.parse(JSON.stringify(memoryScope.semanticMemory)),
         updatedAt: new Date(),
       },
     });
@@ -481,8 +583,8 @@ export class SoleMemoryIsolationService {
     
     for (const category of Object.keys(memoryScope)) {
       if (category.endsWith('Memory')) {
-        const categoryMemory = memoryScope[category];
-        if (categoryMemory && categoryMemory[memoryId]) {
+        const categoryMemory = memoryScope[category as keyof MemoryScope];
+        if (isCategoryMemory(categoryMemory) && categoryMemory[memoryId]) {
           deletedSize = this.calculateContentSize(categoryMemory[memoryId]);
           delete categoryMemory[memoryId];
           deleted = true;
@@ -495,15 +597,15 @@ export class SoleMemoryIsolationService {
       throw new Error('Memory content not found');
     }
 
-    // Update database
+    // Update database with JSON serialization
     await this.prisma.soleMemoryScope.update({
       where: { domainId },
       data: {
-        conversationMemory: memoryScope.conversationMemory,
-        factualMemory: memoryScope.factualMemory,
-        proceduralMemory: memoryScope.proceduralMemory,
-        episodicMemory: memoryScope.episodicMemory,
-        semanticMemory: memoryScope.semanticMemory,
+        conversationMemory: JSON.parse(JSON.stringify(memoryScope.conversationMemory)),
+        factualMemory: JSON.parse(JSON.stringify(memoryScope.factualMemory)),
+        proceduralMemory: JSON.parse(JSON.stringify(memoryScope.proceduralMemory)),
+        episodicMemory: JSON.parse(JSON.stringify(memoryScope.episodicMemory)),
+        semanticMemory: JSON.parse(JSON.stringify(memoryScope.semanticMemory)),
         currentMemorySize: Math.max(0, memoryScope.currentMemorySize - deletedSize),
         updatedAt: new Date(),
       },
@@ -702,15 +804,11 @@ export class SoleMemoryIsolationService {
     return JSON.stringify(content).length;
   }
 
-  private filterMemoryContent(categoryMemory: unknown,
+  private filterMemoryContent(categoryMemory: Record<string, MemoryContent>,
     query: string,
     filters?: MemoryQuery['filters']
   ): MemoryContent[] {
-    if (!categoryMemory || typeof categoryMemory !== 'object') {
-      return [];
-    }
-
-    const memories = Object.values(categoryMemory) as MemoryContent[];
+    const memories = Object.values(categoryMemory);
     
     return memories.filter(memory => {
       // Text search
@@ -789,7 +887,7 @@ export class SoleMemoryIsolationService {
     alertType: string,
     severity: string,
     message: string,
-    metadata?: any
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     try {
       await this.prisma.memoryAlert.create({

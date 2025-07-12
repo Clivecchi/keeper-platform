@@ -497,26 +497,45 @@ export const mockFunctions = {
 // Validation helpers
 export function isValidDomain(domain: unknown): domain is TestDomain {
   return (
-    typeof domain.id === 'string' &&
-    typeof domain.name === 'string' &&
-    typeof domain.slug === 'string' &&
-    typeof domain.ownerId === 'string' &&
-    ['active', 'suspended', 'archived', 'pending'].includes(domain.status) &&
-    typeof domain.isActive === 'boolean' &&
-    domain.createdAt instanceof Date &&
-    domain.updatedAt instanceof Date
+    typeof domain === 'object' &&
+    domain !== null &&
+    'id' in domain &&
+    'name' in domain &&
+    'slug' in domain &&
+    'ownerId' in domain &&
+    'status' in domain &&
+    'isActive' in domain &&
+    'createdAt' in domain &&
+    'updatedAt' in domain &&
+    typeof (domain as Record<string, unknown>).id === 'string' &&
+    typeof (domain as Record<string, unknown>).name === 'string' &&
+    typeof (domain as Record<string, unknown>).slug === 'string' &&
+    typeof (domain as Record<string, unknown>).ownerId === 'string' &&
+    ['active', 'suspended', 'archived', 'pending'].includes((domain as Record<string, unknown>).status as string) &&
+    typeof (domain as Record<string, unknown>).isActive === 'boolean' &&
+    (domain as Record<string, unknown>).createdAt instanceof Date &&
+    (domain as Record<string, unknown>).updatedAt instanceof Date
   );
 }
 
 export function isValidDomainPermission(permission: unknown): permission is TestDomainPermission {
   return (
-    typeof permission.id === 'string' &&
-    typeof permission.domainId === 'string' &&
-    typeof permission.userId === 'string' &&
-    ['admin', 'user', 'friend', 'connection'].includes(permission.role) &&
-    Array.isArray(permission.permissions) &&
-    typeof permission.grantedBy === 'string' &&
-    permission.grantedAt instanceof Date
+    typeof permission === 'object' &&
+    permission !== null &&
+    'id' in permission &&
+    'domainId' in permission &&
+    'userId' in permission &&
+    'role' in permission &&
+    'permissions' in permission &&
+    'grantedBy' in permission &&
+    'grantedAt' in permission &&
+    typeof (permission as Record<string, unknown>).id === 'string' &&
+    typeof (permission as Record<string, unknown>).domainId === 'string' &&
+    typeof (permission as Record<string, unknown>).userId === 'string' &&
+    ['admin', 'user', 'friend', 'connection'].includes((permission as Record<string, unknown>).role as string) &&
+    Array.isArray((permission as Record<string, unknown>).permissions) &&
+    typeof (permission as Record<string, unknown>).grantedBy === 'string' &&
+    (permission as Record<string, unknown>).grantedAt instanceof Date
   );
 }
 
