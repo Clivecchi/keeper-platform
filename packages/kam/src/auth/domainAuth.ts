@@ -237,7 +237,7 @@ export class DomainAuthManager {
     const userPermissions = await this.permissionService.getUserPermissions(userId);
 
     const accessibleDomains = await Promise.all(
-      domains.map(async (domain: any) => {
+      domains.map(async (domain: unknown) => {
         const permissions = await this.permissionService.getDomainPermissions(domain.id, userId);
         const permission = permissions[0];
         return {
@@ -264,7 +264,7 @@ export class DomainAuthManager {
     // Clear domain-related caches
     const userDomains = await this.domainService.getUserDomains(userId);
     await Promise.all(
-      userDomains.map((domain: any) => this.cacheService.invalidateDomain(domain.id))
+      userDomains.map((domain: unknown) => this.cacheService.invalidateDomain(domain.id))
     );
   }
 
@@ -407,7 +407,7 @@ export function createDomainAuthMiddleware(
   domainAuthManager: DomainAuthManager,
   options: DomainAuthOptions = {}
 ) {
-  return async (req: any, res: any, next: any) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Get user from regular auth middleware
       const user = req.user;

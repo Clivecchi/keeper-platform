@@ -1,4 +1,4 @@
-import express, { Router } from 'express';
+import { Router } from 'express';
 import type { Router as ExpressRouter } from 'express';
 import { logger } from '@keeper/shared';
 import { prisma } from '@keeper/database';
@@ -147,7 +147,7 @@ router.post('/uuid-test', async (req, res) => {
     };
     
     // Test database UUID operations
-    let databaseTest: any = null;
+    let databaseTest: Record<string, unknown> | null = null;
     try {
       // Try to create a test record with the generated UUID
       // We'll use the users table for testing since it has a string ID field
@@ -367,7 +367,7 @@ router.post('/model-provider-test', async (req, res) => {
  */
 router.post('/fix-database', async (req, res) => {
   try {
-    const fixes: any = {
+    const fixes: Record<string, unknown> = {
       timestamp: new Date().toISOString(),
       actions: [],
       errors: []

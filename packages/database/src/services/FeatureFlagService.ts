@@ -11,7 +11,7 @@ export interface FeatureFlag {
   rolloutPercentage: number;
   environments: string[];
   conditions?: FeatureFlagCondition[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface FeatureFlagCondition {
@@ -476,7 +476,7 @@ export class FeatureFlagService {
   /**
    * Export current flag configuration
    */
-  exportConfiguration(): Record<string, any> {
+  exportConfiguration(): Record<string, unknown> {
     return {
       environment: this.environment,
       flags: Array.from(this.flags.values()),
@@ -488,7 +488,7 @@ export class FeatureFlagService {
   /**
    * Import flag configuration
    */
-  importConfiguration(config: Record<string, any>): void {
+  importConfiguration(config: Record<string, unknown>): void {
     if (config.flags && Array.isArray(config.flags)) {
       this.flags.clear();
       config.flags.forEach((flag: FeatureFlag) => {

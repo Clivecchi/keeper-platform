@@ -233,7 +233,7 @@ export class DomainHealthMonitoringService {
     const domains = await this.getAllDomains();
 
     const healthMetrics = await Promise.all(
-      domains.map((domain: any) => this.checkDomainHealth(domain.id))
+      domains.map((domain: unknown) => this.checkDomainHealth(domain.id))
     );
 
     return {
@@ -388,7 +388,7 @@ export class DomainHealthMonitoringService {
   async generateMonitoringReport(timeRange: '24h' | '7d' | '30d' = '24h'): Promise<MonitoringReport> {
     const domains = await this.getAllDomains();
     const healthMetrics = await Promise.all(
-      domains.map((domain: any) => this.checkDomainHealth(domain.id))
+      domains.map((domain: unknown) => this.checkDomainHealth(domain.id))
     );
 
     const summary = {
@@ -421,7 +421,7 @@ export class DomainHealthMonitoringService {
   /**
    * Private helper methods
    */
-  private async getUptimeHistory(domain: string): Promise<any> {
+  private async getUptimeHistory(domain: string): Promise<unknown> {
     // Would query historical uptime data
     // For now, return mock data
     return {
@@ -433,7 +433,7 @@ export class DomainHealthMonitoringService {
     };
   }
 
-  private async getPerformanceHistory(domain: string): Promise<any> {
+  private async getPerformanceHistory(domain: string): Promise<unknown> {
     // Would query historical performance data
     // For now, return mock data
     return {
@@ -536,7 +536,7 @@ export class DomainHealthMonitoringService {
     return Math.max(0, Math.round(score));
   }
 
-  private generateRecommendations(metrics: any): string[] {
+  private generateRecommendations(metrics: unknown): string[] {
     const recommendations: string[] = [];
 
     // Uptime recommendations

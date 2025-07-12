@@ -17,7 +17,7 @@ export type MigrationType = 'copy' | 'move' | 'merge' | 'split';
 export interface MemoryContent {
   id: string;
   category: MemoryCategory;
-  content: any;
+  content: Record<string, unknown>;
   metadata: {
     timestamp: Date;
     source: string;
@@ -51,7 +51,7 @@ export interface MemoryInsert {
   domainId: string;
   userId: string;
   category: MemoryCategory;
-  content: any;
+  content: Record<string, unknown>;
   metadata?: Partial<MemoryContent['metadata']>;
   access?: Partial<MemoryContent['access']>;
 }
@@ -142,7 +142,7 @@ export class SoleMemoryIsolationService {
   /**
    * Initialize memory scope for a domain
    */
-  async initializeMemoryScope(domainId: string, createdBy: string): Promise<any> {
+  async initializeMemoryScope(domainId: string, createdBy: string): Promise<unknown> {
     if (!this.featureFlags.isEnabled('SOLE_MEMORY_ISOLATION')) {
       throw new Error('SOLE memory isolation is not enabled');
     }
@@ -197,7 +197,7 @@ export class SoleMemoryIsolationService {
   /**
    * Get memory scope for domain
    */
-  async getMemoryScope(domainId: string): Promise<any> {
+  async getMemoryScope(domainId: string): Promise<unknown> {
     // Check cache first
     const cached = await this.cacheService.getData(`memory_scope:${domainId}`);
     if (cached) {
@@ -697,13 +697,12 @@ export class SoleMemoryIsolationService {
     return ['conversational', 'factual', 'procedural', 'episodic', 'semantic'].includes(category);
   }
 
-  private calculateContentSize(content: any): number {
+  private calculateContentSize(content: unknown): number {
     if (!content) return 0;
     return JSON.stringify(content).length;
   }
 
-  private filterMemoryContent(
-    categoryMemory: any,
+  private filterMemoryContent(categoryMemory: unknown,
     query: string,
     filters?: MemoryQuery['filters']
   ): MemoryContent[] {

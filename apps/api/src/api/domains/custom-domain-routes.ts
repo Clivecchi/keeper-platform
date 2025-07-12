@@ -397,7 +397,7 @@ router.get(
       
       // Use the health check to determine alerts
       const health = await healthService.checkDomainHealth(domainId);
-      const alerts: any[] = []; // Placeholder until alerts system is implemented
+      const alerts: unknown[] = []; // Placeholder until alerts system is implemented
       
       return res.json(alerts);
     } catch (error) {

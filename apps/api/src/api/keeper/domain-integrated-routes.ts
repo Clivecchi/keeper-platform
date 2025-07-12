@@ -71,7 +71,7 @@ router.get('/',
       const userId = req.user.id;
 
       // Build base query
-      const where: any = {};
+      const where: Event = {};
 
       // Domain filtering
       if (filters.domainId) {
@@ -218,9 +218,9 @@ router.post('/',
 
       // Check domain limits
       const stats = await domainService.getDomainStats(domainId);
-      const limits = domain.limits as any;
+      const limits = domain.limits as Record<string, unknown>;
       
-      if (limits?.max_keepers && stats.keeperCount >= limits.max_keepers) {
+      if (typeof limits?.max_keepers === 'number' && stats.keeperCount >= limits.max_keepers) {
         return res.status(400).json({ 
           error: 'Domain keeper limit reached',
           current: stats.keeperCount,

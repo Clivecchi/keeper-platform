@@ -213,7 +213,7 @@ export class DomainCacheService {
   /**
    * Cache user permissions
    */
-  async cacheUserPermissions(permission: any): Promise<void> {
+  async cacheUserPermissions(permission: unknown): Promise<void> {
     try {
       const cacheKey = this.getCacheKey('user_permissions:', `${permission.userId}:${permission.domainId}`);
       const value = JSON.stringify(permission);
@@ -492,7 +492,7 @@ export class DomainCacheService {
   /**
    * Generic cache data method
    */
-  async cacheData(key: string, data: any, ttl?: number): Promise<void> {
+  async cacheData(key: string, data: unknown, ttl?: number): Promise<void> {
     try {
       const cacheKey = this.getCacheKey('data:', key);
       const value = JSON.stringify(data);
@@ -541,7 +541,7 @@ export class DomainCacheService {
   /**
    * Cache verification configuration
    */
-  async cacheVerificationConfig(domainId: string, config: any): Promise<void> {
+  async cacheVerificationConfig(domainId: string, config: Record<string, unknown>): Promise<void> {
     try {
       const cacheKey = this.getCacheKey(DomainCacheService.KEYS.VERIFICATION_STATUS, domainId);
       const value = JSON.stringify(config);
@@ -555,7 +555,7 @@ export class DomainCacheService {
   /**
    * Cache permission data
    */
-  async cachePermission(key: string, permission: any): Promise<void> {
+  async cachePermission(key: string, permission: unknown): Promise<void> {
     try {
       const cacheKey = this.getCacheKey('permission:', key);
       const value = JSON.stringify(permission);

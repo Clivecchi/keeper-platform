@@ -22,9 +22,9 @@ describe('Sprint 6: Cross-Domain Sharing Integration Tests', () => {
   let cacheService: DomainCacheService;
 
   // Test fixtures
-  let testDomains: any[];
-  let testUsers: any[];
-  let testKeepers: any[];
+  let testDomains: unknown[];
+  let testUsers: unknown[];
+  let testKeepers: unknown[];
   let adminToken: string;
   let userToken: string;
 

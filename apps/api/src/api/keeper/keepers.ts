@@ -152,7 +152,7 @@ export const createKeeper = async (req: Request, res: Response) => {
     }
     
     // Prepare keeper data
-    const keeperData: any = {
+    const keeperData: Record<string, unknown> = {
       id: `keeper_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       ...validatedData
     };
@@ -707,7 +707,7 @@ export const getAgentKeeperTypes = async (req: Request, res: Response) => {
       }
     });
 
-    const keeperTypes = assignments.map((assignment: any) => assignment.keeper_type);
+    const keeperTypes = assignments.map((assignment: unknown) => assignment.keeper_type);
 
     return res.json({
       success: true,

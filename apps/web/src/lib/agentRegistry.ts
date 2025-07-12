@@ -33,7 +33,7 @@ export const agentRegistry: AgentInfo[] = [
 
 // Mock TypeAgent extraction function
 export class TypeAgent {
-  static extract(input: string): Promise<any> {
+  static extract(input: string): Promise<unknown> {
     // Simulate API call delay
     return new Promise((resolve) => {
       setTimeout(() => {

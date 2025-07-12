@@ -36,7 +36,7 @@ const DebugPage: React.FC = () => {
     addLog('🚀 Starting comprehensive system diagnostics...');
     
     const logs: string[] = [];
-    const diagnostics: any = {
+    const diagnostics: Record<string, unknown> = {
       timestamp: new Date().toISOString(),
       platform: 'Keeper Platform',
       version: 'v1.0',
@@ -154,7 +154,7 @@ const DebugPage: React.FC = () => {
 
     // Test 2: Try different request methods to understand CORS behavior
     addLog('Testing CORS preflight vs actual requests...');
-    const corsTests: any = {};
+    const corsTests: Record<string, unknown> = {};
     
     // Test OPTIONS (preflight) - this should work based on Railway logs
     try {
@@ -499,7 +499,7 @@ const DebugPage: React.FC = () => {
         const originalError = console.error;
         
         // Temporarily capture console errors
-        console.error = (...args: any[]) => {
+        console.error = (...args: unknown[]) => {
           consoleErrors.push(args.join(' '));
           originalError(...args);
         };
@@ -560,10 +560,10 @@ const DebugPage: React.FC = () => {
         if (dbFix.success && dbFix.data) {
           const { actions, errors } = dbFix.data;
           if (actions.length > 0) {
-            addLog(`✅ Database fixes applied: ${actions.map((a: any) => a.message).join(', ')}`, 'success');
+            addLog(`✅ Database fixes applied: ${actions.map((a: unknown) => a.message).join(', ')}`, 'success');
           }
           if (errors.length > 0) {
-            addLog(`⚠️ Some fixes failed: ${errors.map((e: any) => e.error).join(', ')}`, 'error');
+            addLog(`⚠️ Some fixes failed: ${errors.map((e: Event) => e.error).join(', ')}`, 'error');
           }
         }
         addLog('✅ Database fix test completed', 'success');
@@ -677,8 +677,8 @@ const DebugPage: React.FC = () => {
       diagnostics.tests.consoleErrorsSummary = {
         status: 'SUCCESS',
         data: {
-          totalErrors: diagnostics.consoleErrors.filter((e: any) => e.type === 'error').length,
-          totalWarnings: diagnostics.consoleErrors.filter((e: any) => e.type === 'warning').length,
+          totalErrors: diagnostics.consoleErrors.filter((e: Event) => e.type === 'error').length,
+          totalWarnings: diagnostics.consoleErrors.filter((e: Event) => e.type === 'warning').length,
           errors: diagnostics.consoleErrors
         }
       };
@@ -688,16 +688,16 @@ const DebugPage: React.FC = () => {
         status: 'SUCCESS',
         data: {
           totalRequests: diagnostics.networkRequests.length,
-          successfulRequests: diagnostics.networkRequests.filter((r: any) => r.ok).length,
-          failedRequests: diagnostics.networkRequests.filter((r: any) => !r.ok).length,
+          successfulRequests: diagnostics.networkRequests.filter((r: unknown) => r.ok).length,
+          failedRequests: diagnostics.networkRequests.filter((r: unknown) => !r.ok).length,
           requests: diagnostics.networkRequests
         }
       };
 
       // Generate comprehensive summary
       const testCount = Object.keys(diagnostics.tests).length;
-      const successCount = Object.values(diagnostics.tests).filter((test: any) => test.status === 'SUCCESS').length;
-      const errorCount = Object.values(diagnostics.tests).filter((test: any) => test.status === 'ERROR').length;
+      const successCount = Object.values(diagnostics.tests).filter((test: unknown) => test.status === 'SUCCESS').length;
+      const errorCount = Object.values(diagnostics.tests).filter((test: unknown) => test.status === 'ERROR').length;
       
       diagnostics.summary = {
         total: testCount,
@@ -728,7 +728,7 @@ const DebugPage: React.FC = () => {
     }
   };
 
-  const copyDiagnosticsToClipboard = async (diagnosticsData: any) => {
+  const copyDiagnosticsToClipboard = async (diagnosticsData: unknown) => {
     try {
       const comprehensiveReport = {
         '=== KEEPER PLATFORM DEBUG REPORT ===': '',

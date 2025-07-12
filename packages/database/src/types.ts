@@ -179,7 +179,7 @@ export type AgentInput = {
 export type AgentResponse = {
   id: string;
   success: boolean;
-  data: any;
+  data: unknown;
   processing_time_ms: number;
 }
 
@@ -243,7 +243,7 @@ export type KipCommandIntent = {
   action: string;
   keeper_id: string;
   type: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 /**
@@ -337,7 +337,7 @@ export type KipMessageWithRelations = {
   sender: string;
   content: string;
   role: string;
-  metadata: any;
+  metadata: unknown;
   created_at: Date;
   session?: {
     id: string;

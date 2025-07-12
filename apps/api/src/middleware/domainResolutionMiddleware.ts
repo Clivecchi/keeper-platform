@@ -34,7 +34,7 @@ const getFeatureFlagService = () => ({
 
 export interface DomainResolvedRequest extends Request {
   domainContext?: {
-    domain: any;
+    domain: Record<string, unknown> | null;
     isCustomDomain: boolean;
     originalHostname: string;
     resolvedSlug: string;
@@ -57,7 +57,7 @@ export interface DomainResolutionConfig {
 }
 
 export interface ResolvedDomain {
-  domain: any;
+  domain: Record<string, unknown> | null;
   isCustomDomain: boolean;
   originalHostname: string;
   resolvedSlug: string;
@@ -310,7 +310,7 @@ export class DomainResolutionMiddleware {
    * Validate domain result and return resolved domain
    */
   private validateDomainResult(
-    domain: any,
+    domain: unknown,
     hostname: string,
     isCustomDomain: boolean
   ): ResolvedDomain {
@@ -600,7 +600,7 @@ declare global {
   namespace Express {
     interface Request {
       domainContext?: {
-        domain: any;
+        domain: Record<string, unknown>;
         isCustomDomain: boolean;
         originalHostname: string;
         resolvedSlug: string;

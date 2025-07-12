@@ -19,12 +19,12 @@
     "noImplicitThis": true,
     "noImplicitReturns": true,
     "types": ["vite/client", "node"],
-    "baseUrl": "./",
+    "baseUrl": "../../",
     "paths": {
-      "@/*": ["src/*"],
-      "@keeper/kam": ["../../packages/kam/src/index.ts"],
-      "@keeper/shared": ["../../packages/shared/src/index.ts"],
-      "@keeper/database": ["../../packages/database/src/index.ts"]
+      "@/*": ["apps/web/src/*"],
+      "@keeper/database": ["packages/database/src"],
+      "@keeper/kam": ["packages/kam/src"],
+      "@keeper/shared": ["packages/shared/src"]
     }
   },
   "include": ["src", "../index.html"],

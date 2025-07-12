@@ -17,11 +17,11 @@ const permissionService = new DomainPermissionService(prisma, cacheService);
 const domainAuthManager = new DomainAuthManager(prisma);
 
 // Test data setup
-let testUsers: any[] = [];
-let testDomains: any[] = [];
-let testKeepers: any[] = [];
-let testJourneys: any[] = [];
-let testMoments: any[] = [];
+let testUsers: unknown[] = [];
+let testDomains: unknown[] = [];
+let testKeepers: unknown[] = [];
+let testJourneys: unknown[] = [];
+let testMoments: unknown[] = [];
 let authTokens: Map<string, string> = new Map();
 
 describe('Domain Permission Integration', () => {
@@ -200,7 +200,7 @@ describe('Domain Permission Integration', () => {
         .expect(200);
 
       // Should only return keepers from accessible domains
-      response.body.keepers.forEach((keeper: any) => {
+      response.body.keepers.forEach((keeper: unknown) => {
         expect(userWithAccess.accessibleDomains).toContain(keeper.domainId);
       });
     });
@@ -283,7 +283,7 @@ describe('Domain Permission Integration', () => {
         .expect(200);
 
       // All returned journeys should be from accessible domains
-      response.body.journeys.forEach((journey: any) => {
+      response.body.journeys.forEach((journey: unknown) => {
         expect(user.accessibleDomains).toContain(journey.domainId);
       });
     });
@@ -341,7 +341,7 @@ describe('Domain Permission Integration', () => {
         .expect(200);
 
       // All moments should be from accessible domains
-      response.body.moments.forEach((moment: any) => {
+      response.body.moments.forEach((moment: unknown) => {
         expect(user.accessibleDomains).toContain(moment.domainId);
       });
     });
@@ -585,7 +585,7 @@ async function createTestUser(email: string, name: string) {
   });
 }
 
-async function createTestDomain(name: string, slug: string, ownerId: string, limits?: any) {
+async function createTestDomain(name: string, slug: string, ownerId: string, limits?: Record<string, unknown>) {
   return await domainService.createDomain({
     name,
     slug,
@@ -622,7 +622,7 @@ async function createTestMoment(title: string, journeyId: string, keeperId: stri
   });
 }
 
-function generateAuthToken(user: any): string {
+function generateAuthToken(user: unknown): string {
   // In a real implementation, this would use JWT or similar
   return `test-token-${user.id}`;
 }

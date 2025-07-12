@@ -13,12 +13,12 @@ export interface Theme {
   id: string;
   label: string;
   slug: string;
-  palette: Record<string, any>;
-  style?: Record<string, any>;
+  palette: Record<string, unknown>;
+  style?: Record<string, unknown>;
   source_image?: string;
   inspired_by?: string;
   default_mode: string;
-  tags?: Record<string, any>;
+  tags?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -30,8 +30,8 @@ export interface EngagementTemplate {
   type: string;
   targetType: string;
   icon?: string;
-  style?: Record<string, any>;
-  config?: Record<string, any>;
+  style?: Record<string, unknown>;
+  config?: Record<string, unknown>;
   system?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -46,12 +46,15 @@ export interface EngagementTemplate {
 
 export interface EngagementField {
   id: string;
-  // Add other fields as needed
+  name?: string;
+  type?: string;
+  config?: Record<string, unknown>;
 }
 
 export interface EngagementStyle {
   id: string;
-  // Add other fields as needed
+  name?: string;
+  style?: Record<string, unknown>;
 }
 
 export interface Journey {
@@ -97,8 +100,8 @@ export interface Keeper {
   keeperTypeId?: string;
   keeperType?: string;
   memoryPattern?: string;
-  sole?: any; // Approved agent-authored memory architecture
-  soleDraft?: any; // Proposed draft structure by agent
+  sole?: Record<string, unknown>; // Approved agent-authored memory architecture
+  soleDraft?: Record<string, unknown>; // Proposed draft structure by agent
   soleSubmittedAt?: string; // Timestamp when soleDraft was submitted
   ownerId: string;
   theme_id?: string;
@@ -138,7 +141,7 @@ export interface KeeperApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
-  details?: string | any[];
+  details?: string | unknown[];
 }
 
 export interface KeeperListResponse extends KeeperApiResponse<Keeper[]> {}
@@ -213,7 +216,7 @@ export interface EmbeddingStatusResponse extends KeeperApiResponse<EmbeddingStat
 export interface BaseResponse {
   success: boolean;
   error?: string;
-  details?: string | any[];
+  details?: string | unknown[];
 }
 
 // SOLE Voice Entry Types
@@ -249,7 +252,7 @@ export interface SoleEcho {
   agentId: string;
   message: string;
   triggerDate?: string;
-  triggerConditions?: Record<string, any>;
+  triggerConditions?: Record<string, unknown>;
   createdAt: string;
   delivered: boolean;
 }
@@ -259,13 +262,13 @@ export interface CreateEchoRequest {
   agentId: string;
   message: string;
   triggerDate?: string;
-  triggerConditions?: Record<string, any>;
+  triggerConditions?: Record<string, unknown>;
 }
 
 export interface UpdateEchoRequest {
   message?: string;
   triggerDate?: string;
-  triggerConditions?: Record<string, any>;
+  triggerConditions?: Record<string, unknown>;
   delivered?: boolean;
 }
 

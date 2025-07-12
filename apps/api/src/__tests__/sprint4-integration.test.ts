@@ -27,8 +27,8 @@ describe('Sprint 4: Custom Domain Support & CORS Integration', () => {
   let resolutionMiddleware: DomainResolutionMiddleware;
 
   // Test data
-  let testDomain: any;
-  let testUser: any;
+  let testDomain: Record<string, unknown>;
+  let testUser: Record<string, unknown>;
 
   beforeAll(async () => {
     // Initialize services
@@ -716,7 +716,7 @@ function createMockResponse() {
     setHeader: (key: string, value: string) => headers.set(key, value),
     getHeader: (key: string) => headers.get(key),
     status: (code: number) => ({ 
-      json: (data: any) => ({ statusCode: code, data }),
+      json: (data: unknown) => ({ statusCode: code, data }),
       end: () => ({ statusCode: code }),
     }),
     redirect: (code: number, url: string) => ({ statusCode: code, redirectUrl: url }),

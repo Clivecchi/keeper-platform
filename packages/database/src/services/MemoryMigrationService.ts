@@ -33,7 +33,7 @@ export interface TransformationRule {
   category: MemoryCategory | 'all';
   transformation: {
     type: 'replace' | 'transform' | 'filter' | 'enhance';
-    config: any;
+    config: Record<string, unknown>;
   };
   order: number;
 }
@@ -52,7 +52,7 @@ export interface ValidationRule {
   category: MemoryCategory | 'all';
   validator: {
     type: 'schema' | 'content' | 'size' | 'custom';
-    config: any;
+    config: Record<string, unknown>;
   };
   required: boolean;
 }
@@ -96,7 +96,7 @@ export interface MigrationPreview {
   estimatedSize: number;
   estimatedDuration: number;
   categoryBreakdown: Record<MemoryCategory, number>;
-  transformationPreview: any;
+  transformationPreview: Record<string, unknown>;
   validationResults: ValidationResult[];
   warnings: string[];
   errors: string[];
@@ -462,7 +462,7 @@ export class MemoryMigrationService {
       offset?: number;
     } = {}
   ): Promise<MigrationResult[]> {
-    const whereClause: any = {
+    const whereClause: Event = {
       OR: [
         { sourceMemoryId: domainId },
         { targetMemoryId: domainId },
@@ -502,7 +502,7 @@ export class MemoryMigrationService {
    * Private helper methods
    */
   private async analyzeMemoryContent(
-    memoryScope: any,
+    memoryScope: Event,
     categories: MemoryCategory[]
   ): Promise<{
     totalItems: number;
@@ -541,9 +541,9 @@ export class MemoryMigrationService {
   }
 
   private async previewTransformations(
-    memoryScope: any,
+    memoryScope: Event,
     transformationRules: TransformationRule[]
-  ): Promise<any> {
+  ): Promise<unknown> {
     // This would apply transformation rules to a sample of the data
     // For now, return a simple preview
     return {
@@ -553,7 +553,7 @@ export class MemoryMigrationService {
   }
 
   private async validateMigrationRules(
-    memoryScope: any,
+    memoryScope: Event,
     validationRules: ValidationRule[]
   ): Promise<ValidationResult[]> {
     const results: ValidationResult[] = [];
@@ -602,8 +602,7 @@ export class MemoryMigrationService {
     return baseTime + itemTime + sizeTime;
   }
 
-  private async performMigration(
-    migration: any,
+  private async performMigration(migration: unknown,
     options: MigrationOptions
   ): Promise<MigrationResult> {
     const startTime = Date.now();
@@ -667,9 +666,7 @@ export class MemoryMigrationService {
     };
   }
 
-  private async migrateCategoryMemory(
-    categoryMemory: any,
-    migration: any,
+  private async migrateCategoryMemory(categoryMemory: unknown, migration: unknown,
     category: MemoryCategory,
     options: MigrationOptions
   ): Promise<{ items: number; size: number }> {
@@ -695,9 +692,7 @@ export class MemoryMigrationService {
     return { items, size };
   }
 
-  private async copyMemoryCategory(
-    categoryMemory: any,
-    migration: any,
+  private async copyMemoryCategory(categoryMemory: unknown, migration: unknown,
     category: MemoryCategory
   ): Promise<void> {
     if (!migration.targetMemoryId) {
@@ -724,9 +719,7 @@ export class MemoryMigrationService {
     });
   }
 
-  private async moveMemoryCategory(
-    categoryMemory: any,
-    migration: any,
+  private async moveMemoryCategory(categoryMemory: unknown, migration: unknown,
     category: MemoryCategory
   ): Promise<void> {
     // Copy first
@@ -745,18 +738,14 @@ export class MemoryMigrationService {
     }
   }
 
-  private async mergeMemoryCategory(
-    categoryMemory: any,
-    migration: any,
+  private async mergeMemoryCategory(categoryMemory: unknown, migration: unknown,
     category: MemoryCategory
   ): Promise<void> {
     // Implementation for merge operation
     await this.copyMemoryCategory(categoryMemory, migration, category);
   }
 
-  private async splitMemoryCategory(
-    categoryMemory: any,
-    migration: any,
+  private async splitMemoryCategory(categoryMemory: unknown, migration: unknown,
     category: MemoryCategory
   ): Promise<void> {
     // Implementation for split operation
@@ -766,7 +755,7 @@ export class MemoryMigrationService {
   private async updateMigrationStatus(
     migrationId: string,
     status: MigrationStatus,
-    additionalData: any = {}
+    additionalData: Record<string, unknown> = {}
   ): Promise<void> {
     await this.prisma.memoryMigration.update({
       where: { id: migrationId },
@@ -793,7 +782,7 @@ export class MemoryMigrationService {
     });
   }
 
-  private async performRollback(migration: any): Promise<void> {
+  private async performRollback(migration: unknown): Promise<void> {
     // Implementation for rollback logic
     // This would restore the original state using rollback data
     console.log(`Performing rollback for migration ${migration.id}`);
@@ -802,10 +791,9 @@ export class MemoryMigrationService {
   /**
    * Apply transformation rules to analyzed memory content
    */
-  private async applyTransformationRules(
-    analysis: any,
+  private async applyTransformationRules(analysis: unknown,
     rules: TransformationRule[]
-  ): Promise<any> {
+  ): Promise<unknown> {
     let transformedData = { ...analysis };
 
     for (const rule of rules) {
@@ -837,11 +825,10 @@ export class MemoryMigrationService {
   /**
    * Validate transformation results against validation rules
    */
-  private async validateTransformation(
-    transformedData: any,
+  private async validateTransformation(transformedData: unknown,
     rules: ValidationRule[]
   ): Promise<any[]> {
-    const results: any[] = [];
+    const results: unknown[] = [];
 
     for (const rule of rules) {
       try {
@@ -870,7 +857,7 @@ export class MemoryMigrationService {
   /**
    * Helper methods for transformation rules
    */
-  private applyFilterRule(data: any, rule: TransformationRule): any {
+  private applyFilterRule(data: unknown, rule: TransformationRule): unknown {
     // Basic filtering logic based on rule conditions
     if (rule.transformation.config.conditions && rule.transformation.config.conditions.excludePatterns) {
       // Apply exclusion patterns
@@ -879,7 +866,7 @@ export class MemoryMigrationService {
     return data;
   }
 
-  private applyTransformRule(data: any, rule: TransformationRule): any {
+  private applyTransformRule(data: unknown, rule: TransformationRule): unknown {
     // Basic transformation logic
     if (rule.transformation.config.conditions && rule.transformation.config.conditions.mappings) {
       // Apply field mappings
@@ -888,7 +875,7 @@ export class MemoryMigrationService {
     return data;
   }
 
-  private applyMergeRule(data: any, rule: TransformationRule): any {
+  private applyMergeRule(data: unknown, rule: TransformationRule): unknown {
     // Basic merge logic
     if (rule.transformation.config.conditions && rule.transformation.config.conditions.mergeTargets) {
       // Apply merge operations
@@ -897,7 +884,7 @@ export class MemoryMigrationService {
     return data;
   }
 
-  private async validateRule(data: any, rule: ValidationRule): Promise<{ passed: boolean; message: string }> {
+  private async validateRule(data: unknown, rule: ValidationRule): Promise<{ passed: boolean; message: string }> {
     // Basic validation logic
     try {
       if (rule.validator.config.conditions && rule.validator.config.conditions.requiredFields) {
@@ -949,7 +936,7 @@ export class MemoryMigrationService {
     const validationResults = await this.validateTransformation(transformedData, validationRules);
 
     // Check for validation errors
-    validationResults.forEach((result: any) => {
+    validationResults.forEach((result: unknown) => {
       if (!result.passed && result.severity === 'error') {
         throw new Error(`Migration validation failed: ${result.message}`);
       }
@@ -963,14 +950,14 @@ export class MemoryMigrationService {
       estimatedDuration: this.estimateMigrationDuration(analysis.totalItems, analysis.estimatedSize),
       categoryBreakdown: analysis.categoryBreakdown,
       transformationPreview: transformedData,
-      validationResults: validationResults.map((r: any) => ({
+      validationResults: validationResults.map((r: unknown) => ({
         ruleId: r.ruleId,
         ruleName: r.ruleName,
         passed: r.passed,
         message: r.message
       })),
-      warnings: validationResults.filter((r: any) => r.severity === 'warning').map((r: any) => r.message),
-      errors: validationResults.filter((r: any) => r.severity === 'error').map((r: any) => r.message)
+      warnings: validationResults.filter((r: unknown) => r.severity === 'warning').map((r: unknown) => r.message),
+      errors: validationResults.filter((r: unknown) => r.severity === 'error').map((r: unknown) => r.message)
     };
   }
 

@@ -479,7 +479,7 @@ router.get(
       const { domainId } = req.params;
       const status = req.query.status as string;
 
-      const whereClause: any = {
+      const whereClause: Event = {
         OR: [
           { sourceMemoryId: domainId },
           { targetMemoryId: domainId },

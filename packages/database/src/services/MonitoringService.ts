@@ -97,7 +97,7 @@ export interface Alert {
   timestamp: Date;
   resolved?: Date;
   resolvedBy?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   channels: AlertChannel[];
   escalationLevel: number;
   acknowledged?: Date;
@@ -144,7 +144,7 @@ export interface DashboardWidget {
   query: string;
   timeRange: string;
   refreshInterval: number;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   position: { x: number; y: number; w: number; h: number };
 }
 
@@ -163,7 +163,7 @@ export interface LogEntry {
   userId?: string;
   domainId?: string;
   requestId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   stackTrace?: string;
 }
 
@@ -175,10 +175,10 @@ export interface TraceSpan {
   startTime: Date;
   endTime?: Date;
   duration?: number;
-  tags: Record<string, any>;
+  tags: Record<string, unknown>;
   logs: Array<{
     timestamp: Date;
-    fields: Record<string, any>;
+    fields: Record<string, unknown>;
   }>;
   status: {
     code: number;
@@ -389,7 +389,7 @@ export class MonitoringService {
     level: LogEntry['level'],
     message: string,
     source: string,
-    metadata?: Record<string, any>,
+    metadata?: Record<string, unknown>,
     userId?: string,
     domainId?: string,
     requestId?: string

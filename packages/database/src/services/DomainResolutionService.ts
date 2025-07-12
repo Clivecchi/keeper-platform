@@ -200,7 +200,7 @@ export class DomainResolutionService {
   /**
    * Create error result
    */
-  private createErrorResult(hostname: string, error: any): DomainResolutionResult {
+  private createErrorResult(hostname: string, error: unknown): DomainResolutionResult {
     return {
       domain: null,
       resolutionMethod: 'not_found',
@@ -325,7 +325,7 @@ export class DomainResolutionService {
    * Middleware factory for Express.js
    */
   createMiddleware() {
-    return async (req: any, res: any, next: any) => {
+    return async (req: Request, res: Response, next: NextFunction) => {
       const hostname = this.extractHostname(req);
       const context = await this.createDomainContext(hostname);
       
@@ -386,7 +386,7 @@ export class DomainResolutionService {
     return { baseDomain: hostname };
   }
 
-  private extractHostname(req: any): string {
+  private extractHostname(req: Request): string {
     // Try various headers that might contain the hostname
     const hostname = req.headers.host || 
                     req.headers['x-forwarded-host'] || 

@@ -142,7 +142,7 @@ export function createProductionRoutes(
   router.get('/config/:category', async (req: Request, res: Response) => {
     try {
       const { category } = req.params;
-      const config = configService.getConfigCategory(category as any);
+      const config = configService.getConfigCategory(category as string);
       res.json({ config });
     } catch (error) {
       monitoringService.log('error', 'Failed to get configuration category', 'production-api', { error, category: req.params.category });

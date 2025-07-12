@@ -1,3 +1,23 @@
+import { Request } from 'express';
+
+// Domain Context types
+export interface DomainContext {
+  id: string;
+  name: string;
+  ownerId: string;
+  settings: Record<string, unknown>;
+}
+
+export interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+    email: string | null;
+    name?: string | null;
+    role?: string | null;
+  };
+  domainContext?: DomainContext;
+}
+
 // Domain Permission types
 export type DomainRole = 'admin' | 'user' | 'friend' | 'connection';
 export type DomainPermissionType = 'read' | 'write' | 'share' | 'admin' | 'invite' | 'delete';

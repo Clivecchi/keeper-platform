@@ -65,7 +65,7 @@ export interface MemoryAccessRequest extends Request {
     accessType: MemoryAccessType;
     permissions: string[];
     domainId?: string;
-    memoryScope?: any;
+    memoryScope?: Record<string, unknown>;
     accessLevel?: string;
     quotaStatus?: {
       current: number;
@@ -76,6 +76,7 @@ export interface MemoryAccessRequest extends Request {
     restrictions?: string[];
     allowedCategories?: string[];
   };
+  sessionId?: string;
 }
 
 export interface MemoryAccessConfig {
@@ -142,7 +143,7 @@ export class MemoryAccessManager {
         }
 
         // Get memory scope
-        let memoryScope: any = null;
+        let memoryScope: Event = null;
         if (domainId) {
           try {
             memoryScope = await this.memoryService.getMemoryScope(domainId);
@@ -293,7 +294,7 @@ export class MemoryAccessManager {
             operation: req.method,
             restrictions: crossDomainCheck.restrictions,
           },
-        } as any;
+        } as unknown as MemoryAccessRequest['memoryContext'];
 
         next();
       } catch (error) {
@@ -326,7 +327,7 @@ export class MemoryAccessManager {
   private async determineAccessLevel(
     domainId: string,
     userId: string,
-    memoryScope: any
+    memoryScope: Event
   ): Promise<'read' | 'write' | 'admin' | 'none'> {
     if (!memoryScope) return 'none';
 
@@ -422,10 +423,10 @@ export class MemoryAccessManager {
   /**
    * Find cross-domain references in data
    */
-  private findCrossDomainReferences(data: any, currentDomainId: string): string[] {
+  private findCrossDomainReferences(data: unknown, currentDomainId: string): string[] {
     const references: string[] = [];
     
-    function traverse(obj: any, path: string = '') {
+    function traverse(obj: unknown, path: string = '') {
       if (typeof obj === 'string' && obj.length === 36 && obj.includes('-')) {
         // Potential UUID reference
         if (obj !== currentDomainId && obj.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
@@ -445,7 +446,7 @@ export class MemoryAccessManager {
   /**
    * Get allowed memory categories for user
    */
-  private getAllowedCategories(memoryScope: any, accessLevel: string): string[] {
+  private getAllowedCategories(memoryScope: Event, accessLevel: string): string[] {
     const allCategories = ['conversational', 'factual', 'procedural', 'episodic', 'semantic'];
     
     // Admin and write access get all categories
@@ -464,7 +465,7 @@ export class MemoryAccessManager {
   /**
    * Get access restrictions for user
    */
-  private getAccessRestrictions(memoryScope: any, userId: string): string[] {
+  private getAccessRestrictions(memoryScope: Event, userId: string): string[] {
     const restrictions: string[] = [];
 
     if (!memoryScope) {
@@ -497,9 +498,7 @@ export class MemoryAccessManager {
   private async validateCrossDomainOperation(
     sourceDomainId: string,
     targetDomainId: string,
-    method: string,
-    body: any
-  ): Promise<{ allowed: boolean; reason?: string; restrictions?: string[] }> {
+    method: string, body: unknown): Promise<{ allowed: boolean; reason?: string; restrictions?: string[] }> {
     try {
       // Get memory scopes for both domains
       const [sourceScope, targetScope] = await Promise.all([
@@ -564,7 +563,7 @@ export class MemoryAccessManager {
   /**
    * Validate share agreement permissions
    */
-  private validateSharePermissions(shareAgreement: any, method: string, body: any): string[] {
+  private validateSharePermissions(shareAgreement: unknown, method: string, body: unknown): string[] {
     const violations: string[] = [];
 
     // Check share type restrictions
@@ -625,7 +624,7 @@ export class MemoryAccessManager {
   /**
    * Add memory-related headers to response
    */
-  private addMemoryHeaders(res: Response, memoryContext: any): void {
+  private addMemoryHeaders(res: Response, memoryContext: unknown): void {
     res.setHeader('X-Memory-Domain', memoryContext.domainId);
     res.setHeader('X-Memory-Access-Level', memoryContext.accessLevel);
     res.setHeader('X-Memory-Quota-Usage', `${memoryContext.quotaStatus.percentage}%`);

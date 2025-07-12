@@ -73,7 +73,7 @@ router.get('/',
       const userId = req.user.id;
 
       // Build basic query
-      const where: any = {};
+      const where: Event = {};
 
       // Search filtering
       if (search && typeof search === 'string') {

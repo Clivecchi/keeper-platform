@@ -44,6 +44,30 @@ export { PrismaClient } from '@prisma/client';
 // =============================================================================
 export * from './queries/index.js';
 // =============================================================================
+// SERVICES EXPORT
+// =============================================================================
+export { DomainService } from './services/DomainService.js';
+export { DomainPermissionService } from './services/DomainPermissionService.js';
+export { DomainCacheService } from './services/DomainCacheService.js';
+export { DomainContextService } from './services/DomainContextService.js';
+export { SslCertificateService } from './services/SslCertificateService.js';
+export { DomainHealthMonitoringService } from './services/DomainHealthMonitoringService.js';
+export { CrossDomainSharingService } from './services/CrossDomainSharingService.js';
+export { ShareWorkflowAutomationService } from './services/ShareWorkflowAutomationService.js';
+export { SoleMemoryIsolationService } from './services/SoleMemoryIsolationService.js';
+export { FeatureFlagService, getFeatureFlagService } from './services/FeatureFlagService.js';
+export { DomainResolutionService } from './services/DomainResolutionService.js';
+export { DomainVerificationService } from './services/DomainVerificationService.js';
+export { MemoryMigrationService } from './services/MemoryMigrationService.js';
+export { MonitoringService } from './services/MonitoringService.js';
+export { ProductionConfigService } from './services/ProductionConfigService.js';
+export { DeploymentAutomationService } from './services/DeploymentAutomationService.js';
+export { SlugValidationService } from './services/SlugValidationService.js';
+// =============================================================================
+// FACTORY EXPORTS
+// =============================================================================
+export { DomainServiceFactory } from './factories/DomainServiceFactory.js';
+// =============================================================================
 // TYPE EXPORTS
 // =============================================================================
 export * from './types.js';

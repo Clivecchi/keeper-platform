@@ -225,4 +225,401 @@ export async function softDeleteUser(userId) {
         }
     });
 }
+// =============================================================================
+// KIP AGENT QUERIES
+// =============================================================================
+/**
+ * Get all KIP agents
+ */
+export async function getAllKipAgents() {
+    return prisma.kip_agents.findMany({
+        orderBy: [
+            { status: 'asc' },
+            { name: 'asc' }
+        ]
+    });
+}
+/**
+ * Get a KIP agent by slug
+ */
+export async function getKipAgentBySlug(slug) {
+    return prisma.kip_agents.findUnique({
+        where: { slug }
+    });
+}
+/**
+ * Get a KIP agent by ID
+ */
+export async function getKipAgentById(id) {
+    return prisma.kip_agents.findUnique({
+        where: { id }
+    });
+}
+/**
+ * Create a new KIP agent
+ */
+export async function createKipAgent(data) {
+    return prisma.kip_agents.create({
+        data: {
+            ...data,
+            updated_at: new Date()
+        }
+    });
+}
+/**
+ * Update a KIP agent
+ */
+export async function updateKipAgent(id, data) {
+    return prisma.kip_agents.update({
+        where: { id },
+        data: {
+            ...data,
+            updated_at: new Date()
+        }
+    });
+}
+/**
+ * Delete a KIP agent
+ */
+export async function deleteKipAgent(id) {
+    return prisma.kip_agents.delete({
+        where: { id }
+    });
+}
+// =============================================================================
+// KIP AGENT LOG QUERIES
+// =============================================================================
+/**
+ * Create a new KIP agent log entry
+ */
+export async function createKipAgentLog(data) {
+    return prisma.kip_agent_logs.create({
+        data
+    });
+}
+/**
+ * Get all KIP agent logs with pagination
+ */
+export async function getKipAgentLogs(options = {}) {
+    const { page = 1, pageSize = 50, agentId, userId } = options;
+    const skip = (page - 1) * pageSize;
+    const where = {
+        ...(agentId && { agent_id: agentId }),
+        ...(userId && { user_id: userId })
+    };
+    const [logs, total] = await Promise.all([
+        prisma.kip_agent_logs.findMany({
+            where,
+            include: {
+                agent: {
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        model: true
+                    }
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                }
+            },
+            orderBy: { created_at: 'desc' },
+            skip,
+            take: pageSize
+        }),
+        prisma.kip_agent_logs.count({ where })
+    ]);
+    return {
+        logs,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+        hasNext: page * pageSize < total,
+        hasPrevious: page > 1
+    };
+}
+/**
+ * Get logs for a specific agent
+ */
+export async function getLogsByAgentId(agentId, options = {}) {
+    return getKipAgentLogs({ ...options, agentId });
+}
+/**
+ * Get logs for a specific user
+ */
+export async function getLogsByUserId(userId, options = {}) {
+    return getKipAgentLogs({ ...options, userId });
+}
+/**
+ * Get agent execution statistics
+ */
+export async function getAgentStats(agentId) {
+    const where = agentId ? { agent_id: agentId } : {};
+    const stats = await prisma.kip_agent_logs.aggregate({
+        where,
+        _count: { id: true },
+        _avg: { execution_time_ms: true },
+        _min: { execution_time_ms: true },
+        _max: { execution_time_ms: true }
+    });
+    const errorCount = await prisma.kip_agent_logs.count({
+        where: {
+            ...where,
+            error: { not: null }
+        }
+    });
+    return {
+        totalExecutions: stats._count.id,
+        avgExecutionTime: stats._avg.execution_time_ms,
+        minExecutionTime: stats._min.execution_time_ms,
+        maxExecutionTime: stats._max.execution_time_ms,
+        errorCount,
+        successRate: stats._count.id > 0 ? ((stats._count.id - errorCount) / stats._count.id) * 100 : 0
+    };
+}
+// =============================================================================
+// KIP SESSION QUERIES
+// =============================================================================
+/**
+ * Create a new KIP session
+ */
+export async function createKipSession(data) {
+    return prisma.kip_sessions.create({
+        data: {
+            ...data,
+            updated_at: new Date()
+        },
+        include: {
+            agent: {
+                select: {
+                    id: true,
+                    name: true,
+                    slug: true
+                }
+            },
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true
+                }
+            }
+        }
+    });
+}
+/**
+ * Get a KIP session by ID with messages
+ */
+export async function getKipSessionById(sessionId) {
+    return prisma.kip_sessions.findUnique({
+        where: { id: sessionId },
+        include: {
+            agent: {
+                select: {
+                    id: true,
+                    name: true,
+                    slug: true
+                }
+            },
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true
+                }
+            },
+            messages: {
+                orderBy: { created_at: 'asc' }
+            }
+        }
+    });
+}
+/**
+ * Get all sessions for an agent
+ */
+export async function getSessionsByAgentId(agentId, options = {}) {
+    const { page = 1, pageSize = 50 } = options;
+    const skip = (page - 1) * pageSize;
+    const [sessions, total] = await Promise.all([
+        prisma.kip_sessions.findMany({
+            where: { agent_id: agentId },
+            include: {
+                agent: {
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true
+                    }
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
+                _count: {
+                    select: { messages: true }
+                }
+            },
+            orderBy: { updated_at: 'desc' },
+            skip,
+            take: pageSize
+        }),
+        prisma.kip_sessions.count({ where: { agent_id: agentId } })
+    ]);
+    return {
+        sessions,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+        hasNext: page * pageSize < total,
+        hasPrevious: page > 1
+    };
+}
+/**
+ * Get all sessions for a user
+ */
+export async function getSessionsByUserId(userId, options = {}) {
+    const { page = 1, pageSize = 50 } = options;
+    const skip = (page - 1) * pageSize;
+    const [sessions, total] = await Promise.all([
+        prisma.kip_sessions.findMany({
+            where: { user_id: userId },
+            include: {
+                agent: {
+                    select: {
+                        id: true,
+                        name: true,
+                        slug: true
+                    }
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
+                _count: {
+                    select: { messages: true }
+                }
+            },
+            orderBy: { updated_at: 'desc' },
+            skip,
+            take: pageSize
+        }),
+        prisma.kip_sessions.count({ where: { user_id: userId } })
+    ]);
+    return {
+        sessions,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+        hasNext: page * pageSize < total,
+        hasPrevious: page > 1
+    };
+}
+/**
+ * Update session updated_at timestamp
+ */
+export async function updateSessionTimestamp(sessionId) {
+    return prisma.kip_sessions.update({
+        where: { id: sessionId },
+        data: { updated_at: new Date() }
+    });
+}
+/**
+ * Delete a KIP session and all its messages
+ */
+export async function deleteKipSession(sessionId) {
+    return prisma.kip_sessions.delete({
+        where: { id: sessionId }
+    });
+}
+// =============================================================================
+// KIP MESSAGE QUERIES
+// =============================================================================
+/**
+ * Create a new KIP message
+ */
+export async function createKipMessage(data) {
+    // Update session timestamp when adding a message
+    await updateSessionTimestamp(data.session_id);
+    return prisma.kip_messages.create({
+        data: {
+            ...data,
+            role: data.role || (data.sender === 'user' ? 'user' : 'assistant')
+        },
+        include: {
+            session: {
+                select: {
+                    id: true,
+                    agent_id: true,
+                    user_id: true
+                }
+            }
+        }
+    });
+}
+/**
+ * Get all messages for a session
+ */
+export async function getSessionMessages(sessionId) {
+    return prisma.kip_messages.findMany({
+        where: { session_id: sessionId },
+        orderBy: { created_at: 'asc' },
+        include: {
+            session: {
+                select: {
+                    id: true,
+                    agent_id: true,
+                    user_id: true
+                }
+            }
+        }
+    });
+}
+/**
+ * Get latest messages for a session with limit
+ */
+export async function getRecentSessionMessages(sessionId, limit = 50) {
+    return prisma.kip_messages.findMany({
+        where: { session_id: sessionId },
+        orderBy: { created_at: 'desc' },
+        take: limit,
+        include: {
+            session: {
+                select: {
+                    id: true,
+                    agent_id: true,
+                    user_id: true
+                }
+            }
+        }
+    });
+}
+/**
+ * Delete all messages from a session
+ */
+export async function deleteSessionMessages(sessionId) {
+    return prisma.kip_messages.deleteMany({
+        where: { session_id: sessionId }
+    });
+}
+/**
+ * Get message count for a session
+ */
+export async function getSessionMessageCount(sessionId) {
+    return prisma.kip_messages.count({
+        where: { session_id: sessionId }
+    });
+}
 //# sourceMappingURL=index.js.map

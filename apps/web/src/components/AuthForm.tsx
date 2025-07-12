@@ -45,7 +45,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false }) => {
       } else {
         setError(result.error?.message || 'An unknown error occurred.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (!isRegister) {
         // Debug logging for login failures
         console.error('❌ Login failed:', err);

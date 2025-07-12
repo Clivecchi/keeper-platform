@@ -20,11 +20,11 @@ export declare const UpdateUserSettingsSchema: z.ZodObject<{
     respectSystemTheme: z.ZodOptional<z.ZodBoolean>;
     preferred_theme_id: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    themeMode?: "light" | "dark" | "system" | undefined;
+    themeMode?: "system" | "light" | "dark" | undefined;
     respectSystemTheme?: boolean | undefined;
     preferred_theme_id?: string | undefined;
 }, {
-    themeMode?: "light" | "dark" | "system" | undefined;
+    themeMode?: "system" | "light" | "dark" | undefined;
     respectSystemTheme?: boolean | undefined;
     preferred_theme_id?: string | undefined;
 }>;

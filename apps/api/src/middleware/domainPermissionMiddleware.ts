@@ -16,8 +16,20 @@ const permissionService = new DomainPermissionService(prisma, cacheService);
 
 export type DomainPermissionType = 'read' | 'write' | 'share' | 'admin' | 'invite' | 'delete';
 
+export interface DomainData {
+  id: string;
+  name: string;
+  slug: string;
+  ownerId: string;
+  settings?: unknown;
+  limits?: unknown;
+  features?: unknown;
+  theme?: unknown;
+  [key: string]: unknown;
+}
+
 export interface DomainContext {
-  domain: any;
+  domain: DomainData;
   isCustomDomain: boolean;
   originalHostname: string;
   resolvedSlug: string;
@@ -208,7 +220,7 @@ export class DomainPermissionMiddleware {
   /**
    * Check if user is domain owner
    */
-  private async isDomainOwner(userId: string, domain: any): Promise<boolean> {
+  private async isDomainOwner(userId: string, domain: DomainData): Promise<boolean> {
     if (!domain) {
       return false;
     }
@@ -219,7 +231,7 @@ export class DomainPermissionMiddleware {
   /**
    * Get user permissions for domain
    */
-  private async getUserPermissions(userId: string, domain: any): Promise<{
+  private async getUserPermissions(userId: string, domain: DomainData): Promise<{
     permissions: DomainPermissionType[];
     role: string;
   }> {

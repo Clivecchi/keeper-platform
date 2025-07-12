@@ -13,17 +13,17 @@ import { createTestApp } from '../../../utils/testApp';
 import { createTestUser, createTestDomain } from '../../../utils/testFixtures';
 
 describe('SOLE Memory Isolation Integration Tests', () => {
-  let app: any;
+  let app: Record<string, unknown>;
   let prisma: PrismaClient;
   let memoryService: SoleMemoryIsolationService;
   let migrationService: MemoryMigrationService;
   let cacheService: DomainCacheService;
 
   // Test data
-  let testUser1: any;
-  let testUser2: any;
-  let testDomain1: any;
-  let testDomain2: any;
+  let testUser1: Record<string, unknown>;
+  let testUser2: Record<string, unknown>;
+  let testDomain1: Record<string, unknown>;
+  let testDomain2: Record<string, unknown>;
   let authToken1: string;
   let authToken2: string;
 
@@ -777,10 +777,10 @@ describe('SOLE Memory Isolation Integration Tests', () => {
 });
 
 describe('Memory Access Middleware Tests', () => {
-  let app: any;
+  let app: Record<string, unknown>;
   let prisma: PrismaClient;
-  let testUser: any;
-  let testDomain: any;
+  let testUser: Record<string, unknown>;
+  let testDomain: Record<string, unknown>;
   let authToken: string;
 
   beforeAll(async () => {

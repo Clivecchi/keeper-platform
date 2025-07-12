@@ -1,5 +1,5 @@
 import express from 'express';
-import type { Request, Response, Express } from 'express';
+import type { Request, Response, Express, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { z } from 'zod';
@@ -494,19 +494,104 @@ app.put('/api/users/:id', authMiddlewareCompat, async (req: Request, res: Respon
 // Connect domain routes
 app.use('/api/domains', domainRoutes);
 
-// Catch-all error handler
-app.use((err: any, req: Request, res: Response, next: any) => {
-  console.error('❌ Error caught by handler:', err.message);
-  console.error('❌ Stack:', err.stack);
-  console.error('❌ Request:', req.method, req.path);
-  
-  res.status(500).json({
-    error: 'Internal server error',
-    message: err.message || 'Unknown error',
-    timestamp: new Date().toISOString(),
-    path: req.path
+// Global Error Handler - Catch-all safety net across API
+function globalErrorHandler(err: unknown, req: Request, res: Response, next: NextFunction) {
+  // Log error details
+  console.error('🚨 Global Error Handler caught:', {
+    error: err instanceof Error ? err.message : 'Unknown error',
+    stack: err instanceof Error ? err.stack : undefined,
+    method: req.method,
+    path: req.path,
+    url: req.originalUrl,
+    headers: req.headers,
+    body: req.body,
+    timestamp: new Date().toISOString()
   });
-});
+
+  // Handle different error types
+  let statusCode = 500;
+  let errorCode = 'INTERNAL_SERVER_ERROR';
+  let message = 'Internal server error';
+  let details: Record<string, unknown> | undefined = undefined;
+
+  // Domain errors (from our middleware)
+  if (err && typeof err === 'object' && 'code' in err && 'statusCode' in err) {
+    const domainError = err as { statusCode: number; code: string; message: string; details?: Record<string, unknown> };
+    statusCode = domainError.statusCode;
+    errorCode = domainError.code;
+    message = domainError.message;
+    details = domainError.details;
+  }
+  // Validation errors (Zod)
+  else if (err instanceof Error && err.name === 'ZodError') {
+    statusCode = 400;
+    errorCode = 'VALIDATION_ERROR';
+    message = 'Invalid request data';
+    details = (err as unknown as { errors: unknown[] }).errors;
+  }
+  // JWT errors
+  else if (err instanceof Error && err.name === 'JsonWebTokenError') {
+    statusCode = 401;
+    errorCode = 'INVALID_TOKEN';
+    message = 'Invalid authentication token';
+  }
+  else if (err instanceof Error && err.name === 'TokenExpiredError') {
+    statusCode = 401;
+    errorCode = 'TOKEN_EXPIRED';
+    message = 'Authentication token has expired';
+  }
+  // Database errors
+  else if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'P2002') {
+    statusCode = 409;
+    errorCode = 'DUPLICATE_RESOURCE';
+    message = 'Resource already exists';
+  }
+  else if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'P2025') {
+    statusCode = 404;
+    errorCode = 'RESOURCE_NOT_FOUND';
+    message = 'Resource not found';
+  }
+  // Rate limiting errors
+  else if (err && typeof err === 'object' && 'type' in err && (err as { type: string }).type === 'entity.too.large') {
+    statusCode = 413;
+    errorCode = 'PAYLOAD_TOO_LARGE';
+    message = 'Request payload too large';
+  }
+  // Timeout errors
+  else if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'ETIMEDOUT') {
+    statusCode = 504;
+    errorCode = 'GATEWAY_TIMEOUT';
+    message = 'Request timeout';
+  }
+  // Default case for unknown errors
+  else {
+    statusCode = 500;
+    errorCode = 'INTERNAL_SERVER_ERROR';
+    message = process.env.NODE_ENV === 'production' 
+      ? 'Internal server error' 
+      : (err instanceof Error ? err.message : 'Unknown error');
+  }
+
+  // Send error response
+  const errorResponse = {
+    success: false,
+    error: errorCode,
+    message,
+    ...(details && { details }),
+    timestamp: new Date().toISOString(),
+    path: req.path,
+    method: req.method,
+    ...(process.env.NODE_ENV !== 'production' && { 
+      stack: err instanceof Error ? err.stack : undefined,
+      originalError: err instanceof Error ? err.message : 'Unknown error'
+    })
+  };
+
+  res.status(statusCode).json(errorResponse);
+}
+
+// Mount the global error handler
+app.use(globalErrorHandler);
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {
@@ -558,10 +643,11 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('\n✅ Domain Layer Implementation fully functional!\n');
 });
 
-server.on('error', (error: any) => {
-  if (error.code === 'EADDRINUSE') {
+server.on('error', (error: Error) => {
+  const errorWithCode = error as Error & { code?: string };
+  if (errorWithCode.code === 'EADDRINUSE') {
     console.error(`❌ Port ${PORT} is already in use`);
-  } else if (error.code === 'EACCES') {
+  } else if (errorWithCode.code === 'EACCES') {
     console.error(`❌ Permission denied to bind to port ${PORT}`);
   } else {
     console.error('❌ Server error:', error.message);

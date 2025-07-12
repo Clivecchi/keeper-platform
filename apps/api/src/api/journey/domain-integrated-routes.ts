@@ -75,7 +75,7 @@ router.get('/',
       const userId = req.user.id;
 
       // Build base query
-      const where: any = {};
+      const where: Event = {};
 
       // Domain filtering
       if (filters.domainId) {
@@ -276,9 +276,9 @@ router.post('/',
       }
 
       const stats = await domainService.getDomainStats(domainId);
-      const limits = domain.limits as any;
+      const limits = domain.limits as Record<string, unknown>;
       
-      if (limits?.max_journeys && stats.journeyCount >= limits.max_journeys) {
+      if (typeof limits?.max_journeys === 'number' && stats.journeyCount >= limits.max_journeys) {
         return res.status(400).json({ 
           error: 'Domain journey limit reached',
           current: stats.journeyCount,
@@ -448,9 +448,9 @@ router.post('/:id/moments',
       // Check domain limits
       const domain = await domainService.getDomainById(journey.domainId);
       const stats = await domainService.getDomainStats(journey.domainId);
-      const limits = domain?.limits as any;
+      const limits = domain?.limits as Record<string, unknown>;
       
-      if (limits?.max_moments && stats.momentCount >= limits.max_moments) {
+      if (typeof limits?.max_moments === 'number' && stats.momentCount >= limits.max_moments) {
         return res.status(400).json({ 
           error: 'Domain moment limit reached',
           current: stats.momentCount,

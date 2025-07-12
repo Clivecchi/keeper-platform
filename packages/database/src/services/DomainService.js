@@ -2,8 +2,8 @@
  * Domain Service
  * Core CRUD operations for domain management with validation and caching
  */
-import { SlugValidationService } from './SlugValidationService';
-import { getFeatureFlagService } from './FeatureFlagService';
+import { SlugValidationService } from './SlugValidationService.js';
+import { getFeatureFlagService } from './FeatureFlagService.js';
 export class DomainService {
     prisma;
     cacheService;

@@ -21,7 +21,7 @@ export interface WorkflowExecution {
   startedAt: Date;
   completedAt?: Date;
   errorMessage?: string;
-  context: Record<string, any>;
+  context: Record<string, unknown>;
 }
 
 export interface StepExecution {
@@ -42,13 +42,13 @@ export interface StepExecution {
 export interface WorkflowCondition {
   type: 'user_role' | 'domain_property' | 'content_type' | 'time' | 'approval_count' | 'custom';
   operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'in' | 'not_in';
-  value: any;
+  value: Event;
   field?: string;
 }
 
 export interface WorkflowAction {
   type: 'approve' | 'reject' | 'notify' | 'transform' | 'assign' | 'schedule' | 'custom';
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 export interface AutoApprovalRule {
@@ -109,7 +109,7 @@ export class ShareWorkflowAutomationService {
   async initializeWorkflowExecution(
     requestId: string,
     workflowId: string,
-    context: Record<string, any> = {}
+    context: Record<string, unknown> = {}
   ): Promise<string> {
     const workflow = await this.prisma.shareWorkflow.findUnique({
       where: { id: workflowId },
@@ -217,7 +217,7 @@ export class ShareWorkflowAutomationService {
   /**
    * Execute approval step
    */
-  private async executeApprovalStep(stepExecution: any): Promise<void> {
+  private async executeApprovalStep(stepExecution: unknown): Promise<void> {
     const { workflowStep, shareRequest } = stepExecution;
     
     // Check auto-approval conditions
@@ -265,7 +265,7 @@ export class ShareWorkflowAutomationService {
   /**
    * Execute notification step
    */
-  private async executeNotificationStep(stepExecution: any): Promise<void> {
+  private async executeNotificationStep(stepExecution: unknown): Promise<void> {
     const { workflowStep, shareRequest } = stepExecution;
     const notificationConfig = workflowStep.actions?.notifications || [];
 
@@ -297,7 +297,7 @@ export class ShareWorkflowAutomationService {
   /**
    * Execute validation step
    */
-  private async executeValidationStep(stepExecution: any): Promise<void> {
+  private async executeValidationStep(stepExecution: unknown): Promise<void> {
     const { workflowStep, shareRequest } = stepExecution;
     const validationRules = workflowStep.conditions || [];
 
@@ -338,7 +338,7 @@ export class ShareWorkflowAutomationService {
   /**
    * Execute transformation step
    */
-  private async executeTransformationStep(stepExecution: any): Promise<void> {
+  private async executeTransformationStep(stepExecution: unknown): Promise<void> {
     const { workflowStep, shareRequest } = stepExecution;
     const transformationRules = workflowStep.actions?.transformations || [];
 
@@ -462,7 +462,7 @@ export class ShareWorkflowAutomationService {
 
     if (request?.workflow?.autoApprovalRules && Array.isArray(request.workflow.autoApprovalRules)) {
       const autoApprovalRules = request.workflow.autoApprovalRules as any[];
-      if (autoApprovalRules.some((rule: any) => rule.autoActivate)) {
+      if (autoApprovalRules.some((rule: Event) => rule.autoActivate)) {
         console.log('Auto-approval rules detected, enabling immediate activation');
       }
     }
@@ -471,9 +471,8 @@ export class ShareWorkflowAutomationService {
   /**
    * Check auto-approval conditions
    */
-  private async checkAutoApprovalConditions(
-    shareRequest: any,
-    conditions: any[]
+  private async checkAutoApprovalConditions(shareRequest: unknown,
+    conditions: unknown[]
   ): Promise<{ shouldAutoApprove: boolean; appliedRules: string[] }> {
     if (!this.featureFlags.isEnabled('AUTO_APPROVAL')) {
       return { shouldAutoApprove: false, appliedRules: [] };
@@ -510,11 +509,10 @@ export class ShareWorkflowAutomationService {
    * Validate workflow condition
    */
   private async validateCondition(
-    condition: WorkflowCondition,
-    shareRequest: any,
+    condition: WorkflowCondition, shareRequest: unknown,
     stepExecution?: any
   ): Promise<{ isValid: boolean; rule: string; details?: any }> {
-    let actualValue: any;
+    let actualValue: Event;
     let isValid = false;
 
     switch (condition.type) {
@@ -576,7 +574,7 @@ export class ShareWorkflowAutomationService {
   /**
    * Evaluate condition based on operator
    */
-  private evaluateCondition(actual: any, operator: string, expected: any): boolean {
+  private evaluateCondition(actual: unknown, operator: string, expected: unknown): boolean {
     switch (operator) {
       case 'equals':
         return actual === expected;
@@ -722,7 +720,7 @@ export class ShareWorkflowAutomationService {
   /**
    * Private helper methods
    */
-  private async determineStepAssignees(step: any, shareRequest: any): Promise<string[]> {
+  private async determineStepAssignees(step: unknown, shareRequest: unknown): Promise<string[]> {
     const assignees: string[] = [];
 
     if (step.requiredUsers && step.requiredUsers.length > 0) {
@@ -743,16 +741,13 @@ export class ShareWorkflowAutomationService {
     return [...new Set(assignees)]; // Remove duplicates
   }
 
-  private async sendApprovalNotifications(stepExecution: any, assignees: string[]): Promise<void> {
+  private async sendApprovalNotifications(stepExecution: unknown, assignees: string[]): Promise<void> {
     // Implementation for sending approval notifications
     console.log(`Sending approval notifications to ${assignees.length} users`);
   }
 
   private async sendNotification(
-    config: NotificationConfig,
-    shareRequest: any,
-    stepExecution: any
-  ): Promise<void> {
+    config: NotificationConfig, shareRequest: unknown, stepExecution: unknown): Promise<void> {
     // Implementation for sending various types of notifications
     console.log(`Sending ${config.type} notification`);
   }
@@ -770,7 +765,7 @@ export class ShareWorkflowAutomationService {
     return permission?.role || 'none';
   }
 
-  private async getDomainProperty(domainId: string, property: string): Promise<any> {
+  private async getDomainProperty(domainId: string, property: string): Promise<unknown> {
     const domain = await this.prisma.domain.findUnique({
       where: { id: domainId },
     });
@@ -789,20 +784,16 @@ export class ShareWorkflowAutomationService {
   }
 
   private async evaluateCustomCondition(
-    condition: WorkflowCondition,
-    shareRequest: any,
+    condition: WorkflowCondition, shareRequest: unknown,
     stepExecution?: any
-  ): Promise<{ isValid: boolean; value: any }> {
+  ): Promise<{ isValid: boolean; value: Event }> {
     // Implementation for custom condition evaluation
     // This would be extended based on specific business logic
     return { isValid: true, value: null };
   }
 
   private async applyTransformation(
-    rule: any,
-    shareRequest: any,
-    stepExecution: any
-  ): Promise<any> {
+    rule: Event, shareRequest: unknown, stepExecution: unknown): Promise<unknown> {
     // Implementation for applying transformations
     // This would be extended based on specific transformation needs
     return { success: true };
@@ -819,7 +810,7 @@ export class ShareWorkflowAutomationService {
     });
   }
 
-  private async handleStepError(stepExecutionId: string, error: any): Promise<void> {
+  private async handleStepError(stepExecutionId: string, error: unknown): Promise<void> {
     const stepExecution = await this.prisma.shareStepExecution.findUnique({
       where: { id: stepExecutionId },
     });
@@ -910,7 +901,7 @@ export class ShareWorkflowAutomationService {
   /**
    * Evaluate approval rule against a share request
    */
-  private evaluateApprovalRule(rule: any, shareRequest: any): boolean {
+  private evaluateApprovalRule(rule: Event, shareRequest: unknown): boolean {
     try {
       // Basic rule evaluation logic
       if (!rule || !rule.conditions) {

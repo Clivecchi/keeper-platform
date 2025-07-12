@@ -3,7 +3,7 @@
  * Core CRUD operations for domain management with validation and caching
  */
 import { PrismaClient, Domain, DomainPermission } from '@prisma/client';
-import { DomainCacheService } from './DomainCacheService';
+import { DomainCacheService } from './DomainCacheService.js';
 export type DomainWithIncludes = Domain & {
     keepers: any[];
     journeys: any[];

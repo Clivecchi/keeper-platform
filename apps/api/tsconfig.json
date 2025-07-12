@@ -2,8 +2,7 @@
   "extends": "../../tools/tsconfig/node.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
-    "baseUrl": "./src",
+    "baseUrl": "../../",
     "module": "ESNext",
     "target": "ES2022",
     "moduleResolution": "bundler",
@@ -14,7 +13,10 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["apps/api/src/*"],
+      "@keeper/database": ["packages/database/src"],
+      "@keeper/kam": ["packages/kam/src"],
+      "@keeper/shared": ["packages/shared/src"]
     }
   },
   "include": [

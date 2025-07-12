@@ -1,27 +1,28 @@
-import type { UserSession } from './types.js';
+import { AuthUser, UserSession } from './types.js';
 /**
- * Creates a JWT session token for the given user.
+ * Creates a new session for the given user.
+ * Generates a JWT token and returns session data.
  *
- * @param user - The user object (id, email, name) for whom to create a session.
- * @returns A UserSession object containing the token and user details.
+ * @param user - The authenticated user
+ * @returns UserSession with token and user info
  */
-export declare function createSession(user: {
-    id: string;
-    email: string | null;
-    name?: string | null;
-}): Promise<UserSession>;
+export declare function createSession(user: AuthUser): Promise<UserSession>;
 /**
- * Verifies and decodes a session token into a UserSession.
- * @param token - The JWT token from headers or cookies
- * @returns UserSession or null
+ * Validates and decodes a session token.
+ *
+ * @param token - The JWT token to validate
+ * @returns UserSession if valid, null if invalid
  */
 export declare function getSessionHandler(token: string): Promise<UserSession | null>;
 /**
- * Invalidates a session (e.g., on logout).
- * For JWTs, this is typically handled client-side by deleting the token.
- * Server-side blocklisting can be implemented if needed but is not standard for JWTs.
+ * Invalidates a user session.
+ * For JWT tokens, this is mainly informational since JWTs are stateless.
+ * In a production system, you'd typically maintain a blacklist or use database sessions.
  *
- * @param token - The session token to invalidate.
+ * @param token - The session token to invalidate
+ * @returns Success status
  */
-export declare function invalidateSession(token: string): Promise<void>;
+export declare function invalidateSession(token: string): Promise<{
+    success: boolean;
+}>;
 //# sourceMappingURL=session.d.ts.map

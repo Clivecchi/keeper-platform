@@ -114,7 +114,7 @@ export const getMemoryCardsByTopic = async (req: Request, res: Response) => {
     });
 
     // Group by topic
-    const groupedByTopic = memoryCards.reduce((acc: Record<string, typeof memoryCards>, card: any) => {
+    const groupedByTopic = memoryCards.reduce((acc: Record<string, typeof memoryCards>, card: unknown) => {
       const topic = card.topic || 'Uncategorized';
       if (!acc[topic]) {
         acc[topic] = [];
@@ -174,7 +174,7 @@ export const getEmbeddingStatus = async (req: Request, res: Response) => {
       pending: 0
     };
 
-    stats.forEach((stat: any) => {
+    stats.forEach((stat: unknown) => {
       const count = stat._count.id;
       result.total += count;
       if (stat.embedded) {

@@ -63,7 +63,7 @@ export interface WorkflowStep {
 export interface AutoApprovalRule {
   id: string;
   name: string;
-  conditions: any;
+  conditions: Record<string, unknown>;
   maxDuration?: number;
   maxAccessCount?: number;
   allowedContentTypes?: ContentType[];
@@ -81,7 +81,7 @@ export interface AccessRestriction {
   id: string;
   name: string;
   restrictionType: 'ip' | 'time' | 'user' | 'session';
-  config: any;
+  config: Record<string, unknown>;
 }
 
 export interface ShareTemplate {
@@ -115,9 +115,9 @@ export interface CollaborationConfig {
   description?: string;
   collaborationType: 'project' | 'temporary' | 'ongoing';
   memberDomainIds: string[];
-  permissions: Record<string, any>;
-  sharedResources: Record<string, any>;
-  accessRules: Record<string, any>;
+  permissions: Record<string, unknown>;
+  sharedResources: Record<string, unknown>;
+  accessRules: Record<string, unknown>;
   startDate?: Date;
   endDate?: Date;
   auditLevel?: string;
@@ -394,7 +394,7 @@ export class CrossDomainSharingService {
     userId?: string,
     ipAddress?: string,
     userAgent?: string
-  ): Promise<any> {
+  ): Promise<unknown> {
     const activation = await this.prisma.shareActivation.findUnique({
       where: { accessToken },
       include: {
@@ -734,7 +734,7 @@ export class CrossDomainSharingService {
       offset?: number;
     } = {}
   ): Promise<any[]> {
-    const whereClause: any = {};
+    const whereClause: Event = {};
 
     // Direction filter
     if (filters.direction === 'incoming') {
@@ -817,7 +817,7 @@ export class CrossDomainSharingService {
     }
   }
 
-  private async getWorkflow(workflowId: string): Promise<any> {
+  private async getWorkflow(workflowId: string): Promise<unknown> {
     const cached = await this.cacheService.getData(`workflow:${workflowId}`);
     if (cached) {
       return cached;
@@ -839,7 +839,7 @@ export class CrossDomainSharingService {
     return workflow;
   }
 
-  private async getTemplate(templateId: string): Promise<any> {
+  private async getTemplate(templateId: string): Promise<unknown> {
     const cached = await this.cacheService.getData(`template:${templateId}`);
     if (cached) {
       return cached;
@@ -860,7 +860,7 @@ export class CrossDomainSharingService {
     return template;
   }
 
-  private async initializeWorkflow(requestId: string, workflow: any): Promise<void> {
+  private async initializeWorkflow(requestId: string, workflow: unknown): Promise<void> {
     // Create step executions for all workflow steps
     for (const step of workflow.workflowSteps) {
       await this.prisma.shareStepExecution.create({
@@ -902,8 +902,7 @@ export class CrossDomainSharingService {
     }
   }
 
-  private async validateAccessRestrictions(
-    activation: any,
+  private async validateAccessRestrictions(activation: unknown,
     userId?: string,
     ipAddress?: string
   ): Promise<void> {

@@ -2,7 +2,7 @@ export type KipCommandIntent = {
   action: string;
   keeper_id: string;
   type: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 };
 
 export type AgentInfo = {

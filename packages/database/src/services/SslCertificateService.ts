@@ -563,7 +563,7 @@ export class SslCertificateService {
     return notifications;
   }
 
-  private transformCertificateRecord(record: any): CertificateInfo {
+  private transformCertificateRecord(record: unknown): CertificateInfo {
     return {
       id: record.id,
       domainId: record.domainId,
@@ -745,7 +745,7 @@ export class SslCertificateService {
   /**
    * Convert database certificate to CertificateInfo format
    */
-  private certificateToInfo(cert: any): CertificateInfo {
+  private certificateToInfo(cert: unknown): CertificateInfo {
     return {
       id: cert.id,
       domainId: cert.domainId,

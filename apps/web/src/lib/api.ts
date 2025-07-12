@@ -13,10 +13,14 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     // Create a proper error object instead of throwing the response
     // This prevents browser authentication prompts
     const errorBody = await res.text().catch(() => 'Network error');
-    const error = new Error(`HTTP ${res.status}: ${res.statusText}`);
-    (error as any).status = res.status;
-    (error as any).statusText = res.statusText;
-    (error as any).body = errorBody;
+    const error = new Error(`HTTP ${res.status}: ${res.statusText}`) as Error & {
+      status: number;
+      statusText: string;
+      body: string;
+    };
+    error.status = res.status;
+    error.statusText = res.statusText;
+    error.body = errorBody;
     throw error;
   }
   

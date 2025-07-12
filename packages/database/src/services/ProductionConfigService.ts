@@ -262,7 +262,7 @@ export interface DomainConfig {
 export interface FeatureConfig {
   flags: Record<string, boolean>;
   rollout: Record<string, number>;
-  experiments: Record<string, any>;
+  experiments: Record<string, unknown>;
   deprecations: Record<string, string>;
 }
 
@@ -972,8 +972,8 @@ export class ProductionConfigService {
     updates: Partial<ProductionConfig[T]>
   ): void {
     // Fix: Properly type the configuration categories to handle spread operations
-    const existingConfig = this.config[category] as Record<string, any>;
-    const updatesConfig = updates as Record<string, any>;
+    const existingConfig = this.config[category] as Record<string, unknown>;
+    const updatesConfig = updates as Record<string, unknown>;
     
     // Cast back to the proper type after merging
     this.config[category] = { 
@@ -1105,7 +1105,7 @@ export class ProductionConfigService {
   /**
    * Private helper methods
    */
-  private mergeConfigs(base: any, override: any): any {
+  private mergeConfigs(base: Event, override: Event): unknown {
     const result = { ...base };
     
     for (const key in override) {

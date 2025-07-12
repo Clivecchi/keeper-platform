@@ -3,7 +3,7 @@ import { prisma } from '@keeper/database';
 export interface SoleMemoryConfig {
   keeperId: string;
   memoryPattern: string;
-  sole?: any;
+  sole?: Record<string, unknown>;
 }
 
 /**
@@ -105,7 +105,7 @@ This is not a rulebook. It is your garden of memory. Explain yourself. Grow well
   /**
    * Validate SOLE architecture draft
    */
-  static validateSoleDraft(draft: any): { valid: boolean; errors: string[] } {
+  static validateSoleDraft(draft: unknown): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
     
     if (!draft || typeof draft !== 'object') {

@@ -42,7 +42,7 @@ export const getEchoesByKeeper = async (req: Request, res: Response) => {
     }
 
     // Build where clause with optional status filter
-    const whereClause: any = {
+    const whereClause: Event = {
       keeperId: keeperId
     };
 

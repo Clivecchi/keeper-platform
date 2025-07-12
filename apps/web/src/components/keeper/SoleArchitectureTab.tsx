@@ -88,7 +88,7 @@ const SoleArchitectureTab: React.FC<SoleArchitectureTabProps> = ({
     // Implementation would depend on how agent conversations are handled
   };
 
-  const formatJsonDisplay = (jsonData: any) => {
+  const formatJsonDisplay = (jsonData: unknown) => {
     if (!jsonData) return 'No data';
     try {
       return JSON.stringify(jsonData, null, 2);

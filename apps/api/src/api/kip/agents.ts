@@ -44,18 +44,23 @@ export class KipAgentService {
   /**
    * Generate response for Lead agents with conversational intelligence
    */
-  static generateLeadAgentResponse(agent: any, input: string): string {
-    const config = agent.config as any;
+  static generateLeadAgentResponse(agent: unknown, input: string): string {
+    const typedAgent = agent as { 
+      config?: { personality?: string; tagline?: string; capabilities?: string[] }; 
+      slug?: string; 
+      name?: string; 
+    };
+    const config = typedAgent.config;
     const personality = config?.personality || 'helpful';
     
     // Generate contextual responses based on agent personality and capabilities
-    if (agent.slug === 'kip') {
+    if (typedAgent.slug === 'kip') {
       return `Hello! I'm Kip, ${config?.tagline || 'your AI companion'}. I understand you said: "${input}". As your thought processing assistant, I can help you organize ideas, analyze patterns, and coordinate tasks. How would you like me to assist you with this today?`;
-    } else if (agent.slug === 'ceox') {
+    } else if (typedAgent.slug === 'ceox') {
       return `Greetings. I'm CeoX, ${config?.tagline || 'your strategic AI partner'}. You've shared: "${input}". From an executive perspective, I can provide strategic analysis, business intelligence, and decision support. What strategic insights or recommendations would be most valuable for you regarding this matter?`;
     } else {
       // Generic Lead agent response
-      return `Hello! I'm ${agent.name}. I see you've mentioned: "${input}". Based on my capabilities in ${config?.capabilities?.join(', ') || 'general assistance'}, I'm here to help. What specific assistance can I provide?`;
+      return `Hello! I'm ${typedAgent.name}. I see you've mentioned: "${input}". Based on my capabilities in ${config?.capabilities?.join(', ') || 'general assistance'}, I'm here to help. What specific assistance can I provide?`;
     }
   }
 
@@ -190,7 +195,7 @@ export class KipAgentService {
   /**
    * Save a message to session memory
    */
-  static async saveMessage(sessionId: string, sender: 'user' | 'agent', content: string, role?: string, metadata?: any): Promise<void> {
+  static async saveMessage(sessionId: string, sender: 'user' | 'agent', content: string, role?: string, metadata?: Record<string, unknown>): Promise<void> {
     try {
       const messageData: KipMessageInput = {
         session_id: sessionId,
@@ -210,8 +215,13 @@ export class KipAgentService {
   /**
    * Generate Lead agent response with memory context (Legacy - for fallback)
    */
-  static generateLeadAgentResponseWithMemory(agent: any, input: string, previousMessages: KipMessageWithRelations[]): string {
-    const config = agent.config as any;
+  static generateLeadAgentResponseWithMemory(agent: unknown, input: string, previousMessages: KipMessageWithRelations[]): string {
+    const typedAgent = agent as { 
+      config?: { personality?: string; tagline?: string; capabilities?: string[] }; 
+      slug?: string; 
+      name?: string; 
+    };
+    const config = typedAgent.config;
     const personality = config?.personality || 'helpful';
     
     // Build context from previous messages
@@ -224,14 +234,14 @@ export class KipAgentService {
       `\n\nBased on our previous conversation:\n${recentContext}\n\nNow responding to: "${input}"` :
       `\n\nResponding to: "${input}"`;
     
-    if (agent.slug === 'kip') {
+    if (typedAgent.slug === 'kip') {
       const greeting = hasContext ? 'I remember our conversation.' : 'Hello! I\'m Kip, your AI companion.';
       return `${greeting} ${contextPrompt}\n\nAs your thought processing assistant with memory of our discussion, I can help you build on our previous insights, analyze patterns, and coordinate tasks. How would you like me to assist you with this continuation of our conversation?`;
-    } else if (agent.slug === 'ceox') {
+    } else if (typedAgent.slug === 'ceox') {
       const greeting = hasContext ? 'Continuing our strategic discussion.' : 'Greetings. I\'m CeoX, your strategic AI partner.';
       return `${greeting} ${contextPrompt}\n\nWith the context of our previous exchanges, I can provide strategic analysis that builds on our earlier insights, business intelligence that connects to previous decisions, and decision support that considers our conversation history. What strategic insights would be most valuable for you regarding this matter?`;
     } else {
-      const greeting = hasContext ? `Continuing our conversation, I'm ${agent.name}.` : `Hello! I'm ${agent.name}.`;
+      const greeting = hasContext ? `Continuing our conversation, I'm ${typedAgent.name}.` : `Hello! I'm ${typedAgent.name}.`;
       return `${greeting} ${contextPrompt}\n\nBased on my capabilities in ${config?.capabilities?.join(', ') || 'general assistance'} and our conversation history, I'm here to help. What specific assistance can I provide?`;
     }
   }
@@ -239,21 +249,31 @@ export class KipAgentService {
   /**
    * Call real AI model with conversation context
    */
-  static async callAIModel(agent: any, input: string, previousMessages: KipMessageWithRelations[], userId?: string): Promise<string> {
+  static async callAIModel(agent: unknown, input: string, previousMessages: KipMessageWithRelations[], userId?: string): Promise<string> {
     try {
-      const modelProvider = agent.model_provider as ModelProvider || 'openai';
-      const modelSettings = agent.model_settings as ModelSettings || ModelProviderService.getDefaultSettings(modelProvider);
+      const typedAgent = agent as {
+        model_provider?: ModelProvider;
+        model_settings?: ModelSettings;
+        config?: { tagline?: string; personality?: string; [key: string]: unknown };
+        name?: string;
+        purpose?: string;
+        tools?: string[];
+        context_scope?: string;
+      };
+      
+      const modelProvider = typedAgent.model_provider || 'openai';
+      const modelSettings = typedAgent.model_settings || ModelProviderService.getDefaultSettings(modelProvider);
       
       // Build conversation messages for the AI model
       const messages: ModelMessage[] = [];
       
       // Add system message with agent context
-      const config = agent.config as any;
-      const systemPrompt = `You are ${agent.name}, ${agent.purpose}. ${config?.tagline || ''}
+      const config = typedAgent.config;
+      const systemPrompt = `You are ${typedAgent.name}, ${typedAgent.purpose}. ${config?.tagline || ''}
 
-Key capabilities: ${agent.tools?.join(', ') || 'general assistance'}
+Key capabilities: ${typedAgent.tools?.join(', ') || 'general assistance'}
 Personality: ${config?.personality || 'helpful and professional'}
-Context scope: ${agent.context_scope || 'general'}
+Context scope: ${typedAgent.context_scope || 'general'}
 
 Please respond in character, using your specific capabilities and personality. Keep responses conversational and helpful.`;
       
@@ -306,7 +326,7 @@ Please respond in character, using your specific capabilities and personality. K
    */
   static async runAgent(agentId: string, input: string, userId?: string, sessionId?: string): Promise<AgentResponse | KipCommandIntent> {
     const startTime = Date.now();
-    let logData = {
+    const logData = {
       agent_id: agentId,
       user_id: userId,
       input: input,
@@ -348,11 +368,18 @@ Please respond in character, using your specific capabilities and personality. K
       logData.model = agent.model;
 
       // Mock agent execution based on agent type or class
-      let result: any;
+      let result: unknown;
 
       // Handle Lead agents - interactive chat experience with memory
       if (agent.agent_class === 'Lead') {
-        const config = agent.config as any;
+        const config = (agent as { config?: { 
+          avatar?: string; 
+          tagline?: string; 
+          personality?: string; 
+          capabilities?: string[]; 
+          theme_color?: string; 
+          bundle?: string[];
+        } }).config;
         let currentSessionId = sessionId;
         let previousMessages: KipMessageWithRelations[] = [];
         
@@ -428,7 +455,10 @@ Please respond in character, using your specific capabilities and personality. K
       }
       // Handle Coordinator agents
       else if (agent.agent_class === 'Coordinator') {
-        const config = agent.config as any;
+        const config = (agent as { config?: { 
+          bundle?: string[]; 
+          [key: string]: unknown;
+        } }).config;
         const subAgentSlugs = config?.bundle ?? [];
         console.log(`[Coordinator] Running ${subAgentSlugs.length} sub-agents:`, subAgentSlugs);
         

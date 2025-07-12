@@ -36,7 +36,7 @@ export interface KipAgent {
   memory_enabled: boolean;
   tools: string[];
   permissions: string[];
-  config: any;
+  config: Record<string, unknown>;
   status: string;
   model_provider: ModelProvider;
   model_settings: ModelSettings;
@@ -56,7 +56,7 @@ export interface AgentInput {
   memory_enabled?: boolean;
   tools?: string[];
   permissions?: string[];
-  config?: any;
+  config?: Record<string, unknown>;
   status?: string;
   model_provider?: ModelProvider;
   model_settings?: ModelSettings;
@@ -66,7 +66,7 @@ export interface AgentInput {
 export interface AgentResponse {
   id: string;
   success: boolean;
-  data: any;
+  data: unknown;
   processing_time_ms: number;
 }
 
@@ -74,7 +74,7 @@ export interface KipCommandIntent {
   action: string;
   keeper_id: string;
   type: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 export interface KipSession {
@@ -103,7 +103,7 @@ export interface KipMessage {
   sender: string;
   content: string;
   role: string;
-  metadata: any;
+  metadata: unknown;
   created_at: Date;
   session?: {
     id: string;
@@ -461,7 +461,7 @@ export class KipApi {
     pageSize?: number;
     agentId?: string;
     userId?: string;
-  } = {}): Promise<any> {
+  } = {}): Promise<unknown> {
     try {
       const params = new URLSearchParams();
       params.append('logs', 'true');
@@ -487,14 +487,14 @@ export class KipApi {
   static async getLogsByAgentId(agentId: string, options: {
     page?: number;
     pageSize?: number;
-  } = {}): Promise<any> {
+  } = {}): Promise<unknown> {
     return this.getAgentLogs({ ...options, agentId });
   }
 
   /**
    * Get agent execution statistics
    */
-  static async getAgentStats(agentId?: string): Promise<any> {
+  static async getAgentStats(agentId?: string): Promise<unknown> {
     try {
       const params = new URLSearchParams();
       params.append('stats', 'true');
@@ -574,7 +574,7 @@ export class KipApi {
   static async getSessionsByAgentId(agentId: string, options: {
     page?: number;
     pageSize?: number;
-  } = {}): Promise<any> {
+  } = {}): Promise<unknown> {
     try {
       const params = new URLSearchParams();
       params.append('sessions', 'true');

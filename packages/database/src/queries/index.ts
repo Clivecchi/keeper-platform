@@ -342,7 +342,7 @@ export async function updateKipAgent(id: string, data: Partial<{
   memory_enabled: boolean;
   tools: string[];
   permissions: string[];
-  config: any;
+  config: Record<string, unknown>;
   status: string;
 }>) {
   return prisma.kip_agents.update({

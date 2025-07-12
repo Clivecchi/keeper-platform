@@ -14,8 +14,8 @@ export interface TestDomain {
   verificationMethod?: 'DNS_TXT' | 'CNAME' | 'FILE';
   verifiedAt?: Date;
   status: 'active' | 'suspended' | 'archived' | 'pending';
-  features?: Record<string, any>;
-  limits?: Record<string, any>;
+  features?: Record<string, unknown>;
+  limits?: Record<string, unknown>;
   isPublic: boolean;
   description?: string;
   allowRequests: boolean;
@@ -24,8 +24,8 @@ export interface TestDomain {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
-  theme?: Record<string, any>;
-  settings?: Record<string, any>;
+  theme?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
 }
 
 export interface TestDomainPermission {
@@ -495,7 +495,7 @@ export const mockFunctions = {
 };
 
 // Validation helpers
-export function isValidDomain(domain: any): domain is TestDomain {
+export function isValidDomain(domain: unknown): domain is TestDomain {
   return (
     typeof domain.id === 'string' &&
     typeof domain.name === 'string' &&
@@ -508,7 +508,7 @@ export function isValidDomain(domain: any): domain is TestDomain {
   );
 }
 
-export function isValidDomainPermission(permission: any): permission is TestDomainPermission {
+export function isValidDomainPermission(permission: unknown): permission is TestDomainPermission {
   return (
     typeof permission.id === 'string' &&
     typeof permission.domainId === 'string' &&

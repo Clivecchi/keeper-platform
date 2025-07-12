@@ -66,7 +66,7 @@ export interface Deployment {
   steps: DeploymentStep[];
   healthChecks: HealthCheck[];
   rollbackInfo?: RollbackInfo;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface DeploymentArtifact {
@@ -134,7 +134,7 @@ export interface PipelineStage {
   description: string;
   type: 'build' | 'test' | 'deploy' | 'validate' | 'notify';
   dependencies: string[];
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   timeout: number;
   retryPolicy: {
     maxRetries: number;
@@ -150,7 +150,7 @@ export interface PipelineStage {
 export interface PipelineTrigger {
   id: string;
   type: 'webhook' | 'schedule' | 'manual' | 'branch' | 'tag';
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   enabled: boolean;
 }
 
@@ -586,7 +586,7 @@ export class DeploymentAutomationService {
   /**
    * Execute pipeline
    */
-  async executePipeline(pipelineId: string, context: Record<string, any>): Promise<string> {
+  async executePipeline(pipelineId: string, context: Record<string, unknown>): Promise<string> {
     const pipeline = this.pipelines.get(pipelineId);
     if (!pipeline) {
       throw new Error('Pipeline not found');
@@ -849,7 +849,7 @@ export class DeploymentAutomationService {
 
   private async executeStage(
     stage: PipelineStage,
-    context: Record<string, any>,
+    context: Record<string, unknown>,
     buildId: string
   ): Promise<void> {
     this.monitoringService.log(
@@ -866,7 +866,7 @@ export class DeploymentAutomationService {
   private generateKubernetesConfig(
     environment: EnvironmentType,
     version: string,
-    config: any
+    config: Record<string, unknown>
   ): string {
     return `
 apiVersion: apps/v1

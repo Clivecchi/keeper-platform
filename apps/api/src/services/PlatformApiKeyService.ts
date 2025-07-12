@@ -26,7 +26,7 @@ export class PlatformApiKeyService {
       const maskedKeys = keys.map(key => ({
         ...key,
         maskedKey: this.maskApiKey(key.api_key),
-        api_key: undefined as any // Remove the actual key
+        api_key: undefined // Remove the actual key
       })).map(({ api_key, ...rest }) => rest); // Type-safe removal
 
       return { success: true, data: maskedKeys };

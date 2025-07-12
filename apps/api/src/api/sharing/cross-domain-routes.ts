@@ -154,9 +154,9 @@ router.get(
       } = req.query;
 
       const requests = await sharingService.listShareRequests(domainId, {
-        status: status as any,
-        contentType: contentType as any,
-        direction: direction as any,
+        status: status as string,
+        contentType: contentType as string,
+        direction: direction as string,
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
       });
@@ -428,7 +428,7 @@ router.get(
       const { domainId } = req.params;
       const { workflowType, isActive = 'true' } = req.query;
 
-      const whereClause: any = { sourceDomainId: domainId };
+      const whereClause: Event = { sourceDomainId: domainId };
       
       if (workflowType) {
         whereClause.workflowType = workflowType;
@@ -506,7 +506,7 @@ router.get(
       const { domainId } = req.params;
       const { templateType, isActive = 'true' } = req.query;
 
-      const whereClause: any = { domainId };
+      const whereClause: Event = { domainId };
       
       if (templateType) {
         whereClause.templateType = templateType;
@@ -593,7 +593,7 @@ router.get(
       const { domainId } = req.params;
       const { status, collaborationType } = req.query;
 
-      const whereClause: any = {
+      const whereClause: Event = {
         OR: [
           { hostDomainId: domainId },
           { memberDomainIds: { has: domainId } },

@@ -26,7 +26,22 @@ export interface DomainCorsConfig {
 }
 
 export interface CorsContext {
-  domain: any;
+  domain: {
+    id: string;
+    name: string;
+    slug: string;
+    ownerId: string;
+    customDomain?: string;
+    customDomainVerified?: boolean;
+    settings?: {
+      cors?: {
+        credentials?: boolean;
+        maxAge?: number;
+        allowWildcardSubdomains?: boolean;
+      };
+    };
+    [key: string]: unknown;
+  };
   isCustomDomain: boolean;
   originalHostname: string;
   resolvedSlug: string;
@@ -110,9 +125,9 @@ export class DynamicCorsMiddleware {
   /**
    * Get domain-specific CORS configuration
    */
-  private async getDomainSpecificConfig(domain: any): Promise<Partial<DomainCorsConfig>> {
+  private async getDomainSpecificConfig(domain: CorsContext['domain']): Promise<Partial<DomainCorsConfig>> {
     try {
-      const corsSettings = domain.settings?.cors || {};
+              const corsSettings = domain.settings?.cors || {};
       
       const config: Partial<DomainCorsConfig> = {
         credentials: corsSettings.credentials ?? true,

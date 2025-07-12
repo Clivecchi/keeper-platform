@@ -20,9 +20,10 @@
  */
 
 // =============================================================================
-// PRISMA CLIENT SETUP
+// IMPORTS
 // =============================================================================
 import { PrismaClient } from '@prisma/client'
+import type { Request } from 'express'
 
 // Global singleton to prevent multiple instances in development
 declare global {
@@ -35,14 +36,17 @@ declare global {
  * In development, we want to prevent multiple instances of Prisma Client
  * due to module reloading. In production, we create a new instance.
  */
-export const prisma = globalThis.__prisma || new PrismaClient({
+const prismaInstance = globalThis.__prisma || new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
 })
 
 // Store in global for development hot reloading
 if (process.env.NODE_ENV === 'development') {
-  globalThis.__prisma = prisma
+  globalThis.__prisma = prismaInstance
 }
+
+// Export the prisma instance
+export { prismaInstance as prisma }
 
 // =============================================================================
 // PRISMA CLIENT EXPORT
@@ -58,9 +62,9 @@ export * from './queries/index.js'
 // SERVICES EXPORT
 // =============================================================================
 export { DomainService } from './services/DomainService.js'
-export { DomainServiceFactory } from './services/DomainServiceFactory.js'
 export { DomainPermissionService } from './services/DomainPermissionService.js'
 export { DomainCacheService } from './services/DomainCacheService.js'
+export { DomainContextService } from './services/DomainContextService.js'
 export { SslCertificateService } from './services/SslCertificateService.js'
 export { DomainHealthMonitoringService } from './services/DomainHealthMonitoringService.js'
 export { CrossDomainSharingService } from './services/CrossDomainSharingService.js'
@@ -76,12 +80,24 @@ export { DeploymentAutomationService } from './services/DeploymentAutomationServ
 export { SlugValidationService } from './services/SlugValidationService.js'
 
 // =============================================================================
+// FACTORY EXPORTS
+// =============================================================================
+export { 
+  DomainServiceFactory, 
+  type DomainServiceFactoryConfig,
+  type IDomainService,
+  type IMemoryService 
+} from './factories/DomainServiceFactory.js'
+
+// =============================================================================
 // TYPE EXPORTS
 // =============================================================================
 export * from './types.js'
 
 // Export domain-specific types
 export type {
+  DomainContext,
+  AuthenticatedRequest,
   DomainRole,
   DomainPermissionType,
   PermissionCheck,
@@ -95,6 +111,13 @@ export type {
   AlertSeverity
 } from './services/DomainHealthMonitoringService.js'
 
+// Export domain context types
+export type {
+  DomainContextConfig,
+  ContextOperation,
+  ContextMetrics
+} from './services/DomainContextService.js'
+
 // Re-export Prisma generated types for convenience
 export type {
   users as User,
@@ -105,6 +128,8 @@ export type {
   Prisma
 } from '@prisma/client'
 
+// Authentication types are exported from ./types/domain.ts
+
 // =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
@@ -113,14 +138,14 @@ export type {
  * Gracefully disconnect from database
  */
 export async function disconnectDatabase() {
-  await prisma.$disconnect()
+  await prismaInstance.$disconnect()
 }
 
 /**
  * Connect to database (usually not needed as Prisma connects lazily)
  */
 export async function connectDatabase() {
-  await prisma.$connect()
+  await prismaInstance.$connect()
 }
 
 /**
@@ -128,7 +153,7 @@ export async function connectDatabase() {
  */
 export async function checkDatabaseHealth() {
   try {
-    await prisma.$queryRaw`SELECT 1`
+    await prismaInstance.$queryRaw`SELECT 1`
     return { status: 'healthy', timestamp: new Date() }
   } catch (error) {
     return { 

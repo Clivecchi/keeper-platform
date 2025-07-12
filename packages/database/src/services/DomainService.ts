@@ -10,8 +10,8 @@ import { getFeatureFlagService } from './FeatureFlagService.js';
 
 // Define the Domain with includes type for Prisma queries
 export type DomainWithIncludes = Domain & {
-  keepers: any[];
-  journeys: any[];
+  keepers: unknown[];
+  journeys: unknown[];
   permissions: DomainPermission[];
 };
 
@@ -24,10 +24,10 @@ export interface CreateDomainRequest {
   categories?: string[];
   customDomain?: string;
   ownerId: string;
-  features?: Record<string, any>;
-  limits?: Record<string, any>;
-  theme?: Record<string, any>;
-  settings?: Record<string, any>;
+  features?: Record<string, unknown>;
+  limits?: Record<string, unknown>;
+  theme?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
 }
 
 export interface UpdateDomainRequest {
@@ -39,10 +39,10 @@ export interface UpdateDomainRequest {
   customDomain?: string;
   customDomainVerified?: boolean;
   isActive?: boolean;
-  features?: Record<string, any>;
-  limits?: Record<string, any>;
-  theme?: Record<string, any>;
-  settings?: Record<string, any>;
+  features?: Record<string, unknown>;
+  limits?: Record<string, unknown>;
+  theme?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
 }
 
 // Add alias for backward compatibility
@@ -253,7 +253,7 @@ export class DomainService {
     }
 
     // Prepare update data with proper JsonValue handling
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
     };
 
@@ -265,26 +265,26 @@ export class DomainService {
 
     // Handle JsonValue fields with proper type casting
     if (request.features !== undefined) {
-      const existingFeatures = existingDomain.features as Record<string, any> || {};
-      const requestFeatures = request.features as Record<string, any> || {};
+      const existingFeatures = existingDomain.features as Record<string, unknown> || {};
+      const requestFeatures = request.features as Record<string, unknown> || {};
       updateData.features = { ...existingFeatures, ...requestFeatures };
     }
     
     if (request.limits !== undefined) {
-      const existingLimits = existingDomain.limits as Record<string, any> || {};
-      const requestLimits = request.limits as Record<string, any> || {};
+      const existingLimits = existingDomain.limits as Record<string, unknown> || {};
+      const requestLimits = request.limits as Record<string, unknown> || {};
       updateData.limits = { ...existingLimits, ...requestLimits };
     }
     
     if (request.theme !== undefined) {
-      const existingTheme = existingDomain.theme as Record<string, any> || {};
-      const requestTheme = request.theme as Record<string, any> || {};
+      const existingTheme = existingDomain.theme as Record<string, unknown> || {};
+      const requestTheme = request.theme as Record<string, unknown> || {};
       updateData.theme = { ...existingTheme, ...requestTheme };
     }
     
     if (request.settings !== undefined) {
-      const existingSettings = existingDomain.settings as Record<string, any> || {};
-      const requestSettings = request.settings as Record<string, any> || {};
+      const existingSettings = existingDomain.settings as Record<string, unknown> || {};
+      const requestSettings = request.settings as Record<string, unknown> || {};
       updateData.settings = { ...existingSettings, ...requestSettings };
     }
 
@@ -339,7 +339,7 @@ export class DomainService {
     domains: Domain[];
     total: number;
   }> {
-    const where: any = {};
+    const where: Event = {};
 
     if (filters.ownerId) where.ownerId = filters.ownerId;
     if (filters.isPublic !== undefined) where.isPublic = filters.isPublic;
@@ -466,7 +466,7 @@ export class DomainService {
     domainId: string,
     userId: string,
     action: string,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ): Promise<void> {
     if (!this.featureFlags.isEnabled('DOMAIN_ANALYTICS_ENABLED')) {
       return;

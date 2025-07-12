@@ -12,7 +12,7 @@
 import { createUserWithDefaultSettings, emailExists } from '@keeper/database';
 import { RegisterInputSchema } from './types.js';
 import { createSession } from './session.js';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 /**
  * Handles new user registration.
  * Validates input, checks for existing user, creates a new User with UserSettings.

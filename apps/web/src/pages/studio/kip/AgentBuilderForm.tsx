@@ -113,7 +113,7 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
     }
   }, [mode, existingAgent]);
 
-  const handleInputChange = (field: keyof AgentInput, value: any) => {
+  const handleInputChange = (field: keyof AgentInput, value: Event) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
