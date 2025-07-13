@@ -7,6 +7,7 @@ import { Domain } from '@prisma/client';
 import { DomainService } from './DomainService';
 import { DomainCacheService } from './DomainCacheService';
 import { getFeatureFlagService } from './FeatureFlagService';
+import { Request, Response, NextFunction } from 'express';
 
 export interface DomainResolutionResult {
   domain: Domain | null;
@@ -207,7 +208,7 @@ export class DomainResolutionService {
       allowedOrigins: [...this.DEFAULT_ORIGINS],
       corsHeaders: this.generateCorsHeaders(this.DEFAULT_ORIGINS),
       isValid: false,
-      error: error?.message || 'Unknown error',
+      error: error && typeof error === 'object' && 'message' in error ? (error as { message: string }).message : 'Unknown error',
     };
   }
 
@@ -330,7 +331,7 @@ export class DomainResolutionService {
       const context = await this.createDomainContext(hostname);
       
       // Add domain context to request
-      req.domainContext = context;
+      (req as any).domainContext = context;
       
       // Set CORS headers
       Object.entries(context.allowedOrigins.length > 0 ? 
@@ -388,9 +389,10 @@ export class DomainResolutionService {
 
   private extractHostname(req: Request): string {
     // Try various headers that might contain the hostname
-    const hostname = req.headers.host || 
-                    req.headers['x-forwarded-host'] || 
-                    req.headers['x-original-host'] ||
+    const headers = req.headers as Record<string, string | undefined>;
+    const hostname = headers.host || 
+                    headers['x-forwarded-host'] || 
+                    headers['x-original-host'] ||
                     'localhost:3000';
     
     // Remove port if present

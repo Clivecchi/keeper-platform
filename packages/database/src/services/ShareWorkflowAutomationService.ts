@@ -13,7 +13,7 @@ export type StepStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 's
 export type WorkflowTrigger = 'manual' | 'scheduled' | 'condition' | 'external';
 
 // Define Event interface for approval rules and conditions
-export interface Event {
+export interface WorkflowEvent {
   id?: string;
   name?: string;
   autoActivate?: boolean;
@@ -65,7 +65,7 @@ export interface StepExecution {
     conditions?: WorkflowCondition[];
     actions?: {
       notifications?: NotificationConfig[];
-      transformations?: Event[];
+      transformations?: WorkflowEvent[];
     };
     requiredUsers?: string[];
     requiredRole?: string;
@@ -94,7 +94,7 @@ export interface WorkflowStep {
   conditions?: WorkflowCondition[];
   actions?: {
     notifications?: NotificationConfig[];
-    transformations?: Event[];
+    transformations?: WorkflowEvent[];
   };
   requiredUsers?: string[];
   requiredRole?: string;
@@ -195,7 +195,7 @@ function isWorkflowStep(obj: unknown): obj is WorkflowStep {
   );
 }
 
-function isEvent(obj: unknown): obj is Event {
+function isWorkflowEvent(obj: unknown): obj is WorkflowEvent {
   return (
     typeof obj === 'object' &&
     obj !== null
@@ -211,7 +211,7 @@ function hasConditions(obj: unknown): obj is { conditions: WorkflowCondition[] }
   );
 }
 
-function hasAutoApprovalRules(obj: unknown): obj is { autoApprovalRules: Event[] } {
+function hasAutoApprovalRules(obj: unknown): obj is { autoApprovalRules: WorkflowEvent[] } {
   return (
     typeof obj === 'object' &&
     obj !== null &&
@@ -615,7 +615,7 @@ export class ShareWorkflowAutomationService {
 
     if (request?.workflow?.autoApprovalRules && Array.isArray(request.workflow.autoApprovalRules)) {
       const autoApprovalRules = request.workflow.autoApprovalRules as any[];
-      if (autoApprovalRules.some((rule: Event) => rule.autoActivate)) {
+      if (autoApprovalRules.some((rule: WorkflowEvent) => rule.autoActivate)) {
         console.log('Auto-approval rules detected, enabling immediate activation');
       }
     }
@@ -646,11 +646,11 @@ export class ShareWorkflowAutomationService {
       return { shouldAutoApprove: false, appliedRules: [] };
     }
 
-    const autoApprovalRules = workflow.autoApprovalRules as Event[];
+    const autoApprovalRules = workflow.autoApprovalRules as WorkflowEvent[];
     const appliedRules: string[] = [];
 
     for (const rule of autoApprovalRules) {
-      if (isEvent(rule) && rule.autoActivate && this.evaluateApprovalRule(rule, shareRequest)) {
+      if (isWorkflowEvent(rule) && rule.autoActivate && this.evaluateApprovalRule(rule, shareRequest)) {
         console.log('Auto-approval rule matched, request approved');
         appliedRules.push(rule.name || 'unnamed-rule');
       }
@@ -971,8 +971,8 @@ export class ShareWorkflowAutomationService {
   }
 
   private async applyTransformation(
-    rule: Event, shareRequest: unknown, stepExecution: unknown): Promise<unknown> {
-    if (!isEvent(rule) || !isShareRequest(shareRequest) || !isStepExecution(stepExecution)) {
+    rule: WorkflowEvent, shareRequest: unknown, stepExecution: unknown): Promise<unknown> {
+    if (!isWorkflowEvent(rule) || !isShareRequest(shareRequest) || !isStepExecution(stepExecution)) {
       throw new Error('Invalid rule, share request, or step execution object');
     }
     // Implementation for applying transformations
@@ -1082,8 +1082,8 @@ export class ShareWorkflowAutomationService {
   /**
    * Evaluate approval rule against a share request
    */
-  private evaluateApprovalRule(rule: Event, shareRequest: unknown): boolean {
-    if (!isEvent(rule) || !isShareRequest(shareRequest)) {
+  private evaluateApprovalRule(rule: WorkflowEvent, shareRequest: unknown): boolean {
+    if (!isWorkflowEvent(rule) || !isShareRequest(shareRequest)) {
       return false;
     }
 

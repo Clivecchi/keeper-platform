@@ -7,14 +7,19 @@ export { resolveDomainContext } from './resolveDomainContext';
 export { requireAuth } from './requireAuth';
 export { requireDomainPermission } from './requireDomainPermission';
 export { requireMemoryAccess } from './requireMemoryAccess';
-export { createDomainPipeline } from './pipeline';
-
-// Export domain guards
-export { 
-  fullDomainMemoryGuard, 
-  fullDomainMemoryWriteGuard, 
+export {
+  createDomainPipeline,
+  createBasicDomainGuard,
+  createWriteDomainGuard,
+  createAdminDomainGuard,
+  createMemoryGuard,
+  createDomainMemoryGuard,
+  createCrossDomainGuard,
+  createPublicDomainGuard,
+  createOwnerOnlyGuard,
+  fullDomainMemoryGuard,
+  fullDomainMemoryWriteGuard,
   fullDomainMemoryAdminGuard,
-  createCustomFullDomainMemoryGuard
 } from './pipeline';
 
 // Export types

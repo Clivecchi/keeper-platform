@@ -15,12 +15,13 @@ import { getFeatureFlagService } from '@keeper/database';
 import customDomainRoutes from './custom-domain-routes.js';
 import { createDynamicCorsMiddleware } from '../../middleware/dynamicCorsMiddleware.js';
 import { createDomainResolutionMiddleware } from '../../middleware/domainResolutionMiddleware.js';
+import { DomainService } from '@keeper/database';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 const cacheService = new DomainCacheService(redis);
-const domainService = DomainServiceFactory.createDomainService(prisma, redis);
+const domainService = new DomainService(prisma, cacheService);
 const permissionService = new DomainPermissionService(prisma, cacheService);
 const verificationService = new DomainVerificationService(prisma, cacheService);
 const featureFlags = getFeatureFlagService();

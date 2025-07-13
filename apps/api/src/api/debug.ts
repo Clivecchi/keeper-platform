@@ -409,25 +409,31 @@ router.post('/fix-database', async (req, res) => {
             }
           }
         });
-        fixes.actions.push({
-          action: 'created_kip_agent',
-          success: true,
-          agent_id: newKipAgent.id,
-          message: 'Created missing Kip Lead agent'
-        });
+        if (fixes && typeof fixes === 'object' && 'actions' in fixes && Array.isArray((fixes as any).actions)) {
+          (fixes as any).actions.push({
+            action: 'created_kip_agent',
+            success: true,
+            agent_id: newKipAgent.id,
+            message: 'Created missing Kip Lead agent'
+          });
+        }
       } catch (error) {
-        fixes.errors.push({
-          action: 'create_kip_agent',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
+        if (fixes && typeof fixes === 'object' && 'errors' in fixes && Array.isArray((fixes as any).errors)) {
+          (fixes as any).errors.push({
+            action: 'create_kip_agent',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
       }
     } else {
-      fixes.actions.push({
-        action: 'kip_agent_exists',
-        success: true,
-        agent_id: kipAgent.id,
-        message: 'Kip agent already exists'
-      });
+      if (fixes && typeof fixes === 'object' && 'actions' in fixes && Array.isArray((fixes as any).actions)) {
+        (fixes as any).actions.push({
+          action: 'kip_agent_exists',
+          success: true,
+          agent_id: kipAgent.id,
+          message: 'Kip agent already exists'
+        });
+      }
     }
 
     // Check if ceox agent exists
@@ -466,25 +472,31 @@ router.post('/fix-database', async (req, res) => {
             }
           }
         });
-        fixes.actions.push({
-          action: 'created_ceox_agent',
-          success: true,
-          agent_id: newCeoxAgent.id,
-          message: 'Created missing CeoX Lead agent'
-        });
+        if (fixes && typeof fixes === 'object' && 'actions' in fixes && Array.isArray((fixes as any).actions)) {
+          (fixes as any).actions.push({
+            action: 'created_ceox_agent',
+            success: true,
+            agent_id: newCeoxAgent.id,
+            message: 'Created missing CeoX Lead agent'
+          });
+        }
       } catch (error) {
-        fixes.errors.push({
-          action: 'create_ceox_agent',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
+        if (fixes && typeof fixes === 'object' && 'errors' in fixes && Array.isArray((fixes as any).errors)) {
+          (fixes as any).errors.push({
+            action: 'create_ceox_agent',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
       }
     } else {
-      fixes.actions.push({
-        action: 'ceox_agent_exists',
-        success: true,
-        agent_id: ceoxAgent.id,
-        message: 'CeoX agent already exists'
-      });
+      if (fixes && typeof fixes === 'object' && 'actions' in fixes && Array.isArray((fixes as any).actions)) {
+        (fixes as any).actions.push({
+          action: 'ceox_agent_exists',
+          success: true,
+          agent_id: ceoxAgent.id,
+          message: 'CeoX agent already exists'
+        });
+      }
     }
 
     // Activate platform keys
@@ -495,24 +507,30 @@ router.post('/fix-database', async (req, res) => {
       });
       
       if (updatedKeys.count > 0) {
-        fixes.actions.push({
-          action: 'activated_platform_keys',
-          success: true,
-          count: updatedKeys.count,
-          message: `Activated ${updatedKeys.count} platform keys`
-        });
+        if (fixes && typeof fixes === 'object' && 'actions' in fixes && Array.isArray((fixes as any).actions)) {
+          (fixes as any).actions.push({
+            action: 'activated_platform_keys',
+            success: true,
+            count: updatedKeys.count,
+            message: `Activated ${updatedKeys.count} platform keys`
+          });
+        }
       } else {
-        fixes.actions.push({
-          action: 'platform_keys_already_active',
-          success: true,
-          message: 'Platform keys were already active'
-        });
+        if (fixes && typeof fixes === 'object' && 'actions' in fixes && Array.isArray((fixes as any).actions)) {
+          (fixes as any).actions.push({
+            action: 'platform_keys_already_active',
+            success: true,
+            message: 'Platform keys were already active'
+          });
+        }
       }
     } catch (error) {
-      fixes.errors.push({
-        action: 'activate_platform_keys',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      if (fixes && typeof fixes === 'object' && 'errors' in fixes && Array.isArray((fixes as any).errors)) {
+        (fixes as any).errors.push({
+          action: 'activate_platform_keys',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
     }
 
     return res.json({

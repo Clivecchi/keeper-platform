@@ -73,7 +73,7 @@ router.get('/',
       const userId = req.user.id;
 
       // Build basic query
-      const where: Event = {};
+      const where: Record<string, unknown> = {};
 
       // Search filtering
       if (search && typeof search === 'string') {
@@ -104,7 +104,7 @@ router.get('/',
         prisma.moment.count({ where }),
       ]);
 
-      res.json({
+      return res.json({
         moments,
         total,
         page: Math.floor(Number(offset) / Number(limit)) + 1,
@@ -146,7 +146,7 @@ router.get('/:id',
         return res.status(404).json({ error: 'Moment not found' });
       }
 
-      res.json({ moment });
+      return res.json({ moment });
     } catch (error) {
       console.error('Error fetching moment:', error);
       return res.status(500).json({ error: 'Internal server error' });
@@ -188,7 +188,7 @@ router.post('/',
         },
       });
 
-      res.status(201).json({ moment });
+      return res.status(201).json({ moment });
     } catch (error) {
       console.error('Error creating moment:', error);
       return res.status(500).json({ error: 'Internal server error' });
@@ -223,12 +223,9 @@ router.put('/:id',
         },
       });
 
-      res.json({ moment });
+      return res.json({ moment });
     } catch (error) {
       console.error('Error updating moment:', error);
-      if (error instanceof Error && error.message.includes('not found')) {
-        return res.status(404).json({ error: 'Moment not found' });
-      }
       return res.status(500).json({ error: 'Internal server error' });
     }
   }
@@ -250,7 +247,7 @@ router.delete('/:id',
         where: { id: req.params.id },
       });
 
-      res.status(204).send();
+      return res.json({ message: 'Moment deleted successfully' });
     } catch (error) {
       console.error('Error deleting moment:', error);
       return res.status(500).json({ error: 'Internal server error' });

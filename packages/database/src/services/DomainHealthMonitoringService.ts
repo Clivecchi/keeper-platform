@@ -233,18 +233,25 @@ export class DomainHealthMonitoringService {
     const domains = await this.getAllDomains();
 
     const healthMetrics = await Promise.all(
-      domains.map((domain: unknown) => this.checkDomainHealth(domain.id))
+      domains.map((domain: unknown) => {
+        if (domain && typeof domain === 'object' && 'id' in domain) {
+          return this.checkDomainHealth((domain as { id: string }).id);
+        }
+        return Promise.resolve(null);
+      }).filter(Boolean)
     );
+
+    const validMetrics = healthMetrics.filter((m): m is DomainHealthMetrics => m !== null);
 
     return {
       totalDomains: domains.length,
-      healthyDomains: healthMetrics.filter((m: DomainHealthMetrics) => m.status === 'healthy').length,
-      degradedDomains: healthMetrics.filter((m: DomainHealthMetrics) => m.status === 'degraded').length,
-      unhealthyDomains: healthMetrics.filter((m: DomainHealthMetrics) => m.status === 'unhealthy').length,
-      averageScore: Math.round(healthMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.score, 0) / healthMetrics.length),
-      averageUptime: Math.round(healthMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.uptime.percentage24h, 0) / healthMetrics.length),
-      totalAlerts: healthMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.alerts.length, 0),
-      criticalAlerts: healthMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.alerts.filter((a: DomainAlert) => a.severity === 'critical').length, 0),
+      healthyDomains: validMetrics.filter((m: DomainHealthMetrics) => m.status === 'healthy').length,
+      degradedDomains: validMetrics.filter((m: DomainHealthMetrics) => m.status === 'degraded').length,
+      unhealthyDomains: validMetrics.filter((m: DomainHealthMetrics) => m.status === 'unhealthy').length,
+      averageScore: Math.round(validMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.score, 0) / validMetrics.length),
+      averageUptime: Math.round(validMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.uptime.percentage24h, 0) / validMetrics.length),
+      totalAlerts: validMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.alerts.length, 0),
+      criticalAlerts: validMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.alerts.filter((a: DomainAlert) => a.severity === 'critical').length, 0),
       lastUpdated: new Date(),
     };
   }
@@ -388,18 +395,25 @@ export class DomainHealthMonitoringService {
   async generateMonitoringReport(timeRange: '24h' | '7d' | '30d' = '24h'): Promise<MonitoringReport> {
     const domains = await this.getAllDomains();
     const healthMetrics = await Promise.all(
-      domains.map((domain: unknown) => this.checkDomainHealth(domain.id))
+      domains.map((domain: unknown) => {
+        if (domain && typeof domain === 'object' && 'id' in domain) {
+          return this.checkDomainHealth((domain as { id: string }).id);
+        }
+        return Promise.resolve(null);
+      }).filter(Boolean)
     );
+
+    const validMetrics = healthMetrics.filter((m): m is DomainHealthMetrics => m !== null);
 
     const summary = {
       totalDomains: domains.length,
-      healthyDomains: healthMetrics.filter((m: DomainHealthMetrics) => m.status === 'healthy').length,
-      degradedDomains: healthMetrics.filter((m: DomainHealthMetrics) => m.status === 'degraded').length,
-      unhealthyDomains: healthMetrics.filter((m: DomainHealthMetrics) => m.status === 'unhealthy').length,
-      averageScore: Math.round(healthMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.score, 0) / healthMetrics.length),
-      averageUptime: Math.round(healthMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.uptime.percentage24h, 0) / healthMetrics.length),
-      totalAlerts: healthMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.alerts.length, 0),
-      criticalAlerts: healthMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.alerts.filter((a: DomainAlert) => a.severity === 'critical').length, 0),
+      healthyDomains: validMetrics.filter((m: DomainHealthMetrics) => m.status === 'healthy').length,
+      degradedDomains: validMetrics.filter((m: DomainHealthMetrics) => m.status === 'degraded').length,
+      unhealthyDomains: validMetrics.filter((m: DomainHealthMetrics) => m.status === 'unhealthy').length,
+      averageScore: Math.round(validMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.score, 0) / validMetrics.length),
+      averageUptime: Math.round(validMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.uptime.percentage24h, 0) / validMetrics.length),
+      totalAlerts: validMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.alerts.length, 0),
+      criticalAlerts: validMetrics.reduce((sum: number, m: DomainHealthMetrics) => sum + m.alerts.filter((a: DomainAlert) => a.severity === 'critical').length, 0),
     };
 
     const trends = {
@@ -408,11 +422,11 @@ export class DomainHealthMonitoringService {
       securityChange: 0, // Would calculate from historical data
     };
 
-    const topIssues = this.aggregateTopIssues(healthMetrics);
+    const topIssues = this.aggregateTopIssues(validMetrics);
 
     return {
       summary,
-      domains: healthMetrics,
+      domains: validMetrics,
       trends,
       topIssues,
     };
@@ -538,42 +552,76 @@ export class DomainHealthMonitoringService {
 
   private generateRecommendations(metrics: unknown): string[] {
     const recommendations: string[] = [];
-
-    // Uptime recommendations
-    if (metrics.uptime.percentage24h < 99) {
-      recommendations.push('Consider implementing redundancy to improve uptime');
+    
+    if (!metrics || typeof metrics !== 'object') {
+      return recommendations;
     }
 
+    const metricsObj = metrics as Record<string, unknown>;
+    
     // Performance recommendations
-    if (metrics.performance.responseTime > 1000) {
-      recommendations.push('Optimize response time - consider CDN or caching');
+    if (metricsObj.performance && typeof metricsObj.performance === 'object') {
+      const performance = metricsObj.performance as Record<string, unknown>;
+      if (performance.averageResponseTime && typeof performance.averageResponseTime === 'number' && performance.averageResponseTime > 500) {
+        recommendations.push('Consider optimizing response times');
+      }
+      if (performance.errorRate && typeof performance.errorRate === 'number' && performance.errorRate > 1) {
+        recommendations.push('Investigate high error rates');
+      }
+    }
+
+    // Uptime recommendations
+    if (metricsObj.uptime && typeof metricsObj.uptime === 'object') {
+      const uptime = metricsObj.uptime as Record<string, unknown>;
+      if (uptime.percentage24h && typeof uptime.percentage24h === 'number' && uptime.percentage24h < 99) {
+        recommendations.push('Improve uptime reliability');
+      }
     }
 
     // Security recommendations
-    if (metrics.security.securityHeaders.missing.length > 0) {
-      recommendations.push('Add missing security headers for better security');
-    }
-
-    // DNS recommendations
-    if (!metrics.dns.recordsValid) {
-      recommendations.push('Fix DNS configuration to ensure proper resolution');
+    if (metricsObj.security && typeof metricsObj.security === 'object') {
+      const security = metricsObj.security as Record<string, unknown>;
+      if (security.securityHeaders && typeof security.securityHeaders === 'object') {
+        const headers = security.securityHeaders as Record<string, unknown>;
+        if (headers.score && typeof headers.score === 'number' && headers.score < 80) {
+          recommendations.push('Implement missing security headers');
+        }
+      }
     }
 
     return recommendations;
   }
 
   private async storeHealthMetrics(metrics: DomainHealthMetrics): Promise<void> {
-    // Would store metrics in database/time-series database
-    // For now, just log
-    console.log(`Health metrics stored for ${metrics.domainId}: ${metrics.score}/100`);
+    try {
+      const cacheKey = `health_metrics:${metrics.domainId}`;
+      await this.cacheService.cacheData(cacheKey, metrics, 300); // 5 minutes
+    } catch (error) {
+      console.error('Failed to store health metrics:', error);
+    }
   }
 
   private async checkAlertConditions(metrics: DomainHealthMetrics): Promise<void> {
-    // Would check for alert conditions and create alerts
-    // For now, just log critical issues
-    if (metrics.status === 'unhealthy') {
-      console.log(`ALERT: Domain ${metrics.domainId} is unhealthy (score: ${metrics.score})`);
+    try {
+      const alertConditions = [
+        { condition: metrics.score < 50, severity: 'critical' as AlertSeverity, message: 'Domain health score is critically low' },
+        { condition: metrics.performance.errorRate > 5, severity: 'error' as AlertSeverity, message: 'High error rate detected' },
+        { condition: metrics.uptime.percentage24h < 95, severity: 'warning' as AlertSeverity, message: 'Uptime below 95%' },
+      ];
+
+      for (const condition of alertConditions) {
+        if (condition.condition) {
+          await this.createAlert(metrics.domainId, condition.severity, condition.message);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check alert conditions:', error);
     }
+  }
+
+  private async createAlert(domainId: string, severity: AlertSeverity, message: string): Promise<void> {
+    // Implementation would create alert in monitoring system
+    console.log(`Alert created for domain ${domainId}: ${severity} - ${message}`);
   }
 
   private aggregateTopIssues(healthMetrics: DomainHealthMetrics[]): Array<{

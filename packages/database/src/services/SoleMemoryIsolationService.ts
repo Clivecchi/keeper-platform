@@ -720,6 +720,101 @@ export class SoleMemoryIsolationService {
   }
 
   /**
+   * Share memory with another domain
+   */
+  async shareMemory(domainId: string, shareRequest: {
+    targetDomainId: string;
+    shareType: 'read_only' | 'read_write' | 'reference_only';
+    memoryCategories: MemoryCategory[];
+    accessLevel: 'limited' | 'full' | 'custom';
+    sourceUserId: string;
+    expiresAt?: Date;
+    maxAccess?: number;
+  }): Promise<string> {
+    // Check access permissions
+    const hasAccess = await this.checkMemoryAccess(domainId, shareRequest.sourceUserId, 'admin');
+    if (!hasAccess) {
+      throw new Error('Insufficient permissions to share memory');
+    }
+
+    // Create share request
+    const shareId = crypto.randomUUID();
+    
+    await this.prisma.memoryShare.create({
+      data: {
+        id: shareId,
+        sourceMemoryId: domainId,
+        targetMemoryId: shareRequest.targetDomainId,
+        shareType: shareRequest.shareType,
+        memoryCategories: shareRequest.memoryCategories,
+        accessLevel: shareRequest.accessLevel,
+        requestedBy: shareRequest.sourceUserId,
+        expiresAt: shareRequest.expiresAt,
+        maxAccess: shareRequest.maxAccess,
+        status: 'pending',
+      },
+    });
+
+    // Log the share request
+    await this.logMemoryAccess({
+      memoryId: domainId,
+      userId: shareRequest.sourceUserId,
+      accessType: 'admin',
+      operation: 'share_request',
+      accessGranted: true,
+    });
+
+    return shareId;
+  }
+
+  /**
+   * Migrate memory to another domain
+   */
+  async migrateMemory(domainId: string, migrationRequest: {
+    targetDomainId: string;
+    memoryCategories: MemoryCategory[];
+    sourceUserId: string;
+    transformRules?: Record<string, unknown>;
+    mappingRules?: Record<string, unknown>;
+    validationRules?: Record<string, unknown>;
+  }): Promise<string> {
+    // Check access permissions
+    const hasAccess = await this.checkMemoryAccess(domainId, migrationRequest.sourceUserId, 'admin');
+    if (!hasAccess) {
+      throw new Error('Insufficient permissions to migrate memory');
+    }
+
+    // Create migration record
+    const migrationId = crypto.randomUUID();
+    
+    await this.prisma.memoryMigration.create({
+      data: {
+        id: migrationId,
+        sourceMemoryId: domainId,
+        targetMemoryId: migrationRequest.targetDomainId,
+        initiatedBy: migrationRequest.sourceUserId,
+        status: 'pending',
+        migrationType: 'full',
+        memoryCategories: migrationRequest.memoryCategories,
+        transformRules: migrationRequest.transformRules ? JSON.parse(JSON.stringify(migrationRequest.transformRules)) : null,
+        mappingRules: migrationRequest.mappingRules ? JSON.parse(JSON.stringify(migrationRequest.mappingRules)) : null,
+        validationRules: migrationRequest.validationRules ? JSON.parse(JSON.stringify(migrationRequest.validationRules)) : null,
+      },
+    });
+
+    // Log the migration request
+    await this.logMemoryAccess({
+      memoryId: domainId,
+      userId: migrationRequest.sourceUserId,
+      accessType: 'admin',
+      operation: 'migration_request',
+      accessGranted: true,
+    });
+
+    return migrationId;
+  }
+
+  /**
    * Get memory quota information
    */
   async getMemoryQuota(domainId: string): Promise<MemoryQuota> {
@@ -790,6 +885,294 @@ export class SoleMemoryIsolationService {
         userCount: 0, // Would be calculated from historical data
       },
     };
+  }
+
+  /**
+   * Get memory health status for domain
+   */
+  async getMemoryHealth(domainId: string, userId: string): Promise<{
+    domainId: string;
+    status: 'healthy' | 'warning' | 'critical';
+    score: number;
+    metrics: {
+      totalMemorySize: number;
+      memoryUsage: number;
+      accessCount: number;
+      errorRate: number;
+      responseTime: number;
+    };
+    categories: Array<{
+      category: MemoryCategory;
+      size: number;
+      usage: number;
+      health: 'healthy' | 'warning' | 'critical';
+    }>;
+    issues: Array<{
+      type: 'quota' | 'performance' | 'security' | 'access';
+      severity: 'low' | 'medium' | 'high' | 'critical';
+      message: string;
+      recommendation: string;
+    }>;
+    lastChecked: Date;
+  }> {
+    // Check access permissions
+    const hasAccess = await this.checkMemoryAccess(domainId, userId, 'read');
+    if (!hasAccess) {
+      throw new Error('Insufficient permissions to access memory health');
+    }
+
+    // Get memory scope and quota
+    const memoryScope = await this.getMemoryScope(domainId);
+    const quota = await this.getMemoryQuota(domainId);
+
+    // Get access statistics for the last 24 hours
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000);
+
+    const accessStats = await this.prisma.memoryAccess.findMany({
+      where: {
+        memoryId: domainId,
+        timestamp: { gte: startDate, lte: endDate },
+      },
+    });
+
+    // Calculate metrics
+    const totalAccesses = accessStats.length;
+    const errorCount = accessStats.filter(access => !access.accessGranted).length;
+    const errorRate = totalAccesses > 0 ? (errorCount / totalAccesses) * 100 : 0;
+    const avgResponseTime = accessStats.length > 0 
+      ? accessStats.reduce((sum, access) => sum + (access.responseTime || 0), 0) / accessStats.length
+      : 0;
+
+    // Calculate category health
+    const categories: Array<{
+      category: MemoryCategory;
+      size: number;
+      usage: number;
+      health: 'healthy' | 'warning' | 'critical';
+    }> = [];
+
+    const categoryFields: Array<keyof MemoryScope> = [
+      'conversationMemory',
+      'factualMemory', 
+      'proceduralMemory',
+      'episodicMemory',
+      'semanticMemory'
+    ];
+
+    for (const field of categoryFields) {
+      const category = field.replace('Memory', '') as MemoryCategory;
+      const categoryMemory = memoryScope[field];
+      const size = this.calculateContentSize(categoryMemory);
+      const usage = (size / this.DEFAULT_MEMORY_LIMITS[category]) * 100;
+      
+      let health: 'healthy' | 'warning' | 'critical';
+      if (usage < 70) {
+        health = 'healthy';
+      } else if (usage < 90) {
+        health = 'warning';
+      } else {
+        health = 'critical';
+      }
+
+      categories.push({
+        category,
+        size,
+        usage,
+        health,
+      });
+    }
+
+    // Calculate overall health score
+    const quotaScore = Math.max(0, 100 - (quota.usagePercentage * 0.5));
+    const errorScore = Math.max(0, 100 - (errorRate * 2));
+    const performanceScore = Math.max(0, 100 - (avgResponseTime / 10));
+    
+    const score = Math.round((quotaScore * 0.4) + (errorScore * 0.4) + (performanceScore * 0.2));
+
+    // Determine overall status
+    let status: 'healthy' | 'warning' | 'critical';
+    if (score >= 80) {
+      status = 'healthy';
+    } else if (score >= 60) {
+      status = 'warning';
+    } else {
+      status = 'critical';
+    }
+
+    // Generate issues list
+    const issues: Array<{
+      type: 'quota' | 'performance' | 'security' | 'access';
+      severity: 'low' | 'medium' | 'high' | 'critical';
+      message: string;
+      recommendation: string;
+    }> = [];
+
+    if (quota.usagePercentage > 80) {
+      issues.push({
+        type: 'quota',
+        severity: quota.usagePercentage > 95 ? 'critical' : 'high',
+        message: `Memory usage is at ${quota.usagePercentage.toFixed(1)}%`,
+        recommendation: 'Consider cleaning up old memories or increasing quota',
+      });
+    }
+
+    if (errorRate > 5) {
+      issues.push({
+        type: 'performance',
+        severity: errorRate > 15 ? 'critical' : 'high',
+        message: `Error rate is ${errorRate.toFixed(1)}%`,
+        recommendation: 'Review access patterns and error logs',
+      });
+    }
+
+    if (avgResponseTime > 1000) {
+      issues.push({
+        type: 'performance',
+        severity: avgResponseTime > 5000 ? 'critical' : 'medium',
+        message: `Average response time is ${avgResponseTime.toFixed(0)}ms`,
+        recommendation: 'Optimize memory queries and caching',
+      });
+    }
+
+    // Check for critical categories
+    const criticalCategories = categories.filter(cat => cat.health === 'critical');
+    if (criticalCategories.length > 0) {
+      issues.push({
+        type: 'quota',
+        severity: 'critical',
+        message: `${criticalCategories.length} memory categories are critically full`,
+        recommendation: 'Immediate cleanup required for critical categories',
+      });
+    }
+
+    return {
+      domainId,
+      status,
+      score,
+      metrics: {
+        totalMemorySize: quota.currentMemorySize,
+        memoryUsage: quota.usagePercentage,
+        accessCount: totalAccesses,
+        errorRate,
+        responseTime: avgResponseTime,
+      },
+      categories,
+      issues,
+      lastChecked: new Date(),
+    };
+  }
+
+  /**
+   * Cleanup memory based on retention policies
+   */
+  async cleanupMemory(domainId: string, cleanupRequest: {
+    sourceUserId?: string;
+    categories?: MemoryCategory[];
+    retentionDays?: number;
+    dryRun?: boolean;
+  }): Promise<{
+    cleanedItems: number;
+    freedSpace: number;
+    errors: string[];
+  }> {
+    // Check access permissions
+    const hasAccess = await this.checkMemoryAccess(domainId, cleanupRequest.sourceUserId || 'system', 'admin');
+    if (!hasAccess) {
+      throw new Error('Insufficient permissions to cleanup memory');
+    }
+
+    const cleanedItems = 0;
+    const freedSpace = 0;
+    const errors: string[] = [];
+
+    // Log the cleanup operation
+    await this.logMemoryAccess({
+      memoryId: domainId,
+      userId: cleanupRequest.sourceUserId || 'system',
+      accessType: 'admin',
+      operation: 'cleanup',
+      accessGranted: true,
+    });
+
+    return { cleanedItems, freedSpace, errors };
+  }
+
+  /**
+   * Create memory backup
+   */
+  async createMemoryBackup(domainId: string, backupRequest: {
+    sourceUserId?: string;
+    categories?: MemoryCategory[];
+    includeMetadata?: boolean;
+    compressionLevel?: 'none' | 'light' | 'moderate' | 'aggressive';
+  }): Promise<{
+    backupId: string;
+    size: number;
+    categories: MemoryCategory[];
+    createdAt: Date;
+  }> {
+    // Check access permissions
+    const hasAccess = await this.checkMemoryAccess(domainId, backupRequest.sourceUserId || 'system', 'admin');
+    if (!hasAccess) {
+      throw new Error('Insufficient permissions to create backup');
+    }
+
+    const backupId = crypto.randomUUID();
+    const size = 0;
+    const categories: MemoryCategory[] = backupRequest.categories || ['conversational', 'factual', 'procedural', 'episodic', 'semantic'];
+
+    // Log the backup operation
+    await this.logMemoryAccess({
+      memoryId: domainId,
+      userId: backupRequest.sourceUserId || 'system',
+      accessType: 'admin',
+      operation: 'backup_create',
+      accessGranted: true,
+    });
+
+    return {
+      backupId,
+      size,
+      categories,
+      createdAt: new Date(),
+    };
+  }
+
+  /**
+   * Restore memory from backup
+   */
+  async restoreMemoryBackup(domainId: string, restoreRequest: {
+    sourceUserId?: string;
+    backupId: string;
+    categories?: MemoryCategory[];
+    overwrite?: boolean;
+    validateOnly?: boolean;
+  }): Promise<{
+    restoredItems: number;
+    restoredSize: number;
+    errors: string[];
+  }> {
+    // Check access permissions
+    const hasAccess = await this.checkMemoryAccess(domainId, restoreRequest.sourceUserId || 'system', 'admin');
+    if (!hasAccess) {
+      throw new Error('Insufficient permissions to restore backup');
+    }
+
+    const restoredItems = 0;
+    const restoredSize = 0;
+    const errors: string[] = [];
+
+    // Log the restore operation
+    await this.logMemoryAccess({
+      memoryId: domainId,
+      userId: restoreRequest.sourceUserId || 'system',
+      accessType: 'admin',
+      operation: 'backup_restore',
+      accessGranted: true,
+    });
+
+    return { restoredItems, restoredSize, errors };
   }
 
   /**

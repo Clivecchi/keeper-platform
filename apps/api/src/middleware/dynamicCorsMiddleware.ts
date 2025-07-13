@@ -364,5 +364,5 @@ export class DynamicCorsMiddleware {
  */
 export function createDynamicCorsMiddleware(config?: DomainCorsConfig) {
   const middleware = new DynamicCorsMiddleware(config);
-  return middleware.createMiddleware();
+  return middleware.createMiddleware() as (req: Request, res: Response, next: NextFunction) => void;
 } 

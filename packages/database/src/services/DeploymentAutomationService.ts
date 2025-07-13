@@ -502,6 +502,129 @@ export class DeploymentAutomationService {
   }
 
   /**
+   * Get deployment statistics for a specific deployment
+   */
+  async getDeploymentStats(deploymentId: string): Promise<{
+    deploymentId: string;
+    status: DeploymentStatus;
+    duration: number;
+    steps: Array<{
+      name: string;
+      status: 'pending' | 'running' | 'completed' | 'failed';
+      duration: number;
+      startTime: Date;
+      endTime?: Date;
+      error?: string;
+    }>;
+    healthChecks: Array<{
+      name: string;
+      status: 'passing' | 'failing' | 'unknown';
+      responseTime: number;
+      lastChecked: Date;
+      details?: Record<string, unknown>;
+    }>;
+    artifacts: Array<{
+      name: string;
+      size: number;
+      type: string;
+      url?: string;
+    }>;
+    metrics: {
+      totalSteps: number;
+      completedSteps: number;
+      failedSteps: number;
+      successRate: number;
+      averageStepDuration: number;
+      totalHealthChecks: number;
+      passingHealthChecks: number;
+      averageResponseTime: number;
+    };
+    rollbackInfo?: {
+      triggeredBy: 'manual' | 'automatic';
+      reason: string;
+      triggeredAt: Date;
+      previousVersion: string;
+    };
+    metadata?: Record<string, unknown>;
+  }> {
+    const deployment = await this.getDeploymentStatus(deploymentId);
+    
+    if (!deployment) {
+      throw new Error(`Deployment not found: ${deploymentId}`);
+    }
+
+    // Calculate step statistics
+    const totalSteps = deployment.steps.length;
+    const completedSteps = deployment.steps.filter(s => s.status === 'success').length;
+    const failedSteps = deployment.steps.filter(s => s.status === 'failed').length;
+    const successRate = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+
+    const stepDurations = deployment.steps
+      .filter(s => s.startTime && s.endTime)
+      .map(s => s.endTime!.getTime() - s.startTime!.getTime());
+    
+    const averageStepDuration = stepDurations.length > 0 
+      ? stepDurations.reduce((sum, duration) => sum + duration, 0) / stepDurations.length
+      : 0;
+
+    // Calculate health check statistics
+    const totalHealthChecks = deployment.healthChecks.length;
+    const passingHealthChecks = deployment.healthChecks.filter(h => h.status === 'healthy').length;
+    
+    const responseTimes = deployment.healthChecks
+      .filter(h => h.responseTime)
+      .map(h => h.responseTime);
+    
+    const averageResponseTime = responseTimes.length > 0
+      ? responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length
+      : 0;
+
+    return {
+      deploymentId: deployment.id,
+      status: deployment.status,
+      duration: deployment.duration || 0,
+      steps: deployment.steps.map(step => ({
+        name: step.name,
+        status: step.status === 'success' ? 'completed' : step.status === 'skipped' ? 'completed' : step.status,
+        duration: step.startTime && step.endTime ? step.endTime.getTime() - step.startTime.getTime() : 0,
+        startTime: step.startTime || new Date(),
+        endTime: step.endTime,
+        error: step.error,
+      })),
+      healthChecks: deployment.healthChecks.map(check => ({
+        name: (check as any).name || 'health-check',
+        status: (check as any).status === 'healthy' ? 'passing' : (check as any).status === 'unhealthy' ? 'failing' : 'unknown',
+        responseTime: (check as any).responseTime || 0,
+        lastChecked: (check as any).lastChecked || new Date(),
+        details: (check as any).details,
+      })),
+      artifacts: deployment.artifacts.map(artifact => ({
+        name: artifact.name,
+        size: artifact.size,
+        type: artifact.type,
+        url: artifact.url,
+      })),
+      metrics: {
+        totalSteps,
+        completedSteps,
+        failedSteps,
+        successRate,
+        averageStepDuration,
+        totalHealthChecks,
+        passingHealthChecks,
+        averageResponseTime,
+      },
+      rollbackInfo: deployment.rollbackInfo ? {
+        triggeredBy: deployment.rollbackInfo.triggeredBy,
+        reason: deployment.rollbackInfo.reason,
+        triggeredAt: new Date(),
+        previousVersion: deployment.rollbackInfo.previousVersion,
+      } : undefined,
+      metadata: deployment.metadata,
+    };
+  }
+
+  /**
    * Get infrastructure state
    */
   async getInfrastructureState(): Promise<InfrastructureState> {
@@ -634,7 +757,7 @@ export class DeploymentAutomationService {
     const config = this.configService.getConfig();
     const envConfig = config.deployment;
 
-    const kubernetesConfig = this.generateKubernetesConfig(environment, version, envConfig);
+    const kubernetesConfig = this.generateKubernetesConfig(environment, version, envConfig as unknown as Record<string, unknown>);
     const dockerConfig = this.generateDockerConfig(environment, version);
     const nginxConfig = this.generateNginxConfig(environment);
 
@@ -868,6 +991,9 @@ export class DeploymentAutomationService {
     version: string,
     config: Record<string, unknown>
   ): string {
+    const scaling = config.scaling && typeof config.scaling === 'object' ? config.scaling as Record<string, unknown> : { min: 1 };
+    const minReplicas = scaling.min && typeof scaling.min === 'number' ? scaling.min : 1;
+    
     return `
 apiVersion: apps/v1
 kind: Deployment
@@ -875,7 +1001,7 @@ metadata:
   name: keeper-api
   namespace: ${environment}
 spec:
-  replicas: ${config.scaling.min}
+  replicas: ${minReplicas}
   selector:
     matchLabels:
       app: keeper-api

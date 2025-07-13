@@ -215,9 +215,12 @@ export class DomainCacheService {
    */
   async cacheUserPermissions(permission: unknown): Promise<void> {
     try {
-      const cacheKey = this.getCacheKey('user_permissions:', `${permission.userId}:${permission.domainId}`);
-      const value = JSON.stringify(permission);
-      await this.redis.setex(cacheKey, this.config.ttl.permission, value);
+      if (permission && typeof permission === 'object' && 'userId' in permission && 'domainId' in permission) {
+        const perm = permission as { userId: string; domainId: string };
+        const cacheKey = this.getCacheKey('user_permissions:', `${perm.userId}:${perm.domainId}`);
+        const value = JSON.stringify(permission);
+        await this.redis.setex(cacheKey, this.config.ttl.permission, value);
+      }
     } catch (error) {
       console.error('User permissions cache error:', error);
     }

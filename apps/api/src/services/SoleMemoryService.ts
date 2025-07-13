@@ -72,7 +72,7 @@ This is not a rulebook. It is your garden of memory. Explain yourself. Grow well
     return {
       keeperId: keeper.id,
       memoryPattern: memoryPattern,
-      sole: keeper.sole
+      sole: keeper.sole && typeof keeper.sole === 'object' && !Array.isArray(keeper.sole) ? keeper.sole : {},
     };
   }
 
@@ -108,22 +108,14 @@ This is not a rulebook. It is your garden of memory. Explain yourself. Grow well
   static validateSoleDraft(draft: unknown): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
     
-    if (!draft || typeof draft !== 'object') {
-      errors.push('Draft must be a valid JSON object');
-      return { valid: false, errors };
+    if (!(typeof draft === 'object' && draft !== null && 'type' in draft)) {
+      throw new Error('Draft must have a type');
     }
-
-    // Basic validation - can be extended with more specific rules
-    if (!draft.type) {
-      errors.push('Draft must have a type field');
+    if (!(typeof draft === 'object' && draft !== null && 'content' in draft)) {
+      throw new Error('Draft must have content');
     }
-
-    if (!draft.content) {
-      errors.push('Draft must have content');
-    }
-
-    if (!draft.author) {
-      errors.push('Draft must specify an author');
+    if (!(typeof draft === 'object' && draft !== null && 'author' in draft)) {
+      throw new Error('Draft must have an author');
     }
 
     return {

@@ -7,15 +7,17 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 import { SoleMemoryIsolationService, DomainCacheService } from '@keeper/database';
-import { authMiddleware } from '../../middleware/authMiddleware';
+import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { 
   requireDomainReadCompat, 
   requireDomainWriteCompat, 
   requireDomainAdminCompat 
-} from '../../middleware/domainPermissionMiddleware';
-import { createMemoryAccessMiddleware, createCrossDomainMemoryMiddleware } from '../../middleware/memoryAccessMiddleware';
+} from '../../middleware/domainPermissionMiddleware.js';
+import { createMemoryAccessMiddleware, createCrossDomainMemoryMiddleware } from '../../middleware/memoryAccessMiddleware.js';
 import { rateLimit } from 'express-rate-limit';
 import { Redis } from 'ioredis';
+
+type MemoryCategory = 'conversational' | 'factual' | 'procedural' | 'episodic' | 'semantic';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -107,7 +109,7 @@ const memoryMigrationRequestSchema = z.object({
 
 // Apply middleware
 router.use(memoryRateLimit);
-router.use(authMiddleware);
+router.use(authMiddlewareCompat);
 
 /**
  * @route GET /api/memory/:domainId/scope
@@ -125,7 +127,7 @@ router.get(
       const memoryScope = await memoryService.getMemoryScope(domainId);
       const quota = await memoryService.getMemoryQuota(domainId);
 
-      res.json({
+      return res.json({
         success: true,
         data: {
           scope: memoryScope,
@@ -134,7 +136,7 @@ router.get(
       });
     } catch (error) {
       console.error('Get memory scope error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get memory scope',
       });
@@ -181,7 +183,7 @@ router.post(
 
       const memories = await memoryService.queryMemory(query);
 
-      res.json({
+      return res.json({
         success: true,
         data: memories,
         meta: {
@@ -192,7 +194,7 @@ router.post(
       });
     } catch (error) {
       console.error('Memory query error:', error);
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to query memory',
       });
@@ -203,54 +205,66 @@ router.post(
 /**
  * @route POST /api/memory/:domainId/insert
  * @desc Insert new memory content
- * @access Private (Domain User with Write Access)
+ * @access Private (Domain User)
  */
 router.post(
   '/:domainId/insert',
   memoryWriteLimit,
-  domainPermissionMiddleware(['admin', 'user']),
-  createMemoryAccessMiddleware({ minAccessLevel: 'write', checkQuota: true }),
+  requireDomainWriteCompat,
+  createMemoryAccessMiddleware({ minAccessLevel: 'write' }),
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
-      const userId = req.user!.id;
+      
+      if (!req.user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Authentication required' 
+        });
+      }
+      
+      const userId = req.user.id;
       const validation = memoryInsertSchema.parse(req.body);
 
       const insert = {
         domainId,
         userId,
-        ...validation,
-        metadata: validation.metadata ? {
-          ...validation.metadata,
-          source: userId,
+        category: validation.category,
+        content: validation.content,
+        metadata: {
+          source: 'api',
           timestamp: new Date(),
-        } : {
-          confidence: 1.0,
-          tags: [],
-          relations: [],
-          source: userId,
-          timestamp: new Date(),
+          confidence: validation.metadata?.confidence ?? 1.0,
+          tags: validation.metadata?.tags ?? [],
+          relations: validation.metadata?.relations ?? [],
+        } as {
+          source: string;
+          timestamp: Date;
+          confidence: number;
+          tags: string[];
+          relations: string[];
         },
         access: validation.access ? {
           ...validation.access,
-          users: validation.access.users || [userId],
+          level: validation.access.level as 'read' | 'write' | 'admin',
+          users: validation.access.users || [],
           expires: validation.access.expires ? new Date(validation.access.expires) : undefined,
         } : {
-          level: 'read' as const,
-          users: [userId],
+          level: 'read' as 'read' | 'write' | 'admin',
+          users: [],
         },
       };
 
       const memoryId = await memoryService.insertMemory(insert);
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         data: { memoryId },
-        message: 'Memory content inserted successfully',
+        message: 'Memory inserted successfully',
       });
     } catch (error) {
       console.error('Memory insert error:', error);
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to insert memory',
       });
@@ -261,40 +275,72 @@ router.post(
 /**
  * @route PUT /api/memory/:domainId/:memoryId
  * @desc Update memory content
- * @access Private (Domain User with Write Access)
+ * @access Private (Domain User)
  */
 router.put(
   '/:domainId/:memoryId',
   memoryWriteLimit,
-  domainPermissionMiddleware(['admin', 'user']),
+  requireDomainWriteCompat,
   createMemoryAccessMiddleware({ minAccessLevel: 'write' }),
   async (req: Request, res: Response) => {
     try {
       const { domainId, memoryId } = req.params;
-      const userId = req.user!.id;
+      
+      if (!req.user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Authentication required' 
+        });
+      }
+      
+      const userId = req.user.id;
       const validation = memoryUpdateSchema.parse(req.body);
 
       const updates = {
-        ...validation,
+        content: validation.content,
         metadata: validation.metadata ? {
           ...validation.metadata,
+          source: 'api',
           timestamp: new Date(),
-        } : undefined,
+          confidence: validation.metadata.confidence ?? 1.0,
+          tags: validation.metadata.tags ?? [],
+          relations: validation.metadata.relations ?? [],
+        } as {
+          source: string;
+          timestamp: Date;
+          confidence: number;
+          tags: string[];
+          relations: string[];
+        } : {
+          source: 'api',
+          timestamp: new Date(),
+          confidence: 1.0,
+          tags: [],
+          relations: [],
+        } as {
+          source: string;
+          timestamp: Date;
+          confidence: number;
+          tags: string[];
+          relations: string[];
+        },
         access: validation.access ? {
           ...validation.access,
+          level: validation.access.level as 'read' | 'write' | 'admin',
+          users: validation.access.users || [],
           expires: validation.access.expires ? new Date(validation.access.expires) : undefined,
         } : undefined,
       };
 
       await memoryService.updateMemory(domainId, memoryId, userId, updates);
 
-      res.json({
+      return res.json({
         success: true,
-        message: 'Memory content updated successfully',
+        message: 'Memory updated successfully',
       });
     } catch (error) {
       console.error('Memory update error:', error);
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update memory',
       });
@@ -305,26 +351,35 @@ router.put(
 /**
  * @route DELETE /api/memory/:domainId/:memoryId
  * @desc Delete memory content
- * @access Private (Domain User with Write Access)
+ * @access Private (Domain User)
  */
 router.delete(
   '/:domainId/:memoryId',
-  domainPermissionMiddleware(['admin', 'user']),
+  memoryWriteLimit,
+  requireDomainWriteCompat,
   createMemoryAccessMiddleware({ minAccessLevel: 'write' }),
   async (req: Request, res: Response) => {
     try {
       const { domainId, memoryId } = req.params;
-      const userId = req.user!.id;
+      
+      if (!req.user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Authentication required' 
+        });
+      }
+      
+      const userId = req.user.id;
 
       await memoryService.deleteMemory(domainId, memoryId, userId);
 
-      res.json({
+      return res.json({
         success: true,
-        message: 'Memory content deleted successfully',
+        message: 'Memory deleted successfully',
       });
     } catch (error) {
       console.error('Memory delete error:', error);
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to delete memory',
       });
@@ -333,29 +388,96 @@ router.delete(
 );
 
 /**
- * @route GET /api/memory/:domainId/quota
- * @desc Get memory quota information
- * @access Private (Domain User)
+ * @route POST /api/memory/:domainId/share
+ * @desc Share memory with another domain
+ * @access Private (Domain Admin)
  */
-router.get(
-  '/:domainId/quota',
-  domainPermissionMiddleware(['admin', 'user']),
-  createMemoryAccessMiddleware({ minAccessLevel: 'read' }),
+router.post(
+  '/:domainId/share',
+  requireDomainAdminCompat,
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
+      
+      if (!req.user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Authentication required' 
+        });
+      }
+      
+      const userId = req.user.id;
+      const validation = memoryShareRequestSchema.parse(req.body);
 
-      const quota = await memoryService.getMemoryQuota(domainId);
+      const shareId = await memoryService.shareMemory(domainId, {
+        ...validation,
+        sourceUserId: userId,
+        expiresAt: validation.expiresAt ? new Date(validation.expiresAt) : undefined,
+      });
 
-      res.json({
+      return res.status(201).json({
         success: true,
-        data: quota,
+        data: { shareId },
+        message: 'Memory share request created',
       });
     } catch (error) {
-      console.error('Memory quota error:', error);
-      res.status(500).json({
+      console.error('Memory share error:', error);
+      return res.status(400).json({
         success: false,
-        error: 'Failed to get memory quota',
+        error: error instanceof Error ? error.message : 'Failed to share memory',
+      });
+    }
+  }
+);
+
+/**
+ * @route POST /api/memory/:domainId/migrate
+ * @desc Migrate memory to another domain
+ * @access Private (Domain Admin)
+ */
+router.post(
+  '/:domainId/migrate',
+  requireDomainAdminCompat,
+  async (req: Request, res: Response) => {
+    try {
+      const { domainId } = req.params;
+      
+      if (!req.user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Authentication required' 
+        });
+      }
+      
+      const userId = req.user.id;
+      const validation = memoryMigrationRequestSchema.parse(req.body);
+
+      if (!validation.targetDomainId) {
+        return res.status(400).json({
+          success: false,
+          error: 'targetDomainId is required',
+        });
+      }
+
+      const migrationId = await memoryService.migrateMemory(domainId, {
+        targetDomainId: validation.targetDomainId as string,
+        sourceUserId: userId,
+        memoryCategories: validation.memoryCategories,
+        transformRules: validation.transformRules ? JSON.parse(JSON.stringify(validation.transformRules)) : undefined,
+        mappingRules: validation.mappingRules ? JSON.parse(JSON.stringify(validation.mappingRules)) : undefined,
+        validationRules: validation.validationRules ? JSON.parse(JSON.stringify(validation.validationRules)) : undefined,
+      });
+
+      return res.status(201).json({
+        success: true,
+        data: { migrationId },
+        message: 'Memory migration started',
+      });
+    } catch (error) {
+      console.error('Memory migration error:', error);
+      return res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to migrate memory',
       });
     }
   }
@@ -364,359 +486,214 @@ router.get(
 /**
  * @route GET /api/memory/:domainId/analytics
  * @desc Get memory analytics
- * @access Private (Domain Admin)
+ * @access Private (Domain User)
  */
 router.get(
   '/:domainId/analytics',
-  domainPermissionMiddleware(['admin']),
-  createMemoryAccessMiddleware({ minAccessLevel: 'admin' }),
+  requireDomainReadCompat,
+  createMemoryAccessMiddleware({ minAccessLevel: 'read' }),
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
-      const days = parseInt(req.query.days as string) || 30;
+      
+      if (!req.user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Authentication required' 
+        });
+      }
+      
+      const userId = req.user.id;
+      const { period = '30d' } = req.query;
 
-      const analytics = await memoryService.getMemoryAnalytics(domainId, days);
+      const analytics = await memoryService.getMemoryAnalytics(domainId, 30);
 
-      res.json({
+      return res.json({
         success: true,
         data: analytics,
       });
     } catch (error) {
       console.error('Memory analytics error:', error);
-      res.status(500).json({
+      return res.status(400).json({
         success: false,
-        error: 'Failed to get memory analytics',
+        error: error instanceof Error ? error.message : 'Failed to get memory analytics',
       });
     }
   }
 );
 
 /**
- * @route POST /api/memory/:domainId/share/request
- * @desc Request memory share with another domain
- * @access Private (Domain Admin)
- */
-router.post(
-  '/:domainId/share/request',
-  domainPermissionMiddleware(['admin']),
-  createMemoryAccessMiddleware({ minAccessLevel: 'admin' }),
-  async (req: Request, res: Response) => {
-    try {
-      const { domainId } = req.params;
-      const userId = req.user!.id;
-      const validation = memoryShareRequestSchema.parse(req.body);
-
-      const shareRequest = {
-        sourceMemoryId: domainId,
-        targetMemoryId: validation.targetDomainId,
-        shareType: validation.shareType,
-        memoryCategories: validation.memoryCategories,
-        accessLevel: validation.accessLevel,
-        requestedBy: userId,
-        purpose: validation.purpose,
-        expiresAt: validation.expiresAt ? new Date(validation.expiresAt) : undefined,
-        maxAccess: validation.maxAccess,
-      };
-
-      const shareId = await memoryService.requestMemoryShare(shareRequest);
-
-      res.status(201).json({
-        success: true,
-        data: { shareId },
-        message: 'Memory share request created successfully',
-      });
-    } catch (error) {
-      console.error('Memory share request error:', error);
-      res.status(400).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to create memory share request',
-      });
-    }
-  }
-);
-
-/**
- * @route POST /api/memory/:domainId/share/:shareId/approve
- * @desc Approve memory share request
- * @access Private (Target Domain Admin)
- */
-router.post(
-  '/:domainId/share/:shareId/approve',
-  domainPermissionMiddleware(['admin']),
-  createMemoryAccessMiddleware({ minAccessLevel: 'admin' }),
-  async (req: Request, res: Response) => {
-    try {
-      const { shareId } = req.params;
-      const userId = req.user!.id;
-
-      await memoryService.approveMemoryShare(shareId, userId);
-
-      res.json({
-        success: true,
-        message: 'Memory share request approved successfully',
-      });
-    } catch (error) {
-      console.error('Memory share approval error:', error);
-      res.status(400).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to approve memory share request',
-      });
-    }
-  }
-);
-
-/**
- * @route GET /api/memory/:domainId/shares
- * @desc Get memory shares for domain
+ * @route GET /api/memory/:domainId/health
+ * @desc Get memory health status
  * @access Private (Domain Admin)
  */
 router.get(
-  '/:domainId/shares',
-  domainPermissionMiddleware(['admin']),
-  createMemoryAccessMiddleware({ minAccessLevel: 'admin' }),
+  '/:domainId/health',
+  requireDomainAdminCompat,
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
-      const status = req.query.status as string;
-
-      const whereClause: Event = {
-        OR: [
-          { sourceMemoryId: domainId },
-          { targetMemoryId: domainId },
-        ],
-      };
-
-      if (status) {
-        whereClause.status = status;
+      
+      if (!req.user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Authentication required' 
+        });
       }
+      
+      const userId = req.user.id;
 
-      const shares = await prisma.memoryShare.findMany({
-        where: whereClause,
-        include: {
-          requester: {
-            select: { id: true, name: true, email: true },
-          },
-          approver: {
-            select: { id: true, name: true, email: true },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
+      const health = await memoryService.getMemoryHealth(domainId, userId);
 
-      res.json({
+      return res.json({
         success: true,
-        data: shares,
+        data: health,
       });
     } catch (error) {
-      console.error('Get memory shares error:', error);
-      res.status(500).json({
+      console.error('Memory health error:', error);
+      return res.status(400).json({
         success: false,
-        error: 'Failed to get memory shares',
+        error: error instanceof Error ? error.message : 'Failed to get memory health',
       });
     }
   }
 );
 
 /**
- * @route POST /api/memory/cross-domain/access
- * @desc Access memory from another domain (with approved share)
- * @access Private (Cross-domain access)
+ * @route POST /api/memory/:domainId/cleanup
+ * @desc Clean up expired or invalid memory
+ * @access Private (Domain Admin)
  */
 router.post(
-  '/cross-domain/access',
-  createCrossDomainMemoryMiddleware(),
+  '/:domainId/cleanup',
+  requireDomainAdminCompat,
   async (req: Request, res: Response) => {
     try {
-      const { sourceDomainId, targetDomainId, operation, data } = req.body;
-
-      // This endpoint handles cross-domain memory access
-      // The middleware ensures proper permissions and share agreements
-
-      let result;
-      switch (operation) {
-        case 'query':
-          result = await memoryService.queryMemory({
-            domainId: sourceDomainId,
-            userId: req.user!.id,
-            ...data,
-          });
-          break;
-
-        case 'insert':
-          result = await memoryService.insertMemory({
-            domainId: targetDomainId,
-            userId: req.user!.id,
-            ...data,
-          });
-          break;
-
-        default:
-          throw new Error(`Unsupported cross-domain operation: ${operation}`);
+      const { domainId } = req.params;
+      
+      if (!req.user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Authentication required' 
+        });
       }
+      
+      const userId = req.user.id;
+      const validation = z.object({
+        dryRun: z.boolean().optional().default(false),
+        categories: z.array(z.string()).optional(),
+        retentionDays: z.number().optional(),
+      }).parse(req.body);
 
-      res.json({
+      const cleanup = await memoryService.cleanupMemory(domainId, {
+        sourceUserId: userId,
+        categories: (validation.categories ?? []) as MemoryCategory[],
+        retentionDays: validation.retentionDays,
+        dryRun: validation.dryRun,
+      });
+
+      return res.json({
         success: true,
-        data: result,
-        message: `Cross-domain ${operation} completed successfully`,
+        data: cleanup,
+        message: validation.dryRun ? 'Cleanup simulation completed' : 'Memory cleanup completed',
       });
     } catch (error) {
-      console.error('Cross-domain memory access error:', error);
-      res.status(400).json({
+      console.error('Memory cleanup error:', error);
+      return res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Cross-domain memory access failed',
+        error: error instanceof Error ? error.message : 'Failed to cleanup memory',
       });
     }
   }
 );
 
 /**
- * @route POST /api/memory/:domainId/initialize
- * @desc Initialize memory scope for domain
+ * @route POST /api/memory/:domainId/backup
+ * @desc Create memory backup
  * @access Private (Domain Admin)
  */
 router.post(
-  '/:domainId/initialize',
-  domainPermissionMiddleware(['admin']),
+  '/:domainId/backup',
+  requireDomainAdminCompat,
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
-      const userId = req.user!.id;
+      
+      if (!req.user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Authentication required' 
+        });
+      }
+      
+      const userId = req.user.id;
+      const validation = z.object({
+        includeMetadata: z.boolean().optional().default(true),
+        categories: z.array(z.string()).optional(),
+      }).parse(req.body);
 
-      const memoryScope = await memoryService.initializeMemoryScope(domainId, userId);
+      const backup = await memoryService.createMemoryBackup(domainId, {
+        sourceUserId: userId,
+        includeMetadata: validation.includeMetadata,
+        categories: (validation.categories ?? []) as MemoryCategory[],
+      });
 
-      res.status(201).json({
+      return res.json({
         success: true,
-        data: memoryScope,
-        message: 'Memory scope initialized successfully',
+        data: backup,
+        message: 'Memory backup created successfully',
       });
     } catch (error) {
-      console.error('Memory scope initialization error:', error);
-      res.status(400).json({
+      console.error('Memory backup error:', error);
+      return res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to initialize memory scope',
+        error: error instanceof Error ? error.message : 'Failed to create memory backup',
       });
     }
   }
 );
 
 /**
- * @route GET /api/memory/:domainId/access-logs
- * @desc Get memory access logs
- * @access Private (Domain Admin)
- */
-router.get(
-  '/:domainId/access-logs',
-  domainPermissionMiddleware(['admin']),
-  createMemoryAccessMiddleware({ minAccessLevel: 'admin' }),
-  async (req: Request, res: Response) => {
-    try {
-      const { domainId } = req.params;
-      const limit = parseInt(req.query.limit as string) || 100;
-      const offset = parseInt(req.query.offset as string) || 0;
-
-      const accessLogs = await prisma.memoryAccess.findMany({
-        where: { memoryId: domainId },
-        include: {
-          user: {
-            select: { id: true, name: true, email: true },
-          },
-        },
-        orderBy: { timestamp: 'desc' },
-        take: limit,
-        skip: offset,
-      });
-
-      const totalCount = await prisma.memoryAccess.count({
-        where: { memoryId: domainId },
-      });
-
-      res.json({
-        success: true,
-        data: accessLogs,
-        meta: {
-          total: totalCount,
-          limit,
-          offset,
-        },
-      });
-    } catch (error) {
-      console.error('Memory access logs error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to get memory access logs',
-      });
-    }
-  }
-);
-
-/**
- * @route GET /api/memory/:domainId/alerts
- * @desc Get memory alerts
- * @access Private (Domain Admin)
- */
-router.get(
-  '/:domainId/alerts',
-  domainPermissionMiddleware(['admin']),
-  createMemoryAccessMiddleware({ minAccessLevel: 'admin' }),
-  async (req: Request, res: Response) => {
-    try {
-      const { domainId } = req.params;
-      const status = req.query.status as string || 'active';
-
-      const alerts = await prisma.memoryAlert.findMany({
-        where: {
-          memoryId: domainId,
-          status,
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      res.json({
-        success: true,
-        data: alerts,
-      });
-    } catch (error) {
-      console.error('Memory alerts error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to get memory alerts',
-      });
-    }
-  }
-);
-
-/**
- * @route POST /api/memory/:domainId/alerts/:alertId/acknowledge
- * @desc Acknowledge memory alert
+ * @route POST /api/memory/:domainId/restore
+ * @desc Restore memory from backup
  * @access Private (Domain Admin)
  */
 router.post(
-  '/:domainId/alerts/:alertId/acknowledge',
-  domainPermissionMiddleware(['admin']),
-  createMemoryAccessMiddleware({ minAccessLevel: 'admin' }),
+  '/:domainId/restore',
+  requireDomainAdminCompat,
   async (req: Request, res: Response) => {
     try {
-      const { alertId } = req.params;
-      const userId = req.user!.id;
+      const { domainId } = req.params;
+      
+      if (!req.user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Authentication required' 
+        });
+      }
+      
+      const userId = req.user.id;
+      const validation = z.object({
+        backupId: z.string().uuid(),
+        overwrite: z.boolean().optional().default(false),
+      }).parse(req.body);
 
-      await prisma.memoryAlert.update({
-        where: { id: alertId },
-        data: {
-          status: 'acknowledged',
-          acknowledgedBy: userId,
-          acknowledgedAt: new Date(),
-        },
+      const restore = await memoryService.restoreMemoryBackup(domainId, {
+        sourceUserId: userId,
+        backupId: validation.backupId,
+        overwrite: validation.overwrite,
       });
 
-      res.json({
+      return res.json({
         success: true,
-        message: 'Memory alert acknowledged successfully',
+        data: restore,
+        message: 'Memory restore completed successfully',
       });
     } catch (error) {
-      console.error('Memory alert acknowledgment error:', error);
-      res.status(400).json({
+      console.error('Memory restore error:', error);
+      return res.status(400).json({
         success: false,
-        error: 'Failed to acknowledge memory alert',
+        error: error instanceof Error ? error.message : 'Failed to restore memory',
       });
     }
   }

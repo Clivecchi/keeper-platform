@@ -174,12 +174,19 @@ export const createKeeper = async (req: Request, res: Response) => {
     }
     
     const keeper = await prisma.keeper.create({
-      data: keeperData,
-      include: {
-        KeeperType: true,
-        themes: true,
-        engagement_templates: true
-      }
+      data: {
+        id: keeperData.id as string,
+        title: keeperData.title as string,
+        purpose: keeperData.purpose as string,
+        ownerId: keeperData.ownerId as string,
+        domainId: keeperData.domainId as string,
+        keeperType: keeperData.keeperType as string,
+        memoryPattern: keeperData.memoryPattern as string,
+        sole: keeperData.sole as any,
+        soleDraft: keeperData.soleDraft as any,
+        soleSubmittedAt: keeperData.soleSubmittedAt ? new Date(keeperData.soleSubmittedAt as string) : undefined,
+        theme_id: keeperData.theme_id as string,
+      },
     });
 
     return res.status(201).json({
@@ -707,7 +714,7 @@ export const getAgentKeeperTypes = async (req: Request, res: Response) => {
       }
     });
 
-    const keeperTypes = assignments.map((assignment: unknown) => assignment.keeper_type);
+    const keeperTypes = assignments.map((assignment: any) => assignment.keeper_type);
 
     return res.json({
       success: true,

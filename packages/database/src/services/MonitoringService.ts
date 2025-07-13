@@ -467,6 +467,11 @@ export class MonitoringService {
     }
 
     // Store trace data
+    // Convert tags to Record<string, string>
+    const stringifiedTags: Record<string, string> = Object.entries(span.tags).reduce((acc, [k, v]) => {
+      acc[k] = String(v);
+      return acc;
+    }, {} as Record<string, string>);
     this.recordMetric({
       name: 'trace_duration',
       type: 'histogram',
@@ -474,7 +479,7 @@ export class MonitoringService {
       labels: { operation: span.operationName },
       value: span.duration!,
       timestamp: span.endTime,
-      tags: span.tags,
+      tags: stringifiedTags,
     });
   }
 

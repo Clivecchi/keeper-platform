@@ -143,14 +143,14 @@ export class MemoryAccessManager {
         }
 
         // Get memory scope
-        let memoryScope: Event = null;
+        let memoryScope: Record<string, unknown> | null = null;
         if (domainId) {
           try {
-            memoryScope = await this.memoryService.getMemoryScope(domainId);
+            memoryScope = await this.memoryService.getMemoryScope(domainId) as unknown as Record<string, unknown>;
           } catch (error) {
             if (error instanceof Error && error.message.includes('not found')) {
               // Initialize memory scope if it doesn't exist
-              memoryScope = await this.memoryService.initializeMemoryScope(domainId, userId);
+              memoryScope = await this.memoryService.initializeMemoryScope(domainId, userId) as unknown as Record<string, unknown>;
             } else {
               throw error;
             }
@@ -201,7 +201,7 @@ export class MemoryAccessManager {
           accessType: minAccessLevel as MemoryAccessType,
           permissions: allowedCategories,
           domainId: domainId!,
-          memoryScope,
+          memoryScope: memoryScope || undefined,
           accessLevel,
           quotaStatus: quotaStatus || {
             current: 0,
@@ -221,10 +221,11 @@ export class MemoryAccessManager {
         // Add memory headers
         this.addMemoryHeaders(res, req.memoryContext);
 
-        next();
+        // Continue to next middleware
+        return next();
       } catch (error) {
         console.error('Memory access middleware error:', error);
-        res.status(500).json({
+        return res.status(500).json({
           success: false,
           error: 'Memory access check failed',
         });
@@ -296,7 +297,7 @@ export class MemoryAccessManager {
           },
         } as unknown as MemoryAccessRequest['memoryContext'];
 
-        next();
+        return next();
       } catch (error) {
         console.error('Cross-domain memory middleware error:', error);
         res.status(500).json({
@@ -327,7 +328,7 @@ export class MemoryAccessManager {
   private async determineAccessLevel(
     domainId: string,
     userId: string,
-    memoryScope: Event
+    memoryScope: Record<string, unknown> | null
   ): Promise<'read' | 'write' | 'admin' | 'none'> {
     if (!memoryScope) return 'none';
 
@@ -446,50 +447,22 @@ export class MemoryAccessManager {
   /**
    * Get allowed memory categories for user
    */
-  private getAllowedCategories(memoryScope: Event, accessLevel: string): string[] {
-    const allCategories = ['conversational', 'factual', 'procedural', 'episodic', 'semantic'];
-    
-    // Admin and write access get all categories
-    if (accessLevel === 'admin' || accessLevel === 'write') {
-      return allCategories;
-    }
-
-    // Read access gets limited categories
-    if (accessLevel === 'read') {
-      return ['conversational', 'factual', 'procedural'];
-    }
-
-    return [];
+  private getAllowedCategories(memoryScope: Record<string, unknown> | null, accessLevel: string): string[] {
+    if (!memoryScope) return [];
+    const categories = (memoryScope.allowedCategories as string[]) || [];
+    const levelCategories = ((memoryScope.accessLevels as Record<string, any>)?.[accessLevel]?.categories as string[]) || [];
+    return [...new Set([...(categories || []), ...(levelCategories || [])])];
   }
 
   /**
    * Get access restrictions for user
    */
-  private getAccessRestrictions(memoryScope: Event, userId: string): string[] {
-    const restrictions: string[] = [];
-
-    if (!memoryScope) {
-      restrictions.push('No memory scope available');
-      return restrictions;
-    }
-
-    // Check isolation level
-    if (memoryScope.isolationLevel === 'strict') {
-      restrictions.push('Strict isolation mode - no cross-domain access');
-    }
-
-    // Check cross-domain settings
-    if (!memoryScope.allowCrossDomain) {
-      restrictions.push('Cross-domain access disabled');
-    }
-
-    // Check quota status
-    const usagePercentage = (memoryScope.currentMemorySize / memoryScope.maxMemorySize) * 100;
-    if (usagePercentage > 90) {
-      restrictions.push('Memory quota near limit - write operations may be restricted');
-    }
-
-    return restrictions;
+  private getAccessRestrictions(memoryScope: Record<string, unknown> | null, userId: string): string[] {
+    if (!memoryScope) return [];
+    const restrictions = (memoryScope.restrictions as string[]) || [];
+    const userRestrictions = ((memoryScope.userRestrictions as Record<string, any>)?.[userId] as string[]) || [];
+    const levelRestrictions = ((memoryScope.accessLevels as Record<string, any>)?.[userId]?.restrictions as string[]) || [];
+    return [...new Set([...(restrictions || []), ...(userRestrictions || []), ...(levelRestrictions || [])])];
   }
 
   /**
@@ -565,25 +538,27 @@ export class MemoryAccessManager {
    */
   private validateSharePermissions(shareAgreement: unknown, method: string, body: unknown): string[] {
     const violations: string[] = [];
+    const shareAgreementTyped = shareAgreement as any;
+    const bodyTyped = body as any;
 
     // Check share type restrictions
-    if (shareAgreement.shareType === 'read_only' && method !== 'GET') {
+    if (shareAgreementTyped.shareType === 'read_only' && method !== 'GET') {
       violations.push('Share agreement only allows read operations');
     }
 
     // Check expiration
-    if (shareAgreement.expiresAt && new Date() > shareAgreement.expiresAt) {
+    if (shareAgreementTyped.expiresAt && new Date() > shareAgreementTyped.expiresAt) {
       violations.push('Share agreement has expired');
     }
 
     // Check access limits
-    if (shareAgreement.maxAccess && shareAgreement.currentAccess >= shareAgreement.maxAccess) {
+    if (shareAgreementTyped.maxAccess && shareAgreementTyped.currentAccess >= shareAgreementTyped.maxAccess) {
       violations.push('Share agreement access limit exceeded');
     }
 
     // Check memory categories
-    if (body.category && !shareAgreement.memoryCategories.includes(body.category)) {
-      violations.push(`Memory category '${body.category}' not allowed by share agreement`);
+    if (bodyTyped.category && !shareAgreementTyped.memoryCategories.includes(bodyTyped.category)) {
+      violations.push(`Memory category '${bodyTyped.category}' not allowed by share agreement`);
     }
 
     return violations;
@@ -625,15 +600,76 @@ export class MemoryAccessManager {
    * Add memory-related headers to response
    */
   private addMemoryHeaders(res: Response, memoryContext: unknown): void {
-    res.setHeader('X-Memory-Domain', memoryContext.domainId);
-    res.setHeader('X-Memory-Access-Level', memoryContext.accessLevel);
-    res.setHeader('X-Memory-Quota-Usage', `${memoryContext.quotaStatus.percentage}%`);
+    const contextTyped = memoryContext as any;
+    res.setHeader('X-Memory-Domain', contextTyped.domainId);
+    res.setHeader('X-Memory-Access-Level', contextTyped.accessLevel);
+    res.setHeader('X-Memory-Quota-Usage', `${contextTyped.quotaStatus.percentage}%`);
     
-    if (memoryContext.restrictions.length > 0) {
-      res.setHeader('X-Memory-Restrictions', memoryContext.restrictions.join(', '));
+    if (contextTyped.restrictions.length > 0) {
+      res.setHeader('X-Memory-Restrictions', contextTyped.restrictions.join(', '));
     }
     
-    if (memoryContext.allowedCategories.length > 0) {
+    if (contextTyped.allowedCategories.length > 0) {
+      res.setHeader('X-Memory-Categories', contextTyped.allowedCategories.join(', '));
+    }
+  }
+
+  private async getMemoryScope(domainId: string, userId: string): Promise<Record<string, unknown> | null> {
+    try {
+      const memoryScope = await this.memoryService.getMemoryScope(domainId);
+      return memoryScope as unknown as Record<string, unknown>;
+    } catch (error) {
+      console.error('Error getting memory scope:', error);
+      return null;
+    }
+  }
+
+  private async validateMemoryAccess(
+    domainId: string,
+    userId: string,
+    accessType: 'read' | 'write' | 'admin',
+    memoryScope: Record<string, unknown> | null
+  ): Promise<{ allowed: boolean; reason?: string }> {
+    try {
+      // Check if memory scope exists
+      if (!memoryScope) {
+        return { allowed: false, reason: 'Memory scope not found' };
+      }
+
+      // Check quota limits
+      if (memoryScope && (memoryScope as any).quotaExceeded && (accessType === 'write' || accessType === 'admin')) {
+        return { allowed: false, reason: 'Memory quota exceeded' };
+      }
+
+      // Check access level
+      const currentAccessLevel = (memoryScope as any).accessLevel || 'read';
+      const accessLevels = { read: 1, write: 2, admin: 3 };
+      
+      if (accessLevels[accessType as keyof typeof accessLevels] > accessLevels[currentAccessLevel as keyof typeof accessLevels]) {
+        return { allowed: false, reason: 'Insufficient access level' };
+      }
+
+      return { allowed: true };
+    } catch (error) {
+      console.error('Error validating memory access:', error);
+      return { allowed: false, reason: 'Access validation failed' };
+    }
+  }
+
+  private setMemoryHeaders(res: Response, memoryScope: Record<string, unknown> | null): void {
+    if (!memoryScope) return;
+
+    const memoryContext = memoryScope as any;
+    
+    res.setHeader('X-Memory-Domain', memoryContext.domainId || '');
+    res.setHeader('X-Memory-Access-Level', memoryContext.accessLevel || 'read');
+    res.setHeader('X-Memory-Quota-Usage', `${memoryContext.quotaStatus?.percentage || 0}%`);
+
+    if (memoryContext.restrictions && Array.isArray(memoryContext.restrictions) && memoryContext.restrictions.length > 0) {
+      res.setHeader('X-Memory-Restrictions', memoryContext.restrictions.join(', '));
+    }
+
+    if (memoryContext.allowedCategories && Array.isArray(memoryContext.allowedCategories) && memoryContext.allowedCategories.length > 0) {
       res.setHeader('X-Memory-Categories', memoryContext.allowedCategories.join(', '));
     }
   }
@@ -651,7 +687,7 @@ export function createMemoryAccessMiddleware(
   const memoryService = new SoleMemoryIsolationService(prisma, cacheService);
   
   const manager = new MemoryAccessManager(prisma, memoryService, cacheService);
-  return manager.createMiddleware(config);
+  return manager.createMiddleware(config) as (req: MemoryAccessRequest, res: Response, next: NextFunction) => Promise<void>;
 }
 
 /**
@@ -668,7 +704,7 @@ export function createCrossDomainMemoryMiddleware(): (
   const memoryService = new SoleMemoryIsolationService(prisma, cacheService);
   
   const manager = new MemoryAccessManager(prisma, memoryService, cacheService);
-  return manager.createCrossDomainMiddleware();
+  return manager.createCrossDomainMiddleware() as (req: MemoryAccessRequest, res: Response, next: NextFunction) => Promise<void>;
 }
 
 export default MemoryAccessManager; 

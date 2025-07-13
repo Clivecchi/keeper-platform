@@ -527,7 +527,7 @@ function globalErrorHandler(err: unknown, req: Request, res: Response, next: Nex
     statusCode = 400;
     errorCode = 'VALIDATION_ERROR';
     message = 'Invalid request data';
-    details = (err as unknown as { errors: unknown[] }).errors;
+    details = (err as unknown as { errors: unknown[] }).errors as unknown as Record<string, unknown>;
   }
   // JWT errors
   else if (err instanceof Error && err.name === 'JsonWebTokenError') {

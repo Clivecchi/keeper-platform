@@ -311,11 +311,15 @@ export class MemoryMigrationService {
     const analysis = await this.analyzeMemoryContent(sourceScope, migration.memoryCategories as MemoryCategory[]);
     
     // Apply transformation rules if any
-    const transformationRules = (migration.transformRules as TransformationRule[]) || [];
+    const transformationRules = Array.isArray(migration.transformRules)
+      ? (migration.transformRules as unknown as TransformationRule[])
+      : [];
     const transformedData = await this.applyTransformationRules(analysis, transformationRules);
     
     // Validate transformation results
-    const validationRules = (migration.validationRules as ValidationRule[]) || [];
+    const validationRules = Array.isArray(migration.validationRules)
+      ? (migration.validationRules as unknown as ValidationRule[])
+      : [];
     const validationResults = await this.validateTransformation(transformedData, validationRules);
 
     return {
@@ -628,7 +632,7 @@ export class MemoryMigrationService {
         case 'size':
           const maxSize = rule.validator.config.maxSize || 1073741824; // 1GB
           const currentSize = JSON.stringify(memoryScope).length;
-          if (currentSize > maxSize) {
+          if (typeof currentSize === 'number' && typeof maxSize === 'number' && currentSize > maxSize) {
             result.passed = false;
             result.message = `Memory size exceeds maximum allowed (${maxSize} bytes)`;
             result.severity = 'error';
@@ -773,8 +777,8 @@ export class MemoryMigrationService {
     
     // Copy memory content
     targetScope[categoryField] = {
-      ...targetScope[categoryField],
-      ...categoryMemory,
+      ...(typeof targetScope[categoryField] === 'object' && targetScope[categoryField] !== null ? targetScope[categoryField] as Record<string, unknown> : {}),
+      ...(typeof categoryMemory === 'object' && categoryMemory !== null ? categoryMemory as Record<string, unknown> : {}),
     };
 
     // Update target memory scope
@@ -830,7 +834,7 @@ export class MemoryMigrationService {
       data: {
         status,
         updatedAt: new Date(),
-        ...additionalData,
+        ...(typeof additionalData === 'object' && additionalData !== null ? additionalData as Record<string, unknown> : {}),
       },
     });
   }
@@ -861,8 +865,11 @@ export class MemoryMigrationService {
    */
   private async applyTransformationRules(analysis: unknown,
     rules: TransformationRule[]
-  ): Promise<unknown> {
-    let transformedData = { ...analysis };
+  ): Promise<Record<string, unknown>> {
+    let transformedData: Record<string, unknown> = {};
+    if (typeof analysis === 'object' && analysis !== null) {
+      transformedData = { ...(analysis as Record<string, unknown>) };
+    }
 
     for (const rule of rules) {
       try {
@@ -887,7 +894,7 @@ export class MemoryMigrationService {
       }
     }
 
-    return transformedData;
+    return typeof transformedData === 'object' && transformedData !== null ? transformedData : {};
   }
 
   /**
@@ -925,43 +932,63 @@ export class MemoryMigrationService {
   /**
    * Helper methods for transformation rules
    */
-  private applyFilterRule(data: unknown, rule: TransformationRule): unknown {
+  private applyFilterRule(data: unknown, rule: TransformationRule): Record<string, unknown> {
     // Basic filtering logic based on rule conditions
-    if (rule.transformation.config.conditions && rule.transformation.config.conditions.excludePatterns) {
+    if (rule.transformation.config.conditions && 
+        typeof rule.transformation.config.conditions === 'object' && 
+        rule.transformation.config.conditions !== null &&
+        'excludePatterns' in rule.transformation.config.conditions) {
       // Apply exclusion patterns
-      return data; // Simplified implementation
+      return typeof data === 'object' && data !== null ? data as Record<string, unknown> : {};
     }
-    return data;
+    return typeof data === 'object' && data !== null ? data as Record<string, unknown> : {};
   }
 
-  private applyTransformRule(data: unknown, rule: TransformationRule): unknown {
+  private applyTransformRule(data: unknown, rule: TransformationRule): Record<string, unknown> {
     // Basic transformation logic
-    if (rule.transformation.config.conditions && rule.transformation.config.conditions.mappings) {
+    if (rule.transformation.config.conditions && 
+        typeof rule.transformation.config.conditions === 'object' && 
+        rule.transformation.config.conditions !== null &&
+        'mappings' in rule.transformation.config.conditions) {
       // Apply field mappings
-      return data; // Simplified implementation
+      return typeof data === 'object' && data !== null ? data as Record<string, unknown> : {};
     }
-    return data;
+    return typeof data === 'object' && data !== null ? data as Record<string, unknown> : {};
   }
 
-  private applyMergeRule(data: unknown, rule: TransformationRule): unknown {
+  private applyMergeRule(data: unknown, rule: TransformationRule): Record<string, unknown> {
     // Basic merge logic
-    if (rule.transformation.config.conditions && rule.transformation.config.conditions.mergeTargets) {
+    if (rule.transformation.config.conditions && 
+        typeof rule.transformation.config.conditions === 'object' && 
+        rule.transformation.config.conditions !== null &&
+        'mergeTargets' in rule.transformation.config.conditions) {
       // Apply merge operations
-      return data; // Simplified implementation
+      return typeof data === 'object' && data !== null ? data as Record<string, unknown> : {};
     }
-    return data;
+    return typeof data === 'object' && data !== null ? data as Record<string, unknown> : {};
   }
 
   private async validateRule(data: unknown, rule: ValidationRule): Promise<{ passed: boolean; message: string }> {
     // Basic validation logic
     try {
-      if (rule.validator.config.conditions && rule.validator.config.conditions.requiredFields) {
-        const missing = rule.validator.config.conditions.requiredFields.filter((field: string) => !data[field]);
-        if (missing.length > 0) {
-          return {
-            passed: false,
-            message: `Missing required fields: ${missing.join(', ')}`
-          };
+      if (rule.validator.config.conditions && 
+          typeof rule.validator.config.conditions === 'object' && 
+          rule.validator.config.conditions !== null &&
+          'requiredFields' in rule.validator.config.conditions) {
+        const requiredFields = (rule.validator.config.conditions as Record<string, unknown>).requiredFields;
+        if (Array.isArray(requiredFields)) {
+          const missing = requiredFields.filter((field: string) => {
+            if (typeof data === 'object' && data !== null && field in data) {
+              return !(data as Record<string, unknown>)[field];
+            }
+            return true;
+          });
+          if (missing.length > 0) {
+            return {
+              passed: false,
+              message: `Missing required fields: ${missing.join(', ')}`
+            };
+          }
         }
       }
       
@@ -993,20 +1020,25 @@ export class MemoryMigrationService {
     const sourceScope = await this.memoryService.getMemoryScope(migration.sourceMemoryId);
     
     // Analyze content
-    const analysis = await this.analyzeMemoryContent(sourceScope, migration.memoryCategories as any[]);
+    const analysis = await this.analyzeMemoryContent(sourceScope as ExtendedMemoryScope, migration.memoryCategories as any[]);
     
     // Apply transformation rules if any
-    const transformationRules = (migration.transformRules as unknown as TransformationRule[]) || [];
+    const transformationRules = Array.isArray(migration.transformRules)
+      ? (migration.transformRules as unknown as TransformationRule[])
+      : [];
     const transformedData = await this.applyTransformationRules(analysis, transformationRules);
     
     // Validate transformation results
-    const validationRules = (migration.validationRules as unknown as ValidationRule[]) || [];
+    const validationRules = Array.isArray(migration.validationRules)
+      ? (migration.validationRules as unknown as ValidationRule[])
+      : [];
     const validationResults = await this.validateTransformation(transformedData, validationRules);
 
     // Check for validation errors
     validationResults.forEach((result: unknown) => {
-      if (!result.passed && result.severity === 'error') {
-        throw new Error(`Migration validation failed: ${result.message}`);
+      if (typeof result === 'object' && result !== null && 'passed' in result && !(result as any).passed && 
+          'severity' in result && (result as any).severity === 'error') {
+        throw new Error(`Migration validation failed: ${(result as any).message}`);
       }
     });
 
@@ -1017,15 +1049,19 @@ export class MemoryMigrationService {
       estimatedSize: analysis.estimatedSize,
       estimatedDuration: this.estimateMigrationDuration(analysis.totalItems, analysis.estimatedSize),
       categoryBreakdown: analysis.categoryBreakdown,
-      transformationPreview: transformedData,
+      transformationPreview: typeof transformedData === 'object' && transformedData !== null ? transformedData as Record<string, unknown> : {},
       validationResults: validationResults.map((r: unknown) => ({
-        ruleId: r.ruleId,
-        ruleName: r.ruleName,
-        passed: r.passed,
-        message: r.message
+        ruleId: (r as any).ruleId,
+        ruleName: (r as any).ruleName,
+        passed: (r as any).passed,
+        message: (r as any).message
       })),
-      warnings: validationResults.filter((r: unknown) => r.severity === 'warning').map((r: unknown) => r.message),
-      errors: validationResults.filter((r: unknown) => r.severity === 'error').map((r: unknown) => r.message)
+      warnings: validationResults.filter((r: unknown) => 
+        typeof r === 'object' && r !== null && 'severity' in r && (r as any).severity === 'warning'
+      ).map((r: unknown) => (r as any).message),
+      errors: validationResults.filter((r: unknown) => 
+        typeof r === 'object' && r !== null && 'severity' in r && (r as any).severity === 'error'
+      ).map((r: unknown) => (r as any).message)
     };
   }
 

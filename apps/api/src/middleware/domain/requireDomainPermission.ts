@@ -59,7 +59,7 @@ export function requireDomainPermission(
       }
 
       // Check if user is domain owner (bypass permission checks)
-      if (finalConfig.allowOwnerBypass && typedReq.domainContext.ownerId === typedReq.user.id) {
+      if (finalConfig.allowOwnerBypass && typedReq.domainContext && typedReq.domainContext.domain.ownerId === typedReq.user.id) {
         res.set('X-Domain-Role', 'owner');
         res.set('X-Domain-Permissions', 'all');
         return next();
@@ -70,7 +70,7 @@ export function requireDomainPermission(
       
       // Check if user has access to the domain (for now, simplified check)
       const userDomains = await domainService.getUserDomains(typedReq.user.id);
-      const hasPermission = userDomains.some(domain => domain.id === typedReq.domainContext!.id);
+      const hasPermission = userDomains.some(domain => typedReq.domainContext && domain.id === typedReq.domainContext.domain.id);
 
       if (!hasPermission) {
         const error = DomainError.InsufficientPermissions();
@@ -81,7 +81,7 @@ export function requireDomainPermission(
           details: {
             required: requiredPermissions,
             userId: typedReq.user.id,
-            domainId: typedReq.domainContext.id
+            domainId: typedReq.domainContext ? typedReq.domainContext.domain.id : undefined
           }
         });
         return;
@@ -148,7 +148,7 @@ export function requireDomainOwnership() {
       }
 
       // Check if user is domain owner
-      if (typedReq.domainContext.ownerId !== typedReq.user.id) {
+      if (typedReq.domainContext && typedReq.domainContext.domain.ownerId !== typedReq.user.id) {
         const error = DomainError.OwnerRequired();
         res.status(error.statusCode).json({
           success: false,

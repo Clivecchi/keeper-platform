@@ -179,7 +179,7 @@ function simulateMiddleware(user: unknown, domainContext: unknown) {
       throw DomainError.DomainNotFound();
     }
     
-    if (user.role !== 'admin' && domainContext.ownerId !== user.id) {
+    if ((user as any).role !== 'admin' && (domainContext as any).ownerId !== (user as any).id) {
       throw DomainError.AccessDenied();
     }
     
@@ -206,6 +206,8 @@ function simulateMiddleware(user: unknown, domainContext: unknown) {
 }
 
 // Test scenarios
+const user = { role: 'admin', id: 'abc' };
+const domainContext = { ownerId: 'abc' };
 console.log('No user:', simulateMiddleware(null, { id: 'domain1', ownerId: 'user1' }));
 console.log('No domain:', simulateMiddleware({ id: 'user1', role: 'user' }, null));
 console.log('Access denied:', simulateMiddleware({ id: 'user2', role: 'user' }, { id: 'domain1', ownerId: 'user1' }));

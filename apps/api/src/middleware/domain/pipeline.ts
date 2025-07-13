@@ -3,306 +3,293 @@
  * Utilities for chaining domain middleware together
  */
 
-import { RequestHandler } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { resolveDomainContext, DomainContextStrategy } from './resolveDomainContext';
 import { requireAuth } from './requireAuth';
-import { requireDomainPermission, DomainPermissionType } from './requireDomainPermission';
-import { requireMemoryAccess, MemoryAccessType } from './requireMemoryAccess';
-import { AuthenticatedRequest, DomainServiceFactory } from '@keeper/database';
-import { DomainError } from '../../lib/errors/DomainError';
+import { requireDomainRead, requireDomainWrite, requireDomainAdmin } from './requireDomainPermissions';
+import { requireMemoryAccess } from './requireMemoryAccess';
+import { DomainService, DomainCacheService } from '@keeper/database';
+import { PrismaClient } from '@prisma/client';
+import { Redis } from 'ioredis';
+
+const prisma = new PrismaClient();
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const cacheService = new DomainCacheService(redis);
+const domainService = new DomainService(prisma, cacheService);
 
 export interface DomainPipelineConfig {
-  strategy?: DomainContextStrategy;
-  permissions?: DomainPermissionType[];
-  memoryAccess?: MemoryAccessType;
-  requireAuth?: boolean;
-  requireDomain?: boolean;
-  requireMemory?: boolean;
+  requireDomainContext?: boolean;
+  requireAuthentication?: boolean;
+  requirePermissions?: string[];
+  memoryAccess?: {
+    minAccessLevel: 'read' | 'write' | 'admin';
+    checkQuota?: boolean;
+  };
+  rateLimit?: {
+    windowMs: number;
+    max: number;
+  };
 }
 
-/**
- * Create a complete domain pipeline with all middleware
- */
 export function createDomainPipeline(config: DomainPipelineConfig = {}): RequestHandler[] {
-  const {
-    strategy = 'param',
-    permissions = ['read'],
-    memoryAccess = 'read',
-    requireAuth: requireAuthFlag = true,
-    requireDomain = true,
-    requireMemory = false
-  } = config;
-
   const middleware: RequestHandler[] = [];
 
-  // 1. Resolve domain context (if required)
-  if (requireDomain) {
-    middleware.push(resolveDomainContext(strategy));
+  // Add domain context resolution
+  if (config.requireDomainContext !== false) {
+    middleware.push(resolveDomainContext('param'));
   }
 
-  // 2. Require authentication (if required)
-  if (requireAuthFlag) {
-    middleware.push(requireAuth());
+  // Add authentication
+  if (config.requireAuthentication !== false) {
+    middleware.push(requireAuth);
   }
 
-  // 3. Check domain permissions (if domain required)
-  if (requireDomain && permissions.length > 0) {
-    middleware.push(requireDomainPermission(permissions));
+  // Add domain permissions
+  if (config.requirePermissions && config.requirePermissions.length > 0) {
+    if (config.requirePermissions.includes('admin')) {
+      middleware.push(requireDomainAdmin as RequestHandler);
+    } else if (config.requirePermissions.includes('write')) {
+      middleware.push(requireDomainWrite as RequestHandler);
+    } else {
+      middleware.push(requireDomainRead as RequestHandler);
+    }
   }
 
-  // 4. Check memory access (if required)
-  if (requireMemory) {
-    middleware.push(requireMemoryAccess(memoryAccess));
+  // Add memory access
+  if (config.memoryAccess) {
+    middleware.push(requireMemoryAccess(config.memoryAccess.minAccessLevel) as RequestHandler);
   }
 
   return middleware;
 }
 
-/**
- * Create a basic domain guard (domain + auth + read permission)
- */
 export function createBasicDomainGuard(strategy: DomainContextStrategy = 'param'): RequestHandler[] {
-  return createDomainPipeline({
-    strategy,
-    permissions: ['read'],
-    requireAuth: true,
-    requireDomain: true,
-    requireMemory: false
-  });
+  return [
+    resolveDomainContext(strategy),
+    requireAuth,
+    requireDomainRead,
+  ];
 }
 
-/**
- * Create a write domain guard (domain + auth + write permission)
- */
 export function createWriteDomainGuard(strategy: DomainContextStrategy = 'param'): RequestHandler[] {
-  return createDomainPipeline({
-    strategy,
-    permissions: ['write'],
-    requireAuth: true,
-    requireDomain: true,
-    requireMemory: false
-  });
+  return [
+    resolveDomainContext(strategy),
+    requireAuth,
+    requireDomainWrite,
+  ];
 }
 
-/**
- * Create an admin domain guard (domain + auth + admin permission)
- */
 export function createAdminDomainGuard(strategy: DomainContextStrategy = 'param'): RequestHandler[] {
-  return createDomainPipeline({
-    strategy,
-    permissions: ['admin'],
-    requireAuth: true,
-    requireDomain: true,
-    requireMemory: false
-  });
+  return [
+    resolveDomainContext(strategy),
+    requireAuth,
+    requireDomainAdmin,
+  ];
 }
 
-/**
- * Create a memory access guard (domain + auth + memory access)
- */
-export function createMemoryAccessGuard(
-  strategy: DomainContextStrategy = 'param',
-  accessType: MemoryAccessType = 'read'
+export function createMemoryGuard(
+  accessLevel: 'read' | 'write' | 'admin',
+  strategy: DomainContextStrategy = 'param'
 ): RequestHandler[] {
-  return createDomainPipeline({
-    strategy,
-    permissions: ['read'],
-    memoryAccess: accessType,
-    requireAuth: true,
-    requireDomain: true,
-    requireMemory: true
-  });
+  return [
+    resolveDomainContext(strategy),
+    requireAuth,
+    requireMemoryAccess(accessLevel),
+  ];
 }
 
-/**
- * Parallel permission and memory access check middleware
- * Runs both permission and memory checks simultaneously using Promise.all
- */
-export function requireParallelPermissionAndMemory(
-  permissions: DomainPermissionType[] = ['read'],
-  memoryAccess: MemoryAccessType = 'read'
+export function createDomainMemoryGuard(
+  accessLevel: 'read' | 'write' | 'admin',
+  strategy: DomainContextStrategy = 'param'
 ): RequestHandler {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const authReq = req as AuthenticatedRequest;
+      // Resolve domain context
+      await resolveDomainContext(strategy)(req, res, () => {});
       
-      if (!authReq.user) {
-        throw DomainError.AuthRequired();
-      }
-
-      if (!authReq.domainContext) {
-        throw DomainError.DomainNotFound();
-      }
-
-      // Run permission and memory checks in parallel
-      const [hasPermission, hasMemoryAccess] = await Promise.all([
-        checkDomainPermissions(authReq.user, authReq.domainContext, permissions),
-        checkMemoryAccess(authReq.user, authReq.domainContext, memoryAccess)
-      ]);
-
-      if (!hasPermission) {
-        throw DomainError.AccessDenied();
-      }
-
-      if (!hasMemoryAccess) {
-        throw DomainError.MemoryQuotaExceeded();
-      }
-
-      next();
-    } catch (error: unknown) {
-      if (error instanceof DomainError) {
-        return res.status(error.statusCode).json({
-          error: error.code,
-          message: error.message,
-          details: error.details
+      const domainContext = (req as any).domainContext;
+      if (!domainContext) {
+        return res.status(400).json({
+          success: false,
+          error: 'Domain context required',
         });
       }
-      next(error);
+
+      // Check authentication
+      if (!(req as any).user) {
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+      }
+
+      // Check memory access
+      const domainId = (domainContext as any).domain?.id;
+      const userId = (req as any).user?.id;
+
+      if (!domainId || !userId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Domain ID and user ID required',
+        });
+      }
+
+      // Get memory scope
+      const memoryScope = await domainService.getMemoryScope(domainId);
+      
+      if (!memoryScope) {
+        return res.status(404).json({
+          success: false,
+          error: 'Memory scope not found',
+        });
+      }
+
+      // Check quota limits
+      if (memoryScope && (memoryScope as any).quotaExceeded && (accessLevel === 'write' || accessLevel === 'admin')) {
+        return res.status(429).json({
+          success: false,
+          error: 'Memory quota exceeded',
+        });
+      }
+
+      // Check access level
+      const currentAccessLevel = (memoryScope as any).accessLevel || 'read';
+      const accessLevels = { read: 1, write: 2, admin: 3 };
+      
+      if (accessLevels[accessLevel] > accessLevels[currentAccessLevel as keyof typeof accessLevels]) {
+        return res.status(403).json({
+          success: false,
+          error: 'Insufficient access level',
+        });
+      }
+
+      // Set memory context
+      (req as any).memoryContext = memoryScope;
+
+      return next();
+    } catch (error) {
+      console.error('Domain memory guard error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Memory access check failed',
+      });
     }
   };
 }
 
-/**
- * Helper function to check domain permissions
- */
-async function checkDomainPermissions(
-  user: { id: string; role?: string | null },
-  domainContext: { id: string; ownerId: string },
-  permissions: DomainPermissionType[]
-): Promise<boolean> {
-  try {
-    // Owner bypass - owners have all permissions
-    if (domainContext.ownerId === user.id) {
-      return true;
-    }
-
-    // For now, return true for basic permissions - this would integrate with actual permission system
-    // In a real implementation, you'd check the user's domain permissions
-    return true;
-  } catch (error) {
-    console.error('Error checking domain permissions:', error);
-    return false;
-  }
-}
-
-/**
- * Helper function to check memory access
- */
-async function checkMemoryAccess(
-  user: { id: string },
-  domainContext: { id: string; ownerId: string },
-  accessType: MemoryAccessType
-): Promise<boolean> {
-  try {
-    // Owner bypass - owners have all memory access
-    if (domainContext.ownerId === user.id) {
-      return true;
-    }
-
-    const memoryService = DomainServiceFactory.createMemoryService();
-    
-    // Check memory scope and quota
-    const memoryScope = await memoryService.getMemoryScope(domainContext.id);
-    if (memoryScope && memoryScope.quotaExceeded) {
-      return false;
-    }
-
-    // Check user's memory access permissions using the correct method
-    const hasAccess = await memoryService.checkMemoryAccess(
-      domainContext.id,
-      user.id,
-      accessType
-    );
-    
-    return hasAccess;
-  } catch (error) {
-    console.error('Error checking memory access:', error);
-    return false;
-  }
-}
-
-/**
- * Full Domain Memory Guard - Composable guard for protecting any route with domain logic
- * 
- * Runs in sequence:
- * 1. resolveDomainContext() - Resolves domain from request
- * 2. requireAuth() - Ensures user is authenticated  
- * 3. Parallel permission + memory checks using Promise.all
- * 
- * Responds with relevant DomainError if any fail.
- * 
- * @example
- * ```typescript
- * app.post('/api/domain/:domainId/memory', 
- *   ...fullDomainMemoryGuard,
- *   handleMemoryOperation
- * );
- * ```
- */
 export const fullDomainMemoryGuard: RequestHandler[] = [
   resolveDomainContext('param'),
-  requireAuth(),
-  requireParallelPermissionAndMemory(['read'], 'read')
+  requireAuth,
+  requireMemoryAccess('read'),
 ];
 
-/**
- * Full Domain Memory Guard with Write Access
- * Same as fullDomainMemoryGuard but requires write permissions
- */
 export const fullDomainMemoryWriteGuard: RequestHandler[] = [
   resolveDomainContext('param'),
-  requireAuth(),
-  requireParallelPermissionAndMemory(['write'], 'write')
+  requireAuth,
+  requireMemoryAccess('write'),
 ];
 
-/**
- * Full Domain Memory Guard with Admin Access
- * Same as fullDomainMemoryGuard but requires admin permissions
- */
 export const fullDomainMemoryAdminGuard: RequestHandler[] = [
   resolveDomainContext('param'),
-  requireAuth(),
-  requireParallelPermissionAndMemory(['admin'], 'admin')
+  requireAuth,
+  requireMemoryAccess('admin'),
 ];
 
-/**
- * Configurable Full Domain Memory Guard
- * Allows customization of strategy, permissions, and memory access type
- */
-export function createCustomFullDomainMemoryGuard(
-  strategy: DomainContextStrategy = 'param',
-  permissions: DomainPermissionType[] = ['read'],
-  memoryAccess: MemoryAccessType = 'read'
+export function createCrossDomainGuard(
+  sourceDomainId: string,
+  targetDomainId: string,
+  strategy: DomainContextStrategy = 'param'
 ): RequestHandler[] {
   return [
     resolveDomainContext(strategy),
-    requireAuth(),
-    requireParallelPermissionAndMemory(permissions, memoryAccess)
+    requireAuth,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        // Check share agreement
+        const shareAgreement = await domainService.getShareAgreement(sourceDomainId, targetDomainId);
+        
+        if (!shareAgreement) {
+          return res.status(403).json({
+            success: false,
+            error: 'No valid share agreement found',
+          });
+        }
+
+        // Validate share agreement
+        const violations: string[] = [];
+        const method = req.method;
+
+        if ((shareAgreement as any).shareType === 'read_only' && method !== 'GET') {
+          violations.push('Read-only share agreement does not allow write operations');
+        }
+
+        if ((shareAgreement as any).expiresAt && new Date() > (shareAgreement as any).expiresAt) {
+          violations.push('Share agreement has expired');
+        }
+
+        if ((shareAgreement as any).maxAccess && (shareAgreement as any).currentAccess >= (shareAgreement as any).maxAccess) {
+          violations.push('Share agreement access limit exceeded');
+        }
+
+        if (violations.length > 0) {
+          return res.status(403).json({
+            success: false,
+            error: 'Share agreement violations',
+            violations,
+          });
+        }
+
+        return next();
+      } catch (error) {
+        console.error('Cross-domain guard error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Cross-domain access check failed',
+        });
+      }
+    },
   ];
 }
 
-/**
- * Create a public domain guard (no auth required)
- */
 export function createPublicDomainGuard(strategy: DomainContextStrategy = 'param'): RequestHandler[] {
-  return createDomainPipeline({
-    strategy,
-    permissions: [],
-    requireAuth: false,
-    requireDomain: true,
-    requireMemory: false
-  });
+  return [
+    resolveDomainContext(strategy),
+    // No authentication required for public access
+  ];
 }
 
-/**
- * Create an owner-only guard (domain + auth + ownership)
- */
 export function createOwnerOnlyGuard(strategy: DomainContextStrategy = 'param'): RequestHandler[] {
-  return createDomainPipeline({
-    strategy,
-    permissions: ['owner'],
-    requireAuth: true,
-    requireDomain: true,
-    requireMemory: false
-  });
+  return [
+    resolveDomainContext(strategy),
+    requireAuth,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const domainContext = (req as any).domainContext;
+        const user = (req as any).user;
+
+        if (!domainContext || !user) {
+          return res.status(400).json({
+            success: false,
+            error: 'Domain context and user required',
+          });
+        }
+
+        // Check if user is domain owner
+        if ((domainContext as any).domain?.ownerId !== user.id) {
+          return res.status(403).json({
+            success: false,
+            error: 'Only domain owner can perform this action',
+          });
+        }
+
+        return next();
+      } catch (error) {
+        console.error('Owner only guard error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Owner check failed',
+        });
+      }
+    },
+  ];
 } 

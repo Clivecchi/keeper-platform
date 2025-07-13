@@ -142,7 +142,7 @@ export function createProductionRoutes(
   router.get('/config/:category', async (req: Request, res: Response) => {
     try {
       const { category } = req.params;
-      const config = configService.getConfigCategory(category as string);
+      const config = configService.getConfigCategory(category as any);
       res.json({ config });
     } catch (error) {
       monitoringService.log('error', 'Failed to get configuration category', 'production-api', { error, category: req.params.category });
@@ -414,16 +414,44 @@ export function createProductionRoutes(
   router.get('/deployments/:deploymentId', async (req: Request, res: Response) => {
     try {
       const { deploymentId } = req.params;
-      const deployment = await deploymentService.getDeploymentStatus(deploymentId);
       
+      const deployment = await prisma.shareRequest.findUnique({
+        where: { id: deploymentId },
+        include: {
+          sourceDomain: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          targetDomain: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      });
+
       if (!deployment) {
-        return res.status(404).json({ error: 'Deployment not found' });
+        return res.status(404).json({
+          success: false,
+          error: 'Deployment not found',
+        });
       }
-      
-      res.json({ deployment });
+
+      return res.json({
+        success: true,
+        data: deployment,
+      });
     } catch (error) {
-      monitoringService.log('error', 'Failed to get deployment status', 'production-api', { error });
-      res.status(500).json({ error: 'Failed to get deployment status' });
+      console.error('Get deployment error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to get deployment',
+      });
     }
   });
 
@@ -510,7 +538,10 @@ export function createProductionRoutes(
       const pipelineId = await deploymentService.createPipeline(
         pipelineData.name,
         pipelineData.description,
-        pipelineData.stages,
+        pipelineData.stages.map((stage: any) => ({
+          ...stage,
+          conditions: stage.conditions || [],
+        })),
         pipelineData.triggers,
         pipelineData.environment,
         req.user?.id!

@@ -34,7 +34,7 @@ const getFeatureFlagService = () => ({
 
 export interface DomainResolvedRequest extends Request {
   domainContext?: {
-    domain: Record<string, unknown> | null;
+    domain: Record<string, unknown>;
     isCustomDomain: boolean;
     originalHostname: string;
     resolvedSlug: string;
@@ -153,12 +153,14 @@ export class DomainResolutionMiddleware {
         }
 
         // Set domain context in request
-        req.domainContext = {
-          domain: resolution.domain,
-          isCustomDomain: resolution.isCustomDomain,
-          originalHostname: resolution.originalHostname,
-          resolvedSlug: resolution.resolvedSlug,
-        };
+        if (resolution.domain) {
+          req.domainContext = {
+            domain: resolution.domain,
+            isCustomDomain: resolution.isCustomDomain,
+            originalHostname: resolution.originalHostname,
+            resolvedSlug: resolution.resolvedSlug,
+          };
+        }
 
         // Add domain headers
         this.addDomainHeaders(res, resolution);
@@ -314,37 +316,51 @@ export class DomainResolutionMiddleware {
     hostname: string,
     isCustomDomain: boolean
   ): ResolvedDomain {
-    // Check if domain is active
-    if (!domain.isActive) {
+    // Type guard for domain object
+    if (!domain || typeof domain !== 'object') {
       return {
-        domain,
+        domain: null,
         isCustomDomain,
         originalHostname: hostname,
-        resolvedSlug: domain.slug,
+        resolvedSlug: '',
+        errorType: 'MALFORMED',
+        errorMessage: 'Invalid domain object',
+      };
+    }
+
+    const domainObj = domain as Record<string, unknown>;
+    
+    // Check if domain is active
+    if (!domainObj.isActive) {
+      return {
+        domain: domainObj,
+        isCustomDomain,
+        originalHostname: hostname,
+        resolvedSlug: domainObj.slug as string || '',
         errorType: 'SUSPENDED',
         errorMessage: 'Domain is suspended',
       };
     }
 
     // Check domain status
-    if (domain.status !== 'active') {
+    if (domainObj.status !== 'active') {
       return {
-        domain,
+        domain: domainObj,
         isCustomDomain,
         originalHostname: hostname,
-        resolvedSlug: domain.slug,
+        resolvedSlug: domainObj.slug as string || '',
         errorType: 'SUSPENDED',
-        errorMessage: `Domain status: ${domain.status}`,
+        errorMessage: `Domain status: ${domainObj.status}`,
       };
     }
 
     // Check if custom domain is verified
-    if (isCustomDomain && !domain.customDomainVerified) {
+    if (isCustomDomain && !domainObj.customDomainVerified) {
       return {
-        domain,
+        domain: domainObj,
         isCustomDomain,
         originalHostname: hostname,
-        resolvedSlug: domain.slug,
+        resolvedSlug: domainObj.slug as string || '',
         errorType: 'VERIFICATION_REQUIRED',
         errorMessage: 'Custom domain not verified',
       };
@@ -352,10 +368,10 @@ export class DomainResolutionMiddleware {
 
     // Valid domain
     return {
-      domain,
+      domain: domainObj,
       isCustomDomain,
       originalHostname: hostname,
-      resolvedSlug: domain.slug,
+      resolvedSlug: domainObj.slug as string || '',
     };
   }
 
@@ -420,12 +436,7 @@ export class DomainResolutionMiddleware {
    */
   private handleFallback(req: DomainResolvedRequest, res: Response, next: NextFunction): void {
     if (this.config.fallbackDomain) {
-      req.domainContext = {
-        domain: null,
-        isCustomDomain: false,
-        originalHostname: req.get('host') || 'unknown',
-        resolvedSlug: '',
-      };
+      // Don't set domainContext if we don't have a valid domain
       next();
     } else {
       res.status(404).json({ error: 'Domain not found' });
@@ -439,7 +450,7 @@ export class DomainResolutionMiddleware {
     res.setHeader('X-Domain-Resolution', resolution.isCustomDomain ? 'custom' : 'subdomain');
     res.setHeader('X-Domain-Slug', resolution.resolvedSlug);
     if (resolution.domain?.id) {
-      res.setHeader('X-Domain-ID', resolution.domain.id);
+      res.setHeader('X-Domain-ID', resolution.domain.id as string);
     }
   }
 
@@ -451,16 +462,16 @@ export class DomainResolutionMiddleware {
       if (resolution.domain?.id && req.user?.id) {
         await this.prisma.domainUsage.create({
           data: {
-            domainId: resolution.domain.id,
+            domainId: resolution.domain.id as string,
             userId: req.user.id,
             action: 'domain_access',
-            metadata: {
+            metadata: JSON.parse(JSON.stringify({
               hostname: resolution.originalHostname,
               isCustomDomain: resolution.isCustomDomain,
-              userAgent: req.get('user-agent'),
-            },
-            ipAddress: req.ip,
-            userAgent: req.get('user-agent'),
+              userAgent: req.get('user-agent') || '',
+            })),
+            ipAddress: req.ip || '',
+            userAgent: req.get('user-agent') || '',
           },
         });
       }

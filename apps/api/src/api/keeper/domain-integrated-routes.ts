@@ -3,17 +3,12 @@
  * Updated Keeper endpoints that respect domain permissions and boundaries
  */
 
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
-import { authMiddleware } from '../../middleware/authMiddleware';
-import { validationMiddleware } from '../../middleware/validationMiddleware';
-import { 
-  requireDomainReadCompat, 
-  requireDomainWriteCompat, 
-  requireDomainAdminCompat,
-  AuthenticatedRequest as DomainAuthenticatedRequest 
-} from '../../middleware/domainPermissionMiddleware';
+import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
+import { validationMiddleware } from '../../middleware/validationMiddleware.js';
+import { requireDomainReadCompat, requireDomainWriteCompat, requireDomainAdminCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { DomainService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
 import { Redis } from 'ioredis';
 
@@ -25,85 +20,73 @@ const domainService = new DomainService(prisma, cacheService);
 const featureFlags = getFeatureFlagService();
 
 // Validation schemas
-const createKeeperSchema = z.object({
-  name: z.string().min(1).max(100),
-  description: z.string().max(500).optional(),
-  type: z.string().default('personal'),
-  metadata: z.record(z.any()).optional(),
-  settings: z.record(z.any()).optional(),
-  domainId: z.string().uuid(),
-  isPublic: z.boolean().default(false),
-  allowCollaboration: z.boolean().default(false),
-  tags: z.array(z.string()).default([]),
-});
-
-const updateKeeperSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  description: z.string().max(500).optional(),
-  type: z.string().optional(),
-  metadata: z.record(z.any()).optional(),
-  settings: z.record(z.any()).optional(),
-  isPublic: z.boolean().optional(),
-  allowCollaboration: z.boolean().optional(),
-  tags: z.array(z.string()).optional(),
-});
-
 const keeperSearchSchema = z.object({
   search: z.string().optional(),
-  type: z.string().optional(),
-  tags: z.array(z.string()).optional(),
   domainId: z.string().uuid().optional(),
-  isPublic: z.boolean().optional(),
+  type: z.string().optional(),
+  status: z.enum(['active', 'inactive', 'archived']).optional(),
   limit: z.number().min(1).max(100).default(20),
   offset: z.number().min(0).default(0),
 });
 
+const createKeeperSchema = z.object({
+  title: z.string().min(1).max(200),
+  purpose: z.string().min(1).max(1000),
+  domainId: z.string().uuid(),
+  type: z.string().optional(),
+  isPublic: z.boolean().default(false),
+  metadata: z.record(z.any()).optional(),
+});
+
+const updateKeeperSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  purpose: z.string().min(1).max(1000).optional(),
+  type: z.string().optional(),
+  isPublic: z.boolean().optional(),
+  metadata: z.record(z.any()).optional(),
+});
+
 /**
- * GET /api/keepers - Get keepers with domain-based filtering
+ * GET /api/keepers - Get keepers with filtering
  */
 router.get('/', 
-  authMiddleware,
-  requireDomainReadCompat,
-  validationMiddleware(keeperSearchSchema, 'query'),
-  async (req: DomainAuthenticatedRequest, res) => {
+  authMiddlewareCompat,
+  validationMiddleware(keeperSearchSchema),
+  async (req: Request, res: Response) => {
     try {
       const filters = req.query;
-      const userId = req.user.id;
+      const userId = (req as any).user?.id;
 
       // Build base query
-      const where: Event = {};
+      const where: Record<string, unknown> = {};
+
+      // Search filtering
+      if (filters.search && typeof filters.search === 'string') {
+        where.OR = [
+          { title: { contains: filters.search, mode: 'insensitive' } },
+          { purpose: { contains: filters.search, mode: 'insensitive' } },
+        ];
+      }
+
+      // Status filtering
+      if (filters.status && typeof filters.status === 'string') {
+        where.status = filters.status;
+      }
+
+      // Type filtering
+      if (filters.type && typeof filters.type === 'string') {
+        where.type = filters.type;
+      }
 
       // Domain filtering
-      if (filters.domainId) {
-        // Check if user has permission to access this domain
-        const hasPermission = await req.domainScope?.canAccessDomain(filters.domainId);
+      if (filters.domainId && typeof filters.domainId === 'string') {
+        const hasPermission = await (req as any).domainScope?.canAccessDomain(filters.domainId);
         if (!hasPermission) {
           return res.status(403).json({ error: 'Access denied to domain' });
         }
         where.domainId = filters.domainId;
       } else {
-        // Filter by user's accessible domains
-        where.domainId = { in: req.domainScope?.userDomains || [] };
-      }
-
-      // Additional filters
-      if (filters.search) {
-        where.OR = [
-          { name: { contains: filters.search, mode: 'insensitive' } },
-          { description: { contains: filters.search, mode: 'insensitive' } },
-        ];
-      }
-
-      if (filters.type) {
-        where.type = filters.type;
-      }
-
-      if (filters.tags && filters.tags.length > 0) {
-        where.tags = { hasSome: filters.tags };
-      }
-
-      if (filters.isPublic !== undefined) {
-        where.isPublic = filters.isPublic;
+        where.domainId = { in: (req as any).domainScope?.userDomains || [] };
       }
 
       // Execute query
@@ -111,8 +94,8 @@ router.get('/',
         prisma.keeper.findMany({
           where,
           orderBy: { createdAt: 'desc' },
-          take: filters.limit,
-          skip: filters.offset,
+          take: Number(filters.limit) || 20,
+          skip: Number(filters.offset) || 0,
           include: {
             domain: {
               select: {
@@ -127,29 +110,26 @@ router.get('/',
         prisma.keeper.count({ where }),
       ]);
 
-      // Additional permission filtering for cross-domain access
-      const filteredKeepers = await filterContentByDomainPermissions(keepers, userId, 'read');
-
-      res.json({
-        keepers: filteredKeepers,
+      return res.json({
+        keepers,
         total,
-        page: Math.floor(filters.offset / filters.limit) + 1,
-        limit: filters.limit,
+        page: Math.floor((Number(filters.offset) || 0) / (Number(filters.limit) || 20)) + 1,
+        limit: Number(filters.limit) || 20,
       });
     } catch (error) {
       console.error('Error fetching keepers:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 );
 
 /**
- * GET /api/keepers/:id - Get keeper by ID with permission check
+ * GET /api/keepers/:id - Get specific keeper
  */
 router.get('/:id',
-  authMiddleware,
-  requireContentPermission('keeper', 'read'),
-  async (req: DomainAuthenticatedRequest, res) => {
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: Request, res: Response) => {
     try {
       const keeper = await prisma.keeper.findUnique({
         where: { id: req.params.id },
@@ -159,14 +139,6 @@ router.get('/:id',
               id: true,
               name: true,
               slug: true,
-              ownerId: true,
-            },
-          },
-          Journey: {
-            select: {
-              id: true,
-              name: true,
-              createdAt: true,
             },
           },
         },
@@ -176,64 +148,46 @@ router.get('/:id',
         return res.status(404).json({ error: 'Keeper not found' });
       }
 
-      // Add permission context
-      const response = {
-        ...keeper,
-        permissions: {
-          canEdit: req.domainContext?.permissions.includes('write') || false,
-          canShare: req.domainContext?.permissions.includes('share') || false,
-          canDelete: req.domainContext?.permissions.includes('delete') || false,
-          canManage: req.domainContext?.permissions.includes('admin') || false,
+      return res.json({
+        keeper: {
+          ...keeper,
+          permissions: {
+            canEdit: (req as any).domainContext?.permissions.includes('write') || false,
+            canShare: (req as any).domainContext?.permissions.includes('share') || false,
+            canDelete: (req as any).domainContext?.permissions.includes('delete') || false,
+            canManage: (req as any).domainContext?.permissions.includes('admin') || false,
+          },
         },
-      };
-
-      res.json({ keeper: response });
+      });
     } catch (error) {
       console.error('Error fetching keeper:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 );
 
 /**
- * POST /api/keepers - Create new keeper with domain validation
+ * POST /api/keepers - Create new keeper
  */
 router.post('/',
-  authMiddleware,
+  authMiddlewareCompat,
   validationMiddleware(createKeeperSchema),
-  requireDomainPermission({ 
-    requiredPermission: 'write',
-    domainIdParam: 'domainId',
-    contentType: 'keeper'
-  }),
-  async (req: DomainAuthenticatedRequest, res) => {
+  requireDomainWriteCompat,
+  async (req: Request, res: Response) => {
     try {
       const { domainId, ...keeperData } = req.body;
 
-      // Verify domain exists and user has permission
-      const domain = req.domainContext?.domain;
-      if (!domain) {
-        return res.status(400).json({ error: 'Invalid domain' });
+      // Check domain permission
+      const hasPermission = await (req as any).domainScope?.canAccessDomain(domainId);
+      if (!hasPermission) {
+        return res.status(403).json({ error: 'Access denied to domain' });
       }
 
-      // Check domain limits
-      const stats = await domainService.getDomainStats(domainId);
-      const limits = domain.limits as Record<string, unknown>;
-      
-      if (typeof limits?.max_keepers === 'number' && stats.keeperCount >= limits.max_keepers) {
-        return res.status(400).json({ 
-          error: 'Domain keeper limit reached',
-          current: stats.keeperCount,
-          limit: limits.max_keepers
-        });
-      }
-
-      // Create keeper
       const keeper = await prisma.keeper.create({
         data: {
           ...keeperData,
           domainId,
-          userId: req.user.id,
+          userId: (req as any).user?.id,
         },
         include: {
           domain: {
@@ -241,79 +195,67 @@ router.post('/',
               id: true,
               name: true,
               slug: true,
-              ownerId: true,
             },
           },
         },
       });
 
-      res.status(201).json({ keeper });
+      return res.status(201).json({ keeper });
     } catch (error) {
       console.error('Error creating keeper:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 );
 
 /**
- * PUT /api/keepers/:id - Update keeper with permission check
+ * PUT /api/keepers/:id - Update keeper
  */
 router.put('/:id',
-  authMiddleware,
+  authMiddlewareCompat,
   validationMiddleware(updateKeeperSchema),
-  requireContentPermission('keeper', 'write'),
-  async (req: DomainAuthenticatedRequest, res) => {
+  requireDomainWriteCompat,
+  async (req: Request, res: Response) => {
     try {
       const keeper = await prisma.keeper.update({
         where: { id: req.params.id },
-        data: {
-          ...req.body,
-          updatedAt: new Date(),
-        },
+        data: req.body,
         include: {
           domain: {
             select: {
               id: true,
               name: true,
               slug: true,
-              ownerId: true,
             },
           },
         },
       });
 
-      res.json({ keeper });
+      return res.json({ keeper });
     } catch (error) {
       console.error('Error updating keeper:', error);
-      if (error instanceof Error && error.message.includes('not found')) {
-        return res.status(404).json({ error: 'Keeper not found' });
-      }
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 );
 
 /**
- * DELETE /api/keepers/:id - Delete keeper with permission check
+ * DELETE /api/keepers/:id - Delete keeper
  */
 router.delete('/:id',
-  authMiddleware,
-  requireContentPermission('keeper', 'delete'),
-  async (req: DomainAuthenticatedRequest, res) => {
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: Request, res: Response) => {
     try {
-      // Check if keeper has dependent content
-      const [journeyCount, momentCount] = await Promise.all([
-        prisma.journey.count({ where: { keeperId: req.params.id } }),
-        prisma.moment.count({ where: { keeperId: req.params.id } }),
-      ]);
+      // Check if keeper has dependent moments
+      const momentCount = await prisma.moment.count({ 
+        where: { journeyId: req.params.id } 
+      });
 
-      if (journeyCount > 0 || momentCount > 0) {
+      if (momentCount > 0) {
         return res.status(400).json({ 
-          error: 'Cannot delete keeper with associated content',
-          dependentContent: {
-            journeys: journeyCount,
-            moments: momentCount,
-          }
+          error: 'Cannot delete keeper with dependent moments',
+          momentCount 
         });
       }
 
@@ -321,110 +263,99 @@ router.delete('/:id',
         where: { id: req.params.id },
       });
 
-      res.status(204).send();
+      return res.json({ message: 'Keeper deleted successfully' });
     } catch (error) {
       console.error('Error deleting keeper:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 );
 
 /**
- * GET /api/keepers/:id/journeys - Get keeper's journeys with permission check
+ * GET /api/keepers/:id/journeys - Get journeys for keeper
  */
 router.get('/:id/journeys',
-  authMiddleware,
-  requireContentPermission('keeper', 'read'),
-  async (req: DomainAuthenticatedRequest, res) => {
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: Request, res: Response) => {
     try {
       const journeys = await prisma.journey.findMany({
         where: { keeperId: req.params.id },
         orderBy: { createdAt: 'desc' },
         include: {
-          moments: {
+          domain: {
             select: {
               id: true,
-              title: true,
-              createdAt: true,
+              name: true,
+              slug: true,
             },
           },
         },
       });
 
-      res.json({ journeys });
+      return res.json({ journeys });
     } catch (error) {
       console.error('Error fetching keeper journeys:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 );
 
 /**
- * GET /api/keepers/:id/moments - Get keeper's moments with permission check
+ * GET /api/keepers/:id/moments - Get moments for keeper
  */
 router.get('/:id/moments',
-  authMiddleware,
-  requireContentPermission('keeper', 'read'),
-  async (req: DomainAuthenticatedRequest, res) => {
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: Request, res: Response) => {
     try {
       const moments = await prisma.moment.findMany({
-        where: { keeperId: req.params.id },
+        where: { journeyId: req.params.id },
         orderBy: { createdAt: 'desc' },
         include: {
-          journey: {
+          Journey: {
             select: {
               id: true,
-              title: true,
             },
           },
         },
       });
 
-      res.json({ moments });
+      return res.json({ moments });
     } catch (error) {
       console.error('Error fetching keeper moments:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 );
 
 /**
- * POST /api/keepers/:id/share - Share keeper across domains
+ * POST /api/keepers/:id/share - Share keeper
  */
 router.post('/:id/share',
-  authMiddleware,
-  requireContentPermission('keeper', 'share'),
-  async (req: DomainAuthenticatedRequest, res) => {
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: Request, res: Response) => {
     try {
       if (!featureFlags.isEnabled('CROSS_DOMAIN_SHARING_ENABLED')) {
-        return res.status(403).json({ error: 'Cross-domain sharing is disabled' });
+        return res.status(400).json({ error: 'Cross-domain sharing is not enabled' });
       }
 
-      const { targetDomainId, permissions = ['read'], expiresAt } = req.body;
+      const { targetDomainId, shareType = 'read_only' } = req.body;
 
-      // Validate target domain
-      const targetDomain = await domainService.getDomainById(targetDomainId);
-      if (!targetDomain) {
-        return res.status(404).json({ error: 'Target domain not found' });
-      }
-
-      // Create cross-domain share
       const share = await prisma.crossDomainShare.create({
         data: {
-          sourceDomainId: req.domainContext!.domain.id,
+          sourceDomainId: (req as any).domainContext!.domain.id as string,
           targetDomainId,
           contentType: 'keeper',
           contentId: req.params.id,
-          permissions,
-          expiresAt: expiresAt ? new Date(expiresAt) : null,
-          requireApproval: true,
         },
       });
 
-      res.status(201).json({ share });
+      return res.status(201).json({ share });
     } catch (error) {
       console.error('Error sharing keeper:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 );
@@ -433,30 +364,30 @@ router.post('/:id/share',
  * GET /api/keepers/:id/stats - Get keeper statistics
  */
 router.get('/:id/stats',
-  authMiddleware,
-  requireContentPermission('keeper', 'read'),
-  async (req: DomainAuthenticatedRequest, res) => {
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: Request, res: Response) => {
     try {
       const [journeyCount, momentCount, lastActivity] = await Promise.all([
         prisma.journey.count({ where: { keeperId: req.params.id } }),
-        prisma.moment.count({ where: { keeperId: req.params.id } }),
+        prisma.moment.count({ where: { journeyId: req.params.id } }),
         prisma.moment.findFirst({
-          where: { keeperId: req.params.id },
-          orderBy: { createdAt: 'desc' },
-          select: { createdAt: true },
+          where: { journeyId: req.params.id },
+          orderBy: { updatedAt: 'desc' },
+          select: { updatedAt: true },
         }),
       ]);
 
-      const stats = {
-        journeyCount,
-        momentCount,
-        lastActivity: lastActivity?.createdAt,
-      };
-
-      res.json({ stats });
+      return res.json({
+        stats: {
+          journeyCount,
+          momentCount,
+          lastActivity: lastActivity?.updatedAt,
+        },
+      });
     } catch (error) {
       console.error('Error fetching keeper stats:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 );

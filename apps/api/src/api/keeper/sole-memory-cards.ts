@@ -115,11 +115,14 @@ export const getMemoryCardsByTopic = async (req: Request, res: Response) => {
 
     // Group by topic
     const groupedByTopic = memoryCards.reduce((acc: Record<string, typeof memoryCards>, card: unknown) => {
-      const topic = card.topic || 'Uncategorized';
+      const topic = (card as any).topic || 'Uncategorized';
+      const reflection = (card as any).reflection;
+      
       if (!acc[topic]) {
         acc[topic] = [];
       }
-      acc[topic].push(card);
+      
+      acc[topic].push(card as any);
       return acc;
     }, {} as Record<string, typeof memoryCards>);
 
@@ -175,9 +178,10 @@ export const getEmbeddingStatus = async (req: Request, res: Response) => {
     };
 
     stats.forEach((stat: unknown) => {
-      const count = stat._count.id;
-      result.total += count;
-      if (stat.embedded) {
+      const count = (stat as any)._count.id;
+      const embedded = (stat as any).embedded;
+      
+      if (embedded) {
         result.embedded += count;
       } else {
         result.pending += count;

@@ -59,7 +59,7 @@ export function requireMemoryAccess(
         return;
       }
 
-      const domainId = typedReq.domainContext?.id;
+      const domainId = typeof typedReq.domainContext?.domain.id === 'string' ? typedReq.domainContext.domain.id : '';
       if (!domainId) {
         const error = DomainError.InvalidRequest('Domain ID required for memory access');
         res.status(error.statusCode).json({
@@ -96,25 +96,19 @@ export function requireMemoryAccess(
           const memoryScope = await memoryService.getMemoryScope(domainId);
           
           // Check if quota is exceeded for write operations
-          if (memoryScope && memoryScope.quotaExceeded && (accessType === 'write' || accessType === 'admin')) {
-            const error = DomainError.MemoryQuotaExceeded();
-            res.status(error.statusCode).json({
+          if (memoryScope && (memoryScope as any).quotaExceeded && (accessType === 'write' || accessType === 'admin')) {
+            res.status(429).json({
               success: false,
-              error: error.code,
-              message: error.message,
-              details: {
-                accessType,
-                quotaExceeded: true
-              }
+              error: 'Memory quota exceeded',
             });
             return;
           }
 
-          // Add quota headers if available
+          // Set quota headers
           if (memoryScope) {
-            res.set('X-Memory-Quota-Used', memoryScope.usage?.toString() || '0');
-            res.set('X-Memory-Quota-Max', memoryScope.maxUsage?.toString() || '0');
-            res.set('X-Memory-Quota-Exceeded', memoryScope.quotaExceeded?.toString() || 'false');
+            res.set('X-Memory-Quota-Used', (memoryScope as any).usage?.toString() || '0');
+            res.set('X-Memory-Quota-Max', (memoryScope as any).maxUsage?.toString() || '0');
+            res.set('X-Memory-Quota-Exceeded', (memoryScope as any).quotaExceeded?.toString() || 'false');
           }
         } catch (quotaError) {
           console.error('Memory quota check error:', quotaError);

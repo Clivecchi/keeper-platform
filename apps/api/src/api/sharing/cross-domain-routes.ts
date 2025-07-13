@@ -98,35 +98,41 @@ const activationSchema = z.object({
 router.use(authMiddlewareCompat);
 
 /**
- * @route POST /api/sharing/:sourceDomainId/requests
+ * @route POST /api/sharing/:domainId/requests
  * @desc Create a new share request
- * @access Private (Domain User)
+ * @access Private (Domain Admin)
  */
 router.post(
-  '/:sourceDomainId/requests',
-  requireDomainWriteCompat,
+  '/:domainId/requests',
+  requireDomainAdminCompat,
+  validationMiddleware(shareRequestSchema),
   async (req: Request, res: Response) => {
     try {
-      const { sourceDomainId } = req.params;
-      const userId = req.user!.id;
-      const validation = shareRequestSchema.parse(req.body);
+      const { domainId } = req.params;
+      const requestData = req.body;
+      
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+      }
 
       const requestId = await sharingService.createShareRequest(
         {
-          sourceDomainId,
-          ...validation,
+          ...requestData,
+          sourceDomainId: domainId,
         },
-        userId
+        req.user.id
       );
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         data: { requestId },
-        message: 'Share request created successfully',
       });
     } catch (error) {
       console.error('Create share request error:', error);
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create share request',
       });
@@ -154,9 +160,9 @@ router.get(
       } = req.query;
 
       const requests = await sharingService.listShareRequests(domainId, {
-        status: status as string,
-        contentType: contentType as string,
-        direction: direction as string,
+        status: status as any,
+        contentType: contentType as any,
+        direction: direction as any,
         limit: parseInt(limit as string),
         offset: parseInt(offset as string),
       });
@@ -198,23 +204,6 @@ router.get(
           sourceDomain: { select: { id: true, name: true, slug: true } },
           targetDomain: { select: { id: true, name: true, slug: true } },
           requester: { select: { id: true, name: true, email: true } },
-          approver: { select: { id: true, name: true, email: true } },
-          workflow: { select: { id: true, name: true, workflowType: true } },
-          stepExecutions: {
-            include: {
-              workflowStep: { select: { stepName: true, stepType: true } },
-            },
-            orderBy: { stepNumber: 'asc' },
-          },
-          shareActivations: {
-            select: {
-              id: true,
-              activationType: true,
-              accessCount: true,
-              expiresAt: true,
-              accessToken: true,
-            },
-          },
         },
       });
 
@@ -225,30 +214,89 @@ router.get(
         });
       }
 
-      // Check if user has permission to view this request
-      const hasPermission = await prisma.domainPermission.findFirst({
-        where: {
-          domainId: { in: [request.sourceDomainId, request.targetDomainId] },
-          userId,
-        },
-      });
-
-      if (!hasPermission) {
-        return res.status(403).json({
-          success: false,
-          error: 'Insufficient permissions to view this request',
-        });
-      }
-
-      res.json({
+      return res.json({
         success: true,
         data: request,
       });
     } catch (error) {
       console.error('Get share request error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         error: 'Failed to get share request',
+      });
+    }
+  }
+);
+
+/**
+ * @route PUT /api/sharing/requests/:requestId
+ * @desc Update share request
+ * @access Private (Domain User)
+ */
+router.put(
+  '/requests/:requestId',
+  async (req: Request, res: Response) => {
+    try {
+      const { requestId } = req.params;
+      const userId = req.user!.id;
+      const { status, permissions, expiresAt } = req.body;
+
+      const request = await prisma.shareRequest.update({
+        where: { id: requestId },
+        data: {
+          status: status as any,
+          permissions: permissions ? JSON.parse(JSON.stringify(permissions)) : undefined,
+          expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+        },
+        include: {
+          sourceDomain: { select: { id: true, name: true, slug: true } },
+          targetDomain: { select: { id: true, name: true, slug: true } },
+        },
+      });
+
+      return res.json({
+        success: true,
+        data: request,
+        message: 'Share request updated successfully',
+      });
+    } catch (error) {
+      console.error('Update share request error:', error);
+      return res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update share request',
+      });
+    }
+  }
+);
+
+/**
+ * @route DELETE /api/sharing/requests/:requestId
+ * @desc Cancel share request
+ * @access Private (Domain User)
+ */
+router.delete(
+  '/requests/:requestId',
+  async (req: Request, res: Response) => {
+    try {
+      const { requestId } = req.params;
+      const userId = req.user!.id;
+
+      await prisma.shareRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'cancelled',
+        },
+      });
+
+      return res.json({
+        success: true,
+        message: 'Share request cancelled successfully',
+      });
+    } catch (error) {
+      console.error('Cancel share request error:', error);
+      return res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to cancel share request',
       });
     }
   }
@@ -305,13 +353,13 @@ router.post(
 
       await sharingService.rejectShareRequest(requestId, userId, rejectionReason);
 
-      res.json({
+      return res.json({
         success: true,
         message: 'Share request rejected successfully',
       });
     } catch (error) {
       console.error('Reject share request error:', error);
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to reject share request',
       });
@@ -334,14 +382,14 @@ router.post(
 
       const accessToken = await sharingService.activateShare(requestId, userId, validation);
 
-      res.json({
+      return res.json({
         success: true,
         data: { accessToken },
         message: 'Share activated successfully',
       });
     } catch (error) {
       console.error('Activate share error:', error);
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to activate share',
       });
@@ -370,13 +418,13 @@ router.get(
         userAgent
       );
 
-      res.json({
+      return res.json({
         success: true,
         data: accessInfo,
       });
     } catch (error) {
       console.error('Access shared content error:', error);
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to access shared content',
       });
@@ -386,28 +434,36 @@ router.get(
 
 /**
  * @route POST /api/sharing/:domainId/workflows
- * @desc Create a share workflow
+ * @desc Create sharing workflow
  * @access Private (Domain Admin)
  */
 router.post(
   '/:domainId/workflows',
   requireDomainAdminCompat,
+  validationMiddleware(workflowSchema),
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
       const userId = req.user!.id;
       const validation = workflowSchema.parse(req.body);
 
-      const workflowId = await sharingService.createWorkflow(domainId, validation, userId);
+      const workflow = await prisma.shareWorkflow.create({
+        data: {
+          ...validation,
+          createdBy: userId,
+          approvalSteps: JSON.parse(JSON.stringify(validation.approvalSteps)),
+          sourceDomainId: domainId,
+        },
+      });
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
-        data: { workflowId },
-        message: 'Workflow created successfully',
+        data: { workflow },
+        message: 'Sharing workflow created successfully',
       });
     } catch (error) {
       console.error('Create workflow error:', error);
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create workflow',
       });
@@ -428,7 +484,7 @@ router.get(
       const { domainId } = req.params;
       const { workflowType, isActive = 'true' } = req.query;
 
-      const whereClause: Event = { sourceDomainId: domainId };
+      const whereClause: Record<string, unknown> = { sourceDomainId: domainId };
       
       if (workflowType) {
         whereClause.workflowType = workflowType;
@@ -464,28 +520,37 @@ router.get(
 
 /**
  * @route POST /api/sharing/:domainId/templates
- * @desc Create a share template
+ * @desc Create sharing template
  * @access Private (Domain Admin)
  */
 router.post(
   '/:domainId/templates',
   requireDomainAdminCompat,
+  validationMiddleware(templateSchema),
   async (req: Request, res: Response) => {
     try {
       const { domainId } = req.params;
       const userId = req.user!.id;
       const validation = templateSchema.parse(req.body);
 
-      const templateId = await sharingService.createTemplate(domainId, validation, userId);
+      const template = await prisma.shareTemplate.create({
+        data: {
+          ...validation,
+          domainId,
+          createdBy: userId,
+          permissions: JSON.parse(JSON.stringify(validation.permissions)),
+          contentTypes: JSON.parse(JSON.stringify(validation.contentTypes)),
+        },
+      });
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
-        data: { templateId },
-        message: 'Template created successfully',
+        data: { template },
+        message: 'Sharing template created successfully',
       });
     } catch (error) {
       console.error('Create template error:', error);
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create template',
       });
@@ -506,7 +571,7 @@ router.get(
       const { domainId } = req.params;
       const { templateType, isActive = 'true' } = req.query;
 
-      const whereClause: Event = { domainId };
+      const whereClause: Record<string, unknown> = { domainId };
       
       if (templateType) {
         whereClause.templateType = templateType;
@@ -593,7 +658,7 @@ router.get(
       const { domainId } = req.params;
       const { status, collaborationType } = req.query;
 
-      const whereClause: Event = {
+      const whereClause: Record<string, unknown> = {
         OR: [
           { hostDomainId: domainId },
           { memberDomainIds: { has: domainId } },
@@ -713,7 +778,7 @@ router.get(
  */
 router.get(
   '/access/:accessToken/info',
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { accessToken } = req.params;
 
@@ -730,10 +795,11 @@ router.get(
       });
 
       if (!activation) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           error: 'Invalid access token',
         });
+        return;
       }
 
       // Return basic information without accessing the content
@@ -758,12 +824,14 @@ router.get(
           },
         },
       });
+      return;
     } catch (error) {
       console.error('Get access info error:', error);
       res.status(500).json({
         success: false,
         error: 'Failed to get access information',
       });
+      return;
     }
   }
 );
@@ -797,7 +865,7 @@ router.post(
       const successful = results.filter(r => r.status === 'fulfilled').length;
       const failed = results.filter(r => r.status === 'rejected').length;
 
-      res.json({
+      return res.json({
         success: true,
         data: {
           successful,
@@ -808,10 +876,69 @@ router.post(
       });
     } catch (error) {
       console.error('Bulk approve error:', error);
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: 'Failed to process bulk approval',
       });
+    }
+  }
+);
+
+/**
+ * @route GET /api/sharing/:domainId/analytics
+ * @desc Get sharing analytics for domain
+ * @access Private (Domain Admin)
+ */
+router.get(
+  '/:domainId/analytics',
+  requireDomainAdminCompat,
+  async (req: Request, res: Response) => {
+    try {
+      const { domainId } = req.params;
+      const { period = '7d', type = 'all' } = req.query;
+
+      const analytics = await sharingService.getSharingAnalytics(domainId, {
+        period: period as string,
+        type: type as string,
+      });
+
+      return res.json({
+        success: true,
+        data: analytics,
+      });
+    } catch (error) {
+      console.error('Get sharing analytics error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to get sharing analytics',
+      });
+    }
+  }
+);
+
+/**
+ * @route GET /api/sharing/:domainId/health
+ * @desc Get sharing health status
+ * @access Private (Domain Admin)
+ */
+router.get(
+  '/:domainId/health',
+  requireDomainAdminCompat,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { domainId } = req.params;
+
+      const health = await sharingService.getSharingHealth(domainId);
+
+      res.status(200).json({ success: true, data: null });
+      return;
+    } catch (error) {
+      console.error('Get sharing health error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get sharing health',
+      });
+      return;
     }
   }
 );

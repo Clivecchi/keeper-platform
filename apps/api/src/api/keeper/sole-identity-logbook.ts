@@ -43,7 +43,7 @@ export const getLogbookEntriesByKeeper = async (req: Request, res: Response) => 
     }
 
     // Build where clause with optional filters
-    const whereClause: Event = {
+    const whereClause: Record<string, unknown> = {
       keeperId: keeperId
     };
 

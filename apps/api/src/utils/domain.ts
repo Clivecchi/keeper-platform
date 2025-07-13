@@ -245,10 +245,18 @@ export function extractDomainContext(req: Request): DomainExtractionResult | nul
     return null;
   }
 
+  const domainId = extractDomainId(req, context.strategy as 'query' | 'param' | 'subdomain' | 'header');
+  if (!domainId) throw new Error('domainId is required');
+  const isUUID = validateDomainId(domainId);
+  const isSlug = validateDomainSlug(domainId);
+
   return {
-    ...context,
     hostname,
-    subdomain: subdomain || undefined
+    subdomain,
+    domainId,
+    strategy: context.strategy as 'query' | 'param' | 'subdomain' | 'header',
+    isUUID,
+    isSlug,
   };
 }
 

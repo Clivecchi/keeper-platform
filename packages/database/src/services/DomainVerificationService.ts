@@ -114,7 +114,7 @@ export class DomainVerificationService {
     });
 
     // Cache the verification config
-    await this.cacheService.cacheVerificationConfig(domainId, config);
+    await this.cacheService.cacheVerificationConfig(domainId, config as unknown as Record<string, unknown>);
 
     return config;
   }

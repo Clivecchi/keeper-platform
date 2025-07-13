@@ -675,7 +675,7 @@ export class ProductionConfigService {
     const baseConfig = this.getBaseConfig();
     const envConfig = this.ENVIRONMENT_CONFIGS[environment];
 
-    return this.mergeConfigs(baseConfig, envConfig || {});
+    return this.mergeConfigs(baseConfig, envConfig as unknown as ProductionConfig);
   }
 
   /**
@@ -972,14 +972,14 @@ export class ProductionConfigService {
     updates: Partial<ProductionConfig[T]>
   ): void {
     // Fix: Properly type the configuration categories to handle spread operations
-    const existingConfig = this.config[category] as Record<string, unknown>;
-    const updatesConfig = updates as Record<string, unknown>;
+    const existingConfig = (this.config[category] as unknown) as Record<string, unknown>;
+    const updatesConfig = (updates as unknown) as Record<string, unknown>;
     
-    // Cast back to the proper type after merging
-    this.config[category] = { 
+    // Cast back to the proper type after merging via unknown
+    this.config[category] = ({ 
       ...existingConfig, 
       ...updatesConfig 
-    } as ProductionConfig[T];
+    } as unknown) as ProductionConfig[T];
   }
 
   /**
@@ -1105,14 +1105,21 @@ export class ProductionConfigService {
   /**
    * Private helper methods
    */
-  private mergeConfigs(base: Event, override: Event): unknown {
-    const result = { ...base };
+  private mergeConfigs(base: ProductionConfig, override: ProductionConfig): ProductionConfig {
+    const result: ProductionConfig = { ...base };
     
-    for (const key in override) {
-      if (override[key] && typeof override[key] === 'object' && !Array.isArray(override[key])) {
-        result[key] = this.mergeConfigs(base[key] || {}, override[key]);
+    // Use Object.entries to avoid index signature issues
+    for (const [key, value] of Object.entries(override)) {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        // Use type-safe access with proper casting
+        const baseValue = ((base as unknown) as Record<string, unknown>)[key] || {};
+        ((result as unknown) as Record<string, unknown>)[key] = this.mergeConfigs(
+          baseValue as ProductionConfig, 
+          value as ProductionConfig
+        );
       } else {
-        result[key] = override[key];
+        // Use type-safe assignment
+        ((result as unknown) as Record<string, unknown>)[key] = value;
       }
     }
     

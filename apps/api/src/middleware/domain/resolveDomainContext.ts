@@ -83,29 +83,26 @@ export function resolveDomainContext(
         return;
       }
 
-      // Check if domain is active
-      if (domain.status !== 'active') {
-        const error = DomainError.DomainInactive(domainId);
-        res.status(error.statusCode).json({
+      // Check domain status
+      if ((domain as any).status !== 'active') {
+        res.status(400).json({
           success: false,
-          error: error.code,
-          message: error.message
+          error: 'Domain is not active',
         });
         return;
       }
 
-      // Add domain context to request
-      const typedReq = req as AuthenticatedRequest;
-      typedReq.domainContext = {
-        id: domain.id,
-        name: domain.name,
-        ownerId: domain.ownerId,
-        settings: domain.settings || {}
+      // Set domain context
+      (req as any).domainContext = {
+        id: (domain as any).id,
+        name: (domain as any).name,
+        ownerId: (domain as any).ownerId,
+        settings: (domain as any).settings || {},
       };
 
-      // Add domain headers for debugging
-      res.set('X-Domain-Id', domain.id);
-      res.set('X-Domain-Name', domain.name);
+      // Set response headers
+      res.set('X-Domain-Id', (domain as any).id);
+      res.set('X-Domain-Name', (domain as any).name);
       res.set('X-Domain-Strategy', finalConfig.strategy);
 
       next();
