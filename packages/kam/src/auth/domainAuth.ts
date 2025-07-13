@@ -20,9 +20,9 @@ import { Request, Response, NextFunction } from 'express';
 declare global {
   namespace Express {
     interface Request {
-      user?: any;
-      domainSession?: any;
-      domainAuth?: any;
+      user?: DomainAuthUser;
+      domainSession?: DomainAuthSession;
+      domainAuth?: DomainAuthManager;
     }
   }
 }
@@ -125,7 +125,7 @@ export class DomainAuthManager {
       }>();
 
       // Add owned domains (full admin permissions)
-      ownedDomains.forEach(domain => {
+      ownedDomains.forEach((domain: { id: string; name: string; slug: string }) => {
         permissionMap.set(domain.id, {
           role: 'admin',
           permissions: ['read', 'write', 'share', 'admin', 'invite', 'delete'],
@@ -275,7 +275,7 @@ export class DomainAuthManager {
     const userPermissions = await this.permissionService.getUserPermissions(userId);
 
     const accessibleDomains = await Promise.all(
-      domains.map(async (domain: any) => {
+      domains.map(async (domain: { id: string; name: string; slug: string }) => {
         const permissions = await this.permissionService.getDomainPermissions(domain.id, userId);
         const permission = permissions[0];
         return {
@@ -302,7 +302,7 @@ export class DomainAuthManager {
     // Clear domain-related caches
     const userDomains = await this.domainService.getUserDomains(userId);
     await Promise.all(
-      userDomains.map((domain: any) => this.cacheService.invalidateDomain(domain.id))
+      userDomains.map((domain: { id: string; name: string; slug: string }) => this.cacheService.invalidateDomain(domain.id))
     );
   }
 

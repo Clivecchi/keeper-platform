@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@keeper/shared": "workspace:*",
-    "@prisma/client": "^6.7.0",
+    "@prisma/client": "^6.9.0",
     "ioredis": "^5.3.2",
     "node-cron": "^3.0.3",
     "prom-client": "^15.1.0"
