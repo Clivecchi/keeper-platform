@@ -4,7 +4,7 @@ import { logger } from '@keeper/shared';
 import { prisma } from '@keeper/database';
 import { randomUUID } from 'crypto';
 import { ModelProviderService } from '../services/ModelProviderService.js';
-import type { ModelProvider } from '@keeper/database/types';
+import type { ModelProvider } from '@keeper/database';
 
 const router: ExpressRouter = Router();
 

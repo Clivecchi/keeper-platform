@@ -111,7 +111,7 @@ export function createProductionRoutes(
   deploymentService: DeploymentAutomationService,
   cacheService: DomainCacheService
 ): Router {
-  const router = Router();
+  const router: Router = Router();
 
   // Apply authentication middleware to all routes
   router.use(authMiddlewareCompat);

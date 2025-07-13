@@ -34,7 +34,7 @@ import type {
   KipMessageWithRelations,
   ModelProvider,
   ModelSettings
-} from '@keeper/database/types';
+} from '@keeper/database';
 import { ModelProviderService, ModelMessage } from '../../services/ModelProviderService.js';
 
 /**

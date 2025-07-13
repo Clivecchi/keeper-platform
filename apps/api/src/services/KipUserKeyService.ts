@@ -7,7 +7,7 @@
  */
 
 import { prisma } from '@keeper/database';
-import type { ModelProvider } from '@keeper/database/types';
+import type { ModelProvider } from '@keeper/database';
 
 export class KipUserKeyService {
   /**

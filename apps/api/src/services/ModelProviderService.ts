@@ -6,7 +6,7 @@
  * Handles dynamic provider resolution, retry logic, and unified response format
  */
 
-import { ModelProvider, ModelSettings } from '@keeper/database/types';
+import { ModelProvider, ModelSettings } from '@keeper/database';
 import { KipUserKeyService } from './KipUserKeyService.js';
 import { PlatformApiKeyService } from './PlatformApiKeyService.js';
 

@@ -8,46 +8,35 @@
   "exports": {
     ".": {
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/index.d.ts"
     },
     "./queries": {
       "import": "./dist/queries/index.js",
-      "require": "./dist/queries/index.js",
-      "types": "./dist/queries/index.d.ts",
-      "default": "./dist/queries/index.js"
+      "types": "./dist/queries/index.d.ts"
     },
     "./types": {
-      "import": "./dist/types.js",
-      "require": "./dist/types.js",
-      "types": "./dist/types.d.ts",
-      "default": "./dist/types.js"
+      "import": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
     }
   },
   "scripts": {
     "build": "prisma generate && tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
-    "type-check": "tsc --noEmit",
     "generate": "prisma generate",
     "push": "prisma db push",
     "pull": "prisma db pull",
     "studio": "prisma studio",
     "migrate": "prisma migrate dev",
-    "reset": "prisma migrate reset"
+    "reset": "prisma migrate reset",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@keeper/shared": "workspace:*",
-    "@prisma/client": "^6.9.0",
+    "@prisma/client": "^6.11.1",
     "ioredis": "^5.3.2",
-    "node-cron": "^3.0.3",
-    "prom-client": "^15.1.0"
+    "zod": "^3.25.45"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
-    "@types/node-cron": "^3.0.11",
-    "@types/uuid": "^10.0.0",
-    "prisma": "^6.9.0",
+    "prisma": "^6.11.1",
     "typescript": "~5.8.3"
   }
 }

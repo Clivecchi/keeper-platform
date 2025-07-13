@@ -7,7 +7,7 @@
  */
 
 import { prisma } from '@keeper/database';
-import { PlatformApiKey, PlatformApiKeyInput, ModelProvider } from '@keeper/database/types';
+import { PlatformApiKey, PlatformApiKeyInput, ModelProvider } from '@keeper/database';
 
 export class PlatformApiKeyService {
   /**

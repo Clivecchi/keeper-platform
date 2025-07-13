@@ -7,7 +7,7 @@
  */
 
 import { prisma } from '@keeper/database';
-import type { AgentPermission, AgentVisibility } from '@keeper/database/types';
+import type { AgentPermission, AgentVisibility } from '@keeper/database';
 
 export class KipAgentPermissionService {
   /**
