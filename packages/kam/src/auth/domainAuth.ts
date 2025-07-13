@@ -3,7 +3,7 @@
  * Extends KAM with domain context and permissions
  */
 
-import { users } from '@prisma/client';
+import type { users } from '@prisma/client';
 import { 
   DomainPermissionService, 
   DomainService, 
