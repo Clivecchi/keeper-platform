@@ -9,7 +9,7 @@ import { requireAuth } from './requireAuth';
 import { requireDomainRead, requireDomainWrite, requireDomainAdmin } from './requireDomainPermissions';
 import { requireMemoryAccess } from './requireMemoryAccess';
 import { DomainService, DomainCacheService } from '@keeper/database';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@keeper/database';
 import Redis from 'ioredis';
 
 const prisma = new PrismaClient();

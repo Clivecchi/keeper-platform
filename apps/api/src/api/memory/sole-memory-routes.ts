@@ -5,7 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@keeper/database';
 import { SoleMemoryIsolationService, DomainCacheService } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { 
@@ -19,7 +19,7 @@ import Redis from 'ioredis';
 
 type MemoryCategory = 'conversational' | 'factual' | 'procedural' | 'episodic' | 'semantic';
 
-const router = Router();
+const router: Router = Router();
 const prisma = new PrismaClient();
 let redis: Redis | null = null;
 if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {

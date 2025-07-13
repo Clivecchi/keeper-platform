@@ -5,14 +5,14 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat, requireDomainAdminCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { DomainService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
 import Redis from 'ioredis';
 
-const router = Router();
+const router: Router = Router();
 const prisma = new PrismaClient();
 let redis: Redis | null = null;
 if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {

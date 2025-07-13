@@ -4,7 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@keeper/database';
 
 const prisma = new PrismaClient();
 
@@ -57,13 +57,13 @@ export function requireDomainRead(req: DomainPermissionRequest, res: Response, n
         { expiresAt: { gt: new Date() } },
       ],
     },
-  }).then(permission => {
+  }).then((permission: any) => {
     if (permission) {
       next();
     } else {
       res.status(403).json({ error: 'Insufficient domain permissions' });
     }
-  }).catch(error => {
+  }).catch((error: any) => {
     console.error('Domain permission check error:', error);
     res.status(500).json({ error: 'Permission check failed' });
   });
@@ -103,13 +103,13 @@ export function requireDomainWrite(req: DomainPermissionRequest, res: Response, 
         { expiresAt: { gt: new Date() } },
       ],
     },
-  }).then(permission => {
+  }).then((permission: any) => {
     if (permission) {
       next();
     } else {
       res.status(403).json({ error: 'Insufficient domain permissions' });
     }
-  }).catch(error => {
+  }).catch((error: any) => {
     console.error('Domain permission check error:', error);
     res.status(500).json({ error: 'Permission check failed' });
   });
@@ -149,13 +149,13 @@ export function requireDomainAdmin(req: DomainPermissionRequest, res: Response, 
         { expiresAt: { gt: new Date() } },
       ],
     },
-  }).then(permission => {
+  }).then((permission: any) => {
     if (permission) {
       next();
     } else {
       res.status(403).json({ error: 'Admin permissions required' });
     }
-  }).catch(error => {
+  }).catch((error: any) => {
     console.error('Domain permission check error:', error);
     res.status(500).json({ error: 'Permission check failed' });
   });
