@@ -3,16 +3,16 @@
  * Extends KAM with domain context and permissions
  */
 
-import type { users } from '@prisma/client';
 import { 
   DomainPermissionService, 
   DomainService, 
   DomainCacheService,
   type DomainPermissionType,
   type PermissionCheck,
-  type UserPermissionSummary
+  type UserPermissionSummary,
+  type User,
+  PrismaClient
 } from '@keeper/database';
-import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
 import { Request, Response, NextFunction } from 'express';
 
@@ -27,7 +27,7 @@ declare global {
   }
 }
 
-export interface DomainAuthUser extends users {
+export interface DomainAuthUser extends User {
   domainPermissions?: Map<string, {
     role: string;
     permissions: string[];
@@ -101,7 +101,7 @@ export class DomainAuthManager {
   /**
    * Enhance user session with domain permissions
    */
-  async enhanceUserWithDomainPermissions(user: users): Promise<DomainAuthUser> {
+  async enhanceUserWithDomainPermissions(user: User): Promise<DomainAuthUser> {
     const domainAuthUser: DomainAuthUser = {
       ...user,
       domainPermissions: new Map(),
@@ -167,7 +167,7 @@ export class DomainAuthManager {
    * Create domain-aware session
    */
   async createDomainSession(
-    user: users,
+    user: User,
     domainId?: string,
     options: DomainAuthOptions = {}
   ): Promise<DomainAuthSession> {
