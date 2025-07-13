@@ -4,26 +4,24 @@
  */
 import { getFeatureFlagService } from './FeatureFlagService';
 export class DomainPermissionService {
-    prisma;
-    cacheService;
-    featureFlags = getFeatureFlagService();
-    // Role hierarchy - roles inherit permissions from lower roles
-    ROLE_HIERARCHY = {
-        connection: ['read'],
-        friend: ['read', 'write'],
-        user: ['read', 'write', 'share'],
-        admin: ['read', 'write', 'share', 'admin', 'invite', 'delete'],
-    };
-    // Permission inheritance - some permissions automatically grant others
-    PERMISSION_INHERITANCE = {
-        admin: ['read', 'write', 'share', 'invite', 'delete'],
-        share: ['read'],
-        write: ['read'],
-        invite: ['read'],
-        delete: ['read', 'write'],
-        read: [],
-    };
     constructor(prisma, cacheService) {
+        this.featureFlags = getFeatureFlagService();
+        // Role hierarchy - roles inherit permissions from lower roles
+        this.ROLE_HIERARCHY = {
+            connection: ['read'],
+            friend: ['read', 'write'],
+            user: ['read', 'write', 'share'],
+            admin: ['read', 'write', 'share', 'admin', 'invite', 'delete'],
+        };
+        // Permission inheritance - some permissions automatically grant others
+        this.PERMISSION_INHERITANCE = {
+            admin: ['read', 'write', 'share', 'invite', 'delete'],
+            share: ['read'],
+            write: ['read'],
+            invite: ['read'],
+            delete: ['read', 'write'],
+            read: [],
+        };
         this.prisma = prisma;
         this.cacheService = cacheService;
     }

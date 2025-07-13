@@ -10,20 +10,18 @@ const dnsResolve = promisify(dns.resolve);
 const dnsResolveTxt = promisify(dns.resolveTxt);
 const dnsResolveCname = promisify(dns.resolveCname);
 export class DomainVerificationService {
-    prisma;
-    cacheService;
-    featureFlags = getFeatureFlagService();
-    // Platform domains and IPs for verification
-    KEEPER_DOMAINS = [
-        'keeper.tools',
-        'domains.keeper.tools',
-        'app.keeper.tools',
-    ];
-    KEEPER_IPS = [
-        '76.76.19.19', // Example Vercel IP
-        '76.76.21.21', // Example Vercel IP
-    ];
     constructor(prisma, cacheService) {
+        this.featureFlags = getFeatureFlagService();
+        // Platform domains and IPs for verification
+        this.KEEPER_DOMAINS = [
+            'keeper.tools',
+            'domains.keeper.tools',
+            'app.keeper.tools',
+        ];
+        this.KEEPER_IPS = [
+            '76.76.19.19', // Example Vercel IP
+            '76.76.21.21', // Example Vercel IP
+        ];
         this.prisma = prisma;
         this.cacheService = cacheService;
     }

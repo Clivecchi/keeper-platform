@@ -60,7 +60,7 @@ export interface Deployment {
     steps: DeploymentStep[];
     healthChecks: HealthCheck[];
     rollbackInfo?: RollbackInfo;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 export interface DeploymentArtifact {
     id: string;
@@ -122,7 +122,7 @@ export interface PipelineStage {
     description: string;
     type: 'build' | 'test' | 'deploy' | 'validate' | 'notify';
     dependencies: string[];
-    config: Record<string, any>;
+    config: Record<string, unknown>;
     timeout: number;
     retryPolicy: {
         maxRetries: number;
@@ -137,7 +137,7 @@ export interface PipelineStage {
 export interface PipelineTrigger {
     id: string;
     type: 'webhook' | 'schedule' | 'manual' | 'branch' | 'tag';
-    config: Record<string, any>;
+    config: Record<string, unknown>;
     enabled: boolean;
 }
 export interface BuildInfo {
@@ -242,6 +242,52 @@ export declare class DeploymentAutomationService {
      */
     getDeploymentMetrics(environment: EnvironmentType, timeRange?: string): Promise<DeploymentMetrics>;
     /**
+     * Get deployment statistics for a specific deployment
+     */
+    getDeploymentStats(deploymentId: string): Promise<{
+        deploymentId: string;
+        status: DeploymentStatus;
+        duration: number;
+        steps: Array<{
+            name: string;
+            status: 'pending' | 'running' | 'completed' | 'failed';
+            duration: number;
+            startTime: Date;
+            endTime?: Date;
+            error?: string;
+        }>;
+        healthChecks: Array<{
+            name: string;
+            status: 'passing' | 'failing' | 'unknown';
+            responseTime: number;
+            lastChecked: Date;
+            details?: Record<string, unknown>;
+        }>;
+        artifacts: Array<{
+            name: string;
+            size: number;
+            type: string;
+            url?: string;
+        }>;
+        metrics: {
+            totalSteps: number;
+            completedSteps: number;
+            failedSteps: number;
+            successRate: number;
+            averageStepDuration: number;
+            totalHealthChecks: number;
+            passingHealthChecks: number;
+            averageResponseTime: number;
+        };
+        rollbackInfo?: {
+            triggeredBy: 'manual' | 'automatic';
+            reason: string;
+            triggeredAt: Date;
+            previousVersion: string;
+        };
+        metadata?: Record<string, unknown>;
+    }>;
+    /**
      * Get infrastructure state
      */
     getInfrastructureState(): Promise<InfrastructureState>;
@@ -252,7 +298,7 @@ export declare class DeploymentAutomationService {
     /**
      * Execute pipeline
      */
-    executePipeline(pipelineId: string, context: Record<string, any>): Promise<string>;
+    executePipeline(pipelineId: string, context: Record<string, unknown>): Promise<string>;
     /**
      * Generate deployment configuration files
      */

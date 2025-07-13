@@ -10,7 +10,7 @@ export interface FeatureFlag {
     rolloutPercentage: number;
     environments: string[];
     conditions?: FeatureFlagCondition[];
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 export interface FeatureFlagCondition {
     type: 'user_id' | 'domain_id' | 'user_email' | 'domain_slug' | 'user_role' | 'domain_tier';
@@ -112,11 +112,11 @@ export declare class FeatureFlagService {
     /**
      * Export current flag configuration
      */
-    exportConfiguration(): Record<string, any>;
+    exportConfiguration(): Record<string, unknown>;
     /**
      * Import flag configuration
      */
-    importConfiguration(config: Record<string, any>): void;
+    importConfiguration(config: Record<string, unknown>): void;
 }
 export declare function getFeatureFlagService(): FeatureFlagService;
 export declare const domainFlags: {

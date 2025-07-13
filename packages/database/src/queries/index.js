@@ -270,12 +270,17 @@ export async function createKipAgent(data) {
  * Update a KIP agent
  */
 export async function updateKipAgent(id, data) {
+    const updateData = {
+        ...data,
+        updated_at: new Date()
+    };
+    // If config is present, serialize it properly for Prisma
+    if (data.config) {
+        updateData.config = JSON.parse(JSON.stringify(data.config));
+    }
     return prisma.kip_agents.update({
         where: { id },
-        data: {
-            ...data,
-            updated_at: new Date()
-        }
+        data: updateData
     });
 }
 /**

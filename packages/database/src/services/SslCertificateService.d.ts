@@ -4,7 +4,7 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { DomainCacheService } from './DomainCacheService';
-import { CertificateProvider, CertificateStatus, CertificateInfo, CertificateRequest } from '../types/ssl';
+import type { CertificateProvider, CertificateStatus, CertificateInfo, CertificateRequest } from '../types/ssl';
 export interface CertificateValidation {
     isValid: boolean;
     issues: string[];

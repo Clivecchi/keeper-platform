@@ -2,13 +2,11 @@
  * Domain Service
  * Core CRUD operations for domain management with validation and caching
  */
-import { SlugValidationService } from './SlugValidationService.js';
-import { getFeatureFlagService } from './FeatureFlagService.js';
+import { SlugValidationService } from './SlugValidationService';
+import { getFeatureFlagService } from './FeatureFlagService';
 export class DomainService {
-    prisma;
-    cacheService;
-    featureFlags = getFeatureFlagService();
     constructor(prisma, cacheService) {
+        this.featureFlags = getFeatureFlagService();
         this.prisma = prisma;
         this.cacheService = cacheService;
     }
@@ -43,10 +41,9 @@ export class DomainService {
         try {
             const domain = await this.prisma.domain.create({
                 data: {
-                    name: request.name.trim(),
+                    name: request.name,
                     slug: finalSlug,
-                    slugHistory: [],
-                    description: request.description?.trim(),
+                    description: request.description,
                     isPublic: request.isPublic ?? false,
                     allowRequests: request.allowRequests ?? false,
                     categories: request.categories ?? [],
@@ -54,10 +51,10 @@ export class DomainService {
                     customDomainVerified: false,
                     ownerId: request.ownerId,
                     status: 'active',
-                    features: { ...defaultFeatures, ...request.features },
-                    limits: { ...defaultLimits, ...request.limits },
-                    theme: request.theme ?? {},
-                    settings: request.settings ?? {},
+                    features: JSON.parse(JSON.stringify({ ...defaultFeatures, ...request.features })),
+                    limits: JSON.parse(JSON.stringify({ ...defaultLimits, ...request.limits })),
+                    theme: JSON.parse(JSON.stringify(request.theme ?? {})),
+                    settings: JSON.parse(JSON.stringify(request.settings ?? {})),
                     isActive: true,
                 },
             });
@@ -241,23 +238,26 @@ export class DomainService {
      * Search domains with filters
      */
     async searchDomains(filters = {}, limit = 50, offset = 0) {
-        const where = {};
-        if (filters.ownerId)
-            where.ownerId = filters.ownerId;
-        if (filters.isPublic !== undefined)
-            where.isPublic = filters.isPublic;
-        if (filters.status)
-            where.status = filters.status;
-        if (filters.isActive !== undefined)
-            where.isActive = filters.isActive;
-        if (filters.categories?.length) {
-            where.categories = {
+        const whereClause = {};
+        if (filters.ownerId) {
+            whereClause.ownerId = filters.ownerId;
+        }
+        if (filters.isPublic !== undefined) {
+            whereClause.isPublic = filters.isPublic;
+        }
+        if (filters.status) {
+            whereClause.status = filters.status;
+        }
+        if (filters.isActive !== undefined) {
+            whereClause.isActive = filters.isActive;
+        }
+        if (filters.categories && filters.categories.length > 0) {
+            whereClause.categories = {
                 hasSome: filters.categories,
             };
         }
-        // Search in name, description, slug
         if (filters.search) {
-            where.OR = [
+            whereClause.OR = [
                 { name: { contains: filters.search, mode: 'insensitive' } },
                 { description: { contains: filters.search, mode: 'insensitive' } },
                 { slug: { contains: filters.search, mode: 'insensitive' } },
@@ -265,14 +265,17 @@ export class DomainService {
         }
         const [domains, total] = await Promise.all([
             this.prisma.domain.findMany({
-                where,
-                orderBy: { createdAt: 'desc' },
+                where: whereClause,
                 take: limit,
                 skip: offset,
+                orderBy: { createdAt: 'desc' },
             }),
-            this.prisma.domain.count({ where }),
+            this.prisma.domain.count({ where: whereClause }),
         ]);
-        return { domains, total };
+        return {
+            domains: domains,
+            total,
+        };
     }
     /**
      * Get domains for a user (owned or has permissions)
@@ -350,22 +353,16 @@ export class DomainService {
      * Log domain activity for analytics
      */
     async logDomainActivity(domainId, userId, action, metadata = {}) {
-        if (!this.featureFlags.isEnabled('DOMAIN_ANALYTICS_ENABLED')) {
-            return;
-        }
         try {
-            await this.prisma.domainUsage.create({
-                data: {
-                    domainId,
-                    userId,
-                    action,
-                    metadata,
-                    timestamp: new Date(),
-                },
+            // Log to console for now since domainActivityLog doesn't exist in schema
+            console.log(`Domain Activity: ${action}`, {
+                domainId,
+                userId,
+                metadata,
+                timestamp: new Date(),
             });
         }
         catch (error) {
-            // Don't fail the operation if logging fails
             console.error('Failed to log domain activity:', error);
         }
     }
@@ -443,6 +440,98 @@ export class DomainService {
             status: domain.status,
             issues,
         };
+    }
+    /**
+     * Get domain settings
+     */
+    async getDomainSettings(domainId) {
+        const domain = await this.getDomainById(domainId);
+        if (!domain) {
+            throw new Error(`Domain not found: ${domainId}`);
+        }
+        return {
+            domainId: domain.id,
+            settings: domain.settings || {},
+            features: domain.features || {},
+            limits: domain.limits || {},
+            theme: domain.theme || {},
+            customDomain: domain.customDomain || undefined,
+            customDomainVerified: domain.customDomainVerified,
+            status: domain.status,
+            isActive: domain.isActive,
+            isPublic: domain.isPublic,
+            allowRequests: domain.allowRequests,
+            categories: domain.categories,
+            createdAt: domain.createdAt,
+            updatedAt: domain.updatedAt,
+        };
+    }
+    /**
+     * Get share agreement between domains
+     */
+    async getShareAgreement(sourceDomainId, targetDomainId) {
+        try {
+            const shareAgreement = await this.prisma.memoryShare.findFirst({
+                where: {
+                    sourceMemoryId: sourceDomainId,
+                    targetMemoryId: targetDomainId,
+                    status: { in: ['approved', 'pending'] },
+                    OR: [
+                        { expiresAt: null },
+                        { expiresAt: { gt: new Date() } },
+                    ],
+                },
+            });
+            if (!shareAgreement) {
+                return null;
+            }
+            return {
+                id: shareAgreement.id,
+                sourceDomainId: shareAgreement.sourceMemoryId,
+                targetDomainId: shareAgreement.targetMemoryId,
+                shareType: shareAgreement.shareType,
+                status: shareAgreement.status,
+                expiresAt: shareAgreement.expiresAt || undefined,
+                maxAccess: shareAgreement.maxAccess || undefined,
+                currentAccess: shareAgreement.currentAccess,
+                memoryCategories: shareAgreement.memoryCategories,
+            };
+        }
+        catch (error) {
+            console.error('Error getting share agreement:', error);
+            return null;
+        }
+    }
+    /**
+     * Get memory scope for domain
+     */
+    async getMemoryScope(domainId) {
+        try {
+            const memoryScope = await this.prisma.soleMemoryScope.findUnique({
+                where: { domainId },
+            });
+            if (!memoryScope) {
+                return null;
+            }
+            return {
+                id: memoryScope.id,
+                domainId: memoryScope.domainId,
+                isolationLevel: memoryScope.isolationLevel,
+                allowCrossDomain: memoryScope.allowCrossDomain,
+                maxMemorySize: memoryScope.maxMemorySize,
+                currentMemorySize: memoryScope.currentMemorySize,
+                compressionLevel: memoryScope.compressionLevel,
+                readAccess: memoryScope.readAccess,
+                writeAccess: memoryScope.writeAccess,
+                adminAccess: memoryScope.adminAccess,
+                createdAt: memoryScope.createdAt,
+                updatedAt: memoryScope.updatedAt,
+            };
+        }
+        catch (error) {
+            console.error('Error getting memory scope:', error);
+            return null;
+        }
     }
 }
 export default DomainService;

@@ -4,19 +4,61 @@
  */
 import { getFeatureFlagService } from './FeatureFlagService';
 import * as cron from 'node-cron';
+// Type guards for safe property access
+function isShareRequest(obj) {
+    return (typeof obj === 'object' &&
+        obj !== null &&
+        'id' in obj &&
+        'workflowId' in obj &&
+        'sourceDomainId' in obj &&
+        'targetDomainId' in obj &&
+        'requestedBy' in obj &&
+        'contentType' in obj);
+}
+function isStepExecution(obj) {
+    return (typeof obj === 'object' &&
+        obj !== null &&
+        'id' in obj &&
+        'shareRequestId' in obj &&
+        'stepNumber' in obj &&
+        'status' in obj &&
+        'workflowStep' in obj &&
+        'shareRequest' in obj);
+}
+function isWorkflowStep(obj) {
+    return (typeof obj === 'object' &&
+        obj !== null &&
+        'id' in obj &&
+        'stepType' in obj &&
+        'stepName' in obj);
+}
+function isWorkflowEvent(obj) {
+    return (typeof obj === 'object' &&
+        obj !== null);
+}
+function hasConditions(obj) {
+    return (typeof obj === 'object' &&
+        obj !== null &&
+        'conditions' in obj &&
+        Array.isArray(obj.conditions));
+}
+function hasAutoApprovalRules(obj) {
+    return (typeof obj === 'object' &&
+        obj !== null &&
+        'autoApprovalRules' in obj &&
+        Array.isArray(obj.autoApprovalRules));
+}
 export class ShareWorkflowAutomationService {
-    prisma;
-    cacheService;
-    featureFlags = getFeatureFlagService();
-    cronJobs = new Map();
-    // Performance thresholds
-    PERFORMANCE_THRESHOLDS = {
-        maxExecutionTime: 24 * 60 * 60 * 1000, // 24 hours
-        maxStepRetries: 3,
-        defaultTimeoutHours: 48,
-        batchSize: 100,
-    };
     constructor(prisma, cacheService) {
+        this.featureFlags = getFeatureFlagService();
+        this.cronJobs = new Map();
+        // Performance thresholds
+        this.PERFORMANCE_THRESHOLDS = {
+            maxExecutionTime: 24 * 60 * 60 * 1000, // 24 hours
+            maxStepRetries: 3,
+            defaultTimeoutHours: 48,
+            batchSize: 100,
+        };
         this.prisma = prisma;
         this.cacheService = cacheService;
         this.initializeCronJobs();
@@ -48,7 +90,7 @@ export class ShareWorkflowAutomationService {
                     stepNumber: step.stepNumber,
                     status: index === 0 ? 'pending' : 'pending',
                     timeoutAt,
-                    inputData: context,
+                    inputData: JSON.parse(JSON.stringify(context)),
                 },
             });
         }));
@@ -119,9 +161,12 @@ export class ShareWorkflowAutomationService {
      * Execute approval step
      */
     async executeApprovalStep(stepExecution) {
+        if (!isStepExecution(stepExecution)) {
+            throw new Error('Invalid step execution object');
+        }
         const { workflowStep, shareRequest } = stepExecution;
         // Check auto-approval conditions
-        const autoApprovalResult = await this.checkAutoApprovalConditions(shareRequest, workflowStep.conditions);
+        const autoApprovalResult = await this.checkAutoApprovalConditions(shareRequest, workflowStep.conditions || []);
         if (autoApprovalResult.shouldAutoApprove) {
             // Auto-approve the step
             await this.completeApprovalStep(stepExecution.id, 'system', 'Auto-approved based on conditions', autoApprovalResult.appliedRules);
@@ -140,11 +185,11 @@ export class ShareWorkflowAutomationService {
             data: {
                 assignedTo: assignees[0], // Assign to first eligible user
                 status: 'in_progress',
-                inputData: {
+                inputData: JSON.parse(JSON.stringify({
                     ...stepExecution.inputData,
                     assignees,
                     approvalRequired: true,
-                },
+                })),
             },
         });
     }
@@ -152,6 +197,9 @@ export class ShareWorkflowAutomationService {
      * Execute notification step
      */
     async executeNotificationStep(stepExecution) {
+        if (!isStepExecution(stepExecution)) {
+            throw new Error('Invalid step execution object');
+        }
         const { workflowStep, shareRequest } = stepExecution;
         const notificationConfig = workflowStep.actions?.notifications || [];
         for (const config of notificationConfig) {
@@ -168,10 +216,10 @@ export class ShareWorkflowAutomationService {
             data: {
                 status: 'completed',
                 completedAt: new Date(),
-                outputData: {
+                outputData: JSON.parse(JSON.stringify({
                     notificationsSent: notificationConfig.length,
                     timestamp: new Date(),
-                },
+                })),
             },
         });
         // Move to next step
@@ -181,6 +229,9 @@ export class ShareWorkflowAutomationService {
      * Execute validation step
      */
     async executeValidationStep(stepExecution) {
+        if (!isStepExecution(stepExecution)) {
+            throw new Error('Invalid step execution object');
+        }
         const { workflowStep, shareRequest } = stepExecution;
         const validationRules = workflowStep.conditions || [];
         const validationResults = await Promise.all(validationRules.map(async (rule) => {
@@ -199,11 +250,11 @@ export class ShareWorkflowAutomationService {
             data: {
                 status: 'completed',
                 completedAt: new Date(),
-                outputData: {
+                outputData: JSON.parse(JSON.stringify({
                     validationResults,
                     allValid,
                     timestamp: new Date(),
-                },
+                })),
             },
         });
         // Move to next step
@@ -213,6 +264,9 @@ export class ShareWorkflowAutomationService {
      * Execute transformation step
      */
     async executeTransformationStep(stepExecution) {
+        if (!isStepExecution(stepExecution)) {
+            throw new Error('Invalid step execution object');
+        }
         const { workflowStep, shareRequest } = stepExecution;
         const transformationRules = workflowStep.actions?.transformations || [];
         const transformationResults = [];
@@ -236,10 +290,10 @@ export class ShareWorkflowAutomationService {
             data: {
                 status: 'completed',
                 completedAt: new Date(),
-                outputData: {
+                outputData: JSON.parse(JSON.stringify({
                     transformationResults,
                     timestamp: new Date(),
-                },
+                })),
             },
         });
         // Move to next step
@@ -325,6 +379,9 @@ export class ShareWorkflowAutomationService {
      * Check auto-approval conditions
      */
     async checkAutoApprovalConditions(shareRequest, conditions) {
+        if (!isShareRequest(shareRequest)) {
+            throw new Error('Invalid share request object');
+        }
         if (!this.featureFlags.isEnabled('AUTO_APPROVAL')) {
             return { shouldAutoApprove: false, appliedRules: [] };
         }
@@ -340,9 +397,9 @@ export class ShareWorkflowAutomationService {
         const autoApprovalRules = workflow.autoApprovalRules;
         const appliedRules = [];
         for (const rule of autoApprovalRules) {
-            if (rule.autoActivate && this.evaluateApprovalRule(rule, shareRequest)) {
+            if (isWorkflowEvent(rule) && rule.autoActivate && this.evaluateApprovalRule(rule, shareRequest)) {
                 console.log('Auto-approval rule matched, request approved');
-                appliedRules.push(rule.name);
+                appliedRules.push(rule.name || 'unnamed-rule');
             }
         }
         return {
@@ -354,6 +411,9 @@ export class ShareWorkflowAutomationService {
      * Validate workflow condition
      */
     async validateCondition(condition, shareRequest, stepExecution) {
+        if (!isShareRequest(shareRequest)) {
+            throw new Error('Invalid share request object');
+        }
         let actualValue;
         let isValid = false;
         switch (condition.type) {
@@ -373,7 +433,12 @@ export class ShareWorkflowAutomationService {
                 break;
             case 'time':
                 actualValue = new Date();
-                isValid = this.evaluateTimeCondition(actualValue, condition);
+                if (actualValue instanceof Date) {
+                    isValid = this.evaluateTimeCondition(actualValue, condition);
+                }
+                else {
+                    isValid = false;
+                }
                 break;
             case 'approval_count':
                 const approvalCount = await this.getApprovalCount(shareRequest.id);
@@ -426,9 +491,9 @@ export class ShareWorkflowAutomationService {
         const { operator, value } = condition;
         switch (operator) {
             case 'greater_than':
-                return actual.getTime() > new Date(value).getTime();
+                return actual.getTime() > new Date(String(value)).getTime();
             case 'less_than':
-                return actual.getTime() < new Date(value).getTime();
+                return actual.getTime() < new Date(String(value)).getTime();
             default:
                 return this.evaluateCondition(actual.toISOString(), operator, value);
         }
@@ -522,6 +587,9 @@ export class ShareWorkflowAutomationService {
      * Private helper methods
      */
     async determineStepAssignees(step, shareRequest) {
+        if (!isWorkflowStep(step) || !isShareRequest(shareRequest)) {
+            throw new Error('Invalid step or share request object');
+        }
         const assignees = [];
         if (step.requiredUsers && step.requiredUsers.length > 0) {
             assignees.push(...step.requiredUsers);
@@ -539,10 +607,16 @@ export class ShareWorkflowAutomationService {
         return [...new Set(assignees)]; // Remove duplicates
     }
     async sendApprovalNotifications(stepExecution, assignees) {
+        if (!isStepExecution(stepExecution)) {
+            throw new Error('Invalid step execution object');
+        }
         // Implementation for sending approval notifications
         console.log(`Sending approval notifications to ${assignees.length} users`);
     }
     async sendNotification(config, shareRequest, stepExecution) {
+        if (!isShareRequest(shareRequest) || !isStepExecution(stepExecution)) {
+            throw new Error('Invalid share request or step execution object');
+        }
         // Implementation for sending various types of notifications
         console.log(`Sending ${config.type} notification`);
     }
@@ -574,11 +648,17 @@ export class ShareWorkflowAutomationService {
         return count;
     }
     async evaluateCustomCondition(condition, shareRequest, stepExecution) {
+        if (!isShareRequest(shareRequest)) {
+            throw new Error('Invalid share request object');
+        }
         // Implementation for custom condition evaluation
         // This would be extended based on specific business logic
         return { isValid: true, value: null };
     }
     async applyTransformation(rule, shareRequest, stepExecution) {
+        if (!isWorkflowEvent(rule) || !isShareRequest(shareRequest) || !isStepExecution(stepExecution)) {
+            throw new Error('Invalid rule, share request, or step execution object');
+        }
         // Implementation for applying transformations
         // This would be extended based on specific transformation needs
         return { success: true };
@@ -676,6 +756,9 @@ export class ShareWorkflowAutomationService {
      * Evaluate approval rule against a share request
      */
     evaluateApprovalRule(rule, shareRequest) {
+        if (!isWorkflowEvent(rule) || !isShareRequest(shareRequest)) {
+            return false;
+        }
         try {
             // Basic rule evaluation logic
             if (!rule || !rule.conditions) {
@@ -688,11 +771,11 @@ export class ShareWorkflowAutomationService {
                 }
             }
             // Check duration limits
-            if (rule.maxDuration && shareRequest.requestedDuration > rule.maxDuration) {
+            if (rule.maxDuration && shareRequest.requestedDuration && shareRequest.requestedDuration > rule.maxDuration) {
                 return false;
             }
             // Check access count limits
-            if (rule.maxAccessCount && shareRequest.maxAccessCount > rule.maxAccessCount) {
+            if (rule.maxAccessCount && shareRequest.maxAccessCount && shareRequest.maxAccessCount > rule.maxAccessCount) {
                 return false;
             }
             // Check user/domain-based conditions

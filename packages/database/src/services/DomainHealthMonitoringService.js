@@ -4,30 +4,25 @@
  */
 import { getFeatureFlagService } from './FeatureFlagService';
 export class DomainHealthMonitoringService {
-    prisma;
-    domainService;
-    verificationService;
-    sslService;
-    cacheService;
-    featureFlags = getFeatureFlagService();
-    // Health check regions
-    REGIONS = [
-        'us-east-1',
-        'us-west-2',
-        'eu-west-1',
-        'ap-southeast-1',
-    ];
-    // Security headers to check
-    SECURITY_HEADERS = [
-        'Strict-Transport-Security',
-        'X-Frame-Options',
-        'X-Content-Type-Options',
-        'X-XSS-Protection',
-        'Referrer-Policy',
-        'Content-Security-Policy',
-        'Permissions-Policy',
-    ];
     constructor(prisma, domainService, verificationService, sslService, cacheService) {
+        this.featureFlags = getFeatureFlagService();
+        // Health check regions
+        this.REGIONS = [
+            'us-east-1',
+            'us-west-2',
+            'eu-west-1',
+            'ap-southeast-1',
+        ];
+        // Security headers to check
+        this.SECURITY_HEADERS = [
+            'Strict-Transport-Security',
+            'X-Frame-Options',
+            'X-Content-Type-Options',
+            'X-XSS-Protection',
+            'Referrer-Policy',
+            'Content-Security-Policy',
+            'Permissions-Policy',
+        ];
         this.prisma = prisma;
         this.domainService = domainService;
         this.verificationService = verificationService;
@@ -116,16 +111,22 @@ export class DomainHealthMonitoringService {
     async getSystemHealthSummary() {
         // Get all domains using proper method
         const domains = await this.getAllDomains();
-        const healthMetrics = await Promise.all(domains.map((domain) => this.checkDomainHealth(domain.id)));
+        const healthMetrics = await Promise.all(domains.map((domain) => {
+            if (domain && typeof domain === 'object' && 'id' in domain) {
+                return this.checkDomainHealth(domain.id);
+            }
+            return Promise.resolve(null);
+        }).filter(Boolean));
+        const validMetrics = healthMetrics.filter((m) => m !== null);
         return {
             totalDomains: domains.length,
-            healthyDomains: healthMetrics.filter((m) => m.status === 'healthy').length,
-            degradedDomains: healthMetrics.filter((m) => m.status === 'degraded').length,
-            unhealthyDomains: healthMetrics.filter((m) => m.status === 'unhealthy').length,
-            averageScore: Math.round(healthMetrics.reduce((sum, m) => sum + m.score, 0) / healthMetrics.length),
-            averageUptime: Math.round(healthMetrics.reduce((sum, m) => sum + m.uptime.percentage24h, 0) / healthMetrics.length),
-            totalAlerts: healthMetrics.reduce((sum, m) => sum + m.alerts.length, 0),
-            criticalAlerts: healthMetrics.reduce((sum, m) => sum + m.alerts.filter((a) => a.severity === 'critical').length, 0),
+            healthyDomains: validMetrics.filter((m) => m.status === 'healthy').length,
+            degradedDomains: validMetrics.filter((m) => m.status === 'degraded').length,
+            unhealthyDomains: validMetrics.filter((m) => m.status === 'unhealthy').length,
+            averageScore: Math.round(validMetrics.reduce((sum, m) => sum + m.score, 0) / validMetrics.length),
+            averageUptime: Math.round(validMetrics.reduce((sum, m) => sum + m.uptime.percentage24h, 0) / validMetrics.length),
+            totalAlerts: validMetrics.reduce((sum, m) => sum + m.alerts.length, 0),
+            criticalAlerts: validMetrics.reduce((sum, m) => sum + m.alerts.filter((a) => a.severity === 'critical').length, 0),
             lastUpdated: new Date(),
         };
     }
@@ -253,26 +254,32 @@ export class DomainHealthMonitoringService {
      */
     async generateMonitoringReport(timeRange = '24h') {
         const domains = await this.getAllDomains();
-        const healthMetrics = await Promise.all(domains.map((domain) => this.checkDomainHealth(domain.id)));
+        const healthMetrics = await Promise.all(domains.map((domain) => {
+            if (domain && typeof domain === 'object' && 'id' in domain) {
+                return this.checkDomainHealth(domain.id);
+            }
+            return Promise.resolve(null);
+        }).filter(Boolean));
+        const validMetrics = healthMetrics.filter((m) => m !== null);
         const summary = {
             totalDomains: domains.length,
-            healthyDomains: healthMetrics.filter((m) => m.status === 'healthy').length,
-            degradedDomains: healthMetrics.filter((m) => m.status === 'degraded').length,
-            unhealthyDomains: healthMetrics.filter((m) => m.status === 'unhealthy').length,
-            averageScore: Math.round(healthMetrics.reduce((sum, m) => sum + m.score, 0) / healthMetrics.length),
-            averageUptime: Math.round(healthMetrics.reduce((sum, m) => sum + m.uptime.percentage24h, 0) / healthMetrics.length),
-            totalAlerts: healthMetrics.reduce((sum, m) => sum + m.alerts.length, 0),
-            criticalAlerts: healthMetrics.reduce((sum, m) => sum + m.alerts.filter((a) => a.severity === 'critical').length, 0),
+            healthyDomains: validMetrics.filter((m) => m.status === 'healthy').length,
+            degradedDomains: validMetrics.filter((m) => m.status === 'degraded').length,
+            unhealthyDomains: validMetrics.filter((m) => m.status === 'unhealthy').length,
+            averageScore: Math.round(validMetrics.reduce((sum, m) => sum + m.score, 0) / validMetrics.length),
+            averageUptime: Math.round(validMetrics.reduce((sum, m) => sum + m.uptime.percentage24h, 0) / validMetrics.length),
+            totalAlerts: validMetrics.reduce((sum, m) => sum + m.alerts.length, 0),
+            criticalAlerts: validMetrics.reduce((sum, m) => sum + m.alerts.filter((a) => a.severity === 'critical').length, 0),
         };
         const trends = {
             uptimeChange: 0, // Would calculate from historical data
             performanceChange: 0, // Would calculate from historical data
             securityChange: 0, // Would calculate from historical data
         };
-        const topIssues = this.aggregateTopIssues(healthMetrics);
+        const topIssues = this.aggregateTopIssues(validMetrics);
         return {
             summary,
-            domains: healthMetrics,
+            domains: validMetrics,
             trends,
             topIssues,
         };
@@ -382,35 +389,68 @@ export class DomainHealthMonitoringService {
     }
     generateRecommendations(metrics) {
         const recommendations = [];
-        // Uptime recommendations
-        if (metrics.uptime.percentage24h < 99) {
-            recommendations.push('Consider implementing redundancy to improve uptime');
+        if (!metrics || typeof metrics !== 'object') {
+            return recommendations;
         }
+        const metricsObj = metrics;
         // Performance recommendations
-        if (metrics.performance.responseTime > 1000) {
-            recommendations.push('Optimize response time - consider CDN or caching');
+        if (metricsObj.performance && typeof metricsObj.performance === 'object') {
+            const performance = metricsObj.performance;
+            if (performance.averageResponseTime && typeof performance.averageResponseTime === 'number' && performance.averageResponseTime > 500) {
+                recommendations.push('Consider optimizing response times');
+            }
+            if (performance.errorRate && typeof performance.errorRate === 'number' && performance.errorRate > 1) {
+                recommendations.push('Investigate high error rates');
+            }
+        }
+        // Uptime recommendations
+        if (metricsObj.uptime && typeof metricsObj.uptime === 'object') {
+            const uptime = metricsObj.uptime;
+            if (uptime.percentage24h && typeof uptime.percentage24h === 'number' && uptime.percentage24h < 99) {
+                recommendations.push('Improve uptime reliability');
+            }
         }
         // Security recommendations
-        if (metrics.security.securityHeaders.missing.length > 0) {
-            recommendations.push('Add missing security headers for better security');
-        }
-        // DNS recommendations
-        if (!metrics.dns.recordsValid) {
-            recommendations.push('Fix DNS configuration to ensure proper resolution');
+        if (metricsObj.security && typeof metricsObj.security === 'object') {
+            const security = metricsObj.security;
+            if (security.securityHeaders && typeof security.securityHeaders === 'object') {
+                const headers = security.securityHeaders;
+                if (headers.score && typeof headers.score === 'number' && headers.score < 80) {
+                    recommendations.push('Implement missing security headers');
+                }
+            }
         }
         return recommendations;
     }
     async storeHealthMetrics(metrics) {
-        // Would store metrics in database/time-series database
-        // For now, just log
-        console.log(`Health metrics stored for ${metrics.domainId}: ${metrics.score}/100`);
+        try {
+            const cacheKey = `health_metrics:${metrics.domainId}`;
+            await this.cacheService.cacheData(cacheKey, metrics, 300); // 5 minutes
+        }
+        catch (error) {
+            console.error('Failed to store health metrics:', error);
+        }
     }
     async checkAlertConditions(metrics) {
-        // Would check for alert conditions and create alerts
-        // For now, just log critical issues
-        if (metrics.status === 'unhealthy') {
-            console.log(`ALERT: Domain ${metrics.domainId} is unhealthy (score: ${metrics.score})`);
+        try {
+            const alertConditions = [
+                { condition: metrics.score < 50, severity: 'critical', message: 'Domain health score is critically low' },
+                { condition: metrics.performance.errorRate > 5, severity: 'error', message: 'High error rate detected' },
+                { condition: metrics.uptime.percentage24h < 95, severity: 'warning', message: 'Uptime below 95%' },
+            ];
+            for (const condition of alertConditions) {
+                if (condition.condition) {
+                    await this.createAlert(metrics.domainId, condition.severity, condition.message);
+                }
+            }
         }
+        catch (error) {
+            console.error('Failed to check alert conditions:', error);
+        }
+    }
+    async createAlert(domainId, severity, message) {
+        // Implementation would create alert in monitoring system
+        console.log(`Alert created for domain ${domainId}: ${severity} - ${message}`);
     }
     aggregateTopIssues(healthMetrics) {
         const issueMap = new Map();

@@ -2,12 +2,49 @@
  * Memory Migration Service
  * Handles migration of memories between domains with transformation and validation
  */
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { SoleMemoryIsolationService } from './SoleMemoryIsolationService';
+import type { MemoryScope } from './SoleMemoryIsolationService';
 import { DomainCacheService } from './DomainCacheService';
 export type MigrationType = 'copy' | 'move' | 'merge' | 'split';
 export type MigrationStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
 export type MemoryCategory = 'conversational' | 'factual' | 'procedural' | 'episodic' | 'semantic';
+export interface ExtendedMemoryScope extends MemoryScope {
+    [key: string]: unknown;
+}
+export interface MigrationRecord {
+    id: string;
+    sourceMemoryId: string;
+    targetMemoryId?: string | null;
+    migrationType: MigrationType;
+    memoryCategories: MemoryCategory[];
+    preserveSource: boolean;
+    transformRules?: Prisma.JsonValue;
+    mappingRules?: Prisma.JsonValue;
+    validationRules?: Prisma.JsonValue;
+    initiatedBy: string;
+    status: MigrationStatus;
+    progress: number;
+    totalItems: number;
+    processedItems: number;
+    failedItems: number;
+    dataSize: number;
+    startedAt?: Date | null;
+    completedAt?: Date | null;
+    errorMessage?: string | null;
+    rollbackData?: Prisma.JsonValue;
+    canRollback: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+export interface ValidationResultInternal {
+    ruleId: string;
+    ruleName: string;
+    passed: boolean;
+    message: string;
+    severity: 'warning' | 'error';
+    details?: any;
+}
 export interface MigrationRequest {
     sourceMemoryId: string;
     targetMemoryId?: string;
@@ -27,7 +64,7 @@ export interface TransformationRule {
     category: MemoryCategory | 'all';
     transformation: {
         type: 'replace' | 'transform' | 'filter' | 'enhance';
-        config: any;
+        config: Record<string, unknown>;
     };
     order: number;
 }
@@ -44,7 +81,7 @@ export interface ValidationRule {
     category: MemoryCategory | 'all';
     validator: {
         type: 'schema' | 'content' | 'size' | 'custom';
-        config: any;
+        config: Record<string, unknown>;
     };
     required: boolean;
 }
@@ -85,7 +122,7 @@ export interface MigrationPreview {
     estimatedSize: number;
     estimatedDuration: number;
     categoryBreakdown: Record<MemoryCategory, number>;
-    transformationPreview: any;
+    transformationPreview: Record<string, unknown>;
     validationResults: ValidationResult[];
     warnings: string[];
     errors: string[];
@@ -112,7 +149,7 @@ export declare class MemoryMigrationService {
      */
     createMigrationRequest(request: MigrationRequest): Promise<string>;
     /**
-     * Preview migration before execution
+     * Preview migration
      */
     previewMigration(migrationId: string): Promise<MigrationPreview>;
     /**
@@ -132,7 +169,7 @@ export declare class MemoryMigrationService {
      */
     getMigrationStatus(migrationId: string): Promise<MigrationResult>;
     /**
-     * List migrations for domain
+     * List migrations
      */
     listMigrations(domainId: string, filters?: {
         status?: MigrationStatus;

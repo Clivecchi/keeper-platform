@@ -2,9 +2,10 @@
  * Domain Resolution Service
  * Handles hostname-to-domain mapping, CORS configuration, and request routing
  */
-import { Domain } from '@prisma/client';
+import type { Domain } from '@prisma/client';
 import { DomainService } from './DomainService';
 import { DomainCacheService } from './DomainCacheService';
+import type { Request, Response, NextFunction } from 'express';
 export interface DomainResolutionResult {
     domain: Domain | null;
     resolutionMethod: 'slug' | 'custom_domain' | 'fallback' | 'not_found';
@@ -78,7 +79,7 @@ export declare class DomainResolutionService {
     /**
      * Middleware factory for Express.js
      */
-    createMiddleware(): (req: any, res: any, next: any) => Promise<void>;
+    createMiddleware(): (req: Request, res: Response, next: NextFunction) => Promise<void>;
     /**
      * Utility functions
      */

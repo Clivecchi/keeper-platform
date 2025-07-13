@@ -5,339 +5,335 @@
 import { getFeatureFlagService } from './FeatureFlagService';
 import * as crypto from 'crypto';
 export class ProductionConfigService {
-    prisma;
-    cacheService;
-    featureFlags = getFeatureFlagService();
-    config;
-    healthCheckInterval;
-    // Environment-specific configurations
-    ENVIRONMENT_CONFIGS = {
-        development: {
-            database: {
-                connectionPool: {
-                    min: 2,
-                    max: 10,
-                    acquireTimeoutMillis: 60000,
-                    createTimeoutMillis: 30000,
-                    destroyTimeoutMillis: 5000,
-                    idleTimeoutMillis: 30000,
-                    reapIntervalMillis: 1000,
-                    createRetryIntervalMillis: 200,
-                },
-                queryTimeout: 10000,
-                statementTimeout: 10000,
-                maxConnections: 10,
-                ssl: false,
-                logging: true,
-                slowQueryThreshold: 1000,
-                readReplicas: [],
-                writeInstance: '',
-                backup: {
-                    enabled: false,
-                    schedule: '0 2 * * *',
-                    retention: 7,
-                    encryption: false,
-                },
-            },
-            cache: {
-                redis: {
-                    host: 'localhost',
-                    port: 6379,
-                    db: 0,
-                    maxRetriesPerRequest: 3,
-                    retryDelayOnFailover: 100,
-                    enableOfflineQueue: false,
-                    maxMemoryPolicy: 'allkeys-lru',
-                    keyPrefix: 'keeper:dev:',
-                    cluster: {
-                        enabled: false,
-                        nodes: [],
-                    },
-                },
-                ttl: { domain: 300, permissions: 180, user: 120, session: 600, shareToken: 3600 },
-                compression: false,
-                serialization: 'json',
-                evictionPolicy: 'lru',
-            },
-            security: {
-                cors: {
-                    enabled: true,
-                    allowedOrigins: ['*'],
-                    allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-                    allowedHeaders: ['Content-Type', 'Authorization', 'X-Domain-Context'],
-                    credentials: true,
-                    maxAge: 86400,
-                    optionsSuccessStatus: 200,
-                },
-                rateLimit: {
-                    windowMs: 15 * 60 * 1000,
-                    max: 1000,
-                    message: 'Too many requests from this IP, please try again later.',
-                    standardHeaders: true,
-                    legacyHeaders: false,
-                    skipSuccessfulRequests: false,
-                    skipFailedRequests: false,
-                    keyGenerator: 'ip',
-                },
-                csrf: {
-                    enabled: false,
-                    secret: 'dev-csrf-secret',
-                    sameSite: 'lax',
-                    secure: false,
-                },
-                helmet: {
-                    contentSecurityPolicy: {
-                        enabled: false,
-                        directives: {},
-                    },
-                    hsts: {
-                        enabled: false,
-                        maxAge: 31536000,
-                        includeSubDomains: false,
-                        preload: false,
-                    },
-                    noSniff: true,
-                    xssFilter: true,
-                    referrerPolicy: 'no-referrer',
-                },
-                encryption: {
-                    algorithm: 'aes-256-gcm',
-                    keyLength: 32,
-                    ivLength: 16,
-                    saltLength: 32,
-                    iterations: 100000,
-                },
-                jwt: {
-                    secret: 'dev-jwt-secret',
-                    expiresIn: '1h',
-                    refreshExpiresIn: '7d',
-                    algorithm: 'HS256',
-                    issuer: 'keeper-dev',
-                    audience: 'keeper-dev',
-                },
-            },
-            performance: {
-                compression: {
-                    enabled: false,
-                    level: 6,
-                    threshold: 1024,
-                    filter: 'text/*',
-                },
-                etag: {
-                    enabled: true,
-                    weak: false,
-                },
-                keepAlive: {
-                    enabled: true,
-                    timeout: 5000,
-                },
-                clustering: {
-                    enabled: false,
-                    workers: 1,
-                    respawn: true,
-                    killTimeout: 5000,
-                },
-                gc: {
-                    enabled: false,
-                    interval: 60000,
-                    threshold: 80,
-                },
-                limits: {
-                    requestSize: '10mb',
-                    requestTimeout: 30000,
-                    concurrentRequests: 1000,
-                    memoryThreshold: 80,
-                    cpuThreshold: 80,
-                },
-            },
-            monitoring: {
-                logging: {
-                    level: 'debug',
-                    format: 'simple',
-                    destination: 'console',
-                    rotation: {
-                        enabled: false,
-                        maxSize: '10m',
-                        maxFiles: 5,
-                        datePattern: 'YYYY-MM-DD',
-                    },
-                },
-                metrics: {
-                    enabled: true,
-                    interval: 30000,
-                    retention: 86400,
-                    aggregation: ['avg', 'max', 'min'],
-                    export: {
-                        prometheus: false,
-                        datadog: false,
-                        newrelic: false,
-                    },
-                },
-                tracing: {
-                    enabled: true,
-                    sampleRate: 1.0,
-                    jaeger: {
-                        endpoint: 'http://localhost:14268/api/traces',
-                        serviceName: 'keeper-dev',
-                    },
-                },
-                alerting: {
-                    enabled: false,
-                    channels: ['console'],
-                    thresholds: {
-                        errorRate: 0.05,
-                        responseTime: 1000,
-                        memoryUsage: 80,
-                        cpuUsage: 80,
-                        diskUsage: 80,
-                    },
-                },
-                healthChecks: {
-                    enabled: true,
-                    interval: 30000,
-                    timeout: 5000,
-                    retries: 3,
-                    endpoints: ['/health'],
-                },
-            },
-        },
-        staging: {
-            database: {
-                connectionPool: {
-                    min: 5,
-                    max: 20,
-                    acquireTimeoutMillis: 60000,
-                    createTimeoutMillis: 30000,
-                    destroyTimeoutMillis: 5000,
-                    idleTimeoutMillis: 30000,
-                    reapIntervalMillis: 1000,
-                    createRetryIntervalMillis: 200,
-                },
-            },
-            cache: {
-                ttl: { domain: 600, permissions: 300, user: 300, session: 1800, shareToken: 7200 },
-                compression: true,
-            },
-            security: {
-                cors: {
-                    enabled: true,
-                    allowedOrigins: ['https://staging.keeper.tools'],
-                    allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-                    allowedHeaders: ['Content-Type', 'Authorization', 'X-Domain-Context'],
-                    credentials: true,
-                    maxAge: 86400,
-                    optionsSuccessStatus: 200,
-                },
-                rateLimit: {
-                    windowMs: 15 * 60 * 1000,
-                    max: 500,
-                    message: 'Too many requests from this IP, please try again later.',
-                    standardHeaders: true,
-                    legacyHeaders: false,
-                    skipSuccessfulRequests: false,
-                    skipFailedRequests: false,
-                    keyGenerator: 'ip',
-                },
-            },
-            performance: {
-                compression: {
-                    enabled: true,
-                    level: 6,
-                    threshold: 1024,
-                    filter: 'text/*',
-                },
-                clustering: {
-                    enabled: false,
-                    workers: 1,
-                    respawn: true,
-                    killTimeout: 5000,
-                },
-            },
-            monitoring: {
-                logging: {
-                    level: 'info',
-                    format: 'json',
-                    destination: 'console',
-                    rotation: {
-                        enabled: false,
-                        maxSize: '10m',
-                        maxFiles: 5,
-                        datePattern: 'YYYY-MM-DD',
-                    },
-                },
-                metrics: {
-                    enabled: true,
-                    interval: 15000,
-                    retention: 86400,
-                    aggregation: ['avg', 'max'],
-                    export: {
-                        prometheus: true,
-                        datadog: false,
-                        newrelic: false,
-                    },
-                },
-                tracing: {
-                    enabled: true,
-                    sampleRate: 0.1,
-                    jaeger: {
-                        endpoint: 'http://localhost:14268/api/traces',
-                        serviceName: 'keeper-staging',
-                    },
-                },
-            },
-        },
-        production: {
-            database: {
-                connectionPool: { min: 10, max: 50 },
-                queryTimeout: 30000,
-                logging: false,
-                ssl: true,
-            },
-            cache: {
-                ttl: { domain: 1800, permissions: 600, user: 600, session: 3600, shareToken: 14400 },
-                compression: true,
-            },
-            security: {
-                cors: { allowedOrigins: ['https://keeper.tools', 'https://app.keeper.tools'] },
-                rateLimit: { max: 200 },
-            },
-            performance: {
-                compression: { enabled: true },
-                clustering: { enabled: true, workers: 0 },
-            },
-            monitoring: {
-                logging: { level: 'warn', format: 'json' },
-                metrics: { enabled: true, interval: 10000 },
-                tracing: { enabled: true, sampleRate: 0.01 },
-            },
-        },
-        test: {
-            database: {
-                connectionPool: { min: 1, max: 5 },
-                queryTimeout: 5000,
-                logging: false,
-                ssl: false,
-            },
-            cache: {
-                ttl: { domain: 60, permissions: 30, user: 30, session: 120, shareToken: 300 },
-                compression: false,
-            },
-            security: {
-                cors: { allowedOrigins: ['*'] },
-                rateLimit: { max: 10000 },
-            },
-            performance: {
-                compression: { enabled: false },
-                clustering: { enabled: false },
-            },
-            monitoring: {
-                logging: { level: 'error', format: 'simple' },
-                metrics: { enabled: false },
-                tracing: { enabled: false },
-            },
-        },
-    };
     constructor(prisma, cacheService) {
+        this.featureFlags = getFeatureFlagService();
+        // Environment-specific configurations
+        this.ENVIRONMENT_CONFIGS = {
+            development: {
+                database: {
+                    connectionPool: {
+                        min: 2,
+                        max: 10,
+                        acquireTimeoutMillis: 60000,
+                        createTimeoutMillis: 30000,
+                        destroyTimeoutMillis: 5000,
+                        idleTimeoutMillis: 30000,
+                        reapIntervalMillis: 1000,
+                        createRetryIntervalMillis: 200,
+                    },
+                    queryTimeout: 10000,
+                    statementTimeout: 10000,
+                    maxConnections: 10,
+                    ssl: false,
+                    logging: true,
+                    slowQueryThreshold: 1000,
+                    readReplicas: [],
+                    writeInstance: '',
+                    backup: {
+                        enabled: false,
+                        schedule: '0 2 * * *',
+                        retention: 7,
+                        encryption: false,
+                    },
+                },
+                cache: {
+                    redis: {
+                        host: 'localhost',
+                        port: 6379,
+                        db: 0,
+                        maxRetriesPerRequest: 3,
+                        retryDelayOnFailover: 100,
+                        enableOfflineQueue: false,
+                        maxMemoryPolicy: 'allkeys-lru',
+                        keyPrefix: 'keeper:dev:',
+                        cluster: {
+                            enabled: false,
+                            nodes: [],
+                        },
+                    },
+                    ttl: { domain: 300, permissions: 180, user: 120, session: 600, shareToken: 3600 },
+                    compression: false,
+                    serialization: 'json',
+                    evictionPolicy: 'lru',
+                },
+                security: {
+                    cors: {
+                        enabled: true,
+                        allowedOrigins: ['*'],
+                        allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+                        allowedHeaders: ['Content-Type', 'Authorization', 'X-Domain-Context'],
+                        credentials: true,
+                        maxAge: 86400,
+                        optionsSuccessStatus: 200,
+                    },
+                    rateLimit: {
+                        windowMs: 15 * 60 * 1000,
+                        max: 1000,
+                        message: 'Too many requests from this IP, please try again later.',
+                        standardHeaders: true,
+                        legacyHeaders: false,
+                        skipSuccessfulRequests: false,
+                        skipFailedRequests: false,
+                        keyGenerator: 'ip',
+                    },
+                    csrf: {
+                        enabled: false,
+                        secret: 'dev-csrf-secret',
+                        sameSite: 'lax',
+                        secure: false,
+                    },
+                    helmet: {
+                        contentSecurityPolicy: {
+                            enabled: false,
+                            directives: {},
+                        },
+                        hsts: {
+                            enabled: false,
+                            maxAge: 31536000,
+                            includeSubDomains: false,
+                            preload: false,
+                        },
+                        noSniff: true,
+                        xssFilter: true,
+                        referrerPolicy: 'no-referrer',
+                    },
+                    encryption: {
+                        algorithm: 'aes-256-gcm',
+                        keyLength: 32,
+                        ivLength: 16,
+                        saltLength: 32,
+                        iterations: 100000,
+                    },
+                    jwt: {
+                        secret: 'dev-jwt-secret',
+                        expiresIn: '1h',
+                        refreshExpiresIn: '7d',
+                        algorithm: 'HS256',
+                        issuer: 'keeper-dev',
+                        audience: 'keeper-dev',
+                    },
+                },
+                performance: {
+                    compression: {
+                        enabled: false,
+                        level: 6,
+                        threshold: 1024,
+                        filter: 'text/*',
+                    },
+                    etag: {
+                        enabled: true,
+                        weak: false,
+                    },
+                    keepAlive: {
+                        enabled: true,
+                        timeout: 5000,
+                    },
+                    clustering: {
+                        enabled: false,
+                        workers: 1,
+                        respawn: true,
+                        killTimeout: 5000,
+                    },
+                    gc: {
+                        enabled: false,
+                        interval: 60000,
+                        threshold: 80,
+                    },
+                    limits: {
+                        requestSize: '10mb',
+                        requestTimeout: 30000,
+                        concurrentRequests: 1000,
+                        memoryThreshold: 80,
+                        cpuThreshold: 80,
+                    },
+                },
+                monitoring: {
+                    logging: {
+                        level: 'debug',
+                        format: 'simple',
+                        destination: 'console',
+                        rotation: {
+                            enabled: false,
+                            maxSize: '10m',
+                            maxFiles: 5,
+                            datePattern: 'YYYY-MM-DD',
+                        },
+                    },
+                    metrics: {
+                        enabled: true,
+                        interval: 30000,
+                        retention: 86400,
+                        aggregation: ['avg', 'max', 'min'],
+                        export: {
+                            prometheus: false,
+                            datadog: false,
+                            newrelic: false,
+                        },
+                    },
+                    tracing: {
+                        enabled: true,
+                        sampleRate: 1.0,
+                        jaeger: {
+                            endpoint: 'http://localhost:14268/api/traces',
+                            serviceName: 'keeper-dev',
+                        },
+                    },
+                    alerting: {
+                        enabled: false,
+                        channels: ['console'],
+                        thresholds: {
+                            errorRate: 0.05,
+                            responseTime: 1000,
+                            memoryUsage: 80,
+                            cpuUsage: 80,
+                            diskUsage: 80,
+                        },
+                    },
+                    healthChecks: {
+                        enabled: true,
+                        interval: 30000,
+                        timeout: 5000,
+                        retries: 3,
+                        endpoints: ['/health'],
+                    },
+                },
+            },
+            staging: {
+                database: {
+                    connectionPool: {
+                        min: 5,
+                        max: 20,
+                        acquireTimeoutMillis: 60000,
+                        createTimeoutMillis: 30000,
+                        destroyTimeoutMillis: 5000,
+                        idleTimeoutMillis: 30000,
+                        reapIntervalMillis: 1000,
+                        createRetryIntervalMillis: 200,
+                    },
+                },
+                cache: {
+                    ttl: { domain: 600, permissions: 300, user: 300, session: 1800, shareToken: 7200 },
+                    compression: true,
+                },
+                security: {
+                    cors: {
+                        enabled: true,
+                        allowedOrigins: ['https://staging.keeper.tools'],
+                        allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+                        allowedHeaders: ['Content-Type', 'Authorization', 'X-Domain-Context'],
+                        credentials: true,
+                        maxAge: 86400,
+                        optionsSuccessStatus: 200,
+                    },
+                    rateLimit: {
+                        windowMs: 15 * 60 * 1000,
+                        max: 500,
+                        message: 'Too many requests from this IP, please try again later.',
+                        standardHeaders: true,
+                        legacyHeaders: false,
+                        skipSuccessfulRequests: false,
+                        skipFailedRequests: false,
+                        keyGenerator: 'ip',
+                    },
+                },
+                performance: {
+                    compression: {
+                        enabled: true,
+                        level: 6,
+                        threshold: 1024,
+                        filter: 'text/*',
+                    },
+                    clustering: {
+                        enabled: false,
+                        workers: 1,
+                        respawn: true,
+                        killTimeout: 5000,
+                    },
+                },
+                monitoring: {
+                    logging: {
+                        level: 'info',
+                        format: 'json',
+                        destination: 'console',
+                        rotation: {
+                            enabled: false,
+                            maxSize: '10m',
+                            maxFiles: 5,
+                            datePattern: 'YYYY-MM-DD',
+                        },
+                    },
+                    metrics: {
+                        enabled: true,
+                        interval: 15000,
+                        retention: 86400,
+                        aggregation: ['avg', 'max'],
+                        export: {
+                            prometheus: true,
+                            datadog: false,
+                            newrelic: false,
+                        },
+                    },
+                    tracing: {
+                        enabled: true,
+                        sampleRate: 0.1,
+                        jaeger: {
+                            endpoint: 'http://localhost:14268/api/traces',
+                            serviceName: 'keeper-staging',
+                        },
+                    },
+                },
+            },
+            production: {
+                database: {
+                    connectionPool: { min: 10, max: 50 },
+                    queryTimeout: 30000,
+                    logging: false,
+                    ssl: true,
+                },
+                cache: {
+                    ttl: { domain: 1800, permissions: 600, user: 600, session: 3600, shareToken: 14400 },
+                    compression: true,
+                },
+                security: {
+                    cors: { allowedOrigins: ['https://keeper.tools', 'https://app.keeper.tools'] },
+                    rateLimit: { max: 200 },
+                },
+                performance: {
+                    compression: { enabled: true },
+                    clustering: { enabled: true, workers: 0 },
+                },
+                monitoring: {
+                    logging: { level: 'warn', format: 'json' },
+                    metrics: { enabled: true, interval: 10000 },
+                    tracing: { enabled: true, sampleRate: 0.01 },
+                },
+            },
+            test: {
+                database: {
+                    connectionPool: { min: 1, max: 5 },
+                    queryTimeout: 5000,
+                    logging: false,
+                    ssl: false,
+                },
+                cache: {
+                    ttl: { domain: 60, permissions: 30, user: 30, session: 120, shareToken: 300 },
+                    compression: false,
+                },
+                security: {
+                    cors: { allowedOrigins: ['*'] },
+                    rateLimit: { max: 10000 },
+                },
+                performance: {
+                    compression: { enabled: false },
+                    clustering: { enabled: false },
+                },
+                monitoring: {
+                    logging: { level: 'error', format: 'simple' },
+                    metrics: { enabled: false },
+                    tracing: { enabled: false },
+                },
+            },
+        };
         this.prisma = prisma;
         this.cacheService = cacheService;
         this.config = this.initializeConfig();
@@ -350,7 +346,7 @@ export class ProductionConfigService {
         const environment = process.env.NODE_ENV || 'development';
         const baseConfig = this.getBaseConfig();
         const envConfig = this.ENVIRONMENT_CONFIGS[environment];
-        return this.mergeConfigs(baseConfig, envConfig || {});
+        return this.mergeConfigs(baseConfig, envConfig);
     }
     /**
      * Get base configuration
@@ -642,7 +638,7 @@ export class ProductionConfigService {
         // Fix: Properly type the configuration categories to handle spread operations
         const existingConfig = this.config[category];
         const updatesConfig = updates;
-        // Cast back to the proper type after merging
+        // Cast back to the proper type after merging via unknown
         this.config[category] = {
             ...existingConfig,
             ...updatesConfig
@@ -753,12 +749,16 @@ export class ProductionConfigService {
      */
     mergeConfigs(base, override) {
         const result = { ...base };
-        for (const key in override) {
-            if (override[key] && typeof override[key] === 'object' && !Array.isArray(override[key])) {
-                result[key] = this.mergeConfigs(base[key] || {}, override[key]);
+        // Use Object.entries to avoid index signature issues
+        for (const [key, value] of Object.entries(override)) {
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+                // Use type-safe access with proper casting
+                const baseValue = base[key] || {};
+                result[key] = this.mergeConfigs(baseValue, value);
             }
             else {
-                result[key] = override[key];
+                // Use type-safe assignment
+                result[key] = value;
             }
         }
         return result;

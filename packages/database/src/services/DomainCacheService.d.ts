@@ -38,7 +38,15 @@ export declare class DomainCacheService {
     private redis;
     private config;
     private static readonly KEYS;
-    constructor(redis: Redis, config?: Partial<CacheConfig>);
+    constructor(redis: Redis | null, config?: Partial<CacheConfig>);
+    /**
+     * Check if Redis is available
+     */
+    private isRedisAvailable;
+    /**
+     * Safe Redis operation wrapper
+     */
+    private safeRedisOperation;
     /**
      * Get domain by slug with caching
      */
@@ -66,7 +74,7 @@ export declare class DomainCacheService {
     /**
      * Cache user permissions
      */
-    cacheUserPermissions(permission: any): Promise<void>;
+    cacheUserPermissions(permission: unknown): Promise<void>;
     /**
      * Get all users for a domain (cached)
      */
@@ -132,7 +140,7 @@ export declare class DomainCacheService {
     /**
      * Generic cache data method
      */
-    cacheData(key: string, data: any, ttl?: number): Promise<void>;
+    cacheData(key: string, data: unknown, ttl?: number): Promise<void>;
     /**
      * Generic get data method
      */
@@ -144,11 +152,11 @@ export declare class DomainCacheService {
     /**
      * Cache verification configuration
      */
-    cacheVerificationConfig(domainId: string, config: any): Promise<void>;
+    cacheVerificationConfig(domainId: string, config: Record<string, unknown>): Promise<void>;
     /**
      * Cache permission data
      */
-    cachePermission(key: string, permission: any): Promise<void>;
+    cachePermission(key: string, permission: unknown): Promise<void>;
     /**
      * Get cached permission
      */

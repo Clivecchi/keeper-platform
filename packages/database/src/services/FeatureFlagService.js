@@ -3,10 +3,9 @@
  * Manages feature flags for domain functionality and progressive rollout
  */
 export class FeatureFlagService {
-    flags = new Map();
-    environment;
-    overrides = new Map();
     constructor(environment = process.env.NODE_ENV || 'development') {
+        this.flags = new Map();
+        this.overrides = new Map();
         this.environment = environment;
         this.initializeDefaultFlags();
     }

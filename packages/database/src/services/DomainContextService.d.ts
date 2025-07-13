@@ -27,7 +27,7 @@ export declare class DomainContextService {
     private config;
     private metrics;
     private static readonly DEFAULT_CONFIG;
-    constructor(redis: Redis, domainId: string, config?: Partial<DomainContextConfig>);
+    constructor(redis: Redis | null, domainId: string, config?: Partial<DomainContextConfig>);
     /**
      * Get value from domain-scoped cache with safe error handling
      */

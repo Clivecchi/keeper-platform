@@ -55,7 +55,7 @@ export interface WorkflowStep {
 export interface AutoApprovalRule {
     id: string;
     name: string;
-    conditions: any;
+    conditions: Record<string, unknown>;
     maxDuration?: number;
     maxAccessCount?: number;
     allowedContentTypes?: ContentType[];
@@ -71,7 +71,7 @@ export interface AccessRestriction {
     id: string;
     name: string;
     restrictionType: 'ip' | 'time' | 'user' | 'session';
-    config: any;
+    config: Record<string, unknown>;
 }
 export interface ShareTemplate {
     name: string;
@@ -102,9 +102,9 @@ export interface CollaborationConfig {
     description?: string;
     collaborationType: 'project' | 'temporary' | 'ongoing';
     memberDomainIds: string[];
-    permissions: Record<string, any>;
-    sharedResources: Record<string, any>;
-    accessRules: Record<string, any>;
+    permissions: Record<string, unknown>;
+    sharedResources: Record<string, unknown>;
+    accessRules: Record<string, unknown>;
     startDate?: Date;
     endDate?: Date;
     auditLevel?: string;
@@ -127,6 +127,16 @@ export interface ShareMetrics {
     topTargetDomains: Array<{
         domainId: string;
         count: number;
+    }>;
+}
+export interface ShareRequestFilter {
+    sourceDomainId?: string;
+    targetDomainId?: string;
+    status?: ShareStatus;
+    contentType?: ContentType;
+    OR?: Array<{
+        sourceDomainId?: string;
+        targetDomainId?: string;
     }>;
 }
 export declare class CrossDomainSharingService {
@@ -154,7 +164,7 @@ export declare class CrossDomainSharingService {
     /**
      * Access shared content
      */
-    accessSharedContent(accessToken: string, userId?: string, ipAddress?: string, userAgent?: string): Promise<any>;
+    accessSharedContent(accessToken: string, userId?: string, ipAddress?: string, userAgent?: string): Promise<unknown>;
     /**
      * Create a workflow
      */
@@ -181,6 +191,62 @@ export declare class CrossDomainSharingService {
         limit?: number;
         offset?: number;
     }): Promise<any[]>;
+    /**
+     * Get sharing analytics for domain
+     */
+    getSharingAnalytics(domainId: string, options: {
+        period: string;
+        type: string;
+    }): Promise<{
+        period: string;
+        type: string;
+        totalShares: number;
+        activeShares: number;
+        pendingRequests: number;
+        approvedRequests: number;
+        rejectedRequests: number;
+        avgApprovalTime: number;
+        topContentTypes: Array<{
+            type: ContentType;
+            count: number;
+        }>;
+        topTargetDomains: Array<{
+            domainId: string;
+            count: number;
+        }>;
+        shareTrends: Array<{
+            date: string;
+            count: number;
+        }>;
+        accessMetrics: {
+            totalAccesses: number;
+            uniqueUsers: number;
+            avgSessionDuration: number;
+        };
+    }>;
+    /**
+     * Get sharing health status for domain
+     */
+    getSharingHealth(domainId: string): Promise<{
+        domainId: string;
+        status: 'healthy' | 'warning' | 'critical';
+        score: number;
+        metrics: {
+            totalRequests: number;
+            pendingRequests: number;
+            expiredRequests: number;
+            activeShares: number;
+            avgApprovalTime: number;
+            securityScore: number;
+        };
+        issues: Array<{
+            type: 'security' | 'performance' | 'compliance' | 'access';
+            severity: 'low' | 'medium' | 'high' | 'critical';
+            message: string;
+            recommendation: string;
+        }>;
+        lastChecked: Date;
+    }>;
     /**
      * Private helper methods
      */

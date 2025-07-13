@@ -1,9 +1,9 @@
-import { Request } from 'express';
+import type { Request } from 'express';
 export interface DomainContext {
-    id: string;
-    name: string;
-    ownerId: string;
-    settings: Record<string, any>;
+    domain: Record<string, unknown>;
+    isCustomDomain: boolean;
+    originalHostname: string;
+    resolvedSlug: string;
 }
 export interface AuthenticatedRequest extends Request {
     user: {

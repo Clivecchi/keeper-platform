@@ -3,32 +3,6 @@
  * Handles reserved slug protection and validation rules for domains
  */
 export class SlugValidationService {
-    static RESERVED_SLUGS = new Set([
-        // Core platform slugs
-        'kip', 'studio', 'admin', 'builder', 'api', 'www', 'app', 'dashboard',
-        // Technical slugs
-        'mail', 'ftp', 'smtp', 'imap', 'pop', 'ldap', 'dns', 'ntp',
-        'localhost', 'test', 'dev', 'staging', 'prod', 'production',
-        // Security/System slugs
-        'security', 'system', 'root', 'administrator', 'mod', 'moderator',
-        'support', 'help', 'docs', 'documentation', 'legal', 'privacy',
-        // Business/Brand slugs
-        'keeper', 'keepers', 'sole', 'journey', 'journeys', 'moment', 'moments',
-        'about', 'contact', 'pricing', 'blog', 'news', 'press',
-        // Common service slugs
-        'auth', 'login', 'register', 'signup', 'signin', 'logout',
-        'profile', 'settings', 'preferences', 'account', 'billing',
-        // File/Resource slugs
-        'assets', 'static', 'public', 'cdn', 'media', 'uploads', 'files',
-        'css', 'js', 'img', 'images', 'fonts', 'icons',
-        // Status/Error slugs
-        'status', 'health', 'ping', 'error', '404', '500', 'maintenance',
-        // Social/Community slugs
-        'social', 'community', 'forum', 'chat', 'discuss', 'feedback'
-    ]);
-    static SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-    static MIN_LENGTH = 2;
-    static MAX_LENGTH = 50;
     /**
      * Validates a slug against all rules
      */
@@ -227,5 +201,31 @@ export class SlugValidationService {
         };
     }
 }
+SlugValidationService.RESERVED_SLUGS = new Set([
+    // Core platform slugs
+    'kip', 'studio', 'admin', 'builder', 'api', 'www', 'app', 'dashboard',
+    // Technical slugs
+    'mail', 'ftp', 'smtp', 'imap', 'pop', 'ldap', 'dns', 'ntp',
+    'localhost', 'test', 'dev', 'staging', 'prod', 'production',
+    // Security/System slugs
+    'security', 'system', 'root', 'administrator', 'mod', 'moderator',
+    'support', 'help', 'docs', 'documentation', 'legal', 'privacy',
+    // Business/Brand slugs
+    'keeper', 'keepers', 'sole', 'journey', 'journeys', 'moment', 'moments',
+    'about', 'contact', 'pricing', 'blog', 'news', 'press',
+    // Common service slugs
+    'auth', 'login', 'register', 'signup', 'signin', 'logout',
+    'profile', 'settings', 'preferences', 'account', 'billing',
+    // File/Resource slugs
+    'assets', 'static', 'public', 'cdn', 'media', 'uploads', 'files',
+    'css', 'js', 'img', 'images', 'fonts', 'icons',
+    // Status/Error slugs
+    'status', 'health', 'ping', 'error', '404', '500', 'maintenance',
+    // Social/Community slugs
+    'social', 'community', 'forum', 'chat', 'discuss', 'feedback'
+]);
+SlugValidationService.SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+SlugValidationService.MIN_LENGTH = 2;
+SlugValidationService.MAX_LENGTH = 50;
 export default SlugValidationService;
 //# sourceMappingURL=SlugValidationService.js.map

@@ -2,11 +2,12 @@
  * Domain Service
  * Core CRUD operations for domain management with validation and caching
  */
-import { PrismaClient, Domain, DomainPermission } from '@prisma/client';
-import { DomainCacheService } from './DomainCacheService.js';
+import { PrismaClient } from '@prisma/client';
+import type { Domain, DomainPermission } from '@prisma/client';
+import { DomainCacheService } from './DomainCacheService';
 export type DomainWithIncludes = Domain & {
-    keepers: any[];
-    journeys: any[];
+    keepers: unknown[];
+    journeys: unknown[];
     permissions: DomainPermission[];
 };
 export interface CreateDomainRequest {
@@ -18,10 +19,10 @@ export interface CreateDomainRequest {
     categories?: string[];
     customDomain?: string;
     ownerId: string;
-    features?: Record<string, any>;
-    limits?: Record<string, any>;
-    theme?: Record<string, any>;
-    settings?: Record<string, any>;
+    features?: Record<string, unknown>;
+    limits?: Record<string, unknown>;
+    theme?: Record<string, unknown>;
+    settings?: Record<string, unknown>;
 }
 export interface UpdateDomainRequest {
     name?: string;
@@ -32,10 +33,10 @@ export interface UpdateDomainRequest {
     customDomain?: string;
     customDomainVerified?: boolean;
     isActive?: boolean;
-    features?: Record<string, any>;
-    limits?: Record<string, any>;
-    theme?: Record<string, any>;
-    settings?: Record<string, any>;
+    features?: Record<string, unknown>;
+    limits?: Record<string, unknown>;
+    theme?: Record<string, unknown>;
+    settings?: Record<string, unknown>;
 }
 export type DomainUpdateRequest = UpdateDomainRequest;
 export interface DomainSearchFilters {
@@ -52,6 +53,29 @@ export interface DomainVerificationRequest {
 }
 export interface DomainWithPermissions extends Domain {
     permissions?: DomainPermission[];
+}
+export interface DomainEvent {
+    ownerId?: string;
+    isPublic?: boolean;
+    status?: string;
+    isActive?: boolean;
+    categories?: {
+        hasSome: string[];
+    };
+    OR?: Array<{
+        name?: {
+            contains: string;
+            mode: string;
+        };
+        description?: {
+            contains: string;
+            mode: string;
+        };
+        slug?: {
+            contains: string;
+            mode: string;
+        };
+    }>;
 }
 export declare class DomainService {
     private prisma;
@@ -124,6 +148,56 @@ export declare class DomainService {
         status: string;
         issues: string[];
     }>;
+    /**
+     * Get domain settings
+     */
+    getDomainSettings(domainId: string): Promise<{
+        domainId: string;
+        settings: Record<string, unknown>;
+        features: Record<string, unknown>;
+        limits: Record<string, unknown>;
+        theme: Record<string, unknown>;
+        customDomain?: string;
+        customDomainVerified: boolean;
+        status: string;
+        isActive: boolean;
+        isPublic: boolean;
+        allowRequests: boolean;
+        categories: string[];
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    /**
+     * Get share agreement between domains
+     */
+    getShareAgreement(sourceDomainId: string, targetDomainId: string): Promise<{
+        id: string;
+        sourceDomainId: string;
+        targetDomainId: string;
+        shareType: 'read_only' | 'read_write' | 'reference_only';
+        status: 'pending' | 'approved' | 'rejected' | 'expired';
+        expiresAt?: Date;
+        maxAccess?: number;
+        currentAccess: number;
+        memoryCategories: string[];
+    } | null>;
+    /**
+     * Get memory scope for domain
+     */
+    getMemoryScope(domainId: string): Promise<{
+        id: string;
+        domainId: string;
+        isolationLevel: string;
+        allowCrossDomain: boolean;
+        maxMemorySize: number;
+        currentMemorySize: number;
+        compressionLevel: string;
+        readAccess: string[];
+        writeAccess: string[];
+        adminAccess: string[];
+        createdAt: Date;
+        updatedAt: Date;
+    } | null>;
 }
 export default DomainService;
 //# sourceMappingURL=DomainService.d.ts.map

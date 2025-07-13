@@ -4,39 +4,58 @@
  */
 import { getFeatureFlagService } from './FeatureFlagService';
 import * as crypto from 'crypto';
+// Type guards
+function isCertificateRecord(obj) {
+    return (typeof obj === 'object' &&
+        obj !== null &&
+        'id' in obj &&
+        'domainId' in obj &&
+        'customDomain' in obj &&
+        'provider' in obj &&
+        'status' in obj);
+}
+function hasCertificateMetadata(obj) {
+    return (isCertificateRecord(obj) &&
+        'metadata' in obj &&
+        typeof obj.metadata === 'object' &&
+        obj.metadata !== null);
+}
+function hasDomainField(obj) {
+    return (isCertificateRecord(obj) &&
+        'domain' in obj &&
+        typeof obj.domain === 'string');
+}
 export class SslCertificateService {
-    prisma;
-    cacheService;
-    featureFlags = getFeatureFlagService();
-    // Certificate providers configuration
-    PROVIDERS = {
-        letsencrypt: {
-            name: 'Let\'s Encrypt',
-            apiUrl: 'https://acme-v02.api.letsencrypt.org/directory',
-            staging: 'https://acme-staging-v02.api.letsencrypt.org/directory',
-            maxValidityDays: 90,
-            renewalDaysBefore: 30,
-        },
-        cloudflare: {
-            name: 'Cloudflare',
-            apiUrl: 'https://api.cloudflare.com/client/v4',
-            maxValidityDays: 90,
-            renewalDaysBefore: 30,
-        },
-        vercel: {
-            name: 'Vercel',
-            apiUrl: 'https://api.vercel.com/v1',
-            maxValidityDays: 90,
-            renewalDaysBefore: 30,
-        },
-        custom: {
-            name: 'Custom Provider',
-            apiUrl: '',
-            maxValidityDays: 365,
-            renewalDaysBefore: 30,
-        },
-    };
     constructor(prisma, cacheService) {
+        this.featureFlags = getFeatureFlagService();
+        // Certificate providers configuration
+        this.PROVIDERS = {
+            letsencrypt: {
+                name: 'Let\'s Encrypt',
+                apiUrl: 'https://acme-v02.api.letsencrypt.org/directory',
+                staging: 'https://acme-staging-v02.api.letsencrypt.org/directory',
+                maxValidityDays: 90,
+                renewalDaysBefore: 30,
+            },
+            cloudflare: {
+                name: 'Cloudflare',
+                apiUrl: 'https://api.cloudflare.com/client/v4',
+                maxValidityDays: 90,
+                renewalDaysBefore: 30,
+            },
+            vercel: {
+                name: 'Vercel',
+                apiUrl: 'https://api.vercel.com/v1',
+                maxValidityDays: 90,
+                renewalDaysBefore: 30,
+            },
+            custom: {
+                name: 'Custom Provider',
+                apiUrl: '',
+                maxValidityDays: 365,
+                renewalDaysBefore: 30,
+            },
+        };
         this.prisma = prisma;
         this.cacheService = cacheService;
     }
@@ -194,13 +213,13 @@ export class SslCertificateService {
                 securityScore -= 10;
             }
             // Check key algorithm
-            const keyAlgorithm = certificate.metadata.keyAlgorithm || 'RSA-2048';
+            const keyAlgorithm = certificate.metadata?.keyAlgorithm || 'RSA-2048';
             if (keyAlgorithm === 'RSA-2048') {
                 recommendations.push('Consider upgrading to RSA-4096 or ECDSA for better security');
                 securityScore -= 5;
             }
             // Check domain validation
-            const domainValidated = certificate.domain === domain;
+            const domainValidated = certificate.customDomain === domain;
             if (!domainValidated) {
                 issues.push('Certificate domain does not match requested domain');
                 securityScore -= 30;
@@ -458,16 +477,19 @@ export class SslCertificateService {
         // This would integrate with your notification system
         // For now, we'll just log the notifications
         if (success) {
-            console.log(`SSL certificate renewed successfully for ${certificate.domain}`);
+            console.log(`SSL certificate renewed successfully for ${certificate.customDomain}`);
             notifications.push('renewal_success');
         }
         else {
-            console.log(`SSL certificate renewal failed for ${certificate.domain}:`, error);
+            console.log(`SSL certificate renewal failed for ${certificate.customDomain}:`, error);
             notifications.push('renewal_failure');
         }
         return notifications;
     }
     transformCertificateRecord(record) {
+        if (!isCertificateRecord(record)) {
+            throw new Error('Invalid certificate record');
+        }
         return {
             id: record.id,
             domainId: record.domainId,
@@ -636,6 +658,9 @@ export class SslCertificateService {
      * Convert database certificate to CertificateInfo format
      */
     certificateToInfo(cert) {
+        if (!isCertificateRecord(cert)) {
+            throw new Error('Invalid certificate record');
+        }
         return {
             id: cert.id,
             domainId: cert.domainId,
@@ -648,7 +673,7 @@ export class SslCertificateService {
             serialNumber: cert.serialNumber,
             fingerprintSha256: cert.fingerprintSha256,
             metadata: {
-                challengeType: cert.challengeType,
+                challengeType: cert.challengeType || 'http-01',
                 issuedAt: cert.issuedAt,
                 lastRenewalAttempt: cert.lastRenewalAttempt,
             },
@@ -670,7 +695,7 @@ export class SslCertificateService {
                     provider: certificate.provider,
                     status: renewalResult.status,
                     validUntil: renewalResult.validUntil,
-                    error: renewalResult.status === 'failed' ? renewalResult.metadata.error : null,
+                    error: renewalResult.status === 'failed' ? renewalResult.metadata?.error : null,
                 });
             }
             catch (error) {

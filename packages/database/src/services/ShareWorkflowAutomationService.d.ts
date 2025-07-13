@@ -7,6 +7,88 @@ import { DomainCacheService } from './DomainCacheService';
 export type WorkflowStepType = 'approval' | 'notification' | 'validation' | 'transformation';
 export type StepStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped' | 'timeout';
 export type WorkflowTrigger = 'manual' | 'scheduled' | 'condition' | 'external';
+export interface WorkflowEvent {
+    id?: string;
+    name?: string;
+    autoActivate?: boolean;
+    allowedContentTypes?: string[];
+    maxDuration?: number;
+    maxAccessCount?: number;
+    conditions?: {
+        allowedDomains?: string[];
+        allowedUsers?: string[];
+        timeRestrictions?: {
+            allowedHours?: number[];
+            allowedDays?: number[];
+        };
+        [key: string]: unknown;
+    };
+    [key: string]: unknown;
+}
+export interface ShareRequest {
+    id: string;
+    workflowId: string;
+    sourceDomainId: string;
+    targetDomainId: string;
+    requestedBy: string;
+    contentType: string;
+    requestedDuration?: number;
+    maxAccessCount?: number;
+    requestedAt: Date;
+    status: string;
+    approvedAt?: Date;
+    progress?: number;
+    sourceDomain?: unknown;
+    targetDomain?: unknown;
+    workflow?: unknown;
+    [key: string]: unknown;
+}
+export interface StepExecution {
+    id: string;
+    shareRequestId: string;
+    stepNumber: number;
+    status: StepStatus;
+    workflowStep: {
+        id: string;
+        stepType: WorkflowStepType;
+        stepName: string;
+        conditions?: WorkflowCondition[];
+        actions?: {
+            notifications?: NotificationConfig[];
+            transformations?: WorkflowEvent[];
+        };
+        requiredUsers?: string[];
+        requiredRole?: string;
+        timeoutHours?: number;
+        [key: string]: unknown;
+    };
+    shareRequest: ShareRequest;
+    inputData?: Record<string, unknown>;
+    outputData?: Record<string, unknown>;
+    assignedTo?: string;
+    approvedBy?: string;
+    approvedAt?: Date;
+    startedAt?: Date;
+    completedAt?: Date;
+    timeoutAt?: Date;
+    retryCount?: number;
+    errorMessage?: string;
+    [key: string]: unknown;
+}
+export interface WorkflowStep {
+    id: string;
+    stepType: WorkflowStepType;
+    stepName: string;
+    conditions?: WorkflowCondition[];
+    actions?: {
+        notifications?: NotificationConfig[];
+        transformations?: WorkflowEvent[];
+    };
+    requiredUsers?: string[];
+    requiredRole?: string;
+    timeoutHours?: number;
+    [key: string]: unknown;
+}
 export interface WorkflowExecution {
     id: string;
     requestId: string;
@@ -16,31 +98,17 @@ export interface WorkflowExecution {
     startedAt: Date;
     completedAt?: Date;
     errorMessage?: string;
-    context: Record<string, any>;
-}
-export interface StepExecution {
-    id: string;
-    stepId: string;
-    requestId: string;
-    status: StepStatus;
-    startedAt: Date;
-    completedAt?: Date;
-    assignedTo?: string;
-    inputData?: any;
-    outputData?: any;
-    errorMessage?: string;
-    retryCount: number;
-    timeoutAt?: Date;
+    context: Record<string, unknown>;
 }
 export interface WorkflowCondition {
     type: 'user_role' | 'domain_property' | 'content_type' | 'time' | 'approval_count' | 'custom';
     operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than' | 'in' | 'not_in';
-    value: any;
+    value: unknown;
     field?: string;
 }
 export interface WorkflowAction {
     type: 'approve' | 'reject' | 'notify' | 'transform' | 'assign' | 'schedule' | 'custom';
-    config: Record<string, any>;
+    config: Record<string, unknown>;
 }
 export interface AutoApprovalRule {
     id: string;
@@ -84,7 +152,7 @@ export declare class ShareWorkflowAutomationService {
     /**
      * Initialize workflow execution
      */
-    initializeWorkflowExecution(requestId: string, workflowId: string, context?: Record<string, any>): Promise<string>;
+    initializeWorkflowExecution(requestId: string, workflowId: string, context?: Record<string, unknown>): Promise<string>;
     /**
      * Execute a workflow step
      */

@@ -19,7 +19,7 @@
  * ```
  */
 // =============================================================================
-// PRISMA CLIENT SETUP
+// IMPORTS
 // =============================================================================
 import { PrismaClient } from '@prisma/client';
 /**
@@ -28,13 +28,15 @@ import { PrismaClient } from '@prisma/client';
  * In development, we want to prevent multiple instances of Prisma Client
  * due to module reloading. In production, we create a new instance.
  */
-export const prisma = globalThis.__prisma || new PrismaClient({
+const prismaInstance = globalThis.__prisma || new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
 });
 // Store in global for development hot reloading
 if (process.env.NODE_ENV === 'development') {
-    globalThis.__prisma = prisma;
+    globalThis.__prisma = prismaInstance;
 }
+// Export the prisma instance
+export { prismaInstance as prisma };
 // =============================================================================
 // PRISMA CLIENT EXPORT
 // =============================================================================
@@ -42,35 +44,36 @@ export { PrismaClient } from '@prisma/client';
 // =============================================================================
 // QUERY HELPERS EXPORT
 // =============================================================================
-export * from './queries/index.js';
+export * from './queries/index';
 // =============================================================================
 // SERVICES EXPORT
 // =============================================================================
-export { DomainService } from './services/DomainService.js';
-export { DomainPermissionService } from './services/DomainPermissionService.js';
-export { DomainCacheService } from './services/DomainCacheService.js';
-export { DomainContextService } from './services/DomainContextService.js';
-export { SslCertificateService } from './services/SslCertificateService.js';
-export { DomainHealthMonitoringService } from './services/DomainHealthMonitoringService.js';
-export { CrossDomainSharingService } from './services/CrossDomainSharingService.js';
-export { ShareWorkflowAutomationService } from './services/ShareWorkflowAutomationService.js';
-export { SoleMemoryIsolationService } from './services/SoleMemoryIsolationService.js';
-export { FeatureFlagService, getFeatureFlagService } from './services/FeatureFlagService.js';
-export { DomainResolutionService } from './services/DomainResolutionService.js';
-export { DomainVerificationService } from './services/DomainVerificationService.js';
-export { MemoryMigrationService } from './services/MemoryMigrationService.js';
-export { MonitoringService } from './services/MonitoringService.js';
-export { ProductionConfigService } from './services/ProductionConfigService.js';
-export { DeploymentAutomationService } from './services/DeploymentAutomationService.js';
-export { SlugValidationService } from './services/SlugValidationService.js';
+export { DomainService } from './services/DomainService';
+export { DomainPermissionService } from './services/DomainPermissionService';
+export { DomainCacheService } from './services/DomainCacheService';
+export { DomainContextService } from './services/DomainContextService';
+export { SslCertificateService } from './services/SslCertificateService';
+export { DomainHealthMonitoringService } from './services/DomainHealthMonitoringService';
+export { CrossDomainSharingService } from './services/CrossDomainSharingService';
+export { ShareWorkflowAutomationService } from './services/ShareWorkflowAutomationService';
+export { SoleMemoryIsolationService } from './services/SoleMemoryIsolationService';
+export { FeatureFlagService, getFeatureFlagService } from './services/FeatureFlagService';
+export { DomainResolutionService } from './services/DomainResolutionService';
+export { DomainVerificationService } from './services/DomainVerificationService';
+export { MemoryMigrationService } from './services/MemoryMigrationService';
+export { MonitoringService } from './services/MonitoringService';
+export { ProductionConfigService } from './services/ProductionConfigService';
+export { DeploymentAutomationService } from './services/DeploymentAutomationService';
+export { SlugValidationService } from './services/SlugValidationService';
 // =============================================================================
 // FACTORY EXPORTS
 // =============================================================================
-export { DomainServiceFactory } from './factories/DomainServiceFactory.js';
+export { DomainServiceFactory } from './factories/DomainServiceFactory';
 // =============================================================================
 // TYPE EXPORTS
 // =============================================================================
-export * from './types.js';
+export * from './types';
+// Authentication types are exported from ./types/domain.ts
 // =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
@@ -78,20 +81,20 @@ export * from './types.js';
  * Gracefully disconnect from database
  */
 export async function disconnectDatabase() {
-    await prisma.$disconnect();
+    await prismaInstance.$disconnect();
 }
 /**
  * Connect to database (usually not needed as Prisma connects lazily)
  */
 export async function connectDatabase() {
-    await prisma.$connect();
+    await prismaInstance.$connect();
 }
 /**
  * Check database connection health
  */
 export async function checkDatabaseHealth() {
     try {
-        await prisma.$queryRaw `SELECT 1`;
+        await prismaInstance.$queryRaw `SELECT 1`;
         return { status: 'healthy', timestamp: new Date() };
     }
     catch (error) {

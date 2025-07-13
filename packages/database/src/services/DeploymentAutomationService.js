@@ -3,14 +3,10 @@
  * Handles CI/CD, zero-downtime deployments, rollbacks, and production deployment orchestration
  */
 export class DeploymentAutomationService {
-    prisma;
-    configService;
-    monitoringService;
-    cacheService;
-    deployments = new Map();
-    pipelines = new Map();
-    activeDeployments = new Set();
     constructor(prisma, configService, monitoringService, cacheService) {
+        this.deployments = new Map();
+        this.pipelines = new Map();
+        this.activeDeployments = new Set();
         this.prisma = prisma;
         this.configService = configService;
         this.monitoringService = monitoringService;
@@ -184,6 +180,78 @@ export class DeploymentAutomationService {
             deploymentFrequency: totalDeployments / 30, // Per day over 30 days
             meanTimeToRecovery: 0, // Would calculate from incident data
             changeFailureRate: totalDeployments > 0 ? (failedDeployments + rollbacks) / totalDeployments : 0,
+        };
+    }
+    /**
+     * Get deployment statistics for a specific deployment
+     */
+    async getDeploymentStats(deploymentId) {
+        const deployment = await this.getDeploymentStatus(deploymentId);
+        if (!deployment) {
+            throw new Error(`Deployment not found: ${deploymentId}`);
+        }
+        // Calculate step statistics
+        const totalSteps = deployment.steps.length;
+        const completedSteps = deployment.steps.filter(s => s.status === 'success').length;
+        const failedSteps = deployment.steps.filter(s => s.status === 'failed').length;
+        const successRate = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+        const stepDurations = deployment.steps
+            .filter(s => s.startTime && s.endTime)
+            .map(s => s.endTime.getTime() - s.startTime.getTime());
+        const averageStepDuration = stepDurations.length > 0
+            ? stepDurations.reduce((sum, duration) => sum + duration, 0) / stepDurations.length
+            : 0;
+        // Calculate health check statistics
+        const totalHealthChecks = deployment.healthChecks.length;
+        const passingHealthChecks = deployment.healthChecks.filter(h => h.status === 'healthy').length;
+        const responseTimes = deployment.healthChecks
+            .filter(h => h.responseTime)
+            .map(h => h.responseTime);
+        const averageResponseTime = responseTimes.length > 0
+            ? responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length
+            : 0;
+        return {
+            deploymentId: deployment.id,
+            status: deployment.status,
+            duration: deployment.duration || 0,
+            steps: deployment.steps.map(step => ({
+                name: step.name,
+                status: step.status === 'success' ? 'completed' : step.status === 'skipped' ? 'completed' : step.status,
+                duration: step.startTime && step.endTime ? step.endTime.getTime() - step.startTime.getTime() : 0,
+                startTime: step.startTime || new Date(),
+                endTime: step.endTime,
+                error: step.error,
+            })),
+            healthChecks: deployment.healthChecks.map(check => ({
+                name: check.name || 'health-check',
+                status: check.status === 'healthy' ? 'passing' : check.status === 'unhealthy' ? 'failing' : 'unknown',
+                responseTime: check.responseTime || 0,
+                lastChecked: check.lastChecked || new Date(),
+                details: check.details,
+            })),
+            artifacts: deployment.artifacts.map(artifact => ({
+                name: artifact.name,
+                size: artifact.size,
+                type: artifact.type,
+                url: artifact.url,
+            })),
+            metrics: {
+                totalSteps,
+                completedSteps,
+                failedSteps,
+                successRate,
+                averageStepDuration,
+                totalHealthChecks,
+                passingHealthChecks,
+                averageResponseTime,
+            },
+            rollbackInfo: deployment.rollbackInfo ? {
+                triggeredBy: deployment.rollbackInfo.triggeredBy,
+                reason: deployment.rollbackInfo.reason,
+                triggeredAt: new Date(),
+                previousVersion: deployment.rollbackInfo.previousVersion,
+            } : undefined,
+            metadata: deployment.metadata,
         };
     }
     /**
@@ -432,6 +500,8 @@ export class DeploymentAutomationService {
         await new Promise(resolve => setTimeout(resolve, 2000));
     }
     generateKubernetesConfig(environment, version, config) {
+        const scaling = config.scaling && typeof config.scaling === 'object' ? config.scaling : { min: 1 };
+        const minReplicas = scaling.min && typeof scaling.min === 'number' ? scaling.min : 1;
         return `
 apiVersion: apps/v1
 kind: Deployment
@@ -439,7 +509,7 @@ metadata:
   name: keeper-api
   namespace: ${environment}
 spec:
-  replicas: ${config.scaling.min}
+  replicas: ${minReplicas}
   selector:
     matchLabels:
       app: keeper-api

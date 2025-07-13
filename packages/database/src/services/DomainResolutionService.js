@@ -4,27 +4,25 @@
  */
 import { getFeatureFlagService } from './FeatureFlagService';
 export class DomainResolutionService {
-    domainService;
-    cacheService;
-    featureFlags = getFeatureFlagService();
-    // Platform domains that should resolve to default behavior
-    PLATFORM_DOMAINS = [
-        'keeper.tools',
-        'app.keeper.tools',
-        'studio.keeper.tools',
-        'api.keeper.tools',
-        'localhost',
-        '127.0.0.1',
-    ];
-    // Default CORS origins for development
-    DEFAULT_ORIGINS = [
-        'http://localhost:3000',
-        'http://localhost:5173',
-        'https://keeper.tools',
-        'https://app.keeper.tools',
-        'https://studio.keeper.tools',
-    ];
     constructor(domainService, cacheService) {
+        this.featureFlags = getFeatureFlagService();
+        // Platform domains that should resolve to default behavior
+        this.PLATFORM_DOMAINS = [
+            'keeper.tools',
+            'app.keeper.tools',
+            'studio.keeper.tools',
+            'api.keeper.tools',
+            'localhost',
+            '127.0.0.1',
+        ];
+        // Default CORS origins for development
+        this.DEFAULT_ORIGINS = [
+            'http://localhost:3000',
+            'http://localhost:5173',
+            'https://keeper.tools',
+            'https://app.keeper.tools',
+            'https://studio.keeper.tools',
+        ];
         this.domainService = domainService;
         this.cacheService = cacheService;
     }
@@ -151,7 +149,7 @@ export class DomainResolutionService {
             allowedOrigins: [...this.DEFAULT_ORIGINS],
             corsHeaders: this.generateCorsHeaders(this.DEFAULT_ORIGINS),
             isValid: false,
-            error: error?.message || 'Unknown error',
+            error: error && typeof error === 'object' && 'message' in error ? error.message : 'Unknown error',
         };
     }
     /**
@@ -300,9 +298,10 @@ export class DomainResolutionService {
     }
     extractHostname(req) {
         // Try various headers that might contain the hostname
-        const hostname = req.headers.host ||
-            req.headers['x-forwarded-host'] ||
-            req.headers['x-original-host'] ||
+        const headers = req.headers;
+        const hostname = headers.host ||
+            headers['x-forwarded-host'] ||
+            headers['x-original-host'] ||
             'localhost:3000';
         // Remove port if present
         return hostname.split(':')[0];

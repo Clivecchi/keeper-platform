@@ -4,28 +4,12 @@
  */
 import * as prometheus from 'prom-client';
 export class MonitoringService {
-    prisma;
-    cacheService;
-    configService;
-    promRegistry;
-    metrics = new Map();
-    alertRules = new Map();
-    activeAlerts = new Map();
-    metricsBuffer = [];
-    logBuffer = [];
-    // Prometheus metrics
-    httpRequestDuration;
-    httpRequestTotal;
-    activeConnections;
-    errorRate;
-    domainRequests;
-    cacheHitRate;
-    dbQueryDuration;
-    // Collection intervals
-    metricsInterval;
-    alertCheckInterval;
-    reportInterval;
     constructor(prisma, cacheService, configService) {
+        this.metrics = new Map();
+        this.alertRules = new Map();
+        this.activeAlerts = new Map();
+        this.metricsBuffer = [];
+        this.logBuffer = [];
         this.prisma = prisma;
         this.cacheService = cacheService;
         this.configService = configService;
@@ -206,6 +190,11 @@ export class MonitoringService {
             });
         }
         // Store trace data
+        // Convert tags to Record<string, string>
+        const stringifiedTags = Object.entries(span.tags).reduce((acc, [k, v]) => {
+            acc[k] = String(v);
+            return acc;
+        }, {});
         this.recordMetric({
             name: 'trace_duration',
             type: 'histogram',
@@ -213,7 +202,7 @@ export class MonitoringService {
             labels: { operation: span.operationName },
             value: span.duration,
             timestamp: span.endTime,
-            tags: span.tags,
+            tags: stringifiedTags,
         });
     }
     /**

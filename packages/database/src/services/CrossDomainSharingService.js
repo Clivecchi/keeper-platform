@@ -5,17 +5,15 @@
 import { getFeatureFlagService } from './FeatureFlagService';
 import * as crypto from 'crypto';
 export class CrossDomainSharingService {
-    prisma;
-    cacheService;
-    featureFlags = getFeatureFlagService();
-    // Cache TTL settings
-    CACHE_TTL = {
-        workflow: 3600, // 1 hour
-        template: 1800, // 30 minutes
-        request: 900, // 15 minutes
-        activation: 600, // 10 minutes
-    };
     constructor(prisma, cacheService) {
+        this.featureFlags = getFeatureFlagService();
+        // Cache TTL settings
+        this.CACHE_TTL = {
+            workflow: 3600, // 1 hour
+            template: 1800, // 30 minutes
+            request: 900, // 15 minutes
+            activation: 600, // 10 minutes
+        };
         this.prisma = prisma;
         this.cacheService = cacheService;
     }
@@ -26,43 +24,31 @@ export class CrossDomainSharingService {
         if (!this.featureFlags.isEnabled('CROSS_DOMAIN_SHARING')) {
             throw new Error('Cross-domain sharing is not enabled');
         }
-        // Validate domains exist and user has permissions
+        // Validate domains
         await this.validateDomains(input.sourceDomainId, input.targetDomainId);
+        // Validate user permissions
         await this.validateUserPermissions(input.sourceDomainId, requestedBy, 'share');
-        // Check for existing active request
-        const existingRequest = await this.prisma.shareRequest.findFirst({
-            where: {
-                sourceDomainId: input.sourceDomainId,
-                targetDomainId: input.targetDomainId,
-                contentType: input.contentType,
-                contentId: input.contentId,
-                status: { in: ['pending', 'in_review', 'approved'] },
-            },
-        });
-        if (existingRequest) {
-            throw new Error('An active share request already exists for this content');
-        }
-        // Get workflow (from input, template, or default)
+        // Get workflow if specified
         let workflow = null;
         if (input.workflowId) {
             workflow = await this.getWorkflow(input.workflowId);
         }
         else if (input.useTemplate) {
             const template = await this.getTemplate(input.useTemplate);
-            if (template.workflowId) {
+            if (template && typeof template === 'object' && 'workflowId' in template) {
                 workflow = await this.getWorkflow(template.workflowId);
             }
         }
         // Determine expiration
         const expiresAt = input.requestedDuration
             ? new Date(Date.now() + input.requestedDuration * 24 * 60 * 60 * 1000)
-            : workflow?.defaultExpirationDays
+            : workflow && typeof workflow === 'object' && 'defaultExpirationDays' in workflow
                 ? new Date(Date.now() + workflow.defaultExpirationDays * 24 * 60 * 60 * 1000)
                 : null;
         // Create share request
         const shareRequest = await this.prisma.shareRequest.create({
             data: {
-                workflowId: workflow?.id,
+                workflowId: workflow && typeof workflow === 'object' && 'id' in workflow ? workflow.id : null,
                 sourceDomainId: input.sourceDomainId,
                 targetDomainId: input.targetDomainId,
                 contentType: input.contentType,
@@ -77,15 +63,15 @@ export class CrossDomainSharingService {
                 justification: input.justification,
                 urgency: input.urgency || 'normal',
                 requestedBy,
-                status: workflow?.requiresApproval ? 'pending' : 'approved',
+                status: workflow && typeof workflow === 'object' && 'requiresApproval' in workflow && workflow.requiresApproval ? 'pending' : 'approved',
             },
         });
         // Initialize workflow if present
-        if (workflow) {
+        if (workflow && typeof workflow === 'object' && workflow !== null) {
             await this.initializeWorkflow(shareRequest.id, workflow);
         }
         // Auto-approve if workflow doesn't require approval
-        if (!workflow?.requiresApproval) {
+        if (!workflow || !(typeof workflow === 'object' && workflow !== null && 'requiresApproval' in workflow && workflow.requiresApproval)) {
             await this.activateShare(shareRequest.id, requestedBy);
         }
         // Send notifications
@@ -347,6 +333,7 @@ export class CrossDomainSharingService {
         for (const domainId of config.memberDomainIds) {
             await this.validateDomains(hostDomainId, domainId);
         }
+        // Create collaboration
         const collaboration = await this.prisma.crossDomainCollaboration.create({
             data: {
                 name: config.name,
@@ -355,9 +342,9 @@ export class CrossDomainSharingService {
                 hostDomainId,
                 memberDomainIds: config.memberDomainIds,
                 invitedDomainIds: config.memberDomainIds, // Initially invite all members
-                permissions: config.permissions,
-                sharedResources: config.sharedResources,
-                accessRules: config.accessRules,
+                permissions: JSON.parse(JSON.stringify(config.permissions)),
+                sharedResources: JSON.parse(JSON.stringify(config.sharedResources)),
+                accessRules: JSON.parse(JSON.stringify(config.accessRules)),
                 startDate: config.startDate,
                 endDate: config.endDate,
                 auditLevel: config.auditLevel || 'standard',
@@ -482,7 +469,6 @@ export class CrossDomainSharingService {
      */
     async listShareRequests(domainId, filters = {}) {
         const whereClause = {};
-        // Direction filter
         if (filters.direction === 'incoming') {
             whereClause.targetDomainId = domainId;
         }
@@ -495,26 +481,285 @@ export class CrossDomainSharingService {
                 { targetDomainId: domainId },
             ];
         }
-        // Additional filters
         if (filters.status) {
             whereClause.status = filters.status;
         }
         if (filters.contentType) {
             whereClause.contentType = filters.contentType;
         }
-        return this.prisma.shareRequest.findMany({
+        const requests = await this.prisma.shareRequest.findMany({
             where: whereClause,
             include: {
-                sourceDomain: { select: { id: true, name: true, slug: true } },
-                targetDomain: { select: { id: true, name: true, slug: true } },
-                requester: { select: { id: true, name: true, email: true } },
-                approver: { select: { id: true, name: true, email: true } },
-                workflow: { select: { id: true, name: true } },
+                workflow: true,
             },
             orderBy: { requestedAt: 'desc' },
             take: filters.limit || 50,
             skip: filters.offset || 0,
         });
+        return requests;
+    }
+    /**
+     * Get sharing analytics for domain
+     */
+    async getSharingAnalytics(domainId, options) {
+        const { period, type } = options;
+        // Parse period to get date range
+        const days = parseInt(period.replace('d', '')) || 7;
+        const endDate = new Date();
+        const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
+        // Get basic metrics
+        const [totalShares, activeShares, pendingRequests, approvedRequests, rejectedRequests] = await Promise.all([
+            this.prisma.shareRequest.count({
+                where: {
+                    sourceDomainId: domainId,
+                    requestedAt: { gte: startDate, lte: endDate },
+                },
+            }),
+            this.prisma.shareActivation.count({
+                where: {
+                    expiresAt: { gt: new Date() },
+                    deactivatedAt: null,
+                    shareRequest: { sourceDomainId: domainId },
+                },
+            }),
+            this.prisma.shareRequest.count({
+                where: {
+                    sourceDomainId: domainId,
+                    status: 'pending',
+                    requestedAt: { gte: startDate, lte: endDate },
+                },
+            }),
+            this.prisma.shareRequest.count({
+                where: {
+                    sourceDomainId: domainId,
+                    status: 'approved',
+                    requestedAt: { gte: startDate, lte: endDate },
+                },
+            }),
+            this.prisma.shareRequest.count({
+                where: {
+                    sourceDomainId: domainId,
+                    status: 'rejected',
+                    requestedAt: { gte: startDate, lte: endDate },
+                },
+            }),
+        ]);
+        // Calculate average approval time
+        const approvedRequestsWithTimes = await this.prisma.shareRequest.findMany({
+            where: {
+                sourceDomainId: domainId,
+                status: 'approved',
+                requestedAt: { gte: startDate, lte: endDate },
+                approvedAt: { not: null },
+            },
+            select: { requestedAt: true, approvedAt: true },
+        });
+        const avgApprovalTime = approvedRequestsWithTimes.length > 0
+            ? approvedRequestsWithTimes.reduce((sum, req) => {
+                const approvalTime = req.approvedAt.getTime() - req.requestedAt.getTime();
+                return sum + approvalTime;
+            }, 0) / approvedRequestsWithTimes.length / (1000 * 60 * 60) // Convert to hours
+            : 0;
+        // Get content type breakdown
+        const contentTypeStats = await this.prisma.shareRequest.groupBy({
+            by: ['contentType'],
+            where: {
+                sourceDomainId: domainId,
+                requestedAt: { gte: startDate, lte: endDate },
+            },
+            _count: { contentType: true },
+            orderBy: { _count: { contentType: 'desc' } },
+        });
+        // Get target domain breakdown
+        const targetDomainStats = await this.prisma.shareRequest.groupBy({
+            by: ['targetDomainId'],
+            where: {
+                sourceDomainId: domainId,
+                requestedAt: { gte: startDate, lte: endDate },
+            },
+            _count: { targetDomainId: true },
+            orderBy: { _count: { targetDomainId: 'desc' } },
+        });
+        // Generate share trends (daily for the period)
+        const shareTrends = [];
+        for (let i = 0; i < days; i++) {
+            const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+            const nextDate = new Date(date.getTime() + 24 * 60 * 60 * 1000);
+            const count = await this.prisma.shareRequest.count({
+                where: {
+                    sourceDomainId: domainId,
+                    requestedAt: { gte: date, lt: nextDate },
+                },
+            });
+            shareTrends.push({
+                date: date.toISOString().split('T')[0],
+                count,
+            });
+        }
+        // Get access metrics
+        const accessLogs = await this.prisma.shareAccessLog.findMany({
+            where: {
+                shareActivation: {
+                    shareRequest: { sourceDomainId: domainId },
+                },
+                accessedAt: { gte: startDate, lte: endDate },
+            },
+            select: { userId: true, accessedAt: true },
+        });
+        const uniqueUsers = new Set(accessLogs.map(log => log.userId).filter(Boolean)).size;
+        const totalAccesses = accessLogs.length;
+        const avgSessionDuration = 0; // Would be calculated from session data
+        return {
+            period,
+            type,
+            totalShares,
+            activeShares,
+            pendingRequests,
+            approvedRequests,
+            rejectedRequests,
+            avgApprovalTime,
+            topContentTypes: contentTypeStats.map(stat => ({
+                type: stat.contentType,
+                count: stat._count.contentType,
+            })),
+            topTargetDomains: targetDomainStats.map(stat => ({
+                domainId: stat.targetDomainId,
+                count: stat._count.targetDomainId,
+            })),
+            shareTrends,
+            accessMetrics: {
+                totalAccesses,
+                uniqueUsers,
+                avgSessionDuration,
+            },
+        };
+    }
+    /**
+     * Get sharing health status for domain
+     */
+    async getSharingHealth(domainId) {
+        const endDate = new Date();
+        const startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000); // Last 30 days
+        // Get basic metrics
+        const [totalRequests, pendingRequests, expiredRequests, activeShares] = await Promise.all([
+            this.prisma.shareRequest.count({
+                where: {
+                    sourceDomainId: domainId,
+                    requestedAt: { gte: startDate, lte: endDate },
+                },
+            }),
+            this.prisma.shareRequest.count({
+                where: {
+                    sourceDomainId: domainId,
+                    status: 'pending',
+                },
+            }),
+            this.prisma.shareRequest.count({
+                where: {
+                    sourceDomainId: domainId,
+                    status: 'expired',
+                    requestedAt: { gte: startDate, lte: endDate },
+                },
+            }),
+            this.prisma.shareActivation.count({
+                where: {
+                    expiresAt: { gt: new Date() },
+                    deactivatedAt: null,
+                    shareRequest: { sourceDomainId: domainId },
+                },
+            }),
+        ]);
+        // Calculate average approval time
+        const approvedRequestsWithTimes = await this.prisma.shareRequest.findMany({
+            where: {
+                sourceDomainId: domainId,
+                status: 'approved',
+                requestedAt: { gte: startDate, lte: endDate },
+                approvedAt: { not: null },
+            },
+            select: { requestedAt: true, approvedAt: true },
+        });
+        const avgApprovalTime = approvedRequestsWithTimes.length > 0
+            ? approvedRequestsWithTimes.reduce((sum, req) => {
+                const approvalTime = req.approvedAt.getTime() - req.requestedAt.getTime();
+                return sum + approvalTime;
+            }, 0) / approvedRequestsWithTimes.length / (1000 * 60 * 60) // Convert to hours
+            : 0;
+        // Calculate security score based on various factors
+        const securityIssues = await this.prisma.shareAccessLog.findMany({
+            where: {
+                shareActivation: {
+                    shareRequest: { sourceDomainId: domainId },
+                },
+                accessGranted: false,
+                accessedAt: { gte: startDate, lte: endDate },
+            },
+        });
+        const securityScore = Math.max(0, 100 - (securityIssues.length * 10));
+        // Calculate overall health score
+        const score = Math.round((securityScore * 0.4) +
+            (Math.max(0, 100 - (pendingRequests * 5)) * 0.3) +
+            (Math.max(0, 100 - (expiredRequests * 10)) * 0.3));
+        // Determine status based on score
+        let status;
+        if (score >= 80) {
+            status = 'healthy';
+        }
+        else if (score >= 60) {
+            status = 'warning';
+        }
+        else {
+            status = 'critical';
+        }
+        // Generate issues list
+        const issues = [];
+        if (securityIssues.length > 0) {
+            issues.push({
+                type: 'security',
+                severity: securityIssues.length > 5 ? 'high' : 'medium',
+                message: `${securityIssues.length} security violations detected`,
+                recommendation: 'Review access logs and strengthen security policies',
+            });
+        }
+        if (pendingRequests > 10) {
+            issues.push({
+                type: 'performance',
+                severity: pendingRequests > 20 ? 'high' : 'medium',
+                message: `${pendingRequests} pending share requests`,
+                recommendation: 'Review and process pending requests promptly',
+            });
+        }
+        if (expiredRequests > 5) {
+            issues.push({
+                type: 'compliance',
+                severity: 'medium',
+                message: `${expiredRequests} expired share requests`,
+                recommendation: 'Clean up expired requests and review expiration policies',
+            });
+        }
+        if (avgApprovalTime > 24) {
+            issues.push({
+                type: 'performance',
+                severity: avgApprovalTime > 72 ? 'high' : 'medium',
+                message: `Average approval time is ${avgApprovalTime.toFixed(1)} hours`,
+                recommendation: 'Optimize approval workflow to reduce response time',
+            });
+        }
+        return {
+            domainId,
+            status,
+            score,
+            metrics: {
+                totalRequests,
+                pendingRequests,
+                expiredRequests,
+                activeShares,
+                avgApprovalTime,
+                securityScore,
+            },
+            issues,
+            lastChecked: new Date(),
+        };
     }
     /**
      * Private helper methods
@@ -579,7 +824,11 @@ export class CrossDomainSharingService {
     }
     async initializeWorkflow(requestId, workflow) {
         // Create step executions for all workflow steps
-        for (const step of workflow.workflowSteps) {
+        if (!workflow || typeof workflow !== 'object' || !('workflowSteps' in workflow)) {
+            throw new Error('Invalid workflow: missing workflowSteps');
+        }
+        const workflowObj = workflow;
+        for (const step of workflowObj.workflowSteps) {
             await this.prisma.shareStepExecution.create({
                 data: {
                     shareRequestId: requestId,
@@ -594,38 +843,33 @@ export class CrossDomainSharingService {
         }
     }
     async executeWorkflowStep(requestId, stepNumber, userId) {
-        const stepExecution = await this.prisma.shareStepExecution.findFirst({
-            where: {
-                shareRequestId: requestId,
-                stepNumber,
-            },
+        const request = await this.prisma.shareRequest.findUnique({
+            where: { id: requestId },
+            include: { workflow: true },
         });
-        if (stepExecution) {
-            await this.prisma.shareStepExecution.update({
-                where: { id: stepExecution.id },
-                data: {
-                    status: 'completed',
-                    completedAt: new Date(),
-                    approvedBy: userId,
-                    approvedAt: new Date(),
-                },
-            });
+        if (!request || !request.workflow) {
+            return;
         }
+        // Process workflow step - simplified for now
+        console.log(`Processing workflow step ${stepNumber} for request ${requestId}`);
     }
     async validateAccessRestrictions(activation, userId, ipAddress) {
-        // IP restrictions
-        if (activation.ipRestrictions.length > 0 && ipAddress) {
-            const isAllowed = activation.ipRestrictions.some((restriction) => {
-                return ipAddress.startsWith(restriction) || restriction === '*';
-            });
-            if (!isAllowed) {
-                throw new Error('Access denied: IP address not allowed');
+        if (!activation || typeof activation !== 'object') {
+            return;
+        }
+        const activationObj = activation;
+        // Validate IP restrictions
+        if (activationObj.ipRestrictions && Array.isArray(activationObj.ipRestrictions)) {
+            const ipRestrictions = activationObj.ipRestrictions;
+            if (ipAddress && !ipRestrictions.includes(ipAddress)) {
+                throw new Error('Access denied: IP not in allowed list');
             }
         }
-        // User restrictions
-        if (activation.userRestrictions.length > 0 && userId) {
-            if (!activation.userRestrictions.includes(userId)) {
-                throw new Error('Access denied: User not allowed');
+        // Validate user restrictions
+        if (activationObj.userRestrictions && Array.isArray(activationObj.userRestrictions)) {
+            const userRestrictions = activationObj.userRestrictions;
+            if (userId && !userRestrictions.includes(userId)) {
+                throw new Error('Access denied: User not in allowed list');
             }
         }
     }

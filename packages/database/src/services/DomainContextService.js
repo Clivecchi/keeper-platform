@@ -4,16 +4,6 @@
  */
 import { logger } from '@keeper/shared';
 export class DomainContextService {
-    redis;
-    domainId;
-    config;
-    metrics;
-    static DEFAULT_CONFIG = {
-        defaultTTL: 3600, // 1 hour
-        keyPrefix: 'domain',
-        enableMetrics: true,
-        maxRetries: 3,
-    };
     constructor(redis, domainId, config) {
         this.redis = redis;
         this.domainId = domainId;
@@ -29,6 +19,8 @@ export class DomainContextService {
      * Get value from domain-scoped cache with safe error handling
      */
     async get(key) {
+        if (!this.redis)
+            return null;
         const operation = await this.safeOperation(async () => {
             const fullKey = this.buildKey(key);
             const raw = await this.redis.get(fullKey);
@@ -52,6 +44,8 @@ export class DomainContextService {
      * Set value in domain-scoped cache with optional TTL
      */
     async set(key, value, ttlSeconds) {
+        if (!this.redis)
+            return { success: false, error: 'Redis not available' };
         return await this.safeOperation(async () => {
             const fullKey = this.buildKey(key);
             const serializedValue = JSON.stringify(value);
@@ -70,6 +64,8 @@ export class DomainContextService {
      * Delete value from domain-scoped cache
      */
     async delete(key) {
+        if (!this.redis)
+            return { success: false, error: 'Redis not available' };
         return await this.safeOperation(async () => {
             const fullKey = this.buildKey(key);
             const deleted = await this.redis.del(fullKey);
@@ -82,6 +78,8 @@ export class DomainContextService {
      * Check if key exists in domain-scoped cache
      */
     async exists(key) {
+        if (!this.redis)
+            return false;
         const operation = await this.safeOperation(async () => {
             const fullKey = this.buildKey(key);
             const exists = await this.redis.exists(fullKey);
@@ -93,6 +91,8 @@ export class DomainContextService {
      * Get multiple values at once
      */
     async mget(keys) {
+        if (!this.redis)
+            return {};
         const operation = await this.safeOperation(async () => {
             const fullKeys = keys.map(key => this.buildKey(key));
             const values = await this.redis.mget(fullKeys);
@@ -123,6 +123,8 @@ export class DomainContextService {
      * Set multiple values at once
      */
     async mset(data, ttlSeconds) {
+        if (!this.redis)
+            return { success: false, error: 'Redis not available' };
         return await this.safeOperation(async () => {
             const pairs = [];
             const keys = [];
@@ -152,6 +154,8 @@ export class DomainContextService {
      * Get all keys in domain scope with optional pattern
      */
     async keys(pattern = '*') {
+        if (!this.redis)
+            return [];
         const operation = await this.safeOperation(async () => {
             const searchPattern = this.buildKey(pattern);
             const fullKeys = await this.redis.keys(searchPattern);
@@ -164,6 +168,8 @@ export class DomainContextService {
      * Clear all data for this domain
      */
     async clear() {
+        if (!this.redis)
+            return { success: false, error: 'Redis not available' };
         return await this.safeOperation(async () => {
             const pattern = this.buildKey('*');
             const keys = await this.redis.keys(pattern);
@@ -180,6 +186,8 @@ export class DomainContextService {
      * Increment a counter in domain scope
      */
     async increment(key, by = 1) {
+        if (!this.redis)
+            return null;
         const operation = await this.safeOperation(async () => {
             const fullKey = this.buildKey(key);
             const result = await this.redis.incrby(fullKey, by);
@@ -192,16 +200,21 @@ export class DomainContextService {
      * Set expiration for a key
      */
     async expire(key, ttlSeconds) {
+        if (!this.redis)
+            return { success: false, error: 'Redis not available' };
         return await this.safeOperation(async () => {
             const fullKey = this.buildKey(key);
             const result = await this.redis.expire(fullKey, ttlSeconds);
-            return { updated: result === 1 };
+            this.updateLastAccessed();
+            return { expired: result === 1 };
         });
     }
     /**
      * Get TTL for a key
      */
     async ttl(key) {
+        if (!this.redis)
+            return null;
         const operation = await this.safeOperation(async () => {
             const fullKey = this.buildKey(key);
             return await this.redis.ttl(fullKey);
@@ -235,6 +248,8 @@ export class DomainContextService {
      * Check Redis connection health
      */
     async healthCheck() {
+        if (!this.redis)
+            return { healthy: false, error: 'Redis not available' };
         try {
             const start = Date.now();
             await this.redis.ping();
@@ -244,7 +259,7 @@ export class DomainContextService {
         catch (error) {
             return {
                 healthy: false,
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : 'Unknown error',
             };
         }
     }
@@ -301,5 +316,11 @@ export class DomainContextService {
         }
     }
 }
+DomainContextService.DEFAULT_CONFIG = {
+    defaultTTL: 3600, // 1 hour
+    keyPrefix: 'domain',
+    enableMetrics: true,
+    maxRetries: 3,
+};
 export default DomainContextService;
 //# sourceMappingURL=DomainContextService.js.map

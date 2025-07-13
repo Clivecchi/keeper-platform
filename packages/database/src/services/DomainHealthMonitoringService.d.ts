@@ -155,6 +155,7 @@ export declare class DomainHealthMonitoringService {
     private generateRecommendations;
     private storeHealthMetrics;
     private checkAlertConditions;
+    private createAlert;
     private aggregateTopIssues;
     private getSeverityLevel;
 }

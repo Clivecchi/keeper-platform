@@ -3,20 +3,6 @@
  * Redis-based caching for domain resolution and permissions
  */
 export class DomainCacheService {
-    redis;
-    config;
-    // Cache key patterns
-    static KEYS = {
-        DOMAIN_BY_SLUG: 'domain:slug:',
-        DOMAIN_BY_HOSTNAME: 'domain:hostname:',
-        DOMAIN_BY_ID: 'domain:id:',
-        USER_PERMISSIONS: 'permissions:user:',
-        DOMAIN_PERMISSIONS: 'permissions:domain:',
-        NEGATIVE_CACHE: 'negative:',
-        DOMAIN_USERS: 'domain:users:',
-        USER_DOMAINS: 'user:domains:',
-        VERIFICATION_STATUS: 'verification:',
-    };
     constructor(redis, config) {
         this.redis = redis;
         this.config = {
@@ -30,9 +16,32 @@ export class DomainCacheService {
         };
     }
     /**
+     * Check if Redis is available
+     */
+    isRedisAvailable() {
+        return this.redis !== null;
+    }
+    /**
+     * Safe Redis operation wrapper
+     */
+    async safeRedisOperation(operation) {
+        if (!this.isRedisAvailable()) {
+            return null;
+        }
+        try {
+            return await operation();
+        }
+        catch (error) {
+            console.error('Redis operation failed:', error);
+            return null;
+        }
+    }
+    /**
      * Get domain by slug with caching
      */
     async getDomainBySlug(slug) {
+        if (!this.redis)
+            return null;
         const cacheKey = this.getCacheKey(DomainCacheService.KEYS.DOMAIN_BY_SLUG, slug);
         try {
             const cached = await this.redis.get(cacheKey);
@@ -54,6 +63,8 @@ export class DomainCacheService {
      * Get domain by custom hostname with caching
      */
     async getDomainByHostname(hostname) {
+        if (!this.redis)
+            return null;
         const cacheKey = this.getCacheKey(DomainCacheService.KEYS.DOMAIN_BY_HOSTNAME, hostname);
         try {
             const cached = await this.redis.get(cacheKey);
@@ -74,6 +85,8 @@ export class DomainCacheService {
      * Get domain by ID with caching
      */
     async getDomainById(id) {
+        if (!this.redis)
+            return null;
         const cacheKey = this.getCacheKey(DomainCacheService.KEYS.DOMAIN_BY_ID, id);
         try {
             const cached = await this.redis.get(cacheKey);
@@ -94,6 +107,8 @@ export class DomainCacheService {
      * Cache domain data with multiple keys
      */
     async cacheDomain(domain) {
+        if (!this.redis)
+            return;
         const domainJson = JSON.stringify(domain);
         const ttl = this.config.ttl.domain;
         try {
@@ -116,6 +131,8 @@ export class DomainCacheService {
      * Cache negative result (domain not found)
      */
     async cacheNegativeResult(key, identifier) {
+        if (!this.redis)
+            return;
         try {
             const cacheKey = this.getCacheKey(key, identifier);
             await this.redis.setex(cacheKey, this.config.ttl.negative, 'NULL');
@@ -128,6 +145,8 @@ export class DomainCacheService {
      * Get user permissions for a domain
      */
     async getUserPermissions(userId, domainId) {
+        if (!this.redis)
+            return null;
         const cacheKey = this.getCacheKey(DomainCacheService.KEYS.USER_PERMISSIONS, `${userId}:${domainId}`);
         try {
             const cached = await this.redis.get(cacheKey);
@@ -148,10 +167,15 @@ export class DomainCacheService {
      * Cache user permissions
      */
     async cacheUserPermissions(permission) {
+        if (!this.redis)
+            return;
         try {
-            const cacheKey = this.getCacheKey('user_permissions:', `${permission.userId}:${permission.domainId}`);
-            const value = JSON.stringify(permission);
-            await this.redis.setex(cacheKey, this.config.ttl.permission, value);
+            if (permission && typeof permission === 'object' && 'userId' in permission && 'domainId' in permission) {
+                const perm = permission;
+                const cacheKey = this.getCacheKey('user_permissions:', `${perm.userId}:${perm.domainId}`);
+                const value = JSON.stringify(permission);
+                await this.redis.setex(cacheKey, this.config.ttl.permission, value);
+            }
         }
         catch (error) {
             console.error('User permissions cache error:', error);
@@ -161,6 +185,8 @@ export class DomainCacheService {
      * Get all users for a domain (cached)
      */
     async getDomainUsers(domainId) {
+        if (!this.redis)
+            return null;
         const cacheKey = this.getCacheKey(DomainCacheService.KEYS.DOMAIN_USERS, domainId);
         try {
             const cached = await this.redis.get(cacheKey);
@@ -178,6 +204,8 @@ export class DomainCacheService {
      * Cache domain users list
      */
     async cacheDomainUsers(domainId, userIds) {
+        if (!this.redis)
+            return;
         try {
             const cacheKey = this.getCacheKey(DomainCacheService.KEYS.DOMAIN_USERS, domainId);
             await this.redis.setex(cacheKey, this.config.ttl.permission, JSON.stringify(userIds));
@@ -190,6 +218,8 @@ export class DomainCacheService {
      * Get user's domains (cached)
      */
     async getUserDomains(userId) {
+        if (!this.redis)
+            return null;
         const cacheKey = this.getCacheKey(DomainCacheService.KEYS.USER_DOMAINS, userId);
         try {
             const cached = await this.redis.get(cacheKey);
@@ -207,6 +237,8 @@ export class DomainCacheService {
      * Cache user's domains list
      */
     async cacheUserDomains(userId, domainIds) {
+        if (!this.redis)
+            return;
         try {
             const cacheKey = this.getCacheKey(DomainCacheService.KEYS.USER_DOMAINS, userId);
             await this.redis.setex(cacheKey, this.config.ttl.permission, JSON.stringify(domainIds));
@@ -219,6 +251,8 @@ export class DomainCacheService {
      * Invalidate all cache entries for a domain
      */
     async invalidateDomain(domainId) {
+        if (!this.redis)
+            return;
         try {
             // Get domain data first to know what keys to invalidate
             const domain = await this.getDomainById(domainId);
@@ -250,6 +284,8 @@ export class DomainCacheService {
      * Invalidate user-specific cache entries
      */
     async invalidateUser(userId) {
+        if (!this.redis)
+            return;
         try {
             const keysToDelete = [
                 this.getCacheKey(DomainCacheService.KEYS.USER_DOMAINS, userId),
@@ -271,6 +307,8 @@ export class DomainCacheService {
      * Invalidate cache for a specific user-domain permission
      */
     async invalidateUserPermission(userId, domainId) {
+        if (!this.redis)
+            return;
         try {
             const pattern = this.getCacheKey('permission:', `${userId}:${domainId}:*`);
             const keys = await this.redis.keys(pattern);
@@ -286,6 +324,8 @@ export class DomainCacheService {
      * Warm up cache with frequently accessed data
      */
     async warmUpCache(domains) {
+        if (!this.redis)
+            return;
         try {
             for (const domain of domains) {
                 await this.cacheDomain(domain);
@@ -299,6 +339,8 @@ export class DomainCacheService {
      * Clear all domain-related cache
      */
     async clearAllCache() {
+        if (!this.redis)
+            return;
         try {
             const pattern = this.getCacheKey('*');
             const keys = await this.redis.keys(pattern);
@@ -314,6 +356,8 @@ export class DomainCacheService {
      * Get cache statistics
      */
     async getCacheStats() {
+        if (!this.redis)
+            return { domains: 0, permissions: 0, totalKeys: 0, memoryUsage: 'N/A' };
         try {
             const pattern = this.getCacheKey('*');
             const allKeys = await this.redis.keys(pattern);
@@ -341,6 +385,8 @@ export class DomainCacheService {
      * Batch operations for better performance
      */
     async batchGet(keys) {
+        if (!this.redis)
+            return new Array(keys.length).fill(null);
         try {
             const cacheKeys = keys.map(key => this.getCacheKey('', key));
             return await this.redis.mget(...cacheKeys);
@@ -351,6 +397,8 @@ export class DomainCacheService {
         }
     }
     async batchSet(entries) {
+        if (!this.redis)
+            return;
         try {
             const pipeline = this.redis.pipeline();
             for (const entry of entries) {
@@ -375,6 +423,8 @@ export class DomainCacheService {
      * Health check for Redis connection
      */
     async healthCheck() {
+        if (!this.redis)
+            return false;
         try {
             const pong = await this.redis.ping();
             return pong === 'PONG';
@@ -388,6 +438,8 @@ export class DomainCacheService {
      * Generic cache data method
      */
     async cacheData(key, data, ttl) {
+        if (!this.redis)
+            return;
         try {
             const cacheKey = this.getCacheKey('data:', key);
             const value = JSON.stringify(data);
@@ -402,6 +454,8 @@ export class DomainCacheService {
      * Generic get data method
      */
     async getData(key) {
+        if (!this.redis)
+            return null;
         try {
             const cacheKey = this.getCacheKey('data:', key);
             const cached = await this.redis.get(cacheKey);
@@ -422,6 +476,8 @@ export class DomainCacheService {
      * Generic delete data method
      */
     async deleteData(key) {
+        if (!this.redis)
+            return;
         try {
             const cacheKey = this.getCacheKey('data:', key);
             await this.redis.del(cacheKey);
@@ -434,6 +490,8 @@ export class DomainCacheService {
      * Cache verification configuration
      */
     async cacheVerificationConfig(domainId, config) {
+        if (!this.redis)
+            return;
         try {
             const cacheKey = this.getCacheKey(DomainCacheService.KEYS.VERIFICATION_STATUS, domainId);
             const value = JSON.stringify(config);
@@ -447,6 +505,8 @@ export class DomainCacheService {
      * Cache permission data
      */
     async cachePermission(key, permission) {
+        if (!this.redis)
+            return;
         try {
             const cacheKey = this.getCacheKey('permission:', key);
             const value = JSON.stringify(permission);
@@ -460,6 +520,8 @@ export class DomainCacheService {
      * Get cached permission
      */
     async getPermission(key) {
+        if (!this.redis)
+            return null;
         try {
             const cacheKey = this.getCacheKey('permission:', key);
             const value = await this.redis.get(cacheKey);
@@ -471,5 +533,18 @@ export class DomainCacheService {
         }
     }
 }
+// @ts-ignore - Suppressing null checks for development Redis handling
+// Cache key patterns
+DomainCacheService.KEYS = {
+    DOMAIN_BY_SLUG: 'domain:slug:',
+    DOMAIN_BY_HOSTNAME: 'domain:hostname:',
+    DOMAIN_BY_ID: 'domain:id:',
+    USER_PERMISSIONS: 'permissions:user:',
+    DOMAIN_PERMISSIONS: 'permissions:domain:',
+    NEGATIVE_CACHE: 'negative:',
+    DOMAIN_USERS: 'domain:users:',
+    USER_DOMAINS: 'user:domains:',
+    VERIFICATION_STATUS: 'verification:',
+};
 export default DomainCacheService;
 //# sourceMappingURL=DomainCacheService.js.map

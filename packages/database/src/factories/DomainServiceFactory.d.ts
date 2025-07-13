@@ -9,7 +9,7 @@ export interface DomainServiceFactoryConfig {
     retryDelayMs?: number;
 }
 export interface IMemoryService {
-    getMemoryScope(domainId: string): Promise<any>;
+    getMemoryScope(domainId: string): Promise<unknown>;
     getMemoryQuota(domainId: string): Promise<{
         domainId: string;
         maxMemorySize: number;
@@ -21,7 +21,7 @@ export interface IMemoryService {
     checkMemoryAccess(domainId: string, userId: string, accessType: string): Promise<boolean>;
 }
 export interface IDomainService {
-    getDomainById(id: string): Promise<any>;
+    getDomainById(id: string): Promise<unknown>;
     getUserDomains(userId: string): Promise<any[]>;
 }
 export declare class DomainServiceFactory {

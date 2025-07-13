@@ -244,7 +244,7 @@ export interface DomainConfig {
 export interface FeatureConfig {
     flags: Record<string, boolean>;
     rollout: Record<string, number>;
-    experiments: Record<string, any>;
+    experiments: Record<string, unknown>;
     deprecations: Record<string, string>;
 }
 export interface DeploymentConfig {

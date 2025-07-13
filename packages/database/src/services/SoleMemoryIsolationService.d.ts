@@ -2,7 +2,7 @@
  * SOLE Memory Isolation Service
  * Core service for managing domain-scoped memory isolation for AI agents
  */
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { DomainCacheService } from './DomainCacheService';
 export type MemoryCategory = 'conversational' | 'factual' | 'procedural' | 'episodic' | 'semantic';
 export type AccessType = 'read' | 'write' | 'admin';
@@ -12,7 +12,7 @@ export type MigrationType = 'copy' | 'move' | 'merge' | 'split';
 export interface MemoryContent {
     id: string;
     category: MemoryCategory;
-    content: any;
+    content: Record<string, unknown>;
     metadata: {
         timestamp: Date;
         source: string;
@@ -50,7 +50,7 @@ export interface MemoryInsert {
     domainId: string;
     userId: string;
     category: MemoryCategory;
-    content: any;
+    content: Record<string, unknown>;
     metadata?: Partial<MemoryContent['metadata']>;
     access?: Partial<MemoryContent['access']>;
 }
@@ -71,9 +71,9 @@ export interface MemoryMigrationRequest {
     migrationType: MigrationType;
     memoryCategories: MemoryCategory[];
     preserveSource: boolean;
-    transformRules?: any;
-    mappingRules?: any;
-    validationRules?: any;
+    transformRules?: Prisma.InputJsonValue;
+    mappingRules?: Prisma.InputJsonValue;
+    validationRules?: Prisma.InputJsonValue;
     initiatedBy: string;
 }
 export interface MemoryQuota {
@@ -112,6 +112,31 @@ export interface MemoryAnalytics {
         userCount: number;
     };
 }
+export interface MemoryScope {
+    id: string;
+    domainId: string;
+    createdBy: string;
+    isolationLevel: IsolationLevel;
+    allowCrossDomain: boolean;
+    maxMemorySize: number;
+    currentMemorySize: number;
+    conversationMemory: Record<string, MemoryContent>;
+    factualMemory: Record<string, MemoryContent>;
+    proceduralMemory: Record<string, MemoryContent>;
+    episodicMemory: Record<string, MemoryContent>;
+    semanticMemory: Record<string, MemoryContent>;
+    compressionLevel: string;
+    retentionPolicy: Prisma.InputJsonValue;
+    readAccess: string[];
+    writeAccess: string[];
+    adminAccess: string[];
+    createdAt: Date;
+    updatedAt: Date;
+    domain?: unknown;
+    creator?: unknown;
+    sharedFrom?: unknown;
+    sharedTo?: unknown;
+}
 export declare class SoleMemoryIsolationService {
     private prisma;
     private cacheService;
@@ -122,11 +147,11 @@ export declare class SoleMemoryIsolationService {
     /**
      * Initialize memory scope for a domain
      */
-    initializeMemoryScope(domainId: string, createdBy: string): Promise<any>;
+    initializeMemoryScope(domainId: string, createdBy: string): Promise<MemoryScope>;
     /**
      * Get memory scope for domain
      */
-    getMemoryScope(domainId: string): Promise<any>;
+    getMemoryScope(domainId: string): Promise<MemoryScope>;
     /**
      * Check if user has access to memory scope
      */
@@ -156,6 +181,29 @@ export declare class SoleMemoryIsolationService {
      */
     approveMemoryShare(shareId: string, approvedBy: string): Promise<void>;
     /**
+     * Share memory with another domain
+     */
+    shareMemory(domainId: string, shareRequest: {
+        targetDomainId: string;
+        shareType: 'read_only' | 'read_write' | 'reference_only';
+        memoryCategories: MemoryCategory[];
+        accessLevel: 'limited' | 'full' | 'custom';
+        sourceUserId: string;
+        expiresAt?: Date;
+        maxAccess?: number;
+    }): Promise<string>;
+    /**
+     * Migrate memory to another domain
+     */
+    migrateMemory(domainId: string, migrationRequest: {
+        targetDomainId: string;
+        memoryCategories: MemoryCategory[];
+        sourceUserId: string;
+        transformRules?: Record<string, unknown>;
+        mappingRules?: Record<string, unknown>;
+        validationRules?: Record<string, unknown>;
+    }): Promise<string>;
+    /**
      * Get memory quota information
      */
     getMemoryQuota(domainId: string): Promise<MemoryQuota>;
@@ -163,6 +211,75 @@ export declare class SoleMemoryIsolationService {
      * Get memory analytics
      */
     getMemoryAnalytics(domainId: string, days?: number): Promise<MemoryAnalytics>;
+    /**
+     * Get memory health status for domain
+     */
+    getMemoryHealth(domainId: string, userId: string): Promise<{
+        domainId: string;
+        status: 'healthy' | 'warning' | 'critical';
+        score: number;
+        metrics: {
+            totalMemorySize: number;
+            memoryUsage: number;
+            accessCount: number;
+            errorRate: number;
+            responseTime: number;
+        };
+        categories: Array<{
+            category: MemoryCategory;
+            size: number;
+            usage: number;
+            health: 'healthy' | 'warning' | 'critical';
+        }>;
+        issues: Array<{
+            type: 'quota' | 'performance' | 'security' | 'access';
+            severity: 'low' | 'medium' | 'high' | 'critical';
+            message: string;
+            recommendation: string;
+        }>;
+        lastChecked: Date;
+    }>;
+    /**
+     * Cleanup memory based on retention policies
+     */
+    cleanupMemory(domainId: string, cleanupRequest: {
+        sourceUserId?: string;
+        categories?: MemoryCategory[];
+        retentionDays?: number;
+        dryRun?: boolean;
+    }): Promise<{
+        cleanedItems: number;
+        freedSpace: number;
+        errors: string[];
+    }>;
+    /**
+     * Create memory backup
+     */
+    createMemoryBackup(domainId: string, backupRequest: {
+        sourceUserId?: string;
+        categories?: MemoryCategory[];
+        includeMetadata?: boolean;
+        compressionLevel?: 'none' | 'light' | 'moderate' | 'aggressive';
+    }): Promise<{
+        backupId: string;
+        size: number;
+        categories: MemoryCategory[];
+        createdAt: Date;
+    }>;
+    /**
+     * Restore memory from backup
+     */
+    restoreMemoryBackup(domainId: string, restoreRequest: {
+        sourceUserId?: string;
+        backupId: string;
+        categories?: MemoryCategory[];
+        overwrite?: boolean;
+        validateOnly?: boolean;
+    }): Promise<{
+        restoredItems: number;
+        restoredSize: number;
+        errors: string[];
+    }>;
     /**
      * Private helper methods
      */
