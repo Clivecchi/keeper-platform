@@ -3,19 +3,20 @@
  * Handles role-based access control for domains with caching and inheritance
  */
 
-import { PrismaClient, DomainPermission } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import type { DomainPermission } from '@prisma/client';
 import { DomainCacheService } from './DomainCacheService';
 import { getFeatureFlagService } from './FeatureFlagService';
-import { 
+import type { 
   DomainRole, 
   DomainPermissionType, 
   DomainPermissionSummary, 
   UserPermissionSummary,
   GrantPermissionRequest,
   PermissionCheck,
-  PermissionResult,
-  convertNullToUndefined
+  PermissionResult
 } from '../types/domain';
+import { convertNullToUndefined } from '../types/domain';
 
 export class DomainPermissionService {
   private prisma: PrismaClient;

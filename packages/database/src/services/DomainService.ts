@@ -3,10 +3,11 @@
  * Core CRUD operations for domain management with validation and caching
  */
 
-import { PrismaClient, Domain, DomainPermission } from '@prisma/client';
-import { SlugValidationService } from './SlugValidationService.js';
-import { DomainCacheService } from './DomainCacheService.js';
-import { getFeatureFlagService } from './FeatureFlagService.js';
+import { PrismaClient } from '@prisma/client';
+import type { Domain, DomainPermission } from '@prisma/client';
+import { SlugValidationService } from './SlugValidationService';
+import { DomainCacheService } from './DomainCacheService';
+import { getFeatureFlagService } from './FeatureFlagService';
 
 // Define the Domain with includes type for Prisma queries
 export type DomainWithIncludes = Domain & {

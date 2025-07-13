@@ -1,11 +1,11 @@
 {
   "extends": "../../tools/tsconfig/base.json",
   "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "target": "ES2022",
-    "rootDir": "src",
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "outDir": "dist",
+    "rootDir": "src",
     "baseUrl": "./src",
     "declaration": true,
     "declarationMap": true,

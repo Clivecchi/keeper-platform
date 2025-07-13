@@ -4,7 +4,8 @@
  */
 
 import { PrismaClient, Prisma } from '@prisma/client';
-import { SoleMemoryIsolationService, MemoryScope } from './SoleMemoryIsolationService';
+import { SoleMemoryIsolationService } from './SoleMemoryIsolationService';
+import type { MemoryScope } from './SoleMemoryIsolationService';
 import { DomainCacheService } from './DomainCacheService';
 import { getFeatureFlagService } from './FeatureFlagService';
 import * as crypto from 'crypto';

@@ -3,11 +3,11 @@
  * Handles hostname-to-domain mapping, CORS configuration, and request routing
  */
 
-import { Domain } from '@prisma/client';
+import type { Domain } from '@prisma/client';
 import { DomainService } from './DomainService';
 import { DomainCacheService } from './DomainCacheService';
 import { getFeatureFlagService } from './FeatureFlagService';
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 
 export interface DomainResolutionResult {
   domain: Domain | null;

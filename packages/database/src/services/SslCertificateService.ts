@@ -3,11 +3,12 @@
  * Handles automated SSL certificate provisioning, renewal, and monitoring
  */
 
-import { PrismaClient, SslCertificate } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import type { SslCertificate } from '@prisma/client';
 import { DomainCacheService } from './DomainCacheService';
 import { getFeatureFlagService } from './FeatureFlagService';
 import * as crypto from 'crypto';
-import { CertificateProvider, CertificateStatus, CertificateInfo, CertificateRequest } from '../types/ssl';
+import type { CertificateProvider, CertificateStatus, CertificateInfo, CertificateRequest } from '../types/ssl';
 
 export interface CertificateValidation {
   isValid: boolean;

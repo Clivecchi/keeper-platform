@@ -5,8 +5,8 @@
 
 import { PrismaClient } from '@prisma/client';
 import { Redis } from 'ioredis';
-import { DomainService } from './DomainService.js';
-import { DomainCacheService } from './DomainCacheService.js';
+import { DomainService } from './DomainService';
+import { DomainCacheService } from './DomainCacheService';
 
 export class DomainServiceFactory {
   /**

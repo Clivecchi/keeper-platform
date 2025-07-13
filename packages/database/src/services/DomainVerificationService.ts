@@ -3,7 +3,8 @@
  * Handles custom domain verification through DNS, HTTP, and file-based methods
  */
 
-import { PrismaClient, Domain } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import type { Domain } from '@prisma/client';
 import { DomainCacheService } from './DomainCacheService';
 import { getFeatureFlagService } from './FeatureFlagService';
 import * as crypto from 'crypto';
