@@ -28,7 +28,7 @@ export interface ContextMetrics {
 }
 
 export class DomainContextService {
-  private redis: Redis;
+  private redis: Redis | null;
   private domainId: string;
   private config: Required<DomainContextConfig>;
   private metrics: ContextMetrics;
@@ -40,7 +40,7 @@ export class DomainContextService {
     maxRetries: 3,
   };
 
-  constructor(redis: Redis, domainId: string, config?: Partial<DomainContextConfig>) {
+  constructor(redis: Redis | null, domainId: string, config?: Partial<DomainContextConfig>) {
     this.redis = redis;
     this.domainId = domainId;
     this.config = { ...DomainContextService.DEFAULT_CONFIG, ...config };
@@ -56,9 +56,11 @@ export class DomainContextService {
    * Get value from domain-scoped cache with safe error handling
    */
   async get<T>(key: string): Promise<T | null> {
+    if (!this.redis) return null;
+    
     const operation = await this.safeOperation(async () => {
       const fullKey = this.buildKey(key);
-      const raw = await this.redis.get(fullKey);
+      const raw = await this.redis!.get(fullKey);
       
       if (raw === null) {
         this.incrementMetric('misses');
@@ -83,15 +85,17 @@ export class DomainContextService {
     * Set value in domain-scoped cache with optional TTL
     */
   async set<T>(key: string, value: T, ttlSeconds?: number): Promise<ContextOperation> {
+    if (!this.redis) return { success: false, error: 'Redis not available' };
+    
     return await this.safeOperation(async () => {
       const fullKey = this.buildKey(key);
       const serializedValue = JSON.stringify(value);
       const ttl = ttlSeconds ?? this.config.defaultTTL;
 
       if (ttl > 0) {
-        await this.redis.set(fullKey, serializedValue, 'EX', ttl);
+        await this.redis!.set(fullKey, serializedValue, 'EX', ttl);
       } else {
-        await this.redis.set(fullKey, serializedValue);
+        await this.redis!.set(fullKey, serializedValue);
       }
 
       this.updateLastAccessed();
@@ -103,9 +107,11 @@ export class DomainContextService {
    * Delete value from domain-scoped cache
    */
   async delete(key: string): Promise<ContextOperation> {
+    if (!this.redis) return { success: false, error: 'Redis not available' };
+    
     return await this.safeOperation(async () => {
       const fullKey = this.buildKey(key);
-      const deleted = await this.redis.del(fullKey);
+      const deleted = await this.redis!.del(fullKey);
       
       this.updateLastAccessed();
       logger.debug(`Deleted domain context: ${fullKey} (existed: ${deleted > 0})`);
@@ -118,9 +124,11 @@ export class DomainContextService {
    * Check if key exists in domain-scoped cache
    */
   async exists(key: string): Promise<boolean> {
+    if (!this.redis) return false;
+    
     const operation = await this.safeOperation(async () => {
       const fullKey = this.buildKey(key);
-      const exists = await this.redis.exists(fullKey);
+      const exists = await this.redis!.exists(fullKey);
       return exists === 1;
     });
 
@@ -131,9 +139,11 @@ export class DomainContextService {
    * Get multiple values at once
    */
   async mget<T>(keys: string[]): Promise<Record<string, T | null>> {
+    if (!this.redis) return {};
+    
     const operation = await this.safeOperation(async () => {
       const fullKeys = keys.map(key => this.buildKey(key));
-      const values = await this.redis.mget(fullKeys);
+      const values = await this.redis!.mget(fullKeys);
       
       const result: Record<string, T | null> = {};
       
@@ -164,6 +174,8 @@ export class DomainContextService {
    * Set multiple values at once
    */
   async mset<T>(data: Record<string, T>, ttlSeconds?: number): Promise<ContextOperation> {
+    if (!this.redis) return { success: false, error: 'Redis not available' };
+    
     return await this.safeOperation(async () => {
       const pairs: string[] = [];
       const keys: string[] = [];
@@ -178,11 +190,11 @@ export class DomainContextService {
         return { set: 0 };
       }
 
-      await this.redis.mset(pairs);
+      await this.redis!.mset(pairs);
 
       // Set TTL for each key if specified
       if (ttlSeconds && ttlSeconds > 0) {
-        const pipeline = this.redis.pipeline();
+        const pipeline = this.redis!.pipeline();
         keys.forEach(fullKey => {
           pipeline.expire(fullKey, ttlSeconds);
         });
@@ -200,9 +212,11 @@ export class DomainContextService {
    * Get all keys in domain scope with optional pattern
    */
   async keys(pattern: string = '*'): Promise<string[]> {
+    if (!this.redis) return [];
+    
     const operation = await this.safeOperation(async () => {
       const searchPattern = this.buildKey(pattern);
-      const fullKeys = await this.redis.keys(searchPattern);
+      const fullKeys = await this.redis!.keys(searchPattern);
       
       // Strip domain prefix from returned keys
       return fullKeys.map(fullKey => this.stripPrefix(fullKey));
@@ -215,19 +229,16 @@ export class DomainContextService {
    * Clear all data for this domain
    */
   async clear(): Promise<ContextOperation> {
+    if (!this.redis) return { success: false, error: 'Redis not available' };
     return await this.safeOperation(async () => {
       const pattern = this.buildKey('*');
-      const keys = await this.redis.keys(pattern);
-      
+      const keys = await this.redis!.keys(pattern);
       if (keys.length === 0) {
         return { deleted: 0 };
       }
-
-      const deleted = await this.redis.del(keys);
-      
+      const deleted = await this.redis!.del(keys);
       this.updateLastAccessed();
       logger.debug(`Cleared ${deleted} domain context keys for domain ${this.domainId}`);
-      
       return { deleted };
     });
   }
@@ -236,26 +247,26 @@ export class DomainContextService {
    * Increment a counter in domain scope
    */
   async increment(key: string, by: number = 1): Promise<number | null> {
+    if (!this.redis) return null;
     const operation = await this.safeOperation(async () => {
       const fullKey = this.buildKey(key);
-      const result = await this.redis.incrby(fullKey, by);
-      
+      const result = await this.redis!.incrby(fullKey, by);
       this.updateLastAccessed();
       return result;
     });
+    return operation.success ? (operation.result ?? null) : null;
+  }
 
-         return operation.success ? (operation.result ?? null) : null;
-   }
-
-   /**
-    * Set expiration for a key
-    */
+  /**
+   * Set expiration for a key
+   */
   async expire(key: string, ttlSeconds: number): Promise<ContextOperation> {
+    if (!this.redis) return { success: false, error: 'Redis not available' };
     return await this.safeOperation(async () => {
       const fullKey = this.buildKey(key);
-      const result = await this.redis.expire(fullKey, ttlSeconds);
-      
-      return { updated: result === 1 };
+      const result = await this.redis!.expire(fullKey, ttlSeconds);
+      this.updateLastAccessed();
+      return { expired: result === 1 };
     });
   }
 
@@ -263,17 +274,17 @@ export class DomainContextService {
    * Get TTL for a key
    */
   async ttl(key: string): Promise<number | null> {
+    if (!this.redis) return null;
     const operation = await this.safeOperation(async () => {
       const fullKey = this.buildKey(key);
-      return await this.redis.ttl(fullKey);
+      return await this.redis!.ttl(fullKey);
     });
+    return operation.success ? (operation.result ?? null) : null;
+  }
 
-         return operation.success ? (operation.result ?? null) : null;
-   }
-
-   /**
-    * Get domain context metrics
-    */
+  /**
+   * Get domain context metrics
+   */
   getMetrics(): ContextMetrics {
     return { ...this.metrics };
   }
@@ -301,16 +312,16 @@ export class DomainContextService {
    * Check Redis connection health
    */
   async healthCheck(): Promise<{ healthy: boolean; latency?: number; error?: string }> {
+    if (!this.redis) return { healthy: false, error: 'Redis not available' };
     try {
       const start = Date.now();
       await this.redis.ping();
       const latency = Date.now() - start;
-      
       return { healthy: true, latency };
     } catch (error) {
-      return { 
-        healthy: false, 
-        error: error instanceof Error ? error.message : 'Unknown error'
+      return {
+        healthy: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }

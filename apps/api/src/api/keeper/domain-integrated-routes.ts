@@ -10,11 +10,16 @@ import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat, requireDomainAdminCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { DomainService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
-import { Redis } from 'ioredis';
+import Redis from 'ioredis';
 
 const router = Router();
 const prisma = new PrismaClient();
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+let redis: Redis | null = null;
+if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
+  redis = new Redis(process.env.REDIS_URL);
+} else if (process.env.NODE_ENV === 'development') {
+  console.warn('Redis not available in development. Features will degrade gracefully.');
+}
 const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
 const featureFlags = getFeatureFlagService();

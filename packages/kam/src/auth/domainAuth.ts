@@ -14,6 +14,18 @@ import {
 } from '@keeper/database';
 import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
+import { Request, Response, NextFunction } from 'express';
+
+// Extend Express Request interface to include our custom properties
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+      domainSession?: any;
+      domainAuth?: any;
+    }
+  }
+}
 
 export interface DomainAuthUser extends users {
   domainPermissions?: Map<string, {
@@ -53,7 +65,33 @@ export class DomainAuthManager {
   constructor(prisma: PrismaClient, redis?: Redis) {
     this.prisma = prisma;
     
-    const redisInstance = redis || new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+    let redisInstance: Redis | null = null;
+    
+    if (redis) {
+      redisInstance = redis;
+    } else if (process.env.REDIS_URL) {
+      try {
+        redisInstance = new Redis(process.env.REDIS_URL, {
+          maxRetriesPerRequest: 3,
+          lazyConnect: true,
+          connectTimeout: 10000,
+          commandTimeout: 5000,
+        });
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Failed to create Redis instance in development. Cache features will be disabled.');
+          redisInstance = null;
+        } else {
+          throw error;
+        }
+      }
+    } else if (process.env.NODE_ENV === 'development') {
+      console.warn('REDIS_URL not set in development. Cache features will be disabled.');
+      redisInstance = null;
+    } else {
+      throw new Error('REDIS_URL environment variable is required');
+    }
+    
     this.cacheService = new DomainCacheService(redisInstance);
     
     this.domainService = new DomainService(prisma, this.cacheService);
@@ -237,7 +275,7 @@ export class DomainAuthManager {
     const userPermissions = await this.permissionService.getUserPermissions(userId);
 
     const accessibleDomains = await Promise.all(
-      domains.map(async (domain: unknown) => {
+      domains.map(async (domain: any) => {
         const permissions = await this.permissionService.getDomainPermissions(domain.id, userId);
         const permission = permissions[0];
         return {
@@ -264,7 +302,7 @@ export class DomainAuthManager {
     // Clear domain-related caches
     const userDomains = await this.domainService.getUserDomains(userId);
     await Promise.all(
-      userDomains.map((domain: unknown) => this.cacheService.invalidateDomain(domain.id))
+      userDomains.map((domain: any) => this.cacheService.invalidateDomain(domain.id))
     );
   }
 
@@ -410,16 +448,16 @@ export function createDomainAuthMiddleware(
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Get user from regular auth middleware
-      const user = req.user;
+      const user = (req as any).user;
       if (!user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
 
       // Get domain context from request
-      const domainId = req.params.domainId || 
-                      req.query.domainId || 
-                      req.body.domainId ||
-                      req.headers['x-domain-id'];
+      const domainId = (req.params as any).domainId || 
+                      (req.query as any).domainId || 
+                      (req.body as any)?.domainId ||
+                      (req.headers as any)['x-domain-id'];
 
       // Create domain session
       const session = await domainAuthManager.createDomainSession(
@@ -446,13 +484,15 @@ export function createDomainAuthMiddleware(
       }
 
       // Add domain session to request
-      req.domainSession = session;
-      req.domainAuth = domainAuthManager;
+      (req as any).domainSession = session;
+      (req as any).domainAuth = domainAuthManager;
 
       next();
+      return;
     } catch (error) {
       console.error('Domain auth middleware error:', error);
       res.status(500).json({ error: 'Domain authentication failed' });
+      return;
     }
   };
 }

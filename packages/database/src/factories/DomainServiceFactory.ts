@@ -115,9 +115,24 @@ export class DomainServiceFactory {
   }
 
   private static async _initializeRedis(): Promise<void> {
+    // Skip Redis in development if explicitly disabled
+    if (process.env.NODE_ENV === 'development' && process.env.DISABLE_REDIS === 'true') {
+      logger.warn('Redis disabled in development via DISABLE_REDIS=true');
+      this.redis = null;
+      return;
+    }
+
     const redisUrl = process.env.REDIS_URL;
+    
+    // In development, allow Redis to be optional
     if (!redisUrl) {
-      throw new Error('REDIS_URL environment variable is required');
+      if (process.env.NODE_ENV === 'development') {
+        logger.warn('REDIS_URL not set in development. Redis features will be disabled.');
+        this.redis = null;
+        return;
+      } else {
+        throw new Error('REDIS_URL environment variable is required');
+      }
     }
 
     logger.debug('Initializing Redis connection');
@@ -128,9 +143,18 @@ export class DomainServiceFactory {
       commandTimeout: 5000,
     });
 
-    // Test Redis connection
-    await this.redis.connect();
-    logger.debug('Redis connection established');
+    try {
+      // Test Redis connection
+      await this.redis.connect();
+      logger.debug('Redis connection established');
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        logger.warn('Failed to connect to Redis in development. Redis features will be disabled.');
+        this.redis = null;
+      } else {
+        throw error;
+      }
+    }
   }
 
   private static async _initializePrisma(): Promise<void> {
@@ -145,13 +169,24 @@ export class DomainServiceFactory {
   }
 
   private static async _testConnections(): Promise<void> {
-    if (!this.redis || !this.prisma) {
-      throw new Error('Redis or Prisma not initialized');
+    if (!this.prisma) {
+      throw new Error('Prisma not initialized');
     }
 
-    // Test Redis
-    await this.redis.ping();
-    logger.debug('Redis ping successful');
+    // Test Redis if available
+    if (this.redis) {
+      try {
+        await this.redis.ping();
+        logger.debug('Redis ping successful');
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn('Redis ping failed in development. Continuing without Redis.');
+          this.redis = null;
+        } else {
+          throw error;
+        }
+      }
+    }
 
     // Test Prisma
     await this.prisma.$queryRaw`SELECT 1`;
@@ -166,7 +201,7 @@ export class DomainServiceFactory {
    * Check if the factory is ready to create services
    */
   static isReady(): boolean {
-    return this.initialized && !!this.redis && !!this.prisma;
+    return this.initialized && !!this.prisma;
   }
 
   /**
@@ -202,7 +237,7 @@ export class DomainServiceFactory {
    */
   static createCacheService(): DomainCacheService {
     this.assertReady();
-    return new DomainCacheService(this.redis!);
+    return new DomainCacheService(this.redis);
   }
 
   /**
@@ -218,7 +253,10 @@ export class DomainServiceFactory {
    */
   static createDomainContextService(domainId: string): DomainContextService {
     this.assertReady();
-    return new DomainContextService(this.redis!, domainId);
+    if (!this.redis) {
+      throw new Error('Redis is required for domain context service. Set REDIS_URL environment variable.');
+    }
+    return new DomainContextService(this.redis, domainId);
   }
 
   /**

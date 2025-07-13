@@ -15,13 +15,18 @@ import {
 } from '../../middleware/domainPermissionMiddleware.js';
 import { createMemoryAccessMiddleware, createCrossDomainMemoryMiddleware } from '../../middleware/memoryAccessMiddleware.js';
 import { rateLimit } from 'express-rate-limit';
-import { Redis } from 'ioredis';
+import Redis from 'ioredis';
 
 type MemoryCategory = 'conversational' | 'factual' | 'procedural' | 'episodic' | 'semantic';
 
 const router = Router();
 const prisma = new PrismaClient();
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+let redis: Redis | null = null;
+if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
+  redis = new Redis(process.env.REDIS_URL);
+} else if (process.env.NODE_ENV === 'development') {
+  console.warn('Redis not available in development. Features will degrade gracefully.');
+}
 const cacheService = new DomainCacheService(redis);
 const memoryService = new SoleMemoryIsolationService(prisma, cacheService);
 

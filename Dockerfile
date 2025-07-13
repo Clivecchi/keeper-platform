@@ -44,27 +44,13 @@ RUN pnpm install --frozen-lockfile --no-optional --prefer-offline || \
 RUN pnpm install --fix-lockfile || true
 
 # Build packages in dependency order with Railway optimizations
-RUN echo "=== RAILWAY: Building with individual error isolation ===" && \
-    pnpm --filter @keeper/shared build && \
-    echo "Shared package built successfully"
-
-RUN echo "=== RAILWAY: Building database package ===" && \
-    pnpm --filter @keeper/database build && \
-    echo "Database package built successfully"
-
-# Critical: Build KAM with proper error handling (NO --verbose flag)
-RUN echo "=== RAILWAY: Building KAM package ===" && \
-    cd packages/kam && \
-    echo "Current directory: $(pwd)" && \
-    echo "Running: pnpm build" && \
+# Use Turbo to handle the build order properly
+RUN echo "=== RAILWAY: Building all packages with Turbo ===" && \
     pnpm build && \
-    echo "KAM build completed successfully" && \
-    ls -la dist/ && \
-    echo "Checking auth directory:" && \
-    ls -la dist/auth/ || echo "Auth directory not found"
+    echo "All packages built successfully"
 
-# Railway-specific: Verify compilation artifacts immediately after KAM build
-RUN echo "=== RAILWAY: Post-KAM-build verification ===" && \
+# Railway-specific: Verify compilation artifacts immediately after build
+RUN echo "=== RAILWAY: Post-build verification ===" && \
     echo "Checking if KAM dist exists:" && \
     ls -la packages/kam/dist/ && \
     echo "Checking if auth directory exists:" && \
@@ -73,12 +59,6 @@ RUN echo "=== RAILWAY: Post-KAM-build verification ===" && \
     test -f packages/kam/dist/auth/register.js && echo "✓ register.js found!" || echo "✗ register.js missing!" && \
     echo "Contents of auth index.js:" && \
     cat packages/kam/dist/auth/index.js | head -10
-
-# Build API last - only after KAM is confirmed built
-RUN echo "=== RAILWAY: Building API ===" && \
-    echo "Verifying KAM is available before API build:" && \
-    ls -la packages/kam/dist/auth/ && \
-    pnpm --filter keeper-api build
 
 # Railway-specific: Final comprehensive verification
 RUN echo "=== RAILWAY: Final file system state ===" && \
