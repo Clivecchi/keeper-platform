@@ -75,6 +75,38 @@ RUN if [ ! -f packages/kam/dist/auth/register.js ]; then \
         ls -la dist/auth/; \
     fi
 
+# CRITICAL FIX: Ensure API is built - EXPLICIT BUILD STEP
+RUN echo "=== RAILWAY: Building API application ===" && \
+    echo "Checking API source files:" && \
+    ls -la apps/api/src/ && \
+    echo "Building API with explicit TypeScript compilation:" && \
+    cd apps/api && \
+    pnpm build && \
+    echo "API build complete. Checking dist:" && \
+    ls -la dist/ && \
+    echo "Checking for index.js:" && \
+    test -f dist/index.js && echo "✓ API index.js found!" || echo "✗ API index.js missing!"
+
+# Railway-specific: Verify API build artifacts
+RUN echo "=== RAILWAY: API build verification ===" && \
+    echo "API dist directory contents:" && \
+    ls -la apps/api/dist/ && \
+    echo "API index.js content (first 10 lines):" && \
+    head -10 apps/api/dist/index.js && \
+    echo "Testing API module resolution:" && \
+    node -e "import('./apps/api/dist/index.js').then(m => console.log('✓ API imports successfully')).catch(e => console.error('✗ API import failed:', e.message))"
+
+# FALLBACK: If API build failed, try alternative approach
+RUN if [ ! -f apps/api/dist/index.js ]; then \
+        echo "=== RAILWAY: API build failed, trying alternative approach ===" && \
+        cd apps/api && \
+        rm -rf dist && \
+        npx tsc --project tsconfig.json && \
+        echo "Alternative build complete. Checking dist:" && \
+        ls -la dist/ && \
+        test -f dist/index.js && echo "✓ API index.js found!" || echo "✗ API index.js still missing!"; \
+    fi
+
 # Remove dev dependencies to reduce image size (Railway optimization)
 RUN pnpm prune --prod --config.ignore-scripts=true
 
@@ -85,4 +117,4 @@ ENV NODE_ENV=production
 EXPOSE 8080
 
 # Railway-specific: Add startup verification
-CMD ["sh", "-c", "echo 'Starting Railway deployment...' && node --version && ls -la packages/kam/dist/auth/ && node apps/api/dist/index.js"] 
+CMD ["sh", "-c", "echo 'Starting Railway deployment...' && node --version && ls -la packages/kam/dist/auth/ && ls -la apps/api/dist/ && node apps/api/dist/index.js"] 
