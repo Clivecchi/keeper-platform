@@ -10,9 +10,11 @@ import { Express } from 'express';
 import { createTestApp } from '../test-utils/app';
 import { createTestDomains, createTestUsers, createTestKeepers } from '../test-utils/fixtures';
 import { generateAccessToken } from '../test-utils/auth';
-import { CrossDomainSharingService } from '../../../../packages/database/src/services/CrossDomainSharingService';
-import { DomainCacheService } from '../../../../packages/database/src/services/DomainCacheService';
-import { ShareWorkflowAutomationService } from '../../../../packages/database/src/services/ShareWorkflowAutomationService';
+import { 
+  CrossDomainSharingService,
+  DomainCacheService,
+  ShareWorkflowAutomationService
+} from '@keeper/database';
 
 describe('Sprint 6: Cross-Domain Sharing Integration Tests', () => {
   let app: Express;

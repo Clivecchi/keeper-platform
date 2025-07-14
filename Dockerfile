@@ -14,7 +14,7 @@ ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 ENV NPM_CONFIG_FUND=false
 
 # Copy package files first (for Docker layer caching)
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.json ./
 
 # Copy all packages and apps
 COPY tools ./tools
@@ -24,8 +24,10 @@ COPY apps/api ./apps/api
 # Install dependencies
 RUN pnpm install --frozen-lockfile --no-optional --prefer-offline
 
-# Build all packages and apps
-RUN pnpm build
+# Build all packages and apps using TypeScript project references
+RUN echo "=== Building with TypeScript project references ===" && \
+    pnpm build && \
+    echo "Build completed successfully"
 
 # Verify API build
 RUN echo "=== Verifying API build ===" && \

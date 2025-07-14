@@ -584,8 +584,8 @@ export class DomainResolutionMiddleware {
 
     // Process and return formatted stats
     return {
-      totalResolutions: stats.reduce((sum, stat) => sum + stat._count, 0),
-      successfulResolutions: stats.reduce((sum, stat) => sum + stat._count, 0),
+      totalResolutions: stats.reduce((sum: number, stat: any) => sum + stat._count, 0),
+      successfulResolutions: stats.reduce((sum: number, stat: any) => sum + stat._count, 0),
       failedResolutions: 0, // Would need separate tracking
       customDomainResolutions: 0, // Would need metadata analysis
       subdomainResolutions: 0, // Would need metadata analysis

@@ -120,7 +120,7 @@ export class KipUserKeyService {
         },
       });
 
-      return userKeys.map((key) => key.provider as ModelProvider);
+      return userKeys.map((key: any) => key.provider as ModelProvider);
     } catch (error) {
       console.error('Error fetching user providers:', error);
       return [];
@@ -144,7 +144,7 @@ export class KipUserKeyService {
         },
       });
 
-      return userKeys.map((key) => ({
+      return userKeys.map((key: any) => ({
         provider: key.provider as ModelProvider,
         maskedKey: `****${key.api_key.slice(-4)}`,
       }));

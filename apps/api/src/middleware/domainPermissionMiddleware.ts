@@ -441,7 +441,7 @@ export class DomainPermissionMiddleware {
         },
       });
 
-      return domainPermissions.map(permission => ({
+      return domainPermissions.map((permission: any) => ({
         userId: permission.userId,
         permissions: permission.permissions as DomainPermissionType[],
         role: permission.role,

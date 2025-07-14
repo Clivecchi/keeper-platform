@@ -5,10 +5,8 @@
 
 import request from 'supertest';
 import { PrismaClient } from '@prisma/client';
-import { DomainService } from '../../../../packages/database/src/services/DomainService';
-import { DomainPermissionService } from '../../../../packages/database/src/services/DomainPermissionService';
-import { DomainCacheService } from '../../../../packages/database/src/services/DomainCacheService';
-import DomainAuthManager from '../../../../packages/kam/src/auth/domainAuth';
+import { DomainService, DomainPermissionService, DomainCacheService } from '@keeper/database';
+import { DomainAuthManager } from '@keeper/kam';
 
 const prisma = new PrismaClient();
 const cacheService = new DomainCacheService();

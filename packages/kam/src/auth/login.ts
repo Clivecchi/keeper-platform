@@ -22,7 +22,7 @@ export async function loginUserHandler(data: LoginInput): Promise<AuthResponse<A
       return {
         success: false,
         error: {
-          message: validationResult.error.errors.map(e => e.message).join(', '),
+          message: validationResult.error.errors.map((e: any) => e.message).join(', '),
           code: 'VALIDATION_ERROR',
         },
       };

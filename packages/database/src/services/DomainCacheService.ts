@@ -8,6 +8,7 @@ import { Redis } from 'ioredis';
 // Types
 export interface Domain {
   id: string;
+  name: string;
   slug: string;
   customDomain?: string | null;
   customDomainVerified: boolean;

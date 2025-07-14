@@ -862,17 +862,17 @@ export class ShareWorkflowAutomationService {
     // Clean up expired workflows every hour
     const cleanupJob = cron.schedule('0 * * * *', async () => {
       await this.cleanupExpiredWorkflows();
-    }, { scheduled: false });
+    });
 
     // Process timeout steps every 15 minutes
     const timeoutJob = cron.schedule('*/15 * * * *', async () => {
       await this.processTimeoutSteps();
-    }, { scheduled: false });
+    });
 
     // Send reminder notifications every 6 hours
     const reminderJob = cron.schedule('0 */6 * * *', async () => {
       await this.sendReminderNotifications();
-    }, { scheduled: false });
+    });
 
     this.cronJobs.set('cleanup', cleanupJob);
     this.cronJobs.set('timeout', timeoutJob);

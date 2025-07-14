@@ -30,7 +30,7 @@ export async function registerUserHandler(data: RegisterInput): Promise<AuthResp
       return {
         success: false,
         error: {
-          message: validationResult.error.errors.map(e => e.message).join(', '),
+          message: validationResult.error.errors.map((e: any) => e.message).join(', '),
           code: 'VALIDATION_ERROR',
         },
       };

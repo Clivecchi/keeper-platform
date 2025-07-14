@@ -6,11 +6,12 @@
  * Provides endpoints for managing and running agents
  */
 
-import type { Request, Response } from 'express';
+import { Request, Response } from 'express';
+import { z } from 'zod';
 import { 
-  getAllKipAgents, 
-  getKipAgentById, 
-  getKipAgentBySlug, 
+  getAllKipAgents,
+  getKipAgentById,
+  getKipAgentBySlug,
   createKipAgent,
   updateKipAgent,
   createKipAgentLog,
@@ -23,7 +24,7 @@ import {
   createKipMessage,
   getSessionMessages,
   deleteKipAgent
-} from '@keeper/database/queries';
+} from '@keeper/database';
 import type { 
   AgentInput, 
   AgentResponse, 
@@ -593,12 +594,12 @@ Please respond in character, using your specific capabilities and personality. K
       logData.execution_time_ms = processingTime;
       logData.output = JSON.stringify(result);
 
-      // Log successful execution
-      try {
-        await createKipAgentLog(logData);
-      } catch (logError) {
-        console.warn('Failed to log agent execution:', logError);
-      }
+              // Log successful execution
+        try {
+          await createKipAgentLog(logData);
+        } catch (logError) {
+          console.warn('Failed to log agent execution:', logError);
+        }
 
       // Return AgentResponse format for consistency
       return {
@@ -615,12 +616,12 @@ Please respond in character, using your specific capabilities and personality. K
       logData.execution_time_ms = Date.now() - startTime;
       logData.error = errorMessage;
 
-      // Log failed execution
-      try {
-        await createKipAgentLog(logData);
-      } catch (logError) {
-        console.warn('Failed to log agent execution error:', logError);
-      }
+              // Log failed execution
+        try {
+          await createKipAgentLog(logData);
+        } catch (logError) {
+          console.warn('Failed to log agent execution error:', logError);
+        }
 
       return {
         id: agentId,

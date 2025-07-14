@@ -125,7 +125,7 @@ export class KipAgentPermissionService {
         },
       });
 
-      return permissions.map((p) => ({
+      return permissions.map((p: any) => ({
         user_id: p.user_id,
         permission: p.permission as AgentPermission,
       }));
@@ -160,9 +160,9 @@ export class KipAgentPermissionService {
       });
 
       const allAgentIds = [
-        ...publicAgents.map(a => a.id),
-        ...ownAgents.map(a => a.id),
-        ...sharedAgents.map(p => p.agent_id),
+        ...publicAgents.map((a: any) => a.id),
+        ...ownAgents.map((a: any) => a.id),
+        ...sharedAgents.map((p: any) => p.agent_id),
       ];
 
       // Remove duplicates

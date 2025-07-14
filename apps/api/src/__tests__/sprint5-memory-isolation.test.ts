@@ -6,9 +6,11 @@
 import { describe, it, beforeAll, afterAll, beforeEach, afterEach, expect, jest } from '@jest/globals';
 import request from 'supertest';
 import { PrismaClient } from '@prisma/client';
-import { SoleMemoryIsolationService } from '../../../../packages/database/src/services/SoleMemoryIsolationService';
-import { MemoryMigrationService } from '../../../../packages/database/src/services/MemoryMigrationService';
-import { DomainCacheService } from '../../../../packages/database/src/services/DomainCacheService';
+import { 
+  SoleMemoryIsolationService,
+  MemoryMigrationService,
+  DomainCacheService
+} from '@keeper/database';
 import { createTestApp } from '../../../utils/testApp';
 import { createTestUser, createTestDomain } from '../../../utils/testFixtures';
 

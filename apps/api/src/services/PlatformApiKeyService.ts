@@ -23,11 +23,11 @@ export class PlatformApiKeyService {
         orderBy: { created_at: 'desc' }
       });
 
-      const maskedKeys = keys.map(key => ({
+      const maskedKeys = keys.map((key: any) => ({
         ...key,
         maskedKey: this.maskApiKey(key.api_key),
         api_key: undefined // Remove the actual key
-      })).map(({ api_key, ...rest }) => rest); // Type-safe removal
+      })).map(({ api_key, ...rest }: any) => rest); // Type-safe removal
 
       return { success: true, data: maskedKeys };
     } catch (error) {
@@ -241,12 +241,12 @@ export class PlatformApiKeyService {
       
       const stats = {
         total: keys.length,
-        active: keys.filter(k => k.is_active).length,
+        active: keys.filter((k: any) => k.is_active).length,
         byProvider: {} as Record<string, { total: number; active: number }>
       };
 
       // Group by provider
-      keys.forEach(key => {
+      keys.forEach((key: any) => {
         if (!stats.byProvider[key.provider]) {
           stats.byProvider[key.provider] = { total: 0, active: 0 };
         }

@@ -197,7 +197,7 @@ export const createKeeper = async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: error.errors
+        details: (error as any).errors
       });
     }
     
@@ -250,7 +250,7 @@ export const updateKeeper = async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: error.errors
+        details: (error as any).errors
       });
     }
     
@@ -350,7 +350,7 @@ export const createKeeperType = async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: error.errors
+        details: (error as any).errors
       });
     }
     
@@ -569,7 +569,7 @@ export const proposeSoleDraft = async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         error: 'Validation failed',
-        details: error.errors
+        details: (error as any).errors
       });
     }
     

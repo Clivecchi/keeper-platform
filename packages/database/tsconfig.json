@@ -2,22 +2,34 @@
   "extends": "../../tools/tsconfig/base.json",
   "compilerOptions": {
     "target": "ES2020",
-    "module": "CommonJS",
+    "module": "ESNext",
     "moduleResolution": "node",
-    "outDir": "dist",
-    "rootDir": "src",
-    "baseUrl": "./src",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "composite": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
     "skipLibCheck": true,
-    "noEmit": false,
-    "isolatedModules": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": "../../",
+    "paths": {
+      "@keeper/shared": ["packages/shared/src"]
+    },
+    "verbatimModuleSyntax": true
   },
-  "include": ["src/**/*", "prisma/schema.prisma"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ],
+  "references": [
+    { "path": "../shared" }
+  ]
 } 

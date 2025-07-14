@@ -19,7 +19,7 @@ export const validationMiddleware = (schema: z.ZodSchema) => {
       if (error instanceof z.ZodError) {
         res.status(400).json({
           error: 'Validation failed',
-          details: error.errors.map(err => ({
+          details: (error as z.ZodError).errors.map((err: any) => ({
             field: err.path.join('.'),
             message: err.message
           }))
@@ -46,7 +46,7 @@ export const queryValidationMiddleware = (schema: z.ZodSchema) => {
       if (error instanceof z.ZodError) {
         res.status(400).json({
           error: 'Query validation failed',
-          details: error.errors.map(err => ({
+          details: (error as z.ZodError).errors.map((err: any) => ({
             field: err.path.join('.'),
             message: err.message
           }))
@@ -73,7 +73,7 @@ export const paramValidationMiddleware = (schema: z.ZodSchema) => {
       if (error instanceof z.ZodError) {
         res.status(400).json({
           error: 'Parameter validation failed',
-          details: error.errors.map(err => ({
+          details: (error as z.ZodError).errors.map((err: any) => ({
             field: err.path.join('.'),
             message: err.message
           }))

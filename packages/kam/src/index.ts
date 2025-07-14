@@ -40,6 +40,19 @@ export {
 } from './settings/index.js'
 
 // =============================================================================
+// DOMAIN AUTH EXPORTS
+// =============================================================================
+export {
+  DomainAuthManager,
+  createDomainAuthMiddleware
+} from './auth/domainAuth.js'
+export type {
+  DomainAuthUser,
+  DomainAuthSession,
+  DomainAuthOptions
+} from './auth/domainAuth.js'
+
+// =============================================================================
 // TYPE EXPORTS
 // =============================================================================
 export type * from './types/index.js'

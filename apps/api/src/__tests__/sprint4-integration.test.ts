@@ -7,11 +7,13 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { Express } from 'express';
-import { DomainVerificationService } from '../../../../packages/database/src/services/DomainVerificationService';
-import { DomainCacheService } from '../../../../packages/database/src/services/DomainCacheService';
-import { DomainService } from '../../../../packages/database/src/services/DomainService';
-import { SslCertificateService } from '../../../../packages/database/src/services/SslCertificateService';
-import { DomainHealthMonitoringService } from '../../../../packages/database/src/services/DomainHealthMonitoringService';
+import { 
+  DomainVerificationService,
+  DomainCacheService,
+  DomainService,
+  SslCertificateService,
+  DomainHealthMonitoringService
+} from '@keeper/database';
 import { DynamicCorsManager } from '../middleware/dynamicCorsMiddleware';
 import { DomainResolutionMiddleware } from '../middleware/domainResolutionMiddleware';
 

@@ -1,18 +1,9 @@
 {
   "files": [],
   "references": [
-    { "path": "./apps/web" },
-    { "path": "./apps/api" },
-    { "path": "./packages/kam" },
-    { "path": "./packages/shared" },
-    { "path": "./packages/database" }
-  ],
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@keeper/database": ["packages/database/src"],
-      "@keeper/kam": ["packages/kam/src"],
-      "@keeper/shared": ["packages/shared/src"]
-    }
-  }
+    { "path": "packages/shared" },
+    { "path": "packages/database" },
+    { "path": "packages/kam" },
+    { "path": "apps/api" }
+  ]
 }

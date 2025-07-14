@@ -9,37 +9,23 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    },
-    "./auth": {
-      "import": "./dist/auth/index.js",
-      "types": "./dist/auth/index.d.ts"
-    },
-    "./settings": {
-      "import": "./dist/settings/index.js",
-      "types": "./dist/settings/index.d.ts"
-    },
-    "./types": {
-      "import": "./dist/types/index.js",
-      "types": "./dist/types/index.d.ts"
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "dev": "tsc -p tsconfig.json --watch",
+    "build": "tsc --build",
+    "dev": "tsc --watch",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.2",
-    "jsonwebtoken": "^9.0.2",
-    "zod": "^3.25.45",
     "@keeper/database": "workspace:*",
-    "ioredis": "^5.3.2",
-    "express": "^4.18.2"
+    "@keeper/shared": "workspace:*",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.25.45"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^3.0.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.9",
-    "@types/express": "^4.17.21",
     "typescript": "~5.8.3"
   }
-} 
+}
