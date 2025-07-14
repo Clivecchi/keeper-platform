@@ -263,7 +263,7 @@ export class ShareWorkflowAutomationService {
 
     // Create step executions for all workflow steps
     const stepExecutions = await Promise.all(
-      workflow.workflowSteps.map(async (step, index) => {
+      workflow.workflowSteps.map(async (step: any, index: number) => {
         const timeoutAt = step.timeoutHours 
           ? new Date(Date.now() + step.timeoutHours * 60 * 60 * 1000)
           : new Date(Date.now() + this.PERFORMANCE_THRESHOLDS.defaultTimeoutHours * 60 * 60 * 1000);

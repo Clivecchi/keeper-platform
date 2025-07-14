@@ -24,8 +24,10 @@ COPY apps/api ./apps/api
 # Install dependencies
 RUN pnpm install --frozen-lockfile --no-optional --prefer-offline
 
-# Build all packages and apps using TypeScript project references
-RUN echo "=== Building with TypeScript project references ===" && \
+# Generate Prisma client first, then build all packages and apps
+RUN echo "=== Generating Prisma client ===" && \
+    pnpm db:generate && \
+    echo "=== Building with TypeScript project references ===" && \
     pnpm build && \
     echo "Build completed successfully"
 

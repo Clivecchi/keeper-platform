@@ -275,7 +275,7 @@ export class DomainAuthManager {
     const userPermissions = await this.permissionService.getUserPermissions(userId);
 
     const accessibleDomains = await Promise.all(
-      domains.map(async (domain) => {
+      domains.map(async (domain: any) => {
         const permissions = await this.permissionService.getDomainPermissions(domain.id, userId);
         const permission = permissions[0];
         return {
@@ -302,7 +302,7 @@ export class DomainAuthManager {
     // Clear domain-related caches
     const userDomains = await this.domainService.getUserDomains(userId);
     await Promise.all(
-      userDomains.map((domain) => this.cacheService.invalidateDomain(domain.id))
+      userDomains.map((domain: any) => this.cacheService.invalidateDomain(domain.id))
     );
   }
 

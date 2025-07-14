@@ -438,7 +438,7 @@ export class DomainService {
     });
 
     // Cache the result
-    const domainIds = domains.map(d => d.id);
+    const domainIds = domains.map((d: any) => d.id);
     await this.cacheService.cacheUserDomains(userId, domainIds);
 
     return domains;
