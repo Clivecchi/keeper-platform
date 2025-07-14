@@ -7,7 +7,7 @@ import { Request, Response, NextFunction } from 'express';
 import { DomainServiceFactory } from '@keeper/database';
 import { DomainError } from '../../lib/errors/DomainError';
 import { AuthenticatedRequest } from '@keeper/database';
-import { extractDomainId } from './utils.js';
+import { extractDomainId } from './utils';
 
 export type DomainContextStrategy = 'param' | 'subdomain' | 'header' | 'query';
 

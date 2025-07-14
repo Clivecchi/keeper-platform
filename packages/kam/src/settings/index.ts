@@ -8,6 +8,6 @@
  * Cursor Rule: Use Prisma-generated types when handling themeMode logic.
  */
 
-export { updateUserSettingsHandler } from './updateSettings.js';
-export * from './getSettings.js';
+export { updateUserSettingsHandler } from './updateSettings';
+export * from './getSettings';
 // Add other exports for retrieving settings etc. when implemented 

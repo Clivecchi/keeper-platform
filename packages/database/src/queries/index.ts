@@ -6,7 +6,7 @@
  * These functions provide higher-level abstractions over raw Prisma queries.
  */
 
-import { prisma } from '../index.js'
+import { prisma } from '../index'
 import { PrismaClient } from '@prisma/client';
 import type { users as User, UserSettings, themes as Theme, Prisma } from '@prisma/client'
 import * as crypto from 'crypto'

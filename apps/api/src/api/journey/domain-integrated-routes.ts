@@ -6,9 +6,9 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
-import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
-import { validationMiddleware } from '../../middleware/validationMiddleware.js';
-import { requireDomainReadCompat, requireDomainWriteCompat, requireDomainAdminCompat } from '../../middleware/domainPermissionMiddleware.js';
+import { authMiddlewareCompat } from '../../middleware/authMiddleware';
+import { validationMiddleware } from '../../middleware/validationMiddleware';
+import { requireDomainReadCompat, requireDomainWriteCompat, requireDomainAdminCompat } from '../../middleware/domainPermissionMiddleware';
 import { DomainService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
 import Redis from 'ioredis';
 

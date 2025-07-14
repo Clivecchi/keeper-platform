@@ -56,28 +56,28 @@ export { PrismaClient } from '@prisma/client'
 // =============================================================================
 // QUERY HELPERS EXPORT
 // =============================================================================
-export * from './queries/index.js'
+export * from './queries/index'
 
 // =============================================================================
 // SERVICES EXPORT
 // =============================================================================
-export { DomainService } from './services/DomainService.js'
-export { DomainPermissionService } from './services/DomainPermissionService.js'
-export { DomainCacheService } from './services/DomainCacheService.js'
-export { DomainContextService } from './services/DomainContextService.js'
-export { SslCertificateService } from './services/SslCertificateService.js'
-export { DomainHealthMonitoringService } from './services/DomainHealthMonitoringService.js'
-export { CrossDomainSharingService } from './services/CrossDomainSharingService.js'
-export { ShareWorkflowAutomationService } from './services/ShareWorkflowAutomationService.js'
-export { SoleMemoryIsolationService } from './services/SoleMemoryIsolationService.js'
-export { FeatureFlagService, getFeatureFlagService } from './services/FeatureFlagService.js'
-export { DomainResolutionService } from './services/DomainResolutionService.js'
-export { DomainVerificationService } from './services/DomainVerificationService.js'
-export { MemoryMigrationService } from './services/MemoryMigrationService.js'
-export { MonitoringService } from './services/MonitoringService.js'
-export { ProductionConfigService } from './services/ProductionConfigService.js'
-export { DeploymentAutomationService } from './services/DeploymentAutomationService.js'
-export { SlugValidationService } from './services/SlugValidationService.js'
+export { DomainService } from './services/DomainService'
+export { DomainPermissionService } from './services/DomainPermissionService'
+export { DomainCacheService } from './services/DomainCacheService'
+export { DomainContextService } from './services/DomainContextService'
+export { SslCertificateService } from './services/SslCertificateService'
+export { DomainHealthMonitoringService } from './services/DomainHealthMonitoringService'
+export { CrossDomainSharingService } from './services/CrossDomainSharingService'
+export { ShareWorkflowAutomationService } from './services/ShareWorkflowAutomationService'
+export { SoleMemoryIsolationService } from './services/SoleMemoryIsolationService'
+export { FeatureFlagService, getFeatureFlagService } from './services/FeatureFlagService'
+export { DomainResolutionService } from './services/DomainResolutionService'
+export { DomainVerificationService } from './services/DomainVerificationService'
+export { MemoryMigrationService } from './services/MemoryMigrationService'
+export { MonitoringService } from './services/MonitoringService'
+export { ProductionConfigService } from './services/ProductionConfigService'
+export { DeploymentAutomationService } from './services/DeploymentAutomationService'
+export { SlugValidationService } from './services/SlugValidationService'
 
 // =============================================================================
 // FACTORY EXPORTS
@@ -87,14 +87,14 @@ export {
   type DomainServiceFactoryConfig,
   type IDomainService,
   type IMemoryService 
-} from './factories/DomainServiceFactory.js'
+} from './factories/DomainServiceFactory'
 
 // =============================================================================
 // TYPE EXPORTS
 // =============================================================================
-export * from './types/domain.js'
-export * from './types/ssl.js'
-export * from './types.js'
+export * from './types/domain'
+export * from './types/ssl'
+export * from './types'
 
 // Export domain-specific types
 export type {
@@ -105,20 +105,20 @@ export type {
   PermissionCheck,
   UserPermissionSummary,
   GrantPermissionRequest,
-} from './types/domain.js'
+} from './types/domain'
 
 // Export health monitoring types
 export type {
   DomainHealthMetrics,
   AlertSeverity
-} from './services/DomainHealthMonitoringService.js'
+} from './services/DomainHealthMonitoringService'
 
 // Export domain context types
 export type {
   DomainContextConfig,
   ContextOperation,
   ContextMetrics
-} from './services/DomainContextService.js'
+} from './services/DomainContextService'
 
 // Re-export Prisma generated types for convenience
 export type {
@@ -160,7 +160,7 @@ export type {
   UpdateUserSettingsInput,
   ThemeMode,
   CreateThemeInput
-} from './types.js'
+} from './types'
 
 // Authentication types are exported from ./types/domain.ts
 

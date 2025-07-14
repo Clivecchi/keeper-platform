@@ -7,13 +7,13 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
 import { SoleMemoryIsolationService, DomainCacheService } from '@keeper/database';
-import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
+import { authMiddlewareCompat } from '../../middleware/authMiddleware';
 import { 
   requireDomainReadCompat, 
   requireDomainWriteCompat, 
   requireDomainAdminCompat 
 } from '../../middleware/domainPermissionMiddleware.js';
-import { createMemoryAccessMiddleware, createCrossDomainMemoryMiddleware } from '../../middleware/memoryAccessMiddleware.js';
+import { createMemoryAccessMiddleware, createCrossDomainMemoryMiddleware } from '../../middleware/memoryAccessMiddleware';
 import { rateLimit } from 'express-rate-limit';
 import Redis from 'ioredis';
 

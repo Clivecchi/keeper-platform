@@ -29,7 +29,7 @@ export {
   createSession,
   getSessionHandler,
   invalidateSession
-} from './auth/index.js'
+} from './auth/index'
 
 // =============================================================================
 // SETTINGS & PREFERENCES EXPORTS
@@ -37,7 +37,7 @@ export {
 export {
   updateUserSettingsHandler,
   getUserSettingsHandler
-} from './settings/index.js'
+} from './settings/index'
 
 // =============================================================================
 // DOMAIN AUTH EXPORTS
@@ -45,17 +45,17 @@ export {
 export {
   DomainAuthManager,
   createDomainAuthMiddleware
-} from './auth/domainAuth.js'
+} from './auth/domainAuth'
 export type {
   DomainAuthUser,
   DomainAuthSession,
   DomainAuthOptions
-} from './auth/domainAuth.js'
+} from './auth/domainAuth'
 
 // =============================================================================
 // TYPE EXPORTS
 // =============================================================================
-export type * from './types/index.js'
+export type * from './types/index'
 
 // Re-export commonly used types for convenience
 export type {
@@ -70,10 +70,10 @@ export type {
   // Settings types
   UpdateUserSettingsInput,
   SettingsResponse
-} from './types/index.js'
+} from './types/index'
 
 // =============================================================================
 // UTILITY EXPORTS (if needed)
 // =============================================================================
 // Export utility functions from lib if they need to be public
-// export * from './lib/index.js' 
+// export * from './lib/index' 

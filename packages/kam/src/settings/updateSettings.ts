@@ -3,8 +3,8 @@
 
 import { updateUserSettings } from '@keeper/database';
 import type { UserSettings } from '@keeper/database';
-import { UpdateUserSettingsSchema } from './types.js';
-import type { UpdateUserSettingsInput, SettingsResponse } from './types.js';
+import { UpdateUserSettingsSchema } from './types';
+import type { UpdateUserSettingsInput, SettingsResponse } from './types';
 
 
 

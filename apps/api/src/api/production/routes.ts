@@ -12,8 +12,8 @@ import {
   DeploymentAutomationService, 
   DomainCacheService 
 } from '@keeper/database';
-import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
-import { requireDomainAdminCompat } from '../../middleware/domainPermissionMiddleware.js';
+import { authMiddlewareCompat } from '../../middleware/authMiddleware';
+import { requireDomainAdminCompat } from '../../middleware/domainPermissionMiddleware';
 import { Redis } from 'ioredis';
 
 // Validation schemas
