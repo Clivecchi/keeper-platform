@@ -130,6 +130,38 @@ export type {
   Prisma
 } from '@prisma/client'
 
+// Re-export all custom types
+export type {
+  ModelProvider,
+  ModelSettings,
+  AgentClass,
+  AgentInput,
+  AgentResponse,
+  AgentVisibility,
+  AgentPermission,
+  AgentLogInput,
+  AgentLogWithRelations,
+  KipCommandIntent,
+  KipSessionInput,
+  KipSessionWithRelations,
+  KipMessageInput,
+  KipMessageWithRelations,
+  UserKeyInput,
+  AgentPermissionInput,
+  PlatformApiKey,
+  PlatformApiKeyInput,
+  DatabaseResult,
+  PaginatedResult,
+  DatabaseHealthResult,
+  UserWithSettings,
+  CreateUserInput,
+  UpdateUserInput,
+  UserSettingsWithTheme,
+  UpdateUserSettingsInput,
+  ThemeMode,
+  CreateThemeInput
+} from './types.js'
+
 // Authentication types are exported from ./types/domain.ts
 
 // =============================================================================

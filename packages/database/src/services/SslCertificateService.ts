@@ -759,7 +759,7 @@ export class SslCertificateService {
         },
       });
 
-      return certificates.map(cert => this.certificateToInfo(cert));
+      return certificates.map((cert: any) => this.certificateToInfo(cert));
     } catch (error) {
       console.error('Error fetching expiring certificates:', error);
       return [];

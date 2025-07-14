@@ -860,8 +860,8 @@ export class SoleMemoryIsolationService {
     });
 
     // Calculate metrics
-    const totalAccesses = accessStats.reduce((sum, stat) => sum + stat._count.id, 0);
-    const avgResponseTime = accessStats.reduce((sum, stat) => sum + (stat._avg.responseTime || 0), 0) / accessStats.length;
+        const totalAccesses = accessStats.reduce((sum: number, stat: any) => sum + stat._count.id, 0);    
+    const avgResponseTime = accessStats.reduce((sum: number, stat: any) => sum + (stat._avg.responseTime || 0), 0) / accessStats.length;
 
     return {
       domainId,
@@ -874,8 +874,8 @@ export class SoleMemoryIsolationService {
         popularCategories: [], // Would be calculated from category access
       },
       usage: {
-        reads: accessStats.filter(s => s.accessType === 'read').reduce((sum, s) => sum + s._count.id, 0),
-        writes: accessStats.filter(s => s.accessType === 'write').reduce((sum, s) => sum + s._count.id, 0),
+        reads: accessStats.filter((s: any) => s.accessType === 'read').reduce((sum: number, s: any) => sum + s._count.id, 0),
+        writes: accessStats.filter((s: any) => s.accessType === 'write').reduce((sum: number, s: any) => sum + s._count.id, 0),
         shares: 0, // Would be calculated from share requests
         migrations: 0, // Would be calculated from migration requests
       },
