@@ -14,7 +14,7 @@
   },
   "scripts": {
     "generate": "prisma generate",
-    "build": "prisma generate && tsc --build --force",
+    "build": "prisma generate && tsc",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "push": "prisma db push",

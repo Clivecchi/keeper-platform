@@ -11,8 +11,8 @@
   "packageManager": "pnpm@10.11.0",
   "scripts": {
     "dev": "turbo dev",
-    "build": "tsc --build",
-    "build:clean": "turbo clean && tsc --build",
+    "build": "turbo build",
+    "build:clean": "turbo clean && turbo build",
     "start": "turbo run start",
     "start:api": "node apps/api/dist/index.js",
     "start:api:dev": "node apps/api/dist/index.js",

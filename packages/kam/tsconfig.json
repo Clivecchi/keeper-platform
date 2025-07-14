@@ -6,21 +6,13 @@
     "moduleResolution": "node",
     "outDir": "./dist",
     "rootDir": "./src",
-    "composite": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "noEmit": false,
-    "emitDeclarationOnly": false,
-    "baseUrl": "../../",
-    "paths": {
-      "@keeper/database": ["packages/database/dist"],
-      "@keeper/shared": ["packages/shared/dist"]
-    }
+    "forceConsistentCasingInFileNames": true
   },
   "include": [
     "src/**/*"
@@ -31,8 +23,5 @@
     "**/*.test.ts",
     "**/*.spec.ts"
   ],
-  "references": [
-    { "path": "../shared" },
-    { "path": "../database" }
-  ]
+
 } 

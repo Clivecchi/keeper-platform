@@ -5,7 +5,7 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "outDir": "./dist",
-    "composite": true,
+
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -13,13 +13,7 @@
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": "../../",
-    "paths": {
-      "@/*": ["apps/api/src/*"],
-      "@keeper/database": ["packages/database/dist"],
-      "@keeper/kam": ["packages/kam/dist"],
-      "@keeper/shared": ["packages/shared/dist"]
-    }
+
   },
   "include": [
     "src/**/*"
@@ -29,9 +23,5 @@
     "dist",
     "src/__tests__"
   ],
-  "references": [
-    { "path": "../../packages/shared" },
-    { "path": "../../packages/database" },
-    { "path": "../../packages/kam" }
-  ]
+
 } 

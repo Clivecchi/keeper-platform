@@ -1,9 +1,10 @@
 {
-  "files": [],
-  "references": [
-    { "path": "packages/shared" },
-    { "path": "packages/database" },
-    { "path": "packages/kam" },
-    { "path": "apps/api" }
+  "extends": "./tools/tsconfig/base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "packages/*/src/**/*",
+    "apps/*/src/**/*"
   ]
 }
