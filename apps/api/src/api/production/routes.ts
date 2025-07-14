@@ -628,9 +628,9 @@ export function createProductionRoutes(
           components: systemHealth.components,
         },
         infrastructure: {
-          status: infrastructureState.instances.every(i => i.status === 'running') ? 'ready' : 'not_ready',
+          status: infrastructureState.instances.every((i: any) => i.status === 'running') ? 'ready' : 'not_ready',
           instances: infrastructureState.instances.length,
-          healthyInstances: infrastructureState.instances.filter(i => i.health === 'healthy').length,
+          healthyInstances: infrastructureState.instances.filter((i: any) => i.health === 'healthy').length,
         },
         overall: configValidation.isValid && systemHealth.status === 'healthy' ? 'ready' : 'not_ready',
       };

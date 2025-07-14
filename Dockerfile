@@ -24,11 +24,18 @@ COPY apps/api ./apps/api
 # Install dependencies
 RUN pnpm install --frozen-lockfile --no-optional --prefer-offline
 
-# Generate Prisma client first, then build all packages and apps
+# Generate Prisma client first, then build packages in dependency order
 RUN echo "=== Generating Prisma client ===" && \
     pnpm db:generate && \
-    echo "=== Building with TypeScript project references ===" && \
-    pnpm build && \
+    echo "=== Building packages in dependency order ===" && \
+    pnpm --filter @keeper/shared build && \
+    echo "✅ Built @keeper/shared" && \
+    pnpm --filter @keeper/database build && \
+    echo "✅ Built @keeper/database" && \
+    pnpm --filter @keeper/kam build && \
+    echo "✅ Built @keeper/kam" && \
+    pnpm --filter keeper-api build && \
+    echo "✅ Built keeper-api" && \
     echo "Build completed successfully"
 
 # Verify API build

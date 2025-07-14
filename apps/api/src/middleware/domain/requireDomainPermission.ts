@@ -70,7 +70,7 @@ export function requireDomainPermission(
       
       // Check if user has access to the domain (for now, simplified check)
       const userDomains = await domainService.getUserDomains(typedReq.user.id);
-      const hasPermission = userDomains.some(domain => typedReq.domainContext && domain.id === typedReq.domainContext.domain.id);
+      const hasPermission = userDomains.some((domain: any) => typedReq.domainContext && domain.id === typedReq.domainContext.domain.id);
 
       if (!hasPermission) {
         const error = DomainError.InsufficientPermissions();
