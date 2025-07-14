@@ -16,7 +16,7 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": "../../",
     "paths": {
-      "@keeper/shared": ["packages/shared/src"]
+      "@keeper/shared": ["packages/shared/dist"]
     },
     "verbatimModuleSyntax": true
   },
