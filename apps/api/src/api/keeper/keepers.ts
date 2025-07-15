@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '@keeper/database';
 import { z } from 'zod';
-import SoleMemoryService from '../../services/SoleMemoryService';
+import SoleMemoryService from '../../services/SoleMemoryService.js';
 
 // Validation schemas
 const CreateKeeperSchema = z.object({

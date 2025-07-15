@@ -5,9 +5,9 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { DomainServiceFactory } from '@keeper/database';
-import { DomainError } from '../../lib/errors/DomainError';
+import { DomainError } from '../../lib/errors/DomainError.js';
 import { AuthenticatedRequest } from '@keeper/database';
-import { extractDomainId } from './utils';
+import { extractDomainId } from './utils.js';
 
 export type DomainContextStrategy = 'param' | 'subdomain' | 'header' | 'query';
 

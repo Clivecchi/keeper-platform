@@ -4,7 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { DomainError } from '../../lib/errors/DomainError';
+import { DomainError } from '../../lib/errors/DomainError.js';
 import { AuthenticatedRequest } from '@keeper/database';
 
 /**

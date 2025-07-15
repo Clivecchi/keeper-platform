@@ -4,11 +4,11 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { DomainService } from './DomainService';
-import { DomainVerificationService } from './DomainVerificationService';
-import { SslCertificateService } from './SslCertificateService';
-import { DomainCacheService } from './DomainCacheService';
-import { getFeatureFlagService } from './FeatureFlagService';
+import { DomainService } from './DomainService.js';
+import { DomainVerificationService } from './DomainVerificationService.js';
+import { SslCertificateService } from './SslCertificateService.js';
+import { DomainCacheService } from './DomainCacheService.js';
+import { getFeatureFlagService } from './FeatureFlagService.js';
 
 export type HealthStatus = 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
 export type AlertSeverity = 'info' | 'warning' | 'error' | 'critical';

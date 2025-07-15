@@ -11,9 +11,9 @@
 // 8. Use npx only for one-time CLI utilities.
 
 import { createUserWithDefaultSettings, emailExists } from '@keeper/database';
-import { RegisterInputSchema } from './types';
-import type { RegisterInput, AuthResponse, AuthUser, AuthSuccessData } from './types';
-import { createSession } from './session';
+import { RegisterInputSchema } from './types.js';
+import type { RegisterInput, AuthResponse, AuthUser, AuthSuccessData } from './types.js';
+import { createSession } from './session.js';
 import * as bcrypt from 'bcryptjs';
 
 /**

@@ -4,9 +4,9 @@
  */
 
 import type { Domain } from '@prisma/client';
-import { DomainService } from './DomainService';
-import { DomainCacheService } from './DomainCacheService';
-import { getFeatureFlagService } from './FeatureFlagService';
+import { DomainService } from './DomainService.js';
+import { DomainCacheService } from './DomainCacheService.js';
+import { getFeatureFlagService } from './FeatureFlagService.js';
 import type { Request, Response, NextFunction } from 'express';
 
 export interface DomainResolutionResult {

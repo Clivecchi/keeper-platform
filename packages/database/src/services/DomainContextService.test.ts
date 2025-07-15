@@ -3,7 +3,7 @@
  * Tests for scoped domain state management with Redis-based cache safety
  */
 
-import { DomainContextService } from './DomainContextService';
+import { DomainContextService } from './DomainContextService.js';
 
 // Mock Redis client for testing
 const createMockRedis = (shouldFail = false) => {

@@ -4,7 +4,7 @@
  */
 
 import { Request } from 'express';
-import { DomainContextStrategy } from './resolveDomainContext';
+import { DomainContextStrategy } from './resolveDomainContext.js';
 
 /**
  * Extract domain ID from request using specified strategy

@@ -4,10 +4,10 @@
  */
 
 import { Request, Response, NextFunction, RequestHandler } from 'express';
-import { resolveDomainContext, DomainContextStrategy } from './resolveDomainContext';
-import { requireAuth } from './requireAuth';
-import { requireDomainRead, requireDomainWrite, requireDomainAdmin } from './requireDomainPermissions';
-import { requireMemoryAccess } from './requireMemoryAccess';
+import { resolveDomainContext, DomainContextStrategy } from './resolveDomainContext.js';
+import { requireAuth } from './requireAuth.js';
+import { requireDomainRead, requireDomainWrite, requireDomainAdmin } from './requireDomainPermissions.js';
+import { requireMemoryAccess } from './requireMemoryAccess.js';
 import { DomainService, DomainCacheService } from '@keeper/database';
 import { PrismaClient } from '@keeper/database';
 import Redis from 'ioredis';

@@ -5,8 +5,8 @@
 
 import { PrismaClient } from '@prisma/client';
 import type { SslCertificate } from '@prisma/client';
-import { DomainCacheService } from './DomainCacheService';
-import { getFeatureFlagService } from './FeatureFlagService';
+import { DomainCacheService } from './DomainCacheService.js';
+import { getFeatureFlagService } from './FeatureFlagService.js';
 import * as crypto from 'crypto';
 import type { CertificateProvider, CertificateStatus, CertificateInfo, CertificateRequest } from '../types/ssl';
 

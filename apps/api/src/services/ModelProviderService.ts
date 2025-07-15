@@ -7,8 +7,8 @@
  */
 
 import { ModelProvider, ModelSettings } from '@keeper/database';
-import { KipUserKeyService } from './KipUserKeyService';
-import { PlatformApiKeyService } from './PlatformApiKeyService';
+import { KipUserKeyService } from './KipUserKeyService.js';
+import { PlatformApiKeyService } from './PlatformApiKeyService.js';
 
 export interface ModelMessage {
   role: 'system' | 'user' | 'assistant';

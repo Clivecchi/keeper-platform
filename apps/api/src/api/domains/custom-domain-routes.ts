@@ -14,12 +14,12 @@ import {
   DomainCacheService,
   DomainPermissionService
 } from '@keeper/database';
-import { authMiddlewareCompat } from '../../middleware/authMiddleware';
+import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { 
   requireDomainAdminCompat, 
   requireDomainWriteCompat, 
   requireDomainReadCompat 
-} from '../../middleware/domainPermissionMiddleware';
+} from '../../middleware/domainPermissionMiddleware.js';
 import { rateLimit } from 'express-rate-limit';
 import Redis from 'ioredis';
 

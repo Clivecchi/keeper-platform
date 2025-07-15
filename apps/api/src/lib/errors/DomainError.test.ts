@@ -3,7 +3,7 @@
  * Basic tests and examples for DomainError class functionality
  */
 
-import { DomainError, isDomainError } from './DomainError';
+import { DomainError, isDomainError } from './DomainError.js';
 
 console.log('=== Testing DomainError Class ===\n');
 

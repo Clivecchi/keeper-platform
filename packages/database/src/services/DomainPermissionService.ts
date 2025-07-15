@@ -5,8 +5,8 @@
 
 import { PrismaClient } from '@prisma/client';
 import type { DomainPermission } from '@prisma/client';
-import { DomainCacheService } from './DomainCacheService';
-import { getFeatureFlagService } from './FeatureFlagService';
+import { DomainCacheService } from './DomainCacheService.js';
+import { getFeatureFlagService } from './FeatureFlagService.js';
 import type { 
   DomainRole, 
   DomainPermissionType, 

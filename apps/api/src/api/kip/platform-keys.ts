@@ -8,7 +8,7 @@
 
 import express, { Router } from 'express';
 import { z } from 'zod';
-import { PlatformApiKeyService } from '../../services/PlatformApiKeyService';
+import { PlatformApiKeyService } from '../../services/PlatformApiKeyService.js';
 import { ModelProvider } from '@keeper/database';
 
 const router: Router = express.Router();

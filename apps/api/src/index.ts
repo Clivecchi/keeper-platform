@@ -5,9 +5,9 @@ import cors from 'cors';
 import { z } from 'zod';
 
 // Import domain routes
-import domainRoutes from './api/domains/routes';
+import domainRoutes from './api/domains/routes.js';
 import { updateUser } from '@keeper/database';
-import { authMiddleware, authMiddlewareCompat, AuthenticatedRequest } from './middleware/authMiddleware';
+import { authMiddleware, authMiddlewareCompat, AuthenticatedRequest } from './middleware/authMiddleware.js';
 
 // Load environment variables
 dotenv.config();

@@ -6,7 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@keeper/database';
 import { DomainPermissionService, DomainCacheService } from '@keeper/database';
-import { AuthenticatedRequest } from './authMiddleware';
+import { AuthenticatedRequest } from './authMiddleware.js';
 import Redis from 'ioredis';
 
 const prisma = new PrismaClient();

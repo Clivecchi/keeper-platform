@@ -4,8 +4,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { DomainCacheService } from './DomainCacheService';
-import { ProductionConfigService } from './ProductionConfigService';
+import { DomainCacheService } from './DomainCacheService.js';
+import { ProductionConfigService } from './ProductionConfigService.js';
 import * as prometheus from 'prom-client';
 
 export type MetricType = 'counter' | 'gauge' | 'histogram' | 'summary';

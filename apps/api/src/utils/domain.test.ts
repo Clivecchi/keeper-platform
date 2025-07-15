@@ -4,7 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { extractDomainContext } from './domain';
+import { extractDomainContext } from './domain.js';
 
 // Mock request and response objects
 const mockReq = {

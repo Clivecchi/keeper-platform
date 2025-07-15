@@ -4,9 +4,9 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { ProductionConfigService } from './ProductionConfigService';
-import { MonitoringService } from './MonitoringService';
-import { DomainCacheService } from './DomainCacheService';
+import { ProductionConfigService } from './ProductionConfigService.js';
+import { MonitoringService } from './MonitoringService.js';
+import { DomainCacheService } from './DomainCacheService.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 

@@ -1,9 +1,9 @@
 import { Redis } from 'ioredis';
 import { PrismaClient } from '@prisma/client';
-import { DomainService } from '../services/DomainService';
-import { DomainCacheService } from '../services/DomainCacheService';
-import { DomainContextService } from '../services/DomainContextService';
-import { SoleMemoryIsolationService } from '../services/SoleMemoryIsolationService';
+import { DomainService } from '../services/DomainService.js';
+import { DomainCacheService } from '../services/DomainCacheService.js';
+import { DomainContextService } from '../services/DomainContextService.js';
+import { SoleMemoryIsolationService } from '../services/SoleMemoryIsolationService.js';
 import { logger } from '@keeper/shared';
 
 export interface DomainServiceFactoryConfig {

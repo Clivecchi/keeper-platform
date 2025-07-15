@@ -4,10 +4,10 @@
  */
 
 import { PrismaClient, Prisma } from '@prisma/client';
-import { SoleMemoryIsolationService } from './SoleMemoryIsolationService';
-import type { MemoryScope } from './SoleMemoryIsolationService';
-import { DomainCacheService } from './DomainCacheService';
-import { getFeatureFlagService } from './FeatureFlagService';
+import { SoleMemoryIsolationService } from './SoleMemoryIsolationService.js';
+import type { MemoryScope } from './SoleMemoryIsolationService.js';
+import { DomainCacheService } from './DomainCacheService.js';
+import { getFeatureFlagService } from './FeatureFlagService.js';
 import * as crypto from 'crypto';
 
 export type MigrationType = 'copy' | 'move' | 'merge' | 'split';

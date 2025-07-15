@@ -3,10 +3,10 @@
 // KAM Rules headers as in register.ts...
 
 import { getUserByEmail } from '@keeper/database';
-import { LoginInputSchema } from './types';
-import type { LoginInput, AuthResponse, AuthUser, AuthSuccessData } from './types';
+import { LoginInputSchema } from './types.js';
+import type { LoginInput, AuthResponse, AuthUser, AuthSuccessData } from './types.js';
 import bcrypt from 'bcryptjs';
-import { createSession } from './session';
+import { createSession } from './session.js';
 
 /**
  * Handles user login.
