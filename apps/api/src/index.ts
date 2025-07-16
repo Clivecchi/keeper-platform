@@ -39,7 +39,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Request logging middleware (applied to all requests)
-app.use((req: Request, res: Response, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   const timestamp = new Date().toISOString();
   console.log(`📨 ${timestamp} - ${req.method} ${req.path}`);
   console.log(`📨 Origin: ${req.get('origin') || 'none'}`);

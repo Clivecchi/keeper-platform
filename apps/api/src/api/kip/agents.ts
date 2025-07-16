@@ -8,23 +8,7 @@
 
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { 
-  getAllKipAgents,
-  getKipAgentById,
-  getKipAgentBySlug,
-  createKipAgent,
-  updateKipAgent,
-  createKipAgentLog,
-  getKipAgentLogs,
-  getLogsByAgentId,
-  getAgentStats,
-  createKipSession,
-  getKipSessionById,
-  getSessionsByAgentId,
-  createKipMessage,
-  getSessionMessages,
-  deleteKipAgent
-} from '@keeper/database';
+import { prisma } from '@keeper/database';
 import type { 
   AgentInput, 
   AgentResponse, 
@@ -38,6 +22,228 @@ import type {
 } from '@keeper/database';
 import { ModelProviderService, ModelMessage } from '../../services/ModelProviderService.js';
 
+// Database helper functions
+const getAllKipAgents = async () => {
+  return prisma.kip_agents.findMany({
+    orderBy: [
+      { status: 'asc' },
+      { name: 'asc' }
+    ]
+  });
+};
+
+const getKipAgentById = async (id: string) => {
+  return prisma.kip_agents.findUnique({
+    where: { id }
+  });
+};
+
+const getKipAgentBySlug = async (slug: string) => {
+  return prisma.kip_agents.findUnique({
+    where: { slug }
+  });
+};
+
+const createKipAgent = async (data: AgentInput) => {
+  return prisma.kip_agents.create({
+    data: {
+      ...data,
+      updated_at: new Date()
+    }
+  });
+};
+
+const updateKipAgent = async (id: string, data: Partial<AgentInput>) => {
+  return prisma.kip_agents.update({
+    where: { id },
+    data: {
+      ...data,
+      updated_at: new Date()
+    }
+  });
+};
+
+const deleteKipAgent = async (id: string) => {
+  return prisma.kip_agents.delete({
+    where: { id }
+  });
+};
+
+const createKipAgentLog = async (data: {
+  agent_id: string;
+  user_id?: string;
+  input: string;
+  output?: string;
+  error?: string;
+  model?: string;
+  execution_time_ms: number;
+}) => {
+  return prisma.kip_agent_logs.create({
+    data
+  });
+};
+
+const createKipSession = async (data: KipSessionInput) => {
+  return prisma.kip_sessions.create({
+    data: {
+      ...data,
+      updated_at: new Date()
+    }
+  });
+};
+
+const getKipSessionById = async (sessionId: string) => {
+  return prisma.kip_sessions.findUnique({
+    where: { id: sessionId },
+    include: {
+      messages: {
+        orderBy: { created_at: 'asc' }
+      }
+    }
+  });
+};
+
+const getSessionsByAgentId = async (agentId: string, options: { page?: number; pageSize?: number } = {}) => {
+  const { page = 1, pageSize = 50 } = options;
+  const skip = (page - 1) * pageSize;
+
+  const [sessions, total] = await Promise.all([
+    prisma.kip_sessions.findMany({
+      where: { agent_id: agentId },
+      include: {
+        _count: {
+          select: { messages: true }
+        }
+      },
+      orderBy: { updated_at: 'desc' },
+      skip,
+      take: pageSize
+    }),
+    prisma.kip_sessions.count({ where: { agent_id: agentId } })
+  ]);
+
+  return {
+    sessions,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+    hasNext: page * pageSize < total,
+    hasPrevious: page > 1
+  };
+};
+
+const createKipMessage = async (data: KipMessageInput) => {
+  return prisma.kip_messages.create({
+    data
+  });
+};
+
+const getSessionMessages = async (sessionId: string) => {
+  return prisma.kip_messages.findMany({
+    where: { session_id: sessionId },
+    orderBy: { created_at: 'asc' }
+  });
+};
+
+const getKipAgentLogs = async (options: {
+  page?: number;
+  pageSize?: number;
+  agentId?: string;
+  userId?: string;
+} = {}) => {
+  const { page = 1, pageSize = 50, agentId, userId } = options;
+  const skip = (page - 1) * pageSize;
+
+  const where = {
+    ...(agentId && { agent_id: agentId }),
+    ...(userId && { user_id: userId })
+  };
+
+  const [logs, total] = await Promise.all([
+    prisma.kip_agent_logs.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+      skip,
+      take: pageSize
+    }),
+    prisma.kip_agent_logs.count({ where })
+  ]);
+
+  return {
+    logs,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+    hasNext: page * pageSize < total,
+    hasPrevious: page > 1
+  };
+};
+
+const getLogsByAgentId = async (agentId: string, options: { page?: number; pageSize?: number } = {}) => {
+  return getKipAgentLogs({ ...options, agentId });
+};
+
+const getAgentStats = async (agentId?: string) => {
+  const where = agentId ? { agent_id: agentId } : {};
+  
+  const [totalExecutions, totalErrors, avgExecutionTime] = await Promise.all([
+    prisma.kip_agent_logs.count({ where }),
+    prisma.kip_agent_logs.count({ where: { ...where, error: { not: null } } }),
+    prisma.kip_agent_logs.aggregate({
+      where,
+      _avg: { execution_time_ms: true }
+    })
+  ]);
+
+  return {
+    totalExecutions,
+    totalErrors,
+    successRate: totalExecutions > 0 ? ((totalExecutions - totalErrors) / totalExecutions) * 100 : 0,
+    avgExecutionTime: avgExecutionTime._avg.execution_time_ms || 0
+  };
+};
+
+// Define proper types for agents
+interface AgentConfig {
+  avatar?: string;
+  tagline?: string;
+  personality?: string;
+  capabilities?: string[];
+  theme_color?: string;
+  bundle?: string[];
+}
+
+interface TypedAgent {
+  id: string;
+  slug: string;
+  name: string;
+  agent_class: string;
+  model: string;
+  memory_enabled?: boolean;
+  model_provider?: ModelProvider;
+  model_settings?: ModelSettings;
+  purpose?: string;
+  tools?: string[];
+  context_scope?: string;
+  config?: AgentConfig;
+}
+
+// Input validation schemas
+const AgentRunSchema = z.object({
+  agentId: z.string().min(1, 'Agent ID is required'),
+  input: z.string().min(1, 'Input is required'),
+  userId: z.string().optional(),
+  sessionId: z.string().optional()
+});
+
+const CreateSessionSchema = z.object({
+  agentId: z.string().min(1, 'Agent ID is required'),
+  userId: z.string().optional(),
+  sessionName: z.string().optional()
+});
+
 /**
  * KipAgentService - Core agent management functions
  */
@@ -45,33 +251,84 @@ export class KipAgentService {
   /**
    * Generate response for Lead agents with conversational intelligence
    */
-  static generateLeadAgentResponse(agent: unknown, input: string): string {
-    const typedAgent = agent as { 
-      config?: { personality?: string; tagline?: string; capabilities?: string[] }; 
-      slug?: string; 
-      name?: string; 
-    };
-    const config = typedAgent.config;
-    const personality = config?.personality || 'helpful';
+  static generateLeadAgentResponse(agent: TypedAgent, input: string): string {
+    const config = agent.config || {};
+    const personality = config.personality || 'helpful';
     
     // Generate contextual responses based on agent personality and capabilities
-    if (typedAgent.slug === 'kip') {
-      return `Hello! I'm Kip, ${config?.tagline || 'your AI companion'}. I understand you said: "${input}". As your thought processing assistant, I can help you organize ideas, analyze patterns, and coordinate tasks. How would you like me to assist you with this today?`;
-    } else if (typedAgent.slug === 'ceox') {
-      return `Greetings. I'm CeoX, ${config?.tagline || 'your strategic AI partner'}. You've shared: "${input}". From an executive perspective, I can provide strategic analysis, business intelligence, and decision support. What strategic insights or recommendations would be most valuable for you regarding this matter?`;
-    } else {
-      // Generic Lead agent response
-      return `Hello! I'm ${typedAgent.name}. I see you've mentioned: "${input}". Based on my capabilities in ${config?.capabilities?.join(', ') || 'general assistance'}, I'm here to help. What specific assistance can I provide?`;
+    switch (agent.slug) {
+      case 'kip':
+        return `Hello! I'm Kip, ${config.tagline || 'your AI companion'}. I understand you said: "${input}". As your thought processing assistant, I can help you organize ideas, analyze patterns, and coordinate tasks. How would you like me to assist you with this today?`;
+      
+      case 'ceox':
+        return `Greetings. I'm CeoX, ${config.tagline || 'your strategic AI partner'}. You've shared: "${input}". From an executive perspective, I can provide strategic analysis, business intelligence, and decision support. What strategic insights or recommendations would be most valuable for you regarding this matter?`;
+      
+      default:
+        return `Hello! I'm ${agent.name}. I see you've mentioned: "${input}". Based on my capabilities in ${config.capabilities?.join(', ') || 'general assistance'}, I'm here to help. What specific assistance can I provide?`;
+    }
+  }
+
+  /**
+   * Validate agent data before processing
+   */
+  static validateAgent(agent: unknown): TypedAgent {
+    if (!agent || typeof agent !== 'object') {
+      throw new Error('Invalid agent data');
+    }
+
+    const typedAgent = agent as Partial<TypedAgent>;
+
+    if (!typedAgent.id || !typedAgent.slug || !typedAgent.name) {
+      throw new Error('Agent missing required fields: id, slug, name');
+    }
+
+    return {
+      id: typedAgent.id,
+      slug: typedAgent.slug,
+      name: typedAgent.name,
+      agent_class: typedAgent.agent_class || 'Lead',
+      model: typedAgent.model || 'gpt-3.5-turbo',
+      memory_enabled: typedAgent.memory_enabled || false,
+      model_provider: typedAgent.model_provider || 'openai',
+      model_settings: typedAgent.model_settings || ModelProviderService.getDefaultSettings('openai'),
+      purpose: typedAgent.purpose || 'General assistance',
+      tools: typedAgent.tools || [],
+      context_scope: typedAgent.context_scope || 'general',
+      config: typedAgent.config || {}
+    };
+  }
+
+  /**
+   * Create a new agent with validation
+   */
+  static async createAgent(input: AgentInput): Promise<TypedAgent> {
+    try {
+      // Validate input
+      if (!input.name || !input.slug) {
+        throw new Error('Agent name and slug are required');
+      }
+
+      // Check if agent with slug already exists
+      const existingAgent = await getKipAgentBySlug(input.slug);
+      if (existingAgent) {
+        throw new Error(`Agent with slug '${input.slug}' already exists`);
+      }
+
+      const agent = await createKipAgent(input);
+      return this.validateAgent(agent);
+    } catch (error) {
+      console.error('Error creating agent:', error);
+      throw new Error(`Failed to create agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   /**
    * Get all available agents
    */
-  static async getAllAgents() {
+  static async getAllAgents(): Promise<TypedAgent[]> {
     try {
       const agents = await getAllKipAgents();
-      return agents;
+      return agents.map((agent: any) => this.validateAgent(agent));
     } catch (error) {
       console.error('Error fetching agents:', error);
       throw new Error('Failed to fetch agents');
@@ -79,151 +336,132 @@ export class KipAgentService {
   }
 
   /**
-   * Update an existing agent
+   * Get agent by ID or slug safely
    */
-  static async updateAgent(id: string, input: Partial<AgentInput>) {
+  static async getAgentSafely(identifier: string): Promise<TypedAgent> {
     try {
-      // Get agent by ID or slug, similar to runAgent
-      let existingAgent;
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      let agent;
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
       
       if (isUUID) {
-        existingAgent = await getKipAgentById(id);
+        agent = await getKipAgentById(identifier);
       } else {
-        existingAgent = await getKipAgentBySlug(id);
-      }
-      
-      if (!existingAgent) {
-        throw new Error(`Agent with ${isUUID ? 'ID' : 'slug'} ${id} not found`);
+        agent = await getKipAgentBySlug(identifier);
       }
 
-      // Update the agent using the actual UUID
+      if (!agent) {
+        throw new Error(`Agent with ${isUUID ? 'ID' : 'slug'} '${identifier}' not found`);
+      }
+
+      return this.validateAgent(agent);
+    } catch (error) {
+      console.error('Error fetching agent:', error);
+      throw new Error(`Failed to fetch agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Update an existing agent
+   */
+  static async updateAgent(id: string, input: Partial<AgentInput>): Promise<TypedAgent> {
+    try {
+      const existingAgent = await this.getAgentSafely(id);
       const updatedAgent = await updateKipAgent(existingAgent.id, input);
-      return updatedAgent;
+      return this.validateAgent(updatedAgent);
     } catch (error) {
       console.error('Error updating agent:', error);
-      throw new Error('Failed to update agent');
+      throw new Error(`Failed to update agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   /**
    * Delete an agent
    */
-  static async deleteAgent(id: string) {
+  static async deleteAgent(id: string): Promise<{ success: boolean; message: string }> {
     try {
-      // Get agent by ID or slug, similar to runAgent
-      let existingAgent;
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-      
-      if (isUUID) {
-        existingAgent = await getKipAgentById(id);
-      } else {
-        existingAgent = await getKipAgentBySlug(id);
-      }
-      
-      if (!existingAgent) {
-        throw new Error(`Agent with ${isUUID ? 'ID' : 'slug'} ${id} not found`);
-      }
-
-      // Delete the agent using the actual UUID
+      const existingAgent = await this.getAgentSafely(id);
       await deleteKipAgent(existingAgent.id);
-      return { success: true, message: 'Agent deleted successfully' };
+      return { success: true, message: `Agent '${existingAgent.name}' deleted successfully` };
     } catch (error) {
       console.error('Error deleting agent:', error);
-      throw new Error('Failed to delete agent');
+      throw new Error(`Failed to delete agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   /**
-   * Create a new agent
-   */
-  static async createAgent(input: AgentInput) {
-    try {
-      const agent = await createKipAgent(input);
-      return agent;
-    } catch (error) {
-      console.error('Error creating agent:', error);
-      throw new Error('Failed to create agent');
-    }
-  }
-
-  /**
-   * Create a new session for an agent
+   * Create a new session with validation
    */
   static async createSession(agentId: string, userId?: string, sessionName?: string): Promise<KipSessionWithRelations> {
     try {
-      // Get agent by ID or slug to ensure we use the correct UUID
-      let agent;
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(agentId);
+      // Validate agent exists
+      const agent = await this.getAgentSafely(agentId);
       
-      if (isUUID) {
-        agent = await getKipAgentById(agentId);
-      } else {
-        agent = await getKipAgentBySlug(agentId);
-      }
-      
-      if (!agent) {
-        throw new Error(`Agent with ${isUUID ? 'ID' : 'slug'} ${agentId} not found`);
-      }
-
       const sessionData: KipSessionInput = {
-        agent_id: agent.id, // Use the actual UUID
-        user_id: userId,
-        session_name: sessionName
+        agent_id: agent.id,
+        user_id: userId || 'anonymous',
+        session_name: sessionName || `Session with ${agent.name}`
       };
-      
-      const session = await createKipSession(sessionData);
-      return session as KipSessionWithRelations;
+
+      return await createKipSession(sessionData);
     } catch (error) {
       console.error('Error creating session:', error);
-      throw new Error('Failed to create session');
+      throw new Error(`Failed to create session: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   /**
-   * Get session with all messages (memory)
+   * Get session memory safely
    */
   static async getSessionMemory(sessionId: string): Promise<KipMessageWithRelations[]> {
     try {
-      const messages = await getSessionMessages(sessionId);
-      return messages as KipMessageWithRelations[];
+      const session = await getKipSessionById(sessionId);
+      if (!session) {
+        throw new Error(`Session with ID '${sessionId}' not found`);
+      }
+      
+      return await getSessionMessages(sessionId);
     } catch (error) {
       console.error('Error fetching session memory:', error);
-      throw new Error('Failed to fetch session memory');
+      throw new Error(`Failed to fetch session memory: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   /**
-   * Save a message to session memory
+   * Save message to session with validation
    */
-  static async saveMessage(sessionId: string, sender: 'user' | 'agent', content: string, role?: string, metadata?: Record<string, unknown>): Promise<void> {
+  static async saveMessage(
+    sessionId: string, 
+    sender: 'user' | 'agent', 
+    content: string, 
+    role: string, 
+    metadata?: Record<string, unknown>
+  ): Promise<void> {
     try {
+      if (!sessionId || !sender || !content || !role) {
+        throw new Error('Session ID, sender, content, and role are required');
+      }
+
       const messageData: KipMessageInput = {
         session_id: sessionId,
         sender,
         content,
         role,
-        metadata
+        metadata: metadata || {}
       };
       
       await createKipMessage(messageData);
     } catch (error) {
       console.error('Error saving message:', error);
-      throw new Error('Failed to save message');
+      throw new Error(`Failed to save message: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   /**
    * Generate Lead agent response with memory context (Legacy - for fallback)
    */
-  static generateLeadAgentResponseWithMemory(agent: unknown, input: string, previousMessages: KipMessageWithRelations[]): string {
-    const typedAgent = agent as { 
-      config?: { personality?: string; tagline?: string; capabilities?: string[] }; 
-      slug?: string; 
-      name?: string; 
-    };
-    const config = typedAgent.config;
-    const personality = config?.personality || 'helpful';
+  static generateLeadAgentResponseWithMemory(agent: TypedAgent, input: string, previousMessages: KipMessageWithRelations[]): string {
+    const config = agent.config || {};
+    const personality = config.personality || 'helpful';
     
     // Build context from previous messages
     const recentContext = previousMessages.slice(-6).map(msg => 
@@ -235,46 +473,39 @@ export class KipAgentService {
       `\n\nBased on our previous conversation:\n${recentContext}\n\nNow responding to: "${input}"` :
       `\n\nResponding to: "${input}"`;
     
-    if (typedAgent.slug === 'kip') {
-      const greeting = hasContext ? 'I remember our conversation.' : 'Hello! I\'m Kip, your AI companion.';
-      return `${greeting} ${contextPrompt}\n\nAs your thought processing assistant with memory of our discussion, I can help you build on our previous insights, analyze patterns, and coordinate tasks. How would you like me to assist you with this continuation of our conversation?`;
-    } else if (typedAgent.slug === 'ceox') {
-      const greeting = hasContext ? 'Continuing our strategic discussion.' : 'Greetings. I\'m CeoX, your strategic AI partner.';
-      return `${greeting} ${contextPrompt}\n\nWith the context of our previous exchanges, I can provide strategic analysis that builds on our earlier insights, business intelligence that connects to previous decisions, and decision support that considers our conversation history. What strategic insights would be most valuable for you regarding this matter?`;
-    } else {
-      const greeting = hasContext ? `Continuing our conversation, I'm ${typedAgent.name}.` : `Hello! I'm ${typedAgent.name}.`;
-      return `${greeting} ${contextPrompt}\n\nBased on my capabilities in ${config?.capabilities?.join(', ') || 'general assistance'} and our conversation history, I'm here to help. What specific assistance can I provide?`;
+    switch (agent.slug) {
+      case 'kip':
+        const greeting = hasContext ? 'I remember our conversation.' : 'Hello! I\'m Kip, your AI companion.';
+        return `${greeting} ${contextPrompt}\n\nAs your thought processing assistant with memory of our discussion, I can help you build on our previous insights, analyze patterns, and coordinate tasks. How would you like me to assist you with this continuation of our conversation?`;
+      
+      case 'ceox':
+        const greeting2 = hasContext ? 'Continuing our strategic discussion.' : 'Greetings. I\'m CeoX, your strategic AI partner.';
+        return `${greeting2} ${contextPrompt}\n\nWith the context of our previous exchanges, I can provide strategic analysis that builds on our earlier insights, business intelligence that connects to previous decisions, and decision support that considers our conversation history. What strategic insights would be most valuable for you regarding this matter?`;
+      
+      default:
+        const greeting3 = hasContext ? `Continuing our conversation, I'm ${agent.name}.` : `Hello! I'm ${agent.name}.`;
+        return `${greeting3} ${contextPrompt}\n\nBased on my capabilities in ${config.capabilities?.join(', ') || 'general assistance'} and our conversation history, I'm here to help. What specific assistance can I provide?`;
     }
   }
 
   /**
    * Call real AI model with conversation context
    */
-  static async callAIModel(agent: unknown, input: string, previousMessages: KipMessageWithRelations[], userId?: string): Promise<string> {
+  static async callAIModel(agent: TypedAgent, input: string, previousMessages: KipMessageWithRelations[], userId?: string): Promise<string> {
     try {
-      const typedAgent = agent as {
-        model_provider?: ModelProvider;
-        model_settings?: ModelSettings;
-        config?: { tagline?: string; personality?: string; [key: string]: unknown };
-        name?: string;
-        purpose?: string;
-        tools?: string[];
-        context_scope?: string;
-      };
-      
-      const modelProvider = typedAgent.model_provider || 'openai';
-      const modelSettings = typedAgent.model_settings || ModelProviderService.getDefaultSettings(modelProvider);
+      const modelProvider = agent.model_provider || 'openai';
+      const modelSettings = agent.model_settings || ModelProviderService.getDefaultSettings(modelProvider);
       
       // Build conversation messages for the AI model
       const messages: ModelMessage[] = [];
       
       // Add system message with agent context
-      const config = typedAgent.config;
-      const systemPrompt = `You are ${typedAgent.name}, ${typedAgent.purpose}. ${config?.tagline || ''}
+      const config = agent.config || {};
+      const systemPrompt = `You are ${agent.name}, ${agent.purpose}. ${config.tagline || ''}
 
-Key capabilities: ${typedAgent.tools?.join(', ') || 'general assistance'}
-Personality: ${config?.personality || 'helpful and professional'}
-Context scope: ${typedAgent.context_scope || 'general'}
+Key capabilities: ${agent.tools?.join(', ') || 'general assistance'}
+Personality: ${config.personality || 'helpful and professional'}
+Context scope: ${agent.context_scope || 'general'}
 
 Please respond in character, using your specific capabilities and personality. Keep responses conversational and helpful.`;
       
@@ -310,14 +541,10 @@ Please respond in character, using your specific capabilities and personality. K
         return response.content;
       } else {
         console.error('AI model call failed:', response.error);
-        // TEMPORARILY DISABLED: Fallback to see real errors
-        // return this.generateLeadAgentResponseWithMemory(agent, input, previousMessages);
         throw new Error(`AI model call failed: ${response.error}`);
       }
     } catch (error) {
       console.error('Error calling AI model:', error);
-      // TEMPORARILY DISABLED: Fallback to see real errors
-      // return this.generateLeadAgentResponseWithMemory(agent, input, previousMessages);
       throw error;
     }
   }
@@ -338,49 +565,23 @@ Please respond in character, using your specific capabilities and personality. K
     };
     
     try {
-      // Try to get agent by ID first (UUID format), then by slug if that fails
-      let agent;
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(agentId);
-      
-      if (isUUID) {
-        agent = await getKipAgentById(agentId);
-      } else {
-        // If not a UUID, try to get by slug
-        agent = await getKipAgentBySlug(agentId);
+      // Validate input
+      if (!agentId || !input) {
+        throw new Error('Agent ID and input are required');
       }
-      
-      if (!agent) {
-        const error = `Agent with ${isUUID ? 'ID' : 'slug'} ${agentId} not found`;
-        logData.error = error;
-        logData.execution_time_ms = Date.now() - startTime;
-        
-        // Log the failed execution
-        try {
-          await createKipAgentLog(logData);
-        } catch (logError) {
-          console.warn('Failed to log agent execution:', logError);
-        }
-        
-        throw new Error(error);
-      }
+
+      // Get agent safely using our helper method
+      const agent = await this.getAgentSafely(agentId);
 
       // Update log to use the actual agent UUID for consistency
       logData.agent_id = agent.id;
       logData.model = agent.model;
 
-      // Mock agent execution based on agent type or class
+      // Handle different agent classes
       let result: unknown;
 
       // Handle Lead agents - interactive chat experience with memory
       if (agent.agent_class === 'Lead') {
-        const config = (agent as { config?: { 
-          avatar?: string; 
-          tagline?: string; 
-          personality?: string; 
-          capabilities?: string[]; 
-          theme_color?: string; 
-          bundle?: string[];
-        } }).config;
         let currentSessionId = sessionId;
         let previousMessages: KipMessageWithRelations[] = [];
         
@@ -389,7 +590,7 @@ Please respond in character, using your specific capabilities and personality. K
           if (sessionId) {
             // Load existing session memory
             try {
-              previousMessages = await KipAgentService.getSessionMemory(sessionId);
+              previousMessages = await this.getSessionMemory(sessionId);
             } catch (error) {
               console.warn('Failed to load session memory:', error);
               // Continue without memory if loading fails
@@ -397,7 +598,7 @@ Please respond in character, using your specific capabilities and personality. K
           } else {
             // Create new session for memory-enabled agents
             try {
-              const newSession = await KipAgentService.createSession(agentId, userId);
+              const newSession = await this.createSession(agentId, userId);
               currentSessionId = newSession.id;
             } catch (error) {
               console.warn('Failed to create session:', error);
@@ -408,7 +609,7 @@ Please respond in character, using your specific capabilities and personality. K
           // Save user message to memory if we have a session
           if (currentSessionId) {
             try {
-              await KipAgentService.saveMessage(currentSessionId, 'user', input, 'user', {
+              await this.saveMessage(currentSessionId, 'user', input, 'user', {
                 timestamp: new Date().toISOString(),
                 agent_id: agentId
               });
@@ -419,12 +620,12 @@ Please respond in character, using your specific capabilities and personality. K
         }
         
         // Generate response using real AI model with memory context
-        const response = await KipAgentService.callAIModel(agent, input, previousMessages, userId);
+        const response = await this.callAIModel(agent, input, previousMessages, userId);
         
         // Save agent response to memory if we have a session
         if (agent.memory_enabled && currentSessionId) {
           try {
-            await KipAgentService.saveMessage(currentSessionId, 'agent', response, 'assistant', {
+            await this.saveMessage(currentSessionId, 'agent', response, 'assistant', {
               timestamp: new Date().toISOString(),
               agent_id: agentId,
               model: agent.model
@@ -434,6 +635,7 @@ Please respond in character, using your specific capabilities and personality. K
           }
         }
         
+        const config = agent.config || {};
         result = {
           action: 'lead_interaction',
           keeper_id: userId || 'lead_user',
@@ -441,11 +643,11 @@ Please respond in character, using your specific capabilities and personality. K
           data: {
             response: response,
             agent_name: agent.name,
-            agent_avatar: config?.avatar || '🤖',
-            agent_tagline: config?.tagline || 'Your AI assistant',
-            personality: config?.personality || 'helpful',
-            capabilities: config?.capabilities || [],
-            theme_color: config?.theme_color || '#3b82f6',
+            agent_avatar: config.avatar || '🤖',
+            agent_tagline: config.tagline || 'Your AI assistant',
+            personality: config.personality || 'helpful',
+            capabilities: config.capabilities || [],
+            theme_color: config.theme_color || '#3b82f6',
             session_id: currentSessionId || `lead_${agent.slug}_${Date.now()}`,
             memory_enabled: agent.memory_enabled,
             message_count: previousMessages.length + (agent.memory_enabled ? 2 : 0), // +2 for current user/agent messages
@@ -456,11 +658,8 @@ Please respond in character, using your specific capabilities and personality. K
       }
       // Handle Coordinator agents
       else if (agent.agent_class === 'Coordinator') {
-        const config = (agent as { config?: { 
-          bundle?: string[]; 
-          [key: string]: unknown;
-        } }).config;
-        const subAgentSlugs = config?.bundle ?? [];
+        const config = agent.config || {};
+        const subAgentSlugs = config.bundle || [];
         console.log(`[Coordinator] Running ${subAgentSlugs.length} sub-agents:`, subAgentSlugs);
         
         if (subAgentSlugs.length === 0) {
@@ -482,7 +681,7 @@ Please respond in character, using your specific capabilities and personality. K
             try {
               const subAgent = await getKipAgentBySlug(slug);
               if (subAgent) {
-                const subResult = await KipAgentService.runAgent(subAgent.id, input, userId, sessionId);
+                const subResult = await this.runAgent(subAgent.id, input, userId, sessionId);
                 const agentResponse = subResult as AgentResponse;
                 subResults.push({
                   agent_slug: slug,
@@ -528,78 +727,19 @@ Please respond in character, using your specific capabilities and personality. K
         }
       } else {
         // Standard agent execution based on agent slug
-        switch (agent.slug) {
-        case 'type-agent':
-          result = {
-            action: 'capture_thought',
-            keeper_id: userId || 'user_anonymous',
-            type: 'reflection',
-            data: {
-              content: input,
-              extracted_entities: ['thought', 'reflection'],
-              sentiment: 'neutral',
-              category: 'personal',
-              confidence: 0.85,
-              agent_used: agent.name,
-              model: agent.model
-            }
-          };
-          break;
-
-        case 'platform-agent':
-          result = {
-            action: 'system_analysis',
-            keeper_id: 'system',
-            type: 'platform_insight',
-            data: {
-              analysis: `Platform analysis of: ${input}`,
-              recommendations: ['optimize_database_queries', 'enhance_user_experience'],
-              priority: 'medium',
-              agent_used: agent.name,
-              model: agent.model
-            }
-          };
-          break;
-
-        case 'code-agent':
-          result = {
-            action: 'code_analysis',
-            keeper_id: 'codebase',
-            type: 'technical_review',
-            data: {
-              analysis: `Code analysis for: ${input}`,
-              suggestions: ['add_type_safety', 'improve_error_handling'],
-              complexity_score: 6,
-              agent_used: agent.name,
-              model: agent.model
-            }
-          };
-          break;
-
-        default:
-          result = {
-            action: 'generic_processing',
-            keeper_id: userId || 'unknown',
-            type: 'general',
-            data: {
-              processed_input: input,
-              agent_used: agent.name,
-              model: agent.model
-            }
-          };
-        }
+        result = this.getStandardAgentResult(agent, input, userId);
       }
 
       const processingTime = Date.now() - startTime;
       logData.execution_time_ms = processingTime;
       logData.output = JSON.stringify(result);
 
-              // Log successful execution
-        try {
-          await createKipAgentLog(logData);
-        } catch (logError) {
-          console.warn('Failed to log agent execution:', logError);
-        }
+      // Log successful execution
+      try {
+        await createKipAgentLog(logData);
+      } catch (logError) {
+        console.warn('Failed to log agent execution:', logError);
+      }
 
       // Return AgentResponse format for consistency
       return {
@@ -616,12 +756,12 @@ Please respond in character, using your specific capabilities and personality. K
       logData.execution_time_ms = Date.now() - startTime;
       logData.error = errorMessage;
 
-              // Log failed execution
-        try {
-          await createKipAgentLog(logData);
-        } catch (logError) {
-          console.warn('Failed to log agent execution error:', logError);
-        }
+      // Log failed execution
+      try {
+        await createKipAgentLog(logData);
+      } catch (logError) {
+        console.warn('Failed to log agent execution error:', logError);
+      }
 
       return {
         id: agentId,
@@ -629,6 +769,69 @@ Please respond in character, using your specific capabilities and personality. K
         data: { error: errorMessage },
         processing_time_ms: logData.execution_time_ms
       };
+    }
+  }
+
+  /**
+   * Get standard agent result based on agent slug
+   */
+  private static getStandardAgentResult(agent: TypedAgent, input: string, userId?: string): KipCommandIntent {
+    switch (agent.slug) {
+      case 'type-agent':
+        return {
+          action: 'capture_thought',
+          keeper_id: userId || 'user_anonymous',
+          type: 'reflection',
+          data: {
+            content: input,
+            extracted_entities: ['thought', 'reflection'],
+            sentiment: 'neutral',
+            category: 'personal',
+            confidence: 0.85,
+            agent_used: agent.name,
+            model: agent.model
+          }
+        };
+
+      case 'platform-agent':
+        return {
+          action: 'system_analysis',
+          keeper_id: 'system',
+          type: 'platform_insight',
+          data: {
+            analysis: `Platform analysis of: ${input}`,
+            recommendations: ['optimize_database_queries', 'enhance_user_experience'],
+            priority: 'medium',
+            agent_used: agent.name,
+            model: agent.model
+          }
+        };
+
+      case 'code-agent':
+        return {
+          action: 'code_analysis',
+          keeper_id: 'codebase',
+          type: 'technical_review',
+          data: {
+            analysis: `Code analysis for: ${input}`,
+            suggestions: ['add_type_safety', 'improve_error_handling'],
+            complexity_score: 6,
+            agent_used: agent.name,
+            model: agent.model
+          }
+        };
+
+      default:
+        return {
+          action: 'generic_processing',
+          keeper_id: userId || 'unknown',
+          type: 'general',
+          data: {
+            processed_input: input,
+            agent_used: agent.name,
+            model: agent.model
+          }
+        };
     }
   }
 }
@@ -645,52 +848,81 @@ export default async function handler(req: Request, res: Response) {
         
         // Get session messages
         if (messages === 'true' && querySessionId) {
-          const sessionMessages = await KipAgentService.getSessionMemory(querySessionId as string);
+          if (typeof querySessionId !== 'string') {
+            return res.status(400).json({ success: false, error: 'Invalid session ID' });
+          }
+          const sessionMessages = await KipAgentService.getSessionMemory(querySessionId);
           return res.status(200).json({ success: true, data: sessionMessages });
         }
         
         // Get sessions for an agent
         if (sessions === 'true' && queryAgentId) {
+          if (typeof queryAgentId !== 'string') {
+            return res.status(400).json({ success: false, error: 'Invalid agent ID' });
+          }
+          
           const options = {
             page: page ? parseInt(page as string) : undefined,
             pageSize: pageSize ? parseInt(pageSize as string) : undefined
           };
           
-          const sessionsResult = await getSessionsByAgentId(queryAgentId as string, options);
+          // Validate pagination parameters
+          if (options.page && (isNaN(options.page) || options.page < 1)) {
+            return res.status(400).json({ success: false, error: 'Invalid page number' });
+          }
+          if (options.pageSize && (isNaN(options.pageSize) || options.pageSize < 1 || options.pageSize > 100)) {
+            return res.status(400).json({ success: false, error: 'Invalid page size (must be 1-100)' });
+          }
+          
+          const sessionsResult = await getSessionsByAgentId(queryAgentId, options);
           return res.status(200).json({ success: true, data: sessionsResult });
         }
         
         // Get specific session by ID
         if (querySessionId && !messages) {
-          const session = await getKipSessionById(querySessionId as string);
+          if (typeof querySessionId !== 'string') {
+            return res.status(400).json({ success: false, error: 'Invalid session ID' });
+          }
+          const session = await getKipSessionById(querySessionId);
           if (!session) {
             return res.status(404).json({ success: false, error: 'Session not found' });
           }
           return res.status(200).json({ success: true, data: session });
         }
         
-                  // Get agent logs
-          if (logs === 'true') {
-            const options = {
-              page: page ? parseInt(page as string) : undefined,
-              pageSize: pageSize ? parseInt(pageSize as string) : undefined,
-              agentId: queryAgentId as string,
-              userId: queryUserId as string
-            };
-            
-            const logsResult = await getKipAgentLogs(options);
-            return res.status(200).json({ success: true, data: logsResult });
+        // Get agent logs
+        if (logs === 'true') {
+          const options = {
+            page: page ? parseInt(page as string) : undefined,
+            pageSize: pageSize ? parseInt(pageSize as string) : undefined,
+            agentId: queryAgentId as string,
+            userId: queryUserId as string
+          };
+          
+          // Validate pagination parameters
+          if (options.page && (isNaN(options.page) || options.page < 1)) {
+            return res.status(400).json({ success: false, error: 'Invalid page number' });
+          }
+          if (options.pageSize && (isNaN(options.pageSize) || options.pageSize < 1 || options.pageSize > 100)) {
+            return res.status(400).json({ success: false, error: 'Invalid page size (must be 1-100)' });
           }
           
-          // Get agent statistics
-          if (stats === 'true') {
-            const statsResult = await getAgentStats(queryAgentId as string);
-            return res.status(200).json({ success: true, data: statsResult });
-          }
+          const logsResult = await getKipAgentLogs(options);
+          return res.status(200).json({ success: true, data: logsResult });
+        }
+        
+        // Get agent statistics
+        if (stats === 'true') {
+          const statsResult = await getAgentStats(queryAgentId as string);
+          return res.status(200).json({ success: true, data: statsResult });
+        }
         
         // Get specific agent by ID
         if (id) {
-          const agent = await getKipAgentById(id as string);
+          if (typeof id !== 'string') {
+            return res.status(400).json({ success: false, error: 'Invalid agent ID' });
+          }
+          const agent = await getKipAgentById(id);
           if (!agent) {
             return res.status(404).json({ success: false, error: 'Agent not found' });
           }
@@ -699,7 +931,10 @@ export default async function handler(req: Request, res: Response) {
         
         // Get specific agent by slug
         if (slug) {
-          const agent = await getKipAgentBySlug(slug as string);
+          if (typeof slug !== 'string') {
+            return res.status(400).json({ success: false, error: 'Invalid agent slug' });
+          }
+          const agent = await getKipAgentBySlug(slug);
           if (!agent) {
             return res.status(404).json({ success: false, error: 'Agent not found' });
           }
@@ -712,53 +947,74 @@ export default async function handler(req: Request, res: Response) {
 
       case 'POST':
         // Handle agent execution or creation
-        const { action, agentId, input, userId, sessionId, ...createData } = req.body;
+        const { action, agentId, input, userId, sessionId, sessionName, ...createData } = req.body;
         
         if (action === 'run') {
-          if (!agentId || !input) {
+          // Validate using Zod schema
+          const validation = AgentRunSchema.safeParse({ agentId, input, userId, sessionId });
+          if (!validation.success) {
             return res.status(400).json({ 
               success: false, 
-              error: 'agentId and input are required for running an agent' 
+              error: 'Invalid request data',
+              details: validation.error.errors
             });
           }
           
-          // Extract user ID and session ID from request
           const result = await KipAgentService.runAgent(agentId, input, userId, sessionId);
           return res.status(200).json({ success: true, data: result });
         }
         
         if (action === 'createSession') {
-          if (!agentId) {
+          // Validate using Zod schema
+          const validation = CreateSessionSchema.safeParse({ agentId, userId, sessionName });
+          if (!validation.success) {
             return res.status(400).json({ 
               success: false, 
-              error: 'agentId is required for creating a session' 
+              error: 'Invalid request data',
+              details: validation.error.errors
             });
           }
           
-          const { sessionName } = req.body;
           const session = await KipAgentService.createSession(agentId, userId, sessionName);
           return res.status(201).json({ success: true, data: session });
         }
         
         // Create new agent
+        if (!createData.name || !createData.slug) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Agent name and slug are required'
+          });
+        }
+        
         const newAgent = await KipAgentService.createAgent(createData);
         return res.status(201).json({ success: true, data: newAgent });
 
       case 'PUT':
         // Handle agent update
         const { id: updateId, ...updateData } = req.body;
+        
         if (!updateId || typeof updateId !== 'string') {
-          return res.status(400).json({ success: false, error: 'id is required for updating an agent' });
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Valid agent ID is required for updating an agent' 
+          });
         }
+        
         const updatedAgent = await KipAgentService.updateAgent(updateId, updateData);
         return res.status(200).json({ success: true, data: updatedAgent });
 
       case 'DELETE':
         // Handle agent deletion
         const { id: deleteId } = req.body;
+        
         if (!deleteId || typeof deleteId !== 'string') {
-          return res.status(400).json({ success: false, error: 'id is required for deleting an agent' });
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Valid agent ID is required for deleting an agent' 
+          });
         }
+        
         const deleteResult = await KipAgentService.deleteAgent(deleteId);
         return res.status(200).json({ success: true, data: deleteResult });
 
