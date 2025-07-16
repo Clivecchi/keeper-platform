@@ -3,6 +3,9 @@ import type { Request, Response, Express, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { z } from 'zod';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
 
 // Import domain routes
 import domainRoutes from './api/domains/routes.js';
@@ -23,6 +26,18 @@ const app: Express = express();
 const UpdateUserSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   avatar_url: z.string().url().optional(),
+});
+
+// NEW AUTH SCHEMAS
+const AuthLoginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6)
+});
+
+const AuthRegisterSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  password: z.string().min(6)
 });
 
 // Railway assigns PORT dynamically, respect that first, then fallback to 8080 for production, 3001 for dev
@@ -406,48 +421,112 @@ app.get('/api/test', (req, res) => {
 });
 
 // KAM Auth endpoints that the frontend is trying to access
-app.post('/api/kam/auth/login', (req, res) => {
-  console.log('📍 /api/kam/auth/login endpoint hit');
-  console.log('📦 Request body:', req.body);
-  
-  // Return proper AuthResponse format expected by frontend
-  const authResponse = {
-    success: true,
-    data: {
-      user: {
-        id: "temp-user-123",
-        email: req.body.email || "test@example.com",
-        name: "Test User",
-        avatar_url: null
-      },
-      token: "temporary-jwt-token-for-testing"
+app.post('/api/kam/auth/login', async (req, res) => {
+  try {
+    // Validate request body
+    const { email, password } = AuthLoginSchema.parse(req.body);
+
+    // Look up user by email
+    const user = await prisma.users.findUnique({
+      where: { email },
+    });
+
+    if (!user || !user.hashedPassword) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials',
+      });
     }
-  };
-  
-  console.log('✅ Returning auth response:', authResponse);
-  res.json(authResponse);
+
+    // Verify password
+    const passwordMatch = await bcrypt.compare(password, user.hashedPassword);
+
+    if (!passwordMatch) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials',
+      });
+    }
+
+    // Sign JWT
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'fallback-secret', {
+      expiresIn: '7d',
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          avatar_url: user.avatar_url,
+        },
+        token,
+      },
+    });
+  } catch (error) {
+    console.error('Auth login error:', error);
+    return res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Invalid request',
+    });
+  }
 });
 
-app.post('/api/kam/auth/register', (req, res) => {
-  console.log('📍 /api/kam/auth/register endpoint hit');
-  console.log('📦 Request body:', req.body);
-  
-  // Return proper AuthResponse format expected by frontend
-  const authResponse = {
-    success: true,
-    data: {
-      user: {
-        id: "temp-user-456",
-        email: req.body.email || "newuser@example.com", 
-        name: req.body.name || "New User",
-        avatar_url: null
-      },
-      token: "temporary-jwt-token-for-testing"
+app.post('/api/kam/auth/register', async (req, res) => {
+  try {
+    // Validate request body
+    const { name, email, password } = AuthRegisterSchema.parse(req.body);
+
+    // Check if user already exists
+    const existingUser = await prisma.users.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        error: 'User already exists',
+      });
     }
-  };
-  
-  console.log('✅ Returning register response:', authResponse);
-  res.json(authResponse);
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new user
+    const newUser = await prisma.users.create({
+      data: {
+        id: randomUUID(),
+        email,
+        name,
+        hashedPassword,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    // Sign JWT
+    const token = jwt.sign({ userId: newUser.id }, process.env.JWT_SECRET || 'fallback-secret', {
+      expiresIn: '7d',
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          name: newUser.name,
+          avatar_url: newUser.avatar_url,
+        },
+        token,
+      },
+    });
+  } catch (error) {
+    console.error('Auth register error:', error);
+    return res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Invalid request',
+    });
+  }
 });
 
 app.post('/api/kam/auth/logout', (req, res) => {

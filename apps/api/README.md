@@ -120,3 +120,4 @@ All packages now use:
 - **2025-01-24**: Standardized TypeScript configurations across all packages
 - **2025-01-24**: **FINAL CRITICAL FIX** - Fixed TypeScript import syntax for bcryptjs and jsonwebtoken that was preventing register.js compilation
 - **2025-01-24**: COMPREHENSIVE SOLUTION - Single-stage Docker build with consistent TypeScript configs and proper imports 
+- **2025-07-16**: Implemented secure authentication flow. Replaced static test login/register routes with database-driven implementations using bcryptjs for password hashing and jsonwebtoken for signing JWTs. Added Zod validation schemas (AuthLoginSchema, AuthRegisterSchema) for strict input validation. Updated auth middleware remains compatible. Now profile updates via PUT /api/users/:id succeed with valid tokens. 
