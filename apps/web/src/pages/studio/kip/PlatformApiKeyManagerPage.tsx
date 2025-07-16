@@ -10,6 +10,7 @@ import React, { useState, useEffect } from 'react';
 import { ModelProvider } from '../../../types/kip';
 import ApiKeyForm from '../../../components/ui/ApiKeyForm';
 import HelpTooltip from '../../../components/ui/HelpTooltip';
+import { useAuth } from '../../../context/AuthContext';
 
 interface PlatformKeyEntry {
   id: string;
@@ -31,6 +32,7 @@ interface KeyStats {
 }
 
 const PlatformApiKeyManagerPage: React.FC = () => {
+  const { user, isLoading: authLoading } = useAuth();
   const [keys, setKeys] = useState<PlatformKeyEntry[]>([]);
   const [stats, setStats] = useState<KeyStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,19 +76,25 @@ const PlatformApiKeyManagerPage: React.FC = () => {
   const allProviders: ModelProvider[] = ['openai', 'anthropic', 'together', 'elevenlabs'];
 
   useEffect(() => {
-    loadPlatformKeys();
-  }, []);
+    if (!authLoading && user?.id) {
+      loadPlatformKeys();
+    }
+  }, [authLoading, user?.id]);
 
   const loadPlatformKeys = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log('🔑 Loading platform API keys...');
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+      
+      console.log('🔑 Loading platform API keys for user:', user.id);
       const response = await fetch('/api/kip/platform-keys', {
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': 'admin-user-id' // This should come from auth context
+          'x-user-id': user.id
         }
       });
       
@@ -123,11 +131,15 @@ const PlatformApiKeyManagerPage: React.FC = () => {
       setSubmitting(true);
       setError(null);
       
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+      
       const response = await fetch('/api/kip/platform-keys', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': 'admin-user-id'
+          'x-user-id': user.id
         },
         body: JSON.stringify({ 
           provider, 
@@ -167,10 +179,14 @@ const PlatformApiKeyManagerPage: React.FC = () => {
       setSubmitting(true);
       setError(null);
       
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+      
       const response = await fetch(`/api/kip/platform-keys/${provider}`, {
         method: 'DELETE',
         headers: {
-          'x-user-id': 'admin-user-id'
+          'x-user-id': user.id
         }
       });
       
@@ -197,13 +213,27 @@ const PlatformApiKeyManagerPage: React.FC = () => {
     return keys.find(key => key.provider === provider);
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading platform API keys...</p>
+            <p className="text-muted-foreground">
+              {authLoading ? 'Authenticating...' : 'Loading platform API keys...'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user?.id) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center min-h-64">
+          <div className="text-center">
+            <p className="text-muted-foreground">Authentication required to access platform API keys.</p>
           </div>
         </div>
       </div>

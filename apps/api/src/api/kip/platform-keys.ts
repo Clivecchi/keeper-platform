@@ -32,21 +32,26 @@ const UpdateKeyStatusSchema = z.object({
 router.get('/', async (req, res) => {
   try {
     const adminUserId = req.headers['x-user-id'] as string;
+    console.log('🔑 GET /api/kip/platform-keys - Admin user:', adminUserId);
     
     // TODO: Add admin role verification here
     // if (!isAdminUser(adminUserId)) {
     //   return res.status(403).json({ error: 'Admin access required' });
     // }
 
+    console.log('🔍 Fetching platform keys...');
     const result = await PlatformApiKeyService.getAllKeys();
+    console.log('📊 Platform keys result:', result);
     
     if (!result.success) {
+      console.error('❌ Failed to fetch platform keys:', result.error);
       return res.status(500).json({ 
         error: result.error || 'Failed to fetch platform keys' 
       });
     }
 
     // Also include stats for the admin dashboard
+    console.log('📈 Fetching platform key stats...');
     const stats = await PlatformApiKeyService.getKeyStats();
 
     return res.json({

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../lib/api';
 import { 
   UserIcon,
   CogIcon,
@@ -67,17 +68,12 @@ const RootDashboardPage: React.FC = () => {
     setProfileSuccess(null);
 
     try {
-      const response = await fetch(`/api/users/${user.id}`, {
+      const data = await apiFetch(`/api/users/${user.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           name: profileForm.name
         })
       });
-
-      const data = await response.json();
 
       if (data.success) {
         // Update auth context with new user data
@@ -90,6 +86,7 @@ const RootDashboardPage: React.FC = () => {
         setProfileError(data.error || 'Failed to update profile');
       }
     } catch (error) {
+      console.error('Profile update error:', error);
       setProfileError('Failed to update profile. Please try again.');
     } finally {
       setProfileSaving(false);
