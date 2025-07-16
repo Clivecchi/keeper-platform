@@ -10,7 +10,8 @@ import domainRoutes from './api/domains/routes.js';
 import kipAgentsHandler from './api/kip/agents.js';
 import kipPlatformKeysRouter from './api/kip/platform-keys.js';
 import { getUserKeys, setUserKey, deleteUserKey, getUserProviders } from './api/kip/user-keys.js';
-// import { updateUser } from '@keeper/database'; // TODO: Fix updateUser import
+// Import database client
+import { prisma } from '@keeper/database';
 import { authMiddleware, authMiddlewareCompat, AuthenticatedRequest } from './middleware/authMiddleware.js';
 
 // Load environment variables
@@ -284,7 +285,9 @@ app.get('/debug', (req, res) => {
         'GET /api/kip/user-keys (user keys)',
         'POST /api/kip/user-keys (create user key)',
         'DELETE /api/kip/user-keys/:keyId (delete user key)',
-        'GET /api/kip/user-keys/providers (get providers)'
+        'GET /api/kip/user-keys/providers (get providers)',
+        '📱 USER PROFILE ENDPOINTS:',
+        'PUT /api/users/:id (update profile - FIXED!)'
       ],
       recently_accessed: [], // TODO: Track recent endpoint access
     },
@@ -485,18 +488,26 @@ app.put('/api/users/:id', authMiddlewareCompat, async (req: Request, res: Respon
     // Validate input
     const updateData = UpdateUserSchema.parse(req.body);
     
-    // TODO: Fix updateUser implementation
-    // const updatedUser = await updateUser(userId, updateData);
+    // Update user using prisma client
+    const updatedUser = await prisma.users.update({
+      where: { id: userId },
+      data: {
+        ...updateData,
+        updatedAt: new Date()
+      },
+      include: {
+        UserSettings: true
+      }
+    });
     
     res.json({
       success: true,
-              data: {
-          // id: updatedUser.id,
-          // name: updatedUser.name,
-          // email: updatedUser.email,
-          // avatar_url: updatedUser.avatar_url,
-          message: 'User update temporarily disabled'
-      },
+      data: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        avatar_url: updatedUser.avatar_url
+      }
     });
   } catch (error) {
     console.error('User update error:', error);
@@ -647,7 +658,9 @@ app.use('*', (req: Request, res: Response) => {
       'GET /api/kip/agents (← AGENTS REGISTRY!)',
       'POST /api/kip/agents (run/create agents)',
       'GET /api/kip/platform-keys',
-      'GET /api/kip/user-keys'
+      'GET /api/kip/user-keys',
+      '📱 USER PROFILE:',
+      'PUT /api/users/:id (update profile - FIXED!)'
     ],
     timestamp: new Date().toISOString()
   });
@@ -676,7 +689,9 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('  - POST /api/kip/agents (run/create agents)');
   console.log('  - GET  /api/kip/platform-keys (admin keys)');
   console.log('  - GET  /api/kip/user-keys (user keys)');
-  console.log('\n✅ Domain Layer + KIP API fully functional!\n');
+  console.log('  📱 USER PROFILE ENDPOINTS:');
+  console.log('  - PUT  /api/users/:id (update profile - FIXED!)');
+  console.log('\n✅ Domain Layer + KIP API + User Profile Updates fully functional!\n');
 });
 
 server.on('error', (error: Error) => {

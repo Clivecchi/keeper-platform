@@ -106,14 +106,14 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
       });
       setToolsInput(existingAgent.tools.join(', '));
       setPermissionsInput(existingAgent.permissions.join(', '));
-      if (existingAgent.config?.bundle) {
+      if (existingAgent.config?.bundle && Array.isArray(existingAgent.config.bundle)) {
         setSelectedBundleAgents(existingAgent.config.bundle);
       }
       console.log('✅ Form data populated for editing');
     }
   }, [mode, existingAgent]);
 
-  const handleInputChange = (field: keyof AgentInput, value: Event) => {
+  const handleInputChange = (field: keyof AgentInput, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -153,7 +153,7 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
       const permissions = parseTagsInput(permissionsInput);
 
       // Prepare config based on agent class
-      let config = {
+      let config: any = {
         max_tokens: 4000,
         temperature: 0.1,
         ...formData.config
@@ -202,7 +202,6 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
         setPermissionsInput('');
         setSelectedBundleAgents([]);
       }
-
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to ${mode} agent`);
       console.error(`Error ${mode}ing agent:`, err);
@@ -210,6 +209,9 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  // Debug logging
+  console.log('🔍 AgentBuilderForm render:', { mode, existingAgent: existingAgent?.name, formData: formData.name });
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

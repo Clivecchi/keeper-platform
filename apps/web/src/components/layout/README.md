@@ -40,6 +40,7 @@ Architect
 #### My Keeper Mode Navigation:
 ```
 My Keeper
+├── Root Dashboard
 ├── Dashboard
 ├── Memory (SOLE)
 ├── Journeys
@@ -52,9 +53,8 @@ My Keeper
 #### Admin Mode Navigation:
 ```
 System Administration
-├── Root Dashboard
 ├── User Management
-├── API Key Management
+├── Platform API Keys
 └── System Logs
 ```
 

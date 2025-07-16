@@ -59,6 +59,7 @@ const AgentsPage: React.FC = () => {
   };
 
   const handleSelectAgent = (agent: KipAgent) => {
+    console.log('🔧 Edit button clicked for agent:', agent.name, agent);
     setSelectedAgent(agent);
     setActiveTab('agent');
   };
@@ -251,11 +252,11 @@ const AgentsPage: React.FC = () => {
               </div>
 
               {/* Coordinator Bundle Information */}
-              {agent.agent_class === 'Coordinator' && agent.config?.bundle && agent.config.bundle.length > 0 && (
+              {agent.agent_class === 'Coordinator' && agent.config?.bundle && Array.isArray(agent.config.bundle) && agent.config.bundle.length > 0 && (
                 <div className="space-y-2">
                   <div className="text-xs font-medium text-foreground">Agent Bundle:</div>
                   <div className="flex flex-wrap gap-1">
-                    {agent.config.bundle.map((slug: string) => (
+                    {(agent.config.bundle as string[]).map((slug: string) => (
                       <span key={slug} className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded border border-purple-200">
                         {slug}
                       </span>

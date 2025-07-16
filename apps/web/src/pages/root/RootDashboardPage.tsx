@@ -56,7 +56,7 @@ const RootDashboardPage: React.FC = () => {
   const tabs = [
     { id: 'profile', label: 'Profile', icon: <UserIcon /> },
     { id: 'domain', label: 'Domain Settings', icon: <CogIcon /> },
-    { id: 'api-keys', label: 'API Keys', icon: <KeyIcon /> },
+    { id: 'api-keys', label: 'Personal API Keys', icon: <KeyIcon /> },
   ];
 
   const handleProfileSave = async () => {
@@ -266,14 +266,24 @@ const RootDashboardPage: React.FC = () => {
           <div className="space-y-6">
             <div className="bg-card border border-border rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-card-foreground">Your API Keys</h3>
+                <h3 className="text-lg font-medium text-card-foreground">Your Personal API Keys</h3>
                 <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
                   Add Your API Key
                 </button>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
-                Bring your own API keys to access AI models. Platform fallback keys are available when your personal keys aren't configured.
+                Bring your own personal API keys to access AI models. When you don't provide your own keys, the platform will use shared fallback keys managed by administrators.
               </p>
+              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-green-600">ℹ️</span>
+                  <span className="font-medium text-green-800">Personal vs Platform Keys</span>
+                </div>
+                <p className="text-sm text-green-700">
+                  <strong>Your Personal Keys:</strong> Managed here, give you direct control over costs and usage<br/>
+                  <strong>Platform Keys:</strong> Managed by administrators in System Administration → Platform API Keys
+                </p>
+              </div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 border border-border rounded-md">
                   <div>

@@ -82,17 +82,24 @@ const PlatformApiKeyManagerPage: React.FC = () => {
       setLoading(true);
       setError(null);
       
+      console.log('🔑 Loading platform API keys...');
       const response = await fetch('/api/kip/platform-keys', {
         headers: {
+          'Content-Type': 'application/json',
           'x-user-id': 'admin-user-id' // This should come from auth context
         }
       });
       
+      console.log('📡 Platform keys response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to load platform keys');
+        const errorText = await response.text();
+        console.error('❌ Platform keys API error:', errorText);
+        throw new Error(`Failed to load platform keys: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
+      console.log('✅ Platform keys data:', data);
       
       if (data.success) {
         setKeys(data.data.keys || []);
@@ -102,8 +109,8 @@ const PlatformApiKeyManagerPage: React.FC = () => {
       }
     } catch (err) {
       console.error('Error loading platform keys:', err);
-      setError('Failed to load platform API keys. Please try again.');
-      // Show mock data for development
+      setError(`Failed to load platform API keys: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      // Show empty state for development
       setKeys([]);
       setStats({ total: 0, active: 0, byProvider: {}, hasActiveKeys: false });
     } finally {
@@ -209,8 +216,19 @@ const PlatformApiKeyManagerPage: React.FC = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-foreground mb-2">Platform API Keys</h1>
         <p className="text-muted-foreground">
-          Manage fallback API keys used when users don't provide their own.
+          Manage platform-level API keys that serve as fallbacks when users don't provide their own personal keys.
+          These keys are shared across all users and managed by system administrators.
         </p>
+        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-blue-600">ℹ️</span>
+            <h3 className="font-semibold text-blue-800">Platform vs Personal Keys</h3>
+          </div>
+          <p className="text-sm text-blue-700">
+            <strong>Platform Keys:</strong> Shared fallback keys managed here by administrators<br/>
+            <strong>Personal Keys:</strong> Individual user keys managed in their Root Dashboard → API Keys
+          </p>
+        </div>
       </div>
 
       {/* Stats Overview */}
