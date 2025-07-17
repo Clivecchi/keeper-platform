@@ -16,6 +16,7 @@ import { getUserKeys, setUserKey, deleteUserKey, getUserProviders } from './api/
 // Import database client
 import { prisma } from '@keeper/database';
 import { authMiddleware, authMiddlewareCompat, AuthenticatedRequest } from './middleware/authMiddleware.js';
+import keeperRoutes from './api/keeper/routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -599,6 +600,9 @@ app.put('/api/users/:id', authMiddlewareCompat, async (req: Request, res: Respon
 
 // Connect domain routes
 app.use('/api/domains', domainRoutes);
+
+// NEW: Connect Keeper routes
+app.use('/api/keeper', keeperRoutes);
 
 // Connect KIP routes
 app.use('/api/kip/agents', kipAgentsHandler);
