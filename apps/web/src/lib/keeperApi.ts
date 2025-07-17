@@ -20,7 +20,11 @@ import {
   SoleMemoryCardResponse
 } from '../types/keeper';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Prefer same env var used by apiFetch; fallback to VITE_API_URL; finally localhost
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  'http://localhost:3001';
 
 class KeeperApiService {
   private async request<T>(
@@ -189,6 +193,22 @@ class KeeperApiService {
         method: 'POST',
       }
     );
+  }
+
+  async getAgentKeeperTypes(agentId: string): Promise<KeeperTypeListResponse> {
+    return this.request<KeeperTypeListResponse>(`/agents/${agentId}/keeper-types`);
+  }
+
+  async assignKeeperTypeToAgent(agentId: string, keeperTypeId: string): Promise<BaseResponse> {
+    return this.request<BaseResponse>(`/agents/${agentId}/keeper-types/${keeperTypeId}`, {
+      method: 'POST'
+    });
+  }
+
+  async unassignKeeperTypeFromAgent(agentId: string, keeperTypeId: string): Promise<BaseResponse> {
+    return this.request<BaseResponse>(`/agents/${agentId}/keeper-types/${keeperTypeId}`, {
+      method: 'DELETE'
+    });
   }
 }
 

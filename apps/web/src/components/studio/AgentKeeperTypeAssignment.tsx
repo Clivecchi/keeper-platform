@@ -49,9 +49,7 @@ const AgentKeeperTypeAssignment: React.FC<AgentKeeperTypeAssignmentProps> = ({
   const loadAgentAssignments = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/keeper/agents/${agent.id}/keeper-types`);
-      const result = await response.json();
-      
+      const result = await keeperApi.getAgentKeeperTypes(agent.id);
       if (result.success && result.data) {
         setAssignedTypes(result.data);
         onAssignmentsUpdated(result.data);
@@ -75,15 +73,7 @@ const AgentKeeperTypeAssignment: React.FC<AgentKeeperTypeAssignmentProps> = ({
   const handleAssignType = async (keeperType: KeeperType) => {
     try {
       setAssigning(true);
-      const response = await fetch(`/api/keeper/agents/${agent.id}/keeper-types/${keeperType.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      const result = await response.json();
-      
+      const result = await keeperApi.assignKeeperTypeToAgent(agent.id, keeperType.id);
       if (result.success) {
         const updatedAssignments = [...assignedTypes, keeperType];
         setAssignedTypes(updatedAssignments);
@@ -102,15 +92,7 @@ const AgentKeeperTypeAssignment: React.FC<AgentKeeperTypeAssignmentProps> = ({
   const handleUnassignType = async (keeperType: KeeperType) => {
     try {
       setAssigning(true);
-      const response = await fetch(`/api/keeper/agents/${agent.id}/keeper-types/${keeperType.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      const result = await response.json();
-      
+      const result = await keeperApi.unassignKeeperTypeFromAgent(agent.id, keeperType.id);
       if (result.success) {
         const updatedAssignments = assignedTypes.filter(assigned => assigned.id !== keeperType.id);
         setAssignedTypes(updatedAssignments);
