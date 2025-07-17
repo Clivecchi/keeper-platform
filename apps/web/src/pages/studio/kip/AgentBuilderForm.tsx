@@ -104,8 +104,9 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
         model_settings: existingAgent.model_settings,
         visibility: existingAgent.visibility || 'private'
       });
-      setToolsInput(existingAgent.tools.join(', '));
-      setPermissionsInput(existingAgent.permissions.join(', '));
+      // Safely handle undefined arrays coming from the API
+      setToolsInput((existingAgent.tools ?? []).join(', '));
+      setPermissionsInput((existingAgent.permissions ?? []).join(', '));
       if (existingAgent.config?.bundle && Array.isArray(existingAgent.config.bundle)) {
         setSelectedBundleAgents(existingAgent.config.bundle);
       }
