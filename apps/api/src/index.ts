@@ -690,13 +690,13 @@ app.get('/api/themes/:id', async (req: Request, res: Response) => {
       });
     }
 
-    res.json({ 
+    return res.json({ 
       success: true, 
       data: theme 
     });
   } catch (error) {
     console.error('Theme fetch error:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false, 
       error: 'Failed to fetch theme' 
     });
@@ -704,7 +704,7 @@ app.get('/api/themes/:id', async (req: Request, res: Response) => {
 });
 
 // Global Error Handler - Catch-all safety net across API
-function globalErrorHandler(err: unknown, req: Request, res: Response, next: NextFunction) {
+function globalErrorHandler(err: unknown, req: Request, res: Response, next: NextFunction): Response | void {
   // Log error details (only in development or debug mode)
   if (isDebug || process.env.NODE_ENV === 'development') {
     console.error('🚨 Global Error Handler caught:', {
@@ -792,11 +792,11 @@ function globalErrorHandler(err: unknown, req: Request, res: Response, next: Nex
   }
 
   // Send error response
-  const errorResponse = {
+  return res.status(statusCode).json({
     success: false,
     error: errorCode,
     message,
-    ...(details && { details }),
+    details,
     timestamp: new Date().toISOString(),
     path: req.path,
     method: req.method,
@@ -804,9 +804,7 @@ function globalErrorHandler(err: unknown, req: Request, res: Response, next: Nex
       stack: err instanceof Error ? err.stack : undefined,
       originalError: err instanceof Error ? err.message : 'Unknown error'
     })
-  };
-
-  res.status(statusCode).json(errorResponse);
+  });
 }
 
 // Mount the global error handler

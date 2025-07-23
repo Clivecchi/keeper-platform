@@ -4,7 +4,7 @@ import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { requireSuperAdmin } from '../../middleware/platformRoleMiddleware.js';
 import { randomUUID } from 'crypto';
 
-const router = Router();
+const router: Router = Router();
 const prisma = new PrismaClient();
 
 /**
@@ -14,10 +14,10 @@ const prisma = new PrismaClient();
 router.get('/', authMiddlewareCompat, requireSuperAdmin, async (_req: Request, res: Response) => {
   try {
     const roles = await prisma.roles.findMany({ orderBy: { name: 'asc' } });
-    res.json({ roles });
+    return res.json({ roles });
   } catch (error) {
     console.error('[Roles] list roles error', error);
-    res.status(500).json({ error: 'Failed to fetch platform roles' });
+    return res.status(500).json({ error: 'Failed to fetch platform roles' });
   }
 });
 
@@ -48,10 +48,10 @@ router.get('/users', authMiddlewareCompat, requireSuperAdmin, async (_req: Reque
       roles: u.user_roles.map((ur) => ur.roles?.name).filter(Boolean),
     }));
 
-    res.json({ users: formatted });
+    return res.json({ users: formatted });
   } catch (error) {
     console.error('[Roles] list users error', error);
-    res.status(500).json({ error: 'Failed to fetch users with roles' });
+    return res.status(500).json({ error: 'Failed to fetch users with roles' });
   }
 });
 
@@ -112,13 +112,13 @@ router.post('/assign', authMiddlewareCompat, requireSuperAdmin, async (req: Requ
     });
 
     console.log(`[Roles] Successfully assigned role '${roleName}' to user ${userId}. Assignment ID: ${newAssignment.id}`);
-    res.json({ success: true, message: `Role '${roleName}' assigned successfully` });
+    return res.json({ success: true, message: `Role '${roleName}' assigned successfully` });
   } catch (error) {
     console.error('[Roles] assign error', error);
     if (error instanceof Error && error.message.includes('Unique constraint')) {
-      res.status(409).json({ error: 'Role assignment already exists' });
+      return res.status(409).json({ error: 'Role assignment already exists' });
     } else {
-      res.status(500).json({ error: 'Failed to assign role' });
+      return res.status(500).json({ error: 'Failed to assign role' });
     }
   }
 });
@@ -159,16 +159,16 @@ router.delete('/assign', authMiddlewareCompat, requireSuperAdmin, async (req: Re
 
     if (result) {
       console.log(`[Roles] Removed role '${roleName}' from user ${userId}`);
-      res.json({ success: true, message: `Role '${roleName}' removed successfully` });
+      return res.json({ success: true, message: `Role '${roleName}' removed successfully` });
     } else {
-      res.status(404).json({ error: `User does not have role '${roleName}'` });
+      return res.status(404).json({ error: `User does not have role '${roleName}'` });
     }
   } catch (error) {
     console.error('[Roles] remove error', error);
     if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
-      res.status(404).json({ error: `User does not have role '${roleName}'` });
+      return res.status(404).json({ error: `User does not have role '${roleName}'` });
     } else {
-      res.status(500).json({ error: 'Failed to remove role assignment' });
+      return res.status(500).json({ error: 'Failed to remove role assignment' });
     }
   }
 });

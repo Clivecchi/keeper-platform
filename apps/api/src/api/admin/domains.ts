@@ -7,7 +7,7 @@ import { DomainPermissionService } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { requireSuperAdmin } from '../../middleware/platformRoleMiddleware.js';
 
-const router = Router();
+const router: Router = Router();
 
 const prisma = new PrismaClient();
 // @ts-ignore - Suppress type mismatch for Redis import in ESM
@@ -63,7 +63,7 @@ router.get('/', authMiddlewareCompat, requireSuperAdmin, async (req: Request, re
       };
     });
 
-    res.json({
+    return res.json({
       domains: enriched,
       total,
       page: Math.floor((Number(offset) || 0) / (Number(limit) || 50)) + 1,
@@ -71,7 +71,7 @@ router.get('/', authMiddlewareCompat, requireSuperAdmin, async (req: Request, re
     });
   } catch (error) {
     console.error('[AdminDomains] list error', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -93,10 +93,10 @@ router.get('/:id/members', authMiddlewareCompat, requireSuperAdmin, async (req: 
       expiresAt: p.expiresAt,
     }));
 
-    res.json({ members });
+    return res.json({ members });
   } catch (error) {
     console.error('[AdminDomains] list members error', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -111,13 +111,13 @@ router.post('/', authMiddlewareCompat, requireSuperAdmin, async (req: Request, r
       ...parsed,
       ownerId: parsed.ownerId,
     });
-    res.status(201).json({ domain });
+    return res.status(201).json({ domain });
   } catch (error: any) {
     console.error('[AdminDomains] create error', error);
     if (error?.issues) {
       return res.status(400).json({ error: 'Validation failed', details: error.issues });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -130,10 +130,10 @@ export default router;
 router.put('/:id', authMiddlewareCompat, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const domain = await domainService.updateDomain(req.params.id, req.body);
-    res.json({ domain });
+    return res.json({ domain });
   } catch (error: any) {
     console.error('[AdminDomains] update error', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
@@ -148,10 +148,10 @@ router.patch('/:id/suspend', authMiddlewareCompat, requireSuperAdmin, async (req
 
     const status = current.status === 'suspended' ? 'active' : 'suspended';
     const domain = await domainService.updateDomain(req.params.id, { status });
-    res.json({ domain });
+    return res.json({ domain });
   } catch (error: any) {
     console.error('[AdminDomains] suspend error', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
@@ -162,10 +162,10 @@ router.patch('/:id/suspend', authMiddlewareCompat, requireSuperAdmin, async (req
 router.delete('/:id', authMiddlewareCompat, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     await domainService.deleteDomain(req.params.id, (req as any).user.id);
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (error: any) {
     console.error('[AdminDomains] delete error', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
@@ -188,10 +188,10 @@ router.post('/:id/members', authMiddlewareCompat, requireSuperAdmin, async (req:
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
       grantedBy: (req as any).user.id,
     });
-    res.status(201).json({ permission });
+    return res.status(201).json({ permission });
   } catch (error: any) {
     console.error('[AdminDomains] add member error', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
@@ -202,9 +202,9 @@ router.post('/:id/members', authMiddlewareCompat, requireSuperAdmin, async (req:
 router.delete('/:id/members/:userId', authMiddlewareCompat, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     await permissionService.revokePermission(req.params.id, req.params.userId, (req as any).user.id);
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (error: any) {
     console.error('[AdminDomains] revoke member error', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }); 

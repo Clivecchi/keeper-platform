@@ -40,6 +40,11 @@ export interface UpdateDomainRequest {
   customDomain?: string;
   customDomainVerified?: boolean;
   isActive?: boolean;
+  /**
+   * Domain status string, e.g., 'active', 'suspended', 'archived'.
+   * Included to allow admin-level APIs to update suspension status.
+   */
+  status?: string;
   features?: Record<string, unknown>;
   limits?: Record<string, unknown>;
   theme?: Record<string, unknown>;
@@ -271,6 +276,7 @@ export class DomainService {
     if (request.customDomain !== undefined) updateData.customDomain = request.customDomain;
     if (request.customDomainVerified !== undefined) updateData.customDomainVerified = request.customDomainVerified;
     if (request.isActive !== undefined) updateData.isActive = request.isActive;
+    if (request.status !== undefined) updateData.status = request.status;
 
     // Handle JsonValue fields with proper type casting
     if (request.features !== undefined) {

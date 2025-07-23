@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { requireSuperAdmin } from '../../middleware/platformRoleMiddleware.js';
 
-const router = Router();
+const router: Router = Router();
 const prisma = new PrismaClient();
 
 /**
@@ -29,10 +29,10 @@ router.get('/', authMiddlewareCompat, requireSuperAdmin, async (req: Request, re
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
-    res.json({ users });
+    return res.json({ users });
   } catch (error) {
     console.error('[AdminUsers] search error', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
