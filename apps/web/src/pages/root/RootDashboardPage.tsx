@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetch } from '../../lib/api';
@@ -47,12 +47,55 @@ const RootDashboardPage: React.FC = () => {
 
   // Domain form state
   const [domainForm, setDomainForm] = useState({
+    name: '',
+    slug: '',
+    description: '',
     customDomain: '',
     corsOrigins: ''
   });
   const [domainSaving, setDomainSaving] = useState(false);
   const [domainError, setDomainError] = useState<string | null>(null);
   const [domainSuccess, setDomainSuccess] = useState<string | null>(null);
+  const [domainLoading, setDomainLoading] = useState(true);
+  const [currentDomain, setCurrentDomain] = useState<any>(null);
+
+  // Load domain data when user becomes available or changes
+  useEffect(() => {
+    if (user?.id) {
+      loadDomainData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const loadDomainData = async () => {
+    if (!user?.id) return;
+    
+    try {
+      // Load user's domains
+      const response = await apiFetch('/api/domains/my');
+      if (Array.isArray(response) && response.length > 0) {
+        // Prefer the API-provided isPrimary flag, then fallback to ownership
+        const primaryDomain = response.find((d: any) => d.isPrimary) ||
+                              response.find((d: any) => d.ownerId === user.id) ||
+                              response[0];
+
+        if (primaryDomain) {
+          setCurrentDomain(primaryDomain);
+          setDomainForm({
+            name: primaryDomain.name || '',
+            slug: primaryDomain.slug || '',
+            description: primaryDomain.description || '',
+            customDomain: primaryDomain.customDomain || '',
+            corsOrigins: primaryDomain.settings?.cors?.additionalOrigins?.join('\n') || ''
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading domain data:', error);
+    } finally {
+      setDomainLoading(false);
+    }
+  };
 
   const tabs = [
     { id: 'profile', label: 'Profile', icon: <UserIcon /> },
@@ -94,22 +137,19 @@ const RootDashboardPage: React.FC = () => {
   };
 
   const handleDomainSave = async () => {
-    if (!user?.id) return;
+    if (!user?.id || !currentDomain) return;
     
     setDomainSaving(true);
     setDomainError(null);
     setDomainSuccess(null);
 
     try {
-      // For now, we'll create a domain since domain management is complex
-      // In a real implementation, this would update existing domain settings
-      const response = await fetch('/api/domains', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await apiFetch(`/api/domains/${currentDomain.id}`, {
+        method: 'PUT',
         body: JSON.stringify({
-          name: `${user.name}'s Domain`,
+          name: domainForm.name,
+          slug: domainForm.slug,
+          description: domainForm.description,
           customDomain: domainForm.customDomain,
           settings: {
             cors: {
@@ -119,17 +159,17 @@ const RootDashboardPage: React.FC = () => {
         })
       });
 
-      const data = await response.json();
-
-      if (data.domain) {
+      if (response.domain) {
         setDomainSuccess('Domain configuration saved successfully!');
+        setCurrentDomain(response.domain);
         
         // Clear success message after 3 seconds
         setTimeout(() => setDomainSuccess(null), 3000);
       } else {
-        setDomainError(data.error || 'Failed to save domain configuration');
+        setDomainError(response.error || 'Failed to save domain configuration');
       }
     } catch (error) {
+      console.error('Domain save error:', error);
       setDomainError('Failed to save domain configuration. Please try again.');
     } finally {
       setDomainSaving(false);
@@ -205,55 +245,112 @@ const RootDashboardPage: React.FC = () => {
             <div className="bg-card border border-border rounded-lg p-6">
               <h3 className="text-lg font-medium text-card-foreground mb-4">Domain Configuration</h3>
               
-              {domainError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-sm text-red-800">{domainError}</p>
+              {domainLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-muted-foreground">Loading domain configuration...</div>
+                </div>
+              ) : currentDomain ? (
+                <>
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-blue-600">ℹ️</span>
+                      <span className="font-medium text-blue-800">Current Domain</span>
+                    </div>
+                    <p className="text-sm text-blue-700">
+                      <strong>Name:</strong> {currentDomain.name}<br/>
+                      <strong>Slug:</strong> {currentDomain.slug}<br/>
+                      <strong>Status:</strong> {currentDomain.status}
+                    </p>
+                  </div>
+                  
+                  {domainError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                      <p className="text-sm text-red-800">{domainError}</p>
+                    </div>
+                  )}
+                  
+                  {domainSuccess && (
+                    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                      <p className="text-sm text-green-800">{domainSuccess}</p>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Name</label>
+                      <input
+                        type="text"
+                        value={domainForm.name}
+                        onChange={(e) => setDomainForm(prev => ({ ...prev, name: e.target.value }))}
+                        className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                        placeholder="e.g., My Keeper Instance"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Slug</label>
+                      <input
+                        type="text"
+                        value={domainForm.slug}
+                        onChange={(e) => setDomainForm(prev => ({ ...prev, slug: e.target.value }))}
+                        className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                        placeholder="e.g., my-keeper-instance"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        URL-friendly identifier for your domain
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Description</label>
+                      <textarea
+                        rows={2}
+                        value={domainForm.description}
+                        onChange={(e) => setDomainForm(prev => ({ ...prev, description: e.target.value }))}
+                        className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                        placeholder="A brief description of your Keeper instance"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Custom Domain</label>
+                      <input
+                        type="text"
+                        value={domainForm.customDomain}
+                        onChange={(e) => setDomainForm(prev => ({ ...prev, customDomain: e.target.value }))}
+                        className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                        placeholder="keeper.yourdomain.com"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Configure a custom domain for your Keeper instance
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">CORS Origins</label>
+                      <textarea
+                        rows={3}
+                        value={domainForm.corsOrigins}
+                        onChange={(e) => setDomainForm(prev => ({ ...prev, corsOrigins: e.target.value }))}
+                        className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                        placeholder="https://yourdomain.com&#10;https://app.yourdomain.com"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        One origin per line for API access
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-6">
+                    <button 
+                      onClick={handleDomainSave}
+                      disabled={domainSaving || !domainForm.name.trim() || !domainForm.slug.trim()}
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {domainSaving ? 'Saving...' : 'Save Domain Configuration'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No domain found. Please contact support.</p>
                 </div>
               )}
-              
-              {domainSuccess && (
-                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-                  <p className="text-sm text-green-800">{domainSuccess}</p>
-                </div>
-              )}
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Custom Domain</label>
-                  <input
-                    type="text"
-                    value={domainForm.customDomain}
-                    onChange={(e) => setDomainForm(prev => ({ ...prev, customDomain: e.target.value }))}
-                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
-                    placeholder="keeper.yourdomain.com"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Configure a custom domain for your Keeper instance
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">CORS Origins</label>
-                  <textarea
-                    rows={3}
-                    value={domainForm.corsOrigins}
-                    onChange={(e) => setDomainForm(prev => ({ ...prev, corsOrigins: e.target.value }))}
-                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
-                    placeholder="https://yourdomain.com&#10;https://app.yourdomain.com"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    One origin per line for API access
-                  </p>
-                </div>
-              </div>
-              <div className="mt-6">
-                <button 
-                  onClick={handleDomainSave}
-                  disabled={domainSaving || !domainForm.customDomain.trim()}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {domainSaving ? 'Saving...' : 'Save Domain Configuration'}
-                </button>
-              </div>
             </div>
           </div>
         );

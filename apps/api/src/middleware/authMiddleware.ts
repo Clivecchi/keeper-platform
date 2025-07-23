@@ -18,6 +18,7 @@ declare global {
         email: string | null;
         name?: string | null;
         role?: string | null;
+        platformRoles?: string[];
       };
     }
   }
@@ -29,6 +30,7 @@ export interface AuthenticatedRequest extends Request {
     email: string | null;
     name?: string | null;
     role?: string | null;
+    platformRoles?: string[];
   };
 }
 
@@ -77,9 +79,27 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
       return;
     }
 
+    // Fetch platform roles (e.g., super-admin) from user_roles → roles join
+    const userRoles = await prisma.user_roles.findMany({
+      where: { userId: user.id },
+      select: {
+        roles: {
+          select: { name: true },
+        },
+      },
+    });
+
+    let platformRoles = userRoles.map((ur) => ur.roles?.name).filter(Boolean) as string[];
+
+    // Dev bootstrap: if no roles yet and in non-production env, grant super-admin implicitly
+    if (platformRoles.length === 0 && process.env.NODE_ENV !== 'production') {
+      platformRoles = ['super-admin'];
+    }
+
     req.user = {
       ...user,
-      role: null, // Default role assignment
+      role: null, // Legacy single role (unused for platform roles)
+      platformRoles,
     };
     next();
   } catch (error) {
@@ -116,9 +136,21 @@ export const authMiddlewareCompat = async (req: Request, res: Response, next: Ne
       return;
     }
 
+    const userRoles = await prisma.user_roles.findMany({
+      where: { userId: user.id },
+      select: { roles: { select: { name: true } } },
+    });
+    let platformRoles = userRoles.map((ur) => ur.roles?.name).filter(Boolean) as string[];
+    // Dev bootstrap: if no roles yet and in non-production env, grant super-admin implicitly
+    // Temporarily disabled to test database role assignment
+    // if (platformRoles.length === 0 && process.env.NODE_ENV !== 'production') {
+    //   platformRoles = ['super-admin'];
+    // }
+
     req.user = {
       ...user,
       role: null, // Default role assignment
+      platformRoles,
     };
     next();
   } catch (error) {
@@ -161,10 +193,22 @@ export const optionalAuthMiddleware = async (
     });
 
     if (user) {
+      const userRoles = await prisma.user_roles.findMany({
+        where: { userId: user.id },
+        select: { roles: { select: { name: true } } },
+      });
+      let platformRoles = userRoles.map((ur) => ur.roles?.name).filter(Boolean) as string[];
+      // Dev bootstrap: if no roles yet and in non-production env, grant super-admin implicitly
+      // Temporarily disabled to test database role assignment
+      // if (platformRoles.length === 0 && process.env.NODE_ENV !== 'production') {
+      //   platformRoles = ['super-admin'];
+      // }
+
       req.user = {
         id: user.id,
         email: user.email,
-        name: user.name
+        name: user.name,
+        platformRoles,
       };
     }
 

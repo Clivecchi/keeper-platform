@@ -15,6 +15,10 @@ import KipStudioPage from './pages/studio/KipStudioPage';
 import AgentsPage from './pages/studio/kip/AgentsPage';
 import AgentLogsPage from './pages/studio/kip/AgentLogsPage';
 import PlatformApiKeyManagerPage from './pages/studio/kip/PlatformApiKeyManagerPage';
+// Admin Pages
+import DomainsPage from './pages/admin/DomainsPage';
+import RolesPage from './pages/admin/RolesPage';
+import UserManagementPage from './pages/admin/UserManagementPage';
 import AdminPage from './pages/studio/AdminPage';
 import MemoryPatternsPage from './pages/studio/MemoryPatternsPage';
 import AgentClassesPage from './pages/studio/AgentClassesPage';
@@ -81,6 +85,10 @@ const App: React.FC = () => {
           <Route path="/studio/themes" element={<KipStudioPage />} />
           <Route path="/studio/admin/api-keys" element={<PlatformApiKeyManagerPage />} />
           <Route path="/studio/admin/logs" element={<AgentLogsPage />} />
+          {/* Admin Domain Management */}
+          <Route path="/admin/domains" element={<DomainsPage />} />
+          <Route path="/admin/roles" element={<RolesPage />} />
+          <Route path="/admin/users" element={<UserManagementPage />} />
           
           {/* Legacy Studio Routes */}
           <Route path="/studio/kip" element={<KipStudioPage />} />

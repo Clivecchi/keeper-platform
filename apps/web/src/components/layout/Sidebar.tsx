@@ -29,7 +29,8 @@ import {
   CpuChipIcon,
   TagIcon,
   RectangleStackIcon,
-  FolderOpenIcon
+  FolderOpenIcon,
+  GlobeAltIcon
 } from '@heroicons/react/24/outline';
 
 interface SidebarItemProps {
@@ -334,6 +335,12 @@ export const Sidebar: React.FC = () => {
         </SidebarItem>
         <SidebarItem to="/studio/admin/logs" icon={<DocumentTextIcon />} isCollapsed={isCollapsed}>
           System Logs
+        </SidebarItem>
+        <SidebarItem to="/admin/domains" icon={<GlobeAltIcon />} isCollapsed={isCollapsed}>
+          Domain Management
+        </SidebarItem>
+        <SidebarItem to="/admin/roles" icon={<UserGroupIcon />} isCollapsed={isCollapsed}>
+          Platform Roles
         </SidebarItem>
       </SidebarSection>
     </>

@@ -9,17 +9,28 @@ import { randomUUID } from 'crypto';
 
 // Import domain routes
 import domainRoutes from './api/domains/routes.js';
+import adminDomainRoutes from './api/admin/domains.js';
+import adminRolesRoutes from './api/admin/roles.js';
+import adminUsersRoutes from './api/admin/users.js';
 // Import KIP routes
 import kipAgentsHandler from './api/kip/agents.js';
 import kipPlatformKeysRouter from './api/kip/platform-keys.js';
 import { getUserKeys, setUserKey, deleteUserKey, getUserProviders } from './api/kip/user-keys.js';
+// Import KAM settings handler
+import kamSettingsHandler from './api/kam/settings.js';
 // Import database client
 import { prisma } from '@keeper/database';
 import { authMiddleware, authMiddlewareCompat, AuthenticatedRequest } from './middleware/authMiddleware.js';
 import keeperRoutes from './api/keeper/routes.js';
+import debugRouter from './api/debug.js';
 
 // Load environment variables
 dotenv.config();
+
+// Log level configuration
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+const isDebug = LOG_LEVEL === 'debug';
+const isVerbose = LOG_LEVEL === 'verbose';
 
 const app: Express = express();
 
@@ -59,28 +70,34 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
-// Request logging middleware (applied to all requests)
+// Request logging middleware (applied to all requests) - optimized to reduce noise
 app.use((req: Request, res: Response, next: NextFunction) => {
   const timestamp = new Date().toISOString();
-  console.log(`📨 ${timestamp} - ${req.method} ${req.path}`);
-  console.log(`📨 Origin: ${req.get('origin') || 'none'}`);
-  console.log(`📨 User-Agent: ${req.get('user-agent') || 'none'}`);
-  console.log(`📨 Headers:`, JSON.stringify(req.headers, null, 2));
+  const isDevelopment = process.env.NODE_ENV !== 'production';
   
-  // Log response when finished
-  res.on('finish', () => {
-    console.log(`📤 ${timestamp} - ${req.method} ${req.path} - Status: ${res.statusCode}`);
-  });
+  // Skip logging for OPTIONS requests to reduce noise
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+  
+  // Only log in development or if explicitly enabled
+  if (isDevelopment || process.env.ENABLE_REQUEST_LOGGING === 'true') {
+    console.log(`📨 ${timestamp} - ${req.method} ${req.path}`);
+    console.log(`📨 Origin: ${req.get('origin') || 'none'}`);
+    
+    // Log response when finished
+    res.on('finish', () => {
+      console.log(`📤 ${timestamp} - ${req.method} ${req.path} - Status: ${res.statusCode}`);
+    });
+  }
   
   next();
 });
 
-// CORS setup with detailed logging
+// CORS setup - optimized to reduce duplicate requests
 console.log('⚙️ Setting up CORS...');
 app.use(cors({
   origin: function(origin, callback) {
-    console.log(`🌐 CORS check for origin: ${origin || 'none'}`);
-    
     const allowedOrigins = [
       'http://localhost:5173', 
       'https://keeper-platform-hm1kukq25-clivecchis-projects.vercel.app',
@@ -90,35 +107,28 @@ app.use(cors({
     
     // Allow requests with no origin (e.g., mobile apps, Postman)
     if (!origin) {
-      console.log('✅ CORS: No origin - allowing');
       return callback(null, true);
     }
     
     // Check if origin is in allowed list
     if (allowedOrigins.includes(origin)) {
-      console.log('✅ CORS: Origin allowed');
       return callback(null, true);
     }
     
     // For debugging, allow all origins temporarily
-    console.log('⚠️ CORS: Origin not in allowed list, but allowing for debugging');
     return callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'x-debug-token'],
-  exposedHeaders: ['x-debug-info']
+  exposedHeaders: ['x-debug-info'],
+  // Add preflightContinue to prevent duplicate handling
+  preflightContinue: false,
+  // Cache preflight results for 24 hours
+  maxAge: 86400
 }));
 
-// Handle preflight requests explicitly
-app.options('*', (req, res) => {
-  console.log(`📋 CORS preflight for: ${req.method} ${req.path}`);
-  res.header('Access-Control-Allow-Origin', req.get('origin') || '*');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,x-user-id,x-debug-token');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.status(200).json({ message: 'CORS preflight OK' });
-});
+// CORS preflight requests are handled automatically by the cors middleware above
 
 // Basic middleware
 app.use(express.json());
@@ -156,7 +166,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 🔧 DEBUG ENDPOINTS - Global Access for Troubleshooting
+// 🔧 Debug endpoints removed – now handled by debugRouter mounted at /api/debug
 
 // COMPREHENSIVE DEBUG ENDPOINT - ALL INFORMATION IN ONE PLACE
 app.get('/debug', (req, res) => {
@@ -504,6 +514,33 @@ app.post('/api/kam/auth/register', async (req, res) => {
       },
     });
 
+    // 🚀 Automatically create a personal primary domain for the new user
+    try {
+      // Very small slugify helper – keeps alphanumerics, replaces others with dashes
+      const slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^(-)+|(-)+$/g, '');
+
+      await prisma.domain.create({
+        data: {
+          id: randomUUID(),
+          name: name, // Use the user’s name verbatim – includes spaces for cleaner display
+          slug,
+          ownerId: newUser.id,
+          status: 'active',
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          features: {},
+          settings: {},
+        },
+      });
+    } catch (domainError) {
+      console.error('❗ Failed to create personal domain on signup:', domainError);
+      // We don’t fail the signup if domain creation fails, but we surface a log for debugging.
+    }
+
     // Sign JWT
     const token = jwt.sign({ userId: newUser.id }, process.env.JWT_SECRET || 'fallback-secret', {
       expiresIn: '7d',
@@ -601,12 +638,21 @@ app.put('/api/users/:id', authMiddlewareCompat, async (req: Request, res: Respon
 // Connect domain routes
 app.use('/api/domains', domainRoutes);
 
+// Admin domain management (super-admin only)
+app.use('/api/admin/domains', adminDomainRoutes);
+
+// Platform role management
+app.use('/api/admin/roles', adminRolesRoutes);
+app.use('/api/admin/users', adminUsersRoutes);
+
 // NEW: Connect Keeper routes
 app.use('/api/keeper', keeperRoutes);
 
 // Connect KIP routes
 app.use('/api/kip/agents', kipAgentsHandler);
 app.use('/api/kip/platform-keys', kipPlatformKeysRouter);
+// Connect unified Debug routes
+app.use('/api/debug', debugRouter);
 
 // KIP User Keys routes - individual function handlers
 app.get('/api/kip/user-keys', getUserKeys);
@@ -614,19 +660,72 @@ app.post('/api/kip/user-keys', setUserKey);
 app.delete('/api/kip/user-keys/:keyId', deleteUserKey);
 app.get('/api/kip/user-keys/providers', getUserProviders);
 
+// KAM Settings route
+app.get('/api/kam/settings', kamSettingsHandler);
+
+// Themes route
+app.get('/api/themes/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const theme = await prisma.themes.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        label: true,
+        slug: true,
+        palette: true,
+        style: true,
+        default_mode: true,
+        tags: true,
+        created_at: true,
+        updated_at: true
+      }
+    });
+
+    if (!theme) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Theme not found' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      data: theme 
+    });
+  } catch (error) {
+    console.error('Theme fetch error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch theme' 
+    });
+  }
+});
+
 // Global Error Handler - Catch-all safety net across API
 function globalErrorHandler(err: unknown, req: Request, res: Response, next: NextFunction) {
-  // Log error details
-  console.error('🚨 Global Error Handler caught:', {
-    error: err instanceof Error ? err.message : 'Unknown error',
-    stack: err instanceof Error ? err.stack : undefined,
-    method: req.method,
-    path: req.path,
-    url: req.originalUrl,
-    headers: req.headers,
-    body: req.body,
-    timestamp: new Date().toISOString()
-  });
+  // Log error details (only in development or debug mode)
+  if (isDebug || process.env.NODE_ENV === 'development') {
+    console.error('🚨 Global Error Handler caught:', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+      stack: err instanceof Error ? err.stack : undefined,
+      method: req.method,
+      path: req.path,
+      url: req.originalUrl,
+      headers: req.headers,
+      body: req.body,
+      timestamp: new Date().toISOString()
+    });
+  } else {
+    // Production logging - minimal
+    console.error('🚨 API Error:', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+      method: req.method,
+      path: req.path,
+      timestamp: new Date().toISOString()
+    });
+  }
 
   // Handle different error types
   let statusCode = 500;
@@ -723,15 +822,12 @@ app.use('*', (req: Request, res: Response) => {
       'GET /',
       'GET /ping',
       'GET /health',
-      'GET /debug',
-      'GET /debug/simple',
-      'GET /debug/cors',
-      'POST /debug/test-connection',
-      'GET /railway-status',
+      'GET /api/debug/*',
       'GET /api/test',
       'POST /api/kam/auth/login',
       'POST /api/kam/auth/register',
       'POST /api/kam/auth/logout',
+      'GET  /api/kam/settings',
       '🏗️ DOMAIN API:',
       'POST /api/domains (← SAVE DOMAIN BUTTON!)',
       'GET /api/domains/my',
@@ -743,7 +839,11 @@ app.use('*', (req: Request, res: Response) => {
       'GET /api/kip/platform-keys',
       'GET /api/kip/user-keys',
       '📱 USER PROFILE:',
-      'PUT /api/users/:id (update profile - FIXED!)'
+      'PUT /api/users/:id (update profile - FIXED!)',
+      '🎨 THEME API:',
+      'GET /api/themes/:id (get theme by ID)',
+      '🔧 KAM SETTINGS:',
+      'GET /api/kam/settings (user settings)'
     ],
     timestamp: new Date().toISOString()
   });
@@ -759,7 +859,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('  - GET  /');
   console.log('  - GET  /ping');
   console.log('  - GET  /health');
-  console.log('  - GET  /debug (comprehensive)');
+  console.log('  - GET  /api/debug (router)');
   console.log('  - POST /api/kam/auth/login');
   console.log('  - POST /api/kam/auth/register');
   console.log('  🏗️ DOMAIN FUNCTIONALITY RESTORED:');
@@ -774,7 +874,11 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('  - GET  /api/kip/user-keys (user keys)');
   console.log('  📱 USER PROFILE ENDPOINTS:');
   console.log('  - PUT  /api/users/:id (update profile - FIXED!)');
-  console.log('\n✅ Domain Layer + KIP API + User Profile Updates fully functional!\n');
+  console.log('  🎨 THEME ENDPOINTS:');
+  console.log('  - GET  /api/themes/:id (get theme by ID)');
+  console.log('  🔧 KAM SETTINGS:');
+  console.log('  - GET  /api/kam/settings (user settings)');
+  console.log('\n✅ Domain Layer + KIP API + User Profile Updates + Theme API fully functional!\n');
 });
 
 server.on('error', (error: Error) => {

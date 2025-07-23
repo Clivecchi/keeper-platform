@@ -129,9 +129,38 @@ router.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {
     }
 
     const userId = req.user.id;
-    const domains = await domainService.getUserDomains(userId);
 
-    return res.json(domains);
+    // First, attempt standard lookup (active domains + permissions logic)
+    let domains = await domainService.getUserDomains(userId);
+
+    // Fallback: if nothing found, broaden the query to include inactive domains the user owns
+    if (domains.length === 0) {
+      domains = await prisma.domain.findMany({
+        where: {
+          ownerId: userId,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    // Determine primary domain based on business logic
+    // Primary domain is the first domain owned by the user that matches their name
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+      select: { name: true }
+    });
+
+    const domainsWithPrimary = domains.map((domain: any) => {
+      const isPrimary = domain.ownerId === userId && 
+                       user?.name && 
+                       domain.name.toLowerCase().includes(user.name.toLowerCase());
+      return {
+        ...domain,
+        isPrimary
+      };
+    });
+
+    return res.json(domainsWithPrimary);
   } catch (error) {
     console.error('Error fetching user domains:', error);
     return res.status(500).json({ error: 'Internal server error' });

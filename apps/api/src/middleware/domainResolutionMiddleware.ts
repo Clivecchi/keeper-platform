@@ -212,6 +212,16 @@ export class DomainResolutionMiddleware {
       };
     }
 
+    // Treat platform base domains (e.g., localhost:3001 in dev) as no-domain context
+    if (this.isPlatformBaseDomain(hostname)) {
+      return {
+        domain: null,
+        isCustomDomain: false,
+        originalHostname: hostname,
+        resolvedSlug: '',
+      };
+    }
+
     // Try custom domain resolution first
     let resolution = await this.resolveCustomDomain(hostname);
     if (resolution) {
@@ -496,7 +506,9 @@ export class DomainResolutionMiddleware {
    * Validate hostname format
    */
   private isValidHostname(hostname: string): boolean {
-    return /^[a-zA-Z0-9.-]+$/.test(hostname) && hostname.length > 0;
+    // Allow standard hostnames plus optional ":<port>" in development
+    const devPattern = /^[a-zA-Z0-9.-]+(:\d+)?$/;
+    return devPattern.test(hostname) && hostname.length > 0;
   }
 
   /**
@@ -525,7 +537,7 @@ export class DomainResolutionMiddleware {
    * Check if domain is a platform base domain
    */
   private isPlatformBaseDomain(baseDomain: string): boolean {
-    const platformDomains = ['keeper.tools', 'localhost:3000', 'localhost:5173'];
+    const platformDomains = ['keeper.tools', 'localhost:3000', 'localhost:5173', 'localhost:3001'];
     return platformDomains.includes(baseDomain);
   }
 

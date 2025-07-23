@@ -192,8 +192,8 @@ export class DynamicCorsMiddleware {
         return;
       }
 
-      // Development mode - allow localhost
-      if (process.env.NODE_ENV === 'development' && this.isLocalhostOrigin(origin)) {
+      // Always allow local development origins regardless of NODE_ENV
+      if (this.isLocalhostOrigin(origin)) {
         callback(null, true);
         return;
       }

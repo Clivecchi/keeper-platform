@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import { motion } from 'framer-motion';
+import { Navbar } from '../components/layout/Navbar';
 
 // Global Debug Button Component
 const GlobalDebugButton: React.FC = () => {
@@ -31,6 +32,37 @@ const GlobalDebugButton: React.FC = () => {
       }
 
       const data = await response.json();
+
+      // --- Extra call: /api/domains/my ---------------------------------
+      try {
+        const token = localStorage.getItem('keeper_token');
+        if (token) {
+          const domainsRes = await fetch(`${apiUrl}/api/domains/my`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            credentials: 'include',
+          });
+
+          const bodyText = await domainsRes.text();
+          data.extra_my_domains = {
+            status: domainsRes.status,
+            body: bodyText,
+          };
+        } else {
+          data.extra_my_domains = {
+            status: 'no-token',
+            body: 'No keeper_token in localStorage',
+          };
+        }
+      } catch (myErr) {
+        data.extra_my_domains = {
+          status: 'error',
+          body: String(myErr),
+        };
+      }
+
       setDebugData(data);
       setIsOpen(true);
     } catch (err) {
@@ -149,6 +181,16 @@ const GlobalDebugButton: React.FC = () => {
                     </pre>
                   </div>
 
+                  {/* /api/domains/my Response */}
+                  {debugData.extra_my_domains && (
+                    <div className="bg-red-50 border border-red-200 rounded p-4">
+                      <h3 className="font-bold text-red-800 mb-2">/api/domains/my response</h3>
+                      <pre className="text-xs text-red-700 whitespace-pre-wrap overflow-x-auto">
+                        {JSON.stringify(debugData.extra_my_domains, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+
                   {/* Raw Data */}
                   <details className="bg-gray-50 border border-gray-200 rounded p-4">
                     <summary className="font-bold text-gray-800 cursor-pointer mb-2">
@@ -176,20 +218,23 @@ export const AppLayout: React.FC = () => {
   return (
     <div className="flex h-screen bg-background text-foreground">
       <Sidebar />
-      <motion.main
-        className="flex-1 overflow-hidden"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="h-full overflow-y-auto">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <Outlet />
+      <div className="flex-1 flex flex-col">
+        {/* Top Navbar */}
+        <Navbar />
+        <motion.main
+          className="flex-1 overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="h-full overflow-y-auto">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <Outlet />
+            </div>
           </div>
-        </div>
-      </motion.main>
-      
+        </motion.main>
+      </div>
       {/* Global Debug Button - Always Available */}
       <GlobalDebugButton />
     </div>

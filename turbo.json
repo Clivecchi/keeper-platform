@@ -42,14 +42,6 @@
       "outputs": []
     }
   },
-  "globalDependencies": [
-    "package.json",
-    "pnpm-lock.yaml",
-    "pnpm-workspace.yaml",
-    "turbo.json",
-    "tsconfig.json",
-    "tools/tsconfig/**",
-    "tools/eslint-config/**"
-  ],
+  "globalDependencies": ["**/.env.*local"],
   "globalEnv": ["NODE_ENV"]
 } 

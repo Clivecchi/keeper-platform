@@ -447,6 +447,7 @@ model user_roles {
   assignedBy String?  @db.Uuid
   createdAt  DateTime @default(now())
   updatedAt  DateTime
+  users      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
   roles      roles    @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
@@ -553,6 +554,9 @@ model users {
   UserStorageConfig               UserStorageConfig?
   kip_agent_logs                  kip_agent_logs[]
   kip_sessions                    kip_sessions[]
+  
+  // Role relations
+  user_roles                      user_roles[]
   
   // Domain relations
   ownedDomains                    Domain[]               @relation("DomainOwner")

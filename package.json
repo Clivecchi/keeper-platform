@@ -10,7 +10,9 @@
   "type": "module",
   "packageManager": "pnpm@10.11.0",
   "scripts": {
-    "dev": "turbo dev",
+    "dev": "node scripts/dev-with-url.js",
+    "dev:simple": "turbo dev",
+    "dev:with-link": "turbo dev && echo '\\n\\n—————————' && echo '🚀  Web dev server ready: http://localhost:5173' && echo '—————————\\n'",
     "build": "turbo build",
     "build:clean": "turbo clean && turbo build",
     "start": "turbo run start",
