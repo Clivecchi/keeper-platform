@@ -29,7 +29,7 @@ export {
   createSession,
   getSessionHandler,
   invalidateSession
-} from './auth/index'
+} from './auth/index.js'
 
 // =============================================================================
 // SETTINGS & PREFERENCES EXPORTS
@@ -37,7 +37,7 @@ export {
 export {
   updateUserSettingsHandler,
   getUserSettingsHandler
-} from './settings/index'
+} from './settings/index.js'
 
 // =============================================================================
 // DOMAIN AUTH EXPORTS
@@ -45,7 +45,7 @@ export {
 export {
   DomainAuthManager,
   createDomainAuthMiddleware
-} from './auth/domainAuth'
+} from './auth/domainAuth.js'
 export type {
   DomainAuthUser,
   DomainAuthSession,
