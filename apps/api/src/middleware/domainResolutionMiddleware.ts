@@ -537,7 +537,27 @@ export class DomainResolutionMiddleware {
    * Check if domain is a platform base domain
    */
   private isPlatformBaseDomain(baseDomain: string): boolean {
-    const platformDomains = ['keeper.tools', 'localhost:3000', 'localhost:5173', 'localhost:3001'];
+    // Base platform domains always considered "platform" (no domain context required)
+    const platformDomains = [
+      'keeper.tools',
+      'localhost:3000',
+      'localhost:5173',
+      'localhost:3001',
+    ];
+
+    // Include Railway domains from env (they change per deployment)
+    if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+      platformDomains.push(process.env.RAILWAY_PUBLIC_DOMAIN);
+    }
+    if (process.env.RAILWAY_PRIVATE_DOMAIN) {
+      platformDomains.push(process.env.RAILWAY_PRIVATE_DOMAIN);
+    }
+
+    // Treat any ".up.railway.app" host as platform base (preview/prod URL)
+    if (baseDomain.endsWith('.up.railway.app')) {
+      return true;
+    }
+
     return platformDomains.includes(baseDomain);
   }
 
