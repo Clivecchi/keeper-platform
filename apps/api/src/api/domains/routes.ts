@@ -31,11 +31,11 @@ const permissionService = new DomainPermissionService(prisma, cacheService);
 const verificationService = new DomainVerificationService(prisma, cacheService);
 const featureFlags = getFeatureFlagService();
 
-// Apply dynamic CORS middleware
-router.use(createDynamicCorsMiddleware());
-
 // Apply domain resolution middleware
 router.use(createDomainResolutionMiddleware());
+
+// Apply dynamic CORS middleware (must run after domain is resolved)
+router.use(createDynamicCorsMiddleware());
 
 // Mount custom domain routes
 router.use('/domains', customDomainRoutes);

@@ -64,8 +64,18 @@ export class DynamicCorsMiddleware {
   private defaultConfig: DomainCorsConfig;
 
   constructor(config: DomainCorsConfig = {}) {
+    // Merge hard-coded platform origins with any comma-separated list provided via CORS_ORIGINS env var
+    const envAllowedOrigins = process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
+      : [];
+
     this.defaultConfig = {
-      allowedOrigins: ['https://keeper.tools', 'https://app.keeper.tools'],
+      // Base platform domains
+      allowedOrigins: [
+        'https://keeper.tools',
+        'https://app.keeper.tools',
+        ...envAllowedOrigins,
+      ],
       allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
       exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
