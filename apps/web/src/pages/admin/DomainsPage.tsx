@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../../lib/api';
-import DomainManager from '../../components/domain-manager/DomainManager';
+import DomainDetailModal from '../../components/domain-manager/DomainDetailModal';
+import { useAuth } from '../../context/AuthContext';
 
 interface Member {
   userId: string;
@@ -31,6 +32,7 @@ const DomainsPage: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [memberLoading, setMemberLoading] = useState(false);
   const [showManager, setShowManager] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     async function load() {
@@ -133,11 +135,7 @@ const DomainsPage: React.FC = () => {
 
       {/* Domain Detail Modal */}
       {selected && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-neutral-900 max-w-3xl w-full max-h-[90vh] overflow-y-auto border rounded-lg p-4">
-            <DomainManager scope="admin" initialDomainId={selected.id} onClose={()=>setSelected(null)} />
-          </div>
-        </div>
+        <DomainDetailModal domain={selected as any} scope="admin" onClose={()=>setSelected(null)} refreshList={reload} />
       )}
     </div>
   );
@@ -225,7 +223,7 @@ const CreateDomainModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) =
 };
 
 // ---------- Domain Detail Modal ----------
-interface DetailModalProps {
+interface LegacyDetailModalProps {
   domain: Domain;
   members: Member[];
   loadingMembers: boolean;
@@ -235,7 +233,7 @@ interface DetailModalProps {
   onUpdated: (d: Domain) => void;
 }
 
-const DomainDetailModal: React.FC<DetailModalProps> = ({ domain, members, loadingMembers, onClose, onSuspend, onDelete, onUpdated }) => {
+const DomainLegacyModal: React.FC<LegacyDetailModalProps> = ({ domain, members, loadingMembers, onClose, onSuspend, onDelete, onUpdated }) => {
   const [customDomain, setCustomDomain] = React.useState(domain.customDomain || '');
   const [processing, setProcessing] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);

@@ -9,7 +9,8 @@ import {
   CheckCircleIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
-import DomainManager from '../../components/domain-manager/DomainManager';
+import DomainListPane, { Domain as DomainType } from '../../components/domain-manager/DomainListPane';
+import DomainDetailModal from '../../components/domain-manager/DomainDetailModal';
 
 interface TabProps {
   id: string;
@@ -68,6 +69,8 @@ const RootDashboardPage: React.FC = () => {
   const [domainSuccess, setDomainSuccess] = useState<string | null>(null);
   const [domainLoading, setDomainLoading] = useState(true);
   const [currentDomain, setCurrentDomain] = useState<any>(null);
+  const [domainModal, setDomainModal] = useState<DomainType | null>(null);
+  const refreshList = () => {};
 
   // Load domain data when user becomes available or changes
   useEffect(() => {
@@ -349,7 +352,14 @@ const RootDashboardPage: React.FC = () => {
         );
 
       case 'domain':
-        return <DomainManager scope="user" allowCreate />;
+        return (
+          <>
+            <DomainListPane scope="user" allowCreate onSelect={(d)=>setDomainModal(d)} selectedId={domainModal?.id} />
+            {domainModal && (
+              <DomainDetailModal domain={domainModal} scope="user" onClose={()=>setDomainModal(null)} refreshList={refreshList} />
+            )}
+          </>
+        );
 
       case 'api-keys':
         return (
