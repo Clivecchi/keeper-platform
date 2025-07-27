@@ -4,5 +4,11 @@
       "source": "/api/(.*)",
       "destination": "https://keeper-platform-production.up.railway.app/api/$1"
     }
+  ],
+  "proxies": [
+    {
+      "path": "/api/(.*)",
+      "destination": "https://keeper-platform-production.up.railway.app/api/$1"
+    }
   ]
 } 
