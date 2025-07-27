@@ -1,0 +1,88 @@
+import fetch from 'node-fetch';
+
+interface DNSRecord {
+  type: string;
+  domain: string;
+  value: string;
+  ttl: number;
+}
+
+export class VercelDomainManagerService {
+  private readonly token: string;
+  private readonly projectId: string;
+  private readonly baseUrl = 'https://api.vercel.com';
+
+  constructor(token: string, projectId: string) {
+    if (!token) throw new Error('VERCEL_TOKEN env var is required');
+    if (!projectId) throw new Error('VERCEL_PROJECT_ID env var is required');
+    this.token = token;
+    this.projectId = projectId;
+  }
+
+  private get headers() {
+    return {
+      Authorization: `Bearer ${this.token}`,
+      'Content-Type': 'application/json',
+    } as const;
+  }
+
+  /** Add or update a custom domain on the Vercel project */
+  async addDomain(domain: string, gitBranch: string = 'production'): Promise<{ dnsRecords: DNSRecord[] }> {
+    const url = `${this.baseUrl}/v9/projects/${this.projectId}/domains`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify({ name: domain, gitBranch }),
+    });
+
+    if (res.status === 409) {
+      // Domain already exists in project – treat as success
+      return { dnsRecords: [] };
+    }
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error(`Vercel addDomain failed: ${res.status} ${errBody}`);
+    }
+
+    const data = (await res.json()) as { dns: DNSRecord[] };
+    return { dnsRecords: data.dns || [] };
+  }
+
+  /** Get DNS configuration requirements for a domain */
+  async getDomainConfig(domain: string): Promise<{ configured: boolean; records: DNSRecord[] }> {
+    const url = `${this.baseUrl}/v4/domains/${domain}/config`;
+    const res = await fetch(url, { headers: this.headers });
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error(`Vercel domain config failed: ${res.status} ${errBody}`);
+    }
+    const data = (await res.json()) as any;
+    return {
+      configured: data.configured || false,
+      records: data.records || [],
+    };
+  }
+
+  /** Verify a domain once DNS is correct */
+  async verifyDomain(domain: string): Promise<boolean> {
+    const url = `${this.baseUrl}/v9/projects/${this.projectId}/domains/${domain}/verify`;
+    const res = await fetch(url, { method: 'POST', headers: this.headers });
+    if (res.status === 409) return true; // already verified
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error(`Vercel verifyDomain failed: ${res.status} ${errBody}`);
+    }
+    return true;
+  }
+
+  /** Remove a domain from the project */
+  async removeDomain(domain: string): Promise<void> {
+    const url = `${this.baseUrl}/v9/projects/${this.projectId}/domains/${domain}`;
+    const res = await fetch(url, { method: 'DELETE', headers: this.headers });
+    if (!res.ok && res.status !== 404) {
+      const errBody = await res.text();
+      throw new Error(`Vercel removeDomain failed: ${res.status} ${errBody}`);
+    }
+  }
+} 

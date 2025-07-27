@@ -22,6 +22,7 @@ import {
 } from '../../middleware/domainPermissionMiddleware.js';
 import { rateLimit } from 'express-rate-limit';
 import Redis from 'ioredis';
+import { VercelDomainManagerService } from '../../services/VercelDomainManagerService.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -42,6 +43,7 @@ const healthService = new DomainHealthMonitoringService(
   sslService,
   cacheService
 );
+const vercelSvc = new VercelDomainManagerService(process.env.VERCEL_TOKEN || '', process.env.VERCEL_PROJECT_ID || '');
 
 // Create a mock CORS manager for now
 const corsManager = {
@@ -446,5 +448,63 @@ router.get(
     }
   }
 );
+
+// --- Custom Domain via Vercel ---
+// POST /api/domains/:domainId/custom-domain
+router.post('/:domainId/custom-domain', requireDomainAdminCompat, async (req: Request, res: Response) => {
+  try {
+    const { domainId } = req.params;
+    const { customDomain } = req.body;
+    if (!customDomain) return res.status(400).json({ error: 'customDomain required' });
+
+    // Add domain in Vercel
+    const { dnsRecords } = await vercelSvc.addDomain(customDomain);
+
+    // Update DB record
+    const updated = await domainService.updateDomain(domainId, { customDomain, customDomainVerified: false });
+
+    return res.json({ success: true, domain: updated, dnsRecords });
+  } catch (err) {
+    console.error('Add custom domain error:', err);
+    return res.status(500).json({ error: 'Failed to add custom domain' });
+  }
+});
+
+// POST /api/domains/:domainId/custom-domain/verify
+router.post('/:domainId/custom-domain/verify', requireDomainAdminCompat, async (req: Request, res: Response) => {
+  try {
+    const { domainId } = req.params;
+    const domain = await domainService.getDomainById(domainId);
+    if (!domain?.customDomain) return res.status(400).json({ error: 'No custom domain configured' });
+
+    const cfg = await vercelSvc.getDomainConfig(domain.customDomain);
+    if (!cfg.configured) {
+      return res.status(400).json({ error: 'DNS_NOT_CONFIGURED', records: cfg.records });
+    }
+
+    await vercelSvc.verifyDomain(domain.customDomain);
+    const updated = await domainService.updateDomain(domainId, { customDomainVerified: true });
+    return res.json({ success: true, domain: updated });
+  } catch (err) {
+    console.error('Verify custom domain error:', err);
+    return res.status(500).json({ error: 'Failed to verify custom domain' });
+  }
+});
+
+// DELETE /api/domains/:domainId/custom-domain
+router.delete('/:domainId/custom-domain', requireDomainAdminCompat, async (req: Request, res: Response) => {
+  try {
+    const { domainId } = req.params;
+    const domain = await domainService.getDomainById(domainId);
+    if (domain?.customDomain) {
+      await vercelSvc.removeDomain(domain.customDomain);
+    }
+    const updated = await domainService.updateDomain(domainId, { customDomain: null as any, customDomainVerified: false });
+    return res.json({ success: true, domain: updated });
+  } catch (err) {
+    console.error('Delete custom domain error:', err);
+    return res.status(500).json({ error: 'Failed to delete custom domain' });
+  }
+});
 
 export default router; 

@@ -50,8 +50,7 @@ const RootDashboardPage: React.FC = () => {
     name: '',
     slug: '',
     description: '',
-    customDomain: '',
-    corsOrigins: ''
+    customDomain: ''
   });
   const [domainSaving, setDomainSaving] = useState(false);
   const [domainError, setDomainError] = useState<string | null>(null);
@@ -85,8 +84,7 @@ const RootDashboardPage: React.FC = () => {
             name: primaryDomain.name || '',
             slug: primaryDomain.slug || '',
             description: primaryDomain.description || '',
-            customDomain: primaryDomain.customDomain || '',
-            corsOrigins: primaryDomain.settings?.cors?.additionalOrigins?.join('\n') || ''
+            customDomain: primaryDomain.customDomain || ''
           });
         }
       }
@@ -147,15 +145,8 @@ const RootDashboardPage: React.FC = () => {
       const response = await apiFetch(`/api/domains/${currentDomain.id}`, {
         method: 'PUT',
         body: JSON.stringify({
-          name: domainForm.name,
-          slug: domainForm.slug,
-          description: domainForm.description,
-          customDomain: domainForm.customDomain,
-          settings: {
-            cors: {
-              additionalOrigins: domainForm.corsOrigins.split('\n').filter(origin => origin.trim())
-            }
-          }
+          // name/slug/description only
+          customDomain: null
         })
       });
 
@@ -171,6 +162,69 @@ const RootDashboardPage: React.FC = () => {
     } catch (error) {
       console.error('Domain save error:', error);
       setDomainError('Failed to save domain configuration. Please try again.');
+    } finally {
+      setDomainSaving(false);
+    }
+  };
+
+  const handleCustomDomainSave = async () => {
+    if (!currentDomain) return;
+    setDomainSaving(true);
+    setDomainError(null);
+    try {
+      const resp = await apiFetch(`/api/domains/${currentDomain.id}/custom-domain`, {
+        method: 'POST',
+        body: JSON.stringify({ customDomain: domainForm.customDomain })
+      });
+      if (resp.success) {
+        setCurrentDomain(resp.domain);
+        setDomainSuccess('Custom domain saved. Configure DNS then click Verify.');
+      } else {
+        setDomainError(resp.error || 'Failed');
+      }
+    } catch (e) {
+      setDomainError('Failed');
+    } finally {
+      setDomainSaving(false);
+    }
+  };
+
+  const handleCustomDomainVerify = async () => {
+    if (!currentDomain) return;
+    setDomainSaving(true);
+    setDomainError(null);
+    try {
+      const resp = await apiFetch(`/api/domains/${currentDomain.id}/custom-domain/verify`, { method: 'POST' });
+      if (resp.success) {
+        setCurrentDomain(resp.domain);
+        setDomainSuccess('Domain verified and SSL issued!');
+      } else {
+        setDomainError(resp.error || 'Verification failed');
+      }
+    } catch (e) {
+      setDomainError('Verification failed');
+    } finally {
+      setDomainSaving(false);
+    }
+  };
+
+  const handleCustomDomainDelete = async () => {
+    if (!currentDomain) return;
+    const confirm = window.confirm('Remove custom domain?');
+    if (!confirm) return;
+    setDomainSaving(true);
+    setDomainError(null);
+    try {
+      const resp = await apiFetch(`/api/domains/${currentDomain.id}/custom-domain`, { method: 'DELETE' });
+      if (resp.success) {
+        setCurrentDomain(resp.domain);
+        setDomainForm(prev => ({ ...prev, customDomain: '' }));
+        setDomainSuccess('Custom domain removed');
+      } else {
+        setDomainError(resp.error || 'Failed');
+      }
+    } catch (e) {
+      setDomainError('Failed');
     } finally {
       setDomainSaving(false);
     }
@@ -316,24 +370,18 @@ const RootDashboardPage: React.FC = () => {
                         value={domainForm.customDomain}
                         onChange={(e) => setDomainForm(prev => ({ ...prev, customDomain: e.target.value }))}
                         className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
-                        placeholder="keeper.yourdomain.com"
+                        placeholder="myapp.yourdomain.com"
                       />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Configure a custom domain for your Keeper instance
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">CORS Origins</label>
-                      <textarea
-                        rows={3}
-                        value={domainForm.corsOrigins}
-                        onChange={(e) => setDomainForm(prev => ({ ...prev, corsOrigins: e.target.value }))}
-                        className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
-                        placeholder="https://yourdomain.com&#10;https://app.yourdomain.com"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        One origin per line for API access
-                      </p>
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={handleCustomDomainSave} className="px-3 py-1 bg-primary text-white rounded">Save</button>
+                        <button onClick={handleCustomDomainVerify} className="px-3 py-1 bg-green-600 text-white rounded">Verify</button>
+                        <button onClick={handleCustomDomainDelete} className="px-3 py-1 bg-destructive text-white rounded">Delete</button>
+                      </div>
+                      {currentDomain?.customDomainVerified ? (
+                        <p className="text-xs text-green-700 mt-1">Verified ✓</p>
+                      ) : (
+                        <p className="text-xs text-yellow-700 mt-1">Not verified</p>
+                      )}
                     </div>
                   </div>
                   <div className="mt-6">
