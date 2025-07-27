@@ -18,9 +18,11 @@ interface Domain {
 interface DomainManagerProps {
   scope: DomainScope;
   onClose?: () => void; // For modal use in admin
+  initialDomainId?: string;
+  allowCreate?: boolean;
 }
 
-const DomainManager: React.FC<DomainManagerProps> = ({ scope, onClose }) => {
+const DomainManager: React.FC<DomainManagerProps> = ({ scope, onClose, initialDomainId, allowCreate = false }) => {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [selected, setSelected] = useState<Domain | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,10 +36,18 @@ const DomainManager: React.FC<DomainManagerProps> = ({ scope, onClose }) => {
         if (scope === 'user') {
           const data = await apiFetch('/api/domains/my');
           setDomains(data);
-          if (data.length) setSelected(data[0]);
+          if (data.length) {
+            const pre = initialDomainId ? data.find((d:any)=>d.id===initialDomainId) : null;
+            setSelected(pre || data[0]);
+          }
         } else {
           const data = await apiFetch('/api/admin/domains?limit=10');
-          setDomains(data.domains || []);
+          const list = data.domains || [];
+          setDomains(list);
+          if (list.length) {
+            const pre = initialDomainId ? list.find((d:any)=>d.id===initialDomainId) : null;
+            setSelected(pre || list[0]);
+          }
         }
       } catch (e) {
         console.error('Load domains failed', e);
@@ -129,6 +139,20 @@ const DomainManager: React.FC<DomainManagerProps> = ({ scope, onClose }) => {
     });
   }, [selected]);
 
+  // ---- Create Domain (user) ----
+  const [showCreate, setShowCreate] = useState(false);
+  const [newDomain, setNewDomain] = useState({ name: '', slug: '', description: '' });
+  const createDomain = async () => {
+    try {
+      const resp = await apiFetch('/api/domains', { method: 'POST', body: JSON.stringify(newDomain) });
+      const d = resp.domain;
+      setDomains(prev=>[...prev,d]);
+      setSelected(d);
+      setShowCreate(false);
+      setNewDomain({ name: '', slug: '', description: '' });
+    } catch(e:any) { setMessage(e?.body||'Failed'); }
+  };
+
   const saveMeta = async () => {
     if (!selected) return;
     setSaving(true);
@@ -152,8 +176,21 @@ const DomainManager: React.FC<DomainManagerProps> = ({ scope, onClose }) => {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         {renderSelector()}
-        {onClose && <button onClick={onClose} className="px-2 py-1 border rounded">Close</button>}
+        <div className="flex gap-2">
+          {allowCreate && <button onClick={()=>setShowCreate(true)} className="px-2 py-1 border rounded text-xs">Add Domain</button>}
+          {onClose && <button onClick={onClose} className="px-2 py-1 border rounded text-xs">Close</button>}
+        </div>
       </div>
+
+      {showCreate && (
+        <div className="border p-4 rounded bg-muted/20 space-y-2 text-xs">
+          <h4 className="font-medium">Create New Domain</h4>
+          <input placeholder="Name" value={newDomain.name} onChange={(e)=>setNewDomain({...newDomain,name:e.target.value})} className="border p-1 w-full" />
+          <input placeholder="Slug (optional)" value={newDomain.slug} onChange={(e)=>setNewDomain({...newDomain,slug:e.target.value})} className="border p-1 w-full" />
+          <textarea placeholder="Description (optional)" rows={2} value={newDomain.description} onChange={(e)=>setNewDomain({...newDomain,description:e.target.value})} className="border p-1 w-full" />
+          <div className="flex gap-2"><button onClick={createDomain} disabled={!newDomain.name.trim()} className="px-2 py-0.5 bg-primary text-white rounded">Create</button><button onClick={()=>setShowCreate(false)} className="px-2 py-0.5 border rounded">Cancel</button></div>
+        </div>
+      )}
 
       {/* General Panel */}
       <div className="border rounded p-4 space-y-3 bg-card">

@@ -349,7 +349,7 @@ const RootDashboardPage: React.FC = () => {
         );
 
       case 'domain':
-        return <DomainManager scope="user" />;
+        return <DomainManager scope="user" allowCreate />;
 
       case 'api-keys':
         return (

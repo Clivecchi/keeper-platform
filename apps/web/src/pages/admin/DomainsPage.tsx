@@ -135,7 +135,7 @@ const DomainsPage: React.FC = () => {
       {selected && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-neutral-900 max-w-3xl w-full max-h-[90vh] overflow-y-auto border rounded-lg p-4">
-            <DomainManager scope="admin" onClose={()=>setSelected(null)} />
+            <DomainManager scope="admin" initialDomainId={selected.id} onClose={()=>setSelected(null)} />
           </div>
         </div>
       )}
