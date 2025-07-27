@@ -126,7 +126,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-background">
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b">
         <div>
