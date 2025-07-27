@@ -401,23 +401,13 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({
           )}
           
           {canEdit && (
-            isCreate ? (
-              <button
-                onClick={handleSave}
-                disabled={saving || !form.name.trim()}
-                className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-              >
-                {saving ? 'Creating...' : 'Create Domain'}
-              </button>
-            ) : (
-              <button
-                onClick={handleSave}
-                disabled={saving || !form.name.trim()}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            )
+            <button
+              onClick={handleSave}
+              disabled={saving || !form.name.trim()}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              {saving ? (isCreate ? 'Creating...' : 'Saving...') : (isCreate ? 'Create Domain' : 'Save Changes')}
+            </button>
           )}
         </div>
       </div>
