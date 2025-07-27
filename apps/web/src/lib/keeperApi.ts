@@ -20,18 +20,8 @@ import {
   SoleMemoryCardResponse
 } from '../types/keeper';
 
-// Prefer same env var used by apiFetch; fallback to VITE_API_URL; finally localhost
-let _base =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ||
-  (import.meta.env.VITE_API_URL as string | undefined) ||
-  'http://localhost:3001';
-
-// Remove any trailing slash
-_base = _base.replace(/\/$/, '');
-// If the provided base already ends with /api, remove it so we can append our own paths consistently
-_base = _base.replace(/\/api$/, '');
-
-const API_BASE_URL = _base;
+// Same-origin: rely on window.location
+const API_BASE_URL = '';
 
 class KeeperApiService {
   private async request<T>(

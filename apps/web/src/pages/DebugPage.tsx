@@ -44,7 +44,7 @@ const DebugPage: React.FC = () => {
         mode: import.meta.env.MODE,
         isDev: import.meta.env.DEV,
         isProd: import.meta.env.PROD,
-        apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'relative',
+        apiBaseUrl: window.location.origin,
         currentUrl: window.location.href,
         origin: window.location.origin,
         userAgent: navigator.userAgent
@@ -531,7 +531,7 @@ const DebugPage: React.FC = () => {
         const networkTest = {
           fetchAvailable: typeof fetch !== 'undefined',
           xhrAvailable: typeof XMLHttpRequest !== 'undefined',
-          baseUrl: import.meta.env.VITE_API_BASE_URL || 'relative',
+          baseUrl: window.location.origin,
           currentOrigin: window.location.origin,
           corsEnabled: true, // We'll assume this based on successful API calls above
           lastRequestTime: new Date().toISOString()
@@ -578,7 +578,7 @@ const DebugPage: React.FC = () => {
       // Test 14: Database Fix Auto-Repair
       addLog('🔧 Testing database auto-repair and Kip provider fix...');
       try {
-        const fixResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/debug/fix-kip-provider`, {
+        const fixResponse = await fetch('/api/debug/fix-kip-provider', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
