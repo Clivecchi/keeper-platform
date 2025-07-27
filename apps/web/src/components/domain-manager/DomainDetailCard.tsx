@@ -90,6 +90,28 @@ const DomainDetailCard: React.FC<Props> = ({ domain, scope, viewerId, refresh })
       </div>
 
       <MembersPanel domainId={domain.id} scope={scope} />
+
+      {/* Danger Zone */}
+      {scope === 'admin' && (
+        <div className="border rounded p-4 space-y-2 bg-red-50 dark:bg-red-900/20 text-xs">
+          <h3 className="font-medium text-red-700 dark:text-red-300">Danger Zone</h3>
+          <p>Suspend disables access; Archive permanently removes the domain after a grace period.</p>
+          <div className="flex gap-2">
+            <button
+              onClick={async()=>{ if(!confirm('Toggle suspension?')) return; try{ await apiFetch(`/api/admin/domains/${domain.id}/suspend`,{method:'PATCH'}); refresh(); }catch(e){ console.error(e);} }}
+              className="px-2 py-0.5 bg-orange-600 text-white rounded"
+            >
+              {domain.status==='suspended'?'Activate':'Suspend'}
+            </button>
+            <button
+              onClick={async()=>{ if(!confirm('Archive domain? This cannot be undone.')) return; try{ await apiFetch(`/api/admin/domains/${domain.id}`,{method:'DELETE'}); }catch(e){ console.error(e);} }}
+              className="px-2 py-0.5 bg-red-700 text-white rounded"
+            >
+              Archive
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

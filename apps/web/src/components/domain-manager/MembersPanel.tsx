@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../../lib/api';
-import { ROLE_OPTIONS } from '../../../../../packages/shared/src/roles';
+import { ROLE_OPTIONS } from '@keeper/shared';
 import { XMarkIcon, PlusIcon } from '@heroicons/react/24/outline';
 import type { DomainScope } from './DomainManager';
 

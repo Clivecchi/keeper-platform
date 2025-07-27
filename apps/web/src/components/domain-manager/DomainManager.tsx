@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { apiFetch } from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
 import DomainListPane, { Domain as DomainType } from './DomainListPane';
 import DomainDetailCard from './DomainDetailCard';
 
@@ -23,7 +23,7 @@ interface DomainManagerProps {
 }
 
 const DomainManager: React.FC<DomainManagerProps> = ({ scope, onClose, initialDomainId, allowCreate = false }) => {
-  const { user } = require('../../context/AuthContext');
+  const { user } = useAuth();
   const viewerId = user?.id || '';
   const [selected, setSelected] = useState<DomainType | null>(null);
 
