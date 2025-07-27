@@ -126,14 +126,14 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background/100 backdrop-blur-xl">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b">
+      <div className="flex items-center justify-between p-6 border-b bg-background/100">
         <div>
           <h3 className="text-lg font-semibold text-foreground">
             {isCreate ? 'Create New Domain' : 'Domain Details'}
           </h3>
-          {domain && (
+          {!isCreate && domain && (
             <p className="text-sm text-muted-foreground mt-1">
               {domain.slug}
             </p>
@@ -142,7 +142,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({
         {onClose && (
           <button
             onClick={onClose}
-            className="p-2 hover:bg-muted rounded-md transition-colors"
+            className="p-2 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-foreground"
           >
             <XMarkIcon className="w-5 h-5" />
           </button>
@@ -172,7 +172,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({
       )}
 
       {/* Form Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-background/100">
         {/* Basic Information */}
         <div className="space-y-4">
           <h4 className="font-medium text-foreground flex items-center gap-2">
@@ -377,7 +377,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-between p-6 border-t bg-muted/20">
+      <div className="flex items-center justify-between p-6 border-t bg-background/100">
         <div className="flex items-center gap-2">
           {onDelete && canEdit && (
             <button
@@ -401,13 +401,23 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({
           )}
           
           {canEdit && (
-            <button
-              onClick={handleSave}
-              disabled={saving || !form.name.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? 'Saving...' : (isCreate ? 'Create Domain' : 'Save Changes')}
-            </button>
+            isCreate ? (
+              <button
+                onClick={handleSave}
+                disabled={saving || !form.name.trim()}
+                className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {saving ? 'Creating...' : 'Create Domain'}
+              </button>
+            ) : (
+              <button
+                onClick={handleSave}
+                disabled={saving || !form.name.trim()}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            )
           )}
         </div>
       </div>
