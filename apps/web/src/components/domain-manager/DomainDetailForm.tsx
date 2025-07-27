@@ -126,9 +126,9 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-background/100 backdrop-blur-xl">
+    <div className="h-full flex flex-col bg-card">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b bg-background/100">
+      <div className="flex items-center justify-between p-6 border-b bg-card">
         <div>
           <h3 className="text-lg font-semibold text-foreground">
             {isCreate ? 'Create New Domain' : 'Domain Details'}
@@ -172,7 +172,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({
       )}
 
       {/* Form Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-background/100">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-card">
         {/* Basic Information */}
         <div className="space-y-4">
           <h4 className="font-medium text-foreground flex items-center gap-2">
@@ -377,7 +377,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-between p-6 border-t bg-background/100">
+      <div className="flex items-center justify-between p-6 border-t bg-card">
         <div className="flex items-center gap-2">
           {onDelete && canEdit && (
             <button
