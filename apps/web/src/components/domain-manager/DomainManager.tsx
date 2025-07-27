@@ -339,7 +339,7 @@ const DomainManager: React.FC<DomainManagerProps> = ({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card border rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden"
+              className="bg-white border rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden"
             >
               <DomainDetailForm
                 domain={selectedDomain}
@@ -368,7 +368,7 @@ const DomainManager: React.FC<DomainManagerProps> = ({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card border rounded-lg shadow-xl max-w-2xl w-full mx-4"
+              className="bg-white border rounded-lg shadow-xl max-w-2xl w-full mx-4"
             >
               <div className="p-6">
                 <h3 className="text-lg font-semibold mb-4">Create New Domain</h3>
