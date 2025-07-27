@@ -1,5 +1,5 @@
 // Use same-origin calls; leave env override for local dev if explicitly set
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
+const BASE_URL = '';
 
 export async function apiFetch(path: string, options: RequestInit = {}) {
   // Get token from localStorage for authenticated requests
