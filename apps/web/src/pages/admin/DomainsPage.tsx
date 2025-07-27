@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../../lib/api';
+import DomainManager from '../../components/domain-manager/DomainManager';
 
 interface Member {
   userId: string;
@@ -29,6 +30,7 @@ const DomainsPage: React.FC = () => {
   const [selected, setSelected] = useState<Domain | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [memberLoading, setMemberLoading] = useState(false);
+  const [showManager, setShowManager] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -131,19 +133,11 @@ const DomainsPage: React.FC = () => {
 
       {/* Domain Detail Modal */}
       {selected && (
-        <DomainDetailModal
-          domain={selected}
-          members={members}
-          loadingMembers={memberLoading}
-          onClose={() => setSelected(null)}
-          onSuspend={suspendToggle}
-          onDelete={deleteDomain}
-          onUpdated={(updated) => {
-            // Update table list and current selection
-            setDomains((prev) => prev.map((d) => (d.id === updated.id ? { ...d, ...updated } : d)));
-            setSelected(updated);
-          }}
-        />
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-neutral-900 max-w-3xl w-full max-h-[90vh] overflow-y-auto border rounded-lg p-4">
+            <DomainManager scope="admin" onClose={()=>setSelected(null)} />
+          </div>
+        </div>
       )}
     </div>
   );

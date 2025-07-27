@@ -635,6 +635,33 @@ app.put('/api/users/:id', authMiddlewareCompat, async (req: Request, res: Respon
   }
 });
 
+// ----- User Search (for member management) -----
+app.get('/api/users/search', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { q = '', limit = 20 } = req.query as Record<string, string>;
+    const term = q.toString().trim();
+    if (!term) return res.json({ users: [] });
+
+    const users = await prisma.users.findMany({
+      where: {
+        OR: [
+          { email: { contains: term, mode: 'insensitive' } },
+          { name: { contains: term, mode: 'insensitive' } },
+        ],
+      },
+      select: { id: true, name: true, email: true },
+      take: Number(limit) || 20,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const mapped = users.map(u => ({ id: u.id, label: u.name || u.email || u.id }));
+    return res.json({ users: mapped });
+  } catch (error) {
+    console.error('[UserSearch] error', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Connect domain routes
 app.use('/api/domains', domainRoutes);
 

@@ -508,4 +508,79 @@ async function simulateCustomDomainVerification(customDomain: string): Promise<b
   return isValidDomain;
 }
 
+// ----- Domain Member Management (User Scope) -----
+ 
+// GET /api/domains/:id/members - list members (domain admin only)
+router.get('/:id/members', authMiddlewareCompat, requireDomainAdminCompat, async (req: Request, res: Response) => {
+  try {
+    const permissions = await prisma.domainPermission.findMany({
+      where: { domainId: req.params.id },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    });
+
+    const members = permissions.map((p) => ({
+      userId: p.userId,
+      name: p.user?.name || p.user?.email || p.userId,
+      role: p.role,
+      permissions: p.permissions,
+      expiresAt: p.expiresAt,
+    }));
+
+    return res.json({ members });
+  } catch (error) {
+    console.error('[DomainRoutes] list members error', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+ 
+// POST /api/domains/:id/members - grant permission (domain admin only)
+router.post('/:id/members', authMiddlewareCompat, requireDomainAdminCompat, async (req: Request, res: Response) => {
+  try {
+    const { userId, role, permissions, expiresAt } = req.body;
+    if (!userId || !role) return res.status(400).json({ error: 'userId and role required' });
+
+    const permission = await permissionService.grantPermission({
+      domainId: req.params.id,
+      userId,
+      role,
+      permissions,
+      expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+      grantedBy: (req as any).user.id,
+    });
+
+    return res.status(201).json({ permission });
+  } catch (error: any) {
+    console.error('[DomainRoutes] add member error', error);
+    return res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+ 
+// PATCH /api/domains/:id/members/:userId - update role/permissions/expiry
+router.patch('/:id/members/:userId', authMiddlewareCompat, requireDomainAdminCompat, async (req: Request, res: Response) => {
+  try {
+    const { role, permissions, expiresAt } = req.body;
+    const permission = await permissionService.updatePermission(req.params.id, req.params.userId, {
+      role,
+      permissions,
+      expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+      updatedBy: (req as any).user.id,
+    });
+    return res.json({ permission });
+  } catch (error: any) {
+    console.error('[DomainRoutes] update member error', error);
+    return res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+ 
+// DELETE /api/domains/:id/members/:userId - revoke
+router.delete('/:id/members/:userId', authMiddlewareCompat, requireDomainAdminCompat, async (req: Request, res: Response) => {
+  try {
+    await permissionService.revokePermission(req.params.id, req.params.userId, (req as any).user.id);
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('[DomainRoutes] revoke member error', error);
+    return res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
 export default router; 

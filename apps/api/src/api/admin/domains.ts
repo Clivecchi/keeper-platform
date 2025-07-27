@@ -207,4 +207,24 @@ router.delete('/:id/members/:userId', authMiddlewareCompat, requireSuperAdmin, a
     console.error('[AdminDomains] revoke member error', error);
     return res.status(500).json({ error: error.message || 'Internal server error' });
   }
+});
+
+/**
+ * PATCH /api/admin/domains/:id/members/:userId
+ * Update member role or permissions
+ */
+router.patch('/:id/members/:userId', authMiddlewareCompat, requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { role, permissions, expiresAt } = req.body;
+    const permission = await permissionService.updatePermission(req.params.id, req.params.userId, {
+      role,
+      permissions,
+      expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+      updatedBy: (req as any).user.id,
+    });
+    return res.json({ permission });
+  } catch (error: any) {
+    console.error('[AdminDomains] update member error', error);
+    return res.status(500).json({ error: error.message || 'Internal server error' });
+  }
 }); 

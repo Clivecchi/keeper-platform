@@ -216,6 +216,59 @@ export class DomainPermissionService {
   }
 
   /**
+   * Update an existing permission (role, permissions, expiry)
+   */
+  async updatePermission(
+    domainId: string,
+    userId: string,
+    params: {
+      role?: DomainRole;
+      permissions?: DomainPermissionType[];
+      expiresAt?: Date | null;
+      updatedBy: string;
+    }
+  ): Promise<DomainPermission> {
+    if (!this.featureFlags.isEnabled('DOMAIN_PERMISSIONS_ENABLED')) {
+      throw new Error('Domain permissions are currently disabled');
+    }
+
+    // Only admins can update
+    const updaterPerm = await this.checkPermission({
+      userId: params.updatedBy,
+      domainId,
+      permission: 'admin',
+    });
+    if (!updaterPerm.hasPermission) {
+      throw new Error('Insufficient permissions to update member');
+    }
+
+    const existing = await this.prisma.domainPermission.findUnique({
+      where: { domainId_userId: { domainId, userId } },
+    });
+    if (!existing) throw new Error('Permission not found');
+
+    const newRole = params.role ?? existing.role;
+    const newPerms = params.permissions ?? existing.permissions;
+
+    if (!this.validatePermissionsForRole(newRole as DomainRole, newPerms as DomainPermissionType[])) {
+      throw new Error(`Invalid permissions for role: ${newRole}`);
+    }
+
+    const updated = await this.prisma.domainPermission.update({
+      where: { domainId_userId: { domainId, userId } },
+      data: {
+        role: newRole,
+        permissions: newPerms,
+        expiresAt: params.expiresAt ?? existing.expiresAt,
+        grantedBy: params.updatedBy,
+      },
+    });
+
+    await this.cacheService.invalidateUserPermission(userId, domainId);
+    return updated;
+  }
+
+  /**
    * Get all permissions for a user across all domains
    */
   async getUserPermissions(userId: string): Promise<UserPermissionSummary[]> {

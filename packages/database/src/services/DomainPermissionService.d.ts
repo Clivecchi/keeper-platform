@@ -49,6 +49,15 @@ export declare class DomainPermissionService {
      */
     updatePermissionExpiration(domainId: string, userId: string, expiresAt: Date | null, updatedBy: string): Promise<void>;
     /**
+     * Update an existing permission (role, permissions, expiry)
+     */
+    updatePermission(domainId: string, userId: string, params: {
+        role?: DomainRole;
+        permissions?: DomainPermissionType[];
+        expiresAt?: Date | null;
+        updatedBy: string;
+    }): Promise<DomainPermission>;
+    /**
      * Private helper methods
      */
     private evaluatePermission;
