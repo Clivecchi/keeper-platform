@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// Node 18+ provides global fetch; no external dependency required
 
 interface DNSRecord {
   type: string;
