@@ -26,8 +26,6 @@ packages/database/prisma/migrations/
 
 # Documentation and tooling
 docs/
-tools/
-!tools/tsconfig/
 README.md
 *.md
 .eslintrc*
