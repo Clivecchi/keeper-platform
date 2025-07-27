@@ -220,7 +220,7 @@ const DomainManager: React.FC<DomainManagerProps> = ({
       )}
 
       {/* Domain List - Full Width */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1">
         {loading ? (
           <div className="p-8 text-center text-muted-foreground">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
@@ -242,7 +242,7 @@ const DomainManager: React.FC<DomainManagerProps> = ({
             </p>
           </div>
         ) : (
-          <div className="overflow-y-auto h-full">
+          <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
             <div className="grid gap-4 p-6">
               {filteredDomains.map((domain) => (
                 <motion.div
@@ -342,13 +342,13 @@ const DomainManager: React.FC<DomainManagerProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-background border rounded-lg shadow-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden"
+              className="bg-background border rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden"
             >
               <DomainDetailForm
                 domain={selectedDomain}
@@ -372,13 +372,13 @@ const DomainManager: React.FC<DomainManagerProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-background border rounded-lg shadow-lg max-w-2xl w-full mx-4"
+              className="bg-background border rounded-lg shadow-xl max-w-2xl w-full mx-4"
             >
               <div className="p-6">
                 <h3 className="text-lg font-semibold mb-4">Create New Domain</h3>
