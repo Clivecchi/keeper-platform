@@ -7,7 +7,8 @@ import {
   CogIcon,
   KeyIcon,
   CheckCircleIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 
 interface TabProps {
@@ -52,6 +53,16 @@ const RootDashboardPage: React.FC = () => {
     description: '',
     customDomain: ''
   });
+  // List of all domains for this user
+  const [domains, setDomains] = useState<any[]>([]);
+  // Add-domain form helpers
+  const [showAddDomainForm, setShowAddDomainForm] = useState(false);
+  const [newDomainForm, setNewDomainForm] = useState({
+    name: '',
+    slug: '',
+    description: ''
+  });
+  const [addingDomain, setAddingDomain] = useState(false);
   const [domainSaving, setDomainSaving] = useState(false);
   const [domainError, setDomainError] = useState<string | null>(null);
   const [domainSuccess, setDomainSuccess] = useState<string | null>(null);
@@ -72,6 +83,9 @@ const RootDashboardPage: React.FC = () => {
     try {
       // Load user's domains
       const response = await apiFetch('/api/domains/my');
+      if (Array.isArray(response)) {
+        setDomains(response);
+      }
       if (Array.isArray(response) && response.length > 0) {
         // Prefer the API-provided isPrimary flag, then fallback to ownership
         const primaryDomain = response.find((d: any) => d.isPrimary) ||
@@ -153,6 +167,7 @@ const RootDashboardPage: React.FC = () => {
       if (response.domain) {
         setDomainSuccess('Domain configuration saved successfully!');
         setCurrentDomain(response.domain);
+        setDomains(prev => prev.map(d => d.id === response.domain.id ? response.domain : d));
         
         // Clear success message after 3 seconds
         setTimeout(() => setDomainSuccess(null), 3000);
@@ -230,6 +245,46 @@ const RootDashboardPage: React.FC = () => {
     }
   };
 
+  // Create a brand-new domain
+  const handleAddDomain = async () => {
+    if (!user?.id) return;
+    if (!newDomainForm.name.trim()) return;
+    setAddingDomain(true);
+    setDomainError(null);
+
+    try {
+      const resp = await apiFetch('/api/domains', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: newDomainForm.name,
+          slug: newDomainForm.slug || undefined,
+          description: newDomainForm.description || undefined,
+        }),
+      });
+
+      if (resp.domain) {
+        setDomains(prev => [...prev, resp.domain]);
+        setCurrentDomain(resp.domain);
+        setDomainForm({
+          name: resp.domain.name || '',
+          slug: resp.domain.slug || '',
+          description: resp.domain.description || '',
+          customDomain: resp.domain.customDomain || '',
+        });
+        setNewDomainForm({ name: '', slug: '', description: '' });
+        setShowAddDomainForm(false);
+        setDomainSuccess('New domain created!');
+      } else {
+        setDomainError(resp.error || 'Failed to create domain');
+      }
+    } catch (e) {
+      console.error('Add domain error:', e);
+      setDomainError('Failed to create domain. Please try again.');
+    } finally {
+      setAddingDomain(false);
+    }
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'profile':
@@ -298,6 +353,94 @@ const RootDashboardPage: React.FC = () => {
           <div className="space-y-6">
             <div className="bg-card border border-border rounded-lg p-6">
               <h3 className="text-lg font-medium text-card-foreground mb-4">Domain Configuration</h3>
+
+              {/* Domain selector & add button */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm text-foreground">Select Domain:</label>
+                  <select
+                    value={currentDomain?.id || ''}
+                    onChange={(e) => {
+                      const selected = domains.find((d) => d.id === e.target.value);
+                      if (selected) {
+                        setCurrentDomain(selected);
+                        setDomainForm({
+                          name: selected.name || '',
+                          slug: selected.slug || '',
+                          description: selected.description || '',
+                          customDomain: selected.customDomain || '',
+                        });
+                      }
+                    }}
+                    className="px-2 py-1 border border-input rounded-md bg-background text-foreground"
+                  >
+                    {domains.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={() => setShowAddDomainForm((prev) => !prev)}
+                  className="flex items-center px-3 py-1 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                >
+                  <PlusIcon className="w-4 h-4 mr-1" /> Add Domain
+                </button>
+              </div>
+
+              {showAddDomainForm && (
+                <div className="mb-6 border border-border p-4 rounded-md bg-muted/20 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Name</label>
+                    <input
+                      type="text"
+                      value={newDomainForm.name}
+                      onChange={(e) => setNewDomainForm((prev) => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-3 py-2 border border-input rounded-md bg-background"
+                      placeholder="My New Domain"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Slug (optional)</label>
+                    <input
+                      type="text"
+                      value={newDomainForm.slug}
+                      onChange={(e) => setNewDomainForm((prev) => ({ ...prev, slug: e.target.value }))}
+                      className="w-full px-3 py-2 border border-input rounded-md bg-background"
+                      placeholder="my-new-domain"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Description (optional)</label>
+                    <textarea
+                      rows={2}
+                      value={newDomainForm.description}
+                      onChange={(e) => setNewDomainForm((prev) => ({ ...prev, description: e.target.value }))}
+                      className="w-full px-3 py-2 border border-input rounded-md bg-background"
+                      placeholder="Brief description"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleAddDomain}
+                      disabled={addingDomain || !newDomainForm.name.trim()}
+                      className="px-3 py-1 bg-primary text-primary-foreground rounded-md disabled:opacity-50"
+                    >
+                      {addingDomain ? 'Creating...' : 'Create Domain'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAddDomainForm(false);
+                        setNewDomainForm({ name: '', slug: '', description: '' });
+                      }}
+                      className="px-3 py-1 bg-muted text-foreground rounded-md"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
               
               {domainLoading ? (
                 <div className="flex items-center justify-center py-8">

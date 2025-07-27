@@ -17,6 +17,8 @@ interface Domain {
   isPrimary?: boolean;
   status: string;
   createdAt: string;
+  customDomain?: string | null;
+  customDomainVerified?: boolean;
 }
 
 const DomainsPage: React.FC = () => {
@@ -136,6 +138,11 @@ const DomainsPage: React.FC = () => {
           onClose={() => setSelected(null)}
           onSuspend={suspendToggle}
           onDelete={deleteDomain}
+          onUpdated={(updated) => {
+            // Update table list and current selection
+            setDomains((prev) => prev.map((d) => (d.id === updated.id ? { ...d, ...updated } : d)));
+            setSelected(updated);
+          }}
         />
       )}
     </div>
@@ -231,9 +238,82 @@ interface DetailModalProps {
   onClose: () => void;
   onSuspend: () => void;
   onDelete: () => void;
+  onUpdated: (d: Domain) => void;
 }
 
-const DomainDetailModal: React.FC<DetailModalProps> = ({ domain, members, loadingMembers, onClose, onSuspend, onDelete }) => {
+const DomainDetailModal: React.FC<DetailModalProps> = ({ domain, members, loadingMembers, onClose, onSuspend, onDelete, onUpdated }) => {
+  const [customDomain, setCustomDomain] = React.useState(domain.customDomain || '');
+  const [processing, setProcessing] = React.useState(false);
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = React.useState<string | null>(null);
+  const [dnsRecords, setDnsRecords] = React.useState<any[] | null>(null);
+
+  const saveCustom = async () => {
+    if (!customDomain.trim()) return;
+    setProcessing(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      const resp = await apiFetch(`/api/domains/${domain.id}/custom-domain`, {
+        method: 'POST',
+        body: JSON.stringify({ customDomain }),
+      });
+      if (resp.success) {
+        setSuccessMsg('Custom domain saved. Configure DNS then verify.');
+        setDnsRecords(resp.dnsRecords || null);
+        onUpdated(resp.domain);
+      } else {
+        setErrorMsg(resp.error || 'Failed');
+      }
+    } catch (e: any) {
+      setErrorMsg(e?.message || 'Failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const verifyCustom = async () => {
+    setProcessing(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setDnsRecords(null);
+    try {
+      const resp = await apiFetch(`/api/domains/${domain.id}/custom-domain/verify`, { method: 'POST' });
+      if (resp.success) {
+        setSuccessMsg('Domain verified and SSL issued!');
+        onUpdated(resp.domain);
+      } else {
+        setErrorMsg(resp.error || 'Verification failed');
+        if (resp.records) setDnsRecords(resp.records);
+      }
+    } catch (e: any) {
+      setErrorMsg(e?.message || 'Verification failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const removeCustom = async () => {
+    if (!confirm('Remove custom domain?')) return;
+    setProcessing(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      const resp = await apiFetch(`/api/domains/${domain.id}/custom-domain`, { method: 'DELETE' });
+      if (resp.success) {
+        setSuccessMsg('Custom domain removed');
+        setCustomDomain('');
+        onUpdated(resp.domain);
+      } else {
+        setErrorMsg(resp.error || 'Failed');
+      }
+    } catch (e: any) {
+      setErrorMsg(e?.message || 'Failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white dark:bg-neutral-900 border border-border rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
@@ -260,6 +340,49 @@ const DomainDetailModal: React.FC<DetailModalProps> = ({ domain, members, loadin
             <div>{domain.isPrimary ? `Yes - ${domain.ownerName || ''}` : 'No'}</div>
           </div>
         </div>
+
+        {/* Custom Domain Management */}
+        <h3 className="mt-6 font-medium">Custom Domain</h3>
+        <div className="space-y-2 mt-2">
+          <input
+            type="text"
+            className="w-full border p-2 text-sm"
+            placeholder="myapp.example.com"
+            value={customDomain}
+            onChange={(e) => setCustomDomain(e.target.value)}
+          />
+          <div className="flex gap-2">
+            <button onClick={saveCustom} disabled={processing || !customDomain.trim()} className="px-3 py-1 bg-primary text-primary-foreground rounded text-xs disabled:opacity-50">
+              Save
+            </button>
+            <button onClick={verifyCustom} disabled={processing || !domain.customDomain} className="px-3 py-1 bg-green-600 text-white rounded text-xs disabled:opacity-50">
+              Verify
+            </button>
+            <button onClick={removeCustom} disabled={processing || !domain.customDomain} className="px-3 py-1 bg-destructive text-white rounded text-xs disabled:opacity-50">
+              Delete
+            </button>
+          </div>
+          {domain.customDomainVerified ? (
+            <p className="text-xs text-green-700">Verified ✓</p>
+          ) : (
+            domain.customDomain ? <p className="text-xs text-yellow-700">Not verified</p> : null
+          )}
+        </div>
+
+        {errorMsg && (
+          <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-800 whitespace-pre-wrap">
+            {errorMsg}
+            {dnsRecords && (
+              <pre className="mt-1 bg-white dark:bg-neutral-800 p-1 rounded text-[10px] max-h-40 overflow-y-auto">{JSON.stringify(dnsRecords, null, 2)}</pre>
+            )}
+          </div>
+        )}
+
+        {successMsg && (
+          <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-800">
+            {successMsg}
+          </div>
+        )}
 
         <h3 className="mt-6 font-medium">Members</h3>
         {loadingMembers ? (
