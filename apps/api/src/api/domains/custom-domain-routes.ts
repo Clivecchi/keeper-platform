@@ -24,6 +24,15 @@ import { rateLimit } from 'express-rate-limit';
 import Redis from 'ioredis';
 import { VercelDomainManagerService } from '../../services/VercelDomainManagerService.js';
 
+function getVercelService(): VercelDomainManagerService {
+  const token = process.env.VERCEL_TOKEN;
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  if (!token || !projectId) {
+    throw new Error('Vercel integration not configured');
+  }
+  return new VercelDomainManagerService(token, projectId);
+}
+
 const router: Router = Router();
 const prisma = new PrismaClient();
 let redis: Redis | null = null;
@@ -43,7 +52,6 @@ const healthService = new DomainHealthMonitoringService(
   sslService,
   cacheService
 );
-const vercelSvc = new VercelDomainManagerService(process.env.VERCEL_TOKEN || '', process.env.VERCEL_PROJECT_ID || '');
 
 // Create a mock CORS manager for now
 const corsManager = {
@@ -457,8 +465,7 @@ router.post('/:domainId/custom-domain', requireDomainAdminCompat, async (req: Re
     const { customDomain } = req.body;
     if (!customDomain) return res.status(400).json({ error: 'customDomain required' });
 
-    // Add domain in Vercel
-    const { dnsRecords } = await vercelSvc.addDomain(customDomain);
+    const { dnsRecords } = await getVercelService().addDomain(customDomain);
 
     // Update DB record
     const updated = await domainService.updateDomain(domainId, { customDomain, customDomainVerified: false });
@@ -477,12 +484,12 @@ router.post('/:domainId/custom-domain/verify', requireDomainAdminCompat, async (
     const domain = await domainService.getDomainById(domainId);
     if (!domain?.customDomain) return res.status(400).json({ error: 'No custom domain configured' });
 
-    const cfg = await vercelSvc.getDomainConfig(domain.customDomain);
+    const cfg = await getVercelService().getDomainConfig(domain.customDomain);
     if (!cfg.configured) {
       return res.status(400).json({ error: 'DNS_NOT_CONFIGURED', records: cfg.records });
     }
 
-    await vercelSvc.verifyDomain(domain.customDomain);
+    await getVercelService().verifyDomain(domain.customDomain);
     const updated = await domainService.updateDomain(domainId, { customDomainVerified: true });
     return res.json({ success: true, domain: updated });
   } catch (err) {
@@ -497,7 +504,7 @@ router.delete('/:domainId/custom-domain', requireDomainAdminCompat, async (req: 
     const { domainId } = req.params;
     const domain = await domainService.getDomainById(domainId);
     if (domain?.customDomain) {
-      await vercelSvc.removeDomain(domain.customDomain);
+      await getVercelService().removeDomain(domain.customDomain);
     }
     const updated = await domainService.updateDomain(domainId, { customDomain: null as any, customDomainVerified: false });
     return res.json({ success: true, domain: updated });
