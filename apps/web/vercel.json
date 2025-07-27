@@ -1,8 +1,8 @@
 {
   "routes": [
     {
+      "handle": "proxy",
       "src": "/api/(.*)",
-      "methods": ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       "dest": "https://keeper-platform-production.up.railway.app/api/$1"
     }
   ]
