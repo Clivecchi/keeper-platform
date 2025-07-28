@@ -342,10 +342,7 @@ const DomainManager: React.FC<DomainManagerProps> = ({
               className="bg-white border rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden"
             >
               <DomainDetailForm
-                domain={selectedDomain}
-                scope={scope}
                 onSave={(formData) => handleUpdateDomain(selectedDomain.id, formData)}
-                onDelete={() => handleDeleteDomain(selectedDomain.id)}
                 onClose={() => {
                   setShowDetail(false);
                   setSelectedDomain(null);
@@ -370,16 +367,10 @@ const DomainManager: React.FC<DomainManagerProps> = ({
               exit={{ scale: 0.95, opacity: 0 }}
               className="bg-white border rounded-lg shadow-xl max-w-2xl w-full mx-4"
             >
-              <div className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Create New Domain</h3>
-                <DomainDetailForm
-                  domain={null}
-                  scope={scope}
-                  onSave={handleCreateDomain}
-                  onClose={() => setShowCreate(false)}
-                  isCreate={true}
-                />
-              </div>
+              <DomainDetailForm
+                onSave={handleCreateDomain}
+                onClose={() => setShowCreate(false)}
+              />
             </motion.div>
           </motion.div>
         )}
