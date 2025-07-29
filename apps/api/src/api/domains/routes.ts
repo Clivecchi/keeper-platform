@@ -34,11 +34,59 @@ const featureFlags = getFeatureFlagService();
 // Apply domain resolution middleware
 router.use(createDomainResolutionMiddleware());
 
-// Apply dynamic CORS middleware (must run after domain is resolved)
-router.use(createDynamicCorsMiddleware());
+// Mount routes first
+router.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
-// Mount custom domain routes
-router.use('/domains', customDomainRoutes);
+    // Pass user context to feature flag check
+    if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED', { 
+      userId: req.user.id,
+      userRole: req.user.role || 'user'
+    })) {
+      return res.status(404).json({ error: 'Feature not enabled' });
+    }
+
+    const userId = req.user.id;
+
+    // First, attempt standard lookup (active domains + permissions logic)
+    let domains = await domainService.getUserDomains(userId);
+
+    // Fallback: if nothing found, broaden the query to include inactive domains the user owns
+    if (domains.length === 0) {
+      domains = await prisma.domain.findMany({
+        where: {
+          ownerId: userId,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    // Determine primary domain based on business logic
+    // Primary domain is the first domain owned by the user that matches their name
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+      select: { name: true }
+    });
+
+    const domainsWithPrimary = domains.map((domain: any) => {
+      const isPrimary = domain.ownerId === userId && 
+                       user?.name && 
+                       domain.name.toLowerCase().includes(user.name.toLowerCase());
+      return {
+        ...domain,
+        isPrimary
+      };
+    });
+
+    return res.json(domainsWithPrimary);
+  } catch (error) {
+    console.error('Error fetching user domains:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Validation schemas
 const createDomainSchema = z.object({
@@ -113,60 +161,6 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error searching domains:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// GET /api/domains/my - Get user's domains
-router.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    // Pass user context to feature flag check
-    if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED', { 
-      userId: req.user.id,
-      userRole: req.user.role || 'user'
-    })) {
-      return res.status(404).json({ error: 'Feature not enabled' });
-    }
-
-    const userId = req.user.id;
-
-    // First, attempt standard lookup (active domains + permissions logic)
-    let domains = await domainService.getUserDomains(userId);
-
-    // Fallback: if nothing found, broaden the query to include inactive domains the user owns
-    if (domains.length === 0) {
-      domains = await prisma.domain.findMany({
-        where: {
-          ownerId: userId,
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-    }
-
-    // Determine primary domain based on business logic
-    // Primary domain is the first domain owned by the user that matches their name
-    const user = await prisma.users.findUnique({
-      where: { id: userId },
-      select: { name: true }
-    });
-
-    const domainsWithPrimary = domains.map((domain: any) => {
-      const isPrimary = domain.ownerId === userId && 
-                       user?.name && 
-                       domain.name.toLowerCase().includes(user.name.toLowerCase());
-      return {
-        ...domain,
-        isPrimary
-      };
-    });
-
-    return res.json(domainsWithPrimary);
-  } catch (error) {
-    console.error('Error fetching user domains:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -590,5 +584,11 @@ router.delete('/:id/members/:userId', authMiddlewareCompat, requireDomainAdminCo
     return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
+
+// Mount custom domain routes last
+router.use('/', customDomainRoutes);
+
+// Apply dynamic CORS middleware after routes are mounted
+router.use(createDynamicCorsMiddleware());
 
 export default router; 
