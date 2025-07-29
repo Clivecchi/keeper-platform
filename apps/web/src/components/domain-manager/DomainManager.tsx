@@ -100,12 +100,14 @@ const DomainManager: React.FC<DomainManagerProps> = ({
       });
       
       if (response.domain) {
+        // Add the new domain to the list and select it
         setDomains(prev => [response.domain, ...prev]);
+        setSelectedDomain(response.domain);
         setShowCreate(false);
         setError(null);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to create domain');
+      throw new Error(err.message || 'Failed to create domain');
     }
   };
 

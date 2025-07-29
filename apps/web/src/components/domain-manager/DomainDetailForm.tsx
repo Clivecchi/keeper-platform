@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 interface Props {
   onClose?: () => void;
-  onSave: (formData: { name: string; slug: string; description: string }) => void;
+  onSave: (formData: { name: string; slug: string; description: string }) => Promise<void>;
 }
 
 const DomainDetailForm: React.FC<Props> = ({ onClose, onSave }) => {
@@ -12,10 +12,21 @@ const DomainDetailForm: React.FC<Props> = ({ onClose, onSave }) => {
     slug: '',
     description: ''
   });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
+    setError(null);
+    setSaving(true);
+
+    try {
+      await onSave(form);
+      // Success - form will be closed by parent
+    } catch (err: any) {
+      setError(err.message || 'Failed to create domain');
+      setSaving(false);
+    }
   };
 
   return (
@@ -33,6 +44,13 @@ const DomainDetailForm: React.FC<Props> = ({ onClose, onSave }) => {
         )}
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-center gap-2 text-red-700">
+          <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0" />
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
+
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Domain Name *</label>
@@ -43,6 +61,7 @@ const DomainDetailForm: React.FC<Props> = ({ onClose, onSave }) => {
             className="w-full px-3 py-2 border rounded-md"
             placeholder="Enter domain name"
             required
+            disabled={saving}
           />
         </div>
 
@@ -54,6 +73,7 @@ const DomainDetailForm: React.FC<Props> = ({ onClose, onSave }) => {
             onChange={(e) => setForm({ ...form, slug: e.target.value })}
             className="w-full px-3 py-2 border rounded-md"
             placeholder="domain-slug"
+            disabled={saving}
           />
         </div>
 
@@ -65,6 +85,7 @@ const DomainDetailForm: React.FC<Props> = ({ onClose, onSave }) => {
             className="w-full px-3 py-2 border rounded-md"
             rows={3}
             placeholder="Describe your domain..."
+            disabled={saving}
           />
         </div>
       </div>
@@ -75,15 +96,17 @@ const DomainDetailForm: React.FC<Props> = ({ onClose, onSave }) => {
             type="button"
             onClick={onClose}
             className="px-4 py-2 border rounded-md hover:bg-gray-50"
+            disabled={saving}
           >
             Cancel
           </button>
         )}
         <button
           type="submit"
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          disabled={saving || !form.name.trim()}
         >
-          Create Domain
+          {saving ? 'Creating...' : 'Create Domain'}
         </button>
       </div>
     </form>
