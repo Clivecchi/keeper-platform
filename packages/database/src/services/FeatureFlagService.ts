@@ -238,6 +238,11 @@ export class FeatureFlagService {
 
     // Load flags into the map
     defaultFlags.forEach(flag => {
+      // In production, force enable core features
+      if (this.environment === 'production' && flag.metadata?.category === 'core') {
+        flag.enabled = true;
+        flag.rolloutPercentage = 100;
+      }
       this.flags.set(flag.key, flag);
     });
   }
@@ -246,12 +251,17 @@ export class FeatureFlagService {
    * Check if a feature flag is enabled for the given context
    */
   isEnabled(flagKey: string, context: FeatureFlagContext = {}): boolean {
+    // In production, always enable core features
+    const flag = this.flags.get(flagKey);
+    if (this.environment === 'production' && flag?.metadata?.category === 'core') {
+      return true;
+    }
+
     // Check for override first
     if (this.overrides.has(flagKey)) {
       return this.overrides.get(flagKey)!;
     }
 
-    const flag = this.flags.get(flagKey);
     if (!flag) {
       console.warn(`Feature flag '${flagKey}' not found, defaulting to false`);
       return false;

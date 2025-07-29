@@ -120,12 +120,16 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
 // GET /api/domains/my - Get user's domains
 router.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
-    if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED')) {
-      return res.status(404).json({ error: 'Feature not enabled' });
-    }
-
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Pass user context to feature flag check
+    if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED', { 
+      userId: req.user.id,
+      userRole: req.user.role || 'user'
+    })) {
+      return res.status(404).json({ error: 'Feature not enabled' });
     }
 
     const userId = req.user.id;
@@ -170,12 +174,16 @@ router.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {
 // POST /api/domains - Create a new domain
 router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
-    if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED')) {
-      return res.status(404).json({ error: 'Feature not enabled' });
-    }
-
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Pass user context to feature flag check
+    if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED', { 
+      userId: req.user.id,
+      userRole: req.user.role || 'user'
+    })) {
+      return res.status(404).json({ error: 'Feature not enabled' });
     }
 
     const domain = await domainService.createDomain({
