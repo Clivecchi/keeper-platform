@@ -102,7 +102,8 @@ app.use(cors({
       'http://localhost:5173', 
       'https://keeper-platform-hm1kukq25-clivecchis-projects.vercel.app',
       'https://v0-keeper.vercel.app',
-      'https://keeper-platform.vercel.app'
+      'https://keeper-platform.vercel.app',
+      'https://keeper-platform-7iglsskfh-clivecchis-projects.vercel.app'  // Add Vercel preview URL
     ];
     
     // Allow requests with no origin (e.g., mobile apps, Postman)
@@ -186,10 +187,11 @@ app.get('/debug', (req, res) => {
   }, {} as Record<string, string | undefined>);
 
   // Check for domain-related issues
-  const domainIssues = [];
-  if (req.headers.host !== 'keeper-platform-production.up.railway.app') {
-    domainIssues.push(`Unexpected host: ${req.headers.host}`);
-  }
+  const domainIssues: string[] = [];
+  // Remove strict host check - allow any host in production
+  // if (req.headers.host !== 'keeper-platform-production.up.railway.app') {
+  //   domainIssues.push(`Unexpected host: ${req.headers.host}`);
+  // }
   
   // Check for middleware issues
   const middlewareStatus = {
