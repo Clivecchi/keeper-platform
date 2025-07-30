@@ -29,9 +29,10 @@ const DomainManager: React.FC<Props> = ({ scope, allowCreate = true }) => {
     try {
       const baseUrl = scope === 'user' ? '/api/domains' : '/api/admin/domains';
       const response = await apiFetch(`${baseUrl}/my`);
-      setDomains(response.domains);
+      setDomains(Array.isArray(response) ? response : []);
     } catch (err: any) {
       setError(err.message || 'Failed to load domains');
+      console.error('Error loading domains:', err);
     } finally {
       setLoading(false);
     }
