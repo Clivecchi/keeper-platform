@@ -38,6 +38,8 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
   const [customDomain, setCustomDomain] = useState('');
   const [dnsRecords, setDnsRecords] = useState<any[]>([]);
   const [verifying, setVerifying] = useState(false);
+  const [addingToVercel, setAddingToVercel] = useState(false);
+  const [vercelConfigured, setVercelConfigured] = useState(false);
 
   // Members state
   const [members, setMembers] = useState<Member[]>([]);
@@ -111,12 +113,15 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
     setSaving(true);
 
     try {
-      const response = await apiFetch(`/api/domains/${domain.id}/custom-domain`, {
-        method: 'POST',
+      // Just update the domain in the database
+      const response = await apiFetch(`/api/domains/${domain.id}`, {
+        method: 'PUT',
         body: JSON.stringify({ customDomain })
       });
-      setDnsRecords(response.dnsRecords);
-      setSuccess('Custom domain added. Please configure DNS records.');
+      setSuccess('Custom domain added. Click "Add to Vercel" to configure DNS.');
+      // Reset DNS records since we haven't added to Vercel yet
+      setDnsRecords([]);
+      setVercelConfigured(false);
     } catch (err: any) {
       setError(err.message || 'Failed to add custom domain');
     } finally {
@@ -140,6 +145,27 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
       setError(err.message || 'Failed to verify domain');
     } finally {
       setVerifying(false);
+    }
+  };
+
+  // Handle adding domain to Vercel
+  const handleAddToVercel = async () => {
+    if (!domain || !domain.customDomain) return;
+    setAddingToVercel(true);
+    setError(null);
+
+    try {
+      const response = await apiFetch(`/api/domains/${domain.id}/custom-domain`, {
+        method: 'POST',
+        body: JSON.stringify({ customDomain: domain.customDomain })
+      });
+      setDnsRecords(response.dnsRecords);
+      setVercelConfigured(true);
+      setSuccess('Domain added to Vercel. Please configure DNS records.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to add domain to Vercel');
+    } finally {
+      setAddingToVercel(false);
     }
   };
 
@@ -364,24 +390,35 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
               </div>
             </div>
 
-            {dnsRecords.length > 0 && (
-              <div>
-                <h4 className="font-medium mb-2">DNS Configuration</h4>
-                <div className="bg-gray-50 p-4 rounded-md">
-                  <p className="text-sm mb-2">Configure these DNS records:</p>
-                  {dnsRecords.map((record, i) => (
-                    <div key={i} className="text-sm font-mono mb-1">
-                      {record.type} {record.domain} → {record.value}
-                    </div>
-                  ))}
+            {domain.customDomain && !domain.customDomainVerified && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleAddToVercel}
+                    className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 disabled:opacity-50 flex items-center gap-2"
+                    disabled={addingToVercel || !domain.customDomain || vercelConfigured}
+                  >
+                    {addingToVercel ? 'Adding to Vercel...' : 'Add to Vercel'}
+                  </button>
                   <button
                     onClick={handleVerifyCustomDomain}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                    disabled={verifying}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    disabled={verifying || !vercelConfigured}
                   >
                     {verifying ? 'Verifying...' : 'Verify Domain'}
                   </button>
                 </div>
+
+                {dnsRecords.length > 0 && (
+                  <div className="bg-gray-50 p-4 rounded-md">
+                    <p className="text-sm mb-2">Configure these DNS records at your domain registrar:</p>
+                    {dnsRecords.map((record, i) => (
+                      <div key={i} className="text-sm font-mono mb-1">
+                        {record.type} {record.domain} → {record.value}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

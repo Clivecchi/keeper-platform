@@ -465,12 +465,11 @@ router.post('/:domainId/custom-domain', requireDomainAdminCompat, async (req: Re
     const { customDomain } = req.body;
     if (!customDomain) return res.status(400).json({ error: 'customDomain required' });
 
+    // Add domain to Vercel and get DNS records
     const { dnsRecords } = await getVercelService().addDomain(customDomain);
 
-    // Update DB record
-    const updated = await domainService.updateDomain(domainId, { customDomain, customDomainVerified: false });
-
-    return res.json({ success: true, domain: updated, dnsRecords });
+    // Don't update the verified status yet - that happens in the verify step
+    return res.json({ success: true, dnsRecords });
   } catch (err) {
     console.error('Add custom domain error:', err);
     return res.status(500).json({ error: 'Failed to add custom domain' });
