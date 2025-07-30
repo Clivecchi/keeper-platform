@@ -41,10 +41,19 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
 
   // Members state
   const [members, setMembers] = useState<Member[]>([]);
-  const [newMember, setNewMember] = useState({
-    userId: '',
-    role: 'user'
-  });
+  const [userSearch, setUserSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{
+    id: string;
+    name: string;
+    email: string;
+    createdAt: string;
+  }>>([]);
+  const [selectedUser, setSelectedUser] = useState<{
+    id: string;
+    name: string;
+    email: string;
+  } | null>(null);
+  const [newMemberRole, setNewMemberRole] = useState('user');
 
   // UI state
   const [activeTab, setActiveTab] = useState('details');
@@ -134,17 +143,39 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
     }
   };
 
+  // Handle user search
+  const handleUserSearch = async (query: string) => {
+    setUserSearch(query);
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const response = await apiFetch(`/api/domains/users/search?query=${encodeURIComponent(query)}`);
+      setSearchResults(response);
+    } catch (err: any) {
+      console.error('Failed to search users:', err);
+    }
+  };
+
   // Handle member addition
   const handleAddMember = async () => {
-    if (!domain || !newMember.userId) return;
+    if (!domain || !selectedUser) return;
     setError(null);
 
     try {
       await apiFetch(`/api/domains/${domain.id}/members`, {
         method: 'POST',
-        body: JSON.stringify(newMember)
+        body: JSON.stringify({
+          userId: selectedUser.id,
+          role: newMemberRole
+        })
       });
-      setNewMember({ userId: '', role: 'user' });
+      setSelectedUser(null);
+      setUserSearch('');
+      setSearchResults([]);
+      setNewMemberRole('user');
       await loadMembers();
       setSuccess('Member added successfully');
     } catch (err: any) {
@@ -365,36 +396,69 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
 
         {activeTab === 'members' && domain && (
           <div className="space-y-6">
-            <div>
-              <h4 className="font-medium mb-2">Add Member</h4>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newMember.userId}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewMember({ ...newMember, userId: e.target.value })}
-                  className="flex-1 px-3 py-2 border rounded-md"
-                  placeholder="User ID"
-                />
-                <select
-                  value={newMember.role}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewMember({ ...newMember, role: e.target.value })}
-                  className="px-3 py-2 border rounded-md"
-                >
-                  {ROLES.map(role => (
-                    <option key={role.value} value={role.value}>
-                      {role.label}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleAddMember}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                  disabled={!newMember.userId}
-                >
-                  Add
-                </button>
+                          <div>
+                <h4 className="font-medium mb-2">Add Member</h4>
+                <div className="space-y-4">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={userSearch}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUserSearch(e.target.value)}
+                      placeholder="Search users by name or email"
+                      className="w-full px-3 py-2 border rounded-md"
+                    />
+                    {searchResults.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                        {searchResults.map(user => (
+                          <button
+                            key={user.id}
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setUserSearch('');
+                              setSearchResults([]);
+                            }}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
+                          >
+                            <div>
+                              <div className="font-medium">{user.name}</div>
+                              <div className="text-sm text-gray-500">{user.email}</div>
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              Joined {new Date(user.createdAt).toLocaleDateString()}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedUser && (
+                    <div className="flex gap-2 items-center p-2 bg-gray-50 rounded-md">
+                      <div className="flex-1">
+                        <div className="font-medium">{selectedUser.name}</div>
+                        <div className="text-sm text-gray-500">{selectedUser.email}</div>
+                      </div>
+                      <select
+                        value={newMemberRole}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewMemberRole(e.target.value)}
+                        className="px-3 py-2 border rounded-md"
+                      >
+                        {ROLES.map(role => (
+                          <option key={role.value} value={role.value}>
+                            {role.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={handleAddMember}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
             <div>
               <h4 className="font-medium mb-2">Members</h4>

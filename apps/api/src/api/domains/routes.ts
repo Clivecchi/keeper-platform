@@ -33,6 +33,41 @@ const featureFlags = getFeatureFlagService();
 // Apply domain resolution middleware
 router.use(createDomainResolutionMiddleware());
 
+// Mount custom domain routes
+router.use('/', customDomainRoutes);
+
+// User search for member management
+router.get('/users/search', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { query } = req.query;
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ error: 'Search query required' });
+    }
+
+    const users = await prisma.users.findMany({
+      where: {
+        OR: [
+          { name: { contains: query, mode: 'insensitive' } },
+          { email: { contains: query, mode: 'insensitive' } }
+        ]
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10
+    });
+
+    return res.json(users);
+  } catch (error) {
+    console.error('Error searching users:', error);
+    return res.status(500).json({ error: 'Failed to search users' });
+  }
+});
+
 // Mount routes first
 router.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
