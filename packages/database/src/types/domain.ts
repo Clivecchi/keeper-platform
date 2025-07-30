@@ -22,6 +22,13 @@ export interface AuthenticatedRequest extends Request {
 export type DomainRole = 'admin' | 'user' | 'friend' | 'connection';
 export type DomainPermissionType = 'read' | 'write' | 'share' | 'admin' | 'invite' | 'delete';
 
+export interface UpdatePermissionParams {
+  role?: DomainRole;
+  permissions?: DomainPermissionType[];
+  expiresAt?: Date | null;
+  updatedBy: string;
+}
+
 export interface DomainPermissionSummary {
   userId: string;
   role: DomainRole;

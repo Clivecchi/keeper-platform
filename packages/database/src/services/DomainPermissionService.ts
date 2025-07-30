@@ -14,7 +14,8 @@ import type {
   UserPermissionSummary,
   GrantPermissionRequest,
   PermissionCheck,
-  PermissionResult
+  PermissionResult,
+  UpdatePermissionParams
 } from '../types/domain';
 import { convertNullToUndefined } from '../types/domain';
 
@@ -221,12 +222,7 @@ export class DomainPermissionService {
   async updatePermission(
     domainId: string,
     userId: string,
-    params: {
-      role?: DomainRole;
-      permissions?: DomainPermissionType[];
-      expiresAt?: Date | null;
-      updatedBy: string;
-    }
+    params: UpdatePermissionParams
   ): Promise<DomainPermission> {
     if (!this.featureFlags.isEnabled('DOMAIN_PERMISSIONS_ENABLED')) {
       throw new Error('Domain permissions are currently disabled');

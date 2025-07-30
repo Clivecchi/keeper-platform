@@ -13,7 +13,6 @@ import { requireDomainAdminCompat, requireDomainReadCompat, requireDomainWriteCo
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { getFeatureFlagService } from '@keeper/database';
 import customDomainRoutes from './custom-domain-routes.js';
-import { createDynamicCorsMiddleware } from '../../middleware/dynamicCorsMiddleware.js';
 import { createDomainResolutionMiddleware } from '../../middleware/domainResolutionMiddleware.js';
 import { DomainService } from '@keeper/database';
 
@@ -585,10 +584,7 @@ router.delete('/:id/members/:userId', authMiddlewareCompat, requireDomainAdminCo
   }
 });
 
-// Mount custom domain routes last
-router.use('/', customDomainRoutes);
-
-// Apply dynamic CORS middleware after routes are mounted
-router.use(createDynamicCorsMiddleware());
+// Mount custom domain routes under /custom
+router.use('/custom', customDomainRoutes);
 
 export default router; 
