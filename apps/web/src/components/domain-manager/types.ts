@@ -17,15 +17,11 @@ export interface Domain {
 export interface DomainFormData {
   name: string;
   slug: string;
-  description?: string;
-  customDomain?: string;
+  description: string;
 }
 
 export interface DomainDetailFormProps {
-  domain: Domain | null;
-  scope: DomainScope;
-  onSave: (formData: DomainFormData) => Promise<void>;
-  onDelete?: () => Promise<void>;
+  domain?: Domain;
   onClose?: () => void;
-  isCreate?: boolean;
+  onSave: (formData: DomainFormData) => Promise<void>;
 } 

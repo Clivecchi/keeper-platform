@@ -1,20 +1,84 @@
-import React, { useState } from 'react';
-import { XMarkIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from 'react';
+import { 
+  XMarkIcon, 
+  CheckCircleIcon, 
+  ExclamationTriangleIcon,
+  UserGroupIcon,
+  GlobeAltIcon,
+  PlusIcon,
+  TrashIcon
+} from '@heroicons/react/24/outline';
+import { apiFetch } from '../../lib/api';
+import type { Domain, DomainDetailFormProps } from './types';
 
-interface Props {
-  onClose?: () => void;
-  onSave: (formData: { name: string; slug: string; description: string }) => Promise<void>;
+interface Member {
+  userId: string;
+  name: string;
+  role: string;
+  permissions: string[];
+  expiresAt?: string;
 }
 
-const DomainDetailForm: React.FC<Props> = ({ onClose, onSave }) => {
+const ROLES = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'user', label: 'User' },
+  { value: 'friend', label: 'Friend' },
+  { value: 'connection', label: 'Connection' }
+];
+
+const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, onSave }) => {
+  // Basic form state
   const [form, setForm] = useState({
     name: '',
     slug: '',
     description: ''
   });
+
+  // Custom domain state
+  const [customDomain, setCustomDomain] = useState('');
+  const [dnsRecords, setDnsRecords] = useState<any[]>([]);
+  const [verifying, setVerifying] = useState(false);
+
+  // Members state
+  const [members, setMembers] = useState<Member[]>([]);
+  const [newMember, setNewMember] = useState({
+    userId: '',
+    role: 'user'
+  });
+
+  // UI state
+  const [activeTab, setActiveTab] = useState('details');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
+  // Load domain data
+  useEffect(() => {
+    if (domain) {
+      setForm({
+        name: domain.name,
+        slug: domain.slug,
+        description: domain.description || ''
+      });
+      if (domain.customDomain) {
+        setCustomDomain(domain.customDomain);
+      }
+      loadMembers();
+    }
+  }, [domain]);
+
+  // Load domain members
+  const loadMembers = async () => {
+    if (!domain) return;
+    try {
+      const response = await apiFetch(`/api/domains/${domain.id}/members`);
+      setMembers(response.members);
+    } catch (err: any) {
+      console.error('Failed to load members:', err);
+    }
+  };
+
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -22,17 +86,112 @@ const DomainDetailForm: React.FC<Props> = ({ onClose, onSave }) => {
 
     try {
       await onSave(form);
-      // Success - form will be closed by parent
+      setSuccess('Domain saved successfully');
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to create domain');
+      setError(err.message || 'Failed to save domain');
+    } finally {
       setSaving(false);
     }
   };
 
+  // Handle custom domain addition
+  const handleAddCustomDomain = async () => {
+    if (!domain || !customDomain) return;
+    setError(null);
+    setSaving(true);
+
+    try {
+      const response = await apiFetch(`/api/domains/${domain.id}/custom-domain`, {
+        method: 'POST',
+        body: JSON.stringify({ customDomain })
+      });
+      setDnsRecords(response.dnsRecords);
+      setSuccess('Custom domain added. Please configure DNS records.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to add custom domain');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle custom domain verification
+  const handleVerifyCustomDomain = async () => {
+    if (!domain) return;
+    setVerifying(true);
+    setError(null);
+
+    try {
+      await apiFetch(`/api/domains/${domain.id}/custom-domain/verify`, {
+        method: 'POST'
+      });
+      setSuccess('Domain verified successfully');
+      setDnsRecords([]);
+    } catch (err: any) {
+      setError(err.message || 'Failed to verify domain');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // Handle member addition
+  const handleAddMember = async () => {
+    if (!domain || !newMember.userId) return;
+    setError(null);
+
+    try {
+      await apiFetch(`/api/domains/${domain.id}/members`, {
+        method: 'POST',
+        body: JSON.stringify(newMember)
+      });
+      setNewMember({ userId: '', role: 'user' });
+      await loadMembers();
+      setSuccess('Member added successfully');
+    } catch (err: any) {
+      setError(err.message || 'Failed to add member');
+    }
+  };
+
+  // Handle member role update
+  const handleUpdateMemberRole = async (userId: string, role: string) => {
+    if (!domain) return;
+    setError(null);
+
+    try {
+      await apiFetch(`/api/domains/${domain.id}/members/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role })
+      });
+      await loadMembers();
+      setSuccess('Member role updated');
+    } catch (err: any) {
+      setError(err.message || 'Failed to update member role');
+    }
+  };
+
+  // Handle member removal
+  const handleRemoveMember = async (userId: string) => {
+    if (!domain) return;
+    if (!confirm('Are you sure you want to remove this member?')) return;
+    setError(null);
+
+    try {
+      await apiFetch(`/api/domains/${domain.id}/members/${userId}`, {
+        method: 'DELETE'
+      });
+      await loadMembers();
+      setSuccess('Member removed successfully');
+    } catch (err: any) {
+      setError(err.message || 'Failed to remove member');
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Create New Domain</h3>
+    <div className="bg-white p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold">
+          {domain ? 'Edit Domain' : 'Create New Domain'}
+        </h3>
         {onClose && (
           <button
             type="button"
@@ -45,71 +204,237 @@ const DomainDetailForm: React.FC<Props> = ({ onClose, onSave }) => {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-center gap-2 text-red-700">
+        <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-3 flex items-center gap-2 text-red-700">
           <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0" />
           <p className="text-sm">{error}</p>
         </div>
       )}
 
+      {success && (
+        <div className="mb-4 bg-green-50 border border-green-200 rounded-md p-3 flex items-center gap-2 text-green-700">
+          <CheckCircleIcon className="w-5 h-5 flex-shrink-0" />
+          <p className="text-sm">{success}</p>
+        </div>
+      )}
+
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Domain Name *</label>
-          <input
-            type="text"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full px-3 py-2 border rounded-md"
-            placeholder="Enter domain name"
-            required
-            disabled={saving}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Domain Slug</label>
-          <input
-            type="text"
-            value={form.slug}
-            onChange={(e) => setForm({ ...form, slug: e.target.value })}
-            className="w-full px-3 py-2 border rounded-md"
-            placeholder="domain-slug"
-            disabled={saving}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Description</label>
-          <textarea
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="w-full px-3 py-2 border rounded-md"
-            rows={3}
-            placeholder="Describe your domain..."
-            disabled={saving}
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-3 pt-4">
-        {onClose && (
+        <div className="flex space-x-4 border-b mb-4">
           <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 border rounded-md hover:bg-gray-50"
-            disabled={saving}
+            className={`px-4 py-2 border-b-2 ${
+              activeTab === 'details' ? 'border-blue-600 text-blue-600' : 'border-transparent'
+            }`}
+            onClick={() => setActiveTab('details')}
           >
-            Cancel
+            Details
           </button>
+          {domain && (
+            <>
+              <button
+                className={`px-4 py-2 border-b-2 ${
+                  activeTab === 'custom-domain' ? 'border-blue-600 text-blue-600' : 'border-transparent'
+                }`}
+                onClick={() => setActiveTab('custom-domain')}
+              >
+                Custom Domain
+              </button>
+              <button
+                className={`px-4 py-2 border-b-2 ${
+                  activeTab === 'members' ? 'border-blue-600 text-blue-600' : 'border-transparent'
+                }`}
+                onClick={() => setActiveTab('members')}
+              >
+                Members
+              </button>
+            </>
+          )}
+        </div>
+
+        {activeTab === 'details' && (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Domain Name *</label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md"
+                placeholder="Enter domain name"
+                required
+                disabled={saving}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Domain Slug</label>
+              <input
+                type="text"
+                value={form.slug}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, slug: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md"
+                placeholder="domain-slug"
+                disabled={saving}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Description</label>
+              <textarea
+                value={form.description}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setForm({ ...form, description: e.target.value })}
+                className="w-full px-3 py-2 border rounded-md"
+                rows={3}
+                placeholder="Describe your domain..."
+                disabled={saving}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 border rounded-md hover:bg-gray-50"
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                type="submit"
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                disabled={saving || !form.name.trim()}
+              >
+                {saving ? 'Saving...' : domain ? 'Save Changes' : 'Create Domain'}
+              </button>
+            </div>
+          </form>
         )}
-        <button
-          type="submit"
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-          disabled={saving || !form.name.trim()}
-        >
-          {saving ? 'Creating...' : 'Create Domain'}
-        </button>
+
+        {activeTab === 'custom-domain' && domain && (
+          <div className="space-y-6">
+            <div>
+              <h4 className="font-medium mb-2">Custom Domain</h4>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customDomain}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomDomain(e.target.value)}
+                  className="flex-1 px-3 py-2 border rounded-md"
+                  placeholder="your-domain.com"
+                  disabled={saving}
+                />
+                <button
+                  onClick={handleAddCustomDomain}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  disabled={saving || !customDomain}
+                >
+                  Add Domain
+                </button>
+              </div>
+            </div>
+
+            {dnsRecords.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-2">DNS Configuration</h4>
+                <div className="bg-gray-50 p-4 rounded-md">
+                  <p className="text-sm mb-2">Configure these DNS records:</p>
+                  {dnsRecords.map((record, i) => (
+                    <div key={i} className="text-sm font-mono mb-1">
+                      {record.type} {record.domain} → {record.value}
+                    </div>
+                  ))}
+                  <button
+                    onClick={handleVerifyCustomDomain}
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    disabled={verifying}
+                  >
+                    {verifying ? 'Verifying...' : 'Verify Domain'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {domain.customDomain && domain.customDomainVerified && (
+              <div className="flex items-center gap-2 text-green-600">
+                <CheckCircleIcon className="w-5 h-5" />
+                <span>Domain verified: {domain.customDomain}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'members' && domain && (
+          <div className="space-y-6">
+            <div>
+              <h4 className="font-medium mb-2">Add Member</h4>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newMember.userId}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewMember({ ...newMember, userId: e.target.value })}
+                  className="flex-1 px-3 py-2 border rounded-md"
+                  placeholder="User ID"
+                />
+                <select
+                  value={newMember.role}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewMember({ ...newMember, role: e.target.value })}
+                  className="px-3 py-2 border rounded-md"
+                >
+                  {ROLES.map(role => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleAddMember}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  disabled={!newMember.userId}
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-medium mb-2">Members</h4>
+              <div className="space-y-2">
+                {members.map(member => (
+                  <div
+                    key={member.userId}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+                  >
+                    <div>
+                      <p className="font-medium">{member.name}</p>
+                      <p className="text-sm text-gray-500">{member.userId}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={member.role}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleUpdateMemberRole(member.userId, e.target.value)}
+                        className="px-3 py-2 border rounded-md"
+                      >
+                        {ROLES.map(role => (
+                          <option key={role.value} value={role.value}>
+                            {role.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => handleRemoveMember(member.userId)}
+                        className="p-2 text-gray-500 hover:text-red-600"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </form>
+    </div>
   );
 };
 
