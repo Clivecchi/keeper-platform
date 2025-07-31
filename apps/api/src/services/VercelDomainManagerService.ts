@@ -10,13 +10,15 @@ interface DNSRecord {
 export class VercelDomainManagerService {
   private readonly token: string;
   private readonly projectId: string;
+  private readonly teamId?: string;
   private readonly baseUrl = 'https://api.vercel.com';
 
   constructor(token: string, projectId: string) {
     if (!token) throw new Error('VERCEL_TOKEN env var is required');
     if (!projectId) throw new Error('VERCEL_PROJECT_ID env var is required');
     this.token = token;
-    this.projectId = projectId;
+        this.projectId = projectId;
+    this.teamId = process.env.VERCEL_TEAM_ID;
   }
 
   private get headers() {
@@ -32,7 +34,8 @@ export class VercelDomainManagerService {
       throw new Error('Vercel configuration missing. Please check VERCEL_TOKEN and VERCEL_PROJECT_ID.');
     }
 
-    const url = `${this.baseUrl}/v9/projects/${this.projectId}/domains`;
+    const params = this.teamId ? `?teamId=${this.teamId}` : '';
+    const url = `${this.baseUrl}/v9/projects/${this.projectId}/domains${params}`;
     console.log('Vercel addDomain request:', {
       url,
       domain,
@@ -105,7 +108,8 @@ export class VercelDomainManagerService {
 
   /** Verify a domain once DNS is correct */
   async verifyDomain(domain: string): Promise<boolean> {
-    const url = `${this.baseUrl}/v9/projects/${this.projectId}/domains/${domain}/verify`;
+    const params = this.teamId ? `?teamId=${this.teamId}` : '';
+    const url = `${this.baseUrl}/v9/projects/${this.projectId}/domains/${domain}/verify${params}`;
     const res = await fetch(url, { method: 'POST', headers: this.headers });
     if (res.status === 409) return true; // already verified
     if (!res.ok) {
@@ -117,7 +121,8 @@ export class VercelDomainManagerService {
 
   /** Remove a domain from the project */
   async removeDomain(domain: string): Promise<void> {
-    const url = `${this.baseUrl}/v9/projects/${this.projectId}/domains/${domain}`;
+    const params = this.teamId ? `?teamId=${this.teamId}` : '';
+    const url = `${this.baseUrl}/v9/projects/${this.projectId}/domains/${domain}${params}`;
     const res = await fetch(url, { method: 'DELETE', headers: this.headers });
     if (!res.ok && res.status !== 404) {
       const errBody = await res.text();
