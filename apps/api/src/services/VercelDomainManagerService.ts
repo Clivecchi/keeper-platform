@@ -28,6 +28,24 @@ export class VercelDomainManagerService {
     } as const;
   }
 
+  /** Register the domain under the Vercel account (team/user) if it is not already present */
+  private async registerDomainIfNeeded(domain: string): Promise<void> {
+    const params = this.teamId ? `?teamId=${this.teamId}` : '';
+    const url = `${this.baseUrl}/v4/domains${params}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify({ name: domain })
+    });
+    if (res.status === 409 || res.status === 200) {
+      return; // domain already exists or created successfully
+    }
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error(`Vercel registerDomain failed: ${res.status} ${errBody}`);
+    }
+  }
+
   /** Add or update a custom domain on the Vercel project */
   async addDomain(domain: string, gitBranch: string = 'production'): Promise<{ dnsRecords: DNSRecord[] }> {
     if (!this.token || !this.projectId) {
@@ -45,6 +63,9 @@ export class VercelDomainManagerService {
     });
 
     try {
+      // Ensure domain is registered under the Vercel account first
+      await this.registerDomainIfNeeded(domain);
+
       const res = await fetch(url, {
         method: 'POST',
         headers: this.headers,

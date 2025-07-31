@@ -641,7 +641,7 @@ router.post('/vercel-test', async (req, res) => {
     };
 
     // Import the Vercel service
-    const { VercelDomainManagerService } = await import('../../services/VercelDomainManagerService.js');
+    const { VercelDomainManagerService } = await import('../services/VercelDomainManagerService.js');
     
     // Initialize service
     const vercelService = new VercelDomainManagerService(
