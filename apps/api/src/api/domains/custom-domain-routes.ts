@@ -465,11 +465,24 @@ router.post('/:domainId/custom-domain', requireDomainAdminCompat, async (req: Re
     const { customDomain } = req.body;
     if (!customDomain) return res.status(400).json({ error: 'customDomain required' });
 
-    // Add domain to Vercel and get DNS records
-    const { dnsRecords } = await getVercelService().addDomain(customDomain);
+    // Get the domain to ensure it exists
+    const domain = await domainService.getDomainById(domainId);
+    if (!domain) return res.status(404).json({ error: 'Domain not found' });
+    if (!domain.customDomain) return res.status(400).json({ error: 'No custom domain configured for this domain' });
 
-    // Don't update the verified status yet - that happens in the verify step
-    return res.json({ success: true, dnsRecords });
+    try {
+      // Add domain to Vercel and get DNS records
+      const { dnsRecords } = await getVercelService().addDomain(domain.customDomain);
+      return res.json({ success: true, dnsRecords });
+    } catch (vercelErr: any) {
+      // Pass through Vercel API errors with details
+      console.error('Vercel API error:', vercelErr);
+      return res.status(400).json({ 
+        error: 'Vercel API error',
+        details: vercelErr.message,
+        code: 'VERCEL_API_ERROR'
+      });
+    }
   } catch (err) {
     console.error('Add custom domain error:', err);
     return res.status(500).json({ error: 'Failed to add custom domain' });

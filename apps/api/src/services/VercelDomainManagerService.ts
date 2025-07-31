@@ -42,7 +42,19 @@ export class VercelDomainManagerService {
 
     if (!res.ok) {
       const errBody = await res.text();
-      throw new Error(`Vercel addDomain failed: ${res.status} ${errBody}`);
+      let errorMessage = `Vercel addDomain failed: ${res.status}`;
+      try {
+        // Try to parse error response as JSON
+        const errorJson = JSON.parse(errBody);
+        if (errorJson.error?.message) {
+          errorMessage = errorJson.error.message;
+        } else {
+          errorMessage += ` ${errBody}`;
+        }
+      } catch {
+        errorMessage += ` ${errBody}`;
+      }
+      throw new Error(errorMessage);
     }
 
     const data = (await res.json()) as { dns: DNSRecord[] };

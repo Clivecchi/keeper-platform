@@ -159,11 +159,24 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
         method: 'POST',
         body: JSON.stringify({ customDomain: domain.customDomain })
       });
-      setDnsRecords(response.dnsRecords);
+      
+      if (response.error) {
+        // Handle structured error response
+        if (response.code === 'VERCEL_API_ERROR') {
+          setError(`Vercel API Error: ${response.details}`);
+        } else {
+          setError(response.error);
+        }
+        return;
+      }
+
+      setDnsRecords(response.dnsRecords || []);
       setVercelConfigured(true);
       setSuccess('Domain added to Vercel. Please configure DNS records.');
     } catch (err: any) {
-      setError(err.message || 'Failed to add domain to Vercel');
+      // Handle network/unexpected errors
+      console.error('Error adding domain to Vercel:', err);
+      setError(err.message || 'Failed to add domain to Vercel. Please check console for details.');
     } finally {
       setAddingToVercel(false);
     }
