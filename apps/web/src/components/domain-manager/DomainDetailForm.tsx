@@ -150,9 +150,18 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
 
   // Handle adding domain to Vercel
   const handleAddToVercel = async () => {
-    if (!domain || !domain.customDomain) return;
+    if (!domain || !domain.customDomain) {
+      setError('No custom domain configured. Please add a domain first.');
+      return;
+    }
     setAddingToVercel(true);
     setError(null);
+    setSuccess(null);
+
+    console.log('Adding domain to Vercel:', {
+      domainId: domain.id,
+      customDomain: domain.customDomain
+    });
 
     try {
       const response = await apiFetch(`/api/domains/${domain.id}/custom-domain`, {
@@ -160,12 +169,14 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
         body: JSON.stringify({ customDomain: domain.customDomain })
       });
       
-      if (response.error) {
+      console.log('Vercel API response:', response);
+
+      if (response.error || !response.success) {
         // Handle structured error response
         if (response.code === 'VERCEL_API_ERROR') {
           setError(`Vercel API Error: ${response.details}`);
         } else {
-          setError(response.error);
+          setError(response.error || 'Failed to add domain to Vercel');
         }
         return;
       }
@@ -176,7 +187,8 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
     } catch (err: any) {
       // Handle network/unexpected errors
       console.error('Error adding domain to Vercel:', err);
-      setError(err.message || 'Failed to add domain to Vercel. Please check console for details.');
+      const errorMessage = err.body?.error || err.message || 'Failed to add domain to Vercel';
+      setError(`${errorMessage}. Please check console for details.`);
     } finally {
       setAddingToVercel(false);
     }

@@ -462,21 +462,40 @@ router.get(
 router.post('/:domainId/custom-domain', requireDomainAdminCompat, async (req: Request, res: Response) => {
   try {
     const { domainId } = req.params;
-    const { customDomain } = req.body;
-    if (!customDomain) return res.status(400).json({ error: 'customDomain required' });
+    console.log('Adding domain to Vercel:', { domainId, body: req.body });
 
     // Get the domain to ensure it exists
     const domain = await domainService.getDomainById(domainId);
-    if (!domain) return res.status(404).json({ error: 'Domain not found' });
-    if (!domain.customDomain) return res.status(400).json({ error: 'No custom domain configured for this domain' });
+    console.log('Found domain:', domain);
+
+    if (!domain) {
+      console.log('Domain not found');
+      return res.status(404).json({ error: 'Domain not found' });
+    }
+    if (!domain.customDomain) {
+      console.log('No custom domain configured');
+      return res.status(400).json({ error: 'No custom domain configured for this domain' });
+    }
 
     try {
-      // Add domain to Vercel and get DNS records
-      const { dnsRecords } = await getVercelService().addDomain(domain.customDomain);
+      console.log('Calling Vercel API to add domain:', domain.customDomain);
+      const vercelService = getVercelService();
+      console.log('Vercel service initialized with:', {
+        baseUrl: vercelService['baseUrl'],
+        projectId: vercelService['projectId'],
+        hasToken: !!vercelService['token']
+      });
+
+      const { dnsRecords } = await vercelService.addDomain(domain.customDomain);
+      console.log('Vercel API response:', { dnsRecords });
       return res.json({ success: true, dnsRecords });
     } catch (vercelErr: any) {
       // Pass through Vercel API errors with details
-      console.error('Vercel API error:', vercelErr);
+      console.error('Vercel API error:', {
+        message: vercelErr.message,
+        stack: vercelErr.stack,
+        cause: vercelErr.cause
+      });
       return res.status(400).json({ 
         error: 'Vercel API error',
         details: vercelErr.message,
