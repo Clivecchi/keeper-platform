@@ -21,5 +21,6 @@ Services are stateless classes instantiated on demand by route handlers or other
 
 ## 📆 Update Log
 ### 2025-07-31
+- Reverted Vercel request body to `{ name }` per API spec.
 - Added initial README with module overview and file summaries.
 - Updated `VercelDomainManagerService.ts` request body (`{ domain }` instead of `{ name }`) to match Vercel REST API specification.
