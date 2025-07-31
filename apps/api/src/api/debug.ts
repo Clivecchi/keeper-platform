@@ -617,4 +617,68 @@ router.post('/fix-kip-provider', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/debug/vercel-test
+ * Test Vercel API integration
+ */
+router.post('/vercel-test', async (req, res) => {
+  try {
+    const { domain } = req.body;
+    
+    if (!domain) {
+      return res.status(400).json({
+        success: false,
+        error: 'Domain is required'
+      });
+    }
+
+    // Check Vercel configuration
+    const vercelConfig = {
+      token: process.env.VERCEL_TOKEN ? '***HIDDEN***' : undefined,
+      projectId: process.env.VERCEL_PROJECT_ID,
+      hasToken: !!process.env.VERCEL_TOKEN,
+      hasProjectId: !!process.env.VERCEL_PROJECT_ID
+    };
+
+    // Import the Vercel service
+    const { VercelDomainManagerService } = await import('../../services/VercelDomainManagerService.js');
+    
+    // Initialize service
+    const vercelService = new VercelDomainManagerService(
+      process.env.VERCEL_TOKEN || '',
+      process.env.VERCEL_PROJECT_ID || ''
+    );
+
+    // Test domain addition
+    console.log('[Debug] Testing Vercel domain addition:', domain);
+    const addResult = await vercelService.addDomain(domain);
+
+    return res.json({
+      success: true,
+      data: {
+        vercel_config: vercelConfig,
+        test_results: {
+          domain_addition: {
+            success: true,
+            dns_records: addResult.dnsRecords
+          }
+        },
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('[Debug] Vercel test error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to test Vercel integration',
+      vercel_config: {
+        token: process.env.VERCEL_TOKEN ? '***HIDDEN***' : undefined,
+        projectId: process.env.VERCEL_PROJECT_ID,
+        hasToken: !!process.env.VERCEL_TOKEN,
+        hasProjectId: !!process.env.VERCEL_PROJECT_ID
+      }
+    });
+  }
+});
+
 export default router; 

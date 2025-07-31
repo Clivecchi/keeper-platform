@@ -34,7 +34,7 @@ const featureFlags = getFeatureFlagService();
 router.use(createDomainResolutionMiddleware());
 
 // Mount custom domain routes
-router.use('/', customDomainRoutes);
+router.use('/custom', customDomainRoutes);
 
 // User search for member management
 router.get('/users/search', authMiddlewareCompat, async (req: Request, res: Response) => {

@@ -28,37 +28,64 @@ export class VercelDomainManagerService {
 
   /** Add or update a custom domain on the Vercel project */
   async addDomain(domain: string, gitBranch: string = 'production'): Promise<{ dnsRecords: DNSRecord[] }> {
+    if (!this.token || !this.projectId) {
+      throw new Error('Vercel configuration missing. Please check VERCEL_TOKEN and VERCEL_PROJECT_ID.');
+    }
+
     const url = `${this.baseUrl}/v9/projects/${this.projectId}/domains`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify({ name: domain, gitBranch }),
+    console.log('Vercel addDomain request:', {
+      url,
+      domain,
+      gitBranch,
+      hasToken: !!this.token,
+      projectId: this.projectId
     });
 
-    if (res.status === 409) {
-      // Domain already exists in project – treat as success
-      return { dnsRecords: [] };
-    }
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({ name: domain, gitBranch }),
+      });
 
-    if (!res.ok) {
-      const errBody = await res.text();
-      let errorMessage = `Vercel addDomain failed: ${res.status}`;
-      try {
-        // Try to parse error response as JSON
-        const errorJson = JSON.parse(errBody);
-        if (errorJson.error?.message) {
-          errorMessage = errorJson.error.message;
-        } else {
-          errorMessage += ` ${errBody}`;
-        }
-      } catch {
-        errorMessage += ` ${errBody}`;
+      const responseText = await res.text();
+      console.log('Vercel API raw response:', {
+        status: res.status,
+        statusText: res.statusText,
+        body: responseText
+      });
+
+      if (res.status === 409) {
+        // Domain already exists in project – treat as success
+        return { dnsRecords: [] };
       }
-      throw new Error(errorMessage);
-    }
 
-    const data = (await res.json()) as { dns: DNSRecord[] };
-    return { dnsRecords: data.dns || [] };
+      if (!res.ok) {
+        let errorMessage = `Vercel API Error (${res.status}): `;
+        try {
+          const errorJson = JSON.parse(responseText);
+          if (errorJson.error?.message) {
+            errorMessage += errorJson.error.message;
+          } else {
+            errorMessage += responseText;
+          }
+        } catch {
+          errorMessage += responseText;
+        }
+        throw new Error(errorMessage);
+      }
+
+      try {
+        const data = JSON.parse(responseText) as { dns: DNSRecord[] };
+        return { dnsRecords: data.dns || [] };
+      } catch (parseError) {
+        console.error('Failed to parse Vercel API response:', parseError);
+        throw new Error('Invalid response from Vercel API');
+      }
+    } catch (error) {
+      console.error('Vercel API call failed:', error);
+      throw error;
+    }
   }
 
   /** Get DNS configuration requirements for a domain */

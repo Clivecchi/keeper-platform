@@ -164,7 +164,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
     });
 
     try {
-      const response = await apiFetch(`/api/domains/${domain.id}/custom-domain`, {
+      const response = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain`, {
         method: 'POST',
         body: JSON.stringify({ customDomain: domain.customDomain })
       });
