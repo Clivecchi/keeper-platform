@@ -104,7 +104,7 @@ export class VercelDomainManagerService {
         return { dnsRecords: data.dns || [] };
       } catch (parseError) {
         console.error('Failed to parse Vercel API response:', parseError);
-        throw new Error('Invalid response from Vercel API');
+        throw new Error('Invalid response from Vercel API.');
       }
     } catch (error) {
       console.error('Vercel API call failed:', error);
