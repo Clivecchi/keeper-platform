@@ -34,6 +34,28 @@ function getVercelService(): VercelDomainManagerService {
 }
 
 const router: Router = Router();
+
+// Attach domain context for any route that contains :domainId
+router.param('domainId', async (req, res, next, domainId) => {
+  try {
+    const domain = await domainService.getDomainById(domainId);
+    if (domain) {
+      (req as any).domainContext = {
+        domain,
+        isCustomDomain: !!domain.customDomain,
+        originalHostname: req.hostname,
+        resolvedSlug: domain.slug,
+        permissions: [],
+        role: undefined,
+        isOwner: false
+      };
+    }
+  } catch (err) {
+    console.error('Error loading domain context:', err);
+  } finally {
+    next();
+  }
+});
 const prisma = new PrismaClient();
 let redis: Redis | null = null;
 if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
