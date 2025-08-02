@@ -42,6 +42,7 @@ export class VercelDomainManagerService {
     }
     if (!res.ok) {
       const errBody = await res.text();
+      console.error('Vercel register error:', errBody);
       throw new Error(`Vercel registerDomain failed: ${res.status} ${errBody}`);
     }
   }
@@ -96,6 +97,7 @@ export class VercelDomainManagerService {
         } catch {
           errorMessage += responseText;
         }
+        console.error('Vercel detailed error:', responseText);
         throw new Error(errorMessage);
       }
 
