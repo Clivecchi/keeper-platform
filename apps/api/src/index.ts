@@ -23,6 +23,7 @@ import { prisma } from '@keeper/database';
 import { authMiddleware, authMiddlewareCompat, AuthenticatedRequest } from './middleware/authMiddleware.js';
 import keeperRoutes from './api/keeper/routes.js';
 import debugRouter from './api/debug.js';
+import { getLogs as getInternalLogs } from './utils/LogStore.js';
 
 // Load environment variables
 dotenv.config();
@@ -351,7 +352,10 @@ app.get('/debug', (req, res) => {
       trace_id: req.get('x-trace-id') || 'no-trace',
       session_info: 'no-session-middleware',
       auth_info: 'no-auth-middleware'
-    }
+    },
+
+    // 📝 INTERNAL LOGS (recent Vercel errors, etc.)
+    internal_logs: getInternalLogs()
   };
   
   // Add response headers for debugging

@@ -496,6 +496,16 @@ router.post('/:domainId/custom-domain', requireDomainAdminCompat, async (req: Re
         stack: vercelErr.stack,
         cause: vercelErr.cause
       });
+      try {
+        const { addLog } = await import('../../utils/LogStore.js');
+        addLog('vercel-route', {
+          msg: vercelErr.message,
+          code: vercelErr.code ?? 'unknown',
+          stack: vercelErr.stack
+        });
+      } catch (logErr) {
+        /* ignore logging errors to avoid masking root issue */
+      }
       return res.status(400).json({ 
         error: 'Vercel API error',
         details: vercelErr.message,
