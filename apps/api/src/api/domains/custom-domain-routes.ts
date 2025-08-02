@@ -56,6 +56,9 @@ router.param('domainId', async (req, res, next, domainId) => {
     next();
   }
 });
+// After domain context is attached, load permissions for the authenticated user
+router.use(loadDomainPermissionsCompat);
+
 const prisma = new PrismaClient();
 let redis: Redis | null = null;
 if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
