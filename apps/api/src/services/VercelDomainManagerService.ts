@@ -43,6 +43,7 @@ export class VercelDomainManagerService {
     if (!res.ok) {
       const errBody = await res.text();
       console.error('Vercel register error:', errBody);
+      (await import('../utils/LogStore.js')).addLog('vercel-register', errBody);
       throw new Error(`Vercel registerDomain failed: ${res.status} ${errBody}`);
     }
   }
@@ -98,6 +99,7 @@ export class VercelDomainManagerService {
           errorMessage += responseText;
         }
         console.error('Vercel detailed error:', responseText);
+        (await import('../utils/LogStore.js')).addLog('vercel', responseText);
         throw new Error(errorMessage);
       }
 

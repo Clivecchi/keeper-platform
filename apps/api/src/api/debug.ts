@@ -681,4 +681,10 @@ router.post('/vercel-test', async (req, res) => {
   }
 });
 
+// GET /api/debug/logs – return recent internal logs (Vercel etc.)
+router.get('/logs', async (_req, res) => {
+  const { getLogs } = await import('../utils/LogStore.js');
+  return res.json({ success: true, logs: getLogs() });
+});
+
 export default router; 
