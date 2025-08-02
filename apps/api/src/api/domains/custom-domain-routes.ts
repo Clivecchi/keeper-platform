@@ -18,7 +18,8 @@ import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { 
   requireDomainAdminCompat, 
   requireDomainWriteCompat, 
-  requireDomainReadCompat 
+  requireDomainReadCompat,
+  loadDomainPermissionsCompat 
 } from '../../middleware/domainPermissionMiddleware.js';
 import { rateLimit } from 'express-rate-limit';
 import Redis from 'ioredis';
