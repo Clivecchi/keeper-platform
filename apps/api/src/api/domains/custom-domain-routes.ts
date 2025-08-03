@@ -62,8 +62,8 @@ router.param('domainId', async (req, res, next, domainId) => {
 // After domain context is attached, authentication middleware must run first
 // so that req.user is available to permission loader.
 router.use(authMiddlewareCompat);
-// Now load permissions for the authenticated user
-router.use(loadDomainPermissionsCompat);
+// Load permissions only for routes that include :domainId (after param ran)
+router.use('/:domainId', loadDomainPermissionsCompat);
 
 const prisma = new PrismaClient();
 let redis: Redis | null = null;
