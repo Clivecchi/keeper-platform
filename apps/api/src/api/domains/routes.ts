@@ -33,8 +33,9 @@ const featureFlags = getFeatureFlagService();
 // Apply domain resolution middleware
 router.use(createDomainResolutionMiddleware());
 
-// Mount custom domain routes
-router.use('/custom', customDomainRoutes);
+// Mount custom domain routes to support both legacy and new paths
+router.use(customDomainRoutes); // legacy: /api/domains/:domainId/custom-domain
+router.use('/custom', customDomainRoutes); // new: /api/domains/custom/:domainId/custom-domain
 
 // User search for member management
 router.get('/users/search', authMiddlewareCompat, async (req: Request, res: Response) => {
