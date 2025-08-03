@@ -499,5 +499,10 @@ export const loadDomainPermissionsCompat = async (req: Request, res: Response, n
     addLog('perm-probe-enter', { domainContextExists: !!(req as any).domainContext, params: req.params });
   } catch {}
 
+  // If no domain context (e.g., routes like /my), skip permission loading.
+  if (!(req as any).domainContext) {
+    return next();
+  }
+
   return loadDomainPermissions(req as DomainPermissionRequest, res, next);
 }; 
