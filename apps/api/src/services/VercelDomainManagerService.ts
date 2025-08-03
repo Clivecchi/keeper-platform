@@ -128,6 +128,7 @@ export class VercelDomainManagerService {
     return {
       configured: data.configured || false,
       records: data.records || [],
+      nameServers: data.nameservers || data.nameServers || []
     };
   }
 

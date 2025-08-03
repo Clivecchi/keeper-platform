@@ -9,6 +9,7 @@ import {
   TrashIcon
 } from '@heroicons/react/24/outline';
 import { apiFetch } from '../../lib/api';
+import DnsInfoPanel from './DnsInfoPanel';
 import type { Domain, DomainDetailFormProps } from './types';
 
 interface Member {
@@ -34,9 +35,8 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
       try {
         const s = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain/status`);
         setVercelConfigured(s.attached);
-        if (!s.configured || !s.verified) {
-          setDnsRecords(s.records || []);
-        }
+        setDnsRecords(s.records || []);
+        setNameServers(s.nameServers || []);
         if (s.verified) {
           setSuccess('Domain verified successfully');
         }
@@ -71,6 +71,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
   // Custom domain state
   const [customDomain, setCustomDomain] = useState('');
   const [dnsRecords, setDnsRecords] = useState<any[]>([]);
+  const [nameServers, setNameServers] = useState<string[]>([]);
   const [verifying, setVerifying] = useState(false);
   const [addingToVercel, setAddingToVercel] = useState(false);
   const [vercelConfigured, setVercelConfigured] = useState(false);
@@ -473,14 +474,12 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                 </div>
 
                 {dnsRecords.length > 0 && (
-                  <div className="bg-gray-50 p-4 rounded-md">
-                    <p className="text-sm mb-2">Configure these DNS records at your domain registrar:</p>
-                    {dnsRecords.map((record, i) => (
-                      <div key={i} className="text-sm font-mono mb-1">
-                        {record.type} {record.domain} → {record.value}
-                      </div>
-                    ))}
-                  </div>
+                  <DnsInfoPanel
+                    records={dnsRecords}
+                    nameServers={nameServers}
+                    configured={vercelConfigured}
+                    verified={domain.customDomainVerified}
+                  />
                 )}
               </div>
             )}

@@ -595,8 +595,9 @@ router.get('/:domainId/custom-domain/status', requireDomainAdminCompat, async (r
       const cfg = await svc.getDomainConfig(domain.customDomain);
       records = cfg.records;
       configured = cfg.configured;
+      var nameServers = cfg.nameServers || [];
     }
-    return res.json({ attached: status.attached, verified: status.verified, configured, records });
+    return res.json({ attached: status.attached, verified: status.verified, configured, records, nameServers });
   } catch (err) {
     console.error('Domain status error:', err);
     return res.status(500).json({ error: 'Failed to fetch domain status' });
