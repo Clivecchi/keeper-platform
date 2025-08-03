@@ -591,11 +591,12 @@ router.get('/:domainId/custom-domain/status', requireDomainAdminCompat, async (r
     const status = await svc.getDomainStatus(domain.customDomain);
     let records: any[] = [];
     let configured = false;
+    let nameServers: string[] = [];
     if (status.attached) {
       const cfg = await svc.getDomainConfig(domain.customDomain);
       records = cfg.records;
       configured = cfg.configured;
-      var nameServers = cfg.nameServers || [];
+      nameServers = cfg.nameServers || [];
     }
     return res.json({ attached: status.attached, verified: status.verified, configured, records, nameServers });
   } catch (err) {

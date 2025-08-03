@@ -117,7 +117,7 @@ export class VercelDomainManagerService {
   }
 
   /** Get DNS configuration requirements for a domain */
-  async getDomainConfig(domain: string): Promise<{ configured: boolean; records: DNSRecord[] }> {
+  async getDomainConfig(domain: string): Promise<{ configured: boolean; records: DNSRecord[]; nameServers: string[] }> {
     const url = `${this.baseUrl}/v4/domains/${domain}/config`;
     const res = await fetch(url, { headers: this.headers });
     if (!res.ok) {
