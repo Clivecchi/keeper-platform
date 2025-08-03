@@ -222,7 +222,12 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
 
       setDnsRecords(response.dnsRecords || []);
       setVercelConfigured(true);
-      setSuccess('Domain added to Vercel. Please configure DNS records.');
+      setSuccess('Domain added to Vercel. Please configure DNS records below.');
+      
+      // Refresh DNS status to get the latest information
+      setTimeout(() => {
+        fetchDnsStatus();
+      }, 1000);
     } catch (err: any) {
       // Handle network/unexpected errors
       console.error('Error adding domain to Vercel:', err);
@@ -230,6 +235,22 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
       setError(`${errorMessage}. Please check console for details.`);
     } finally {
       setAddingToVercel(false);
+    }
+  };
+
+  // Fetch DNS status
+  const fetchDnsStatus = async () => {
+    if (!domain || !domain.customDomain) return;
+    try {
+      const s = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain/status`);
+      setVercelConfigured(s.attached);
+      setDnsRecords(s.records || []);
+      setNameServers(s.nameServers || []);
+      if (s.verified) {
+        setSuccess('Domain verified successfully');
+      }
+    } catch (err) {
+      console.error('Error fetching DNS status:', err);
     }
   };
 
@@ -454,7 +475,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
               </div>
             </div>
 
-            {domain.customDomain && !domain.customDomainVerified && (
+            {domain.customDomain && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <button
@@ -471,16 +492,22 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                   >
                     {verifying ? 'Verifying...' : 'Verify Domain'}
                   </button>
+                  <button
+                    onClick={fetchDnsStatus}
+                    className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50"
+                    disabled={verifying || addingToVercel}
+                  >
+                    Refresh DNS
+                  </button>
                 </div>
 
-                {dnsRecords.length > 0 && (
-                  <DnsInfoPanel
-                    records={dnsRecords}
-                    nameServers={nameServers}
-                    configured={vercelConfigured}
-                    verified={domain.customDomainVerified}
-                  />
-                )}
+                {/* Always show DNS information if domain has custom domain */}
+                <DnsInfoPanel
+                  records={dnsRecords}
+                  nameServers={nameServers}
+                  configured={vercelConfigured}
+                  verified={domain.customDomainVerified}
+                />
               </div>
             )}
 

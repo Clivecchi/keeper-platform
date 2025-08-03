@@ -2,22 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { apiFetch } from '../../lib/api';
 import DomainDetailForm from './DomainDetailForm';
+import DnsStatusBadge from './DnsStatusBadge';
+import DnsInfoPanel from './DnsInfoPanel';
 import { Domain, DomainScope } from './types';
-import { CheckCircleIcon, MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, MagnifyingGlassIcon, PlusIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 
 interface Props {
   scope: DomainScope;
   allowCreate?: boolean;
 }
 
+interface DomainWithDns extends Domain {
+  dnsStatus?: {
+    attached: boolean;
+    configured: boolean;
+    verified: boolean;
+    records: any[];
+    nameServers: string[];
+  };
+}
+
 const DomainManager: React.FC<Props> = ({ scope, allowCreate = true }) => {
-  const [domains, setDomains] = useState<Domain[]>([]);
-  const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
+  const [domains, setDomains] = useState<DomainWithDns[]>([]);
+  const [selectedDomain, setSelectedDomain] = useState<DomainWithDns | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dnsLoading, setDnsLoading] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadDomains();
@@ -29,12 +42,42 @@ const DomainManager: React.FC<Props> = ({ scope, allowCreate = true }) => {
     try {
       const baseUrl = scope === 'user' ? '/api/domains' : '/api/admin/domains';
       const response = await apiFetch(`${baseUrl}/my`);
-      setDomains(Array.isArray(response) ? response : []);
+      const domainsWithDns = Array.isArray(response) ? response : [];
+      setDomains(domainsWithDns);
+      
+      // Load DNS status for domains with custom domains
+      domainsWithDns.forEach(domain => {
+        if (domain.customDomain && !domain.customDomainVerified) {
+          loadDnsStatus(domain.id);
+        }
+      });
     } catch (err: any) {
       setError(err.message || 'Failed to load domains');
       console.error('Error loading domains:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadDnsStatus = async (domainId: string) => {
+    if (dnsLoading.has(domainId)) return;
+    
+    setDnsLoading(prev => new Set(prev).add(domainId));
+    try {
+      const status = await apiFetch(`/api/domains/custom/${domainId}/custom-domain/status`);
+      setDomains(prev => prev.map(domain => 
+        domain.id === domainId 
+          ? { ...domain, dnsStatus: status }
+          : domain
+      ));
+    } catch (err) {
+      console.error('Error loading DNS status for domain:', domainId, err);
+    } finally {
+      setDnsLoading(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(domainId);
+        return newSet;
+      });
     }
   };
 
@@ -122,19 +165,48 @@ const DomainManager: React.FC<Props> = ({ scope, allowCreate = true }) => {
                 className="p-4 border rounded-lg hover:border-blue-500 cursor-pointer transition-colors"
               >
                 <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-medium">{domain.name}</h3>
-                    <p className="text-sm text-gray-500">{domain.slug}</p>
-                  </div>
-                  {domain.customDomainVerified && (
-                    <div className="flex items-center text-green-600 text-sm">
-                      <CheckCircleIcon className="w-5 h-5 mr-1" />
-                      Verified
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-medium">{domain.name}</h3>
+                      {domain.customDomain && (
+                        <GlobeAltIcon className="w-4 h-4 text-gray-400" />
+                      )}
                     </div>
-                  )}
+                    <p className="text-sm text-gray-500">{domain.slug}</p>
+                    {domain.customDomain && (
+                      <p className="text-sm text-blue-600 mt-1">{domain.customDomain}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <DnsStatusBadge
+                      hasCustomDomain={!!domain.customDomain}
+                      isVerified={domain.customDomainVerified}
+                      isConfigured={domain.dnsStatus?.configured}
+                      compact={true}
+                    />
+                    {domain.customDomainVerified && (
+                      <div className="flex items-center text-green-600 text-sm">
+                        <CheckCircleIcon className="w-5 h-5 mr-1" />
+                        Verified
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {domain.description && (
                   <p className="mt-2 text-sm text-gray-600">{domain.description}</p>
+                )}
+                
+                {/* Show DNS information if available and not verified */}
+                {domain.customDomain && !domain.customDomainVerified && domain.dnsStatus && (
+                  <div className="mt-3">
+                    <DnsInfoPanel
+                      records={domain.dnsStatus.records || []}
+                      nameServers={domain.dnsStatus.nameServers || []}
+                      configured={domain.dnsStatus.configured}
+                      verified={domain.customDomainVerified}
+                      compact={true}
+                    />
+                  </div>
                 )}
               </div>
             ))}
