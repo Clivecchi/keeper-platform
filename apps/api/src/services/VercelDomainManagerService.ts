@@ -71,7 +71,7 @@ export class VercelDomainManagerService {
       const res = await fetch(url, {
         method: 'POST',
         headers: this.headers,
-        body: JSON.stringify({ name: domain, gitBranch }),
+        body: JSON.stringify(gitBranch && gitBranch !== 'production' ? { name: domain, gitBranch } : { name: domain }),
       });
 
       const responseText = await res.text();
