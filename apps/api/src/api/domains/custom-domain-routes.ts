@@ -41,7 +41,9 @@ router.param('domainId', async (req, res, next, domainId) => {
   try {
     const domain = await domainService.getDomainById(domainId);
     if (domain) {
-      (req as any).domainContext = {
+      console.log('[PARAM PROBE] domainId:', domainId, 'domain:', domain);
+    try { const { addLog } = await import('../../utils/LogStore.js'); addLog('param-probe', { domainId, found: !!domain }); } catch {}
+    (req as any).domainContext = {
         domain,
         isCustomDomain: !!domain.customDomain,
         originalHostname: req.hostname,
