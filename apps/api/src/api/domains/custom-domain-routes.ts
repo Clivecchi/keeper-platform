@@ -3,7 +3,7 @@
  * Advanced domain configuration, SSL, and CORS management
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
 import { 
@@ -485,7 +485,18 @@ router.get(
 
 // --- Custom Domain via Vercel ---
 // POST /api/domains/:domainId/custom-domain
-router.post('/:domainId/custom-domain', requireDomainAdminCompat, async (req: Request, res: Response) => {
+router.post(
+  '/:domainId/custom-domain',
+  async (req: Request, res: Response, next: NextFunction) => {
+    console.log('[ENTRY PROBE] Reached custom-domain route');
+    try {
+      const { addLog } = await import('../../utils/LogStore.js');
+      addLog('custom-domain-entry', { params: req.params, body: req.body });
+    } catch {}
+    next();
+  },
+  requireDomainAdminCompat,
+  async (req: Request, res: Response) => {
   try {
     const { domainId } = req.params;
     console.log('Adding domain to Vercel:', { domainId, body: req.body });
