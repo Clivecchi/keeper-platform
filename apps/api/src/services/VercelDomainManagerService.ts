@@ -131,6 +131,20 @@ export class VercelDomainManagerService {
     };
   }
 
+  /** Check if domain is attached to project and its status */
+  async getDomainStatus(domain: string): Promise<{ attached: boolean; verified: boolean }> {
+    const params = this.teamId ? `?teamId=${this.teamId}` : '';
+    const url = `${this.baseUrl}/v9/projects/${this.projectId}/domains/${domain}${params}`;
+    const res = await fetch(url, { headers: this.headers });
+    if (res.status === 404) return { attached: false, verified: false };
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Vercel domain status failed: ${res.status} ${body}`);
+    }
+    const data = (await res.json()) as any;
+    return { attached: true, verified: !!data.verified };
+  }
+
   /** Verify a domain once DNS is correct */
   async verifyDomain(domain: string): Promise<boolean> {
     const params = this.teamId ? `?teamId=${this.teamId}` : '';

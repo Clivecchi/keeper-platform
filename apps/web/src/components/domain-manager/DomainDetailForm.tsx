@@ -29,6 +29,22 @@ const ROLES = [
 const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, onSave }) => {
   // fetch DNS records on mount if domain exists and not verified
   useEffect(() => {
+    const fetchStatus = async () => {
+      if (!domain || !domain.customDomain) return;
+      try {
+        const s = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain/status`);
+        setVercelConfigured(s.attached);
+        if (!s.configured || !s.verified) {
+          setDnsRecords(s.records || []);
+        }
+        if (s.verified) {
+          setSuccess('Domain verified successfully');
+        }
+      } catch {}
+    };
+    fetchStatus();
+
+    // Legacy DNS fetch to support older endpoint until UI fully migrated
     const fetchDns = async () => {
       if (!domain || !domain.customDomain || domain.customDomainVerified) return;
       try {
@@ -43,7 +59,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
     };
     fetchDns();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [domain]);
 
   // Basic form state
   const [form, setForm] = useState({

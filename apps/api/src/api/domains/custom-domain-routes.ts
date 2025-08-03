@@ -580,6 +580,29 @@ router.post('/:domainId/custom-domain/verify', requireDomainAdminCompat, async (
   }
 });
 
+// GET /api/domains/:domainId/custom-domain/status - attached, configured, verified, records
+router.get('/:domainId/custom-domain/status', requireDomainAdminCompat, async (req: Request, res: Response) => {
+  try {
+    const { domainId } = req.params;
+    const domain = await domainService.getDomainById(domainId);
+    if (!domain?.customDomain) return res.status(400).json({ error: 'No custom domain configured' });
+
+    const svc = getVercelService();
+    const status = await svc.getDomainStatus(domain.customDomain);
+    let records: any[] = [];
+    let configured = false;
+    if (status.attached) {
+      const cfg = await svc.getDomainConfig(domain.customDomain);
+      records = cfg.records;
+      configured = cfg.configured;
+    }
+    return res.json({ attached: status.attached, verified: status.verified, configured, records });
+  } catch (err) {
+    console.error('Domain status error:', err);
+    return res.status(500).json({ error: 'Failed to fetch domain status' });
+  }
+});
+
 // GET /api/domains/:domainId/custom-domain/dns - return required DNS records
 router.get('/:domainId/custom-domain/dns', requireDomainAdminCompat, async (req: Request, res: Response) => {
   try {
