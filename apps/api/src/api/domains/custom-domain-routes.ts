@@ -57,7 +57,10 @@ router.param('domainId', async (req, res, next, domainId) => {
     next();
   }
 });
-// After domain context is attached, load permissions for the authenticated user
+// After domain context is attached, authentication middleware must run first
+// so that req.user is available to permission loader.
+router.use(authMiddlewareCompat);
+// Now load permissions for the authenticated user
 router.use(loadDomainPermissionsCompat);
 
 const prisma = new PrismaClient();
@@ -103,8 +106,7 @@ const sslRateLimit = rateLimit({
   legacyHeaders: false,
 });
 
-// Apply auth middleware to all routes
-router.use(authMiddlewareCompat);
+// Auth middleware already applied earlier after param loader
 
 /**
  * Custom Domain Verification Routes
