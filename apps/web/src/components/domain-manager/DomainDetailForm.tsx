@@ -88,12 +88,38 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
     if (!domain || !domain.customDomain) return;
     try {
       const status = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain/status`);
+      console.log('Frontend: DNS status loaded:', { domain: domain.customDomain, status });
+      
       setDnsStatus(status);
       setVercelConfigured(status.attached);
       setDnsRecords(status.records || []);
       setNameServers(status.nameServers || []);
+      
+      // Handle errors from Vercel
+      if (status.error) {
+        console.error('Frontend: Vercel status error:', {
+          domain: domain.customDomain,
+          error: status.error,
+          errorCode: status.errorCode,
+          details: status.details
+        });
+        
+        // Set appropriate error message based on error code
+        if (status.errorCode === '403') {
+          setError('Access denied to Vercel. Please check your Vercel configuration.');
+        } else if (status.errorCode === '404') {
+          setError('Domain not found in Vercel project. Please add it to Vercel first.');
+        } else if (status.errorCode === 'DNS_CONFIG_ERROR') {
+          setError('Failed to load DNS configuration. Please try again.');
+        } else {
+          setError(`Vercel error: ${status.error}`);
+        }
+      } else {
+        setError(null); // Clear any previous errors
+      }
     } catch (err) {
-      console.error('Error loading DNS status:', err);
+      console.error('Frontend: Error loading DNS status:', err);
+      setError('Failed to load domain status. Please try again.');
     }
   };
 
@@ -393,23 +419,45 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                     <div className="flex items-center gap-3">
                       {vercelConfigured ? (
                         <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                      ) : dnsStatus?.error ? (
+                        <ExclamationTriangleIcon className="w-5 h-5 text-red-600" />
                       ) : (
                         <ClockIcon className="w-5 h-5 text-gray-400" />
                       )}
                       <div>
                         <h5 className="font-medium">Add to Vercel</h5>
                         <p className="text-sm text-gray-600">
-                          {vercelConfigured ? 'Domain added to Vercel' : 'Add domain to Vercel project'}
+                          {vercelConfigured 
+                            ? 'Domain added to Vercel' 
+                            : dnsStatus?.error 
+                              ? `Error: ${dnsStatus.error}`
+                              : 'Add domain to Vercel project'
+                          }
                         </p>
+                        {dnsStatus?.error && (
+                          <p className="text-xs text-red-600 mt-1">
+                            {dnsStatus.errorCode === '403' && 'Check Vercel configuration'}
+                            {dnsStatus.errorCode === '404' && 'Domain not found in project'}
+                            {dnsStatus.errorCode === 'DNS_CONFIG_ERROR' && 'DNS config failed to load'}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    {!vercelConfigured && (
+                    {!vercelConfigured && !dnsStatus?.error && (
                       <button
                         onClick={handleAddToVercel}
                         disabled={addingToVercel}
                         className="px-3 py-1 text-sm bg-black text-white rounded hover:bg-gray-800 disabled:opacity-50"
                       >
                         {addingToVercel ? 'Adding...' : 'Add to Vercel'}
+                      </button>
+                    )}
+                    {dnsStatus?.error && (
+                      <button
+                        onClick={loadDnsStatus}
+                        className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                      >
+                        Retry
                       </button>
                     )}
                   </div>
@@ -426,7 +474,10 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                         <div>
                           <h5 className="font-medium">Configure DNS</h5>
                           <p className="text-sm text-gray-600">
-                            {dnsStatus?.configured ? 'DNS configured' : 'Configure DNS records at your registrar'}
+                            {dnsStatus?.configured 
+                              ? 'DNS configured' 
+                              : 'Configure DNS records at your registrar'
+                            }
                           </p>
                         </div>
                       </div>
@@ -445,11 +496,14 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                         <div>
                           <h5 className="font-medium">Verify Domain</h5>
                           <p className="text-sm text-gray-600">
-                            {domain.customDomainVerified ? 'Domain verified' : 'Verify domain and get SSL certificate'}
+                            {domain.customDomainVerified 
+                              ? 'Domain verified' 
+                              : 'Verify domain and get SSL certificate'
+                            }
                           </p>
                         </div>
                       </div>
-                      {vercelConfigured && !domain.customDomainVerified && (
+                      {vercelConfigured && !domain.customDomainVerified && (dnsStatus?.configured === true) && (
                         <button
                           onClick={handleVerifyDomain}
                           disabled={verifying}
@@ -468,7 +522,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                     <DnsInfoPanel
                       records={dnsRecords}
                       nameServers={nameServers}
-                      configured={dnsStatus?.configured || false}
+                      configured={Boolean(dnsStatus?.configured)}
                       verified={domain.customDomainVerified}
                     />
                   </div>

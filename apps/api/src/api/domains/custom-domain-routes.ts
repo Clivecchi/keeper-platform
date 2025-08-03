@@ -587,21 +587,83 @@ router.get('/:domainId/custom-domain/status', requireDomainAdminCompat, async (r
     const domain = await domainService.getDomainById(domainId);
     if (!domain?.customDomain) return res.status(400).json({ error: 'No custom domain configured' });
 
+    console.log('API: Getting domain status for:', { domainId, customDomain: domain.customDomain });
+
     const svc = getVercelService();
     const status = await svc.getDomainStatus(domain.customDomain);
+    
+    console.log('API: Vercel status response:', {
+      domainId,
+      customDomain: domain.customDomain,
+      status
+    });
+
     let records: any[] = [];
     let configured = false;
     let nameServers: string[] = [];
+    let error = null;
+    let errorCode = null;
+
     if (status.attached) {
-      const cfg = await svc.getDomainConfig(domain.customDomain);
-      records = cfg.records;
-      configured = cfg.configured;
-      nameServers = cfg.nameServers || [];
+      try {
+        const cfg = await svc.getDomainConfig(domain.customDomain);
+        records = cfg.records;
+        configured = cfg.configured;
+        nameServers = cfg.nameServers || [];
+        
+        console.log('API: Domain config loaded:', {
+          domainId,
+          customDomain: domain.customDomain,
+          configured,
+          recordsCount: records.length,
+          nameServersCount: nameServers.length
+        });
+      } catch (configError) {
+        console.error('API: Failed to get domain config:', {
+          domainId,
+          customDomain: domain.customDomain,
+          error: configError
+        });
+        error = 'Failed to load DNS configuration';
+        errorCode = 'DNS_CONFIG_ERROR';
+      }
+    } else if (status.error) {
+      error = status.error;
+      errorCode = status.errorCode;
+      
+      console.log('API: Domain status error:', {
+        domainId,
+        customDomain: domain.customDomain,
+        error,
+        errorCode,
+        details: status.details
+      });
     }
-    return res.json({ attached: status.attached, verified: status.verified, configured, records, nameServers });
+
+    const response = {
+      attached: status.attached,
+      verified: status.verified,
+      configured,
+      records,
+      nameServers,
+      error,
+      errorCode,
+      details: status.details
+    };
+
+    console.log('API: Returning domain status:', {
+      domainId,
+      customDomain: domain.customDomain,
+      response
+    });
+
+    return res.json(response);
   } catch (err) {
-    console.error('Domain status error:', err);
-    return res.status(500).json({ error: 'Failed to fetch domain status' });
+    console.error('API: Domain status error:', err);
+    return res.status(500).json({ 
+      error: 'Failed to fetch domain status',
+      details: err instanceof Error ? err.message : 'Unknown error'
+    });
   }
 });
 
