@@ -113,6 +113,11 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
  */
 export const authMiddlewareCompat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const { addLog } = await import('../utils/LogStore.js');
+    addLog('auth-probe-enter', { path: req.path, headers: { authorization: req.header('Authorization') } });
+  } catch {}
+
+  try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {

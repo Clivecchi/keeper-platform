@@ -494,5 +494,10 @@ export const requireDomainOwnershipCompat = async (req: Request, res: Response, 
 };
 
 export const loadDomainPermissionsCompat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { addLog } = await import('../utils/LogStore.js');
+    addLog('perm-probe-enter', { domainContextExists: !!(req as any).domainContext, params: req.params });
+  } catch {}
+
   return loadDomainPermissions(req as DomainPermissionRequest, res, next);
 }; 
