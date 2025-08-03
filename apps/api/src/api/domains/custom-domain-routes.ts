@@ -580,6 +580,21 @@ router.post('/:domainId/custom-domain/verify', requireDomainAdminCompat, async (
   }
 });
 
+// GET /api/domains/:domainId/custom-domain/dns - return required DNS records
+router.get('/:domainId/custom-domain/dns', requireDomainAdminCompat, async (req: Request, res: Response) => {
+  try {
+    const { domainId } = req.params;
+    const domain = await domainService.getDomainById(domainId);
+    if (!domain?.customDomain) return res.status(400).json({ error: 'No custom domain configured' });
+
+    const cfg = await getVercelService().getDomainConfig(domain.customDomain);
+    return res.json(cfg); // { configured: boolean, records: [...] }
+  } catch (err) {
+    console.error('Get DNS config error:', err);
+    return res.status(500).json({ error: 'Failed to fetch DNS configuration' });
+  }
+});
+
 // DELETE /api/domains/:domainId/custom-domain
 router.delete('/:domainId/custom-domain', requireDomainAdminCompat, async (req: Request, res: Response) => {
   try {

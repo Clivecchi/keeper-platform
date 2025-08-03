@@ -27,6 +27,24 @@ const ROLES = [
 ];
 
 const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, onSave }) => {
+  // fetch DNS records on mount if domain exists and not verified
+  useEffect(() => {
+    const fetchDns = async () => {
+      if (!domain || !domain.customDomain || domain.customDomainVerified) return;
+      try {
+        const cfg = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain/dns`);
+        if (!cfg.configured && Array.isArray(cfg.records)) {
+          setDnsRecords(cfg.records);
+          setVercelConfigured(true);
+        }
+      } catch (e) {
+        // silent; maybe Vercel not yet provisioned
+      }
+    };
+    fetchDns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Basic form state
   const [form, setForm] = useState({
     name: '',
@@ -142,7 +160,11 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
       setSuccess('Domain verified successfully');
       setDnsRecords([]);
     } catch (err: any) {
-      setError(err.message || 'Failed to verify domain');
+      if (err.records) {
+        setDnsRecords(err.records);
+        setVercelConfigured(true);
+      }
+      setError(err.message || err.error || 'Failed to verify domain');
     } finally {
       setVerifying(false);
     }
