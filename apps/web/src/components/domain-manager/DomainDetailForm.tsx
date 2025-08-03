@@ -6,11 +6,11 @@ import {
   UserGroupIcon,
   GlobeAltIcon,
   PlusIcon,
-  TrashIcon
+  TrashIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 import { apiFetch } from '../../lib/api';
 import DnsInfoPanel from './DnsInfoPanel';
-import DomainProcessFlow from './DomainProcessFlow';
 import type { Domain, DomainDetailFormProps } from './types';
 
 interface Member {
@@ -43,6 +43,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
   const [verifying, setVerifying] = useState(false);
   const [addingToVercel, setAddingToVercel] = useState(false);
   const [vercelConfigured, setVercelConfigured] = useState(false);
+  const [dnsStatus, setDnsStatus] = useState<any>(null);
 
   // Members state
   const [members, setMembers] = useState<Member[]>([]);
@@ -87,6 +88,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
     if (!domain || !domain.customDomain) return;
     try {
       const status = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain/status`);
+      setDnsStatus(status);
       setVercelConfigured(status.attached);
       setDnsRecords(status.records || []);
       setNameServers(status.nameServers || []);
@@ -130,18 +132,65 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
     setSaving(true);
 
     try {
-      // Just update the domain in the database
       const response = await apiFetch(`/api/domains/${domain.id}`, {
         method: 'PUT',
         body: JSON.stringify({ customDomain })
       });
       setSuccess('Custom domain added successfully');
-      // Refresh DNS status
       setTimeout(() => loadDnsStatus(), 1000);
     } catch (err: any) {
       setError(err.message || 'Failed to add custom domain');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Handle adding domain to Vercel
+  const handleAddToVercel = async () => {
+    if (!domain || !domain.customDomain) return;
+    setAddingToVercel(true);
+    setError(null);
+
+    try {
+      const response = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain`, {
+        method: 'POST',
+        body: JSON.stringify({ customDomain: domain.customDomain })
+      });
+      
+      if (response.success) {
+        setSuccess('Domain added to Vercel successfully');
+        await loadDnsStatus();
+      } else {
+        setError(response.error || 'Failed to add domain to Vercel');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to add domain to Vercel');
+    } finally {
+      setAddingToVercel(false);
+    }
+  };
+
+  // Handle domain verification
+  const handleVerifyDomain = async () => {
+    if (!domain || !domain.customDomain) return;
+    setVerifying(true);
+    setError(null);
+
+    try {
+      const response = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain/verify`, {
+        method: 'POST'
+      });
+      
+      if (response.success) {
+        setSuccess('Domain verified successfully');
+        await loadDnsStatus();
+      } else {
+        setError(response.error || 'Failed to verify domain');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to verify domain');
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -220,7 +269,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
   };
 
   return (
-    <div className="bg-white p-6">
+    <div className="bg-white p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold">
           {domain ? 'Edit Domain' : 'Create New Domain'}
@@ -250,48 +299,11 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
         </div>
       )}
 
-      <div className="space-y-4">
-        <div className="flex space-x-4 border-b mb-4">
-          <button
-            className={`px-4 py-2 border-b-2 ${
-              activeTab === 'details' ? 'border-blue-600 text-blue-600' : 'border-transparent'
-            }`}
-            onClick={() => setActiveTab('details')}
-          >
-            Details
-          </button>
-          {domain && (
-            <>
-              <button
-                className={`px-4 py-2 border-b-2 ${
-                  activeTab === 'process' ? 'border-blue-600 text-blue-600' : 'border-transparent'
-                }`}
-                onClick={() => setActiveTab('process')}
-              >
-                Setup Process
-              </button>
-              <button
-                className={`px-4 py-2 border-b-2 ${
-                  activeTab === 'custom-domain' ? 'border-blue-600 text-blue-600' : 'border-transparent'
-                }`}
-                onClick={() => setActiveTab('custom-domain')}
-              >
-                Custom Domain
-              </button>
-              <button
-                className={`px-4 py-2 border-b-2 ${
-                  activeTab === 'members' ? 'border-blue-600 text-blue-600' : 'border-transparent'
-                }`}
-                onClick={() => setActiveTab('members')}
-              >
-                Members
-              </button>
-            </>
-          )}
-        </div>
-
-        {activeTab === 'details' && (
-          <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-6">
+        {/* Domain Details */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h4 className="font-medium mb-3">Domain Information</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Domain Name *</label>
               <input
@@ -304,7 +316,6 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                 disabled={saving}
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-1">Domain Slug</label>
               <input
@@ -316,8 +327,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                 disabled={saving}
               />
             </div>
-
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium mb-1">Description</label>
               <textarea
                 value={form.description}
@@ -328,168 +338,196 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                 disabled={saving}
               />
             </div>
+          </div>
+          <div className="mt-4">
+            <button
+              onClick={handleSubmit}
+              disabled={saving || !form.name.trim()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : domain ? 'Save Changes' : 'Create Domain'}
+            </button>
+          </div>
+        </div>
 
-            <div className="flex justify-end gap-3 pt-4">
-              {onClose && (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2 border rounded-md hover:bg-gray-50"
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
-              )}
-              <button
-                type="submit"
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                disabled={saving || !form.name.trim()}
-              >
-                {saving ? 'Saving...' : domain ? 'Save Changes' : 'Create Domain'}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {activeTab === 'process' && domain && (
-          <DomainProcessFlow 
-            domain={domain} 
-            onRefresh={loadDnsStatus}
-          />
-        )}
-
-        {activeTab === 'custom-domain' && domain && (
-          <div className="space-y-6">
-            <div>
-              <h4 className="font-medium mb-2">Custom Domain</h4>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={customDomain}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomDomain(e.target.value)}
-                  className="flex-1 px-3 py-2 border rounded-md"
-                  placeholder="your-domain.com"
-                  disabled={saving}
-                />
-                <button
-                  onClick={handleAddCustomDomain}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                  disabled={saving || !customDomain}
-                >
-                  Add Domain
-                </button>
-              </div>
-            </div>
-
-            {domain.customDomain && (
-              <div className="space-y-4">
-                {/* Show DNS information if available */}
-                {dnsRecords.length > 0 || nameServers.length > 0 ? (
-                  <DnsInfoPanel
-                    records={dnsRecords}
-                    nameServers={nameServers}
-                    configured={vercelConfigured}
-                    verified={domain.customDomainVerified}
+        {/* Custom Domain Setup */}
+        {domain && (
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-medium mb-3">Custom Domain Setup</h4>
+            
+            {!domain.customDomain ? (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">Add a custom domain to your Keeper platform.</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={customDomain}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomDomain(e.target.value)}
+                    className="flex-1 px-3 py-2 border rounded-md"
+                    placeholder="your-domain.com"
+                    disabled={saving}
                   />
-                ) : (
-                  <div className="text-sm text-gray-500">
-                    DNS information will appear here after adding the domain to Vercel.
+                  <button
+                    onClick={handleAddCustomDomain}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    disabled={saving || !customDomain}
+                  >
+                    Add Domain
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <GlobeAltIcon className="w-5 h-5 text-blue-600" />
+                  <span className="font-medium">{domain.customDomain}</span>
+                  {domain.customDomainVerified && (
+                    <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                  )}
+                </div>
+
+                {/* Domain Setup Process */}
+                <div className="space-y-3">
+                  {/* Step 1: Add to Vercel */}
+                  <div className="flex items-center justify-between p-3 bg-white rounded border">
+                    <div className="flex items-center gap-3">
+                      {vercelConfigured ? (
+                        <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <ClockIcon className="w-5 h-5 text-gray-400" />
+                      )}
+                      <div>
+                        <h5 className="font-medium">Add to Vercel</h5>
+                        <p className="text-sm text-gray-600">
+                          {vercelConfigured ? 'Domain added to Vercel' : 'Add domain to Vercel project'}
+                        </p>
+                      </div>
+                    </div>
+                    {!vercelConfigured && (
+                      <button
+                        onClick={handleAddToVercel}
+                        disabled={addingToVercel}
+                        className="px-3 py-1 text-sm bg-black text-white rounded hover:bg-gray-800 disabled:opacity-50"
+                      >
+                        {addingToVercel ? 'Adding...' : 'Add to Vercel'}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Step 2: Configure DNS */}
+                  {vercelConfigured && (
+                    <div className="flex items-center justify-between p-3 bg-white rounded border">
+                      <div className="flex items-center gap-3">
+                        {dnsStatus?.configured ? (
+                          <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <ClockIcon className="w-5 h-5 text-yellow-600" />
+                        )}
+                        <div>
+                          <h5 className="font-medium">Configure DNS</h5>
+                          <p className="text-sm text-gray-600">
+                            {dnsStatus?.configured ? 'DNS configured' : 'Configure DNS records at your registrar'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 3: Verify Domain */}
+                  {vercelConfigured && (
+                    <div className="flex items-center justify-between p-3 bg-white rounded border">
+                      <div className="flex items-center gap-3">
+                        {domain.customDomainVerified ? (
+                          <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <ClockIcon className="w-5 h-5 text-gray-400" />
+                        )}
+                        <div>
+                          <h5 className="font-medium">Verify Domain</h5>
+                          <p className="text-sm text-gray-600">
+                            {domain.customDomainVerified ? 'Domain verified' : 'Verify domain and get SSL certificate'}
+                          </p>
+                        </div>
+                      </div>
+                      {vercelConfigured && !domain.customDomainVerified && (
+                        <button
+                          onClick={handleVerifyDomain}
+                          disabled={verifying}
+                          className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {verifying ? 'Verifying...' : 'Verify Domain'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* DNS Information */}
+                {(dnsRecords.length > 0 || nameServers.length > 0) && (
+                  <div className="mt-4">
+                    <DnsInfoPanel
+                      records={dnsRecords}
+                      nameServers={nameServers}
+                      configured={dnsStatus?.configured || false}
+                      verified={domain.customDomainVerified}
+                    />
                   </div>
                 )}
-              </div>
-            )}
-
-            {domain.customDomain && domain.customDomainVerified && (
-              <div className="flex items-center gap-2 text-green-600">
-                <CheckCircleIcon className="w-5 h-5" />
-                <span>Domain verified: {domain.customDomain}</span>
               </div>
             )}
           </div>
         )}
 
-        {activeTab === 'members' && domain && (
-          <div className="space-y-6">
-            <div>
-              <h4 className="font-medium mb-2">Add Member</h4>
-              <div className="space-y-4">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={userSearch}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUserSearch(e.target.value)}
-                    placeholder="Search users by name or email"
-                    className="w-full px-3 py-2 border rounded-md"
-                  />
-                  {searchResults.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
-                      {searchResults.map(user => (
-                        <button
-                          key={user.id}
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setUserSearch('');
-                            setSearchResults([]);
-                          }}
-                          className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
-                        >
-                          <div>
-                            <div className="font-medium">{user.name}</div>
-                            <div className="text-sm text-gray-500">{user.email}</div>
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            Joined {new Date(user.createdAt).toLocaleDateString()}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {selectedUser && (
-                  <div className="flex gap-2 items-center p-2 bg-gray-50 rounded-md">
-                    <div className="flex-1">
-                      <div className="font-medium">{selectedUser.name}</div>
-                      <div className="text-sm text-gray-500">{selectedUser.email}</div>
-                    </div>
-                    <select
-                      value={newMemberRole}
-                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewMemberRole(e.target.value)}
-                      className="px-3 py-2 border rounded-md"
-                    >
-                      {ROLES.map(role => (
-                        <option key={role.value} value={role.value}>
-                          {role.label}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={handleAddMember}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    >
-                      Add
-                    </button>
+        {/* Members */}
+        {domain && (
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-medium mb-3">Domain Members</h4>
+            <div className="space-y-4">
+              <div>
+                <h5 className="text-sm font-medium mb-2">Add Member</h5>
+                <div className="space-y-3">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={userSearch}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUserSearch(e.target.value)}
+                      placeholder="Search users by name or email"
+                      className="w-full px-3 py-2 border rounded-md"
+                    />
+                    {searchResults.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                        {searchResults.map(user => (
+                          <button
+                            key={user.id}
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setUserSearch('');
+                              setSearchResults([]);
+                            }}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
+                          >
+                            <div>
+                              <div className="font-medium">{user.name}</div>
+                              <div className="text-sm text-gray-500">{user.email}</div>
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              Joined {new Date(user.createdAt).toLocaleDateString()}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
 
-            <div>
-              <h4 className="font-medium mb-2">Members</h4>
-              <div className="space-y-2">
-                {members.map(member => (
-                  <div
-                    key={member.userId}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
-                  >
-                    <div>
-                      <p className="font-medium">{member.name}</p>
-                      <p className="text-sm text-gray-500">{member.userId}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                  {selectedUser && (
+                    <div className="flex gap-2 items-center p-2 bg-white rounded border">
+                      <div className="flex-1">
+                        <div className="font-medium">{selectedUser.name}</div>
+                        <div className="text-sm text-gray-500">{selectedUser.email}</div>
+                      </div>
                       <select
-                        value={member.role}
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleUpdateMemberRole(member.userId, e.target.value)}
+                        value={newMemberRole}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewMemberRole(e.target.value)}
                         className="px-3 py-2 border rounded-md"
                       >
                         {ROLES.map(role => (
@@ -499,14 +537,50 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                         ))}
                       </select>
                       <button
-                        onClick={() => handleRemoveMember(member.userId)}
-                        className="p-2 text-gray-500 hover:text-red-600"
+                        onClick={handleAddMember}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                       >
-                        <TrashIcon className="w-4 h-4" />
+                        Add
                       </button>
                     </div>
-                  </div>
-                ))}
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h5 className="text-sm font-medium mb-2">Current Members</h5>
+                <div className="space-y-2">
+                  {members.map(member => (
+                    <div
+                      key={member.userId}
+                      className="flex items-center justify-between p-3 bg-white rounded border"
+                    >
+                      <div>
+                        <p className="font-medium">{member.name}</p>
+                        <p className="text-sm text-gray-500">{member.userId}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={member.role}
+                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleUpdateMemberRole(member.userId, e.target.value)}
+                          className="px-3 py-2 border rounded-md"
+                        >
+                          {ROLES.map(role => (
+                            <option key={role.value} value={role.value}>
+                              {role.label}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => handleRemoveMember(member.userId)}
+                          className="p-2 text-gray-500 hover:text-red-600"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
