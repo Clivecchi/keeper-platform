@@ -72,7 +72,7 @@ export class DomainContextService {
       
       try {
         return JSON.parse(raw) as T;
-      } catch (parseError) {
+      } catch (parseError: unknown) {
         logger.warn(`Failed to parse cached value for key ${fullKey}:`, parseError);
         return null;
              }
@@ -156,7 +156,7 @@ export class DomainContextService {
           try {
             result[key] = JSON.parse(raw) as T;
             this.incrementMetric('hits');
-          } catch (parseError) {
+          } catch (parseError: unknown) {
             logger.warn(`Failed to parse cached value for key ${key}:`, parseError);
             result[key] = null;
           }

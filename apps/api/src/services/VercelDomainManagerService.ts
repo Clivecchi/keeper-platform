@@ -150,7 +150,7 @@ export class VercelDomainManagerService {
           dnsRecords: data.dns?.length || 0
         });
         return { dnsRecords: data.dns || [] };
-      } catch (parseError) {
+      } catch (parseError: unknown) {
         console.error('Vercel: Failed to parse response:', parseError);
         throw new Error('Invalid response from Vercel API.');
       }
@@ -198,7 +198,7 @@ export class VercelDomainManagerService {
         records: data.records || [],
         nameServers: data.nameservers || data.nameServers || []
       };
-    } catch (parseError) {
+    } catch (parseError: unknown) {
       console.error('Vercel: Failed to parse domain config:', parseError);
       throw new Error('Invalid domain config response from Vercel API.');
     }
@@ -263,13 +263,13 @@ export class VercelDomainManagerService {
           verified: !!data.verified,
           details: data
         };
-      } catch (parseError) {
+      } catch (parseError: unknown) {
         console.error('Vercel: Failed to parse domain status:', parseError);
         return {
           attached: false,
           verified: false,
           error: 'Invalid response from Vercel API',
-          details: { parseError: parseError.message }
+          details: { parseError: (parseError as Error).message }
         };
       }
     } catch (error) {
