@@ -681,6 +681,19 @@ router.post('/vercel-test', async (req, res) => {
   }
 });
 
+// GET /api/debug/env-check
+router.get('/env-check', async (_req, res) => {
+  return res.json({
+    success: true,
+    env: {
+      VERCEL_TOKEN: process.env.VERCEL_TOKEN ? `${process.env.VERCEL_TOKEN.substring(0, 10)}...` : 'NOT SET',
+      VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID || 'NOT SET',
+      VERCEL_TEAM_ID: process.env.VERCEL_TEAM_ID || 'NOT SET',
+      NODE_ENV: process.env.NODE_ENV || 'NOT SET'
+    }
+  });
+});
+
 // GET /api/debug/logs – return recent internal logs (Vercel etc.)
 router.get('/logs', async (_req, res) => {
   const { getLogs } = await import('../utils/LogStore.js');

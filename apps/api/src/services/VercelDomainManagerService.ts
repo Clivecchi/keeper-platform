@@ -26,7 +26,9 @@ export class VercelDomainManagerService {
     if (!projectId) throw new Error('VERCEL_PROJECT_ID env var is required');
     this.token = token;
     this.projectId = projectId;
-    this.teamId = process.env.VERCEL_TEAM_ID;
+    // Temporarily disable team context to test with personal account
+    // this.teamId = process.env.VERCEL_TEAM_ID;
+    this.teamId = undefined;
   }
 
   private get headers() {
