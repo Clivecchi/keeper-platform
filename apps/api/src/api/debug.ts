@@ -681,12 +681,87 @@ router.post('/vercel-test', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/debug/test-dns-status
+ * Test DNS status for a specific domain
+ */
+router.post('/test-dns-status', async (req, res) => {
+  try {
+    const { domain } = req.body;
+    
+    if (!domain) {
+      return res.status(400).json({
+        success: false,
+        error: 'Domain is required'
+      });
+    }
+
+    console.log('[Debug] Testing DNS status for domain:', domain);
+
+    // Check Vercel configuration
+    const vercelConfig = {
+      token: process.env.VERCEL_TOKEN ? '***HIDDEN***' : undefined,
+      projectId: process.env.VERCEL_PROJECT_ID,
+      hasToken: !!process.env.VERCEL_TOKEN,
+      hasProjectId: !!process.env.VERCEL_PROJECT_ID
+    };
+
+    // Import the Vercel service
+    const { VercelDomainManagerService } = await import('../services/VercelDomainManagerService.js');
+    
+    // Initialize service
+    const vercelService = new VercelDomainManagerService(
+      process.env.VERCEL_TOKEN || '',
+      process.env.VERCEL_PROJECT_ID || ''
+    );
+
+    // Test domain status
+    console.log('[Debug] Testing domain status for:', domain);
+    const status = await vercelService.getDomainStatus(domain);
+
+    // Test domain config
+    let config = null;
+    let configError = null;
+    try {
+      console.log('[Debug] Testing domain config for:', domain);
+      config = await vercelService.getDomainConfig(domain);
+    } catch (error) {
+      configError = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[Debug] Domain config error:', error);
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        domain,
+        vercel_config: vercelConfig,
+        status,
+        config,
+        configError,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('[Debug] DNS status test error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to test DNS status',
+      vercel_config: {
+        token: process.env.VERCEL_TOKEN ? '***HIDDEN***' : undefined,
+        projectId: process.env.VERCEL_PROJECT_ID,
+        hasToken: !!process.env.VERCEL_TOKEN,
+        hasProjectId: !!process.env.VERCEL_PROJECT_ID
+      }
+    });
+  }
+});
+
 // GET /api/debug/env-check
 router.get('/env-check', async (_req, res) => {
   return res.json({
     success: true,
     env: {
-      VERCEL_TOKEN: process.env.VERCEL_TOKEN ? `${process.env.VERCEL_TOKEN.substring(0, 10)}...` : 'NOT SET',
+      VERCEL_TOKEN: process.env.VERCEL_TOKEN ? '***HIDDEN***' : 'NOT SET',
       VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID || 'NOT SET',
       VERCEL_TEAM_ID: process.env.VERCEL_TEAM_ID || 'NOT SET',
       NODE_ENV: process.env.NODE_ENV || 'NOT SET'

@@ -188,15 +188,21 @@ export class VercelDomainManagerService {
     
     try {
       const data = JSON.parse(responseText) as any;
+      
+      // Fix: Check the correct fields for DNS configuration
+      const configured = !data.misconfigured && (data.configuredBy || data.nameservers?.length > 0);
+      
       console.log('Vercel: Domain config parsed:', {
         domain,
-        configured: data.configured,
+        configured,
+        misconfigured: data.misconfigured,
+        configuredBy: data.configuredBy,
         recordsCount: data.records?.length || 0,
         nameServersCount: (data.nameservers || data.nameServers)?.length || 0
       });
       
       return {
-        configured: data.configured || false,
+        configured: configured,
         records: data.records || [],
         nameServers: data.nameservers || data.nameServers || []
       };
