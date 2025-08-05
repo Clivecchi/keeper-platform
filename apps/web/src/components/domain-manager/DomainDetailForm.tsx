@@ -142,18 +142,30 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submission triggered:', form);
+    
+    // Send debug info to our debug endpoint
+    try {
+      await apiFetch('/api/debug/form-debug', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'form_submit',
+          form_data: form,
+          domain_id: domain?.id,
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (debugErr) {
+      // Ignore debug errors
+    }
+    
     setError(null);
     setSaving(true);
 
     try {
-      console.log('Calling onSave with form data:', form);
       await onSave(form);
-      console.log('onSave completed successfully');
       setSuccess('Domain saved successfully');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
-      console.error('Form submission error:', err);
       setError(err.message || 'Failed to save domain');
     } finally {
       setSaving(false);
@@ -163,10 +175,24 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
   // Handle custom domain addition
   const handleAddCustomDomain = async () => {
     if (!domain || !customDomain) {
-      console.log('Add custom domain blocked:', { domain: !!domain, customDomain });
       return;
     }
-    console.log('Adding custom domain:', customDomain);
+    
+    // Send debug info to our debug endpoint
+    try {
+      await apiFetch('/api/debug/form-debug', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'add_custom_domain',
+          domain_id: domain.id,
+          custom_domain: customDomain,
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (debugErr) {
+      // Ignore debug errors
+    }
+    
     setError(null);
     setSaving(true);
 
@@ -175,11 +201,9 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
         method: 'PUT',
         body: JSON.stringify({ customDomain })
       });
-      console.log('Custom domain added successfully:', response);
       setSuccess('Custom domain added successfully');
       setTimeout(() => loadDnsStatus(), 1000);
     } catch (err: any) {
-      console.error('Failed to add custom domain:', err);
       setError(err.message || 'Failed to add custom domain');
     } finally {
       setSaving(false);
@@ -367,6 +391,20 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                 <button
                   type="submit"
                   disabled={saving}
+                  onClick={async () => {
+                    try {
+                      await apiFetch('/api/debug/form-debug', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                          action: 'submit_button_clicked',
+                          domain_id: domain?.id,
+                          timestamp: new Date().toISOString()
+                        })
+                      });
+                    } catch (debugErr) {
+                      // Ignore debug errors
+                    }
+                  }}
                   className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save Changes'}
@@ -392,7 +430,22 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                         disabled={saving}
                       />
                       <button
-                        onClick={handleAddCustomDomain}
+                        onClick={async () => {
+                          try {
+                            await apiFetch('/api/debug/form-debug', {
+                              method: 'POST',
+                              body: JSON.stringify({
+                                action: 'add_domain_button_clicked',
+                                domain_id: domain?.id,
+                                custom_domain: customDomain,
+                                timestamp: new Date().toISOString()
+                              })
+                            });
+                          } catch (debugErr) {
+                            // Ignore debug errors
+                          }
+                          handleAddCustomDomain();
+                        }}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                         disabled={saving || !customDomain}
                       >

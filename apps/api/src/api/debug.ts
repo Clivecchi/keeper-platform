@@ -50,6 +50,33 @@ router.get('/railway-status', (req, res) => {
   });
 });
 
+// Form submission debug endpoint
+router.post('/form-debug', (req, res) => {
+  logger.info('Form debug endpoint hit', { 
+    body: req.body,
+    headers: req.headers,
+    method: req.method,
+    url: req.url,
+    timestamp: new Date().toISOString()
+  });
+  
+  res.json({
+    success: true,
+    message: 'Form debug data received',
+    received_data: req.body,
+    headers: {
+      'content-type': req.headers['content-type'],
+      'authorization': req.headers.authorization ? 'Bearer ***' : 'none',
+      'user-agent': req.headers['user-agent']
+    },
+    server_info: {
+      timestamp: new Date().toISOString(),
+      method: req.method,
+      url: req.url
+    }
+  });
+});
+
 // Database connectivity test endpoint
 router.get('/database', async (req, res) => {
   logger.info('Database test endpoint hit');
