@@ -97,15 +97,18 @@ const DomainManager: React.FC<Props> = ({ scope, allowCreate = true }) => {
   };
 
   const handleUpdateDomain = async (domainId: string, formData: { name: string; slug: string; description: string }) => {
+    console.log('handleUpdateDomain called:', { domainId, formData });
     try {
       const response = await apiFetch(`/api/domains/${domainId}`, {
         method: 'PATCH',
         body: JSON.stringify(formData)
       });
+      console.log('Domain update response:', response);
       setDomains(domains.map(d => d.id === domainId ? response.domain : d));
       setSelectedDomain(response.domain);
       setShowDetail(false);
     } catch (err: any) {
+      console.error('Domain update error:', err);
       throw new Error(err.message || 'Failed to update domain');
     }
   };

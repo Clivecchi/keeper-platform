@@ -142,14 +142,18 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submission triggered:', form);
     setError(null);
     setSaving(true);
 
     try {
+      console.log('Calling onSave with form data:', form);
       await onSave(form);
+      console.log('onSave completed successfully');
       setSuccess('Domain saved successfully');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
+      console.error('Form submission error:', err);
       setError(err.message || 'Failed to save domain');
     } finally {
       setSaving(false);
@@ -158,7 +162,11 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
 
   // Handle custom domain addition
   const handleAddCustomDomain = async () => {
-    if (!domain || !customDomain) return;
+    if (!domain || !customDomain) {
+      console.log('Add custom domain blocked:', { domain: !!domain, customDomain });
+      return;
+    }
+    console.log('Adding custom domain:', customDomain);
     setError(null);
     setSaving(true);
 
@@ -167,9 +175,11 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
         method: 'PUT',
         body: JSON.stringify({ customDomain })
       });
+      console.log('Custom domain added successfully:', response);
       setSuccess('Custom domain added successfully');
       setTimeout(() => loadDnsStatus(), 1000);
     } catch (err: any) {
+      console.error('Failed to add custom domain:', err);
       setError(err.message || 'Failed to add custom domain');
     } finally {
       setSaving(false);
@@ -319,7 +329,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
             {/* Domain Information */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <h4 className="font-medium mb-3">Domain Information</h4>
-              <div className="space-y-3">
+              <form onSubmit={handleSubmit} className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Domain Name *
@@ -355,13 +365,13 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                   />
                 </div>
                 <button
-                  onClick={handleSubmit}
+                  type="submit"
                   disabled={saving}
                   className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save Changes'}
                 </button>
-              </div>
+              </form>
             </div>
 
             {/* Custom Domain Setup */}
