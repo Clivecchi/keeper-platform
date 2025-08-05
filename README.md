@@ -9,6 +9,27 @@ This project contains a **React frontend** (for Vercel) and an **Express backend
 - **Frontend**: `React` `Vite` `TypeScript` `TailwindCSS` `Shadcn` `Framer Motion`
 - **Backend**: `Express.js` `Prisma` `Zod` `PostgreSQL`
 
+### Environment Setup
+
+**⚠️ Security Note**: Never commit `.env` files to Git. They contain sensitive information.
+
+1. **Copy the example environment file:**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+2. **Configure your environment variables:**
+   - `VERCEL_TOKEN`: Your Vercel API token
+   - `VERCEL_PROJECT_ID`: Your Vercel project ID
+   - `VERCEL_TEAM_ID`: Your Vercel team ID (optional)
+   - `DATABASE_URL`: Your PostgreSQL database URL
+   - `JWT_SECRET`: A secure random string for JWT signing
+
+3. **For Railway deployment:**
+   - Go to your Railway project dashboard
+   - Navigate to your service → Variables
+   - Add all required environment variables
+
 ### Running Locally
 
 1.  **Install dependencies:**
@@ -65,3 +86,5 @@ This project contains both a **React frontend** (for Vercel) and an **Express ba
 ```bash
 pnpm run build        # Runs Vite + tsconfig.app.json
 pnpm run dev          # Local dev server for frontend
+
+```

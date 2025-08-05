@@ -7,7 +7,8 @@ import {
   GlobeAltIcon,
   PlusIcon,
   TrashIcon,
-  ClockIcon
+  ClockIcon,
+  ClipboardDocumentIcon
 } from '@heroicons/react/24/outline';
 import { apiFetch } from '../../lib/api';
 import DnsInfoPanel from './DnsInfoPanel';
@@ -44,6 +45,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
   const [addingToVercel, setAddingToVercel] = useState(false);
   const [vercelConfigured, setVercelConfigured] = useState(false);
   const [dnsStatus, setDnsStatus] = useState<any>(null);
+  const [loadingDns, setLoadingDns] = useState(false);
 
   // Members state
   const [members, setMembers] = useState<Member[]>([]);
@@ -86,6 +88,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
   // Load DNS status
   const loadDnsStatus = async () => {
     if (!domain || !domain.customDomain) return;
+    setLoadingDns(true);
     try {
       const status = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain/status`);
       console.log('Frontend: DNS status loaded:', { domain: domain.customDomain, status });
@@ -120,6 +123,8 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
     } catch (err) {
       console.error('Frontend: Error loading DNS status:', err);
       setError('Failed to load domain status. Please try again.');
+    } finally {
+      setLoadingDns(false);
     }
   };
 
@@ -295,350 +300,397 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
   };
 
   return (
-    <div className="bg-white p-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold">
-          {domain ? 'Edit Domain' : 'Create New Domain'}
-        </h3>
-        {onClose && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-semibold">Edit Domain</h2>
           <button
-            type="button"
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-400 hover:text-gray-600"
           >
-            <XMarkIcon className="w-5 h-5" />
+            <XMarkIcon className="w-6 h-6" />
           </button>
-        )}
-      </div>
-
-      {error && (
-        <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-3 flex items-center gap-2 text-red-700">
-          <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0" />
-          <p className="text-sm">{error}</p>
-        </div>
-      )}
-
-      {success && (
-        <div className="mb-4 bg-green-50 border border-green-200 rounded-md p-3 flex items-center gap-2 text-green-700">
-          <CheckCircleIcon className="w-5 h-5 flex-shrink-0" />
-          <p className="text-sm">{success}</p>
-        </div>
-      )}
-
-      <div className="space-y-6">
-        {/* Domain Details */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h4 className="font-medium mb-3">Domain Information</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Domain Name *</label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md"
-                placeholder="Enter domain name"
-                required
-                disabled={saving}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Domain Slug</label>
-              <input
-                type="text"
-                value={form.slug}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, slug: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md"
-                placeholder="domain-slug"
-                disabled={saving}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-1">Description</label>
-              <textarea
-                value={form.description}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setForm({ ...form, description: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md"
-                rows={3}
-                placeholder="Describe your domain..."
-                disabled={saving}
-              />
-            </div>
-          </div>
-          <div className="mt-4">
-            <button
-              onClick={handleSubmit}
-              disabled={saving || !form.name.trim()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : domain ? 'Save Changes' : 'Create Domain'}
-            </button>
-          </div>
         </div>
 
-        {/* Custom Domain Setup */}
-        {domain && (
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-medium mb-3">Custom Domain Setup</h4>
-            
-            {!domain.customDomain ? (
+        {/* Content - Scrollable */}
+        <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="p-6 space-y-6">
+            {/* Domain Information */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-3">Domain Information</h4>
               <div className="space-y-3">
-                <p className="text-sm text-gray-600">Add a custom domain to your Keeper platform.</p>
-                <div className="flex gap-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Domain Name *
+                  </label>
                   <input
                     type="text"
-                    value={customDomain}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomDomain(e.target.value)}
-                    className="flex-1 px-3 py-2 border rounded-md"
-                    placeholder="your-domain.com"
-                    disabled={saving}
+                    value={form.name}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                    required
                   />
-                  <button
-                    onClick={handleAddCustomDomain}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                    disabled={saving || !customDomain}
-                  >
-                    Add Domain
-                  </button>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Domain Slug
+                  </label>
+                  <input
+                    type="text"
+                    value={form.slug}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, slug: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={form.description}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setForm({ ...form, description: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                    rows={3}
+                  />
+                </div>
+                <button
+                  onClick={handleSubmit}
+                  disabled={saving}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <GlobeAltIcon className="w-5 h-5 text-blue-600" />
-                  <span className="font-medium">{domain.customDomain}</span>
-                  {domain.customDomainVerified && (
-                    <CheckCircleIcon className="w-5 h-5 text-green-600" />
-                  )}
-                </div>
+            </div>
 
-                {/* Domain Setup Process */}
-                <div className="space-y-3">
-                  {/* Step 1: Add to Vercel */}
-                  <div className="flex items-center justify-between p-3 bg-white rounded border">
-                    <div className="flex items-center gap-3">
-                      {vercelConfigured ? (
-                        <CheckCircleIcon className="w-5 h-5 text-green-600" />
-                      ) : dnsStatus?.error ? (
-                        <ExclamationTriangleIcon className="w-5 h-5 text-red-600" />
-                      ) : (
-                        <ClockIcon className="w-5 h-5 text-gray-400" />
-                      )}
-                      <div>
-                        <h5 className="font-medium">Add to Vercel</h5>
-                        <p className="text-sm text-gray-600">
-                          {vercelConfigured 
-                            ? 'Domain added to Vercel' 
-                            : dnsStatus?.error 
-                              ? `Error: ${dnsStatus.error}`
-                              : 'Add domain to Vercel project'
-                          }
-                        </p>
-                        {dnsStatus?.error && (
-                          <p className="text-xs text-red-600 mt-1">
-                            {dnsStatus.errorCode === '403' && 'Check Vercel configuration'}
-                            {dnsStatus.errorCode === '404' && 'Domain not found in project'}
-                            {dnsStatus.errorCode === 'DNS_CONFIG_ERROR' && 'DNS config failed to load'}
-                          </p>
-                        )}
-                      </div>
+            {/* Custom Domain Setup */}
+            {domain && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-3">Custom Domain Setup</h4>
+                
+                {!domain.customDomain ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600">Add a custom domain to your Keeper platform.</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={customDomain}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomDomain(e.target.value)}
+                        className="flex-1 px-3 py-2 border rounded-md"
+                        placeholder="your-domain.com"
+                        disabled={saving}
+                      />
+                      <button
+                        onClick={handleAddCustomDomain}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                        disabled={saving || !customDomain}
+                      >
+                        Add Domain
+                      </button>
                     </div>
-                    {!vercelConfigured && !dnsStatus?.error && (
-                      <button
-                        onClick={handleAddToVercel}
-                        disabled={addingToVercel}
-                        className="px-3 py-1 text-sm bg-black text-white rounded hover:bg-gray-800 disabled:opacity-50"
-                      >
-                        {addingToVercel ? 'Adding...' : 'Add to Vercel'}
-                      </button>
-                    )}
-                    {dnsStatus?.error && (
-                      <button
-                        onClick={loadDnsStatus}
-                        className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                      >
-                        Retry
-                      </button>
-                    )}
                   </div>
-
-                  {/* Step 2: Configure DNS */}
-                  {vercelConfigured && (
-                    <div className="flex items-center justify-between p-3 bg-white rounded border">
-                      <div className="flex items-center gap-3">
-                        {dnsStatus?.configured ? (
-                          <CheckCircleIcon className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <ClockIcon className="w-5 h-5 text-yellow-600" />
-                        )}
-                        <div>
-                          <h5 className="font-medium">Configure DNS</h5>
-                          <p className="text-sm text-gray-600">
-                            {dnsStatus?.configured 
-                              ? 'DNS configured' 
-                              : 'Configure DNS records at your registrar'
-                            }
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Step 3: Verify Domain */}
-                  {vercelConfigured && (
-                    <div className="flex items-center justify-between p-3 bg-white rounded border">
-                      <div className="flex items-center gap-3">
-                        {domain.customDomainVerified ? (
-                          <CheckCircleIcon className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <ClockIcon className="w-5 h-5 text-gray-400" />
-                        )}
-                        <div>
-                          <h5 className="font-medium">Verify Domain</h5>
-                          <p className="text-sm text-gray-600">
-                            {domain.customDomainVerified 
-                              ? 'Domain verified' 
-                              : 'Verify domain and get SSL certificate'
-                            }
-                          </p>
-                        </div>
-                      </div>
-                      {vercelConfigured && !domain.customDomainVerified && (dnsStatus?.configured === true) && (
-                        <button
-                          onClick={handleVerifyDomain}
-                          disabled={verifying}
-                          className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                        >
-                          {verifying ? 'Verifying...' : 'Verify Domain'}
-                        </button>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <GlobeAltIcon className="w-5 h-5 text-blue-600" />
+                      <span className="font-medium">{domain.customDomain}</span>
+                      {domain.customDomainVerified && (
+                        <CheckCircleIcon className="w-5 h-5 text-green-600" />
                       )}
                     </div>
-                  )}
-                </div>
 
-                {/* DNS Information */}
-                {(dnsRecords.length > 0 || nameServers.length > 0) && (
-                  <div className="mt-4">
-                    <DnsInfoPanel
-                      records={dnsRecords}
-                      nameServers={nameServers}
-                      configured={Boolean(dnsStatus?.configured)}
-                      verified={domain.customDomainVerified}
-                    />
+                    {/* Domain Setup Process */}
+                    <div className="space-y-3">
+                      {/* Step 1: Add to Vercel */}
+                      <div className="flex items-center justify-between p-3 bg-white rounded border">
+                        <div className="flex items-center gap-3">
+                          {vercelConfigured ? (
+                            <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                          ) : dnsStatus?.error ? (
+                            <ExclamationTriangleIcon className="w-5 h-5 text-red-600" />
+                          ) : (
+                            <ClockIcon className="w-5 h-5 text-gray-400" />
+                          )}
+                          <div>
+                            <h5 className="font-medium">Add to Vercel</h5>
+                            <p className="text-sm text-gray-600">
+                              {vercelConfigured 
+                                ? 'Domain added to Vercel' 
+                                : dnsStatus?.error 
+                                  ? `Error: ${dnsStatus.error}`
+                                  : 'Add domain to Vercel project'
+                              }
+                            </p>
+                            {dnsStatus?.error && (
+                              <p className="text-xs text-red-600 mt-1">
+                                {dnsStatus.errorCode === '403' && 'Check Vercel configuration'}
+                                {dnsStatus.errorCode === '404' && 'Domain not found in project'}
+                                {dnsStatus.errorCode === 'DNS_CONFIG_ERROR' && 'DNS config failed to load'}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {!vercelConfigured && !dnsStatus?.error && (
+                          <button
+                            onClick={handleAddToVercel}
+                            disabled={addingToVercel}
+                            className="px-3 py-1 text-sm bg-black text-white rounded hover:bg-gray-800 disabled:opacity-50"
+                          >
+                            {addingToVercel ? 'Adding...' : 'Add to Vercel'}
+                          </button>
+                        )}
+                        {dnsStatus?.error && (
+                          <button
+                            onClick={loadDnsStatus}
+                            className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                          >
+                            Retry
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Step 2: Configure DNS */}
+                      {vercelConfigured && (
+                        <div className="flex items-center justify-between p-3 bg-white rounded border">
+                          <div className="flex items-center gap-3">
+                            {dnsStatus?.configured ? (
+                              <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                            ) : (
+                              <ClockIcon className="w-5 h-5 text-yellow-600" />
+                            )}
+                            <div>
+                              <h5 className="font-medium">Configure DNS</h5>
+                              <p className="text-sm text-gray-600">
+                                {dnsStatus?.configured 
+                                  ? 'DNS configured' 
+                                  : 'Configure DNS records at your registrar'
+                                }
+                              </p>
+                            </div>
+                          </div>
+                          {!dnsStatus?.configured && (
+                            <button
+                              onClick={loadDnsStatus}
+                              disabled={loadingDns}
+                              className="px-3 py-1 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
+                            >
+                              {loadingDns ? 'Checking...' : 'Check DNS'}
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* DNS Status Message - Moved between Configure and Verify */}
+                      {vercelConfigured && (
+                        <div className={`p-3 rounded border ${
+                          dnsStatus?.configured 
+                            ? 'bg-green-50 border-green-200' 
+                            : 'bg-red-50 border-red-200'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            {dnsStatus?.configured ? (
+                              <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                            ) : (
+                              <ExclamationTriangleIcon className="w-5 h-5 text-red-600" />
+                            )}
+                            <p className="text-sm">
+                              {dnsStatus?.configured 
+                                ? 'DNS detected ✅ – waiting for verification. You may click Verify now.'
+                                : 'DNS not detected yet – add these records at your registrar then click Verify.'
+                              }
+                            </p>
+                          </div>
+                          
+                          {/* Show target nameservers when DNS is not configured */}
+                          {!dnsStatus?.configured && (
+                            <div className="mt-3 p-3 bg-white rounded border">
+                              <h6 className="font-medium text-sm mb-2">Required Nameservers:</h6>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">ns1.vercel-dns.com</span>
+                                  <button
+                                    onClick={() => navigator.clipboard.writeText('ns1.vercel-dns.com')}
+                                    className="text-blue-600 hover:text-blue-800"
+                                  >
+                                    <ClipboardDocumentIcon className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">ns2.vercel-dns.com</span>
+                                  <button
+                                    onClick={() => navigator.clipboard.writeText('ns2.vercel-dns.com')}
+                                    className="text-blue-600 hover:text-blue-800"
+                                  >
+                                    <ClipboardDocumentIcon className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-600 mt-2">
+                                Update your domain's nameservers at your registrar to these Vercel nameservers.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Step 3: Verify Domain */}
+                      {vercelConfigured && (
+                        <div className="flex items-center justify-between p-3 bg-white rounded border">
+                          <div className="flex items-center gap-3">
+                            {domain.customDomainVerified ? (
+                              <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                            ) : (
+                              <ClockIcon className="w-5 h-5 text-gray-400" />
+                            )}
+                            <div>
+                              <h5 className="font-medium">Verify Domain</h5>
+                              <p className="text-sm text-gray-600">
+                                {domain.customDomainVerified 
+                                  ? 'Domain verified' 
+                                  : 'Verify domain and get SSL certificate'
+                                }
+                              </p>
+                            </div>
+                          </div>
+                                                     {vercelConfigured && !domain.customDomainVerified && Boolean(dnsStatus?.configured) && (
+                            <button
+                              onClick={handleVerifyDomain}
+                              disabled={verifying}
+                              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                            >
+                              {verifying ? 'Verifying...' : 'Verify Domain'}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* DNS Information */}
+                    {(dnsRecords.length > 0 || nameServers.length > 0) && (
+                      <div className="mt-4">
+                        <DnsInfoPanel
+                          records={dnsRecords}
+                          nameServers={nameServers}
+                          configured={dnsStatus?.configured === true || false}
+                          verified={domain.customDomainVerified}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             )}
-          </div>
-        )}
 
-        {/* Members */}
-        {domain && (
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-medium mb-3">Domain Members</h4>
-            <div className="space-y-4">
-              <div>
-                <h5 className="text-sm font-medium mb-2">Add Member</h5>
-                <div className="space-y-3">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={userSearch}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUserSearch(e.target.value)}
-                      placeholder="Search users by name or email"
-                      className="w-full px-3 py-2 border rounded-md"
-                    />
-                    {searchResults.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
-                        {searchResults.map(user => (
-                          <button
-                            key={user.id}
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setUserSearch('');
-                              setSearchResults([]);
-                            }}
-                            className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
-                          >
-                            <div>
-                              <div className="font-medium">{user.name}</div>
-                              <div className="text-sm text-gray-500">{user.email}</div>
-                            </div>
-                            <div className="text-xs text-gray-400">
-                              Joined {new Date(user.createdAt).toLocaleDateString()}
-                            </div>
-                          </button>
-                        ))}
+            {/* Members */}
+            {domain && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-3">Domain Members</h4>
+                <div className="space-y-4">
+                  <div>
+                    <h5 className="text-sm font-medium mb-2">Add Member</h5>
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={userSearch}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUserSearch(e.target.value)}
+                          placeholder="Search users by name or email"
+                          className="w-full px-3 py-2 border rounded-md"
+                        />
+                        {searchResults.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                            {searchResults.map(user => (
+                              <button
+                                key={user.id}
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setUserSearch('');
+                                  setSearchResults([]);
+                                }}
+                                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
+                              >
+                                <div>
+                                  <div className="font-medium">{user.name}</div>
+                                  <div className="text-sm text-gray-500">{user.email}</div>
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  Joined {new Date(user.createdAt).toLocaleDateString()}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
+
+                      {selectedUser && (
+                        <div className="flex gap-2 items-center p-2 bg-white rounded border">
+                          <div className="flex-1">
+                            <div className="font-medium">{selectedUser.name}</div>
+                            <div className="text-sm text-gray-500">{selectedUser.email}</div>
+                          </div>
+                          <select
+                            value={newMemberRole}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewMemberRole(e.target.value)}
+                            className="px-3 py-2 border rounded-md"
+                          >
+                            {ROLES.map(role => (
+                              <option key={role.value} value={role.value}>
+                                {role.label}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={handleAddMember}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {selectedUser && (
-                    <div className="flex gap-2 items-center p-2 bg-white rounded border">
-                      <div className="flex-1">
-                        <div className="font-medium">{selectedUser.name}</div>
-                        <div className="text-sm text-gray-500">{selectedUser.email}</div>
-                      </div>
-                      <select
-                        value={newMemberRole}
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewMemberRole(e.target.value)}
-                        className="px-3 py-2 border rounded-md"
-                      >
-                        {ROLES.map(role => (
-                          <option key={role.value} value={role.value}>
-                            {role.label}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={handleAddMember}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                      >
-                        Add
-                      </button>
+                  {/* Current Members */}
+                  <div>
+                    <h5 className="text-sm font-medium mb-2">Current Members</h5>
+                    <div className="space-y-2">
+                      {members.map(member => (
+                        <div key={member.userId} className="flex items-center justify-between p-2 bg-white rounded border">
+                          <div>
+                            <div className="font-medium">{member.name}</div>
+                            <div className="text-sm text-gray-500">{member.role}</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={member.role}
+                              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => 
+                                handleUpdateMemberRole(member.userId, e.target.value)
+                              }
+                              className="px-2 py-1 text-sm border rounded"
+                            >
+                              {ROLES.map(role => (
+                                <option key={role.value} value={role.value}>
+                                  {role.label}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => handleRemoveMember(member.userId)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
-
-              <div>
-                <h5 className="text-sm font-medium mb-2">Current Members</h5>
-                <div className="space-y-2">
-                  {members.map(member => (
-                    <div
-                      key={member.userId}
-                      className="flex items-center justify-between p-3 bg-white rounded border"
-                    >
-                      <div>
-                        <p className="font-medium">{member.name}</p>
-                        <p className="text-sm text-gray-500">{member.userId}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={member.role}
-                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleUpdateMemberRole(member.userId, e.target.value)}
-                          className="px-3 py-2 border rounded-md"
-                        >
-                          {ROLES.map(role => (
-                            <option key={role.value} value={role.value}>
-                              {role.label}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => handleRemoveMember(member.userId)}
-                          className="p-2 text-gray-500 hover:text-red-600"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
