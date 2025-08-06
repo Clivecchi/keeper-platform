@@ -29,8 +29,39 @@ const PORT = process.env.PORT || 3001;
 
 // ✅ Startup log
 console.log('✅ Keeper backend server started');
+console.log('🌐 Allowed CORS origins:', allowedOrigins);
 
-const corsOptions = { origin: true, credentials: true };
+// CORS configuration
+const allowedOrigins = [
+  'https://keeper-platform-lzebaybul-clivecchis-projects.vercel.app',
+  'https://keeper-platform-production.up.railway.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3001'
+];
+
+// Add any additional origins from environment variables
+if (process.env.ALLOWED_ORIGINS) {
+  allowedOrigins.push(...process.env.ALLOWED_ORIGINS.split(','));
+}
+
+const corsOptions = {
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('❌ CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200
+};
 
 // Handle OPTIONS preflight requests
 app.options('*', cors(corsOptions));
@@ -40,6 +71,14 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use(logRequestMiddleware);
+
+// CORS debugging middleware
+app.use((req, res, next) => {
+  console.log('🌐 Request origin:', req.headers.origin);
+  console.log('🌐 Request method:', req.method);
+  console.log('🌐 Request path:', req.path);
+  next();
+});
 
 // Simple test route to confirm routing and CORS
 app.get('/api/test', (req, res) => {
