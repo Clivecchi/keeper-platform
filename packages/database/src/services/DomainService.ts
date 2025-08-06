@@ -273,6 +273,7 @@ export class DomainService {
 
     // Handle optional fields
     if (request.name !== undefined) updateData.name = request.name;
+    if (request.description !== undefined) updateData.description = request.description;
     if (request.customDomain !== undefined) updateData.customDomain = request.customDomain;
     if (request.customDomainVerified !== undefined) updateData.customDomainVerified = request.customDomainVerified;
     if (request.isActive !== undefined) updateData.isActive = request.isActive;

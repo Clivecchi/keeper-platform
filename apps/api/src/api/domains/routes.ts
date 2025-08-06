@@ -298,6 +298,41 @@ router.put('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
   }
 });
 
+// PATCH /api/domains/:id - Update domain (partial update)
+router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Check permission
+    const permission = await permissionService.checkPermission({
+      userId: req.user.id,
+      domainId: req.params.id,
+      permission: 'admin',
+    });
+
+    if (!permission.hasPermission) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const domain = await domainService.updateDomain(req.params.id, req.body);
+
+    return res.json({ domain });
+  } catch (error) {
+    console.error('Error updating domain:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('not found')) {
+        return res.status(404).json({ error: error.message });
+      }
+      if (error.message.includes('already in use')) {
+        return res.status(409).json({ error: error.message });
+      }
+    }
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // DELETE /api/domains/:id - Delete domain
 router.delete('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
