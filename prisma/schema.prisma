@@ -79,25 +79,47 @@ model KeeperType {
   Keeper Keeper[]
 }
 
-model MediaContent {
-  id                                                                         String                 @id @db.Uuid
-  type                                                                       String
-  url                                                                        String
-  alt                                                                        String?
-  createdAt                                                                  DateTime               @default(now())
-  playlistOwnerId                                                            String?                @db.Uuid
-  media_frame_instances_MediaContent_playlistOwnerIdTomedia_frame_instances  media_frame_instances? @relation("MediaContent_playlistOwnerIdTomedia_frame_instances", fields: [playlistOwnerId], references: [id])
-  media_frame_instances_media_frame_instances_currentContentIdToMediaContent media_frame_instances? @relation("media_frame_instances_currentContentIdToMediaContent")
+// Board model - represents a primary interactive surface
+model Board {
+  id             String      @id @db.Uuid
+  name           String
+  type           String      // e.g., "agent", "domain", "journey", "keeper_type"
+  engagementMode String      @default("dialogic") // dialogic, wizard, focus, canvas
+  ownerId        String
+  entityType     String?     // Optional entity binding
+  entityId       String?
+  theme_id       String?     @db.Uuid
+  config         Json?       // Board-specific configuration
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  themes         themes?     @relation(fields: [theme_id], references: [id])
+  FrameInstance  FrameInstance[]
 }
 
-model MediaFrameConfig {
-  id                    String                  @id @db.Uuid
-  name                  String                  @unique
-  description           String?
-  theme                 Json?
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime
-  media_frame_instances media_frame_instances[]
+// Unified Frame Content model (replaces MediaContent)
+model FrameContent {
+  id                                                                  String          @id @db.Uuid
+  type                                                                String          // media, text, config, etc.
+  url                                                                 String?
+  alt                                                                 String?
+  data                                                                Json?           // Flexible content data
+  createdAt                                                           DateTime        @default(now())
+  playlistOwnerId                                                     String?         @db.Uuid
+  FrameInstance_FrameContent_playlistOwnerIdToFrameInstance          FrameInstance?  @relation("FrameContent_playlistOwnerIdToFrameInstance", fields: [playlistOwnerId], references: [id])
+  FrameInstance_FrameInstance_currentContentIdToFrameContent         FrameInstance?  @relation("FrameInstance_currentContentIdToFrameContent")
+}
+
+// Unified Frame Config model (replaces MediaFrameConfig)
+model FrameConfig {
+  id            String          @id @db.Uuid
+  name          String          @unique
+  type          String          // media_card, dialog, config_panel, agent_preview, process_frame, etc.
+  description   String?
+  theme         Json?           // Frame-specific theme overrides
+  config        Json?           // Frame-specific configuration
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  FrameInstance FrameInstance[]
 }
 
 model MemoryCard {
@@ -324,17 +346,21 @@ model keeper_revisions {
   createdAt DateTime? @default(now()) @db.Timestamptz(6)
 }
 
-model media_frame_instances {
-  id                                                                String           @id @db.Uuid
-  entityType                                                        String
-  entityId                                                          String
-  configId                                                          String           @db.Uuid
-  currentContentId                                                  String?          @unique @db.Uuid
-  createdAt                                                         DateTime         @default(now())
-  updatedAt                                                         DateTime
-  MediaContent_MediaContent_playlistOwnerIdTomedia_frame_instances  MediaContent[]   @relation("MediaContent_playlistOwnerIdTomedia_frame_instances")
-  MediaFrameConfig                                                  MediaFrameConfig @relation(fields: [configId], references: [id])
-  MediaContent_media_frame_instances_currentContentIdToMediaContent MediaContent?    @relation("media_frame_instances_currentContentIdToMediaContent", fields: [currentContentId], references: [id])
+// Unified Frame Instance model (replaces media_frame_instances)
+model FrameInstance {
+  id                                                         String        @id @db.Uuid
+  boardId                                                    String?       @db.Uuid // Optional board association
+  entityType                                                 String        // Entity this frame is bound to
+  entityId                                                   String
+  configId                                                   String        @db.Uuid
+  currentContentId                                           String?       @unique @db.Uuid
+  order                                                      Int           @default(0) // Order within board/context
+  createdAt                                                  DateTime      @default(now())
+  updatedAt                                                  DateTime      @updatedAt
+  Board                                                      Board?        @relation(fields: [boardId], references: [id])
+  FrameContent_FrameContent_playlistOwnerIdToFrameInstance   FrameContent[] @relation("FrameContent_playlistOwnerIdToFrameInstance")
+  FrameConfig                                                FrameConfig   @relation(fields: [configId], references: [id])
+  FrameContent_FrameInstance_currentContentIdToFrameContent FrameContent? @relation("FrameInstance_currentContentIdToFrameContent", fields: [currentContentId], references: [id])
 }
 
 model note_tags {
@@ -403,6 +429,7 @@ model themes {
   tags         Json?
   created_at   DateTime  @default(now()) @db.Timestamptz(6)
   updated_at   DateTime  @db.Timestamptz(6)
+  Board        Board[]
   Journey      Journey[]
   Keeper       Keeper[]
   Moment       Moment[]

@@ -9,6 +9,18 @@ import settingsHandler from './api/kam/settings.js'; // NOTE: must end in .js wh
 import { loginUserHandler } from './kam/auth/login.js';
 import { registerUserHandler } from './kam/auth/register.js';
 import { logRequestMiddleware } from './middleware/logRequestMiddleware.js';
+import {
+  getBoardsHandler,
+  getBoardHandler,
+  createBoardHandler,
+  updateBoardHandler,
+  deleteBoardHandler,
+  getFrameConfigsHandler,
+  createFrameConfigHandler,
+  getFrameInstancesHandler,
+  createFrameInstanceHandler,
+  createFrameContentHandler,
+} from './api/boards.js';
 import type { Request, Response } from 'express';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -69,6 +81,109 @@ app.use('/api/kam/settings', async (req, res) => {
     await settingsHandler(req, res);
   } catch (err) {
     console.error('Handler error:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+// Board API routes
+app.get('/api/boards', async (req, res) => {
+  try {
+    await getBoardsHandler(req, res);
+  } catch (err) {
+    console.error('Get boards error:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+app.get('/api/boards/:id', async (req, res) => {
+  try {
+    await getBoardHandler(req, res);
+  } catch (err) {
+    console.error('Get board error:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/boards', async (req, res) => {
+  try {
+    await createBoardHandler(req, res);
+  } catch (err) {
+    console.error('Create board error:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+app.patch('/api/boards/:id', async (req, res) => {
+  try {
+    await updateBoardHandler(req, res);
+  } catch (err) {
+    console.error('Update board error:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+app.delete('/api/boards/:id', async (req, res) => {
+  try {
+    await deleteBoardHandler(req, res);
+  } catch (err) {
+    console.error('Delete board error:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+// Frame Config routes
+app.get('/api/frames/configs', async (req, res) => {
+  try {
+    await getFrameConfigsHandler(req, res);
+  } catch (err) {
+    console.error('Get frame configs error:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/frames/configs', async (req, res) => {
+  try {
+    await createFrameConfigHandler(req, res);
+  } catch (err) {
+    console.error('Create frame config error:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+// Frame Instance routes
+app.get('/api/frames/instances/entity/:entityType/:entityId', async (req, res) => {
+  try {
+    await getFrameInstancesHandler(req, res);
+  } catch (err) {
+    console.error('Get frame instances error:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+app.get('/api/frames/instances/board/:boardId', async (req, res) => {
+  try {
+    await getFrameInstancesHandler(req, res);
+  } catch (err) {
+    console.error('Get frame instances error:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/frames/instances', async (req, res) => {
+  try {
+    await createFrameInstanceHandler(req, res);
+  } catch (err) {
+    console.error('Create frame instance error:', err);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
+});
+
+// Frame Content routes
+app.post('/api/frames/content', async (req, res) => {
+  try {
+    await createFrameContentHandler(req, res);
+  } catch (err) {
+    console.error('Create frame content error:', err);
     res.status(500).json({ success: false, error: 'Internal Server Error' });
   }
 });
