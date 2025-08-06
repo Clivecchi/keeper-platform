@@ -30,3 +30,5 @@ Components use the AuthContext and ThemeContext for state management. The DebugI
 - **FIX**: Updated PostCSS configuration for Tailwind v3
 - **FIX**: Added fallback CSS variables to prevent unstyled content
 - **FIX**: Updated theme variable naming to match Tailwind expectations
+- **FIX**: Converted PostCSS and Tailwind configs to ES module syntax for Railway deployment
+- **FIX**: Removed @tailwindcss/forms plugin to resolve build issues
