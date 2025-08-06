@@ -6,6 +6,11 @@ import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import './index.css'
 
+// Debug logging
+console.log('🚀 Keeper Platform starting...');
+console.log('📦 React version:', React.version);
+console.log('🎨 ThemeProvider will initialize...');
+
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>

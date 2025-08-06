@@ -23,6 +23,8 @@ export interface ThemeTokens {
   border: string;
   input: string;
   ring: string;
+  button: string;
+  buttonForeground: string;
 }
 
 /**

@@ -9,10 +9,10 @@ const KEEPER_CLASSIC_FALLBACK: Theme = {
   slug: 'keeper-classic',
   name: 'Keeper Classic',
   light: {
-    background: '0 0% 94.1%', foreground: '25 95% 21%', card: '0 0% 98%', cardForeground: '28 66% 21%', popover: '27 100% 96%', popoverForeground: '39 100% 15%', primary: '13 83% 21%', primaryForeground: '0 0% 100%', secondary: '35 48% 87%', secondaryForeground: '15 72% 38%', muted: '37 24% 80%', mutedForeground: '13 100% 18%', accent: '35 63% 69%', accentForeground: '25 80% 25%', destructive: '15 72% 38%', destructiveForeground: '33 97% 83%', border: '16 11% 43%', input: '210 17% 98%', ring: '33 97% 83%',
+    background: '0 0% 94.1%', foreground: '25 95% 21%', card: '0 0% 98%', cardForeground: '28 66% 21%', popover: '27 100% 96%', popoverForeground: '39 100% 15%', primary: '13 83% 21%', primaryForeground: '0 0% 100%', secondary: '35 48% 87%', secondaryForeground: '15 72% 38%', muted: '37 24% 80%', mutedForeground: '13 100% 18%', accent: '35 63% 69%', accentForeground: '25 80% 25%', destructive: '15 72% 38%', destructiveForeground: '33 97% 83%', border: '16 11% 43%', input: '210 17% 98%', ring: '33 97% 83%', button: '13 83% 21%', buttonForeground: '0 0% 100%',
   },
   dark: {
-    background: '0 0% 0%', foreground: '0 0% 100%', card: '0 0% 6.7%', cardForeground: '0 0% 93.3%', popover: '0 0% 13.3%', popoverForeground: '0 0% 93.3%', primary: '0 0% 80%', primaryForeground: '0 0% 0%', secondary: '0 0% 86.7%', secondaryForeground: '15 72% 38%', muted: '0 0% 93.3%', mutedForeground: '0 0% 0%', accent: '40 8% 79%', accentForeground: '0 0% 0%', destructive: '0 100% 50%', destructiveForeground: '0 0% 100%', border: '0 0% 75.3%', input: '0 0% 95.3%', ring: '40 8% 79%',
+    background: '0 0% 0%', foreground: '0 0% 100%', card: '0 0% 6.7%', cardForeground: '0 0% 93.3%', popover: '0 0% 13.3%', popoverForeground: '0 0% 93.3%', primary: '0 0% 80%', primaryForeground: '0 0% 0%', secondary: '0 0% 86.7%', secondaryForeground: '15 72% 38%', muted: '0 0% 93.3%', mutedForeground: '0 0% 0%', accent: '40 8% 79%', accentForeground: '0 0% 0%', destructive: '0 100% 50%', destructiveForeground: '0 0% 100%', border: '0 0% 75.3%', input: '0 0% 95.3%', ring: '40 8% 79%', button: '0 0% 80%', buttonForeground: '0 0% 0%',
   }
 };
 
@@ -60,10 +60,18 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           themeIdToLoad = settings.data?.preferred_theme_id || KEEPER_CLASSIC_ID;
         } catch (error) {
           console.error('Failed to fetch user settings, will use default theme.', error);
+          // Use fallback theme immediately if API fails
+          setTheme(KEEPER_CLASSIC_FALLBACK);
+          return;
         }
         
-        const fetchedTheme = await fetchThemeById(themeIdToLoad, token);
-        setTheme(fetchedTheme || KEEPER_CLASSIC_FALLBACK);
+        try {
+          const fetchedTheme = await fetchThemeById(themeIdToLoad, token);
+          setTheme(fetchedTheme || KEEPER_CLASSIC_FALLBACK);
+        } catch (error) {
+          console.error('Failed to fetch theme, using fallback.', error);
+          setTheme(KEEPER_CLASSIC_FALLBACK);
+        }
 
       } else {
         // For public visitors, use the hardcoded fallback immediately.
@@ -77,19 +85,27 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // 3. Apply the current theme and mode to the document
   useEffect(() => {
     const root = document.documentElement;
-    if (!theme) return;
+    if (!theme) {
+      console.log('🎨 ThemeProvider: No theme available yet');
+      return;
+    }
+
+    console.log('🎨 ThemeProvider: Applying theme:', theme.name, 'mode:', mode);
 
     // Apply the correct token set (light or dark)
     const tokensToApply: ThemeTokens = theme[mode];
 
     Object.entries(tokensToApply).forEach(([key, value]) => {
-      const cssVarName = `--theme-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
+      const cssVarName = `--${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
       root.style.setProperty(cssVarName, value);
+      console.log(`🎨 Setting CSS variable: ${cssVarName} = ${value}`);
     });
     
     // Add/remove 'dark' class for any vanilla CSS overrides
     root.classList.remove('light', 'dark');
     root.classList.add(mode);
+
+    console.log('🎨 ThemeProvider: Theme applied successfully');
 
   }, [theme, mode]);
 

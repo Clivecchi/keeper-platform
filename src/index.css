@@ -1,1 +1,45 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap');
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+/* Fallback styles in case theme variables are not set */
+:root {
+  --background: 0 0% 94.1%;
+  --foreground: 25 95% 21%;
+  --card: 0 0% 98%;
+  --card-foreground: 28 66% 21%;
+  --popover: 27 100% 96%;
+  --popover-foreground: 39 100% 15%;
+  --primary: 13 83% 21%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 35 48% 87%;
+  --secondary-foreground: 15 72% 38%;
+  --muted: 37 24% 80%;
+  --muted-foreground: 13 100% 18%;
+  --accent: 35 63% 69%;
+  --accent-foreground: 25 80% 25%;
+  --destructive: 15 72% 38%;
+  --destructive-foreground: 33 97% 83%;
+  --border: 16 11% 43%;
+  --input: 210 17% 98%;
+  --ring: 33 97% 83%;
+  --button: 13 83% 21%;
+  --button-foreground: 0 0% 100%;
+}

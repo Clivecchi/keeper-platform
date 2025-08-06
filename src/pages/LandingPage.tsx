@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const LandingPage: React.FC = () => {
+  console.log('🏠 LandingPage: Rendering landing page');
   return (
     <div className="flex flex-col items-center justify-center text-center min-h-[calc(100vh-200px)]">
       <motion.div
