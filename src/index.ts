@@ -27,10 +27,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ✅ Startup log
-console.log('✅ Keeper backend server started');
-console.log('🌐 Allowed CORS origins:', allowedOrigins);
-
 // CORS configuration
 const allowedOrigins = [
   'https://keeper-platform-lzebaybul-clivecchis-projects.vercel.app',
@@ -39,6 +35,10 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001'
 ];
+
+// ✅ Startup log
+console.log('✅ Keeper backend server started');
+console.log('🌐 Allowed CORS origins:', allowedOrigins);
 
 // Add any additional origins from environment variables
 if (process.env.ALLOWED_ORIGINS) {
