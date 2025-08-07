@@ -7,7 +7,7 @@ Provides a global context for applying and switching Tailwind-based themes (ligh
 - Read the user's theme from the database (via Prisma)
 - Apply Tailwind `darkMode: 'class'` toggle
 - Expose `useTheme()` hook for changing or reading theme
-- Integrate with ThemeEditorDialog and MediaFrame styling
+- Integrate with ThemeEditorDialog and Frame system styling
 
 ## Database Dependencies
 - `User.themeMode` or equivalent

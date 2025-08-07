@@ -15,6 +15,7 @@ import KipStudioPage from './pages/studio/KipStudioPage';
 import AgentsPage from './pages/studio/kip/AgentsPage';
 import AgentLogsPage from './pages/studio/kip/AgentLogsPage';
 import PlatformApiKeyManagerPage from './pages/studio/kip/PlatformApiKeyManagerPage';
+import AgentBoardPage from './pages/studio/AgentBoardPage';
 // Admin Pages
 import DomainsPage from './pages/admin/DomainsPage';
 import RolesPage from './pages/admin/RolesPage';
@@ -79,6 +80,8 @@ const App: React.FC = () => {
           {/* Studio Section */}
           <Route path="/studio" element={<Navigate to="/studio/agents" replace />} />
           <Route path="/studio/agents" element={<AgentsPage />} />
+          <Route path="/studio/agents/:agentId" element={<AgentBoardPage />} />
+          <Route path="/studio/agent-board" element={<AgentBoardPage />} />
           <Route path="/studio/memory-patterns" element={<MemoryPatternsPage />} />
           <Route path="/studio/agent-classes" element={<AgentClassesPage />} />
           <Route path="/studio/engagement-templates" element={<KipStudioPage />} />

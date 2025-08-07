@@ -104,25 +104,25 @@ model KeeperType {
   keeper_type_engagement_templates keeper_type_engagement_templates[]
 }
 
-model MediaContent {
-  id                                                                         String                 @id @db.Uuid
-  type                                                                       String
-  url                                                                        String
-  alt                                                                        String?
-  createdAt                                                                  DateTime               @default(now())
-  playlistOwnerId                                                            String?                @db.Uuid
-  media_frame_instances_MediaContent_playlistOwnerIdTomedia_frame_instances  media_frame_instances? @relation("MediaContent_playlistOwnerIdTomedia_frame_instances", fields: [playlistOwnerId], references: [id])
-  media_frame_instances_media_frame_instances_currentContentIdToMediaContent media_frame_instances? @relation("media_frame_instances_currentContentIdToMediaContent")
+model FrameContent {
+  id                                                                    String          @id @db.Uuid
+  type                                                                  String
+  url                                                                   String
+  alt                                                                   String?
+  createdAt                                                             DateTime        @default(now())
+  playlistOwnerId                                                       String?         @db.Uuid
+  FrameInstance_FrameContent_playlistOwnerIdToFrameInstance             FrameInstance?  @relation("FrameContent_playlistOwnerIdToFrameInstance", fields: [playlistOwnerId], references: [id])
+  FrameInstance_FrameInstance_currentContentIdToFrameContent            FrameInstance?  @relation("FrameInstance_currentContentIdToFrameContent")
 }
 
-model MediaFrameConfig {
-  id                    String                  @id @db.Uuid
-  name                  String                  @unique
-  description           String?
-  theme                 Json?
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime
-  media_frame_instances media_frame_instances[]
+model FrameConfig {
+  id            String          @id @db.Uuid
+  name          String          @unique
+  description   String?
+  theme         Json?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  FrameInstance FrameInstance[]
 }
 
 model MemoryCard {
@@ -355,17 +355,17 @@ model keeper_revisions {
   createdAt DateTime? @default(now()) @db.Timestamptz(6)
 }
 
-model media_frame_instances {
-  id                                                                String           @id @db.Uuid
-  entityType                                                        String
-  entityId                                                          String
-  configId                                                          String           @db.Uuid
-  currentContentId                                                  String?          @unique @db.Uuid
-  createdAt                                                         DateTime         @default(now())
-  updatedAt                                                         DateTime
-  MediaContent_MediaContent_playlistOwnerIdTomedia_frame_instances  MediaContent[]   @relation("MediaContent_playlistOwnerIdTomedia_frame_instances")
-  MediaFrameConfig                                                  MediaFrameConfig @relation(fields: [configId], references: [id])
-  MediaContent_media_frame_instances_currentContentIdToMediaContent MediaContent?    @relation("media_frame_instances_currentContentIdToMediaContent", fields: [currentContentId], references: [id])
+model FrameInstance {
+  id                                                       String         @id @db.Uuid
+  entityType                                               String
+  entityId                                                 String
+  configId                                                 String         @db.Uuid
+  currentContentId                                         String?        @unique @db.Uuid
+  createdAt                                                DateTime       @default(now())
+  updatedAt                                                DateTime
+  FrameContent_FrameContent_playlistOwnerIdToFrameInstance FrameContent[] @relation("FrameContent_playlistOwnerIdToFrameInstance")
+  FrameConfig                                              FrameConfig    @relation(fields: [configId], references: [id])
+  FrameContent_FrameInstance_currentContentIdToFrameContent FrameContent?  @relation("FrameInstance_currentContentIdToFrameContent", fields: [currentContentId], references: [id])
 }
 
 model note_tags {

@@ -126,7 +126,9 @@ export type {
   UserSettings,
   themes as Theme,
   KeeperMapping,
-  MediaContent,
+  FrameContent,
+  FrameConfig,
+  FrameInstance,
   Prisma
 } from '@prisma/client'
 

@@ -327,7 +327,9 @@ pnpm db:studio
 - **UserSettings**: Theme + system preferences  
 - **Theme**: Visual theming configurations
 - **KeeperMapping**: Memory and journey relationships
-- **MediaContent**: File and media management
+- **FrameContent**: File and media management for frames
+- **FrameConfig**: Frame layout and theme configurations
+- **FrameInstance**: Frame instance bindings to entities
 
 *See `prisma/MODEL_REFERENCE.MD` for complete documentation*
 

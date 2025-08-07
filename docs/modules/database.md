@@ -29,7 +29,9 @@ The schema includes core models for the Keeper Platform:
 - **UserSettings**: User preferences and theme settings
 - **themes**: Available platform themes and styling
 - **KeeperMapping**: Memory and journey relationships
-- **MediaContent**: File and media management
+- **FrameContent**: File and media management for frames
+- **FrameConfig**: Frame layout and theme configurations
+- **FrameInstance**: Frame instance bindings to entities
 - **Journey/Path/Moment**: User content organization
 
 ### Connection Management

@@ -54,7 +54,7 @@ export * from './types';
 export type { DomainContext, AuthenticatedRequest, DomainRole, DomainPermissionType, PermissionCheck, UserPermissionSummary, GrantPermissionRequest, } from './types/domain';
 export type { DomainHealthMetrics, AlertSeverity } from './services/DomainHealthMonitoringService';
 export type { DomainContextConfig, ContextOperation, ContextMetrics } from './services/DomainContextService';
-export type { users as User, UserSettings, themes as Theme, KeeperMapping, MediaContent, Prisma } from '@prisma/client';
+export type { users as User, UserSettings, themes as Theme, KeeperMapping, FrameContent, FrameConfig, FrameInstance, Prisma } from '@prisma/client';
 /**
  * Gracefully disconnect from database
  */

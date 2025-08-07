@@ -26,14 +26,15 @@ This README will evolve alongside development and act as a foundational link bet
 | `Path`               | Sub-layer of Journey                          | ✅ Confirmed  | `/journey`                     | Each Moment links to a Path or Journey   |
 | `Moment`             | Core storytelling/content node                | ✅ Confirmed  | `/moment`                      | Connects Path/Journey/Theme              |
 | `EngagementTemplate` | Reusable interaction formats                  | ✅ Confirmed  | `/interaction-content`         | Connects to styles, config, fields       |
-| `MediaFrameConfig`   | Theme-aware media layout presets              | ✅ Confirmed  | `/mediaframe`                  | Holds layout-level visuals               |
-| `MediaContent`       | Specific audio/image/video content            | ✅ Confirmed  | `/mediaframe`                  | Tracks current/playlist association      |
+| `FrameConfig`        | Theme-aware frame layout presets              | ✅ Confirmed  | `/frame`                       | Holds layout-level visuals               |
+| `FrameContent`       | Specific audio/image/video content            | ✅ Confirmed  | `/frame`                       | Tracks current/playlist association      |
+| `FrameInstance`      | Frame instance binding entity to config       | ✅ Confirmed  | `/frame`                       | Links entity to frame config and content|
 
 ---
 
 ## 🧱 Architectural Guidance for Prisma
 
-* 📌 **Model Names**: Always PascalCase (e.g., `UserSettings`, `MediaFrameConfig`)
+* 📌 **Model Names**: Always PascalCase (e.g., `UserSettings`, `FrameConfig`)
 * 🏷 **Field Names**: snake\_case in database (`created_at`), camelCase in Prisma (`createdAt`)
 * ✅ **Prefer `@db.Uuid` over `String` for foreign keys** unless explicitly using cuid()
 * 📌 **Always include**: `createdAt`, `updatedAt` for versionable records
