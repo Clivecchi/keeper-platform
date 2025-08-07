@@ -7,6 +7,7 @@
 
 // Board components
 export { default as AgentBoard } from './AgentBoard';
+export { default as DomainBoard } from './domain-board';
 
 // Re-export board utilities
 export { 

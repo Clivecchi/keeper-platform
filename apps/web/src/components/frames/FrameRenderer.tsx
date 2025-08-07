@@ -28,6 +28,12 @@ const ProcessFrame = lazy(() => import('./ProcessFrame'));
 const AgentPreviewFrame = lazy(() => import('./AgentPreviewFrame'));
 const CodeSnippetFrame = lazy(() => import('./CodeSnippetFrame'));
 
+// Domain-specific frames
+const DomainCardFrame = lazy(() => import('./DomainCardFrame'));
+const SetupStepsFrame = lazy(() => import('./SetupStepsFrame'));
+const MemberListFrame = lazy(() => import('./MemberListFrame'));
+const CustomDomainFrame = lazy(() => import('./CustomDomainFrame'));
+
 // =============================================================================
 // FRAME TYPE REGISTRY
 // =============================================================================
@@ -122,8 +128,21 @@ export const FrameRenderer: React.FC<FrameRendererProps> = ({
   // Determine frame type from config or default to 'preview'
   const frameType: FrameType = frameInstance.FrameConfig?.frameType || 'preview';
   
-  // Get the appropriate component for this frame type
-  const FrameComponent = frameTypeRegistry[frameType];
+  // Check for domain-specific frames first
+  let FrameComponent = frameTypeRegistry[frameType];
+  
+  // Handle domain-specific frame overrides
+  if (frameInstance.entityType === 'domain') {
+    if (frameInstance.id.includes('domain-card')) {
+      FrameComponent = DomainCardFrame;
+    } else if (frameInstance.id.includes('setup-steps')) {
+      FrameComponent = SetupStepsFrame;
+    } else if (frameInstance.id.includes('member-list')) {
+      FrameComponent = MemberListFrame;
+    } else if (frameInstance.id.includes('custom-domain')) {
+      FrameComponent = CustomDomainFrame;
+    }
+  }
   
   // If no component found, use fallback
   if (!FrameComponent) {

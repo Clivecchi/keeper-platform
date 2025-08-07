@@ -5,6 +5,8 @@ This folder contains the Board system components that serve as the primary UI fr
 
 ## 🧱 Key Files
 - `AgentBoard.tsx` - Agent configuration and management board
+- `domain-board.tsx` - Domain management and setup board
+- `domain-board/README.md` - Domain board specific documentation
 - `README.md` - This documentation file
 
 ## 🔄 Data & Behavior
@@ -19,7 +21,7 @@ The Board system is built around the concept of modular, interactive canvases:
 
 ### Board Types
 1. **agent_board** - Agent configuration and interaction workspace
-2. **domain_board** - Domain management and setup (planned)
+2. **domain_board** - Domain management and setup with wizard workflow ✅
 3. **keeper_type_board** - Keeper type configuration (planned)
 4. **journey_board** - Journey and path management (planned)
 5. **people_board** - User and team management (planned)
@@ -144,7 +146,7 @@ Boards are integrated into the routing system:
 
 - `/studio/agent-board` - General agent board
 - `/studio/agents/:agentId` - Agent-specific board
-- `/studio/domain-board` - Domain management (planned)
+- `/studio/domain-board` - Domain management with wizard workflow ✅
 - `/studio/keeper-types` - Keeper type configuration (planned)
 
 ## ⚠️ Notes & ToDo
@@ -168,6 +170,9 @@ Boards are integrated into the routing system:
 ## 📆 Update Log
 - 2025-01-XX: Created Board system foundation with BoardContext and BoardRenderer
 - AgentBoard implemented with dialogic engagement mode
+- DomainBoard implemented with wizard engagement mode
+- Created 4 specialized domain frame components (DomainCard, SetupSteps, MemberList, CustomDomain)
 - Integration with existing Frame system completed
-- Routes added for `/studio/agents` and `/studio/agent-board`
+- Routes added for `/studio/agents`, `/studio/agent-board`, and `/studio/domain-board`
+- Enhanced FrameRenderer with domain-specific frame routing
 - Documentation created with usage patterns and development guidelines
