@@ -49,6 +49,9 @@ import DebugPage from './pages/DebugPage';
 // Library Pages
 import LibraryPage from './pages/LibraryPage';
 
+// Demo Pages
+import BoardDemoPage from './pages/BoardDemoPage';
+
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -138,6 +141,7 @@ const App: React.FC = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/debug" element={<DebugPage />} />
+        <Route path="/board-demo" element={<BoardDemoPage />} />
       </Route>
       
       {/* Dynamic Lead Agent Routes - Must be last to avoid conflicts */}
