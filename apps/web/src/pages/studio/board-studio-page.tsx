@@ -1,12 +1,12 @@
 /**
- * Board Studio Page
- * =================
+ * Board Studio Page - Redesigned
+ * ==============================
  * 
- * Central control panel for creating, editing, and managing Boards.
- * Provides drag-and-drop interface for board design and frame management.
+ * Modern, intuitive board editing interface with improved UX.
+ * Features drag-and-drop, contextual help, and better discoverability.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   PlusIcon,
@@ -19,7 +19,19 @@ import {
   DocumentArrowUpIcon,
   ArrowsPointingOutIcon,
   Bars3Icon,
-  XMarkIcon
+  XMarkIcon,
+  QuestionMarkCircleIcon,
+  InformationCircleIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  SparklesIcon,
+  AcademicCapIcon,
+  CommandLineIcon,
+  PaintBrushIcon,
+  BookOpenIcon,
+  UserGroupIcon,
+  ChatBubbleLeftRightIcon,
+  ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline';
 import { BoardRenderer } from '../../components/boards/BoardRenderer';
 import { useBoard, BoardInstance } from '../../context/BoardContext';
@@ -48,6 +60,8 @@ interface FrameType {
   category: 'content' | 'interaction' | 'configuration' | 'visualization';
   icon: string;
   preview?: string;
+  helpText?: string;
+  useCases?: string[];
 }
 
 interface BoardTheme {
@@ -56,6 +70,360 @@ interface BoardTheme {
   accentColor: string;
   borderColor: string;
 }
+
+interface EngagementModeInfo {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  useCases: string[];
+  example: string;
+}
+
+// =============================================================================
+// ENGAGEMENT MODE DEFINITIONS
+// =============================================================================
+
+const ENGAGEMENT_MODES: EngagementModeInfo[] = [
+  {
+    id: 'canvas',
+    name: 'Canvas Mode',
+    description: 'Freeform layout where you can position frames anywhere. Perfect for creative layouts and custom dashboards.',
+    icon: <PaintBrushIcon className="w-5 h-5" />,
+    useCases: ['Custom dashboards', 'Creative layouts', 'Data visualization', 'Flexible design'],
+    example: 'Like a design canvas - drag frames anywhere to create your perfect layout.'
+  },
+  {
+    id: 'wizard',
+    name: 'Wizard Mode',
+    description: 'Step-by-step guided flow that walks users through a process. Great for onboarding and complex workflows.',
+    icon: <AcademicCapIcon className="w-5 h-5" />,
+    useCases: ['Onboarding flows', 'Setup processes', 'Multi-step forms', 'Guided tutorials'],
+    example: 'Like a setup wizard - users go through frames one by one in sequence.'
+  },
+  {
+    id: 'dialogic',
+    name: 'Dialogic Mode',
+    description: 'Conversation-driven interface where AI agents guide the interaction. Perfect for agent-assisted workflows.',
+    icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
+    useCases: ['AI assistance', 'Agent interactions', 'Conversational UI', 'Guided help'],
+    example: 'Like chatting with an assistant - the AI guides you through tasks naturally.'
+  },
+  {
+    id: 'focus',
+    name: 'Focus Mode',
+    description: 'Single-frame deep dive for concentrated work. Minimizes distractions and maximizes focus on one task.',
+    icon: <CommandLineIcon className="w-5 h-5" />,
+    useCases: ['Deep work', 'Code editing', 'Writing', 'Single-task focus'],
+    example: 'Like full-screen mode - one frame takes center stage for maximum focus.'
+  }
+];
+
+// =============================================================================
+// FRAME TYPE DEFINITIONS WITH ENHANCED HELP
+// =============================================================================
+
+const FRAME_TYPES: FrameType[] = [
+  {
+    id: 'media-card',
+    name: 'Media Card',
+    type: 'media_card',
+    description: 'Rich media presentation with images and content',
+    category: 'content',
+    icon: '🖼️',
+    helpText: 'Display images, videos, or rich content in an attractive card format.',
+    useCases: ['Photo galleries', 'Video previews', 'Rich content display', 'Media showcases']
+  },
+  {
+    id: 'preview',
+    name: 'Preview Frame',
+    type: 'preview',
+    description: 'Compact content summary and overview',
+    category: 'content',
+    icon: '👁️',
+    helpText: 'Show a quick preview or summary of content without taking up much space.',
+    useCases: ['Content summaries', 'Quick previews', 'Overview cards', 'Status displays']
+  },
+  {
+    id: 'dialog',
+    name: 'Dialog Frame',
+    type: 'dialog',
+    description: 'Guided agent interaction and conversation',
+    category: 'interaction',
+    icon: '💬',
+    helpText: 'Enable conversations with AI agents or interactive dialogs.',
+    useCases: ['AI chat', 'Interactive help', 'Guided assistance', 'Q&A interfaces']
+  },
+  {
+    id: 'config-panel',
+    name: 'Config Panel',
+    type: 'config_panel',
+    description: 'Form-based settings and configuration',
+    category: 'configuration',
+    icon: '⚙️',
+    helpText: 'Create forms and settings panels for configuration and data input.',
+    useCases: ['Settings forms', 'Configuration panels', 'Data entry', 'Preferences']
+  },
+  {
+    id: 'process-frame',
+    name: 'Process Frame',
+    type: 'process_frame',
+    description: 'Step-based workflow and guided processes',
+    category: 'interaction',
+    icon: '📋',
+    helpText: 'Guide users through multi-step processes with clear progression.',
+    useCases: ['Onboarding', 'Setup wizards', 'Multi-step forms', 'Guided workflows']
+  },
+  {
+    id: 'agent-preview',
+    name: 'Agent Preview',
+    type: 'agent_preview',
+    description: 'Agent identity and configuration preview',
+    category: 'visualization',
+    icon: '🤖',
+    helpText: 'Display AI agent information, capabilities, and current status.',
+    useCases: ['Agent profiles', 'AI status', 'Bot information', 'Assistant previews']
+  },
+  {
+    id: 'code-snippet',
+    name: 'Code Snippet',
+    type: 'code_snippet',
+    description: 'Code viewer and editor with syntax highlighting',
+    category: 'content',
+    icon: '💻',
+    helpText: 'Display and edit code with syntax highlighting and formatting.',
+    useCases: ['Code examples', 'Script editing', 'Documentation', 'Technical content']
+  },
+  // People-specific frames
+  {
+    id: 'people-overview',
+    name: 'People Overview',
+    type: 'preview',
+    description: 'Comprehensive people management interface',
+    category: 'visualization',
+    icon: '👥',
+    helpText: 'Manage and view all people across your domains and projects.',
+    useCases: ['Team management', 'User directories', 'Contact lists', 'People analytics']
+  },
+  {
+    id: 'role-manager',
+    name: 'Role Manager',
+    type: 'config_panel',
+    description: 'Role and permission management interface',
+    category: 'configuration',
+    icon: '🛡️',
+    helpText: 'Assign roles and manage permissions for team members.',
+    useCases: ['Permission management', 'Role assignment', 'Access control', 'Team organization']
+  },
+  {
+    id: 'collaboration-network',
+    name: 'Collaboration Network',
+    type: 'media_card',
+    description: 'Visual network of people and relationships',
+    category: 'visualization',
+    icon: '🕸️',
+    helpText: 'Visualize connections and relationships between team members.',
+    useCases: ['Team visualization', 'Relationship mapping', 'Network analysis', 'Collaboration insights']
+  }
+];
+
+// =============================================================================
+// HELP TOOLTIP COMPONENT
+// =============================================================================
+
+const HelpTooltip: React.FC<{ 
+  content: string; 
+  children: React.ReactNode;
+  position?: 'top' | 'bottom' | 'left' | 'right';
+}> = ({ content, children, position = 'top' }) => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  return (
+    <div className="relative inline-block">
+      <div
+        onMouseEnter={() => setIsVisible(true)}
+        onMouseLeave={() => setIsVisible(false)}
+      >
+        {children}
+      </div>
+      <AnimatePresence>
+        {isVisible && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className={`absolute z-50 px-3 py-2 text-sm text-white bg-slate-800 rounded-lg shadow-lg whitespace-nowrap max-w-xs ${
+              position === 'top' ? 'bottom-full mb-2 left-1/2 transform -translate-x-1/2' :
+              position === 'bottom' ? 'top-full mt-2 left-1/2 transform -translate-x-1/2' :
+              position === 'left' ? 'right-full mr-2 top-1/2 transform -translate-y-1/2' :
+              'left-full ml-2 top-1/2 transform -translate-y-1/2'
+            }`}
+          >
+            {content}
+            <div className={`absolute w-2 h-2 bg-slate-800 transform rotate-45 ${
+              position === 'top' ? 'top-full left-1/2 -translate-x-1/2 -translate-y-1/2' :
+              position === 'bottom' ? 'bottom-full left-1/2 -translate-x-1/2 translate-y-1/2' :
+              position === 'left' ? 'left-full top-1/2 -translate-y-1/2 -translate-x-1/2' :
+              'right-full top-1/2 -translate-y-1/2 translate-x-1/2'
+            }`} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// =============================================================================
+// ENGAGEMENT MODE SELECTOR WITH HELP
+// =============================================================================
+
+const EngagementModeSelector: React.FC<{
+  value: string;
+  onChange: (mode: string) => void;
+}> = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedMode, setSelectedMode] = useState(
+    ENGAGEMENT_MODES.find(mode => mode.id === value) || ENGAGEMENT_MODES[0]
+  );
+
+  const handleModeSelect = (mode: EngagementModeInfo) => {
+    setSelectedMode(mode);
+    onChange(mode.id);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center space-x-2 px-3 py-2 bg-white border border-slate-300 rounded-lg hover:border-slate-400 transition-colors"
+      >
+        {selectedMode.icon}
+        <span className="text-sm font-medium">{selectedMode.name}</span>
+        <ChevronDownIcon className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-full mt-2 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-50 min-w-80"
+          >
+            {ENGAGEMENT_MODES.map((mode) => (
+              <button
+                key={mode.id}
+                onClick={() => handleModeSelect(mode)}
+                className={`w-full text-left p-4 hover:bg-slate-50 transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                  selectedMode.id === mode.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                }`}
+              >
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 mt-1">{mode.icon}</div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-slate-900 mb-1">{mode.name}</h4>
+                    <p className="text-sm text-slate-600 mb-2">{mode.description}</p>
+                    <div className="text-xs text-slate-500 italic">{mode.example}</div>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {mode.useCases.slice(0, 3).map((useCase) => (
+                        <span
+                          key={useCase}
+                          className="inline-block px-2 py-1 bg-slate-100 text-slate-600 rounded-full text-xs"
+                        >
+                          {useCase}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// =============================================================================
+// ENHANCED FRAME CARD WITH HELP
+// =============================================================================
+
+const FrameCard: React.FC<{
+  frame: FrameType;
+  onDragStart: (frame: FrameType) => void;
+  onAddToBoard: (frame: FrameType) => void;
+}> = ({ frame, onDragStart, onAddToBoard }) => {
+  const [isDragging, setIsDragging] = useState(false);
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      draggable
+      onDragStart={(e) => {
+        setIsDragging(true);
+        onDragStart(frame);
+        e.dataTransfer.setData('application/json', JSON.stringify(frame));
+        e.dataTransfer.effectAllowed = 'copy';
+      }}
+      onDragEnd={() => setIsDragging(false)}
+      className={`group p-4 border border-slate-200 rounded-lg cursor-move hover:border-slate-300 hover:shadow-md transition-all bg-white relative ${
+        isDragging ? 'opacity-50' : ''
+      }`}
+    >
+      {/* Frame Icon and Basic Info */}
+      <div className="text-center mb-3">
+        <div className="text-3xl mb-2">{frame.icon}</div>
+        <h5 className="text-sm font-semibold text-slate-900 mb-1">{frame.name}</h5>
+        <p className="text-xs text-slate-600 line-clamp-2 mb-2">{frame.description}</p>
+        <span className="inline-block px-2 py-1 bg-slate-100 text-slate-600 rounded-full text-xs capitalize">
+          {frame.category}
+        </span>
+      </div>
+
+      {/* Help Text - Shown on Hover */}
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="border-t border-slate-200 pt-3 mt-3">
+          <p className="text-xs text-slate-500 mb-2">{frame.helpText}</p>
+          {frame.useCases && (
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-slate-700">Use cases:</div>
+              <div className="flex flex-wrap gap-1">
+                {frame.useCases.slice(0, 2).map((useCase) => (
+                  <span
+                    key={useCase}
+                    className="inline-block px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-xs"
+                  >
+                    {useCase}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Quick Add Button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onAddToBoard(frame);
+        }}
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-all"
+        title="Add to board"
+      >
+        <PlusIcon className="w-3 h-3" />
+      </button>
+
+      {/* Drag Indicator */}
+      <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Bars3Icon className="w-4 h-4 text-slate-400" />
+      </div>
+    </motion.div>
+  );
+};
 
 // =============================================================================
 // MAIN COMPONENT
@@ -69,13 +437,13 @@ const BoardStudioPage: React.FC = () => {
   // UI State
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [isPropertiesPanelOpen, setIsPropertiesPanelOpen] = useState(true);
-  const [isFrameLibraryOpen, setIsFrameLibraryOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Board Studio State
   const [boards, setBoards] = useState<BoardListItem[]>([]);
-  const [frameTypes, setFrameTypes] = useState<FrameType[]>([]);
+  const [frameTypes, setFrameTypes] = useState<FrameType[]>(FRAME_TYPES);
   const [selectedFrameId, setSelectedFrameId] = useState<string | null>(null);
 
   // Board Properties
@@ -88,6 +456,10 @@ const BoardStudioPage: React.FC = () => {
     accentColor: '#0F172A',
     borderColor: '#CBD5E1'
   });
+
+  // Drag and Drop State
+  const [dragOverBoard, setDragOverBoard] = useState(false);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   // Load boards and frame types on mount
   useEffect(() => {
@@ -145,65 +517,6 @@ const BoardStudioPage: React.FC = () => {
             lastModified: new Date('2024-01-26'),
             frameCount: 4,
             engagementMode: 'canvas'
-          }
-        ]);
-      }
-
-      // Load available frame types
-      const framesResponse = await fetch('/api/frames');
-      if (framesResponse.ok) {
-        const framesData = await framesResponse.json();
-        setFrameTypes(framesData);
-      } else {
-        // Mock frame types if API not available
-        setFrameTypes([
-          {
-            id: 'media-card',
-            name: 'Media Card',
-            type: 'media_card',
-            description: 'Rich media presentation with images and content',
-            category: 'content',
-            icon: '🖼️'
-          },
-          {
-            id: 'preview',
-            name: 'Preview Frame',
-            type: 'preview',
-            description: 'Compact content summary and overview',
-            category: 'content',
-            icon: '👁️'
-          },
-          {
-            id: 'dialog',
-            name: 'Dialog Frame',
-            type: 'dialog',
-            description: 'Guided agent interaction and conversation',
-            category: 'interaction',
-            icon: '💬'
-          },
-          {
-            id: 'config-panel',
-            name: 'Config Panel',
-            type: 'config_panel',
-            description: 'Form-based settings and configuration',
-            category: 'configuration',
-            icon: '⚙️'
-          },
-          {
-            id: 'process-frame',
-            name: 'Process Frame',
-            type: 'process_frame',
-            description: 'Step-based workflow and guided processes',
-            category: 'interaction',
-            icon: '📋'
-          },
-          {
-            id: 'agent-preview',
-            name: 'Agent Preview',
-            type: 'agent_preview',
-            description: 'Agent identity and configuration preview',
-            category: 'visualization',
-            icon: '🤖'
           }
         ]);
       }
@@ -298,15 +611,52 @@ const BoardStudioPage: React.FC = () => {
     }
   };
 
-  const handleFrameDrop = (frameType: FrameType, position: { x: number; y: number }) => {
-    console.log('Frame dropped:', frameType, 'at position:', position);
-    // TODO: Implement frame creation and positioning
+  const handleFrameDragStart = (frame: FrameType) => {
+    console.log('Frame drag started:', frame);
   };
 
-  const filteredFrameTypes = frameTypes.filter(frame =>
-    frame.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    frame.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleAddFrameToBoard = (frame: FrameType) => {
+    console.log('Adding frame to board:', frame);
+    // TODO: Implement actual frame addition logic
+    alert(`Adding ${frame.name} to board! (Feature coming soon)`);
+  };
+
+  const handleCanvasDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    setDragOverBoard(true);
+  };
+
+  const handleCanvasDragLeave = () => {
+    setDragOverBoard(false);
+  };
+
+  const handleCanvasDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverBoard(false);
+    
+    try {
+      const frameData = JSON.parse(e.dataTransfer.getData('application/json'));
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) {
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        console.log('Frame dropped at:', { x, y }, 'Frame:', frameData);
+        // TODO: Implement actual frame positioning
+        alert(`Dropped ${frameData.name} at position (${Math.round(x)}, ${Math.round(y)})! (Positioning coming soon)`);
+      }
+    } catch (error) {
+      console.error('Error handling frame drop:', error);
+    }
+  };
+
+  // Filter frames
+  const filteredFrameTypes = frameTypes.filter(frame => {
+    const matchesSearch = frame.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         frame.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || frame.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   const framesByCategory = filteredFrameTypes.reduce((acc, frame) => {
     if (!acc[frame.category]) {
@@ -316,6 +666,8 @@ const BoardStudioPage: React.FC = () => {
     return acc;
   }, {} as Record<string, FrameType[]>);
 
+  const categories = ['all', ...Array.from(new Set(frameTypes.map(f => f.category)))];
+
   return (
     <div className="h-screen bg-slate-50 flex overflow-hidden">
       {/* Board List Panel */}
@@ -323,7 +675,12 @@ const BoardStudioPage: React.FC = () => {
         {/* Header */}
         <div className="p-4 border-b border-slate-200">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">Board Studio</h2>
+            <div className="flex items-center space-x-2">
+              <h2 className="text-lg font-semibold text-slate-900">Board Studio</h2>
+              <HelpTooltip content="Create and edit visual boards with drag-and-drop frames">
+                <QuestionMarkCircleIcon className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+              </HelpTooltip>
+            </div>
             <button
               onClick={handleCreateBoard}
               className="inline-flex items-center space-x-1 px-3 py-1.5 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800 transition-colors"
@@ -375,43 +732,27 @@ const BoardStudioPage: React.FC = () => {
             {activeBoard && (
               <>
                 <h1 className="text-xl font-semibold text-slate-900">{boardName || 'Untitled Board'}</h1>
-                <select
+                <EngagementModeSelector
                   value={engagementMode}
-                  onChange={(e) => setEngagementMode(e.target.value as any)}
-                  className="text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-500"
-                >
-                  <option value="canvas">Canvas Mode</option>
-                  <option value="wizard">Wizard Mode</option>
-                  <option value="dialogic">Dialogic Mode</option>
-                  <option value="focus">Focus Mode</option>
-                </select>
+                  onChange={(mode) => setEngagementMode(mode as any)}
+                />
               </>
             )}
           </div>
 
           <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setIsFrameLibraryOpen(!isFrameLibraryOpen)}
-              className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                isFrameLibraryOpen
-                  ? 'bg-slate-700 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              <Squares2X2Icon className="w-4 h-4" />
-              <span>Frame Library</span>
-            </button>
-
-            <button
-              onClick={() => setIsPropertiesPanelOpen(!isPropertiesPanelOpen)}
-              className={`p-2 rounded-lg transition-colors ${
-                isPropertiesPanelOpen
-                  ? 'bg-slate-700 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              <CogIcon className="w-4 h-4" />
-            </button>
+            <HelpTooltip content="Toggle properties panel to edit board settings">
+              <button
+                onClick={() => setIsPropertiesPanelOpen(!isPropertiesPanelOpen)}
+                className={`p-2 rounded-lg transition-colors ${
+                  isPropertiesPanelOpen
+                    ? 'bg-slate-700 text-white'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <CogIcon className="w-4 h-4" />
+              </button>
+            </HelpTooltip>
 
             <button
               onClick={handleSaveBoard}
@@ -425,44 +766,137 @@ const BoardStudioPage: React.FC = () => {
         </div>
 
         {/* Board Canvas */}
-        <div className="flex-1 relative overflow-hidden">
-          {activeBoard ? (
-            <div 
-              className="w-full h-full p-6 overflow-auto"
-              style={{ 
-                backgroundColor: boardTheme.backgroundColor,
-                backgroundImage: engagementMode === 'canvas' 
-                  ? 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)'
-                  : 'none',
-                backgroundSize: engagementMode === 'canvas' ? '20px 20px' : 'auto'
-              }}
-            >
-              <BoardRenderer
-                boardInstance={activeBoard}
-                onFrameInteraction={(interaction) => {
-                  console.log('Board Studio frame interaction:', interaction);
-                  handleFrameInteraction(interaction);
+        <div className="flex-1 flex">
+          {/* Canvas Area */}
+          <div className="flex-1 relative overflow-hidden">
+            {activeBoard ? (
+              <div 
+                ref={canvasRef}
+                className={`w-full h-full p-6 overflow-auto transition-all ${
+                  dragOverBoard ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''
+                }`}
+                style={{ 
+                  backgroundColor: dragOverBoard ? undefined : boardTheme.backgroundColor,
+                  backgroundImage: engagementMode === 'canvas' && !dragOverBoard
+                    ? 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)'
+                    : 'none',
+                  backgroundSize: engagementMode === 'canvas' ? '20px 20px' : 'auto'
                 }}
-                showLayoutControls={true}
-                className="bg-white rounded-lg shadow-sm border border-slate-200"
-              />
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full bg-slate-100">
-              <div className="text-center">
-                <Squares2X2Icon className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-xl font-medium text-slate-900 mb-2">No Board Selected</h3>
-                <p className="text-slate-600 mb-6">Select a board from the list or create a new one to get started.</p>
-                <button
-                  onClick={handleCreateBoard}
-                  className="inline-flex items-center space-x-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors"
-                >
-                  <PlusIcon className="w-4 h-4" />
-                  <span>Create New Board</span>
-                </button>
+                onDragOver={handleCanvasDragOver}
+                onDragLeave={handleCanvasDragLeave}
+                onDrop={handleCanvasDrop}
+              >
+                {dragOverBoard && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="bg-blue-100 border-2 border-blue-300 rounded-lg p-8 text-center">
+                      <SparklesIcon className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-blue-900 mb-2">Drop Frame Here</h3>
+                      <p className="text-blue-700">Release to add the frame to your board</p>
+                    </div>
+                  </div>
+                )}
+                
+                <BoardRenderer
+                  boardInstance={activeBoard}
+                  onFrameInteraction={(interaction) => {
+                    console.log('Board Studio frame interaction:', interaction);
+                    handleFrameInteraction(interaction);
+                  }}
+                  showLayoutControls={true}
+                  className="bg-white rounded-lg shadow-sm border border-slate-200"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full bg-slate-100">
+                <div className="text-center">
+                  <Squares2X2Icon className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-medium text-slate-900 mb-2">No Board Selected</h3>
+                  <p className="text-slate-600 mb-6">Select a board from the list or create a new one to get started.</p>
+                  <button
+                    onClick={handleCreateBoard}
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    <span>Create New Board</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Frame Library Sidebar */}
+          <div className="w-80 bg-white border-l border-slate-200 flex flex-col">
+            {/* Frame Library Header */}
+            <div className="p-4 border-b border-slate-200">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <h3 className="font-medium text-slate-900">Frame Library</h3>
+                  <HelpTooltip content="Drag frames onto the canvas or click the + button to add them to your board">
+                    <QuestionMarkCircleIcon className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                  </HelpTooltip>
+                </div>
+              </div>
+              
+              {/* Search */}
+              <div className="relative mb-3">
+                <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search frames..."
+                  className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                />
+              </div>
+
+              {/* Category Filter */}
+              <div className="flex flex-wrap gap-1">
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`px-2 py-1 text-xs rounded-full transition-colors capitalize ${
+                      selectedCategory === category
+                        ? 'bg-slate-200 text-slate-900'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-150'
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
               </div>
             </div>
-          )}
+
+            {/* Frame List with Better Scrolling */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-4 space-y-6">
+                {Object.entries(framesByCategory).map(([category, frames]) => (
+                  <div key={category}>
+                    <h4 className="text-sm font-medium text-slate-900 mb-3 capitalize sticky top-0 bg-white py-1">
+                      {category} ({frames.length})
+                    </h4>
+                    <div className="space-y-3">
+                      {frames.map((frame) => (
+                        <FrameCard
+                          key={frame.id}
+                          frame={frame}
+                          onDragStart={handleFrameDragStart}
+                          onAddToBoard={handleAddFrameToBoard}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                
+                {filteredFrameTypes.length === 0 && (
+                  <div className="text-center py-8 text-slate-500">
+                    <InformationCircleIcon className="w-8 h-8 mx-auto mb-2" />
+                    <p>No frames found matching your search.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -478,7 +912,12 @@ const BoardStudioPage: React.FC = () => {
             {/* Header */}
             <div className="p-4 border-b border-slate-200">
               <div className="flex items-center justify-between">
-                <h3 className="font-medium text-slate-900">Properties</h3>
+                <div className="flex items-center space-x-2">
+                  <h3 className="font-medium text-slate-900">Properties</h3>
+                  <HelpTooltip content="Edit board settings, theme, and frame properties">
+                    <QuestionMarkCircleIcon className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                  </HelpTooltip>
+                </div>
                 <button
                   onClick={() => setIsPropertiesPanelOpen(false)}
                   className="p-1 text-slate-400 hover:text-slate-600 rounded"
@@ -558,15 +997,24 @@ const BoardStudioPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Frame Properties */}
-                  {selectedFrameId && (
-                    <div>
-                      <h4 className="text-sm font-medium text-slate-900 mb-3">Selected Frame</h4>
-                      <div className="text-sm text-slate-600">
-                        Frame ID: {selectedFrameId}
+                  {/* Help Section */}
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-900 mb-3">Getting Started</h4>
+                    <div className="space-y-2 text-sm text-slate-600">
+                      <div className="flex items-start space-x-2">
+                        <span className="flex-shrink-0 w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">1</span>
+                        <span>Drag frames from the library onto the canvas</span>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <span className="flex-shrink-0 w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">2</span>
+                        <span>Use engagement modes to control layout behavior</span>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <span className="flex-shrink-0 w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">3</span>
+                        <span>Customize colors and save your board</span>
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               ) : (
                 <div className="text-center text-slate-500 py-8">
@@ -574,74 +1022,6 @@ const BoardStudioPage: React.FC = () => {
                   <p>Select a board to edit properties</p>
                 </div>
               )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Frame Library Drawer */}
-      <AnimatePresence>
-        {isFrameLibraryOpen && (
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            className="fixed bottom-0 left-0 right-0 h-80 bg-white border-t border-slate-200 shadow-lg z-50"
-          >
-            {/* Header */}
-            <div className="p-4 border-b border-slate-200">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium text-slate-900">Frame Library</h3>
-                <button
-                  onClick={() => setIsFrameLibraryOpen(false)}
-                  className="p-1 text-slate-400 hover:text-slate-600 rounded"
-                >
-                  <XMarkIcon className="w-4 h-4" />
-                </button>
-              </div>
-              
-              {/* Search */}
-              <div className="relative">
-                <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search frames..."
-                  className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-              </div>
-            </div>
-
-            {/* Frame List */}
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="space-y-4">
-                {Object.entries(framesByCategory).map(([category, frames]) => (
-                  <div key={category}>
-                    <h4 className="text-sm font-medium text-slate-900 mb-2 capitalize">{category}</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {frames.map((frame) => (
-                        <motion.div
-                          key={frame.id}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData('application/json', JSON.stringify(frame));
-                          }}
-                          className="p-3 border border-slate-200 rounded-lg cursor-move hover:border-slate-300 hover:shadow-sm transition-all bg-white"
-                        >
-                          <div className="text-center">
-                            <div className="text-2xl mb-2">{frame.icon}</div>
-                            <h5 className="text-sm font-medium text-slate-900 mb-1">{frame.name}</h5>
-                            <p className="text-xs text-slate-600 line-clamp-2">{frame.description}</p>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           </motion.div>
         )}
