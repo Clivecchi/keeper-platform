@@ -30,7 +30,8 @@ import {
   TagIcon,
   RectangleStackIcon,
   FolderOpenIcon,
-  GlobeAltIcon
+  GlobeAltIcon,
+  Squares2X2Icon
 } from '@heroicons/react/24/outline';
 
 interface SidebarItemProps {
@@ -237,6 +238,9 @@ export const Sidebar: React.FC = () => {
         </SidebarItem>
         <SidebarItem to="/studio/agent-classes" icon={<TagIcon />} isCollapsed={isCollapsed}>
           Agent Classes
+        </SidebarItem>
+        <SidebarItem to="/studio/board-studio" icon={<Squares2X2Icon />} isCollapsed={isCollapsed}>
+          Board Studio (Beta)
         </SidebarItem>
       </SidebarSection>
 

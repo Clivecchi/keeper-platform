@@ -17,6 +17,10 @@ import AgentLogsPage from './pages/studio/kip/AgentLogsPage';
 import PlatformApiKeyManagerPage from './pages/studio/kip/PlatformApiKeyManagerPage';
 import AgentBoardPage from './pages/studio/AgentBoardPage';
 import DomainBoardPage from './pages/studio/DomainBoardPage';
+import JourneyBoardPage from './pages/studio/journey-board-page';
+import KeeperTypeBoardPage from './pages/studio/keeper-type-board-page';
+import PeopleBoardPage from './pages/studio/people-board-page';
+import BoardStudioPage from './pages/studio/board-studio-page';
 // Admin Pages
 import DomainsPage from './pages/admin/DomainsPage';
 import RolesPage from './pages/admin/RolesPage';
@@ -87,6 +91,10 @@ const App: React.FC = () => {
           <Route path="/studio/agents/:agentId" element={<AgentBoardPage />} />
           <Route path="/studio/agent-board" element={<AgentBoardPage />} />
           <Route path="/studio/domain-board" element={<DomainBoardPage />} />
+          <Route path="/studio/journey-board" element={<JourneyBoardPage />} />
+          <Route path="/studio/keeper-type-board" element={<KeeperTypeBoardPage />} />
+          <Route path="/studio/people-board" element={<PeopleBoardPage />} />
+          <Route path="/studio/board-studio" element={<BoardStudioPage />} />
           <Route path="/studio/memory-patterns" element={<MemoryPatternsPage />} />
           <Route path="/studio/agent-classes" element={<AgentClassesPage />} />
           <Route path="/studio/engagement-templates" element={<KipStudioPage />} />

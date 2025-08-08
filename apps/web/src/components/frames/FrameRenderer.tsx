@@ -34,6 +34,26 @@ const SetupStepsFrame = lazy(() => import('./SetupStepsFrame'));
 const MemberListFrame = lazy(() => import('./MemberListFrame'));
 const CustomDomainFrame = lazy(() => import('./CustomDomainFrame'));
 
+// Journey-specific frames
+const JourneyOverviewFrame = lazy(() => import('./journey-overview-frame'));
+const PathListFrame = lazy(() => import('./path-list-frame'));
+const MomentGridFrame = lazy(() => import('./moment-grid-frame'));
+const JourneyConfigFrame = lazy(() => import('./journey-config-frame'));
+
+// Keeper Type-specific frames
+const KeeperTypeOverviewFrame = lazy(() => import('./keeper-type-overview-frame'));
+const KeeperTypeConfigFrame = lazy(() => import('./keeper-type-config-frame'));
+const LinkedJourneysFrame = lazy(() => import('./linked-journeys-frame'));
+const LinkedAgentsFrame = lazy(() => import('./linked-agents-frame'));
+const KeeperTypeProcessFrame = lazy(() => import('./keeper-type-process-frame'));
+
+// People-specific frames
+const PeopleOverviewFrame = lazy(() => import('./people-overview-frame'));
+const RoleManagerFrame = lazy(() => import('./role-manager-frame'));
+const CollaborationNetworkFrame = lazy(() => import('./collaboration-network-frame'));
+const ActivityFeedFrame = lazy(() => import('./activity-feed-frame'));
+const PeopleProcessFrame = lazy(() => import('./people-process-frame'));
+
 // =============================================================================
 // FRAME TYPE REGISTRY
 // =============================================================================
@@ -141,6 +161,49 @@ export const FrameRenderer: React.FC<FrameRendererProps> = ({
       FrameComponent = MemberListFrame;
     } else if (frameInstance.id.includes('custom-domain')) {
       FrameComponent = CustomDomainFrame;
+    }
+  }
+  
+  // Handle journey-specific frame overrides
+  if (frameInstance.entityType === 'journey') {
+    if (frameInstance.id.includes('journey-overview')) {
+      FrameComponent = JourneyOverviewFrame;
+    } else if (frameInstance.id.includes('path-list')) {
+      FrameComponent = PathListFrame;
+    } else if (frameInstance.id.includes('moment-grid')) {
+      FrameComponent = MomentGridFrame;
+    } else if (frameInstance.id.includes('journey-config')) {
+      FrameComponent = JourneyConfigFrame;
+    }
+  }
+  
+  // Handle keeper type-specific frame overrides
+  if (frameInstance.entityType === 'keeper_type') {
+    if (frameInstance.id.includes('keeper-type-overview')) {
+      FrameComponent = KeeperTypeOverviewFrame;
+    } else if (frameInstance.id.includes('keeper-type-config')) {
+      FrameComponent = KeeperTypeConfigFrame;
+    } else if (frameInstance.id.includes('linked-journeys')) {
+      FrameComponent = LinkedJourneysFrame;
+    } else if (frameInstance.id.includes('linked-agents')) {
+      FrameComponent = LinkedAgentsFrame;
+    } else if (frameInstance.id.includes('keeper-type-process')) {
+      FrameComponent = KeeperTypeProcessFrame;
+    }
+  }
+  
+  // Handle people-specific frame overrides
+  if (frameInstance.entityType === 'people') {
+    if (frameInstance.id.includes('people-overview')) {
+      FrameComponent = PeopleOverviewFrame;
+    } else if (frameInstance.id.includes('role-manager')) {
+      FrameComponent = RoleManagerFrame;
+    } else if (frameInstance.id.includes('collaboration-network')) {
+      FrameComponent = CollaborationNetworkFrame;
+    } else if (frameInstance.id.includes('activity-feed')) {
+      FrameComponent = ActivityFeedFrame;
+    } else if (frameInstance.id.includes('people-process')) {
+      FrameComponent = PeopleProcessFrame;
     }
   }
   

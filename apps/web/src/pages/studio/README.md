@@ -1,24 +1,64 @@
 # Studio Pages
 
 ## 📌 Purpose
-Contains pages for the Studio section of Keeper, focusing on advanced platform management and AI orchestration interfaces.
+Studio pages provide administrative and development interfaces for the Keeper Platform. These pages are used by authenticated users to manage agents, boards, and platform configuration.
 
 ## 🧱 Key Files
-- `KipStudioPage.tsx` - Main interface for Kip (Keeper Interface Protocol) orchestration
+- `board-studio-page.tsx` - Board Studio for creating and editing boards
+- `AgentBoardPage.tsx` - Agent-specific board wrapper
+- `DomainBoardPage.tsx` - Domain management board wrapper
+- `JourneyBoardPage.tsx` - Journey visualization board wrapper
+- `KeeperTypeBoardPage.tsx` - Keeper Type management board wrapper
+- `PeopleBoardPage.tsx` - People management board wrapper
+- `README.md` - This documentation file
 
 ## 🔄 Data & Behavior
-This section handles:
-- Agent registry display and management
-- KIP thought processing visualization
-- Intent console for testing agent extractions
-- Future studio features like agent configuration and logs
+
+### Board Studio (`board-studio-page.tsx`)
+The Board Studio is the central control panel for creating, editing, and managing Boards within the Keeper Platform.
+
+#### Features
+- **Board List Panel**: Lists all existing boards for the current domain
+- **Board Editor Canvas**: Visual editor for board layout and frame positioning
+- **Properties Panel**: Edit board-level settings (name, description, engagement mode, theme)
+- **Frame Library**: Searchable library of available frames with drag-and-drop functionality
+
+#### Layout
+- **Left Sidebar**: Board list with creation capabilities
+- **Main Area**: Board editor canvas with toolbar
+- **Right Panel**: Properties and settings (collapsible)
+- **Bottom Drawer**: Frame library (togglable)
+
+#### API Integration
+- `GET /api/boards?domainId={id}` - List boards for domain
+- `POST /api/boards` - Create new board
+- `PATCH /api/boards/:boardId` - Update board properties
+- `GET /api/frames` - List available frame types
+- `POST /api/frames` - Create frame instance
+
+#### Theme
+Uses neutral blue-gray scheme (#334155, #E2E8F0, #0F172A) for professional appearance.
+
+### Board Wrapper Pages
+Each board type has a dedicated wrapper page that:
+- Handles URL parameters and routing
+- Provides board-specific context and providers
+- Manages authentication and domain access
+- Renders the appropriate board component
 
 ## ⚠️ Notes & ToDo
-- [ ] Add subpages for agent configuration (/studio/kip/agents)
-- [ ] Add logs page (/studio/kip/logs)  
-- [ ] Add simulation environment (/studio/kip/simulation)
-- [ ] Integrate with real KIP backend services
+- [ ] Implement actual drag-and-drop frame positioning
+- [ ] Add board template system
+- [ ] Integrate with real-time collaboration
+- [ ] Add board versioning and history
+- [ ] Implement board sharing and permissions
+- [ ] Add board analytics and usage tracking
 
 ## 📆 Update Log
-- 2025-01-03: Created KipStudioPage.tsx with initial studio interface
-- 2025-01-03: Updated to use database-backed KIP agents instead of mock data 
+- 2025-01-XX: Created Board Studio with comprehensive editing interface
+- Added backend API routes for boards and frames management
+- Integrated with existing Frame system and BoardRenderer
+- Added temporary navigation link in Studio sidebar
+- Implemented drag-and-drop frame library with search functionality
+- Created properties panel for board configuration and theming
+- Documentation created with usage patterns and development guidelines

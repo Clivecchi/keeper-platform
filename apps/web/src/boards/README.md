@@ -7,6 +7,10 @@ This folder contains the Board system components that serve as the primary UI fr
 - `AgentBoard.tsx` - Agent configuration and management board
 - `domain-board.tsx` - Domain management and setup board
 - `domain-board/README.md` - Domain board specific documentation
+- `journey-board.tsx` - Journey management and visualization board
+- `journey-board/README.md` - Journey board specific documentation
+- `keeper-type-board.tsx` - Keeper Type management and configuration board
+- `people-board.tsx` - People management and collaboration board
 - `README.md` - This documentation file
 
 ## 🔄 Data & Behavior
@@ -22,9 +26,9 @@ The Board system is built around the concept of modular, interactive canvases:
 ### Board Types
 1. **agent_board** - Agent configuration and interaction workspace
 2. **domain_board** - Domain management and setup with wizard workflow ✅
-3. **keeper_type_board** - Keeper type configuration (planned)
-4. **journey_board** - Journey and path management (planned)
-5. **people_board** - User and team management (planned)
+3. **journey_board** - Journey and path management with canvas layout ✅
+4. **keeper_type_board** - Keeper Type management with wizard/canvas modes ✅
+5. **people_board** - People management and collaboration with canvas/wizard modes ✅
 6. **code_board** - Code exploration and teaching (planned)
 
 ### Engagement Modes
@@ -147,12 +151,17 @@ Boards are integrated into the routing system:
 - `/studio/agent-board` - General agent board
 - `/studio/agents/:agentId` - Agent-specific board
 - `/studio/domain-board` - Domain management with wizard workflow ✅
-- `/studio/keeper-types` - Keeper type configuration (planned)
+- `/studio/journey-board` - Journey management with canvas layout ✅
+- `/studio/keeper-type-board` - Keeper Type management with wizard/canvas modes ✅
+- `/studio/people-board` - People management with canvas/wizard modes ✅
 
 ## ⚠️ Notes & ToDo
-- [ ] Implement API integration for board CRUD operations
+- [x] Implement API integration for board CRUD operations
 - [ ] Add drag-and-drop frame reordering in canvas layout
-- [ ] Create DomainBoard for Phase 2 development
+- [x] Create DomainBoard for Phase 2 development
+- [x] Implement Board Studio for visual board editing
+- [ ] Add real-time collaboration features to Board Studio
+- [ ] Implement board templates and presets
 - [ ] Implement board template system
 - [ ] Add board sharing and collaboration features
 - [ ] Create board analytics and usage tracking
@@ -171,8 +180,22 @@ Boards are integrated into the routing system:
 - 2025-01-XX: Created Board system foundation with BoardContext and BoardRenderer
 - AgentBoard implemented with dialogic engagement mode
 - DomainBoard implemented with wizard engagement mode
+- JourneyBoard implemented with canvas engagement mode
+- KeeperTypeBoard implemented with wizard/canvas dual-mode engagement
+- PeopleBoard implemented with canvas/wizard dual-mode engagement
+- **Board Studio implemented** - Visual board editor with drag-and-drop interface
 - Created 4 specialized domain frame components (DomainCard, SetupSteps, MemberList, CustomDomain)
+- Created 4 specialized journey frame components (JourneyOverview, PathList, MomentGrid, JourneyConfig)
+- Created 5 specialized keeper type frame components (KeeperTypeOverview, KeeperTypeConfig, LinkedJourneys, LinkedAgents, KeeperTypeProcess)
+- Created 5 specialized people frame components (PeopleOverview, RoleManager, CollaborationNetwork, ActivityFeed, PeopleProcess)
 - Integration with existing Frame system completed
-- Routes added for `/studio/agents`, `/studio/agent-board`, and `/studio/domain-board`
-- Enhanced FrameRenderer with domain-specific frame routing
+- Routes added for `/studio/agents`, `/studio/agent-board`, `/studio/domain-board`, `/studio/journey-board`, `/studio/keeper-type-board`, `/studio/people-board`, and `/studio/board-studio`
+- Enhanced FrameRenderer with domain-specific, journey-specific, keeper type-specific, and people-specific frame routing
+- Added layout editing capabilities for canvas engagement mode
+- Implemented dual engagement mode (wizard/canvas) switching across multiple boards
+- Advanced people management features including role matrix, collaboration network visualization, and activity timeline
+- **Backend API routes** for board and frame management (`/api/boards`, `/api/frames`)
+- **Frame Library** with searchable, draggable frame types organized by category
+- **Properties Panel** for board configuration, theming, and frame settings
+- **Temporary navigation link** added to Studio sidebar for Board Studio access
 - Documentation created with usage patterns and development guidelines

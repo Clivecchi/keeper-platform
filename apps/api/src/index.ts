@@ -18,6 +18,9 @@ import kipPlatformKeysRouter from './api/kip/platform-keys.js';
 import { getUserKeys, setUserKey, deleteUserKey, getUserProviders } from './api/kip/user-keys.js';
 // Import KAM settings handler
 import kamSettingsHandler from './api/kam/settings.js';
+// Import Board Studio routes
+import boardRoutes from './routes/boards.js';
+import frameRoutes from './routes/frames.js';
 // Import database client
 import { prisma } from '@keeper/database';
 import { authMiddleware, authMiddlewareCompat, AuthenticatedRequest } from './middleware/authMiddleware.js';
@@ -684,6 +687,10 @@ app.use('/api/admin/users', adminUsersRoutes);
 
 // NEW: Connect Keeper routes
 app.use('/api/keeper', keeperRoutes);
+
+// Connect Board Studio routes
+app.use('/api/boards', boardRoutes);
+app.use('/api/frames', frameRoutes);
 
 // Connect KIP routes
 app.use('/api/kip/agents', kipAgentsHandler);
