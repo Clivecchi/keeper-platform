@@ -237,7 +237,7 @@ router.get('/', authMiddlewareCompat, async (req, res) => {
     return res.json(filteredFrameTypes);
   } catch (error) {
     console.error('Error fetching frame types:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -258,7 +258,7 @@ router.get('/:frameType', authMiddlewareCompat, async (req, res) => {
     return res.json(frameTypeInfo);
   } catch (error) {
     console.error('Error fetching frame type:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -309,7 +309,7 @@ router.post('/', authMiddlewareCompat, validationMiddleware(CreateFrameSchema), 
     return res.status(201).json(mockFrameInstance);
   } catch (error) {
     console.error('Error creating frame:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -344,7 +344,7 @@ router.get('/instances/:entityType/:entityId', authMiddlewareCompat, async (req,
     return res.json(mockFrameInstances);
   } catch (error) {
     console.error('Error fetching frame instances:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -381,7 +381,7 @@ router.patch('/instances/:frameId', authMiddlewareCompat, async (req, res) => {
     return res.json(mockUpdatedFrame);
   } catch (error) {
     console.error('Error updating frame instance:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -399,7 +399,7 @@ router.delete('/instances/:frameId', authMiddlewareCompat, async (req, res) => {
     return res.json({ success: true, message: 'Frame deleted successfully' });
   } catch (error) {
     console.error('Error deleting frame instance:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
