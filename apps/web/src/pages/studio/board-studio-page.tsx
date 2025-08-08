@@ -16,7 +16,7 @@ import {
   EyeIcon,
   PencilIcon,
   TrashIcon,
-  SaveIcon,
+  DocumentArrowUpIcon,
   ArrowsPointingOutIcon,
   Bars3Icon,
   XMarkIcon
@@ -418,7 +418,7 @@ const BoardStudioPage: React.FC = () => {
               disabled={!activeBoard || isSaving}
               className="inline-flex items-center space-x-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <SaveIcon className="w-4 h-4" />
+              <DocumentArrowUpIcon className="w-4 h-4" />
               <span>{isSaving ? 'Saving...' : 'Save'}</span>
             </button>
           </div>

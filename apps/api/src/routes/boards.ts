@@ -6,13 +6,13 @@
  * Handles board creation, retrieval, updating, and deletion.
  */
 
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
-import { requireAuth } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
+import { authMiddlewareCompat } from '../middleware/authMiddleware';
+import { validationMiddleware } from '../middleware/validationMiddleware';
 
-const router = Router();
+const router: Router = Router();
 const prisma = new PrismaClient();
 
 // =============================================================================
@@ -68,7 +68,7 @@ const UpdateBoardSchema = z.object({
  * GET /api/boards
  * List boards for a domain
  */
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
     const { domainId } = req.query;
     
@@ -77,14 +77,18 @@ router.get('/', requireAuth, async (req, res) => {
     }
 
     // Check if user has access to this domain
-    const userDomain = await prisma.userDomain.findFirst({
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const domainPermission = await prisma.domainPermission.findFirst({
       where: {
         userId: req.user.id,
         domainId: domainId
       }
     });
 
-    if (!userDomain) {
+    if (!domainPermission) {
       return res.status(403).json({ error: 'Access denied to domain' });
     }
 
@@ -143,10 +147,10 @@ router.get('/', requireAuth, async (req, res) => {
       }
     ];
 
-    res.json(mockBoards);
+    return res.json(mockBoards);
   } catch (error) {
     console.error('Error fetching boards:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -154,19 +158,23 @@ router.get('/', requireAuth, async (req, res) => {
  * POST /api/boards
  * Create a new board
  */
-router.post('/', requireAuth, validateRequest(CreateBoardSchema), async (req, res) => {
+router.post('/', authMiddlewareCompat, validationMiddleware(CreateBoardSchema), async (req: Request, res: Response) => {
   try {
     const { name, type, description, engagementMode, layout, domainId, theme } = req.body;
 
     // Check if user has access to this domain
-    const userDomain = await prisma.userDomain.findFirst({
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const domainPermission = await prisma.domainPermission.findFirst({
       where: {
         userId: req.user.id,
         domainId: domainId
       }
     });
 
-    if (!userDomain) {
+    if (!domainPermission) {
       return res.status(403).json({ error: 'Access denied to domain' });
     }
 
@@ -188,10 +196,10 @@ router.post('/', requireAuth, validateRequest(CreateBoardSchema), async (req, re
     };
 
     console.log('Board created:', mockBoard);
-    res.status(201).json(mockBoard);
+    return res.status(201).json(mockBoard);
   } catch (error) {
     console.error('Error creating board:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -199,7 +207,7 @@ router.post('/', requireAuth, validateRequest(CreateBoardSchema), async (req, re
  * GET /api/boards/:boardId
  * Get a specific board with its frames
  */
-router.get('/:boardId', requireAuth, async (req, res) => {
+router.get('/:boardId', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
     const { boardId } = req.params;
 
@@ -229,10 +237,10 @@ router.get('/:boardId', requireAuth, async (req, res) => {
       updatedAt: new Date()
     };
 
-    res.json(mockBoard);
+    return res.json(mockBoard);
   } catch (error) {
     console.error('Error fetching board:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -240,7 +248,7 @@ router.get('/:boardId', requireAuth, async (req, res) => {
  * PATCH /api/boards/:boardId
  * Update a board
  */
-router.patch('/:boardId', requireAuth, validateRequest(UpdateBoardSchema), async (req, res) => {
+router.patch('/:boardId', authMiddlewareCompat, validationMiddleware(UpdateBoardSchema), async (req: Request, res: Response) => {
   try {
     const { boardId } = req.params;
     const updates = req.body;
@@ -255,10 +263,10 @@ router.patch('/:boardId', requireAuth, validateRequest(UpdateBoardSchema), async
       updatedAt: new Date()
     };
 
-    res.json(updatedBoard);
+    return res.json(updatedBoard);
   } catch (error) {
     console.error('Error updating board:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -266,7 +274,7 @@ router.patch('/:boardId', requireAuth, validateRequest(UpdateBoardSchema), async
  * DELETE /api/boards/:boardId
  * Delete a board
  */
-router.delete('/:boardId', requireAuth, async (req, res) => {
+router.delete('/:boardId', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
     const { boardId } = req.params;
 
@@ -274,10 +282,10 @@ router.delete('/:boardId', requireAuth, async (req, res) => {
     // TODO: Replace with actual board deletion when board storage is implemented
     console.log('Board deletion requested:', boardId);
 
-    res.json({ success: true, message: 'Board deleted successfully' });
+    return res.json({ success: true, message: 'Board deleted successfully' });
   } catch (error) {
     console.error('Error deleting board:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
