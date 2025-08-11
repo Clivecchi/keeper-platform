@@ -299,7 +299,7 @@ router.get('/stats', authMiddlewareCompat, async (req: Request, res: Response) =
     });
 
     const totalDomains = await prisma.domain.count({
-      where: domainId ? { id: domainId } : {},
+      where: domainId && typeof domainId === 'string' ? { id: domainId } : {},
     });
 
     const pendingInvites = await prisma.domainInvitation.count({
@@ -308,7 +308,7 @@ router.get('/stats', authMiddlewareCompat, async (req: Request, res: Response) =
         expiresAt: {
           gt: new Date(),
         },
-        ...(domainId ? { domainId } : {}),
+        ...(domainId && typeof domainId === 'string' ? { domainId: domainId } : {}),
       },
     });
 

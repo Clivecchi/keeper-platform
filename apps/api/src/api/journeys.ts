@@ -198,8 +198,15 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
 
     const journey = await prisma.journey.create({
       data: {
-        ...data,
+        id: `journey-${Date.now()}`, // Generate unique ID
+        name: data.name,
+        forward: data.forward,
+        keeperId: data.keeperId,
+        domainId: data.domainId,
+        theme_id: data.theme_id,
         ownerId: userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       include: {
         Keeper: {
