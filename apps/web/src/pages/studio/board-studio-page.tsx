@@ -825,7 +825,7 @@ const BoardStudioPage: React.FC = () => {
   }
   
   return (
-    <div className="h-screen bg-slate-50 flex overflow-hidden">
+    <div className="h-full min-h-0 bg-slate-50 flex overflow-hidden">
       {/* Board List Panel */}
       <div className="w-80 bg-white border-r border-slate-200 flex flex-col">
         {/* Header */}
@@ -947,7 +947,7 @@ const BoardStudioPage: React.FC = () => {
         {/* Board Canvas */}
         <div className="flex-1 flex">
           {/* Canvas Area */}
-          <div className="flex-1 relative overflow-hidden">
+          <div className="flex-1 relative overflow-hidden min-h-0">
             {activeBoard ? (
               <div 
                 ref={canvasRef}

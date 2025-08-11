@@ -169,11 +169,12 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
             accentColor: '#1E40AF',
           }
         },
-        frames: [
-          { id: 'agent-preview-frame-1', type: 'agent_preview', data: {} },
-          { id: 'agent-dialog-frame-1', type: 'dialog', data: {} },
-          { id: 'agent-config-frame-1', type: 'config_panel', data: {} }
-        ],
+                  frames: [
+            { id: 'agent-preview-frame-1', type: 'agent_preview', data: {} },
+            { id: 'agent-dialog-frame-1', type: 'dialog', data: {} },
+            { id: 'agent-config-frame-1', type: 'config_panel', data: {} },
+            { id: 'agent-media-card-1', type: 'media_card', data: {} }
+          ],
         entityType: 'agent',
         entityId: 'kip-agent-1',
         createdAt: new Date(),
