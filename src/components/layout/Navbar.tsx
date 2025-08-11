@@ -41,6 +41,7 @@ export const Navbar: React.FC = () => {
           {isAuthenticated ? (
             <>
               <NavItem to="/root">Root</NavItem>
+              <NavItem to="/studio">Board Studio</NavItem>
               <NavItem to="/journeys">Journeys</NavItem>
               <NavItem to="/moments">Moments</NavItem>
               <NavItem to="/themes">Themes</NavItem>
