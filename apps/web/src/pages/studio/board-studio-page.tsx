@@ -436,7 +436,7 @@ const BoardStudioPage: React.FC = () => {
   const { user } = useAuth();
   console.log('BoardStudioPage: useAuth hook called, user:', user);
   
-  const { activeBoard, loadBoard, saveBoard, isLoading, addFrame } = useBoard();
+  const { activeBoard, loadBoard, isLoading, addFrame } = useBoard();
   console.log('BoardStudioPage: useBoard hook called, activeBoard:', activeBoard);
   
   const { handleFrameInteraction } = useFrame();
@@ -501,7 +501,13 @@ const BoardStudioPage: React.FC = () => {
       // Load boards for current domain using new API endpoint
       try {
         const boardsData = await apiFetch(`/api/board-data?domainId=${user?.currentDomainId || 'demo'}`);
-        setBoards(boardsData.boards || []);
+        const normalizedBoards = (boardsData.boards || []).map((b: any) => ({
+          ...b,
+          lastModified: b.lastModified ? new Date(b.lastModified) : new Date(),
+          frameCount: typeof b.frameCount === 'number' ? b.frameCount : Array.isArray(b.frames) ? b.frames.length : 0,
+          engagementMode: b.engagementMode || 'canvas',
+        }));
+        setBoards(normalizedBoards);
         console.log('Loaded boards from API:', boardsData);
       } catch (error) {
         console.warn('Board API not available, using fallback data');
@@ -574,7 +580,7 @@ const BoardStudioPage: React.FC = () => {
         // Update properties panel with board data
         setBoardName(boardData.config?.name || 'Untitled Board');
         setBoardDescription(boardData.config?.description || '');
-        setEngagementMode(boardData.config?.engagementMode || 'canvas');
+        setEngagementMode((boardData.config?.engagementMode as any) || 'canvas');
         setBoardTheme(boardData.config?.theme || {
           primaryColor: '#3B82F6',
           backgroundColor: '#F8FAFC'
