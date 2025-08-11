@@ -430,7 +430,7 @@ export const BoardRenderer: React.FC<BoardRendererProps> = ({
 
   return (
     <div 
-      className={`${className}`}
+      className={`${className} overflow-hidden`}
       style={boardTheme}
     >
       {/* Board Header */}
@@ -472,7 +472,7 @@ export const BoardRenderer: React.FC<BoardRendererProps> = ({
       )}
 
       {/* Board Content */}
-      <div className="board-content">
+      <div className="board-content overflow-auto max-h-full">
         <LayoutComponent
           frames={board.frames}
           onFrameInteraction={handleInteraction}

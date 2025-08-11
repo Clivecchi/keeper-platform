@@ -436,7 +436,7 @@ const BoardStudioPage: React.FC = () => {
   const { user } = useAuth();
   console.log('BoardStudioPage: useAuth hook called, user:', user);
   
-  const { activeBoard, loadBoard, saveBoard, isLoading, addFrame } = useBoard();
+  const { activeBoard, loadBoard, isLoading, addFrame } = useBoard();
   console.log('BoardStudioPage: useBoard hook called, activeBoard:', activeBoard);
   
   const { handleFrameInteraction } = useFrame();
@@ -501,7 +501,13 @@ const BoardStudioPage: React.FC = () => {
       // Load boards for current domain using new API endpoint
       try {
         const boardsData = await apiFetch(`/api/board-data?domainId=${user?.currentDomainId || 'demo'}`);
-        setBoards(boardsData.boards || []);
+        const normalizedBoards = (boardsData.boards || []).map((b: any) => ({
+          ...b,
+          lastModified: b.lastModified ? new Date(b.lastModified) : new Date(),
+          frameCount: typeof b.frameCount === 'number' ? b.frameCount : Array.isArray(b.frames) ? b.frames.length : 0,
+          engagementMode: b.engagementMode || 'canvas',
+        }));
+        setBoards(normalizedBoards);
         console.log('Loaded boards from API:', boardsData);
       } catch (error) {
         console.warn('Board API not available, using fallback data');
@@ -567,37 +573,23 @@ const BoardStudioPage: React.FC = () => {
     
     try {
       // Load board from API using the board-data endpoint
-      try {
-        const boardData = await apiFetch(`/api/board-data/${boardId}`);
-        await loadBoard(boardId);
-        
-        // Update properties panel with board data
-        setBoardName(boardData.config?.name || 'Untitled Board');
-        setBoardDescription(boardData.config?.description || '');
-        setEngagementMode(boardData.config?.engagementMode || 'canvas');
-        setBoardTheme(boardData.config?.theme || {
-          primaryColor: '#3B82F6',
-          backgroundColor: '#F8FAFC'
-        });
-        
-        console.log('Board loaded successfully:', boardData);
-      } catch (apiError) {
-        console.warn('API board not available, using fallback:', apiError);
-        // Fallback for boards that don't exist in API yet
-        await loadBoard(boardId);
-        
-        // Set default values for fallback boards
-        const selectedBoard = boards.find(b => b.id === boardId);
-        if (selectedBoard) {
-          setBoardName(selectedBoard.name);
-          setBoardDescription(selectedBoard.description || '');
-          setEngagementMode(selectedBoard.engagementMode as any || 'canvas');
+              try {
+          // Let context handle API selection and normalization
+          await loadBoard(boardId);
+          
+          const selectedBoard = boards.find(b => b.id === boardId);
+          setBoardName(selectedBoard?.name || 'Untitled Board');
+          setBoardDescription(selectedBoard?.description || '');
+          setEngagementMode((selectedBoard?.engagementMode as any) || 'canvas');
           setBoardTheme({
             primaryColor: '#3B82F6',
             backgroundColor: '#F8FAFC'
           });
+          
+          console.log('Board loaded successfully');
+        } catch (apiError) {
+          console.warn('Board load failed:', apiError);
         }
-      }
     } catch (error) {
       console.error('Failed to load board:', error);
     } finally {
@@ -804,7 +796,7 @@ const BoardStudioPage: React.FC = () => {
     return acc;
   }, {} as Record<string, FrameType[]>);
 
-  const categories = ['all', ...Array.from(new Set(frameTypes.map(f => f.category)))];
+  const categories = ['all', ...Array.from(new Set(frameTypes.map(f => f.category)))].filter(Boolean) as string[];
 
   console.log('BoardStudioPage: About to render component');
   
@@ -819,7 +811,7 @@ const BoardStudioPage: React.FC = () => {
   }
   
   return (
-    <div className="h-screen bg-slate-50 flex overflow-hidden">
+    <div className="h-full min-h-0 bg-slate-50 flex overflow-hidden">
       {/* Board List Panel */}
       <div className="w-80 bg-white border-r border-slate-200 flex flex-col">
         {/* Header */}
@@ -941,7 +933,7 @@ const BoardStudioPage: React.FC = () => {
         {/* Board Canvas */}
         <div className="flex-1 flex">
           {/* Canvas Area */}
-          <div className="flex-1 relative overflow-hidden">
+          <div className="flex-1 relative overflow-hidden min-h-0">
             {activeBoard ? (
               <div 
                 ref={canvasRef}
@@ -1214,7 +1206,7 @@ const BoardStudioPage: React.FC = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+              className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
@@ -1239,7 +1231,7 @@ const BoardStudioPage: React.FC = () => {
               </div>
 
               {/* Modal Content */}
-              <div className="p-6 overflow-y-auto">
+              <div className="p-6 overflow-y-auto flex-1 min-h-0">
                 <div className="space-y-6">
                   {/* Board Selection */}
                   <div>
