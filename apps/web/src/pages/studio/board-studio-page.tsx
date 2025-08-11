@@ -440,6 +440,7 @@ const BoardStudioPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Board Studio State
   const [boards, setBoards] = useState<BoardListItem[]>([]);
@@ -552,10 +553,48 @@ const BoardStudioPage: React.FC = () => {
 
   const handleBoardSelect = async (boardId: string) => {
     setSelectedBoardId(boardId);
+    setIsLoading(true);
+    
     try {
-      await loadBoard(boardId);
+      // Load board from API using the board-data endpoint
+      const response = await fetch(`/api/board-data/${boardId}`, {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const boardData = await response.json();
+        await loadBoard(boardId);
+        
+        // Update properties panel with board data
+        setBoardName(boardData.config?.name || 'Untitled Board');
+        setBoardDescription(boardData.config?.description || '');
+        setEngagementMode(boardData.config?.engagementMode || 'canvas');
+        setBoardTheme(boardData.config?.theme || {
+          primaryColor: '#3B82F6',
+          backgroundColor: '#F8FAFC'
+        });
+        
+        console.log('Board loaded successfully:', boardData);
+      } else {
+        // Fallback for boards that don't exist in API yet
+        await loadBoard(boardId);
+        
+        // Set default values for fallback boards
+        const selectedBoard = boards.find(b => b.id === boardId);
+        if (selectedBoard) {
+          setBoardName(selectedBoard.name);
+          setBoardDescription(selectedBoard.description || '');
+          setEngagementMode(selectedBoard.engagementMode as any || 'canvas');
+          setBoardTheme({
+            primaryColor: '#3B82F6',
+            backgroundColor: '#F8FAFC'
+          });
+        }
+      }
     } catch (error) {
       console.error('Failed to load board:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -640,10 +679,53 @@ const BoardStudioPage: React.FC = () => {
     console.log('Frame drag started:', frame);
   };
 
-  const handleAddFrameToBoard = (frame: FrameType) => {
-    console.log('Adding frame to board:', frame);
-    // TODO: Implement actual frame addition logic
-    alert(`Adding ${frame.name} to board! (Feature coming soon)`);
+  const handleAddFrameToBoard = async (frame: FrameType) => {
+    if (!activeBoard) {
+      alert('Please select a board first');
+      return;
+    }
+
+    try {
+      console.log('Adding frame to board:', frame);
+      
+      // Create a new frame instance
+      const newFrame = {
+        id: `frame-${Date.now()}`,
+        entityType: activeBoard.entityType,
+        entityId: activeBoard.entityId,
+        configId: `config-${frame.id}-${Date.now()}`,
+        currentContentId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        data: {
+          frameType: frame.type,
+          name: frame.name,
+          description: frame.description,
+          category: frame.category,
+          icon: frame.icon,
+        },
+        FrameConfig: {
+          id: `config-${frame.id}-${Date.now()}`,
+          name: frame.name,
+          description: frame.description,
+          theme: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          frameType: frame.type,
+          engagementMode: activeBoard.config.engagementMode,
+        }
+      };
+
+      // Add the frame to the active board
+      await addFrame(newFrame);
+      
+      // Show success feedback
+      console.log(`Added ${frame.name} to board successfully`);
+      
+    } catch (error) {
+      console.error('Error adding frame to board:', error);
+      alert('Failed to add frame to board');
+    }
   };
 
   const handleCanvasDragOver = (e: React.DragEvent) => {
@@ -656,19 +738,55 @@ const BoardStudioPage: React.FC = () => {
     setDragOverBoard(false);
   };
 
-  const handleCanvasDrop = (e: React.DragEvent) => {
+  const handleCanvasDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOverBoard(false);
     
     try {
       const frameData = JSON.parse(e.dataTransfer.getData('application/json'));
       const rect = canvasRef.current?.getBoundingClientRect();
-      if (rect) {
+      
+      if (rect && activeBoard) {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
+        
         console.log('Frame dropped at:', { x, y }, 'Frame:', frameData);
-        // TODO: Implement actual frame positioning
-        alert(`Dropped ${frameData.name} at position (${Math.round(x)}, ${Math.round(y)})! (Positioning coming soon)`);
+        
+        // Create a new frame instance with position data for canvas mode
+        const newFrame = {
+          id: `frame-${Date.now()}`,
+          entityType: activeBoard.entityType,
+          entityId: activeBoard.entityId,
+          configId: `config-${frameData.id}-${Date.now()}`,
+          currentContentId: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          data: {
+            frameType: frameData.type,
+            name: frameData.name,
+            description: frameData.description,
+            category: frameData.category,
+            icon: frameData.icon,
+            ...(engagementMode === 'canvas' && { 
+              position: { x: Math.round(x), y: Math.round(y) } 
+            }),
+          },
+          FrameConfig: {
+            id: `config-${frameData.id}-${Date.now()}`,
+            name: frameData.name,
+            description: frameData.description,
+            theme: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            frameType: frameData.type,
+            engagementMode: activeBoard.config.engagementMode,
+          }
+        };
+
+        // Add the frame to the active board
+        await addFrame(newFrame);
+        
+        console.log(`Dropped and added ${frameData.name} to board at position (${Math.round(x)}, ${Math.round(y)})`);
       }
     } catch (error) {
       console.error('Error handling frame drop:', error);
@@ -702,8 +820,13 @@ const BoardStudioPage: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <h2 className="text-lg font-semibold text-slate-900">Board Studio</h2>
-              <HelpTooltip content="Create and edit visual boards with drag-and-drop frames">
-                <QuestionMarkCircleIcon className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+              <HelpTooltip content="Learn how to use Board Studio">
+                <button 
+                  onClick={() => setShowHelpModal(true)}
+                  className="w-4 h-4 text-slate-400 hover:text-slate-600"
+                >
+                  <QuestionMarkCircleIcon className="w-4 h-4" />
+                </button>
               </HelpTooltip>
             </div>
             <button
@@ -782,10 +905,25 @@ const BoardStudioPage: React.FC = () => {
             <button
               onClick={handleSaveBoard}
               disabled={!activeBoard || isSaving}
-              className="inline-flex items-center space-x-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-colors ${
+                isSaving 
+                  ? 'bg-yellow-500 text-white cursor-not-allowed'
+                  : activeBoard
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+              }`}
             >
-              <DocumentArrowUpIcon className="w-4 h-4" />
-              <span>{isSaving ? 'Saving...' : 'Save'}</span>
+              {isSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <DocumentArrowUpIcon className="w-4 h-4" />
+                  <span>Save</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -1048,6 +1186,157 @@ const BoardStudioPage: React.FC = () => {
                 </div>
               )}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Help Modal */}
+      <AnimatePresence>
+        {showHelpModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            onClick={() => setShowHelpModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <QuestionMarkCircleIcon className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-slate-900">How to Use Board Studio</h2>
+                      <p className="text-slate-600">Learn the basics of creating and editing boards</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowHelpModal(false)}
+                    className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                  >
+                    <XMarkIcon className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto">
+                <div className="space-y-6">
+                  {/* Board Selection */}
+                  <div>
+                    <h3 className="text-lg font-medium text-slate-900 mb-3">1. Select a Board</h3>
+                    <p className="text-slate-700 mb-3">
+                      Click on any board in the left panel to load it into the editor. The selected board will be highlighted with a blue border.
+                    </p>
+                    <div className="bg-slate-50 rounded-lg p-4">
+                      <div className="flex items-center space-x-2 text-sm text-slate-600">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <span>Selected boards show with a blue highlight</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Adding Frames */}
+                  <div>
+                    <h3 className="text-lg font-medium text-slate-900 mb-3">2. Add Frames</h3>
+                    <p className="text-slate-700 mb-3">
+                      Add content to your board using frames from the Frame Library on the right:
+                    </p>
+                    <ul className="space-y-2 text-slate-700">
+                      <li className="flex items-center space-x-2">
+                        <PlusIcon className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                        <span><strong>Click the + button</strong> that appears when you hover over a frame</span>
+                      </li>
+                      <li className="flex items-center space-x-2">
+                        <Bars3Icon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                        <span><strong>Drag and drop</strong> frames directly onto the canvas</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Frame Types */}
+                  <div>
+                    <h3 className="text-lg font-medium text-slate-900 mb-3">3. Frame Types</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-slate-50 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className="text-xl">💬</span>
+                          <span className="font-medium text-slate-900">Interaction</span>
+                        </div>
+                        <p className="text-sm text-slate-600">Dialog frames, forms, and interactive elements</p>
+                      </div>
+                      <div className="bg-slate-50 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className="text-xl">🖼️</span>
+                          <span className="font-medium text-slate-900">Content</span>
+                        </div>
+                        <p className="text-sm text-slate-600">Media cards, previews, and content display</p>
+                      </div>
+                      <div className="bg-slate-50 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className="text-xl">⚙️</span>
+                          <span className="font-medium text-slate-900">Configuration</span>
+                        </div>
+                        <p className="text-sm text-slate-600">Settings panels and configuration forms</p>
+                      </div>
+                      <div className="bg-slate-50 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className="text-xl">📊</span>
+                          <span className="font-medium text-slate-900">Visualization</span>
+                        </div>
+                        <p className="text-sm text-slate-600">Charts, graphs, and data visualization</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Board Properties */}
+                  <div>
+                    <h3 className="text-lg font-medium text-slate-900 mb-3">4. Edit Properties</h3>
+                    <p className="text-slate-700 mb-3">
+                      Use the Properties panel on the right to customize your board:
+                    </p>
+                    <ul className="space-y-1 text-slate-700">
+                      <li>• Change board name and description</li>
+                      <li>• Select engagement modes (Canvas, Grid, Column, etc.)</li>
+                      <li>• Customize colors and themes</li>
+                      <li>• Configure layout settings</li>
+                    </ul>
+                  </div>
+
+                  {/* Save */}
+                  <div>
+                    <h3 className="text-lg font-medium text-slate-900 mb-3">5. Save Your Work</h3>
+                    <p className="text-slate-700">
+                      Click the <strong>Save</strong> button in the top toolbar to save your changes. The button will show "Saving..." while your changes are being saved.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-slate-200 bg-slate-50">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-slate-600">
+                    Need more help? Check out our documentation or contact support.
+                  </p>
+                  <button
+                    onClick={() => setShowHelpModal(false)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Got it!
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
