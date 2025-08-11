@@ -810,7 +810,7 @@ const BoardStudioPage: React.FC = () => {
     return acc;
   }, {} as Record<string, FrameType[]>);
 
-  const categories = ['all', ...Array.from(new Set(frameTypes.map(f => f.category)))];
+  const categories = ['all', ...Array.from(new Set(frameTypes.map(f => f.category)))].filter(Boolean) as string[];
 
   console.log('BoardStudioPage: About to render component');
   
@@ -1220,7 +1220,7 @@ const BoardStudioPage: React.FC = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+              className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
@@ -1245,7 +1245,7 @@ const BoardStudioPage: React.FC = () => {
               </div>
 
               {/* Modal Content */}
-              <div className="p-6 overflow-y-auto">
+              <div className="p-6 overflow-y-auto flex-1 min-h-0">
                 <div className="space-y-6">
                   {/* Board Selection */}
                   <div>

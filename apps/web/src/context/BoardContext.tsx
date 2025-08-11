@@ -249,12 +249,43 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
       
       // Make API call to load board instance using apiFetch with authentication
       const boardData = await apiFetch(`/api/board-data/${boardId}`);
+
+      // Normalize frames from API into ExtendedFrameInstance shape
+      const normalizedFrames = (boardData.frames || []).map((f: any) => {
+        const now = new Date();
+        return {
+          id: f.id,
+          entityType: boardData.entityType || 'board',
+          entityId: boardData.entityId || boardId,
+          configId: `${f.id}-config`,
+          currentContentId: null,
+          createdAt: now,
+          updatedAt: now,
+          FrameConfig: {
+            id: `${f.id}-config`,
+            name: f.name || f.id,
+            description: f.description || '',
+            theme: null,
+            createdAt: now,
+            updatedAt: now,
+            frameType: f.type, // critical for FrameRenderer
+            engagementMode: boardData.config?.engagementMode || 'canvas',
+          },
+          FrameContent_FrameInstance_currentContentIdToFrameContent: undefined,
+          FrameContent_FrameContent_playlistOwnerIdToFrameInstance: [],
+        };
+      });
       
       // Transform API response to match BoardInstance interface
       const board: BoardInstance = {
         id: boardData.id,
-        config: boardData.config,
-        frames: boardData.frames || [],
+        config: {
+          ...boardData.config,
+          layout: boardData.config?.layout || 'grid',
+          engagementMode: boardData.config?.engagementMode || 'canvas',
+          allowLayoutEditing: boardData.config?.allowLayoutEditing ?? true,
+        },
+        frames: normalizedFrames,
         entityType: boardData.entityType,
         entityId: boardData.entityId,
         createdAt: new Date(boardData.createdAt),
