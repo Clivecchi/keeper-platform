@@ -431,9 +431,16 @@ const FrameCard: React.FC<{
 // =============================================================================
 
 const BoardStudioPage: React.FC = () => {
+  console.log('BoardStudioPage: Component initializing');
+  
   const { user } = useAuth();
+  console.log('BoardStudioPage: useAuth hook called, user:', user);
+  
   const { activeBoard, loadBoard, saveBoard, isLoading, addFrame } = useBoard();
+  console.log('BoardStudioPage: useBoard hook called, activeBoard:', activeBoard);
+  
   const { handleFrameInteraction } = useFrame();
+  console.log('BoardStudioPage: useFrame hook called');
 
   // UI State
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
@@ -799,6 +806,18 @@ const BoardStudioPage: React.FC = () => {
 
   const categories = ['all', ...Array.from(new Set(frameTypes.map(f => f.category)))];
 
+  console.log('BoardStudioPage: About to render component');
+  
+  // Simple test render to see if component loads
+  if (!user) {
+    return (
+      <div className="p-8">
+        <h1>Board Studio - Loading...</h1>
+        <p>Waiting for authentication...</p>
+      </div>
+    );
+  }
+  
   return (
     <div className="h-screen bg-slate-50 flex overflow-hidden">
       {/* Board List Panel */}

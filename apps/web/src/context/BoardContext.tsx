@@ -11,6 +11,7 @@ import {
   EngagementMode,
   ExtendedFrameInstance 
 } from '../types/frame';
+import { apiFetch } from '../lib/api';
 
 // =============================================================================
 // BOARD TYPES
@@ -246,20 +247,8 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     try {
       console.log(`Loading board: ${boardId}`);
       
-      // Make API call to load board instance
-      const response = await fetch(`/api/board-data/${boardId}`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to load board: ${response.statusText}`);
-      }
-
-      const boardData = await response.json();
+      // Make API call to load board instance using apiFetch with authentication
+      const boardData = await apiFetch(`/api/board-data/${boardId}`);
       
       // Transform API response to match BoardInstance interface
       const board: BoardInstance = {
