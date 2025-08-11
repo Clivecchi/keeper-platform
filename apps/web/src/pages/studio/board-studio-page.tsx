@@ -573,37 +573,23 @@ const BoardStudioPage: React.FC = () => {
     
     try {
       // Load board from API using the board-data endpoint
-      try {
-        const boardData = await apiFetch(`/api/board-data/${boardId}`);
-        await loadBoard(boardId);
-        
-        // Update properties panel with board data
-        setBoardName(boardData.config?.name || 'Untitled Board');
-        setBoardDescription(boardData.config?.description || '');
-        setEngagementMode((boardData.config?.engagementMode as any) || 'canvas');
-        setBoardTheme(boardData.config?.theme || {
-          primaryColor: '#3B82F6',
-          backgroundColor: '#F8FAFC'
-        });
-        
-        console.log('Board loaded successfully:', boardData);
-      } catch (apiError) {
-        console.warn('API board not available, using fallback:', apiError);
-        // Fallback for boards that don't exist in API yet
-        await loadBoard(boardId);
-        
-        // Set default values for fallback boards
-        const selectedBoard = boards.find(b => b.id === boardId);
-        if (selectedBoard) {
-          setBoardName(selectedBoard.name);
-          setBoardDescription(selectedBoard.description || '');
-          setEngagementMode(selectedBoard.engagementMode as any || 'canvas');
+              try {
+          // Let context handle API selection and normalization
+          await loadBoard(boardId);
+          
+          const selectedBoard = boards.find(b => b.id === boardId);
+          setBoardName(selectedBoard?.name || 'Untitled Board');
+          setBoardDescription(selectedBoard?.description || '');
+          setEngagementMode((selectedBoard?.engagementMode as any) || 'canvas');
           setBoardTheme({
             primaryColor: '#3B82F6',
             backgroundColor: '#F8FAFC'
           });
+          
+          console.log('Board loaded successfully');
+        } catch (apiError) {
+          console.warn('Board load failed:', apiError);
         }
-      }
     } catch (error) {
       console.error('Failed to load board:', error);
     } finally {

@@ -244,13 +244,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
 
-    try {
-      console.log(`Loading board: ${boardId}`);
-      
-      // Make API call to load board instance using apiFetch with authentication
-      const boardData = await apiFetch(`/api/board-data/${boardId}`);
-
-      // Normalize frames from API into ExtendedFrameInstance shape
+    const buildBoardInstance = (boardData: any): BoardInstance => {
       const normalizedFrames = (boardData.frames || []).map((f: any) => {
         const now = new Date();
         return {
@@ -268,16 +262,15 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
             theme: null,
             createdAt: now,
             updatedAt: now,
-            frameType: f.type, // critical for FrameRenderer
+            frameType: f.type,
             engagementMode: boardData.config?.engagementMode || 'canvas',
           },
           FrameContent_FrameInstance_currentContentIdToFrameContent: undefined,
           FrameContent_FrameContent_playlistOwnerIdToFrameInstance: [],
-        };
+        } as ExtendedFrameInstance;
       });
-      
-      // Transform API response to match BoardInstance interface
-      const board: BoardInstance = {
+
+      return {
         id: boardData.id,
         config: {
           ...boardData.config,
@@ -286,17 +279,30 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
           allowLayoutEditing: boardData.config?.allowLayoutEditing ?? true,
         },
         frames: normalizedFrames,
-        entityType: boardData.entityType,
-        entityId: boardData.entityId,
-        createdAt: new Date(boardData.createdAt),
-        updatedAt: new Date(boardData.updatedAt),
-      };
+        entityType: boardData.entityType || 'board',
+        entityId: boardData.entityId || boardId,
+        createdAt: new Date(boardData.createdAt || Date.now()),
+        updatedAt: new Date(boardData.updatedAt || Date.now()),
+      } as BoardInstance;
+    };
 
+    try {
+      // Primary: new board-data API
+      const boardData = await apiFetch(`/api/board-data/${boardId}`);
+      const board = buildBoardInstance(boardData);
       dispatch({ type: 'SET_BOARD', payload: board });
-    } catch (error) {
-      console.error('Error loading board:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load board';
-      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+    } catch (primaryError) {
+      console.warn('[BoardContext] board-data failed, attempting legacy endpoint', primaryError);
+      try {
+        // Fallback: legacy boards API
+        const legacyBoardData = await apiFetch(`/api/boards/${boardId}`);
+        const board = buildBoardInstance(legacyBoardData);
+        dispatch({ type: 'SET_BOARD', payload: board });
+      } catch (fallbackError) {
+        console.error('Error loading board:', fallbackError);
+        const message = fallbackError instanceof Error ? fallbackError.message : 'Failed to load board';
+        dispatch({ type: 'SET_ERROR', payload: message });
+      }
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
