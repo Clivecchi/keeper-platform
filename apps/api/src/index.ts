@@ -21,6 +21,12 @@ import kamSettingsHandler from './api/kam/settings.js';
 // Import Board Studio routes
 import boardRoutes from './routes/boards.js';
 import frameRoutes from './routes/frames.js';
+// Import new board data API routes
+import newBoardRoutes from './api/boards.js';
+import agentsRoutes from './api/agents.js';
+import journeysRoutes from './api/journeys.js';
+import keeperTypesRoutes from './api/keeper-types.js';
+import peopleRoutes from './api/people.js';
 // Import database client
 import { prisma } from '@keeper/database';
 import { authMiddleware, authMiddlewareCompat, AuthenticatedRequest } from './middleware/authMiddleware.js';
@@ -691,6 +697,13 @@ app.use('/api/keeper', keeperRoutes);
 // Connect Board Studio routes
 app.use('/api/boards', boardRoutes);
 app.use('/api/frames', frameRoutes);
+
+// Connect new board data API routes
+app.use('/api/board-data', newBoardRoutes);
+app.use('/api/agents', agentsRoutes);
+app.use('/api/journeys', journeysRoutes);
+app.use('/api/keeper-types', keeperTypesRoutes);
+app.use('/api/people', peopleRoutes);
 
 // Connect KIP routes
 app.use('/api/kip/agents', kipAgentsHandler);

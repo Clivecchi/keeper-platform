@@ -61,7 +61,7 @@ const createMockAgentBoard = (agentId: string): BoardInstance => ({
   updatedAt: new Date(),
 });
 
-const createAgentPreviewFrame = (agentId: string): ExtendedFrameInstance => ({
+const createAgentPreviewFrame = (agentId: string, agentData?: any): ExtendedFrameInstance => ({
   id: `agent-preview-${agentId}`,
   entityType: 'agent',
   entityId: agentId,
@@ -69,6 +69,15 @@ const createAgentPreviewFrame = (agentId: string): ExtendedFrameInstance => ({
   currentContentId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
+  data: agentData ? {
+    agentName: agentData.name,
+    description: agentData.purpose,
+    status: agentData.status === 'ready' ? 'Active' : agentData.status,
+    capabilities: agentData.tools || ['Conversation', 'Task Assistance'],
+    lastActive: agentData.updated_at,
+    model: agentData.model,
+    provider: agentData.model_provider,
+  } : undefined,
   FrameConfig: {
     id: `agent-preview-config-${agentId}`,
     name: 'Agent Overview',
@@ -81,7 +90,7 @@ const createAgentPreviewFrame = (agentId: string): ExtendedFrameInstance => ({
   },
 });
 
-const createAgentDialogFrame = (agentId: string): ExtendedFrameInstance => ({
+const createAgentDialogFrame = (agentId: string, agentData?: any): ExtendedFrameInstance => ({
   id: `agent-dialog-${agentId}`,
   entityType: 'agent',
   entityId: agentId,
@@ -89,6 +98,16 @@ const createAgentDialogFrame = (agentId: string): ExtendedFrameInstance => ({
   currentContentId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
+  data: agentData ? {
+    agentName: agentData.name,
+    messages: [
+      { 
+        role: 'assistant', 
+        content: `Hello! I'm ${agentData.name}. ${agentData.purpose}` 
+      },
+    ],
+    isActive: agentData.status === 'ready',
+  } : undefined,
   FrameConfig: {
     id: `agent-dialog-config-${agentId}`,
     name: 'Agent Conversation',
@@ -101,7 +120,7 @@ const createAgentDialogFrame = (agentId: string): ExtendedFrameInstance => ({
   },
 });
 
-const createAgentConfigFrame = (agentId: string): ExtendedFrameInstance => ({
+const createAgentConfigFrame = (agentId: string, agentData?: any): ExtendedFrameInstance => ({
   id: `agent-config-${agentId}`,
   entityType: 'agent',
   entityId: agentId,
@@ -109,6 +128,18 @@ const createAgentConfigFrame = (agentId: string): ExtendedFrameInstance => ({
   currentContentId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
+  data: agentData ? {
+    settings: {
+      model: agentData.model,
+      model_provider: agentData.model_provider,
+      visibility: agentData.visibility,
+      agent_class: agentData.agent_class,
+      tools: agentData.tools,
+      permissions: agentData.permissions,
+      ...agentData.config,
+    },
+    availableSettings: ['model', 'model_provider', 'visibility', 'agent_class', 'tools', 'permissions'],
+  } : undefined,
   FrameConfig: {
     id: `agent-config-config-${agentId}`,
     name: 'Agent Settings',
@@ -153,24 +184,46 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
       if (isInitialized) return;
 
       try {
-        // Create mock board instance
-        const mockBoard = createMockAgentBoard(agentId);
+        // Fetch agent data from API
+        const response = await fetch(`/api/agents/${agentId}`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load agent: ${response.statusText}`);
+        }
+
+        const agentData = await response.json();
+        console.log('Loaded agent data:', agentData);
+
+        // Create board instance with real agent data
+        const board = createMockAgentBoard(agentId);
         
-        // Add initial frames
+        // Create frames with real agent data
+        const frames = [
+          createAgentPreviewFrame(agentId, agentData),
+          createAgentDialogFrame(agentId, agentData),
+          createAgentConfigFrame(agentId, agentData),
+        ];
+
+        board.frames = frames;
+
+        // Load the board
+        await loadBoard(board.id);
+        
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Failed to initialize agent board:', error);
+        // Fall back to mock data if API fails
+        const mockBoard = createMockAgentBoard(agentId);
         const frames = [
           createAgentPreviewFrame(agentId),
           createAgentDialogFrame(agentId),
           createAgentConfigFrame(agentId),
         ];
-
         mockBoard.frames = frames;
-
-        // Load the board (this would normally be an API call)
         await loadBoard(mockBoard.id);
-        
         setIsInitialized(true);
-      } catch (error) {
-        console.error('Failed to initialize agent board:', error);
       }
     };
 

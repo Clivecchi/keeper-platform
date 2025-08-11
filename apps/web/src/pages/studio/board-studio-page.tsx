@@ -483,27 +483,32 @@ const BoardStudioPage: React.FC = () => {
 
   const loadBoardsAndFrames = async () => {
     try {
-      // Load boards for current domain
-      const boardsResponse = await fetch(`/api/boards?domainId=${user?.currentDomainId || 'demo'}`);
+      // Load boards for current domain using new API endpoint
+      const boardsResponse = await fetch(`/api/board-data?domainId=${user?.currentDomainId || 'demo'}`, {
+        credentials: 'include',
+      });
+      
       if (boardsResponse.ok) {
         const boardsData = await boardsResponse.json();
-        setBoards(boardsData);
+        setBoards(boardsData.boards || []);
+        console.log('Loaded boards from API:', boardsData);
       } else {
-        // Mock data if API not available
+        console.warn('Board API not available, using fallback data');
+        // Fallback data if API not available
         setBoards([
           {
             id: 'agent-board-1',
             name: 'Agent Configuration Board',
-            type: 'agent_board',
+            type: 'agent',
             description: 'Configure and manage AI agents',
             lastModified: new Date('2024-01-28'),
-            frameCount: 4,
+            frameCount: 3,
             engagementMode: 'dialogic'
           },
           {
             id: 'domain-board-1',
             name: 'Domain Management Board',
-            type: 'domain_board',
+            type: 'domain',
             description: 'Manage domain settings and members',
             lastModified: new Date('2024-01-27'),
             frameCount: 4,
@@ -512,16 +517,36 @@ const BoardStudioPage: React.FC = () => {
           {
             id: 'journey-board-1',
             name: 'Journey Visualization Board',
-            type: 'journey_board',
+            type: 'journey',
             description: 'Visualize and manage learning journeys',
             lastModified: new Date('2024-01-26'),
             frameCount: 4,
+            engagementMode: 'canvas'
+          },
+          {
+            id: 'keeper-type-board-1',
+            name: 'Keeper Type Board',
+            type: 'keeper-type',
+            description: 'Manage keeper types and capabilities',
+            lastModified: new Date('2024-01-25'),
+            frameCount: 2,
+            engagementMode: 'dialogic'
+          },
+          {
+            id: 'people-board-1',
+            name: 'People Management Board',
+            type: 'people',
+            description: 'Manage team members and roles',
+            lastModified: new Date('2024-01-24'),
+            frameCount: 5,
             engagementMode: 'canvas'
           }
         ]);
       }
     } catch (error) {
       console.error('Failed to load boards and frames:', error);
+      // Set empty array on error
+      setBoards([]);
     }
   };
 

@@ -244,39 +244,41 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     dispatch({ type: 'SET_ERROR', payload: null });
 
     try {
-      // TODO: Implement API call to load board instance
       console.log(`Loading board: ${boardId}`);
       
-      // Mock board loading - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Mock board data - replace with actual API response
-      const mockBoard: BoardInstance = {
-        id: boardId,
-        config: {
-          id: `config-${boardId}`,
-          type: 'agent_board',
-          name: 'Agent Configuration Board',
-          description: 'Configure and manage AI agents',
-          layout: 'column',
-          engagementMode: 'dialogic',
-          allowLayoutEditing: true,
-          theme: {
-            primaryColor: '#3B82F6',
-            backgroundColor: '#F8FAFC',
-          }
+      // Make API call to load board instance
+      const response = await fetch(`/api/board-data/${boardId}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        frames: [],
-        entityType: 'agent',
-        entityId: 'mock-agent',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load board: ${response.statusText}`);
+      }
+
+      const boardData = await response.json();
+      
+      // Transform API response to match BoardInstance interface
+      const board: BoardInstance = {
+        id: boardData.id,
+        config: boardData.config,
+        frames: boardData.frames || [],
+        entityType: boardData.entityType,
+        entityId: boardData.entityId,
+        createdAt: new Date(boardData.createdAt),
+        updatedAt: new Date(boardData.updatedAt),
       };
 
-      dispatch({ type: 'SET_BOARD', payload: mockBoard });
+      dispatch({ type: 'SET_BOARD', payload: board });
     } catch (error) {
+      console.error('Error loading board:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load board';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
 
