@@ -62,8 +62,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           console.error('Failed to fetch user settings, will use default theme.', error);
         }
         
-        const fetchedTheme = await fetchThemeById(themeIdToLoad, token);
-        setTheme(fetchedTheme || KEEPER_CLASSIC_FALLBACK);
+        try {
+          const fetchedTheme = await fetchThemeById(themeIdToLoad, token);
+          setTheme(fetchedTheme || KEEPER_CLASSIC_FALLBACK);
+        } catch (error) {
+          console.error('An error occurred while fetching the theme:', error);
+          setTheme(KEEPER_CLASSIC_FALLBACK);
+        }
 
       } else {
         // For public visitors, use the hardcoded fallback immediately.
@@ -82,10 +87,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     // Apply the correct token set (light or dark)
     const tokensToApply: ThemeTokens = theme[mode];
 
-    Object.entries(tokensToApply).forEach(([key, value]) => {
-      const cssVarName = `--theme-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
-      root.style.setProperty(cssVarName, value);
-    });
+    // Guard against undefined or null tokensToApply
+    if (tokensToApply && typeof tokensToApply === 'object') {
+      Object.entries(tokensToApply).forEach(([key, value]) => {
+        const cssVarName = `--theme-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
+        root.style.setProperty(cssVarName, value);
+      });
+    }
     
     // Add/remove 'dark' class for any vanilla CSS overrides
     root.classList.remove('light', 'dark');

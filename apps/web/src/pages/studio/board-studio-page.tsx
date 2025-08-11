@@ -8,6 +8,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { apiFetch } from '../../lib/api';
 import { 
   PlusIcon,
   Squares2X2Icon,
@@ -431,7 +432,7 @@ const FrameCard: React.FC<{
 
 const BoardStudioPage: React.FC = () => {
   const { user } = useAuth();
-  const { activeBoard, loadBoard, saveBoard, isLoading } = useBoard();
+  const { activeBoard, loadBoard, saveBoard, isLoading, addFrame } = useBoard();
   const { handleFrameInteraction } = useFrame();
 
   // UI State
@@ -441,6 +442,7 @@ const BoardStudioPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [isLoadingBoards, setIsLoadingBoards] = useState(false);
 
   // Board Studio State
   const [boards, setBoards] = useState<BoardListItem[]>([]);
@@ -467,6 +469,11 @@ const BoardStudioPage: React.FC = () => {
     loadBoardsAndFrames();
   }, []);
 
+  // Debug modal state
+  useEffect(() => {
+    console.log('showHelpModal state changed:', showHelpModal);
+  }, [showHelpModal]);
+
   // Update board properties when active board changes
   useEffect(() => {
     if (activeBoard) {
@@ -485,15 +492,11 @@ const BoardStudioPage: React.FC = () => {
   const loadBoardsAndFrames = async () => {
     try {
       // Load boards for current domain using new API endpoint
-      const boardsResponse = await fetch(`/api/board-data?domainId=${user?.currentDomainId || 'demo'}`, {
-        credentials: 'include',
-      });
-      
-      if (boardsResponse.ok) {
-        const boardsData = await boardsResponse.json();
+      try {
+        const boardsData = await apiFetch(`/api/board-data?domainId=${user?.currentDomainId || 'demo'}`);
         setBoards(boardsData.boards || []);
         console.log('Loaded boards from API:', boardsData);
-      } else {
+      } catch (error) {
         console.warn('Board API not available, using fallback data');
         // Fallback data if API not available
         setBoards([
@@ -553,16 +556,12 @@ const BoardStudioPage: React.FC = () => {
 
   const handleBoardSelect = async (boardId: string) => {
     setSelectedBoardId(boardId);
-    setIsLoading(true);
+    setIsLoadingBoards(true);
     
     try {
       // Load board from API using the board-data endpoint
-      const response = await fetch(`/api/board-data/${boardId}`, {
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        const boardData = await response.json();
+      try {
+        const boardData = await apiFetch(`/api/board-data/${boardId}`);
         await loadBoard(boardId);
         
         // Update properties panel with board data
@@ -575,7 +574,8 @@ const BoardStudioPage: React.FC = () => {
         });
         
         console.log('Board loaded successfully:', boardData);
-      } else {
+      } catch (apiError) {
+        console.warn('API board not available, using fallback:', apiError);
         // Fallback for boards that don't exist in API yet
         await loadBoard(boardId);
         
@@ -594,7 +594,7 @@ const BoardStudioPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to load board:', error);
     } finally {
-      setIsLoading(false);
+      setIsLoadingBoards(false);
     }
   };
 
@@ -608,14 +608,10 @@ const BoardStudioPage: React.FC = () => {
         domainId: user?.currentDomainId || 'demo'
       };
 
-      const response = await fetch('/api/boards', {
+      const createdBoard = await apiFetch('/api/boards', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newBoard)
       });
-
-      if (response.ok) {
-        const createdBoard = await response.json();
         setBoards(prev => [...prev, {
           id: createdBoard.id,
           name: createdBoard.name,
@@ -627,9 +623,6 @@ const BoardStudioPage: React.FC = () => {
         }]);
         setSelectedBoardId(createdBoard.id);
         await loadBoard(createdBoard.id);
-      } else {
-        console.error('Failed to create board');
-      }
     } catch (error) {
       console.error('Error creating board:', error);
     }
@@ -651,23 +644,18 @@ const BoardStudioPage: React.FC = () => {
         }
       };
 
-      const response = await fetch(`/api/boards/${activeBoard.id}`, {
+      await apiFetch(`/api/boards/${activeBoard.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedBoard)
       });
 
-      if (response.ok) {
-        console.log('Board saved successfully');
-        // Update local boards list
-        setBoards(prev => prev.map(board => 
-          board.id === activeBoard.id 
-            ? { ...board, name: boardName, description: boardDescription, lastModified: new Date() }
-            : board
-        ));
-      } else {
-        console.error('Failed to save board');
-      }
+      console.log('Board saved successfully');
+      // Update local boards list
+      setBoards(prev => prev.map(board => 
+        board.id === activeBoard.id 
+          ? { ...board, name: boardName, description: boardDescription, lastModified: new Date() }
+          : board
+      ));
     } catch (error) {
       console.error('Error saving board:', error);
     } finally {
@@ -717,7 +705,7 @@ const BoardStudioPage: React.FC = () => {
       };
 
       // Add the frame to the active board
-      await addFrame(newFrame);
+      await addFrame(activeBoard.id, newFrame);
       
       // Show success feedback
       console.log(`Added ${frame.name} to board successfully`);
@@ -784,7 +772,7 @@ const BoardStudioPage: React.FC = () => {
         };
 
         // Add the frame to the active board
-        await addFrame(newFrame);
+        await addFrame(activeBoard.id, newFrame);
         
         console.log(`Dropped and added ${frameData.name} to board at position (${Math.round(x)}, ${Math.round(y)})`);
       }
@@ -822,7 +810,10 @@ const BoardStudioPage: React.FC = () => {
               <h2 className="text-lg font-semibold text-slate-900">Board Studio</h2>
               <HelpTooltip content="Learn how to use Board Studio">
                 <button 
-                  onClick={() => setShowHelpModal(true)}
+                  onClick={() => {
+                    console.log('Help modal button clicked');
+                    setShowHelpModal(true);
+                  }}
                   className="w-4 h-4 text-slate-400 hover:text-slate-600"
                 >
                   <QuestionMarkCircleIcon className="w-4 h-4" />
@@ -1197,7 +1188,7 @@ const BoardStudioPage: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]"
             onClick={() => setShowHelpModal(false)}
           >
             <motion.div
