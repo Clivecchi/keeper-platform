@@ -38,21 +38,20 @@ export const Navbar: React.FC = () => {
           Keeper
         </NavLink>
         <div className="flex items-center space-x-12">
-          {isAuthenticated ? (
-            <>
-              <NavItem to="/root">Root</NavItem>
-              <NavItem to="/studio">Board Studio</NavItem>
-              <NavItem to="/journeys">Journeys</NavItem>
-              <NavItem to="/moments">Moments</NavItem>
-              <NavItem to="/themes">Themes</NavItem>
-            </>
-          ) : (
-            <>
-              <NavItem to="/">Home</NavItem>
-              <NavItem to="/register">Begin</NavItem>
-              <NavItem to="/login">Login</NavItem>
-            </>
-          )}
+                      {isAuthenticated ? (
+              <>
+                <NavItem to="/root">Root</NavItem>
+                <NavItem to="/journeys">Journeys</NavItem>
+                <NavItem to="/moments">Moments</NavItem>
+                <NavItem to="/themes">Themes</NavItem>
+              </>
+            ) : (
+              <>
+                <NavItem to="/">Home</NavItem>
+                <NavItem to="/register">Begin</NavItem>
+                <NavItem to="/login">Login</NavItem>
+              </>
+            )}
         </div>
       </nav>
     </header>
