@@ -35,15 +35,20 @@ export const KeeperProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setIsLoading(true);
     setError(null);
     try {
-      // Primary source: KAM-backed API
+      // Primary source: Keeper list API (auth-protected)
       try {
-        const result = await apiFetch('/api/keeper/current');
-        const list = Array.isArray(result?.keepers) ? result.keepers : result ? [result] : [];
+        const result = await apiFetch('/api/keeper/keepers');
+        const list = Array.isArray((result as any)?.keepers)
+          ? (result as any).keepers
+          : Array.isArray(result)
+            ? (result as any)
+            : (result ? [result] : []);
         setKeepers(list);
         if (list.length > 0 && !activeKeeperId) {
           setActiveKeeperId(list[0].id);
         }
-      } catch (apiErr) {
+      } catch (apiErr: any) {
+        // Graceful fallback on 401/404 or any network error
         // Fallback: minimal demo keeper
         const fallback: KeeperSummary = {
           id: 'demo-keeper',
