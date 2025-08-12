@@ -38,6 +38,8 @@ import { BoardRenderer } from '../../components/boards/BoardRenderer';
 import { useBoard, BoardInstance } from '../../context/BoardContext';
 import { useFrame } from '../../context/FrameContext';
 import { useAuth } from '../../context/AuthContext';
+import { useKeeperContext } from '../../context/KeeperContext';
+import FrameConfigSheet from '../../components/studio/FrameConfigSheet';
 
 // =============================================================================
 // TYPES
@@ -270,6 +272,18 @@ const HelpTooltip: React.FC<{
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Frame Config Sheet */}
+      {configFrameId && activeBoard && (
+        <FrameConfigSheet
+          frameId={configFrameId}
+          name={(activeBoard.frames as any)?.find((f:any)=>f.id===configFrameId)?.data?.name || ''}
+          slug={(activeBoard.frames as any)?.find((f:any)=>f.id===configFrameId)?.data?.slug}
+          pattern={((activeBoard.frames as any)?.find((f:any)=>f.id===configFrameId)?.FrameConfig?.engagementMode || 'canvas') as any}
+          onClose={() => setConfigFrameId(null)}
+          onSave={() => setConfigFrameId(null)}
+        />
+      )}
     </div>
   );
 };
@@ -443,6 +457,8 @@ const BoardStudioPage: React.FC = () => {
   console.log('BoardStudioPage: useFrame hook called');
 
   // UI State
+  const { activeKeeper, keepers, setActiveKeeperId } = useKeeperContext();
+  const [editorMode, setEditorMode] = useState<'edit'|'layout'|'preview'|'assist'>('edit');
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [isPropertiesPanelOpen, setIsPropertiesPanelOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -455,6 +471,7 @@ const BoardStudioPage: React.FC = () => {
   const [boards, setBoards] = useState<BoardListItem[]>([]);
   const [frameTypes, setFrameTypes] = useState<FrameType[]>(FRAME_TYPES);
   const [selectedFrameId, setSelectedFrameId] = useState<string | null>(null);
+  const [configFrameId, setConfigFrameId] = useState<string | null>(null);
 
   // Board Properties
   const [boardName, setBoardName] = useState('');
@@ -630,6 +647,64 @@ const BoardStudioPage: React.FC = () => {
         }]);
         setSelectedBoardId(createdBoard.id);
         await loadBoard(createdBoard.id);
+
+        // Auto-create default frames: Cover (focus) and Settings (form)
+        const coverFrame = {
+          id: `frame-cover-${Date.now()}`,
+          entityType: 'board',
+          entityId: createdBoard.id,
+          configId: `config-cover-${Date.now()}`,
+          currentContentId: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          data: {
+            frameType: 'media_card',
+            name: 'Cover',
+            description: 'Board cover',
+            category: 'content',
+            icon: '🖼️',
+          },
+          FrameConfig: {
+            id: `config-cover-${Date.now()}`,
+            name: 'Cover',
+            description: 'Hero media + title',
+            theme: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            frameType: 'media_card',
+            engagementMode: 'focus',
+          }
+        } as any;
+
+        const settingsFrame = {
+          id: `frame-settings-${Date.now()}`,
+          entityType: 'board',
+          entityId: createdBoard.id,
+          configId: `config-settings-${Date.now()}`,
+          currentContentId: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          data: {
+            frameType: 'config_panel',
+            name: 'Settings',
+            description: 'Board settings',
+            category: 'configuration',
+            icon: '⚙️',
+          },
+          FrameConfig: {
+            id: `config-settings-${Date.now()}`,
+            name: 'Settings',
+            description: 'Board-level settings',
+            theme: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            frameType: 'config_panel',
+            engagementMode: 'form',
+          }
+        } as any;
+
+        await addFrame(createdBoard.id, coverFrame);
+        await addFrame(createdBoard.id, settingsFrame);
     } catch (error) {
       console.error('Error creating board:', error);
     }
@@ -820,25 +895,25 @@ const BoardStudioPage: React.FC = () => {
   
   return (
     <div className="h-screen bg-slate-50 flex overflow-hidden">
-      {/* Board List Panel */}
+      {/* Board List Panel (Keeper scoped) */}
       <div className="w-80 bg-white border-r border-slate-200 flex flex-col">
-        {/* Header */}
+        {/* Keeper Header */}
         <div className="p-4 border-b border-slate-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <h2 className="text-lg font-semibold text-slate-900">Board Studio</h2>
-              <HelpTooltip content="Learn how to use Board Studio">
-                <button 
-                  onClick={() => {
-                    console.log('Help modal button clicked');
-                    setShowHelpModal(true);
-                  }}
-                  className="w-4 h-4 text-slate-400 hover:text-slate-600"
-                >
-                  <QuestionMarkCircleIcon className="w-4 h-4" />
-                </button>
-              </HelpTooltip>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <div className="text-xs uppercase text-slate-500">Keeper</div>
+              <div className="text-lg font-semibold text-slate-900">{activeKeeper?.title || 'Keeper'}</div>
+              <div className="text-xs text-slate-500">{activeKeeper?.purpose || 'Creative storytelling workspace'}</div>
             </div>
+            {keepers.length > 1 && (
+              <select className="text-sm border rounded px-2 py-1" onChange={(e)=>setActiveKeeperId(e.target.value)} value={activeKeeper?.id}>
+                {keepers.map(k => (
+                  <option key={k.id} value={k.id}>{k.title}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div className="flex items-center justify-between">
             <button
               onClick={handleCreateBoard}
               className="inline-flex items-center space-x-1 px-3 py-1.5 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800 transition-colors"
@@ -846,8 +921,15 @@ const BoardStudioPage: React.FC = () => {
               <PlusIcon className="w-4 h-4" />
               <span>New Board</span>
             </button>
+            <HelpTooltip content="Learn how to use Board Studio">
+              <button 
+                onClick={() => setShowHelpModal(true)}
+                className="w-8 h-8 inline-flex items-center justify-center rounded bg-slate-100 text-slate-600 hover:bg-slate-200"
+              >
+                <QuestionMarkCircleIcon className="w-4 h-4" />
+              </button>
+            </HelpTooltip>
           </div>
-          <p className="text-sm text-slate-600">Create and manage your boards</p>
         </div>
 
         {/* Board List */}
@@ -884,7 +966,7 @@ const BoardStudioPage: React.FC = () => {
 
       {/* Main Editor Area */}
       <div className="flex-1 flex flex-col">
-        {/* Toolbar */}
+        {/* Toolbar (Modes) */}
         <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
           <div className="flex items-center space-x-4">
             {activeBoard && (
@@ -899,6 +981,19 @@ const BoardStudioPage: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* Mode Switcher */}
+            {['edit','layout','preview','assist'].map((m) => (
+              <button
+                key={m}
+                onClick={() => setEditorMode(m as any)}
+                className={`px-3 py-1.5 rounded-lg text-sm ${editorMode===m?'bg-slate-800 text-white':'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+              >
+                {m === 'edit' && 'Edit'}
+                {m === 'layout' && 'Layout'}
+                {m === 'preview' && 'Preview'}
+                {m === 'assist' && 'AI assist'}
+              </button>
+            ))}
             <HelpTooltip content="Toggle properties panel to edit board settings">
               <button
                 onClick={() => setIsPropertiesPanelOpen(!isPropertiesPanelOpen)}
@@ -969,13 +1064,30 @@ const BoardStudioPage: React.FC = () => {
                   </div>
                 )}
                 
+                {/* Frame Tabs Row */}
+                {activeBoard?.frames && activeBoard.frames.length > 0 && (
+                  <div className="flex items-center gap-2 mb-3">
+                    {activeBoard.frames.map((fr: any, idx: number) => (
+                      <div key={fr.id} className={`px-3 py-1.5 rounded border text-sm flex items-center gap-2 ${selectedFrameId===fr.id?'border-slate-900':'border-slate-300'}`}
+                           onClick={() => setSelectedFrameId(fr.id)}>
+                        <span className="font-medium">{fr.data?.name || `Frame ${idx+1}`}</span>
+                        <span className="text-slate-500">{fr.FrameConfig?.engagementMode || 'canvas'}</span>
+                        <button className="p-1 text-slate-500 hover:text-slate-900" onClick={() => setConfigFrameId(fr.id)}>
+                          <CogIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <button onClick={() => setEditorMode('edit')} className="ml-auto px-3 py-1.5 border rounded text-sm">+ Add Frame</button>
+                  </div>
+                )}
+
                 <BoardRenderer
                   boardInstance={activeBoard}
                   onFrameInteraction={(interaction) => {
                     console.log('Board Studio frame interaction:', interaction);
                     handleFrameInteraction(interaction);
                   }}
-                  showLayoutControls={true}
+                  showLayoutControls={editorMode==='layout'}
                   className="bg-white rounded-lg shadow-sm border border-slate-200"
                 />
               </div>
@@ -997,7 +1109,8 @@ const BoardStudioPage: React.FC = () => {
             )}
           </div>
 
-          {/* Frame Library Sidebar */}
+          {/* Frame Library Sidebar (Edit mode only) */}
+          {editorMode==='edit' && (
           <div className="w-80 bg-white border-l border-slate-200 flex flex-col">
             {/* Frame Library Header */}
             <div className="p-4 border-b border-slate-200">
@@ -1070,6 +1183,7 @@ const BoardStudioPage: React.FC = () => {
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
 
@@ -1086,7 +1200,7 @@ const BoardStudioPage: React.FC = () => {
             <div className="p-4 border-b border-slate-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <h3 className="font-medium text-slate-900">Properties</h3>
+                  <h3 className="font-medium text-slate-900">Settings</h3>
                   <HelpTooltip content="Edit board settings, theme, and frame properties">
                     <QuestionMarkCircleIcon className="w-4 h-4 text-slate-400 hover:text-slate-600" />
                   </HelpTooltip>

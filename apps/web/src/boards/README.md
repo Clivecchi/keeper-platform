@@ -199,3 +199,4 @@ Boards are integrated into the routing system:
 - **Properties Panel** for board configuration, theming, and frame settings
 - **Temporary navigation link** added to Studio sidebar for Board Studio access
 - Documentation created with usage patterns and development guidelines
+ - 2025-08-12: Added Keeper-scoped context (`context/KeeperContext.tsx`), engagement pattern registry (`patterns/registry.ts`), `studio/FrameConfigSheet.tsx`, and `props/TokenProp.tsx`. Began Board Studio UX overhaul to match the new spec (Keeper header, modes bar, right props library, frame config gear).

@@ -55,6 +55,7 @@ Each board type has a dedicated wrapper page that:
 - [ ] Add board analytics and usage tracking
 
 ## 📆 Update Log
+- 2025-08-12: Board Studio upgraded to match new UX. Added Keeper-scoped sidebar, modes bar, right props library, engagement pattern registry, and frame config sheet. Created `KeeperContext` and `patterns/registry.ts`.
 - 2025-01-XX: Created Board Studio with comprehensive editing interface
 - Added backend API routes for boards and frames management
 - Integrated with existing Frame system and BoardRenderer
