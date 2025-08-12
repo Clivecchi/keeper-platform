@@ -6,6 +6,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../lib/api';
+import { useAuth } from './AuthContext';
 
 export interface KeeperSummary {
   id: string;
@@ -26,6 +27,7 @@ interface KeeperContextType {
 const KeeperContext = createContext<KeeperContextType | undefined>(undefined);
 
 export const KeeperProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [keepers, setKeepers] = useState<KeeperSummary[]>([]);
   const [activeKeeperId, setActiveKeeperId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -37,7 +39,9 @@ export const KeeperProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       // Primary source: Keeper list API (auth-protected)
       try {
-        const result = await apiFetch('/api/keeper/keepers');
+        const userId = user?.id;
+        const url = userId ? `/api/keeper/keepers?userId=${encodeURIComponent(userId)}` : '/api/keeper/keepers';
+        const result = await apiFetch(url);
         const list = Array.isArray((result as any)?.keepers)
           ? (result as any).keepers
           : Array.isArray(result)
@@ -64,7 +68,7 @@ export const KeeperProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       setIsLoading(false);
     }
-  }, [activeKeeperId]);
+  }, [activeKeeperId, user?.id]);
 
   useEffect(() => {
     void refreshKeepers();
