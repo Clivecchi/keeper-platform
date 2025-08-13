@@ -60,8 +60,11 @@ export const KeeperProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           purpose: 'Creative storytelling workspace',
           avatarUrl: undefined,
         };
-        setKeepers([fallback]);
-        if (!activeKeeperId) setActiveKeeperId(fallback.id);
+        // Only fallback if we truly have no keepers yet
+        if (keepers.length === 0) {
+          setKeepers([fallback]);
+          if (!activeKeeperId) setActiveKeeperId(fallback.id);
+        }
       }
     } catch (err: any) {
       setError(err?.message || 'Failed to load keepers');

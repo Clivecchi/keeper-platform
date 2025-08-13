@@ -78,20 +78,53 @@ export const fetchThemeById = async (themeId: string, token?: string): Promise<T
   try {
     const data: FetchedTheme = await apiFetch(`/api/themes/${themeId}`, { headers });
 
-    if (!data.data) {
+    if (!data || !data.data) {
       console.error(`API response for theme ${themeId} is missing the 'data' field.`);
       return null;
     }
 
     // Convert the HEX colors from the API into the HSL strings required by the theme engine.
-    const theme: Theme = data.data as Theme;
-    
-    // Convert all hex values in both light and dark modes to HSL strings
-    (Object.keys(theme.light) as Array<keyof ThemeTokens>).forEach(key => {
-      theme.light[key] = hexToHslString(theme.light[key]);
+    const raw = data.data as Partial<Theme>;
+
+    // Build a safe theme object with defaults if parts are missing
+    const emptyTokens: ThemeTokens = {
+      background: '#ffffff',
+      foreground: '#0f172a',
+      card: '#ffffff',
+      cardForeground: '#0f172a',
+      popover: '#ffffff',
+      popoverForeground: '#0f172a',
+      primary: '#334155',
+      primaryForeground: '#ffffff',
+      secondary: '#e2e8f0',
+      secondaryForeground: '#0f172a',
+      muted: '#f1f5f9',
+      mutedForeground: '#64748b',
+      accent: '#0f172a',
+      accentForeground: '#ffffff',
+      destructive: '#ef4444',
+      destructiveForeground: '#ffffff',
+      border: '#e2e8f0',
+      input: '#e2e8f0',
+      ring: '#94a3b8',
+    };
+
+    const theme: Theme = {
+      id: raw.id || themeId,
+      slug: raw.slug || 'default',
+      name: raw.name || 'Default',
+      light: (raw.light as ThemeTokens) || emptyTokens,
+      dark: (raw.dark as ThemeTokens) || emptyTokens,
+    };
+
+    // Convert all hex values in both light and dark modes to HSL strings safely
+    (Object.keys(theme.light || {}) as Array<keyof ThemeTokens>).forEach(key => {
+      // @ts-expect-error index signature normalization
+      theme.light[key] = hexToHslString(theme.light[key] as unknown as string);
     });
-    (Object.keys(theme.dark) as Array<keyof ThemeTokens>).forEach(key => {
-      theme.dark[key] = hexToHslString(theme.dark[key]);
+    (Object.keys(theme.dark || {}) as Array<keyof ThemeTokens>).forEach(key => {
+      // @ts-expect-error index signature normalization
+      theme.dark[key] = hexToHslString(theme.dark[key] as unknown as string);
     });
 
     return theme;
