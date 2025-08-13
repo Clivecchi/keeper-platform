@@ -274,14 +274,14 @@ const HelpTooltip: React.FC<{
       </AnimatePresence>
 
       {/* Frame Config Sheet */}
-      {configFrameId && activeBoard && (
+      {openFrameConfigId && activeBoard && (
         <FrameConfigSheet
-          frameId={configFrameId}
-          name={(activeBoard.frames as any)?.find((f:any)=>f.id===configFrameId)?.data?.name || ''}
-          slug={(activeBoard.frames as any)?.find((f:any)=>f.id===configFrameId)?.data?.slug}
-          pattern={((activeBoard.frames as any)?.find((f:any)=>f.id===configFrameId)?.FrameConfig?.engagementMode || 'canvas') as any}
-          onClose={() => setConfigFrameId(null)}
-          onSave={() => setConfigFrameId(null)}
+          frameId={openFrameConfigId}
+          name={(activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.data?.name || ''}
+          slug={(activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.data?.slug}
+          pattern={((activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.FrameConfig?.engagementMode || 'canvas') as any}
+          onClose={() => setOpenFrameConfigId(null)}
+          onSave={() => setOpenFrameConfigId(null)}
         />
       )}
     </div>
@@ -444,6 +444,34 @@ const FrameCard: React.FC<{
 // MAIN COMPONENT
 // =============================================================================
 
+// Simple error boundary to prevent total page crash
+class BoardStudioErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error?: any }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: any) {
+    console.error('BoardStudio crashed, showing safe fallback:', error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="h-screen flex items-center justify-center bg-slate-50">
+          <div className="max-w-md text-center">
+            <h1 className="text-xl font-semibold text-slate-900 mb-2">Board Studio recovered from an error</h1>
+            <p className="text-slate-600 mb-4">You can continue by creating a new board. Developer console has details.</p>
+            <a href="/studio/board-studio" className="inline-flex items-center space-x-2 px-4 py-2 bg-slate-700 text-white rounded-lg">Reload Board Studio</a>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children as any;
+  }
+}
+
 const BoardStudioPage: React.FC = () => {
   console.log('BoardStudioPage: Component initializing');
   
@@ -471,7 +499,7 @@ const BoardStudioPage: React.FC = () => {
   const [boards, setBoards] = useState<BoardListItem[]>([]);
   const [frameTypes, setFrameTypes] = useState<FrameType[]>(FRAME_TYPES);
   const [selectedFrameId, setSelectedFrameId] = useState<string | null>(null);
-  const [configFrameId, setConfigFrameId] = useState<string | null>(null);
+  const [openFrameConfigId, setOpenFrameConfigId] = useState<string | null>(null);
 
   // Board Properties
   const [boardName, setBoardName] = useState('');
@@ -1073,7 +1101,7 @@ const BoardStudioPage: React.FC = () => {
                            onClick={() => setSelectedFrameId(fr.id)}>
                         <span className="font-medium">{fr.data?.name || `Frame ${idx+1}`}</span>
                         <span className="text-slate-500">{fr.FrameConfig?.engagementMode || 'canvas'}</span>
-                        <button className="p-1 text-slate-500 hover:text-slate-900" onClick={() => setConfigFrameId(fr.id)}>
+                        <button className="p-1 text-slate-500 hover:text-slate-900" onClick={() => setOpenFrameConfigId(fr.id)}>
                           <CogIcon className="w-4 h-4" />
                         </button>
                       </div>
