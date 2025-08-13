@@ -895,18 +895,19 @@ const BoardStudioPage: React.FC = () => {
   
   return (
     <div className="h-screen bg-slate-50 flex overflow-hidden">
-      {/* Board List Panel (Keeper scoped) */}
+      {/* Board List Panel (Keeper optional) */}
       <div className="w-80 bg-white border-r border-slate-200 flex flex-col">
-        {/* Keeper Header */}
+        {/* Optional Keeper Header; Studio works without one */}
         <div className="p-4 border-b border-slate-200">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <div className="text-xs uppercase text-slate-500">Keeper</div>
-              <div className="text-lg font-semibold text-slate-900">{activeKeeper?.title || 'Keeper'}</div>
-              <div className="text-xs text-slate-500">{activeKeeper?.purpose || 'Creative storytelling workspace'}</div>
+              <div className="text-xs uppercase text-slate-500">Board Studio</div>
+              <div className="text-lg font-semibold text-slate-900">{activeKeeper?.title || 'No Keeper Selected'}</div>
+              <div className="text-xs text-slate-500">{activeKeeper?.purpose || 'Design boards independently of keepers'}</div>
             </div>
             {keepers.length > 1 && (
-              <select className="text-sm border rounded px-2 py-1" onChange={(e)=>setActiveKeeperId(e.target.value)} value={activeKeeper?.id}>
+              <select className="text-sm border rounded px-2 py-1" onChange={(e)=>setActiveKeeperId(e.target.value)} value={activeKeeper?.id || ''}>
+                <option value="">No Keeper</option>
                 {keepers.map(k => (
                   <option key={k.id} value={k.id}>{k.title}</option>
                 ))}

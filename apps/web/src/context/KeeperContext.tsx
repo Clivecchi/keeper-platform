@@ -37,10 +37,18 @@ export const KeeperProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setIsLoading(true);
     setError(null);
     try {
+      const userId = user?.id;
+
+      // If we don't have an authenticated user context, do not call the API.
+      if (!userId) {
+        setKeepers([]);
+        setActiveKeeperId(null);
+        return;
+      }
+
       // Primary source: Keeper list API (auth-protected)
+      const url = `/api/keeper/keepers?userId=${encodeURIComponent(userId)}`;
       try {
-        const userId = user?.id;
-        const url = userId ? `/api/keeper/keepers?userId=${encodeURIComponent(userId)}` : '/api/keeper/keepers';
         const result = await apiFetch(url);
         const list = Array.isArray((result as any)?.keepers)
           ? (result as any).keepers
@@ -52,18 +60,10 @@ export const KeeperProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setActiveKeeperId(list[0].id);
         }
       } catch (apiErr: any) {
-        // Graceful fallback on 401/404 or any network error
-        // Fallback: minimal demo keeper
-        const fallback: KeeperSummary = {
-          id: 'demo-keeper',
-          title: 'Keeper',
-          purpose: 'Creative storytelling workspace',
-          avatarUrl: undefined,
-        };
-        // Only fallback if we truly have no keepers yet
+        // Graceful fallback on network/API errors
         if (keepers.length === 0) {
-          setKeepers([fallback]);
-          if (!activeKeeperId) setActiveKeeperId(fallback.id);
+          setKeepers([]);
+          setActiveKeeperId(null);
         }
       }
     } catch (err: any) {
