@@ -5,7 +5,7 @@ import { prisma } from '@keeper/database';
 import { randomUUID } from 'crypto';
 import { ModelProviderService } from '../services/ModelProviderService.js';
 import type { ModelProvider } from '@keeper/database';
-import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
+import { authMiddlewareCompat, optionalAuthMiddleware } from '../middleware/authMiddleware.js';
 import { requireDomainReadCompat } from '../middleware/domainPermissionMiddleware.js';
 
 const router: ExpressRouter = Router();
@@ -811,7 +811,21 @@ export default router;
 // =============================================================================
 // GET /api/debug/board-studio-snapshot
 // Returns high-signal data for diagnosing Board Studio loading issues
-router.get('/board-studio-snapshot', authMiddlewareCompat, async (req, res) => {
+// Small index to list debug endpoints and usage
+router.get('/', (_req, res) => {
+  res.json({
+    success: true,
+    message: 'Keeper Debug API',
+    usage: {
+      'GET /api/debug/board-studio-snapshot': 'Authenticated preferred. Optionally pass ?userId= to run unauthenticated.',
+      'GET /api/debug/logs': 'Recent high-signal server logs (in-memory).',
+      'GET /api/debug/railway-status': 'Railway runtime info.',
+      'GET /api/debug/all': 'One-shot aggregate of snapshot + logs + env + railway. Optional ?userId=',
+    },
+  });
+});
+
+router.get('/board-studio-snapshot', optionalAuthMiddleware as any, async (req, res) => {
   try {
     const { addLog, getLogs } = await import('../utils/LogStore.js');
     addLog('board-studio-snapshot-enter', { path: req.path, user: (req as any).user?.id });
@@ -820,7 +834,7 @@ router.get('/board-studio-snapshot', authMiddlewareCompat, async (req, res) => {
     let keepers: any = null;
     let keepersError: any = null;
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.id || (req.query.userId as string | undefined);
       if (userId) {
         keepers = await prisma.keeper.findMany({ where: { ownerId: userId }, select: { id: true, title: true, domainId: true, updatedAt: true } });
       }
@@ -855,6 +869,7 @@ router.get('/board-studio-snapshot', authMiddlewareCompat, async (req, res) => {
       data: {
         serverTime: new Date().toISOString(),
         user: (req as any).user || null,
+        userIdParam: req.query.userId || null,
         routes,
         keepers: Array.isArray(keepers) ? { count: keepers.length, sample: keepers.slice(0, 3) } : null,
         keepersError,
@@ -865,10 +880,101 @@ router.get('/board-studio-snapshot', authMiddlewareCompat, async (req, res) => {
           RAILWAY_PUBLIC_DOMAIN: process.env.RAILWAY_PUBLIC_DOMAIN,
           VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID ? 'set' : 'unset',
         },
+        nextSteps: !((req as any).user || req.query.userId)
+          ? 'Pass Authorization: Bearer <token> header or ?userId=<uuid> to include keeper data.'
+          : undefined,
       },
     });
   } catch (error) {
     console.error('board-studio-snapshot error:', error);
+    return res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'unknown' });
+  }
+});
+
+// =============================================================================
+// One-shot Aggregate Debug
+// =============================================================================
+// GET /api/debug/all
+// Combines: snapshot + logs + env + railway status (single call)
+router.get('/all', optionalAuthMiddleware as any, async (req, res) => {
+  try {
+    const { getLogs, addLog } = await import('../utils/LogStore.js');
+    addLog('debug-all-enter', { path: req.path, user: (req as any).user?.id });
+
+    // Base info
+    const now = new Date().toISOString();
+    const env = {
+      NODE_ENV: process.env.NODE_ENV,
+      RAILWAY_PUBLIC_DOMAIN: process.env.RAILWAY_PUBLIC_DOMAIN,
+      RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT,
+      VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID ? 'set' : 'unset',
+      PORT: process.env.PORT,
+    };
+
+    // Railway status (inline, no external API calls)
+    const railway = {
+      service: process.env.RAILWAY_SERVICE_NAME || 'unknown',
+      environment: process.env.RAILWAY_ENVIRONMENT || 'unknown',
+      deployment: process.env.RAILWAY_DEPLOYMENT_ID || 'unknown',
+      public_domain: process.env.RAILWAY_PUBLIC_DOMAIN || 'not_set',
+      private_domain: process.env.RAILWAY_PRIVATE_DOMAIN || 'not_set',
+    };
+
+    // Keeper snapshot (re-using logic from snapshot endpoint)
+    let keepers: any = null;
+    let keepersError: any = null;
+    const userId = (req as any).user?.id || (req.query.userId as string | undefined);
+    try {
+      if (userId) {
+        keepers = await prisma.keeper.findMany({ where: { ownerId: userId }, select: { id: true, title: true, domainId: true, updatedAt: true } });
+      }
+    } catch (e: any) {
+      keepersError = e?.message || 'unknown';
+    }
+
+    // Theme smoke check if configured
+    const themeId = process.env.DEBUG_THEME_ID as string | undefined;
+    let themeCheck: any = null;
+    if (themeId) {
+      try {
+        const theme = await prisma.themes.findUnique({ where: { id: themeId } as any });
+        themeCheck = { exists: !!theme, hasLight: (theme as any)?.light != null, hasDark: (theme as any)?.dark != null };
+      } catch (e: any) {
+        themeCheck = { error: e?.message || 'unknown' };
+      }
+    }
+
+    // Recent logs (trim)
+    const recentLogs = getLogs().slice(-300);
+
+    // Route map
+    const routes = [
+      { path: '/api/keeper/keepers?userId=…', requiresAuth: true },
+      { path: '/api/board-data', requiresAuth: true },
+      { path: '/api/themes/:id', requiresAuth: false },
+      { path: '/api/debug/*', requiresAuth: false },
+    ];
+
+    return res.json({
+      success: true,
+      data: {
+        serverTime: now,
+        user: (req as any).user || null,
+        userIdParam: req.query.userId || null,
+        env,
+        railway,
+        keepers: Array.isArray(keepers) ? { count: keepers.length, sample: keepers.slice(0, 3) } : null,
+        keepersError,
+        themeCheck,
+        routes,
+        recentLogs,
+        nextSteps: !((req as any).user || req.query.userId)
+          ? 'Pass Authorization: Bearer <token> header or ?userId=<uuid> to include keeper data.'
+          : undefined,
+      },
+    });
+  } catch (error) {
+    console.error('debug-all error:', error);
     return res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'unknown' });
   }
 });
