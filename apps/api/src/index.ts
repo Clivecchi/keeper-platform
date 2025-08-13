@@ -32,6 +32,7 @@ import { prisma } from '@keeper/database';
 import { authMiddleware, authMiddlewareCompat, AuthenticatedRequest } from './middleware/authMiddleware.js';
 import keeperRoutes from './api/keeper/routes.js';
 import debugRouter from './api/debug.js';
+import { addLog as addInternalLog } from './utils/LogStore.js';
 import { getLogs as getInternalLogs } from './utils/LogStore.js';
 
 // Load environment variables
@@ -101,6 +102,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     });
   }
   
+  try { addInternalLog('req', { method: req.method, path: req.path, origin: req.get('origin') }); } catch {}
   next();
 });
 

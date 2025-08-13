@@ -5,6 +5,8 @@ import { prisma } from '@keeper/database';
 import { randomUUID } from 'crypto';
 import { ModelProviderService } from '../services/ModelProviderService.js';
 import type { ModelProvider } from '@keeper/database';
+import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
+import { requireDomainReadCompat } from '../middleware/domainPermissionMiddleware.js';
 
 const router: ExpressRouter = Router();
 
@@ -803,3 +805,70 @@ router.get('/logs', async (_req, res) => {
 });
 
 export default router; 
+
+// =============================================================================
+// Board Studio Troubleshooting Snapshot
+// =============================================================================
+// GET /api/debug/board-studio-snapshot
+// Returns high-signal data for diagnosing Board Studio loading issues
+router.get('/board-studio-snapshot', authMiddlewareCompat, async (req, res) => {
+  try {
+    const { addLog, getLogs } = await import('../utils/LogStore.js');
+    addLog('board-studio-snapshot-enter', { path: req.path, user: (req as any).user?.id });
+
+    // Capture Keeper API status
+    let keepers: any = null;
+    let keepersError: any = null;
+    try {
+      const userId = (req as any).user?.id;
+      if (userId) {
+        keepers = await prisma.keeper.findMany({ where: { ownerId: userId }, select: { id: true, title: true, domainId: true, updatedAt: true } });
+      }
+    } catch (e: any) {
+      keepersError = e?.message || 'unknown';
+    }
+
+    // Capture most recent logs touching auth/perm probes
+    const recent = getLogs().slice(-200).filter((l: any) => ['auth-probe-enter','perm-probe-enter'].includes(l.tag));
+
+    // Capture theme endpoint smoke check (if environment variable set)
+    const themeId = process.env.DEBUG_THEME_ID as string | undefined;
+    let themeCheck: any = null;
+    if (themeId) {
+      try {
+        const theme = await prisma.themes.findUnique({ where: { id: themeId } as any });
+        themeCheck = { exists: !!theme, hasLight: (theme as any)?.light != null, hasDark: (theme as any)?.dark != null };
+      } catch (e: any) {
+        themeCheck = { error: e?.message || 'unknown' };
+      }
+    }
+
+    // Backend route map
+    const routes = [
+      { path: '/api/keeper/keepers?userId=…', requiresAuth: true },
+      { path: '/api/board-data', requiresAuth: true },
+      { path: '/api/themes/:id', requiresAuth: false },
+    ];
+
+    return res.json({
+      success: true,
+      data: {
+        serverTime: new Date().toISOString(),
+        user: (req as any).user || null,
+        routes,
+        keepers: Array.isArray(keepers) ? { count: keepers.length, sample: keepers.slice(0, 3) } : null,
+        keepersError,
+        themeCheck,
+        recentLogs: recent,
+        env: {
+          NODE_ENV: process.env.NODE_ENV,
+          RAILWAY_PUBLIC_DOMAIN: process.env.RAILWAY_PUBLIC_DOMAIN,
+          VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID ? 'set' : 'unset',
+        },
+      },
+    });
+  } catch (error) {
+    console.error('board-studio-snapshot error:', error);
+    return res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'unknown' });
+  }
+});

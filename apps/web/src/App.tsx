@@ -95,6 +95,8 @@ const App: React.FC = () => {
           <Route path="/studio/keeper-type-board" element={<KeeperTypeBoardPage />} />
           <Route path="/studio/people-board" element={<PeopleBoardPage />} />
           <Route path="/studio/board-studio" element={<BoardStudioPage />} />
+          {/* Backward-compat alias to handle direct links or outdated menus */}
+          <Route path="/board-studio" element={<Navigate to="/studio/board-studio" replace />} />
           <Route path="/studio/memory-patterns" element={<MemoryPatternsPage />} />
           <Route path="/studio/agent-classes" element={<AgentClassesPage />} />
           <Route path="/studio/engagement-templates" element={<KipStudioPage />} />
