@@ -272,18 +272,6 @@ const HelpTooltip: React.FC<{
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Frame Config Sheet */}
-      {openFrameConfigId && activeBoard && (
-        <FrameConfigSheet
-          frameId={openFrameConfigId}
-          name={(activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.data?.name || ''}
-          slug={(activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.data?.slug}
-          pattern={((activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.FrameConfig?.engagementMode || 'canvas') as any}
-          onClose={() => setOpenFrameConfigId(null)}
-          onSave={() => setOpenFrameConfigId(null)}
-        />
-      )}
     </div>
   );
 };
@@ -1342,6 +1330,18 @@ const BoardStudioPage: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Frame Config Sheet */}
+      {openFrameConfigId && activeBoard && (
+        <FrameConfigSheet
+          frameId={openFrameConfigId}
+          name={(activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.data?.name || ''}
+          slug={(activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.data?.slug}
+          pattern={((activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.FrameConfig?.engagementMode || 'canvas') as any}
+          onClose={() => setOpenFrameConfigId(null)}
+          onSave={() => setOpenFrameConfigId(null)}
+        />
+      )}
 
       {/* Help Modal */}
       <AnimatePresence>
