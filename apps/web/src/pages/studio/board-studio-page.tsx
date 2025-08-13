@@ -534,8 +534,17 @@ const BoardStudioPage: React.FC = () => {
       // Load boards for current domain using new API endpoint
       try {
         const boardsData = await apiFetch(`/api/board-data?domainId=${user?.currentDomainId || 'demo'}`);
-        setBoards(boardsData.boards || []);
-        console.log('Loaded boards from API:', boardsData);
+        const normalizedBoards: BoardListItem[] = (boardsData.boards || []).map((b: any) => ({
+          id: b.id,
+          name: b.name || b.config?.name || 'Untitled Board',
+          type: b.type || b.boardType || 'custom_board',
+          description: b.description || b.config?.description || '',
+          lastModified: b.lastModified ? new Date(b.lastModified) : (b.updatedAt ? new Date(b.updatedAt) : (b.createdAt ? new Date(b.createdAt) : new Date())),
+          frameCount: Array.isArray(b.frames) ? b.frames.length : (typeof b.frameCount === 'number' ? b.frameCount : (b.config?.frameCount || 0)),
+          engagementMode: b.engagementMode || b.config?.engagementMode || 'canvas',
+        }));
+        setBoards(normalizedBoards);
+        console.log('Loaded boards from API:', { count: normalizedBoards.length });
       } catch (error) {
         console.warn('Board API not available, using fallback data');
         // Fallback data if API not available
@@ -910,590 +919,592 @@ const BoardStudioPage: React.FC = () => {
   }
   
   return (
-    <div className="h-screen bg-slate-50 flex overflow-hidden">
-      {/* Board List Panel (Keeper optional) */}
-      <div className="w-80 bg-white border-r border-slate-200 flex flex-col">
-        {/* Optional Keeper Header; Studio works without one */}
-        <div className="p-4 border-b border-slate-200">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <div className="text-xs uppercase text-slate-500">Board Studio</div>
-              <div className="text-lg font-semibold text-slate-900">{activeKeeper?.title || 'No Keeper Selected'}</div>
-              <div className="text-xs text-slate-500">{activeKeeper?.purpose || 'Design boards independently of keepers'}</div>
-            </div>
-            {keepers.length > 1 && (
-              <select className="text-sm border rounded px-2 py-1" onChange={(e)=>setActiveKeeperId(e.target.value)} value={activeKeeper?.id || ''}>
-                <option value="">No Keeper</option>
-                {keepers.map(k => (
-                  <option key={k.id} value={k.id}>{k.title}</option>
-                ))}
-              </select>
-            )}
-          </div>
-          <div className="flex items-center justify-between">
-            <button
-              onClick={handleCreateBoard}
-              className="inline-flex items-center space-x-1 px-3 py-1.5 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              <PlusIcon className="w-4 h-4" />
-              <span>New Board</span>
-            </button>
-            <HelpTooltip content="Learn how to use Board Studio">
-              <button 
-                onClick={() => setShowHelpModal(true)}
-                className="w-8 h-8 inline-flex items-center justify-center rounded bg-slate-100 text-slate-600 hover:bg-slate-200"
-              >
-                <QuestionMarkCircleIcon className="w-4 h-4" />
-              </button>
-            </HelpTooltip>
-          </div>
-        </div>
-
-        {/* Board List */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-2">
-            {boards.map((board) => (
-              <motion.div
-                key={board.id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleBoardSelect(board.id)}
-                className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                  selectedBoardId === board.id
-                    ? 'border-slate-300 bg-slate-100 ring-2 ring-slate-200'
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-medium text-slate-900 truncate">{board.name}</h3>
-                  <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-                    {board.type.replace('_', ' ')}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-600 line-clamp-2 mb-2">{board.description}</p>
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>{board.frameCount} frames</span>
-                  <span>{board.lastModified.toLocaleDateString()}</span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Editor Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Toolbar (Modes) */}
-        <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
-          <div className="flex items-center space-x-4">
-            {activeBoard && (
-              <>
-                <h1 className="text-xl font-semibold text-slate-900">{boardName || 'Untitled Board'}</h1>
-                <EngagementModeSelector
-                  value={engagementMode}
-                  onChange={(mode) => setEngagementMode(mode as any)}
-                />
-              </>
-            )}
-          </div>
-
-          <div className="flex items-center space-x-2">
-            {/* Mode Switcher */}
-            {['edit','layout','preview','assist'].map((m) => (
-              <button
-                key={m}
-                onClick={() => setEditorMode(m as any)}
-                className={`px-3 py-1.5 rounded-lg text-sm ${editorMode===m?'bg-slate-800 text-white':'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-              >
-                {m === 'edit' && 'Edit'}
-                {m === 'layout' && 'Layout'}
-                {m === 'preview' && 'Preview'}
-                {m === 'assist' && 'AI assist'}
-              </button>
-            ))}
-            <HelpTooltip content="Toggle properties panel to edit board settings">
-              <button
-                onClick={() => setIsPropertiesPanelOpen(!isPropertiesPanelOpen)}
-                className={`p-2 rounded-lg transition-colors ${
-                  isPropertiesPanelOpen
-                    ? 'bg-slate-700 text-white'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                <CogIcon className="w-4 h-4" />
-              </button>
-            </HelpTooltip>
-
-            <button
-              onClick={handleSaveBoard}
-              disabled={!activeBoard || isSaving}
-              className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-colors ${
-                isSaving 
-                  ? 'bg-yellow-500 text-white cursor-not-allowed'
-                  : activeBoard
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
-              }`}
-            >
-              {isSaving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <DocumentArrowUpIcon className="w-4 h-4" />
-                  <span>Save</span>
-                </>
+    <BoardStudioErrorBoundary>
+      <div className="h-screen bg-slate-50 flex overflow-hidden">
+        {/* Board List Panel (Keeper optional) */}
+        <div className="w-80 bg-white border-r border-slate-200 flex flex-col">
+          {/* Optional Keeper Header; Studio works without one */}
+          <div className="p-4 border-b border-slate-200">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <div className="text-xs uppercase text-slate-500">Board Studio</div>
+                <div className="text-lg font-semibold text-slate-900">{activeKeeper?.title || 'No Keeper Selected'}</div>
+                <div className="text-xs text-slate-500">{activeKeeper?.purpose || 'Design boards independently of keepers'}</div>
+              </div>
+              {keepers?.length > 1 && (
+                <select className="text-sm border rounded px-2 py-1" onChange={(e)=>setActiveKeeperId(e.target.value)} value={activeKeeper?.id || ''}>
+                  <option value="">No Keeper</option>
+                  {keepers?.map(k => (
+                    <option key={k.id} value={k.id}>{k.title}</option>
+                  ))}
+                </select>
               )}
-            </button>
-          </div>
-        </div>
-
-        {/* Board Canvas */}
-        <div className="flex-1 flex">
-          {/* Canvas Area */}
-          <div className="flex-1 relative overflow-hidden">
-            {activeBoard ? (
-              <div 
-                ref={canvasRef}
-                className={`w-full h-full p-6 overflow-auto transition-all ${
-                  dragOverBoard ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''
-                }`}
-                style={{ 
-                  backgroundColor: dragOverBoard ? undefined : boardTheme.backgroundColor,
-                  backgroundImage: engagementMode === 'canvas' && !dragOverBoard
-                    ? 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)'
-                    : 'none',
-                  backgroundSize: engagementMode === 'canvas' ? '20px 20px' : 'auto'
-                }}
-                onDragOver={handleCanvasDragOver}
-                onDragLeave={handleCanvasDragLeave}
-                onDrop={handleCanvasDrop}
+            </div>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={handleCreateBoard}
+                className="inline-flex items-center space-x-1 px-3 py-1.5 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-800 transition-colors"
               >
-                {dragOverBoard && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="bg-blue-100 border-2 border-blue-300 rounded-lg p-8 text-center">
-                      <SparklesIcon className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-blue-900 mb-2">Drop Frame Here</h3>
-                      <p className="text-blue-700">Release to add the frame to your board</p>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Frame Tabs Row */}
-                {activeBoard?.frames && activeBoard.frames.length > 0 && (
-                  <div className="flex items-center gap-2 mb-3">
-                    {activeBoard.frames.map((fr: any, idx: number) => (
-                      <div key={fr.id} className={`px-3 py-1.5 rounded border text-sm flex items-center gap-2 ${selectedFrameId===fr.id?'border-slate-900':'border-slate-300'}`}
-                           onClick={() => setSelectedFrameId(fr.id)}>
-                        <span className="font-medium">{fr.data?.name || `Frame ${idx+1}`}</span>
-                        <span className="text-slate-500">{fr.FrameConfig?.engagementMode || 'canvas'}</span>
-                        <button className="p-1 text-slate-500 hover:text-slate-900" onClick={() => setOpenFrameConfigId(fr.id)}>
-                          <CogIcon className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                    <button onClick={() => setEditorMode('edit')} className="ml-auto px-3 py-1.5 border rounded text-sm">+ Add Frame</button>
-                  </div>
-                )}
-
-                <BoardRenderer
-                  boardInstance={activeBoard}
-                  onFrameInteraction={(interaction) => {
-                    console.log('Board Studio frame interaction:', interaction);
-                    handleFrameInteraction(interaction);
-                  }}
-                  showLayoutControls={editorMode==='layout'}
-                  className="bg-white rounded-lg shadow-sm border border-slate-200"
-                />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-full bg-slate-100">
-                <div className="text-center">
-                  <Squares2X2Icon className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-medium text-slate-900 mb-2">No Board Selected</h3>
-                  <p className="text-slate-600 mb-6">Select a board from the list or create a new one to get started.</p>
-                  <button
-                    onClick={handleCreateBoard}
-                    className="inline-flex items-center space-x-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors"
-                  >
-                    <PlusIcon className="w-4 h-4" />
-                    <span>Create New Board</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Frame Library Sidebar (Edit mode only) */}
-          {editorMode==='edit' && (
-          <div className="w-80 bg-white border-l border-slate-200 flex flex-col">
-            {/* Frame Library Header */}
-            <div className="p-4 border-b border-slate-200">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <h3 className="font-medium text-slate-900">Frame Library</h3>
-                  <HelpTooltip content="Drag frames onto the canvas or click the + button to add them to your board">
-                    <QuestionMarkCircleIcon className="w-4 h-4 text-slate-400 hover:text-slate-600" />
-                  </HelpTooltip>
-                </div>
-              </div>
-              
-              {/* Search */}
-              <div className="relative mb-3">
-                <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search frames..."
-                  className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-              </div>
-
-              {/* Category Filter */}
-              <div className="flex flex-wrap gap-1">
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={`px-2 py-1 text-xs rounded-full transition-colors capitalize ${
-                      selectedCategory === category
-                        ? 'bg-slate-200 text-slate-900'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-150'
-                    }`}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Frame List with Better Scrolling */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="p-4 space-y-6">
-                {Object.entries(framesByCategory).map(([category, frames]) => (
-                  <div key={category}>
-                    <h4 className="text-sm font-medium text-slate-900 mb-3 capitalize sticky top-0 bg-white py-1">
-                      {category} ({frames.length})
-                    </h4>
-                    <div className="space-y-3">
-                      {frames.map((frame) => (
-                        <FrameCard
-                          key={frame.id}
-                          frame={frame}
-                          onDragStart={handleFrameDragStart}
-                          onAddToBoard={handleAddFrameToBoard}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                
-                {filteredFrameTypes.length === 0 && (
-                  <div className="text-center py-8 text-slate-500">
-                    <InformationCircleIcon className="w-8 h-8 mx-auto mb-2" />
-                    <p>No frames found matching your search.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          )}
-        </div>
-      </div>
-
-      {/* Properties Panel */}
-      <AnimatePresence>
-        {isPropertiesPanelOpen && (
-          <motion.div
-            initial={{ x: 320 }}
-            animate={{ x: 0 }}
-            exit={{ x: 320 }}
-            className="w-80 bg-white border-l border-slate-200 flex flex-col"
-          >
-            {/* Header */}
-            <div className="p-4 border-b border-slate-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <h3 className="font-medium text-slate-900">Settings</h3>
-                  <HelpTooltip content="Edit board settings, theme, and frame properties">
-                    <QuestionMarkCircleIcon className="w-4 h-4 text-slate-400 hover:text-slate-600" />
-                  </HelpTooltip>
-                </div>
-                <button
-                  onClick={() => setIsPropertiesPanelOpen(false)}
-                  className="p-1 text-slate-400 hover:text-slate-600 rounded"
+                <PlusIcon className="w-4 h-4" />
+                <span>New Board</span>
+              </button>
+              <HelpTooltip content="Learn how to use Board Studio">
+                <button 
+                  onClick={() => setShowHelpModal(true)}
+                  className="w-8 h-8 inline-flex items-center justify-center rounded bg-slate-100 text-slate-600 hover:bg-slate-200"
                 >
-                  <XMarkIcon className="w-4 h-4" />
+                  <QuestionMarkCircleIcon className="w-4 h-4" />
                 </button>
-              </div>
+              </HelpTooltip>
+            </div>
+          </div>
+
+          {/* Board List */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="space-y-2">
+              {boards.map((board) => (
+                <motion.div
+                  key={board.id}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleBoardSelect(board.id)}
+                  className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                    selectedBoardId === board.id
+                      ? 'border-slate-300 bg-slate-100 ring-2 ring-slate-200'
+                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-medium text-slate-900 truncate">{board.name}</h3>
+                    <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                      {board.type.replace('_', ' ')}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600 line-clamp-2 mb-2">{board.description}</p>
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span>{board.frameCount} frames</span>
+                    <span>{board.lastModified ? new Date(board.lastModified as any).toLocaleDateString() : ''}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Main Editor Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Toolbar (Modes) */}
+          <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
+            <div className="flex items-center space-x-4">
+              {activeBoard && (
+                <>
+                  <h1 className="text-xl font-semibold text-slate-900">{boardName || 'Untitled Board'}</h1>
+                  <EngagementModeSelector
+                    value={engagementMode}
+                    onChange={(mode) => setEngagementMode(mode as any)}
+                  />
+                </>
+              )}
             </div>
 
-            {/* Properties Content */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex items-center space-x-2">
+              {/* Mode Switcher */}
+              {['edit','layout','preview','assist'].map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setEditorMode(m as any)}
+                  className={`px-3 py-1.5 rounded-lg text-sm ${editorMode===m?'bg-slate-800 text-white':'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                >
+                  {m === 'edit' && 'Edit'}
+                  {m === 'layout' && 'Layout'}
+                  {m === 'preview' && 'Preview'}
+                  {m === 'assist' && 'AI assist'}
+                </button>
+              ))}
+              <HelpTooltip content="Toggle properties panel to edit board settings">
+                <button
+                  onClick={() => setIsPropertiesPanelOpen(!isPropertiesPanelOpen)}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isPropertiesPanelOpen
+                      ? 'bg-slate-700 text-white'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <CogIcon className="w-4 h-4" />
+                </button>
+              </HelpTooltip>
+
+              <button
+                onClick={handleSaveBoard}
+                disabled={!activeBoard || isSaving}
+                className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg transition-colors ${
+                  isSaving 
+                    ? 'bg-yellow-500 text-white cursor-not-allowed'
+                    : activeBoard
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                }`}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <DocumentArrowUpIcon className="w-4 h-4" />
+                    <span>Save</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Board Canvas */}
+          <div className="flex-1 flex">
+            {/* Canvas Area */}
+            <div className="flex-1 relative overflow-hidden">
               {activeBoard ? (
-                <div className="space-y-6">
-                  {/* Board Info */}
-                  <div>
-                    <h4 className="text-sm font-medium text-slate-900 mb-3">Board Information</h4>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
-                        <input
-                          type="text"
-                          value={boardName}
-                          onChange={(e) => setBoardName(e.target.value)}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                        <textarea
-                          value={boardDescription}
-                          onChange={(e) => setBoardDescription(e.target.value)}
-                          rows={3}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-none"
-                        />
+                <div 
+                  ref={canvasRef}
+                  className={`w-full h-full p-6 overflow-auto transition-all ${
+                    dragOverBoard ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''
+                  }`}
+                  style={{ 
+                    backgroundColor: dragOverBoard ? undefined : boardTheme.backgroundColor,
+                    backgroundImage: engagementMode === 'canvas' && !dragOverBoard
+                      ? 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)'
+                      : 'none',
+                    backgroundSize: engagementMode === 'canvas' ? '20px 20px' : 'auto'
+                  }}
+                  onDragOver={handleCanvasDragOver}
+                  onDragLeave={handleCanvasDragLeave}
+                  onDrop={handleCanvasDrop}
+                >
+                  {dragOverBoard && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="bg-blue-100 border-2 border-blue-300 rounded-lg p-8 text-center">
+                        <SparklesIcon className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-blue-900 mb-2">Drop Frame Here</h3>
+                        <p className="text-blue-700">Release to add the frame to your board</p>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Theme Settings */}
-                  <div>
-                    <h4 className="text-sm font-medium text-slate-900 mb-3">Theme</h4>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Primary Color</label>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="color"
-                            value={boardTheme.primaryColor}
-                            onChange={(e) => setBoardTheme(prev => ({ ...prev, primaryColor: e.target.value }))}
-                            className="w-8 h-8 border border-slate-300 rounded cursor-pointer"
-                          />
-                          <input
-                            type="text"
-                            value={boardTheme.primaryColor}
-                            onChange={(e) => setBoardTheme(prev => ({ ...prev, primaryColor: e.target.value }))}
-                            className="flex-1 px-3 py-1 border border-slate-300 rounded text-sm font-mono"
-                          />
+                  )}
+                  
+                  {/* Frame Tabs Row */}
+                  {activeBoard?.frames && activeBoard.frames.length > 0 && (
+                    <div className="flex items-center gap-2 mb-3">
+                      {activeBoard.frames.map((fr: any, idx: number) => (
+                        <div key={fr.id} className={`px-3 py-1.5 rounded border text-sm flex items-center gap-2 ${selectedFrameId===fr.id?'border-slate-900':'border-slate-300'}`}
+                             onClick={() => setSelectedFrameId(fr.id)}>
+                          <span className="font-medium">{fr.data?.name || `Frame ${idx+1}`}</span>
+                          <span className="text-slate-500">{fr.FrameConfig?.engagementMode || 'canvas'}</span>
+                          <button className="p-1 text-slate-500 hover:text-slate-900" onClick={() => setOpenFrameConfigId(fr.id)}>
+                            <CogIcon className="w-4 h-4" />
+                          </button>
                         </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Background Color</label>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="color"
-                            value={boardTheme.backgroundColor}
-                            onChange={(e) => setBoardTheme(prev => ({ ...prev, backgroundColor: e.target.value }))}
-                            className="w-8 h-8 border border-slate-300 rounded cursor-pointer"
-                          />
-                          <input
-                            type="text"
-                            value={boardTheme.backgroundColor}
-                            onChange={(e) => setBoardTheme(prev => ({ ...prev, backgroundColor: e.target.value }))}
-                            className="flex-1 px-3 py-1 border border-slate-300 rounded text-sm font-mono"
-                          />
-                        </div>
-                      </div>
+                      ))}
+                      <button onClick={() => setEditorMode('edit')} className="ml-auto px-3 py-1.5 border rounded text-sm">+ Add Frame</button>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Help Section */}
-                  <div>
-                    <h4 className="text-sm font-medium text-slate-900 mb-3">Getting Started</h4>
-                    <div className="space-y-2 text-sm text-slate-600">
-                      <div className="flex items-start space-x-2">
-                        <span className="flex-shrink-0 w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">1</span>
-                        <span>Drag frames from the library onto the canvas</span>
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <span className="flex-shrink-0 w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">2</span>
-                        <span>Use engagement modes to control layout behavior</span>
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <span className="flex-shrink-0 w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">3</span>
-                        <span>Customize colors and save your board</span>
-                      </div>
-                    </div>
-                  </div>
+                  <BoardRenderer
+                    boardInstance={activeBoard}
+                    onFrameInteraction={(interaction) => {
+                      console.log('Board Studio frame interaction:', interaction);
+                      handleFrameInteraction(interaction);
+                    }}
+                    showLayoutControls={editorMode==='layout'}
+                    className="bg-white rounded-lg shadow-sm border border-slate-200"
+                  />
                 </div>
               ) : (
-                <div className="text-center text-slate-500 py-8">
-                  <CogIcon className="w-8 h-8 mx-auto mb-2" />
-                  <p>Select a board to edit properties</p>
+                <div className="flex items-center justify-center h-full bg-slate-100">
+                  <div className="text-center">
+                    <Squares2X2Icon className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-medium text-slate-900 mb-2">No Board Selected</h3>
+                    <p className="text-slate-600 mb-6">Select a board from the list or create a new one to get started.</p>
+                    <button
+                      onClick={handleCreateBoard}
+                      className="inline-flex items-center space-x-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors"
+                    >
+                      <PlusIcon className="w-4 h-4" />
+                      <span>Create New Board</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Frame Config Sheet */}
-      {openFrameConfigId && activeBoard && (
-        <FrameConfigSheet
-          frameId={openFrameConfigId}
-          name={(activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.data?.name || ''}
-          slug={(activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.data?.slug}
-          pattern={((activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.FrameConfig?.engagementMode || 'canvas') as any}
-          onClose={() => setOpenFrameConfigId(null)}
-          onSave={() => setOpenFrameConfigId(null)}
-        />
-      )}
+            {/* Frame Library Sidebar (Edit mode only) */}
+            {editorMode==='edit' && (
+            <div className="w-80 bg-white border-l border-slate-200 flex flex-col">
+              {/* Frame Library Header */}
+              <div className="p-4 border-b border-slate-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-medium text-slate-900">Frame Library</h3>
+                    <HelpTooltip content="Drag frames onto the canvas or click the + button to add them to your board">
+                      <QuestionMarkCircleIcon className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                    </HelpTooltip>
+                  </div>
+                </div>
+                
+                {/* Search */}
+                <div className="relative mb-3">
+                  <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search frames..."
+                    className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  />
+                </div>
 
-      {/* Help Modal */}
-      <AnimatePresence>
-        {showHelpModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]"
-            onClick={() => setShowHelpModal(false)}
-          >
+                {/* Category Filter */}
+                <div className="flex flex-wrap gap-1">
+                  {categories.map((category) => (
+                    <button
+                      key={category}
+                      onClick={() => setSelectedCategory(category)}
+                      className={`px-2 py-1 text-xs rounded-full transition-colors capitalize ${
+                        selectedCategory === category
+                          ? 'bg-slate-200 text-slate-900'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-150'
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Frame List with Better Scrolling */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-4 space-y-6">
+                  {Object.entries(framesByCategory).map(([category, frames]) => (
+                    <div key={category}>
+                      <h4 className="text-sm font-medium text-slate-900 mb-3 capitalize sticky top-0 bg-white py-1">
+                        {category} ({frames.length})
+                      </h4>
+                      <div className="space-y-3">
+                        {frames.map((frame) => (
+                          <FrameCard
+                            key={frame.id}
+                            frame={frame}
+                            onDragStart={handleFrameDragStart}
+                            onAddToBoard={handleAddFrameToBoard}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {filteredFrameTypes.length === 0 && (
+                    <div className="text-center py-8 text-slate-500">
+                      <InformationCircleIcon className="w-8 h-8 mx-auto mb-2" />
+                      <p>No frames found matching your search.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            )}
+          </div>
+        </div>
+
+        {/* Properties Panel */}
+        <AnimatePresence>
+          {isPropertiesPanelOpen && (
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ x: 320 }}
+              animate={{ x: 0 }}
+              exit={{ x: 320 }}
+              className="w-80 bg-white border-l border-slate-200 flex flex-col"
             >
-              {/* Modal Header */}
-              <div className="p-6 border-b border-slate-200">
+              {/* Header */}
+              <div className="p-4 border-b border-slate-200">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <QuestionMarkCircleIcon className="w-6 h-6 text-blue-600" />
-                    </div>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-medium text-slate-900">Settings</h3>
+                    <HelpTooltip content="Edit board settings, theme, and frame properties">
+                      <QuestionMarkCircleIcon className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                    </HelpTooltip>
+                  </div>
+                  <button
+                    onClick={() => setIsPropertiesPanelOpen(false)}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded"
+                  >
+                    <XMarkIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Properties Content */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {activeBoard ? (
+                  <div className="space-y-6">
+                    {/* Board Info */}
                     <div>
-                      <h2 className="text-xl font-semibold text-slate-900">How to Use Board Studio</h2>
-                      <p className="text-slate-600">Learn the basics of creating and editing boards</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowHelpModal(false)}
-                    className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
-                  >
-                    <XMarkIcon className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-6 overflow-y-auto">
-                <div className="space-y-6">
-                  {/* Board Selection */}
-                  <div>
-                    <h3 className="text-lg font-medium text-slate-900 mb-3">1. Select a Board</h3>
-                    <p className="text-slate-700 mb-3">
-                      Click on any board in the left panel to load it into the editor. The selected board will be highlighted with a blue border.
-                    </p>
-                    <div className="bg-slate-50 rounded-lg p-4">
-                      <div className="flex items-center space-x-2 text-sm text-slate-600">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span>Selected boards show with a blue highlight</span>
+                      <h4 className="text-sm font-medium text-slate-900 mb-3">Board Information</h4>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                          <input
+                            type="text"
+                            value={boardName}
+                            onChange={(e) => setBoardName(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                          <textarea
+                            value={boardDescription}
+                            onChange={(e) => setBoardDescription(e.target.value)}
+                            rows={3}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-none"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Adding Frames */}
-                  <div>
-                    <h3 className="text-lg font-medium text-slate-900 mb-3">2. Add Frames</h3>
-                    <p className="text-slate-700 mb-3">
-                      Add content to your board using frames from the Frame Library on the right:
-                    </p>
-                    <ul className="space-y-2 text-slate-700">
-                      <li className="flex items-center space-x-2">
-                        <PlusIcon className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                        <span><strong>Click the + button</strong> that appears when you hover over a frame</span>
-                      </li>
-                      <li className="flex items-center space-x-2">
-                        <Bars3Icon className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                        <span><strong>Drag and drop</strong> frames directly onto the canvas</span>
-                      </li>
-                    </ul>
-                  </div>
+                    {/* Theme Settings */}
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-900 mb-3">Theme</h4>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Primary Color</label>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="color"
+                              value={boardTheme.primaryColor}
+                              onChange={(e) => setBoardTheme(prev => ({ ...prev, primaryColor: e.target.value }))}
+                              className="w-8 h-8 border border-slate-300 rounded cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={boardTheme.primaryColor}
+                              onChange={(e) => setBoardTheme(prev => ({ ...prev, primaryColor: e.target.value }))}
+                              className="flex-1 px-3 py-1 border border-slate-300 rounded text-sm font-mono"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Background Color</label>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="color"
+                              value={boardTheme.backgroundColor}
+                              onChange={(e) => setBoardTheme(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                              className="w-8 h-8 border border-slate-300 rounded cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={boardTheme.backgroundColor}
+                              onChange={(e) => setBoardTheme(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                              className="flex-1 px-3 py-1 border border-slate-300 rounded text-sm font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-                  {/* Frame Types */}
-                  <div>
-                    <h3 className="text-lg font-medium text-slate-900 mb-3">3. Frame Types</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="text-xl">💬</span>
-                          <span className="font-medium text-slate-900">Interaction</span>
+                    {/* Help Section */}
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-900 mb-3">Getting Started</h4>
+                      <div className="space-y-2 text-sm text-slate-600">
+                        <div className="flex items-start space-x-2">
+                          <span className="flex-shrink-0 w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">1</span>
+                          <span>Drag frames from the library onto the canvas</span>
                         </div>
-                        <p className="text-sm text-slate-600">Dialog frames, forms, and interactive elements</p>
-                      </div>
-                      <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="text-xl">🖼️</span>
-                          <span className="font-medium text-slate-900">Content</span>
+                        <div className="flex items-start space-x-2">
+                          <span className="flex-shrink-0 w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">2</span>
+                          <span>Use engagement modes to control layout behavior</span>
                         </div>
-                        <p className="text-sm text-slate-600">Media cards, previews, and content display</p>
-                      </div>
-                      <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="text-xl">⚙️</span>
-                          <span className="font-medium text-slate-900">Configuration</span>
+                        <div className="flex items-start space-x-2">
+                          <span className="flex-shrink-0 w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">3</span>
+                          <span>Customize colors and save your board</span>
                         </div>
-                        <p className="text-sm text-slate-600">Settings panels and configuration forms</p>
-                      </div>
-                      <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="text-xl">📊</span>
-                          <span className="font-medium text-slate-900">Visualization</span>
-                        </div>
-                        <p className="text-sm text-slate-600">Charts, graphs, and data visualization</p>
                       </div>
                     </div>
                   </div>
-
-                  {/* Board Properties */}
-                  <div>
-                    <h3 className="text-lg font-medium text-slate-900 mb-3">4. Edit Properties</h3>
-                    <p className="text-slate-700 mb-3">
-                      Use the Properties panel on the right to customize your board:
-                    </p>
-                    <ul className="space-y-1 text-slate-700">
-                      <li>• Change board name and description</li>
-                      <li>• Select engagement modes (Canvas, Grid, Column, etc.)</li>
-                      <li>• Customize colors and themes</li>
-                      <li>• Configure layout settings</li>
-                    </ul>
+                ) : (
+                  <div className="text-center text-slate-500 py-8">
+                    <CogIcon className="w-8 h-8 mx-auto mb-2" />
+                    <p>Select a board to edit properties</p>
                   </div>
-
-                  {/* Save */}
-                  <div>
-                    <h3 className="text-lg font-medium text-slate-900 mb-3">5. Save Your Work</h3>
-                    <p className="text-slate-700">
-                      Click the <strong>Save</strong> button in the top toolbar to save your changes. The button will show "Saving..." while your changes are being saved.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="p-6 border-t border-slate-200 bg-slate-50">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-slate-600">
-                    Need more help? Check out our documentation or contact support.
-                  </p>
-                  <button
-                    onClick={() => setShowHelpModal(false)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Got it!
-                  </button>
-                </div>
+                )}
               </div>
             </motion.div>
-          </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Frame Config Sheet */}
+        {openFrameConfigId && activeBoard && (
+          <FrameConfigSheet
+            frameId={openFrameConfigId}
+            name={(activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.data?.name || ''}
+            slug={(activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.data?.slug}
+            pattern={((activeBoard.frames as any)?.find((f:any)=>f.id===openFrameConfigId)?.FrameConfig?.engagementMode || 'canvas') as any}
+            onClose={() => setOpenFrameConfigId(null)}
+            onSave={() => setOpenFrameConfigId(null)}
+          />
         )}
-      </AnimatePresence>
-    </div>
+
+        {/* Help Modal */}
+        <AnimatePresence>
+          {showHelpModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]"
+              onClick={() => setShowHelpModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div className="p-6 border-b border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <QuestionMarkCircleIcon className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-semibold text-slate-900">How to Use Board Studio</h2>
+                        <p className="text-slate-600">Learn the basics of creating and editing boards</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowHelpModal(false)}
+                      className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                    >
+                      <XMarkIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Modal Content */}
+                <div className="p-6 overflow-y-auto">
+                  <div className="space-y-6">
+                    {/* Board Selection */}
+                    <div>
+                      <h3 className="text-lg font-medium text-slate-900 mb-3">1. Select a Board</h3>
+                      <p className="text-slate-700 mb-3">
+                        Click on any board in the left panel to load it into the editor. The selected board will be highlighted with a blue border.
+                      </p>
+                      <div className="bg-slate-50 rounded-lg p-4">
+                        <div className="flex items-center space-x-2 text-sm text-slate-600">
+                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                          <span>Selected boards show with a blue highlight</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Adding Frames */}
+                    <div>
+                      <h3 className="text-lg font-medium text-slate-900 mb-3">2. Add Frames</h3>
+                      <p className="text-slate-700 mb-3">
+                        Add content to your board using frames from the Frame Library on the right:
+                      </p>
+                      <ul className="space-y-2 text-slate-700">
+                        <li className="flex items-center space-x-2">
+                          <PlusIcon className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                          <span><strong>Click the + button</strong> that appears when you hover over a frame</span>
+                        </li>
+                        <li className="flex items-center space-x-2">
+                          <Bars3Icon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                          <span><strong>Drag and drop</strong> frames directly onto the canvas</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Frame Types */}
+                    <div>
+                      <h3 className="text-lg font-medium text-slate-900 mb-3">3. Frame Types</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-slate-50 rounded-lg p-3">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="text-xl">💬</span>
+                            <span className="font-medium text-slate-900">Interaction</span>
+                          </div>
+                          <p className="text-sm text-slate-600">Dialog frames, forms, and interactive elements</p>
+                        </div>
+                        <div className="bg-slate-50 rounded-lg p-3">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="text-xl">🖼️</span>
+                            <span className="font-medium text-slate-900">Content</span>
+                          </div>
+                          <p className="text-sm text-slate-600">Media cards, previews, and content display</p>
+                        </div>
+                        <div className="bg-slate-50 rounded-lg p-3">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="text-xl">⚙️</span>
+                            <span className="font-medium text-slate-900">Configuration</span>
+                          </div>
+                          <p className="text-sm text-slate-600">Settings panels and configuration forms</p>
+                        </div>
+                        <div className="bg-slate-50 rounded-lg p-3">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="text-xl">📊</span>
+                            <span className="font-medium text-slate-900">Visualization</span>
+                          </div>
+                          <p className="text-sm text-slate-600">Charts, graphs, and data visualization</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Board Properties */}
+                    <div>
+                      <h3 className="text-lg font-medium text-slate-900 mb-3">4. Edit Properties</h3>
+                      <p className="text-slate-700 mb-3">
+                        Use the Properties panel on the right to customize your board:
+                      </p>
+                      <ul className="space-y-1 text-slate-700">
+                        <li>• Change board name and description</li>
+                        <li>• Select engagement modes (Canvas, Grid, Column, etc.)</li>
+                        <li>• Customize colors and themes</li>
+                        <li>• Configure layout settings</li>
+                      </ul>
+                    </div>
+
+                    {/* Save */}
+                    <div>
+                      <h3 className="text-lg font-medium text-slate-900 mb-3">5. Save Your Work</h3>
+                      <p className="text-slate-700">
+                        Click the <strong>Save</strong> button in the top toolbar to save your changes. The button will show "Saving..." while your changes are being saved.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-6 border-t border-slate-200 bg-slate-50">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-slate-600">
+                      Need more help? Check out our documentation or contact support.
+                    </p>
+                    <button
+                      onClick={() => setShowHelpModal(false)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Got it!
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </BoardStudioErrorBoundary>
   );
 };
 
