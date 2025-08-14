@@ -21,6 +21,7 @@ import JourneyBoardPage from './pages/studio/journey-board-page';
 import KeeperTypeBoardPage from './pages/studio/keeper-type-board-page';
 import PeopleBoardPage from './pages/studio/people-board-page';
 import BoardStudioPage from './pages/studio/board-studio-page';
+import V0BoardStudioPage from './pages/studio/V0BoardStudioPage';
 // Admin Pages
 import DomainsPage from './pages/admin/DomainsPage';
 import RolesPage from './pages/admin/RolesPage';
@@ -95,6 +96,7 @@ const App: React.FC = () => {
           <Route path="/studio/keeper-type-board" element={<KeeperTypeBoardPage />} />
           <Route path="/studio/people-board" element={<PeopleBoardPage />} />
           <Route path="/studio/board-studio" element={<BoardStudioPage />} />
+          <Route path="/studio/boards/:boardId" element={<V0BoardStudioPage />} />
           {/* Backward-compat alias to handle direct links or outdated menus */}
           <Route path="/board-studio" element={<Navigate to="/studio/board-studio" replace />} />
           <Route path="/studio/memory-patterns" element={<MemoryPatternsPage />} />

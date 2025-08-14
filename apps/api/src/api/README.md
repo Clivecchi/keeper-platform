@@ -54,6 +54,13 @@ PUT /api/{resource}/:id     // Update item
 - ✅ BoardContext updated to use live API
 - ✅ AgentBoard updated with real agent data
 - ✅ Board Studio page updated to load from API
+- ✅ V0 Board Studio integrated with V0-compatible data structure
+
+### V0 Board Studio Integration
+- ✅ Added POST /api/boards/:id for V0 board save/update
+- ✅ Updated GET /api/boards/:id to return V0-compatible structure
+- ✅ Support for StudioBoard, StudioFrame, and StudioProp types
+- ✅ Pattern registry integration (focus, dialogic, wizard, canvas, gallery, form)
 - ✅ Maintains loading and error states
 
 ### Seed Data

@@ -151,63 +151,77 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Mock board data - replace with real database query
+    // Mock board data with V0-compatible structure
     const mockBoards: Record<string, any> = {
-      'agent-board-1': {
-        id: 'agent-board-1',
-        config: {
-          id: 'agent-board-config-1',
-          type: 'agent',
-          name: 'Agent Configuration',
-          description: 'Configure and interact with your AI agent',
-          layout: 'column',
-          engagementMode: 'dialogic',
-          allowLayoutEditing: true,
-          theme: {
-            primaryColor: '#3B82F6',
-            backgroundColor: '#F8FAFC',
-            accentColor: '#1E40AF',
-          }
-        },
+      'demo-board': {
+        id: 'demo-board',
+        name: 'Demo Board',
+        description: 'A demo board for testing the V0 interface',
+        keeperId: 'keeper-1',
         frames: [
           {
-            id: 'agent-preview-frame-1',
-            type: 'agent_preview',
-            data: {
-              agentName: 'Kip',
-              description: 'Kip is the Keeper Platform\'s Lead Agent, guiding users with wisdom, humor, and clarity.',
-              status: 'Active',
-              capabilities: ['Conversation', 'Memory Management', 'Task Coordination'],
-              lastActive: new Date().toISOString(),
-            }
+            id: 'cover-frame',
+            name: 'Cover',
+            role: 'cover',
+            pattern: 'focus',
+            props: [
+              {
+                id: 'hero-image-1',
+                type: 'image',
+                config: {
+                  src: '/placeholder.svg',
+                  alt: 'Cover image'
+                }
+              }
+            ]
           },
           {
-            id: 'agent-dialog-frame-1',
-            type: 'dialog',
-            data: {
-              messages: [
-                { role: 'assistant', content: 'Hello! I\'m Kip, your Keeper Platform assistant. How can I help you today?' },
-              ],
-              isActive: true,
-            }
+            id: 'settings-frame',
+            name: 'Settings',
+            role: 'settings',
+            pattern: 'form',
+            props: []
           },
           {
-            id: 'agent-config-frame-1',
-            type: 'config_panel',
-            data: {
-              settings: {
-                tone: 'professional',
-                responseLength: 'medium',
-                expertise: 'platform_guidance',
-              },
-              availableSettings: ['tone', 'responseLength', 'expertise'],
-            }
+            id: 'content-frame',
+            name: 'Content',
+            role: 'custom',
+            pattern: 'canvas',
+            props: [
+              {
+                id: 'ai-token-1',
+                type: 'token',
+                config: {
+                  displayName: 'AI Assistant',
+                  avatarUrl: '/placeholder.svg',
+                  personaNote: 'Helpful AI assistant for content creation'
+                }
+              }
+            ]
           }
-        ],
-        entityType: 'agent',
-        entityId: 'kip-agent-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        ]
+      },
+      'agent-board-1': {
+        id: 'agent-board-1',
+        name: 'Agent Configuration',
+        description: 'Configure and interact with your AI agent',
+        keeperId: 'keeper-1',
+        frames: [
+          {
+            id: 'agent-cover',
+            name: 'Cover',
+            role: 'cover',
+            pattern: 'focus',
+            props: []
+          },
+          {
+            id: 'agent-settings',
+            name: 'Settings',
+            role: 'settings',
+            pattern: 'form',
+            props: []
+          }
+        ]
       }
     };
 
@@ -219,6 +233,58 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     return res.json(board);
   } catch (error) {
     console.error('Error fetching board:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/boards/:id - Save/update a full board document (idempotent upsert)
+ */
+const saveBoardSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1).max(200),
+  description: z.string().optional(),
+  keeperId: z.string().optional(),
+  frames: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    role: z.enum(['cover', 'settings', 'custom']),
+    pattern: z.enum(['dialogic', 'wizard', 'focus', 'canvas', 'gallery', 'form']),
+    props: z.array(z.object({
+      id: z.string(),
+      type: z.string(),
+      config: z.record(z.any())
+    }))
+  }))
+});
+
+router.post('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const boardData = saveBoardSchema.parse(req.body);
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // For now, just log the save and return the board data
+    // TODO: Replace with actual database save when board storage is implemented
+    console.log('Board save requested:', id, boardData);
+
+    const savedBoard = {
+      ...boardData,
+      id,
+      updatedAt: new Date().toISOString(),
+      savedBy: userId
+    };
+
+    return res.json(savedBoard);
+  } catch (error) {
+    console.error('Error saving board:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Invalid board data', details: error.errors });
+    }
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

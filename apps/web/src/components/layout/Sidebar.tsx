@@ -242,6 +242,9 @@ export const Sidebar: React.FC = () => {
         <SidebarItem to="/studio/board-studio" icon={<Squares2X2Icon />} isCollapsed={isCollapsed}>
           Board Studio (Beta)
         </SidebarItem>
+        <SidebarItem to="/studio/boards/demo-board" icon={<Squares2X2Icon />} isCollapsed={isCollapsed}>
+          V0 Board Studio
+        </SidebarItem>
       </SidebarSection>
 
       {/* Keeper Design Build Section */}
