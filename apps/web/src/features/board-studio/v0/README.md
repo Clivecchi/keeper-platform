@@ -22,10 +22,14 @@ The V0 components maintain their exact layout, styling, and structure while bein
 - [ ] Connect to live agent behavior
 
 ## 📆 Update Log
+- 2025-01-28: **MERGED V0 DESIGN INTO EXISTING BOARD STUDIO**
+  - Applied V0 visual layout to working board-studio-page.tsx
+  - Removed duplicate "V0 Board Studio" menu and route
+  - Maintained all existing functionality (board loading/saving, frame management)
+  - Three-column V0 layout: boards list | horizontal tabs + canvas | props library
+  - Clean neutral theme matching V0 screenshot exactly
 - 2025-01-XX: Initial V0 Board Studio implementation completed
-- Created complete V0 UI vendor with BoardStudio component
-- Added pattern registry and frame configuration
-- Implemented AI Token v1 with configuration sheet
-- Wired to backend API endpoints (/api/boards)
-- Added route /studio/boards/:boardId
-- Integrated with Keeper sidebar navigation
+  - Created complete V0 UI vendor with BoardStudio component
+  - Added pattern registry and frame configuration
+  - Implemented AI Token v1 with configuration sheet
+  - Wired to backend API endpoints (/api/boards)
