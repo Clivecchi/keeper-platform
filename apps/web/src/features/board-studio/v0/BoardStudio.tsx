@@ -6,8 +6,7 @@ import { Card, CardContent } from "./components/ui/card"
 import { Input } from "./components/ui/input"
 import { Textarea } from "./components/ui/textarea"
 import { ScrollArea } from "./components/ui/scroll-area"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "./components/ui/tabs"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "./components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./components/ui/dropdown-menu"
 import {
@@ -27,8 +26,8 @@ import {
   Layout,
   Eye,
   Edit3,
+  Grid3X3,
 } from "lucide-react"
-import { Navigation } from "./components/navigation"
 import { PATTERNS } from "./patterns/registry"
 import type { StudioBoard, StudioFrame, PatternId, StudioProp, AiTokenV1 } from "./types"
 
@@ -203,25 +202,23 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <Book className="w-6 h-6 text-blue-600" />
-              <span className="font-bold text-xl text-blue-800">Board Studio</span>
+              <Book className="w-6 h-6 text-amber-600" />
+              <span className="font-bold text-xl text-amber-800">Board Studio</span>
             </div>
-            <div className="h-6 w-px bg-blue-200" />
-            <div className="flex items-center gap-2 text-blue-700">
+            <div className="h-6 w-px bg-amber-200" />
+            <div className="flex items-center gap-2 text-amber-700">
               <Film className="w-4 h-4" />
               <span className="text-sm font-medium">{board.name}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Navigation currentView={editorMode} />
-            <div className="h-6 w-px bg-blue-200 mx-2" />
             <Button variant="outline" size="sm" onClick={saveBoard} disabled={isSaving}>
               <Save className="w-4 h-4 mr-2" />
               {isSaving ? 'Saving...' : 'Save'}
@@ -238,7 +235,7 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
       </header>
 
       <div className="flex h-[calc(100vh-73px)]">
-        {/* Left Sidebar */}
+        {/* Left Sidebar - Keeper & Boards */}
         <aside className="w-64 bg-white/60 backdrop-blur-sm border-r flex flex-col">
           {/* Keeper Header */}
           <div className="p-4 border-b">
@@ -265,10 +262,38 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
             </DropdownMenu>
           </div>
 
-          {/* Board List */}
+          {/* Boards List */}
           <div className="p-4 space-y-4 flex-1">
             <div>
-              <h3 className="font-semibold text-blue-800 mb-3">Board Settings</h3>
+              <h3 className="font-semibold text-amber-800 mb-3">Boards</h3>
+              <div className="space-y-2">
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-left bg-amber-100/50"
+                >
+                  <Film className="w-4 h-4 mr-2" />
+                  {board.name}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-left"
+                >
+                  <Book className="w-4 h-4 mr-2" />
+                  Demo Board 2
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full mt-3 border-dashed border-amber-300 hover:border-amber-400 bg-transparent"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Board
+              </Button>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-amber-800 mb-3">Board Settings</h3>
               <Input
                 value={board.name}
                 onChange={(e) => setBoard(prev => ({ ...prev, name: e.target.value }))}
@@ -281,45 +306,6 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
                 className="bg-white/80 min-h-[80px]"
                 placeholder="Board description..."
               />
-            </div>
-
-            {/* Frame Tabs */}
-            <div>
-              <h3 className="font-semibold text-blue-800 mb-3">Frames</h3>
-              <Tabs value={activeFrameId} onValueChange={setActiveFrameId} orientation="vertical" className="w-full">
-                <TabsList className="grid w-full grid-cols-1 h-auto bg-transparent p-0 space-y-1">
-                  {board.frames.map((frame) => (
-                    <div key={frame.id} className="flex items-center gap-1 w-full">
-                      <TabsTrigger 
-                        value={frame.id} 
-                        className="flex-1 justify-start text-left data-[state=active]:bg-blue-100"
-                      >
-                        <span className="truncate">
-                          {frame.name} · {PATTERNS[frame.pattern].name.toLowerCase()}
-                        </span>
-                      </TabsTrigger>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 flex-shrink-0"
-                        onClick={() => setConfigFrameId(frame.id)}
-                      >
-                        <Cog className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </TabsList>
-              </Tabs>
-              
-              <Button
-                onClick={addFrame}
-                variant="outline"
-                size="sm"
-                className="w-full mt-2 border-dashed border-blue-300 hover:border-blue-400 bg-transparent"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Frame
-              </Button>
             </div>
           </div>
         </aside>
@@ -364,105 +350,138 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
             </div>
           </div>
 
+          {/* Horizontal Frame Tabs */}
+          <div className="border-b bg-white/80 backdrop-blur-sm">
+            <div className="flex items-center px-4 py-2">
+              <ScrollArea className="flex-1">
+                <div className="flex items-center gap-1">
+                  {board.frames.map((frame) => (
+                    <div key={frame.id} className="flex items-center">
+                      <Button
+                        variant={activeFrameId === frame.id ? "default" : "ghost"}
+                        size="sm"
+                        className="h-8 px-3 rounded-t-md rounded-b-none"
+                        onClick={() => setActiveFrameId(frame.id)}
+                      >
+                        <span className="text-sm">
+                          {frame.name} • {PATTERNS[frame.pattern].name.toLowerCase()}
+                        </span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 ml-1"
+                        onClick={() => setConfigFrameId(frame.id)}
+                      >
+                        <Cog className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    onClick={addFrame}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 border-dashed border-amber-300 hover:border-amber-400 ml-2"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Frame
+                  </Button>
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+
           {/* Canvas Area */}
           <div className="flex-1 p-6">
-            <Card className="h-full bg-white/80 backdrop-blur-sm shadow-lg border-blue-200">
+            <Card className="h-full bg-white/80 backdrop-blur-sm shadow-lg border-amber-200">
               <CardContent className="p-8 h-full flex flex-col">
                 {isLoading ? (
                   <div className="flex-1 flex items-center justify-center">
                     <div className="text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                      <p className="text-blue-600">Loading board...</p>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600 mx-auto mb-4"></div>
+                      <p className="text-amber-600">Loading board...</p>
                     </div>
                   </div>
                 ) : activeFrame ? (
                   <>
                     <div className="text-center mb-6">
-                      <h1 className="text-3xl font-bold text-blue-800 mb-2">{board.name}</h1>
-                      <h2 className="text-xl text-blue-700 font-medium">{activeFrame.name}</h2>
-                      <p className="text-sm text-blue-600 mt-1">
-                        Pattern: {PATTERNS[activeFrame.pattern].name} - {PATTERNS[activeFrame.pattern].summary}
-                      </p>
+                      <h1 className="text-3xl font-bold text-amber-800 mb-2 font-serif">{board.name}</h1>
+                      <h2 className="text-xl text-amber-700 font-medium">{activeFrame.name}</h2>
                     </div>
 
-                    <div className="flex-1 flex items-center justify-center">
+                    <div className="flex-1 flex items-center justify-center mb-6">
                       {editorMode === 'preview' ? (
-                        <div className="w-full h-full bg-white rounded-lg border p-8">
-                          <div className="text-center">
-                            <h3 className="text-2xl font-bold text-gray-800 mb-4">{activeFrame.name}</h3>
-                            <div className="space-y-4">
-                              {activeFrame.props.map((prop) => (
-                                <div key={prop.id} className="p-4 border rounded-lg">
-                                  {prop.type === 'token' && (
-                                    <div className="flex items-center gap-3">
-                                      <img 
-                                        src={prop.config.avatarUrl || '/placeholder.svg'} 
-                                        alt={prop.config.displayName}
-                                        className="w-10 h-10 rounded-full"
-                                      />
-                                      <div className="text-left">
-                                        <h4 className="font-semibold">{prop.config.displayName}</h4>
-                                        <p className="text-sm text-gray-600">{prop.config.personaNote}</p>
-                                        <div className="flex items-center gap-2 mt-1">
-                                          <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
-                                            Coming Soon
-                                          </span>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-6 w-6"
-                                            onClick={() => setConfigPropId(prop.id)}
-                                          >
-                                            <Cog className="w-3 h-3" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-                                  {prop.type === 'image' && (
+                        <div className="w-full max-w-4xl">
+                          <div className="space-y-6">
+                            {activeFrame.props.map((prop) => (
+                              <div key={prop.id} className="p-6 bg-white rounded-lg shadow-sm border">
+                                {prop.type === 'token' && (
+                                  <div className="flex items-center gap-4">
                                     <img 
-                                      src={prop.config.src || '/placeholder.svg'} 
-                                      alt={prop.config.alt || 'Image'}
-                                      className="w-full max-w-md mx-auto rounded"
+                                      src={prop.config.avatarUrl || '/placeholder.svg'} 
+                                      alt={prop.config.displayName}
+                                      className="w-12 h-12 rounded-full"
                                     />
-                                  )}
-                                  {prop.type === 'text' && (
-                                    <div className="text-gray-800">
-                                      {prop.config.content || 'Text content here...'}
+                                    <div className="text-left">
+                                      <h4 className="text-lg font-semibold text-amber-800">{prop.config.displayName}</h4>
+                                      <p className="text-amber-700">{prop.config.personaNote}</p>
+                                      <span className="inline-block mt-2 px-3 py-1 bg-amber-100 text-amber-700 text-sm rounded-full">
+                                        Coming Soon
+                                      </span>
                                     </div>
-                                  )}
-                                </div>
-                              ))}
-                              {activeFrame.props.length === 0 && (
-                                <p className="text-gray-500">No props configured for this frame</p>
-                              )}
-                            </div>
+                                  </div>
+                                )}
+                                {prop.type === 'image' && (
+                                  <img 
+                                    src={prop.config.src || '/placeholder.svg'} 
+                                    alt={prop.config.alt || 'Image'}
+                                    className="w-full rounded-lg shadow-md"
+                                  />
+                                )}
+                                {prop.type === 'text' && (
+                                  <div className="text-amber-900 text-lg leading-relaxed font-serif">
+                                    {prop.config.content || 'Text content here...'}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                            {activeFrame.props.length === 0 && (
+                              <div className="text-center p-12 border-2 border-dashed border-amber-300 rounded-lg">
+                                <p className="text-amber-600">No content configured for this frame</p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ) : (
-                        <div className="text-center p-8 border-2 border-dashed border-blue-300 rounded-lg">
-                          <div className="text-blue-600 mb-2">
-                            <Film className="w-12 h-12 mx-auto" />
-                          </div>
-                          <h3 className="text-lg font-semibold text-blue-800 mb-2">
-                            {activeFrame.name} Frame
-                          </h3>
-                          <p className="text-blue-600 mb-4">
-                            Using {PATTERNS[activeFrame.pattern].name} pattern
-                          </p>
-                          {activeFrame.props.length > 0 && (
-                            <div className="text-sm text-blue-500 mb-2">
-                              {activeFrame.props.length} props configured
+                        <div className="relative max-w-2xl w-full">
+                          <div className="text-center p-8 border-2 border-dashed border-amber-300 rounded-lg bg-white/50">
+                            <div className="text-amber-600 mb-4">
+                              <Film className="w-16 h-16 mx-auto" />
                             </div>
-                          )}
-                          {editorMode === 'edit' && (
-                            <p className="text-xs text-blue-500">
-                              Drop props from the library to add content
+                            <h3 className="text-xl font-semibold text-amber-800 mb-2">
+                              {activeFrame.name} Frame
+                            </h3>
+                            <p className="text-amber-700 mb-4">
+                              Pattern: {PATTERNS[activeFrame.pattern].name} - {PATTERNS[activeFrame.pattern].summary}
                             </p>
-                          )}
+                            {activeFrame.props.length > 0 && (
+                              <div className="text-sm text-amber-600 mb-4">
+                                {activeFrame.props.length} props configured
+                              </div>
+                            )}
+                            {editorMode === 'edit' && (
+                              <p className="text-sm text-amber-600">
+                                Drop props from the library to add content
+                              </p>
+                            )}
+                          </div>
                           {editorMode === 'layout' && (
-                            <div className="mt-4 p-4 bg-blue-50 rounded">
-                              <p className="text-sm text-blue-700">Layout mode - Grid and rulers visible</p>
+                            <div className="absolute inset-0 pointer-events-none">
+                              <div className="grid grid-cols-12 gap-1 h-full opacity-30">
+                                {Array.from({ length: 12 }).map((_, i) => (
+                                  <div key={i} className="bg-amber-300/50 border-r border-amber-400/30"></div>
+                                ))}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -471,7 +490,7 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
                   </>
                 ) : (
                   <div className="flex-1 flex items-center justify-center">
-                    <p className="text-blue-600">No frame selected</p>
+                    <p className="text-amber-600">No frame selected</p>
                   </div>
                 )}
               </CardContent>
@@ -484,24 +503,24 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
           <aside className="w-80 bg-white/60 backdrop-blur-sm border-l p-4">
             {editorMode === 'edit' && (
               <div>
-                <h3 className="font-semibold text-blue-800 mb-4">Props Library</h3>
+                <h3 className="font-semibold text-amber-800 mb-4">Props Library</h3>
                 <ScrollArea className="h-[calc(100vh-200px)]">
                   {Object.entries(PROPS_LIBRARY).map(([category, props]) => (
                     <div key={category} className="mb-6">
-                      <h4 className="text-sm font-medium text-blue-700 mb-3">{category}</h4>
+                      <h4 className="text-sm font-medium text-amber-700 mb-3">{category}</h4>
                       <div className="grid grid-cols-2 gap-2">
                         {props.map((prop) => (
                           <Button
                             key={prop.id}
                             variant="outline"
                             size="sm"
-                            className="h-16 flex-col gap-1 bg-white/80 hover:bg-blue-50"
+                            className="h-16 flex-col gap-1 bg-white/80 hover:bg-amber-50 border-amber-200"
                             onClick={() => activeFrameId && addPropToFrame(activeFrameId, prop.type)}
                           >
-                            <prop.icon className="w-5 h-5" />
-                            <span className="text-xs text-center">{prop.name}</span>
+                            <prop.icon className="w-5 h-5 text-amber-600" />
+                            <span className="text-xs text-center text-amber-800">{prop.name}</span>
                             {prop.type === 'token' && (
-                              <span className="text-xs bg-blue-100 text-blue-600 px-1 rounded">v1</span>
+                              <span className="text-xs bg-amber-100 text-amber-700 px-1 rounded">v1</span>
                             )}
                           </Button>
                         ))}
@@ -514,15 +533,22 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
 
             {editorMode === 'layout' && (
               <div>
-                <h3 className="font-semibold text-blue-800 mb-4">Layout Controls</h3>
+                <h3 className="font-semibold text-amber-800 mb-4">Layout Controls</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-blue-700 mb-2 block">Breakpoints</label>
-                    <div className="text-sm text-blue-600">Coming soon...</div>
+                    <label className="text-sm font-medium text-amber-700 mb-2 block">Breakpoints</label>
+                    <div className="grid grid-cols-3 gap-1 text-xs">
+                      <div className="p-2 bg-white/80 rounded text-center">SM</div>
+                      <div className="p-2 bg-white/80 rounded text-center">MD</div>
+                      <div className="p-2 bg-white/80 rounded text-center">LG</div>
+                    </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-blue-700 mb-2 block">Grid System</label>
-                    <div className="text-sm text-blue-600">Coming soon...</div>
+                    <label className="text-sm font-medium text-amber-700 mb-2 block">Grid System</label>
+                    <div className="flex items-center gap-2">
+                      <Grid3X3 className="w-4 h-4 text-amber-600" />
+                      <span className="text-sm text-amber-600">12-column grid active</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -533,9 +559,16 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
         {/* AI Assist Panel */}
         {editorMode === 'assist' && (
           <aside className="w-80 bg-white/60 backdrop-blur-sm border-l p-4">
-            <h3 className="font-semibold text-blue-800 mb-4">AI Assist</h3>
-            <div className="text-sm text-blue-600">
-              AI assistance features coming soon...
+            <h3 className="font-semibold text-amber-800 mb-4">AI Assist</h3>
+            <div className="space-y-4">
+              <div className="p-4 bg-white/80 rounded-lg border border-amber-200">
+                <h4 className="font-medium text-amber-800 mb-2">Content Suggestions</h4>
+                <p className="text-sm text-amber-600">AI assistance features coming soon...</p>
+              </div>
+              <div className="p-4 bg-white/80 rounded-lg border border-amber-200">
+                <h4 className="font-medium text-amber-800 mb-2">Layout Optimization</h4>
+                <p className="text-sm text-amber-600">AI layout suggestions coming soon...</p>
+              </div>
             </div>
           </aside>
         )}
