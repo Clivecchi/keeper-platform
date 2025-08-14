@@ -6,7 +6,7 @@
  * Features drag-and-drop, contextual help, and better discoverability.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiFetch } from '../../lib/api';
 import { Button } from '../../features/board-studio/v0/components/ui/button';
@@ -531,6 +531,55 @@ const BoardStudioPage: React.FC = () => {
   const [dragOverBoard, setDragOverBoard] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  const handleBoardSelect = useCallback(async (boardId: string) => {
+    if (selectedBoardId === boardId) return; // Prevent re-selecting same board
+    
+    setSelectedBoardId(boardId);
+    setIsLoadingBoards(true);
+    
+    try {
+      console.log('Loading board:', boardId);
+      
+      // Get board from our local boards list first (fast)
+      const selectedBoard = boards.find(b => b.id === boardId);
+      if (selectedBoard) {
+        setBoardName(selectedBoard.name);
+        setBoardDescription(selectedBoard.description || '');
+        setEngagementMode(selectedBoard.engagementMode as any || 'canvas');
+        setBoardTheme({
+          primaryColor: '#3B82F6',
+          backgroundColor: '#F8FAFC',
+          accentColor: '#0F172A',
+          borderColor: '#CBD5E1'
+        });
+        
+        // Create default frames
+        const defaultFrames = [
+          {
+            id: 'cover-frame',
+            data: { name: 'Cover' },
+            FrameConfig: { engagementMode: 'focus' }
+          },
+          {
+            id: 'settings-frame',
+            data: { name: 'Settings' },
+            FrameConfig: { engagementMode: 'form' }
+          }
+        ];
+        setMockFrames(defaultFrames);
+        setSelectedFrameId(defaultFrames[0]?.id || null);
+      }
+      
+      console.log('Board selection completed successfully');
+    } catch (error) {
+      console.error('Failed to load board:', error);
+      setBoardName('Error Loading Board');
+      setBoardDescription('Please try selecting another board');
+    } finally {
+      setIsLoadingBoards(false);
+    }
+  }, [selectedBoardId, boards]);
+
   // Load boards and frame types on mount
   useEffect(() => {
     loadBoardsAndFrames();
@@ -539,29 +588,17 @@ const BoardStudioPage: React.FC = () => {
   // Auto-select first board if none selected
   useEffect(() => {
     if (boards.length > 0 && !selectedBoardId && !isLoadingBoards) {
+      console.log('Auto-selecting first board:', boards[0].id);
       handleBoardSelect(boards[0].id);
     }
-  }, [boards, selectedBoardId, isLoadingBoards]);
+  }, [boards, selectedBoardId, isLoadingBoards, handleBoardSelect]);
 
   // Debug modal state
   useEffect(() => {
     console.log('showHelpModal state changed:', showHelpModal);
   }, [showHelpModal]);
 
-  // Update board properties when active board changes
-  useEffect(() => {
-    if (activeBoard) {
-      setBoardName(activeBoard.config.name || '');
-      setBoardDescription(activeBoard.config.description || '');
-      setEngagementMode(activeBoard.config.engagementMode || 'canvas');
-      setBoardTheme({
-        primaryColor: activeBoard.config.theme?.primaryColor || '#334155',
-        backgroundColor: activeBoard.config.theme?.backgroundColor || '#E2E8F0',
-        accentColor: activeBoard.config.theme?.accentColor || '#0F172A',
-        borderColor: activeBoard.config.theme?.borderColor || '#CBD5E1'
-      });
-    }
-  }, [activeBoard]);
+  // Note: Board properties are now managed in handleBoardSelect to avoid conflicts
 
   const loadBoardsAndFrames = async () => {
     try {
@@ -614,97 +651,6 @@ const BoardStudioPage: React.FC = () => {
           engagementMode: 'canvas'
         }
       ]);
-    }
-  };
-
-  const handleBoardSelect = async (boardId: string) => {
-    setSelectedBoardId(boardId);
-    setIsLoadingBoards(true);
-    
-    try {
-      console.log('Loading board:', boardId);
-      
-      // First try to load from the API directly
-      try {
-        const boardData = await apiFetch(`/api/boards/${boardId}`);
-        console.log('Board data from API:', boardData);
-        
-        // Set board properties from API data
-        setBoardName(boardData.name || 'Untitled Board');
-        setBoardDescription(boardData.description || '');
-        setEngagementMode('canvas'); // Default for now
-        setBoardTheme({
-          primaryColor: boardData.theme?.primaryColor || '#3B82F6',
-          backgroundColor: boardData.theme?.backgroundColor || '#F8FAFC',
-          accentColor: '#0F172A',
-          borderColor: '#CBD5E1'
-        });
-        
-        // Create default frames if they don't exist
-        const defaultFrames = boardData.frames || [
-          {
-            id: 'cover-frame',
-            data: { name: 'Cover' },
-            FrameConfig: { engagementMode: 'focus' }
-          },
-          {
-            id: 'settings-frame',
-            data: { name: 'Settings' },
-            FrameConfig: { engagementMode: 'form' }
-          }
-        ];
-        setMockFrames(defaultFrames);
-        setSelectedFrameId(defaultFrames[0]?.id || null);
-        
-        // Try to load board through context (this might fail, but that's OK)
-        try {
-          await loadBoard(boardId);
-        } catch (contextError) {
-          console.warn('Board context load failed, but continuing with API data:', contextError);
-        }
-        
-      } catch (apiError) {
-        console.warn('API board not available, using list data:', apiError);
-        
-        // Fallback to board list data
-        const selectedBoard = boards.find(b => b.id === boardId);
-        if (selectedBoard) {
-          setBoardName(selectedBoard.name);
-          setBoardDescription(selectedBoard.description || '');
-          setEngagementMode(selectedBoard.engagementMode as any || 'canvas');
-          setBoardTheme({
-            primaryColor: '#3B82F6',
-            backgroundColor: '#F8FAFC',
-            accentColor: '#0F172A',
-            borderColor: '#CBD5E1'
-          });
-          
-          // Create default frames for fallback
-          const defaultFrames = [
-            {
-              id: 'cover-frame',
-              data: { name: 'Cover' },
-              FrameConfig: { engagementMode: 'focus' }
-            },
-            {
-              id: 'settings-frame',
-              data: { name: 'Settings' },
-              FrameConfig: { engagementMode: 'form' }
-            }
-          ];
-          setMockFrames(defaultFrames);
-          setSelectedFrameId(defaultFrames[0]?.id || null);
-        }
-      }
-      
-      console.log('Board selection completed successfully');
-    } catch (error) {
-      console.error('Failed to load board:', error);
-      // Don't break the UI on error - just show a message
-      setBoardName('Error Loading Board');
-      setBoardDescription('Please try selecting another board');
-    } finally {
-      setIsLoadingBoards(false);
     }
   };
 
