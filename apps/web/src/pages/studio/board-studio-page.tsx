@@ -904,56 +904,58 @@ const BoardStudioPage: React.FC = () => {
             <span className="text-sm text-gray-600">Creative storytelling workspace</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-gray-100 rounded-md p-1">
-              <Button 
-                variant={editorMode === 'edit' ? 'default' : 'ghost'} 
-                size="sm"
-                className="h-7 px-3 text-xs"
-                onClick={() => setEditorMode('edit')}
-              >
-                <Edit3 className="w-3 h-3 mr-1" />
-                Edit
-              </Button>
-              <Button 
-                variant={editorMode === 'layout' ? 'default' : 'ghost'} 
-                size="sm"
-                className="h-7 px-3 text-xs"
-                onClick={() => setEditorMode('layout')}
-              >
-                <Layout className="w-3 h-3 mr-1" />
-                Layout
-              </Button>
-              <Button 
-                variant={editorMode === 'preview' ? 'default' : 'ghost'} 
-                size="sm"
-                className="h-7 px-3 text-xs"
-                onClick={() => setEditorMode('preview')}
-              >
-                <Eye className="w-3 h-3 mr-1" />
-                Preview
-              </Button>
-              <Button 
-                variant={editorMode === 'assist' ? 'default' : 'ghost'} 
-                size="sm"
-                className="h-7 px-3 text-xs"
-                onClick={() => setEditorMode('assist')}
-              >
-                <Sparkles className="w-3 h-3 mr-1" />
-                AI assist
-              </Button>
-            </div>
+          <div className="flex items-center gap-1 bg-gray-100 rounded-md p-1">
+            <Button 
+              variant={editorMode === 'edit' ? 'default' : 'ghost'} 
+              size="sm"
+              className="h-7 px-3 text-xs"
+              onClick={() => setEditorMode('edit')}
+            >
+              <Edit3 className="w-3 h-3 mr-1" />
+              Edit
+            </Button>
+            <Button 
+              variant={editorMode === 'layout' ? 'default' : 'ghost'} 
+              size="sm"
+              className="h-7 px-3 text-xs"
+              onClick={() => setEditorMode('layout')}
+            >
+              <Layout className="w-3 h-3 mr-1" />
+              Layout
+            </Button>
+            <Button 
+              variant={editorMode === 'preview' ? 'default' : 'ghost'} 
+              size="sm"
+              className="h-7 px-3 text-xs"
+              onClick={() => setEditorMode('preview')}
+            >
+              <Eye className="w-3 h-3 mr-1" />
+              Preview
+            </Button>
+            <Button 
+              variant={editorMode === 'assist' ? 'default' : 'ghost'} 
+              size="sm"
+              className="h-7 px-3 text-xs"
+              onClick={() => setEditorMode('assist')}
+            >
+              <Sparkles className="w-3 h-3 mr-1" />
+              AI assist
+            </Button>
             
-            {/* Save Button */}
+            {/* Save Button - Integrated into toolbar */}
             {selectedBoardId && (
-              <Button
-                onClick={handleSaveBoard}
-                disabled={isSaving}
-                size="sm"
-                className="h-7 px-3 text-xs"
-              >
-                {isSaving ? 'Saving...' : 'Save'}
-              </Button>
+              <>
+                <div className="h-4 w-px bg-gray-300 mx-1" />
+                <Button
+                  onClick={handleSaveBoard}
+                  disabled={isSaving}
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-3 text-xs"
+                >
+                  {isSaving ? 'Saving...' : 'Save'}
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -1012,57 +1014,84 @@ const BoardStudioPage: React.FC = () => {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col bg-white">
-          {/* Frame Tabs - Horizontal V0 Style */}
-          <div className="border-b bg-white">
-            <div className="flex items-center px-4 py-2 gap-1">
-              {mockFrames.map((frame: any) => (
-                <div key={frame.id} className="flex items-center">
-                  <Button
-                    variant={selectedFrameId === frame.id ? "default" : "ghost"}
-                    size="sm"
-                    className="h-8 px-3 text-xs"
-                    onClick={() => setSelectedFrameId(frame.id)}
-                  >
-                    <span>{frame.data?.name || 'Frame'}</span>
-                    <span className="text-gray-400 mx-1">•</span>
-                    <span className="text-gray-500">{frame.FrameConfig?.engagementMode || 'canvas'}</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 ml-1"
-                    onClick={() => setOpenFrameConfigId(frame.id)}
-                  >
-                    <Cog className="w-3 h-3" />
-                  </Button>
+        <main className="flex-1 flex flex-col bg-gray-100 p-4">
+          {/* Board Composition Area */}
+          <div className="flex-1 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+            {/* Board Header */}
+            <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-gray-900">{boardName || 'Untitled Board'}</span>
+                  {boardDescription && (
+                    <>
+                      <span className="text-gray-400">•</span>
+                      <span className="text-xs text-gray-600">{boardDescription}</span>
+                    </>
+                  )}
                 </div>
-              ))}
-              <Button
-                onClick={() => {
-                  if (selectedBoardId) {
-                    const newFrame = {
-                      id: `frame-${Date.now()}`,
-                      data: { name: `Frame ${mockFrames.length + 1}` },
-                      FrameConfig: { engagementMode: 'dialogic' }
-                    };
-                    setMockFrames(prev => [...prev, newFrame]);
-                    setSelectedFrameId(newFrame.id);
-                  }
-                }}
-                variant="ghost"
-                size="sm"
-                className="h-8 px-3 text-xs ml-2 text-gray-500 hover:text-gray-700"
-                disabled={!selectedBoardId}
-              >
-                <Plus className="w-3 h-3 mr-1" />
-                Add Frame
-              </Button>
+                <div className="text-xs text-gray-500">
+                  {mockFrames.length} frame{mockFrames.length !== 1 ? 's' : ''}
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Canvas Area - V0 Style */}
-          <div className="flex-1 bg-white">
+            {/* Frame Tabs - Inside Board Composition */}
+            <div className="border-b bg-white">
+              <div className="flex items-center px-4 py-2 gap-1">
+                {mockFrames.map((frame: any, index: number) => (
+                  <div key={frame.id} className="flex items-center group">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`h-8 px-3 text-xs relative flex items-end gap-0.5 ${
+                        selectedFrameId === frame.id 
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setSelectedFrameId(frame.id)}
+                    >
+                      <span className="font-medium">{frame.data?.name || 'Frame'}</span>
+                      <span className="text-gray-400">.</span>
+                      <span className="text-xs text-gray-500 leading-none self-end mb-0.5">
+                        {frame.FrameConfig?.engagementMode || 'canvas'}
+                      </span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => setOpenFrameConfigId(frame.id)}
+                    >
+                      <Cog className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  onClick={() => {
+                    if (selectedBoardId) {
+                      const newFrame = {
+                        id: `frame-${Date.now()}`,
+                        data: { name: `Frame ${mockFrames.length + 1}` },
+                        FrameConfig: { engagementMode: 'dialogic' }
+                      };
+                      setMockFrames(prev => [...prev, newFrame]);
+                      setSelectedFrameId(newFrame.id);
+                    }
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-3 text-xs ml-2 text-gray-500 hover:text-gray-700"
+                  disabled={!selectedBoardId}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Add Frame
+                </Button>
+              </div>
+            </div>
+
+            {/* Canvas Area - Inside Board Composition */}
+            <div className="flex-1 bg-white">
             <div className="h-full flex items-center justify-center p-8">
               {isLoadingBoards ? (
                 <div className="text-center">
@@ -1144,6 +1173,7 @@ const BoardStudioPage: React.FC = () => {
               )}
             </div>
           </div>
+          </div>
         </main>
 
         {/* Right Sidebar - Props Library (V0 Style) */}
@@ -1200,6 +1230,10 @@ const BoardStudioPage: React.FC = () => {
                       </div>
                       <div 
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'image-gallery', name: 'Image Gallery', type: 'media_card', description: 'Collection of images', category: 'content', icon: '🖼️' }));
+                        }}
                         onClick={() => handleAddFrameToBoard({ id: 'image-gallery', name: 'Image Gallery', type: 'media_card', description: 'Collection of images', category: 'content', icon: '🖼️' })}
                       >
                         <ImageIcon className="w-4 h-4 text-gray-500" />
@@ -1229,6 +1263,10 @@ const BoardStudioPage: React.FC = () => {
                       <div className="ml-6 mt-2 space-y-2">
                       <div 
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'heading', name: 'Heading', type: 'preview', description: 'Title or section header', category: 'content', icon: '📝' }));
+                        }}
                         onClick={() => handleAddFrameToBoard({ id: 'heading', name: 'Heading', type: 'preview', description: 'Title or section header', category: 'content', icon: '📝' })}
                       >
                         <Type className="w-4 h-4 text-gray-500" />
@@ -1239,6 +1277,10 @@ const BoardStudioPage: React.FC = () => {
                       </div>
                       <div 
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'text-block', name: 'Text Block', type: 'preview', description: 'Body text content', category: 'content', icon: '📝' }));
+                        }}
                         onClick={() => handleAddFrameToBoard({ id: 'text-block', name: 'Text Block', type: 'preview', description: 'Body text content', category: 'content', icon: '📝' })}
                       >
                         <Type className="w-4 h-4 text-gray-500" />
@@ -1249,6 +1291,10 @@ const BoardStudioPage: React.FC = () => {
                       </div>
                       <div 
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'quote', name: 'Quote', type: 'preview', description: 'Highlighted testimonial', category: 'content', icon: '💬' }));
+                        }}
                         onClick={() => handleAddFrameToBoard({ id: 'quote', name: 'Quote', type: 'preview', description: 'Highlighted testimonial', category: 'content', icon: '💬' })}
                       >
                         <Type className="w-4 h-4 text-gray-500" />
@@ -1278,6 +1324,10 @@ const BoardStudioPage: React.FC = () => {
                       <div className="ml-6 mt-2 space-y-2">
                       <div 
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'action-button', name: 'Action Button', type: 'dialog', description: 'Clickable call-to-action', category: 'interaction', icon: '🔘' }));
+                        }}
                         onClick={() => handleAddFrameToBoard({ id: 'action-button', name: 'Action Button', type: 'dialog', description: 'Clickable call-to-action', category: 'interaction', icon: '🔘' })}
                       >
                         <MousePointer className="w-4 h-4 text-gray-500" />
@@ -1288,6 +1338,10 @@ const BoardStudioPage: React.FC = () => {
                       </div>
                       <div 
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'form', name: 'Form', type: 'config_panel', description: 'Input collection interface', category: 'configuration', icon: '📋' }));
+                        }}
                         onClick={() => handleAddFrameToBoard({ id: 'form', name: 'Form', type: 'config_panel', description: 'Input collection interface', category: 'configuration', icon: '📋' })}
                       >
                         <Type className="w-4 h-4 text-gray-500" />
@@ -1317,6 +1371,10 @@ const BoardStudioPage: React.FC = () => {
                       <div className="ml-6 mt-2 space-y-2">
                       <div 
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'ai-assistant', name: 'AI Assistant', type: 'agent_preview', description: 'Conversational AI interface', category: 'interaction', icon: '🤖' }));
+                        }}
                         onClick={() => handleAddFrameToBoard({ id: 'ai-assistant', name: 'AI Assistant', type: 'agent_preview', description: 'Conversational AI interface', category: 'interaction', icon: '🤖' })}
                       >
                         <Bot className="w-4 h-4 text-gray-500" />
