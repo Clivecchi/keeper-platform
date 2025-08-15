@@ -302,7 +302,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
   onFieldChange
 }) => {
   const [localData, setLocalData] = useState<BoardData>(board);
-  const [errors, setErrors] = useState<Record<string, string>>({);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
