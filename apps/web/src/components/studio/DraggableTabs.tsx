@@ -9,7 +9,7 @@ import {
   Cog6ToothIcon,
   BookOpenIcon,
   EllipsisHorizontalIcon,
-  GripVerticalIcon
+  Bars3Icon as GripVerticalIcon
 } from '@heroicons/react/24/outline';
 
 // =============================================================================

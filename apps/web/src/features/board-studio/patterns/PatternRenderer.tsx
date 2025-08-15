@@ -14,7 +14,7 @@ import {
   PlayIcon,
   PauseIcon,
   UserCircleIcon,
-  BotIcon,
+  CpuChipIcon as BotIcon,
   PhotoIcon,
   DocumentTextIcon,
   Cog6ToothIcon
