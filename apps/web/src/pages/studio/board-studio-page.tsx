@@ -960,7 +960,7 @@ const BoardStudioPage: React.FC = () => {
       
       autosave.save(boardData);
     }
-  }, [selectedBoardId, boardName, boardDescription, boardTheme.primaryColor, boardTheme.backgroundColor, engagementMode, autosave]);
+  }, [selectedBoardId, boardName, boardDescription, boardTheme.primaryColor, boardTheme.backgroundColor, engagementMode]);
 
   // Update etag when loading board
   useEffect(() => {
