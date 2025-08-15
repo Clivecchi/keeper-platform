@@ -904,60 +904,17 @@ const BoardStudioPage: React.FC = () => {
             <span className="text-sm text-gray-600">Creative storytelling workspace</span>
           </div>
 
-          <div className="flex items-center gap-1 bg-gray-100 rounded-md p-1">
-            <Button 
-              variant={editorMode === 'edit' ? 'default' : 'ghost'} 
+          {/* Save Button only in header */}
+          {selectedBoardId && (
+            <Button
+              onClick={handleSaveBoard}
+              disabled={isSaving}
               size="sm"
               className="h-7 px-3 text-xs"
-              onClick={() => setEditorMode('edit')}
             >
-              <Edit3 className="w-3 h-3 mr-1" />
-              Edit
+              {isSaving ? 'Saving...' : 'Save'}
             </Button>
-            <Button 
-              variant={editorMode === 'layout' ? 'default' : 'ghost'} 
-              size="sm"
-              className="h-7 px-3 text-xs"
-              onClick={() => setEditorMode('layout')}
-            >
-              <Layout className="w-3 h-3 mr-1" />
-              Layout
-            </Button>
-            <Button 
-              variant={editorMode === 'preview' ? 'default' : 'ghost'} 
-              size="sm"
-              className="h-7 px-3 text-xs"
-              onClick={() => setEditorMode('preview')}
-            >
-              <Eye className="w-3 h-3 mr-1" />
-              Preview
-            </Button>
-            <Button 
-              variant={editorMode === 'assist' ? 'default' : 'ghost'} 
-              size="sm"
-              className="h-7 px-3 text-xs"
-              onClick={() => setEditorMode('assist')}
-            >
-              <Sparkles className="w-3 h-3 mr-1" />
-              AI assist
-            </Button>
-            
-            {/* Save Button - Integrated into toolbar */}
-            {selectedBoardId && (
-              <>
-                <div className="h-4 w-px bg-gray-300 mx-1" />
-                <Button
-                  onClick={handleSaveBoard}
-                  disabled={isSaving}
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-3 text-xs"
-                >
-                  {isSaving ? 'Saving...' : 'Save'}
-                </Button>
-              </>
-            )}
-          </div>
+          )}
         </div>
       </header>
 
@@ -1015,8 +972,48 @@ const BoardStudioPage: React.FC = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col bg-gray-100 p-4">
+          {/* Mode Toolbar - Above Board Composition */}
+          <div className="flex items-center gap-1 mb-4">
+            <Button 
+              variant={editorMode === 'edit' ? 'default' : 'ghost'} 
+              size="sm"
+              className="h-8 px-3 text-xs"
+              onClick={() => setEditorMode('edit')}
+            >
+              <Edit3 className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+            <Button 
+              variant={editorMode === 'layout' ? 'default' : 'ghost'} 
+              size="sm"
+              className="h-8 px-3 text-xs"
+              onClick={() => setEditorMode('layout')}
+            >
+              <Layout className="w-4 h-4 mr-2" />
+              Layout
+            </Button>
+            <Button 
+              variant={editorMode === 'preview' ? 'default' : 'ghost'} 
+              size="sm"
+              className="h-8 px-3 text-xs"
+              onClick={() => setEditorMode('preview')}
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Preview
+            </Button>
+            <Button 
+              variant={editorMode === 'assist' ? 'default' : 'ghost'} 
+              size="sm"
+              className="h-8 px-3 text-xs"
+              onClick={() => setEditorMode('assist')}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              AI assist
+            </Button>
+          </div>
+
           {/* Board Composition Area */}
-          <div className="flex-1 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+          <div className="flex-1 bg-white border border-gray-200 rounded-lg overflow-hidden">
             {/* Board Header */}
             <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
               <div className="flex items-center justify-between">
@@ -1040,30 +1037,29 @@ const BoardStudioPage: React.FC = () => {
             <div className="border-b bg-white">
               <div className="flex items-center px-4 py-2 gap-1">
                 {mockFrames.map((frame: any, index: number) => (
-                  <div key={frame.id} className="flex items-center group">
+                  <div key={frame.id} className="group">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`h-8 px-3 text-xs relative flex items-end gap-0.5 ${
+                      className={`h-8 px-3 text-xs flex items-center gap-1 ${
                         selectedFrameId === frame.id 
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                          ? 'bg-blue-50 text-blue-700' 
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                       onClick={() => setSelectedFrameId(frame.id)}
                     >
                       <span className="font-medium">{frame.data?.name || 'Frame'}</span>
                       <span className="text-gray-400">.</span>
-                      <span className="text-xs text-gray-500 leading-none self-end mb-0.5">
+                      <span className="text-xs text-gray-500">
                         {frame.FrameConfig?.engagementMode || 'canvas'}
                       </span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => setOpenFrameConfigId(frame.id)}
-                    >
-                      <Cog className="w-3 h-3" />
+                      <Cog 
+                        className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenFrameConfigId(frame.id);
+                        }}
+                      />
                     </Button>
                   </div>
                 ))}
@@ -1081,10 +1077,10 @@ const BoardStudioPage: React.FC = () => {
                   }}
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-3 text-xs ml-2 text-gray-500 hover:text-gray-700"
+                  className="h-8 px-3 text-xs flex items-center gap-1 text-gray-500 hover:text-gray-700"
                   disabled={!selectedBoardId}
                 >
-                  <Plus className="w-3 h-3 mr-1" />
+                  <Plus className="w-3 h-3" />
                   Add Frame
                 </Button>
               </div>
@@ -1220,6 +1216,10 @@ const BoardStudioPage: React.FC = () => {
                       </div>
                       <div 
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'video-player', name: 'Video Player', type: 'media_card', description: 'Embedded video content', category: 'content', icon: '🎥' }));
+                        }}
                         onClick={() => handleAddFrameToBoard({ id: 'video-player', name: 'Video Player', type: 'media_card', description: 'Embedded video content', category: 'content', icon: '🎥' })}
                       >
                         <Video className="w-4 h-4 text-gray-500" />
@@ -1369,21 +1369,49 @@ const BoardStudioPage: React.FC = () => {
                     </Button>
                     {expandedCategories.AI && (
                       <div className="ml-6 mt-2 space-y-2">
-                      <div 
-                        className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'ai-assistant', name: 'AI Assistant', type: 'agent_preview', description: 'Conversational AI interface', category: 'interaction', icon: '🤖' }));
-                        }}
-                        onClick={() => handleAddFrameToBoard({ id: 'ai-assistant', name: 'AI Assistant', type: 'agent_preview', description: 'Conversational AI interface', category: 'interaction', icon: '🤖' })}
-                      >
-                        <Bot className="w-4 h-4 text-gray-500" />
-                        <div>
-                          <div className="text-sm text-gray-900">AI Assistant</div>
-                          <div className="text-xs text-gray-500">Conversational AI interface</div>
+                        <div 
+                          className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'image-slider', name: 'Image Slider', type: 'media_card', description: 'Animated image carousel', category: 'content', icon: '🎞️' }));
+                          }}
+                          onClick={() => handleAddFrameToBoard({ id: 'image-slider', name: 'Image Slider', type: 'media_card', description: 'Animated image carousel', category: 'content', icon: '🎞️' })}
+                        >
+                          <ImageIcon className="w-4 h-4 text-gray-500" />
+                          <div>
+                            <div className="text-sm text-gray-900">Image Slider</div>
+                            <div className="text-xs text-gray-500">Animated image carousel</div>
+                          </div>
+                        </div>
+                        <div 
+                          className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'ai-assistant', name: 'AI Assistant', type: 'agent_preview', description: 'Conversational AI interface', category: 'interaction', icon: '🤖' }));
+                          }}
+                          onClick={() => handleAddFrameToBoard({ id: 'ai-assistant', name: 'AI Assistant', type: 'agent_preview', description: 'Conversational AI interface', category: 'interaction', icon: '🤖' })}
+                        >
+                          <Bot className="w-4 h-4 text-gray-500" />
+                          <div>
+                            <div className="text-sm text-gray-900">AI Assistant</div>
+                            <div className="text-xs text-gray-500">Conversational AI interface</div>
+                          </div>
+                        </div>
+                        <div 
+                          className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'smart-suggestions', name: 'Smart Suggestions', type: 'ai_widget', description: 'AI-powered content recommendations', category: 'interaction', icon: '💡' }));
+                          }}
+                          onClick={() => handleAddFrameToBoard({ id: 'smart-suggestions', name: 'Smart Suggestions', type: 'ai_widget', description: 'AI-powered content recommendations', category: 'interaction', icon: '💡' })}
+                        >
+                          <Sparkles className="w-4 h-4 text-gray-500" />
+                          <div>
+                            <div className="text-sm text-gray-900">Smart Suggestions</div>
+                            <div className="text-xs text-gray-500">AI-powered content recommendations</div>
+                          </div>
                         </div>
                       </div>
-                    </div>
                     )}
                   </div>
                 </div>
