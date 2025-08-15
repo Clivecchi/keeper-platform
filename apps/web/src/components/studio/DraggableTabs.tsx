@@ -9,7 +9,8 @@ import {
   Cog6ToothIcon,
   BookOpenIcon,
   EllipsisHorizontalIcon,
-  GripVerticalIcon
+  GripVerticalIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 
 // =============================================================================
@@ -61,16 +62,25 @@ const DraggableTab: React.FC<{
     return null;
   };
 
+  const formatTabName = () => {
+    if (tab.role === 'cover' || tab.role === 'settings') {
+      return tab.name;
+    }
+    // For regular frames, show "FrameName. EngagementMode"
+    const engagementMode = tab.pattern || 'canvas';
+    return `${tab.name}. ${engagementMode}`;
+  };
+
   return (
     <Reorder.Item
       value={tab}
       dragListener={!tab.isPinned}
       dragControls={dragControls}
       className={`
-        relative flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-t-lg cursor-pointer
+        group relative flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-t-lg cursor-pointer
         transition-all duration-200 select-none
         ${isSelected 
-          ? 'bg-white text-gray-900 border-b-2 border-blue-500' 
+          ? 'bg-white text-gray-900 border-b-2 border-blue-500 shadow-sm' 
           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
         }
         ${isDragging ? 'shadow-lg z-10' : ''}
@@ -81,14 +91,27 @@ const DraggableTab: React.FC<{
     >
       <div className="flex items-center space-x-2 flex-1 min-w-0" onClick={onSelect}>
         {getTabIcon()}
-        <span className="truncate max-w-32">{tab.name}</span>
+        <span className="truncate max-w-40">{formatTabName()}</span>
         {getTabIndicator()}
-        {tab.pattern && !tab.role && (
-          <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
-            {tab.pattern}
-          </span>
+        {/* Show dropdown indicator for non-pinned frames */}
+        {!tab.role && tab.pattern && (
+          <ChevronDownIcon className="w-3 h-3 text-gray-400 ml-1" />
         )}
       </div>
+      
+      {/* Config button - Show when selected or on hover */}
+      {onConfig && isSelected && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onConfig();
+          }}
+          className="text-gray-400 hover:text-gray-600 p-1"
+          title="Configure frame"
+        >
+          <Cog6ToothIcon className="w-4 h-4" />
+        </button>
+      )}
       
       {/* Drag handle (only for non-pinned tabs) */}
       {!tab.isPinned && (
@@ -98,20 +121,6 @@ const DraggableTab: React.FC<{
           title="Drag to reorder"
         >
           <GripVerticalIcon className="w-3 h-3" />
-        </button>
-      )}
-      
-      {/* Config button */}
-      {onConfig && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onConfig();
-          }}
-          className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 p-1"
-          title="Configure frame"
-        >
-          <EllipsisHorizontalIcon className="w-4 h-4" />
         </button>
       )}
     </Reorder.Item>
@@ -148,27 +157,43 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
     // Fallback to simple tabs when disabled or no tabs
     return (
       <div className="flex space-x-1 border-b border-gray-200 bg-gray-50 px-4">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => onTabSelect(tab.id)}
-            className={`
-              flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-t-lg
-              transition-colors duration-200
-              ${selectedTabId === tab.id 
-                ? 'bg-white text-gray-900 border-b-2 border-blue-500' 
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }
-            `}
-          >
-            {tab.role === 'cover' && <BookOpenIcon className="w-4 h-4" />}
-            {tab.role === 'settings' && <Cog6ToothIcon className="w-4 h-4" />}
-            <span className="truncate max-w-32">{tab.name}</span>
-            {(tab.role === 'cover' || tab.role === 'settings') && (
-              <div className="w-2 h-2 bg-green-500 rounded-full" />
-            )}
-          </button>
-        ))}
+        {tabs.map((tab) => {
+          const formatTabName = () => {
+            if (tab.role === 'cover' || tab.role === 'settings') {
+              return tab.name;
+            }
+            const engagementMode = tab.pattern || 'canvas';
+            return `${tab.name}. ${engagementMode}`;
+          };
+
+          return (
+            <button
+              key={tab.id}
+              onClick={() => onTabSelect(tab.id)}
+              className={`
+                group flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-t-lg
+                transition-colors duration-200
+                ${selectedTabId === tab.id 
+                  ? 'bg-white text-gray-900 border-b-2 border-blue-500 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }
+              `}
+            >
+              {tab.role === 'cover' && <BookOpenIcon className="w-4 h-4" />}
+              {tab.role === 'settings' && <Cog6ToothIcon className="w-4 h-4" />}
+              <span className="truncate max-w-40">{formatTabName()}</span>
+              {(tab.role === 'cover' || tab.role === 'settings') && (
+                <div className="w-2 h-2 bg-green-500 rounded-full" />
+              )}
+              {!tab.role && tab.pattern && (
+                <ChevronDownIcon className="w-3 h-3 text-gray-400 ml-1" />
+              )}
+              {onTabConfig && selectedTabId === tab.id && (
+                <Cog6ToothIcon className="w-4 h-4 text-gray-400 hover:text-gray-600 ml-1" />
+              )}
+            </button>
+          );
+        })}
       </div>
     );
   }
@@ -181,10 +206,10 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
           key={tab.id}
           onClick={() => onTabSelect(tab.id)}
           className={`
-            flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-t-lg
+            group flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-t-lg
             transition-colors duration-200
             ${selectedTabId === tab.id 
-              ? 'bg-white text-gray-900 border-b-2 border-blue-500' 
+              ? 'bg-white text-gray-900 border-b-2 border-blue-500 shadow-sm' 
               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }
           `}
@@ -193,16 +218,16 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
           {tab.role === 'settings' && <Cog6ToothIcon className="w-4 h-4" />}
           <span className="truncate max-w-32">{tab.name}</span>
           <div className="w-2 h-2 bg-green-500 rounded-full" title="Default frame - cannot be deleted" />
-          {onTabConfig && (
+          {onTabConfig && selectedTabId === tab.id && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onTabConfig(tab.id);
               }}
-              className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 p-1"
+              className="text-gray-400 hover:text-gray-600 p-1"
               title="Configure frame"
             >
-              <EllipsisHorizontalIcon className="w-4 h-4" />
+              <Cog6ToothIcon className="w-4 h-4" />
             </button>
           )}
         </button>

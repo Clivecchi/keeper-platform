@@ -899,7 +899,9 @@ const BoardStudioPage: React.FC = () => {
         setBoardDescription(serverVersion.description || '');
         setBoardTheme({
           primaryColor: serverVersion.theme?.primary || '#3B82F6',
-          backgroundColor: serverVersion.theme?.background || '#FFFFFF'
+          backgroundColor: serverVersion.theme?.background || '#FFFFFF',
+          accentColor: '#0F172A',
+          borderColor: '#CBD5E1'
         });
         setEngagementMode(serverVersion.behavior?.defaultPattern || 'dialogic');
         
@@ -940,9 +942,9 @@ const BoardStudioPage: React.FC = () => {
     setConflictData(null);
   };
 
-  // Trigger autosave when board data changes
+  // Trigger autosave when board data changes (but not during loading)
   useEffect(() => {
-    if (selectedBoardId && boardName) {
+    if (selectedBoardId && boardName && !isLoadingBoards) {
       const boardData = {
         name: boardName,
         description: boardDescription,
@@ -960,7 +962,7 @@ const BoardStudioPage: React.FC = () => {
       
       autosave.save(boardData);
     }
-  }, [selectedBoardId, boardName, boardDescription, boardTheme.primaryColor, boardTheme.backgroundColor, engagementMode, autosave]);
+  }, [selectedBoardId, boardName, boardDescription, boardTheme.primaryColor, boardTheme.backgroundColor, engagementMode, autosave, isLoadingBoards]);
 
   // Update etag when loading board
   useEffect(() => {
@@ -1329,7 +1331,7 @@ const BoardStudioPage: React.FC = () => {
                     pattern: frame.FrameConfig?.engagementMode || 'canvas',
                     isPinned: frame.data?.role === 'cover' || frame.data?.role === 'settings'
                   }))}
-                  selectedTabId={selectedFrameId}
+                  selectedTabId={selectedFrameId || undefined}
                   onTabSelect={setSelectedFrameId}
                   onTabReorder={handleTabReorder}
                   onTabConfig={(tabId) => setOpenFrameConfigId(tabId)}
@@ -1725,9 +1727,9 @@ const BoardStudioPage: React.FC = () => {
                           className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                           draggable
                           onDragStart={(e) => {
-                            e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'ai-token', name: 'AI Token', type: 'ai_token', description: 'AI agent placeholder and configuration', category: 'ai', icon: '🎯' }));
+                            e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'ai-token', name: 'AI Token', type: 'ai_token', description: 'AI agent placeholder and configuration', category: 'interaction', icon: '🎯' }));
                           }}
-                          onClick={() => handleAddFrameToBoard({ id: 'ai-token', name: 'AI Token', type: 'ai_token', description: 'AI agent placeholder and configuration', category: 'ai', icon: '🎯' })}
+                          onClick={() => handleAddFrameToBoard({ id: 'ai-token', name: 'AI Token', type: 'ai_token', description: 'AI agent placeholder and configuration', category: 'interaction', icon: '🎯' })}
                         >
                           <SparklesIcon className="w-4 h-4 text-gray-500" />
                           <div>
