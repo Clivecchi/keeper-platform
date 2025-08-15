@@ -14,7 +14,7 @@ import {
   PlayIcon,
   PauseIcon,
   UserCircleIcon,
-  BotIcon,
+  CpuChipIcon,
   PhotoIcon,
   DocumentTextIcon,
   Cog6ToothIcon
@@ -306,7 +306,7 @@ const DialogicPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
         
         <div className="h-64 p-4 space-y-4 overflow-y-auto">
           <div className="flex items-start space-x-3">
-            <BotIcon className="w-6 h-6 text-blue-500 flex-shrink-0 mt-1" />
+            <CpuChipIcon className="w-6 h-6 text-blue-500 flex-shrink-0 mt-1" />
             <div className="bg-blue-50 rounded-lg p-3 max-w-xs">
               <p className="text-sm text-gray-900">
                 Hello! I'm here to help you with this board. What would you like to know?
@@ -324,7 +324,7 @@ const DialogicPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
           </div>
           
           <div className="flex items-start space-x-3">
-            <BotIcon className="w-6 h-6 text-blue-500 flex-shrink-0 mt-1" />
+            <CpuChipIcon className="w-6 h-6 text-blue-500 flex-shrink-0 mt-1" />
             <div className="bg-blue-50 rounded-lg p-3 max-w-xs">
               <p className="text-sm text-gray-900">
                 Of course! This is a dialogic frame where you can have conversations with AI agents.
