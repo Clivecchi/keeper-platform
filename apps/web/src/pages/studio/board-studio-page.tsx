@@ -540,45 +540,74 @@ const BoardStudioPage: React.FC = () => {
     try {
       console.log('Loading board:', boardId);
       
-      // Get board from our local boards list first (fast)
-      const selectedBoard = boards.find(b => b.id === boardId);
-      if (selectedBoard) {
-        setBoardName(selectedBoard.name);
-        setBoardDescription(selectedBoard.description || '');
-        setEngagementMode(selectedBoard.engagementMode as any || 'canvas');
+      // Load full board data from API
+      const boardData = await apiFetch(`/api/boards/${boardId}`);
+      
+      if (boardData.success && boardData.data) {
+        const board = boardData.data;
+        setBoardName(board.name);
+        setBoardDescription(board.description || '');
+        
+        // Parse theme and behavior
+        const theme = board.theme || {};
+        const behavior = board.behavior || {};
+        
+        setEngagementMode(behavior.defaultPattern || 'canvas');
         setBoardTheme({
-          primaryColor: '#3B82F6',
-          backgroundColor: '#F8FAFC',
+          primaryColor: theme.primary || '#3B82F6',
+          backgroundColor: theme.background || '#F8FAFC',
           accentColor: '#0F172A',
           borderColor: '#CBD5E1'
         });
         
-        // Create default frames
-        const defaultFrames = [
-          {
-            id: 'cover-frame',
-            data: { name: 'Cover' },
-            FrameConfig: { engagementMode: 'focus' }
+        // Set frames from API data
+        const frames = (board.frames || []).map((frame: any) => ({
+          id: frame.id,
+          data: { 
+            name: frame.name,
+            role: frame.role 
           },
-          {
-            id: 'settings-frame',
-            data: { name: 'Settings' },
-            FrameConfig: { engagementMode: 'form' }
-          }
-        ];
-        setMockFrames(defaultFrames);
-        setSelectedFrameId(defaultFrames[0]?.id || null);
+          FrameConfig: { 
+            engagementMode: frame.pattern,
+            role: frame.role 
+          },
+          props: frame.props || {},
+          layoutKind: frame.layoutKind,
+          layoutData: frame.layoutData || {},
+          orderIndex: frame.orderIndex
+        }));
+        
+        setMockFrames(frames);
+        setSelectedFrameId(frames[0]?.id || null);
+        
+        console.log('Board loaded successfully:', board);
+      } else {
+        throw new Error('Invalid board data received');
       }
-      
-      console.log('Board selection completed successfully');
     } catch (error) {
       console.error('Failed to load board:', error);
       setBoardName('Error Loading Board');
       setBoardDescription('Please try selecting another board');
+      
+      // Fallback to basic frames
+      const defaultFrames = [
+        {
+          id: 'cover-frame',
+          data: { name: 'Cover', role: 'cover' },
+          FrameConfig: { engagementMode: 'focus', role: 'cover' }
+        },
+        {
+          id: 'settings-frame',
+          data: { name: 'Settings', role: 'settings' },
+          FrameConfig: { engagementMode: 'form', role: 'settings' }
+        }
+      ];
+      setMockFrames(defaultFrames);
+      setSelectedFrameId(defaultFrames[0]?.id || null);
     } finally {
       setIsLoadingBoards(false);
     }
-  }, [selectedBoardId, boards]);
+  }, [selectedBoardId]);
 
   // Load boards and frame types on mount
   useEffect(() => {
@@ -604,10 +633,10 @@ const BoardStudioPage: React.FC = () => {
     try {
       console.log('Loading boards from API...');
       // Load boards using the correct API endpoint
-      const boardsData = await apiFetch(`/api/boards?domainId=demo`);
+      const boardsData = await apiFetch(`/api/boards?keeperId=${activeKeeper?.id || 'demo'}`);
       
       // Transform API response to match our BoardListItem interface
-      const transformedBoards = (boardsData.boards || []).map((board: any) => ({
+      const transformedBoards = (boardsData.data || []).map((board: any) => ({
         id: board.id,
         name: board.name,
         type: board.type,
@@ -656,53 +685,60 @@ const BoardStudioPage: React.FC = () => {
 
   const handleCreateBoard = async () => {
     try {
-      const newBoardId = `board-${Date.now()}`;
+      if (!activeKeeper?.id) {
+        console.error('No active keeper available for board creation');
+        return;
+      }
+
+      const timestamp = Date.now();
       const newBoard = {
-        id: newBoardId,
+        keeperId: activeKeeper.id,
         name: 'New Board',
-        type: 'agent', // Use a valid type from the API
-        description: 'A new custom board',
-        entityId: 'new-entity',
-        domainId: 'demo'
+        slug: `new-board-${timestamp}`,
+        description: 'A new custom board'
       };
 
-      // Add to local state immediately for better UX
-      const newBoardItem = {
-        id: newBoardId,
-        name: newBoard.name,
-        type: newBoard.type,
-        description: newBoard.description,
-        lastModified: new Date(),
-        frameCount: 2, // Will have Cover + Settings
-        engagementMode: 'canvas'
-      };
-      
-      setBoards(prev => [...prev, newBoardItem]);
-      setSelectedBoardId(newBoardId);
-      
-      // Set board properties
-      setBoardName(newBoard.name);
-      setBoardDescription(newBoard.description);
-      setEngagementMode('canvas');
-      setBoardTheme({
-        primaryColor: '#3B82F6',
-        backgroundColor: '#F8FAFC',
-        accentColor: '#0F172A',
-        borderColor: '#CBD5E1'
-      });
-
-      // Try to create via API (but don't break if it fails)
+      // Try to create via API first
       try {
         const createdBoard = await apiFetch('/api/boards', {
           method: 'POST',
           body: JSON.stringify(newBoard)
         });
+        
         console.log('Board created via API:', createdBoard);
+        
+        if (createdBoard.success && createdBoard.data) {
+          const boardData = createdBoard.data;
+          const newBoardItem = {
+            id: boardData.id,
+            name: boardData.name,
+            type: 'custom',
+            description: boardData.description || '',
+            lastModified: new Date(boardData.updatedAt),
+            frameCount: boardData.frames?.length || 2, // Cover + Settings
+            engagementMode: 'canvas'
+          };
+          
+          setBoards(prev => [...prev, newBoardItem]);
+          setSelectedBoardId(boardData.id);
+          
+          // Set board properties
+          setBoardName(boardData.name);
+          setBoardDescription(boardData.description || '');
+          setEngagementMode('canvas');
+          setBoardTheme({
+            primaryColor: '#3B82F6',
+            backgroundColor: '#F8FAFC',
+            accentColor: '#0F172A',
+            borderColor: '#CBD5E1'
+          });
+          
+          console.log('New board created successfully:', newBoardItem);
+        }
       } catch (apiError) {
-        console.warn('Board creation API failed, but continuing with local state:', apiError);
+        console.error('Board creation API failed:', apiError);
+        alert('Failed to create board. Please try again.');
       }
-
-      console.log('New board created successfully:', newBoardItem);
     } catch (error) {
       console.error('Error creating board:', error);
     }
@@ -714,22 +750,59 @@ const BoardStudioPage: React.FC = () => {
     setIsSaving(true);
     try {
       const boardToSave = {
-        id: selectedBoardId,
         name: boardName,
         description: boardDescription,
-        engagementMode,
-        theme: boardTheme
+        theme: {
+          primary: boardTheme.primaryColor,
+          background: boardTheme.backgroundColor
+        },
+        behavior: {
+          showGrid: true,
+          snapToGrid: true,
+          gridSize: 8,
+          defaultPattern: engagementMode
+        }
       };
 
       // Try to save via API
       try {
-        await apiFetch(`/api/boards/${selectedBoardId}`, {
-          method: 'POST', // Using POST as per the API implementation
+        const savedBoard = await apiFetch(`/api/boards/${selectedBoardId}`, {
+          method: 'PUT',
           body: JSON.stringify(boardToSave)
         });
-        console.log('Board saved successfully via API');
+        console.log('Board saved successfully via API:', savedBoard);
       } catch (apiError) {
-        console.warn('Board save API failed, but updating local state:', apiError);
+        console.error('Board save API failed:', apiError);
+        alert('Failed to save board. Please try again.');
+        return;
+      }
+
+      // Update Cover frame title binding (Phase 1 requirement)
+      const coverFrame = mockFrames.find(frame => frame.data?.role === 'cover');
+      if (coverFrame) {
+        try {
+          const updatedProps = {
+            ...coverFrame.props,
+            title: boardName, // Bind Cover title to Board name
+            subtitle: boardDescription || coverFrame.props?.subtitle
+          };
+
+          await apiFetch(`/api/boards/${selectedBoardId}/frames/${coverFrame.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ props: updatedProps })
+          });
+
+          // Update local frame state
+          setMockFrames(prev => prev.map(frame =>
+            frame.id === coverFrame.id
+              ? { ...frame, props: updatedProps }
+              : frame
+          ));
+          
+          console.log('Cover frame title updated to match board name');
+        } catch (frameError) {
+          console.warn('Failed to update Cover frame title:', frameError);
+        }
       }
 
       // Update local boards list
@@ -1056,37 +1129,44 @@ const BoardStudioPage: React.FC = () => {
             {/* Frame Tabs - Inside Board Composition */}
             <div className="border-b border-dotted border-gray-300 bg-white">
               <div className="flex items-center px-4 py-2 gap-1">
-                {mockFrames.map((frame: any, index: number) => (
-                  <div key={frame.id} className="group">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`h-8 px-3 text-xs flex items-center gap-0.5 ${
-                        selectedFrameId === frame.id 
-                          ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' 
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                      onClick={() => setSelectedFrameId(frame.id)}
-                    >
-                      <span className="font-medium">{frame.data?.name || 'Frame'}</span>
-                      <span className="text-gray-400">.</span>
-                      <span className="text-xs text-gray-500 ml-1">
-                        {frame.FrameConfig?.engagementMode || 'canvas'}
-                      </span>
-                      <Cog 
-                        className={`w-3 h-3 ml-1 transition-opacity cursor-pointer ${
+                {mockFrames.map((frame: any, index: number) => {
+                  const isDefaultFrame = frame.data?.role === 'cover' || frame.data?.role === 'settings';
+                  return (
+                    <div key={frame.id} className="group">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`h-8 px-3 text-xs flex items-center gap-0.5 ${
                           selectedFrameId === frame.id 
-                            ? 'opacity-100 text-blue-600' 
-                            : 'opacity-0 group-hover:opacity-100'
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenFrameConfigId(frame.id);
-                        }}
-                      />
-                    </Button>
-                  </div>
-                ))}
+                            ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' 
+                            : 'text-gray-700 hover:bg-gray-50'
+                        } ${isDefaultFrame ? 'ring-1 ring-gray-200' : ''}`}
+                        onClick={() => setSelectedFrameId(frame.id)}
+                      >
+                        {isDefaultFrame && (
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1" 
+                               title="Default frame - cannot be deleted" />
+                        )}
+                        <span className="font-medium">{frame.data?.name || 'Frame'}</span>
+                        <span className="text-gray-400">.</span>
+                        <span className="text-xs text-gray-500 ml-1">
+                          {frame.FrameConfig?.engagementMode || 'canvas'}
+                        </span>
+                        <Cog 
+                          className={`w-3 h-3 ml-1 transition-opacity cursor-pointer ${
+                            selectedFrameId === frame.id 
+                              ? 'opacity-100 text-blue-600' 
+                              : 'opacity-0 group-hover:opacity-100'
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenFrameConfigId(frame.id);
+                          }}
+                        />
+                      </Button>
+                    </div>
+                  );
+                })}
                 <Button
                   onClick={() => {
                     if (selectedBoardId) {

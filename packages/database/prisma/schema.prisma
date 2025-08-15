@@ -125,6 +125,25 @@ model FrameConfig {
   FrameInstance FrameInstance[]
 }
 
+model Board {
+  id          String   @id @default(uuid()) @db.Uuid
+  keeperId    String
+  name        String
+  slug        String
+  description String?
+  icon        String?
+  theme       Json     @default("{}")
+  behavior    Json     @default("{}")
+  data        Json     @default("{}")
+  access      Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  frames      FrameInstance[]
+
+  @@unique([keeperId, slug])
+  @@index([keeperId])
+}
+
 model MemoryCard {
   id             String          @id
   threadBlobId   String
@@ -361,11 +380,24 @@ model FrameInstance {
   entityId                                                 String
   configId                                                 String         @db.Uuid
   currentContentId                                         String?        @unique @db.Uuid
+  boardId                                                  String?        @db.Uuid
+  role                                                     String?
+  name                                                     String
+  pattern                                                  String
+  frameType                                                String
+  orderIndex                                               Int
+  layoutKind                                               String
+  layoutData                                               Json           @default("{}")
+  props                                                    Json           @default("{}")
   createdAt                                                DateTime       @default(now())
-  updatedAt                                                DateTime
+  updatedAt                                                DateTime       @updatedAt
   FrameContent_FrameContent_playlistOwnerIdToFrameInstance FrameContent[] @relation("FrameContent_playlistOwnerIdToFrameInstance")
   FrameConfig                                              FrameConfig    @relation(fields: [configId], references: [id])
   FrameContent_FrameInstance_currentContentIdToFrameContent FrameContent?  @relation("FrameInstance_currentContentIdToFrameContent", fields: [currentContentId], references: [id])
+  Board                                                    Board?         @relation(fields: [boardId], references: [id])
+
+  @@index([boardId])
+  @@index([entityType, entityId])
 }
 
 model note_tags {

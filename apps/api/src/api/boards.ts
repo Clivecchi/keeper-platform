@@ -1,146 +1,314 @@
 /**
- * Boards API Routes
- * Same-origin API endpoints for all board types and frame data
+ * Boards API Routes - Phase 1 Implementation
+ * Real database persistence with Board model and default frames
  */
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
-import { requireDomainReadCompat } from '../middleware/domainPermissionMiddleware.js';
+import { randomUUID } from 'crypto';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
 
-// Validation schemas
+// =============================================================================
+// ZOD VALIDATION SCHEMAS
+// =============================================================================
+
 const boardQuerySchema = z.object({
-  domainId: z.string().optional(),
-  type: z.enum(['agent', 'domain', 'journey', 'keeper-type', 'people']).optional(),
+  keeperId: z.string().uuid(),
   limit: z.number().min(1).max(100).default(20),
   offset: z.number().min(0).default(0),
 });
 
-const createBoardSchema = z.object({
-  name: z.string().min(1).max(200),
-  type: z.enum(['agent', 'domain', 'journey', 'keeper-type', 'people']),
-  description: z.string().max(1000).optional(),
-  entityId: z.string(),
-  domainId: z.string().optional(),
-  theme: z.record(z.any()).optional(),
+const BoardCreate = z.object({
+  keeperId: z.string().uuid(),
+  name: z.string().min(1).max(80),
+  slug: z.string().min(1).max(80),
+  description: z.string().max(280).optional(),
+  icon: z.string().optional(),
 });
 
+const BoardUpdate = z.object({
+  name: z.string().min(1).max(80).optional(),
+  slug: z.string().min(1).max(80).optional(),
+  description: z.string().max(280).optional(),
+  theme: z.object({ 
+    primary: z.string().optional(), 
+    background: z.string().optional() 
+  }).optional(),
+  behavior: z.object({
+    showGrid: z.boolean().optional(),
+    snapToGrid: z.boolean().optional(),
+    gridSize: z.number().int().min(4).max(24).optional(),
+    defaultPattern: z.enum(['dialogic','wizard','focus','canvas','gallery','form']).optional(),
+    startFrameId: z.string().uuid().nullable().optional(),
+    draftMode: z.boolean().optional(),
+    autosave: z.boolean().optional(),
+    frameOrder: z.array(z.string()).optional(),
+  }).optional(),
+  data: z.object({
+    scope: z.enum(['keeper','domain','journey','people','custom']).optional(),
+    entityId: z.string().uuid().nullable().optional(),
+    dataBindings: z.record(z.any()).optional(),
+    agentId: z.string().uuid().nullable().optional(),
+  }).optional(),
+  access: z.object({
+    visibility: z.enum(['private','unlisted','org','public']).optional(),
+    roles: z.record(z.string()).optional(),
+    allowComments: z.boolean().optional(),
+    shareLinkEnabled: z.boolean().optional(),
+  }).optional(),
+});
+
+const FrameCreate = z.object({
+  name: z.string().min(1).max(60),
+  pattern: z.enum(['dialogic','wizard','focus','canvas','gallery','form']).optional(),
+  frameType: z.string().default('media_card'),
+  orderIndex: z.number().int().optional(),
+});
+
+const FrameUpdate = z.object({
+  name: z.string().min(1).max(60).optional(),
+  pattern: z.enum(['dialogic','wizard','focus','canvas','gallery','form']).optional(),
+  layoutKind: z.string().optional(),
+  layoutData: z.record(z.any()).optional(),
+  props: z.record(z.any()).optional(),
+  orderIndex: z.number().int().optional(),
+});
+
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
 /**
- * GET /api/boards - Get all boards with filtering
+ * Create default FrameConfig for frames
+ */
+async function ensureDefaultFrameConfig(name: string): Promise<string> {
+  try {
+    const existing = await prisma.frameConfig.findUnique({
+      where: { name }
+    });
+    
+    if (existing) {
+      return existing.id;
+    }
+    
+    const config = await prisma.frameConfig.create({
+      data: {
+        id: randomUUID(),
+        name,
+        description: `Default config for ${name}`,
+        theme: {},
+        updatedAt: new Date(),
+      }
+    });
+    
+    return config.id;
+  } catch (error) {
+    console.error('Error creating default frame config:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create default Cover and Settings frames for a new board
+ */
+async function createDefaultFrames(boardId: string): Promise<any[]> {
+  const coverConfigId = await ensureDefaultFrameConfig('cover-default');
+  const settingsConfigId = await ensureDefaultFrameConfig('settings-default');
+
+  return [
+    {
+      id: randomUUID(),
+      boardId,
+      role: 'cover',
+      name: 'Cover',
+      pattern: 'focus',
+      frameType: 'media_card',
+      orderIndex: 0,
+      layoutKind: 'focus',
+      layoutData: {},
+      props: { 
+        title: '__BOARD_NAME__', 
+        subtitle: '__BOARD_DESC__', 
+        media: null, 
+        alignment: 'center' 
+      },
+      entityType: 'board',
+      entityId: boardId,
+      configId: coverConfigId,
+      updatedAt: new Date(),
+    },
+    {
+      id: randomUUID(),
+      boardId,
+      role: 'settings',
+      name: 'Settings',
+      pattern: 'form',
+      frameType: 'config_panel',
+      orderIndex: 1,
+      layoutKind: 'row',
+      layoutData: {},
+      props: {},
+      entityType: 'board',
+      entityId: boardId,
+      configId: settingsConfigId,
+      updatedAt: new Date(),
+    }
+  ];
+}
+
+// =============================================================================
+// ROUTES
+// =============================================================================
+
+/**
+ * GET /api/boards?keeperId=:keeperId → list boards
  */
 router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
-    const { domainId, type, limit, offset } = boardQuerySchema.parse(req.query);
+    const { keeperId, limit, offset } = boardQuerySchema.parse(req.query);
     const userId = (req as any).user?.id;
 
     if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    // For now, return structured mock data that matches the expected format
-    // This will be replaced with real database queries once the Board model is added to Prisma
-    const boards = [
-      {
-        id: 'agent-board-1',
-        name: 'Agent Configuration Board',
-        type: 'agent',
-        description: 'Configure and manage AI agents',
-        entityId: 'kip-agent-1',
-        domainId: domainId || 'default-domain',
-        lastModified: new Date('2024-01-28'),
-        frameCount: 3,
-        engagementMode: 'dialogic',
-        theme: {
-          primaryColor: '#3B82F6',
-          backgroundColor: '#F8FAFC',
-        }
+    const boards = await prisma.board.findMany({
+      where: { keeperId },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true,
       },
-      {
-        id: 'domain-board-1',
-        name: 'Domain Management Board',
-        type: 'domain',
-        description: 'Manage domain settings and members',
-        entityId: 'keeper-platform',
-        domainId: domainId || 'default-domain',
-        lastModified: new Date('2024-01-27'),
-        frameCount: 4,
-        engagementMode: 'wizard',
-        theme: {
-          primaryColor: '#059669',
-          backgroundColor: '#F0FDF4',
-        }
-      },
-      {
-        id: 'journey-board-1',
-        name: 'Journey Visualization Board',
-        type: 'journey',
-        description: 'Visualize and manage learning journeys',
-        entityId: 'journey-1',
-        domainId: domainId || 'default-domain',
-        lastModified: new Date('2024-01-26'),
-        frameCount: 4,
-        engagementMode: 'canvas',
-        theme: {
-          primaryColor: '#3B82F6',
-          backgroundColor: '#EFF6FF',
-        }
-      },
-      {
-        id: 'keeper-type-board-1',
-        name: 'Keeper Type Board',
-        type: 'keeper-type',
-        description: 'Manage keeper types and capabilities',
-        entityId: 'devkeeper',
-        domainId: domainId || 'default-domain',
-        lastModified: new Date('2024-01-25'),
-        frameCount: 2,
-        engagementMode: 'dialogic',
-        theme: {
-          primaryColor: '#F59E0B',
-          backgroundColor: '#FFFBEB',
-        }
-      },
-      {
-        id: 'people-board-1',
-        name: 'People Management Board',
-        type: 'people',
-        description: 'Manage team members and roles',
-        entityId: 'people-1',
-        domainId: domainId || 'default-domain',
-        lastModified: new Date('2024-01-24'),
-        frameCount: 5,
-        engagementMode: 'canvas',
-        theme: {
-          primaryColor: '#6366F1',
-          backgroundColor: '#EEF2FF',
-        }
-      }
-    ];
-
-    // Filter by type if specified
-    const filteredBoards = type ? boards.filter(board => board.type === type) : boards;
-
-    // Apply pagination
-    const paginatedBoards = filteredBoards.slice(offset, offset + limit);
+      orderBy: { updatedAt: 'desc' },
+      take: limit,
+      skip: offset,
+    });
 
     return res.json({
-      boards: paginatedBoards,
-      total: filteredBoards.length,
-      page: Math.floor(offset / limit) + 1,
-      limit,
+      success: true,
+      data: boards
     });
   } catch (error) {
     console.error('Error fetching boards:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid parameters', 
+        details: error.errors 
+      });
+    }
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
 /**
- * GET /api/boards/:id - Get a specific board by ID
+ * POST /api/boards → create board with default frames
+ */
+router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const boardData = BoardCreate.parse(req.body);
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // Check for slug uniqueness within keeper
+    const existingBoard = await prisma.board.findUnique({
+      where: {
+        keeperId_slug: {
+          keeperId: boardData.keeperId,
+          slug: boardData.slug
+        }
+      }
+    });
+
+    if (existingBoard) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Board slug already exists for this keeper' 
+      });
+    }
+
+    // Create the board
+    const board = await prisma.board.create({
+      data: {
+        id: randomUUID(),
+        ...boardData,
+        theme: {},
+        behavior: {
+          showGrid: true,
+          snapToGrid: true,
+          gridSize: 8,
+          defaultPattern: 'dialogic',
+          startFrameId: null,
+          draftMode: false,
+          autosave: true,
+          frameOrder: []
+        },
+        data: {
+          scope: 'keeper',
+          entityId: null,
+          dataBindings: {},
+          agentId: null
+        },
+        access: {
+          visibility: 'private',
+          roles: {},
+          allowComments: false,
+          shareLinkEnabled: false
+        },
+        updatedAt: new Date(),
+      }
+    });
+
+    // Create default frames
+    const defaultFrames = await createDefaultFrames(board.id);
+
+    // Insert frames
+    await prisma.frameInstance.createMany({
+      data: defaultFrames
+    });
+
+    // Fetch the complete board with frames
+    const completeBoard = await prisma.board.findUnique({
+      where: { id: board.id },
+      include: {
+        frames: {
+          orderBy: { orderIndex: 'asc' },
+          include: {
+            FrameConfig: true
+          }
+        }
+      }
+    });
+
+    return res.json({
+      success: true,
+      data: completeBoard
+    });
+  } catch (error) {
+    console.error('Error creating board:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid board data', 
+        details: error.errors 
+      });
+    }
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/boards/:id → full board with frames
  */
 router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
@@ -148,144 +316,282 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     const userId = (req as any).user?.id;
 
     if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    // Mock board data with V0-compatible structure
-    const mockBoards: Record<string, any> = {
-      'demo-board': {
-        id: 'demo-board',
-        name: 'Demo Board',
-        description: 'A demo board for testing the V0 interface',
-        keeperId: 'keeper-1',
-        frames: [
-          {
-            id: 'cover-frame',
-            name: 'Cover',
-            role: 'cover',
-            pattern: 'focus',
-            props: [
-              {
-                id: 'hero-image-1',
-                type: 'image',
-                config: {
-                  src: '/placeholder.svg',
-                  alt: 'Cover image'
-                }
-              }
-            ]
-          },
-          {
-            id: 'settings-frame',
-            name: 'Settings',
-            role: 'settings',
-            pattern: 'form',
-            props: []
-          },
-          {
-            id: 'content-frame',
-            name: 'Content',
-            role: 'custom',
-            pattern: 'canvas',
-            props: [
-              {
-                id: 'ai-token-1',
-                type: 'token',
-                config: {
-                  displayName: 'AI Assistant',
-                  avatarUrl: '/placeholder.svg',
-                  personaNote: 'Helpful AI assistant for content creation'
-                }
-              }
-            ]
+    const board = await prisma.board.findUnique({
+      where: { id },
+      include: {
+        frames: {
+          orderBy: { orderIndex: 'asc' },
+          include: {
+            FrameConfig: true
           }
-        ]
-      },
-      'agent-board-1': {
-        id: 'agent-board-1',
-        name: 'Agent Configuration',
-        description: 'Configure and interact with your AI agent',
-        keeperId: 'keeper-1',
-        frames: [
-          {
-            id: 'agent-cover',
-            name: 'Cover',
-            role: 'cover',
-            pattern: 'focus',
-            props: []
-          },
-          {
-            id: 'agent-settings',
-            name: 'Settings',
-            role: 'settings',
-            pattern: 'form',
-            props: []
-          }
-        ]
+        }
       }
-    };
+    });
 
-    const board = mockBoards[id];
     if (!board) {
-      return res.status(404).json({ error: 'Board not found' });
+      return res.status(404).json({ success: false, error: 'Board not found' });
     }
 
-    return res.json(board);
+    return res.json({
+      success: true,
+      data: board
+    });
   } catch (error) {
     console.error('Error fetching board:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
 /**
- * POST /api/boards/:id - Save/update a full board document (idempotent upsert)
+ * PUT /api/boards/:id → update board
  */
-const saveBoardSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1).max(200),
-  description: z.string().optional(),
-  keeperId: z.string().optional(),
-  frames: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    role: z.enum(['cover', 'settings', 'custom']),
-    pattern: z.enum(['dialogic', 'wizard', 'focus', 'canvas', 'gallery', 'form']),
-    props: z.array(z.object({
-      id: z.string(),
-      type: z.string(),
-      config: z.record(z.any())
-    }))
-  }))
-});
-
-router.post('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
+router.put('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const boardData = saveBoardSchema.parse(req.body);
+    const updates = BoardUpdate.parse(req.body);
     const userId = (req as any).user?.id;
 
     if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    // For now, just log the save and return the board data
-    // TODO: Replace with actual database save when board storage is implemented
-    console.log('Board save requested:', id, boardData);
+    // Check if board exists
+    const existingBoard = await prisma.board.findUnique({
+      where: { id }
+    });
 
-    const savedBoard = {
-      ...boardData,
-      id,
-      updatedAt: new Date().toISOString(),
-      savedBy: userId
-    };
+    if (!existingBoard) {
+      return res.status(404).json({ success: false, error: 'Board not found' });
+    }
 
-    return res.json(savedBoard);
+    // If slug is being updated, check uniqueness
+    if (updates.slug && updates.slug !== existingBoard.slug) {
+      const slugConflict = await prisma.board.findUnique({
+        where: {
+          keeperId_slug: {
+            keeperId: existingBoard.keeperId,
+            slug: updates.slug
+          }
+        }
+      });
+
+      if (slugConflict) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Board slug already exists for this keeper' 
+        });
+      }
+    }
+
+    // Update the board
+    const updatedBoard = await prisma.board.update({
+      where: { id },
+      data: {
+        ...updates,
+        updatedAt: new Date(),
+      },
+      include: {
+        frames: {
+          orderBy: { orderIndex: 'asc' },
+          include: {
+            FrameConfig: true
+          }
+        }
+      }
+    });
+
+    return res.json({
+      success: true,
+      data: updatedBoard
+    });
   } catch (error) {
-    console.error('Error saving board:', error);
+    console.error('Error updating board:', error);
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid board data', details: error.errors });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid board data', 
+        details: error.errors 
+      });
     }
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/boards/:id/frames → add frame
+ */
+router.post('/:id/frames', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id: boardId } = req.params;
+    const frameData = FrameCreate.parse(req.body);
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // Check if board exists and get default pattern
+    const board = await prisma.board.findUnique({
+      where: { id: boardId },
+      include: { frames: { select: { orderIndex: true } } }
+    });
+
+    if (!board) {
+      return res.status(404).json({ success: false, error: 'Board not found' });
+    }
+
+    // Get next order index
+    const maxOrderIndex = board.frames.reduce((max, frame) => 
+      Math.max(max, frame.orderIndex), -1);
+    const nextOrderIndex = frameData.orderIndex ?? maxOrderIndex + 1;
+
+    // Get default pattern from board behavior
+    const behavior = board.behavior as any;
+    const defaultPattern = frameData.pattern ?? behavior?.defaultPattern ?? 'dialogic';
+
+    // Create default frame config
+    const configId = await ensureDefaultFrameConfig(`frame-${frameData.name.toLowerCase()}`);
+
+    // Create the frame
+    const frame = await prisma.frameInstance.create({
+      data: {
+        id: randomUUID(),
+        boardId,
+        name: frameData.name,
+        pattern: defaultPattern,
+        frameType: frameData.frameType,
+        orderIndex: nextOrderIndex,
+        layoutKind: 'canvas',
+        layoutData: {},
+        props: {},
+        entityType: 'board',
+        entityId: boardId,
+        configId,
+        updatedAt: new Date(),
+      },
+      include: {
+        FrameConfig: true
+      }
+    });
+
+    return res.json({
+      success: true,
+      data: frame
+    });
+  } catch (error) {
+    console.error('Error creating frame:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid frame data', 
+        details: error.errors 
+      });
+    }
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * PATCH /api/boards/:id/frames/:frameId → update frame
+ */
+router.patch('/:id/frames/:frameId', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id: boardId, frameId } = req.params;
+    const updates = FrameUpdate.parse(req.body);
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // Check if frame exists and belongs to board
+    const existingFrame = await prisma.frameInstance.findFirst({
+      where: { 
+        id: frameId,
+        boardId 
+      }
+    });
+
+    if (!existingFrame) {
+      return res.status(404).json({ success: false, error: 'Frame not found' });
+    }
+
+    // Update the frame
+    const updatedFrame = await prisma.frameInstance.update({
+      where: { id: frameId },
+      data: {
+        ...updates,
+        updatedAt: new Date(),
+      },
+      include: {
+        FrameConfig: true
+      }
+    });
+
+    return res.json({
+      success: true,
+      data: updatedFrame
+    });
+  } catch (error) {
+    console.error('Error updating frame:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid frame data', 
+        details: error.errors 
+      });
+    }
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * DELETE /api/boards/:id/frames/:frameId → delete frame
+ */
+router.delete('/:id/frames/:frameId', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id: boardId, frameId } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // Check if frame exists and belongs to board
+    const existingFrame = await prisma.frameInstance.findFirst({
+      where: { 
+        id: frameId,
+        boardId 
+      }
+    });
+
+    if (!existingFrame) {
+      return res.status(404).json({ success: false, error: 'Frame not found' });
+    }
+
+    // Prevent deletion of cover and settings frames
+    if (existingFrame.role === 'cover' || existingFrame.role === 'settings') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Cannot delete default frames (cover/settings)' 
+      });
+    }
+
+    // Delete the frame
+    await prisma.frameInstance.delete({
+      where: { id: frameId }
+    });
+
+    return res.json({
+      success: true,
+      message: 'Frame deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting frame:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
