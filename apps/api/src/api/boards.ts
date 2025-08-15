@@ -28,6 +28,7 @@ const BoardCreate = z.object({
   slug: z.string().min(1).max(80),
   description: z.string().max(280).optional(),
   icon: z.string().optional(),
+  templateId: z.enum(['agent', 'domain', 'journey', 'people', 'custom']).optional(),
 });
 
 const BoardUpdate = z.object({
@@ -78,6 +79,10 @@ const FrameUpdate = z.object({
   orderIndex: z.number().int().optional(),
 });
 
+const FrameReorder = z.object({
+  order: z.array(z.string().uuid()),
+});
+
 // =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
@@ -111,6 +116,123 @@ async function ensureDefaultFrameConfig(name: string): Promise<string> {
     throw error;
   }
 }
+
+/**
+ * Template specifications for different board types
+ */
+const BOARD_TEMPLATES = {
+  agent: {
+    name: 'Agent Board',
+    frames: [
+      {
+        name: 'Dialogic',
+        pattern: 'dialogic',
+        frameType: 'dialog',
+        layoutKind: 'canvas',
+        props: {
+          title: 'Agent Conversation',
+          placeholder: 'Ask your agent anything...',
+          showHistory: true,
+          maxMessages: 50
+        }
+      },
+      {
+        name: 'Preview',
+        pattern: 'focus',
+        frameType: 'agent_preview',
+        layoutKind: 'focus',
+        props: {
+          showCapabilities: true,
+          showStatus: true,
+          showMetrics: true
+        }
+      }
+    ]
+  },
+  domain: {
+    name: 'Domain Board',
+    frames: [
+      {
+        name: 'People',
+        pattern: 'canvas',
+        frameType: 'media_card',
+        layoutKind: 'grid',
+        props: {
+          title: 'Domain Members',
+          gridCols: 3,
+          showStats: true,
+          allowInvite: true
+        }
+      },
+      {
+        name: 'Preview',
+        pattern: 'focus',
+        frameType: 'preview',
+        layoutKind: 'focus',
+        props: {
+          showDescription: true,
+          showMetrics: true,
+          showActivity: true
+        }
+      }
+    ]
+  },
+  journey: {
+    name: 'Journey Board',
+    frames: [
+      {
+        name: 'Gallery',
+        pattern: 'gallery',
+        frameType: 'media_card',
+        layoutKind: 'grid',
+        props: {
+          title: 'Journey Milestones',
+          layout: 'masonry',
+          showProgress: true,
+          allowReorder: false
+        }
+      },
+      {
+        name: 'Wizard',
+        pattern: 'wizard',
+        frameType: 'process_frame',
+        layoutKind: 'wizard',
+        props: {
+          title: 'Journey Steps',
+          showProgress: true,
+          allowSkip: false,
+          steps: [
+            { id: 'start', label: 'Getting Started', completed: false },
+            { id: 'progress', label: 'Making Progress', completed: false },
+            { id: 'mastery', label: 'Achieving Mastery', completed: false }
+          ]
+        }
+      }
+    ]
+  },
+  people: {
+    name: 'People Board',
+    frames: [
+      {
+        name: 'Grid',
+        pattern: 'canvas',
+        frameType: 'media_card',
+        layoutKind: 'grid',
+        props: {
+          title: 'Team Members',
+          gridCols: 4,
+          showRoles: true,
+          showStatus: true,
+          allowFilter: true
+        }
+      }
+    ]
+  },
+  custom: {
+    name: 'Custom Board',
+    frames: []
+  }
+};
 
 /**
  * Create default Cover and Settings frames for a new board
@@ -158,6 +280,42 @@ async function createDefaultFrames(boardId: string): Promise<any[]> {
       updatedAt: new Date(),
     }
   ];
+}
+
+/**
+ * Apply template frames to a board (in addition to Cover + Settings)
+ */
+async function applyTemplate(boardId: string, templateId: string): Promise<any[]> {
+  const template = BOARD_TEMPLATES[templateId as keyof typeof BOARD_TEMPLATES];
+  if (!template || !template.frames.length) {
+    return [];
+  }
+
+  const templateFrames = [];
+  let orderIndex = 2; // Start after Cover (0) and Settings (1)
+
+  for (const frameSpec of template.frames) {
+    const configId = await ensureDefaultFrameConfig(`${templateId}-${frameSpec.name.toLowerCase()}`);
+    
+    templateFrames.push({
+      id: randomUUID(),
+      boardId,
+      role: null,
+      name: frameSpec.name,
+      pattern: frameSpec.pattern,
+      frameType: frameSpec.frameType,
+      orderIndex: orderIndex++,
+      layoutKind: frameSpec.layoutKind,
+      layoutData: {},
+      props: frameSpec.props || {},
+      entityType: 'board',
+      entityId: boardId,
+      configId,
+      updatedAt: new Date(),
+    });
+  }
+
+  return templateFrames;
 }
 
 // =============================================================================
@@ -269,12 +427,20 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
       }
     });
 
-    // Create default frames
+    // Create default frames (Cover + Settings)
     const defaultFrames = await createDefaultFrames(board.id);
+
+    // Apply template if specified
+    const templateFrames = boardData.templateId 
+      ? await applyTemplate(board.id, boardData.templateId)
+      : [];
+
+    // Combine all frames
+    const allFrames = [...defaultFrames, ...templateFrames];
 
     // Insert frames
     await prisma.frameInstance.createMany({
-      data: defaultFrames
+      data: allFrames
     });
 
     // Fetch the complete board with frames
@@ -335,9 +501,18 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       return res.status(404).json({ success: false, error: 'Board not found' });
     }
 
+    // Generate etag from updatedAt timestamp
+    const etag = `"${board.updatedAt.getTime()}"`;
+    
+    // Set etag header
+    res.set('ETag', etag);
+
     return res.json({
       success: true,
-      data: board
+      data: {
+        ...board,
+        etag
+      }
     });
   } catch (error) {
     console.error('Error fetching board:', error);
@@ -365,6 +540,40 @@ router.put('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
 
     if (!existingBoard) {
       return res.status(404).json({ success: false, error: 'Board not found' });
+    }
+
+    // Check for etag conflicts (unless force update)
+    const forceUpdate = req.query.force === 'true';
+    if (!forceUpdate) {
+      const ifMatch = req.get('If-Match');
+      const currentEtag = `"${existingBoard.updatedAt.getTime()}"`;
+      
+      if (ifMatch && ifMatch !== currentEtag) {
+        // Return conflict with current board state
+        const conflictBoard = await prisma.board.findUnique({
+          where: { id },
+          include: {
+            frames: {
+              orderBy: { orderIndex: 'asc' }
+            }
+          }
+        });
+
+        return res.status(409).json({
+          success: false,
+          error: 'Conflict detected',
+          code: 'ETAG_MISMATCH',
+          data: {
+            conflict: true,
+            serverVersion: {
+              ...conflictBoard,
+              etag: currentEtag
+            },
+            clientEtag: ifMatch,
+            serverEtag: currentEtag
+          }
+        });
+      }
     }
 
     // If slug is being updated, check uniqueness
@@ -403,9 +612,16 @@ router.put('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       }
     });
 
+    // Generate new etag
+    const newEtag = `"${updatedBoard.updatedAt.getTime()}"`;
+    res.set('ETag', newEtag);
+
     return res.json({
       success: true,
-      data: updatedBoard
+      data: {
+        ...updatedBoard,
+        etag: newEtag
+      }
     });
   } catch (error) {
     console.error('Error updating board:', error);
@@ -587,10 +803,106 @@ router.delete('/:id/frames/:frameId', authMiddlewareCompat, async (req: Request,
 
     return res.json({
       success: true,
-      message: 'Frame deleted successfully'
+      data: { id: frameId, deleted: true }
     });
   } catch (error) {
     console.error('Error deleting frame:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * PATCH /api/boards/:id/frames/reorder → reorder frames
+ */
+router.patch('/:id/frames/reorder', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const boardId = req.params.id;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // Validate request body
+    const { order } = FrameReorder.parse(req.body);
+
+    // Check if board exists and user has access
+    const board = await prisma.board.findUnique({
+      where: { id: boardId },
+      include: {
+        frames: {
+          select: { id: true, role: true, orderIndex: true },
+          orderBy: { orderIndex: 'asc' }
+        }
+      }
+    });
+
+    if (!board) {
+      return res.status(404).json({ success: false, error: 'Board not found' });
+    }
+
+    // Validate that all frame IDs exist and belong to this board
+    const existingFrameIds = board.frames.map(f => f.id);
+    const missingIds = order.filter(id => !existingFrameIds.includes(id));
+    
+    if (missingIds.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Frame IDs not found: ${missingIds.join(', ')}` 
+      });
+    }
+
+    // Ensure Cover and Settings frames remain at positions 0 and 1
+    const coverFrame = board.frames.find(f => f.role === 'cover');
+    const settingsFrame = board.frames.find(f => f.role === 'settings');
+    
+    if (coverFrame && order.indexOf(coverFrame.id) !== 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Cover frame must remain at position 0' 
+      });
+    }
+    
+    if (settingsFrame && order.indexOf(settingsFrame.id) !== 1) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Settings frame must remain at position 1' 
+      });
+    }
+
+    // Update orderIndex for all frames
+    const updates = order.map((frameId, index) => 
+      prisma.frameInstance.update({
+        where: { id: frameId },
+        data: { orderIndex: index, updatedAt: new Date() }
+      })
+    );
+
+    await prisma.$transaction(updates);
+
+    // Return updated frames
+    const updatedFrames = await prisma.frameInstance.findMany({
+      where: { boardId },
+      orderBy: { orderIndex: 'asc' }
+    });
+
+    return res.json({
+      success: true,
+      data: { 
+        boardId,
+        frames: updatedFrames,
+        order 
+      }
+    });
+  } catch (error) {
+    console.error('Error reordering frames:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid reorder data', 
+        details: error.errors 
+      });
+    }
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });

@@ -57,6 +57,13 @@ import { useFrame } from '../../context/FrameContext';
 import { useAuth } from '../../context/AuthContext';
 import { useKeeperContext } from '../../context/KeeperContext';
 import FrameConfigSheet from '../../components/studio/FrameConfigSheet';
+import PatternRenderer from '../../features/board-studio/patterns/PatternRenderer';
+import DraggableTabs from '../../components/studio/DraggableTabs';
+import { useAutosave } from '../../hooks/useAutosave';
+import ConflictDialog from '../../components/studio/ConflictDialog';
+import AIAssistPanel from '../../components/studio/AIAssistPanel';
+import TemplateChooser from '../../components/studio/TemplateChooser';
+import { type TemplateId } from '../../boards/templates';
 
 // =============================================================================
 // TYPES
@@ -495,6 +502,9 @@ const BoardStudioPage: React.FC = () => {
   const [isPropertiesPanelOpen, setIsPropertiesPanelOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [conflictData, setConflictData] = useState<any>(null);
+  const [showTemplateChooser, setShowTemplateChooser] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [isLoadingBoards, setIsLoadingBoards] = useState(false);
@@ -579,6 +589,11 @@ const BoardStudioPage: React.FC = () => {
         
         setMockFrames(frames);
         setSelectedFrameId(frames[0]?.id || null);
+        
+        // Update etag for autosave conflict detection
+        if (board.etag) {
+          autosave.updateEtag(board.etag);
+        }
         
         console.log('Board loaded successfully:', board);
       } else {
@@ -684,6 +699,16 @@ const BoardStudioPage: React.FC = () => {
   };
 
   const handleCreateBoard = async () => {
+    if (!activeKeeper?.id) {
+      console.error('No active keeper available for board creation');
+      return;
+    }
+
+    // Show template chooser
+    setShowTemplateChooser(true);
+  };
+
+  const handleCreateBoardWithTemplate = async (templateId: TemplateId | null) => {
     try {
       if (!activeKeeper?.id) {
         console.error('No active keeper available for board creation');
@@ -695,7 +720,8 @@ const BoardStudioPage: React.FC = () => {
         keeperId: activeKeeper.id,
         name: 'New Board',
         slug: `new-board-${timestamp}`,
-        description: 'A new custom board'
+        description: 'A new custom board',
+        templateId // Add template ID to request
       };
 
       // Try to create via API first
@@ -743,6 +769,48 @@ const BoardStudioPage: React.FC = () => {
       console.error('Error creating board:', error);
     }
   };
+
+  // Autosave save function
+  const saveBoard = async (data: any, options?: { etag?: string; force?: boolean }) => {
+    if (!selectedBoardId) throw new Error('No board selected');
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+
+    // Add etag for conflict detection
+    if (options?.etag) {
+      headers['If-Match'] = options.etag;
+    }
+
+    // Add force parameter if specified
+    const url = options?.force 
+      ? `/api/boards/${selectedBoardId}?force=true`
+      : `/api/boards/${selectedBoardId}`;
+
+    return await apiFetch(url, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(data)
+    });
+  };
+
+  // Autosave hook
+  const autosave = useAutosave(saveBoard, {
+    debounceMs: 800,
+    enabled: true,
+    onConflict: (conflictData) => {
+      setConflictData(conflictData);
+      setShowConflictDialog(true);
+    },
+    onError: (error) => {
+      console.error('Autosave error:', error);
+      // Could show a toast notification here
+    },
+    onSuccess: () => {
+      console.log('Board autosaved successfully');
+    }
+  });
 
   const handleSaveBoard = async () => {
     if (!selectedBoardId) return;
@@ -817,6 +885,113 @@ const BoardStudioPage: React.FC = () => {
       console.error('Error saving board:', error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Conflict resolution handlers
+  const handleConflictResolve = (resolution: 'server' | 'overwrite') => {
+    if (resolution === 'server') {
+      // Reload from server
+      const serverVersion = autosave.resolveConflictWithServer();
+      if (serverVersion) {
+        // Update local state with server data
+        setBoardName(serverVersion.name || '');
+        setBoardDescription(serverVersion.description || '');
+        setBoardTheme({
+          primaryColor: serverVersion.theme?.primary || '#3B82F6',
+          backgroundColor: serverVersion.theme?.background || '#FFFFFF'
+        });
+        setEngagementMode(serverVersion.behavior?.defaultPattern || 'dialogic');
+        
+        // Update frames if present
+        if (serverVersion.frames) {
+          setMockFrames(serverVersion.frames.map((frame: any) => ({
+            id: frame.id,
+            data: { name: frame.name, role: frame.role },
+            FrameConfig: { engagementMode: frame.pattern },
+            frameType: frame.frameType,
+            layoutKind: frame.layoutKind,
+            layoutData: frame.layoutData,
+            props: frame.props,
+            orderIndex: frame.orderIndex
+          })));
+        }
+      }
+    } else {
+      // Force overwrite
+      const boardToSave = {
+        name: boardName,
+        description: boardDescription,
+        theme: {
+          primary: boardTheme.primaryColor,
+          background: boardTheme.backgroundColor
+        },
+        behavior: {
+          showGrid: true,
+          snapToGrid: true,
+          gridSize: 8,
+          defaultPattern: engagementMode
+        }
+      };
+      autosave.forceSave(boardToSave);
+    }
+    
+    setShowConflictDialog(false);
+    setConflictData(null);
+  };
+
+  // Trigger autosave when board data changes
+  useEffect(() => {
+    if (selectedBoardId && boardName) {
+      const boardData = {
+        name: boardName,
+        description: boardDescription,
+        theme: {
+          primary: boardTheme.primaryColor,
+          background: boardTheme.backgroundColor
+        },
+        behavior: {
+          showGrid: true,
+          snapToGrid: true,
+          gridSize: 8,
+          defaultPattern: engagementMode
+        }
+      };
+      
+      autosave.save(boardData);
+    }
+  }, [selectedBoardId, boardName, boardDescription, boardTheme.primaryColor, boardTheme.backgroundColor, engagementMode, autosave]);
+
+  // Update etag when loading board
+  useEffect(() => {
+    if (selectedBoardId) {
+      handleBoardSelect(selectedBoardId);
+    }
+  }, [selectedBoardId]);
+
+  const handleTabReorder = async (newOrder: string[]) => {
+    if (!selectedBoardId) return;
+    
+    try {
+      const response = await apiFetch(`/api/boards/${selectedBoardId}/frames/reorder`, {
+        method: 'PATCH',
+        body: JSON.stringify({ order: newOrder })
+      });
+      
+      if (response.success) {
+        // Update local frame order
+        const reorderedFrames = newOrder.map((frameId, index) => {
+          const frame = mockFrames.find(f => f.id === frameId);
+          return frame ? { ...frame, orderIndex: index } : null;
+        }).filter(Boolean);
+        
+        setMockFrames(reorderedFrames as any[]);
+        console.log('Tabs reordered successfully');
+      } else {
+        console.error('Failed to reorder tabs:', response.error);
+      }
+    } catch (error) {
+      console.error('Error reordering tabs:', error);
     }
   };
 
@@ -1094,14 +1269,31 @@ const BoardStudioPage: React.FC = () => {
             
             {/* Save Button - Right justified for prominence */}
             {selectedBoardId && (
-              <Button
-                onClick={handleSaveBoard}
-                disabled={isSaving}
-                size="sm"
-                className="h-8 px-3 text-xs bg-green-600 text-white hover:bg-green-700 shadow-sm transition-all"
-              >
-                {isSaving ? 'Saving...' : 'Save'}
-              </Button>
+              <div className="flex items-center space-x-2">
+                {/* Autosave status */}
+                <div className="text-xs text-gray-500">
+                  {autosave.status === 'saving' && 'Saving...'}
+                  {autosave.status === 'saved' && autosave.lastSaved && (
+                    `Saved ${autosave.lastSaved.toLocaleTimeString()}`
+                  )}
+                  {autosave.status === 'error' && (
+                    <span className="text-red-600">Error - retrying</span>
+                  )}
+                  {autosave.status === 'conflict' && (
+                    <span className="text-amber-600">Conflict detected</span>
+                  )}
+                  {autosave.status === 'idle' && 'Auto-save enabled'}
+                </div>
+                
+                <Button
+                  onClick={handleSaveBoard}
+                  disabled={isSaving}
+                  size="sm"
+                  className="h-8 px-3 text-xs bg-green-600 text-white hover:bg-green-700 shadow-sm transition-all"
+                >
+                  {isSaving ? 'Saving...' : 'Save Now'}
+                </Button>
+              </div>
             )}
           </div>
 
@@ -1128,65 +1320,42 @@ const BoardStudioPage: React.FC = () => {
 
             {/* Frame Tabs - Inside Board Composition */}
             <div className="border-b border-dotted border-gray-300 bg-white">
-              <div className="flex items-center px-4 py-2 gap-1">
-                {mockFrames.map((frame: any, index: number) => {
-                  const isDefaultFrame = frame.data?.role === 'cover' || frame.data?.role === 'settings';
-                  return (
-                    <div key={frame.id} className="group">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={`h-8 px-3 text-xs flex items-center gap-0.5 ${
-                          selectedFrameId === frame.id 
-                            ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' 
-                            : 'text-gray-700 hover:bg-gray-50'
-                        } ${isDefaultFrame ? 'ring-1 ring-gray-200' : ''}`}
-                        onClick={() => setSelectedFrameId(frame.id)}
-                      >
-                        {isDefaultFrame && (
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1" 
-                               title="Default frame - cannot be deleted" />
-                        )}
-                        <span className="font-medium">{frame.data?.name || 'Frame'}</span>
-                        <span className="text-gray-400">.</span>
-                        <span className="text-xs text-gray-500 ml-1">
-                          {frame.FrameConfig?.engagementMode || 'canvas'}
-                        </span>
-                        <Cog 
-                          className={`w-3 h-3 ml-1 transition-opacity cursor-pointer ${
-                            selectedFrameId === frame.id 
-                              ? 'opacity-100 text-blue-600' 
-                              : 'opacity-0 group-hover:opacity-100'
-                          }`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenFrameConfigId(frame.id);
-                          }}
-                        />
-                      </Button>
-                    </div>
-                  );
-                })}
-                <Button
-                  onClick={() => {
-                    if (selectedBoardId) {
-                      const newFrame = {
-                        id: `frame-${Date.now()}`,
-                        data: { name: `Frame ${mockFrames.length + 1}` },
-                        FrameConfig: { engagementMode: 'dialogic' }
-                      };
-                      setMockFrames(prev => [...prev, newFrame]);
-                      setSelectedFrameId(newFrame.id);
-                    }
-                  }}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-3 text-xs flex items-center gap-1 text-gray-500 hover:text-gray-700"
-                  disabled={!selectedBoardId}
-                >
-                  <Plus className="w-3 h-3" />
-                  Add Frame
-                </Button>
+              <div className="flex items-center justify-between">
+                <DraggableTabs
+                  tabs={mockFrames.map((frame: any) => ({
+                    id: frame.id,
+                    name: frame.data?.name || 'Frame',
+                    role: frame.data?.role,
+                    pattern: frame.FrameConfig?.engagementMode || 'canvas',
+                    isPinned: frame.data?.role === 'cover' || frame.data?.role === 'settings'
+                  }))}
+                  selectedTabId={selectedFrameId}
+                  onTabSelect={setSelectedFrameId}
+                  onTabReorder={handleTabReorder}
+                  onTabConfig={(tabId) => setOpenFrameConfigId(tabId)}
+                />
+                <div className="px-4 py-2">
+                  <Button
+                    onClick={() => {
+                      if (selectedBoardId) {
+                        const newFrame = {
+                          id: `frame-${Date.now()}`,
+                          data: { name: `Frame ${mockFrames.length + 1}` },
+                          FrameConfig: { engagementMode: 'dialogic' }
+                        };
+                        setMockFrames(prev => [...prev, newFrame]);
+                        setSelectedFrameId(newFrame.id);
+                      }
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 text-xs flex items-center gap-1 text-gray-500 hover:text-gray-700"
+                    disabled={!selectedBoardId}
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add Frame
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -1229,21 +1398,67 @@ const BoardStudioPage: React.FC = () => {
                   ) : (
                     <div className="w-full h-full p-8">
                       {selectedFrameId && mockFrames.length > 0 ? (
-                        <div className="w-full max-w-4xl mx-auto">
-                          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-                            <div className="text-center">
-                              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                {mockFrames.find(f => f.id === selectedFrameId)?.data?.name || 'Frame Content'}
-                              </h3>
-                              <p className="text-gray-600 mb-4">
-                                Pattern: {mockFrames.find(f => f.id === selectedFrameId)?.FrameConfig?.engagementMode || 'canvas'}
-                              </p>
-                              <div className="text-sm text-gray-500">
-                                Frame content will be rendered here based on the selected engagement pattern.
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                        <PatternRenderer
+                          frame={{
+                            id: selectedFrameId,
+                            name: mockFrames.find(f => f.id === selectedFrameId)?.data?.name || 'Frame Content',
+                            pattern: mockFrames.find(f => f.id === selectedFrameId)?.FrameConfig?.engagementMode || 'canvas',
+                            frameType: mockFrames.find(f => f.id === selectedFrameId)?.frameType || 'media_card',
+                            layoutKind: mockFrames.find(f => f.id === selectedFrameId)?.layoutKind || 'canvas',
+                            layoutData: mockFrames.find(f => f.id === selectedFrameId)?.layoutData || {},
+                            props: mockFrames.find(f => f.id === selectedFrameId)?.props || {},
+                            role: mockFrames.find(f => f.id === selectedFrameId)?.data?.role
+                          }}
+                          mode={editorMode}
+                          boardName={boardName}
+                          boardDescription={boardDescription}
+                          boardData={{
+                            id: selectedBoardId,
+                            name: boardName,
+                            slug: `board-${selectedBoardId}`,
+                            description: boardDescription,
+                            theme: boardTheme,
+                            behavior: {
+                              showGrid: true,
+                              snapToGrid: true,
+                              gridSize: 8,
+                              defaultPattern: engagementMode
+                            },
+                            data: {
+                              scope: 'keeper',
+                              entityId: activeKeeper?.id
+                            },
+                            access: {
+                              visibility: 'private',
+                              allowComments: false,
+                              shareLinkEnabled: false
+                            }
+                          }}
+                          frames={mockFrames.map(f => ({
+                            id: f.id,
+                            name: f.data?.name || 'Frame',
+                            role: f.data?.role
+                          }))}
+                          onFrameUpdate={async (frameId, updates) => {
+                            try {
+                              // Update frame via API
+                              await apiFetch(`/api/boards/${selectedBoardId}/frames/${frameId}`, {
+                                method: 'PATCH',
+                                body: JSON.stringify(updates)
+                              });
+                              
+                              // Update local state
+                              setMockFrames(prev => prev.map(frame =>
+                                frame.id === frameId ? { ...frame, ...updates } : frame
+                              ));
+                              
+                              console.log('Frame updated successfully');
+                            } catch (error) {
+                              console.error('Failed to update frame:', error);
+                            }
+                          }}
+                          onBoardUpdate={handleSaveBoard}
+                        />
                       ) : (
                         <div className="w-full max-w-4xl mx-auto">
                           <div className="w-full h-96 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -1276,14 +1491,47 @@ const BoardStudioPage: React.FC = () => {
           </div>
         </main>
 
-        {/* Right Sidebar - Props Library (V0 Style) */}
-        {editorMode === 'edit' && (
+        {/* Right Sidebar - Props Library or AI Assist */}
+        {(editorMode === 'edit' || editorMode === 'assist') && (
           <aside className="w-80 bg-white border-l">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-900">Props Library</h3>
-                <span className="text-xs text-gray-500">Drag elements to your frame</span>
-              </div>
+            {editorMode === 'assist' ? (
+              <AIAssistPanel
+                boardId={selectedBoardId || undefined}
+                selectedFrameId={selectedFrameId || undefined}
+                selectedFrame={selectedFrameId ? {
+                  name: mockFrames.find(f => f.id === selectedFrameId)?.data?.name || 'Frame',
+                  pattern: mockFrames.find(f => f.id === selectedFrameId)?.FrameConfig?.engagementMode || 'canvas',
+                  frameType: mockFrames.find(f => f.id === selectedFrameId)?.frameType || 'media_card',
+                  props: mockFrames.find(f => f.id === selectedFrameId)?.props || {}
+                } : undefined}
+                boardName={boardName}
+                boardDescription={boardDescription}
+                onApplySuggestion={async (frameId, updates) => {
+                  try {
+                    // Apply suggestions to frame props
+                    await apiFetch(`/api/boards/${selectedBoardId}/frames/${frameId}`, {
+                      method: 'PATCH',
+                      body: JSON.stringify({ props: updates })
+                    });
+                    
+                    // Update local state
+                    setMockFrames(prev => prev.map(frame =>
+                      frame.id === frameId ? { ...frame, props: { ...frame.props, ...updates } } : frame
+                    ));
+                    
+                    console.log('AI suggestions applied successfully');
+                  } catch (error) {
+                    console.error('Failed to apply AI suggestions:', error);
+                  }
+                }}
+                className="h-full"
+              />
+            ) : (
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-gray-900">Props Library</h3>
+                  <span className="text-xs text-gray-500">Drag elements to your frame</span>
+                </div>
               
               <ScrollArea className="h-[calc(100vh-140px)]">
                 <div className="space-y-4">
@@ -1477,6 +1725,20 @@ const BoardStudioPage: React.FC = () => {
                           className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                           draggable
                           onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'ai-token', name: 'AI Token', type: 'ai_token', description: 'AI agent placeholder and configuration', category: 'ai', icon: '🎯' }));
+                          }}
+                          onClick={() => handleAddFrameToBoard({ id: 'ai-token', name: 'AI Token', type: 'ai_token', description: 'AI agent placeholder and configuration', category: 'ai', icon: '🎯' })}
+                        >
+                          <SparklesIcon className="w-4 h-4 text-gray-500" />
+                          <div>
+                            <div className="text-sm text-gray-900">AI Token</div>
+                            <div className="text-xs text-gray-500">AI agent placeholder and configuration</div>
+                          </div>
+                        </div>
+                        <div 
+                          className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                          draggable
+                          onDragStart={(e) => {
                             e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'image-slider', name: 'Image Slider', type: 'media_card', description: 'Animated image carousel', category: 'content', icon: '🎞️' }));
                           }}
                           onClick={() => handleAddFrameToBoard({ id: 'image-slider', name: 'Image Slider', type: 'media_card', description: 'Animated image carousel', category: 'content', icon: '🎞️' })}
@@ -1520,7 +1782,8 @@ const BoardStudioPage: React.FC = () => {
                   </div>
                 </div>
               </ScrollArea>
-            </div>
+              </div>
+            )}
           </aside>
         )}
       </div>
@@ -1675,6 +1938,22 @@ const BoardStudioPage: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Conflict Resolution Dialog */}
+      <ConflictDialog
+        isOpen={showConflictDialog}
+        conflictData={conflictData}
+        onResolve={handleConflictResolve}
+        onClose={() => setShowConflictDialog(false)}
+      />
+
+      {/* Template Chooser Modal */}
+      <TemplateChooser
+        isOpen={showTemplateChooser}
+        onClose={() => setShowTemplateChooser(false)}
+        onSelectTemplate={handleCreateBoardWithTemplate}
+        onSkip={() => handleCreateBoardWithTemplate(null)}
+      />
     </div>
   );
 };
