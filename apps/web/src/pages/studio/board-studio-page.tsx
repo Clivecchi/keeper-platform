@@ -904,17 +904,7 @@ const BoardStudioPage: React.FC = () => {
             <span className="text-sm text-gray-600">Creative storytelling workspace</span>
           </div>
 
-          {/* Save Button only in header */}
-          {selectedBoardId && (
-            <Button
-              onClick={handleSaveBoard}
-              disabled={isSaving}
-              size="sm"
-              className="h-7 px-3 text-xs"
-            >
-              {isSaving ? 'Saving...' : 'Save'}
-            </Button>
-          )}
+          {/* Header is clean - Save belongs with board tools */}
         </div>
       </header>
 
@@ -973,43 +963,73 @@ const BoardStudioPage: React.FC = () => {
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col bg-gray-100 p-4">
           {/* Mode Toolbar - Above Board Composition */}
-          <div className="flex items-center gap-1 mb-4">
-            <Button 
-              variant={editorMode === 'edit' ? 'default' : 'ghost'} 
-              size="sm"
-              className="h-8 px-3 text-xs"
-              onClick={() => setEditorMode('edit')}
-            >
-              <Edit3 className="w-4 h-4 mr-2" />
-              Edit
-            </Button>
-            <Button 
-              variant={editorMode === 'layout' ? 'default' : 'ghost'} 
-              size="sm"
-              className="h-8 px-3 text-xs"
-              onClick={() => setEditorMode('layout')}
-            >
-              <Layout className="w-4 h-4 mr-2" />
-              Layout
-            </Button>
-            <Button 
-              variant={editorMode === 'preview' ? 'default' : 'ghost'} 
-              size="sm"
-              className="h-8 px-3 text-xs"
-              onClick={() => setEditorMode('preview')}
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              Preview
-            </Button>
-            <Button 
-              variant={editorMode === 'assist' ? 'default' : 'ghost'} 
-              size="sm"
-              className="h-8 px-3 text-xs"
-              onClick={() => setEditorMode('assist')}
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              AI assist
-            </Button>
+          <div className="flex items-center justify-between mb-4 bg-white/60 backdrop-blur-sm rounded-lg p-1 border border-gray-200/50">
+            <div className="flex items-center gap-1">
+              <Button 
+                variant={editorMode === 'edit' ? 'default' : 'ghost'} 
+                size="sm"
+                className={`h-8 px-3 text-xs transition-all ${
+                  editorMode === 'edit' 
+                    ? 'bg-blue-600 text-white shadow-sm' 
+                    : 'hover:bg-white hover:shadow-sm text-gray-700'
+                }`}
+                onClick={() => setEditorMode('edit')}
+              >
+                <Edit3 className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+              <Button 
+                variant={editorMode === 'layout' ? 'default' : 'ghost'} 
+                size="sm"
+                className={`h-8 px-3 text-xs transition-all ${
+                  editorMode === 'layout' 
+                    ? 'bg-blue-600 text-white shadow-sm' 
+                    : 'hover:bg-white hover:shadow-sm text-gray-700'
+                }`}
+                onClick={() => setEditorMode('layout')}
+              >
+                <Layout className="w-4 h-4 mr-2" />
+                Layout
+              </Button>
+              <Button 
+                variant={editorMode === 'preview' ? 'default' : 'ghost'} 
+                size="sm"
+                className={`h-8 px-3 text-xs transition-all ${
+                  editorMode === 'preview' 
+                    ? 'bg-blue-600 text-white shadow-sm' 
+                    : 'hover:bg-white hover:shadow-sm text-gray-700'
+                }`}
+                onClick={() => setEditorMode('preview')}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Preview
+              </Button>
+              <Button 
+                variant={editorMode === 'assist' ? 'default' : 'ghost'} 
+                size="sm"
+                className={`h-8 px-3 text-xs transition-all ${
+                  editorMode === 'assist' 
+                    ? 'bg-blue-600 text-white shadow-sm' 
+                    : 'hover:bg-white hover:shadow-sm text-gray-700'
+                }`}
+                onClick={() => setEditorMode('assist')}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                AI assist
+              </Button>
+            </div>
+            
+            {/* Save Button - Right justified for prominence */}
+            {selectedBoardId && (
+              <Button
+                onClick={handleSaveBoard}
+                disabled={isSaving}
+                size="sm"
+                className="h-8 px-3 text-xs bg-green-600 text-white hover:bg-green-700 shadow-sm transition-all"
+              >
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+            )}
           </div>
 
           {/* Board Composition Area */}
@@ -1034,27 +1054,31 @@ const BoardStudioPage: React.FC = () => {
             </div>
 
             {/* Frame Tabs - Inside Board Composition */}
-            <div className="border-b bg-white">
+            <div className="border-b border-dotted border-gray-300 bg-white">
               <div className="flex items-center px-4 py-2 gap-1">
                 {mockFrames.map((frame: any, index: number) => (
                   <div key={frame.id} className="group">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`h-8 px-3 text-xs flex items-center gap-1 ${
+                      className={`h-8 px-3 text-xs flex items-center gap-0.5 ${
                         selectedFrameId === frame.id 
-                          ? 'bg-blue-50 text-blue-700' 
+                          ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' 
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                       onClick={() => setSelectedFrameId(frame.id)}
                     >
                       <span className="font-medium">{frame.data?.name || 'Frame'}</span>
                       <span className="text-gray-400">.</span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 ml-1">
                         {frame.FrameConfig?.engagementMode || 'canvas'}
                       </span>
                       <Cog 
-                        className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" 
+                        className={`w-3 h-3 ml-1 transition-opacity cursor-pointer ${
+                          selectedFrameId === frame.id 
+                            ? 'opacity-100 text-blue-600' 
+                            : 'opacity-0 group-hover:opacity-100'
+                        }`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenFrameConfigId(frame.id);
