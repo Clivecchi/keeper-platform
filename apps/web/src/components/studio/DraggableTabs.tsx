@@ -12,7 +12,8 @@ import {
   Bars3Icon,
   ChevronDownIcon,
   CheckIcon,
-  MapPinIcon
+  MapPinIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 
 // =============================================================================
@@ -36,6 +37,7 @@ interface DraggableTabsProps {
   onTabConfig?: (tabId: string) => void;
   onModeChange?: (tabId: string, mode: string) => void;
   onPinToggle?: (tabId: string, isPinned: boolean) => void;
+  onDelete?: (tabId: string) => void;
   disabled?: boolean;
 }
 
@@ -50,10 +52,12 @@ const DraggableTab: React.FC<{
   onConfig?: () => void;
   onModeChange?: (mode: string) => void;
   onPinToggle?: (isPinned: boolean) => void;
+  onDelete?: () => void;
   isDragging: boolean;
-}> = ({ tab, isSelected, onSelect, onConfig, onModeChange, onPinToggle, isDragging }) => {
+}> = ({ tab, isSelected, onSelect, onConfig, onModeChange, onPinToggle, onDelete, isDragging }) => {
   const dragControls = useDragControls();
   const [showModeSelector, setShowModeSelector] = useState(false);
+  const [showConfigMenu, setShowConfigMenu] = useState(false);
   
   // EXACT Frame 3 design: "FrameName.mode" with blue period when selected, bottom-aligned mode
   const renderTabName = () => {
@@ -76,6 +80,16 @@ const DraggableTab: React.FC<{
     setShowModeSelector(false);
   };
 
+  const handleDelete = () => {
+    if (onDelete) {
+      const confirmDelete = window.confirm(`Are you sure you want to delete "${tab.name}"? This action cannot be undone.`);
+      if (confirmDelete) {
+        onDelete();
+      }
+    }
+    setShowConfigMenu(false);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Keyboard navigation for reordering (Alt + Arrow keys)
     if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
@@ -94,6 +108,7 @@ const DraggableTab: React.FC<{
       aria-selected={isSelected}
       tabIndex={isSelected ? 0 : -1}
       onKeyDown={handleKeyDown}
+      onClick={onSelect}
       className={`
         group relative flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-t-lg cursor-pointer
         transition-all duration-200 select-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
@@ -107,7 +122,7 @@ const DraggableTab: React.FC<{
       whileDrag={{ scale: 1.05, rotate: 2 }}
       initial={false}
     >
-      <div className="flex items-center flex-1 min-w-0 px-1" onClick={onSelect}>
+      <div className="flex items-center flex-1 min-w-0 px-1">
         <div className="truncate">{renderTabName()}</div>
       </div>
       
@@ -153,19 +168,59 @@ const DraggableTab: React.FC<{
         </div>
       )}
       
-      {/* Config button - Only visible on active tab */}
-      {onConfig && isSelected && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onConfig();
-          }}
-          className="text-gray-400 hover:text-gray-600 p-1 rounded"
-          title="Configure frame"
-          aria-label="Configure frame settings"
-        >
-          <Cog6ToothIcon className="w-4 h-4" />
-        </button>
+      {/* Config menu - Only visible on active tab */}
+      {(onConfig || onDelete) && isSelected && (
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowConfigMenu(!showConfigMenu);
+            }}
+            className="text-gray-400 hover:text-gray-600 p-1 rounded"
+            title="Frame options"
+            aria-label="Frame options menu"
+            aria-expanded={showConfigMenu}
+          >
+            <Cog6ToothIcon className="w-4 h-4" />
+          </button>
+          
+          <AnimatePresence>
+            {showConfigMenu && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-32"
+              >
+                {onConfig && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onConfig();
+                      setShowConfigMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 first:rounded-t-lg text-gray-700 flex items-center gap-2"
+                  >
+                    <Cog6ToothIcon className="w-4 h-4" />
+                    Configure
+                  </button>
+                )}
+                {onDelete && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete();
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 last:rounded-b-lg text-red-600 hover:text-red-700 flex items-center gap-2"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                    Delete
+                  </button>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       )}
       
       {/* Drag handle - visible on ALL tabs */}
@@ -212,6 +267,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
   onTabConfig,
   onModeChange,
   onPinToggle,
+  onDelete,
   disabled = false
 }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -237,6 +293,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
             onConfig={onTabConfig ? () => onTabConfig(tab.id) : undefined}
             onModeChange={undefined} // No mode changes when disabled
             onPinToggle={onPinToggle ? (isPinned) => onPinToggle(tab.id, isPinned) : undefined}
+            onDelete={onDelete ? () => onDelete(tab.id) : undefined}
             isDragging={false}
           />
         ))}
@@ -267,6 +324,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
             onConfig={onTabConfig ? () => onTabConfig(tab.id) : undefined}
             onModeChange={onModeChange ? (mode) => handleModeChange(tab.id, mode) : undefined}
             onPinToggle={onPinToggle ? (isPinned) => onPinToggle(tab.id, isPinned) : undefined}
+            onDelete={onDelete ? () => onDelete(tab.id) : undefined}
             isDragging={isDragging}
           />
         ))}

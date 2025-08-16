@@ -1174,6 +1174,79 @@ const BoardStudioPage: React.FC = () => {
     }
   };
 
+  const handleFrameDelete = async (frameId: string) => {
+    if (!selectedBoardId) return;
+    
+    try {
+      console.log('Deleting frame:', frameId);
+      
+      // Find the frame to get its name for logging
+      const frameToDelete = mockFrames.find(frame => frame.id === frameId);
+      
+      // Update local state immediately for responsive UI
+      setMockFrames(prev => prev.filter(frame => frame.id !== frameId));
+      
+      // If the deleted frame was selected, select the first remaining frame
+      if (selectedFrameId === frameId) {
+        const remainingFrames = mockFrames.filter(frame => frame.id !== frameId);
+        if (remainingFrames.length > 0) {
+          setSelectedFrameId(remainingFrames[0].id);
+        } else {
+          setSelectedFrameId(null);
+        }
+      }
+      
+      // Persist to server
+      const response = await apiFetch(`/api/boards/${selectedBoardId}/frames/${frameId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.success) {
+        console.log('Frame deleted successfully');
+        
+        // Emit telemetry event
+        console.log('Telemetry: frame_deleted', { 
+          boardId: selectedBoardId, 
+          frameId,
+          frameName: frameToDelete?.data?.name || 'Unknown',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        console.error('Failed to delete frame:', response.error);
+        // Revert local state on error
+        setMockFrames(prev => {
+          // Re-add the frame if deletion failed
+          if (frameToDelete) {
+            return [...prev, frameToDelete].sort((a, b) => {
+              // Maintain original order - this is simplified, ideally we'd store the original index
+              return a.id.localeCompare(b.id);
+            });
+          }
+          return prev;
+        });
+        
+        // Restore selection if needed
+        if (selectedFrameId === frameId) {
+          setSelectedFrameId(frameId);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting frame:', error);
+      // Revert local state on error - same as above
+      const frameToDelete = mockFrames.find(frame => frame.id === frameId);
+      setMockFrames(prev => {
+        if (frameToDelete) {
+          return [...prev, frameToDelete].sort((a, b) => a.id.localeCompare(b.id));
+        }
+        return prev;
+      });
+      
+      if (selectedFrameId === frameId) {
+        setSelectedFrameId(frameId);
+      }
+    }
+  };
+
   const handleFrameDragStart = (frame: FrameType) => {
     console.log('Frame drag started:', frame);
   };
@@ -1527,6 +1600,7 @@ const BoardStudioPage: React.FC = () => {
                   onTabConfig={(tabId) => setOpenFrameConfigId(tabId)}
                   onModeChange={handleFrameModeChange}
                   onPinToggle={handleFramePinToggle}
+                  onDelete={handleFrameDelete}
                 />
                 <div className="px-4 py-2">
                   <Button
@@ -1778,7 +1852,15 @@ const BoardStudioPage: React.FC = () => {
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                         draggable
                         onDragStart={(e) => {
-                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'image-gallery', name: 'Image Gallery', type: 'media_card', description: 'Collection of images', category: 'content', icon: '🖼️' }));
+                          e.dataTransfer.setData('application/json', JSON.stringify({ 
+                            type: 'gallery', 
+                            config: { 
+                              images: [],
+                              layout: 'grid',
+                              columns: 3,
+                              name: 'Image Gallery'
+                            } 
+                          }));
                         }}
                         onClick={() => handleAddFrameToBoard({ id: 'image-gallery', name: 'Image Gallery', type: 'media_card', description: 'Collection of images', category: 'content', icon: '🖼️' })}
                       >
@@ -1825,7 +1907,15 @@ const BoardStudioPage: React.FC = () => {
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                         draggable
                         onDragStart={(e) => {
-                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'text-block', name: 'Text Block', type: 'preview', description: 'Body text content', category: 'content', icon: '📝' }));
+                          e.dataTransfer.setData('application/json', JSON.stringify({ 
+                            type: 'text', 
+                            config: { 
+                              content: 'Enter your text here...',
+                              fontSize: 'medium',
+                              bold: false,
+                              name: 'Text Block'
+                            } 
+                          }));
                         }}
                         onClick={() => handleAddFrameToBoard({ id: 'text-block', name: 'Text Block', type: 'preview', description: 'Body text content', category: 'content', icon: '📝' })}
                       >
@@ -1872,7 +1962,15 @@ const BoardStudioPage: React.FC = () => {
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                         draggable
                         onDragStart={(e) => {
-                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'action-button', name: 'Action Button', type: 'dialog', description: 'Clickable call-to-action', category: 'interaction', icon: '🔘' }));
+                          e.dataTransfer.setData('application/json', JSON.stringify({ 
+                            type: 'button', 
+                            config: { 
+                              label: 'Click me',
+                              action: '',
+                              variant: 'primary',
+                              name: 'Action Button'
+                            } 
+                          }));
                         }}
                         onClick={() => handleAddFrameToBoard({ id: 'action-button', name: 'Action Button', type: 'dialog', description: 'Clickable call-to-action', category: 'interaction', icon: '🔘' })}
                       >
@@ -1918,9 +2016,17 @@ const BoardStudioPage: React.FC = () => {
                         <div 
                           className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                           draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'ai-token', name: 'AI Token', type: 'ai_token', description: 'AI agent placeholder and configuration', category: 'interaction', icon: '🎯' }));
-                          }}
+                                                  onDragStart={(e) => {
+                          e.dataTransfer.setData('application/json', JSON.stringify({ 
+                            type: 'token', 
+                            config: { 
+                              name: 'AI Assistant',
+                              persona: 'Helpful AI assistant',
+                              color: '#3b82f6',
+                              size: 'medium'
+                            } 
+                          }));
+                        }}
                           onClick={() => handleAddFrameToBoard({ id: 'ai-token', name: 'AI Token', type: 'ai_token', description: 'AI agent placeholder and configuration', category: 'interaction', icon: '🎯' })}
                         >
                           <SparklesIcon className="w-4 h-4 text-gray-500" />

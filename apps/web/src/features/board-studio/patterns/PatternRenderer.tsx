@@ -7,6 +7,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import SettingsRenderer from '../settings/SettingsRenderer';
 import MediaUploader from '../../../components/studio/MediaUploader';
+import PropManager from '../../../components/props/PropManager';
 import { 
   ChevronLeftIcon, 
   ChevronRightIcon,
@@ -499,20 +500,28 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
   onFrameUpdate,
   onBoardUpdate
 }) => {
-  // In Edit and Layout modes, show simplified placeholder
+  // In Edit and Layout modes, show PropManager for prop drop behavior
   if (mode === 'edit' || mode === 'layout') {
     return (
       <div className="w-full max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-          <div className="text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">{frame.name}</h3>
-            <p className="text-gray-600 mb-4">
-              Pattern: {frame.pattern} • Type: {frame.frameType}
-            </p>
-            <div className="text-sm text-gray-500">
-              {mode === 'edit' ? 'Edit mode - configure frame properties' : 'Layout mode - adjust positioning and layout'}
-            </div>
-          </div>
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+          {/* Canvas space is purely for props - no frame metadata */}
+          <PropManager
+            frameId={frame.id}
+            initialProps={frame.props?.props || []}
+            isActive={true}
+            framePattern={frame.pattern}
+            showDraftToggle={mode === 'edit'}
+            isDraggable={mode === 'edit'}
+            isEditMode={mode === 'edit'}
+            onPropsUpdate={async (frameId, props) => {
+              if (onFrameUpdate) {
+                await onFrameUpdate(frameId, { 
+                  props: { ...frame.props, props } 
+                });
+              }
+            }}
+          />
         </div>
       </div>
     );
