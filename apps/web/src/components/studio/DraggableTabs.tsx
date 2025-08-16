@@ -169,16 +169,14 @@ const DraggableTab: React.FC<{
       )}
       
       {/* Drag handle - visible on ALL tabs */}
-      {
-        <button
-          className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 p-1 rounded"
-          onPointerDown={(e) => dragControls.start(e)}
-          title="Drag to reorder"
-          aria-label="Drag to reorder tab"
-        >
-          <Bars3Icon className="w-3 h-3" />
-        </button>
-      )}
+      <button
+        className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 p-1 rounded"
+        onPointerDown={(e) => dragControls.start(e)}
+        title="Drag to reorder"
+        aria-label="Drag to reorder tab"
+      >
+        <Bars3Icon className="w-3 h-3" />
+      </button>
       
       {/* Pin toggle - show when focused OR when pinned */}
       {onPinToggle && (isSelected || tab.isPinned) && (
