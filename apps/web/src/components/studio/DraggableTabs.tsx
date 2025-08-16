@@ -197,17 +197,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   
-  // Separate pinned and draggable tabs
-  const pinnedTabs = tabs.filter(tab => tab.isPinned || tab.role === 'cover' || tab.role === 'settings');
-  const draggableTabs = tabs.filter(tab => !tab.isPinned && tab.role !== 'cover' && tab.role !== 'settings');
-  
-  const handleReorder = (newOrder: TabData[]) => {
-    if (disabled) return;
-    
-    // Reconstruct full order: pinned tabs first, then reordered draggable tabs
-    const fullOrder = [...pinnedTabs, ...newOrder].map(tab => tab.id);
-    onTabReorder(fullOrder);
-  };
+  // No need to separate tabs - all tabs are treated equally
 
   const handleModeChange = (tabId: string, mode: string) => {
     if (onModeChange) {
@@ -216,138 +206,50 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
   };
 
   if (disabled || tabs.length === 0) {
-    // Fallback to simple tabs when disabled or no tabs
+    // Even when disabled, use the same DraggableTab component for consistency
     return (
-      <div role="tablist" className="flex space-x-1 border-b border-gray-200 bg-gray-50 px-4">
-        {tabs.map((tab) => {
-          // EXACT same design as Frame 3 for fallback too
-          const isTabSelected = selectedTabId === tab.id;
-          const renderTabName = () => {
-            const currentMode = tab.pattern || 'default';
-            return (
-              <span className="flex items-end">
-                <span className="font-medium">{tab.name}</span>
-                <span className={`${isTabSelected ? 'text-blue-500' : 'text-gray-400'}`}>.</span>
-                <span className="text-xs text-gray-500 font-normal ml-0.5">{currentMode}</span>
-              </span>
-            );
-          };
-
-          return (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={selectedTabId === tab.id}
-              onClick={() => onTabSelect(tab.id)}
-              className={`
-                group flex items-center px-3 py-2 text-sm font-medium rounded-t-lg
-                transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
-                ${selectedTabId === tab.id 
-                  ? 'bg-white text-gray-900 border-b-2 border-blue-500 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }
-              `}
-            >
-              <div className="truncate">{renderTabName()}</div>
-              {onTabConfig && selectedTabId === tab.id && (
-                <Cog6ToothIcon className="w-4 h-4 text-gray-400 hover:text-gray-600 ml-2" />
-              )}
-            </button>
-          );
-        })}
+      <div role="tablist" className="flex border-b border-gray-200 bg-gray-50 px-4">
+        {tabs.map((tab) => (
+          <DraggableTab
+            key={tab.id}
+            tab={tab}
+            isSelected={selectedTabId === tab.id}
+            onSelect={() => onTabSelect(tab.id)}
+            onConfig={onTabConfig ? () => onTabConfig(tab.id) : undefined}
+            onModeChange={undefined} // No mode changes when disabled
+            isDragging={false}
+          />
+        ))}
       </div>
     );
   }
 
   return (
     <div role="tablist" className="flex border-b border-gray-200 bg-gray-50 px-4 group">
-      {/* Pinned tabs (non-draggable) - using EXACT same design as Frame 3 */}
-      {pinnedTabs.map((tab) => {
-        const isTabSelected = selectedTabId === tab.id;
-        const renderTabName = () => {
-          const currentMode = tab.pattern || 'default';
-          return (
-            <span className="flex items-end">
-              <span className="font-medium">{tab.name}</span>
-              <span className={`${isTabSelected ? 'text-blue-500' : 'text-gray-400'}`}>.</span>
-              <span className="text-xs text-gray-500 font-normal ml-0.5">{currentMode}</span>
-            </span>
-          );
-        };
-
-        return (
-          <div key={tab.id} className="relative group">
-            <button
-              role="tab"
-              aria-selected={selectedTabId === tab.id}
-              onClick={() => onTabSelect(tab.id)}
-              className={`
-                flex items-center px-3 py-2 text-sm font-medium rounded-t-lg
-                transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
-                ${selectedTabId === tab.id 
-                  ? 'bg-white text-gray-900 border-b-2 border-blue-500 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }
-              `}
-            >
-              <div className="truncate">{renderTabName()}</div>
-            </button>
-            
-            {/* Mode selector and config for pinned tabs when selected */}
-            {selectedTabId === tab.id && (
-              <div className="absolute top-0 right-0 flex items-center space-x-1 h-full pr-2">
-                {onModeChange && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Handle mode change for pinned tabs
-                    }}
-                    className="text-gray-400 hover:text-gray-600 p-1 rounded"
-                    title="Change mode"
-                  >
-                    <ChevronDownIcon className="w-4 h-4" />
-                  </button>
-                )}
-                {onTabConfig && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onTabConfig(tab.id);
-                    }}
-                    className="text-gray-400 hover:text-gray-600 p-1 rounded"
-                    title="Configure frame"
-                  >
-                    <Cog6ToothIcon className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
-      
-      {/* Draggable tabs */}
-      {draggableTabs.length > 0 && (
-        <Reorder.Group
-          axis="x"
-          values={draggableTabs}
-          onReorder={handleReorder}
-          className="flex"
-          style={{ display: 'flex' }}
-        >
-          {draggableTabs.map((tab) => (
-            <DraggableTab
-              key={tab.id}
-              tab={tab}
-              isSelected={selectedTabId === tab.id}
-              onSelect={() => onTabSelect(tab.id)}
-              onConfig={onTabConfig ? () => onTabConfig(tab.id) : undefined}
-              onModeChange={onModeChange ? (mode) => handleModeChange(tab.id, mode) : undefined}
-              isDragging={isDragging}
-            />
-          ))}
-        </Reorder.Group>
-      )}
+      {/* ALL tabs use the same DraggableTab component - no distinction between pinned and draggable */}
+      <Reorder.Group
+        axis="x"
+        values={tabs}
+        onReorder={(newOrder) => {
+          if (disabled) return;
+          const fullOrder = newOrder.map(tab => tab.id);
+          onTabReorder(fullOrder);
+        }}
+        className="flex w-full"
+        style={{ display: 'flex' }}
+      >
+        {tabs.map((tab) => (
+          <DraggableTab
+            key={tab.id}
+            tab={tab}
+            isSelected={selectedTabId === tab.id}
+            onSelect={() => onTabSelect(tab.id)}
+            onConfig={onTabConfig ? () => onTabConfig(tab.id) : undefined}
+            onModeChange={onModeChange ? (mode) => handleModeChange(tab.id, mode) : undefined}
+            isDragging={isDragging}
+          />
+        ))}
+      </Reorder.Group>
     </div>
   );
 };
