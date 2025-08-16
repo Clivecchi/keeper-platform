@@ -52,20 +52,7 @@ const DraggableTab: React.FC<{
   const dragControls = useDragControls();
   const [showModeSelector, setShowModeSelector] = useState(false);
   
-  const getTabIcon = () => {
-    if (tab.role === 'cover') return <BookOpenIcon className="w-4 h-4" />;
-    if (tab.role === 'settings') return <Cog6ToothIcon className="w-4 h-4" />;
-    return null;
-  };
-
-  const getTabIndicator = () => {
-    if (tab.role === 'cover' || tab.role === 'settings') {
-      return (
-        <div className="w-2 h-2 bg-green-500 rounded-full" title="Default frame - cannot be deleted" />
-      );
-    }
-    return null;
-  };
+  // All tabs look EXACTLY the same - no special icons or indicators
 
   // EXACT Frame 3 design: "FrameName.mode" with blue period when selected, bottom-aligned mode
   const renderTabName = () => {
@@ -120,9 +107,7 @@ const DraggableTab: React.FC<{
       initial={false}
     >
       <div className="flex items-center space-x-2 flex-1 min-w-0" onClick={onSelect}>
-        {getTabIcon()}
         <div className="truncate max-w-40">{renderTabName()}</div>
-        {getTabIndicator()}
       </div>
       
       {/* Mode Selector - Only visible on active tab */}
@@ -263,12 +248,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
                 }
               `}
             >
-              {tab.role === 'cover' && <BookOpenIcon className="w-4 h-4" />}
-              {tab.role === 'settings' && <Cog6ToothIcon className="w-4 h-4" />}
               <div className="truncate max-w-40">{renderTabName()}</div>
-              {(tab.role === 'cover' || tab.role === 'settings') && (
-                <div className="w-2 h-2 bg-green-500 rounded-full" />
-              )}
               {onTabConfig && selectedTabId === tab.id && (
                 <Cog6ToothIcon className="w-4 h-4 text-gray-400 hover:text-gray-600 ml-1" />
               )}
@@ -310,10 +290,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
                 }
               `}
             >
-              {tab.role === 'cover' && <BookOpenIcon className="w-4 h-4" />}
-              {tab.role === 'settings' && <Cog6ToothIcon className="w-4 h-4" />}
               <div className="truncate max-w-32">{renderTabName()}</div>
-              <div className="w-2 h-2 bg-green-500 rounded-full" title="Default frame - cannot be deleted" />
             </button>
             
             {/* Mode selector and config for pinned tabs when selected */}
