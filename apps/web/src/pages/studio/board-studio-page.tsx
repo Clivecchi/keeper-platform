@@ -1105,6 +1105,75 @@ const BoardStudioPage: React.FC = () => {
     }
   };
 
+  const handleFramePinToggle = async (frameId: string, isPinned: boolean) => {
+    if (!selectedBoardId) return;
+    
+    try {
+      console.log('Toggling frame pin:', frameId, isPinned);
+      
+      // Update local state immediately for responsive UI
+      setMockFrames(prev => prev.map(frame =>
+        frame.id === frameId
+          ? { 
+              ...frame, 
+              data: { 
+                ...frame.data, 
+                isPinned: isPinned 
+              } 
+            }
+          : frame
+      ));
+      
+      // Persist to server
+      const response = await apiFetch(`/api/boards/${selectedBoardId}/frames/${frameId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ 
+          isPinned: isPinned
+        })
+      });
+      
+      if (response.success) {
+        console.log('Frame pin status updated successfully');
+        
+        // Emit telemetry event
+        console.log('Telemetry: frame_pin_toggled', { 
+          boardId: selectedBoardId, 
+          frameId, 
+          isPinned,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        console.error('Failed to update frame pin status:', response.error);
+        // Revert local state on error
+        setMockFrames(prev => prev.map(frame =>
+          frame.id === frameId
+            ? { 
+                ...frame, 
+                data: { 
+                  ...frame.data, 
+                  isPinned: !isPinned 
+                } 
+              }
+            : frame
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating frame pin status:', error);
+      // Revert local state on error
+      setMockFrames(prev => prev.map(frame =>
+        frame.id === frameId
+          ? { 
+              ...frame, 
+              data: { 
+                ...frame.data, 
+                isPinned: !isPinned 
+              } 
+            }
+          : frame
+      ));
+    }
+  };
+
   const handleFrameDragStart = (frame: FrameType) => {
     console.log('Frame drag started:', frame);
   };
@@ -1449,7 +1518,7 @@ const BoardStudioPage: React.FC = () => {
                     name: frame.data?.name || 'Frame',
                     role: frame.data?.role,
                     pattern: frame.FrameConfig?.engagementMode || 'canvas',
-                    isPinned: frame.data?.role === 'cover' || frame.data?.role === 'settings',
+                    isPinned: frame.data?.isPinned || frame.data?.role === 'cover' || frame.data?.role === 'settings',
                     allowedModes: ['default', 'canvas', 'dialogic', 'wizard', 'focus']
                   }))}
                   selectedTabId={selectedFrameId || undefined}
@@ -1457,6 +1526,7 @@ const BoardStudioPage: React.FC = () => {
                   onTabReorder={handleTabReorder}
                   onTabConfig={(tabId) => setOpenFrameConfigId(tabId)}
                   onModeChange={handleFrameModeChange}
+                  onPinToggle={handleFramePinToggle}
                 />
                 <div className="px-4 py-2">
                   <Button

@@ -11,7 +11,8 @@ import {
   EllipsisHorizontalIcon,
   Bars3Icon,
   ChevronDownIcon,
-  CheckIcon
+  CheckIcon,
+  MapPinIcon
 } from '@heroicons/react/24/outline';
 
 // =============================================================================
@@ -34,6 +35,7 @@ interface DraggableTabsProps {
   onTabReorder: (newOrder: string[]) => void;
   onTabConfig?: (tabId: string) => void;
   onModeChange?: (tabId: string, mode: string) => void;
+  onPinToggle?: (tabId: string, isPinned: boolean) => void;
   disabled?: boolean;
 }
 
@@ -47,8 +49,9 @@ const DraggableTab: React.FC<{
   onSelect: () => void;
   onConfig?: () => void;
   onModeChange?: (mode: string) => void;
+  onPinToggle?: (isPinned: boolean) => void;
   isDragging: boolean;
-}> = ({ tab, isSelected, onSelect, onConfig, onModeChange, isDragging }) => {
+}> = ({ tab, isSelected, onSelect, onConfig, onModeChange, onPinToggle, isDragging }) => {
   const dragControls = useDragControls();
   const [showModeSelector, setShowModeSelector] = useState(false);
   
@@ -85,7 +88,7 @@ const DraggableTab: React.FC<{
   return (
     <Reorder.Item
       value={tab}
-      dragListener={!tab.isPinned}
+      dragListener={true}
       dragControls={dragControls}
       role="tab"
       aria-selected={isSelected}
@@ -99,7 +102,7 @@ const DraggableTab: React.FC<{
           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
         }
         ${isDragging ? 'shadow-lg z-10' : ''}
-        ${tab.isPinned ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}
+        cursor-grab active:cursor-grabbing
       `}
       whileDrag={{ scale: 1.05, rotate: 2 }}
       initial={false}
@@ -165,8 +168,8 @@ const DraggableTab: React.FC<{
         </button>
       )}
       
-      {/* Drag handle (only for non-pinned tabs) */}
-      {!tab.isPinned && (
+      {/* Drag handle - visible on ALL tabs */}
+      {
         <button
           className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 p-1 rounded"
           onPointerDown={(e) => dragControls.start(e)}
@@ -174,6 +177,25 @@ const DraggableTab: React.FC<{
           aria-label="Drag to reorder tab"
         >
           <Bars3Icon className="w-3 h-3" />
+        </button>
+      )}
+      
+      {/* Pin toggle - show when focused OR when pinned */}
+      {onPinToggle && (isSelected || tab.isPinned) && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onPinToggle(!tab.isPinned);
+          }}
+          className={`p-1 rounded transition-colors ${
+            tab.isPinned 
+              ? 'text-blue-500 hover:text-blue-700' 
+              : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600'
+          }`}
+          title={tab.isPinned ? 'Unpin frame' : 'Pin frame'}
+          aria-label={tab.isPinned ? 'Unpin frame' : 'Pin frame'}
+        >
+          <MapPinIcon className={`w-4 h-4 ${tab.isPinned ? 'fill-current' : ''}`} />
         </button>
       )}
     </Reorder.Item>
@@ -191,6 +213,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
   onTabReorder,
   onTabConfig,
   onModeChange,
+  onPinToggle,
   disabled = false
 }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -215,6 +238,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
             onSelect={() => onTabSelect(tab.id)}
             onConfig={onTabConfig ? () => onTabConfig(tab.id) : undefined}
             onModeChange={undefined} // No mode changes when disabled
+            onPinToggle={onPinToggle ? (isPinned) => onPinToggle(tab.id, isPinned) : undefined}
             isDragging={false}
           />
         ))}
@@ -244,6 +268,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
             onSelect={() => onTabSelect(tab.id)}
             onConfig={onTabConfig ? () => onTabConfig(tab.id) : undefined}
             onModeChange={onModeChange ? (mode) => handleModeChange(tab.id, mode) : undefined}
+            onPinToggle={onPinToggle ? (isPinned) => onPinToggle(tab.id, isPinned) : undefined}
             isDragging={isDragging}
           />
         ))}
