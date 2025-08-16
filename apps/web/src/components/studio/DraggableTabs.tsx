@@ -67,10 +67,16 @@ const DraggableTab: React.FC<{
     return null;
   };
 
-  // Unified label format: "FrameName • Mode" for ALL frames
-  const formatTabName = () => {
+  // Unified label format: "FrameName • Mode" for ALL frames with styled mode text
+  const renderTabName = () => {
     const currentMode = tab.pattern || 'default';
-    return `${tab.name} • ${currentMode}`;
+    return (
+      <span className="flex items-center space-x-1">
+        <span className="font-medium">{tab.name}</span>
+        <span className="text-gray-400">•</span>
+        <span className="text-xs text-gray-500 font-normal">{currentMode}</span>
+      </span>
+    );
   };
 
   const availableModes = tab.allowedModes || ['default', 'canvas', 'dialogic', 'wizard', 'focus'];
@@ -115,7 +121,7 @@ const DraggableTab: React.FC<{
     >
       <div className="flex items-center space-x-2 flex-1 min-w-0" onClick={onSelect}>
         {getTabIcon()}
-        <span className="truncate max-w-40">{formatTabName()}</span>
+        <div className="truncate max-w-40">{renderTabName()}</div>
         {getTabIndicator()}
       </div>
       
@@ -229,10 +235,16 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
     return (
       <div role="tablist" className="flex space-x-1 border-b border-gray-200 bg-gray-50 px-4">
         {tabs.map((tab) => {
-          // Unified label format for fallback too
-          const formatTabName = () => {
+          // EXACT same design as Frame 3 for fallback too
+          const renderTabName = () => {
             const currentMode = tab.pattern || 'default';
-            return `${tab.name} • ${currentMode}`;
+            return (
+              <span className="flex items-center space-x-1">
+                <span className="font-medium">{tab.name}</span>
+                <span className="text-gray-400">•</span>
+                <span className="text-xs text-gray-500 font-normal">{currentMode}</span>
+              </span>
+            );
           };
 
           return (
@@ -252,7 +264,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
             >
               {tab.role === 'cover' && <BookOpenIcon className="w-4 h-4" />}
               {tab.role === 'settings' && <Cog6ToothIcon className="w-4 h-4" />}
-              <span className="truncate max-w-40">{formatTabName()}</span>
+              <div className="truncate max-w-40">{renderTabName()}</div>
               {(tab.role === 'cover' || tab.role === 'settings') && (
                 <div className="w-2 h-2 bg-green-500 rounded-full" />
               )}
@@ -268,11 +280,17 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
 
   return (
     <div role="tablist" className="flex border-b border-gray-200 bg-gray-50 px-4 group">
-      {/* Pinned tabs (non-draggable) - now using unified format */}
+      {/* Pinned tabs (non-draggable) - using EXACT same design as Frame 3 */}
       {pinnedTabs.map((tab) => {
-        const formatTabName = () => {
+        const renderTabName = () => {
           const currentMode = tab.pattern || 'default';
-          return `${tab.name} • ${currentMode}`;
+          return (
+            <span className="flex items-center space-x-1">
+              <span className="font-medium">{tab.name}</span>
+              <span className="text-gray-400">•</span>
+              <span className="text-xs text-gray-500 font-normal">{currentMode}</span>
+            </span>
+          );
         };
 
         return (
@@ -292,7 +310,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
             >
               {tab.role === 'cover' && <BookOpenIcon className="w-4 h-4" />}
               {tab.role === 'settings' && <Cog6ToothIcon className="w-4 h-4" />}
-              <span className="truncate max-w-32">{formatTabName()}</span>
+              <div className="truncate max-w-32">{renderTabName()}</div>
               <div className="w-2 h-2 bg-green-500 rounded-full" title="Default frame - cannot be deleted" />
             </button>
             
