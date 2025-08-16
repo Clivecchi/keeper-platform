@@ -245,7 +245,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
   }
 
   return (
-    <div role="tablist" className="flex border-b border-gray-200 bg-gray-50 px-4 group">
+    <div role="tablist" className="flex border-b border-gray-200 bg-gray-50 px-4">
       {/* ALL tabs use the same DraggableTab component - no distinction between pinned and draggable */}
       <Reorder.Group
         axis="x"

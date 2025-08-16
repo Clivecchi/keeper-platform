@@ -1518,7 +1518,7 @@ const BoardStudioPage: React.FC = () => {
                     name: frame.data?.name || 'Frame',
                     role: frame.data?.role,
                     pattern: frame.FrameConfig?.engagementMode || 'canvas',
-                    isPinned: frame.data?.isPinned || frame.data?.role === 'cover' || frame.data?.role === 'settings',
+                    isPinned: frame.data?.isPinned || false,
                     allowedModes: ['default', 'canvas', 'dialogic', 'wizard', 'focus']
                   }))}
                   selectedTabId={selectedFrameId || undefined}
