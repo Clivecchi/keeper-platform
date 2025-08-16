@@ -106,8 +106,8 @@ const DraggableTab: React.FC<{
       whileDrag={{ scale: 1.05, rotate: 2 }}
       initial={false}
     >
-      <div className="flex items-center space-x-2 flex-1 min-w-0" onClick={onSelect}>
-        <div className="truncate max-w-40">{renderTabName()}</div>
+      <div className="flex items-center flex-1 min-w-0 px-1" onClick={onSelect}>
+        <div className="truncate">{renderTabName()}</div>
       </div>
       
       {/* Mode Selector - Only visible on active tab */}
@@ -240,7 +240,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
               aria-selected={selectedTabId === tab.id}
               onClick={() => onTabSelect(tab.id)}
               className={`
-                group flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-t-lg
+                group flex items-center px-3 py-2 text-sm font-medium rounded-t-lg
                 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
                 ${selectedTabId === tab.id 
                   ? 'bg-white text-gray-900 border-b-2 border-blue-500 shadow-sm' 
@@ -248,9 +248,9 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
                 }
               `}
             >
-              <div className="truncate max-w-40">{renderTabName()}</div>
+              <div className="truncate">{renderTabName()}</div>
               {onTabConfig && selectedTabId === tab.id && (
-                <Cog6ToothIcon className="w-4 h-4 text-gray-400 hover:text-gray-600 ml-1" />
+                <Cog6ToothIcon className="w-4 h-4 text-gray-400 hover:text-gray-600 ml-2" />
               )}
             </button>
           );
@@ -282,7 +282,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
               aria-selected={selectedTabId === tab.id}
               onClick={() => onTabSelect(tab.id)}
               className={`
-                flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-t-lg
+                flex items-center px-3 py-2 text-sm font-medium rounded-t-lg
                 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
                 ${selectedTabId === tab.id 
                   ? 'bg-white text-gray-900 border-b-2 border-blue-500 shadow-sm' 
@@ -290,7 +290,7 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
                 }
               `}
             >
-              <div className="truncate max-w-32">{renderTabName()}</div>
+              <div className="truncate">{renderTabName()}</div>
             </button>
             
             {/* Mode selector and config for pinned tabs when selected */}
