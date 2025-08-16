@@ -508,6 +508,7 @@ const BoardStudioPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [isLoadingBoards, setIsLoadingBoards] = useState(false);
+  const [hasInitializedBoard, setHasInitializedBoard] = useState(false);
 
   // Board Studio State
   const [boards, setBoards] = useState<BoardListItem[]>([]);
@@ -546,6 +547,7 @@ const BoardStudioPage: React.FC = () => {
     
     setSelectedBoardId(boardId);
     setIsLoadingBoards(true);
+    setHasInitializedBoard(false); // Reset initialization flag
     
     try {
       console.log('Loading board:', boardId);
@@ -596,6 +598,11 @@ const BoardStudioPage: React.FC = () => {
         }
         
         console.log('Board loaded successfully:', board);
+        
+        // Set initialization flag after a delay to prevent immediate autosave
+        setTimeout(() => {
+          setHasInitializedBoard(true);
+        }, 1000);
       } else {
         throw new Error('Invalid board data received');
       }
@@ -942,9 +949,9 @@ const BoardStudioPage: React.FC = () => {
     setConflictData(null);
   };
 
-  // Trigger autosave when board data changes (but not during loading)
+  // Trigger autosave when board data changes (but not during loading or initial setup)
   useEffect(() => {
-    if (selectedBoardId && boardName && !isLoadingBoards) {
+    if (selectedBoardId && boardName && !isLoadingBoards && hasInitializedBoard) {
       const boardData = {
         name: boardName,
         description: boardDescription,
@@ -960,9 +967,10 @@ const BoardStudioPage: React.FC = () => {
         }
       };
       
+      console.log('Triggering autosave for board:', selectedBoardId);
       autosave.save(boardData);
     }
-  }, [selectedBoardId, boardName, boardDescription, boardTheme.primaryColor, boardTheme.backgroundColor, engagementMode, autosave, isLoadingBoards]);
+  }, [selectedBoardId, boardName, boardDescription, boardTheme.primaryColor, boardTheme.backgroundColor, engagementMode, isLoadingBoards, hasInitializedBoard]);
 
   // Update etag when loading board
   useEffect(() => {
