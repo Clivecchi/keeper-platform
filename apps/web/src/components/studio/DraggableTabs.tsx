@@ -9,7 +9,7 @@ import {
   Cog6ToothIcon,
   BookOpenIcon,
   EllipsisHorizontalIcon,
-  GripVerticalIcon,
+  Bars3Icon,
   ChevronDownIcon
 } from '@heroicons/react/24/outline';
 
@@ -120,7 +120,7 @@ const DraggableTab: React.FC<{
           onPointerDown={(e) => dragControls.start(e)}
           title="Drag to reorder"
         >
-          <GripVerticalIcon className="w-3 h-3" />
+          <Bars3Icon className="w-3 h-3" />
         </button>
       )}
     </Reorder.Item>
