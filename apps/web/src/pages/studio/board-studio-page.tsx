@@ -509,6 +509,8 @@ const BoardStudioPage: React.FC = () => {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [isLoadingBoards, setIsLoadingBoards] = useState(false);
   const [hasInitializedBoard, setHasInitializedBoard] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [showSaveError, setShowSaveError] = useState(false);
 
   // Board Studio State
   const [boards, setBoards] = useState<BoardListItem[]>([]);
@@ -802,7 +804,7 @@ const BoardStudioPage: React.FC = () => {
     });
   };
 
-  // Autosave hook
+  // Autosave hook with improved error handling
   const autosave = useAutosave(saveBoard, {
     debounceMs: 800,
     enabled: true,
@@ -812,10 +814,31 @@ const BoardStudioPage: React.FC = () => {
     },
     onError: (error) => {
       console.error('Autosave error:', error);
-      // Could show a toast notification here
+      setSaveError(error);
+      setShowSaveError(true);
+      
+      // Emit telemetry event for error
+      console.log('Telemetry: board_save_error', { 
+        boardId: selectedBoardId, 
+        error,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Auto-hide error after 5 seconds
+      setTimeout(() => {
+        setShowSaveError(false);
+      }, 5000);
     },
     onSuccess: () => {
       console.log('Board autosaved successfully');
+      setSaveError(null);
+      setShowSaveError(false);
+      
+      // Emit telemetry event for success
+      console.log('Telemetry: board_save_success', { 
+        boardId: selectedBoardId,
+        timestamp: new Date().toISOString()
+      });
     }
   });
 
@@ -997,11 +1020,88 @@ const BoardStudioPage: React.FC = () => {
         
         setMockFrames(reorderedFrames as any[]);
         console.log('Tabs reordered successfully');
+        
+        // Emit telemetry event
+        console.log('Telemetry: frame_reordered', { 
+          boardId: selectedBoardId, 
+          newOrder,
+          timestamp: new Date().toISOString()
+        });
       } else {
         console.error('Failed to reorder tabs:', response.error);
       }
     } catch (error) {
       console.error('Error reordering tabs:', error);
+    }
+  };
+
+  const handleFrameModeChange = async (frameId: string, newMode: string) => {
+    if (!selectedBoardId) return;
+    
+    try {
+      console.log('Changing frame mode:', frameId, newMode);
+      
+      // Update local state immediately for responsive UI
+      setMockFrames(prev => prev.map(frame =>
+        frame.id === frameId
+          ? { 
+              ...frame, 
+              FrameConfig: { 
+                ...frame.FrameConfig, 
+                engagementMode: newMode 
+              } 
+            }
+          : frame
+      ));
+      
+      // Persist to server
+      const response = await apiFetch(`/api/boards/${selectedBoardId}/frames/${frameId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ 
+          engagementMode: newMode,
+          pattern: newMode // Also update pattern field for compatibility
+        })
+      });
+      
+      if (response.success) {
+        console.log('Frame mode updated successfully');
+        
+        // Emit telemetry event
+        console.log('Telemetry: frame_mode_changed', { 
+          boardId: selectedBoardId, 
+          frameId, 
+          newMode,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        console.error('Failed to update frame mode:', response.error);
+        // Revert local state on error
+        setMockFrames(prev => prev.map(frame =>
+          frame.id === frameId
+            ? { 
+                ...frame, 
+                FrameConfig: { 
+                  ...frame.FrameConfig, 
+                  engagementMode: frame.FrameConfig?.engagementMode || 'canvas' 
+                } 
+              }
+            : frame
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating frame mode:', error);
+      // Revert local state on error
+      setMockFrames(prev => prev.map(frame =>
+        frame.id === frameId
+          ? { 
+              ...frame, 
+              FrameConfig: { 
+                ...frame.FrameConfig, 
+                engagementMode: frame.FrameConfig?.engagementMode || 'canvas' 
+              } 
+            }
+          : frame
+      ));
     }
   };
 
@@ -1280,19 +1380,31 @@ const BoardStudioPage: React.FC = () => {
             {/* Save Button - Right justified for prominence */}
             {selectedBoardId && (
               <div className="flex items-center space-x-2">
-                {/* Autosave status */}
+                {/* Autosave status - Non-blocking error display */}
                 <div className="text-xs text-gray-500">
                   {autosave.status === 'saving' && 'Saving...'}
                   {autosave.status === 'saved' && autosave.lastSaved && (
                     `Saved ${autosave.lastSaved.toLocaleTimeString()}`
                   )}
-                  {autosave.status === 'error' && (
-                    <span className="text-red-600">Error - retrying</span>
+                  {autosave.status === 'error' && showSaveError && (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-red-600">Save failed</span>
+                      <button
+                        onClick={() => {
+                          setSaveError(null);
+                          setShowSaveError(false);
+                          handleSaveBoard();
+                        }}
+                        className="text-red-600 hover:text-red-700 underline"
+                      >
+                        Retry
+                      </button>
+                    </div>
                   )}
                   {autosave.status === 'conflict' && (
                     <span className="text-amber-600">Conflict detected</span>
                   )}
-                  {autosave.status === 'idle' && 'Auto-save enabled'}
+                  {autosave.status === 'idle' && !showSaveError && 'Auto-save enabled'}
                 </div>
                 
                 <Button
@@ -1337,12 +1449,14 @@ const BoardStudioPage: React.FC = () => {
                     name: frame.data?.name || 'Frame',
                     role: frame.data?.role,
                     pattern: frame.FrameConfig?.engagementMode || 'canvas',
-                    isPinned: frame.data?.role === 'cover' || frame.data?.role === 'settings'
+                    isPinned: frame.data?.role === 'cover' || frame.data?.role === 'settings',
+                    allowedModes: ['default', 'canvas', 'dialogic', 'wizard', 'focus']
                   }))}
                   selectedTabId={selectedFrameId || undefined}
                   onTabSelect={setSelectedFrameId}
                   onTabReorder={handleTabReorder}
                   onTabConfig={(tabId) => setOpenFrameConfigId(tabId)}
+                  onModeChange={handleFrameModeChange}
                 />
                 <div className="px-4 py-2">
                   <Button
