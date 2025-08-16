@@ -67,14 +67,14 @@ const DraggableTab: React.FC<{
     return null;
   };
 
-  // Unified label format: "FrameName • Mode" for ALL frames with styled mode text
+  // EXACT Frame 3 design: "FrameName.mode" with blue period when selected, bottom-aligned mode
   const renderTabName = () => {
     const currentMode = tab.pattern || 'default';
     return (
-      <span className="flex items-center space-x-1">
+      <span className="flex items-end">
         <span className="font-medium">{tab.name}</span>
-        <span className="text-gray-400">•</span>
-        <span className="text-xs text-gray-500 font-normal">{currentMode}</span>
+        <span className={`${isSelected ? 'text-blue-500' : 'text-gray-400'}`}>.</span>
+        <span className="text-xs text-gray-500 font-normal ml-0.5">{currentMode}</span>
       </span>
     );
   };
@@ -236,13 +236,14 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
       <div role="tablist" className="flex space-x-1 border-b border-gray-200 bg-gray-50 px-4">
         {tabs.map((tab) => {
           // EXACT same design as Frame 3 for fallback too
+          const isTabSelected = selectedTabId === tab.id;
           const renderTabName = () => {
             const currentMode = tab.pattern || 'default';
             return (
-              <span className="flex items-center space-x-1">
+              <span className="flex items-end">
                 <span className="font-medium">{tab.name}</span>
-                <span className="text-gray-400">•</span>
-                <span className="text-xs text-gray-500 font-normal">{currentMode}</span>
+                <span className={`${isTabSelected ? 'text-blue-500' : 'text-gray-400'}`}>.</span>
+                <span className="text-xs text-gray-500 font-normal ml-0.5">{currentMode}</span>
               </span>
             );
           };
@@ -282,13 +283,14 @@ const DraggableTabs: React.FC<DraggableTabsProps> = ({
     <div role="tablist" className="flex border-b border-gray-200 bg-gray-50 px-4 group">
       {/* Pinned tabs (non-draggable) - using EXACT same design as Frame 3 */}
       {pinnedTabs.map((tab) => {
+        const isTabSelected = selectedTabId === tab.id;
         const renderTabName = () => {
           const currentMode = tab.pattern || 'default';
           return (
-            <span className="flex items-center space-x-1">
+            <span className="flex items-end">
               <span className="font-medium">{tab.name}</span>
-              <span className="text-gray-400">•</span>
-              <span className="text-xs text-gray-500 font-normal">{currentMode}</span>
+              <span className={`${isTabSelected ? 'text-blue-500' : 'text-gray-400'}`}>.</span>
+              <span className="text-xs text-gray-500 font-normal ml-0.5">{currentMode}</span>
             </span>
           );
         };
