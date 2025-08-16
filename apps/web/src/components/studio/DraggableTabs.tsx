@@ -52,8 +52,6 @@ const DraggableTab: React.FC<{
   const dragControls = useDragControls();
   const [showModeSelector, setShowModeSelector] = useState(false);
   
-  // All tabs look EXACTLY the same - no special icons or indicators
-
   // EXACT Frame 3 design: "FrameName.mode" with blue period when selected, bottom-aligned mode
   const renderTabName = () => {
     const currentMode = tab.pattern || 'default';
