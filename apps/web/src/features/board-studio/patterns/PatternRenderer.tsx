@@ -508,17 +508,71 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
           {/* Canvas space is purely for props - no frame metadata */}
           <PropManager
             frameId={frame.id}
-            initialProps={Array.isArray(frame.props) ? frame.props : []}
+            initialProps={(() => {
+              // Convert backend props object to array format expected by PropManager
+              let props = [];
+              if (frame.props) {
+                if (Array.isArray(frame.props)) {
+                  // Already an array (new format)
+                  props = frame.props;
+                } else if (typeof frame.props === 'object' && frame.props.props && Array.isArray(frame.props.props)) {
+                  // Nested props array (intermediate format)
+                  props = frame.props.props;
+                } else if (typeof frame.props === 'object') {
+                  // Backend object format - convert to array (this is the issue!)
+                  props = Object.values(frame.props).filter(prop => 
+                    prop && typeof prop === 'object' && prop.id && prop.type
+                  );
+                } else {
+                  props = [];
+                }
+              }
+              
+              console.log('🔧 PatternRenderer: Passing initialProps to PropManager', {
+                frameId: frame.id,
+                frameProps: frame.props,
+                framePropsType: typeof frame.props,
+                framePropsIsArray: Array.isArray(frame.props),
+                processedProps: props,
+                propsCount: props.length
+              });
+              return props;
+            })()}
             isActive={true}
             framePattern={frame.pattern}
             showDraftToggle={mode === 'edit'}
             isDraggable={mode === 'edit'}
             isEditMode={mode === 'edit'}
             onPropsUpdate={async (frameId, props) => {
+              console.log('🔄 PatternRenderer: onPropsUpdate called', { 
+                frameId, 
+                props, 
+                hasOnFrameUpdate: !!onFrameUpdate 
+              });
+              
               if (onFrameUpdate) {
-                await onFrameUpdate(frameId, { 
-                  props: props 
-                });
+                try {
+                  // Convert props array back to object format for backend
+                  const propsObject = {};
+                  props.forEach((prop, index) => {
+                    propsObject[prop.id || `prop_${index}`] = prop;
+                  });
+                  
+                  console.log('📡 PatternRenderer: Calling onFrameUpdate with object format...', {
+                    originalPropsArray: props,
+                    convertedPropsObject: propsObject
+                  });
+                  
+                  await onFrameUpdate(frameId, { 
+                    props: propsObject 
+                  });
+                  console.log('✅ PatternRenderer: onFrameUpdate completed successfully');
+                } catch (error) {
+                  console.error('❌ PatternRenderer: onFrameUpdate failed:', error);
+                  throw error;
+                }
+              } else {
+                console.warn('⚠️ PatternRenderer: No onFrameUpdate callback provided');
               }
             }}
           />

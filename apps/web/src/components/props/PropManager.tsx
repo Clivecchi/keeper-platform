@@ -71,22 +71,38 @@ export const PropManager: React.FC<PropManagerProps> = ({
 
   // Update props when initialProps changes
   useEffect(() => {
+    console.log('🔄 PropManager: initialProps changed', { 
+      frameId, 
+      initialProps,
+      initialPropsCount: initialProps.length 
+    });
     setProps(initialProps);
-  }, [initialProps]);
+  }, [initialProps, frameId]);
 
   // Persist props changes with optimistic updates and save status tracking
   const persistProps = useCallback(async (newProps: PropData[], propId?: string) => {
+    console.log('💾 PropManager: persistProps called', { 
+      frameId, 
+      propsCount: newProps.length, 
+      propId,
+      hasOnPropsUpdate: !!onPropsUpdate 
+    });
+
     if (onPropsUpdate) {
       if (propId) {
+        console.log(`🔄 PropManager: Setting save status to 'saving' for prop ${propId}`);
         setPropSaveStatus(prev => ({ ...prev, [propId]: 'saving' }));
       } else {
         setIsUpdating(true);
       }
       
       try {
+        console.log('📡 PropManager: Calling onPropsUpdate...', { frameId, newProps });
         await onPropsUpdate(frameId, newProps);
+        console.log('✅ PropManager: onPropsUpdate completed successfully');
         
         if (propId) {
+          console.log(`✅ PropManager: Setting save status to 'saved' for prop ${propId}`);
           setPropSaveStatus(prev => ({ ...prev, [propId]: 'saved' }));
           // Clear saved status after 2 seconds
           setTimeout(() => {
@@ -94,9 +110,10 @@ export const PropManager: React.FC<PropManagerProps> = ({
           }, 2000);
         }
       } catch (error) {
-        console.error('Failed to persist props:', error);
+        console.error('❌ PropManager: Failed to persist props:', error);
         
         if (propId) {
+          console.log(`❌ PropManager: Setting save status to 'failed' for prop ${propId}`);
           setPropSaveStatus(prev => ({ ...prev, [propId]: 'failed' }));
           // Clear failed status after 5 seconds
           setTimeout(() => {
@@ -105,12 +122,16 @@ export const PropManager: React.FC<PropManagerProps> = ({
         }
         
         // Revert optimistic update on error
+        console.log('🔄 PropManager: Reverting optimistic update due to error');
         setProps(props);
+        throw error; // Re-throw to let caller handle
       } finally {
         if (!propId) {
           setIsUpdating(false);
         }
       }
+    } else {
+      console.warn('⚠️ PropManager: No onPropsUpdate callback provided');
     }
   }, [frameId, props, onPropsUpdate]);
 
@@ -120,6 +141,14 @@ export const PropManager: React.FC<PropManagerProps> = ({
     propConfig: any,
     position?: { x: number; y: number }
   ) => {
+    console.log('🎯 PropManager: handlePropDrop called', { 
+      frameId, 
+      propType, 
+      propConfig, 
+      position,
+      currentPropsCount: props.length 
+    });
+
     const newProp: PropData = {
       id: uuidv4(),
       type: propType,
@@ -129,17 +158,31 @@ export const PropManager: React.FC<PropManagerProps> = ({
         ...(framePattern === 'canvas' && position ? { position } : {})
       },
       isVisible: true,
-      isDraft: false,
+      isDraft: false, // New props start as published
       orderIndex: props.length,
       createdAt: new Date(),
       updatedAt: new Date()
     };
 
+    console.log('✨ PropManager: Created new prop:', newProp);
+
     const newProps = [...props, newProp];
+    console.log('📋 PropManager: Updated props array:', { 
+      oldCount: props.length, 
+      newCount: newProps.length,
+      newProps 
+    });
+    
     setProps(newProps);
+    console.log('💾 PropManager: Local state updated, calling persistProps...');
     
     // Optimistic update
-    await persistProps(newProps);
+    try {
+      await persistProps(newProps, newProp.id);
+      console.log('✅ PropManager: Props persisted successfully');
+    } catch (error) {
+      console.error('❌ PropManager: Failed to persist props:', error);
+    }
   }, [props, framePattern, persistProps]);
 
   // Handle prop selection
@@ -270,29 +313,45 @@ export const PropManager: React.FC<PropManagerProps> = ({
     setInspectorOpen(false);
   }, []);
 
+  console.log('🎨 PropManager: Rendering', { 
+    frameId, 
+    propsCount: props.length,
+    sortedPropsCount: sortedProps.length,
+    sortedProps,
+    isActive,
+    framePattern
+  });
+
   return (
     <div className={cn("relative", className)}>
       {/* Props Container */}
       <div className="min-h-[200px]">
         {sortedProps.length === 0 ? (
           // Empty State - Show Drop Zone
-          <PropDropZone
-            onPropDrop={handlePropDrop}
-            isActive={isActive}
-            framePattern={framePattern}
-          />
+          <>
+            {console.log('📭 PropManager: Rendering empty state (PropDropZone)')}
+            <PropDropZone
+              onPropDrop={handlePropDrop}
+              isActive={isActive}
+              framePattern={framePattern}
+            />
+          </>
         ) : (
           // Populated State - Show Stacked Props
-          <div className="space-y-2 p-4">
-            <Reorder.Group
-              axis="y"
-              values={sortedProps}
-              onReorder={handleReorder}
-              className="space-y-2"
-            >
-              <AnimatePresence>
-                {sortedProps.map((prop) => (
-                  <motion.div
+          <>
+            {console.log('📋 PropManager: Rendering populated state with props:', sortedProps)}
+            <div className="space-y-2 p-4">
+              <Reorder.Group
+                axis="y"
+                values={sortedProps}
+                onReorder={handleReorder}
+                className="space-y-2"
+              >
+                <AnimatePresence>
+                  {sortedProps.map((prop) => {
+                    console.log('🧩 PropManager: Rendering PropBlock for prop:', prop);
+                    return (
+                      <motion.div
                     key={prop.id}
                     layout
                     initial={{ opacity: 0, y: 20 }}
@@ -315,9 +374,10 @@ export const PropManager: React.FC<PropManagerProps> = ({
                       onToggleDraft={handleToggleDraft}
                       onInlineEdit={handleInlineEdit}
                     />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
             </Reorder.Group>
 
             {/* Drop Zone for Additional Props */}

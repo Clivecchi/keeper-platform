@@ -67,23 +67,34 @@ export const PropDropZone: React.FC<PropDropZoneProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
+    console.log('🎯 PropDropZone: Drop event received');
+    
     setIsDragOver(false);
     setDragPosition(null);
 
     try {
       const propData = e.dataTransfer.getData('application/json');
+      console.log('📦 PropDropZone: Raw drop data:', propData);
+      
       if (propData) {
         const { type, config } = JSON.parse(propData);
+        console.log('✅ PropDropZone: Parsed prop data:', { type, config });
+        
         const rect = e.currentTarget.getBoundingClientRect();
         const dropPosition = {
           x: e.clientX - rect.left,
           y: e.clientY - rect.top
         };
         
+        console.log('📍 PropDropZone: Drop position:', dropPosition);
+        console.log('🚀 PropDropZone: Calling onPropDrop...');
+        
         onPropDrop(type, config, dropPosition);
+      } else {
+        console.warn('⚠️ PropDropZone: No prop data found in drop event');
       }
     } catch (error) {
-      console.error('Failed to parse dropped prop data:', error);
+      console.error('❌ PropDropZone: Failed to parse dropped prop data:', error);
     }
   }, [onPropDrop]);
 

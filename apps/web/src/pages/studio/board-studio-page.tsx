@@ -1801,21 +1801,36 @@ const BoardStudioPage: React.FC = () => {
                             role: f.data?.role
                           }))}
                           onFrameUpdate={async (frameId, updates) => {
+                            console.log('🔄 Board Studio: onFrameUpdate called', { 
+                              frameId, 
+                              updates,
+                              selectedBoardId 
+                            });
+
                             try {
                               // Update frame via API
-                              await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
+                              console.log('📡 Board Studio: Making PATCH request to API...');
+                              const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
                                 method: 'PATCH',
                                 body: JSON.stringify(updates)
                               });
                               
-                              // Update local state
-                              setMockFrames(prev => prev.map(frame =>
-                                frame.id === frameId ? { ...frame, ...updates } : frame
-                              ));
+                              console.log('📡 Board Studio: API response received:', response);
                               
-                              console.log('Frame updated successfully');
+                              // Update local state
+                              console.log('💾 Board Studio: Updating local mockFrames state...');
+                              setMockFrames(prev => {
+                                const updated = prev.map(frame =>
+                                  frame.id === frameId ? { ...frame, ...updates } : frame
+                                );
+                                console.log('📋 Board Studio: Updated mockFrames:', updated);
+                                return updated;
+                              });
+                              
+                              console.log('✅ Board Studio: Frame updated successfully');
                             } catch (error) {
-                              console.error('Failed to update frame:', error);
+                              console.error('❌ Board Studio: Failed to update frame:', error);
+                              throw error;
                             }
                           }}
                           onBoardUpdate={handleSaveBoard}
