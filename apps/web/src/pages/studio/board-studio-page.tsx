@@ -392,9 +392,13 @@ const FrameCard: React.FC<{
       draggable
       onDragStart={() => {
         setIsDragging(true);
+        setDraggedItemType('frame');
         onDragStart(frame);
       }}
-      onDragEnd={() => setIsDragging(false)}
+      onDragEnd={() => {
+        setIsDragging(false);
+        setDraggedItemType(null);
+      }}
       className={`group p-4 border border-slate-200 rounded-lg cursor-move hover:border-slate-300 hover:shadow-md transition-all bg-white relative ${
         isDragging ? 'opacity-50' : ''
       }`}
@@ -517,6 +521,7 @@ const BoardStudioPage: React.FC = () => {
   const [frameTypes, setFrameTypes] = useState<FrameType[]>(FRAME_TYPES);
   const [selectedFrameId, setSelectedFrameId] = useState<string | null>(null);
   const [openFrameConfigId, setOpenFrameConfigId] = useState<string | null>(null);
+  const [draggedItemType, setDraggedItemType] = useState<'frame' | 'prop' | null>(null);
   
   // Props Library State
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
@@ -1184,17 +1189,20 @@ const BoardStudioPage: React.FC = () => {
       const frameToDelete = mockFrames.find(frame => frame.id === frameId);
       
       // Update local state immediately for responsive UI
-      setMockFrames(prev => prev.filter(frame => frame.id !== frameId));
-      
-      // If the deleted frame was selected, select the first remaining frame
-      if (selectedFrameId === frameId) {
-        const remainingFrames = mockFrames.filter(frame => frame.id !== frameId);
-        if (remainingFrames.length > 0) {
-          setSelectedFrameId(remainingFrames[0].id);
-        } else {
-          setSelectedFrameId(null);
+      setMockFrames(prev => {
+        const remainingFrames = prev.filter(frame => frame.id !== frameId);
+        
+        // If the deleted frame was selected, select the first remaining frame
+        if (selectedFrameId === frameId) {
+          if (remainingFrames.length > 0) {
+            setSelectedFrameId(remainingFrames[0].id);
+          } else {
+            setSelectedFrameId(null);
+          }
         }
-      }
+        
+        return remainingFrames;
+      });
       
       // Persist to server
       const response = await apiFetch(`/api/boards/${selectedBoardId}/frames/${frameId}`, {
@@ -1318,7 +1326,12 @@ const BoardStudioPage: React.FC = () => {
   const handleCanvasDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
-    setDragOverBoard(true);
+    
+    // Only show board drop state for frames, not props
+    if (draggedItemType === 'frame') {
+      setDragOverBoard(true);
+    }
+    // For props, we don't set dragOverBoard - they should be dropped on frames
   };
 
   const handleCanvasDragLeave = () => {
@@ -1328,35 +1341,55 @@ const BoardStudioPage: React.FC = () => {
   const handleCanvasDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOverBoard(false);
+    setDraggedItemType(null);
     
     try {
-      const frameData = JSON.parse(e.dataTransfer.getData('application/json'));
+      // Try to get JSON data first (new format)
+      let draggedData;
+      const jsonData = e.dataTransfer.getData('application/json');
+      const textData = e.dataTransfer.getData('text/plain');
       
-      if (selectedBoardId) {
-        console.log('Frame dropped:', frameData);
-        
-        // Create a new frame instance
-        const newFrame = {
-          id: `frame-${Date.now()}`,
-          data: {
-            name: frameData.name,
-            description: frameData.description,
-            category: frameData.category,
-            icon: frameData.icon,
-          },
-          FrameConfig: {
-            engagementMode: 'dialogic',
-          }
-        };
+      if (jsonData) {
+        draggedData = JSON.parse(jsonData);
+      } else if (textData) {
+        draggedData = JSON.parse(textData);
+      } else {
+        console.error('No drag data found');
+        return;
+      }
+      
+      // Check if this is a frame or prop
+      if (draggedData.name && draggedData.description && draggedData.category) {
+        // This is a frame being dropped on the board
+        if (selectedBoardId) {
+          console.log('Frame dropped:', draggedData);
+          
+          // Create a new frame instance
+          const newFrame = {
+            id: `frame-${Date.now()}`,
+            data: {
+              name: draggedData.name,
+              description: draggedData.description,
+              category: draggedData.category,
+              icon: draggedData.icon,
+            },
+            FrameConfig: {
+              engagementMode: 'dialogic',
+            }
+          };
 
-        // Add to mock frames
-        setMockFrames(prev => [...prev, newFrame]);
-        setSelectedFrameId(newFrame.id);
-        
-        console.log(`Dropped and added ${frameData.name} to board`);
+          // Add to mock frames
+          setMockFrames(prev => [...prev, newFrame]);
+          setSelectedFrameId(newFrame.id);
+          
+          console.log(`Dropped and added ${draggedData.name} to board`);
+        }
+      } else if (draggedData.type && draggedData.config) {
+        // This is a prop being dropped - should not happen on canvas
+        console.log('Prop dropped on canvas - this should not happen. Props should be dropped on frames.');
       }
     } catch (error) {
-      console.error('Error handling frame drop:', error);
+      console.error('Error handling drop:', error);
     }
   };
 
@@ -1822,10 +1855,18 @@ const BoardStudioPage: React.FC = () => {
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                         draggable
                         onDragStart={(e) => {
-                          const frameData = { id: 'hero-image', name: 'Hero Image', type: 'media_card', description: 'Large featured image', category: 'content', icon: '🖼️' };
-                          e.dataTransfer.setData('application/json', JSON.stringify(frameData));
-                          e.dataTransfer.effectAllowed = 'copy';
+                          setDraggedItemType('prop');
+                          e.dataTransfer.setData('application/json', JSON.stringify({ 
+                            type: 'image', 
+                            config: { 
+                              url: '', 
+                              alt: 'Hero image', 
+                              size: 'large',
+                              name: 'Hero Image'
+                            } 
+                          }));
                         }}
+                        onDragEnd={() => setDraggedItemType(null)}
                         onClick={() => handleAddFrameToBoard({ id: 'hero-image', name: 'Hero Image', type: 'media_card', description: 'Large featured image', category: 'content', icon: '🖼️' })}
                       >
                         <Image className="w-4 h-4 text-gray-500" />
@@ -1838,8 +1879,18 @@ const BoardStudioPage: React.FC = () => {
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                         draggable
                         onDragStart={(e) => {
-                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'video-player', name: 'Video Player', type: 'media_card', description: 'Embedded video content', category: 'content', icon: '🎥' }));
+                          setDraggedItemType('prop');
+                          e.dataTransfer.setData('application/json', JSON.stringify({ 
+                            type: 'media', 
+                            config: { 
+                              url: '', 
+                              type: 'video',
+                              autoplay: false,
+                              name: 'Video Player'
+                            } 
+                          }));
                         }}
+                        onDragEnd={() => setDraggedItemType(null)}
                         onClick={() => handleAddFrameToBoard({ id: 'video-player', name: 'Video Player', type: 'media_card', description: 'Embedded video content', category: 'content', icon: '🎥' })}
                       >
                         <Video className="w-4 h-4 text-gray-500" />
@@ -1852,6 +1903,7 @@ const BoardStudioPage: React.FC = () => {
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                         draggable
                         onDragStart={(e) => {
+                          setDraggedItemType('prop');
                           e.dataTransfer.setData('application/json', JSON.stringify({ 
                             type: 'gallery', 
                             config: { 
@@ -1862,6 +1914,7 @@ const BoardStudioPage: React.FC = () => {
                             } 
                           }));
                         }}
+                        onDragEnd={() => setDraggedItemType(null)}
                         onClick={() => handleAddFrameToBoard({ id: 'image-gallery', name: 'Image Gallery', type: 'media_card', description: 'Collection of images', category: 'content', icon: '🖼️' })}
                       >
                         <ImageIcon className="w-4 h-4 text-gray-500" />
@@ -1907,6 +1960,7 @@ const BoardStudioPage: React.FC = () => {
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                         draggable
                         onDragStart={(e) => {
+                          setDraggedItemType('prop');
                           e.dataTransfer.setData('application/json', JSON.stringify({ 
                             type: 'text', 
                             config: { 
@@ -1917,6 +1971,7 @@ const BoardStudioPage: React.FC = () => {
                             } 
                           }));
                         }}
+                        onDragEnd={() => setDraggedItemType(null)}
                         onClick={() => handleAddFrameToBoard({ id: 'text-block', name: 'Text Block', type: 'preview', description: 'Body text content', category: 'content', icon: '📝' })}
                       >
                         <Type className="w-4 h-4 text-gray-500" />
@@ -1962,6 +2017,7 @@ const BoardStudioPage: React.FC = () => {
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                         draggable
                         onDragStart={(e) => {
+                          setDraggedItemType('prop');
                           e.dataTransfer.setData('application/json', JSON.stringify({ 
                             type: 'button', 
                             config: { 
@@ -1972,6 +2028,7 @@ const BoardStudioPage: React.FC = () => {
                             } 
                           }));
                         }}
+                        onDragEnd={() => setDraggedItemType(null)}
                         onClick={() => handleAddFrameToBoard({ id: 'action-button', name: 'Action Button', type: 'dialog', description: 'Clickable call-to-action', category: 'interaction', icon: '🔘' })}
                       >
                         <MousePointer className="w-4 h-4 text-gray-500" />
@@ -2016,7 +2073,8 @@ const BoardStudioPage: React.FC = () => {
                         <div 
                           className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                           draggable
-                                                  onDragStart={(e) => {
+                        onDragStart={(e) => {
+                          setDraggedItemType('prop');
                           e.dataTransfer.setData('application/json', JSON.stringify({ 
                             type: 'token', 
                             config: { 
@@ -2027,6 +2085,7 @@ const BoardStudioPage: React.FC = () => {
                             } 
                           }));
                         }}
+                        onDragEnd={() => setDraggedItemType(null)}
                           onClick={() => handleAddFrameToBoard({ id: 'ai-token', name: 'AI Token', type: 'ai_token', description: 'AI agent placeholder and configuration', category: 'interaction', icon: '🎯' })}
                         >
                           <SparklesIcon className="w-4 h-4 text-gray-500" />
