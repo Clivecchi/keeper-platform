@@ -1282,9 +1282,40 @@ const BoardStudioPage: React.FC = () => {
         }
       };
 
-      // Add to mock frames
+      // Add to mock frames immediately for responsive UI
       setMockFrames(prev => [...prev, newFrame]);
       setSelectedFrameId(newFrame.id);
+      
+      console.log(`Added ${frame.name} to board locally`);
+      
+      // Persist the frame to the backend
+      try {
+        const response = await apiFetch(`/api/boards/${selectedBoardId}/frames`, {
+          method: 'POST',
+          body: JSON.stringify({
+            id: newFrame.id,
+            name: frame.name,
+            description: frame.description,
+            category: frame.category,
+            icon: frame.icon,
+            pattern: 'dialogic',
+            props: {},
+            layoutKind: 'default',
+            layoutData: {},
+            orderIndex: 0
+          })
+        });
+        
+        if (response.success) {
+          console.log('Frame persisted to backend successfully');
+        } else {
+          console.error('Failed to persist frame to backend:', response.error);
+          // Optionally revert the optimistic update
+        }
+      } catch (error) {
+        console.error('Error persisting frame to backend:', error);
+        // Optionally revert the optimistic update
+      }
       
       // Try to add via the board context as well (but don't break if it fails)
       try {
@@ -1378,11 +1409,40 @@ const BoardStudioPage: React.FC = () => {
             }
           };
 
-          // Add to mock frames
+          // Add to mock frames immediately for responsive UI
           setMockFrames(prev => [...prev, newFrame]);
           setSelectedFrameId(newFrame.id);
           
           console.log(`Dropped and added ${draggedData.name} to board`);
+          
+          // Persist the frame to the backend
+          try {
+            const response = await apiFetch(`/api/boards/${selectedBoardId}/frames`, {
+              method: 'POST',
+              body: JSON.stringify({
+                id: newFrame.id,
+                name: draggedData.name,
+                description: draggedData.description,
+                category: draggedData.category,
+                icon: draggedData.icon,
+                pattern: 'dialogic',
+                props: {},
+                layoutKind: 'default',
+                layoutData: {},
+                orderIndex: 0
+              })
+            });
+            
+            if (response.success) {
+              console.log('Frame persisted to backend successfully');
+            } else {
+              console.error('Failed to persist frame to backend:', response.error);
+              // Optionally revert the optimistic update
+            }
+          } catch (error) {
+            console.error('Error persisting frame to backend:', error);
+            // Optionally revert the optimistic update
+          }
         }
       } else if (draggedData.type && draggedData.config) {
         // This is a prop being dropped - should not happen on canvas

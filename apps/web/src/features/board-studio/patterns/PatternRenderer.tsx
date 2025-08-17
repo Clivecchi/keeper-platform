@@ -508,7 +508,7 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
           {/* Canvas space is purely for props - no frame metadata */}
           <PropManager
             frameId={frame.id}
-            initialProps={frame.props?.props || []}
+            initialProps={Array.isArray(frame.props) ? frame.props : []}
             isActive={true}
             framePattern={frame.pattern}
             showDraftToggle={mode === 'edit'}
@@ -517,7 +517,7 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
             onPropsUpdate={async (frameId, props) => {
               if (onFrameUpdate) {
                 await onFrameUpdate(frameId, { 
-                  props: { ...frame.props, props } 
+                  props: props 
                 });
               }
             }}
