@@ -520,8 +520,8 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
                   props = frame.props.props;
                 } else if (typeof frame.props === 'object') {
                   // Backend object format - convert to array (this is the issue!)
-                  props = Object.values(frame.props).filter(prop => 
-                    prop && typeof prop === 'object' && prop.id && prop.type
+                  props = Object.values(frame.props).filter((prop): prop is any => 
+                    prop && typeof prop === 'object' && 'id' in prop && 'type' in prop
                   );
                 } else {
                   props = [];

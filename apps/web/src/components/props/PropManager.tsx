@@ -410,7 +410,8 @@ export const PropManager: React.FC<PropManagerProps> = ({
                 Drop additional props here
               </div>
             </motion.div>
-          </div>
+            </div>
+          </>
         )}
       </div>
 
