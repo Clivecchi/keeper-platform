@@ -560,7 +560,7 @@ const BoardStudioPage: React.FC = () => {
       console.log('Loading board:', boardId);
       
       // Load full board data from API
-      const boardData = await apiFetch(`/api/boards/${boardId}`);
+      const boardData = await apiFetch(`/api/board-data/${boardId}`);
       
       if (boardData.success && boardData.data) {
         const board = boardData.data;
@@ -662,7 +662,7 @@ const BoardStudioPage: React.FC = () => {
     try {
       console.log('Loading boards from API...');
       // Load boards using the correct API endpoint
-      const boardsData = await apiFetch(`/api/boards?keeperId=${activeKeeper?.id || 'demo'}`);
+      const boardsData = await apiFetch(`/api/board-data?keeperId=${activeKeeper?.id || 'demo'}`);
       
       // Transform API response to match our BoardListItem interface
       const transformedBoards = (boardsData.data || []).map((board: any) => ({
@@ -740,7 +740,7 @@ const BoardStudioPage: React.FC = () => {
 
       // Try to create via API first
       try {
-        const createdBoard = await apiFetch('/api/boards', {
+        const createdBoard = await apiFetch('/api/board-data', {
           method: 'POST',
           body: JSON.stringify(newBoard)
         });
@@ -799,8 +799,8 @@ const BoardStudioPage: React.FC = () => {
 
     // Add force parameter if specified
     const url = options?.force 
-      ? `/api/boards/${selectedBoardId}?force=true`
-      : `/api/boards/${selectedBoardId}`;
+      ? `/api/board-data/${selectedBoardId}?force=true`
+      : `/api/board-data/${selectedBoardId}`;
 
     return await apiFetch(url, {
       method: 'PUT',
@@ -869,7 +869,7 @@ const BoardStudioPage: React.FC = () => {
 
       // Try to save via API
       try {
-        const savedBoard = await apiFetch(`/api/boards/${selectedBoardId}`, {
+        const savedBoard = await apiFetch(`/api/board-data/${selectedBoardId}`, {
           method: 'PUT',
           body: JSON.stringify(boardToSave)
         });
@@ -890,7 +890,7 @@ const BoardStudioPage: React.FC = () => {
             subtitle: boardDescription || coverFrame.props?.subtitle
           };
 
-          await apiFetch(`/api/boards/${selectedBoardId}/frames/${coverFrame.id}`, {
+          await apiFetch(`/api/board-data/${selectedBoardId}/frames/${coverFrame.id}`, {
             method: 'PATCH',
             body: JSON.stringify({ props: updatedProps })
           });
@@ -1011,7 +1011,7 @@ const BoardStudioPage: React.FC = () => {
     if (!selectedBoardId) return;
     
     try {
-      const response = await apiFetch(`/api/boards/${selectedBoardId}/frames/reorder`, {
+      const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames/reorder`, {
         method: 'PATCH',
         body: JSON.stringify({ order: newOrder })
       });
@@ -1060,7 +1060,7 @@ const BoardStudioPage: React.FC = () => {
       ));
       
       // Persist to server
-      const response = await apiFetch(`/api/boards/${selectedBoardId}/frames/${frameId}`, {
+      const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
         method: 'PATCH',
         body: JSON.stringify({ 
           engagementMode: newMode,
@@ -1130,7 +1130,7 @@ const BoardStudioPage: React.FC = () => {
       ));
       
       // Persist to server
-      const response = await apiFetch(`/api/boards/${selectedBoardId}/frames/${frameId}`, {
+      const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
         method: 'PATCH',
         body: JSON.stringify({ 
           isPinned: isPinned
@@ -1205,7 +1205,7 @@ const BoardStudioPage: React.FC = () => {
       });
       
       // Persist to server
-      const response = await apiFetch(`/api/boards/${selectedBoardId}/frames/${frameId}`, {
+      const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
         method: 'DELETE'
       });
       
@@ -1290,7 +1290,7 @@ const BoardStudioPage: React.FC = () => {
       
       // Persist the frame to the backend
       try {
-        const response = await apiFetch(`/api/boards/${selectedBoardId}/frames`, {
+        const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames`, {
           method: 'POST',
           body: JSON.stringify({
             id: newFrame.id,
@@ -1417,7 +1417,7 @@ const BoardStudioPage: React.FC = () => {
           
           // Persist the frame to the backend
           try {
-            const response = await apiFetch(`/api/boards/${selectedBoardId}/frames`, {
+            const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames`, {
               method: 'POST',
               body: JSON.stringify({
                 id: newFrame.id,
@@ -1803,7 +1803,7 @@ const BoardStudioPage: React.FC = () => {
                           onFrameUpdate={async (frameId, updates) => {
                             try {
                               // Update frame via API
-                              await apiFetch(`/api/boards/${selectedBoardId}/frames/${frameId}`, {
+                              await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
                                 method: 'PATCH',
                                 body: JSON.stringify(updates)
                               });
@@ -1870,7 +1870,7 @@ const BoardStudioPage: React.FC = () => {
                 onApplySuggestion={async (frameId, updates) => {
                   try {
                     // Apply suggestions to frame props
-                    await apiFetch(`/api/boards/${selectedBoardId}/frames/${frameId}`, {
+                    await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
                       method: 'PATCH',
                       body: JSON.stringify({ props: updates })
                     });
