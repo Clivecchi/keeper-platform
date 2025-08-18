@@ -716,7 +716,23 @@ router.post('/:id/frames', authMiddlewareCompat, async (req: Request, res: Respo
 router.patch('/:id/frames/:frameId', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
     const { id: boardId, frameId } = req.params;
+    
+    console.log('🔄 PATCH Frame Request:', {
+      boardId,
+      frameId,
+      rawBody: req.body,
+      bodyKeys: Object.keys(req.body || {}),
+      propsInBody: req.body?.props ? 'YES' : 'NO',
+      propsContent: req.body?.props
+    });
+    
     const updates = FrameUpdate.parse(req.body);
+    console.log('✅ Parsed updates:', {
+      updates,
+      hasProps: 'props' in updates,
+      propsValue: updates.props
+    });
+    
     const userId = (req as any).user?.id;
 
     if (!userId) {
@@ -735,6 +751,12 @@ router.patch('/:id/frames/:frameId', authMiddlewareCompat, async (req: Request, 
       return res.status(404).json({ success: false, error: 'Frame not found' });
     }
 
+    console.log('📋 Existing frame before update:', {
+      id: existingFrame.id,
+      currentProps: existingFrame.props,
+      propsType: typeof existingFrame.props
+    });
+
     // Update the frame
     const updatedFrame = await prisma.frameInstance.update({
       where: { id: frameId },
@@ -745,6 +767,13 @@ router.patch('/:id/frames/:frameId', authMiddlewareCompat, async (req: Request, 
       include: {
         FrameConfig: true
       }
+    });
+
+    console.log('🎯 Frame updated successfully:', {
+      id: updatedFrame.id,
+      newProps: updatedFrame.props,
+      propsType: typeof updatedFrame.props,
+      propsKeys: updatedFrame.props ? Object.keys(updatedFrame.props) : 'null'
     });
 
     return res.json({

@@ -662,7 +662,7 @@ const BoardStudioPage: React.FC = () => {
     try {
       console.log('Loading boards from API...');
       // Load boards using the correct API endpoint
-      const boardsData = await apiFetch(`/api/board-data?keeperId=${activeKeeper?.id || 'demo'}`);
+      const boardsData = await apiFetch(`/api/board-data?keeperId=${activeKeeper?.id || '00000000-0000-0000-0000-000000000001'}`);
       
       // Transform API response to match our BoardListItem interface
       const transformedBoards = (boardsData.data || []).map((board: any) => ({
