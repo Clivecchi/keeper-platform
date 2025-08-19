@@ -597,7 +597,9 @@ const BoardStudioPage: React.FC = () => {
         }));
         
         setMockFrames(frames);
-        setSelectedFrameId(frames[0]?.id || null);
+        // Select the content frame (not cover) by default
+        const contentFrame = frames.find(f => f.data?.role !== 'cover' && f.data?.role !== 'settings') || frames[1] || frames[0];
+        setSelectedFrameId(contentFrame?.id || null);
         
         // Update etag for autosave conflict detection
         if (board.etag) {
@@ -2021,7 +2023,16 @@ const BoardStudioPage: React.FC = () => {
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                         draggable
                         onDragStart={(e) => {
-                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'heading', name: 'Heading', type: 'preview', description: 'Title or section header', category: 'content', icon: '📝' }));
+                          setDraggedItemType('prop');
+                          e.dataTransfer.setData('application/json', JSON.stringify({ 
+                            type: 'heading', 
+                            config: { 
+                              content: 'Enter heading text...',
+                              level: 2,
+                              alignment: 'left',
+                              name: 'Heading'
+                            } 
+                          }));
                         }}
                         onClick={() => handleAddFrameToBoard({ id: 'heading', name: 'Heading', type: 'preview', description: 'Title or section header', category: 'content', icon: '📝' })}
                       >
@@ -2059,7 +2070,16 @@ const BoardStudioPage: React.FC = () => {
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                         draggable
                         onDragStart={(e) => {
-                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'quote', name: 'Quote', type: 'preview', description: 'Highlighted testimonial', category: 'content', icon: '💬' }));
+                          setDraggedItemType('prop');
+                          e.dataTransfer.setData('application/json', JSON.stringify({ 
+                            type: 'quote', 
+                            config: { 
+                              content: 'Enter quote text...',
+                              author: '',
+                              style: 'default',
+                              name: 'Quote'
+                            } 
+                          }));
                         }}
                         onClick={() => handleAddFrameToBoard({ id: 'quote', name: 'Quote', type: 'preview', description: 'Highlighted testimonial', category: 'content', icon: '💬' })}
                       >
@@ -2116,7 +2136,16 @@ const BoardStudioPage: React.FC = () => {
                         className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                         draggable
                         onDragStart={(e) => {
-                          e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'form', name: 'Form', type: 'config_panel', description: 'Input collection interface', category: 'configuration', icon: '📋' }));
+                          setDraggedItemType('prop');
+                          e.dataTransfer.setData('application/json', JSON.stringify({ 
+                            type: 'form', 
+                            config: { 
+                              fields: [],
+                              submitLabel: 'Submit',
+                              action: '',
+                              name: 'Form'
+                            } 
+                          }));
                         }}
                         onClick={() => handleAddFrameToBoard({ id: 'form', name: 'Form', type: 'config_panel', description: 'Input collection interface', category: 'configuration', icon: '📋' })}
                       >
@@ -2173,7 +2202,16 @@ const BoardStudioPage: React.FC = () => {
                           className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                           draggable
                           onDragStart={(e) => {
-                            e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'image-slider', name: 'Image Slider', type: 'media_card', description: 'Animated image carousel', category: 'content', icon: '🎞️' }));
+                            setDraggedItemType('prop');
+                            e.dataTransfer.setData('application/json', JSON.stringify({ 
+                              type: 'image-slider', 
+                              config: { 
+                                images: [],
+                                autoPlay: true,
+                                showDots: true,
+                                name: 'Image Slider'
+                              } 
+                            }));
                           }}
                           onClick={() => handleAddFrameToBoard({ id: 'image-slider', name: 'Image Slider', type: 'media_card', description: 'Animated image carousel', category: 'content', icon: '🎞️' })}
                         >
@@ -2187,7 +2225,16 @@ const BoardStudioPage: React.FC = () => {
                           className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                           draggable
                           onDragStart={(e) => {
-                            e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'ai-assistant', name: 'AI Assistant', type: 'agent_preview', description: 'Conversational AI interface', category: 'interaction', icon: '🤖' }));
+                            setDraggedItemType('prop');
+                            e.dataTransfer.setData('application/json', JSON.stringify({ 
+                              type: 'ai-assistant', 
+                              config: { 
+                                agentId: '',
+                                greeting: 'Hello! How can I help you?',
+                                showAvatar: true,
+                                name: 'AI Assistant'
+                              } 
+                            }));
                           }}
                           onClick={() => handleAddFrameToBoard({ id: 'ai-assistant', name: 'AI Assistant', type: 'agent_preview', description: 'Conversational AI interface', category: 'interaction', icon: '🤖' })}
                         >
@@ -2201,7 +2248,16 @@ const BoardStudioPage: React.FC = () => {
                           className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
                           draggable
                           onDragStart={(e) => {
-                            e.dataTransfer.setData('text/plain', JSON.stringify({ id: 'smart-suggestions', name: 'Smart Suggestions', type: 'ai_widget', description: 'AI-powered content recommendations', category: 'interaction', icon: '💡' }));
+                            setDraggedItemType('prop');
+                            e.dataTransfer.setData('application/json', JSON.stringify({ 
+                              type: 'smart-suggestions', 
+                              config: { 
+                                maxSuggestions: 3,
+                                category: 'general',
+                                autoRefresh: false,
+                                name: 'Smart Suggestions'
+                              } 
+                            }));
                           }}
                           onClick={() => handleAddFrameToBoard({ id: 'smart-suggestions', name: 'Smart Suggestions', type: 'ai_widget', description: 'AI-powered content recommendations', category: 'interaction', icon: '💡' })}
                         >

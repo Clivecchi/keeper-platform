@@ -343,15 +343,25 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
         description: true,
         createdAt: true,
         updatedAt: true,
+        frames: {
+          select: { id: true }
+        }
       },
       orderBy: { updatedAt: 'desc' },
       take: limit,
       skip: offset,
     });
 
+    // Add frame count to each board
+    const boardsWithFrameCount = boards.map(board => ({
+      ...board,
+      frameCount: board.frames.length,
+      frames: undefined // Remove frames array from response
+    }));
+
     return res.json({
       success: true,
-      data: boards
+      data: boardsWithFrameCount
     });
   } catch (error) {
     console.error('Error fetching boards:', error);

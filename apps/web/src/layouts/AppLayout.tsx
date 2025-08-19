@@ -82,8 +82,8 @@ const GlobalDebugButton: React.FC = () => {
 
   return (
     <>
-      {/* Debug Button - Fixed Position */}
-      <div className="fixed bottom-4 right-4 z-50">
+      {/* Debug Button - Fixed Position (moved to avoid prop management overlap) */}
+      <div className="fixed bottom-4 left-4 z-50">
         <button
           onClick={fetchDebugData}
           disabled={loading}
