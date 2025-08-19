@@ -625,6 +625,16 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
     propsKeys: frame.props ? Object.keys(frame.props) : [],
     propsContent: frame.props
   });
+  
+  // Specific debug for Preview mode
+  if (mode === 'preview') {
+    console.log('🔍 PatternRenderer: PREVIEW MODE detected', {
+      frameRole: frame.role,
+      framePattern: frame.pattern,
+      willUseFocusPattern: frame.role === 'cover',
+      willUseCanvasPattern: frame.role !== 'cover' && frame.pattern === 'canvas'
+    });
+  }
   // In Edit and Layout modes, show PropManager for prop drop behavior
   if (mode === 'edit' || mode === 'layout') {
     return (
@@ -726,8 +736,10 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
     case 'gallery':
       return <GalleryPattern frame={frame} />;
     case 'canvas':
+      console.log('🎯 PatternRenderer: Using CanvasPattern for canvas pattern');
       return <CanvasPattern frame={frame} />;
     default:
+      console.log('🎯 PatternRenderer: Using CanvasPattern as default for pattern:', frame.pattern);
       // For content frames, default to CanvasPattern to show props
       return <CanvasPattern frame={frame} />;
   }
