@@ -97,6 +97,11 @@ export const PropInspector: React.FC<PropInspectorProps> = ({
           errors.content = 'Content is required';
         }
         break;
+      case 'heading':
+        if (!localConfig.content?.trim()) {
+          errors.content = 'Heading text is required';
+        }
+        break;
       case 'image':
         if (!localConfig.url?.trim()) {
           errors.url = 'Image URL is required';
@@ -104,7 +109,12 @@ export const PropInspector: React.FC<PropInspectorProps> = ({
         break;
       case 'button':
         if (!localConfig.label?.trim()) {
-          errors.label = 'Button label is required';
+          errors.label = 'Button text is required';
+        }
+        break;
+      case 'quote':
+        if (!localConfig.content?.trim()) {
+          errors.content = 'Quote text is required';
         }
         break;
       case 'token':
@@ -502,10 +512,317 @@ export const PropInspector: React.FC<PropInspectorProps> = ({
           </div>
         );
 
+      case 'heading':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="content">Heading Text *</Label>
+              <Input
+                id="content"
+                value={localConfig.content || ''}
+                onChange={(e) => handleConfigChange('content', e.target.value)}
+                placeholder="Enter heading text..."
+                className={validationErrors.content ? 'border-red-500' : ''}
+              />
+              {validationErrors.content && (
+                <p className="text-sm text-red-600 mt-1">{validationErrors.content}</p>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="level">Heading Level</Label>
+                <Select
+                  value={String(localConfig.level || 2)}
+                  onValueChange={(value) => handleConfigChange('level', parseInt(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">H1 (Largest)</SelectItem>
+                    <SelectItem value="2">H2</SelectItem>
+                    <SelectItem value="3">H3</SelectItem>
+                    <SelectItem value="4">H4</SelectItem>
+                    <SelectItem value="5">H5</SelectItem>
+                    <SelectItem value="6">H6 (Smallest)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="alignment">Alignment</Label>
+                <Select
+                  value={localConfig.alignment || 'left'}
+                  onValueChange={(value) => handleConfigChange('alignment', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="left">Left</SelectItem>
+                    <SelectItem value="center">Center</SelectItem>
+                    <SelectItem value="right">Right</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'button':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="label">Button Text *</Label>
+              <Input
+                id="label"
+                value={localConfig.label || ''}
+                onChange={(e) => handleConfigChange('label', e.target.value)}
+                placeholder="Enter button text..."
+                className={validationErrors.label ? 'border-red-500' : ''}
+              />
+              {validationErrors.label && (
+                <p className="text-sm text-red-600 mt-1">{validationErrors.label}</p>
+              )}
+            </div>
+            
+            <div>
+              <Label htmlFor="action">Action URL</Label>
+              <Input
+                id="action"
+                value={localConfig.action || ''}
+                onChange={(e) => handleConfigChange('action', e.target.value)}
+                placeholder="https://example.com or /path"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Where to navigate when clicked
+              </p>
+            </div>
+            
+            <div>
+              <Label htmlFor="variant">Style</Label>
+              <Select
+                value={localConfig.variant || 'primary'}
+                onValueChange={(value) => handleConfigChange('variant', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="primary">Primary (Blue)</SelectItem>
+                  <SelectItem value="secondary">Secondary (Gray)</SelectItem>
+                  <SelectItem value="outline">Outline</SelectItem>
+                  <SelectItem value="ghost">Ghost</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        );
+
+      case 'quote':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="content">Quote Text *</Label>
+              <Textarea
+                id="content"
+                value={localConfig.content || ''}
+                onChange={(e) => handleConfigChange('content', e.target.value)}
+                placeholder="Enter quote text..."
+                className={cn(
+                  "min-h-[80px]",
+                  validationErrors.content ? 'border-red-500' : ''
+                )}
+                rows={3}
+              />
+              {validationErrors.content && (
+                <p className="text-sm text-red-600 mt-1">{validationErrors.content}</p>
+              )}
+            </div>
+            
+            <div>
+              <Label htmlFor="author">Author</Label>
+              <Input
+                id="author"
+                value={localConfig.author || ''}
+                onChange={(e) => handleConfigChange('author', e.target.value)}
+                placeholder="Quote author (optional)"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="style">Quote Style</Label>
+              <Select
+                value={localConfig.style || 'default'}
+                onValueChange={(value) => handleConfigChange('style', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Default</SelectItem>
+                  <SelectItem value="bordered">Bordered</SelectItem>
+                  <SelectItem value="highlighted">Highlighted</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        );
+
+      case 'form':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="submitLabel">Submit Button Text</Label>
+              <Input
+                id="submitLabel"
+                value={localConfig.submitLabel || ''}
+                onChange={(e) => handleConfigChange('submitLabel', e.target.value)}
+                placeholder="Submit"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="action">Form Action URL</Label>
+              <Input
+                id="action"
+                value={localConfig.action || ''}
+                onChange={(e) => handleConfigChange('action', e.target.value)}
+                placeholder="https://example.com/submit"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Where to send form data
+              </p>
+            </div>
+            
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> Form fields can be configured in the advanced modal editor.
+                Click "Open Advanced Editor" below to manage form fields.
+              </p>
+            </div>
+          </div>
+        );
+
+      case 'ai-assistant':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="greeting">Greeting Message</Label>
+              <Textarea
+                id="greeting"
+                value={localConfig.greeting || ''}
+                onChange={(e) => handleConfigChange('greeting', e.target.value)}
+                placeholder="Hello! How can I help you?"
+                className="min-h-[60px]"
+                rows={2}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="agentId">AI Agent</Label>
+              <Input
+                id="agentId"
+                value={localConfig.agentId || ''}
+                onChange={(e) => handleConfigChange('agentId', e.target.value)}
+                placeholder="Select or enter agent ID"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Which AI agent to use for conversations
+              </p>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="showAvatar"
+                checked={localConfig.showAvatar !== false}
+                onCheckedChange={(checked) => handleConfigChange('showAvatar', checked)}
+              />
+              <Label htmlFor="showAvatar">Show avatar</Label>
+            </div>
+          </div>
+        );
+
+      case 'smart-suggestions':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="maxSuggestions">Max Suggestions</Label>
+              <Input
+                id="maxSuggestions"
+                type="number"
+                min="1"
+                max="10"
+                value={localConfig.maxSuggestions || 3}
+                onChange={(e) => handleConfigChange('maxSuggestions', parseInt(e.target.value))}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={localConfig.category || 'general'}
+                onValueChange={(value) => handleConfigChange('category', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="content">Content</SelectItem>
+                  <SelectItem value="design">Design</SelectItem>
+                  <SelectItem value="technical">Technical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="autoRefresh"
+                checked={localConfig.autoRefresh || false}
+                onCheckedChange={(checked) => handleConfigChange('autoRefresh', checked)}
+              />
+              <Label htmlFor="autoRefresh">Auto-refresh suggestions</Label>
+            </div>
+          </div>
+        );
+
+      case 'image-slider':
+        return (
+          <div className="space-y-4">
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Image Slider Configuration</strong><br/>
+                Use the advanced modal editor to manage slider images and settings.
+              </p>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="autoPlay"
+                checked={localConfig.autoPlay !== false}
+                onCheckedChange={(checked) => handleConfigChange('autoPlay', checked)}
+              />
+              <Label htmlFor="autoPlay">Auto-play slides</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="showDots"
+                checked={localConfig.showDots !== false}
+                onCheckedChange={(checked) => handleConfigChange('showDots', checked)}
+              />
+              <Label htmlFor="showDots">Show navigation dots</Label>
+            </div>
+          </div>
+        );
+
       default:
         return (
           <div className="text-center py-8 text-gray-500">
-            <p>No configuration options available for this prop type.</p>
+            <p>Configuration for "{prop.type}" prop type is not yet implemented.</p>
+            <p className="text-sm mt-2">This prop can still be used, but advanced configuration is limited.</p>
           </div>
         );
     }

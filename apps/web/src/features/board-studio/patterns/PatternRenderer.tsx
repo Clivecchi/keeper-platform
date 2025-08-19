@@ -463,24 +463,123 @@ const GalleryPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
 };
 
 const CanvasPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
-  const { props } = frame;
+  // Convert backend props object to array format
+  let propsArray = [];
+  if (frame.props) {
+    if (Array.isArray(frame.props)) {
+      propsArray = frame.props;
+    } else if (typeof frame.props === 'object') {
+      propsArray = Object.values(frame.props).filter((prop): prop is any => 
+        prop && typeof prop === 'object' && 'id' in prop && 'type' in prop
+      );
+    }
+  }
+  
+  // Sort props by orderIndex
+  const sortedProps = propsArray.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+  
+  const renderProp = (prop: any) => {
+    switch (prop.type) {
+      case 'text':
+        return (
+          <div key={prop.id} className="mb-4">
+            <p className="text-gray-900" style={{ fontSize: prop.config.fontSize === 'large' ? '18px' : prop.config.fontSize === 'small' ? '14px' : '16px', fontWeight: prop.config.bold ? 'bold' : 'normal' }}>
+              {prop.config.content || 'Empty text block'}
+            </p>
+          </div>
+        );
+      case 'heading':
+        const HeadingTag = `h${prop.config.level || 2}` as keyof JSX.IntrinsicElements;
+        return (
+          <div key={prop.id} className="mb-4">
+            <HeadingTag className="text-gray-900 font-bold" style={{ textAlign: prop.config.alignment || 'left' }}>
+              {prop.config.content || 'Empty heading'}
+            </HeadingTag>
+          </div>
+        );
+      case 'button':
+        return (
+          <div key={prop.id} className="mb-4">
+            <button 
+              className={`px-4 py-2 rounded-lg ${
+                prop.config.variant === 'secondary' 
+                  ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              {prop.config.label || 'Button'}
+            </button>
+          </div>
+        );
+      case 'quote':
+        return (
+          <div key={prop.id} className="mb-4 border-l-4 border-blue-500 pl-4 italic">
+            <p className="text-gray-700">"{prop.config.content || 'Empty quote'}"</p>
+            {prop.config.author && (
+              <p className="text-sm text-gray-500 mt-2">— {prop.config.author}</p>
+            )}
+          </div>
+        );
+      case 'image':
+        return (
+          <div key={prop.id} className="mb-4">
+            {prop.config.url ? (
+              <img 
+                src={prop.config.url} 
+                alt={prop.config.alt || 'Image'} 
+                className="rounded-lg max-w-full h-auto"
+              />
+            ) : (
+              <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500">
+                No image source
+              </div>
+            )}
+          </div>
+        );
+      case 'ai-assistant':
+        return (
+          <div key={prop.id} className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm">
+                🤖
+              </div>
+              <div>
+                <p className="text-blue-900">{prop.config.greeting || 'Hello! How can I help you?'}</p>
+              </div>
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <div key={prop.id} className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="text-sm text-gray-600">
+              {prop.type}: {JSON.stringify(prop.config).substring(0, 100)}...
+            </div>
+          </div>
+        );
+    }
+  };
   
   return (
     <div className="w-full max-w-6xl mx-auto">
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-6">{props.title || frame.name}</h3>
-        
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-          <div className="text-gray-500">
-            <div className="grid grid-cols-8 gap-2 mb-6 opacity-50">
-              {Array.from({ length: 32 }).map((_, i) => (
-                <div key={i} className="h-2 bg-gray-200 rounded" />
-              ))}
-            </div>
-            <p>Canvas layout - items can be positioned freely</p>
-            <p className="text-sm mt-2">Grid {props.showGrid ? 'visible' : 'hidden'} • Snap {props.snapToGrid ? 'enabled' : 'disabled'}</p>
+        {sortedProps.length > 0 ? (
+          <div className="space-y-4">
+            {sortedProps.map(renderProp)}
           </div>
-        </div>
+        ) : (
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+            <div className="text-gray-500">
+              <div className="grid grid-cols-8 gap-2 mb-6 opacity-50">
+                {Array.from({ length: 32 }).map((_, i) => (
+                  <div key={i} className="h-2 bg-gray-200 rounded" />
+                ))}
+              </div>
+              <p>Canvas layout - no props added yet</p>
+              <p className="text-sm mt-2">Switch to Edit mode to add props</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

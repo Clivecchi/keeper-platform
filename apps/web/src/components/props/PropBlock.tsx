@@ -93,29 +93,37 @@ export const PropBlock: React.FC<PropBlockProps> = ({
   const blockRef = useRef<HTMLDivElement>(null);
 
   const getPropLabel = () => {
-    // Extract a human-readable label from the prop
-    if (prop.config.name) return prop.config.name;
-    if (prop.config.title) return prop.config.title;
-    if (prop.config.label) return prop.config.label;
-    
-    // Fallback to type-based labels
+    // Show actual content/configuration for better UX
     switch (prop.type) {
-      case 'image':
-        return 'Image';
       case 'text':
-        return 'Text Block';
+        return prop.config.content || 'Text Block (empty)';
+      case 'heading':
+        return prop.config.content || 'Heading (empty)';
       case 'button':
-        return 'Action Button';
+        return prop.config.label || 'Button (no label)';
+      case 'quote':
+        return prop.config.content ? `"${prop.config.content.substring(0, 40)}${prop.config.content.length > 40 ? '...' : '}"` : 'Quote (empty)';
+      case 'image':
+        return prop.config.url ? `Image: ${prop.config.url.split('/').pop()}` : 'Image (no source)';
       case 'token':
-        return 'AI Token';
-      case 'media':
-        return 'Media Player';
+        return prop.config.name || 'AI Token (unnamed)';
       case 'form':
-        return 'Form';
+        const fieldCount = prop.config.fields?.length || 0;
+        return `Form (${fieldCount} field${fieldCount !== 1 ? 's' : ''})`;
       case 'gallery':
-        return 'Image Gallery';
+        const imageCount = prop.config.images?.length || 0;
+        return `Gallery (${imageCount} image${imageCount !== 1 ? 's' : ''})`;
+      case 'ai-assistant':
+        return prop.config.greeting || 'AI Assistant (no greeting)';
+      case 'smart-suggestions':
+        return `Smart Suggestions (${prop.config.maxSuggestions || 3} max)`;
+      case 'image-slider':
+        const sliderCount = prop.config.images?.length || 0;
+        return `Image Slider (${sliderCount} image${sliderCount !== 1 ? 's' : ''})`;
       default:
-        return prop.type.charAt(0).toUpperCase() + prop.type.slice(1);
+        // Fallback to config name or type
+        return prop.config.name || prop.config.title || prop.config.label || 
+               (prop.type.charAt(0).toUpperCase() + prop.type.slice(1));
     }
   };
 
