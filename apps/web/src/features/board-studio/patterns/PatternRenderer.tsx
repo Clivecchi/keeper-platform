@@ -599,6 +599,17 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
   onFrameUpdate,
   onBoardUpdate
 }) => {
+  // Debug logging to understand what's happening
+  console.log('🎨 PatternRenderer: Rendering frame', {
+    frameId: frame.id,
+    frameName: frame.name,
+    frameRole: frame.role,
+    framePattern: frame.pattern,
+    mode: mode,
+    hasProps: !!frame.props,
+    propsKeys: frame.props ? Object.keys(frame.props) : [],
+    propsContent: frame.props
+  });
   // In Edit and Layout modes, show PropManager for prop drop behavior
   if (mode === 'edit' || mode === 'layout') {
     return (

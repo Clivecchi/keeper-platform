@@ -1761,7 +1761,18 @@ const BoardStudioPage: React.FC = () => {
                   ) : (
                     <div className="w-full h-full p-8">
                       {selectedFrameId && mockFrames.length > 0 ? (
-                        <PatternRenderer
+                        <>
+                          {/* Debug info - remove after fixing */}
+                          <div className="mb-4 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
+                            <strong>Debug Info:</strong><br/>
+                            Selected Frame ID: {selectedFrameId}<br/>
+                            Total Frames: {mockFrames.length}<br/>
+                            Frame Roles: {mockFrames.map(f => `${f.data?.name}(${f.data?.role})`).join(', ')}<br/>
+                            Selected Frame Role: {mockFrames.find(f => f.id === selectedFrameId)?.data?.role}<br/>
+                            Selected Frame Pattern: {mockFrames.find(f => f.id === selectedFrameId)?.FrameConfig?.engagementMode}<br/>
+                            Mode: {editorMode}
+                          </div>
+                          <PatternRenderer
                           frame={{
                             id: selectedFrameId,
                             name: mockFrames.find(f => f.id === selectedFrameId)?.data?.name || 'Frame Content',
