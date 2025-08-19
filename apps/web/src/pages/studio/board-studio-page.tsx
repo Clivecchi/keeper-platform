@@ -1769,16 +1769,67 @@ const BoardStudioPage: React.FC = () => {
                       </div>
                     </div>
                   ) : editorMode === 'preview' ? (
-                    <div className="w-full max-w-4xl mx-auto">
-                      <div className="w-full h-96 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                        <div className="text-center text-white">
-                          <div className="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center mb-4 mx-auto">
-                            <BookOpenIcon className="w-8 h-8" />
-                          </div>
-                          <h1 className="text-2xl font-bold mb-2">{boardName || 'Untitled Board'}</h1>
-                          <p className="text-blue-100">{boardDescription || 'Discover the journey behind our latest innovation'}</p>
+                    <div className="w-full h-full p-8">
+                      {selectedFrameId && mockFrames.length > 0 ? (
+                        <PatternRenderer
+                          frame={{
+                            id: selectedFrameId,
+                            name: mockFrames.find(f => f.id === selectedFrameId)?.data?.name || 'Frame Content',
+                            pattern: mockFrames.find(f => f.id === selectedFrameId)?.FrameConfig?.engagementMode || 'canvas',
+                            frameType: mockFrames.find(f => f.id === selectedFrameId)?.frameType || 'media_card',
+                            layoutKind: mockFrames.find(f => f.id === selectedFrameId)?.layoutKind || 'canvas',
+                            layoutData: mockFrames.find(f => f.id === selectedFrameId)?.layoutData || {},
+                            props: mockFrames.find(f => f.id === selectedFrameId)?.props || {},
+                            role: mockFrames.find(f => f.id === selectedFrameId)?.data?.role
+                          }}
+                          mode={editorMode}
+                          boardName={boardName}
+                          boardDescription={boardDescription}
+                          boardData={{
+                            id: selectedBoardId,
+                            name: boardName,
+                            slug: `board-${selectedBoardId}`,
+                            description: boardDescription,
+                            theme: boardTheme,
+                            behavior: {
+                              showGrid: true,
+                              snapToGrid: true,
+                              gridSize: 8,
+                              defaultPattern: engagementMode
+                            },
+                            data: {
+                              scope: 'keeper',
+                              entityId: activeKeeper?.id
+                            },
+                            access: {
+                              visibility: 'private',
+                              allowComments: false,
+                              shareLinkEnabled: false
+                            }
+                          }}
+                          frames={mockFrames.map(f => ({
+                            id: f.id,
+                            name: f.data?.name || 'Frame',
+                            role: f.data?.role
+                          }))}
+                          onFrameUpdate={async (frameId, updates) => {
+                            console.log('🔄 Board Studio: onFrameUpdate called in Preview mode', { 
+                              frameId, 
+                              updates,
+                              selectedBoardId 
+                            });
+                            // In preview mode, we might not want to allow updates
+                            // But we'll keep the handler for consistency
+                          }}
+                          onBoardUpdate={handleSaveBoard}
+                        />
+                      ) : (
+                        <div className="text-center">
+                          <Squares2X2Icon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-xl font-medium text-gray-900 mb-2">No Frame Selected</h3>
+                          <p className="text-gray-600 mb-6">Select a frame to preview its content.</p>
                         </div>
-                      </div>
+                      )}
                     </div>
                   ) : (
                     <div className="w-full h-full p-8">
