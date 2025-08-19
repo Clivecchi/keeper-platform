@@ -573,6 +573,77 @@ const CanvasPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
             </div>
           </div>
         );
+      case 'form':
+        return (
+          <div key={prop.id} className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{prop.config.name || 'Form'}</h3>
+            <div className="space-y-3">
+              {prop.config.fields && prop.config.fields.length > 0 ? (
+                prop.config.fields.map((field: any, index: number) => (
+                  <div key={index}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {field.label || `Field ${index + 1}`}
+                    </label>
+                    {field.type === 'textarea' ? (
+                      <textarea
+                        placeholder={field.placeholder || ''}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        rows={3}
+                        disabled
+                      />
+                    ) : (
+                      <input
+                        type={field.type || 'text'}
+                        placeholder={field.placeholder || ''}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        disabled
+                      />
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="text-gray-500 text-sm">No form fields configured</div>
+              )}
+              <button 
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                disabled
+              >
+                {prop.config.submitLabel || 'Submit'}
+              </button>
+            </div>
+          </div>
+        );
+      case 'gallery':
+        return (
+          <div key={prop.id} className="mb-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{prop.config.name || 'Image Gallery'}</h3>
+            {prop.config.images && prop.config.images.length > 0 ? (
+              <div className={`grid gap-2 ${
+                prop.config.layout === 'grid' 
+                  ? `grid-cols-${prop.config.columns || 3}` 
+                  : 'grid-cols-1'
+              }`}>
+                {prop.config.images.map((image: any, index: number) => (
+                  <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                    <img 
+                      src={image.url || image} 
+                      alt={image.alt || `Gallery image ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <div className="text-gray-400 mb-2">📷</div>
+                <p className="text-gray-500 text-sm">No images in gallery</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Layout: {prop.config.layout || 'grid'} • Columns: {prop.config.columns || 3}
+                </p>
+              </div>
+            )}
+          </div>
+        );
       default:
         return (
           <div key={prop.id} className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
