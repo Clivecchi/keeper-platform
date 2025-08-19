@@ -102,7 +102,7 @@ export const PropBlock: React.FC<PropBlockProps> = ({
       case 'button':
         return prop.config.label || 'Button (no label)';
       case 'quote':
-        return prop.config.content ? `"${prop.config.content.substring(0, 40)}${prop.config.content.length > 40 ? '...' : '}"` : 'Quote (empty)';
+        return prop.config.content ? `"${prop.config.content.substring(0, 40)}${prop.config.content.length > 40 ? '...' : ''}"` : 'Quote (empty)';
       case 'image':
         return prop.config.url ? `Image: ${prop.config.url.split('/').pop()}` : 'Image (no source)';
       case 'token':
