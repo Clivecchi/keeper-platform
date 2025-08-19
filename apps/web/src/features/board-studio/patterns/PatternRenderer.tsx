@@ -487,13 +487,22 @@ const CanvasPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
   console.log('🎨 CanvasPattern: Processed props array', {
     originalProps: frame.props,
     propsArrayLength: propsArray.length,
-    propsArray: propsArray
+    propsArray: propsArray,
+    propTypes: propsArray.map(p => p.type),
+    propIds: propsArray.map(p => p.id)
   });
   
   // Sort props by orderIndex
   const sortedProps = propsArray.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
   
   const renderProp = (prop: any) => {
+    console.log('🎯 CanvasPattern: Rendering prop', {
+      propId: prop.id,
+      propType: prop.type,
+      propConfig: prop.config,
+      hasConfig: !!prop.config
+    });
+    
     switch (prop.type) {
       case 'text':
         return (
@@ -575,6 +584,11 @@ const CanvasPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
     }
   };
   
+  console.log('🎨 CanvasPattern: Final render', {
+    sortedPropsLength: sortedProps.length,
+    sortedProps: sortedProps.map(p => ({id: p.id, type: p.type}))
+  });
+
   return (
     <div className="w-full max-w-6xl mx-auto">
       <div className="bg-white rounded-lg border border-gray-200 p-6">
