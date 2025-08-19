@@ -681,8 +681,15 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
   }
   
   // In Preview mode, render according to pattern
+  // Special handling for cover frames - always use FocusPattern
+  if (frame.role === 'cover') {
+    return <FocusPattern frame={frame} boardName={boardName} boardDescription={boardDescription} mode={mode} onFrameUpdate={onFrameUpdate} />;
+  }
+  
+  // For content frames, render based on pattern
   switch (frame.pattern) {
     case 'focus':
+      // Only use FocusPattern for non-cover frames if explicitly set
       return <FocusPattern frame={frame} boardName={boardName} boardDescription={boardDescription} mode={mode} onFrameUpdate={onFrameUpdate} />;
     case 'form':
       return <FormPattern frame={frame} mode={mode} boardData={boardData} frames={frames} onBoardUpdate={onBoardUpdate} />;
@@ -695,7 +702,8 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
     case 'canvas':
       return <CanvasPattern frame={frame} />;
     default:
-      return <FocusPattern frame={frame} boardName={boardName} boardDescription={boardDescription} />;
+      // For content frames, default to CanvasPattern to show props
+      return <CanvasPattern frame={frame} />;
   }
 };
 
