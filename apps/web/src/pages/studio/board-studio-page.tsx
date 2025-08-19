@@ -1848,6 +1848,7 @@ const BoardStudioPage: React.FC = () => {
                           }}
                           onBoardUpdate={handleSaveBoard}
                         />
+                        </>
                       ) : (
                         <div className="w-full max-w-4xl mx-auto">
                           <div className="w-full h-96 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
