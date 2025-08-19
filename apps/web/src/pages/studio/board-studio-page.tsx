@@ -579,6 +579,15 @@ const BoardStudioPage: React.FC = () => {
           borderColor: '#CBD5E1'
         });
         
+        // Debug the raw board data from API
+        console.log('🔍 Debug: Raw board data from API:', {
+          boardId: board.id,
+          boardName: board.name,
+          totalFrames: board.frames?.length || 0,
+          framesWithProps: board.frames?.filter(f => f.props && Object.keys(f.props).length > 0).length || 0,
+          rawFrames: board.frames
+        });
+
         // Set frames from API data
         const frames = (board.frames || []).map((frame: any) => ({
           id: frame.id,
@@ -595,6 +604,19 @@ const BoardStudioPage: React.FC = () => {
           layoutData: frame.layoutData || {},
           orderIndex: frame.orderIndex
         }));
+        
+        console.log('🔍 Debug: Processed frames for mockFrames:', {
+          processedFrames: frames.length,
+          framesWithProps: frames.filter(f => f.props && Object.keys(f.props).length > 0).length,
+          frameDetails: frames.map(f => ({
+            id: f.id,
+            name: f.data.name,
+            role: f.data.role,
+            hasProps: !!f.props,
+            propsCount: f.props ? Object.keys(f.props).length : 0,
+            props: f.props
+          }))
+        });
         
         setMockFrames(frames);
         // Select the content frame (not cover) by default
@@ -1829,6 +1851,22 @@ const BoardStudioPage: React.FC = () => {
                               });
                               
                               console.log('📡 Board Studio: API response received:', response);
+            
+            // Debug the frame data being loaded
+            if (response.data && response.data.frames) {
+              console.log('🔍 Debug: Frame data from API:', {
+                totalFrames: response.data.frames.length,
+                framesWithProps: response.data.frames.filter(f => f.props && Object.keys(f.props).length > 0).length,
+                frameDetails: response.data.frames.map(f => ({
+                  id: f.id,
+                  name: f.name || f.data?.name,
+                  role: f.data?.role,
+                  hasProps: !!f.props,
+                  propsCount: f.props ? Object.keys(f.props).length : 0,
+                  props: f.props
+                }))
+              });
+            }
                               
                               // Update local state
                               console.log('💾 Board Studio: Updating local mockFrames state...');

@@ -463,6 +463,15 @@ const GalleryPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
 };
 
 const CanvasPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
+  console.log('🎨 CanvasPattern: Rendering frame', {
+    frameId: frame.id,
+    frameName: frame.name,
+    frameProps: frame.props,
+    propsType: typeof frame.props,
+    propsIsArray: Array.isArray(frame.props),
+    propsKeys: frame.props ? Object.keys(frame.props) : null
+  });
+  
   // Convert backend props object to array format
   let propsArray = [];
   if (frame.props) {
@@ -474,6 +483,12 @@ const CanvasPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
       );
     }
   }
+  
+  console.log('🎨 CanvasPattern: Processed props array', {
+    originalProps: frame.props,
+    propsArrayLength: propsArray.length,
+    propsArray: propsArray
+  });
   
   // Sort props by orderIndex
   const sortedProps = propsArray.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
