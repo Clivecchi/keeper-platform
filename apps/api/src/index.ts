@@ -31,6 +31,7 @@ import keeperTypesRoutes from './api/keeper-types.js';
 import peopleRoutes from './api/people.js';
 // Import database client
 import { prisma } from '@keeper/database';
+import healthRouter from './health.js';
 import { authMiddleware, authMiddlewareCompat, AuthenticatedRequest } from './middleware/authMiddleware.js';
 import keeperRoutes from './api/keeper/routes.js';
 import debugRouter from './api/debug.js';
@@ -725,6 +726,9 @@ app.get('/api/kip/user-keys/providers', getUserProviders);
 
 // KAM Settings route
 app.get('/api/kam/settings', kamSettingsHandler);
+
+// Healthcheck route
+app.use('/', healthRouter);
 
 // Themes route
 app.get('/api/themes/:id', async (req: Request, res: Response) => {

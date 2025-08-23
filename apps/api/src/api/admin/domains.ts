@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import Redis from 'ioredis';
+import Redis, { Redis as RedisType } from 'ioredis';
 import { DomainService, DomainCacheService } from '@keeper/database';
 import { DomainPermissionService } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';

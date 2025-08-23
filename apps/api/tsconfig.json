@@ -1,18 +1,14 @@
 {
-  "extends": "../../tools/tsconfig/base.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "NodeNext",
+    "module": "ESNext",
     "moduleResolution": "NodeNext",
-    "outDir": "./dist",
-
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
+    "target": "ES2022",
+    "outDir": "dist",
+    "rootDir": "src",
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "resolveJsonModule": true
   },
   "include": [
     "src/**/*"
@@ -22,4 +18,4 @@
     "dist",
     "src/__tests__"
   ]
-} 
+}

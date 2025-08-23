@@ -7,7 +7,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
 import { DomainServiceFactory, DomainPermissionService, DomainCacheService, DomainVerificationService, type DomainPermissionType } from '@keeper/database';
-import Redis from 'ioredis';
+import Redis, { Redis as RedisType } from 'ioredis';
 import { AuthenticatedRequest, authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { requireDomainAdminCompat, requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
@@ -18,7 +18,7 @@ import { DomainService } from '@keeper/database';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
-let redis: Redis | null = null;
+let redis: RedisType | null = null;
 if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
   redis = new Redis(process.env.REDIS_URL);
 } else if (process.env.NODE_ENV === 'development') {

@@ -3,10 +3,10 @@
  * Core middleware functions for domain-based request handling
  */
 
-export { resolveDomainContext } from './resolveDomainContext';
-export { requireAuth } from './requireAuth';
-export { requireDomainPermission } from './requireDomainPermission';
-export { requireMemoryAccess } from './requireMemoryAccess';
+export { resolveDomainContext } from './resolveDomainContext.js';
+export { requireAuth } from './requireAuth.js';
+export { requireDomainPermission } from './requireDomainPermission.js';
+export { requireMemoryAccess } from './requireMemoryAccess.js';
 export {
   createDomainPipeline,
   createBasicDomainGuard,
@@ -20,11 +20,11 @@ export {
   fullDomainMemoryGuard,
   fullDomainMemoryWriteGuard,
   fullDomainMemoryAdminGuard,
-} from './pipeline';
+} from './pipeline.js';
 
 // Export types
-export type { DomainContextStrategy } from './resolveDomainContext';
-export type { DomainPermissionType } from './requireDomainPermission';
+export type { DomainContextStrategy } from './resolveDomainContext.js';
+export type { DomainPermissionType } from './requireDomainPermission.js';
 
 // Export utility functions
-export { extractDomainId, extractSubdomain, validateDomainId } from './utils'; 
+export { extractDomainId, extractSubdomain, validateDomainId } from './utils.js';

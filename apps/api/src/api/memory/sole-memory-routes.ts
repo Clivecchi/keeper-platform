@@ -15,13 +15,13 @@ import {
 } from '../../middleware/domainPermissionMiddleware.js';
 import { createMemoryAccessMiddleware, createCrossDomainMemoryMiddleware } from '../../middleware/memoryAccessMiddleware.js';
 import { rateLimit } from 'express-rate-limit';
-import Redis from 'ioredis';
+import Redis, { Redis as RedisType } from 'ioredis';
 
 type MemoryCategory = 'conversational' | 'factual' | 'procedural' | 'episodic' | 'semantic';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
-let redis: Redis | null = null;
+let redis: RedisType | null = null;
 if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
   redis = new Redis(process.env.REDIS_URL);
 } else if (process.env.NODE_ENV === 'development') {

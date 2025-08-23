@@ -10,11 +10,11 @@ import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat, requireDomainAdminCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { DomainService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
-import Redis from 'ioredis';
+import Redis, { Redis as RedisType } from 'ioredis';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
-let redis: Redis | null = null;
+let redis: RedisType | null = null;
 if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
   redis = new Redis(process.env.REDIS_URL);
 } else if (process.env.NODE_ENV === 'development') {

@@ -7,8 +7,10 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "build:server": "tsc",
-    "start": "node dist/index.js",
+    "build:server": "tsc -p apps/api/tsconfig.json",
+    "start": "node --enable-source-maps apps/api/dist/index.js",
+    "postinstall": "prisma generate -q",
+    "migrate:deploy": "prisma migrate deploy",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -27,6 +29,9 @@
     "morgan": "^1.10.0",
     "openai": "^4.75.1",
     "zod": "^3.25.45"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

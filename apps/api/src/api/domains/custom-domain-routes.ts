@@ -22,7 +22,7 @@ import {
   loadDomainPermissionsCompat 
 } from '../../middleware/domainPermissionMiddleware.js';
 import { rateLimit } from 'express-rate-limit';
-import Redis from 'ioredis';
+import Redis, { Redis as RedisType } from 'ioredis';
 import { VercelDomainManagerService } from '../../services/VercelDomainManagerService.js';
 
 function getVercelService(): VercelDomainManagerService {
@@ -66,7 +66,7 @@ router.use(authMiddlewareCompat);
 router.use('/:domainId', loadDomainPermissionsCompat);
 
 const prisma = new PrismaClient();
-let redis: Redis | null = null;
+let redis: RedisType | null = null;
 if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
   redis = new Redis(process.env.REDIS_URL);
 } else if (process.env.NODE_ENV === 'development') {

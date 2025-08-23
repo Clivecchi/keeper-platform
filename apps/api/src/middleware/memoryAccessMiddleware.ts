@@ -5,7 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@keeper/database';
-import Redis from 'ioredis';
+import Redis, { Redis as RedisType } from 'ioredis';
 import { 
   DomainCacheService,
   SoleMemoryIsolationService,
@@ -13,7 +13,7 @@ import {
 } from '@keeper/database';
 
 const prisma = new PrismaClient();
-let redis: Redis | null = null;
+let redis: RedisType | null = null;
 if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
   redis = new Redis(process.env.REDIS_URL);
 } else if (process.env.NODE_ENV === 'development') {
