@@ -91,7 +91,7 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const input = validation.data;
+    const input = validation.data; // includes required provider
 
     // Validate API key format
     if (!PlatformApiKeyService.validateKeyFormat(input.provider as ModelProvider, input.api_key)) {

@@ -354,6 +354,7 @@ export function createProductionRoutes(
         branch: deploymentData.branch,
         commit: deploymentData.commit,
         buildId: deploymentData.buildId,
+        strategy: deploymentData.strategy ?? 'rolling',
       };
       
       // Mock artifacts for now

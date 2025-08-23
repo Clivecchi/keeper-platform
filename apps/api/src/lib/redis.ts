@@ -1,6 +1,7 @@
 import Redis from 'ioredis';
-let _client: Redis | null = null;
-export type RedisClient = Redis;
+import type { Redis as IORedis } from 'ioredis';
+let _client: IORedis | null = null;
+export type RedisClient = IORedis;
 export function getRedis(): RedisClient {
   if (_client) return _client;
   const url = process.env.REDIS_URL;

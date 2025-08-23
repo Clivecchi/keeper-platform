@@ -172,6 +172,7 @@ router.post(
         domainId,
         userId,
         ...validation,
+        query: validation.query || '',
         filters: validation.filters ? {
           ...validation.filters,
           dateRange: validation.filters.dateRange ? {
@@ -410,9 +411,13 @@ router.post(
       const validation = memoryShareRequestSchema.parse(req.body);
 
       const shareId = await memoryService.shareMemory(domainId, {
-        ...validation,
+        targetDomainId: validation.targetDomainId as string,
+        shareType: validation.shareType,
+        memoryCategories: validation.memoryCategories as any,
+        accessLevel: validation.accessLevel,
         sourceUserId: userId,
         expiresAt: validation.expiresAt ? new Date(validation.expiresAt) : undefined,
+        maxAccess: validation.maxAccess,
       });
 
       return res.status(201).json({

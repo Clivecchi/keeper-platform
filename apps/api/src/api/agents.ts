@@ -157,6 +157,7 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
     const agent = await prisma.kip_agents.create({
       data: {
         ...data,
+        slug: data.slug, // required by schema
         created_by: userId,
         status: 'ready',
       },

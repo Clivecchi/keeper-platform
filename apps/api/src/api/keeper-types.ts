@@ -195,7 +195,9 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
     const keeperType = await prisma.keeperType.create({
       data: {
         id: data.name.toLowerCase().replace(/\s+/g, '-'),
-        ...data,
+        name: data.name,
+        memoryPattern: data.memoryPattern,
+        system: data.system ?? false,
       },
     });
 

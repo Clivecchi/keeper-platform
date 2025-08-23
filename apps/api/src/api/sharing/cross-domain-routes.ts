@@ -380,7 +380,14 @@ router.post(
       const userId = req.user!.id;
       const validation = activationSchema.parse(req.body);
 
-      const accessToken = await sharingService.activateShare(requestId, userId, validation);
+      const accessToken = await sharingService.activateShare(requestId, userId, {
+        activationType: validation.activationType,
+        ipRestrictions: validation.ipRestrictions ?? [],
+        userRestrictions: validation.userRestrictions ?? [],
+        sessionTimeout: validation.sessionTimeout,
+        generateLink: validation.generateLink ?? false,
+        generateEmbed: validation.generateEmbed ?? false,
+      });
 
       return res.json({
         success: true,

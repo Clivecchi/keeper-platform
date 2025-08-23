@@ -410,6 +410,7 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
       data: {
         id: randomUUID(),
         ...boardData,
+        keeper: { connect: { id: boardData.keeperId } },
         theme: {},
         behavior: {
           showGrid: true,

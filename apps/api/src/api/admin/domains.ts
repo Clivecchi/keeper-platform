@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import Redis, { Redis as RedisType } from 'ioredis';
+import { getRedis, type RedisClient } from '../../lib/redis.js';
 import { DomainService, DomainCacheService } from '@keeper/database';
 import { DomainPermissionService } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
@@ -10,12 +10,7 @@ import { requireSuperAdmin } from '../../middleware/platformRoleMiddleware.js';
 const router: Router = Router();
 
 const prisma = new PrismaClient();
-// @ts-ignore - Suppress type mismatch for Redis import in ESM
-let redis: any | null = null;
-if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
-  // @ts-ignore - Constructor typing issue in ESM default import
-  redis = new Redis(process.env.REDIS_URL);
-}
+const redis: RedisClient = getRedis();
 const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
 const permissionService = new DomainPermissionService(prisma, cacheService);
