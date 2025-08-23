@@ -67,6 +67,8 @@ const UpdateBoardSchema = z.object({
 /**
  * GET /api/boards
  * List boards for a domain
+ * 
+ * @deprecated This endpoint uses mock data. Use /api/board-data instead for real persistence.
  */
 router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
@@ -92,8 +94,10 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Access denied to domain' });
     }
 
-    // For now, return mock data since we don't have a boards table yet
-    // TODO: Replace with actual board queries when board storage is implemented
+    // DEPRECATED: This endpoint returns mock data
+    // Use /api/board-data for real persistence
+    console.warn('[DEPRECATED] /api/boards endpoint called. Use /api/board-data instead.');
+    
     const mockBoards = [
       {
         id: 'agent-board-1',
@@ -147,6 +151,8 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
       }
     ];
 
+    res.set('X-Deprecated', 'true');
+    res.set('X-Deprecated-Message', 'This endpoint is deprecated. Use /api/board-data instead.');
     return res.json(mockBoards);
   } catch (error) {
     console.error('Error fetching boards:', error);

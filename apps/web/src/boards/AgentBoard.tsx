@@ -12,7 +12,9 @@ import {
   CpuChipIcon,
   PlusIcon,
   Cog6ToothIcon,
-  ChatBubbleLeftRightIcon
+  ChatBubbleLeftRightIcon,
+  TagIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 import { BoardRenderer } from '../components/boards/BoardRenderer';
 import { useBoard, BoardInstance } from '../context/BoardContext';
@@ -152,6 +154,54 @@ const createAgentConfigFrame = (agentId: string, agentData?: any): ExtendedFrame
   },
 });
 
+const createTopicsFrame = (agentId: string): ExtendedFrameInstance => ({
+  id: `topics-${agentId}`,
+  entityType: 'agent',
+  entityId: agentId,
+  configId: `topics-config-${agentId}`,
+  currentContentId: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  data: {
+    view: 'list',
+    showTags: true,
+    groupBy: 'status'
+  },
+  FrameConfig: {
+    id: `topics-config-${agentId}`,
+    name: 'Topics',
+    description: 'Manage topics and highlights for this agent',
+    theme: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    frameType: 'topics',
+    engagementMode: 'focus',
+  },
+});
+
+const createDraftFrame = (agentId: string): ExtendedFrameInstance => ({
+  id: `draft-${agentId}`,
+  entityType: 'agent',
+  entityId: agentId,
+  configId: `draft-config-${agentId}`,
+  currentContentId: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  data: {
+    tabs: ['Form', 'JSON', 'Diff', 'History']
+  },
+  FrameConfig: {
+    id: `draft-config-${agentId}`,
+    name: 'Draft',
+    description: 'Edit and manage agent configuration drafts',
+    theme: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    frameType: 'draft',
+    engagementMode: 'canvas',
+  },
+});
+
 // =============================================================================
 // MAIN COMPONENT
 // =============================================================================
@@ -175,61 +225,38 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
   const [availableFrameTypes, setAvailableFrameTypes] = useState<string[]>([
     'agent_preview',
     'dialog', 
-    'config_panel'
+    'config_panel',
+    'topics',
+    'draft'
   ]);
 
-  // Initialize board with agent-specific frames using the new Agent Home Board API
+  // Initialize board with agent-specific frames using existing board-data API
   useEffect(() => {
     const initializeBoard = async () => {
       if (isInitialized) return;
 
       try {
-        // Load Agent Home Board from API (creates one if it doesn't exist)
-        const response = await fetch(`/api/agents/${agentId}/home-board`, {
+        // First, ensure the agent has a home board
+        const agentResponse = await fetch(`/api/agents/${agentId}/home-board`, {
           credentials: 'include',
         });
 
-        if (!response.ok) {
-          throw new Error(`Failed to load agent home board: ${response.statusText}`);
+        if (!agentResponse.ok) {
+          throw new Error(`Failed to ensure agent home board: ${agentResponse.statusText}`);
         }
 
-        const data = await response.json();
-        console.log('Loaded agent home board:', data);
-
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to load agent home board');
-        }
-
-        const { board, agent } = data.data;
-
-        // Transform API response to match BoardInstance interface
-        const boardInstance = {
-          id: board.id,
-          config: {
-            id: `${board.id}-config`,
-            type: 'agent_board' as const,
-            name: board.name,
-            description: board.description || `Home board for ${agent.name}`,
-            layout: 'column' as const,
-            engagementMode: 'dialogic' as const,
-            allowLayoutEditing: true,
-            theme: {
-              primaryColor: '#3B82F6',
-              backgroundColor: '#F8FAFC',
-              accentColor: '#1E40AF',
-            }
-          },
-          frames: board.frames || [],
-          entityType: 'agent',
-          entityId: agentId,
-          createdAt: new Date(board.createdAt || Date.now()),
-          updatedAt: new Date(board.updatedAt || Date.now()),
-        };
-
-        // Use the board context to load the board
-        await loadBoard(boardInstance.id);
+        const agentData = await agentResponse.json();
         
+        if (!agentData.success) {
+          throw new Error(agentData.error || 'Failed to ensure agent home board');
+        }
+
+        const boardId = agentData.data.board.id;
+
+        // Load the board via the existing board-data API
+        await loadBoard(boardId);
         setIsInitialized(true);
+        
       } catch (error) {
         console.error('Failed to initialize agent board:', error);
         // Fall back to mock data if API fails
@@ -237,6 +264,8 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
         const frames = [
           createAgentPreviewFrame(agentId),
           createAgentDialogFrame(agentId),
+          createTopicsFrame(agentId),
+          createDraftFrame(agentId),
           createAgentConfigFrame(agentId),
         ];
         mockBoard.frames = frames;
@@ -291,6 +320,12 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
         break;
       case 'config_panel':
         newFrame = createAgentConfigFrame(agentId);
+        break;
+      case 'topics':
+        newFrame = createTopicsFrame(agentId);
+        break;
+      case 'draft':
+        newFrame = createDraftFrame(agentId);
         break;
       default:
         console.warn('Unknown frame type:', frameType);
@@ -372,6 +407,8 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
                         {frameType === 'agent_preview' && <CpuChipIcon className="w-4 h-4" />}
                         {frameType === 'dialog' && <ChatBubbleLeftRightIcon className="w-4 h-4" />}
                         {frameType === 'config_panel' && <Cog6ToothIcon className="w-4 h-4" />}
+                        {frameType === 'topics' && <TagIcon className="w-4 h-4" />}
+                        {frameType === 'draft' && <DocumentTextIcon className="w-4 h-4" />}
                         <span className="capitalize">{frameType.replace('_', ' ')}</span>
                       </div>
                     </button>
@@ -408,6 +445,8 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• <strong>Dialogic Mode:</strong> Agent-guided interactions and conversations</li>
               <li>• <strong>Agent Preview:</strong> View agent identity, status, and capabilities</li>
+              <li>• <strong>Topics Management:</strong> Create, organize, and highlight key topics</li>
+              <li>• <strong>Draft System:</strong> Edit, propose, and commit agent configuration changes</li>
               <li>• <strong>Configuration Panel:</strong> Adjust agent parameters and behavior</li>
               <li>• <strong>Interactive Dialog:</strong> Real-time conversation with the agent</li>
               <li>• <strong>Layout Editing:</strong> Customize frame arrangement and sizing</li>

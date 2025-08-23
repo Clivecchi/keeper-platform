@@ -219,7 +219,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
       board = await prisma.board.create({
         data: {
           id: boardId,
-          keeperId: agent.created_by || '', // Use agent creator as keeper
+          keeperId: agent.created_by || userId, // Use agent creator as keeper, fallback to current user
           name: `${agent.name} Home Board`,
           slug: `agent-${agent.slug}-home`,
           description: `Home board for ${agent.name} agent`,
