@@ -14,16 +14,11 @@ import {
   requireDomainAdminCompat
 } from '../../middleware/domainPermissionMiddleware.js';
 import { DomainService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
-import Redis, { Redis as RedisType } from 'ioredis';
+import { getRedis, type RedisClient } from '../../lib/redis.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
-let redis: RedisType | null = null;
-if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
-  redis = new Redis(process.env.REDIS_URL);
-} else if (process.env.NODE_ENV === 'development') {
-  console.warn('Redis not available in development. Features will degrade gracefully.');
-}
+const redis: RedisClient = getRedis();
 const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
 const featureFlags = getFeatureFlagService();
