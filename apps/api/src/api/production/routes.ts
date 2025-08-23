@@ -15,6 +15,7 @@ import {
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { requireDomainAdminCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { Redis } from 'ioredis';
+import type { PipelineTrigger } from '../../types/pipeline.js';
 
 // Validation schemas
 const UpdateConfigSchema = z.object({
@@ -542,7 +543,7 @@ export function createProductionRoutes(
           ...stage,
           conditions: stage.conditions || [],
         })),
-        pipelineData.triggers.map((t: any) => ({
+        pipelineData.triggers.map((t: any): PipelineTrigger => ({
           id: t.id || (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`),
           type: t.type,
           enabled: typeof t.enabled === 'boolean' ? t.enabled : true,
