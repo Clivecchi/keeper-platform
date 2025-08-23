@@ -7,10 +7,10 @@ import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@keeper/database';
 import { DomainPermissionService, DomainCacheService } from '@keeper/database';
 import { AuthenticatedRequest } from './authMiddleware.js';
-import { getRedis, type RedisClient } from './lib/redis.js';
+import { getRedis, type RedisClient } from '../lib/redis.js';
 
 const prisma = new PrismaClient();
-const redis: RedisClient | null = getRedis();
+const redis: RedisClient = getRedis();
 const cacheService = new DomainCacheService(redis);
 const permissionService = new DomainPermissionService(prisma, cacheService);
 

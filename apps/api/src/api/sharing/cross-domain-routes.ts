@@ -14,7 +14,7 @@ import { getRedis, type RedisClient } from '../../lib/redis.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
-const redis: RedisClient | null = getRedis();
+const redis: RedisClient = getRedis();
 const sharingService = new CrossDomainSharingService(prisma, new DomainCacheService(redis));
 const featureFlags = getFeatureFlagService();
 

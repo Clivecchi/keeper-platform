@@ -1,15 +1,12 @@
 import Redis from 'ioredis';
-
+let _client: Redis | null = null;
 export type RedisClient = Redis;
-
-let client: RedisClient | null = null;
-
-export function getRedis(): RedisClient | null {
-  if (process.env.DISABLE_REDIS === 'true') return null;
-  if (!client && process.env.REDIS_URL) {
-    client = new Redis(process.env.REDIS_URL);
-  }
-  return client;
+export function getRedis(): RedisClient {
+  if (_client) return _client;
+  const url = process.env.REDIS_URL;
+  if (!url) throw new Error('REDIS_URL not set and Redis required');
+  _client = new Redis(url, { lazyConnect: true });
+  return _client;
 }
 
 

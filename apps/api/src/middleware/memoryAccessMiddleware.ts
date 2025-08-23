@@ -13,7 +13,7 @@ import {
 } from '@keeper/database';
 
 const prisma = new PrismaClient();
-const redis: RedisClient | null = getRedis();
+const redis: RedisClient = getRedis();
 const cacheService = new DomainCacheService(redis);
 const soleMemoryService = new SoleMemoryIsolationService(prisma, cacheService);
 const featureFlagService = new FeatureFlagService();
