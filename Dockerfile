@@ -1,5 +1,5 @@
-# Use Node.js LTS version
-FROM node:18-alpine
+# Use Node.js 20 (Keeper rule)
+FROM node:20-alpine
 
 # Install pnpm with the CORRECT version that matches our lockfile (pnpm v10+)
 RUN npm install -g pnpm@10.11.0
@@ -52,5 +52,5 @@ ENV NODE_ENV=production
 # Railway will set PORT dynamically, but expose 8080 as default
 EXPOSE 8080
 
-# Start the API
-CMD ["node", "apps/api/dist/index.js"] 
+# Start the API (with source maps)
+CMD ["node", "--enable-source-maps", "apps/api/dist/index.js"]

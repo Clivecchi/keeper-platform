@@ -9,7 +9,7 @@
     "build": "tsc",
     "build:server": "tsc -p apps/api/tsconfig.json",
     "start": "node --enable-source-maps apps/api/dist/index.js",
-    "postinstall": "prisma generate -q",
+    "postinstall": "pnpm --filter @keeper/database generate",
     "migrate:deploy": "prisma migrate deploy",
     "type-check": "tsc --noEmit"
   },
