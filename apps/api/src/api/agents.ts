@@ -172,4 +172,546 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/agents/:id/home-board - Get or create Agent Home Board
+ */
+router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id: agentId } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // Check if agent exists
+    const agent = await prisma.kip_agents.findUnique({
+      where: { id: agentId }
+    });
+
+    if (!agent) {
+      return res.status(404).json({ success: false, error: 'Agent not found' });
+    }
+
+    // Look for existing Agent Home Board
+    let board = await prisma.board.findFirst({
+      where: {
+        data: {
+          path: ['agentId'],
+          equals: agentId
+        }
+      },
+      include: {
+        frames: {
+          orderBy: { orderIndex: 'asc' },
+          include: {
+            FrameConfig: true
+          }
+        }
+      }
+    });
+
+    // If no board exists, create one using the agent template
+    if (!board) {
+      const boardId = `agent-board-${agentId}`;
+      
+      // Create the board
+      board = await prisma.board.create({
+        data: {
+          id: boardId,
+          keeperId: agent.created_by, // Use agent creator as keeper
+          name: `${agent.name} Home Board`,
+          slug: `agent-${agent.slug}-home`,
+          description: `Home board for ${agent.name} agent`,
+          theme: {},
+          behavior: {
+            showGrid: true,
+            snapToGrid: true,
+            gridSize: 8,
+            defaultPattern: 'dialogic',
+            startFrameId: null,
+            draftMode: false,
+            autosave: true,
+            frameOrder: []
+          },
+          data: {
+            scope: 'agent',
+            entityId: agentId,
+            agentId: agentId,
+            dataBindings: {}
+          },
+          access: {
+            visibility: 'private',
+            roles: {},
+            allowComments: false,
+            shareLinkEnabled: false
+          },
+          updatedAt: new Date(),
+        },
+        include: {
+          frames: {
+            orderBy: { orderIndex: 'asc' },
+            include: {
+              FrameConfig: true
+            }
+          }
+        }
+      });
+
+      // Create default frames for Agent Home Board
+      const frameConfigs = [
+        {
+          name: 'dialog-default',
+          description: 'Default config for dialog frames',
+          theme: {},
+        },
+        {
+          name: 'agent-preview-default', 
+          description: 'Default config for agent preview frames',
+          theme: {},
+        },
+        {
+          name: 'topics-default',
+          description: 'Default config for topics frames',
+          theme: {},
+        },
+        {
+          name: 'draft-default',
+          description: 'Default config for draft frames', 
+          theme: {},
+        },
+        {
+          name: 'config-panel-default',
+          description: 'Default config for config panel frames',
+          theme: {},
+        }
+      ];
+
+      // Create frame configs
+      const createdConfigs = await Promise.all(
+        frameConfigs.map(config => 
+          prisma.frameConfig.upsert({
+            where: { name: config.name },
+            update: config,
+            create: {
+              id: `${config.name}-${Date.now()}`,
+              ...config,
+              updatedAt: new Date(),
+            }
+          })
+        )
+      );
+
+      // Create default frames
+      const defaultFrames = [
+        {
+          id: `dialog-${agentId}`,
+          boardId: board.id,
+          role: null,
+          name: 'Agent Conversation',
+          pattern: 'dialogic',
+          frameType: 'dialog',
+          orderIndex: 0,
+          layoutKind: 'canvas',
+          layoutData: {},
+          props: {
+            title: 'Agent Conversation',
+            placeholder: `Chat with ${agent.name}...`,
+            showHistory: true,
+            maxMessages: 50,
+            agentId: agentId,
+            agentName: agent.name
+          },
+          entityType: 'agent',
+          entityId: agentId,
+          configId: createdConfigs[0].id,
+          updatedAt: new Date(),
+        },
+        {
+          id: `agent-preview-${agentId}`,
+          boardId: board.id,
+          role: null,
+          name: 'Agent Preview',
+          pattern: 'focus',
+          frameType: 'agent_preview',
+          orderIndex: 1,
+          layoutKind: 'focus',
+          layoutData: {},
+          props: {
+            showCapabilities: true,
+            showStatus: true,
+            showMetrics: true,
+            agentId: agentId,
+            agentName: agent.name,
+            model: agent.model,
+            provider: agent.model_provider,
+            status: agent.status
+          },
+          entityType: 'agent',
+          entityId: agentId,
+          configId: createdConfigs[1].id,
+          updatedAt: new Date(),
+        },
+        {
+          id: `topics-${agentId}`,
+          boardId: board.id,
+          role: null,
+          name: 'Topics',
+          pattern: 'focus',
+          frameType: 'topics',
+          orderIndex: 2,
+          layoutKind: 'focus',
+          layoutData: {},
+          props: {
+            view: 'list',
+            showTags: true,
+            groupBy: 'status',
+            boardId: board.id
+          },
+          entityType: 'agent',
+          entityId: agentId,
+          configId: createdConfigs[2].id,
+          updatedAt: new Date(),
+        },
+        {
+          id: `draft-${agentId}`,
+          boardId: board.id,
+          role: null,
+          name: 'Draft',
+          pattern: 'canvas',
+          frameType: 'draft',
+          orderIndex: 3,
+          layoutKind: 'canvas',
+          layoutData: {},
+          props: {
+            tabs: ['Form', 'JSON', 'Diff', 'History'],
+            agentId: agentId
+          },
+          entityType: 'agent',
+          entityId: agentId,
+          configId: createdConfigs[3].id,
+          updatedAt: new Date(),
+        },
+        {
+          id: `config-panel-${agentId}`,
+          boardId: board.id,
+          role: null,
+          name: 'Configuration',
+          pattern: 'wizard',
+          frameType: 'config_panel',
+          orderIndex: 4,
+          layoutKind: 'wizard',
+          layoutData: {},
+          props: {
+            layout: 'tabbed',
+            allowSave: true,
+            validation: true,
+            agentId: agentId
+          },
+          entityType: 'agent',
+          entityId: agentId,
+          configId: createdConfigs[4].id,
+          updatedAt: new Date(),
+        }
+      ];
+
+      // Insert frames
+      await prisma.frameInstance.createMany({
+        data: defaultFrames
+      });
+
+      // Refetch board with frames
+      board = await prisma.board.findUnique({
+        where: { id: board.id },
+        include: {
+          frames: {
+            orderBy: { orderIndex: 'asc' },
+            include: {
+              FrameConfig: true
+            }
+          }
+        }
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        board,
+        agent: {
+          id: agent.id,
+          name: agent.name,
+          status: agent.status,
+          model: agent.model,
+          provider: agent.model_provider
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error loading agent home board:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/agents/:id/draft - Get agent draft
+ */
+router.get('/:id/draft', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id: agentId } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const agent = await prisma.kip_agents.findUnique({
+      where: { id: agentId }
+    });
+
+    if (!agent) {
+      return res.status(404).json({ success: false, error: 'Agent not found' });
+    }
+
+    // Extract draft from agent config
+    const config = agent.config as any;
+    const draft = config?.draft || null;
+
+    return res.json({
+      success: true,
+      data: draft
+    });
+  } catch (error) {
+    console.error('Error fetching agent draft:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * PATCH /api/agents/:id/draft - Update agent draft
+ */
+router.patch('/:id/draft', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id: agentId } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const updateDraftSchema = z.object({
+      status: z.enum(['editing', 'proposed', 'committed', 'rejected']).optional(),
+      title: z.string().optional(),
+      payload: z.record(z.any()).optional(),
+    });
+
+    const updates = updateDraftSchema.parse(req.body);
+
+    const agent = await prisma.kip_agents.findUnique({
+      where: { id: agentId }
+    });
+
+    if (!agent) {
+      return res.status(404).json({ success: false, error: 'Agent not found' });
+    }
+
+    // Update draft in agent config
+    const config = agent.config as any || {};
+    const currentDraft = config.draft || {};
+
+    const updatedDraft = {
+      ...currentDraft,
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (!currentDraft.createdAt) {
+      updatedDraft.createdAt = new Date().toISOString();
+    }
+
+    const updatedConfig = {
+      ...config,
+      draft: updatedDraft
+    };
+
+    await prisma.kip_agents.update({
+      where: { id: agentId },
+      data: { config: updatedConfig }
+    });
+
+    return res.json({
+      success: true,
+      data: updatedDraft
+    });
+  } catch (error) {
+    console.error('Error updating agent draft:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid draft data', 
+        details: error.errors 
+      });
+    }
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/agents/:id/draft/propose - Propose agent draft
+ */
+router.post('/:id/draft/propose', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id: agentId } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const agent = await prisma.kip_agents.findUnique({
+      where: { id: agentId }
+    });
+
+    if (!agent) {
+      return res.status(404).json({ success: false, error: 'Agent not found' });
+    }
+
+    const config = agent.config as any || {};
+    const draft = config.draft || {};
+
+    if (draft.status !== 'editing') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Can only propose drafts in editing status' 
+      });
+    }
+
+    // Update draft status and create snapshot
+    const updatedDraft = {
+      ...draft,
+      status: 'proposed',
+      updatedAt: new Date().toISOString()
+    };
+
+    const updatedConfig = {
+      ...config,
+      draft: updatedDraft,
+      draft_snapshot: { ...draft, snapshotAt: new Date().toISOString() }
+    };
+
+    await prisma.kip_agents.update({
+      where: { id: agentId },
+      data: { config: updatedConfig }
+    });
+
+    return res.json({
+      success: true,
+      data: updatedDraft
+    });
+  } catch (error) {
+    console.error('Error proposing agent draft:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/agents/:id/draft/commit - Commit agent draft
+ */
+router.post('/:id/draft/commit', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id: agentId } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const agent = await prisma.kip_agents.findUnique({
+      where: { id: agentId }
+    });
+
+    if (!agent) {
+      return res.status(404).json({ success: false, error: 'Agent not found' });
+    }
+
+    const config = agent.config as any || {};
+    const draft = config.draft || {};
+
+    if (draft.status !== 'proposed') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Can only commit proposed drafts' 
+      });
+    }
+
+    // Move draft to history and reset
+    const history = config.draft_history || [];
+    const newHistoryEntry = {
+      id: `history-${Date.now()}`,
+      agentId,
+      snapshot: config.draft_snapshot || draft,
+      status: 'committed',
+      committedAt: new Date().toISOString()
+    };
+
+    const updatedConfig = {
+      ...config,
+      draft: {
+        status: 'editing',
+        title: '',
+        payload: {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      draft_history: [newHistoryEntry, ...history.slice(0, 9)] // Keep last 10
+    };
+
+    await prisma.kip_agents.update({
+      where: { id: agentId },
+      data: { config: updatedConfig }
+    });
+
+    return res.json({
+      success: true,
+      data: updatedConfig.draft
+    });
+  } catch (error) {
+    console.error('Error committing agent draft:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/agents/:id/draft/history - Get agent draft history
+ */
+router.get('/:id/draft/history', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id: agentId } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const agent = await prisma.kip_agents.findUnique({
+      where: { id: agentId }
+    });
+
+    if (!agent) {
+      return res.status(404).json({ success: false, error: 'Agent not found' });
+    }
+
+    const config = agent.config as any || {};
+    const history = config.draft_history || [];
+
+    return res.json({
+      success: true,
+      data: history
+    });
+  } catch (error) {
+    console.error('Error fetching agent draft history:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 export default router;

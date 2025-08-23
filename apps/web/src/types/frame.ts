@@ -23,7 +23,9 @@ export type FrameType =
   | 'config_panel'    // Form-based or tabbed settings
   | 'process_frame'   // Step-based UI flows
   | 'agent_preview'   // Agent identity/config visualization
-  | 'code_snippet';   // Code viewer/editor (reserved for CodeBoard)
+  | 'code_snippet'    // Code viewer/editor (reserved for CodeBoard)
+  | 'topics'          // Topic management for Agent Home Boards
+  | 'draft';          // Draft management for agents
 
 /**
  * Frame engagement modes that control interaction style

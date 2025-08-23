@@ -1,449 +1,138 @@
 /**
- * PropManager Component
- * =====================
+ * Prop Manager
+ * ============
  * 
- * Main orchestrator component that manages prop drop behavior, stacking,
- * and persistence. Combines PropDropZone, PropBlock, and PropInspector
- * to create the complete prop management experience.
+ * Minimal component for managing frame props with draft mode feature flag support.
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { motion, Reorder, AnimatePresence } from 'framer-motion';
-import { v4 as uuidv4 } from 'uuid';
-import PropDropZone from './PropDropZone';
-import PropBlock from './PropBlock';
-import PropInspector from './PropInspector';
-import { cn } from '../../features/board-studio/v0/lib/utils';
-
-interface PropData {
-  id: string;
-  type: string;
-  config: Record<string, any>;
-  isVisible: boolean;
-  isDraft: boolean;
-  orderIndex: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { CogIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { isFeatureEnabled } from '../../lib/config';
 
 interface PropManagerProps {
-  /** Frame ID this prop manager belongs to */
   frameId: string;
-  /** Initial props data */
-  initialProps?: PropData[];
-  /** Whether the frame is currently active/selected */
-  isActive?: boolean;
-  /** Frame pattern for contextual messaging */
-  framePattern?: string;
-  /** Whether to show draft/published toggles */
-  showDraftToggle?: boolean;
-  /** Whether drag reordering is enabled */
-  isDraggable?: boolean;
-  /** Whether edit mode is active */
-  isEditMode?: boolean;
-  /** Callback when props are updated (for persistence) */
-  onPropsUpdate?: (frameId: string, props: PropData[]) => Promise<void>;
-  /** Custom className */
-  className?: string;
+  frameType: string;
+  currentProps: Record<string, unknown>;
+  onPropsUpdate: (props: Record<string, unknown>) => void;
+  onClose?: () => void;
+  isOpen?: boolean;
 }
 
-export const PropManager: React.FC<PropManagerProps> = ({
+const PropManager: React.FC<PropManagerProps> = ({
   frameId,
-  initialProps = [],
-  isActive = false,
-  framePattern = 'default',
-  showDraftToggle = false,
-  isDraggable = true,
-  isEditMode = false,
+  frameType,
+  currentProps,
   onPropsUpdate,
-  className
+  onClose,
+  isOpen = false,
 }) => {
-  const [props, setProps] = useState<PropData[]>(initialProps);
-  const [selectedPropId, setSelectedPropId] = useState<string | null>(null);
-  const [inspectorOpen, setInspectorOpen] = useState(false);
-  const [dragPlaceholderIndex, setDragPlaceholderIndex] = useState<number | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [propSaveStatus, setPropSaveStatus] = useState<Record<string, 'idle' | 'saving' | 'saved' | 'failed'>>({});
+  const [jsonContent, setJsonContent] = useState(JSON.stringify(currentProps, null, 2));
+  const [jsonError, setJsonError] = useState<string | null>(null);
 
-  // Sort props by order index
-  const sortedProps = [...props].sort((a, b) => a.orderIndex - b.orderIndex);
-  const selectedProp = selectedPropId ? props.find(p => p.id === selectedPropId) : null;
+  // Check feature flags
+  const isDraftModeEnabled = isFeatureEnabled('KEEPER_DRAFT_MODE');
+  const isPropsSystemEnabled = isFeatureEnabled('PROPS_SYSTEM');
 
-  // Update props when initialProps changes
-  useEffect(() => {
-    console.log('🔄 PropManager: initialProps changed', { 
-      frameId, 
-      initialProps,
-      initialPropsCount: initialProps.length 
-    });
-    setProps(initialProps);
-  }, [initialProps, frameId]);
-
-  // Persist props changes with optimistic updates and save status tracking
-  const persistProps = useCallback(async (newProps: PropData[], propId?: string) => {
-    console.log('💾 PropManager: persistProps called', { 
-      frameId, 
-      propsCount: newProps.length, 
-      propId,
-      hasOnPropsUpdate: !!onPropsUpdate 
-    });
-
-    if (onPropsUpdate) {
-      if (propId) {
-        console.log(`🔄 PropManager: Setting save status to 'saving' for prop ${propId}`);
-        setPropSaveStatus(prev => ({ ...prev, [propId]: 'saving' }));
-      } else {
-        setIsUpdating(true);
-      }
-      
-      try {
-        console.log('📡 PropManager: Calling onPropsUpdate...', { frameId, newProps });
-        await onPropsUpdate(frameId, newProps);
-        console.log('✅ PropManager: onPropsUpdate completed successfully');
-        
-        if (propId) {
-          console.log(`✅ PropManager: Setting save status to 'saved' for prop ${propId}`);
-          setPropSaveStatus(prev => ({ ...prev, [propId]: 'saved' }));
-          // Clear saved status after 2 seconds
-          setTimeout(() => {
-            setPropSaveStatus(prev => ({ ...prev, [propId]: 'idle' }));
-          }, 2000);
-        }
-      } catch (error) {
-        console.error('❌ PropManager: Failed to persist props:', error);
-        
-        if (propId) {
-          console.log(`❌ PropManager: Setting save status to 'failed' for prop ${propId}`);
-          setPropSaveStatus(prev => ({ ...prev, [propId]: 'failed' }));
-          // Clear failed status after 5 seconds
-          setTimeout(() => {
-            setPropSaveStatus(prev => ({ ...prev, [propId]: 'idle' }));
-          }, 5000);
-        }
-        
-        // Revert optimistic update on error
-        console.log('🔄 PropManager: Reverting optimistic update due to error');
-        setProps(props);
-        throw error; // Re-throw to let caller handle
-      } finally {
-        if (!propId) {
-          setIsUpdating(false);
-        }
-      }
-    } else {
-      console.warn('⚠️ PropManager: No onPropsUpdate callback provided');
-    }
-  }, [frameId, props, onPropsUpdate]);
-
-  // Handle prop drop from library
-  const handlePropDrop = useCallback(async (
-    propType: string,
-    propConfig: any,
-    position?: { x: number; y: number }
-  ) => {
-    console.log('🎯 PropManager: handlePropDrop called', { 
-      frameId, 
-      propType, 
-      propConfig, 
-      position,
-      currentPropsCount: props.length 
-    });
-
-    const newProp: PropData = {
-      id: uuidv4(),
-      type: propType,
-      config: {
-        ...propConfig,
-        // Add position if dropped in canvas mode
-        ...(framePattern === 'canvas' && position ? { position } : {})
-      },
-      isVisible: true,
-      isDraft: false, // New props start as published
-      orderIndex: props.length,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    console.log('✨ PropManager: Created new prop:', newProp);
-
-    const newProps = [...props, newProp];
-    console.log('📋 PropManager: Updated props array:', { 
-      oldCount: props.length, 
-      newCount: newProps.length,
-      newProps 
-    });
+  const handleJsonChange = (value: string) => {
+    setJsonContent(value);
+    setJsonError(null);
     
-    setProps(newProps);
-    console.log('💾 PropManager: Local state updated, calling persistProps...');
-    
-    // Optimistic update
     try {
-      await persistProps(newProps, newProp.id);
-      console.log('✅ PropManager: Props persisted successfully');
-    } catch (error) {
-      console.error('❌ PropManager: Failed to persist props:', error);
+      JSON.parse(value);
+    } catch (err) {
+      setJsonError(err instanceof Error ? err.message : 'Invalid JSON');
     }
-  }, [props, framePattern, persistProps]);
+  };
 
-  // Handle prop selection
-  const handlePropSelect = useCallback((propId: string) => {
-    setSelectedPropId(propId);
-  }, []);
-
-  // Handle prop edit
-  const handlePropEdit = useCallback((propId: string) => {
-    setSelectedPropId(propId);
-    setInspectorOpen(true);
-  }, []);
-
-  // Handle prop duplicate
-  const handlePropDuplicate = useCallback(async (propId: string) => {
-    const propToDuplicate = props.find(p => p.id === propId);
-    if (!propToDuplicate) return;
-
-    const duplicatedProp: PropData = {
-      ...propToDuplicate,
-      id: uuidv4(),
-      config: {
-        ...propToDuplicate.config,
-        // Add "Copy" to name if it exists
-        ...(propToDuplicate.config.name ? {
-          name: `${propToDuplicate.config.name} Copy`
-        } : {})
-      },
-      orderIndex: props.length,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    const newProps = [...props, duplicatedProp];
-    setProps(newProps);
+  const handleSave = () => {
+    if (jsonError) return;
     
-    await persistProps(newProps);
-  }, [props, persistProps]);
-
-  // Handle prop delete
-  const handlePropDelete = useCallback(async (propId: string) => {
-    const newProps = props.filter(p => p.id !== propId);
-    
-    // Reorder remaining props
-    const reorderedProps = newProps.map((prop, index) => ({
-      ...prop,
-      orderIndex: index,
-      updatedAt: new Date()
-    }));
-
-    setProps(reorderedProps);
-    
-    // Clear selection if deleted prop was selected
-    if (selectedPropId === propId) {
-      setSelectedPropId(null);
-      setInspectorOpen(false);
+    try {
+      const parsed = JSON.parse(jsonContent);
+      onPropsUpdate(parsed);
+      onClose?.();
+    } catch (err) {
+      setJsonError(err instanceof Error ? err.message : 'Invalid JSON');
     }
-    
-    await persistProps(reorderedProps);
-  }, [props, selectedPropId, persistProps]);
+  };
 
-  // Handle visibility toggle
-  const handleToggleVisibility = useCallback(async (propId: string, isVisible: boolean) => {
-    const newProps = props.map(prop =>
-      prop.id === propId
-        ? { ...prop, isVisible, updatedAt: new Date() }
-        : prop
-    );
-    
-    setProps(newProps);
-    await persistProps(newProps);
-  }, [props, persistProps]);
-
-  // Handle draft toggle
-  const handleToggleDraft = useCallback(async (propId: string, isDraft: boolean) => {
-    const newProps = props.map(prop =>
-      prop.id === propId
-        ? { ...prop, isDraft, updatedAt: new Date() }
-        : prop
-    );
-    
-    setProps(newProps);
-    await persistProps(newProps);
-  }, [props, persistProps]);
-
-  // Handle prop config update from inspector
-  const handlePropUpdate = useCallback(async (propId: string, config: Record<string, any>) => {
-    const newProps = props.map(prop =>
-      prop.id === propId
-        ? { ...prop, config, updatedAt: new Date() }
-        : prop
-    );
-    
-    setProps(newProps);
-    await persistProps(newProps, propId);
-  }, [props, persistProps]);
-
-  // Handle inline edits
-  const handleInlineEdit = useCallback(async (propId: string, field: string, value: any) => {
-    const newProps = props.map(prop =>
-      prop.id === propId
-        ? { 
-            ...prop, 
-            config: { ...prop.config, [field]: value },
-            updatedAt: new Date() 
-          }
-        : prop
-    );
-    
-    setProps(newProps);
-    await persistProps(newProps, propId);
-  }, [props, persistProps]);
-
-  // Handle prop reordering
-  const handleReorder = useCallback(async (newOrder: PropData[]) => {
-    const reorderedProps = newOrder.map((prop, index) => ({
-      ...prop,
-      orderIndex: index,
-      updatedAt: new Date()
-    }));
-    
-    setProps(reorderedProps);
-    await persistProps(reorderedProps);
-  }, [persistProps]);
-
-  // Close inspector
-  const handleCloseInspector = useCallback(() => {
-    setInspectorOpen(false);
-  }, []);
-
-  console.log('🎨 PropManager: Rendering', { 
-    frameId, 
-    propsCount: props.length,
-    sortedPropsCount: sortedProps.length,
-    sortedProps,
-    isActive,
-    framePattern
-  });
+  if (!isPropsSystemEnabled || !isOpen) {
+    return null;
+  }
 
   return (
-    <div className={cn("relative", className)}>
-      {/* Props Container */}
-      <div className="min-h-[200px]">
-        {sortedProps.length === 0 ? (
-          // Empty State - Show Drop Zone
-          <>
-            {console.log('📭 PropManager: Rendering empty state (PropDropZone)')}
-            <PropDropZone
-              onPropDrop={handlePropDrop}
-              isActive={isActive}
-              framePattern={framePattern}
-            />
-          </>
-        ) : (
-          // Populated State - Show Stacked Props
-          <>
-            {console.log('📋 PropManager: Rendering populated state with props:', sortedProps)}
-            <div className="space-y-2 p-4">
-              <Reorder.Group
-                axis="y"
-                values={sortedProps}
-                onReorder={handleReorder}
-                className="space-y-2"
-              >
-                <AnimatePresence>
-                  {sortedProps.map((prop) => {
-                    console.log('🧩 PropManager: Rendering PropBlock for prop:', prop);
-                    return (
-                      <motion.div
-                    key={prop.id}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <PropBlock
-                      prop={prop}
-                      isSelected={selectedPropId === prop.id}
-                      isDraggable={isDraggable}
-                      showDraftToggle={showDraftToggle}
-                      isEditMode={isEditMode}
-                      saveStatus={propSaveStatus[prop.id] || 'idle'}
-                      onSelect={handlePropSelect}
-                      onEdit={handlePropEdit}
-                      onDuplicate={handlePropDuplicate}
-                      onDelete={handlePropDelete}
-                      onToggleVisibility={handleToggleVisibility}
-                      onToggleDraft={handleToggleDraft}
-                      onInlineEdit={handleInlineEdit}
-                    />
-                      </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
-            </Reorder.Group>
-
-            {/* Drop Zone for Additional Props */}
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="mt-4"
-            >
-              <div
-                className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center text-sm text-gray-500 hover:border-gray-300 transition-colors"
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  
-                  try {
-                    const propData = e.dataTransfer.getData('application/json');
-                    if (propData) {
-                      const { type, config } = JSON.parse(propData);
-                      handlePropDrop(type, config);
-                    }
-                  } catch (error) {
-                    console.error('Failed to parse dropped prop data:', error);
-                  }
-                }}
-              >
-                Drop additional props here
-              </div>
-            </motion.div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0.9 }}
+        className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <CogIcon className="w-5 h-5 text-gray-500" />
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">Frame Properties</h3>
+              <p className="text-sm text-gray-500">
+                {frameType} • {frameId}
+                {isDraftModeEnabled && (
+                  <span className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
+                    Draft Mode
+                  </span>
+                )}
+              </p>
             </div>
-          </>
-        )}
-      </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600">
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        </div>
 
-      {/* Loading Overlay */}
-      <AnimatePresence>
-        {isUpdating && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center"
+        {/* Content */}
+        <div className="p-4">
+          {jsonError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+              {jsonError}
+            </div>
+          )}
+          
+          <textarea
+            value={jsonContent}
+            onChange={(e) => handleJsonChange(e.target.value)}
+            rows={16}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter JSON properties..."
+          />
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end space-x-2 p-4 border-t border-gray-200">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 hover:text-gray-800"
           >
-            <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-sm">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"
-              />
-              <span className="text-sm text-gray-600">Saving...</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Prop Inspector */}
-      <PropInspector
-        prop={selectedProp}
-        isOpen={inspectorOpen}
-        onClose={handleCloseInspector}
-        onUpdate={handlePropUpdate}
-      />
-    </div>
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!!jsonError}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            <CheckIcon className="w-4 h-4" />
+            <span>Save</span>
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

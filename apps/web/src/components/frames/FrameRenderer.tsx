@@ -54,6 +54,10 @@ const CollaborationNetworkFrame = lazy(() => import('./collaboration-network-fra
 const ActivityFeedFrame = lazy(() => import('./activity-feed-frame'));
 const PeopleProcessFrame = lazy(() => import('./people-process-frame'));
 
+// Agent Home Board frames
+const TopicsFrame = lazy(() => import('./TopicsFrame'));
+const DraftFrame = lazy(() => import('./DraftFrame'));
+
 // =============================================================================
 // FRAME TYPE REGISTRY
 // =============================================================================
@@ -66,6 +70,8 @@ const frameTypeRegistry: FrameTypeRegistry = {
   process_frame: ProcessFrame,
   agent_preview: AgentPreviewFrame,
   code_snippet: CodeSnippetFrame,
+  topics: TopicsFrame,
+  draft: DraftFrame,
 };
 
 // =============================================================================

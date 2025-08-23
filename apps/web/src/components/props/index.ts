@@ -1,23 +1,17 @@
 /**
- * Props Components Export
- * =======================
+ * Props Components Index
+ * ======================
  * 
- * Centralized exports for all prop-related components
+ * Exports all props-related components for easy importing.
  */
 
-export { default as PropDropZone } from './PropDropZone';
+export { default as PropManager } from './PropManager';
 export { default as PropBlock } from './PropBlock';
 export { default as PropInspector } from './PropInspector';
-export { default as PropManager } from './PropManager';
 
-// Export types for external use  
-export interface PropData {
-  id: string;
-  type: string;
-  config: Record<string, any>;
-  isVisible: boolean;
-  isDraft: boolean;
-  orderIndex: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+// Re-export types for convenience
+export type {
+  PropSchema,
+  PropBlock as PropBlockType,
+  FramePropsRegistry,
+} from '../../types/keeper';

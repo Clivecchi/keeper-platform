@@ -178,38 +178,56 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
     'config_panel'
   ]);
 
-  // Initialize board with agent-specific frames
+  // Initialize board with agent-specific frames using the new Agent Home Board API
   useEffect(() => {
     const initializeBoard = async () => {
       if (isInitialized) return;
 
       try {
-        // Fetch agent data from API
-        const response = await fetch(`/api/agents/${agentId}`, {
+        // Load Agent Home Board from API (creates one if it doesn't exist)
+        const response = await fetch(`/api/agents/${agentId}/home-board`, {
           credentials: 'include',
         });
 
         if (!response.ok) {
-          throw new Error(`Failed to load agent: ${response.statusText}`);
+          throw new Error(`Failed to load agent home board: ${response.statusText}`);
         }
 
-        const agentData = await response.json();
-        console.log('Loaded agent data:', agentData);
+        const data = await response.json();
+        console.log('Loaded agent home board:', data);
 
-        // Create board instance with real agent data
-        const board = createMockAgentBoard(agentId);
-        
-        // Create frames with real agent data
-        const frames = [
-          createAgentPreviewFrame(agentId, agentData),
-          createAgentDialogFrame(agentId, agentData),
-          createAgentConfigFrame(agentId, agentData),
-        ];
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to load agent home board');
+        }
 
-        board.frames = frames;
+        const { board, agent } = data.data;
 
-        // Load the board
-        await loadBoard(board.id);
+        // Transform API response to match BoardInstance interface
+        const boardInstance = {
+          id: board.id,
+          config: {
+            id: `${board.id}-config`,
+            type: 'agent_board' as const,
+            name: board.name,
+            description: board.description || `Home board for ${agent.name}`,
+            layout: 'column' as const,
+            engagementMode: 'dialogic' as const,
+            allowLayoutEditing: true,
+            theme: {
+              primaryColor: '#3B82F6',
+              backgroundColor: '#F8FAFC',
+              accentColor: '#1E40AF',
+            }
+          },
+          frames: board.frames || [],
+          entityType: 'agent',
+          entityId: agentId,
+          createdAt: new Date(board.createdAt || Date.now()),
+          updatedAt: new Date(board.updatedAt || Date.now()),
+        };
+
+        // Use the board context to load the board
+        await loadBoard(boardInstance.id);
         
         setIsInitialized(true);
       } catch (error) {
