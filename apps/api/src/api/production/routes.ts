@@ -349,12 +349,16 @@ export function createProductionRoutes(
       const deploymentData = CreateDeploymentSchema.parse(req.body);
       
       const config = {
-        ...deploymentData,
         version: deploymentData.version,
         branch: deploymentData.branch,
         commit: deploymentData.commit,
         buildId: deploymentData.buildId,
+        environment: deploymentData.environment,
         strategy: deploymentData.strategy ?? 'rolling',
+        healthCheck: deploymentData.healthCheck,
+        rollback: deploymentData.rollback,
+        scaling: deploymentData.scaling,
+        notifications: deploymentData.notifications,
       };
       
       // Mock artifacts for now

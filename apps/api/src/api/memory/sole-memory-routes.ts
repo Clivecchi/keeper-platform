@@ -171,14 +171,19 @@ router.post(
       const query = {
         domainId,
         userId,
-        ...validation,
         query: validation.query || '',
+        category: validation.category,
+        limit: validation.limit,
+        offset: validation.offset,
         filters: validation.filters ? {
           ...validation.filters,
           dateRange: validation.filters.dateRange ? {
             start: new Date(validation.filters.dateRange.start),
             end: new Date(validation.filters.dateRange.end),
           } : undefined,
+          ...(validation.filters.confidence && validation.filters.confidence.min != null && validation.filters.confidence.max != null
+            ? { confidence: { min: validation.filters.confidence.min, max: validation.filters.confidence.max } }
+            : {}),
         } : undefined,
       };
 

@@ -409,8 +409,11 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
     const board = await prisma.board.create({
       data: {
         id: randomUUID(),
-        ...boardData,
-        keeper: { connect: { id: boardData.keeperId } },
+        keeperId: boardData.keeperId,
+        name: boardData.name,
+        slug: boardData.slug,
+        description: boardData.description ?? null,
+        icon: boardData.icon ?? null,
         theme: {},
         behavior: {
           showGrid: true,

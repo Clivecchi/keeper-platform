@@ -153,11 +153,19 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
     });
 
     const data = createAgentSchema.parse(req.body);
-
     const agent = await prisma.kip_agents.create({
       data: {
-        ...data,
-        slug: data.slug, // required by schema
+        name: data.name,
+        slug: data.slug,
+        purpose: data.purpose,
+        model: data.model,
+        agent_class: data.agent_class,
+        model_provider: data.model_provider,
+        visibility: data.visibility,
+        tools: data.tools,
+        permissions: data.permissions,
+        config: data.config,
+        model_settings: data.model_settings,
         created_by: userId,
         status: 'ready',
       },

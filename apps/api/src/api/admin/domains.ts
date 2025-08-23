@@ -103,8 +103,18 @@ router.post('/', authMiddlewareCompat, requireSuperAdmin, async (req: Request, r
   try {
     const parsed = createDomainSchema.parse(req.body);
     const domain = await domainService.createDomain({
-      ...parsed,
       ownerId: parsed.ownerId,
+      name: parsed.name,
+      slug: parsed.slug,
+      description: parsed.description,
+      isPublic: parsed.isPublic,
+      allowRequests: parsed.allowRequests,
+      categories: parsed.categories,
+      customDomain: parsed.customDomain,
+      features: parsed.features,
+      limits: parsed.limits,
+      theme: parsed.theme,
+      settings: parsed.settings,
     });
     return res.status(201).json({ domain });
   } catch (error: any) {
