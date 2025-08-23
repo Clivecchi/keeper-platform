@@ -5,7 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@keeper/database';
-import Redis, { Redis as RedisType } from 'ioredis';
+import { getRedis, type RedisClient } from './lib/redis.js';
 import { 
   DomainService, 
   DomainCacheService,
@@ -13,12 +13,7 @@ import {
 } from '@keeper/database';
 
 const prisma = new PrismaClient();
-let redis: RedisType | null = null;
-if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
-  redis = new Redis(process.env.REDIS_URL);
-} else if (process.env.NODE_ENV === 'development') {
-  console.warn('Redis not available in development. Features will degrade gracefully.');
-}
+const redis: RedisClient | null = getRedis();
 const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
 const featureFlagService = new FeatureFlagService();

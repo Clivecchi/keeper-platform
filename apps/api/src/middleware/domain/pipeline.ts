@@ -10,15 +10,10 @@ import { requireDomainRead, requireDomainWrite, requireDomainAdmin } from './req
 import { requireMemoryAccess } from './requireMemoryAccess.js';
 import { DomainService, DomainCacheService } from '@keeper/database';
 import { PrismaClient } from '@keeper/database';
-import Redis from 'ioredis';
+import { getRedis, type RedisClient } from '../../lib/redis.js';
 
 const prisma = new PrismaClient();
-let redis: Redis | null = null;
-if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
-  redis = new Redis(process.env.REDIS_URL);
-} else if (process.env.NODE_ENV === 'development') {
-  console.warn('Redis not available in development. Features will degrade gracefully.');
-}
+const redis: RedisClient | null = getRedis();
 const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
 

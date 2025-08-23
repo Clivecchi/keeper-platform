@@ -5,7 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@keeper/database';
-import Redis, { Redis as RedisType } from 'ioredis';
+import { getRedis, type RedisClient } from '../lib/redis.js';
 import { 
   DomainCacheService,
   SoleMemoryIsolationService,
@@ -13,12 +13,7 @@ import {
 } from '@keeper/database';
 
 const prisma = new PrismaClient();
-let redis: RedisType | null = null;
-if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
-  redis = new Redis(process.env.REDIS_URL);
-} else if (process.env.NODE_ENV === 'development') {
-  console.warn('Redis not available in development. Features will degrade gracefully.');
-}
+const redis: RedisClient | null = getRedis();
 const cacheService = new DomainCacheService(redis);
 const soleMemoryService = new SoleMemoryIsolationService(prisma, cacheService);
 const featureFlagService = new FeatureFlagService();
@@ -687,7 +682,7 @@ export function createMemoryAccessMiddleware(
   config?: MemoryAccessConfig
 ): (req: MemoryAccessRequest, res: Response, next: NextFunction) => Promise<void> {
   const prisma = new PrismaClient();
-  const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+  const redis = getRedis();
   const cacheService = new DomainCacheService(redis);
   const memoryService = new SoleMemoryIsolationService(prisma, cacheService);
   
@@ -704,7 +699,7 @@ export function createCrossDomainMemoryMiddleware(): (
   next: NextFunction
 ) => Promise<void> {
   const prisma = new PrismaClient();
-  const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+  const redis = getRedis();
   const cacheService = new DomainCacheService(redis);
   const memoryService = new SoleMemoryIsolationService(prisma, cacheService);
   

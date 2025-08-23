@@ -10,16 +10,11 @@ import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { requireDomainAdminCompat, requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { CrossDomainSharingService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
-import Redis, { Redis as RedisType } from 'ioredis';
+import { getRedis, type RedisClient } from '../../lib/redis.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
-let redis: RedisType | null = null;
-if (process.env.REDIS_URL && process.env.DISABLE_REDIS !== 'true') {
-  redis = new Redis(process.env.REDIS_URL);
-} else if (process.env.NODE_ENV === 'development') {
-  console.warn('Redis not available in development. Features will degrade gracefully.');
-}
+const redis: RedisClient | null = getRedis();
 const sharingService = new CrossDomainSharingService(prisma, new DomainCacheService(redis));
 const featureFlags = getFeatureFlagService();
 
@@ -455,9 +450,9 @@ router.post(
       const workflow = await prisma.shareWorkflow.create({
         data: {
           ...validation,
-          createdBy: userId,
+          creator: { connect: { id: userId } },
           approvalSteps: JSON.parse(JSON.stringify(validation.approvalSteps)),
-          sourceDomainId: domainId,
+          sourceDomain: { connect: { id: domainId } },
         },
       });
 
@@ -541,8 +536,8 @@ router.post(
       const template = await prisma.shareTemplate.create({
         data: {
           ...validation,
-          domainId,
-          createdBy: userId,
+          domain: { connect: { id: domainId } },
+          creator: { connect: { id: userId } },
           permissions: JSON.parse(JSON.stringify(validation.permissions)),
           contentTypes: JSON.parse(JSON.stringify(validation.contentTypes)),
         },

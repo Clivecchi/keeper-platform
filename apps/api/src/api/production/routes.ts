@@ -542,7 +542,12 @@ export function createProductionRoutes(
           ...stage,
           conditions: stage.conditions || [],
         })),
-        pipelineData.triggers,
+        pipelineData.triggers.map((t: any) => ({
+          id: t.id || (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`),
+          type: t.type,
+          enabled: typeof t.enabled === 'boolean' ? t.enabled : true,
+          config: t.config ?? {},
+        })),
         pipelineData.environment,
         req.user?.id!
       );
