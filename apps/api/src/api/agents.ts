@@ -219,7 +219,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
       board = await prisma.board.create({
         data: {
           id: boardId,
-          keeperId: agent.created_by, // Use agent creator as keeper
+          keeperId: agent.created_by || '', // Use agent creator as keeper
           name: `${agent.name} Home Board`,
           slug: `agent-${agent.slug}-home`,
           description: `Home board for ${agent.name} agent`,
@@ -421,7 +421,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
       });
 
       // Refetch board with frames
-      board = await prisma.board.findUnique({
+      const refetchedBoard = await prisma.board.findUnique({
         where: { id: board.id },
         include: {
           frames: {
@@ -432,6 +432,12 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           }
         }
       });
+
+      if (!refetchedBoard) {
+        return res.status(500).json({ success: false, error: 'Failed to create board' });
+      }
+
+      board = refetchedBoard;
     }
 
     return res.json({
