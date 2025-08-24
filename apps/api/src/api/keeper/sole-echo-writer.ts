@@ -147,10 +147,10 @@ export const createEcho = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Keeper not found' });
     }
 
-    // Convert triggerDate string to Date if provided and prepare data with nested relations
+    // Convert triggerDate string to Date if provided and prepare data with proper relations
     const echoData = {
       keeper: { connect: { id: validatedData.keeperId } },
-      agent: { connect: { id: validatedData.agentId } },
+      agentId: validatedData.agentId,
       message: validatedData.message,
       triggerDate: validatedData.triggerDate ? new Date(validatedData.triggerDate) : null,
       ...(validatedData.triggerConditions && { triggerConditions: validatedData.triggerConditions })

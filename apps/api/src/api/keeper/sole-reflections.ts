@@ -144,7 +144,7 @@ export const createReflection = async (req: Request, res: Response) => {
     const reflection = await prisma.soleReflection.create({
       data: {
         keeper: { connect: { id: validatedData.keeperId } },
-        agent: { connect: { id: validatedData.agentId } },
+        agentId: validatedData.agentId,
         content: validatedData.content,
         ...(validatedData.topic && { topic: validatedData.topic })
       },
