@@ -181,10 +181,11 @@ router.post(
             start: new Date(validation.filters.dateRange.start),
             end: new Date(validation.filters.dateRange.end),
           } : undefined,
-          ...(validation.filters.confidence && validation.filters.confidence.min != null && validation.filters.confidence.max != null
-            ? { confidence: { min: validation.filters.confidence.min, max: validation.filters.confidence.max } }
-            : {}),
-        } : undefined,
+          confidence: validation.filters.confidence ? {
+            min: validation.filters.confidence.min,
+            max: validation.filters.confidence.max
+          } : { min: 0, max: 1 },
+        } : { confidence: { min: 0, max: 1 } },
       };
 
       const memories = await memoryService.queryMemory(query);

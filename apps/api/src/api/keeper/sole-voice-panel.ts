@@ -82,7 +82,12 @@ export const createVoiceEntry = async (req: Request, res: Response) => {
     }
 
     const voiceEntry = await prisma.soleVoiceEntry.create({
-      data: validatedData
+      data: {
+        keeper: { connect: { id: validatedData.keeperId } },
+        agent: { connect: { id: validatedData.agentId } },
+        label: validatedData.label,
+        belief: validatedData.belief
+      }
     });
 
     return res.status(201).json({

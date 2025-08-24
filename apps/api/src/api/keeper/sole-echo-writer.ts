@@ -147,10 +147,13 @@ export const createEcho = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Keeper not found' });
     }
 
-    // Convert triggerDate string to Date if provided
+    // Convert triggerDate string to Date if provided and prepare data with nested relations
     const echoData = {
-      ...validatedData,
-      triggerDate: validatedData.triggerDate ? new Date(validatedData.triggerDate) : null
+      keeper: { connect: { id: validatedData.keeperId } },
+      agent: { connect: { id: validatedData.agentId } },
+      message: validatedData.message,
+      triggerDate: validatedData.triggerDate ? new Date(validatedData.triggerDate) : null,
+      ...(validatedData.triggerConditions && { triggerConditions: validatedData.triggerConditions })
     };
 
     const echo = await prisma.soleEcho.create({

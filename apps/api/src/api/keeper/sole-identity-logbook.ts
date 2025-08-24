@@ -193,7 +193,14 @@ export const createLogbookEntry = async (req: Request, res: Response) => {
     }
 
     const logbookEntry = await prisma.soleLogbookEntry.create({
-      data: validatedData
+      data: {
+        keeper: { connect: { id: validatedData.keeperId } },
+        agent: { connect: { id: validatedData.agentId } },
+        entry: validatedData.entry,
+        label: validatedData.label,
+        category: validatedData.category,
+        tags: validatedData.tags
+      }
     });
 
     return res.status(201).json({

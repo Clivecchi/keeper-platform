@@ -338,7 +338,7 @@ export const createKeeperType = async (req: Request, res: Response) => {
     const keeperType = await prisma.keeperType.create({
       data: {
         id: `keeper_type_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        ...validatedData
+        name: validatedData.name
       }
     });
 

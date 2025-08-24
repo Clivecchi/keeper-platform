@@ -456,7 +456,14 @@ router.post(
 
       const workflow = await prisma.shareWorkflow.create({
         data: {
-          ...validation,
+          name: validation.name,
+          description: validation.description,
+          workflowType: validation.workflowType,
+          requiresApproval: validation.requiresApproval,
+          defaultExpirationDays: validation.defaultExpirationDays,
+          maxAccessCount: validation.maxAccessCount,
+          allowSubsharing: validation.allowSubsharing,
+          auditLevel: validation.auditLevel,
           creator: { connect: { id: userId } },
           approvalSteps: JSON.parse(JSON.stringify(validation.approvalSteps)),
           sourceDomain: { connect: { id: domainId } },
@@ -542,9 +549,18 @@ router.post(
 
       const template = await prisma.shareTemplate.create({
         data: {
-          ...validation,
+          name: validation.name,
+          description: validation.description,
+          templateType: validation.templateType,
+          accessLevel: validation.accessLevel,
+          defaultDuration: validation.defaultDuration,
+          maxAccess: validation.maxAccess,
+          requireApproval: validation.requireApproval,
+          autoActivate: validation.autoActivate,
+          allowSubsharing: validation.allowSubsharing,
           domain: { connect: { id: domainId } },
           creator: { connect: { id: userId } },
+          ...(validation.workflowId && { workflow: { connect: { id: validation.workflowId } } }),
           permissions: JSON.parse(JSON.stringify(validation.permissions)),
           contentTypes: JSON.parse(JSON.stringify(validation.contentTypes)),
         },
@@ -626,9 +642,18 @@ router.post(
       const validation = collaborationSchema.parse(req.body);
 
       const config = {
-        ...validation,
+        name: validation.name,
+        description: validation.description,
+        collaborationType: validation.collaborationType,
+        memberDomainIds: validation.memberDomainIds,
+        permissions: validation.permissions,
+        sharedResources: validation.sharedResources,
+        accessRules: validation.accessRules,
         startDate: validation.startDate ? new Date(validation.startDate) : undefined,
         endDate: validation.endDate ? new Date(validation.endDate) : undefined,
+        auditLevel: validation.auditLevel,
+        requireMFA: validation.requireMFA,
+        allowedIPs: validation.allowedIPs,
       };
 
       const collaborationId = await sharingService.createCollaboration(

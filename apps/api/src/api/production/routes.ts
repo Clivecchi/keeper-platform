@@ -355,10 +355,31 @@ export function createProductionRoutes(
         buildId: deploymentData.buildId,
         environment: deploymentData.environment,
         strategy: deploymentData.strategy ?? 'rolling',
-        healthCheck: deploymentData.healthCheck,
-        rollback: deploymentData.rollback,
-        scaling: deploymentData.scaling,
-        notifications: deploymentData.notifications,
+        healthCheck: {
+          enabled: deploymentData.healthCheck?.enabled ?? true,
+          path: deploymentData.healthCheck?.path ?? '/health',
+          timeout: deploymentData.healthCheck?.timeout ?? 30000,
+          retries: deploymentData.healthCheck?.retries ?? 3,
+          interval: deploymentData.healthCheck?.interval ?? 10000,
+        },
+        rollback: {
+          enabled: deploymentData.rollback?.enabled ?? true,
+          threshold: deploymentData.rollback?.threshold ?? 0.1,
+          automatic: deploymentData.rollback?.automatic ?? false,
+          timeout: deploymentData.rollback?.timeout ?? 600000,
+        },
+        scaling: {
+          minInstances: deploymentData.scaling?.minInstances ?? 2,
+          maxInstances: deploymentData.scaling?.maxInstances ?? 10,
+          targetCPU: deploymentData.scaling?.targetCPU ?? 0.7,
+          targetMemory: deploymentData.scaling?.targetMemory ?? 0.8,
+        },
+        notifications: {
+          channels: deploymentData.notifications?.channels ?? [],
+          onSuccess: deploymentData.notifications?.onSuccess ?? true,
+          onFailure: deploymentData.notifications?.onFailure ?? true,
+          onRollback: deploymentData.notifications?.onRollback ?? true,
+        },
       };
       
       // Mock artifacts for now

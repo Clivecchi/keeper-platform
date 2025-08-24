@@ -100,7 +100,15 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const result = await PlatformApiKeyService.upsertKey(input, adminUserId);
+    // Ensure all required properties are present
+    const keyInput = {
+      provider: input.provider,
+      api_key: input.api_key,
+      label: input.label || `${input.provider} API Key`,
+      is_active: input.is_active ?? true
+    };
+
+    const result = await PlatformApiKeyService.upsertKey(keyInput, adminUserId);
     
     if (!result.success) {
       return res.status(500).json({ 
