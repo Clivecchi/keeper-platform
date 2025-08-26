@@ -555,7 +555,7 @@ export async function getKipSessionById(sessionId: string) {
           email: true
         }
       },
-      messages: {
+      kip_messages: {
         orderBy: { created_at: 'asc' }
       }
     }
