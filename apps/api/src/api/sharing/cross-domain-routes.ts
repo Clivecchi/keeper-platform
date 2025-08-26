@@ -201,9 +201,9 @@ router.get(
       const request = await prisma.shareRequest.findUnique({
         where: { id: requestId },
         include: {
-          sourceDomain: { select: { id: true, name: true, slug: true } },
-          targetDomain: { select: { id: true, name: true, slug: true } },
-          requester: { select: { id: true, name: true, email: true } },
+          Domain_ShareRequest_sourceDomainIdToDomain: { select: { id: true, name: true, slug: true } },
+          Domain_ShareRequest_targetDomainIdToDomain: { select: { id: true, name: true, slug: true } },
+          users_ShareRequest_requestedByTousers: { select: { id: true, name: true, email: true } },
         },
       });
 
@@ -249,8 +249,8 @@ router.put(
           expiresAt: expiresAt ? new Date(expiresAt) : undefined,
         },
         include: {
-          sourceDomain: { select: { id: true, name: true, slug: true } },
-          targetDomain: { select: { id: true, name: true, slug: true } },
+          Domain_ShareRequest_sourceDomainIdToDomain: { select: { id: true, name: true, slug: true } },
+          Domain_ShareRequest_targetDomainIdToDomain: { select: { id: true, name: true, slug: true } },
         },
       });
 
@@ -779,8 +779,8 @@ router.get(
           status: 'pending',
         },
         include: {
-          sourceDomain: { select: { id: true, name: true, slug: true } },
-          requester: { select: { id: true, name: true, email: true } },
+          Domain_ShareRequest_sourceDomainIdToDomain: { select: { id: true, name: true, slug: true } },
+          users_ShareRequest_requestedByTousers: { select: { id: true, name: true, email: true } },
           workflow: { select: { id: true, name: true } },
         },
         orderBy: { requestedAt: 'asc' },
@@ -819,8 +819,8 @@ router.get(
         include: {
           shareRequest: {
             include: {
-              sourceDomain: { select: { id: true, name: true, slug: true } },
-              targetDomain: { select: { id: true, name: true, slug: true } },
+              Domain_ShareRequest_sourceDomainIdToDomain: { select: { id: true, name: true, slug: true } },
+              Domain_ShareRequest_targetDomainIdToDomain: { select: { id: true, name: true, slug: true } },
             },
           },
         },
@@ -845,7 +845,7 @@ router.get(
             contentType: activation.shareRequest.contentType,
             permissions: activation.shareRequest.permissions,
             accessLevel: activation.shareRequest.accessLevel,
-            sourceDomain: activation.shareRequest.sourceDomain,
+            sourceDomain: activation.shareRequest.Domain_ShareRequest_sourceDomainIdToDomain,
           },
           activation: {
             activationType: activation.activationType,

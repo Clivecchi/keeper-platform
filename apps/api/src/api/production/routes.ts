@@ -445,7 +445,7 @@ export function createProductionRoutes(
       const deployment = await prisma.shareRequest.findUnique({
         where: { id: deploymentId },
         include: {
-          sourceDomain: {
+          Domain_ShareRequest_sourceDomainIdToDomain: {
             select: {
               id: true,
               name: true,

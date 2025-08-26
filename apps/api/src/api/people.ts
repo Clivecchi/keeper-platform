@@ -58,7 +58,7 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
       include: {
         domainPermissions: {
           include: {
-            domain: {
+            Domain: {
               select: {
                 id: true,
                 name: true,
@@ -114,7 +114,7 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
         lastKipSession: user.kip_sessions[0]?.created_at,
         status: determineUserStatus(user),
         domains: user.domainPermissions.map(dp => ({
-          ...dp.domain,
+          ...dp.Domain,
           role: dp.role,
           permissions: dp.permissions,
         })),
@@ -227,7 +227,7 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       emailVerified: user.emailVerified,
       status: determineUserStatus(user),
       domains: user.domainPermissions.map(dp => ({
-        ...dp.domain,
+        ...dp.Domain,
         role: dp.role,
         permissions: dp.permissions,
         grantedBy: dp.grantor,

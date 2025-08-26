@@ -76,13 +76,13 @@ router.get('/:id/members', authMiddlewareCompat, requireSuperAdmin, async (req: 
     const permissions = await prisma.domainPermission.findMany({
       where: { domainId: req.params.id },
       include: {
-        user: { select: { id: true, name: true, email: true } },
+        users_DomainPermission_userIdTousers: { select: { id: true, name: true, email: true } },
       },
     });
 
     const members = permissions.map((p) => ({
       userId: p.userId,
-      name: p.user?.name || p.user?.email || p.userId,
+      name: p.users_DomainPermission_userIdTousers?.name || p.users_DomainPermission_userIdTousers?.email || p.userId,
       role: p.role,
       permissions: p.permissions,
       expiresAt: p.expiresAt,

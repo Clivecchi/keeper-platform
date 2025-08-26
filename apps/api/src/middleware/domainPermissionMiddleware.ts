@@ -334,13 +334,13 @@ export class DomainPermissionMiddleware {
           targetDomainId: domainId,
         },
         include: {
-          sourceDomain: true,
+          Domain_CrossDomainShare_sourceDomainIdToDomain: true,
         },
       });
 
       if (sharedDomain) {
         // Check if user has access to source domain
-        const sourceAccess = await this.getUserPermissions(userId, sharedDomain.sourceDomain);
+        const sourceAccess = await this.getUserPermissions(userId, sharedDomain.Domain_CrossDomainShare_sourceDomainIdToDomain);
         if (sourceAccess.permissions.includes('read')) {
           return ['read']; // Shared domains typically only allow read access
         }
