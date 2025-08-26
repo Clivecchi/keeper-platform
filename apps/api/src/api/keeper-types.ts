@@ -46,11 +46,12 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
             id: true,
             title: true,
             purpose: true,
+            Journey: true,
           },
         },
         kip_agent_keeper_types: {
           include: {
-            agent: {
+            kip_agents: {
               select: {
                 id: true,
                 name: true,
@@ -61,7 +62,7 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
         },
         keeper_type_engagement_templates: {
           include: {
-            engagement_template: {
+            engagement_templates: {
               select: {
                 id: true,
                 label: true,
@@ -87,8 +88,8 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
         agentCount: keeperType.kip_agent_keeper_types.length,
         templateCount: keeperType.keeper_type_engagement_templates.length,
         keepers: keeperType.Keeper,
-        agents: keeperType.kip_agent_keeper_types.map(akt => akt.agent),
-        templates: keeperType.keeper_type_engagement_templates.map(ktet => ktet.engagement_template),
+        agents: keeperType.kip_agent_keeper_types.map(akt => akt.kip_agents),
+        templates: keeperType.keeper_type_engagement_templates.map(ktet => ktet.engagement_templates),
         capabilities: getKeeperTypeCapabilities(keeperType.name, keeperType.memoryPattern),
       })),
       total,
@@ -129,12 +130,12 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
         },
         kip_agent_keeper_types: {
           include: {
-            agent: true,
+            kip_agents: true,
           },
         },
         keeper_type_engagement_templates: {
           include: {
-            engagement_template: {
+            engagement_templates: {
               include: {
                 engagement_fields: true,
                 engagement_styles: true,
@@ -158,8 +159,8 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       description: getKeeperTypeDescription(keeperType.name),
       capabilities: getKeeperTypeCapabilities(keeperType.name, keeperType.memoryPattern),
       keepers: keeperType.Keeper,
-      agents: keeperType.kip_agent_keeper_types.map(akt => akt.agent),
-      templates: keeperType.keeper_type_engagement_templates.map(ktet => ktet.engagement_template),
+      agents: keeperType.kip_agent_keeper_types.map(akt => akt.kip_agents),
+      templates: keeperType.keeper_type_engagement_templates.map(ktet => ktet.engagement_templates),
       stats: {
         totalKeepers: keeperType.Keeper.length,
         totalJourneys: keeperType.Keeper.reduce((sum, keeper) => sum + keeper.Journey.length, 0),

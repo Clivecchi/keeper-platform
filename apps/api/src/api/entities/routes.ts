@@ -79,7 +79,7 @@ router.get('/:scope/:id/min', authMiddlewareCompat, async (req: Request, res: Re
             _count: {
               select: {
                 keepers: true,
-                permissions: true
+                DomainPermission: true
               }
             }
           }
@@ -94,7 +94,7 @@ router.get('/:scope/:id/min', authMiddlewareCompat, async (req: Request, res: Re
               description: domain.description,
               visibility: domain.isPublic ? 'Public' : 'Private',
               keepers: domain._count.keepers,
-              members: domain._count.permissions,
+              members: domain._count.DomainPermission,
               created: domain.createdAt,
               updated: domain.updatedAt
             }

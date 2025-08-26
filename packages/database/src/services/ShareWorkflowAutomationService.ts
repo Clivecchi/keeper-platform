@@ -251,7 +251,7 @@ export class ShareWorkflowAutomationService {
     const workflow = await this.prisma.shareWorkflow.findUnique({
       where: { id: workflowId },
       include: { 
-        workflowSteps: { 
+        ShareWorkflowStep: { 
           orderBy: { order: 'asc' } 
         } 
       },
@@ -263,7 +263,7 @@ export class ShareWorkflowAutomationService {
 
     // Create step executions for all workflow steps
     const stepExecutions = await Promise.all(
-      workflow.workflowSteps.map(async (step: any, index: number) => {
+      workflow.ShareWorkflowStep.map(async (step: any, index: number) => {
         const timeoutAt = step.timeoutHours 
           ? new Date(Date.now() + step.timeoutHours * 60 * 60 * 1000)
           : new Date(Date.now() + this.PERFORMANCE_THRESHOLDS.defaultTimeoutHours * 60 * 60 * 1000);
@@ -282,7 +282,7 @@ export class ShareWorkflowAutomationService {
     );
 
     // Start first step if auto-start is enabled
-    if (workflow.workflowSteps.length > 0) {
+    if (workflow.ShareWorkflowStep.length > 0) {
       await this.executeStep(stepExecutions[0].id);
     }
 
@@ -296,12 +296,12 @@ export class ShareWorkflowAutomationService {
     const stepExecution = await this.prisma.shareStepExecution.findUnique({
       where: { id: stepExecutionId },
       include: {
-        workflowStep: true,
-        shareRequest: {
+        ShareWorkflowStep: true,
+        ShareRequest: {
           include: {
-            sourceDomain: true,
-            targetDomain: true,
-            workflow: true,
+            Domain_ShareRequest_sourceDomainIdToDomain: true,
+            Domain_ShareRequest_targetDomainIdToDomain: true,
+            ShareWorkflow: true,
           },
         },
       },
@@ -330,7 +330,7 @@ export class ShareWorkflowAutomationService {
 
     try {
       // Execute based on step type
-      switch (stepExecution.workflowStep.stepType) {
+      switch (stepExecution.ShareWorkflowStep.stepType) {
         case 'approval':
           await this.executeApprovalStep(stepExecution);
           break;
@@ -344,7 +344,7 @@ export class ShareWorkflowAutomationService {
           await this.executeTransformationStep(stepExecution);
           break;
         default:
-          throw new Error(`Unknown step type: ${stepExecution.workflowStep.stepType}`);
+          throw new Error(`Unknown step type: ${stepExecution.ShareWorkflowStep.stepType}`);
       }
     } catch (error) {
       await this.handleStepError(stepExecutionId, error);
@@ -539,7 +539,7 @@ export class ShareWorkflowAutomationService {
   ): Promise<void> {
     const stepExecution = await this.prisma.shareStepExecution.findUnique({
       where: { id: stepExecutionId },
-      include: { shareRequest: true },
+      include: { ShareRequest: true },
     });
 
     if (!stepExecution) {
@@ -610,11 +610,11 @@ export class ShareWorkflowAutomationService {
     // Trigger activation if auto-activate is enabled
     const request = await this.prisma.shareRequest.findUnique({
       where: { id: requestId },
-      include: { workflow: true },
+      include: { ShareWorkflow: true },
     });
 
-    if (request?.workflow?.autoApprovalRules && Array.isArray(request.workflow.autoApprovalRules)) {
-      const autoApprovalRules = request.workflow.autoApprovalRules as any[];
+    if (request?.ShareWorkflow?.autoApprovalRules && Array.isArray(request.ShareWorkflow.autoApprovalRules)) {
+      const autoApprovalRules = request.ShareWorkflow.autoApprovalRules as any[];
       if (autoApprovalRules.some((rule: WorkflowEvent) => rule.autoActivate)) {
         console.log('Auto-approval rules detected, enabling immediate activation');
       }
@@ -791,8 +791,8 @@ export class ShareWorkflowAutomationService {
         requestedAt: { gte: startDate, lte: endDate },
       },
       include: {
-        stepExecutions: {
-          include: { workflowStep: true },
+        ShareStepExecution: {
+          include: { ShareWorkflowStep: true },
         },
       },
     });
@@ -815,8 +815,8 @@ export class ShareWorkflowAutomationService {
     const stepGroups = new Map<string, { completed: number; total: number }>();
 
     executions.forEach(execution => {
-      execution.stepExecutions.forEach(stepExec => {
-        const stepName = stepExec.workflowStep.stepName;
+      execution.ShareStepExecution.forEach(stepExec => {
+        const stepName = stepExec.ShareWorkflowStep.stepName;
         if (!stepGroups.has(stepName)) {
           stepGroups.set(stepName, { completed: 0, total: 0 });
         }
@@ -834,13 +834,13 @@ export class ShareWorkflowAutomationService {
 
     // Calculate auto-approval rate
     const autoApprovalCount = executions.filter(e => 
-      e.stepExecutions.some(s => s.approvedBy === 'system')
+      e.ShareStepExecution.some(s => s.approvedBy === 'system')
     ).length;
     const autoApprovalRate = totalExecutions > 0 ? autoApprovalCount / totalExecutions : 0;
 
     // Calculate timeout rate
     const timeoutCount = executions.filter(e => 
-      e.stepExecutions.some(s => s.status === 'timeout')
+      e.ShareStepExecution.some(s => s.status === 'timeout')
     ).length;
     const timeoutRate = totalExecutions > 0 ? timeoutCount / totalExecutions : 0;
 
@@ -1059,8 +1059,8 @@ export class ShareWorkflowAutomationService {
         startedAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) }, // Older than 24 hours
       },
       include: {
-        shareRequest: {
-          include: { sourceDomain: true, targetDomain: true },
+        ShareRequest: {
+          include: { Domain_ShareRequest_sourceDomainIdToDomain: true, Domain_ShareRequest_targetDomainIdToDomain: true },
         },
       },
     });

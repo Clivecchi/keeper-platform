@@ -499,7 +499,7 @@ export class SslCertificateService {
       data: {
         id,
         customDomain: request.customDomain,
-        domain: {
+        Domain: {
           connect: { id: request.domainId }
         },
         provider: request.provider,
@@ -652,7 +652,7 @@ export class SslCertificateService {
     try {
       const certificate = await this.prisma.sslCertificate.findUnique({
         where: { id: certificateId },
-        include: { domain: true },
+        include: { Domain: true },
       });
 
       if (!certificate) {
@@ -755,7 +755,7 @@ export class SslCertificateService {
         },
         orderBy: { validUntil: 'asc' },
         include: {
-          domain: true,
+          Domain: true,
         },
       });
 

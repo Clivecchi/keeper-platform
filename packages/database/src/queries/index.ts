@@ -413,7 +413,7 @@ export async function getKipAgentLogs(options: {
     prisma.kip_agent_logs.findMany({
       where,
       include: {
-        agent: {
+        kip_agents: {
           select: {
             id: true,
             name: true,
@@ -421,7 +421,7 @@ export async function getKipAgentLogs(options: {
             model: true
           }
         },
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -516,14 +516,14 @@ export async function createKipSession(data: {
       updated_at: new Date()
     },
     include: {
-      agent: {
+      kip_agents: {
         select: {
           id: true,
           name: true,
           slug: true
         }
       },
-      user: {
+      users: {
         select: {
           id: true,
           name: true,
@@ -541,14 +541,14 @@ export async function getKipSessionById(sessionId: string) {
   return prisma.kip_sessions.findUnique({
     where: { id: sessionId },
     include: {
-      agent: {
+      kip_agents: {
         select: {
           id: true,
           name: true,
           slug: true
         }
       },
-      user: {
+      users: {
         select: {
           id: true,
           name: true,
@@ -576,14 +576,14 @@ export async function getSessionsByAgentId(agentId: string, options: {
     prisma.kip_sessions.findMany({
       where: { agent_id: agentId },
       include: {
-        agent: {
+        kip_agents: {
           select: {
             id: true,
             name: true,
             slug: true
           }
         },
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -591,7 +591,7 @@ export async function getSessionsByAgentId(agentId: string, options: {
           }
         },
         _count: {
-          select: { messages: true }
+          select: { kip_messages: true }
         }
       },
       orderBy: { updated_at: 'desc' },
@@ -626,14 +626,14 @@ export async function getSessionsByUserId(userId: string, options: {
     prisma.kip_sessions.findMany({
       where: { user_id: userId },
       include: {
-        agent: {
+        kip_agents: {
           select: {
             id: true,
             name: true,
             slug: true
           }
         },
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -641,7 +641,7 @@ export async function getSessionsByUserId(userId: string, options: {
           }
         },
         _count: {
-          select: { messages: true }
+          select: { kip_messages: true }
         }
       },
       orderBy: { updated_at: 'desc' },
@@ -704,7 +704,7 @@ export async function createKipMessage(data: {
       role: data.role || (data.sender === 'user' ? 'user' : 'assistant')
     },
     include: {
-      session: {
+      kip_sessions: {
         select: {
           id: true,
           agent_id: true,
@@ -723,7 +723,7 @@ export async function getSessionMessages(sessionId: string) {
     where: { session_id: sessionId },
     orderBy: { created_at: 'asc' },
     include: {
-      session: {
+      kip_sessions: {
         select: {
           id: true,
           agent_id: true,
@@ -743,7 +743,7 @@ export async function getRecentSessionMessages(sessionId: string, limit: number 
     orderBy: { created_at: 'desc' },
     take: limit,
     include: {
-      session: {
+      kip_sessions: {
         select: {
           id: true,
           agent_id: true,

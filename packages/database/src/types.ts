@@ -13,7 +13,7 @@ export type User = Prisma.usersGetPayload<{}>
 export type UserSettings = Prisma.UserSettingsGetPayload<{}>
 export type Theme = Prisma.themesGetPayload<{}>
 export type KeeperMapping = Prisma.KeeperMappingGetPayload<{}>
-export type FrameContent = Prisma.FrameContentGetPayload<{}>
+export type MediaContent = Prisma.MediaContentGetPayload<{}>
 // export type KipAgent = Prisma.kip_agentsGetPayload<{}> // Will be available after Prisma generation
 
 // =============================================================================
@@ -355,7 +355,7 @@ export type KipMessageWithRelations = {
  */
 export type KeeperMappingWithRelations = KeeperMapping & {
   user: User
-  frameContent?: FrameContent[]
+  mediaContent?: MediaContent[]
 }
 
 // =============================================================================
@@ -395,7 +395,7 @@ export type OptionalFields<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, 
 /**
  * Database model names
  */
-export type ModelName = 'User' | 'UserSettings' | 'Theme' | 'KeeperMapping' | 'FrameContent'
+export type ModelName = 'User' | 'UserSettings' | 'Theme' | 'KeeperMapping' | 'MediaContent'
 
 /**
  * Common database fields

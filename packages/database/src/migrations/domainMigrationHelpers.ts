@@ -595,7 +595,7 @@ export class DomainMigrationHelper {
     const usersCount = await this.prisma.users.count();
     const usersWithDomains = await this.prisma.users.count({
       where: {
-        ownedDomains: {
+        Domain: {
           some: {}
         }
       }

@@ -3,18 +3,20 @@
  * Core CRUD operations for domain management with validation and caching
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import type { Domain, DomainPermission } from '@prisma/client';
 import { SlugValidationService } from './SlugValidationService.js';
 import { DomainCacheService } from './DomainCacheService.js';
 import { getFeatureFlagService } from './FeatureFlagService.js';
 
-// Define the Domain with includes type for Prisma queries
-export type DomainWithIncludes = Domain & {
-  keepers: unknown[];
-  journeys: unknown[];
-  permissions: DomainPermission[];
-};
+// Define the Domain with includes type using Prisma-derived types
+export type DomainWithIncludes = Prisma.DomainGetPayload<{
+  include: {
+    keepers: true;
+    journeys: true;
+    DomainPermission: true;
+  };
+}>;
 
 export interface CreateDomainRequest {
   name: string;
@@ -69,7 +71,7 @@ export interface DomainVerificationRequest {
 }
 
 export interface DomainWithPermissions extends Domain {
-  permissions?: DomainPermission[];
+  DomainPermission?: DomainPermission[];
 }
 
 export interface DomainEvent {
@@ -186,7 +188,7 @@ export class DomainService {
       include: {
         keepers: true,
         journeys: true,
-        permissions: true
+        DomainPermission: true
       }
     });
 
@@ -202,7 +204,7 @@ export class DomainService {
       include: {
         keepers: true,
         journeys: true,
-        permissions: true
+        DomainPermission: true
       }
     });
 
@@ -218,7 +220,7 @@ export class DomainService {
       include: {
         keepers: true,
         journeys: true,
-        permissions: true
+        DomainPermission: true
       }
     });
 
@@ -311,7 +313,7 @@ export class DomainService {
       include: {
         keepers: true,
         journeys: true,
-        permissions: true
+        DomainPermission: true
       }
     });
 
@@ -423,7 +425,7 @@ export class DomainService {
         OR: [
           { ownerId: userId },
           {
-            permissions: {
+            DomainPermission: {
               some: {
                 userId,
                 OR: [
@@ -437,7 +439,7 @@ export class DomainService {
         isActive: true,
       },
       include: {
-        permissions: {
+        DomainPermission: {
           where: { userId },
         },
       },

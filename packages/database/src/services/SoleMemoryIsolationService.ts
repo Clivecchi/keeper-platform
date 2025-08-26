@@ -286,10 +286,10 @@ export class SoleMemoryIsolationService {
     const memoryScope = await this.prisma.soleMemoryScope.findUnique({
       where: { domainId },
       include: {
-        domain: true,
-        creator: true,
-        sharedFrom: true,
-        sharedTo: true,
+        Domain: true,
+        users: true,
+        MemoryShare_MemoryShare_sourceMemoryIdToSoleMemoryScope: true,
+        MemoryShare_MemoryShare_targetMemoryIdToSoleMemoryScope: true,
       },
     });
 

@@ -92,7 +92,7 @@ const FrameReorder = z.object({
  */
 async function ensureDefaultFrameConfig(name: string): Promise<string> {
   try {
-    const existing = await prisma.frameConfig.findUnique({
+    const existing = await prisma.frameConfig.findFirst({
       where: { name }
     });
     

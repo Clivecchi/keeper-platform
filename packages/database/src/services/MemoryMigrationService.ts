@@ -464,10 +464,10 @@ export class MemoryMigrationService {
     const migration = await this.prisma.memoryMigration.findUnique({
       where: { id: migrationId },
       include: {
-        initiator: {
+        users_MemoryMigration_initiatedByTousers: {
           select: { id: true, name: true, email: true },
         },
-        approver: {
+        users_MemoryMigration_approvedByTousers: {
           select: { id: true, name: true, email: true },
         },
       },

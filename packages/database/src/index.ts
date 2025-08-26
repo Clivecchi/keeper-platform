@@ -126,7 +126,7 @@ export type {
   UserSettings,
   themes as Theme,
   KeeperMapping,
-  FrameContent,
+  MediaContent,
   FrameConfig,
   FrameInstance,
   Prisma

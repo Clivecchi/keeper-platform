@@ -247,7 +247,7 @@ export class CrossDomainSharingService {
   ): Promise<void> {
     const request = await this.prisma.shareRequest.findUnique({
       where: { id: requestId },
-      include: { workflow: true },
+      include: { ShareWorkflow: true },
     });
 
     if (!request) {
@@ -273,7 +273,7 @@ export class CrossDomainSharingService {
     });
 
     // Execute workflow step if present
-    if (request.workflow) {
+    if (request.ShareWorkflow) {
       await this.executeWorkflowStep(requestId, request.currentStep, approvedBy);
     }
 
@@ -393,10 +393,10 @@ export class CrossDomainSharingService {
     const activation = await this.prisma.shareActivation.findUnique({
       where: { accessToken },
       include: {
-        shareRequest: {
+        ShareRequest: {
           include: {
-            sourceDomain: true,
-            targetDomain: true,
+            Domain_ShareRequest_sourceDomainIdToDomain: true,
+            Domain_ShareRequest_targetDomainIdToDomain: true,
           },
         },
       },
@@ -443,9 +443,9 @@ export class CrossDomainSharingService {
 
     // Return access information
     return {
-      shareRequest: activation.shareRequest,
-      permissions: activation.shareRequest.permissions,
-      accessLevel: activation.shareRequest.accessLevel,
+      shareRequest: (activation as any).ShareRequest,
+      permissions: (activation as any).ShareRequest?.permissions || [],
+      accessLevel: (activation as any).ShareRequest?.accessLevel || 'read',
       expiresAt: activation.expiresAt,
       accessCount: activation.accessCount + 1,
     };
@@ -651,7 +651,7 @@ export class CrossDomainSharingService {
       where: {
         expiresAt: { gt: new Date() },
         deactivatedAt: null,
-        shareRequest: {
+        ShareRequest: {
           OR: [{ sourceDomainId: domainId }, { targetDomainId: domainId }],
         },
       },
@@ -754,7 +754,7 @@ export class CrossDomainSharingService {
     const requests = await this.prisma.shareRequest.findMany({
       where: whereClause as any,
       include: {
-        workflow: true,
+        ShareWorkflow: true,
       },
       orderBy: { requestedAt: 'desc' },
       take: filters.limit || 50,
@@ -810,7 +810,7 @@ export class CrossDomainSharingService {
         where: {
           expiresAt: { gt: new Date() },
           deactivatedAt: null,
-          shareRequest: { sourceDomainId: domainId },
+          ShareRequest: { sourceDomainId: domainId },
         },
       }),
       this.prisma.shareRequest.count({
@@ -898,8 +898,8 @@ export class CrossDomainSharingService {
     // Get access metrics
     const accessLogs = await this.prisma.shareAccessLog.findMany({
       where: {
-        shareActivation: {
-          shareRequest: { sourceDomainId: domainId },
+        ShareActivation: {
+          ShareRequest: { sourceDomainId: domainId },
         },
         accessedAt: { gte: startDate, lte: endDate },
       },
@@ -987,7 +987,7 @@ export class CrossDomainSharingService {
         where: {
           expiresAt: { gt: new Date() },
           deactivatedAt: null,
-          shareRequest: { sourceDomainId: domainId },
+          ShareRequest: { sourceDomainId: domainId },
         },
       }),
     ]);
@@ -1013,8 +1013,8 @@ export class CrossDomainSharingService {
     // Calculate security score based on various factors
     const securityIssues = await this.prisma.shareAccessLog.findMany({
       where: {
-        shareActivation: {
-          shareRequest: { sourceDomainId: domainId },
+        ShareActivation: {
+          ShareRequest: { sourceDomainId: domainId },
         },
         accessGranted: false,
         accessedAt: { gte: startDate, lte: endDate },
@@ -1154,7 +1154,7 @@ export class CrossDomainSharingService {
 
     const workflow = await this.prisma.shareWorkflow.findUnique({
       where: { id: workflowId },
-      include: { workflowSteps: { orderBy: { order: 'asc' } } },
+      include: { ShareWorkflowStep: { orderBy: { order: 'asc' } } },
     });
 
     if (workflow) {
@@ -1218,10 +1218,10 @@ export class CrossDomainSharingService {
   ): Promise<void> {
     const request = await this.prisma.shareRequest.findUnique({
       where: { id: requestId },
-      include: { workflow: true },
+      include: { ShareWorkflow: true },
     });
 
-    if (!request || !request.workflow) {
+    if (!request || !request.ShareWorkflow) {
       return;
     }
 
