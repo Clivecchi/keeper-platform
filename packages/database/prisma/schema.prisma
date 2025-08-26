@@ -36,17 +36,17 @@ model Journey {
   name      String
   forward   String
   ownerId   String
-  domainId  String?
   createdAt DateTime @default(now())
   updatedAt DateTime
   keeperId  String
   theme_id  String?  @db.Uuid
+  domainId  String?
+  domain    Domain?  @relation(fields: [domainId], references: [id])
   Keeper    Keeper   @relation(fields: [keeperId], references: [id])
   themes    themes?  @relation(fields: [theme_id], references: [id])
-  domain    Domain?  @relation(fields: [domainId], references: [id])
   Moment    Moment?
   Path      Path[]
-  
+
   @@index([domainId])
 }
 
@@ -55,28 +55,28 @@ model Keeper {
   title                String
   purpose              String
   keeperTypeId         String?
-  keeperType           String?                // New field for direct keeper type
-  memoryPattern        String?                // New field for memory organization pattern
-  sole                 Json?                  // Approved agent-authored memory architecture
-  soleDraft            Json?                  // Proposed draft structure by agent
-  soleSubmittedAt      DateTime?              // Timestamp when soleDraft was submitted
   ownerId              String
-  domainId             String?
   theme_id             String?                @db.Uuid
   createdAt            DateTime               @default(now())
+  keeperType           String?
+  memoryPattern        String?
   updatedAt            DateTime               @updatedAt
+  sole                 Json?
+  soleDraft            Json?
+  soleSubmittedAt      DateTime?
+  domainId             String?
   Journey              Journey[]
+  domain               Domain?                @relation(fields: [domainId], references: [id])
   KeeperType           KeeperType?            @relation(fields: [keeperTypeId], references: [id])
   themes               themes?                @relation(fields: [theme_id], references: [id])
-  domain               Domain?                @relation(fields: [domainId], references: [id])
   Path                 Path[]
+  SoleEcho             SoleEcho[]
+  SoleLogbookEntry     SoleLogbookEntry[]
+  SoleMemoryCard       SoleMemoryCard[]
+  SoleReflection       SoleReflection[]
+  SoleVoiceEntry       SoleVoiceEntry[]
   engagement_templates engagement_templates[]
-  soleReflections      SoleReflection[]
-  soleMemoryCards      SoleMemoryCard[]
-  soleVoiceEntries     SoleVoiceEntry[]
-  soleEchoes           SoleEcho[]
-  soleLogbookEntries   SoleLogbookEntry[]
-  
+
   @@index([domainId])
 }
 
@@ -94,50 +94,39 @@ model KeeperMapping {
 }
 
 model KeeperType {
-  id            String   @id
-  name          String
-  memoryPattern String?
-  system        Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  Keeper        Keeper[]
-  kip_agent_keeper_types kip_agent_keeper_types[]
+  id                               String                             @id
+  name                             String
+  createdAt                        DateTime                           @default(now())
+  memoryPattern                    String?
+  system                           Boolean                            @default(false)
+  Keeper                           Keeper[]
   keeper_type_engagement_templates keeper_type_engagement_templates[]
-}
-
-model FrameContent {
-  id                                                                    String          @id @db.Uuid
-  type                                                                  String
-  url                                                                   String
-  alt                                                                   String?
-  createdAt                                                             DateTime        @default(now())
-  playlistOwnerId                                                       String?         @db.Uuid
-  FrameInstance_FrameContent_playlistOwnerIdToFrameInstance             FrameInstance?  @relation("FrameContent_playlistOwnerIdToFrameInstance", fields: [playlistOwnerId], references: [id])
-  FrameInstance_FrameInstance_currentContentIdToFrameContent            FrameInstance?  @relation("FrameInstance_currentContentIdToFrameContent")
+  kip_agent_keeper_types           kip_agent_keeper_types[]
 }
 
 model FrameConfig {
-  id            String          @id @db.Uuid
-  name          String          @unique
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
   description   String?
   theme         Json?
   createdAt     DateTime        @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime        @default(now())
   FrameInstance FrameInstance[]
 }
 
 model Board {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   keeperId    String
   name        String
   slug        String
   description String?
   icon        String?
-  theme       Json     @default("{}")
-  behavior    Json     @default("{}")
-  data        Json     @default("{}")
-  access      Json     @default("{}")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  theme       Json            @default("{}")
+  behavior    Json            @default("{}")
+  data        Json            @default("{}")
+  access      Json            @default("{}")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @default(now()) @updatedAt
   frames      FrameInstance[]
 
   @@unique([keeperId, slug])
@@ -165,15 +154,15 @@ model Moment {
   pathId    String?  @unique
   journeyId String?  @unique
   ownerId   String
-  domainId  String?
   createdAt DateTime @default(now())
   updatedAt DateTime
   theme_id  String?  @db.Uuid
+  domainId  String?
+  domain    Domain?  @relation(fields: [domainId], references: [id])
   Journey   Journey? @relation(fields: [journeyId], references: [id])
   Path      Path?    @relation(fields: [pathId], references: [id])
   themes    themes?  @relation(fields: [theme_id], references: [id])
-  domain    Domain?  @relation(fields: [domainId], references: [id])
-  
+
   @@index([domainId])
 }
 
@@ -302,21 +291,21 @@ model engagement_styles {
 }
 
 model engagement_templates {
-  id                String              @id @db.Uuid
-  label             String
-  slug              String              @unique
-  type              String
-  targetType        String
-  icon              String?
-  style             Json?
-  config            Json?
-  system            Boolean             @default(false)
-  createdAt         DateTime            @default(now()) @db.Timestamptz(6)
-  updatedAt         DateTime            @db.Timestamptz(6)
-  keeperId          String?
-  engagement_fields engagement_fields[]
-  engagement_styles engagement_styles[]
-  Keeper            Keeper?             @relation(fields: [keeperId], references: [id])
+  id                               String                             @id @db.Uuid
+  label                            String
+  slug                             String                             @unique
+  type                             String
+  targetType                       String
+  icon                             String?
+  style                            Json?
+  config                           Json?
+  createdAt                        DateTime                           @default(now()) @db.Timestamptz(6)
+  updatedAt                        DateTime                           @db.Timestamptz(6)
+  keeperId                         String?
+  system                           Boolean                            @default(false)
+  engagement_fields                engagement_fields[]
+  engagement_styles                engagement_styles[]
+  Keeper                           Keeper?                            @relation(fields: [keeperId], references: [id])
   keeper_type_engagement_templates keeper_type_engagement_templates[]
 }
 
@@ -375,26 +364,24 @@ model keeper_revisions {
 }
 
 model FrameInstance {
-  id                                                       String         @id @db.Uuid
-  entityType                                               String
-  entityId                                                 String
-  configId                                                 String         @db.Uuid
-  currentContentId                                         String?        @unique @db.Uuid
-  boardId                                                  String?        @db.Uuid
-  role                                                     String?
-  name                                                     String
-  pattern                                                  String
-  frameType                                                String
-  orderIndex                                               Int
-  layoutKind                                               String
-  layoutData                                               Json           @default("{}")
-  props                                                    Json           @default("{}")
-  createdAt                                                DateTime       @default(now())
-  updatedAt                                                DateTime       @updatedAt
-  FrameContent_FrameContent_playlistOwnerIdToFrameInstance FrameContent[] @relation("FrameContent_playlistOwnerIdToFrameInstance")
-  FrameConfig                                              FrameConfig    @relation(fields: [configId], references: [id])
-  FrameContent_FrameInstance_currentContentIdToFrameContent FrameContent?  @relation("FrameInstance_currentContentIdToFrameContent", fields: [currentContentId], references: [id])
-  Board                                                    Board?         @relation(fields: [boardId], references: [id])
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityType       String
+  entityId         String
+  configId         String      @db.Uuid
+  currentContentId String?     @unique @db.Uuid
+  boardId          String?     @db.Uuid
+  role             String?
+  name             String      @default("Untitled Frame")
+  pattern          String      @default("dialogic")
+  frameType        String      @default("media_card")
+  orderIndex       Int         @default(0)
+  layoutKind       String      @default("canvas")
+  layoutData       Json        @default("{}")
+  props            Json        @default("{}")
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @default(now()) @updatedAt
+  Board            Board?      @relation(fields: [boardId], references: [id])
+  FrameConfig      FrameConfig @relation(fields: [configId], references: [id])
 
   @@index([boardId])
   @@index([entityType, entityId])
@@ -474,184 +461,165 @@ model themes {
 
 model user_roles {
   id         String   @id @db.Uuid
-  userId     String   @db.Uuid
+  userId     String
   roleId     String   @db.Uuid
   assignedBy String?  @db.Uuid
   createdAt  DateTime @default(now())
   updatedAt  DateTime
-  users      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
   roles      roles    @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
 }
 
 model kip_agents {
-  id             String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
-  slug           String   @unique
-  name           String
-  purpose        String
-  model          String
-  agent_class    String   @default("Standard")
-  context_scope  String?
-  memory_enabled Boolean  @default(false)
-  tools          String[] @default([])
-  permissions    String[] @default([])
-  config         Json     @default("{}")
-  status         String   @default("ready")
-  model_provider String   @default("openai")
-  model_settings Json     @default("{}")
-  visibility     String   @default("private")
-  created_by     String?  @db.Uuid
-  created_at     DateTime @default(now())
-  updated_at     DateTime @default(now())
-  
-  // Relations
-  kip_agent_logs kip_agent_logs[]
-  kip_sessions   kip_sessions[]
-  kip_agent_permissions kip_agent_permissions[]
+  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug                   String                   @unique
+  name                   String
+  purpose                String
+  model                  String
+  context_scope          String?
+  memory_enabled         Boolean                  @default(false)
+  tools                  String[]                 @default([])
+  permissions            String[]                 @default([])
+  config                 Json                     @default("{}")
+  status                 String                   @default("ready")
+  created_at             DateTime                 @default(now())
+  updated_at             DateTime                 @default(now())
+  agent_class            String                   @default("Standard")
+  model_provider         String                   @default("openai")
+  model_settings         Json                     @default("{}")
+  created_by             String?                  @db.Uuid
+  visibility             String                   @default("private")
   kip_agent_keeper_types kip_agent_keeper_types[]
+  kip_agent_logs         kip_agent_logs[]
+  kip_agent_permissions  kip_agent_permissions[]
+  kip_sessions           kip_sessions[]
 }
 
 model kip_agent_logs {
-  id                String    @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
-  agent_id          String    @db.Uuid
+  id                String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  agent_id          String     @db.Uuid
   user_id           String?
   input             String
   output            String?
   error             String?
   model             String?
   execution_time_ms Int?
-  created_at        DateTime  @default(now())
-  
-  // Relations
-  agent kip_agents @relation(fields: [agent_id], references: [id], onDelete: Cascade)
-  user  users?     @relation(fields: [user_id], references: [id], onDelete: SetNull)
-  
+  created_at        DateTime   @default(now())
+  kip_agents        kip_agents @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+  users             users?     @relation(fields: [user_id], references: [id])
+
   @@index([agent_id])
   @@index([user_id])
   @@index([created_at])
 }
 
 model kip_sessions {
-  id           String        @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
-  agent_id     String        @db.Uuid
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  agent_id     String         @db.Uuid
   user_id      String?
   session_name String?
-  created_at   DateTime      @default(now())
-  updated_at   DateTime      @default(now())
-  
-  // Relations
-  agent       kip_agents     @relation(fields: [agent_id], references: [id], onDelete: Cascade)
-  user        users?         @relation(fields: [user_id], references: [id], onDelete: SetNull)
-  messages    kip_messages[]
-  
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @default(now())
+  kip_messages kip_messages[]
+  kip_agents   kip_agents     @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+  users        users?         @relation(fields: [user_id], references: [id])
+
   @@index([agent_id])
   @@index([user_id])
   @@index([created_at])
 }
 
 model kip_messages {
-  id         String      @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
-  session_id String      @db.Uuid
-  sender     String      // 'user' or 'agent'
-  content    String
-  role       String      @default("assistant") // 'user', 'assistant', or future roles
-  metadata   Json        @default("{}")
-  created_at DateTime    @default(now())
-  
-  // Relations
-  session kip_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade)
-  
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id   String       @db.Uuid
+  sender       String
+  content      String
+  role         String       @default("assistant")
+  metadata     Json         @default("{}")
+  created_at   DateTime     @default(now())
+  kip_sessions kip_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade)
+
   @@index([session_id])
   @@index([created_at])
 }
 
 model users {
-  id                              String              @id
-  createdAt                       DateTime            @default(now())
-  updatedAt                       DateTime
-  lastLoginAt                     DateTime?
-  email                           String?             @unique
-  emailVerified                   DateTime?
-  hashedPassword                  String?
-  resetPasswordToken              String?
-  resetPasswordTokenExpiresAt     DateTime?
-  emailVerificationToken          String?
-  emailVerificationTokenExpiresAt DateTime?
-  name                            String?
-  avatar_url                      String?
-  settings                        Json?
-  UserApiCredential               UserApiCredential[]
-  UserSettings                    UserSettings?
-  UserStorageConfig               UserStorageConfig?
-  kip_agent_logs                  kip_agent_logs[]
-  kip_sessions                    kip_sessions[]
-  
-  // Role relations
-  user_roles                      user_roles[]
-  
-  // Domain relations
-  ownedDomains                    Domain[]               @relation("DomainOwner")
-  domainPermissions               DomainPermission[]     @relation("DomainPermissionUser")
-  grantedPermissions              DomainPermission[]     @relation("GrantedPermissions")
-  domainInvitations               DomainInvitation[]     @relation("DomainInviter")
-  domainUsage                     DomainUsage[]          @relation("DomainUsageUser")
-  crossDomainShareApprovals       CrossDomainShare[]     @relation("CrossDomainShareApprover")
-  domainTransfersFrom             DomainTransfer[]       @relation("TransferFrom")
-  domainTransfersTo               DomainTransfer[]       @relation("TransferTo")
-  
-  // Cross-domain sharing relations
-  shareWorkflowsCreated ShareWorkflow[] @relation("ShareWorkflowCreator")
-  shareRequestsInitiated ShareRequest[] @relation("ShareRequester")
-  shareRequestsReviewed ShareRequest[] @relation("ShareReviewer") 
-  shareRequestsApproved ShareRequest[] @relation("ShareApprover")
-  stepExecutionsAssigned ShareStepExecution[] @relation("StepAssignee")
-  shareActivationsCreated ShareActivation[] @relation("ShareActivator")
-  shareActivationsDeactivated ShareActivation[] @relation("ShareDeactivator")
-  shareAccessLogs       ShareAccessLog[] @relation("ShareAccessUser")
-  shareNotificationsReceived ShareNotification[] @relation("NotificationRecipient")
-  shareTemplatesCreated ShareTemplate[] @relation("ShareTemplateCreator")
-  collaborationsCreated CrossDomainCollaboration[] @relation("CollaborationCreator")
-  collaborationActivities CollaborationActivity[] @relation("ActivityUser")
-  
-  // SOLE Memory relations
-  createdMemoryScopes   SoleMemoryScope[] @relation("MemoryScopeCreator")
-  requestedMemoryShares MemoryShare[] @relation("MemoryShareRequester")
-  approvedMemoryShares  MemoryShare[] @relation("ApprovedMemoryShares")
-  initiatedMemoryMigrations MemoryMigration[] @relation("MemoryMigrationInitiator")
-  approvedMemoryMigrations MemoryMigration[] @relation("ApprovedMemoryMigrations")
-  memoryAccesses        MemoryAccess[] @relation("MemoryAccessUser")
-  acknowledgedMemoryAlerts MemoryAlert[] @relation("AcknowledgedMemoryAlerts")
+  id                                                   String                     @id
+  createdAt                                            DateTime                   @default(now())
+  updatedAt                                            DateTime
+  lastLoginAt                                          DateTime?
+  email                                                String?                    @unique
+  emailVerified                                        DateTime?
+  hashedPassword                                       String?
+  resetPasswordToken                                   String?
+  resetPasswordTokenExpiresAt                          DateTime?
+  emailVerificationToken                               String?
+  emailVerificationTokenExpiresAt                      DateTime?
+  name                                                 String?
+  avatar_url                                           String?
+  settings                                             Json?
+  primaryDomainId                                      String?
+  CollaborationActivity                                CollaborationActivity[]
+  CrossDomainCollaboration                             CrossDomainCollaboration[]
+  CrossDomainShare                                     CrossDomainShare[]
+  Domain                                               Domain[]
+  DomainInvitation                                     DomainInvitation[]
+  DomainPermission_DomainPermission_grantedByTousers   DomainPermission[]         @relation("DomainPermission_grantedByTousers")
+  DomainPermission_DomainPermission_userIdTousers      DomainPermission[]         @relation("DomainPermission_userIdTousers")
+  DomainTransfer_DomainTransfer_fromOwnerIdTousers     DomainTransfer[]           @relation("DomainTransfer_fromOwnerIdTousers")
+  DomainTransfer_DomainTransfer_toOwnerIdTousers       DomainTransfer[]           @relation("DomainTransfer_toOwnerIdTousers")
+  DomainUsage                                          DomainUsage[]
+  MemoryAccess                                         MemoryAccess[]
+  MemoryAlert                                          MemoryAlert[]
+  MemoryMigration_MemoryMigration_approvedByTousers    MemoryMigration[]          @relation("MemoryMigration_approvedByTousers")
+  MemoryMigration_MemoryMigration_initiatedByTousers   MemoryMigration[]          @relation("MemoryMigration_initiatedByTousers")
+  MemoryShare_MemoryShare_approvedByTousers            MemoryShare[]              @relation("MemoryShare_approvedByTousers")
+  MemoryShare_MemoryShare_requestedByTousers           MemoryShare[]              @relation("MemoryShare_requestedByTousers")
+  ShareAccessLog                                       ShareAccessLog[]
+  ShareActivation_ShareActivation_activatedByTousers   ShareActivation[]          @relation("ShareActivation_activatedByTousers")
+  ShareActivation_ShareActivation_deactivatedByTousers ShareActivation[]          @relation("ShareActivation_deactivatedByTousers")
+  ShareNotification                                    ShareNotification[]
+  ShareRequest_ShareRequest_approvedByTousers          ShareRequest[]             @relation("ShareRequest_approvedByTousers")
+  ShareRequest_ShareRequest_requestedByTousers         ShareRequest[]             @relation("ShareRequest_requestedByTousers")
+  ShareRequest_ShareRequest_reviewedByTousers          ShareRequest[]             @relation("ShareRequest_reviewedByTousers")
+  ShareStepExecution                                   ShareStepExecution[]
+  ShareTemplate                                        ShareTemplate[]
+  ShareWorkflow                                        ShareWorkflow[]
+  SoleMemoryScope                                      SoleMemoryScope[]
+  UserApiCredential                                    UserApiCredential[]
+  UserSettings                                         UserSettings?
+  UserStorageConfig                                    UserStorageConfig?
+  kip_agent_logs                                       kip_agent_logs[]
+  kip_sessions                                         kip_sessions[]
 }
 
 model kip_user_keys {
-  id         String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id    String   @db.Uuid
   provider   String
   api_key    String
   created_at DateTime @default(now())
-  
+
   @@unique([user_id, provider])
   @@index([user_id])
 }
 
 model kip_agent_permissions {
-  id         String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
-  agent_id   String   @db.Uuid
-  user_id    String   @db.Uuid
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  agent_id   String     @db.Uuid
+  user_id    String     @db.Uuid
   permission String
-  created_at DateTime @default(now())
-  
-  // Relations
-  agent kip_agents @relation(fields: [agent_id], references: [id], onDelete: Cascade)
-  
+  created_at DateTime   @default(now())
+  kip_agents kip_agents @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+
   @@unique([agent_id, user_id, permission])
   @@index([agent_id])
   @@index([user_id])
 }
 
 model kip_platform_keys {
-  id         String   @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   provider   String   @unique
   api_key    String
   label      String?
@@ -659,58 +627,50 @@ model kip_platform_keys {
   created_by String?  @db.Uuid
   created_at DateTime @default(now())
   updated_at DateTime @default(now())
-  
+
   @@index([provider])
   @@index([is_active])
 }
 
 model kip_agent_keeper_types {
-  id             String      @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
-  agent_id       String      @db.Uuid
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  agent_id       String     @db.Uuid
   keeper_type_id String
-  created_at     DateTime    @default(now())
-  updated_at     DateTime    @default(now())
-  
-  // Relations
-  agent       kip_agents @relation(fields: [agent_id], references: [id], onDelete: Cascade)
-  keeper_type KeeperType @relation(fields: [keeper_type_id], references: [id], onDelete: Cascade)
-  
+  created_at     DateTime   @default(now())
+  updated_at     DateTime   @default(now())
+  kip_agents     kip_agents @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+  KeeperType     KeeperType @relation(fields: [keeper_type_id], references: [id], onDelete: Cascade)
+
   @@unique([agent_id, keeper_type_id])
   @@index([agent_id])
   @@index([keeper_type_id])
 }
 
 model keeper_type_engagement_templates {
-  id                     String               @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  id                     String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   keeper_type_id         String
   engagement_template_id String               @db.Uuid
   created_at             DateTime             @default(now())
-  
-  // Relations
-  keeper_type         KeeperType            @relation(fields: [keeper_type_id], references: [id], onDelete: Cascade)
-  engagement_template engagement_templates  @relation(fields: [engagement_template_id], references: [id], onDelete: Cascade)
-  
+  engagement_templates   engagement_templates @relation(fields: [engagement_template_id], references: [id], onDelete: Cascade)
+  KeeperType             KeeperType           @relation(fields: [keeper_type_id], references: [id], onDelete: Cascade)
+
   @@unique([keeper_type_id, engagement_template_id])
   @@index([keeper_type_id])
   @@index([engagement_template_id])
 }
 
-// SOLE Engagement Models
-
 model SoleReflection {
-  id                     String           @id @default(cuid())
-  keeperId               String
-  agentId                String
-  content                String
-  topic                  String?
-  createdAt              DateTime         @default(now())
-  promotedToMemoryCard   Boolean          @default(false)
-  promotedAt             DateTime?
-  
-  // Relations
-  keeper        Keeper             @relation(fields: [keeperId], references: [id], onDelete: Cascade)
-  memoryCards   SoleMemoryCard[]
-  
+  id                   String           @id @default(cuid())
+  keeperId             String
+  agentId              String
+  content              String
+  topic                String?
+  createdAt            DateTime         @default(now())
+  promotedToMemoryCard Boolean          @default(false)
+  promotedAt           DateTime?
+  SoleMemoryCard       SoleMemoryCard[]
+  Keeper               Keeper           @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+
   @@index([keeperId])
   @@index([agentId])
   @@index([createdAt])
@@ -718,19 +678,17 @@ model SoleReflection {
 }
 
 model SoleMemoryCard {
-  id           String         @id @default(cuid())
-  keeperId     String
-  reflectionId String
-  content      String
-  topic        String?
-  embedding    String?        // JSON array string for now, will upgrade to pgvector later
-  embedded     Boolean        @default(false)
-  createdAt    DateTime       @default(now())
-  
-  // Relations
-  keeper     Keeper         @relation(fields: [keeperId], references: [id], onDelete: Cascade)
-  reflection SoleReflection @relation(fields: [reflectionId], references: [id], onDelete: Cascade)
-  
+  id             String         @id @default(cuid())
+  keeperId       String
+  reflectionId   String
+  content        String
+  topic          String?
+  embedding      String?
+  embedded       Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  Keeper         Keeper         @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+  SoleReflection SoleReflection @relation(fields: [reflectionId], references: [id], onDelete: Cascade)
+
   @@index([keeperId])
   @@index([reflectionId])
   @@index([embedded])
@@ -746,10 +704,8 @@ model SoleVoiceEntry {
   belief    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  // Relations
-  keeper Keeper @relation(fields: [keeperId], references: [id], onDelete: Cascade)
-  
+  Keeper    Keeper   @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+
   @@index([keeperId])
   @@index([agentId])
   @@index([createdAt])
@@ -764,10 +720,8 @@ model SoleEcho {
   triggerConditions Json?
   createdAt         DateTime  @default(now())
   delivered         Boolean   @default(false)
-  
-  // Relations
-  keeper Keeper @relation(fields: [keeperId], references: [id], onDelete: Cascade)
-  
+  Keeper            Keeper    @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+
   @@index([keeperId])
   @@index([agentId])
   @@index([triggerDate])
@@ -784,83 +738,60 @@ model SoleLogbookEntry {
   category  String
   createdAt DateTime @default(now())
   tags      String[]
-  
-  // Relations
-  keeper Keeper @relation(fields: [keeperId], references: [id], onDelete: Cascade)
-  
+  Keeper    Keeper   @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+
   @@index([keeperId])
   @@index([agentId])
   @@index([category])
   @@index([createdAt])
 }
 
-// DOMAIN LAYER MODELS
-
 model Domain {
-  id            String   @id @default(uuid())
-  name          String   @unique
-  slug          String   @unique
-  slugHistory   String[] @default([])
-  
-  // Custom Domain Configuration
-  customDomain          String?  @unique
-  customDomainVerified  Boolean  @default(false)
-  verificationToken     String?  @unique
-  verificationMethod    String?  // 'DNS_TXT' | 'CNAME' | 'FILE'
-  verifiedAt           DateTime?
-  
-  // Lifecycle & Status
-  status               String   @default("active") // 'active' | 'suspended' | 'archived' | 'pending'
-  suspendedAt          DateTime?
-  suspendedBy          String?
-  suspensionReason     String?
-  
-  // Features & Limits
-  features             Json?    @default("{}") // { "kip_enabled": true, "custom_themes": false }
-  limits               Json?    @default("{}") // { "max_keepers": 50, "max_users": 10 }
-  subscription         String?  // For premium domains
-  
-  // Discovery & Visibility
-  isPublic             Boolean  @default(false)  // Can be discovered
-  description          String?
-  allowRequests        Boolean  @default(false)  // Allow join requests
-  categories           String[] @default([])     // ['family', 'team', 'creative']
-  
-  // Ownership & Metadata
-  ownerId              String
-  owner                users    @relation("DomainOwner", fields: [ownerId], references: [id])
-  isActive             Boolean  @default(true)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  
-  theme                Json?    @default("{}")
-  settings             Json?    @default("{}")
-  
-  // Relations
-  keepers              Keeper[]
-  journeys             Journey[]
-  moments              Moment[]
-  permissions          DomainPermission[]
-  usageStats           DomainUsage[]
-  invitations          DomainInvitation[]
-  crossDomainShares    CrossDomainShare[] @relation("SharedFrom")
-  receivedShares       CrossDomainShare[] @relation("SharedTo")
-  transfers            DomainTransfer[]   @relation("DomainTransfers")
-  
-  // Memory isolation
-  soleMemoryScope     SoleMemoryScope? @relation("DomainMemoryScope")
-  
-  // Cross-domain sharing relations
-  shareWorkflowsSource  ShareWorkflow[] @relation("WorkflowSourceDomain")
-  shareRequestsSource   ShareRequest[] @relation("ShareRequestSource")
-  shareRequestsTarget   ShareRequest[] @relation("ShareRequestTarget")
-  shareTemplates        ShareTemplate[] @relation("ShareTemplateDomain")
-  collaborationsHost    CrossDomainCollaboration[] @relation("CollaborationHost")
-  collaborationActivities CollaborationActivity[] @relation("ActivityDomain")
-  
-  // SSL Certificate
-  sslCertificates       SslCertificate[] @relation("DomainSslCertificate")
-  
+  id                                                       String                     @id @default(uuid())
+  name                                                     String                     @unique
+  slug                                                     String                     @unique
+  slugHistory                                              String[]                   @default([])
+  customDomain                                             String?                    @unique
+  customDomainVerified                                     Boolean                    @default(false)
+  verificationToken                                        String?                    @unique
+  verificationMethod                                       String?
+  verifiedAt                                               DateTime?
+  status                                                   String                     @default("active")
+  suspendedAt                                              DateTime?
+  suspendedBy                                              String?
+  suspensionReason                                         String?
+  features                                                 Json?                      @default("{}")
+  limits                                                   Json?                      @default("{}")
+  subscription                                             String?
+  isPublic                                                 Boolean                    @default(false)
+  description                                              String?
+  allowRequests                                            Boolean                    @default(false)
+  categories                                               String[]                   @default([])
+  ownerId                                                  String
+  isActive                                                 Boolean                    @default(true)
+  createdAt                                                DateTime                   @default(now())
+  updatedAt                                                DateTime                   @updatedAt
+  theme                                                    Json?                      @default("{}")
+  settings                                                 Json?                      @default("{}")
+  CollaborationActivity                                    CollaborationActivity[]
+  CrossDomainCollaboration                                 CrossDomainCollaboration[]
+  CrossDomainShare_CrossDomainShare_sourceDomainIdToDomain CrossDomainShare[]         @relation("CrossDomainShare_sourceDomainIdToDomain")
+  CrossDomainShare_CrossDomainShare_targetDomainIdToDomain CrossDomainShare[]         @relation("CrossDomainShare_targetDomainIdToDomain")
+  users                                                    users                      @relation(fields: [ownerId], references: [id])
+  DomainInvitation                                         DomainInvitation[]
+  DomainPermission                                         DomainPermission[]
+  DomainTransfer                                           DomainTransfer[]
+  DomainUsage                                              DomainUsage[]
+  journeys                                                 Journey[]
+  keepers                                                  Keeper[]
+  moments                                                  Moment[]
+  ShareRequest_ShareRequest_sourceDomainIdToDomain         ShareRequest[]             @relation("ShareRequest_sourceDomainIdToDomain")
+  ShareRequest_ShareRequest_targetDomainIdToDomain         ShareRequest[]             @relation("ShareRequest_targetDomainIdToDomain")
+  ShareTemplate                                            ShareTemplate[]
+  ShareWorkflow                                            ShareWorkflow[]
+  SoleMemoryScope                                          SoleMemoryScope?
+  SslCertificate                                           SslCertificate[]
+
   @@index([slug])
   @@index([customDomain])
   @@index([ownerId])
@@ -870,19 +801,18 @@ model Domain {
 }
 
 model DomainPermission {
-  id           String   @id @default(uuid())
-  domainId     String
-  userId       String
-  role         String   @default("user") // 'admin' | 'user' | 'friend' | 'connection'
-  permissions  String[] @default([])     // ['read', 'write', 'share', 'admin']
-  grantedBy    String
-  grantedAt    DateTime @default(now())
-  expiresAt    DateTime?
-  
-  domain       Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  user         users    @relation("DomainPermissionUser", fields: [userId], references: [id], onDelete: Cascade)
-  grantor      users    @relation("GrantedPermissions", fields: [grantedBy], references: [id], onDelete: Cascade)
-  
+  id                                      String    @id @default(uuid())
+  domainId                                String
+  userId                                  String
+  role                                    String    @default("user")
+  permissions                             String[]  @default([])
+  grantedBy                               String
+  grantedAt                               DateTime  @default(now())
+  expiresAt                               DateTime?
+  Domain                                  Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  users_DomainPermission_grantedByTousers users     @relation("DomainPermission_grantedByTousers", fields: [grantedBy], references: [id], onDelete: Cascade)
+  users_DomainPermission_userIdTousers    users     @relation("DomainPermission_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([domainId, userId])
   @@index([domainId])
   @@index([userId])
@@ -890,27 +820,23 @@ model DomainPermission {
 }
 
 model CrossDomainShare {
-  id               String   @id @default(uuid())
-  sourceDomainId   String
-  targetDomainId   String
-  contentType      String   // 'keeper' | 'journey' | 'moment'
-  contentId        String
-  permissions      String[] @default([]) // ['view', 'edit', 'comment']
-  
-  // Advanced Features
-  expiresAt        DateTime? // Time-limited shares
-  allowSubsharing  Boolean   @default(false) // Can recipient share further?
-  requireApproval  Boolean   @default(true)  // Must target domain approve?
-  approvedAt       DateTime?
-  approvedBy       String?
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  
-  sourceDomain     Domain   @relation("SharedFrom", fields: [sourceDomainId], references: [id], onDelete: Cascade)
-  targetDomain     Domain   @relation("SharedTo", fields: [targetDomainId], references: [id], onDelete: Cascade)
-  approver         users?   @relation("CrossDomainShareApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
-  
+  id                                             String    @id @default(uuid())
+  sourceDomainId                                 String
+  targetDomainId                                 String
+  contentType                                    String
+  contentId                                      String
+  permissions                                    String[]  @default([])
+  expiresAt                                      DateTime?
+  allowSubsharing                                Boolean   @default(false)
+  requireApproval                                Boolean   @default(true)
+  approvedAt                                     DateTime?
+  approvedBy                                     String?
+  createdAt                                      DateTime  @default(now())
+  updatedAt                                      DateTime  @updatedAt
+  users                                          users?    @relation(fields: [approvedBy], references: [id])
+  Domain_CrossDomainShare_sourceDomainIdToDomain Domain    @relation("CrossDomainShare_sourceDomainIdToDomain", fields: [sourceDomainId], references: [id], onDelete: Cascade)
+  Domain_CrossDomainShare_targetDomainIdToDomain Domain    @relation("CrossDomainShare_targetDomainIdToDomain", fields: [targetDomainId], references: [id], onDelete: Cascade)
+
   @@unique([sourceDomainId, targetDomainId, contentType, contentId])
   @@index([sourceDomainId])
   @@index([targetDomainId])
@@ -919,19 +845,18 @@ model CrossDomainShare {
 }
 
 model DomainInvitation {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   domainId   String
   email      String
-  role       String   @default("user") // 'admin' | 'user' | 'friend'
+  role       String    @default("user")
   invitedBy  String
-  token      String   @unique
+  token      String    @unique
   expiresAt  DateTime
   acceptedAt DateTime?
-  createdAt  DateTime @default(now())
-  
-  domain     Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  inviter    users    @relation("DomainInviter", fields: [invitedBy], references: [id], onDelete: Cascade)
-  
+  createdAt  DateTime  @default(now())
+  Domain     Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  users      users     @relation(fields: [invitedBy], references: [id], onDelete: Cascade)
+
   @@unique([domainId, email])
   @@index([domainId])
   @@index([token])
@@ -939,112 +864,84 @@ model DomainInvitation {
 }
 
 model DomainUsage {
-  id           String   @id @default(uuid())
-  domainId     String
-  userId       String?
-  action       String   // 'login', 'create_keeper', 'kip_interaction'
-  metadata     Json?    @default("{}")
-  timestamp    DateTime @default(now())
-  ipAddress    String?
-  userAgent    String?
-  
-  domain       Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  user         users?   @relation("DomainUsageUser", fields: [userId], references: [id], onDelete: SetNull)
-  
+  id        String   @id @default(uuid())
+  domainId  String
+  userId    String?
+  action    String
+  metadata  Json?    @default("{}")
+  timestamp DateTime @default(now())
+  ipAddress String?
+  userAgent String?
+  Domain    Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  users     users?   @relation(fields: [userId], references: [id])
+
   @@index([domainId, timestamp])
   @@index([action])
   @@index([userId])
 }
 
 model SoleMemoryScope {
-  id           String   @id @default(uuid())
-  domainId     String
-  domain       Domain   @relation("DomainMemoryScope", fields: [domainId], references: [id], onDelete: Cascade)
-  
-  // Memory isolation settings
-  isolationLevel    String   @default("strict") // 'strict' | 'permissive' | 'shared'
-  allowCrossDomain  Boolean  @default(false)
-  maxMemorySize     Int      @default(1073741824) // 1GB in bytes
-  currentMemorySize Int      @default(0)
-  
-  // Memory categories
-  conversationMemory Json?  // Chat history, context
-  factualMemory     Json?   // Facts, knowledge base
-  proceduralMemory  Json?   // How-to, processes
-  episodicMemory    Json?   // Events, experiences
-  semanticMemory    Json?   // Concepts, relationships
-  
-  // Memory management
-  lastCleanupAt     DateTime?
-  compressionLevel  String   @default("moderate") // 'none' | 'light' | 'moderate' | 'aggressive'
-  retentionPolicy   Json?    // Custom retention rules
-  
-  // Access control
-  readAccess        String[] @default([])  // User IDs with read access
-  writeAccess       String[] @default([])  // User IDs with write access
-  adminAccess       String[] @default([])  // User IDs with admin access
-  
-  // Metadata
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  createdBy        String
-  creator          users    @relation("MemoryScopeCreator", fields: [createdBy], references: [id])
-  
-  // Relations
-  sharedFrom       MemoryShare[] @relation("SharedFromMemory")
-  sharedTo         MemoryShare[] @relation("SharedToMemory")
-  migrations       MemoryMigration[]
-  memoryAccesses   MemoryAccess[] @relation("MemoryAccesses")
-  memoryAlerts     MemoryAlert[] @relation("MemoryAlerts")
-  
-  @@unique([domainId])
+  id                                                      String            @id @default(uuid())
+  domainId                                                String            @unique
+  isolationLevel                                          String            @default("strict")
+  allowCrossDomain                                        Boolean           @default(false)
+  maxMemorySize                                           Int               @default(1073741824)
+  currentMemorySize                                       Int               @default(0)
+  conversationMemory                                      Json?
+  factualMemory                                           Json?
+  proceduralMemory                                        Json?
+  episodicMemory                                          Json?
+  semanticMemory                                          Json?
+  lastCleanupAt                                           DateTime?
+  compressionLevel                                        String            @default("moderate")
+  retentionPolicy                                         Json?
+  readAccess                                              String[]          @default([])
+  writeAccess                                             String[]          @default([])
+  adminAccess                                             String[]          @default([])
+  createdAt                                               DateTime          @default(now())
+  updatedAt                                               DateTime          @updatedAt
+  createdBy                                               String
+  MemoryAccess                                            MemoryAccess[]
+  MemoryAlert                                             MemoryAlert[]
+  MemoryMigration                                         MemoryMigration[]
+  MemoryShare_MemoryShare_sourceMemoryIdToSoleMemoryScope MemoryShare[]     @relation("MemoryShare_sourceMemoryIdToSoleMemoryScope")
+  MemoryShare_MemoryShare_targetMemoryIdToSoleMemoryScope MemoryShare[]     @relation("MemoryShare_targetMemoryIdToSoleMemoryScope")
+  users                                                   users             @relation(fields: [createdBy], references: [id])
+  Domain                                                  Domain            @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
   @@index([domainId, isolationLevel])
   @@index([createdBy])
 }
 
 model MemoryShare {
-  id              String   @id @default(uuid())
-  
-  // Source and target
-  sourceMemoryId  String
-  targetMemoryId  String
-  sourceDomain    SoleMemoryScope @relation("SharedFromMemory", fields: [sourceMemoryId], references: [id], onDelete: Cascade)
-  targetDomain    SoleMemoryScope @relation("SharedToMemory", fields: [targetMemoryId], references: [id], onDelete: Cascade)
-  
-  // Share configuration
-  shareType       String   // 'read_only' | 'read_write' | 'reference_only'
-  memoryCategories String[] // Which memory types to share
-  accessLevel     String   @default("limited") // 'limited' | 'full' | 'custom'
-  
-  // Permissions and approval
-  status          String   @default("pending") // 'pending' | 'approved' | 'rejected' | 'expired'
-  requestedBy     String
-  requester       users    @relation("MemoryShareRequester", fields: [requestedBy], references: [id])
-  approvedBy      String?
-  approver        users?    @relation("ApprovedMemoryShares", fields: [approvedBy], references: [id])
-  
-  // Temporal constraints
-  expiresAt       DateTime?
-  maxAccess       Int?     // Maximum number of accesses
-  currentAccess   Int      @default(0)
-  
-  // Content filtering
-  includePatterns String[] @default([]) // Regex patterns for inclusion
-  excludePatterns String[] @default([]) // Regex patterns for exclusion
-  sanitizeContent Boolean  @default(true)
-  
-  // Audit trail
-  createdAt       DateTime @default(now())
-  approvedAt      DateTime?
-  lastAccessedAt  DateTime?
-  revokedAt       DateTime?
-  revokedBy       String?
-  
-  // Metadata
-  purpose         String?  // Why this share was requested
-  notes           String?  // Additional notes
-  metadata        Json?    // Custom metadata
-  
+  id                                                          String          @id @default(uuid())
+  sourceMemoryId                                              String
+  targetMemoryId                                              String
+  shareType                                                   String
+  memoryCategories                                            String[]
+  accessLevel                                                 String          @default("limited")
+  status                                                      String          @default("pending")
+  requestedBy                                                 String
+  approvedBy                                                  String?
+  expiresAt                                                   DateTime?
+  maxAccess                                                   Int?
+  currentAccess                                               Int             @default(0)
+  includePatterns                                             String[]        @default([])
+  excludePatterns                                             String[]        @default([])
+  sanitizeContent                                             Boolean         @default(true)
+  createdAt                                                   DateTime        @default(now())
+  approvedAt                                                  DateTime?
+  lastAccessedAt                                              DateTime?
+  revokedAt                                                   DateTime?
+  revokedBy                                                   String?
+  purpose                                                     String?
+  notes                                                       String?
+  metadata                                                    Json?
+  users_MemoryShare_approvedByTousers                         users?          @relation("MemoryShare_approvedByTousers", fields: [approvedBy], references: [id])
+  users_MemoryShare_requestedByTousers                        users           @relation("MemoryShare_requestedByTousers", fields: [requestedBy], references: [id])
+  SoleMemoryScope_MemoryShare_sourceMemoryIdToSoleMemoryScope SoleMemoryScope @relation("MemoryShare_sourceMemoryIdToSoleMemoryScope", fields: [sourceMemoryId], references: [id], onDelete: Cascade)
+  SoleMemoryScope_MemoryShare_targetMemoryIdToSoleMemoryScope SoleMemoryScope @relation("MemoryShare_targetMemoryIdToSoleMemoryScope", fields: [targetMemoryId], references: [id], onDelete: Cascade)
+
   @@unique([sourceMemoryId, targetMemoryId])
   @@index([status, expiresAt])
   @@index([requestedBy])
@@ -1052,300 +949,214 @@ model MemoryShare {
 }
 
 model MemoryMigration {
-  id              String   @id @default(uuid())
-  
-  // Migration details
-  sourceMemoryId  String
-  targetMemoryId  String?  // Null if creating new memory scope
-  sourceDomain    SoleMemoryScope @relation(fields: [sourceMemoryId], references: [id])
-  
-  // Migration configuration
-  migrationType   String   // 'copy' | 'move' | 'merge' | 'split'
-  memoryCategories String[] // Which memory types to migrate
-  preserveSource  Boolean  @default(true) // Keep source after migration
-  
-  // Processing status
-  status          String   @default("pending") // 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled'
-  progress        Float    @default(0.0) // 0.0 to 1.0
-  
-  // Content transformation
-  transformRules  Json?    // Rules for transforming memory content
-  mappingRules    Json?    // Rules for mapping between domains
-  validationRules Json?    // Rules for validating migrated content
-  
-  // Execution details
-  startedAt       DateTime?
-  completedAt     DateTime?
-  failedAt        DateTime?
-  errorMessage    String?
-  
-  // Audit and tracking
-  initiatedBy     String
-  initiator       users    @relation("MemoryMigrationInitiator", fields: [initiatedBy], references: [id])
-  approvedBy      String?
-  approver        users?    @relation("ApprovedMemoryMigrations", fields: [approvedBy], references: [id])
-  
-  // Migration metrics
-  totalItems      Int      @default(0)
-  processedItems  Int      @default(0)
-  failedItems     Int      @default(0)
-  dataSize        Int      @default(0)
-  
-  // Rollback information
-  rollbackData    Json?    // Data needed for rollback
-  canRollback     Boolean  @default(false)
-  rolledBackAt    DateTime?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  id                                       String          @id @default(uuid())
+  sourceMemoryId                           String
+  targetMemoryId                           String?
+  migrationType                            String
+  memoryCategories                         String[]
+  preserveSource                           Boolean         @default(true)
+  status                                   String          @default("pending")
+  progress                                 Float           @default(0.0)
+  transformRules                           Json?
+  mappingRules                             Json?
+  validationRules                          Json?
+  startedAt                                DateTime?
+  completedAt                              DateTime?
+  failedAt                                 DateTime?
+  errorMessage                             String?
+  initiatedBy                              String
+  approvedBy                               String?
+  totalItems                               Int             @default(0)
+  processedItems                           Int             @default(0)
+  failedItems                              Int             @default(0)
+  dataSize                                 Int             @default(0)
+  rollbackData                             Json?
+  canRollback                              Boolean         @default(false)
+  rolledBackAt                             DateTime?
+  createdAt                                DateTime        @default(now())
+  updatedAt                                DateTime        @updatedAt
+  users_MemoryMigration_approvedByTousers  users?          @relation("MemoryMigration_approvedByTousers", fields: [approvedBy], references: [id])
+  users_MemoryMigration_initiatedByTousers users           @relation("MemoryMigration_initiatedByTousers", fields: [initiatedBy], references: [id])
+  SoleMemoryScope                          SoleMemoryScope @relation(fields: [sourceMemoryId], references: [id])
+
   @@index([status, createdAt])
   @@index([initiatedBy])
   @@index([sourceMemoryId])
 }
 
 model MemoryAccess {
-  id              String   @id @default(uuid())
-  
-  // Access details
-  memoryId        String
-  memory          SoleMemoryScope @relation("MemoryAccesses", fields: [memoryId], references: [id], onDelete: Cascade)
-  userId          String
-  user            users    @relation("MemoryAccessUser", fields: [userId], references: [id])
-  
-  // Access information
-  accessType      String   // 'read' | 'write' | 'admin'
-  memoryCategory  String   // Which memory category was accessed
-  operation       String   // 'query' | 'insert' | 'update' | 'delete' | 'share'
-  
-  // Request context
-  requestSource   String?  // 'api' | 'ui' | 'agent' | 'system'
-  sessionId       String?
-  ipAddress       String?
-  userAgent       String?
-  
-  // Performance metrics
-  responseTime    Int?     // Response time in milliseconds
-  dataSize        Int?     // Size of data accessed
-  
-  // Security and validation
-  accessGranted   Boolean  @default(false)
-  denialReason    String?  // Why access was denied
-  validationPassed Boolean @default(true)
-  
-  // Metadata
-  timestamp       DateTime @default(now())
-  metadata        Json?    // Additional context
-  
+  id               String          @id @default(uuid())
+  memoryId         String
+  userId           String
+  accessType       String
+  memoryCategory   String
+  operation        String
+  requestSource    String?
+  sessionId        String?
+  ipAddress        String?
+  userAgent        String?
+  responseTime     Int?
+  dataSize         Int?
+  accessGranted    Boolean         @default(false)
+  denialReason     String?
+  validationPassed Boolean         @default(true)
+  timestamp        DateTime        @default(now())
+  metadata         Json?
+  SoleMemoryScope  SoleMemoryScope @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  users            users           @relation(fields: [userId], references: [id])
+
   @@index([memoryId, timestamp])
   @@index([userId, timestamp])
   @@index([accessType, accessGranted])
 }
 
 model MemoryAlert {
-  id              String   @id @default(uuid())
-  
-  // Alert details
-  memoryId        String
-  memory          SoleMemoryScope @relation("MemoryAlerts", fields: [memoryId], references: [id], onDelete: Cascade)
-  
-  // Alert information
-  alertType       String   // 'quota_exceeded' | 'unauthorized_access' | 'corruption' | 'migration_failed'
-  severity        String   // 'info' | 'warning' | 'error' | 'critical'
-  message         String
-  description     String?
-  
-  // Alert context
-  triggerData     Json?    // Data that triggered the alert
-  affectedUsers   String[] // User IDs affected by this alert
-  
-  // Alert lifecycle
-  status          String   @default("active") // 'active' | 'acknowledged' | 'resolved' | 'dismissed'
-  acknowledgedBy  String?
-  acknowledger    users?    @relation("AcknowledgedMemoryAlerts", fields: [acknowledgedBy], references: [id])
-  acknowledgedAt  DateTime?
-  resolvedAt      DateTime?
-  dismissedAt     DateTime?
-  
-  // Notification settings
-  notificationSent Boolean @default(false)
-  escalationLevel  Int     @default(1)
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  id               String          @id @default(uuid())
+  memoryId         String
+  alertType        String
+  severity         String
+  message          String
+  description      String?
+  triggerData      Json?
+  affectedUsers    String[]
+  status           String          @default("active")
+  acknowledgedBy   String?
+  acknowledgedAt   DateTime?
+  resolvedAt       DateTime?
+  dismissedAt      DateTime?
+  notificationSent Boolean         @default(false)
+  escalationLevel  Int             @default(1)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  users            users?          @relation(fields: [acknowledgedBy], references: [id])
+  SoleMemoryScope  SoleMemoryScope @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+
   @@index([memoryId, status])
   @@index([severity, createdAt])
   @@index([alertType, status])
 }
 
 model DomainTransfer {
-  id              String   @id @default(uuid())
-  domainId        String
-  fromOwnerId     String
-  toOwnerId       String
-  token           String   @unique
-  initiatedAt     DateTime @default(now())
-  expiresAt       DateTime
-  approvedAt      DateTime?
-  completedAt     DateTime?
-  cancelledAt     DateTime?
-  
-  // Single domain being transferred
-  domain          Domain   @relation("DomainTransfers", fields: [domainId], references: [id], onDelete: Cascade)
-  fromOwner       users    @relation("TransferFrom", fields: [fromOwnerId], references: [id], onDelete: Cascade)
-  toOwner         users    @relation("TransferTo", fields: [toOwnerId], references: [id], onDelete: Cascade)
-  
+  id                                      String    @id @default(uuid())
+  domainId                                String
+  fromOwnerId                             String
+  toOwnerId                               String
+  token                                   String    @unique
+  initiatedAt                             DateTime  @default(now())
+  expiresAt                               DateTime
+  approvedAt                              DateTime?
+  completedAt                             DateTime?
+  cancelledAt                             DateTime?
+  Domain                                  Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  users_DomainTransfer_fromOwnerIdTousers users     @relation("DomainTransfer_fromOwnerIdTousers", fields: [fromOwnerId], references: [id], onDelete: Cascade)
+  users_DomainTransfer_toOwnerIdTousers   users     @relation("DomainTransfer_toOwnerIdTousers", fields: [toOwnerId], references: [id], onDelete: Cascade)
+
   @@index([domainId])
   @@index([token])
   @@index([expiresAt])
 }
 
 model ShareWorkflow {
-  id              String   @id @default(uuid())
-  
-  // Workflow definition
-  name            String
-  description     String?
-  workflowType    String   @default("content_share") // 'content_share' | 'memory_share' | 'collaboration'
-  
-  // Approval configuration
-  requiresApproval Boolean  @default(true)
-  approvalSteps   Json     // Array of approval steps with roles and conditions
-  autoApprovalRules Json?  // Rules for automatic approval
-  
-  // Time and access controls
-  defaultExpirationDays Int? @default(30)
-  maxAccessCount    Int?     // Maximum number of accesses
-  allowSubsharing   Boolean  @default(false)
-  
-  // Domain configuration
-  sourceDomainId  String
-  targetDomainIds String[] @default([]) // Allowed target domains
-  isActive        Boolean  @default(true)
-  
-  // Security settings
-  contentFilters  Json?    // Content filtering rules
-  accessRestrictions Json? // Access restriction rules
-  auditLevel      String   @default("standard") // 'minimal' | 'standard' | 'comprehensive'
-  
-  // Metadata
-  createdBy       String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relations
-  sourceDomain    Domain   @relation("WorkflowSourceDomain", fields: [sourceDomainId], references: [id], onDelete: Cascade)
-  creator         users    @relation("ShareWorkflowCreator", fields: [createdBy], references: [id])
-  shareRequests   ShareRequest[]
-  workflowSteps   ShareWorkflowStep[]
-  shareTemplates  ShareTemplate[] @relation("ShareTemplateWorkflow")
-  
+  id                    String              @id @default(uuid())
+  name                  String
+  description           String?
+  workflowType          String              @default("content_share")
+  requiresApproval      Boolean             @default(true)
+  approvalSteps         Json
+  autoApprovalRules     Json?
+  defaultExpirationDays Int?                @default(30)
+  maxAccessCount        Int?
+  allowSubsharing       Boolean             @default(false)
+  sourceDomainId        String
+  targetDomainIds       String[]            @default([])
+  isActive              Boolean             @default(true)
+  contentFilters        Json?
+  accessRestrictions    Json?
+  auditLevel            String              @default("standard")
+  createdBy             String
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  ShareRequest          ShareRequest[]
+  ShareTemplate         ShareTemplate[]
+  users                 users               @relation(fields: [createdBy], references: [id])
+  Domain                Domain              @relation(fields: [sourceDomainId], references: [id], onDelete: Cascade)
+  ShareWorkflowStep     ShareWorkflowStep[]
+
   @@index([sourceDomainId])
   @@index([workflowType, isActive])
   @@index([createdBy])
 }
 
 model ShareWorkflowStep {
-  id              String   @id @default(uuid())
-  
-  // Step configuration
-  workflowId      String
-  stepNumber      Int
-  stepName        String
-  stepType        String   // 'approval' | 'notification' | 'validation' | 'transformation'
-  
-  // Approval configuration
-  requiredRole    String?  // Domain role required for approval
-  requiredUsers   String[] @default([]) // Specific users who can approve
-  requireAllUsers Boolean  @default(false) // All users must approve vs any user
-  
-  // Conditions and rules
-  conditions      Json?    // Conditions that must be met
-  actions         Json?    // Actions to perform on step completion
-  timeoutHours    Int?     // Hours before step times out
-  
-  // Status tracking
-  isActive        Boolean  @default(true)
-  order           Int      @default(0)
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relations
-  workflow        ShareWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  stepExecutions  ShareStepExecution[]
-  
+  id                 String               @id @default(uuid())
+  workflowId         String
+  stepNumber         Int
+  stepName           String
+  stepType           String
+  requiredRole       String?
+  requiredUsers      String[]             @default([])
+  requireAllUsers    Boolean              @default(false)
+  conditions         Json?
+  actions            Json?
+  timeoutHours       Int?
+  isActive           Boolean              @default(true)
+  order              Int                  @default(0)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  ShareStepExecution ShareStepExecution[]
+  ShareWorkflow      ShareWorkflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
   @@unique([workflowId, stepNumber])
   @@index([workflowId, order])
 }
 
 model ShareRequest {
-  id              String   @id @default(uuid())
-  
-  // Request details
-  workflowId      String?  // Optional workflow to follow
-  sourceDomainId  String
-  targetDomainId  String
-  contentType     String   // 'keeper' | 'journey' | 'moment' | 'memory' | 'custom'
-  contentId       String
-  
-  // Request configuration
-  requestType     String   @default("share") // 'share' | 'collaborate' | 'transfer'
-  permissions     String[] @default([]) // Requested permissions
-  accessLevel     String   @default("read") // 'read' | 'write' | 'admin'
-  
-  // Temporal settings
-  requestedDuration Int?   // Days requested
-  expiresAt       DateTime?
-  maxAccess       Int?     // Maximum number of accesses
-  
-  // Request metadata
-  title           String?
-  description     String?
-  justification   String?  // Why this share is needed
-  urgency         String   @default("normal") // 'low' | 'normal' | 'high' | 'urgent'
-  
-  // Status and tracking
-  status          String   @default("pending") // 'pending' | 'in_review' | 'approved' | 'rejected' | 'expired' | 'cancelled'
-  currentStep     Int      @default(1)
-  progress        Float    @default(0.0) // 0.0 to 1.0
-  
-  // Request lifecycle
-  requestedBy     String
-  requestedAt     DateTime @default(now())
-  reviewedBy      String?
-  reviewedAt      DateTime?
-  approvedBy      String?
-  approvedAt      DateTime?
-  rejectedBy      String?
-  rejectedAt      DateTime?
-  rejectionReason String?
-  
-  // Completion tracking
-  activatedAt     DateTime?
-  completedAt     DateTime?
-  cancelledAt     DateTime?
-  cancelledBy     String?
-  cancellationReason String?
-  
-  // Usage tracking
-  accessCount     Int      @default(0)
-  lastAccessedAt  DateTime?
-  lastAccessedBy  String?
-  
-  // Relations
-  workflow        ShareWorkflow? @relation(fields: [workflowId], references: [id], onDelete: SetNull)
-  sourceDomain    Domain    @relation("ShareRequestSource", fields: [sourceDomainId], references: [id], onDelete: Cascade)
-  targetDomain    Domain    @relation("ShareRequestTarget", fields: [targetDomainId], references: [id], onDelete: Cascade)
-  requester       users     @relation("ShareRequester", fields: [requestedBy], references: [id])
-  reviewer        users?    @relation("ShareReviewer", fields: [reviewedBy], references: [id])
-  approver        users?    @relation("ShareApprover", fields: [approvedBy], references: [id])
-  
-  stepExecutions  ShareStepExecution[]
-  shareActivations ShareActivation[]
-  shareNotifications ShareNotification[]
-  
+  id                                         String               @id @default(uuid())
+  workflowId                                 String?
+  sourceDomainId                             String
+  targetDomainId                             String
+  contentType                                String
+  contentId                                  String
+  requestType                                String               @default("share")
+  permissions                                String[]             @default([])
+  accessLevel                                String               @default("read")
+  requestedDuration                          Int?
+  expiresAt                                  DateTime?
+  maxAccess                                  Int?
+  title                                      String?
+  description                                String?
+  justification                              String?
+  urgency                                    String               @default("normal")
+  status                                     String               @default("pending")
+  currentStep                                Int                  @default(1)
+  progress                                   Float                @default(0.0)
+  requestedBy                                String
+  requestedAt                                DateTime             @default(now())
+  reviewedBy                                 String?
+  reviewedAt                                 DateTime?
+  approvedBy                                 String?
+  approvedAt                                 DateTime?
+  rejectedBy                                 String?
+  rejectedAt                                 DateTime?
+  rejectionReason                            String?
+  activatedAt                                DateTime?
+  completedAt                                DateTime?
+  cancelledAt                                DateTime?
+  cancelledBy                                String?
+  cancellationReason                         String?
+  accessCount                                Int                  @default(0)
+  lastAccessedAt                             DateTime?
+  lastAccessedBy                             String?
+  ShareActivation                            ShareActivation[]
+  ShareNotification                          ShareNotification[]
+  users_ShareRequest_approvedByTousers       users?               @relation("ShareRequest_approvedByTousers", fields: [approvedBy], references: [id])
+  users_ShareRequest_requestedByTousers      users                @relation("ShareRequest_requestedByTousers", fields: [requestedBy], references: [id])
+  users_ShareRequest_reviewedByTousers       users?               @relation("ShareRequest_reviewedByTousers", fields: [reviewedBy], references: [id])
+  Domain_ShareRequest_sourceDomainIdToDomain Domain               @relation("ShareRequest_sourceDomainIdToDomain", fields: [sourceDomainId], references: [id], onDelete: Cascade)
+  Domain_ShareRequest_targetDomainIdToDomain Domain               @relation("ShareRequest_targetDomainIdToDomain", fields: [targetDomainId], references: [id], onDelete: Cascade)
+  ShareWorkflow                              ShareWorkflow?       @relation(fields: [workflowId], references: [id])
+  ShareStepExecution                         ShareStepExecution[]
+
   @@unique([sourceDomainId, targetDomainId, contentType, contentId, status])
   @@index([sourceDomainId, status])
   @@index([targetDomainId, status])
@@ -1355,44 +1166,31 @@ model ShareRequest {
 }
 
 model ShareStepExecution {
-  id              String   @id @default(uuid())
-  
-  // Execution details
-  shareRequestId  String
-  workflowStepId  String
-  stepNumber      Int
-  
-  // Execution status
-  status          String   @default("pending") // 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped' | 'timeout'
-  startedAt       DateTime @default(now())
-  completedAt     DateTime?
-  timeoutAt       DateTime?
-  
-  // Execution data
-  inputData       Json?    // Data passed to the step
-  outputData      Json?    // Data produced by the step
-  errorMessage    String?  // Error if step failed
-  
-  // Approval tracking (for approval steps)
-  assignedTo      String?  // User assigned to this step
-  approvedBy      String?
-  approvedAt      DateTime?
-  rejectedBy      String?
-  rejectedAt      DateTime?
-  rejectionReason String?
-  
-  // Performance metrics
-  executionTime   Int?     // Execution time in milliseconds
-  retryCount      Int      @default(0)
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relations
-  shareRequest    ShareRequest @relation(fields: [shareRequestId], references: [id], onDelete: Cascade)
-  workflowStep    ShareWorkflowStep @relation(fields: [workflowStepId], references: [id], onDelete: Cascade)
-  assignee        users?    @relation("StepAssignee", fields: [assignedTo], references: [id])
-  
+  id                String            @id @default(uuid())
+  shareRequestId    String
+  workflowStepId    String
+  stepNumber        Int
+  status            String            @default("pending")
+  startedAt         DateTime          @default(now())
+  completedAt       DateTime?
+  timeoutAt         DateTime?
+  inputData         Json?
+  outputData        Json?
+  errorMessage      String?
+  assignedTo        String?
+  approvedBy        String?
+  approvedAt        DateTime?
+  rejectedBy        String?
+  rejectedAt        DateTime?
+  rejectionReason   String?
+  executionTime     Int?
+  retryCount        Int               @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  users             users?            @relation(fields: [assignedTo], references: [id])
+  ShareRequest      ShareRequest      @relation(fields: [shareRequestId], references: [id], onDelete: Cascade)
+  ShareWorkflowStep ShareWorkflowStep @relation(fields: [workflowStepId], references: [id], onDelete: Cascade)
+
   @@unique([shareRequestId, workflowStepId])
   @@index([shareRequestId, stepNumber])
   @@index([status, startedAt])
@@ -1400,50 +1198,34 @@ model ShareStepExecution {
 }
 
 model ShareActivation {
-  id              String   @id @default(uuid())
-  
-  // Activation details
-  shareRequestId  String
-  activationType  String   @default("direct") // 'direct' | 'link' | 'embedded'
-  
-  // Access details
-  accessToken     String   @unique
-  accessUrl       String?
-  embedCode       String?
-  
-  // Security settings
-  ipRestrictions  String[] @default([]) // Allowed IP addresses/ranges
-  userRestrictions String[] @default([]) // Allowed user IDs
-  sessionTimeout  Int?     // Session timeout in minutes
-  
-  // Activation lifecycle
-  activatedBy     String
-  activatedAt     DateTime @default(now())
-  expiresAt       DateTime?
-  deactivatedAt   DateTime?
-  deactivatedBy   String?
-  deactivationReason String?
-  
-  // Usage tracking
-  accessCount     Int      @default(0)
-  lastAccessedAt  DateTime?
-  lastAccessedBy  String?
-  lastAccessIP    String?
-  
-  // Security monitoring
-  suspiciousActivity Boolean @default(false)
-  securityAlerts  Json[]   @default([])
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relations
-  shareRequest    ShareRequest @relation(fields: [shareRequestId], references: [id], onDelete: Cascade)
-  activator       users    @relation("ShareActivator", fields: [activatedBy], references: [id])
-  deactivator     users?   @relation("ShareDeactivator", fields: [deactivatedBy], references: [id])
-  
-  accessLogs      ShareAccessLog[]
-  
+  id                                         String           @id @default(uuid())
+  shareRequestId                             String
+  activationType                             String           @default("direct")
+  accessToken                                String           @unique
+  accessUrl                                  String?
+  embedCode                                  String?
+  ipRestrictions                             String[]         @default([])
+  userRestrictions                           String[]         @default([])
+  sessionTimeout                             Int?
+  activatedBy                                String
+  activatedAt                                DateTime         @default(now())
+  expiresAt                                  DateTime?
+  deactivatedAt                              DateTime?
+  deactivatedBy                              String?
+  deactivationReason                         String?
+  accessCount                                Int              @default(0)
+  lastAccessedAt                             DateTime?
+  lastAccessedBy                             String?
+  lastAccessIP                               String?
+  suspiciousActivity                         Boolean          @default(false)
+  securityAlerts                             Json[]           @default([])
+  createdAt                                  DateTime         @default(now())
+  updatedAt                                  DateTime         @updatedAt
+  ShareAccessLog                             ShareAccessLog[]
+  users_ShareActivation_activatedByTousers   users            @relation("ShareActivation_activatedByTousers", fields: [activatedBy], references: [id])
+  users_ShareActivation_deactivatedByTousers users?           @relation("ShareActivation_deactivatedByTousers", fields: [deactivatedBy], references: [id])
+  ShareRequest                               ShareRequest     @relation(fields: [shareRequestId], references: [id], onDelete: Cascade)
+
   @@index([shareRequestId])
   @@index([accessToken])
   @@index([activatedBy])
@@ -1451,40 +1233,26 @@ model ShareActivation {
 }
 
 model ShareAccessLog {
-  id              String   @id @default(uuid())
-  
-  // Access details
+  id                String          @id @default(uuid())
   shareActivationId String
-  userId          String?
-  accessedAt      DateTime @default(now())
-  
-  // Request context
-  ipAddress       String?
-  userAgent       String?
-  referrer        String?
-  sessionId       String?
-  
-  // Access information
-  accessType      String   // 'view' | 'download' | 'edit' | 'comment'
-  contentAccessed String?  // What specific content was accessed
-  actionPerformed String?  // What action was performed
-  
-  // Performance metrics
-  responseTime    Int?     // Response time in milliseconds
-  dataTransferred Int?     // Bytes transferred
-  
-  // Security information
-  accessGranted   Boolean  @default(true)
-  denialReason    String?
-  securityFlags   String[] @default([])
-  
-  // Metadata
-  metadata        Json?    // Additional context
-  
-  // Relations
-  shareActivation ShareActivation @relation(fields: [shareActivationId], references: [id], onDelete: Cascade)
-  user            users?   @relation("ShareAccessUser", fields: [userId], references: [id])
-  
+  userId            String?
+  accessedAt        DateTime        @default(now())
+  ipAddress         String?
+  userAgent         String?
+  referrer          String?
+  sessionId         String?
+  accessType        String
+  contentAccessed   String?
+  actionPerformed   String?
+  responseTime      Int?
+  dataTransferred   Int?
+  accessGranted     Boolean         @default(true)
+  denialReason      String?
+  securityFlags     String[]        @default([])
+  metadata          Json?
+  ShareActivation   ShareActivation @relation(fields: [shareActivationId], references: [id], onDelete: Cascade)
+  users             users?          @relation(fields: [userId], references: [id])
+
   @@index([shareActivationId, accessedAt])
   @@index([userId, accessedAt])
   @@index([accessType, accessedAt])
@@ -1492,47 +1260,32 @@ model ShareAccessLog {
 }
 
 model ShareNotification {
-  id              String   @id @default(uuid())
-  
-  // Notification details
-  shareRequestId  String
-  recipientId     String
-  notificationType String  // 'request_submitted' | 'approval_needed' | 'approved' | 'rejected' | 'expired'
-  
-  // Notification content
-  title           String
-  message         String
-  actionUrl       String?
-  actionText      String?
-  
-  // Delivery settings
-  channels        String[] @default(["email"]) // 'email' | 'sms' | 'push' | 'in_app'
-  priority        String   @default("normal") // 'low' | 'normal' | 'high' | 'urgent'
-  
-  // Delivery status
-  status          String   @default("pending") // 'pending' | 'sent' | 'delivered' | 'failed' | 'cancelled'
-  sentAt          DateTime?
-  deliveredAt     DateTime?
-  failedAt        DateTime?
-  failureReason   String?
-  
-  // Engagement tracking
-  readAt          DateTime?
-  clickedAt       DateTime?
-  respondedAt     DateTime?
-  
-  // Retry configuration
-  retryCount      Int      @default(0)
-  maxRetries      Int      @default(3)
-  nextRetryAt     DateTime?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relations
-  shareRequest    ShareRequest @relation(fields: [shareRequestId], references: [id], onDelete: Cascade)
-  recipient       users    @relation("NotificationRecipient", fields: [recipientId], references: [id])
-  
+  id               String       @id @default(uuid())
+  shareRequestId   String
+  recipientId      String
+  notificationType String
+  title            String
+  message          String
+  actionUrl        String?
+  actionText       String?
+  channels         String[]     @default(["email"])
+  priority         String       @default("normal")
+  status           String       @default("pending")
+  sentAt           DateTime?
+  deliveredAt      DateTime?
+  failedAt         DateTime?
+  failureReason    String?
+  readAt           DateTime?
+  clickedAt        DateTime?
+  respondedAt      DateTime?
+  retryCount       Int          @default(0)
+  maxRetries       Int          @default(3)
+  nextRetryAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  users            users        @relation(fields: [recipientId], references: [id])
+  ShareRequest     ShareRequest @relation(fields: [shareRequestId], references: [id], onDelete: Cascade)
+
   @@index([shareRequestId])
   @@index([recipientId, status])
   @@index([notificationType, status])
@@ -1540,182 +1293,156 @@ model ShareNotification {
 }
 
 model ShareTemplate {
-  id              String   @id @default(uuid())
-  
-  // Template details
-  name            String
-  description     String?
-  templateType    String   // 'quick_share' | 'collaboration' | 'public_share' | 'time_limited'
-  
-  // Template configuration
-  permissions     String[] @default([])
-  accessLevel     String   @default("read")
-  defaultDuration Int?     // Default duration in days
-  maxAccess       Int?     // Default max access count
-  
-  // Workflow settings
-  workflowId      String?
-  requireApproval Boolean  @default(false)
-  autoActivate    Boolean  @default(false)
-  
-  // Security settings
-  allowSubsharing Boolean  @default(false)
-  contentFilters  Json?
+  id                 String         @id @default(uuid())
+  name               String
+  description        String?
+  templateType       String
+  permissions        String[]       @default([])
+  accessLevel        String         @default("read")
+  defaultDuration    Int?
+  maxAccess          Int?
+  workflowId         String?
+  requireApproval    Boolean        @default(false)
+  autoActivate       Boolean        @default(false)
+  allowSubsharing    Boolean        @default(false)
+  contentFilters     Json?
   accessRestrictions Json?
-  
-  // Template scope
-  domainId        String
-  contentTypes    String[] @default([]) // Applicable content types
-  isPublic        Boolean  @default(false)
-  
-  // Usage tracking
-  usageCount      Int      @default(0)
-  lastUsedAt      DateTime?
-  
-  // Metadata
-  createdBy       String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  isActive        Boolean  @default(true)
-  
-  // Relations
-  domain          Domain   @relation("ShareTemplateDomain", fields: [domainId], references: [id], onDelete: Cascade)
-  workflow        ShareWorkflow? @relation("ShareTemplateWorkflow", fields: [workflowId], references: [id], onDelete: SetNull)
-  creator         users    @relation("ShareTemplateCreator", fields: [createdBy], references: [id])
-  
+  domainId           String
+  contentTypes       String[]       @default([])
+  isPublic           Boolean        @default(false)
+  usageCount         Int            @default(0)
+  lastUsedAt         DateTime?
+  createdBy          String
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  isActive           Boolean        @default(true)
+  users              users          @relation(fields: [createdBy], references: [id])
+  Domain             Domain         @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  ShareWorkflow      ShareWorkflow? @relation(fields: [workflowId], references: [id])
+
   @@index([domainId])
   @@index([templateType, isActive])
   @@index([createdBy])
 }
 
 model CrossDomainCollaboration {
-  id              String   @id @default(uuid())
-  
-  // Collaboration details
-  name            String
-  description     String?
-  collaborationType String @default("project") // 'project' | 'temporary' | 'ongoing'
-  
-  // Participating domains
-  hostDomainId    String
-  memberDomainIds String[] @default([])
-  invitedDomainIds String[] @default([])
-  
-  // Collaboration settings
-  permissions     Json     // Per-domain permissions
-  sharedResources Json     // What resources are shared
-  accessRules     Json     // Access control rules
-  
-  // Collaboration lifecycle
-  status          String   @default("planning") // 'planning' | 'active' | 'paused' | 'completed' | 'cancelled'
-  startDate       DateTime?
-  endDate         DateTime?
-  actualEndDate   DateTime?
-  
-  // Security and monitoring
-  auditLevel      String   @default("standard")
-  requireMFA      Boolean  @default(false)
-  allowedIPs      String[] @default([])
-  
-  // Activity tracking
-  lastActivity    DateTime?
-  activityCount   Int      @default(0)
-  
-  // Metadata
-  createdBy       String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relations
-  hostDomain      Domain   @relation("CollaborationHost", fields: [hostDomainId], references: [id], onDelete: Cascade)
-  creator         users    @relation("CollaborationCreator", fields: [createdBy], references: [id])
-  
-  collaborationActivities CollaborationActivity[]
-  
+  id                    String                  @id @default(uuid())
+  name                  String
+  description           String?
+  collaborationType     String                  @default("project")
+  hostDomainId          String
+  memberDomainIds       String[]                @default([])
+  invitedDomainIds      String[]                @default([])
+  permissions           Json
+  sharedResources       Json
+  accessRules           Json
+  status                String                  @default("planning")
+  startDate             DateTime?
+  endDate               DateTime?
+  actualEndDate         DateTime?
+  auditLevel            String                  @default("standard")
+  requireMFA            Boolean                 @default(false)
+  allowedIPs            String[]                @default([])
+  lastActivity          DateTime?
+  activityCount         Int                     @default(0)
+  createdBy             String
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  CollaborationActivity CollaborationActivity[]
+  users                 users                   @relation(fields: [createdBy], references: [id])
+  Domain                Domain                  @relation(fields: [hostDomainId], references: [id], onDelete: Cascade)
+
   @@index([hostDomainId])
   @@index([status, startDate])
   @@index([createdBy])
 }
 
 model CollaborationActivity {
-  id              String   @id @default(uuid())
-  
-  // Activity details
-  collaborationId String
-  domainId        String
-  userId          String
-  activityType    String   // 'join' | 'leave' | 'share' | 'access' | 'modify' | 'comment'
-  
-  // Activity data
-  entityType      String?  // What was affected
-  entityId        String?  // ID of affected entity
-  description     String?
-  changes         Json?    // What changed
-  
-  // Context information
-  ipAddress       String?
-  userAgent       String?
-  sessionId       String?
-  
-  timestamp       DateTime @default(now())
-  
-  // Relations
-  collaboration   CrossDomainCollaboration @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
-  domain          Domain   @relation("ActivityDomain", fields: [domainId], references: [id])
-  user            users    @relation("ActivityUser", fields: [userId], references: [id])
-  
+  id                       String                   @id @default(uuid())
+  collaborationId          String
+  domainId                 String
+  userId                   String
+  activityType             String
+  entityType               String?
+  entityId                 String?
+  description              String?
+  changes                  Json?
+  ipAddress                String?
+  userAgent                String?
+  sessionId                String?
+  timestamp                DateTime                 @default(now())
+  CrossDomainCollaboration CrossDomainCollaboration @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+  Domain                   Domain                   @relation(fields: [domainId], references: [id])
+  users                    users                    @relation(fields: [userId], references: [id])
+
   @@index([collaborationId, timestamp])
   @@index([domainId, activityType])
   @@index([userId, timestamp])
 }
 
 model SslCertificate {
-  id              String   @id @default(uuid())
-  
-  // Certificate details
-  domainId        String
-  customDomain    String
-  certificateData String   // PEM encoded certificate
-  privateKey      String   // PEM encoded private key
-  certificateChain String[] @default([])
-  
-  // Provider information
-  provider        String   // 'letsencrypt' | 'cloudflare' | 'vercel' | 'custom'
-  providerData    Json?    // Provider-specific data
-  
-  // Certificate metadata
-  commonName      String
-  subjectAltNames String[] @default([])
-  issuer          String
-  serialNumber    String
-  
-  // Validity period
-  validFrom       DateTime
-  validUntil      DateTime
-  
-  // Certificate status
-  status          String   @default("pending") // 'pending' | 'valid' | 'expired' | 'revoked' | 'failed'
-  
-  // Verification details
-  challengeType   String?  // 'http-01' | 'dns-01' | 'tls-alpn-01'
-  validationMethod String?
-  keyAlgorithm    String?  // 'RSA-2048' | 'RSA-4096' | 'ECDSA-P256' | 'ECDSA-P384'
-  
-  // Auto-renewal
-  autoRenewal     Boolean  @default(true)
-  renewalDaysBefore Int    @default(30)
+  id                 String    @id @default(uuid())
+  domainId           String
+  customDomain       String
+  certificateData    String
+  privateKey         String
+  certificateChain   String[]  @default([])
+  provider           String
+  providerData       Json?
+  commonName         String
+  subjectAltNames    String[]  @default([])
+  issuer             String
+  serialNumber       String
+  validFrom          DateTime
+  validUntil         DateTime
+  status             String    @default("pending")
+  challengeType      String?
+  validationMethod   String?
+  keyAlgorithm       String?
+  autoRenewal        Boolean   @default(true)
+  renewalDaysBefore  Int       @default(30)
   lastRenewalAttempt DateTime?
-  nextRenewalCheck DateTime?
-  
-  // Metadata
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relations
-  domain          Domain   @relation("DomainSslCertificate", fields: [domainId], references: [id], onDelete: Cascade)
-  
+  nextRenewalCheck   DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  Domain             Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
   @@index([domainId])
   @@index([customDomain])
   @@index([status, validUntil])
   @@index([nextRenewalCheck])
+}
+
+model MediaContent {
+  id                                                                         String                 @id @db.Uuid
+  type                                                                       String
+  url                                                                        String
+  alt                                                                        String?
+  createdAt                                                                  DateTime               @default(now())
+  playlistOwnerId                                                            String?                @db.Uuid
+  media_frame_instances_MediaContent_playlistOwnerIdTomedia_frame_instances  media_frame_instances? @relation("MediaContent_playlistOwnerIdTomedia_frame_instances", fields: [playlistOwnerId], references: [id])
+  media_frame_instances_media_frame_instances_currentContentIdToMediaContent media_frame_instances? @relation("media_frame_instances_currentContentIdToMediaContent")
+}
+
+model MediaFrameConfig {
+  id                    String                  @id @db.Uuid
+  name                  String                  @unique
+  description           String?
+  theme                 Json?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime
+  media_frame_instances media_frame_instances[]
+}
+
+model media_frame_instances {
+  id                                                                String           @id @db.Uuid
+  entityType                                                        String
+  entityId                                                          String
+  configId                                                          String           @db.Uuid
+  currentContentId                                                  String?          @unique @db.Uuid
+  createdAt                                                         DateTime         @default(now())
+  updatedAt                                                         DateTime
+  MediaContent_MediaContent_playlistOwnerIdTomedia_frame_instances  MediaContent[]   @relation("MediaContent_playlistOwnerIdTomedia_frame_instances")
+  MediaFrameConfig                                                  MediaFrameConfig @relation(fields: [configId], references: [id])
+  MediaContent_media_frame_instances_currentContentIdToMediaContent MediaContent?    @relation("media_frame_instances_currentContentIdToMediaContent", fields: [currentContentId], references: [id])
 }
