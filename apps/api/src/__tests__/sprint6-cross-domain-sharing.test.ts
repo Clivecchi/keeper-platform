@@ -526,11 +526,11 @@ describe('Sprint 6: Cross-Domain Sharing Integration Tests', () => {
       // Verify workflow was created
       const workflow = await prisma.shareWorkflow.findUnique({
         where: { id: response.body.data.workflowId },
-        include: { workflowSteps: true },
+        include: { ShareWorkflowStep: true },
       });
       expect(workflow).toBeTruthy();
       expect(workflow!.name).toBe('Standard Approval Workflow');
-      expect(workflow!.workflowSteps).toHaveLength(2);
+      expect(workflow!.ShareWorkflowStep).toHaveLength(2);
     });
 
     it('should list workflows for domain', async () => {

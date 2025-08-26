@@ -47,7 +47,7 @@ export const getMemoryCardsByKeeper = async (req: Request, res: Response) => {
     const memoryCards = await prisma.soleMemoryCard.findMany({
       where: whereClause,
       include: {
-        reflection: {
+        SoleReflection: {
           select: {
             id: true,
             agentId: true,
@@ -100,7 +100,7 @@ export const getMemoryCardsByTopic = async (req: Request, res: Response) => {
         keeperId: keeperId
       },
       include: {
-        reflection: {
+        SoleReflection: {
           select: {
             id: true,
             agentId: true,
@@ -116,7 +116,7 @@ export const getMemoryCardsByTopic = async (req: Request, res: Response) => {
     // Group by topic
     const groupedByTopic = memoryCards.reduce((acc: Record<string, typeof memoryCards>, card: unknown) => {
       const topic = (card as any).topic || 'Uncategorized';
-      const reflection = (card as any).reflection;
+      const reflection = (card as any).SoleReflection;
       
       if (!acc[topic]) {
         acc[topic] = [];
@@ -237,7 +237,7 @@ export const updateMemoryCard = async (req: Request, res: Response) => {
       where: { id: id },
       data: updateData,
       include: {
-        reflection: {
+        SoleReflection: {
           select: {
             id: true,
             agentId: true,
@@ -419,7 +419,7 @@ export const searchMemoryCards = async (req: Request, res: Response) => {
         ]
       },
       include: {
-        reflection: {
+        SoleReflection: {
           select: {
             id: true,
             agentId: true,

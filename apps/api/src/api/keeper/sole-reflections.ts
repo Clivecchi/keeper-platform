@@ -42,7 +42,7 @@ export const getReflectionsByKeeper = async (req: Request, res: Response) => {
         keeperId: keeperId
       },
       include: {
-        memoryCards: {
+        SoleMemoryCard: {
           select: {
             id: true,
             createdAt: true
@@ -149,7 +149,7 @@ export const createReflection = async (req: Request, res: Response) => {
         ...(validatedData.topic && { topic: validatedData.topic })
       },
       include: {
-        memoryCards: true
+        SoleMemoryCard: true
       }
     });
 
@@ -202,7 +202,7 @@ export const updateReflection = async (req: Request, res: Response) => {
       where: { id: id },
       data: validatedData,
       include: {
-        memoryCards: true
+        SoleMemoryCard: true
       }
     });
 

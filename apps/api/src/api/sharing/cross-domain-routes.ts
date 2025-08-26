@@ -512,7 +512,7 @@ router.get(
         where: whereClause,
         include: {
           creator: { select: { id: true, name: true, email: true } },
-          workflowSteps: { orderBy: { order: 'asc' } },
+          ShareWorkflowStep: { orderBy: { order: 'asc' } },
           _count: { select: { shareRequests: true } },
         },
         orderBy: { createdAt: 'desc' },
