@@ -78,7 +78,7 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
             },
           },
         },
-        ownedDomains: {
+        Domain: {
           select: {
             id: true,
             name: true,
@@ -118,11 +118,11 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
           role: dp.role,
           permissions: dp.permissions,
         })),
-        ownedDomains: user.ownedDomains,
+        ownedDomains: user.Domain,
         roles: user.user_roles.map(ur => ur.roles),
         stats: {
           domainsCount: user.domainPermissions.length,
-          ownedDomainsCount: user.ownedDomains.length,
+          ownedDomainsCount: user.Domain.length,
           rolesCount: user.user_roles.length,
         },
       })),
@@ -168,11 +168,11 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
             roles: true,
           },
         },
-        ownedDomains: {
+        Domain: {
           include: {
-            permissions: {
+            DomainPermission: {
               include: {
-                user: {
+                users_DomainPermission_userIdTousers: {
                   select: {
                     id: true,
                     name: true,
@@ -233,13 +233,13 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
         grantedBy: dp.grantor,
         grantedAt: dp.grantedAt,
       })),
-      ownedDomains: user.ownedDomains,
+      ownedDomains: user.Domain,
       roles: user.user_roles.map(ur => ur.roles),
       recentSessions: user.kip_sessions,
       recentLogs: user.kip_agent_logs,
       stats: {
         totalDomains: user.domainPermissions.length,
-        ownedDomains: user.ownedDomains.length,
+        ownedDomains: user.Domain.length,
         totalSessions: user.kip_sessions.length,
         totalInteractions: user.kip_agent_logs.length,
         collaborations: calculateCollaborations(user.domainPermissions),

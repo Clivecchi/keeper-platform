@@ -96,7 +96,7 @@ const getKipSessionById = async (sessionId: string) => {
   return prisma.kip_sessions.findUnique({
     where: { id: sessionId },
     include: {
-      messages: {
+      kip_messages: {
         orderBy: { created_at: 'asc' }
       }
     }
@@ -112,7 +112,7 @@ const getSessionsByAgentId = async (agentId: string, options: { page?: number; p
       where: { agent_id: agentId },
       include: {
         _count: {
-          select: { messages: true }
+          select: { kip_messages: true }
         }
       },
       orderBy: { updated_at: 'desc' },
