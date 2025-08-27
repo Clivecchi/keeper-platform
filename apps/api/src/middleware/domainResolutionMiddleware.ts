@@ -5,18 +5,27 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@keeper/database';
-import { getRedis, type RedisClient } from '../lib/redis.js';
-import { 
-  DomainService, 
-  DomainCacheService,
-  FeatureFlagService
-} from '@keeper/database';
+import { DomainService, DomainCacheService } from '@keeper/database';
+import { getRedisLazy, type RedisClient } from '../lib/redis.js';
 
 const prisma = new PrismaClient();
-const redis: RedisClient = getRedis();
-const cacheService = new DomainCacheService(redis);
-const domainService = new DomainService(prisma, cacheService);
-const featureFlagService = new FeatureFlagService();
+
+// Lazy initialization - only create services when actually needed
+let cacheService: DomainCacheService | null = null;
+let domainService: DomainService | null = null;
+
+function getServices() {
+  if (!cacheService) {
+    const redis = getRedisLazy();
+    cacheService = new DomainCacheService(redis);
+  }
+  
+  if (!domainService) {
+    domainService = new DomainService(prisma, cacheService);
+  }
+  
+  return { cacheService, domainService };
+}
 
 // Basic feature flag service implementation
 const getFeatureFlagService = () => ({
@@ -628,6 +637,7 @@ export class DomainResolutionMiddleware {
 export function createDomainResolutionMiddleware(
   config?: DomainResolutionConfig
 ): (req: Request, res: Response, next: NextFunction) => Promise<void> {
+  const { cacheService, domainService } = getServices();
   const middleware = new DomainResolutionMiddleware(
     prisma,
     domainService,

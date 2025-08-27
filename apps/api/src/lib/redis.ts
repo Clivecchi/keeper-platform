@@ -5,52 +5,52 @@ const RedisCtor: any = (RedisPkg as any).default ?? RedisPkg;
 export type RedisClient = InstanceType<typeof RedisCtor>;
 
 let client: RedisClient | null = null;
+let initializationAttempted = false;
 
 export function getRedis(): RedisClient {
   if (client) return client;
   
+  // Only attempt initialization once
+  if (initializationAttempted) {
+    throw new Error('Redis initialization failed. Check your environment configuration.');
+  }
+  
+  initializationAttempted = true;
+  
   const url = process.env.REDIS_URL;
   const disableRedis = process.env.DISABLE_REDIS === 'true';
   
-  if (!url && !disableRedis) {
-    console.warn('REDIS_URL missing and DISABLE_REDIS not set. Using mock Redis client.');
-    // Return a mock Redis client for development/testing
-    return createMockRedisClient();
+  if (disableRedis) {
+    throw new Error('Redis is disabled via DISABLE_REDIS=true. Update your code to handle Redis unavailability.');
   }
   
-  if (disableRedis || !url) {
-    return createMockRedisClient();
+  if (!url) {
+    throw new Error(
+      'REDIS_URL environment variable is missing. ' +
+      'Set REDIS_URL to your Redis connection string in Railway environment variables, ' +
+      'or set DISABLE_REDIS=true if Redis is not required for this deployment.'
+    );
   }
   
   try {
     client = new RedisCtor(url);
     return client;
   } catch (error) {
-    console.error('Failed to connect to Redis:', error);
-    console.warn('Falling back to mock Redis client');
-    return createMockRedisClient();
+    throw new Error(
+      `Failed to connect to Redis at ${url}: ${error instanceof Error ? error.message : 'Unknown error'}. ` +
+      'Check your Redis connection string and ensure Redis is accessible.'
+    );
   }
 }
 
-function createMockRedisClient(): RedisClient {
-  // Create a minimal mock Redis client that implements basic methods
-  const mockClient = {
-    ping: async () => 'PONG',
-    get: async () => null,
-    set: async () => 'OK',
-    del: async () => 0,
-    exists: async () => 0,
-    expire: async () => 1,
-    ttl: async () => -1,
-    quit: async () => 'OK',
-    disconnect: async () => {},
-    on: () => mockClient,
-    off: () => mockClient,
-    once: () => mockClient,
-    emit: () => true,
-  } as any;
-  
-  return mockClient;
+// Lazy initialization function for middleware
+export function getRedisLazy(): RedisClient | null {
+  try {
+    return getRedis();
+  } catch (error) {
+    console.warn('Redis not available, continuing without caching:', error instanceof Error ? error.message : 'Unknown error');
+    return null;
+  }
 }
 
 

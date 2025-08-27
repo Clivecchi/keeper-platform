@@ -10,12 +10,28 @@ import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { requireDomainAdminCompat, requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { CrossDomainSharingService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
-import { getRedis, type RedisClient } from '../../lib/redis.js';
+import { getRedisLazy, type RedisClient } from '../../lib/redis.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
-const redis: RedisClient = getRedis();
-const sharingService = new CrossDomainSharingService(prisma, new DomainCacheService(redis));
+
+// Lazy initialization - only create services when actually needed
+let redis: RedisClient | null = null;
+let sharingService: CrossDomainSharingService | null = null;
+
+function getServices() {
+  if (!redis) {
+    redis = getRedisLazy();
+  }
+  
+  if (!sharingService) {
+    const cacheService = new DomainCacheService(redis);
+    sharingService = new CrossDomainSharingService(prisma, cacheService);
+  }
+  
+  return { redis, sharingService };
+}
+
 const featureFlags = getFeatureFlagService();
 
 // Validation schemas
@@ -118,6 +134,7 @@ router.post(
         });
       }
 
+      const { sharingService } = getServices();
       const requestId = await sharingService.createShareRequest(
         {
           ...requestData,
@@ -159,6 +176,7 @@ router.get(
         offset = '0',
       } = req.query;
 
+      const { sharingService } = getServices();
       const requests = await sharingService.listShareRequests(domainId, {
         status: status as any,
         contentType: contentType as any,
@@ -198,6 +216,7 @@ router.get(
       const { requestId } = req.params;
       const userId = req.user!.id;
 
+      const prisma = new PrismaClient();
       const request = await prisma.shareRequest.findUnique({
         where: { id: requestId },
         include: {
@@ -241,6 +260,7 @@ router.put(
       const userId = req.user!.id;
       const { status, permissions, expiresAt } = req.body;
 
+      const prisma = new PrismaClient();
       const request = await prisma.shareRequest.update({
         where: { id: requestId },
         data: {
@@ -281,6 +301,7 @@ router.delete(
       const { requestId } = req.params;
       const userId = req.user!.id;
 
+      const prisma = new PrismaClient();
       await prisma.shareRequest.update({
         where: { id: requestId },
         data: {
@@ -315,6 +336,7 @@ router.post(
       const userId = req.user!.id;
       const { comments } = req.body;
 
+      const { sharingService } = getServices();
       await sharingService.approveShareRequest(requestId, userId, comments);
 
       res.json({
@@ -351,6 +373,7 @@ router.post(
         });
       }
 
+      const { sharingService } = getServices();
       await sharingService.rejectShareRequest(requestId, userId, rejectionReason);
 
       return res.json({
@@ -380,6 +403,7 @@ router.post(
       const userId = req.user!.id;
       const validation = activationSchema.parse(req.body);
 
+      const { sharingService } = getServices();
       const accessToken = await sharingService.activateShare(requestId, userId, {
         activationType: validation.activationType,
         ipRestrictions: validation.ipRestrictions ?? [],
@@ -418,6 +442,7 @@ router.get(
       const ipAddress = req.ip;
       const userAgent = req.headers['user-agent'];
 
+      const { sharingService } = getServices();
       const accessInfo = await sharingService.accessSharedContent(
         accessToken,
         userId,
@@ -454,6 +479,7 @@ router.post(
       const userId = req.user!.id;
       const validation = workflowSchema.parse(req.body);
 
+      const prisma = new PrismaClient();
       const workflow = await prisma.shareWorkflow.create({
         data: {
           name: validation.name,
@@ -498,6 +524,7 @@ router.get(
       const { domainId } = req.params;
       const { workflowType, isActive = 'true' } = req.query;
 
+      const prisma = new PrismaClient();
       const whereClause: Record<string, unknown> = { sourceDomainId: domainId };
       
       if (workflowType) {
@@ -547,6 +574,7 @@ router.post(
       const userId = req.user!.id;
       const validation = templateSchema.parse(req.body);
 
+      const prisma = new PrismaClient();
       const template = await prisma.shareTemplate.create({
         data: {
           name: validation.name,
@@ -594,6 +622,7 @@ router.get(
       const { domainId } = req.params;
       const { templateType, isActive = 'true' } = req.query;
 
+      const prisma = new PrismaClient();
       const whereClause: Record<string, unknown> = { domainId };
       
       if (templateType) {
@@ -657,6 +686,7 @@ router.post(
         allowedIPs: validation.allowedIPs,
       };
 
+      const { sharingService } = getServices();
       const collaborationId = await sharingService.createCollaboration(
         domainId,
         config,
@@ -691,6 +721,7 @@ router.get(
       const { domainId } = req.params;
       const { status, collaborationType } = req.query;
 
+      const prisma = new PrismaClient();
       const whereClause: Record<string, unknown> = {
         OR: [
           { hostDomainId: domainId },
@@ -743,6 +774,7 @@ router.get(
       const { domainId } = req.params;
       const { days = '30' } = req.query;
 
+      const { sharingService } = getServices();
       const metrics = await sharingService.getShareMetrics(
         domainId,
         parseInt(days as string)
@@ -774,6 +806,7 @@ router.get(
     try {
       const { domainId } = req.params;
 
+      const prisma = new PrismaClient();
       const pendingRequests = await prisma.shareRequest.findMany({
         where: {
           targetDomainId: domainId,
@@ -815,6 +848,7 @@ router.get(
     try {
       const { accessToken } = req.params;
 
+      const prisma = new PrismaClient();
       const activation = await prisma.shareActivation.findUnique({
         where: { accessToken },
         include: {
@@ -889,6 +923,7 @@ router.post(
         });
       }
 
+      const { sharingService } = getServices();
       const results = await Promise.allSettled(
         requestIds.map((requestId: string) =>
           sharingService.approveShareRequest(requestId, userId, comments)
@@ -930,6 +965,7 @@ router.get(
       const { domainId } = req.params;
       const { period = '7d', type = 'all' } = req.query;
 
+      const { sharingService } = getServices();
       const analytics = await sharingService.getSharingAnalytics(domainId, {
         period: period as string,
         type: type as string,
@@ -961,6 +997,7 @@ router.get(
     try {
       const { domainId } = req.params;
 
+      const { sharingService } = getServices();
       const health = await sharingService.getSharingHealth(domainId);
 
       res.status(200).json({ success: true, data: null });

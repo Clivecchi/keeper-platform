@@ -7,12 +7,26 @@ import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@keeper/database';
 import { DomainPermissionService, DomainCacheService } from '@keeper/database';
 import { AuthenticatedRequest } from './authMiddleware.js';
-import { getRedis, type RedisClient } from '../lib/redis.js';
+import { getRedisLazy, type RedisClient } from '../lib/redis.js';
 
 const prisma = new PrismaClient();
-const redis: RedisClient = getRedis();
-const cacheService = new DomainCacheService(redis);
-const permissionService = new DomainPermissionService(prisma, cacheService);
+
+// Lazy initialization - only create services when actually needed
+let cacheService: DomainCacheService | null = null;
+let permissionService: DomainPermissionService | null = null;
+
+function getServices() {
+  if (!cacheService) {
+    const redis = getRedisLazy();
+    cacheService = new DomainCacheService(redis);
+  }
+  
+  if (!permissionService) {
+    permissionService = new DomainPermissionService(prisma, cacheService);
+  }
+  
+  return { cacheService, permissionService };
+}
 
 export type DomainPermissionType = 'read' | 'write' | 'share' | 'admin' | 'invite' | 'delete';
 

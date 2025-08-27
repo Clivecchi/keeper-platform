@@ -8,7 +8,37 @@
     "build": {
       "dependsOn": ["^build", "generate"],
       "outputs": ["dist/**", ".next/**", "build/**"],
-      "env": ["NODE_ENV"]
+      "env": [
+        "NODE_ENV",
+        "VITE_VERCEL_ENV",
+        "VITE_VERCEL_URL",
+        "VITE_API_URL",
+        "VITE_RAILWAY_URL",
+        "VITE_API_BASE_URL",
+        "POSTGRES_PASSWORD",
+        "PGHOST_PRIVATE",
+        "DATABASE_URL_PRIVATE",
+        "OPENAI_API_BASE",
+        "JWT_SECRET",
+        "OPENAI_API_KEY",
+        "PGPASSWORD",
+        "CORS_ORIGINS",
+        "RAILWAY_DEPLOYMENT_DRAINING_SECONDS",
+        "SSL_CERT_DAYS",
+        "PGPORT",
+        "DATABASE_URL",
+        "PGDATA",
+        "POSTGRES_DB",
+        "PGPORT_PRIVATE",
+        "POSTGRES_USER",
+        "BLOB_READ_WRITE_TOKEN",
+        "PGDATABASE",
+        "PGHOST",
+        "NODE_VERSION",
+        "PGUSER",
+        "DATABASE_PUBLIC_URL",
+        "ke3p_READ_WRITE_TOKEN"
+      ]
     },
     "start": {
       "cache": false,

@@ -7,12 +7,26 @@ import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@keeper/database';
 import cors from 'cors';
 import { DomainService, DomainCacheService } from '@keeper/database';
-import { getRedis, type RedisClient } from '../lib/redis.js';
+import { getRedisLazy, type RedisClient } from '../lib/redis.js';
 
 const prisma = new PrismaClient();
-const redis: RedisClient = getRedis();
-const cacheService = new DomainCacheService(redis);
-const domainService = new DomainService(prisma, cacheService);
+
+// Lazy initialization - only create services when actually needed
+let cacheService: DomainCacheService | null = null;
+let domainService: DomainService | null = null;
+
+function getServices() {
+  if (!cacheService) {
+    const redis = getRedisLazy();
+    cacheService = new DomainCacheService(redis);
+  }
+  
+  if (!domainService) {
+    domainService = new DomainService(prisma, cacheService);
+  }
+  
+  return { cacheService, domainService };
+}
 
 export interface DomainCorsConfig {
   allowedOrigins?: string[];
@@ -339,7 +353,7 @@ export class DynamicCorsMiddleware {
       });
 
       // Clear cache
-      if (redis) {
+      if (cacheService) {
         await cacheService.invalidateDomain(domainId);
       }
     } catch (error) {
