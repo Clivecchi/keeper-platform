@@ -451,14 +451,7 @@ export function createProductionRoutes(
               name: true,
               slug: true,
             },
-          },
-          targetDomain: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
+          }
         },
       });
 

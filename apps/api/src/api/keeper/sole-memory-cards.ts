@@ -216,7 +216,7 @@ export const updateMemoryCard = async (req: Request, res: Response) => {
     const memoryCard = await prisma.soleMemoryCard.findFirst({
       where: {
         id: id,
-        keeper: {
+        Keeper: {
           ownerId: userId as string
         }
       }
@@ -281,7 +281,7 @@ export const deleteMemoryCard = async (req: Request, res: Response) => {
     const memoryCard = await prisma.soleMemoryCard.findFirst({
       where: {
         id: id,
-        keeper: {
+        Keeper: {
           ownerId: userId as string
         }
       }

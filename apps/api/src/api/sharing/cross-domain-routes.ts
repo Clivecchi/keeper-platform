@@ -459,14 +459,14 @@ router.post(
           name: validation.name,
           description: validation.description,
           workflowType: validation.workflowType,
-          requiresApproval: validation.requiresApproval,
-          defaultExpirationDays: validation.defaultExpirationDays,
+          requiresApproval: validation.requiresApproval ?? true,
+          defaultExpirationDays: validation.defaultExpirationDays ?? 30,
           maxAccessCount: validation.maxAccessCount,
-          allowSubsharing: validation.allowSubsharing,
-          auditLevel: validation.auditLevel,
-          creator: { connect: { id: userId } },
+          allowSubsharing: validation.allowSubsharing ?? false,
+          sourceDomainId: domainId,
+          auditLevel: validation.auditLevel ?? 'standard',
           approvalSteps: JSON.parse(JSON.stringify(validation.approvalSteps)),
-          sourceDomain: { connect: { id: domainId } },
+          createdBy: userId,
         },
       });
 
@@ -511,9 +511,9 @@ router.get(
       const workflows = await prisma.shareWorkflow.findMany({
         where: whereClause,
         include: {
-          creator: { select: { id: true, name: true, email: true } },
-          ShareWorkflowStep: { orderBy: { order: 'asc' } },
-          _count: { select: { shareRequests: true } },
+          users: { select: { id: true, name: true, email: true } },
+          Domain: true,
+          ShareWorkflowStep: true,
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -552,17 +552,17 @@ router.post(
           name: validation.name,
           description: validation.description,
           templateType: validation.templateType,
+          permissions: validation.permissions,
           accessLevel: validation.accessLevel,
           defaultDuration: validation.defaultDuration,
           maxAccess: validation.maxAccess,
-          requireApproval: validation.requireApproval,
-          autoActivate: validation.autoActivate,
-          allowSubsharing: validation.allowSubsharing,
-          domain: { connect: { id: domainId } },
-          creator: { connect: { id: userId } },
-          ...(validation.workflowId && { workflow: { connect: { id: validation.workflowId } } }),
-          permissions: JSON.parse(JSON.stringify(validation.permissions)),
-          contentTypes: JSON.parse(JSON.stringify(validation.contentTypes)),
+          workflowId: validation.workflowId,
+          requireApproval: validation.requireApproval ?? false,
+          autoActivate: validation.autoActivate ?? false,
+          allowSubsharing: validation.allowSubsharing ?? false,
+          domainId: domainId,
+          contentTypes: validation.contentTypes,
+          createdBy: userId,
         },
       });
 
@@ -607,8 +607,9 @@ router.get(
       const templates = await prisma.shareTemplate.findMany({
         where: whereClause,
         include: {
-          creator: { select: { id: true, name: true, email: true } },
-          workflow: { select: { id: true, name: true } },
+          users: { select: { id: true, name: true, email: true } },
+          Domain: true,
+          ShareWorkflow: true,
         },
         orderBy: { usageCount: 'desc' },
       });
@@ -708,9 +709,9 @@ router.get(
       const collaborations = await prisma.crossDomainCollaboration.findMany({
         where: whereClause,
         include: {
-          hostDomain: { select: { id: true, name: true, slug: true } },
-          creator: { select: { id: true, name: true, email: true } },
-          _count: { select: { collaborationActivities: true } },
+          Domain: { select: { id: true, name: true, slug: true } },
+          users: { select: { id: true, name: true, email: true } },
+          _count: { select: { CollaborationActivity: true } },
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -781,7 +782,7 @@ router.get(
         include: {
           Domain_ShareRequest_sourceDomainIdToDomain: { select: { id: true, name: true, slug: true } },
           users_ShareRequest_requestedByTousers: { select: { id: true, name: true, email: true } },
-          workflow: { select: { id: true, name: true } },
+          ShareWorkflow: { select: { id: true, name: true } },
         },
         orderBy: { requestedAt: 'asc' },
       });
@@ -817,10 +818,10 @@ router.get(
       const activation = await prisma.shareActivation.findUnique({
         where: { accessToken },
         include: {
-          shareRequest: {
+          ShareRequest: {
             include: {
-              Domain_ShareRequest_sourceDomainIdToDomain: { select: { id: true, name: true, slug: true } },
-              Domain_ShareRequest_targetDomainIdToDomain: { select: { id: true, name: true, slug: true } },
+              Domain_ShareRequest_sourceDomainIdToDomain: true,
+              Domain_ShareRequest_targetDomainIdToDomain: true,
             },
           },
         },
@@ -838,14 +839,14 @@ router.get(
       res.json({
         success: true,
         data: {
-          shareRequest: {
-            id: activation.shareRequest.id,
-            title: activation.shareRequest.title,
-            description: activation.shareRequest.description,
-            contentType: activation.shareRequest.contentType,
-            permissions: activation.shareRequest.permissions,
-            accessLevel: activation.shareRequest.accessLevel,
-            sourceDomain: activation.shareRequest.Domain_ShareRequest_sourceDomainIdToDomain,
+          ShareRequest: {
+            id: activation.ShareRequest.id,
+            title: activation.ShareRequest.title,
+            description: activation.ShareRequest.description,
+            contentType: activation.ShareRequest.contentType,
+            permissions: activation.ShareRequest.permissions,
+            accessLevel: activation.ShareRequest.accessLevel,
+            sourceDomain: activation.ShareRequest.Domain_ShareRequest_sourceDomainIdToDomain,
           },
           activation: {
             activationType: activation.activationType,

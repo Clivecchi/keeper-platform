@@ -194,7 +194,7 @@ export const createLogbookEntry = async (req: Request, res: Response) => {
 
     const logbookEntry = await prisma.soleLogbookEntry.create({
       data: {
-        keeper: { connect: { id: validatedData.keeperId } },
+        Keeper: { connect: { id: validatedData.keeperId } },
         agentId: validatedData.agentId,
         entry: validatedData.entry,
         label: validatedData.label,
@@ -238,7 +238,7 @@ export const updateLogbookEntry = async (req: Request, res: Response) => {
     const logbookEntry = await prisma.soleLogbookEntry.findFirst({
       where: {
         id: id,
-        keeper: {
+        Keeper: { // Changed from 'keeper' to 'Keeper'
           ownerId: userId as string
         }
       }
@@ -287,7 +287,7 @@ export const deleteLogbookEntry = async (req: Request, res: Response) => {
     const logbookEntry = await prisma.soleLogbookEntry.findFirst({
       where: {
         id: id,
-        keeper: {
+        Keeper: { // Changed from 'keeper' to 'Keeper'
           ownerId: userId as string
         }
       }

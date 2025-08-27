@@ -417,7 +417,7 @@ export const getEngagementTemplatesByKeeperType = async (req: Request, res: Resp
         engagement_styles: true,
         keeper_type_engagement_templates: {
           include: {
-            keeper_type: true
+            KeeperType: true
           }
         }
       },
@@ -698,7 +698,7 @@ export const getAgentKeeperTypes = async (req: Request, res: Response) => {
         agent_id: agentId
       },
       include: {
-        keeper_type: {
+        KeeperType: {
           include: {
             _count: {
               select: {
@@ -714,7 +714,7 @@ export const getAgentKeeperTypes = async (req: Request, res: Response) => {
       }
     });
 
-    const keeperTypes = assignments.map((assignment: any) => assignment.keeper_type);
+    const keeperTypes = assignments.map((assignment: any) => assignment.KeeperType);
 
     return res.json({
       success: true,
@@ -773,13 +773,13 @@ export const assignKeeperTypeToAgent = async (req: Request, res: Response) => {
         keeper_type_id: keeperTypeId
       },
       include: {
-        keeper_type: true
+        KeeperType: true
       }
     });
 
     return res.status(201).json({
       success: true,
-      data: assignment.keeper_type,
+      data: assignment.KeeperType,
       message: 'Keeper type assigned to agent successfully'
     });
   } catch (error) {

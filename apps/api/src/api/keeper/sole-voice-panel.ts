@@ -39,7 +39,9 @@ export const getVoiceEntriesByKeeper = async (req: Request, res: Response) => {
 
     const voiceEntries = await prisma.soleVoiceEntry.findMany({
       where: {
-        keeperId: keeperId
+        Keeper: {
+          id: keeperId
+        }
       },
       orderBy: {
         updatedAt: 'desc'
@@ -83,7 +85,7 @@ export const createVoiceEntry = async (req: Request, res: Response) => {
 
     const voiceEntry = await prisma.soleVoiceEntry.create({
       data: {
-        keeper: { connect: { id: validatedData.keeperId } },
+        Keeper: { connect: { id: validatedData.keeperId } },
         agentId: validatedData.agentId,
         label: validatedData.label,
         belief: validatedData.belief
@@ -125,7 +127,7 @@ export const updateVoiceEntry = async (req: Request, res: Response) => {
     const voiceEntry = await prisma.soleVoiceEntry.findFirst({
       where: {
         id: id,
-        keeper: {
+        Keeper: {
           ownerId: userId as string
         }
       }
@@ -174,7 +176,7 @@ export const deleteVoiceEntry = async (req: Request, res: Response) => {
     const voiceEntry = await prisma.soleVoiceEntry.findFirst({
       where: {
         id: id,
-        keeper: {
+        Keeper: {
           ownerId: userId as string
         }
       }

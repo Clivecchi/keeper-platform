@@ -299,14 +299,8 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
       // Create frame configs
       const createdConfigs = await Promise.all(
         frameConfigs.map(config => 
-          prisma.frameConfig.upsert({
-            where: { name: config.name },
-            update: config,
-            create: {
-              id: `${config.name}-${Date.now()}`,
-              ...config,
-              updatedAt: new Date(),
-            }
+          prisma.frameConfig.create({
+            data: config
           })
         )
       );

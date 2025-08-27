@@ -426,7 +426,7 @@ export class DomainPermissionMiddleware {
           domainId,
         },
         include: {
-          user: {
+          users_DomainPermission_userIdTousers: {
             select: {
               id: true,
               name: true,

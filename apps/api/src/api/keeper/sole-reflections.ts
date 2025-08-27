@@ -143,7 +143,7 @@ export const createReflection = async (req: Request, res: Response) => {
 
     const reflection = await prisma.soleReflection.create({
       data: {
-        keeper: { connect: { id: validatedData.keeperId } },
+        Keeper: { connect: { id: validatedData.keeperId } },
         agentId: validatedData.agentId,
         content: validatedData.content,
         ...(validatedData.topic && { topic: validatedData.topic })
@@ -188,7 +188,7 @@ export const updateReflection = async (req: Request, res: Response) => {
     const reflection = await prisma.soleReflection.findFirst({
       where: {
         id: id,
-        keeper: {
+        Keeper: {
           ownerId: userId as string
         }
       }
@@ -240,7 +240,7 @@ export const deleteReflection = async (req: Request, res: Response) => {
     const reflection = await prisma.soleReflection.findFirst({
       where: {
         id: id,
-        keeper: {
+        Keeper: {
           ownerId: userId as string
         }
       }
@@ -294,7 +294,7 @@ export const promoteReflectionToMemoryCard = async (req: Request, res: Response)
     const reflection = await prisma.soleReflection.findFirst({
       where: {
         id: id,
-        keeper: {
+        Keeper: {
           ownerId: userId as string
         }
       }

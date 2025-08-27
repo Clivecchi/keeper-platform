@@ -149,7 +149,7 @@ export const createEcho = async (req: Request, res: Response) => {
 
     // Convert triggerDate string to Date if provided and prepare data with proper relations
     const echoData = {
-      keeper: { connect: { id: validatedData.keeperId } },
+      Keeper: { connect: { id: validatedData.keeperId } }, // Changed from 'keeper' to 'Keeper'
       agentId: validatedData.agentId,
       message: validatedData.message,
       triggerDate: validatedData.triggerDate ? new Date(validatedData.triggerDate) : null,
@@ -195,7 +195,7 @@ export const updateEcho = async (req: Request, res: Response) => {
     const echo = await prisma.soleEcho.findFirst({
       where: {
         id: id,
-        keeper: {
+        Keeper: {
           ownerId: userId as string
         }
       }
@@ -250,7 +250,7 @@ export const deliverEcho = async (req: Request, res: Response) => {
     const echo = await prisma.soleEcho.findFirst({
       where: {
         id: id,
-        keeper: {
+        Keeper: {
           ownerId: userId as string
         }
       }
@@ -299,7 +299,7 @@ export const deleteEcho = async (req: Request, res: Response) => {
     const echo = await prisma.soleEcho.findFirst({
       where: {
         id: id,
-        keeper: {
+        Keeper: {
           ownerId: userId as string
         }
       }

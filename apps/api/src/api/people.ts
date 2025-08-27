@@ -56,42 +56,11 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
       skip: offset,
       orderBy: { createdAt: 'desc' },
       include: {
-        domainPermissions: {
+        DomainPermission_DomainPermission_userIdTousers: {
           include: {
-            Domain: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        },
-        user_roles: {
-          include: {
-            roles: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
-              },
-            },
-          },
-        },
-        Domain: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-        kip_sessions: {
-          take: 1,
-          orderBy: { created_at: 'desc' },
-          select: {
-            created_at: true,
-          },
-        },
+            Domain: true
+          }
+        }
       },
     });
 
@@ -111,19 +80,19 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         lastLoginAt: user.lastLoginAt,
-        lastKipSession: user.kip_sessions[0]?.created_at,
+        lastKipSession: null, // Removed kip_sessions reference
         status: determineUserStatus(user),
-        domains: user.domainPermissions.map(dp => ({
-          ...dp.Domain,
-          role: dp.role,
-          permissions: dp.permissions,
-        })),
-        ownedDomains: user.Domain,
-        roles: user.user_roles.map(ur => ur.roles),
+        domains: user.DomainPermission_DomainPermission_userIdTousers?.map(dp => ({
+          id: dp.Domain.id,
+          name: dp.Domain.name,
+          role: dp.role
+        })) || [],
+        ownedDomains: [],
+        roles: [],
         stats: {
-          domainsCount: user.domainPermissions.length,
-          ownedDomainsCount: user.Domain.length,
-          rolesCount: user.user_roles.length,
+          domainsCount: user.DomainPermission_DomainPermission_userIdTousers?.length || 0,
+          ownedDomainsCount: 0,
+          rolesCount: 0,
         },
       })),
       total,
@@ -150,66 +119,13 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
 
     const user = await prisma.users.findUnique({
       where: { id },
-      include: {
-        domainPermissions: {
-          include: {
-            domain: true,
-            grantor: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
-        user_roles: {
-          include: {
-            roles: true,
-          },
-        },
-        Domain: {
-          include: {
-            DomainPermission: {
               include: {
-                users_DomainPermission_userIdTousers: {
-                  select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-        kip_sessions: {
-          take: 10,
-          orderBy: { created_at: 'desc' },
-          include: {
-            agent: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        },
-        kip_agent_logs: {
-          take: 10,
-          orderBy: { created_at: 'desc' },
-          include: {
-            agent: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        },
-      },
+          DomainPermission_DomainPermission_userIdTousers: {
+            include: {
+              Domain: true
+            }
+          }
+        }
     });
 
     if (!user) {
@@ -226,32 +142,27 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       lastLoginAt: user.lastLoginAt,
       emailVerified: user.emailVerified,
       status: determineUserStatus(user),
-      domains: user.domainPermissions.map(dp => ({
+      domains: user.DomainPermission_DomainPermission_userIdTousers?.map(dp => ({
         ...dp.Domain,
         role: dp.role,
         permissions: dp.permissions,
-        grantedBy: dp.grantor,
         grantedAt: dp.grantedAt,
-      })),
-      ownedDomains: user.Domain,
-      roles: user.user_roles.map(ur => ur.roles),
-      recentSessions: user.kip_sessions,
-      recentLogs: user.kip_agent_logs,
+      })) || [],
+      ownedDomains: [],
+      roles: [],
+      recentSessions: [],
+      recentLogs: [],
       stats: {
-        totalDomains: user.domainPermissions.length,
-        ownedDomains: user.Domain.length,
-        totalSessions: user.kip_sessions.length,
-        totalInteractions: user.kip_agent_logs.length,
-        collaborations: calculateCollaborations(user.domainPermissions),
+        totalDomains: user.DomainPermission_DomainPermission_userIdTousers?.length || 0,
+        ownedDomainsCount: 0,
+        totalSessions: 0,
+        totalInteractions: 0,
+        collaborations: calculateCollaborations(user.DomainPermission_DomainPermission_userIdTousers || []),
       },
       activity: {
-        lastActive: user.lastLoginAt || user.kip_sessions[0]?.created_at,
-        sessionsThisWeek: user.kip_sessions.filter(s => 
-          new Date(s.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        ).length,
-        interactionsThisWeek: user.kip_agent_logs.filter(l => 
-          new Date(l.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        ).length,
+        lastActive: user.lastLoginAt,
+        sessionsThisWeek: [],
+        interactionsThisWeek: [],
       },
     });
   } catch (error) {

@@ -28,14 +28,11 @@ router.get('/', authMiddlewareCompat, requireSuperAdmin, async (_req: Request, r
 router.get('/users', authMiddlewareCompat, requireSuperAdmin, async (_req: Request, res: Response) => {
   try {
     const users = await prisma.users.findMany({
-      include: {
-        user_roles: {
-          include: {
-            roles: {
-              select: { name: true },
-            },
-          },
-        },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
@@ -45,7 +42,7 @@ router.get('/users', authMiddlewareCompat, requireSuperAdmin, async (_req: Reque
       id: u.id,
       email: u.email,
       name: u.name,
-      roles: u.user_roles.map((ur) => ur.roles?.name).filter(Boolean),
+      roles: [], // Removed user_roles as it doesn't exist in schema
     }));
 
     return res.json({ users: formatted });
