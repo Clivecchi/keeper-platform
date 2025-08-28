@@ -12,7 +12,8 @@
     "test": "vitest",
     "postinstall": "pnpm --filter @keeper/database generate",
     "migrate:deploy": "prisma migrate deploy",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@keeper/database": "workspace:*",
@@ -41,6 +42,8 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/morgan": "^1.9.9",
     "@types/node": "^22.15.30",
+    "@types/supertest": "^6.0.2",
+    "supertest": "^7.0.0",
     "tsx": "^4.19.2",
     "typescript": "~5.8.3",
     "vitest": "^3.2.4"

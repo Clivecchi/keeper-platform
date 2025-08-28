@@ -3,7 +3,7 @@
  * Comprehensive test suite for production configuration, monitoring, and deployment automation
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import express from 'express';

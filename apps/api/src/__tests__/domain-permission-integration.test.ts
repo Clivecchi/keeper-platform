@@ -3,6 +3,7 @@
  * Comprehensive testing for domain-based permission system
  */
 
+import { describe, test, expect, beforeAll, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import { PrismaClient } from '@prisma/client';
 import { DomainService, DomainPermissionService, DomainCacheService } from '@keeper/database';
@@ -627,8 +628,8 @@ function generateAuthToken(user: unknown): string {
 
 // Mock Express app for testing
 const app = {
-  get: jest.fn(),
-  post: jest.fn(),
-  put: jest.fn(),
-  delete: jest.fn(),
+  get: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+  delete: vi.fn(),
 }; 

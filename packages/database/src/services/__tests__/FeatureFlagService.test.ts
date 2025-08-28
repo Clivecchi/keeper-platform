@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { FeatureFlagService, FeatureFlag, FeatureFlagContext, domainFlags } from '../FeatureFlagService';
 
 describe('FeatureFlagService', () => {
@@ -65,7 +66,7 @@ describe('FeatureFlagService', () => {
     it('should respect rollout percentage', () => {
       // Mock the hash function to return predictable results
       const originalHash = (service as any).simpleHash;
-      (service as any).simpleHash = jest.fn();
+      (service as any).simpleHash = vi.fn();
 
       // Test different hash values for rollout
       const context = { userId: 'user-123' };
@@ -298,7 +299,7 @@ describe('FeatureFlagService', () => {
 
   describe('Error handling', () => {
     it('should handle missing flags gracefully', () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
       
       const result = service.isEnabled('NON_EXISTENT_FLAG');
       

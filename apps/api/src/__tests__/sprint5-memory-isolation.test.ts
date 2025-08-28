@@ -3,7 +3,7 @@
  * Comprehensive test suite for domain-scoped memory isolation
  */
 
-import { describe, it, beforeAll, afterAll, beforeEach, afterEach, expect, jest } from '@jest/globals';
+import { describe, it, beforeAll, afterAll, beforeEach, afterEach, expect, vi } from 'vitest';
 import request from 'supertest';
 import { PrismaClient } from '@prisma/client';
 import { 
@@ -677,7 +677,7 @@ describe('SOLE Memory Isolation Integration Tests', () => {
   describe('Error Handling', () => {
     it('should handle database connection errors', async () => {
       // Mock database error
-      jest.spyOn(prisma.soleMemoryScope, 'findUnique').mockRejectedValueOnce(
+      vi.spyOn(prisma.soleMemoryScope, 'findUnique').mockRejectedValueOnce(
         new Error('Database connection failed')
       );
 
@@ -686,7 +686,7 @@ describe('SOLE Memory Isolation Integration Tests', () => {
 
     it('should handle cache errors gracefully', async () => {
       // Mock cache error
-      jest.spyOn(cacheService, 'getData').mockRejectedValueOnce(
+      vi.spyOn(cacheService, 'getData').mockRejectedValueOnce(
         new Error('Cache error')
       );
 
@@ -753,7 +753,7 @@ describe('SOLE Memory Isolation Integration Tests', () => {
 
     it('should enforce memory quota limits', async () => {
       // Mock a small quota limit
-      jest.spyOn(memoryService, 'getMemoryQuota').mockResolvedValue({
+      vi.spyOn(memoryService, 'getMemoryQuota').mockResolvedValue({
         domainId: testDomain1.id,
         maxMemorySize: 1024, // 1KB limit
         currentMemorySize: 1000,

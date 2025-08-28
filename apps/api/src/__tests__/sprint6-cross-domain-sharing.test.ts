@@ -3,7 +3,7 @@
  * Comprehensive test suite for cross-domain sharing functionality
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { Express } from 'express';

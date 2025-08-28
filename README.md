@@ -1,5 +1,7 @@
 # Keeper Platform
 
+![CI](https://github.com/<username>/<repo>/actions/workflows/ci.yml/badge.svg)
+
 A poetic digital space where people preserve what matters. This is the beginning of a life-centered UI.
 
 ## 🚀 Getting Started
@@ -93,3 +95,8 @@ pnpm run build        # Runs Vite + tsconfig.app.json
 pnpm run dev          # Local dev server for frontend
 
 ```
+
+## 📦 Releases
+
+- **Current stable**: [`v0.1.0-stable`](https://github.com/<username>/<repo>/releases/tag/v0.1.0-stable)
+  - Stable: deterministic Redis tests + canonical .env.example + pnpm CI

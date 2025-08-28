@@ -3,7 +3,7 @@
  * Tests for Custom Domain Support & CORS Integration
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { Express } from 'express';
