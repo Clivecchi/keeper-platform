@@ -10,10 +10,10 @@ import { requireDomainRead, requireDomainWrite, requireDomainAdmin } from './req
 import { requireMemoryAccess } from './requireMemoryAccess.js';
 import { DomainService, DomainCacheService } from '@keeper/database';
 import { PrismaClient } from '@keeper/database';
-import { getRedis, type RedisClient } from '../../lib/redis.js';
+import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 
 const prisma = new PrismaClient();
-const redis: RedisClient | null = getRedis();
+const redis: RedisClientOrNoOp | null = getRedis();
 const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
 

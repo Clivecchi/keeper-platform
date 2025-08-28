@@ -46,6 +46,9 @@ const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 const isDebug = LOG_LEVEL === 'debug';
 const isVerbose = LOG_LEVEL === 'verbose';
 
+// Redis status logging
+import { isRedisDisabled, isRedisAvailable } from './lib/redis.js';
+
 const app: Express = express();
 
 // Add validation schema for user updates

@@ -10,11 +10,11 @@ import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { requireDomainAdminCompat, requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { CrossDomainSharingService, DomainCacheService, getFeatureFlagService } from '@keeper/database';
-import { getRedis, type RedisClient } from '../../lib/redis.js';
+import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
-const redis: RedisClient = getRedis();
+const redis: RedisClientOrNoOp = getRedis();
 const sharingService = new CrossDomainSharingService(prisma, new DomainCacheService(redis));
 const featureFlags = getFeatureFlagService();
 

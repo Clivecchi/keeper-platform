@@ -15,20 +15,25 @@ This project contains a **React frontend** (for Vercel) and an **Express backend
 
 1. **Copy the example environment file:**
    ```bash
-   cp .env.example .env.local
+   cp .env.example .env
    ```
 
 2. **Configure your environment variables:**
-   - `VERCEL_TOKEN`: Your Vercel API token
-   - `VERCEL_PROJECT_ID`: Your Vercel project ID
-   - `VERCEL_TEAM_ID`: Your Vercel team ID (optional)
-   - `DATABASE_URL`: Your PostgreSQL database URL
-   - `JWT_SECRET`: A secure random string for JWT signing
+   - **Required:**
+     - `DATABASE_URL`: Your PostgreSQL database URL
+     - `JWT_SECRET`: A secure random string for JWT signing
+   - **Optional (Redis):**
+     - `DISABLE_REDIS`: Set to `true` to disable Redis (uses no-op adapter)
+     - `REDIS_URL`: Your Redis connection URL (if Redis is enabled)
+   - **Optional (Application):**
+     - `NODE_ENV`: Environment mode (development/production)
+     - `API_PORT`: Port for the API server (default: 3000)
+     - `CORS_ORIGIN`: Allowed CORS origin (default: http://localhost:5173)
+     - `LOG_LEVEL`: Logging level (default: info)
 
-3. **For Railway deployment:**
-   - Go to your Railway project dashboard
-   - Navigate to your service → Variables
-   - Add all required environment variables
+3. **For deployment platforms (Railway/Vercel):**
+   - Copy the values from your `.env` file
+   - Add them to your deployment platform's environment variables section
 
 ### Running Locally
 

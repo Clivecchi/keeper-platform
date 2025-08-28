@@ -15,13 +15,13 @@ import {
 } from '../../middleware/domainPermissionMiddleware.js';
 import { createMemoryAccessMiddleware, createCrossDomainMemoryMiddleware } from '../../middleware/memoryAccessMiddleware.js';
 import { rateLimit } from 'express-rate-limit';
-import { getRedis, type RedisClient } from '../../lib/redis.js';
+import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 
 type MemoryCategory = 'conversational' | 'factual' | 'procedural' | 'episodic' | 'semantic';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
-const redis: RedisClient = getRedis();
+const redis: RedisClientOrNoOp = getRedis();
 const cacheService = new DomainCacheService(redis);
 const memoryService = new SoleMemoryIsolationService(prisma, cacheService);
 

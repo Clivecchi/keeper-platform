@@ -22,7 +22,7 @@ import {
   loadDomainPermissionsCompat 
 } from '../../middleware/domainPermissionMiddleware.js';
 import { rateLimit } from 'express-rate-limit';
-import { getRedis, type RedisClient } from '../../lib/redis.js';
+import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 import { VercelDomainManagerService } from '../../services/VercelDomainManagerService.js';
 
 function getVercelService(): VercelDomainManagerService {
@@ -66,7 +66,7 @@ router.use(authMiddlewareCompat);
 router.use('/:domainId', loadDomainPermissionsCompat);
 
 const prisma = new PrismaClient();
-const redis: RedisClient = getRedis();
+const redis: RedisClientOrNoOp = getRedis();
 const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
 const verificationService = new DomainVerificationService(prisma, cacheService);

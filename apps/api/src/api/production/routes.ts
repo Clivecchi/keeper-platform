@@ -14,7 +14,7 @@ import {
 } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { requireDomainAdminCompat } from '../../middleware/domainPermissionMiddleware.js';
-import { Redis } from 'ioredis';
+
 import type { PipelineTrigger } from '../../types/pipeline.js';
 
 // Validation schemas

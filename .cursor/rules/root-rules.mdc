@@ -1,75 +1,209 @@
----
-description: 
-globs: 
-alwaysApply: true
----
-Purpose
+# Keeper Platform Development Rules (v2 --- August 2025)
 
-This document establishes consistent development rules and practices for all AI-assisted coding within the Keeper Platform. Cursor will adhere to these rules to ensure clarity, maintainability, and architectural fidelity. All folder-level README files will act as living micro-specs and must be updated automatically by Cursor during development.
+This document is the **canonical, in-repo source of truth** for Keeper
+development.\
+It supersedes all prior versions (including v1).\
+Cursor and all developers must follow this file when contributing to the
+Keeper Platform.
 
-⚙️ Cursor Rules
+------------------------------------------------------------------------
 
-1. Tech Stack Awareness
+## 1) Architecture & Repo Conventions
 
-Cursor must conform to the platform's defined stack:
+-   **Monorepo** (pnpm workspaces) with dual targets: **React Frontend
+    (Vite, deployed on Vercel)** and **Express Backend (Railway)**.
+-   Expected workspace layout (names may vary; adjust as needed):
+    -   `apps/web` -- React + Vite app for Vercel. Entry:
+        `src/main.tsx`. JSX/TSX in `src/**/*.tsx`.
+    -   `apps/api` -- Express server for Railway. Entry: `src/index.ts`.
+        Routes in `src/routes/**`, services in `src/services/**`.
+    -   `packages/*` -- shared libs (types, ui, utils). Publish config
+        private.
+-   **Package manager:** pnpm. Use `pnpm -w` at repo root for workspace
+    ops.
+-   **Node target:** 20.x LTS.
 
-Frontend: React + TypeScript + TailwindCSS + Shadcn + Framer Motion
+## 2) Technologies
 
-Backend: Express.js + Prisma + Zod + Railway PostgreSQL
+-   **Frontend:** React, Vite, TypeScript, Tailwind, shadcn/ui,
+    lucide-react, framer-motion (as needed). Routing via
+    react-router-dom (unless otherwise specified).
+-   **Backend:** Express, TypeScript (`tsx`/ts-node for dev), Prisma ORM
+    to **Postgres** (Railway). Redis is **optional** (see §7).
+-   **Auth:** KAM (Keeper Access Module) provides JWT-based auth &
+    settings management.
+-   **Theming:** Dynamic theming via MediaFrame/Theme models; default
+    **Keeper Classic** present after resets.
 
-Infrastructure: Vercel (Blob, Hosting), Railway (DB)
+## 3) Environments & Deployment
 
-Use pnpm for all package management: Never mix with npm or yarn
+-   **Vercel** for `apps/web` (monorepo aware). Use `VERCEL_PROJECT_ID`
+    and build from workspace.
+-   **Railway** for `apps/api`. Environment variables managed in
+    Railway.
+-   **Branching:** `main` (protected). Feature branches: `feat/*`,
+    fixes: `fix/*`, chores: `chore/*`.
+-   **Releases:** Tag `vX.Y.Z`. Production deploys from tags or `main`
+    with CI confirmation.
 
-Use npx only for one-time CLI utilities like prisma or tailwindcss init
+## 4) Database & Migrations (Prisma + Postgres)
 
-2. File & Folder Conventions
+-   Prisma schema: `apps/api/prisma/schema.prisma`.
+-   Commands:
+    -   Dev: `pnpm --filter keeper-api prisma:generate` then `dev`.
+    -   Migrate: `pnpm --filter keeper-api prisma:migrate:dev` (local),
+        `prisma:migrate:deploy` (prod).
+-   **Seeders:** idempotent; ensure themes (Keeper Classic, Keen Kip,
+    Lowcountry Summer, Juke Joint) are re-added after resets.
 
-/components/FeatureName/ with index.tsx, types.ts, colocated subcomponents
+## 5) Environment Variables (Backend)
 
-Use .ts for type/config-only files; .tsx only for files with JSX
+-   `DATABASE_URL` (required)
+-   `REDIS_URL` (optional; see §7)
+-   `DISABLE_REDIS` (set to `true` to bypass Redis at runtime & in dev)
+-   `JWT_SECRET` (required)
+-   `NODE_ENV` (optional, defaults to `development`)
+-   Any provider keys (OpenAI, Together, ElevenLabs) **must not** be
+    hardcoded; use env + server-side access only.
 
-Route handlers go in /api/feature/route.ts
+## 6) TypeScript, Build & Module Rules
 
-Place all schemas next to their route or usage
+-   **TSConfig:** ESM (NodeNext) or CommonJS---pick one per target and
+    be consistent. If ESM on backend, **avoid default import pitfalls**
+    with libraries like `ioredis`.
+-   **Strict:** `strict: true`, no `any` leakage. Fix `unknown`
+    accesses.
+-   **Paths:** Use `tsconfig` path aliases; Vite + tsconfig-paths plugin
+    on frontend; tsconfig-paths in Node if needed.
+-   **Outputs:** Frontend: Vite build to `dist`. Backend: tsc output to
+    `dist` or run with `tsx` in dev.
 
-3. Theme Assignment
+## 7) Redis Policy (Optional Cache/Queue)
 
-All users must be assigned the Keeper Classic theme by default upon signup.
+-   Backend must run without Redis. If `REDIS_URL` missing, code must
+    **respect `DISABLE_REDIS=true`** and stub adapters.
+-   Any Redis client wrapper must throw **clear errors** if enabled but
+    misconfigured.
 
-Theme is stored in the UserSettings model (relation to Theme via preferred_theme_id)
+## 8) Coding Standards
 
-4. Strict Type Discipline
+-   **Linting:** ESLint + TypeScript plugin across workspaces.
+-   **Formatting:** Prettier. One configuration at repo root.
+-   **Commits:** Conventional Commits (e.g., `feat:`, `fix:`, `chore:`).
+-   **Tests:** Vitest/Jest (unit), Playwright (e2e where relevant).
+    Minimum coverage targets by module as we mature.
 
-All functions and components must have explicit types.
+## 9) Error Handling & Logging
 
-Zod validation must accompany all user input and API request bodies.
+-   **Backend:** Structured logs (pino or console JSON). Include
+    `requestId`. Do not log secrets.
+-   **Frontend:** Error boundaries around route roots; user-friendly
+    toasts; Sentry (optional) behind env flag.
 
-Do not use any. Use unknown + narrowing when required.
+## 10) Security & KAM (Keeper Access Module)
 
-5. Dynamic Theming
+-   **KAM** governs access policies (roles, domains, sharing). API
+    routes must check KAM before returning private data.
+-   CORS is **domain-aware** (Domains act as permission/sharing
+    controllers). Avoid wildcard `*` in prod.
+-   Never expose secrets to client; use server endpoints.
 
-Dynamic theming must be initialized through user settings.
+## 11) UX Principles
 
-Theme tokens come from database-linked Theme model.
+-   **Mobile-first**. Performance budget enforced.
+-   **Boards/Frames:** Dialog, Topics, Drafts, Tasks, Config, Activity.
+    MemoryFrame is nice-to-have, not MVP-blocking.
+-   **Studio:** Capture → Connect → Create → Build arc; maintain
+    consistent theming.
 
-Do not hardcode colors. Use Tailwind and/or CSS variables based on theme structure.
+## 12) AI & Kip
 
-6. Authentication
+-   Kip (Keeper Interface Protocol) is **framework**, not persona.
+    Agents are modular. Keep MCP endpoints clean.
+-   RAG + fine-tune hybrid planned. Keep embeddings/data layers behind
+    server.
 
-Use kam (Keeper Auth Module) structure to scaffold all auth routes and logic.
+## 13) CI/CD
 
+-   CI validates: install, typecheck, lint, test, build (web+api).
+-   CD deploys web to Vercel & api to Railway on tags/approved main
+    merges.
 
-Cursor must never expose or hardcode secrets.
+## 14) Git/GitHub Workflow
 
-7. Reference ...\prisma\MODEL_REFERENCE.MD for an index of data models and relationships
+-   Small PRs. Include **Checklist** (see §16). Link issues. Screenshots
+    for UI changes. Schema diffs for DB changes.
+-   Require at least 1 review. No direct pushes to `main`.
 
-8. 📦 Use `pnpm` exclusively for all package installations and dependency management.
+## 15) Definition of Done (DoD)
 
-❌ Do not use `npm install` or `yarn add`. This breaks lockfile integrity and may corrupt the build environment.
+-   Builds locally for both targets.
+-   CI passing (typecheck/lint/tests/build).
+-   Docs updated (README, .env.example, CHANGELOG if user-visible).
+-   Observability hooks in place (logs, basic metrics if applicable).
 
-✅ When adding new packages, always run: `pnpm add <package>`
+## 16) PR Checklist (paste into PRs)
 
-📂 This project uses `pnpm-lock.yaml` as the source of truth for dependencies.
+-   [ ] Clarifies scope & acceptance criteria
+-   [ ] Touches only one logical concern
+-   [ ] Typechecks & lints cleanly
+-   [ ] Unit tests updated/added
+-   [ ] DB migration safe & reversible
+-   [ ] Feature flagged (if risky)
+-   [ ] Web build OK (Vercel)
+-   [ ] API build OK (Railway)
+-   [ ] Docs updated (README/.env.example)
+-   [ ] Screens/recording added (UI)
 
-💡 If you're unsure, refer to the `preinstall` script in `package.json` which enforces this policy.
+## 17) Release & Rollback
+
+-   Tag semantic version. Maintain CHANGELOG.
+-   Rollback plan: revert tag or redeploy previous artifact. For DB,
+    apply down migrations only if safe.
+
+------------------------------------------------------------------------
+
+# Outstanding Compliance Gaps (from latest Cursor audit)
+
+1.  **Redis Optionality**
+    -   ❌ Current: Crashes if `REDIS_URL` missing, ignores
+        `DISABLE_REDIS`.
+    -   ✅ Required: `redis.ts` must check `DISABLE_REDIS` first and
+        no-op gracefully.
+2.  **Testing Infrastructure**
+    -   ❌ Current: No test setup (Vitest/Jest).
+    -   ✅ Required: Add Vitest config at root, scripts in each
+        workspace, baseline tests.
+3.  **CI/CD Workflow**
+    -   ❌ Current: No `.github/workflows/ci.yml`.
+    -   ✅ Required: Add monorepo-aware CI with pnpm filters covering
+        typecheck, lint, test, build.
+4.  **.env.example File**
+    -   ❌ Current: Missing `.env.example` at root.
+    -   ✅ Required: Add with `DATABASE_URL` (required), `REDIS_URL`
+        (optional), `DISABLE_REDIS` (optional), `JWT_SECRET`,
+        `NODE_ENV`.
+5.  **Theme Seeding**
+    -   ❌ Current: Only "Keeper Classic" seeded.
+    -   ✅ Required: Seed all 4 canonical themes (Keeper Classic, Keen
+        Kip, Lowcountry Summer, Juke Joint).
+
+------------------------------------------------------------------------
+
+# Cursor Collaboration Rules
+
+1)  Always confirm **monorepo** context; operate at workspace root. Use
+    pnpm filters when running scripts.
+2)  Never introduce Next.js to the backend; backend is **Express**.
+3)  Any suggestion that adds Redis must keep `DISABLE_REDIS=true` path
+    working.
+4)  Keep changes minimal & reversible; prefer PRs with clear diffs and
+    tests.
+5)  When unsure, generate an **Audit Report** answering the inventory in
+    this doc before changing code.
+
+------------------------------------------------------------------------
+
+*Version: v2 (August 2025)*\
+*Maintained by: Keeper Project Owner (@Chuck)*
+

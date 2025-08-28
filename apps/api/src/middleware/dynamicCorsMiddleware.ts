@@ -7,10 +7,10 @@ import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@keeper/database';
 import cors from 'cors';
 import { DomainService, DomainCacheService } from '@keeper/database';
-import { getRedis, type RedisClient } from '../lib/redis.js';
+import { getRedis, type RedisClientOrNoOp } from '../lib/redis.js';
 
 const prisma = new PrismaClient();
-const redis: RedisClient = getRedis();
+const redis: RedisClientOrNoOp = getRedis();
 const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
 

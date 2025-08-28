@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import { getRedis, type RedisClient } from '../../lib/redis.js';
+import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 import { DomainService, DomainCacheService } from '@keeper/database';
 import { DomainPermissionService } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
@@ -10,7 +10,7 @@ import { requireSuperAdmin } from '../../middleware/platformRoleMiddleware.js';
 const router: Router = Router();
 
 const prisma = new PrismaClient();
-const redis: RedisClient = getRedis();
+const redis: RedisClientOrNoOp = getRedis();
 const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
 const permissionService = new DomainPermissionService(prisma, cacheService);

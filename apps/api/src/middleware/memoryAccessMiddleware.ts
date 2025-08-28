@@ -5,7 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@keeper/database';
-import { getRedis, type RedisClient } from '../lib/redis.js';
+import { getRedis, type RedisClientOrNoOp } from '../lib/redis.js';
 import { 
   DomainCacheService,
   SoleMemoryIsolationService,
@@ -13,7 +13,7 @@ import {
 } from '@keeper/database';
 
 const prisma = new PrismaClient();
-const redis: RedisClient = getRedis();
+const redis: RedisClientOrNoOp = getRedis();
 const cacheService = new DomainCacheService(redis);
 const soleMemoryService = new SoleMemoryIsolationService(prisma, cacheService);
 const featureFlagService = new FeatureFlagService();
@@ -682,7 +682,7 @@ export function createMemoryAccessMiddleware(
   config?: MemoryAccessConfig
 ): (req: MemoryAccessRequest, res: Response, next: NextFunction) => Promise<void> {
   const prisma = new PrismaClient();
-  const redis = getRedis();
+  const redis: RedisClientOrNoOp = getRedis();
   const cacheService = new DomainCacheService(redis);
   const memoryService = new SoleMemoryIsolationService(prisma, cacheService);
   
@@ -699,7 +699,7 @@ export function createCrossDomainMemoryMiddleware(): (
   next: NextFunction
 ) => Promise<void> {
   const prisma = new PrismaClient();
-  const redis = getRedis();
+  const redis: RedisClientOrNoOp = getRedis();
   const cacheService = new DomainCacheService(redis);
   const memoryService = new SoleMemoryIsolationService(prisma, cacheService);
   
