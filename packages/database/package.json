@@ -21,7 +21,8 @@
     "pull": "prisma db pull",
     "studio": "prisma studio",
     "migrate": "prisma migrate dev",
-    "reset": "prisma migrate reset"
+    "reset": "prisma migrate reset",
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@keeper/shared": "workspace:*",

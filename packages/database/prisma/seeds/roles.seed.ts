@@ -28,11 +28,17 @@ async function main() {
   console.log('🎉 Platform roles seed completed');
 }
 
-main()
-  .catch((e) => {
-    console.error('❌ Error seeding roles:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  }); 
+// Export main function for use in seed runner
+export default main;
+
+// Run if called directly
+if (require.main === module) {
+  main()
+    .catch((e) => {
+      console.error('❌ Error seeding roles:', e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+} 

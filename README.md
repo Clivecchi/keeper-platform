@@ -96,6 +96,37 @@ pnpm run dev          # Local dev server for frontend
 
 ```
 
+## 🗄️ Database Development
+
+### Seeding Canonical Data
+
+The application includes canonical themes and roles that should be seeded for development and production:
+
+```bash
+# Seed the database with canonical themes and roles
+pnpm --filter @keeper/database run seed
+```
+
+This will create:
+- **4 Canonical Themes**: `keeper-classic`, `keen-kip`, `lowcountry-summer`, `juke-joint`
+- **Platform Roles**: `super-admin`, `admin`, `support`, `moderator`, `analyst`, `developer`, `viewer`
+
+### Database Commands
+
+```bash
+# Generate Prisma client
+pnpm --filter @keeper/database run generate
+
+# Push schema changes to database
+pnpm --filter @keeper/database run push
+
+# Open Prisma Studio
+pnpm --filter @keeper/database run studio
+
+# Run migrations
+pnpm --filter @keeper/database run migrate
+```
+
 ## 📦 Releases
 
 - **Current stable**: [`v0.1.0-stable`](https://github.com/<username>/<repo>/releases/tag/v0.1.0-stable)

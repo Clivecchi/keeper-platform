@@ -43,6 +43,7 @@
     "@types/morgan": "^1.9.9",
     "@types/node": "^22.15.30",
     "@types/supertest": "^6.0.2",
+    "jsonwebtoken": "^9.0.2",
     "supertest": "^7.0.0",
     "tsx": "^4.19.2",
     "typescript": "~5.8.3",
