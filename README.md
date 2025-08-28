@@ -28,10 +28,23 @@ This project contains a **React frontend** (for Vercel) and an **Express backend
      - `DISABLE_REDIS`: Set to `true` to disable Redis (uses no-op adapter)
      - `REDIS_URL`: Your Redis connection URL (if Redis is enabled)
    - **Optional (Application):**
-     - `NODE_ENV`: Environment mode (development/production)
-     - `API_PORT`: Port for the API server (default: 3000)
-     - `CORS_ORIGIN`: Allowed CORS origin (default: http://localhost:5173)
-     - `LOG_LEVEL`: Logging level (default: info)
+     - `NODE_ENV`: Environment mode (development/production/test)
+     - `PORT`: Server port (default: 3001 development, 8080 production)
+     - `LOG_LEVEL`: Logging level (error/warn/info/debug, default: info)
+     - `ENABLE_REQUEST_LOGGING`: Enable detailed request logging (default: false)
+     - `CORS_ORIGINS`: Allowed CORS origins (comma-separated, default: *)
+   - **Optional (Advanced Database):**
+     - `DB_POOL_MIN`, `DB_POOL_MAX`: Connection pool settings
+     - `DB_QUERY_TIMEOUT`, `DB_STATEMENT_TIMEOUT`: Database timeouts
+     - `DB_SSL`, `DB_LOGGING`: Database SSL and query logging
+   - **Optional (Security):**
+     - `CSRF_ENABLED`, `CSRF_SECRET`: CSRF protection settings
+     - `JWT_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`: JWT token expiration
+   - **Optional (Vercel Integration):**
+     - `VERCEL_TOKEN`: Vercel API token for custom domain management
+     - `VERCEL_PROJECT_ID`: Vercel project ID for custom domain management
+   - **Optional (Testing):**
+     - `TEST_DATABASE_URL`: Test database URL for automated tests
 
 3. **For deployment platforms (Railway/Vercel):**
    - Copy the values from your `.env` file
