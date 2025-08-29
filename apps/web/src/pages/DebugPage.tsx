@@ -2,6 +2,145 @@ import * as React from 'react';
 import { apiFetch } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
+// Type definitions for diagnostics structure
+interface EnvironmentInfo {
+  mode: string;
+  isDev: boolean;
+  isProd: boolean;
+  apiBaseUrl: string;
+  currentUrl: string;
+  origin: string;
+  userAgent: string;
+}
+
+interface UserInfo {
+  id: string | null;
+  email: string | null;
+  name: string | null;
+  idType: string;
+  idLength: number;
+  isValidUUID: boolean;
+}
+
+interface TestResult {
+  status: 'SUCCESS' | 'ERROR' | 'TESTED' | 'FAILED';
+  data?: unknown;
+  error?: string;
+  userKeys?: unknown;
+  platformKeys?: unknown;
+}
+
+interface ConsoleError {
+  type: 'error' | 'warning';
+  message: string;
+  timestamp: string;
+}
+
+interface NetworkRequest {
+  url: string;
+  method: string;
+  status: number;
+  statusText: string;
+  ok: boolean;
+  duration: number;
+  timestamp: string;
+  error?: string;
+}
+
+interface DomainInfo {
+  host: string;
+  protocol: string;
+  port: string;
+  pathname: string;
+  reachable: boolean;
+  error?: string;
+}
+
+interface CorsTestResult {
+  status?: number;
+  statusText?: string;
+  headers?: Record<string, string | undefined>;
+  success: boolean;
+  error?: string;
+  approach?: string;
+  endpoint?: string;
+  data?: unknown;
+}
+
+interface DetailedNetworkDiagnostics {
+  domain?: DomainInfo;
+  corsTests?: Record<string, CorsTestResult>;
+}
+
+interface DiagnosticsSummary {
+  total: number;
+  passed: number;
+  failed: number;
+  score: string;
+  percentage: number;
+  overallStatus: 'ALL_PASS' | 'PARTIAL_PASS' | 'ALL_FAIL';
+}
+
+interface DiagnosticsData {
+  timestamp: string;
+  platform: string;
+  version: string;
+  environment: EnvironmentInfo;
+  user: UserInfo;
+  tests: Record<string, TestResult>;
+  consoleErrors: ConsoleError[];
+  networkRequests: NetworkRequest[];
+  detailedNetworkDiagnostics?: DetailedNetworkDiagnostics;
+  summary?: DiagnosticsSummary;
+  logs?: string[];
+}
+
+// Type guards
+function isDiagnosticsData(value: unknown): value is DiagnosticsData {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'timestamp' in value &&
+    'platform' in value &&
+    'tests' in value &&
+    typeof (value as DiagnosticsData).timestamp === 'string' &&
+    typeof (value as DiagnosticsData).platform === 'string' &&
+    typeof (value as DiagnosticsData).tests === 'object'
+  );
+}
+
+function isTestResult(value: unknown): value is TestResult {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'status' in value &&
+    typeof (value as TestResult).status === 'string'
+  );
+}
+
+function isConsoleError(value: unknown): value is ConsoleError {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'type' in value &&
+    'message' in value &&
+    'timestamp' in value &&
+    typeof (value as ConsoleError).type === 'string' &&
+    typeof (value as ConsoleError).message === 'string'
+  );
+}
+
+function isNetworkRequest(value: unknown): value is NetworkRequest {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'url' in value &&
+    'method' in value &&
+    'ok' in value &&
+    typeof (value as NetworkRequest).url === 'string'
+  );
+}
+
 const DebugPage: React.FC = () => {
   const { user } = useAuth();
   const [results, setResults] = React.useState<any>(null);
@@ -36,7 +175,7 @@ const DebugPage: React.FC = () => {
     addLog('🚀 Starting comprehensive system diagnostics...');
     
     const logs: string[] = [];
-    const diagnostics: Record<string, unknown> = {
+    const diagnostics: DiagnosticsData = {
       timestamp: new Date().toISOString(),
       platform: 'Keeper Platform',
       version: 'v1.0',
@@ -49,7 +188,15 @@ const DebugPage: React.FC = () => {
         origin: window.location.origin,
         userAgent: navigator.userAgent
       },
-      tests: {},
+      user: {
+        id: user?.id,
+        email: user?.email,
+        name: user?.name,
+        idType: typeof user?.id,
+        idLength: user?.id?.length || 0,
+        isValidUUID: user?.id ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id) : false
+      },
+      tests: {} as Record<string, TestResult>,
       consoleErrors: [],
       networkRequests: []
     };
@@ -116,27 +263,21 @@ const DebugPage: React.FC = () => {
       }
     };
 
-    // Add user info to the existing diagnostics object
-    diagnostics.user = {
-      id: user?.id,
-      email: user?.email, 
-      name: user?.name,
-      idType: typeof user?.id,
-      idLength: user?.id?.length || 0,
-      isValidUUID: user?.id ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id) : false
-    };
+    // User info is already added in the diagnostics initialization above
 
     // ENHANCED NETWORK DIAGNOSTICS - Let's understand the exact failure point
     addLog('🔍 Running detailed network diagnostics...');
     
     const baseUrl = diagnostics.environment.apiBaseUrl;
-    diagnostics.detailedNetworkDiagnostics = {};
-    
+    const environment = diagnostics.environment;
+    const detailedNetworkDiagnostics: DetailedNetworkDiagnostics = {};
+    diagnostics.detailedNetworkDiagnostics = detailedNetworkDiagnostics;
+
     // Test 1: Basic connectivity to Railway domain
     try {
       addLog('Testing basic Railway domain connectivity...');
       const urlTest = new URL(baseUrl);
-      diagnostics.detailedNetworkDiagnostics.domain = {
+      detailedNetworkDiagnostics.domain = {
         host: urlTest.host,
         protocol: urlTest.protocol,
         port: urlTest.port || (urlTest.protocol === 'https:' ? '443' : '80'),
@@ -145,17 +286,21 @@ const DebugPage: React.FC = () => {
       };
       addLog(`✅ Domain parsed: ${urlTest.host}`, 'success');
     } catch (e) {
-      diagnostics.detailedNetworkDiagnostics.domain = {
-        error: e instanceof Error ? e.message : 'Unknown error',
-        reachable: false
+      detailedNetworkDiagnostics.domain = {
+        host: 'unknown',
+        protocol: 'unknown',
+        port: 'unknown',
+        pathname: 'unknown',
+        reachable: false,
+        error: e instanceof Error ? e.message : 'Unknown error'
       };
       addLog(`❌ Domain parsing failed: ${e instanceof Error ? e.message : 'Unknown error'}`, 'error');
     }
 
     // Test 2: Try different request methods to understand CORS behavior
     addLog('Testing CORS preflight vs actual requests...');
-    const corsTests: Record<string, unknown> = {};
-    
+    const corsTests: Record<string, CorsTestResult> = {};
+
     // Test OPTIONS (preflight) - this should work based on Railway logs
     try {
       addLog('Testing OPTIONS preflight request...');
@@ -167,10 +312,10 @@ const DebugPage: React.FC = () => {
         status: optionsResponse.status,
         statusText: optionsResponse.statusText,
         headers: {
-          'access-control-allow-origin': optionsResponse.headers.get('access-control-allow-origin'),
-          'access-control-allow-methods': optionsResponse.headers.get('access-control-allow-methods'),
-          'access-control-allow-headers': optionsResponse.headers.get('access-control-allow-headers'),
-          'access-control-allow-credentials': optionsResponse.headers.get('access-control-allow-credentials')
+          'access-control-allow-origin': optionsResponse.headers.get('access-control-allow-origin') || undefined,
+          'access-control-allow-methods': optionsResponse.headers.get('access-control-allow-methods') || undefined,
+          'access-control-allow-headers': optionsResponse.headers.get('access-control-allow-headers') || undefined,
+          'access-control-allow-credentials': optionsResponse.headers.get('access-control-allow-credentials') || undefined
         },
         success: optionsResponse.ok
       };
@@ -293,7 +438,7 @@ const DebugPage: React.FC = () => {
       addLog(`❌ Railway status failed: ${e instanceof Error ? e.message : 'Unknown error'}`, 'error');
     }
     
-    diagnostics.detailedNetworkDiagnostics.corsTests = corsTests;
+    detailedNetworkDiagnostics.corsTests = corsTests;
 
     try {
       // Test 1: Basic API connectivity
@@ -558,12 +703,12 @@ const DebugPage: React.FC = () => {
         diagnostics.tests.databaseFix = { status: 'SUCCESS', data: dbFix };
         
         if (dbFix.success && dbFix.data) {
-          const { actions, errors } = dbFix.data;
+          const { actions, errors } = dbFix.data as { actions: Array<{message: string}>, errors: Array<{error: string}> };
           if (actions.length > 0) {
-            addLog(`✅ Database fixes applied: ${actions.map((a: unknown) => a.message).join(', ')}`, 'success');
+            addLog(`✅ Database fixes applied: ${actions.map((a) => a.message).join(', ')}`, 'success');
           }
           if (errors.length > 0) {
-            addLog(`⚠️ Some fixes failed: ${errors.map((e: Event) => e.error).join(', ')}`, 'error');
+            addLog(`⚠️ Some fixes failed: ${errors.map((e) => e.error).join(', ')}`, 'error');
           }
         }
         addLog('✅ Database fix test completed', 'success');
@@ -677,27 +822,27 @@ const DebugPage: React.FC = () => {
       diagnostics.tests.consoleErrorsSummary = {
         status: 'SUCCESS',
         data: {
-          totalErrors: diagnostics.consoleErrors.filter((e: Event) => e.type === 'error').length,
-          totalWarnings: diagnostics.consoleErrors.filter((e: Event) => e.type === 'warning').length,
+          totalErrors: diagnostics.consoleErrors.filter((e) => e.type === 'error').length,
+          totalWarnings: diagnostics.consoleErrors.filter((e) => e.type === 'warning').length,
           errors: diagnostics.consoleErrors
         }
       };
 
-              // Test 19: Network Requests Summary  
+              // Test 19: Network Requests Summary
       diagnostics.tests.networkRequestsSummary = {
         status: 'SUCCESS',
         data: {
           totalRequests: diagnostics.networkRequests.length,
-          successfulRequests: diagnostics.networkRequests.filter((r: unknown) => r.ok).length,
-          failedRequests: diagnostics.networkRequests.filter((r: unknown) => !r.ok).length,
+          successfulRequests: diagnostics.networkRequests.filter((r) => r.ok).length,
+          failedRequests: diagnostics.networkRequests.filter((r) => !r.ok).length,
           requests: diagnostics.networkRequests
         }
       };
 
       // Generate comprehensive summary
       const testCount = Object.keys(diagnostics.tests).length;
-      const successCount = Object.values(diagnostics.tests).filter((test: unknown) => test.status === 'SUCCESS').length;
-      const errorCount = Object.values(diagnostics.tests).filter((test: unknown) => test.status === 'ERROR').length;
+      const successCount = Object.values(diagnostics.tests).filter((test) => test.status === 'SUCCESS').length;
+      const errorCount = Object.values(diagnostics.tests).filter((test) => test.status === 'ERROR').length;
       
       diagnostics.summary = {
         total: testCount,
@@ -717,7 +862,7 @@ const DebugPage: React.FC = () => {
 
       // Auto-copy to clipboard
       addLog('📋 Copying comprehensive report to clipboard...', 'info');
-      await copyDiagnosticsToClipboard(diagnostics);
+      await copyDiagnosticsToClipboard(diagnostics as DiagnosticsData);
 
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -728,7 +873,7 @@ const DebugPage: React.FC = () => {
     }
   };
 
-  const copyDiagnosticsToClipboard = async (diagnosticsData: unknown) => {
+  const copyDiagnosticsToClipboard = async (diagnosticsData: DiagnosticsData) => {
     try {
       const comprehensiveReport = {
         '=== KEEPER PLATFORM DEBUG REPORT ===': '',

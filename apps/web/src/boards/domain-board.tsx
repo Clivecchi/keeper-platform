@@ -16,10 +16,11 @@ import {
 import { BoardRenderer } from '../components/boards/BoardRenderer';
 import { useBoard, BoardInstance } from '../context/BoardContext';
 import { useFrame } from '../context/FrameContext';
-import { 
-  ExtendedFrameInstance, 
-  FrameInteraction 
+import {
+  ExtendedFrameInstance,
+  FrameInteraction
 } from '../types/frame';
+import { makeFrameInstance } from '../utils/frameFactory';
 
 // =============================================================================
 // DOMAIN BOARD PROPS
@@ -60,100 +61,93 @@ const createMockDomainBoard = (domainId: string): BoardInstance => ({
   updatedAt: new Date(),
 });
 
-const createDomainCardFrame = (domainId: string): ExtendedFrameInstance => ({
-  id: `domain-card-${domainId}`,
-  entityType: 'domain',
-  entityId: domainId,
-  configId: `domain-card-config-${domainId}`,
-  currentContentId: `domain-card-content-${domainId}`,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `domain-card-config-${domainId}`,
-    name: 'Domain Overview',
-    description: 'Basic domain information and branding',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'preview',
-    engagementMode: 'wizard',
-  },
-  FrameContent_FrameInstance_currentContentIdToFrameContent: {
-    id: `domain-card-content-${domainId}`,
-    type: 'domain_info',
-    url: '',
-    alt: 'Domain Information Card',
-    createdAt: new Date(),
-    playlistOwnerId: null,
-    metadata: {
-      domainName: domainId === 'demo' ? 'demo.keeper-platform.com' : `${domainId}.keeper-platform.com`,
-      status: 'active',
-      memberCount: 5,
-      setupProgress: 75,
-      logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=200&h=200&fit=crop&crop=center',
+const createDomainCardFrame = (domainId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `domain-card-${domainId}`,
+    entityType: 'domain',
+    entityId: domainId,
+    configId: `domain-card-config-${domainId}`,
+    currentContentId: `domain-card-content-${domainId}`,
+    FrameConfig: {
+      id: `domain-card-config-${domainId}`,
+      name: 'Domain Overview',
+      description: 'Basic domain information and branding',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'preview',
+      engagementMode: 'wizard',
+    },
+    FrameContent_FrameInstance_currentContentIdToFrameContent: {
+      metadata: {
+        tags: ['domain', 'overview', 'management'],
+        duration: 0,
+        thumbnailUrl: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=200&h=200&fit=crop&crop=center',
+        dimensions: { width: 800, height: 600 },
+      }
     }
-  }
-});
+  });
+};
 
-const createSetupStepsFrame = (domainId: string): ExtendedFrameInstance => ({
-  id: `setup-steps-${domainId}`,
-  entityType: 'domain',
-  entityId: domainId,
-  configId: `setup-steps-config-${domainId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `setup-steps-config-${domainId}`,
-    name: 'Setup Progress',
-    description: 'Domain setup and configuration steps',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'process_frame',
-    engagementMode: 'wizard',
-  },
-});
+const createSetupStepsFrame = (domainId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `setup-steps-${domainId}`,
+    entityType: 'domain',
+    entityId: domainId,
+    configId: `setup-steps-config-${domainId}`,
+    currentContentId: null,
+    FrameConfig: {
+      id: `setup-steps-config-${domainId}`,
+      name: 'Setup Progress',
+      description: 'Domain setup and configuration steps',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'process_frame',
+      engagementMode: 'wizard',
+    },
+  });
+};
 
-const createMemberListFrame = (domainId: string): ExtendedFrameInstance => ({
-  id: `member-list-${domainId}`,
-  entityType: 'domain',
-  entityId: domainId,
-  configId: `member-list-config-${domainId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `member-list-config-${domainId}`,
-    name: 'Team Members',
-    description: 'Manage domain members and permissions',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'config_panel',
-    engagementMode: 'wizard',
-  },
-});
+const createMemberListFrame = (domainId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `member-list-${domainId}`,
+    entityType: 'domain',
+    entityId: domainId,
+    configId: `member-list-config-${domainId}`,
+    currentContentId: null,
+    FrameConfig: {
+      id: `member-list-config-${domainId}`,
+      name: 'Team Members',
+      description: 'Manage domain members and permissions',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'config_panel',
+      engagementMode: 'wizard',
+    },
+  });
+};
 
-const createCustomDomainFrame = (domainId: string): ExtendedFrameInstance => ({
-  id: `custom-domain-${domainId}`,
-  entityType: 'domain',
-  entityId: domainId,
-  configId: `custom-domain-config-${domainId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `custom-domain-config-${domainId}`,
-    name: 'Custom Domain',
-    description: 'Configure custom domain settings and DNS',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'config_panel',
-    engagementMode: 'wizard',
-  },
-});
+const createCustomDomainFrame = (domainId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `custom-domain-${domainId}`,
+    entityType: 'domain',
+    entityId: domainId,
+    configId: `custom-domain-config-${domainId}`,
+    currentContentId: null,
+    FrameConfig: {
+      id: `custom-domain-config-${domainId}`,
+      name: 'Custom Domain',
+      description: 'Configure custom domain settings and DNS',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'config_panel',
+      engagementMode: 'wizard',
+    },
+  });
+};
 
 // =============================================================================
 // MAIN COMPONENT

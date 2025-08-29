@@ -19,11 +19,12 @@ import {
 import { BoardRenderer } from '../components/boards/BoardRenderer';
 import { useBoard, BoardInstance } from '../context/BoardContext';
 import { useFrame } from '../context/FrameContext';
-import { 
-  ExtendedFrameInstance, 
+import {
+  ExtendedFrameInstance,
   FrameInteraction,
   EngagementMode
 } from '../types/frame';
+import { makeFrameInstance } from '../utils/frameFactory';
 
 // =============================================================================
 // KEEPER TYPE BOARD PROPS
@@ -65,127 +66,113 @@ const createMockKeeperTypeBoard = (keeperTypeId: string): BoardInstance => ({
   updatedAt: new Date(),
 });
 
-const createKeeperTypeOverviewFrame = (keeperTypeId: string): ExtendedFrameInstance => ({
-  id: `keeper-type-overview-${keeperTypeId}`,
-  entityType: 'keeper_type',
-  entityId: keeperTypeId,
-  configId: `keeper-type-overview-config-${keeperTypeId}`,
-  currentContentId: `keeper-type-overview-content-${keeperTypeId}`,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `keeper-type-overview-config-${keeperTypeId}`,
-    name: 'Keeper Type Overview',
-    description: 'Summary of Keeper Type details and status',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'preview',
-    engagementMode: 'wizard',
-  },
-  FrameContent_FrameInstance_currentContentIdToFrameContent: {
-    id: `keeper-type-overview-content-${keeperTypeId}`,
-    type: 'keeper_type_info',
-    url: '',
-    alt: 'Keeper Type Overview',
-    createdAt: new Date(),
-    playlistOwnerId: null,
-    metadata: {
-      name: keeperTypeId === 'demo' ? 'DevKeeper' : `${keeperTypeId}Keeper`,
-      description: 'Specialized AI assistant for software development and coding tasks',
-      status: 'active',
-      icon: '🚀',
-      category: 'Development',
-      linkedJourneys: 12,
-      linkedAgents: 8,
-      totalInstances: 156,
-      createdAt: new Date('2024-01-10'),
-      lastModified: new Date(),
-      version: '2.1.0',
-      capabilities: ['Code Generation', 'Debugging', 'Architecture Review', 'Testing'],
+const createKeeperTypeOverviewFrame = (keeperTypeId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `keeper-type-overview-${keeperTypeId}`,
+    entityType: 'keeper_type',
+    entityId: keeperTypeId,
+    configId: `keeper-type-overview-config-${keeperTypeId}`,
+    currentContentId: `keeper-type-overview-content-${keeperTypeId}`,
+    FrameConfig: {
+      id: `keeper-type-overview-config-${keeperTypeId}`,
+      name: 'Keeper Type Overview',
+      description: 'Summary of Keeper Type details and status',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'preview',
+      engagementMode: 'wizard',
+    },
+    FrameContent_FrameInstance_currentContentIdToFrameContent: {
+      metadata: {
+        tags: ['keeper_type', 'overview', 'management'],
+        duration: 0,
+        thumbnailUrl: '',
+        dimensions: { width: 800, height: 600 },
+      }
     }
-  }
-});
+  });
+};
 
-const createKeeperTypeConfigFrame = (keeperTypeId: string): ExtendedFrameInstance => ({
-  id: `keeper-type-config-${keeperTypeId}`,
-  entityType: 'keeper_type',
-  entityId: keeperTypeId,
-  configId: `keeper-type-config-config-${keeperTypeId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `keeper-type-config-config-${keeperTypeId}`,
-    name: 'Keeper Type Configuration',
-    description: 'Edit Keeper Type settings and properties',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'config_panel',
-    engagementMode: 'wizard',
-  },
-});
+const createKeeperTypeConfigFrame = (keeperTypeId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `keeper-type-config-${keeperTypeId}`,
+    entityType: 'keeper_type',
+    entityId: keeperTypeId,
+    configId: `keeper-type-config-config-${keeperTypeId}`,
+    currentContentId: null,
+    FrameConfig: {
+      id: `keeper-type-config-config-${keeperTypeId}`,
+      name: 'Keeper Type Configuration',
+      description: 'Edit Keeper Type settings and properties',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'config_panel',
+      engagementMode: 'wizard',
+    },
+  });
+};
 
-const createLinkedJourneysFrame = (keeperTypeId: string): ExtendedFrameInstance => ({
-  id: `linked-journeys-${keeperTypeId}`,
-  entityType: 'keeper_type',
-  entityId: keeperTypeId,
-  configId: `linked-journeys-config-${keeperTypeId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `linked-journeys-config-${keeperTypeId}`,
-    name: 'Linked Journeys',
-    description: 'Journeys associated with this Keeper Type',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'media_card',
-    engagementMode: 'wizard',
-  },
-});
+const createLinkedJourneysFrame = (keeperTypeId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `linked-journeys-${keeperTypeId}`,
+    entityType: 'keeper_type',
+    entityId: keeperTypeId,
+    configId: `linked-journeys-config-${keeperTypeId}`,
+    currentContentId: null,
+    FrameConfig: {
+      id: `linked-journeys-config-${keeperTypeId}`,
+      name: 'Linked Journeys',
+      description: 'Journeys associated with this Keeper Type',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'media_card',
+      engagementMode: 'wizard',
+    },
+  });
+};
 
-const createLinkedAgentsFrame = (keeperTypeId: string): ExtendedFrameInstance => ({
-  id: `linked-agents-${keeperTypeId}`,
-  entityType: 'keeper_type',
-  entityId: keeperTypeId,
-  configId: `linked-agents-config-${keeperTypeId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `linked-agents-config-${keeperTypeId}`,
-    name: 'Linked Agents',
-    description: 'Agents using this Keeper Type',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'media_card',
-    engagementMode: 'wizard',
-  },
-});
+const createLinkedAgentsFrame = (keeperTypeId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `linked-agents-${keeperTypeId}`,
+    entityType: 'keeper_type',
+    entityId: keeperTypeId,
+    configId: `linked-agents-config-${keeperTypeId}`,
+    currentContentId: null,
+    FrameConfig: {
+      id: `linked-agents-config-${keeperTypeId}`,
+      name: 'Linked Agents',
+      description: 'Agents using this Keeper Type',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'media_card',
+      engagementMode: 'wizard',
+    },
+  });
+};
 
-const createKeeperTypeProcessFrame = (keeperTypeId: string): ExtendedFrameInstance => ({
-  id: `keeper-type-process-${keeperTypeId}`,
-  entityType: 'keeper_type',
-  entityId: keeperTypeId,
-  configId: `keeper-type-process-config-${keeperTypeId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `keeper-type-process-config-${keeperTypeId}`,
-    name: 'Setup Process',
-    description: 'Keeper Type creation and configuration steps',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'process_frame',
-    engagementMode: 'wizard',
-  },
-});
+const createKeeperTypeProcessFrame = (keeperTypeId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `keeper-type-process-${keeperTypeId}`,
+    entityType: 'keeper_type',
+    entityId: keeperTypeId,
+    configId: `keeper-type-process-config-${keeperTypeId}`,
+    currentContentId: null,
+    FrameConfig: {
+      id: `keeper-type-process-config-${keeperTypeId}`,
+      name: 'Setup Process',
+      description: 'Keeper Type creation and configuration steps',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'process_frame',
+      engagementMode: 'wizard',
+    },
+  });
+};
 
 // =============================================================================
 // MAIN COMPONENT

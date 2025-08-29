@@ -19,10 +19,11 @@ import {
 import { BoardRenderer } from '../components/boards/BoardRenderer';
 import { useBoard, BoardInstance } from '../context/BoardContext';
 import { useFrame } from '../context/FrameContext';
-import { 
-  ExtendedFrameInstance, 
-  FrameInteraction 
+import {
+  ExtendedFrameInstance,
+  FrameInteraction
 } from '../types/frame';
+import { makeFrameInstance } from '../utils/frameFactory';
 
 // =============================================================================
 // JOURNEY BOARD PROPS
@@ -64,107 +65,93 @@ const createMockJourneyBoard = (journeyId: string): BoardInstance => ({
   updatedAt: new Date(),
 });
 
-const createJourneyOverviewFrame = (journeyId: string): ExtendedFrameInstance => ({
-  id: `journey-overview-${journeyId}`,
-  entityType: 'journey',
-  entityId: journeyId,
-  configId: `journey-overview-config-${journeyId}`,
-  currentContentId: `journey-overview-content-${journeyId}`,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `journey-overview-config-${journeyId}`,
-    name: 'Journey Overview',
-    description: 'High-level journey information and status',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'preview',
-    engagementMode: 'canvas',
-  },
-  FrameContent_FrameInstance_currentContentIdToFrameContent: {
-    id: `journey-overview-content-${journeyId}`,
-    type: 'journey_info',
-    url: '',
-    alt: 'Journey Overview',
-    createdAt: new Date(),
-    playlistOwnerId: null,
-    metadata: {
-      title: journeyId === 'demo' ? 'Learning React Development' : `Journey: ${journeyId}`,
-      description: 'A comprehensive learning path for modern React development',
-      status: 'active',
-      icon: '🚀',
-      tags: ['React', 'JavaScript', 'Frontend', 'Development'],
-      progress: 65,
-      totalPaths: 8,
-      totalMoments: 24,
-      collaborators: 3,
-      visibility: 'public',
-      createdAt: new Date('2024-01-15'),
-      lastModified: new Date(),
+const createJourneyOverviewFrame = (journeyId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `journey-overview-${journeyId}`,
+    entityType: 'journey',
+    entityId: journeyId,
+    configId: `journey-overview-config-${journeyId}`,
+    currentContentId: `journey-overview-content-${journeyId}`,
+    FrameConfig: {
+      id: `journey-overview-config-${journeyId}`,
+      name: 'Journey Overview',
+      description: 'High-level journey information and status',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'preview',
+      engagementMode: 'canvas',
+    },
+    FrameContent_FrameInstance_currentContentIdToFrameContent: {
+      metadata: {
+        tags: ['journey', 'overview', 'management'],
+        duration: 0,
+        thumbnailUrl: '',
+        dimensions: { width: 800, height: 600 },
+      }
     }
-  }
-});
+  });
+};
 
-const createPathListFrame = (journeyId: string): ExtendedFrameInstance => ({
-  id: `path-list-${journeyId}`,
-  entityType: 'journey',
-  entityId: journeyId,
-  configId: `path-list-config-${journeyId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `path-list-config-${journeyId}`,
-    name: 'Journey Paths',
-    description: 'List of paths within this journey',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'media_card',
-    engagementMode: 'canvas',
-  },
-});
+const createPathListFrame = (journeyId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `path-list-${journeyId}`,
+    entityType: 'journey',
+    entityId: journeyId,
+    configId: `path-list-config-${journeyId}`,
+    currentContentId: null,
+    FrameConfig: {
+      id: `path-list-config-${journeyId}`,
+      name: 'Journey Paths',
+      description: 'List of paths within this journey',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'media_card',
+      engagementMode: 'canvas',
+    },
+  });
+};
 
-const createMomentGridFrame = (journeyId: string): ExtendedFrameInstance => ({
-  id: `moment-grid-${journeyId}`,
-  entityType: 'journey',
-  entityId: journeyId,
-  configId: `moment-grid-config-${journeyId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `moment-grid-config-${journeyId}`,
-    name: 'Recent Moments',
-    description: 'Recent moments from this journey',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'media_card',
-    engagementMode: 'canvas',
-  },
-});
+const createMomentGridFrame = (journeyId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `moment-grid-${journeyId}`,
+    entityType: 'journey',
+    entityId: journeyId,
+    configId: `moment-grid-config-${journeyId}`,
+    currentContentId: null,
+    FrameConfig: {
+      id: `moment-grid-config-${journeyId}`,
+      name: 'Recent Moments',
+      description: 'Recent moments from this journey',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'media_card',
+      engagementMode: 'canvas',
+    },
+  });
+};
 
-const createJourneyConfigFrame = (journeyId: string): ExtendedFrameInstance => ({
-  id: `journey-config-${journeyId}`,
-  entityType: 'journey',
-  entityId: journeyId,
-  configId: `journey-config-config-${journeyId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `journey-config-config-${journeyId}`,
-    name: 'Journey Settings',
-    description: 'Configure journey settings and permissions',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'config_panel',
-    engagementMode: 'canvas',
-  },
-});
+const createJourneyConfigFrame = (journeyId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `journey-config-${journeyId}`,
+    entityType: 'journey',
+    entityId: journeyId,
+    configId: `journey-config-config-${journeyId}`,
+    currentContentId: null,
+    FrameConfig: {
+      id: `journey-config-config-${journeyId}`,
+      name: 'Journey Settings',
+      description: 'Configure journey settings and permissions',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'config_panel',
+      engagementMode: 'canvas',
+    },
+  });
+};
 
 // =============================================================================
 // MAIN COMPONENT

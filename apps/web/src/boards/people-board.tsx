@@ -9,7 +9,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
+import {
   UserGroupIcon,
   PlusIcon,
   EyeIcon,
@@ -20,11 +20,12 @@ import {
 import { BoardRenderer } from '../components/boards/BoardRenderer';
 import { useBoard, BoardInstance } from '../context/BoardContext';
 import { useFrame } from '../context/FrameContext';
-import { 
-  ExtendedFrameInstance, 
+import {
+  ExtendedFrameInstance,
   FrameInteraction,
   EngagementMode
 } from '../types/frame';
+import { makeFrameInstance } from '../utils/frameFactory';
 
 // =============================================================================
 // PEOPLE BOARD PROPS
@@ -66,122 +67,106 @@ const createMockPeopleBoard = (personId: string): BoardInstance => ({
   updatedAt: new Date(),
 });
 
-const createPeopleOverviewFrame = (personId: string): ExtendedFrameInstance => ({
-  id: `people-overview-${personId}`,
-  entityType: 'people',
-  entityId: personId,
-  configId: `people-overview-config-${personId}`,
-  currentContentId: `people-overview-content-${personId}`,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `people-overview-config-${personId}`,
-    name: 'People Overview',
-    description: 'Overview of all people with filtering and management',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'preview',
-    engagementMode: 'canvas',
-  },
-  FrameContent_FrameInstance_currentContentIdToFrameContent: {
-    id: `people-overview-content-${personId}`,
-    type: 'people_info',
-    url: '',
-    alt: 'People Overview',
-    createdAt: new Date(),
-    playlistOwnerId: null,
-    metadata: {
-      totalPeople: 47,
-      activePeople: 42,
-      pendingInvites: 5,
-      totalDomains: 8,
-      totalJourneys: 23,
-      recentActivity: new Date(),
-      topRoles: ['member', 'admin', 'viewer', 'owner'],
-    }
-  }
-});
+const createPeopleOverviewFrame = (personId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `people-overview-${personId}`,
+    entityType: 'people',
+    entityId: personId,
+    configId: `people-overview-config-${personId}`,
+    currentContentId: `people-overview-content-${personId}`,
+    FrameConfig: {
+      id: `people-overview-config-${personId}`,
+      name: 'People Overview',
+      description: 'Overview of all people with filtering and management',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'preview',
+      engagementMode: 'canvas',
+    },
+    FrameContent_FrameInstance_currentContentIdToFrameContent: undefined
+  });
+};
 
-const createRoleManagerFrame = (personId: string): ExtendedFrameInstance => ({
-  id: `role-manager-${personId}`,
-  entityType: 'people',
-  entityId: personId,
-  configId: `role-manager-config-${personId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `role-manager-config-${personId}`,
-    name: 'Role Manager',
-    description: 'Manage roles and permissions for people',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'config_panel',
-    engagementMode: 'canvas',
-  },
-});
+const createRoleManagerFrame = (personId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `role-manager-${personId}`,
+    entityType: 'people',
+    entityId: personId,
+    configId: `role-manager-config-${personId}`,
+    currentContentId: null,
+    FrameConfig: {
+      id: `role-manager-config-${personId}`,
+      name: 'Role Manager',
+      description: 'Manage roles and permissions for people',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'config_panel',
+      engagementMode: 'canvas',
+    },
+  });
+};
 
-const createCollaborationNetworkFrame = (personId: string): ExtendedFrameInstance => ({
-  id: `collaboration-network-${personId}`,
-  entityType: 'people',
-  entityId: personId,
-  configId: `collaboration-network-config-${personId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `collaboration-network-config-${personId}`,
-    name: 'Collaboration Network',
-    description: 'Visual network of people, domains, and journeys',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'media_card',
-    engagementMode: 'canvas',
-  },
-});
+const createCollaborationNetworkFrame = (personId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `collaboration-network-${personId}`,
+    entityType: 'people',
+    entityId: personId,
+    configId: `collaboration-network-config-${personId}`,
+    currentContentId: null,
+    FrameConfig: {
+      id: `collaboration-network-config-${personId}`,
+      name: 'Collaboration Network',
+      description: 'Visual network of people, domains, and journeys',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'media_card',
+      engagementMode: 'canvas',
+    },
+  });
+};
 
-const createActivityFeedFrame = (personId: string): ExtendedFrameInstance => ({
-  id: `activity-feed-${personId}`,
-  entityType: 'people',
-  entityId: personId,
-  configId: `activity-feed-config-${personId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `activity-feed-config-${personId}`,
-    name: 'Activity Feed',
-    description: 'Timeline of recent activities across the platform',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'media_card',
-    engagementMode: 'canvas',
-  },
-});
+const createActivityFeedFrame = (personId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `activity-feed-${personId}`,
+    entityType: 'people',
+    entityId: personId,
+    configId: `activity-feed-config-${personId}`,
+    currentContentId: null,
+    FrameConfig: {
+      id: `activity-feed-config-${personId}`,
+      name: 'Activity Feed',
+      description: 'Timeline of recent activities across the platform',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'media_card',
+      engagementMode: 'canvas',
+    },
+  });
+};
 
-const createPeopleProcessFrame = (personId: string): ExtendedFrameInstance => ({
-  id: `people-process-${personId}`,
-  entityType: 'people',
-  entityId: personId,
-  configId: `people-process-config-${personId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  FrameConfig: {
-    id: `people-process-config-${personId}`,
-    name: 'People Process',
-    description: 'Guided workflow for onboarding and inviting people',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'process_frame',
-    engagementMode: 'canvas',
-  },
-});
+const createPeopleProcessFrame = (personId: string): ExtendedFrameInstance => {
+  return makeFrameInstance({
+    id: `people-process-${personId}`,
+    entityType: 'people',
+    entityId: personId,
+    configId: `people-process-config-${personId}`,
+    currentContentId: null,
+    FrameConfig: {
+      id: `people-process-config-${personId}`,
+      name: 'People Process',
+      description: 'Guided workflow for onboarding and inviting people',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'process_frame',
+      engagementMode: 'canvas',
+    },
+  });
+};
 
 // =============================================================================
 // MAIN COMPONENT
@@ -279,8 +264,9 @@ export const PeopleBoard: React.FC<PeopleBoardProps> = ({
         break;
         
       case 'filter_change':
-        setFilterMode(interaction.data?.filter || 'all');
-        console.log('Changing filter:', interaction.data?.filter);
+        const filterValue = interaction.data?.filter as typeof filterMode;
+        setFilterMode(filterValue || 'all');
+        console.log('Changing filter:', filterValue);
         break;
         
       case 'people_share':
@@ -388,7 +374,7 @@ export const PeopleBoard: React.FC<PeopleBoardProps> = ({
                   const newFilter = e.target.value as typeof filterMode;
                   setFilterMode(newFilter);
                   handlePeopleFrameInteraction({
-                    type: 'change',
+                    type: 'click',
                     frameId: 'people-board-filter',
                     data: { action: 'filter_change', filter: newFilter },
                     timestamp: new Date(),

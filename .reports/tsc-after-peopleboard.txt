@@ -1,0 +1,188 @@
+
+> keeper-web@0.0.0 type-check C:\Users\Chucks-Domain\Documents\GitHub\keeper-platform\apps\web
+> tsc --noEmit
+
+src/ai/agentBridge.ts(202,48): error TS2339: Property 'title' does not exist on type '{ title: string[]; subtitle: string[]; media: { type: string; suggestions: string[]; }; cta: { label: string[]; action: string; }; } | { sections: string[]; validation: string[]; } | { placeholder: string[]; maxMessages: number[]; showHistory: boolean; }'.
+  Property 'title' does not exist on type '{ sections: string[]; validation: string[]; }'.
+src/boards/domain-board.tsx(89,7): error TS2353: Object literal may only specify known properties, and 'domainName' does not exist in type '{ duration?: number | undefined; dimensions?: { width: number; height: number; } | undefined; thumbnailUrl?: string | undefined; tags?: string[] | undefined; }'.
+src/boards/domain-board.tsx(98,77): error TS2740: Type '{ id: string; entityType: string; entityId: string; configId: string; currentContentId: null; createdAt: Date; updatedAt: Date; FrameConfig: { id: string; name: string; description: string; ... 4 more ...; engagementMode: "wizard"; }; }' is missing the following properties from type 'ExtendedFrameInstance': name, role, pattern, props, and 5 more.
+src/boards/domain-board.tsx(118,77): error TS2740: Type '{ id: string; entityType: string; entityId: string; configId: string; currentContentId: null; createdAt: Date; updatedAt: Date; FrameConfig: { id: string; name: string; description: string; ... 4 more ...; engagementMode: "wizard"; }; }' is missing the following properties from type 'ExtendedFrameInstance': name, role, pattern, props, and 5 more.
+src/boards/domain-board.tsx(138,79): error TS2740: Type '{ id: string; entityType: string; entityId: string; configId: string; currentContentId: null; createdAt: Date; updatedAt: Date; FrameConfig: { id: string; name: string; description: string; ... 4 more ...; engagementMode: "wizard"; }; }' is missing the following properties from type 'ExtendedFrameInstance': name, role, pattern, props, and 5 more.
+src/boards/journey-board.tsx(93,7): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type '{ duration?: number | undefined; dimensions?: { width: number; height: number; } | undefined; thumbnailUrl?: string | undefined; tags?: string[] | undefined; }'.
+src/boards/journey-board.tsx(109,76): error TS2740: Type '{ id: string; entityType: string; entityId: string; configId: string; currentContentId: null; createdAt: Date; updatedAt: Date; FrameConfig: { id: string; name: string; description: string; ... 4 more ...; engagementMode: "canvas"; }; }' is missing the following properties from type 'ExtendedFrameInstance': name, role, pattern, props, and 5 more.
+src/boards/journey-board.tsx(129,78): error TS2740: Type '{ id: string; entityType: string; entityId: string; configId: string; currentContentId: null; createdAt: Date; updatedAt: Date; FrameConfig: { id: string; name: string; description: string; ... 4 more ...; engagementMode: "canvas"; }; }' is missing the following properties from type 'ExtendedFrameInstance': name, role, pattern, props, and 5 more.
+src/boards/journey-board.tsx(149,81): error TS2740: Type '{ id: string; entityType: string; entityId: string; configId: string; currentContentId: null; createdAt: Date; updatedAt: Date; FrameConfig: { id: string; name: string; description: string; ... 4 more ...; engagementMode: "canvas"; }; }' is missing the following properties from type 'ExtendedFrameInstance': name, role, pattern, props, and 5 more.
+src/boards/keeper-type-board.tsx(94,7): error TS2353: Object literal may only specify known properties, and 'name' does not exist in type '{ duration?: number | undefined; dimensions?: { width: number; height: number; } | undefined; thumbnailUrl?: string | undefined; tags?: string[] | undefined; }'.
+src/boards/keeper-type-board.tsx(110,87): error TS2740: Type '{ id: string; entityType: string; entityId: string; configId: string; currentContentId: null; createdAt: Date; updatedAt: Date; FrameConfig: { id: string; name: string; description: string; ... 4 more ...; engagementMode: "wizard"; }; }' is missing the following properties from type 'ExtendedFrameInstance': name, role, pattern, props, and 5 more.
+src/boards/keeper-type-board.tsx(130,85): error TS2740: Type '{ id: string; entityType: string; entityId: string; configId: string; currentContentId: null; createdAt: Date; updatedAt: Date; FrameConfig: { id: string; name: string; description: string; ... 4 more ...; engagementMode: "wizard"; }; }' is missing the following properties from type 'ExtendedFrameInstance': name, role, pattern, props, and 5 more.
+src/boards/keeper-type-board.tsx(150,83): error TS2740: Type '{ id: string; entityType: string; entityId: string; configId: string; currentContentId: null; createdAt: Date; updatedAt: Date; FrameConfig: { id: string; name: string; description: string; ... 4 more ...; engagementMode: "wizard"; }; }' is missing the following properties from type 'ExtendedFrameInstance': name, role, pattern, props, and 5 more.
+src/boards/keeper-type-board.tsx(170,88): error TS2740: Type '{ id: string; entityType: string; entityId: string; configId: string; currentContentId: null; createdAt: Date; updatedAt: Date; FrameConfig: { id: string; name: string; description: string; ... 4 more ...; engagementMode: "wizard"; }; }' is missing the following properties from type 'ExtendedFrameInstance': name, role, pattern, props, and 5 more.
+src/components/domain-manager/DomainDetailCard.tsx(5,15): error TS2614: Module '"./DomainManager"' has no exported member 'DomainScope'. Did you mean to use 'import DomainScope from "./DomainManager"' instead?
+src/components/domain-manager/DomainDetailForm.tsx(637,27): error TS2322: Type 'boolean | undefined' is not assignable to type 'boolean'.
+  Type 'undefined' is not assignable to type 'boolean'.
+src/components/domain-manager/DomainDetailModal.tsx(4,15): error TS2614: Module '"./DomainManager"' has no exported member 'DomainScope'. Did you mean to use 'import DomainScope from "./DomainManager"' instead?
+src/components/domain-manager/DomainListPane.tsx(4,15): error TS2614: Module '"./DomainManager"' has no exported member 'DomainScope'. Did you mean to use 'import DomainScope from "./DomainManager"' instead?
+src/components/domain-manager/DomainManager.tsx(186,23): error TS2322: Type 'boolean | undefined' is not assignable to type 'boolean'.
+  Type 'undefined' is not assignable to type 'boolean'.
+src/components/domain-manager/DomainManager.tsx(209,23): error TS2322: Type 'boolean | undefined' is not assignable to type 'boolean'.
+  Type 'undefined' is not assignable to type 'boolean'.
+src/components/domain-manager/MembersPanel.tsx(5,15): error TS2614: Module '"./DomainManager"' has no exported member 'DomainScope'. Did you mean to use 'import DomainScope from "./DomainManager"' instead?
+src/components/engagement/IdentityLogbook.tsx(123,13): error TS2322: Type '{ createdAt: string; keeperId: string; agentId: string; entry: string; label: string; category: string; tags?: string[]; id: string; }' is not assignable to type 'SoleLogbookEntry'.
+  Types of property 'tags' are incompatible.
+    Type 'string[] | undefined' is not assignable to type 'string[]'.
+      Type 'undefined' is not assignable to type 'string[]'.
+src/components/frames/FrameRenderer.tsx(278,3): error TS2322: Type 'ComponentType<BaseFrameProps>' is not assignable to type 'FrameRendererComponent'.
+  Type 'ComponentClass<BaseFrameProps, any>' is not assignable to type 'FunctionComponent<BaseFrameProps>'.
+    Type 'ComponentClass<BaseFrameProps, any>' provides no match for the signature '(props: BaseFrameProps): ReactNode | Promise<ReactNode>'.
+src/components/frames/MediaCardFrame.tsx(101,13): error TS2339: Property 'type' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/MediaCardFrame.tsx(101,19): error TS2339: Property 'url' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/MediaCardFrame.tsx(101,24): error TS2339: Property 'alt' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/MediaCardFrame.tsx(155,42): error TS2339: Property 'type' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/MediaCardFrame.tsx(155,77): error TS2339: Property 'type' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/MediaCardFrame.tsx(212,38): error TS2339: Property 'alt' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/MediaCardFrame.tsx(214,27): error TS2339: Property 'alt' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/MediaCardFrame.tsx(215,76): error TS2339: Property 'alt' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/PreviewFrame.tsx(70,24): error TS2339: Property 'type' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/PreviewFrame.tsx(74,33): error TS2339: Property 'url' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/PreviewFrame.tsx(75,33): error TS2339: Property 'alt' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/PreviewFrame.tsx(86,42): error TS2339: Property 'type' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/PreviewFrame.tsx(107,48): error TS2339: Property 'alt' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/PreviewFrame.tsx(110,47): error TS2339: Property 'type' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/PreviewFrame.tsx(123,32): error TS2339: Property 'type' does not exist on type 'ExtendedFrameContent'.
+src/components/frames/TopicsFrame.tsx(508,54): error TS2345: Argument of type '(prev: { kind: "fact"; text: string; }) => { kind: "fact" | "decision" | "task" | "question" | "risk"; text: string; }' is not assignable to parameter of type 'SetStateAction<{ kind: "fact"; text: string; }>'.
+  Type '(prev: { kind: "fact"; text: string; }) => { kind: "fact" | "decision" | "task" | "question" | "risk"; text: string; }' is not assignable to type '(prevState: { kind: "fact"; text: string; }) => { kind: "fact"; text: string; }'.
+    Call signature return types '{ kind: "fact" | "decision" | "task" | "question" | "risk"; text: string; }' and '{ kind: "fact"; text: string; }' are incompatible.
+      The types of 'kind' are incompatible between these types.
+        Type '"fact" | "decision" | "task" | "question" | "risk"' is not assignable to type '"fact"'.
+          Type '"decision"' is not assignable to type '"fact"'.
+src/components/keeper/SoleArchitectureTab.tsx(150,50): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/components/keeper/SoleArchitectureTab.tsx(154,50): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/components/keeper/SoleArchitectureTab.tsx(158,55): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/components/keeper/SoleArchitectureTab.tsx(160,17): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/components/keeper/SoleArchitectureTab.tsx(163,62): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type '{}' is not assignable to parameter of type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type '{}' is not assignable to parameter of type 'string | number'.
+src/components/keeper/SoleArchitectureTab.tsx(209,50): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/components/keeper/SoleArchitectureTab.tsx(213,50): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/components/keeper/SoleArchitectureTab.tsx(217,55): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/components/studio/FrameConfigSheet.tsx(3,44): error TS5097: An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.
+src/context/FrameContext.tsx(122,13): error TS2740: Type '{ id: string; entityType: string; entityId: string; configId: string; currentContentId: null; createdAt: Date; updatedAt: Date; }' is missing the following properties from type 'ExtendedFrameInstance': name, role, pattern, props, and 5 more.
+src/features/board-studio/patterns/PatternRenderer.tsx(512,66): error TS2503: Cannot find namespace 'JSX'.
+src/features/board-studio/patterns/PatternRenderer.tsx(515,14): error TS2604: JSX element type 'HeadingTag' does not have any construct or call signatures.
+src/features/board-studio/patterns/PatternRenderer.tsx(515,14): error TS2786: 'HeadingTag' cannot be used as a JSX component.
+  Its type 'string | number | symbol' is not a valid JSX element type.
+    Type 'number' is not assignable to type 'ElementType'.
+src/features/board-studio/patterns/PatternRenderer.tsx(774,21): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+src/features/board-studio/v0/index.ts(3,1): error TS2308: Module './types' has already exported a member named 'PatternId'. Consider explicitly re-exporting to resolve the ambiguity.
+src/hooks/useAutosave.ts(50,22): error TS2554: Expected 1 arguments, but got 0.
+src/lib/themeApi.ts(123,7): error TS2578: Unused '@ts-expect-error' directive.
+src/lib/themeApi.ts(127,7): error TS2578: Unused '@ts-expect-error' directive.
+src/pages/DebugPage.tsx(62,7): error TS18046: 'diagnostics.consoleErrors' is of type 'unknown'.
+src/pages/DebugPage.tsx(71,7): error TS18046: 'diagnostics.consoleErrors' is of type 'unknown'.
+src/pages/DebugPage.tsx(92,9): error TS18046: 'diagnostics.networkRequests' is of type 'unknown'.
+src/pages/DebugPage.tsx(105,9): error TS18046: 'diagnostics.networkRequests' is of type 'unknown'.
+src/pages/DebugPage.tsx(132,21): error TS18046: 'diagnostics.environment' is of type 'unknown'.
+src/pages/DebugPage.tsx(139,7): error TS18046: 'diagnostics.detailedNetworkDiagnostics' is of type 'unknown'.
+src/pages/DebugPage.tsx(148,7): error TS18046: 'diagnostics.detailedNetworkDiagnostics' is of type 'unknown'.
+src/pages/DebugPage.tsx(296,5): error TS18046: 'diagnostics.detailedNetworkDiagnostics' is of type 'unknown'.
+src/pages/DebugPage.tsx(303,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(306,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(317,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(320,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(339,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(342,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(357,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(364,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(381,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(384,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(400,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(403,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(423,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(426,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(437,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(440,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(459,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(462,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(485,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(488,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(512,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(521,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(540,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(543,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(558,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(563,77): error TS18046: 'a' is of type 'unknown'.
+src/pages/DebugPage.tsx(566,72): error TS2339: Property 'error' does not exist on type 'Event'.
+src/pages/DebugPage.tsx(571,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(588,11): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(591,11): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(595,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(615,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(618,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(634,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(640,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(656,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(662,9): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(677,7): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(680,24): error TS18046: 'diagnostics.consoleErrors' is of type 'unknown'.
+src/pages/DebugPage.tsx(681,26): error TS18046: 'diagnostics.consoleErrors' is of type 'unknown'.
+src/pages/DebugPage.tsx(687,7): error TS18046: 'diagnostics.tests' is of type 'unknown'.
+src/pages/DebugPage.tsx(690,26): error TS18046: 'diagnostics.networkRequests' is of type 'unknown'.
+src/pages/DebugPage.tsx(691,31): error TS18046: 'diagnostics.networkRequests' is of type 'unknown'.
+src/pages/DebugPage.tsx(691,82): error TS18046: 'r' is of type 'unknown'.
+src/pages/DebugPage.tsx(692,27): error TS18046: 'diagnostics.networkRequests' is of type 'unknown'.
+src/pages/DebugPage.tsx(692,79): error TS18046: 'r' is of type 'unknown'.
+src/pages/DebugPage.tsx(698,37): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(o: {}): string[]', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type '{}'.
+  Overload 2 of 2, '(o: object): string[]', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'object'.
+src/pages/DebugPage.tsx(699,42): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(o: ArrayLike<unknown> | { [s: string]: unknown; }): unknown[]', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'ArrayLike<unknown> | { [s: string]: unknown; }'.
+  Overload 2 of 2, '(o: {}): any[]', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type '{}'.
+src/pages/DebugPage.tsx(699,87): error TS18046: 'test' is of type 'unknown'.
+src/pages/DebugPage.tsx(700,40): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(o: ArrayLike<unknown> | { [s: string]: unknown; }): unknown[]', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'ArrayLike<unknown> | { [s: string]: unknown; }'.
+  Overload 2 of 2, '(o: {}): any[]', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type '{}'.
+src/pages/DebugPage.tsx(700,85): error TS18046: 'test' is of type 'unknown'.
+src/pages/DebugPage.tsx(713,85): error TS18046: 'diagnostics.summary' is of type 'unknown'.
+src/pages/DebugPage.tsx(735,20): error TS18046: 'diagnosticsData' is of type 'unknown'.
+src/pages/DebugPage.tsx(736,19): error TS18046: 'diagnosticsData' is of type 'unknown'.
+src/pages/DebugPage.tsx(737,18): error TS18046: 'diagnosticsData' is of type 'unknown'.
+src/pages/DebugPage.tsx(740,22): error TS18046: 'diagnosticsData' is of type 'unknown'.
+src/pages/DebugPage.tsx(743,15): error TS18046: 'diagnosticsData' is of type 'unknown'.
+src/pages/DebugPage.tsx(746,18): error TS18046: 'diagnosticsData' is of type 'unknown'.
+src/pages/DebugPage.tsx(749,16): error TS18046: 'diagnosticsData' is of type 'unknown'.
+src/pages/DebugPage.tsx(752,15): error TS18046: 'diagnosticsData' is of type 'unknown'.
+src/pages/FrameSystemDemoPage.tsx(44,7): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'ExtendedFrameContent'.
+src/pages/FrameSystemDemoPage.tsx(53,9): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'ExtendedFrameContent'.
+src/pages/FrameSystemDemoPage.tsx(61,9): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'ExtendedFrameContent'.
+src/pages/LeadAgentPage.tsx(173,20): error TS18046: 'response.data' is of type 'unknown'.
+src/pages/LeadAgentPage.tsx(180,13): error TS18046: 'response.data' is of type 'unknown'.
+src/pages/LeadAgentPage.tsx(181,24): error TS18046: 'response.data' is of type 'unknown'.
+src/pages/LeadAgentPage.tsx(182,40): error TS18046: 'response.data' is of type 'unknown'.
+src/pages/studio/board-studio-page.tsx(381,9): error TS2304: Cannot find name 'setDraggedItemType'.
+src/pages/studio/board-studio-page.tsx(386,9): error TS2304: Cannot find name 'setDraggedItemType'.
+src/pages/studio/board-studio-page.tsx(573,49): error TS7006: Parameter 'f' implicitly has an 'any' type.
+src/pages/studio/board-studio-page.tsx(596,42): error TS7006: Parameter 'f' implicitly has an 'any' type.
+src/pages/studio/board-studio-page.tsx(597,36): error TS7006: Parameter 'f' implicitly has an 'any' type.
+src/pages/studio/board-studio-page.tsx(609,42): error TS7006: Parameter 'f' implicitly has an 'any' type.
+src/pages/studio/board-studio-page.tsx(1353,42): error TS2345: Argument of type '{ entityType: "board"; entityId: string; configId: string; currentContentId: null; createdAt: Date; updatedAt: Date; FrameConfig: { id: string; name: string; description: string; theme: null; createdAt: Date; updatedAt: Date; frameType: any; engagementMode: any; }; id: string; data: { ...; }; }' is not assignable to parameter of type 'ExtendedFrameInstance'.
+  Type '{ entityType: "board"; entityId: string; configId: string; currentContentId: null; createdAt: Date; updatedAt: Date; FrameConfig: { id: string; name: string; description: string; theme: null; createdAt: Date; updatedAt: Date; frameType: any; engagementMode: any; }; id: string; data: { ...; }; }' is missing the following properties from type 'ExtendedFrameInstance': name, role, pattern, props, and 5 more.
+src/pages/studio/board-studio-page.tsx(1896,62): error TS7006: Parameter 'f' implicitly has an 'any' type.
+src/pages/studio/board-studio-page.tsx(1897,56): error TS7006: Parameter 'f' implicitly has an 'any' type.
+src/pages/studio/kip/AgentLogsPage.tsx(75,13): error TS2322: Type 'unknown' is not assignable to type 'LogsResponse'.
+src/pages/studio/kip/AgentsPage.tsx(254,15): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/pages/studio/KipStudioPage.tsx(71,25): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<KipCommandIntent | null>'.
+src/props/token/TokenPlaceholder.tsx(315,53): error TS2339: Property 'style' does not exist on type 'Element'.
+src/types/frame.ts(10,28): error TS2305: Module '"@keeper/database"' has no exported member 'FrameContent'.
+src/utils/frameFactory.ts(15,9): error TS2740: Type '{ id: string; entityType: string; entityId: string; configId: string; currentContentId: null; createdAt: Date; updatedAt: Date; FrameConfig: undefined; FrameContent_FrameInstance_currentContentIdToFrameContent: undefined; FrameContent_FrameContent_playlistOwnerIdToFrameInstance: undefined; }' is missing the following properties from type 'ExtendedFrameInstance': name, role, pattern, props, and 5 more.
+C:\Users\Chucks-Domain\Documents\GitHub\keeper-platform\apps\web:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  keeper-web@0.0.0 type-check: `tsc --noEmit`
+Exit status 2
