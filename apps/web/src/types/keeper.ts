@@ -144,10 +144,10 @@ export interface KeeperApiResponse<T> {
   details?: string | unknown[];
 }
 
-export interface KeeperListResponse extends KeeperApiResponse<Keeper[]> {}
-export interface KeeperResponse extends KeeperApiResponse<Keeper> {}
-export interface KeeperTypeListResponse extends KeeperApiResponse<KeeperType[]> {}
-export interface EngagementTemplateListResponse extends KeeperApiResponse<EngagementTemplate[]> {}
+export type KeeperListResponse = KeeperApiResponse<Keeper[]>;
+export type KeeperResponse = KeeperApiResponse<Keeper>;
+export type KeeperTypeListResponse = KeeperApiResponse<KeeperType[]>;
+export type EngagementTemplateListResponse = KeeperApiResponse<EngagementTemplate[]>;
 
 // SOLE Reflection Types
 export interface SoleReflection {
@@ -174,8 +174,8 @@ export interface UpdateReflectionRequest {
   topic?: string;
 }
 
-export interface SoleReflectionResponse extends KeeperApiResponse<SoleReflection> {}
-export interface SoleReflectionListResponse extends KeeperApiResponse<SoleReflection[]> {}
+export type SoleReflectionResponse = KeeperApiResponse<SoleReflection>;
+export type SoleReflectionListResponse = KeeperApiResponse<SoleReflection[]>;
 
 // SOLE Memory Card Types
 export interface SoleMemoryCard {
@@ -199,9 +199,9 @@ export interface UpdateMemoryCardRequest {
   topic?: string;
 }
 
-export interface SoleMemoryCardResponse extends KeeperApiResponse<SoleMemoryCard> {}
-export interface SoleMemoryCardListResponse extends KeeperApiResponse<SoleMemoryCard[]> {}
-export interface SoleMemoryCardsByTopicResponse extends KeeperApiResponse<Record<string, SoleMemoryCard[]>> {}
+export type SoleMemoryCardResponse = KeeperApiResponse<SoleMemoryCard>;
+export type SoleMemoryCardListResponse = KeeperApiResponse<SoleMemoryCard[]>;
+export type SoleMemoryCardsByTopicResponse = KeeperApiResponse<Record<string, SoleMemoryCard[]>>;
 
 // Embedding Status Types
 export interface EmbeddingStatus {
@@ -210,7 +210,7 @@ export interface EmbeddingStatus {
   pending: number;
 }
 
-export interface EmbeddingStatusResponse extends KeeperApiResponse<EmbeddingStatus> {}
+export type EmbeddingStatusResponse = KeeperApiResponse<EmbeddingStatus>;
 
 // Base Response Type
 export interface BaseResponse {
@@ -242,8 +242,8 @@ export interface UpdateVoiceEntryRequest {
   belief?: string;
 }
 
-export interface SoleVoiceEntryResponse extends KeeperApiResponse<SoleVoiceEntry> {}
-export interface SoleVoiceEntryListResponse extends KeeperApiResponse<SoleVoiceEntry[]> {}
+export type SoleVoiceEntryResponse = KeeperApiResponse<SoleVoiceEntry>;
+export type SoleVoiceEntryListResponse = KeeperApiResponse<SoleVoiceEntry[]>;
 
 // SOLE Echo Types
 export interface SoleEcho {
@@ -272,8 +272,8 @@ export interface UpdateEchoRequest {
   delivered?: boolean;
 }
 
-export interface SoleEchoResponse extends KeeperApiResponse<SoleEcho> {}
-export interface SoleEchoListResponse extends KeeperApiResponse<SoleEcho[]> {}
+export type SoleEchoResponse = KeeperApiResponse<SoleEcho>;
+export type SoleEchoListResponse = KeeperApiResponse<SoleEcho[]>;
 
 // SOLE Logbook Entry Types
 export interface SoleLogbookEntry {
@@ -303,10 +303,10 @@ export interface UpdateLogbookEntryRequest {
   tags?: string[];
 }
 
-export interface SoleLogbookEntryResponse extends KeeperApiResponse<SoleLogbookEntry> {}
-export interface SoleLogbookEntryListResponse extends KeeperApiResponse<SoleLogbookEntry[]> {}
-export interface CategoryListResponse extends KeeperApiResponse<string[]> {}
-export interface TagListResponse extends KeeperApiResponse<string[]> {}
+export type SoleLogbookEntryResponse = KeeperApiResponse<SoleLogbookEntry>;
+export type SoleLogbookEntryListResponse = KeeperApiResponse<SoleLogbookEntry[]>;
+export type CategoryListResponse = KeeperApiResponse<string[]>;
+export type TagListResponse = KeeperApiResponse<string[]>;
 
 // =============================================================================
 // AGENT HOME BOARD TYPES

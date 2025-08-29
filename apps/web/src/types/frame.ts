@@ -197,7 +197,7 @@ export interface FrameApiResponse<T> {
 /**
  * Specific frame API response types
  */
-export interface FrameConfigResponse extends FrameApiResponse<ExtendedFrameConfig> {}
+export type FrameConfigResponse = FrameApiResponse<ExtendedFrameConfig>;
 export interface FrameContentResponse extends FrameApiResponse<ExtendedFrameContent> {}
 export interface FrameInstanceResponse extends FrameApiResponse<ExtendedFrameInstance> {}
 export interface FrameInstanceListResponse extends FrameApiResponse<ExtendedFrameInstance[]> {}
