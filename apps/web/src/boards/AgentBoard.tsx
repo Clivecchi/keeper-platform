@@ -19,10 +19,11 @@ import {
 import { BoardRenderer } from '../components/boards/BoardRenderer';
 import { useBoard, BoardInstance } from '../context/BoardContext';
 import { useFrame } from '../context/FrameContext';
-import { 
-  ExtendedFrameInstance, 
-  FrameInteraction 
+import {
+  ExtendedFrameInstance,
+  FrameInteraction
 } from '../types/frame';
+import { makeFrameInstance } from '../utils/frameFactory';
 
 // =============================================================================
 // AGENT BOARD PROPS
@@ -62,144 +63,95 @@ const createMockAgentBoard = (agentId: string): BoardInstance => ({
   updatedAt: new Date(),
 });
 
-const createAgentPreviewFrame = (agentId: string, agentData?: any): ExtendedFrameInstance => ({
-  id: `agent-preview-${agentId}`,
-  entityType: 'agent',
-  entityId: agentId,
-  configId: `agent-preview-config-${agentId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  data: agentData ? {
-    agentName: agentData.name,
-    description: agentData.purpose,
-    status: agentData.status === 'ready' ? 'Active' : agentData.status,
-    capabilities: agentData.tools || ['Conversation', 'Task Assistance'],
-    lastActive: agentData.updated_at,
-    model: agentData.model,
-    provider: agentData.model_provider,
-  } : undefined,
-  FrameConfig: {
-    id: `agent-preview-config-${agentId}`,
-    name: 'Agent Overview',
-    description: 'View agent identity and status',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'agent_preview',
-    engagementMode: 'dialogic',
-  },
-});
-
-const createAgentDialogFrame = (agentId: string, agentData?: any): ExtendedFrameInstance => ({
-  id: `agent-dialog-${agentId}`,
-  entityType: 'agent',
-  entityId: agentId,
-  configId: `agent-dialog-config-${agentId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  data: agentData ? {
-    agentName: agentData.name,
-    messages: [
-      { 
-        role: 'assistant', 
-        content: `Hello! I'm ${agentData.name}. ${agentData.purpose}` 
-      },
-    ],
-    isActive: agentData.status === 'ready',
-  } : undefined,
-  FrameConfig: {
-    id: `agent-dialog-config-${agentId}`,
-    name: 'Agent Conversation',
-    description: 'Interactive conversation with the agent',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'dialog',
-    engagementMode: 'dialogic',
-  },
-});
-
-const createAgentConfigFrame = (agentId: string, agentData?: any): ExtendedFrameInstance => ({
-  id: `agent-config-${agentId}`,
-  entityType: 'agent',
-  entityId: agentId,
-  configId: `agent-config-config-${agentId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  data: agentData ? {
-    settings: {
-      model: agentData.model,
-      model_provider: agentData.model_provider,
-      visibility: agentData.visibility,
-      agent_class: agentData.agent_class,
-      tools: agentData.tools,
-      permissions: agentData.permissions,
-      ...agentData.config,
+const createAgentPreviewFrame = (agentId: string, agentData?: any): ExtendedFrameInstance =>
+  makeFrameInstance({
+    id: `agent-preview-${agentId}`,
+    entityType: 'agent',
+    entityId: agentId,
+    configId: `agent-preview-config-${agentId}`,
+    FrameConfig: {
+      id: `agent-preview-config-${agentId}`,
+      name: 'Agent Overview',
+      description: 'View agent identity and status',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'agent_preview',
+      engagementMode: 'dialogic',
     },
-    availableSettings: ['model', 'model_provider', 'visibility', 'agent_class', 'tools', 'permissions'],
-  } : undefined,
-  FrameConfig: {
-    id: `agent-config-config-${agentId}`,
-    name: 'Agent Settings',
-    description: 'Configure agent parameters and behavior',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'config_panel',
-    engagementMode: 'dialogic',
-  },
-});
+  });
 
-const createTopicsFrame = (agentId: string): ExtendedFrameInstance => ({
-  id: `topics-${agentId}`,
-  entityType: 'agent',
-  entityId: agentId,
-  configId: `topics-config-${agentId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  data: {
-    view: 'list',
-    showTags: true,
-    groupBy: 'status'
-  },
-  FrameConfig: {
-    id: `topics-config-${agentId}`,
-    name: 'Topics',
-    description: 'Manage topics and highlights for this agent',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'topics',
-    engagementMode: 'focus',
-  },
-});
+const createAgentDialogFrame = (agentId: string, agentData?: any): ExtendedFrameInstance =>
+  makeFrameInstance({
+    id: `agent-dialog-${agentId}`,
+    entityType: 'agent',
+    entityId: agentId,
+    configId: `agent-dialog-config-${agentId}`,
+    FrameConfig: {
+      id: `agent-dialog-config-${agentId}`,
+      name: 'Agent Conversation',
+      description: 'Interactive conversation with the agent',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'dialog',
+      engagementMode: 'dialogic',
+    },
+  });
 
-const createDraftFrame = (agentId: string): ExtendedFrameInstance => ({
-  id: `draft-${agentId}`,
-  entityType: 'agent',
-  entityId: agentId,
-  configId: `draft-config-${agentId}`,
-  currentContentId: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  data: {
-    tabs: ['Form', 'JSON', 'Diff', 'History']
-  },
-  FrameConfig: {
-    id: `draft-config-${agentId}`,
-    name: 'Draft',
-    description: 'Edit and manage agent configuration drafts',
-    theme: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    frameType: 'draft',
-    engagementMode: 'canvas',
-  },
-});
+const createAgentConfigFrame = (agentId: string, agentData?: any): ExtendedFrameInstance =>
+  makeFrameInstance({
+    id: `agent-config-${agentId}`,
+    entityType: 'agent',
+    entityId: agentId,
+    configId: `agent-config-config-${agentId}`,
+    FrameConfig: {
+      id: `agent-config-config-${agentId}`,
+      name: 'Agent Settings',
+      description: 'Configure agent parameters and behavior',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'config_panel',
+      engagementMode: 'dialogic',
+    },
+  });
+
+const createTopicsFrame = (agentId: string): ExtendedFrameInstance =>
+  makeFrameInstance({
+    id: `topics-${agentId}`,
+    entityType: 'agent',
+    entityId: agentId,
+    configId: `topics-config-${agentId}`,
+    FrameConfig: {
+      id: `topics-config-${agentId}`,
+      name: 'Topics',
+      description: 'Manage topics and highlights for this agent',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'topics',
+      engagementMode: 'focus',
+    },
+  });
+
+const createDraftFrame = (agentId: string): ExtendedFrameInstance =>
+  makeFrameInstance({
+    id: `draft-${agentId}`,
+    entityType: 'agent',
+    entityId: agentId,
+    configId: `draft-config-${agentId}`,
+    FrameConfig: {
+      id: `draft-config-${agentId}`,
+      name: 'Draft',
+      description: 'Edit and manage agent configuration drafts',
+      theme: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      frameType: 'draft',
+      engagementMode: 'canvas',
+    },
+  });
 
 // =============================================================================
 // MAIN COMPONENT
