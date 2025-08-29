@@ -12,11 +12,8 @@ import { motion } from 'framer-motion';
 import { 
   SparklesIcon,
   PlusIcon,
-  Cog6ToothIcon,
-  EyeIcon,
   PencilSquareIcon,
   ShareIcon,
-  CheckCircleIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
 import { BoardRenderer } from '../components/boards/BoardRenderer';

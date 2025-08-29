@@ -17,9 +17,7 @@ import {
   SparklesIcon,
   PlusIcon,
   XMarkIcon,
-  CheckIcon,
-  SwatchIcon,
-  BeakerIcon
+  CheckIcon
 } from '@heroicons/react/24/outline';
 import { BaseFrameProps, FrameTab } from '../../types/frame';
 import { useFrame } from '../../context/FrameContext';

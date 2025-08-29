@@ -16,7 +16,6 @@ import {
   ClockIcon,
   ShareIcon,
   PencilIcon,
-  EyeIcon,
   CalendarIcon,
   ChartBarIcon,
   CheckCircleIcon,

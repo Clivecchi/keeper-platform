@@ -9,14 +9,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  FrameRenderer,
-  MediaCardFrame,
-  PreviewFrame,
-  DialogFrame,
-  ConfigPanelFrame,
-  ProcessFrame,
-  AgentPreviewFrame,
-  CodeSnippetFrame
+  FrameRenderer
 } from '../components/frames';
 import { 
   ExtendedFrameInstance,

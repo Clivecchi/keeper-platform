@@ -3,16 +3,14 @@ import {
   XMarkIcon, 
   CheckCircleIcon, 
   ExclamationTriangleIcon,
-  UserGroupIcon,
   GlobeAltIcon,
-  PlusIcon,
   TrashIcon,
   ClockIcon,
   ClipboardDocumentIcon
 } from '@heroicons/react/24/outline';
 import { apiFetch } from '../../lib/api';
 import DnsInfoPanel from './DnsInfoPanel';
-import type { Domain, DomainDetailFormProps } from './types';
+import type { DomainDetailFormProps } from './types';
 
 interface Member {
   userId: string;

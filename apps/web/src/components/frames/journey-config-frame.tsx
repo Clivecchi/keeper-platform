@@ -12,15 +12,12 @@ import {
   Cog6ToothIcon,
   PaintBrushIcon,
   UserGroupIcon,
-  ShieldCheckIcon,
   TagIcon,
   EyeIcon,
   EyeSlashIcon,
-  UserPlusIcon,
   TrashIcon,
   CheckIcon,
-  XMarkIcon,
-  SwatchIcon
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import { BaseFrameProps, FrameTab } from '../../types/frame';
 import { useFrame } from '../../context/FrameContext';

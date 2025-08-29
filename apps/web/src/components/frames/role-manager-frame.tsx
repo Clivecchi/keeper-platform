@@ -11,15 +11,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShieldCheckIcon,
   UserIcon,
-  Cog6ToothIcon,
   CheckIcon,
   XMarkIcon,
   PlusIcon,
   TrashIcon,
-  ExclamationTriangleIcon,
   InformationCircleIcon,
   LockClosedIcon,
-  EyeIcon,
   PencilIcon
 } from '@heroicons/react/24/outline';
 import { BaseFrameProps, FrameTab } from '../../types/frame';

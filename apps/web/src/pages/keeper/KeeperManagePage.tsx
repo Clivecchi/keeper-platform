@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useViewMode } from '../../context/ViewModeContext';
-import { ViewMode } from '../../types/viewMode';
 import { keeperApi } from '../../lib/keeperApi';
 import { Keeper, KeeperType, UpdateKeeperRequest } from '../../types/keeper';
 import {
@@ -18,8 +17,7 @@ import {
   ChatBubbleLeftRightIcon,
   DocumentDuplicateIcon,
   CalendarIcon,
-  UserIcon,
-  XMarkIcon
+  UserIcon
 } from '@heroicons/react/24/outline';
 
 type TabType = 'registry' | 'keeper';

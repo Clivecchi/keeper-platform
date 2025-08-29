@@ -4,7 +4,6 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { apiFetch } from '../lib/api';
 
 // =============================================================================
 // TYPES

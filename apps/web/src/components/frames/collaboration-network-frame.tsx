@@ -6,7 +6,7 @@
  * Shows interactive graph of people, domains, and journeys with connections.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShareIcon,
@@ -14,7 +14,6 @@ import {
   MapIcon,
   GlobeAltIcon,
   EyeIcon,
-  MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon,
   ArrowsPointingOutIcon,
   ArrowsPointingInIcon

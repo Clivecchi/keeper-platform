@@ -9,7 +9,6 @@ import {
   LightBulbIcon,
   ClockIcon,
   CheckIcon,
-  TrashIcon,
   PencilIcon,
   ArrowUpIcon
 } from '@heroicons/react/24/outline';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { KipApi, AgentInput, KipAgent, AgentClass, ModelProvider, ModelSettings } from '../../../lib/kipApi';
+import { KipApi, AgentInput, KipAgent, AgentClass, ModelProvider } from '../../../lib/kipApi';
 import { AgentVisibility } from '../../../types/kip';
 import HelpTooltip from '../../../components/ui/HelpTooltip';
 

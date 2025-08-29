@@ -21,8 +21,7 @@ import { useBoard, BoardInstance } from '../context/BoardContext';
 import { useFrame } from '../context/FrameContext';
 import { 
   ExtendedFrameInstance, 
-  FrameInteraction,
-  CreateFrameInstanceRequest 
+  FrameInteraction 
 } from '../types/frame';
 
 // =============================================================================

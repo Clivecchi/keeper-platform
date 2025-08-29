@@ -3,7 +3,7 @@
  * Provides entity data and board state to frames
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { apiFetch } from '../lib/api';
 
 // =============================================================================

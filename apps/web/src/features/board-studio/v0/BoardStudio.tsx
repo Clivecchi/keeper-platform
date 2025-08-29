@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react"
 import { Button } from "./components/ui/button"
-import { Card, CardContent } from "./components/ui/card"
 import { Input } from "./components/ui/input"
 import { Textarea } from "./components/ui/textarea"
 import { ScrollArea } from "./components/ui/scroll-area"
@@ -13,27 +12,21 @@ import {
   Plus,
   ImageIcon,
   Type,
-  Palette,
-  Save,
-  Share2,
-  MoreHorizontal,
   Book,
   Film,
   Cog,
   ChevronDown,
-  User,
   Sparkles,
   Layout,
   Eye,
   Edit3,
-  Grid3X3,
   Video,
   Image,
   MousePointer,
   Bot,
 } from "lucide-react"
 import { PATTERNS } from "./patterns/registry"
-import type { StudioBoard, StudioFrame, PatternId, StudioProp, AiTokenV1 } from "./types"
+import type { StudioBoard, StudioFrame, PatternId, StudioProp } from "./types"
 
 interface BoardStudioProps {
   boardId?: string;

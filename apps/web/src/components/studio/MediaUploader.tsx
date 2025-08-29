@@ -9,7 +9,6 @@ import {
   PhotoIcon,
   VideoCameraIcon,
   CloudArrowUpIcon,
-  XMarkIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
   ArrowPathIcon

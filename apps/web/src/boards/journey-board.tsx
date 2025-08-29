@@ -12,7 +12,6 @@ import { motion } from 'framer-motion';
 import { 
   MapIcon,
   PlusIcon,
-  Cog6ToothIcon,
   EyeIcon,
   PencilSquareIcon,
   ShareIcon

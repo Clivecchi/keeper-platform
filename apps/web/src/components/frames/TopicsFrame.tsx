@@ -16,9 +16,7 @@ import {
   DocumentTextIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  ClockIcon,
-  PencilIcon,
-  TrashIcon
+  ClockIcon
 } from '@heroicons/react/24/outline';
 import { BaseFrameProps } from '../../types/frame';
 import { Topic, TopicHighlight, CreateTopicRequest, CreateTopicHighlightRequest } from '../../types/keeper';

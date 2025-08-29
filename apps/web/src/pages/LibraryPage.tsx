@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   FolderOpenIcon,
-  DocumentArrowUpIcon,
   DocumentTextIcon,
   DocumentIcon,
   EyeIcon,
@@ -10,8 +9,6 @@ import {
   TrashIcon,
   ArrowDownTrayIcon,
   MagnifyingGlassIcon,
-  FunnelIcon,
-  PlusIcon,
   CloudArrowUpIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,

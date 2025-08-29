@@ -6,8 +6,7 @@ import {
   UserIcon,
   CogIcon,
   KeyIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon
+  CheckCircleIcon
 } from '@heroicons/react/24/outline';
 import DomainManager from '../../components/domain-manager/DomainManager';
 

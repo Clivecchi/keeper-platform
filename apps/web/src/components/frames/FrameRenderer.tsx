@@ -11,8 +11,7 @@ import { motion } from 'framer-motion';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { 
   BaseFrameProps, 
-  FrameType, 
-  ExtendedFrameInstance,
+  FrameType,
   FrameTypeRegistry 
 } from '../../types/frame';
 

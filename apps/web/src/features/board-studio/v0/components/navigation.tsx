@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "./ui/button"
-import { BookOpen, Edit3, Library, Eye, Layout, Sparkles } from "lucide-react"
+import { Edit3, Eye, Layout, Sparkles } from "lucide-react"
 
 export function Navigation({ currentView }: { currentView: "edit" | "layout" | "preview" | "assist" }) {
   return (

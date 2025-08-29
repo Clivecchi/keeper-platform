@@ -6,7 +6,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  UserCircleIcon,
   Cog6ToothIcon,
   EyeIcon,
   EyeSlashIcon,
@@ -17,8 +16,7 @@ import {
   getTokenDisplaySize,
   getTokenDisplayName,
   getTokenAvatarFallback,
-  validateTokenConfig,
-  DEFAULT_TOKEN_CONFIG
+  validateTokenConfig
 } from './schema';
 
 // =============================================================================

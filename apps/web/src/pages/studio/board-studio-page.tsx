@@ -14,27 +14,16 @@ import { ScrollArea } from '../../features/board-studio/v0/components/ui/scroll-
 import { 
   PlusIcon,
   Squares2X2Icon,
-  CogIcon,
-  MagnifyingGlassIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  DocumentArrowUpIcon,
-  ArrowsPointingOutIcon,
   Bars3Icon,
   XMarkIcon,
   QuestionMarkCircleIcon,
-  InformationCircleIcon,
   ChevronDownIcon,
-  ChevronRightIcon,
   SparklesIcon,
   AcademicCapIcon,
   CommandLineIcon,
   PaintBrushIcon,
   BookOpenIcon,
-  UserGroupIcon,
-  ChatBubbleLeftRightIcon,
-  ClipboardDocumentListIcon
+  ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline';
 import {
   Plus,
@@ -49,14 +38,11 @@ import {
   Bot,
   Video,
   Image,
-  Cog,
 } from "lucide-react";
-import { BoardRenderer } from '../../components/boards/BoardRenderer';
-import { useBoard, BoardInstance } from '../../context/BoardContext';
+import { useBoard } from '../../context/BoardContext';
 import { useFrame } from '../../context/FrameContext';
 import { useAuth } from '../../context/AuthContext';
 import { useKeeperContext } from '../../context/KeeperContext';
-import FrameConfigSheet from '../../components/studio/FrameConfigSheet';
 import PatternRenderer from '../../features/board-studio/patterns/PatternRenderer';
 import DraggableTabs from '../../components/studio/DraggableTabs';
 import { useAutosave } from '../../hooks/useAutosave';

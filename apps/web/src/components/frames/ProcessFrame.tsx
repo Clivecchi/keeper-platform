@@ -12,8 +12,7 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
   CheckIcon,
-  ClockIcon,
-  ExclamationCircleIcon
+  ClockIcon
 } from '@heroicons/react/24/outline';
 import { BaseFrameProps } from '../../types/frame';
 import { useFrame } from '../../context/FrameContext';

@@ -19,8 +19,7 @@ import {
   EnvelopeIcon,
   ShieldCheckIcon,
   GlobeAltIcon,
-  CheckIcon,
-  XMarkIcon
+  CheckIcon
 } from '@heroicons/react/24/outline';
 import { BaseFrameProps } from '../../types/frame';
 import { useFrame } from '../../context/FrameContext';

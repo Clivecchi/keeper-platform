@@ -10,7 +10,7 @@ import {
   CheckIcon,
   SparklesIcon
 } from '@heroicons/react/24/outline';
-import { getAllTemplates, type TemplateId, type TemplateManifest } from '../../boards/templates';
+import { getAllTemplates, type TemplateId } from '../../boards/templates';
 
 // =============================================================================
 // TYPES

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { KipApi, KipAgent, KipSession, KipMessage } from '../lib/kipApi';
+import { KipApi, KipAgent, KipMessage } from '../lib/kipApi';
 
 interface Message {
   id: string;

@@ -5,7 +5,6 @@ import {
   PencilIcon, 
   TrashIcon, 
   SpeakerWaveIcon,
-  ExclamationTriangleIcon,
   CheckIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';

@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  RectangleStackIcon,
   DocumentTextIcon,
   Cog6ToothIcon,
-  PlusIcon,
-  TagIcon,
-  ClipboardDocumentListIcon
+  PlusIcon
 } from '@heroicons/react/24/outline';
 
 type TabType = 'content-types' | 'engagement-process';

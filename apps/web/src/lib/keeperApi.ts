@@ -1,7 +1,5 @@
 import { 
-  Keeper, 
   KeeperType, 
-  EngagementTemplate, 
   CreateKeeperRequest, 
   UpdateKeeperRequest,
   KeeperListResponse,

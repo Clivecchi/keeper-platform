@@ -4,7 +4,6 @@
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import SettingsRenderer from '../settings/SettingsRenderer';
 import MediaUploader from '../../../components/studio/MediaUploader';
 import PropManager from '../../../components/props/PropManager';
@@ -12,13 +11,10 @@ import {
   ChevronLeftIcon, 
   ChevronRightIcon,
   CheckCircleIcon,
-  PlayIcon,
-  PauseIcon,
   UserCircleIcon,
   CpuChipIcon,
   PhotoIcon,
-  DocumentTextIcon,
-  Cog6ToothIcon
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 
 // =============================================================================

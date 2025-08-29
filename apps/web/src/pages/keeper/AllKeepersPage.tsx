@@ -12,7 +12,6 @@ import {
   SparklesIcon,
   DocumentTextIcon,
   EyeIcon,
-  PencilIcon,
   TrashIcon,
   MagnifyingGlassIcon,
   FunnelIcon,

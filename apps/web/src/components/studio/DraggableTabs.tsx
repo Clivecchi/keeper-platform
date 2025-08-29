@@ -3,12 +3,10 @@
  * Drag-to-reorder tabs with pinned Cover and Settings
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion, Reorder, useDragControls, AnimatePresence } from 'framer-motion';
 import {
   Cog6ToothIcon,
-  BookOpenIcon,
-  EllipsisHorizontalIcon,
   Bars3Icon,
   ChevronDownIcon,
   CheckIcon,

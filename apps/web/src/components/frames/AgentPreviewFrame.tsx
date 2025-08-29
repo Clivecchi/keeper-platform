@@ -10,7 +10,6 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   CpuChipIcon,
-  UserIcon,
   ClockIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,

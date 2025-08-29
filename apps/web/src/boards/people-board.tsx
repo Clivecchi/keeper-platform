@@ -12,13 +12,9 @@ import { motion } from 'framer-motion';
 import { 
   UserGroupIcon,
   PlusIcon,
-  Cog6ToothIcon,
   EyeIcon,
-  PencilSquareIcon,
   ShareIcon,
-  CheckCircleIcon,
   ClockIcon,
-  UsersIcon,
   FunnelIcon
 } from '@heroicons/react/24/outline';
 import { BoardRenderer } from '../components/boards/BoardRenderer';

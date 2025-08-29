@@ -17,7 +17,6 @@ import {
   ChatBubbleLeftIcon,
   ShareIcon,
   EyeIcon,
-  CalendarIcon,
   ClockIcon,
   PlusIcon,
   FunnelIcon

@@ -7,14 +7,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   PaperAirplaneIcon,
-  BoltIcon,
-  UserCircleIcon,
   SparklesIcon,
   CheckIcon,
-  XMarkIcon,
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
-import { simulateDialog, suggestProps, getDialogHistory, type DialogSimResponse, type PropSuggestionsResponse } from '../../ai/agentBridge';
+import { simulateDialog, suggestProps, getDialogHistory, type PropSuggestionsResponse } from '../../ai/agentBridge';
 
 // =============================================================================
 // TYPES

@@ -11,9 +11,6 @@ import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   GlobeAltIcon,
-  PlusIcon,
-  Cog6ToothIcon,
-  UserGroupIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
 import { BoardRenderer } from '../components/boards/BoardRenderer';
