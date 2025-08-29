@@ -353,7 +353,7 @@ This content is currently simulated for demonstration purposes.`;
     
     let content = '';
     let mimeType = '';
-    let filename = doc.name;
+    const filename = doc.name;
 
     switch (doc.type) {
       case 'json':

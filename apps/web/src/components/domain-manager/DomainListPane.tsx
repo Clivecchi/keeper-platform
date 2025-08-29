@@ -40,7 +40,7 @@ const DomainListPane: React.FC<Props> = ({ scope, onSelect, selectedId, allowCre
   };
 
   // initial load
-  useEffect(() => { fetchList(); /* eslint-disable-next-line react-hooks/exhaustive-deps */}, [scope]);
+  useEffect(() => { fetchList();  }, [scope]);
 
   // debounce search (admin scope only)
   useEffect(() => {

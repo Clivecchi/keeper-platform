@@ -154,7 +154,7 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
       const permissions = parseTagsInput(permissionsInput);
 
       // Prepare config based on agent class
-      let config: any = {
+      const config: any = {
         max_tokens: 4000,
         temperature: 0.1,
         ...formData.config
