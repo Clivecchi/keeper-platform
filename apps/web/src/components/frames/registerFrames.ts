@@ -12,6 +12,8 @@ import TopicsFrame from './TopicsFrame';
 import DraftsFrame from './DraftFrame';
 import ConfigPanelFrame from './ConfigPanelFrame';
 import ActivityFrameDefault from './activity-feed-frame';
+import { MemoryFrame } from './MemoryFrame';
+import { MemoryPropsSchema } from './schemas';
 
 export function registerAllExistingFrames() {
   registerFrameType({
@@ -50,6 +52,13 @@ export function registerAllExistingFrames() {
   });
 
   // Note: tasks and memory are intentionally deferred in Phase 1
+  registerFrameType({
+    type: 'memory',
+    title: 'Memory',
+    Component: MemoryFrame as any,
+    zodPropsSchema: MemoryPropsSchema,
+    defaultProps: { limit: 20 },
+  });
 }
 
 

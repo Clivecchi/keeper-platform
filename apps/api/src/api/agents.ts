@@ -4,11 +4,15 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { memoryRouter } from './agents/memory.js';
 import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 
 const router: Router = Router();
+
+// Sub-routes
+router.use(memoryRouter);
 const prisma = new PrismaClient();
 
 // Validation schemas
