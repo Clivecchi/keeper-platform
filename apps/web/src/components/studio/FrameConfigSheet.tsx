@@ -1,6 +1,6 @@
 import React from 'react';
 // Prefer the .tsx variant when bundling
-import { patternRegistry, PatternId } from '../../patterns/registry.tsx';
+import { patternRegistry, PatternId } from '../../patterns/registry';
 
 interface FrameConfigSheetProps {
   frameId: string;

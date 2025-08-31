@@ -53,8 +53,9 @@ const TopicsFrame: React.FC<TopicsFrameProps> = ({
   const [newTopicTags, setNewTopicTags] = useState('');
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [showHighlightForm, setShowHighlightForm] = useState(false);
-  const [newHighlight, setNewHighlight] = useState({
-    kind: 'fact' as const,
+  type LocalHighlight = { kind: TopicHighlight['kind']; text: string };
+  const [newHighlight, setNewHighlight] = useState<LocalHighlight>({
+    kind: 'fact',
     text: ''
   });
 

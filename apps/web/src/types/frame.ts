@@ -6,8 +6,8 @@
  * These types align with the backend Prisma models: FrameConfig, FrameContent, FrameInstance
  */
 
-// Import database types
-import type { FrameConfig, FrameContent, FrameInstance } from '@keeper/database';
+// Import database types (own the web-side content shape locally)
+import type { FrameConfig, FrameInstance } from '@keeper/database';
 
 // =============================================================================
 // FRAME TYPE DEFINITIONS
@@ -56,23 +56,24 @@ export interface ExtendedFrameConfig extends FrameConfig {
 /**
  * Extended FrameContent with rendering metadata
  */
-export interface ExtendedFrameContent extends FrameContent {
-  metadata?: {
-    duration?: number;
-    dimensions?: { width: number; height: number };
-    thumbnailUrl?: string;
-    tags?: string[];
-  };
-}
+// Web-owned content shape used by renderers and previews
+export type ExtendedFrameContent = {
+  id?: string;
+  type?: string;
+  url?: string;
+  alt?: string;
+  // Keep open for renderer-specific fields
+  [key: string]: unknown;
+};
 
 /**
  * Extended FrameInstance with populated relations
  */
-export interface ExtendedFrameInstance extends FrameInstance {
+export type ExtendedFrameInstance = FrameInstance & {
   FrameConfig?: ExtendedFrameConfig;
   FrameContent_FrameInstance_currentContentIdToFrameContent?: ExtendedFrameContent;
   FrameContent_FrameContent_playlistOwnerIdToFrameInstance?: ExtendedFrameContent[];
-}
+};
 
 // =============================================================================
 // FRAME RENDERING PROPS
@@ -244,7 +245,8 @@ export interface CreateFrameInstanceRequest {
 /**
  * Frame renderer component type
  */
-export type FrameRendererComponent = React.FC<BaseFrameProps>;
+// Allow both function and class components
+export type FrameRendererComponent = React.ComponentType<BaseFrameProps>;
 
 /**
  * Frame type registry for dynamic rendering

@@ -68,7 +68,7 @@ const KipStudioPage: React.FC = () => {
     try {
       const result = await KipApi.runAgent(agentId, testInput);
       if (result.success) {
-        setIntentResult(result.data);
+        setIntentResult((result.data ?? null) as KipCommandIntent | null);
       } else {
         setError('Agent execution failed');
       }

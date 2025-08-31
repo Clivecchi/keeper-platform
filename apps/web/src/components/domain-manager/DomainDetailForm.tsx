@@ -634,7 +634,7 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                           records={dnsRecords}
                           nameServers={nameServers}
                           configured={dnsStatus?.configured === true || false}
-                          verified={domain.customDomainVerified}
+                          verified={!!domain.customDomainVerified}
                         />
                       </div>
                     )}

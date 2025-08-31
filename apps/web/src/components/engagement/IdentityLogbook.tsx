@@ -123,7 +123,8 @@ const IdentityLogbook: React.FC<IdentityLogbookProps> = ({ keeperId, agentId, is
       const newEntry: SoleLogbookEntry = {
         id: `demo-logbook-${Date.now()}`,
         ...entryData,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        tags: entryData.tags ?? []
       };
       setLogbookEntries([newEntry, ...logbookEntries]);
       

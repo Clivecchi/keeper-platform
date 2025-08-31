@@ -252,18 +252,26 @@ const AgentsPage: React.FC = () => {
               </div>
 
               {/* Coordinator Bundle Information */}
-              {agent.agent_class === 'Coordinator' && agent.config?.bundle && Array.isArray(agent.config.bundle) && agent.config.bundle.length > 0 && (
+              {(() => {
+                const bundle = Array.isArray((agent.config as any)?.bundle)
+                  ? ((agent.config as any).bundle as unknown[])
+                  : undefined;
+                return agent.agent_class === 'Coordinator' && !!bundle && bundle.length > 0 ? (
                 <div className="space-y-2">
                   <div className="text-xs font-medium text-foreground">Agent Bundle:</div>
                   <div className="flex flex-wrap gap-1">
-                    {(agent.config.bundle as string[]).map((slug: string) => (
-                      <span key={slug} className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded border border-purple-200">
-                        {slug}
-                      </span>
-                    ))}
+                    {bundle.map((value) => {
+                      const slug = (typeof value === 'string' || typeof value === 'number') ? String(value) : JSON.stringify(value);
+                      return (
+                        <span key={slug} className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded border border-purple-200">
+                          {slug}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
-              )}
+                ) : null;
+              })()}
 
               <div className="flex space-x-2 pt-2" onClick={(e) => e.stopPropagation()}>
                 <button

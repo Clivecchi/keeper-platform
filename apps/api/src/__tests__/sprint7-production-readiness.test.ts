@@ -1,9 +1,44 @@
+import { vi } from "vitest";
+
+vi.mock("../services/ProductionConfigService", () => ({
+  ProductionConfigService: class {
+    isProd() { return false }
+    getAllowedOrigins() { return ["http://localhost:5173"] }
+  }
+}));
+
+vi.mock("../services/MonitoringService", () => ({
+  MonitoringService: class {
+    recordMetric(name: string, value: number) {}
+    getMetrics() { return {}; }
+    startHealthCheck() {}
+    stopHealthCheck() {}
+  }
+}));
+
+vi.mock("../services/DeploymentAutomationService", () => ({
+  DeploymentAutomationService: class {
+    deploy() { return Promise.resolve({ success: true }); }
+    rollback() { return Promise.resolve({ success: true }); }
+    getStatus() { return { status: 'healthy' }; }
+  }
+}));
+
+vi.mock("../services/DomainCacheService", () => ({
+  DomainCacheService: class {
+    getData(key: string) { return Promise.resolve(null); }
+    setData(key: string, data: any) { return Promise.resolve(); }
+    deleteData(key: string) { return Promise.resolve(); }
+    clearAll() { return Promise.resolve(); }
+  }
+}));
+
 /**
  * Sprint 7 Production Readiness Integration Tests
  * Comprehensive test suite for production configuration, monitoring, and deployment automation
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import express from 'express';

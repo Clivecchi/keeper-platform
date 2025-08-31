@@ -98,9 +98,9 @@ const MediaCardFrame: React.FC<MediaCardFrameProps> = ({
   }
 
   const renderMedia = () => {
-    const { type, url, alt } = currentContent;
+    const { type, url, alt } = currentContent as { type?: string; url?: string; alt?: string };
 
-    switch (type.toLowerCase()) {
+    switch ((type || '').toLowerCase()) {
       case 'image':
         return (
           <img

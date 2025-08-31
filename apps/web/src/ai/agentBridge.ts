@@ -117,6 +117,14 @@ const PROP_SUGGESTIONS = {
 };
 
 // =============================================================================
+// TYPE GUARDS FOR SAFE UNION ACCESS
+// =============================================================================
+
+function hasTitle(x: unknown): x is { title: string[] } {
+  return !!x && typeof x === 'object' && 'title' in x;
+}
+
+// =============================================================================
 // AGENT BRIDGE IMPLEMENTATION
 // =============================================================================
 
@@ -199,7 +207,7 @@ export class AgentBridge {
 
     // Title suggestions based on context
     if (!currentProps.title || currentProps.title.length < 3) {
-      const titleSuggestions = baseSuggestions.title || ["Untitled"];
+      const titleSuggestions = hasTitle(baseSuggestions) ? baseSuggestions.title : ["Untitled"];
       suggestions.title = titleSuggestions[Math.floor(Math.random() * titleSuggestions.length)];
       explanations.push({
         path: 'title',

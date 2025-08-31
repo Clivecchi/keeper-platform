@@ -1,3 +1,3 @@
 export { default as BoardStudio } from './BoardStudio';
-export * from './types';
-export * from './patterns/registry';
+export type { PatternId } from './types';
+export { PATTERNS as patternRegistry } from './patterns/registry';

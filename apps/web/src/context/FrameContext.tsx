@@ -14,6 +14,7 @@ import {
   EngagementMode,
   FrameInteraction 
 } from '../types/frame';
+import { makeFrameInstance } from '../utils/frameFactory';
 
 // =============================================================================
 // CONTEXT SETUP
@@ -119,15 +120,16 @@ export const FrameProvider: React.FC<FrameProviderProps> = ({ children }) => {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Mock frame data - replace with actual API response
-      const mockFrame: ExtendedFrameInstance = {
-        id: frameId,
-        entityType: 'keeper',
-        entityId: 'mock-entity',
+      const mockFrame: ExtendedFrameInstance = makeFrameInstance({
+        name: 'Mock',
+        role: 'content',
+        pattern: 'preview',
+        props: {},
+        entityType: 'board',
+        entityId: 'mock',
         configId: 'mock-config',
-        currentContentId: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+        id: frameId,
+      });
 
       dispatch({ type: 'ADD_FRAME', payload: mockFrame });
     } catch (error) {

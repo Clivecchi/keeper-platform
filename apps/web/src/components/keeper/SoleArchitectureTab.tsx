@@ -147,22 +147,26 @@ const SoleArchitectureTab: React.FC<SoleArchitectureTabProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Type</label>
-                  <p className="text-foreground">{keeper.sole.type || 'Not specified'}</p>
+                  <p className="text-foreground">{String(keeper.sole.type || 'Not specified')}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Author</label>
-                  <p className="text-foreground">{keeper.sole.author || 'Not specified'}</p>
+                  <p className="text-foreground">{String(keeper.sole.author || 'Not specified')}</p>
                 </div>
                 <div className="md:col-span-2">
                   <label className="text-sm font-medium text-muted-foreground">Content</label>
-                  <p className="text-foreground mt-1">{keeper.sole.content || 'No content'}</p>
+                  <p className="text-foreground mt-1">{String(keeper.sole.content || 'No content')}</p>
                 </div>
-                {keeper.sole.timestamp && (
+                {Boolean(keeper.sole.timestamp) ? (
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Timestamp</label>
-                    <p className="text-foreground">{new Date(keeper.sole.timestamp).toLocaleString()}</p>
+                    <p className="text-foreground">{(() => {
+                      const ts = keeper.sole.timestamp as unknown;
+                      const date = typeof ts === 'number' ? new Date(ts) : new Date(String(ts));
+                      return date.toString() === 'Invalid Date' ? 'Invalid or missing timestamp' : date.toLocaleString();
+                    })()}</p>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -206,15 +210,15 @@ const SoleArchitectureTab: React.FC<SoleArchitectureTabProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Type</label>
-                  <p className="text-foreground">{keeper.soleDraft.type || 'Not specified'}</p>
+                  <p className="text-foreground">{String(keeper.soleDraft.type || 'Not specified')}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Author</label>
-                  <p className="text-foreground">{keeper.soleDraft.author || 'Not specified'}</p>
+                  <p className="text-foreground">{String(keeper.soleDraft.author || 'Not specified')}</p>
                 </div>
                 <div className="md:col-span-2">
                   <label className="text-sm font-medium text-muted-foreground">Content</label>
-                  <p className="text-foreground mt-1">{keeper.soleDraft.content || 'No content'}</p>
+                  <p className="text-foreground mt-1">{String(keeper.soleDraft.content || 'No content')}</p>
                 </div>
                 {keeper.soleSubmittedAt && (
                   <div>

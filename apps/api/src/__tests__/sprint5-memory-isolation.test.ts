@@ -11,8 +11,8 @@ import {
   MemoryMigrationService,
   DomainCacheService
 } from '@keeper/database';
-import { createTestApp } from '../../../utils/testApp';
-import { createTestUser, createTestDomain } from '../../../utils/testFixtures';
+import { createTestApp } from '../../test/utils/createTestApp';
+import { createTestUser, createTestDomain } from '../../test/utils/fixtures';
 
 describe('SOLE Memory Isolation Integration Tests', () => {
   let app: Record<string, unknown>;

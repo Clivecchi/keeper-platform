@@ -72,11 +72,11 @@ const AgentLogsPage: React.FC = () => {
     try {
       setIsLoadingLogs(true);
       setError(null);
-      const logsResponse: LogsResponse = await KipApi.getAgentLogs({
+      const logsResponse = (await KipApi.getAgentLogs({
         page: currentPage,
         pageSize: 20,
         agentId: selectedAgentId || undefined
-      });
+      })) as unknown as LogsResponse;
       setLogs(logsResponse.logs);
       setTotalPages(logsResponse.totalPages);
     } catch (err) {

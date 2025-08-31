@@ -61,7 +61,9 @@ const JourneyOverviewFrame: React.FC<BaseFrameProps> = ({
     visibility: 'public',
     createdAt: new Date('2024-01-15'),
     lastModified: new Date(),
-    ...frameInstance.FrameContent_FrameInstance_currentContentIdToFrameContent?.metadata
+    ...(typeof frameInstance.FrameContent_FrameInstance_currentContentIdToFrameContent?.metadata === 'object'
+      ? (frameInstance.FrameContent_FrameInstance_currentContentIdToFrameContent?.metadata as Record<string, unknown>)
+      : {})
   };
 
   const handleJourneyAction = (action: string, data?: any) => {

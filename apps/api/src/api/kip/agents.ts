@@ -9,6 +9,8 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '@keeper/database';
+import { isDbDisabled } from '../../lib/env.js';
+import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import type { 
   AgentInput, 
   AgentResponse, 
@@ -843,6 +845,10 @@ export default async function handler(req: Request, res: Response) {
   try {
     switch (req.method) {
       case 'GET':
+        // Mock fallback when DB is disabled
+        if (isDbDisabled()) {
+          return res.status(200).json({ success: true, agents: MOCK_AGENTS });
+        }
         // Handle different GET routes
         const { id, slug, logs, agentId: queryAgentId, userId: queryUserId, page, pageSize, stats, sessions, sessionId: querySessionId, messages } = req.query;
         

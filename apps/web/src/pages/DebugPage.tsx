@@ -189,9 +189,9 @@ const DebugPage: React.FC = () => {
         userAgent: navigator.userAgent
       },
       user: {
-        id: user?.id,
-        email: user?.email,
-        name: user?.name,
+        id: user?.id ?? null,
+        email: user?.email ?? null,
+        name: user?.name ?? null,
         idType: typeof user?.id,
         idLength: user?.id?.length || 0,
         isValidUUID: user?.id ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id) : false

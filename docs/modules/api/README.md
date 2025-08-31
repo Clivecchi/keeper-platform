@@ -35,3 +35,4 @@ The API server uses:
 
 ## 📆 Update Log
 - **2025-07-16**: Implemented secure authentication flow with bcryptjs password hashing and signed JWTs. Replaced placeholder login/register logic with full DB-backed implementation; profile updates now succeed with valid tokens. 
+ - **2025-08-29**: Added global Vitest setup `apps/api/vitest.setup.ts` to enforce safe test env. Defaulted `DISABLE_REDIS=true` to use internal no-op Redis in tests. Updated `vitest.config.ts` to include setup and exclude two non-suite demo files.

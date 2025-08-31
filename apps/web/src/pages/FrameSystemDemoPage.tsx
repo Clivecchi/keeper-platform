@@ -13,60 +13,36 @@ import {
 } from '../components/frames';
 import { 
   ExtendedFrameInstance,
+  ExtendedFrameContent,
   FrameType,
   EngagementMode 
 } from '../types/frame';
+import { makeFrameInstance } from '../utils/frameFactory';
 
 const FrameSystemDemoPage: React.FC = () => {
   const [selectedFrameType, setSelectedFrameType] = useState<FrameType>('preview');
   const [engagementMode, setEngagementMode] = useState<EngagementMode>('dialogic');
 
   // Mock frame instance data
-  const mockFrameInstance: ExtendedFrameInstance = {
-    id: 'demo-frame-1',
-    entityType: 'demo',
-    entityId: 'demo-entity-1',
-    configId: 'demo-config-1',
-    currentContentId: 'demo-content-1',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    FrameConfig: {
-      id: 'demo-config-1',
-      name: 'Demo Frame Configuration',
-      description: 'A demonstration frame for testing the Frame system',
-      theme: { primaryColor: '#3B82F6', backgroundColor: '#F8FAFC' },
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      frameType: selectedFrameType,
-      engagementMode: engagementMode,
-    },
-    FrameContent_FrameInstance_currentContentIdToFrameContent: {
-      id: 'demo-content-1',
-      type: 'image',
-      url: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=600&fit=crop',
-      alt: 'Modern office workspace',
-      createdAt: new Date(),
-      playlistOwnerId: 'demo-frame-1',
-    },
-    FrameContent_FrameContent_playlistOwnerIdToFrameInstance: [
-      {
-        id: 'demo-content-1',
-        type: 'image',
-        url: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=600&fit=crop',
-        alt: 'Modern office workspace',
-        createdAt: new Date(),
-        playlistOwnerId: 'demo-frame-1',
-      },
-      {
-        id: 'demo-content-2',
-        type: 'image',
-        url: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?w=800&h=600&fit=crop',
-        alt: 'Creative workspace',
-        createdAt: new Date(),
-        playlistOwnerId: 'demo-frame-1',
-      }
-    ]
+  const demoContent: ExtendedFrameContent = {
+    id: 'demo-content-1',
+    type: 'image',
+    url: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=600&fit=crop',
+    alt: 'Modern office workspace'
   };
+
+  const demoProps: ExtendedFrameInstance['props'] = JSON.parse(JSON.stringify({ content: demoContent })) as ExtendedFrameInstance['props'];
+
+  const mockFrameInstance: ExtendedFrameInstance = makeFrameInstance({
+    id: 'demo-frame-1',
+    name: 'Demo',
+    role: 'content',
+    pattern: 'preview',
+    props: demoProps,
+    entityType: 'board',
+    entityId: 'demo-entity-1',
+    configId: 'demo-config-1'
+  });
 
   const frameTypes: { value: FrameType; label: string; description: string }[] = [
     { value: 'media_card', label: 'Media Card', description: 'Rich media presentation with controls' },

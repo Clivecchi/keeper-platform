@@ -44,6 +44,8 @@ import { useFrame } from '../../context/FrameContext';
 import { useAuth } from '../../context/AuthContext';
 import { useKeeperContext } from '../../context/KeeperContext';
 import PatternRenderer from '../../features/board-studio/patterns/PatternRenderer';
+import type { ExtendedFrameInstance } from '../../types/frame';
+import { makeFrameInstance } from '../../utils/frameFactory';
 import DraggableTabs from '../../components/studio/DraggableTabs';
 import { useAutosave } from '../../hooks/useAutosave';
 import ConflictDialog from '../../components/studio/ConflictDialog';
@@ -378,12 +380,10 @@ const FrameCard: React.FC<{
       draggable
       onDragStart={() => {
         setIsDragging(true);
-        setDraggedItemType('frame');
         onDragStart(frame);
       }}
       onDragEnd={() => {
         setIsDragging(false);
-        setDraggedItemType(null);
       }}
       className={`group p-4 border border-slate-200 rounded-lg cursor-move hover:border-slate-300 hover:shadow-md transition-all bg-white relative ${
         isDragging ? 'opacity-50' : ''
@@ -570,7 +570,7 @@ const BoardStudioPage: React.FC = () => {
           boardId: board.id,
           boardName: board.name,
           totalFrames: board.frames?.length || 0,
-          framesWithProps: board.frames?.filter(f => f.props && Object.keys(f.props).length > 0).length || 0,
+          framesWithProps: board.frames?.filter((f: any) => f.props && Object.keys(f.props as object).length > 0).length || 0,
           rawFrames: board.frames
         });
 
@@ -593,20 +593,20 @@ const BoardStudioPage: React.FC = () => {
         
         console.log('🔍 Debug: Processed frames for mockFrames:', {
           processedFrames: frames.length,
-          framesWithProps: frames.filter(f => f.props && Object.keys(f.props).length > 0).length,
-          frameDetails: frames.map(f => ({
+          framesWithProps: frames.filter((f: any) => f.props && Object.keys(f.props as object).length > 0).length,
+          frameDetails: frames.map((f: any) => ({
             id: f.id,
             name: f.data.name,
             role: f.data.role,
             hasProps: !!f.props,
-            propsCount: f.props ? Object.keys(f.props).length : 0,
+            propsCount: f.props ? Object.keys(f.props as object).length : 0,
             props: f.props
           }))
         });
         
         setMockFrames(frames);
         // Select the content frame (not cover) by default
-        const contentFrame = frames.find(f => f.data?.role !== 'cover' && f.data?.role !== 'settings') || frames[1] || frames[0];
+        const contentFrame = frames.find((f: any) => f.data?.role !== 'cover' && f.data?.role !== 'settings') || frames[1] || frames[0];
         setSelectedFrameId(contentFrame?.id || null);
         
         // Update etag for autosave conflict detection
@@ -1331,25 +1331,15 @@ const BoardStudioPage: React.FC = () => {
       try {
         if (activeBoard && addFrame) {
           // Create a proper frame instance for the context
-          const contextFrame = {
-            ...newFrame,
-            entityType: 'board' as const,
-            entityId: selectedBoardId,
-            configId: `config-${Date.now()}`,
-            currentContentId: null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            FrameConfig: {
-              id: `config-${Date.now()}`,
-              name: newFrame.data.name,
-              description: newFrame.data.description,
-              theme: null,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              frameType: 'preview' as any,
-              engagementMode: 'dialogic' as any,
-            }
-          };
+          const contextFrame = makeFrameInstance({
+            name: newFrame.data.name,
+            role: 'settings',
+            pattern: 'preview',
+            props: {},
+            entityType: 'board',
+            entityId: activeBoard.id,
+            configId: 'context'
+          });
           await addFrame(activeBoard.id, contextFrame);
         }
       } catch (contextError) {
@@ -1891,15 +1881,16 @@ const BoardStudioPage: React.FC = () => {
             
             // Debug the frame data being loaded
             if (response.data && response.data.frames) {
+              const framesResp = ((response.data as any)?.frames ?? []) as ExtendedFrameInstance[];
               console.log('🔍 Debug: Frame data from API:', {
-                totalFrames: response.data.frames.length,
-                framesWithProps: response.data.frames.filter(f => f.props && Object.keys(f.props).length > 0).length,
-                frameDetails: response.data.frames.map(f => ({
+                totalFrames: framesResp.length,
+                framesWithProps: framesResp.filter((f: ExtendedFrameInstance) => f.props && Object.keys(f.props as object).length > 0).length,
+                frameDetails: framesResp.map((f: ExtendedFrameInstance) => ({
                   id: f.id,
-                  name: f.name || f.data?.name,
-                  role: f.data?.role,
+                  name: (f as any).name || (f as any).data?.name,
+                  role: (f as any).data?.role,
                   hasProps: !!f.props,
-                  propsCount: f.props ? Object.keys(f.props).length : 0,
+                  propsCount: f.props ? Object.keys(f.props as object).length : 0,
                   props: f.props
                 }))
               });

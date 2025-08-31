@@ -48,7 +48,9 @@ const DomainCardFrame: React.FC<BaseFrameProps> = ({
     customDomain: 'my-domain.com',
     lastActivity: new Date(),
     plan: 'Professional',
-    ...frameInstance.FrameContent_FrameInstance_currentContentIdToFrameContent?.metadata
+    ...(typeof frameInstance.FrameContent_FrameInstance_currentContentIdToFrameContent?.metadata === 'object'
+      ? (frameInstance.FrameContent_FrameInstance_currentContentIdToFrameContent?.metadata as Record<string, unknown>)
+      : {})
   };
 
   const handleCardClick = () => {

@@ -509,14 +509,19 @@ const CanvasPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
           </div>
         );
       case 'heading':
-        const HeadingTag = `h${prop.config.level || 2}` as keyof JSX.IntrinsicElements;
-        return (
-          <div key={prop.id} className="mb-4">
-            <HeadingTag className="text-gray-900 font-bold" style={{ textAlign: prop.config.alignment || 'left' }}>
-              {prop.config.content || 'Empty heading'}
-            </HeadingTag>
-          </div>
-        );
+        {
+          const lvl = Math.min(6, Math.max(1, Number(prop.config.level ?? 2)));
+          const HeadingTag: React.ElementType = `h${lvl}` as unknown as React.ElementType;
+          return (
+            <div key={prop.id} className="mb-4">
+              {React.createElement(
+                HeadingTag,
+                { className: 'text-gray-900 font-bold', style: { textAlign: prop.config.alignment ?? 'left' } },
+                prop.config.content || 'Empty heading'
+              )}
+            </div>
+          );
+        }
       case 'button':
         return (
           <div key={prop.id} className="mb-4">
@@ -769,7 +774,7 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
               if (onFrameUpdate) {
                 try {
                   // Convert props array back to object format for backend
-                  const propsObject = {};
+                  const propsObject: Record<string, unknown> = {};
                   props.forEach((prop, index) => {
                     propsObject[prop.id || `prop_${index}`] = prop;
                   });

@@ -64,7 +64,9 @@ const KeeperTypeOverviewFrame: React.FC<BaseFrameProps> = ({
     lastModified: new Date(),
     version: '2.1.0',
     capabilities: ['Code Generation', 'Debugging', 'Architecture Review', 'Testing'],
-    ...frameInstance.FrameContent_FrameInstance_currentContentIdToFrameContent?.metadata
+    ...(typeof frameInstance.FrameContent_FrameInstance_currentContentIdToFrameContent?.metadata === 'object'
+      ? (frameInstance.FrameContent_FrameInstance_currentContentIdToFrameContent?.metadata as Record<string, unknown>)
+      : {})
   };
 
   const handleKeeperTypeAction = (action: string, data?: any) => {

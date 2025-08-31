@@ -120,12 +120,12 @@ export const fetchThemeById = async (themeId: string, token?: string): Promise<T
 
     // Convert all hex values in both light and dark modes to HSL strings safely
     (Object.keys(theme.light || {}) as Array<keyof ThemeTokens>).forEach(key => {
-      // @ts-expect-error index signature normalization
-      theme.light[key] = hexToHslString(theme.light[key] as unknown as string);
+      const value = theme.light[key] as unknown as string;
+      theme.light[key] = hexToHslString(value);
     });
     (Object.keys(theme.dark || {}) as Array<keyof ThemeTokens>).forEach(key => {
-      // @ts-expect-error index signature normalization
-      theme.dark[key] = hexToHslString(theme.dark[key] as unknown as string);
+      const value = theme.dark[key] as unknown as string;
+      theme.dark[key] = hexToHslString(value);
     });
 
     return theme;

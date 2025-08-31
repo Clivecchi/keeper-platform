@@ -47,14 +47,15 @@ export const useAutosave = (
   const [state, setState] = useState<AutosaveState>({ status: 'idle' });
   const [currentEtag, setCurrentEtag] = useState<string | undefined>();
   
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  // In browsers, setTimeout returns a number
+  const timeoutRef = useRef<number | null>(null);
   const pendingDataRef = useRef<any>(null);
   const isSavingRef = useRef(false);
 
   // Clear timeout on unmount
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) {
+      if (timeoutRef.current !== null) {
         clearTimeout(timeoutRef.current);
       }
     };
@@ -132,12 +133,12 @@ export const useAutosave = (
     pendingDataRef.current = data;
 
     // Clear existing timeout
-    if (timeoutRef.current) {
+    if (timeoutRef.current !== null) {
       clearTimeout(timeoutRef.current);
     }
 
     // Set new timeout
-    timeoutRef.current = setTimeout(() => {
+    timeoutRef.current = window.setTimeout(() => {
       if (pendingDataRef.current && !isSavingRef.current) {
         save(pendingDataRef.current);
       }

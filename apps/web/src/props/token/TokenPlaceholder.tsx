@@ -312,7 +312,8 @@ const TokenPlaceholder: React.FC<TokenPlaceholderProps> = ({
               className="w-full h-full rounded-full object-cover"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling!.style.display = 'flex';
+                const sib = e.currentTarget.nextElementSibling as HTMLElement | null;
+                if (sib) sib.style.display = 'flex';
               }}
             />
           ) : null}

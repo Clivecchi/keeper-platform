@@ -83,7 +83,7 @@ const PreviewFrame: React.FC<BaseFrameProps> = ({
     return (
       <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
         <div className="text-gray-500">
-          {getContentIcon(currentContent.type)}
+          {getContentIcon(currentContent.type || '')}
         </div>
       </div>
     );

@@ -5,6 +5,7 @@ import DomainDetailForm from './DomainDetailForm';
 import DnsStatusBadge from './DnsStatusBadge';
 import DnsInfoPanel from './DnsInfoPanel';
 import { Domain, DomainScope } from './types';
+export type { DomainScope } from './types';
 import { CheckCircleIcon, MagnifyingGlassIcon, PlusIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 
 interface Props {
@@ -183,8 +184,8 @@ const DomainManager: React.FC<Props> = ({ scope, allowCreate = true }) => {
                   <div className="flex flex-col items-end gap-2">
                     <DnsStatusBadge
                       hasCustomDomain={!!domain.customDomain}
-                      isVerified={domain.customDomainVerified}
-                      isConfigured={domain.dnsStatus?.configured}
+                      isVerified={!!domain.customDomainVerified}
+                      isConfigured={!!domain.dnsStatus?.configured}
                       compact={true}
                     />
                     {domain.customDomainVerified && (
@@ -205,8 +206,8 @@ const DomainManager: React.FC<Props> = ({ scope, allowCreate = true }) => {
                     <DnsInfoPanel
                       records={domain.dnsStatus.records || []}
                       nameServers={domain.dnsStatus.nameServers || []}
-                      configured={domain.dnsStatus.configured}
-                      verified={domain.customDomainVerified}
+                      configured={!!domain.dnsStatus.configured}
+                      verified={!!domain.customDomainVerified}
                       compact={true}
                     />
                   </div>

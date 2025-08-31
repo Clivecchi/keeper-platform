@@ -165,21 +165,25 @@ const LeadAgentPage: React.FC = () => {
 
     try {
       const response = await KipApi.runAgent(agent.id, userMessage.content, undefined, sessionId || undefined);
+      type AgentAPIData = { response?: string; session_id?: string };
+      type AgentAPIEnvelope = { data?: AgentAPIData };
       
       if (response.success) {
+        const env = (response as unknown) as { data: AgentAPIEnvelope };
+        const payload: AgentAPIData = env?.data?.data ?? {};
         const agentMessage: Message = {
           id: `agent_${Date.now()}`,
           type: 'agent',
-          content: response.data.data?.response || 'I processed your request successfully.',
+          content: payload.response ?? 'I processed your request successfully.',
           timestamp: new Date()
         };
 
         setMessages(prev => prev.filter(msg => !msg.loading).concat([agentMessage]));
         
         // Update sessionId if it was returned (for new sessions created during execution)
-        if (response.data.data?.session_id && !sessionId) {
-          setSessionId(response.data.data.session_id);
-          setSearchParams({ sessionId: response.data.data.session_id });
+        if (payload.session_id && !sessionId) {
+          setSessionId(payload.session_id);
+          setSearchParams({ sessionId: payload.session_id });
         }
       } else {
         throw new Error('Failed to get agent response');

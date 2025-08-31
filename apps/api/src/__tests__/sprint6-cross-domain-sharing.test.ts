@@ -7,9 +7,9 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { Express } from 'express';
-import { createTestApp } from '../test-utils/app';
-import { createTestDomains, createTestUsers, createTestKeepers } from '../test-utils/fixtures';
-import { generateAccessToken } from '../test-utils/auth';
+import { createTestApp } from '../../test/utils/createTestApp';
+import { createTestDomains, createTestUsers, createTestKeepers } from '../../test/utils/fixtures';
+import { generateAccessToken } from '../../test/utils/auth';
 import { 
   CrossDomainSharingService,
   DomainCacheService,
