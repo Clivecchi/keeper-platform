@@ -78,40 +78,46 @@ const DraftFrame: React.FC<DraftFrameProps> = ({
         setIsLoading(true);
         setError(null);
 
-        // Load current draft (include topicId if set)
-        const draftUrl = new URL(`/api/agents/${agentId}/draft`, window.location.origin);
-        if (currentTopicId) draftUrl.searchParams.set('topicId', currentTopicId);
-        const draftResponse = await fetch(draftUrl.toString(), {
-          credentials: 'include'
-        });
-
-        if (draftResponse.ok) {
-          const draftData = await draftResponse.json();
-          const loadedDraft: AgentDraft = draftData.data;
-          setDraft(loadedDraft);
-          if (loadedDraft.payload) {
-            setFormData({
-              title: loadedDraft.title || '',
-              description: (loadedDraft as any).payload?.description as string || '',
-              model: (loadedDraft as any).payload?.model as string || '',
-              provider: (loadedDraft as any).payload?.provider as string || '',
-              tools: ((loadedDraft as any).payload?.tools as string[]) || [],
-              permissions: ((loadedDraft as any).payload?.permissions as string[]) || [],
-              customConfig: ((loadedDraft as any).payload?.customConfig as Record<string, unknown>) || {}
-            });
-            setJsonContent(JSON.stringify(loadedDraft.payload, null, 2));
+        // List drafts (plural) and take first for MVP
+        const listUrl = new URL(`/api/agents/${agentId}/drafts`, window.location.origin);
+        if (currentTopicId) listUrl.searchParams.set('topicId', currentTopicId);
+        const listRes = await fetch(listUrl.toString(), { credentials: 'include' });
+        if (listRes.ok) {
+          const listData = await listRes.json();
+          const first = Array.isArray(listData) ? listData[0] : (listData.data?.[0]);
+          if (first) {
+            const loadedDraft = {
+              status: (first.status as any) || 'editing',
+              title: first.title || '',
+              payload: (first.data as any) || {}
+            } as AgentDraft;
+            setDraft(loadedDraft);
+            if (loadedDraft.payload) {
+              setFormData({
+                title: loadedDraft.title || '',
+                description: (loadedDraft as any).payload?.description as string || '',
+                model: (loadedDraft as any).payload?.model as string || '',
+                provider: (loadedDraft as any).payload?.provider as string || '',
+                tools: ((loadedDraft as any).payload?.tools as string[]) || [],
+                permissions: ((loadedDraft as any).payload?.permissions as string[]) || [],
+                customConfig: ((loadedDraft as any).payload?.customConfig as Record<string, unknown>) || {}
+              });
+              setJsonContent(JSON.stringify(loadedDraft.payload, null, 2));
+            }
+          } else {
+            setDraft({ status: 'editing', title: '', payload: {} });
           }
         } else {
           setDraft({ status: 'editing', title: '', payload: {} });
         }
 
-        // Load draft history (include topicId if set)
-        const historyUrl = new URL(`/api/agents/${agentId}/draft/history`, window.location.origin);
-        if (currentTopicId) historyUrl.searchParams.set('topicId', currentTopicId);
-        const historyResponse = await fetch(historyUrl.toString(), { credentials: 'include' });
+        // Load draft history if we have an id (mock path supports plural history)
+        const histUrl = new URL(`/api/agents/${agentId}/drafts/d1/history`, window.location.origin);
+        if (currentTopicId) histUrl.searchParams.set('topicId', currentTopicId);
+        const historyResponse = await fetch(histUrl.toString(), { credentials: 'include' });
         if (historyResponse.ok) {
           const historyData = await historyResponse.json();
-          setHistory(historyData.data || []);
+          setHistory(Array.isArray(historyData) ? historyData : (historyData.data || []));
         }
       } catch (err) {
         console.error('Error loading draft:', err);
@@ -160,21 +166,15 @@ const DraftFrame: React.FC<DraftFrameProps> = ({
     }
   };
 
-  // Save draft
+  // Save draft -> plural update via upsert semantics
   const handleSave = async () => {
     if (!agentId || !draft) return;
-
     try {
       setIsSaving(true);
       setError(null);
-
       let payload: Record<string, unknown>;
-
       if (activeTab === 'JSON') {
-        if (jsonError) {
-          setError('Cannot save: JSON has errors');
-          return;
-        }
+        if (jsonError) { setError('Cannot save: JSON has errors'); return; }
         payload = JSON.parse(jsonContent);
       } else {
         payload = {
@@ -186,121 +186,55 @@ const DraftFrame: React.FC<DraftFrameProps> = ({
           customConfig: formData.customConfig
         };
       }
-
-      const request: UpdateAgentDraftRequest = {
-        status: 'editing',
-        title: formData.title,
-        payload
-      };
-
-      const response = await fetch(`/api/agents/${agentId}/draft`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(request)
+      const request: UpdateAgentDraftRequest = { status: 'editing', title: formData.title, payload };
+      const putRes = await fetch(`/api/agents/${agentId}/drafts/d1`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(request)
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to save draft');
-      }
-
-      const data = await response.json();
-      const updatedDraft: AgentDraft = data.data;
-      setDraft(updatedDraft);
+      if (!putRes.ok) throw new Error('Failed to save draft');
+      const data = await putRes.json();
+      setDraft({ status: (data.status as any) || 'editing', title: data.title || '', payload: data.data || {} });
       setHasUnsavedChanges(false);
-
-      handleFrameInteraction({
-        type: 'submit',
-        frameId: frameInstance.id,
-        data: { action: 'save_draft', agentId },
-        timestamp: new Date(),
-      });
+      handleFrameInteraction({ type: 'submit', frameId: frameInstance.id, data: { action: 'save_draft', agentId }, timestamp: new Date() });
     } catch (err) {
       console.error('Error saving draft:', err);
       setError(err instanceof Error ? err.message : 'Failed to save draft');
-    } finally {
-      setIsSaving(false);
-    }
+    } finally { setIsSaving(false); }
   };
 
   // Propose draft
   const handlePropose = async () => {
     if (!agentId || !draft) return;
-
     try {
       setIsSaving(true);
       setError(null);
-
-      const response = await fetch(`/api/agents/${agentId}/draft/propose`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to propose draft');
-      }
-
+      const response = await fetch(`/api/agents/${agentId}/drafts/d1/propose`, { method: 'POST', credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to propose draft');
       const data = await response.json();
-      const updatedDraft: AgentDraft = data.data;
-      setDraft(updatedDraft);
-
-      handleFrameInteraction({
-        type: 'submit',
-        frameId: frameInstance.id,
-        data: { action: 'propose_draft', agentId },
-        timestamp: new Date(),
-      });
+      setDraft({ status: (data.status as any) || 'proposed', title: data.title || draft.title, payload: data.data || draft.payload });
+      handleFrameInteraction({ type: 'submit', frameId: frameInstance.id, data: { action: 'propose_draft', agentId }, timestamp: new Date() });
     } catch (err) {
       console.error('Error proposing draft:', err);
       setError(err instanceof Error ? err.message : 'Failed to propose draft');
-    } finally {
-      setIsSaving(false);
-    }
+    } finally { setIsSaving(false); }
   };
 
   // Commit draft
   const handleCommit = async () => {
     if (!agentId || !draft) return;
-
     try {
       setIsSaving(true);
       setError(null);
-
-      const response = await fetch(`/api/agents/${agentId}/draft/commit`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to commit draft');
-      }
-
+      const response = await fetch(`/api/agents/${agentId}/drafts/d1/commit`, { method: 'POST', credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to commit draft');
       const data = await response.json();
-      const updatedDraft: AgentDraft = data.data;
-      setDraft(updatedDraft);
-
-      // Reload history
-      const historyResponse = await fetch(`/api/agents/${agentId}/draft/history`, {
-        credentials: 'include'
-      });
-
-      if (historyResponse.ok) {
-        const historyData = await historyResponse.json();
-        setHistory(historyData.data || []);
-      }
-
-      handleFrameInteraction({
-        type: 'submit',
-        frameId: frameInstance.id,
-        data: { action: 'commit_draft', agentId },
-        timestamp: new Date(),
-      });
+      setDraft({ status: (data.status as any) || 'committed', title: data.title || draft.title, payload: data.data || draft.payload });
+      const histRes = await fetch(`/api/agents/${agentId}/drafts/d1/history`, { credentials: 'include' });
+      if (histRes.ok) { const histData = await histRes.json(); setHistory(Array.isArray(histData) ? histData : (histData.data || [])); }
+      handleFrameInteraction({ type: 'submit', frameId: frameInstance.id, data: { action: 'commit_draft', agentId }, timestamp: new Date() });
     } catch (err) {
       console.error('Error committing draft:', err);
       setError(err instanceof Error ? err.message : 'Failed to commit draft');
-    } finally {
-      setIsSaving(false);
-    }
+    } finally { setIsSaving(false); }
   };
 
   // Get status color
@@ -389,6 +323,15 @@ const DraftFrame: React.FC<DraftFrameProps> = ({
                 >
                   <CheckCircleIcon className="w-4 h-4" />
                   <span>Commit</span>
+                </button>
+              )}
+              {/* Implement stub */}
+              {draft && (
+                <button
+                  onClick={() => console.info('Implement clicked (stub)')}
+                  className="flex items-center space-x-1 px-3 py-1.5 text-sm bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  <span>Implement</span>
                 </button>
               )}
             </div>

@@ -5,6 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { memoryRouter } from './agents/memory.js';
+import { draftsRouter } from './agents/drafts.js';
 import { topicsRouter } from './agents/topics.js';
 import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
@@ -15,6 +16,7 @@ const router: Router = Router();
 // Sub-routes
 router.use(memoryRouter);
 router.use(topicsRouter);
+router.use(draftsRouter);
 const prisma = new PrismaClient();
 
 // Validation schemas
