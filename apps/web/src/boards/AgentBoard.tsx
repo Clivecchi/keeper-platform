@@ -332,7 +332,7 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
               <CpuChipIcon className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Agent Workspace</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Agent Home Board</h1>
               <p className="text-gray-600">Configure and interact with Agent ID: {agentId}</p>
             </div>
           </div>

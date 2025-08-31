@@ -14,6 +14,8 @@ import {
   FrameType,
   FrameTypeRegistry 
 } from '../../types/frame';
+import { getFrameDef, registerFrameType as registerFrameTypeFromRegistry, parseFrameProps } from './registry';
+import { registerAllExistingFrames } from './registerFrames';
 
 // =============================================================================
 // LAZY LOADED FRAME COMPONENTS
@@ -58,20 +60,11 @@ const TopicsFrame = lazy(() => import('./TopicsFrame'));
 const DraftFrame = lazy(() => import('./DraftFrame'));
 
 // =============================================================================
-// FRAME TYPE REGISTRY
+// FRAME TYPE REGISTRY (Externalized)
 // =============================================================================
 
-const frameTypeRegistry: FrameTypeRegistry = {
-  media_card: MediaCardFrame,
-  preview: PreviewFrame,
-  dialog: DialogFrame,
-  config_panel: ConfigPanelFrame,
-  process_frame: ProcessFrame,
-  agent_preview: AgentPreviewFrame,
-  code_snippet: CodeSnippetFrame,
-  topics: TopicsFrame,
-  draft: DraftFrame,
-};
+// Populate the external registry with existing frames.
+registerAllExistingFrames();
 
 // =============================================================================
 // FRAME RENDERER PROPS
@@ -154,7 +147,13 @@ export const FrameRenderer: React.FC<FrameRendererProps> = ({
   const frameType: FrameType = frameInstance.FrameConfig?.frameType || 'preview';
   
   // Check for domain-specific frames first
-  let FrameComponent = frameTypeRegistry[frameType];
+  let FrameComponent: any = null;
+
+  // Try registry first when the frame type matches Phase 1 types
+  const registryDef = getFrameDef(frameType as any);
+  if (registryDef) {
+    FrameComponent = registryDef.Component;
+  }
   
   // Handle domain-specific frame overrides
   if (frameInstance.entityType === 'domain') {
@@ -212,6 +211,22 @@ export const FrameRenderer: React.FC<FrameRendererProps> = ({
     }
   }
   
+  // If still no component found from overrides and registry, fall back to legacy map for non-P1 types
+  if (!FrameComponent) {
+    const legacyMap: FrameTypeRegistry = {
+      media_card: MediaCardFrame,
+      preview: PreviewFrame,
+      dialog: DialogFrame,
+      config_panel: ConfigPanelFrame,
+      process_frame: ProcessFrame,
+      agent_preview: AgentPreviewFrame,
+      code_snippet: CodeSnippetFrame,
+      topics: TopicsFrame,
+      draft: DraftFrame,
+    } as any;
+    FrameComponent = legacyMap[frameType];
+  }
+
   // If no component found, use fallback
   if (!FrameComponent) {
     return (
@@ -228,6 +243,20 @@ export const FrameRenderer: React.FC<FrameRendererProps> = ({
   const animationProps = animationPresets[animationPreset];
 
   // Render with animation wrapper
+  // Parse props via registry schema if available
+  let parsedProps: Record<string, unknown> | undefined;
+  if (registryDef) {
+    try {
+      parsedProps = parseFrameProps(registryDef as any, {
+        agentId: (frameInstance as any)?.entityId,
+        topicId: (frameInstance as any)?.props?.topicId,
+      });
+    } catch (e) {
+      // Surface minimal error UI and continue rendering without extra props
+      console.error('Frame prop validation failed:', e);
+    }
+  }
+
   const content = (
     <Suspense 
       fallback={showLoadingSpinner ? <FrameLoadingSpinner className={className} /> : null}
@@ -237,6 +266,7 @@ export const FrameRenderer: React.FC<FrameRendererProps> = ({
         className={className}
         onInteraction={onInteraction}
         isPreview={isPreview}
+        {...(parsedProps || {})}
       />
     </Suspense>
   );
@@ -261,22 +291,21 @@ export const FrameRenderer: React.FC<FrameRendererProps> = ({
  * Get all supported frame types
  */
 export const getSupportedFrameTypes = (): FrameType[] => {
-  return Object.keys(frameTypeRegistry) as FrameType[];
+  // This reflects only legacy map types; Phase 1 types are in the external registry
+  return ['media_card','preview','dialog','config_panel','process_frame','agent_preview','code_snippet','topics','draft'] as FrameType[];
 };
 
 /**
  * Check if a frame type is supported
  */
 export const isFrameTypeSupported = (frameType: string): frameType is FrameType => {
-  return frameType in frameTypeRegistry;
+  return getFrameDef(frameType as any) != null || ['media_card','preview','dialog','config_panel','process_frame','agent_preview','code_snippet','topics','draft'].includes(frameType);
 };
 
 /**
  * Register a new frame type component
  */
-export const registerFrameType = (frameType: FrameType, component: React.ComponentType<BaseFrameProps>) => {
-  frameTypeRegistry[frameType] = component;
-};
+export const registerFrameType = registerFrameTypeFromRegistry as unknown as (frameType: FrameType, component: React.ComponentType<BaseFrameProps>) => void;
 
 // =============================================================================
 // EXPORTS
