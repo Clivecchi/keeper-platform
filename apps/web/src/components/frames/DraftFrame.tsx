@@ -23,6 +23,7 @@ import {
 import { BaseFrameProps } from '../../types/frame';
 import { AgentDraft, AgentDraftHistory, UpdateAgentDraftRequest } from '../../types/keeper';
 import { useFrame } from '../../context/FrameContext';
+import { BoardContext } from '../../boards/BoardContext';
 
 interface DraftFrameProps extends BaseFrameProps {
   agentId?: string;
@@ -44,6 +45,7 @@ const DraftFrame: React.FC<DraftFrameProps> = ({
   allowCommit = true,
 }) => {
   const { handleFrameInteraction } = useFrame();
+  const { currentTopicId } = React.useContext(BoardContext);
   const [activeTab, setActiveTab] = useState<string>(tabs[0] || 'Form');
   const [draft, setDraft] = useState<AgentDraft | null>(null);
   const [history, setHistory] = useState<AgentDraftHistory[]>([]);
@@ -76,8 +78,10 @@ const DraftFrame: React.FC<DraftFrameProps> = ({
         setIsLoading(true);
         setError(null);
 
-        // Load current draft
-        const draftResponse = await fetch(`/api/agents/${agentId}/draft`, {
+        // Load current draft (include topicId if set)
+        const draftUrl = new URL(`/api/agents/${agentId}/draft`, window.location.origin);
+        if (currentTopicId) draftUrl.searchParams.set('topicId', currentTopicId);
+        const draftResponse = await fetch(draftUrl.toString(), {
           credentials: 'include'
         });
 
@@ -85,34 +89,26 @@ const DraftFrame: React.FC<DraftFrameProps> = ({
           const draftData = await draftResponse.json();
           const loadedDraft: AgentDraft = draftData.data;
           setDraft(loadedDraft);
-
-          // Initialize form data from draft
           if (loadedDraft.payload) {
             setFormData({
               title: loadedDraft.title || '',
-              description: loadedDraft.payload.description as string || '',
-              model: loadedDraft.payload.model as string || '',
-              provider: loadedDraft.payload.provider as string || '',
-              tools: loadedDraft.payload.tools as string[] || [],
-              permissions: loadedDraft.payload.permissions as string[] || [],
-              customConfig: loadedDraft.payload.customConfig as Record<string, unknown> || {}
+              description: (loadedDraft as any).payload?.description as string || '',
+              model: (loadedDraft as any).payload?.model as string || '',
+              provider: (loadedDraft as any).payload?.provider as string || '',
+              tools: ((loadedDraft as any).payload?.tools as string[]) || [],
+              permissions: ((loadedDraft as any).payload?.permissions as string[]) || [],
+              customConfig: ((loadedDraft as any).payload?.customConfig as Record<string, unknown>) || {}
             });
             setJsonContent(JSON.stringify(loadedDraft.payload, null, 2));
           }
         } else {
-          // No draft exists yet, initialize empty
-          setDraft({
-            status: 'editing',
-            title: '',
-            payload: {}
-          });
+          setDraft({ status: 'editing', title: '', payload: {} });
         }
 
-        // Load draft history
-        const historyResponse = await fetch(`/api/agents/${agentId}/draft/history`, {
-          credentials: 'include'
-        });
-
+        // Load draft history (include topicId if set)
+        const historyUrl = new URL(`/api/agents/${agentId}/draft/history`, window.location.origin);
+        if (currentTopicId) historyUrl.searchParams.set('topicId', currentTopicId);
+        const historyResponse = await fetch(historyUrl.toString(), { credentials: 'include' });
         if (historyResponse.ok) {
           const historyData = await historyResponse.json();
           setHistory(historyData.data || []);
@@ -120,43 +116,30 @@ const DraftFrame: React.FC<DraftFrameProps> = ({
       } catch (err) {
         console.error('Error loading draft:', err);
         setError(err instanceof Error ? err.message : 'Failed to load draft');
-        
-        // Mock data for development
+        // keep existing mock fallback
         setDraft({
           status: 'editing',
           title: 'Agent Configuration Draft',
-          payload: {
-            model: 'gpt-4',
-            provider: 'openai',
-            tools: ['web_search', 'code_interpreter'],
-            permissions: ['read', 'write']
-          },
+          payload: { model: 'gpt-4', provider: 'openai', tools: ['web_search','code_interpreter'], permissions: ['read','write'] },
           updatedAt: new Date().toISOString()
-        });
-        
+        } as any);
         setFormData({
           title: 'Agent Configuration Draft',
           description: 'Updated agent configuration with new model and tools',
           model: 'gpt-4',
           provider: 'openai',
-          tools: ['web_search', 'code_interpreter'],
-          permissions: ['read', 'write'],
+          tools: ['web_search','code_interpreter'],
+          permissions: ['read','write'],
           customConfig: {}
         });
-        
-        setJsonContent(JSON.stringify({
-          model: 'gpt-4',
-          provider: 'openai',
-          tools: ['web_search', 'code_interpreter'],
-          permissions: ['read', 'write']
-        }, null, 2));
+        setJsonContent(JSON.stringify({ model: 'gpt-4', provider: 'openai', tools: ['web_search','code_interpreter'], permissions: ['read','write'] }, null, 2));
       } finally {
         setIsLoading(false);
       }
     };
 
     loadDraft();
-  }, [agentId]);
+  }, [agentId, currentTopicId]);
 
   // Handle form changes
   const handleFormChange = (field: string, value: any) => {

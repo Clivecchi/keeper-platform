@@ -6,7 +6,7 @@
  * Supports creating, editing, archiving topics and adding highlights.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   PlusIcon,
@@ -21,6 +21,7 @@ import {
 import { BaseFrameProps } from '../../types/frame';
 import { Topic, TopicHighlight, CreateTopicRequest, CreateTopicHighlightRequest } from '../../types/keeper';
 import { useFrame } from '../../context/FrameContext';
+import { BoardContext } from '../../boards/BoardContext';
 
 interface TopicsFrameProps extends BaseFrameProps {
   boardId?: string;
@@ -44,6 +45,7 @@ const TopicsFrame: React.FC<TopicsFrameProps> = ({
   allowEdit = true,
 }) => {
   const { handleFrameInteraction } = useFrame();
+  const { setCurrentTopicId } = useContext(BoardContext);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,133 +61,94 @@ const TopicsFrame: React.FC<TopicsFrameProps> = ({
     text: ''
   });
 
-  // Load topics from API
+  // Load topics from agent-scoped API
   useEffect(() => {
-    if (!boardId) return;
-
+    const agentId = frameInstance.entityId;
+    if (!agentId) return;
     const loadTopics = async () => {
       try {
         setIsLoading(true);
         setError(null);
-
-        // TODO: Replace with actual API call
-        const response = await fetch(`/api/board-data/${boardId}/topics`, {
-          credentials: 'include'
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to load topics');
-        }
-
+        const response = await fetch(`/api/agents/${agentId}/topics`, { credentials: 'include' });
+        if (!response.ok) throw new Error('Failed to load topics');
         const data = await response.json();
-        setTopics(data.data || []);
+        setTopics(Array.isArray(data) ? data : (data.data || []));
       } catch (err) {
         console.error('Error loading topics:', err);
         setError(err instanceof Error ? err.message : 'Failed to load topics');
-        
-        // Mock data for development
-        setTopics([
-          {
-            id: '1',
-            boardId: boardId,
-            title: 'Agent Configuration Best Practices',
-            essence: 'Key principles for setting up effective AI agents',
-            tags: ['configuration', 'best-practices'],
-            status: 'active',
-            lastActiveAt: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            highlights: [
-              {
-                id: '1-1',
-                topicId: '1',
-                kind: 'fact',
-                text: 'Clear purpose statements improve agent performance by 40%',
-                createdAt: new Date().toISOString()
-              }
-            ]
-          },
-          {
-            id: '2',
-            boardId: boardId,
-            title: 'Model Selection Strategy',
-            tags: ['models', 'performance'],
-            status: 'active',
-            lastActiveAt: new Date(Date.now() - 86400000).toISOString(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            highlights: []
-          }
-        ]);
       } finally {
         setIsLoading(false);
       }
     };
-
     loadTopics();
-  }, [boardId]);
+  }, [frameInstance.entityId]);
 
   // Handle topic creation
   const handleCreateTopic = async () => {
-    if (!newTopicTitle.trim() || !boardId) return;
-
+    if (!newTopicTitle.trim()) return;
     try {
       const request: CreateTopicRequest = {
         title: newTopicTitle.trim(),
         tags: newTopicTags.split(',').map(t => t.trim()).filter(t => t)
       };
-
-      // TODO: Replace with actual API call
-      const response = await fetch(`/api/board-data/${boardId}/topics`, {
+      const agentId = frameInstance.entityId;
+      const response = await fetch(`/api/agents/${agentId}/topics`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(request)
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create topic');
-      }
-
+      if (!response.ok) throw new Error('Failed to create topic');
       const data = await response.json();
-      const newTopic: Topic = data.data;
-      
-      setTopics(prev => [newTopic, ...prev]);
+      const created: Topic = (data.id ? data : data.data) as Topic;
+      setTopics(prev => [created, ...prev]);
       setNewTopicTitle('');
       setNewTopicTags('');
       setShowCreateForm(false);
-
       handleFrameInteraction({
         type: 'submit',
         frameId: frameInstance.id,
-        data: { action: 'create_topic', topicId: newTopic.id },
+        data: { action: 'create_topic', topicId: created.id },
         timestamp: new Date(),
       });
+      setCurrentTopicId(created.id);
     } catch (err) {
       console.error('Error creating topic:', err);
       setError(err instanceof Error ? err.message : 'Failed to create topic');
     }
   };
 
+  // Handle topic update (merge title/essence/tags)
+  const handleUpdateTopic = async (topic: Topic, patch: Partial<Topic>) => {
+    try {
+      const agentId = frameInstance.entityId;
+      const response = await fetch(`/api/agents/${agentId}/topics/${topic.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(patch)
+      });
+      if (!response.ok) throw new Error('Failed to update topic');
+      const data = await response.json();
+      const updated: Topic = (data.id ? data : data.data) as Topic;
+      setTopics(prev => prev.map(t => t.id === updated.id ? { ...t, ...updated } : t));
+      setCurrentTopicId(updated.id);
+    } catch (err) {
+      console.error('Error updating topic:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update topic');
+    }
+  };
+
   // Handle topic archiving
   const handleArchiveTopic = async (topicId: string) => {
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch(`/api/topics/${topicId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: 'archived' })
+      const agentId = frameInstance.entityId;
+      const response = await fetch(`/api/agents/${agentId}/topics/${topicId}`, {
+        method: 'DELETE',
+        credentials: 'include'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to archive topic');
-      }
-
-      setTopics(prev => prev.map(topic => 
-        topic.id === topicId ? { ...topic, status: 'archived' } : topic
-      ));
-
+      if (!response.ok) throw new Error('Failed to archive topic');
+      setTopics(prev => prev.map(topic => topic.id === topicId ? { ...topic, status: 'archived' } : topic));
       handleFrameInteraction({
         type: 'click',
         frameId: frameInstance.id,

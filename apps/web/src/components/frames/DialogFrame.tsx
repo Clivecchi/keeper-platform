@@ -6,7 +6,7 @@
  * Supports real-time messaging and agent responses.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   PaperAirplaneIcon,
@@ -16,6 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { DialogFrameProps, FrameMessage } from '../../types/frame';
 import { useFrame } from '../../context/FrameContext';
+import { BoardContext } from '../../boards/BoardContext';
 
 const DialogFrame: React.FC<DialogFrameProps> = ({
   frameInstance,
@@ -27,6 +28,8 @@ const DialogFrame: React.FC<DialogFrameProps> = ({
   onSendMessage,
 }) => {
   const { handleFrameInteraction } = useFrame();
+  const { currentTopicId } = useContext(BoardContext);
+  const [topicTitle, setTopicTitle] = useState<string>('');
   const [messages, setMessages] = useState<FrameMessage[]>(conversationHistory);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -38,6 +41,20 @@ const DialogFrame: React.FC<DialogFrameProps> = ({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      if (!currentTopicId) { setTopicTitle(''); return; }
+      try {
+        // Placeholder: use id as title; can be replaced with a lookup later
+        if (!ignore) setTopicTitle(`#${currentTopicId}`);
+      } catch {
+        if (!ignore) setTopicTitle(`#${currentTopicId}`);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [currentTopicId]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -68,7 +85,6 @@ const DialogFrame: React.FC<DialogFrameProps> = ({
     try {
       // Simulate agent response (replace with actual API call)
       await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-      
       const agentResponse: FrameMessage = {
         id: `msg-${Date.now()}`,
         sender: 'agent',
@@ -76,11 +92,9 @@ const DialogFrame: React.FC<DialogFrameProps> = ({
         timestamp: new Date(),
         metadata: { agentId }
       };
-
       setMessages(prev => [...prev, agentResponse]);
     } catch (error) {
       console.error('Failed to get agent response:', error);
-      
       const errorMessage: FrameMessage = {
         id: `msg-${Date.now()}`,
         sender: 'agent',
@@ -88,7 +102,6 @@ const DialogFrame: React.FC<DialogFrameProps> = ({
         timestamp: new Date(),
         metadata: { agentId, error: true }
       };
-
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -139,6 +152,13 @@ const DialogFrame: React.FC<DialogFrameProps> = ({
             </div>
           )}
         </div>
+        {currentTopicId && (
+          <div className="mt-2 inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full border border-gray-200 bg-white">
+            <span>Topic:</span>
+            <strong>{topicTitle || currentTopicId}</strong>
+            <span className="opacity-60">updated</span>
+          </div>
+        )}
       </div>
 
       {/* Messages */}
@@ -218,18 +238,17 @@ const DialogFrame: React.FC<DialogFrameProps> = ({
             ref={inputRef}
             type="text"
             value={inputValue}
+            placeholder="Type a message..."
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Type your message..."
-            disabled={isLoading}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+            onKeyDown={handleKeyPress}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            disabled={isLoading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
-            <PaperAirplaneIcon className="w-4 h-4" />
+            <PaperAirplaneIcon className="w-5 h-5" />
           </button>
         </div>
       </div>

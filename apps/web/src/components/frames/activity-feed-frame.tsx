@@ -6,7 +6,7 @@
  * Shows recent activities with filtering and interaction capabilities.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ClockIcon,
@@ -25,6 +25,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { BaseFrameProps } from '../../types/frame';
 import { useFrame } from '../../context/FrameContext';
+import { BoardContext } from '../../boards/BoardContext';
 
 interface ActivityItem {
   id: string;
@@ -57,159 +58,186 @@ const ActivityFeedFrame: React.FC<BaseFrameProps> = ({
   isPreview = false,
 }) => {
   const { handleFrameInteraction } = useFrame();
+  const { currentTopicId } = React.useContext(BoardContext);
+  const agentId = frameInstance.entityId;
+  const [items, setItems] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const url = new URL(`/api/agents/${agentId}/activity`, window.location.origin);
+        if (currentTopicId) url.searchParams.set('topicId', currentTopicId);
+        const res = await fetch(url.toString(), { credentials: 'include' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!ignore) setItems(Array.isArray(data) ? data : (data.data || []));
+      } catch (e: any) {
+        if (!ignore) setError(String(e?.message || e));
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [agentId, currentTopicId]);
+
   const [filterType, setFilterType] = useState<'all' | ActivityItem['type']>('all');
   const [filterPerson, setFilterPerson] = useState<'all' | string>('all');
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month' | 'all'>('all');
 
   // Mock activity data
-  const [activities] = useState<ActivityItem[]>([
-    {
-      id: '1',
-      type: 'create',
-      actor: {
-        id: 'alice',
-        name: 'Alice Johnson',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face'
-      },
-      target: {
-        type: 'journey',
-        id: 'react-advanced',
-        name: 'Advanced React Patterns'
-      },
-      description: 'Created a new journey "Advanced React Patterns"',
-      timestamp: new Date('2024-01-28T14:30:00'),
-      metadata: {
-        domain: 'Tech Domain'
-      }
-    },
-    {
-      id: '2',
-      type: 'invite',
-      actor: {
-        id: 'bob',
-        name: 'Bob Smith',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
-      },
-      target: {
-        type: 'person',
-        id: 'eve',
-        name: 'Eve Davis'
-      },
-      description: 'Invited Eve Davis to join Tech Domain',
-      timestamp: new Date('2024-01-28T13:15:00'),
-      metadata: {
-        domain: 'Tech Domain'
-      }
-    },
-    {
-      id: '3',
-      type: 'comment',
-      actor: {
-        id: 'david',
-        name: 'David Brown',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face'
-      },
-      target: {
-        type: 'moment',
-        id: 'react-hooks-moment',
-        name: 'React Hooks Tutorial'
-      },
-      description: 'Commented on "React Hooks Tutorial"',
-      timestamp: new Date('2024-01-28T12:45:00'),
-      metadata: {
-        journey: 'React Development',
-        commentText: 'Great explanation of useEffect!'
-      }
-    },
-    {
-      id: '4',
-      type: 'edit',
-      actor: {
-        id: 'alice',
-        name: 'Alice Johnson',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face'
-      },
-      target: {
-        type: 'role',
-        id: 'member-role',
-        name: 'Member Role'
-      },
-      description: 'Updated permissions for Member Role',
-      timestamp: new Date('2024-01-28T11:30:00'),
-      metadata: {
-        oldValue: 'Basic permissions',
-        newValue: 'Added content creation permissions'
-      }
-    },
-    {
-      id: '5',
-      type: 'complete',
-      actor: {
-        id: 'carol',
-        name: 'Carol Williams'
-      },
-      target: {
-        type: 'journey',
-        id: 'content-strategy',
-        name: 'Content Strategy Basics'
-      },
-      description: 'Completed "Content Strategy Basics" journey',
-      timestamp: new Date('2024-01-28T10:15:00'),
-      metadata: {
-        domain: 'Marketing Domain'
-      }
-    },
-    {
-      id: '6',
-      type: 'join',
-      actor: {
-        id: 'frank',
-        name: 'Frank Wilson'
-      },
-      target: {
-        type: 'domain',
-        id: 'design-domain',
-        name: 'Design Domain'
-      },
-      description: 'Joined Design Domain',
-      timestamp: new Date('2024-01-28T09:00:00')
-    },
-    {
-      id: '7',
-      type: 'like',
-      actor: {
-        id: 'david',
-        name: 'David Brown',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face'
-      },
-      target: {
-        type: 'moment',
-        id: 'ui-patterns',
-        name: 'UI Design Patterns'
-      },
-      description: 'Liked "UI Design Patterns"',
-      timestamp: new Date('2024-01-27T16:45:00'),
-      metadata: {
-        journey: 'UI/UX Design'
-      }
-    },
-    {
-      id: '8',
-      type: 'share',
-      actor: {
-        id: 'bob',
-        name: 'Bob Smith',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
-      },
-      target: {
-        type: 'journey',
-        id: 'devops-journey',
-        name: 'DevOps Best Practices'
-      },
-      description: 'Shared "DevOps Best Practices" journey',
-      timestamp: new Date('2024-01-27T15:20:00')
-    }
-  ]);
+  // const [activities] = useState<ActivityItem[]>([
+  //   {
+  //     id: '1',
+  //     type: 'create',
+  //     actor: {
+  //       id: 'alice',
+  //       name: 'Alice Johnson',
+  //       avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face'
+  //     },
+  //     target: {
+  //       type: 'journey',
+  //       id: 'react-advanced',
+  //       name: 'Advanced React Patterns'
+  //     },
+  //     description: 'Created a new journey "Advanced React Patterns"',
+  //     timestamp: new Date('2024-01-28T14:30:00'),
+  //     metadata: {
+  //       domain: 'Tech Domain'
+  //     }
+  //   },
+  //   {
+  //     id: '2',
+  //     type: 'invite',
+  //     actor: {
+  //       id: 'bob',
+  //       name: 'Bob Smith',
+  //       avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
+  //     },
+  //     target: {
+  //       type: 'person',
+  //       id: 'eve',
+  //       name: 'Eve Davis'
+  //     },
+  //     description: 'Invited Eve Davis to join Tech Domain',
+  //     timestamp: new Date('2024-01-28T13:15:00'),
+  //     metadata: {
+  //       domain: 'Tech Domain'
+  //     }
+  //   },
+  //   {
+  //     id: '3',
+  //     type: 'comment',
+  //     actor: {
+  //       id: 'david',
+  //       name: 'David Brown',
+  //       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face'
+  //     },
+  //     target: {
+  //       type: 'moment',
+  //       id: 'react-hooks-moment',
+  //       name: 'React Hooks Tutorial'
+  //     },
+  //     description: 'Commented on "React Hooks Tutorial"',
+  //     timestamp: new Date('2024-01-28T12:45:00'),
+  //     metadata: {
+  //       journey: 'React Development',
+  //       commentText: 'Great explanation of useEffect!'
+  //     }
+  //   },
+  //   {
+  //     id: '4',
+  //     type: 'edit',
+  //     actor: {
+  //       id: 'alice',
+  //       name: 'Alice Johnson',
+  //       avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face'
+  //     },
+  //     target: {
+  //       type: 'role',
+  //       id: 'member-role',
+  //       name: 'Member Role'
+  //     },
+  //     description: 'Updated permissions for Member Role',
+  //     timestamp: new Date('2024-01-28T11:30:00'),
+  //     metadata: {
+  //       oldValue: 'Basic permissions',
+  //       newValue: 'Added content creation permissions'
+  //     }
+  //   },
+  //   {
+  //     id: '5',
+  //     type: 'complete',
+  //     actor: {
+  //       id: 'carol',
+  //       name: 'Carol Williams'
+  //     },
+  //     target: {
+  //       type: 'journey',
+  //       id: 'content-strategy',
+  //       name: 'Content Strategy Basics'
+  //     },
+  //     description: 'Completed "Content Strategy Basics" journey',
+  //     timestamp: new Date('2024-01-28T10:15:00'),
+  //     metadata: {
+  //       domain: 'Marketing Domain'
+  //     }
+  //   },
+  //   {
+  //     id: '6',
+  //     type: 'join',
+  //     actor: {
+  //       id: 'frank',
+  //       name: 'Frank Wilson'
+  //     },
+  //     target: {
+  //       type: 'domain',
+  //       id: 'design-domain',
+  //       name: 'Design Domain'
+  //     },
+  //     description: 'Joined Design Domain',
+  //     timestamp: new Date('2024-01-28T09:00:00')
+  //   },
+  //   {
+  //     id: '7',
+  //     type: 'like',
+  //     actor: {
+  //       id: 'david',
+  //       name: 'David Brown',
+  //       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face'
+  //     },
+  //     target: {
+  //       type: 'moment',
+  //       id: 'ui-patterns',
+  //       name: 'UI Design Patterns'
+  //     },
+  //     description: 'Liked "UI Design Patterns"',
+  //     timestamp: new Date('2024-01-27T16:45:00'),
+  //     metadata: {
+  //       journey: 'UI/UX Design'
+  //     }
+  //   },
+  //   {
+  //     id: '8',
+  //     type: 'share',
+  //     actor: {
+  //       id: 'bob',
+  //       name: 'Bob Smith',
+  //       avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face'
+  //     },
+  //     target: {
+  //       type: 'journey',
+  //       id: 'devops-journey',
+  //       name: 'DevOps Best Practices'
+  //     },
+  //     description: 'Shared "DevOps Best Practices" journey',
+  //     timestamp: new Date('2024-01-27T15:20:00')
+  //   }
+  // ]);
 
   const getActivityIcon = (type: ActivityItem['type']) => {
     switch (type) {
@@ -289,7 +317,7 @@ const ActivityFeedFrame: React.FC<BaseFrameProps> = ({
     }
   };
 
-  const filteredActivities = activities.filter(activity => {
+  const filteredActivities = items.filter(activity => {
     const matchesType = filterType === 'all' || activity.type === filterType;
     const matchesPerson = filterPerson === 'all' || activity.actor.id === filterPerson;
     
@@ -315,8 +343,8 @@ const ActivityFeedFrame: React.FC<BaseFrameProps> = ({
     return matchesType && matchesPerson && matchesTime;
   });
 
-  const uniqueActors = Array.from(new Set(activities.map(a => a.actor.id)))
-    .map(id => activities.find(a => a.actor.id === id)?.actor)
+  const uniqueActors = Array.from(new Set(items.map(a => a.actor.id)))
+    .map(id => items.find(a => a.actor.id === id)?.actor)
     .filter(Boolean);
 
   if (isPreview) {
@@ -341,7 +369,7 @@ const ActivityFeedFrame: React.FC<BaseFrameProps> = ({
           <div className="flex items-center space-x-2">
             <ClockIcon className="w-5 h-5 text-indigo-600" />
             <h3 className="font-medium text-gray-900">Activity Feed</h3>
-            <span className="text-sm text-gray-500">({activities.length} activities)</span>
+            <span className="text-sm text-gray-500">({items.length} activities)</span>
           </div>
           <button
             onClick={() => handleActivityAction('activity_refresh')}
@@ -528,7 +556,7 @@ const ActivityFeedFrame: React.FC<BaseFrameProps> = ({
       <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600">
-            Showing {filteredActivities.length} of {activities.length} activities
+            Showing {filteredActivities.length} of {items.length} activities
           </span>
           <div className="flex items-center space-x-4">
             <button

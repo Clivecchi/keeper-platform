@@ -17,6 +17,7 @@ import {
   DocumentTextIcon
 } from '@heroicons/react/24/outline';
 import { BoardRenderer } from '../components/boards/BoardRenderer';
+import { BoardProvider } from './BoardContext';
 import { useBoard, BoardInstance } from '../context/BoardContext';
 import { useFrame } from '../context/FrameContext';
 import {
@@ -323,6 +324,7 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
   }
 
   return (
+    <BoardProvider>
     <div className={className}>
       {/* Agent Board Header */}
       <div className="mb-6">
@@ -406,6 +408,7 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
         </div>
       </div>
     </div>
+    </BoardProvider>
   );
 };
 
