@@ -6,7 +6,7 @@
  * Supports multiple tabs and dynamic configuration forms.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CogIcon,
@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { ConfigPanelFrameProps, FrameTab } from '../../types/frame';
 import { useFrame } from '../../context/FrameContext';
+import { useBoard } from '../../context/BoardContext';
 
 const ConfigPanelFrame: React.FC<ConfigPanelFrameProps> = ({
   frameInstance,
@@ -31,6 +32,17 @@ const ConfigPanelFrame: React.FC<ConfigPanelFrameProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const { activeBoard } = useBoard();
+  const [realtimeEnabled, setRealtimeEnabled] = useState<boolean>(true);
+  const [allowEdits, setAllowEdits] = useState<boolean>(true);
+
+  useEffect(() => {
+    const behavior = (activeBoard?.config as any)?.behavior || {};
+    const rt = behavior?.realtime?.enabled;
+    const comp = behavior?.composition?.allowEdits;
+    if (typeof rt === 'boolean') setRealtimeEnabled(rt);
+    if (typeof comp === 'boolean') setAllowEdits(comp);
+  }, [activeBoard?.id]);
 
   const handleTabClick = (tabId: string) => {
     const tab = tabs.find(t => t.id === tabId);
@@ -53,8 +65,16 @@ const ConfigPanelFrame: React.FC<ConfigPanelFrameProps> = ({
     setSuccess(null);
 
     try {
-      // Simulate save operation (replace with actual API call)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Persist behavior flags
+      const boardId = activeBoard?.id;
+      if (boardId) {
+        await fetch(`/api/board-data/${boardId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ behavior: { realtime: { enabled: realtimeEnabled }, composition: { allowEdits } } })
+        });
+      }
       
       setHasUnsavedChanges(false);
       setSuccess('Configuration saved successfully');
@@ -116,6 +136,28 @@ const ConfigPanelFrame: React.FC<ConfigPanelFrameProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               onChange={() => setHasUnsavedChanges(true)}
             />
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'board',
+      label: 'Board',
+      content: (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-gray-700">Realtime updates</div>
+              <div className="text-xs text-gray-500">Toggle live SSE updates for this board</div>
+            </div>
+            <input type="checkbox" checked={realtimeEnabled} onChange={(e) => { setRealtimeEnabled(e.target.checked); setHasUnsavedChanges(true); }} />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-gray-700">Allow composition edits</div>
+              <div className="text-xs text-gray-500">Enable adding/removing/reordering frames</div>
+            </div>
+            <input type="checkbox" checked={allowEdits} onChange={(e) => { setAllowEdits(e.target.checked); setHasUnsavedChanges(true); }} />
           </div>
         </div>
       )

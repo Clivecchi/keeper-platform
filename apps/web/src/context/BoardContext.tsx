@@ -92,6 +92,12 @@ export interface BoardContextActions {
   setLayoutEditing: (isEditing: boolean) => void;
   selectFrame: (frameId: string | null) => void;
   onLayoutChange: (layout: Record<string, unknown>) => Promise<void>;
+  // Phase 9 data-frames helpers
+  addDataFrame: (key: string, init?: { title?: string; visible?: boolean; props?: Record<string, unknown>; region?: 'main'|'side'|'footer' }) => Promise<void>;
+  updateDataFrame: (frameId: string, patch: { title?: string; visible?: boolean; props?: Record<string, unknown>; region?: 'main'|'side'|'footer' }) => Promise<void>;
+  removeDataFrame: (frameId: string) => Promise<void>;
+  reorderDataFrames: (order: string[]) => Promise<void>;
+  refreshBoard: () => Promise<void>;
   clearBoard: () => void;
 }
 
@@ -383,6 +389,54 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     }
   }, [state.activeBoard?.id]);
 
+  // -----------------------------
+  // Phase 9 data-frames helpers
+  // -----------------------------
+  const addDataFrame = useCallback(async (key: string, init?: { title?: string; visible?: boolean; props?: Record<string, unknown>; region?: 'main'|'side'|'footer' }) => {
+    const boardId = state.activeBoard?.id;
+    if (!boardId) return;
+    await apiFetch(`/api/board-data/${boardId}/frames-data`, {
+      method: 'POST',
+      body: JSON.stringify({ key, ...(init || {}) })
+    });
+    await loadBoard(boardId);
+  }, [state.activeBoard?.id, loadBoard]);
+
+  const updateDataFrame = useCallback(async (frameId: string, patch: { title?: string; visible?: boolean; props?: Record<string, unknown>; region?: 'main'|'side'|'footer' }) => {
+    const boardId = state.activeBoard?.id;
+    if (!boardId) return;
+    await apiFetch(`/api/board-data/${boardId}/frames-data/${frameId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch)
+    });
+    await loadBoard(boardId);
+  }, [state.activeBoard?.id, loadBoard]);
+
+  const removeDataFrame = useCallback(async (frameId: string) => {
+    const boardId = state.activeBoard?.id;
+    if (!boardId) return;
+    await apiFetch(`/api/board-data/${boardId}/frames-data/${frameId}`, {
+      method: 'DELETE'
+    });
+    await loadBoard(boardId);
+  }, [state.activeBoard?.id, loadBoard]);
+
+  const reorderDataFrames = useCallback(async (order: string[]) => {
+    const boardId = state.activeBoard?.id;
+    if (!boardId) return;
+    await apiFetch(`/api/board-data/${boardId}/frames-data/reorder`, {
+      method: 'PATCH',
+      body: JSON.stringify({ order })
+    });
+    await loadBoard(boardId);
+  }, [state.activeBoard?.id, loadBoard]);
+
+  const refreshBoard = useCallback(async () => {
+    const boardId = state.activeBoard?.id;
+    if (!boardId) return;
+    await loadBoard(boardId);
+  }, [state.activeBoard?.id, loadBoard]);
+
   const setEngagementMode = useCallback((boardId: string, mode: EngagementMode) => {
     dispatch({ type: 'SET_ENGAGEMENT_MODE', payload: mode });
   }, []);
@@ -421,6 +475,11 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     setLayoutEditing,
     selectFrame,
     onLayoutChange,
+    addDataFrame,
+    updateDataFrame,
+    removeDataFrame,
+    reorderDataFrames,
+    refreshBoard,
     clearBoard,
   };
 

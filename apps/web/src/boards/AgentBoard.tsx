@@ -26,6 +26,7 @@ import {
 } from '../types/frame';
 import { makeFrameInstance } from '../utils/frameFactory';
 import { useAgentEvents, AgentEvent } from '../hooks/useAgentEvents';
+import { useRef } from 'react';
 
 // =============================================================================
 // AGENT BOARD PROPS
@@ -177,6 +178,9 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
   const [isInitialized, setIsInitialized] = useState(false);
   // Realtime: subscribe to agent events when enabled by board behavior
   const realtimeEnabled = true; // TODO: wire from board.behavior.realtime?.enabled; default true
+  const refreshDebounceRef = useRef<number | null>(null);
+  const { refreshBoard } = useBoard();
+
   useAgentEvents(agentId, realtimeEnabled, {
     onEvent: (e: AgentEvent) => {
       // Minimal reactions: refresh only affected slices via existing handlers or add targeted fetches
@@ -198,6 +202,12 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
         case 'activity.appended':
           break;
         default:
+          if (e.type.startsWith('board.frames.')) {
+            if (refreshDebounceRef.current) window.clearTimeout(refreshDebounceRef.current);
+            refreshDebounceRef.current = window.setTimeout(() => {
+              refreshBoard();
+            }, 300);
+          }
           break;
       }
     },

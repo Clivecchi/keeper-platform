@@ -7,20 +7,16 @@ interface FramePickerProps {
 }
 
 export const FramePicker: React.FC<FramePickerProps> = ({ onClose }) => {
-  const { activeBoard } = useBoard();
+  const { activeBoard, addDataFrame } = useBoard();
   const [submitting, setSubmitting] = useState<string | null>(null);
   const registry = useMemo(() => listFrameDefs(), []);
+  const allowEdits = !!(activeBoard?.config as any)?.behavior?.composition?.allowEdits !== false;
 
   const handleAdd = async (key: string) => {
     if (!activeBoard) return;
     try {
       setSubmitting(key);
-      await fetch(`/api/board-data/${activeBoard.id}/frames-data`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ key, visible: true })
-      });
+      await addDataFrame(key, { visible: true });
       onClose();
     } catch (e) {
       console.error('Failed to add frame', e);
@@ -42,7 +38,8 @@ export const FramePicker: React.FC<FramePickerProps> = ({ onClose }) => {
             <button
               onClick={() => handleAdd(def.type)}
               className="text-sm px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-50"
-              disabled={!!submitting}
+              disabled={!!submitting || !allowEdits}
+              title={!allowEdits ? 'Composition edits disabled' : ''}
             >
               {submitting === def.type ? 'Adding...' : 'Add'}
             </button>

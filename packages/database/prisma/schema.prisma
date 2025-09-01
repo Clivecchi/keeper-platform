@@ -139,6 +139,65 @@ model Board {
   @@index([agentId])
 }
 
+// Phase 11: Agent-scoped entities
+model Topic {
+  id        String   @id @default(uuid())
+  agentId   String
+  boardId   String?
+  title     String
+  status    String   @default("active")
+  data      Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agentId])
+  @@index([boardId])
+}
+
+model Draft {
+  id        String   @id @default(uuid())
+  agentId   String
+  topicId   String?
+  title     String
+  status    String   @default("draft")
+  data      Json?
+  history   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agentId])
+  @@index([topicId])
+}
+
+model Task {
+  id        String   @id @default(uuid())
+  agentId   String
+  topicId   String?
+  draftId   String?
+  title     String
+  status    String   @default("open")
+  dueAt     DateTime?
+  data      Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agentId])
+  @@index([topicId])
+  @@index([draftId])
+}
+
+model Activity {
+  id        String   @id @default(uuid())
+  agentId   String
+  topicId   String?
+  type      String
+  data      Json?
+  createdAt DateTime @default(now())
+
+  @@index([agentId])
+  @@index([topicId])
+}
+
 model MemoryCard {
   id             String          @id
   threadBlobId   String

@@ -9,6 +9,7 @@ import { PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { randomUUID } from 'crypto';
 import { broadcastAgentEvent } from './agents/events.js';
+import { extractRole, can } from '../kam/permissions.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -49,6 +50,9 @@ const BoardUpdate = z.object({
     draftMode: z.boolean().optional(),
     autosave: z.boolean().optional(),
     frameOrder: z.array(z.string()).optional(),
+    // Phase 10 flags
+    realtime: z.object({ enabled: z.boolean().default(true) }).optional(),
+    composition: z.object({ allowEdits: z.boolean().default(true) }).optional(),
   }).optional(),
   data: z.object({
     scope: z.enum(['keeper','domain','journey','people','custom']).optional(),
@@ -701,6 +705,18 @@ router.put('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     const newEtag = `"${updatedBoard.updatedAt.getTime()}"`;
     res.set('ETag', newEtag);
 
+    // Broadcast settings update if behavior flags changed
+    try {
+      const role = extractRole(req);
+      if (!can(role, 'board.layout.update')) {
+        // If unauthorized, we would have rejected above; kept here for consistency
+      }
+      const agentId = (updatedBoard as any)?.agentId || ((updatedBoard.data as any)?.agentId);
+      if (agentId && ('behavior' in restUpdates || layoutPrefs)) {
+        broadcastAgentEvent({ type: 'board.settings.updated', agentId, at: new Date().toISOString(), data: { behavior: (restUpdates as any)?.behavior, layoutPrefs: layoutPrefs ?? undefined } });
+      }
+    } catch {}
+
     return res.json({
       success: true,
       data: {
@@ -815,6 +831,10 @@ router.post('/:id/frames-data', authMiddlewareCompat, async (req: Request, res: 
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
+    const role = extractRole(req);
+    if (!can(role, 'board.frames.add')) {
+      return res.status(403).json({ success: false, code: 'forbidden', reason: 'board.frames.add' });
+    }
 
     const board = await prisma.board.findUnique({ where: { id: boardId } });
     if (!board) return res.status(404).json({ success: false, error: 'Board not found' });
@@ -866,6 +886,10 @@ router.patch('/:id/frames-data/:frameId', authMiddlewareCompat, async (req: Requ
     const userId = (req as any).user?.id;
 
     if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    const role = extractRole(req);
+    if (!can(role, 'board.frames.update')) {
+      return res.status(403).json({ success: false, code: 'forbidden', reason: 'board.frames.update' });
+    }
 
     const board = await prisma.board.findUnique({ where: { id: boardId } });
     if (!board) return res.status(404).json({ success: false, error: 'Board not found' });
@@ -900,6 +924,10 @@ router.delete('/:id/frames-data/:frameId', authMiddlewareCompat, async (req: Req
     const { id: boardId, frameId } = req.params;
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    const role = extractRole(req);
+    if (!can(role, 'board.frames.remove')) {
+      return res.status(403).json({ success: false, code: 'forbidden', reason: 'board.frames.remove' });
+    }
 
     const board = await prisma.board.findUnique({ where: { id: boardId } });
     if (!board) return res.status(404).json({ success: false, error: 'Board not found' });
@@ -929,6 +957,10 @@ router.patch('/:id/frames-data/reorder', authMiddlewareCompat, async (req: Reque
     const order = (req.body?.order as string[]) || [];
     const userId = (req as any).user?.id;
     if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    const role = extractRole(req);
+    if (!can(role, 'board.frames.reorder')) {
+      return res.status(403).json({ success: false, code: 'forbidden', reason: 'board.frames.reorder' });
+    }
 
     const board = await prisma.board.findUnique({ where: { id: boardId } });
     if (!board) return res.status(404).json({ success: false, error: 'Board not found' });
@@ -1218,6 +1250,10 @@ templatesRouter.get('/', async (_req: Request, res: Response) => {
 
 templatesRouter.post('/', async (req: Request, res: Response) => {
   try {
+    const role = extractRole(req);
+    if (!can(role, 'board.templates.save')) {
+      return res.status(403).json({ success: false, code: 'forbidden', reason: 'board.templates.save' });
+    }
     const body = BoardTemplateCreate.parse(req.body);
     const tpl = {
       id: randomUUID(),
@@ -1246,6 +1282,10 @@ templatesRouter.post('/', async (req: Request, res: Response) => {
 
 templatesRouter.post('/:id/apply', async (req: Request, res: Response) => {
   try {
+    const role = extractRole(req);
+    if (!can(role, 'board.templates.apply')) {
+      return res.status(403).json({ success: false, code: 'forbidden', reason: 'board.templates.apply' });
+    }
     const { id } = req.params;
     const boardId = (req.query.boardId as string) || '';
     if (!boardId) return res.status(400).json({ success: false, error: 'boardId is required' });

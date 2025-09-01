@@ -3,7 +3,7 @@ import FramePicker from './FramePicker';
 import { useBoard } from '../../context/BoardContext';
 
 export const BoardToolbar: React.FC = () => {
-  const { activeBoard } = useBoard();
+  const { activeBoard, refreshBoard } = useBoard();
   const [showPicker, setShowPicker] = useState(false);
   const [showSave, setShowSave] = useState(false);
   const [showApply, setShowApply] = useState(false);
@@ -35,6 +35,7 @@ export const BoardToolbar: React.FC = () => {
       });
       setShowSave(false);
       setName(''); setDescription('');
+      await refreshBoard();
     } catch (e) {
       console.error('Save template failed', e);
     }
@@ -45,16 +46,19 @@ export const BoardToolbar: React.FC = () => {
     try {
       await fetch(`/api/board-templates/${templateId}/apply?boardId=${activeBoard.id}`, { method: 'POST', credentials: 'include' });
       setShowApply(false);
+      await refreshBoard();
     } catch (e) {
       console.error('Apply template failed', e);
     }
   };
 
+  const allowEdits = !!(activeBoard?.config as any)?.behavior?.composition?.allowEdits !== false;
+
   return (
     <div className="flex items-center gap-2">
-      <button className="px-3 py-1 rounded border" onClick={() => setShowPicker(true)}>Add Frame</button>
-      <button className="px-3 py-1 rounded border" onClick={() => setShowSave(true)}>Save as Template</button>
-      <button className="px-3 py-1 rounded border" onClick={() => setShowApply(true)}>Apply Template</button>
+      <button className="px-3 py-1 rounded border disabled:opacity-50" onClick={() => setShowPicker(true)} disabled={!allowEdits} title={!allowEdits ? 'Composition edits disabled' : ''}>Add Frame</button>
+      <button className="px-3 py-1 rounded border disabled:opacity-50" onClick={() => setShowSave(true)} disabled={!allowEdits} title={!allowEdits ? 'Templates disabled' : ''}>Save as Template</button>
+      <button className="px-3 py-1 rounded border disabled:opacity-50" onClick={() => setShowApply(true)} disabled={!allowEdits} title={!allowEdits ? 'Templates disabled' : ''}>Apply Template</button>
 
       {showPicker && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center" onClick={() => setShowPicker(false)}>
