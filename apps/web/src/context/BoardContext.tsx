@@ -63,6 +63,10 @@ export interface BoardInstance {
   entityId: string;
   createdAt: Date;
   updatedAt: Date;
+  data?: {
+    frames?: Array<{ id: string; key: string; title?: string; visible?: boolean; props?: Record<string, unknown>; region?: 'main'|'side'|'footer' }>;
+    [key: string]: unknown;
+  };
 }
 
 // =============================================================================
@@ -274,6 +278,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
         entityId: boardData.entityId,
         createdAt: new Date(boardData.createdAt),
         updatedAt: new Date(boardData.updatedAt),
+        data: boardData?.data,
       };
 
       dispatch({ type: 'SET_BOARD', payload: board });

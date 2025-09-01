@@ -411,6 +411,18 @@ export const BoardRenderer: React.FC<BoardRendererProps> = ({
     ? layoutRegistry[board.config.layout] 
     : GridLayout;
 
+  // Phase 9: derive frames to render from board.data.frames order and visible flag if present
+  const framesToRender = useMemo(() => {
+    if (!board) return [] as ExtendedFrameInstance[];
+    const dataFrames = (board.data?.frames ?? []) as Array<{ id: string; visible?: boolean }>;
+    if (!dataFrames.length) return board.frames;
+    const idToFull = new Map(board.frames.map((f) => [f.id, f] as const));
+    return dataFrames
+      .filter((df) => df.visible !== false)
+      .map((df) => idToFull.get(df.id))
+      .filter(Boolean) as ExtendedFrameInstance[];
+  }, [board]);
+
   if (isLoading) {
     return (
       <div className={`flex items-center justify-center py-12 ${className}`}>
@@ -497,7 +509,7 @@ export const BoardRenderer: React.FC<BoardRendererProps> = ({
       {/* Board Content */}
       <div className="board-content">
         <LayoutComponent
-          frames={board.frames}
+          frames={framesToRender}
           onFrameInteraction={handleInteraction}
           isLayoutEditing={isLayoutEditing}
           selectedFrameId={selectedFrameId}

@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { randomUUID } from 'crypto';
+import { broadcastAgentEvent } from './agents/events.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -64,6 +65,52 @@ const BoardUpdate = z.object({
   // NEW: allow layoutPrefs at top-level; will be merged into Board.data
   layoutPrefs: z.record(z.any()).optional(),
 });
+
+// -----------------------------------------------------------------------------
+// Phase 9 additions: Board-level frames (data.frames) and templates
+// -----------------------------------------------------------------------------
+const DataFrameInstance = z.object({
+  id: z.string().uuid(),
+  key: z.string(),
+  title: z.string().optional(),
+  visible: z.boolean().optional(),
+  props: z.record(z.any()).optional(),
+  region: z.enum(['main','side','footer']).optional()
+});
+
+const FrameAdd = z.object({
+  key: z.string(),
+  title: z.string().optional(),
+  visible: z.boolean().optional().default(true),
+  props: z.record(z.any()).optional(),
+  region: z.enum(['main','side','footer']).optional()
+});
+
+const FramePatch = z.object({
+  title: z.string().optional(),
+  visible: z.boolean().optional(),
+  props: z.record(z.any()).optional(),
+  region: z.enum(['main','side','footer']).optional()
+});
+
+const BoardTemplate = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  frames: z.array(DataFrameInstance),
+  layoutPrefs: z.record(z.any()).optional(),
+  createdAt: z.string()
+});
+
+const BoardTemplateCreate = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  frames: z.array(DataFrameInstance.extend({ id: z.string().uuid().optional() })).default([]),
+  layoutPrefs: z.record(z.any()).optional()
+});
+
+// In-memory templates for mock usage
+const templatesMem: Array<z.infer<typeof BoardTemplate>> = [];
 
 const FrameCreate = z.object({
   name: z.string().min(1).max(60),
@@ -527,6 +574,11 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       success: true,
       data: {
         ...board,
+        // Ensure data.frames array exists for client
+        data: {
+          ...(board?.data as any),
+          frames: Array.isArray((board?.data as any)?.frames) ? (board?.data as any).frames : []
+        },
         etag
       }
     });
@@ -726,6 +778,14 @@ router.post('/:id/frames', authMiddlewareCompat, async (req: Request, res: Respo
       }
     });
 
+    // Broadcast SSE event to agent channel if linked
+    const agentId = (board as any)?.agentId || (board?.data as any)?.agentId;
+    if (agentId) {
+      try {
+        broadcastAgentEvent({ type: 'board.frames.added', agentId, data: { frameId: frame.id, name: frame.name }, at: new Date().toISOString() });
+      } catch {}
+    }
+
     return res.json({
       success: true,
       data: frame
@@ -743,6 +803,155 @@ router.post('/:id/frames', authMiddlewareCompat, async (req: Request, res: Respo
   }
 });
 
+/**
+ * POST /api/board-data/:id/frames → add data.frame instance (Phase 9)
+ */
+router.post('/:id/frames-data', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id: boardId } = req.params;
+    const body = FrameAdd.parse(req.body);
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const board = await prisma.board.findUnique({ where: { id: boardId } });
+    if (!board) return res.status(404).json({ success: false, error: 'Board not found' });
+
+    const data = (board.data as any) || {};
+    const frames: any[] = Array.isArray(data.frames) ? data.frames : [];
+    const instance = {
+      id: randomUUID(),
+      key: body.key,
+      title: body.title,
+      visible: body.visible ?? true,
+      props: body.props ?? {},
+      region: body.region
+    };
+    frames.push(instance);
+
+    const updated = await prisma.board.update({
+      where: { id: boardId },
+      data: {
+        data: { ...data, frames },
+        updatedAt: new Date(),
+      }
+    });
+
+    const agentId = (updated as any)?.agentId || ((updated.data as any)?.agentId);
+    if (agentId) {
+      try {
+        broadcastAgentEvent({ type: 'board.frames.added', agentId, data: { frameId: instance.id, key: instance.key }, at: new Date().toISOString() });
+      } catch {}
+    }
+
+    return res.json({ success: true, data: { frames } });
+  } catch (error) {
+    console.error('Error adding data frame instance:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: 'Invalid frame add', details: error.errors });
+    }
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * PATCH /api/board-data/:id/frames-data/:frameId → update data.frame
+ */
+router.patch('/:id/frames-data/:frameId', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id: boardId, frameId } = req.params;
+    const patch = FramePatch.parse(req.body);
+    const userId = (req as any).user?.id;
+
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    const board = await prisma.board.findUnique({ where: { id: boardId } });
+    if (!board) return res.status(404).json({ success: false, error: 'Board not found' });
+    const data = (board.data as any) || {};
+    const frames: any[] = Array.isArray(data.frames) ? data.frames : [];
+    const idx = frames.findIndex((f) => f.id === frameId);
+    if (idx === -1) return res.status(404).json({ success: false, error: 'Frame not found' });
+
+    frames[idx] = { ...frames[idx], ...patch };
+    const updated = await prisma.board.update({ where: { id: boardId }, data: { data: { ...data, frames }, updatedAt: new Date() } });
+
+    const agentId = (updated as any)?.agentId || ((updated.data as any)?.agentId);
+    if (agentId) {
+      try { broadcastAgentEvent({ type: 'board.frames.updated', agentId, data: { frameId }, at: new Date().toISOString() }); } catch {}
+    }
+
+    return res.json({ success: true, data: { frames } });
+  } catch (error) {
+    console.error('Error updating data frame instance:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: 'Invalid frame patch', details: error.errors });
+    }
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * DELETE /api/board-data/:id/frames-data/:frameId → remove data.frame
+ */
+router.delete('/:id/frames-data/:frameId', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id: boardId, frameId } = req.params;
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    const board = await prisma.board.findUnique({ where: { id: boardId } });
+    if (!board) return res.status(404).json({ success: false, error: 'Board not found' });
+    const data = (board.data as any) || {};
+    const frames: any[] = Array.isArray(data.frames) ? data.frames : [];
+    const next = frames.filter((f) => f.id !== frameId);
+
+    const updated = await prisma.board.update({ where: { id: boardId }, data: { data: { ...data, frames: next }, updatedAt: new Date() } });
+    const agentId = (updated as any)?.agentId || ((updated.data as any)?.agentId);
+    if (agentId) {
+      try { broadcastAgentEvent({ type: 'board.frames.removed', agentId, data: { frameId }, at: new Date().toISOString() }); } catch {}
+    }
+
+    return res.json({ success: true, data: { frames: next } });
+  } catch (error) {
+    console.error('Error deleting data frame instance:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * PATCH /api/board-data/:id/frames-data/reorder → reorder data.frames by id array
+ */
+router.patch('/:id/frames-data/reorder', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id: boardId } = req.params;
+    const order = (req.body?.order as string[]) || [];
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+    const board = await prisma.board.findUnique({ where: { id: boardId } });
+    if (!board) return res.status(404).json({ success: false, error: 'Board not found' });
+    const data = (board.data as any) || {};
+    const frames: any[] = Array.isArray(data.frames) ? data.frames : [];
+    const idToFrame = new Map(frames.map((f) => [f.id, f] as const));
+    const missing = order.filter((fid) => !idToFrame.has(fid));
+    if (missing.length) return res.status(400).json({ success: false, error: `Unknown frame ids: ${missing.join(', ')}` });
+
+    const reordered = order.map((fid) => idToFrame.get(fid));
+    const updated = await prisma.board.update({ where: { id: boardId }, data: { data: { ...data, frames: reordered }, updatedAt: new Date() } });
+
+    const agentId = (updated as any)?.agentId || ((updated.data as any)?.agentId);
+    if (agentId) {
+      try { broadcastAgentEvent({ type: 'board.frames.updated', agentId, data: { order }, at: new Date().toISOString() }); } catch {}
+    }
+
+    return res.json({ success: true, data: { frames: reordered, order } });
+  } catch (error) {
+    console.error('Error reordering data frames:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
 /**
  * PATCH /api/boards/:id/frames/:frameId → update frame
  */
@@ -801,6 +1010,15 @@ router.patch('/:id/frames/:frameId', authMiddlewareCompat, async (req: Request, 
         FrameConfig: true
       }
     });
+
+    // Broadcast SSE
+    const parentBoard = await prisma.board.findUnique({ where: { id: boardId } });
+    const agentId = (parentBoard as any)?.agentId || (parentBoard?.data as any)?.agentId;
+    if (agentId) {
+      try {
+        broadcastAgentEvent({ type: 'board.frames.updated', agentId, data: { frameId: updatedFrame.id }, at: new Date().toISOString() });
+      } catch {}
+    }
 
     console.log('🎯 Frame updated successfully:', {
       id: updatedFrame.id,
@@ -862,6 +1080,15 @@ router.delete('/:id/frames/:frameId', authMiddlewareCompat, async (req: Request,
     await prisma.frameInstance.delete({
       where: { id: frameId }
     });
+
+    // Broadcast SSE
+    const parentBoard = await prisma.board.findUnique({ where: { id: boardId } });
+    const agentId = (parentBoard as any)?.agentId || (parentBoard?.data as any)?.agentId;
+    if (agentId) {
+      try {
+        broadcastAgentEvent({ type: 'board.frames.removed', agentId, data: { frameId }, at: new Date().toISOString() });
+      } catch {}
+    }
 
     return res.json({
       success: true,
@@ -948,6 +1175,15 @@ router.patch('/:id/frames/reorder', authMiddlewareCompat, async (req: Request, r
       orderBy: { orderIndex: 'asc' }
     });
 
+    // Broadcast SSE
+    const parentBoard = await prisma.board.findUnique({ where: { id: boardId } });
+    const agentId = (parentBoard as any)?.agentId || (parentBoard?.data as any)?.agentId;
+    if (agentId) {
+      try {
+        broadcastAgentEvent({ type: 'board.frames.updated', agentId, data: { order: updatedFrames.map(f => f.id) }, at: new Date().toISOString() });
+      } catch {}
+    }
+
     return res.json({
       success: true,
       data: { 
@@ -970,3 +1206,80 @@ router.patch('/:id/frames/reorder', authMiddlewareCompat, async (req: Request, r
 });
 
 export default router;
+
+// ============================================================================
+// Templates endpoints (Phase 9)
+// ============================================================================
+export const templatesRouter = Router();
+
+templatesRouter.get('/', async (_req: Request, res: Response) => {
+  return res.json({ success: true, data: templatesMem });
+});
+
+templatesRouter.post('/', async (req: Request, res: Response) => {
+  try {
+    const body = BoardTemplateCreate.parse(req.body);
+    const tpl = {
+      id: randomUUID(),
+      name: body.name,
+      description: body.description,
+      frames: (body.frames || []).map((f) => ({
+        id: f.id || randomUUID(),
+        key: f.key,
+        title: f.title,
+        visible: f.visible ?? true,
+        props: f.props ?? {},
+        region: f.region,
+      })),
+      layoutPrefs: body.layoutPrefs,
+      createdAt: new Date().toISOString(),
+    } as z.infer<typeof BoardTemplate>;
+    templatesMem.unshift(tpl);
+    return res.json({ success: true, data: tpl });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: 'Invalid template', details: err.errors });
+    }
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+templatesRouter.post('/:id/apply', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const boardId = (req.query.boardId as string) || '';
+    if (!boardId) return res.status(400).json({ success: false, error: 'boardId is required' });
+
+    const tpl = templatesMem.find((t) => t.id === id);
+    if (!tpl) return res.status(404).json({ success: false, error: 'Template not found' });
+
+    const board = await prisma.board.findUnique({ where: { id: boardId } });
+    if (!board) return res.status(404).json({ success: false, error: 'Board not found' });
+
+    const data = (board.data as any) || {};
+    const existingFrames: any[] = Array.isArray(data.frames) ? data.frames : [];
+    // Merge frames (append new ones; keep existing by id)
+    const incoming = tpl.frames.map((f) => ({ ...f, id: f.id || randomUUID() }));
+    const merged = [...existingFrames];
+    for (const f of incoming) {
+      if (!merged.find((m) => m.id === f.id)) merged.push(f);
+    }
+
+    const newData = {
+      ...data,
+      frames: merged,
+      layoutPrefs: tpl.layoutPrefs ? { ...(data.layoutPrefs || {}), ...tpl.layoutPrefs } : data.layoutPrefs,
+    };
+
+    const updated = await prisma.board.update({ where: { id: boardId }, data: { data: newData, updatedAt: new Date() } });
+
+    const agentId = (updated as any)?.agentId || ((updated.data as any)?.agentId);
+    if (agentId) {
+      try { broadcastAgentEvent({ type: 'board.frames.updated', agentId, data: { templateId: id }, at: new Date().toISOString() }); } catch {}
+    }
+
+    return res.json({ success: true, data: { frames: merged, layoutPrefs: newData.layoutPrefs } });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
