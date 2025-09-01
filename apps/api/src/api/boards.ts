@@ -61,6 +61,8 @@ const BoardUpdate = z.object({
     allowComments: z.boolean().optional(),
     shareLinkEnabled: z.boolean().optional(),
   }).optional(),
+  // NEW: allow layoutPrefs at top-level; will be merged into Board.data
+  layoutPrefs: z.record(z.any()).optional(),
 });
 
 const FrameCreate = z.object({
@@ -609,11 +611,28 @@ router.put('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       }
     }
 
+    // Prepare updates, merging layoutPrefs into existing data JSON
+    const { layoutPrefs, data: dataFromBody, ...restUpdates } = updates as unknown as {
+      layoutPrefs?: Record<string, unknown>;
+      data?: Record<string, unknown>;
+      [key: string]: unknown;
+    };
+
+    const mergedData: Record<string, unknown> = {
+      ...(existingBoard.data as Record<string, unknown> || {}),
+      ...(dataFromBody || {}),
+    };
+
+    if (layoutPrefs) {
+      mergedData.layoutPrefs = layoutPrefs;
+    }
+
     // Update the board
     const updatedBoard = await prisma.board.update({
       where: { id },
       data: {
-        ...updates,
+        ...(restUpdates as Record<string, unknown>),
+        data: mergedData as unknown as any,
         updatedAt: new Date(),
       },
       include: {

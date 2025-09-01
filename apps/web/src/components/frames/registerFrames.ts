@@ -14,6 +14,8 @@ import ConfigPanelFrame from './ConfigPanelFrame';
 import ActivityFrameDefault from './activity-feed-frame';
 import { MemoryFrame } from './MemoryFrame';
 import { MemoryPropsSchema } from './schemas';
+import TasksFrame from './TasksFrame';
+import { TasksPropsSchema } from './schemas';
 
 export function registerAllExistingFrames() {
   registerFrameType({
@@ -58,6 +60,13 @@ export function registerAllExistingFrames() {
     Component: MemoryFrame as any,
     zodPropsSchema: MemoryPropsSchema,
     defaultProps: { limit: 20 },
+  });
+
+  registerFrameType({
+    type: 'tasks',
+    title: 'Tasks',
+    Component: TasksFrame as any,
+    zodPropsSchema: TasksPropsSchema,
   });
 }
 

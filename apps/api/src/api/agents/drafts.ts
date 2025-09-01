@@ -1,5 +1,7 @@
-import { Router, type Request, type Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { isDbDisabled } from '../../lib/env.js';
+import { emitActivity } from './_activity-util.js';
+import { broadcastAgentEvent } from './events.js';
 
 export const draftsRouter = Router({ mergeParams: true });
 
@@ -35,6 +37,8 @@ draftsRouter.post('/:id/drafts', async (req: Request, res: Response) => {
   const { title, data = {}, topicId } = (req.body ?? {}) as any;
 
   if (isDbDisabled()) {
+    emitActivity({ agentId, kind: 'draft', action: 'create', message: `Draft "${title ?? 'd_new'}" created`, linkedIds: { draftId: 'd_new', topicId } });
+    broadcastAgentEvent({ type: 'draft.created', agentId, draftId: 'd_new', data: { title, topicId }, at: new Date().toISOString() });
     return res.status(201).json(mockDraft(agentId, 'd_new', { title, data, topicId }));
   }
 
@@ -47,6 +51,8 @@ draftsRouter.put('/:id/drafts/:draftId', async (req: Request, res: Response) => 
   const patch = (req.body ?? {}) as any;
 
   if (isDbDisabled()) {
+    emitActivity({ agentId, kind: 'draft', action: 'update', message: `Draft "${draftId}" updated`, linkedIds: { draftId, topicId: patch?.topicId } });
+    broadcastAgentEvent({ type: 'draft.updated', agentId, draftId, data: patch, at: new Date().toISOString() });
     return res.json(mockDraft(agentId, draftId, { ...patch, updatedAt: new Date().toISOString() }));
   }
 
@@ -61,14 +67,22 @@ draftsRouter.delete('/:id/drafts/:draftId', async (_req: Request, res: Response)
 // PROPOSE passthrough
 draftsRouter.post('/:id/drafts/:draftId/propose', async (req: Request, res: Response) => {
   const { id: agentId, draftId } = req.params as any;
-  if (isDbDisabled()) return res.json(mockDraft(agentId, draftId, { status: 'proposed' }));
+  if (isDbDisabled()) {
+    emitActivity({ agentId, kind: 'draft', action: 'status', message: `Draft "${draftId}" proposed`, linkedIds: { draftId } });
+    broadcastAgentEvent({ type: 'draft.proposed', agentId, draftId, at: new Date().toISOString() });
+    return res.json(mockDraft(agentId, draftId, { status: 'proposed' }));
+  }
   return res.json(mockDraft(agentId, draftId, { status: 'proposed' }));
 });
 
 // COMMIT passthrough (server role gate remains in single-draft handler)
 draftsRouter.post('/:id/drafts/:draftId/commit', async (req: Request, res: Response) => {
   const { id: agentId, draftId } = req.params as any;
-  if (isDbDisabled()) return res.json(mockDraft(agentId, draftId, { status: 'committed' }));
+  if (isDbDisabled()) {
+    emitActivity({ agentId, kind: 'draft', action: 'status', message: `Draft "${draftId}" committed`, linkedIds: { draftId } });
+    broadcastAgentEvent({ type: 'draft.committed', agentId, draftId, at: new Date().toISOString() });
+    return res.json(mockDraft(agentId, draftId, { status: 'committed' }));
+  }
   return res.json(mockDraft(agentId, draftId, { status: 'committed' }));
 });
 

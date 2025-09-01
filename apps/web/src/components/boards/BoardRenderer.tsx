@@ -29,6 +29,7 @@ interface BoardRendererProps {
   className?: string;
   onFrameInteraction?: (interaction: FrameInteraction) => void;
   onBoardUpdate?: (updates: Partial<BoardInstance>) => void;
+  onLayoutChange?: (layout: Record<string, unknown>) => void;
   showLayoutControls?: boolean;
   isPreview?: boolean;
 }
@@ -44,6 +45,7 @@ interface LayoutProps {
   selectedFrameId: string | null;
   onFrameSelect: (frameId: string | null) => void;
   boardTheme?: Record<string, string>;
+  onLayoutChange?: (layout: Record<string, unknown>) => void;
 }
 
 const GridLayout: React.FC<LayoutProps> = ({ 
@@ -264,58 +266,77 @@ const FocusLayout: React.FC<LayoutProps & { focusFrameId?: string }> = ({
   );
 };
 
-const CanvasLayout: React.FC<LayoutProps> = ({ 
+const CanvasLayout: React.FC<LayoutProps & { onLayoutChange?: (layout: Record<string, unknown>) => void }> = ({ 
   frames, 
   onFrameInteraction, 
   isLayoutEditing,
   selectedFrameId,
-  onFrameSelect 
-}) => (
-  <div className="relative min-h-[600px] bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-    {frames.length === 0 ? (
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center">
-          <PlusIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">Add frames to your canvas</p>
+  onFrameSelect,
+  onLayoutChange
+}) => {
+  const emitLayout = (frameId: string, position: { x: number; y: number }) => {
+    if (!onLayoutChange) return;
+    const layout: Record<string, { x: number; y: number }> = {};
+    layout[frameId] = position;
+    onLayoutChange(layout);
+  };
+
+  return (
+    <div className="relative min-h-[600px] bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+      {frames.length === 0 ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <PlusIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500">Add frames to your canvas</p>
+          </div>
         </div>
-      </div>
-    ) : (
-      <AnimatePresence>
-        {frames.map((frame, index) => (
-          <motion.div
-            key={frame.id}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            drag={isLayoutEditing}
-            className={`absolute w-80 ${
-              isLayoutEditing && selectedFrameId === frame.id 
-                ? 'ring-2 ring-blue-500 ring-offset-2' 
-                : ''
-            } ${isLayoutEditing ? 'cursor-move' : ''}`}
-            style={{
-              top: `${50 + (index * 20)}px`,
-              left: `${50 + (index * 20)}px`,
-            }}
-            onClick={() => isLayoutEditing && onFrameSelect(frame.id)}
-          >
-            <FrameRenderer
-              frameInstance={frame}
-              onInteraction={onFrameInteraction}
-            />
-            {isLayoutEditing && (
-              <div className="absolute top-2 right-2 bg-white rounded-lg shadow-sm border border-gray-200 p-1">
-                <button className="text-gray-400 hover:text-gray-600">
-                  <Cog6ToothIcon className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-          </motion.div>
-        ))}
-      </AnimatePresence>
-    )}
-  </div>
-);
+      ) : (
+        <AnimatePresence>
+          {frames.map((frame, index) => {
+            const layoutData: any = frame.layoutData || {};
+            const top = typeof layoutData.y === 'number' ? layoutData.y : 50 + (index * 20);
+            const left = typeof layoutData.x === 'number' ? layoutData.x : 50 + (index * 20);
+
+            return (
+              <motion.div
+                key={frame.id}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                drag={isLayoutEditing}
+                onDragEnd={(_, info) => {
+                  if (!isLayoutEditing) return;
+                  const nextLeft = Math.round(left + (info as any).offset.x);
+                  const nextTop = Math.round(top + (info as any).offset.y);
+                  emitLayout(frame.id, { x: nextLeft, y: nextTop });
+                }}
+                className={`absolute w-80 ${
+                  isLayoutEditing && selectedFrameId === frame.id 
+                    ? 'ring-2 ring-blue-500 ring-offset-2' 
+                    : ''
+                } ${isLayoutEditing ? 'cursor-move' : ''}`}
+                style={{ top, left }}
+                onClick={() => isLayoutEditing && onFrameSelect(frame.id)}
+              >
+                <FrameRenderer
+                  frameInstance={frame}
+                  onInteraction={onFrameInteraction}
+                />
+                {isLayoutEditing && (
+                  <div className="absolute top-2 right-2 bg-white rounded-lg shadow-sm border border-gray-200 p-1">
+                    <button className="text-gray-400 hover:text-gray-600">
+                      <Cog6ToothIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      )}
+    </div>
+  );
+};
 
 // =============================================================================
 // LAYOUT REGISTRY
@@ -339,6 +360,7 @@ export const BoardRenderer: React.FC<BoardRendererProps> = ({
   className = '',
   onFrameInteraction,
   onBoardUpdate,
+  onLayoutChange,
   showLayoutControls = true,
   isPreview = false,
 }) => {
@@ -350,7 +372,8 @@ export const BoardRenderer: React.FC<BoardRendererProps> = ({
     selectedFrameId,
     setLayoutEditing,
     selectFrame,
-    loadBoard 
+    loadBoard,
+    onLayoutChange: persistLayout
   } = useBoard();
   const { handleFrameInteraction } = useFrame();
 
@@ -480,6 +503,10 @@ export const BoardRenderer: React.FC<BoardRendererProps> = ({
           selectedFrameId={selectedFrameId}
           onFrameSelect={selectFrame}
           boardTheme={boardTheme}
+          onLayoutChange={(layout: Record<string, unknown>) => {
+            onLayoutChange?.(layout);
+            persistLayout(layout);
+          }}
         />
       </div>
 

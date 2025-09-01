@@ -87,6 +87,7 @@ export interface BoardContextActions {
   setEngagementMode: (boardId: string, mode: EngagementMode) => void;
   setLayoutEditing: (isEditing: boolean) => void;
   selectFrame: (frameId: string | null) => void;
+  onLayoutChange: (layout: Record<string, unknown>) => Promise<void>;
   clearBoard: () => void;
 }
 
@@ -251,10 +252,24 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
       const boardData = await apiFetch(`/api/board-data/${boardId}`);
       
       // Transform API response to match BoardInstance interface
+      // Attempt localStorage fallback if server layoutPrefs missing
+      let localLayout: Record<string, unknown> | null = null;
+      try {
+        if (!boardData?.data?.layoutPrefs) {
+          const stored = localStorage.getItem(`agentBoardLayout:${boardId}`);
+          if (stored) localLayout = JSON.parse(stored);
+        }
+      } catch {}
+
       const board: BoardInstance = {
         id: boardData.id,
         config: boardData.config,
-        frames: boardData.frames || [],
+        // Apply server layoutPrefs or local fallback
+        frames: (boardData.frames || []).map((f: any) => {
+          const layoutPrefs = boardData?.data?.layoutPrefs || localLayout || {};
+          const frameLayout = (layoutPrefs as Record<string, any>)[f.id] || {};
+          return { ...f, layoutData: { ...(f.layoutData || {}), ...frameLayout } };
+        }),
         entityType: boardData.entityType,
         entityId: boardData.entityId,
         createdAt: new Date(boardData.createdAt),
@@ -342,6 +357,27 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     }
   }, []);
 
+  // Persist layout changes to server with localStorage fallback
+  const onLayoutChange = useCallback(async (layout: Record<string, unknown>) => {
+    try {
+      const boardId = state.activeBoard?.id;
+      if (!boardId) return;
+
+      await apiFetch(`/api/board-data/${boardId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ layoutPrefs: layout })
+      });
+    } catch (error) {
+      try {
+        const boardId = state.activeBoard?.id;
+        if (!boardId) return;
+        // Fallback to localStorage
+        localStorage.setItem(`agentBoardLayout:${boardId}`, JSON.stringify(layout));
+      } catch {}
+    }
+  }, [state.activeBoard?.id]);
+
   const setEngagementMode = useCallback((boardId: string, mode: EngagementMode) => {
     dispatch({ type: 'SET_ENGAGEMENT_MODE', payload: mode });
   }, []);
@@ -379,6 +415,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     setEngagementMode,
     setLayoutEditing,
     selectFrame,
+    onLayoutChange,
     clearBoard,
   };
 

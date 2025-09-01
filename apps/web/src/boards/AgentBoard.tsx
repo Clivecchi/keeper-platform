@@ -25,6 +25,7 @@ import {
   FrameInteraction
 } from '../types/frame';
 import { makeFrameInstance } from '../utils/frameFactory';
+import { useAgentEvents, AgentEvent } from '../hooks/useAgentEvents';
 
 // =============================================================================
 // AGENT BOARD PROPS
@@ -174,6 +175,33 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
   const { handleFrameInteraction } = useFrame();
   
   const [isInitialized, setIsInitialized] = useState(false);
+  // Realtime: subscribe to agent events when enabled by board behavior
+  const realtimeEnabled = true; // TODO: wire from board.behavior.realtime?.enabled; default true
+  useAgentEvents(agentId, realtimeEnabled, {
+    onEvent: (e: AgentEvent) => {
+      // Minimal reactions: refresh only affected slices via existing handlers or add targeted fetches
+      switch (e.type) {
+        case 'topic.created':
+        case 'topic.updated':
+        case 'topic.merged':
+          // For now, rely on TopicsFrame internal fetching via context triggers (future: expose refresh fn)
+          break;
+        case 'draft.created':
+        case 'draft.updated':
+        case 'draft.proposed':
+        case 'draft.committed':
+          break;
+        case 'task.created':
+        case 'task.updated':
+        case 'task.status':
+          break;
+        case 'activity.appended':
+          break;
+        default:
+          break;
+      }
+    },
+  });
   const [availableFrameTypes, setAvailableFrameTypes] = useState<string[]>([
     'agent_preview',
     'dialog', 
