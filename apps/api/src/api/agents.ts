@@ -281,6 +281,27 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
         }
       });
 
+      // Ensure Board.data defaults are present (idempotent)
+      try {
+        await prisma.board.update({
+          where: { id: board.id },
+          data: {
+            data: {
+              ...(board.data as any || {}),
+              frames: Array.isArray((board.data as any)?.frames) ? (board.data as any).frames : [],
+              layoutPrefs: ((board.data as any)?.layoutPrefs && typeof (board.data as any).layoutPrefs === 'object') ? (board.data as any).layoutPrefs : {}
+            },
+            behavior: {
+              ...(board as any).behavior || {},
+              realtime: { enabled: true, ...((board as any).behavior?.realtime || {}) },
+              composition: { allowEdits: true, ...((board as any).behavior?.composition || {}) }
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('home-board: failed to apply default board data/behavior (non-fatal):', e);
+      }
+
       // Create default frames for Agent Home Board
       const frameConfigs = [
         {

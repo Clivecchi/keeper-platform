@@ -574,20 +574,35 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     // Set etag header
     res.set('ETag', etag);
 
+    // Safe defaults for behavior and data
+    const rawData = (board?.data as any) || {};
+    const safeFrames = Array.isArray(rawData.frames) ? rawData.frames : [];
+    const safeLayoutPrefs = rawData.layoutPrefs && typeof rawData.layoutPrefs === 'object' ? rawData.layoutPrefs : {};
+    const rawBehavior = (board as any)?.behavior || {};
+    const safeBehavior = {
+      realtime: { enabled: true, ...(rawBehavior.realtime || {}) },
+      composition: { allowEdits: true, ...(rawBehavior.composition || {}) },
+      ...rawBehavior
+    };
+
     return res.json({
       success: true,
       data: {
         ...board,
-        // Ensure data.frames array exists for client
+        behavior: safeBehavior,
         data: {
-          ...(board?.data as any),
-          frames: Array.isArray((board?.data as any)?.frames) ? (board?.data as any).frames : []
+          ...rawData,
+          frames: safeFrames,
+          layoutPrefs: safeLayoutPrefs
         },
         etag
       }
     });
   } catch (error) {
-    console.error('Error fetching board:', error);
+    console.error('Error fetching board:', error instanceof Error ? error.message : error);
+    if (error instanceof Error) {
+      console.error('Stack:', error.stack);
+    }
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });

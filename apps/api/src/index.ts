@@ -122,7 +122,8 @@ app.use(cors({
       'https://keeper-platform-hm1kukq25-clivecchis-projects.vercel.app',
       'https://v0-keeper.vercel.app',
       'https://keeper-platform.vercel.app',
-      'https://keeper-platform-7iglsskfh-clivecchis-projects.vercel.app'  // Add Vercel preview URL
+      'https://keeper-platform-7iglsskfh-clivecchis-projects.vercel.app',  // Add Vercel preview URL
+      'https://sheyenne.livecchi.biz'
     ];
     
     // Allow requests with no origin (e.g., mobile apps, Postman)
