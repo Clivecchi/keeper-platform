@@ -547,6 +547,7 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
   try {
     const { id } = req.params;
     const userId = (req as any).user?.id;
+    const reqId = (req as any).reqId || req.get('x-request-id') || '';
 
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
@@ -585,6 +586,31 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       ...rawBehavior
     };
 
+    const hasBehavior = !!(board as any)?.behavior;
+    const rawData = (board?.data as any) || {};
+    const safeFrames = Array.isArray(rawData.frames) ? rawData.frames : [];
+    const safeLayoutPrefs = rawData.layoutPrefs && typeof rawData.layoutPrefs === 'object' ? rawData.layoutPrefs : {};
+    const rawBehavior = (board as any)?.behavior || {};
+    const safeBehavior = {
+      realtime: { enabled: true, ...(rawBehavior.realtime || {}) },
+      composition: { allowEdits: true, ...(rawBehavior.composition || {}) },
+      ...rawBehavior
+    };
+
+    console.log('[board-data:get]', {
+      reqId,
+      boardId: id,
+      status: 'ok',
+      hasBehavior,
+      hasFramesArray: Array.isArray(rawData.frames),
+      hasLayoutPrefs: typeof rawData.layoutPrefs,
+      types: {
+        behavior: typeof (board as any)?.behavior,
+        frames: Array.isArray(rawData.frames),
+        layoutPrefs: typeof rawData.layoutPrefs
+      }
+    });
+
     return res.json({
       success: true,
       data: {
@@ -599,10 +625,13 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       }
     });
   } catch (error) {
-    console.error('Error fetching board:', error instanceof Error ? error.message : error);
-    if (error instanceof Error) {
-      console.error('Stack:', error.stack);
-    }
+    const reqId = (req as any).reqId || req.get('x-request-id') || '';
+    console.error('[board-data:get:error]', {
+      reqId,
+      boardId: req.params?.id,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });

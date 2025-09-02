@@ -92,6 +92,11 @@ process.on('unhandledRejection', (reason, promise) => {
 app.use((req: Request, res: Response, next: NextFunction) => {
   const timestamp = new Date().toISOString();
   const isDevelopment = process.env.NODE_ENV !== 'production';
+  // Attach/propagate a request id for correlation
+  const incomingReqId = req.get('x-request-id') || req.get('x-railway-request-id') || '';
+  const reqId = incomingReqId || randomUUID();
+  (req as any).reqId = reqId;
+  res.setHeader('x-request-id', reqId);
   
   // Skip logging for OPTIONS requests to reduce noise
   if (req.method === 'OPTIONS') {
@@ -100,12 +105,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   
   // Only log in development or if explicitly enabled
   if (isDevelopment || process.env.ENABLE_REQUEST_LOGGING === 'true') {
-    console.log(`📨 ${timestamp} - ${req.method} ${req.path}`);
-    console.log(`📨 Origin: ${req.get('origin') || 'none'}`);
+    console.log(`📨 ${timestamp} - ${req.method} ${req.path} [reqId=${reqId}]`);
+    console.log(`📨 Origin: ${req.get('origin') || 'none'} [reqId=${reqId}]`);
     
     // Log response when finished
     res.on('finish', () => {
-      console.log(`📤 ${timestamp} - ${req.method} ${req.path} - Status: ${res.statusCode}`);
+      console.log(`📤 ${timestamp} - ${req.method} ${req.path} - Status: ${res.statusCode} [reqId=${reqId}]`);
     });
   }
   

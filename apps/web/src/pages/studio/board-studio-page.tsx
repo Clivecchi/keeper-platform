@@ -654,12 +654,10 @@ const BoardStudioPage: React.FC = () => {
   }, []);
 
   // Auto-select first board if none selected
+  // Adjusted: do not auto-mount a board to avoid initial flash; wait for explicit user selection
   useEffect(() => {
-    if (boards.length > 0 && !selectedBoardId && !isLoadingBoards) {
-      console.log('Auto-selecting first board:', boards[0].id);
-      handleBoardSelect(boards[0].id);
-    }
-  }, [boards, selectedBoardId, isLoadingBoards, handleBoardSelect]);
+    // Intentionally left blank to prevent pre-select; keep prefetch logic only if needed elsewhere
+  }, [boards, selectedBoardId, isLoadingBoards]);
 
   // Debug modal state
   useEffect(() => {
