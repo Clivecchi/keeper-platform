@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { KipApi, KipAgent, AgentClass } from '../../../lib/kipApi';
 import AgentBuilderForm from './AgentBuilderForm';
 import AgentKeeperTypeAssignment from '../../../components/studio/AgentKeeperTypeAssignment';
@@ -26,6 +26,8 @@ const AgentsPage: React.FC = () => {
   const [selectedAgent, setSelectedAgent] = useState<KipAgent | null>(null);
   const [deletingAgent, setDeletingAgent] = useState<KipAgent | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadAgents();
@@ -210,7 +212,7 @@ const AgentsPage: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-card border border-border rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => handleSelectAgent(agent)}
+              onClick={() => navigate(`/studio/agents/${agent.id}`)}
             >
               <div className="flex justify-between items-start">
                 <div className="flex flex-col space-y-1">
@@ -274,6 +276,13 @@ const AgentsPage: React.FC = () => {
               })()}
 
               <div className="flex space-x-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                <Link
+                  to={`/studio/agents/${agent.id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded transition-colors"
+                >
+                  Open Board
+                </Link>
                 <button
                   onClick={() => handleRunAgent(agent.id)}
                   disabled={isRunningAgent === agent.id || agent.status !== 'ready'}

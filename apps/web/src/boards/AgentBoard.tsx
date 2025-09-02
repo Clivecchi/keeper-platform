@@ -9,12 +9,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  CpuChipIcon,
-  PlusIcon,
-  Cog6ToothIcon,
-  ChatBubbleLeftRightIcon,
-  TagIcon,
-  DocumentTextIcon
+  CpuChipIcon
 } from '@heroicons/react/24/outline';
 import { BoardRenderer } from '../components/boards/BoardRenderer';
 import { BoardProvider } from './BoardContext';
@@ -27,6 +22,7 @@ import {
 import { makeFrameInstance } from '../utils/frameFactory';
 import { useAgentEvents, AgentEvent } from '../hooks/useAgentEvents';
 import { useRef } from 'react';
+import { BoardToolbar } from './components/BoardToolbar';
 
 // =============================================================================
 // AGENT BOARD PROPS
@@ -169,9 +165,9 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
   const { 
     activeBoard, 
     loadBoard, 
-    addFrame, 
     isLoading, 
-    error 
+    error,
+    refreshBoard
   } = useBoard();
   const { handleFrameInteraction } = useFrame();
   
@@ -179,7 +175,6 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
   // Realtime: subscribe to agent events when enabled by board behavior
   const realtimeEnabled = true; // TODO: wire from board.behavior.realtime?.enabled; default true
   const refreshDebounceRef = useRef<number | null>(null);
-  const { refreshBoard } = useBoard();
 
   useAgentEvents(agentId, realtimeEnabled, {
     onEvent: (e: AgentEvent) => {
@@ -201,6 +196,12 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
           break;
         case 'activity.appended':
           break;
+        case 'board.settings.updated':
+          if (refreshDebounceRef.current) window.clearTimeout(refreshDebounceRef.current);
+          refreshDebounceRef.current = window.setTimeout(() => {
+            refreshBoard();
+          }, 300);
+          break;
         default:
           if (e.type.startsWith('board.frames.')) {
             if (refreshDebounceRef.current) window.clearTimeout(refreshDebounceRef.current);
@@ -212,13 +213,7 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
       }
     },
   });
-  const [availableFrameTypes, setAvailableFrameTypes] = useState<string[]>([
-    'agent_preview',
-    'dialog', 
-    'config_panel',
-    'topics',
-    'draft'
-  ]);
+  // Frame creation is handled by BoardToolbar + FramePicker (data.frames API)
 
   // Initialize board with agent-specific frames using existing board-data API
   useEffect(() => {
@@ -295,39 +290,7 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
     }
   };
 
-  // Add new frame to the board
-  const handleAddFrame = async (frameType: string) => {
-    if (!activeBoard) return;
-
-    let newFrame: ExtendedFrameInstance;
-
-    switch (frameType) {
-      case 'agent_preview':
-        newFrame = createAgentPreviewFrame(agentId);
-        break;
-      case 'dialog':
-        newFrame = createAgentDialogFrame(agentId);
-        break;
-      case 'config_panel':
-        newFrame = createAgentConfigFrame(agentId);
-        break;
-      case 'topics':
-        newFrame = createTopicsFrame(agentId);
-        break;
-      case 'draft':
-        newFrame = createDraftFrame(agentId);
-        break;
-      default:
-        console.warn('Unknown frame type:', frameType);
-        return;
-    }
-
-    try {
-      await addFrame(activeBoard.id, newFrame);
-    } catch (error) {
-      console.error('Failed to add frame:', error);
-    }
-  };
+  // Legacy addFrame UI removed; use BoardToolbar + FramePicker
 
   if (!isInitialized && isLoading) {
     return (
@@ -380,32 +343,7 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
           {/* Quick Actions */}
           {showControls && (
             <div className="flex items-center space-x-2">
-              <div className="relative group">
-                <button className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  <PlusIcon className="w-4 h-4" />
-                  <span>Add Frame</span>
-                </button>
-                
-                {/* Dropdown Menu */}
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                  {availableFrameTypes.map((frameType) => (
-                    <button
-                      key={frameType}
-                      onClick={() => handleAddFrame(frameType)}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg transition-colors"
-                    >
-                      <div className="flex items-center space-x-2">
-                        {frameType === 'agent_preview' && <CpuChipIcon className="w-4 h-4" />}
-                        {frameType === 'dialog' && <ChatBubbleLeftRightIcon className="w-4 h-4" />}
-                        {frameType === 'config_panel' && <Cog6ToothIcon className="w-4 h-4" />}
-                        {frameType === 'topics' && <TagIcon className="w-4 h-4" />}
-                        {frameType === 'draft' && <DocumentTextIcon className="w-4 h-4" />}
-                        <span className="capitalize">{frameType.replace('_', ' ')}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <BoardToolbar />
             </div>
           )}
         </div>
