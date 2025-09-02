@@ -587,15 +587,6 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     };
 
     const hasBehavior = !!(board as any)?.behavior;
-    const rawData = (board?.data as any) || {};
-    const safeFrames = Array.isArray(rawData.frames) ? rawData.frames : [];
-    const safeLayoutPrefs = rawData.layoutPrefs && typeof rawData.layoutPrefs === 'object' ? rawData.layoutPrefs : {};
-    const rawBehavior = (board as any)?.behavior || {};
-    const safeBehavior = {
-      realtime: { enabled: true, ...(rawBehavior.realtime || {}) },
-      composition: { allowEdits: true, ...(rawBehavior.composition || {}) },
-      ...rawBehavior
-    };
 
     console.log('[board-data:get]', {
       reqId,
