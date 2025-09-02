@@ -13,6 +13,7 @@ import eventsRouter from './agents/events.js';
 import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
+import { randomUUID } from 'crypto';
 
 const router: Router = Router();
 
