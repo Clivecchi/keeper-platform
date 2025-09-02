@@ -259,32 +259,44 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
       console.log(`Loading board: ${boardId}`);
       
       // Make API call to load board instance using apiFetch with authentication
-      const boardData = await apiFetch(`/api/board-data/${boardId}`);
+      const response = await apiFetch(`/api/board-data/${boardId}`);
+      const payload = response?.data || {};
       
       // Transform API response to match BoardInstance interface
       // Attempt localStorage fallback if server layoutPrefs missing
       let localLayout: Record<string, unknown> | null = null;
       try {
-        if (!boardData?.data?.layoutPrefs) {
+        if (!payload?.data?.layoutPrefs) {
           const stored = localStorage.getItem(`agentBoardLayout:${boardId}`);
           if (stored) localLayout = JSON.parse(stored);
         }
       } catch {}
 
+      const layoutPrefs = (payload?.data?.layoutPrefs as Record<string, unknown>) || localLayout || {};
+      const frames = Array.isArray(payload?.frames) ? payload.frames : [];
+
       const board: BoardInstance = {
-        id: boardData.id,
-        config: boardData.config,
+        id: payload.id,
+        config: {
+          id: payload.id,
+          type: (payload?.data?.scope === 'agent' ? 'agent_board' : 'custom') as any,
+          name: payload?.name || 'Board',
+          description: payload?.description || '',
+          layout: 'canvas',
+          engagementMode: 'dialogic',
+          theme: payload?.theme || {},
+          allowLayoutEditing: true,
+        },
         // Apply server layoutPrefs or local fallback
-        frames: (boardData.frames || []).map((f: any) => {
-          const layoutPrefs = boardData?.data?.layoutPrefs || localLayout || {};
+        frames: frames.map((f: any) => {
           const frameLayout = (layoutPrefs as Record<string, any>)[f.id] || {};
           return { ...f, layoutData: { ...(f.layoutData || {}), ...frameLayout } };
         }),
-        entityType: boardData.entityType,
-        entityId: boardData.entityId,
-        createdAt: new Date(boardData.createdAt),
-        updatedAt: new Date(boardData.updatedAt),
-        data: boardData?.data,
+        entityType: payload?.data?.scope || 'custom',
+        entityId: payload?.data?.entityId || payload?.data?.agentId || 'unknown',
+        createdAt: new Date(payload.createdAt),
+        updatedAt: new Date(payload.updatedAt),
+        data: payload?.data,
       };
 
       dispatch({ type: 'SET_BOARD', payload: board });

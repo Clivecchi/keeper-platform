@@ -203,10 +203,11 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
   try {
     const { id: agentId } = req.params;
     const userId = (req as any).user?.id;
+    const reqId = (req as any).reqId || req.get('x-request-id') || '';
 
     if (!userId) {
-      console.warn('[home-board:auth] missing bearer or user in request');
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
+      console.warn('[home-board:auth] missing bearer or user in request', { reqId });
+      return res.status(401).json({ success: false, error: 'Unauthorized', reqId });
     }
 
     // Check if agent exists
@@ -215,7 +216,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
     });
 
     if (!agent) {
-      return res.status(404).json({ success: false, error: 'Agent not found' });
+      return res.status(404).json({ success: false, error: 'Agent not found', reqId });
     }
 
     // Look for existing Agent Home Board
@@ -301,7 +302,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           }
         });
       } catch (e) {
-        console.warn('home-board: failed to apply default board data/behavior (non-fatal):', e);
+        console.warn('home-board: failed to apply default board data/behavior (non-fatal):', { reqId, error: e instanceof Error ? e.message : String(e) });
       }
 
       // Create default frames for Agent Home Board
@@ -491,11 +492,18 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           model: agent.model,
           provider: agent.model_provider
         }
-      }
+      },
+      reqId
     });
   } catch (error) {
-    console.error('Error loading agent home board:', error);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    const reqId = (req as any).reqId || req.get('x-request-id') || '';
+    console.error('[home-board:get:error]', {
+      reqId,
+      agentId: req.params?.id,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return res.status(500).json({ success: false, error: 'Internal server error', reqId });
   }
 });
 

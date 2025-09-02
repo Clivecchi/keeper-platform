@@ -14,6 +14,9 @@ import { extractRole, can } from '../kam/permissions.js';
 const router: Router = Router();
 const prisma = new PrismaClient();
 
+// UUID v4 validator
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 // =============================================================================
 // ZOD VALIDATION SCHEMAS
 // =============================================================================
@@ -549,8 +552,12 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     const userId = (req as any).user?.id;
     const reqId = (req as any).reqId || req.get('x-request-id') || '';
 
+    if (!UUID_V4.test(id)) {
+      return res.status(400).json({ success: false, error: 'Invalid board id', reqId });
+    }
+
     if (!userId) {
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
+      return res.status(401).json({ success: false, error: 'Unauthorized', reqId });
     }
 
     const board = await prisma.board.findUnique({
@@ -566,7 +573,7 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     });
 
     if (!board) {
-      return res.status(404).json({ success: false, error: 'Board not found' });
+      return res.status(404).json({ success: false, error: 'Board not found', reqId });
     }
 
     // Generate etag from updatedAt timestamp
@@ -576,10 +583,12 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     res.set('ETag', etag);
 
     // Safe defaults for behavior and data
-    const rawData = (board?.data as any) || {};
+    const rawDataAny = (board?.data as any) ?? {};
+    const rawData = (rawDataAny && typeof rawDataAny === 'object') ? rawDataAny : {};
     const safeFrames = Array.isArray(rawData.frames) ? rawData.frames : [];
     const safeLayoutPrefs = rawData.layoutPrefs && typeof rawData.layoutPrefs === 'object' ? rawData.layoutPrefs : {};
-    const rawBehavior = (board as any)?.behavior || {};
+    const rawBehaviorAny = (board as any)?.behavior ?? {};
+    const rawBehavior = (rawBehaviorAny && typeof rawBehaviorAny === 'object') ? rawBehaviorAny : {};
     const safeBehavior = {
       realtime: { enabled: true, ...(rawBehavior.realtime || {}) },
       composition: { allowEdits: true, ...(rawBehavior.composition || {}) },
@@ -613,7 +622,8 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
           layoutPrefs: safeLayoutPrefs
         },
         etag
-      }
+      },
+      reqId
     });
   } catch (error) {
     const reqId = (req as any).reqId || req.get('x-request-id') || '';
@@ -623,7 +633,49 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     });
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    return res.status(500).json({ success: false, error: 'Internal server error', reqId });
+  }
+});
+
+/**
+ * GET /api/board-data/:id/raw → dump raw DB row (env and auth gated)
+ */
+router.get('/:id/raw', authMiddlewareCompat, async (req: Request, res: Response) => {
+  const reqId = (req as any).reqId || req.get('x-request-id') || '';
+  try {
+    const { id } = req.params;
+    if (!process.env.ENABLE_RAW_INSPECTOR) {
+      return res.status(404).json({ success: false, error: 'Not found', reqId });
+    }
+    if (!UUID_V4.test(id)) {
+      return res.status(400).json({ success: false, error: 'Invalid board id', reqId });
+    }
+    const role = extractRole(req);
+    if (!can(role, 'board.inspect.raw')) {
+      return res.status(403).json({ success: false, error: 'Forbidden', code: 'forbidden', reason: 'board.inspect.raw', reqId });
+    }
+    const board = await prisma.board.findUnique({ where: { id } });
+    if (!board) {
+      return res.status(404).json({ success: false, error: 'Board not found', reqId });
+    }
+    return res.json({ success: true, data: {
+      id: board.id,
+      slug: (board as any).slug,
+      name: (board as any).name,
+      data: (board as any).data,
+      behavior: (board as any).behavior,
+      access: (board as any).access,
+      updatedAt: (board as any).updatedAt,
+      createdAt: (board as any).createdAt
+    }, reqId });
+  } catch (error) {
+    console.error('[board-data:raw:error]', {
+      reqId,
+      boardId: req.params?.id,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return res.status(500).json({ success: false, error: 'Internal server error', reqId });
   }
 });
 

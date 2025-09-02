@@ -176,7 +176,7 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
   
   const [isInitialized, setIsInitialized] = useState(false);
   // Realtime: subscribe to agent events when enabled by board behavior
-  const realtimeEnabled = true; // TODO: wire from board.behavior.realtime?.enabled; default true
+  const realtimeEnabled = isInitialized; // start SSE only after successful board-data load
   const refreshDebounceRef = useRef<number | null>(null);
 
   useAgentEvents(agentId, realtimeEnabled, {
@@ -242,18 +242,9 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
           return;
         }
         console.error('Failed to initialize agent board:', error);
-        // Fall back to mock data if API fails
-        const mockBoard = createMockAgentBoard(agentId);
-        const frames = [
-          createAgentPreviewFrame(agentId),
-          createAgentDialogFrame(agentId),
-          createTopicsFrame(agentId),
-          createDraftFrame(agentId),
-          createAgentConfigFrame(agentId),
-        ];
-        mockBoard.frames = frames;
-        await loadBoard(mockBoard.id);
-        setIsInitialized(true);
+        // Stop flow on failure; do not call board-data or SSE
+        setIsInitialized(false);
+        return;
       }
     };
 

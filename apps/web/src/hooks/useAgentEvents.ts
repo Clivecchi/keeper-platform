@@ -28,6 +28,7 @@ export function useAgentEvents(agentId: string, enabled = true, handlers: Handle
 
     const connect = () => {
       try {
+        // Only connect after the board is fully initialized by caller
         const es = new EventSource(`/api/agents/${agentId}/events`, { withCredentials: true } as any);
         esRef.current = es;
 

@@ -49,6 +49,9 @@ PUT /api/{resource}/:id     // Update item
 - ✅ Uses existing schema models (kip_agents, Journey, KeeperType, etc.)
 - ✅ Includes proper relationships and joins
 - ✅ Implements error handling and fallbacks
+  - UUID validation on board-data routes
+  - x-request-id propagation and structured error logs
+  - Optional raw inspector endpoint behind ENABLE_RAW_INSPECTOR
 
 ### Frontend Integration
 - ✅ BoardContext updated to use live API
@@ -117,6 +120,11 @@ All endpoints include:
 - Error tracking with context
 - Performance timing
 - Authentication verification
+ - Request correlation via reqId
+
+## 📆 Update Log
+
+- 2025-09-02: Added UUID validation on board-data, raw inspector endpoint, reqId propagation, and safer defaults to prevent 500s when data/behavior are malformed.
 
 ## 🔧 Development
 
