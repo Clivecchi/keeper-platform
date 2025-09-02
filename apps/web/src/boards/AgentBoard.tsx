@@ -23,6 +23,8 @@ import { makeFrameInstance } from '../utils/frameFactory';
 import { useAgentEvents, AgentEvent } from '../hooks/useAgentEvents';
 import { useRef } from 'react';
 import { BoardToolbar } from './components/BoardToolbar';
+import { apiFetch } from '../lib/api';
+import { useNavigate } from 'react-router-dom';
 
 // =============================================================================
 // AGENT BOARD PROPS
@@ -170,6 +172,7 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
     refreshBoard
   } = useBoard();
   const { handleFrameInteraction } = useFrame();
+  const navigate = useNavigate();
   
   const [isInitialized, setIsInitialized] = useState(false);
   // Realtime: subscribe to agent events when enabled by board behavior
@@ -215,26 +218,16 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
   });
   // Frame creation is handled by BoardToolbar + FramePicker (data.frames API)
 
-  // Initialize board with agent-specific frames using existing board-data API
+  // Initialize board with agent-specific frames using authenticated board-data API
   useEffect(() => {
     const initializeBoard = async () => {
       if (isInitialized) return;
 
       try {
-        // First, ensure the agent has a home board
-        const agentResponse = await fetch(`/api/agents/${agentId}/home-board`, {
-          credentials: 'include',
-        });
-
-        if (!agentResponse.ok) {
-          throw new Error(`Failed to ensure agent home board: ${agentResponse.statusText}`);
-        }
-
-        const agentData = await agentResponse.json();
+        // First, ensure the agent has a home board (authenticated)
+        const agentData = await apiFetch(`/api/agents/${agentId}/home-board`);
         
-        if (!agentData.success) {
-          throw new Error(agentData.error || 'Failed to ensure agent home board');
-        }
+        if (!agentData?.success) throw new Error(agentData?.error || 'Failed to ensure agent home board');
 
         const boardId = agentData.data.board.id;
 
@@ -243,6 +236,11 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
         setIsInitialized(true);
         
       } catch (error) {
+        const status = (error as any)?.status;
+        if (status === 401) {
+          navigate('/login');
+          return;
+        }
         console.error('Failed to initialize agent board:', error);
         // Fall back to mock data if API fails
         const mockBoard = createMockAgentBoard(agentId);

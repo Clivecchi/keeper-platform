@@ -130,6 +130,8 @@ app.use(cors({
       'https://keeper-platform-7iglsskfh-clivecchis-projects.vercel.app',  // Add Vercel preview URL
       'https://sheyenne.livecchi.biz'
     ];
+    // Allow this Vercel project’s preview deployments
+    const isVercelPreview = typeof origin === 'string' && /^https:\/\/keeper-platform-[a-z0-9]+-clivecchis-projects\.vercel\.app$/.test(origin);
     
     // Allow requests with no origin (e.g., mobile apps, Postman)
     if (!origin) {
@@ -137,7 +139,7 @@ app.use(cors({
     }
     
     // Check if origin is in allowed list
-    if (allowedOrigins.includes(origin)) {
+    if (allowedOrigins.includes(origin) || isVercelPreview) {
       return callback(null, true);
     }
     
