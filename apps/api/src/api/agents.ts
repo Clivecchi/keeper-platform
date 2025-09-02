@@ -204,6 +204,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
     const userId = (req as any).user?.id;
 
     if (!userId) {
+      console.warn('[home-board:auth] missing bearer or user in request');
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
@@ -236,12 +237,12 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
 
     // If no board exists, create one using the agent template
     if (!board) {
-      const boardId = `agent-board-${agentId}`;
-      
-      // Create the board
+      const newBoardId = randomUUID();
+
+      // Create the board with a real UUID id; keep friendly info in slug
       board = await prisma.board.create({
         data: {
-          id: boardId,
+          id: newBoardId,
           keeperId: agent.created_by || userId, // Use agent creator as keeper, fallback to current user
           name: `${agent.name} Home Board`,
           slug: `agent-${agent.slug}-home`,
