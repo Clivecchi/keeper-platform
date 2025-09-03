@@ -56,7 +56,7 @@
 With database connection:
 - Agents load from `kip_agents` table
 - Messages are logged to `kip_agent_logs` table
-- Agent configuration (avatar, theme, tagline) loads from `config` JSON field
+– Agent home board configuration (avatar, theme, tagline) loads from `config` JSON field
 
 Without database connection:
 - Falls back to mock data in `kipApi.ts`

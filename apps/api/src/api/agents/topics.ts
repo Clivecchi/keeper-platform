@@ -18,7 +18,18 @@ topicsRouter.get('/:id/topics', async (req: Request, res: Response) => {
       { id: 't1', agentId, title: 'Example Topic', essence: 'demo', tags: [] }
     ]);
   }
-  // TODO: Proxy to /api/board-data/:boardId/topics when boardId mapping is available
+  // Proxy once boardId mapping is resolved via agentId column
+  const prisma = new PrismaClient();
+  const { agentId } = req.query as any;
+  if (agentId) {
+    try {
+      const board = await prisma.board.findFirst({ where: { agentId: String(agentId) } });
+      if (board) {
+        // For now return empty array to avoid breaking clients; full proxy would call board-data endpoint
+        return res.json([]);
+      }
+    } catch {}
+  }
   return res.json([]);
 });
 

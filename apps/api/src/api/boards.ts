@@ -10,6 +10,7 @@ import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { randomUUID } from 'crypto';
 import { broadcastAgentEvent } from './agents/events.js';
 import { extractRole, can } from '../kam/permissions.js';
+import type { IncomingHttpHeaders } from 'http';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -1330,6 +1331,80 @@ export default router;
 // Templates endpoints (Phase 9)
 // ============================================================================
 export const templatesRouter = Router();
+
+// ============================================================================
+// Studio alias: GET /api/board-data/agents/:id/home → ensure & return board-data shape
+// ============================================================================
+export const studioAliasRouter = Router();
+
+studioAliasRouter.get('/agents/:id/home', authMiddlewareCompat, async (req: Request, res: Response) => {
+  const reqId = (req as any).reqId || req.get('x-request-id') || '';
+  try {
+    const { id: agentId } = req.params as { id: string };
+    const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!UUID_V4.test(agentId)) {
+      return res.status(400).json({ success: false, error: 'Invalid agent id', reqId });
+    }
+
+    // Delegate to the same ensure function by hitting the internal agents route via prisma
+    // Column-first lookup: find existing by agentId
+    let board = await prisma.board.findFirst({
+      where: { agentId: agentId },
+      include: { frames: { orderBy: { orderIndex: 'asc' }, include: { FrameConfig: true } } }
+    });
+
+    if (!board) {
+      // Fallback: call ensure by emulating minimal logic (avoid duplicating full logic)
+      // We minimally ensure existence by creating a shell board; the agents route handles rich seeding elsewhere
+      const agent = await prisma.kip_agents.findUnique({ where: { id: agentId } });
+      if (!agent) return res.status(404).json({ success: false, error: 'Agent not found', reqId });
+      board = await prisma.board.create({
+        data: {
+          keeperId: agent.created_by || (req as any).user?.id,
+          name: `${agent.name} Home Board`,
+          slug: `agent-${agent.slug}-home`,
+          description: `Home board for ${agent.name} agent`,
+          theme: {},
+          behavior: { showGrid: true, snapToGrid: true, gridSize: 8, defaultPattern: 'dialogic', startFrameId: null, draftMode: false, autosave: true, frameOrder: [] },
+          data: { scope: 'agent', entityId: agentId, agentId: agentId, dataBindings: {} },
+          access: { visibility: 'private', roles: {}, allowComments: false, shareLinkEnabled: false },
+          updatedAt: new Date(),
+          agentId: agentId
+        },
+        include: { frames: { orderBy: { orderIndex: 'asc' }, include: { FrameConfig: true } } }
+      });
+    }
+
+    // Return board-data shape consistent with GET /api/board-data/:id
+    const safeDataAny = (board.data as any) ?? {};
+    const safeData = (safeDataAny && typeof safeDataAny === 'object') ? safeDataAny : {};
+    const safeFramesArr = Array.isArray(safeData.frames) ? safeData.frames : [];
+    const safeLayoutPrefs = safeData.layoutPrefs && typeof safeData.layoutPrefs === 'object' ? safeData.layoutPrefs : {};
+    const rawBehaviorAny = (board as any)?.behavior ?? {};
+    const rawBehavior = (rawBehaviorAny && typeof rawBehaviorAny === 'object') ? rawBehaviorAny : {};
+    const behavior = {
+      realtime: { enabled: true, ...(rawBehavior.realtime || {}) },
+      composition: { allowEdits: true, ...(rawBehavior.composition || {}) },
+      ...rawBehavior
+    } as any;
+    const etag = `"${board.updatedAt.getTime()}"`;
+    res.set('ETag', etag);
+
+    return res.json({
+      success: true,
+      data: {
+        ...board,
+        behavior,
+        data: { ...safeData, frames: safeFramesArr, layoutPrefs: safeLayoutPrefs },
+        etag
+      },
+      reqId
+    });
+  } catch (error) {
+    console.error('[studio-alias:get:error]', { reqId, message: error instanceof Error ? error.message : String(error) });
+    return res.status(500).json({ success: false, error: 'Internal server error', reqId });
+  }
+});
 
 templatesRouter.get('/', async (_req: Request, res: Response) => {
   return res.json({ success: true, data: templatesMem });

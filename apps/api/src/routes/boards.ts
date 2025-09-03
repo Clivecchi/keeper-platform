@@ -101,7 +101,7 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
     const mockBoards = [
       {
         id: 'agent-board-1',
-        name: 'Agent Configuration Board',
+        name: 'Agent Home Board',
         type: 'agent_board',
         description: 'Configure and manage AI agents',
         lastModified: new Date('2024-01-28'),

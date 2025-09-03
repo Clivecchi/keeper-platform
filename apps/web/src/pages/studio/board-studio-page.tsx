@@ -692,7 +692,7 @@ const BoardStudioPage: React.FC = () => {
       setBoards([
         {
           id: 'agent-board-1',
-          name: 'Agent Configuration Board',
+          name: 'Agent Home Board',
           type: 'agent',
           description: 'Configure and manage AI agents',
           lastModified: new Date('2024-01-28'),

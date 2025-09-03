@@ -11,10 +11,10 @@ This section handles:
 - Agent registry display and management
 - KIP thought processing visualization
 - Intent console for testing agent extractions
-- Future studio features like agent configuration and logs
+- Future studio features like Agent Home Board configuration and logs
 
 ## ⚠️ Notes & ToDo
-- [ ] Add subpages for agent configuration (/studio/kip/agents)
+- [ ] Add subpages for Agent Home Board configuration (/studio/kip/agents)
 - [ ] Add logs page (/studio/kip/logs)  
 - [ ] Add simulation environment (/studio/kip/simulation)
 - [ ] Integrate with real KIP backend services

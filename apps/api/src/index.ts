@@ -23,7 +23,7 @@ import boardRoutes from './routes/boards.js';
 import frameRoutes from './routes/frames.js';
 // Import new board data API routes
 import newBoardRoutes from './api/boards.js';
-import newBoardRoutesDefault, { templatesRouter as boardTemplatesRouter } from './api/boards.js';
+import newBoardRoutesDefault, { templatesRouter as boardTemplatesRouter, studioAliasRouter as boardStudioAliasRouter } from './api/boards.js';
 import entitiesRoutes from './api/entities/routes.js';
 import uploadsRoutes from './api/uploads/routes.js';
 import agentsRoutes from './api/agents.js';
@@ -718,6 +718,7 @@ app.use('/api/frames', frameRoutes);
 // Connect new board data API routes
 app.use('/api/board-data', newBoardRoutesDefault);
 app.use('/api/board-templates', boardTemplatesRouter);
+app.use('/api/board-data', boardStudioAliasRouter);
 app.use('/api/entities', entitiesRoutes);
 app.use('/api/uploads', uploadsRoutes);
 app.use('/api/agents', agentsRoutes);

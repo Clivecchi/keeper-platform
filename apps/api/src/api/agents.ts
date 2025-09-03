@@ -210,6 +210,12 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
       return res.status(401).json({ success: false, error: 'Unauthorized', reqId });
     }
 
+    // Strict UUID v4 validation for agentId
+    const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!UUID_V4.test(agentId)) {
+      return res.status(400).json({ success: false, error: 'Invalid agent id', reqId });
+    }
+
     // Check if agent exists
     const agent = await prisma.kip_agents.findUnique({
       where: { id: agentId }
@@ -219,32 +225,22 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
       return res.status(404).json({ success: false, error: 'Agent not found', reqId });
     }
 
-    // Look for existing Agent Home Board
+    // Look for existing Agent Home Board (column-first lookup)
     let board = await prisma.board.findFirst({
-      where: {
-        data: {
-          path: ['agentId'],
-          equals: agentId
-        }
-      },
+      where: { agentId },
       include: {
         frames: {
           orderBy: { orderIndex: 'asc' },
-          include: {
-            FrameConfig: true
-          }
+          include: { FrameConfig: true }
         }
       }
     });
 
     // If no board exists, create one using the agent template
     if (!board) {
-      const newBoardId = randomUUID();
-
-      // Create the board with a real UUID id; keep friendly info in slug
+      // Create the board (DB generates id)
       board = await prisma.board.create({
         data: {
-          id: newBoardId,
           keeperId: agent.created_by || userId, // Use agent creator as keeper, fallback to current user
           name: `${agent.name} Home Board`,
           slug: `agent-${agent.slug}-home`,
@@ -273,13 +269,12 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
             shareLinkEnabled: false
           },
           updatedAt: new Date(),
+          agentId: agentId
         },
         include: {
           frames: {
             orderBy: { orderIndex: 'asc' },
-            include: {
-              FrameConfig: true
-            }
+            include: { FrameConfig: true }
           }
         }
       });
@@ -344,10 +339,9 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
         )
       );
 
-      // Create default frames (UUID ids)
+      // Create default frames (DB generates ids)
       const defaultFrames = [
         {
-          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Agent Conversation',
@@ -370,7 +364,6 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           updatedAt: new Date(),
         },
         {
-          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Agent Preview',
@@ -395,7 +388,6 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           updatedAt: new Date(),
         },
         {
-          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Topics',
@@ -416,7 +408,6 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           updatedAt: new Date(),
         },
         {
-          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Draft',
@@ -435,7 +426,6 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           updatedAt: new Date(),
         },
         {
-          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Configuration',
@@ -457,10 +447,10 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
         }
       ];
 
-      // Insert frames
-      await prisma.frameInstance.createMany({
-        data: defaultFrames
-      });
+      // Insert frames idempotently
+      await prisma.$transaction([
+        prisma.frameInstance.createMany({ data: defaultFrames, skipDuplicates: true })
+      ]);
 
       // Refetch board with frames
       const refetchedBoard = await prisma.board.findUnique({
@@ -481,143 +471,88 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
 
       board = refetchedBoard;
     } else {
-      // Repair: if board exists but has no frames, backfill defaults (UUID ids)
-      if ((board.frames || []).length === 0) {
+      // Repair: compute missing frames (out of 5) and seed only those (idempotent)
+      const required = [
+        { name: 'Agent Conversation', frameType: 'dialog', pattern: 'dialogic', orderIndex: 0, cfg: 'dialog-default' as const },
+        { name: 'Agent Preview', frameType: 'agent_preview', pattern: 'focus', orderIndex: 1, cfg: 'agent-preview-default' as const },
+        { name: 'Topics', frameType: 'topics', pattern: 'focus', orderIndex: 2, cfg: 'topics-default' as const },
+        { name: 'Draft', frameType: 'draft', pattern: 'canvas', orderIndex: 3, cfg: 'draft-default' as const },
+        { name: 'Configuration', frameType: 'config_panel', pattern: 'wizard', orderIndex: 4, cfg: 'config-panel-default' as const },
+      ];
+      const have = new Set((board.frames || []).map(f => f.name));
+      const missing = required.filter(r => !have.has(r.name));
+      if (missing.length > 0) {
         try {
-          const frameConfigs = [
-            { name: 'dialog-default', description: 'Default config for dialog frames', theme: {} },
-            { name: 'agent-preview-default', description: 'Default config for agent preview frames', theme: {} },
-            { name: 'topics-default', description: 'Default config for topics frames', theme: {} },
-            { name: 'draft-default', description: 'Default config for draft frames', theme: {} },
-            { name: 'config-panel-default', description: 'Default config for config panel frames', theme: {} },
-          ];
-          const createdConfigs = await Promise.all(
-            frameConfigs.map(config => prisma.frameConfig.create({ data: config }))
-          );
-          const defaultFrames = [
-            {
-              id: randomUUID(),
-              boardId: board.id,
-              role: null,
-              name: 'Agent Conversation',
-              pattern: 'dialogic',
-              frameType: 'dialog',
-              orderIndex: 0,
-              layoutKind: 'canvas',
-              layoutData: {},
-              props: {
-                title: 'Agent Conversation',
-                placeholder: `Chat with ${agent.name}...`,
-                showHistory: true,
-                maxMessages: 50,
-                agentId: agentId,
-                agentName: agent.name
-              },
-              entityType: 'agent',
-              entityId: agentId,
-              configId: createdConfigs[0].id,
-              updatedAt: new Date(),
-            },
-            {
-              id: randomUUID(),
-              boardId: board.id,
-              role: null,
-              name: 'Agent Preview',
-              pattern: 'focus',
-              frameType: 'agent_preview',
-              orderIndex: 1,
-              layoutKind: 'focus',
-              layoutData: {},
-              props: {
-                showCapabilities: true,
-                showStatus: true,
-                showMetrics: true,
-                agentId: agentId,
-                agentName: agent.name,
-                model: agent.model,
-                provider: agent.model_provider,
-                status: agent.status
-              },
-              entityType: 'agent',
-              entityId: agentId,
-              configId: createdConfigs[1].id,
-              updatedAt: new Date(),
-            },
-            {
-              id: randomUUID(),
-              boardId: board.id,
-              role: null,
-              name: 'Topics',
-              pattern: 'focus',
-              frameType: 'topics',
-              orderIndex: 2,
-              layoutKind: 'focus',
-              layoutData: {},
-              props: {
-                view: 'list',
-                showTags: true,
-                groupBy: 'status',
-                boardId: board.id
-              },
-              entityType: 'agent',
-              entityId: agentId,
-              configId: createdConfigs[2].id,
-              updatedAt: new Date(),
-            },
-            {
-              id: randomUUID(),
-              boardId: board.id,
-              role: null,
-              name: 'Draft',
-              pattern: 'canvas',
-              frameType: 'draft',
-              orderIndex: 3,
-              layoutKind: 'canvas',
-              layoutData: {},
-              props: {
-                tabs: ['Form', 'JSON', 'Diff', 'History'],
-                agentId: agentId
-              },
-              entityType: 'agent',
-              entityId: agentId,
-              configId: createdConfigs[3].id,
-              updatedAt: new Date(),
-            },
-            {
-              id: randomUUID(),
-              boardId: board.id,
-              role: null,
-              name: 'Configuration',
-              pattern: 'wizard',
-              frameType: 'config_panel',
-              orderIndex: 4,
-              layoutKind: 'wizard',
-              layoutData: {},
-              props: {
-                layout: 'tabbed',
-                allowSave: true,
-                validation: true,
-                agentId: agentId
-              },
-              entityType: 'agent',
-              entityId: agentId,
-              configId: createdConfigs[4].id,
-              updatedAt: new Date(),
+          // Ensure configs exist
+          const cfgNames = Array.from(new Set(missing.map(m => m.cfg)));
+          const cfgByName: Record<string, string> = {};
+          for (const name of cfgNames) {
+            const existing = await prisma.frameConfig.findFirst({ where: { name } });
+            if (existing) {
+              cfgByName[name] = existing.id;
+            } else {
+              const created = await prisma.frameConfig.create({ data: { name, description: `Default config for ${name.replace('-default','')}`, theme: {} } });
+              cfgByName[name] = created.id;
             }
-          ];
-          await prisma.frameInstance.createMany({ data: defaultFrames });
-          const refetched = await prisma.board.findUnique({
-            where: { id: board.id },
-            include: {
-              frames: {
-                orderBy: { orderIndex: 'asc' },
-                include: { FrameConfig: true }
+          }
+          const toCreate = missing.map(m => ({
+            boardId: board.id,
+            role: null,
+            name: m.name,
+            pattern: m.pattern,
+            frameType: m.frameType,
+            orderIndex: m.orderIndex,
+            layoutKind: m.pattern === 'wizard' ? 'wizard' : (m.pattern === 'focus' ? 'focus' : 'canvas'),
+            layoutData: {},
+            props: m.name === 'Agent Conversation' ? {
+              title: 'Agent Conversation',
+              placeholder: `Chat with ${agent.name}...`,
+              showHistory: true,
+              maxMessages: 50,
+              agentId: agentId,
+              agentName: agent.name
+            } : m.name === 'Agent Preview' ? {
+              showCapabilities: true,
+              showStatus: true,
+              showMetrics: true,
+              agentId: agentId,
+              agentName: agent.name,
+              model: agent.model,
+              provider: agent.model_provider,
+              status: agent.status
+            } : m.name === 'Topics' ? {
+              view: 'list',
+              showTags: true,
+              groupBy: 'status',
+              boardId: board.id
+            } : m.name === 'Draft' ? {
+              tabs: ['Form', 'JSON', 'Diff', 'History'],
+              agentId: agentId
+            } : {
+              layout: 'tabbed',
+              allowSave: true,
+              validation: true,
+              agentId: agentId
+            },
+            entityType: 'agent',
+            entityId: agentId,
+            configId: cfgByName[m.cfg],
+            updatedAt: new Date(),
+          }));
+          if (toCreate.length > 0) {
+            await prisma.$transaction([
+              prisma.frameInstance.createMany({ data: toCreate, skipDuplicates: true })
+            ]);
+            const refetched = await prisma.board.findUnique({
+              where: { id: board.id },
+              include: {
+                frames: { orderBy: { orderIndex: 'asc' }, include: { FrameConfig: true } }
               }
-            }
-          });
-          if (refetched) board = refetched;
+            });
+            if (refetched) board = refetched;
+          }
         } catch (e) {
-          console.warn('[home-board:frames:backfill:error]', { reqId, message: e instanceof Error ? e.message : String(e) });
+          console.warn('[home-board:frames:heal:error]', { reqId, message: e instanceof Error ? e.message : String(e) });
         }
       }
     }

@@ -106,4 +106,4 @@ Advanced model parameters also include detailed explanations:
 - 📱 **Mobile Optimization**: Touch-friendly tooltip behavior
 - 🔍 **Advanced Help**: Link to detailed documentation when needed
 
-This implementation establishes a comprehensive help system that makes the Kip Studio interface more user-friendly and reduces the learning curve for agent configuration. 
+This implementation establishes a comprehensive help system that makes the Kip Studio interface more user-friendly and reduces the learning curve for Agent Home Board configuration. 

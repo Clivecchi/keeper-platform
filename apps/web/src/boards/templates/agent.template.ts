@@ -25,8 +25,8 @@ export type AgentTemplate = z.infer<typeof AgentTemplateSchema>;
 
 export const agentTemplate: AgentTemplate = {
   id: 'agent',
-  name: 'Agent Board',
-  description: 'AI agent configuration and interaction board with dialogic patterns',
+  name: 'Agent Home Board',
+  description: 'Agent-bound home board with conversation, preview, topics, draft, config',
   icon: '🤖',
   frames: [
     {

@@ -75,11 +75,11 @@ const BoardDemoPage: React.FC = () => {
                   <li><strong>BoardContext:</strong> Manages board state and frame interactions</li>
                   <li><strong>BoardRenderer:</strong> Dynamic layout engine with 6 layout types</li>
                   <li><strong>FrameRenderer:</strong> Renders individual frame components</li>
-                  <li><strong>AgentBoard:</strong> Specialized board for agent configuration</li>
+                  <li><strong>AgentBoard:</strong> Specialized Agent Home Board bound to an agent</li>
                 </ul>
                 <p className="mt-3">
-                  <strong>Current Demo:</strong> AgentBoard with dialogic engagement mode, 
-                  featuring agent preview, configuration, and interaction frames.
+                  <strong>Current Demo:</strong> Agent Home Board with dialogic engagement mode, 
+                  featuring agent preview, topics, draft, configuration, and interaction frames.
                 </p>
               </div>
             </div>

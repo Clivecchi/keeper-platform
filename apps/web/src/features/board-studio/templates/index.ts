@@ -28,8 +28,8 @@ export interface TemplateSpec {
 export const BOARD_TEMPLATES: Record<TemplateId, TemplateSpec> = {
   agent: {
     id: 'agent',
-    name: 'Agent Board',
-    description: 'AI agent configuration and interaction board',
+    name: 'Agent Home Board',
+    description: 'Agent-bound home board with conversation, preview, topics, draft, config',
     frames: [
       // Cover and Settings are auto-created, so we add additional frames
       {
