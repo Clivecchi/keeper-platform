@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import { PrismaClient } from '@prisma/client';
 import { isDbDisabled } from '../../lib/env.js';
 import { emitActivity } from './_activity-util.js';
 import { broadcastAgentEvent } from './events.js';
@@ -12,18 +13,18 @@ export const topicsRouter = Router({ mergeParams: true });
 
 // LIST
 topicsRouter.get('/:id/topics', async (req: Request, res: Response) => {
-  const agentId = req.params.id;
+  const routeAgentId = req.params.id;
   if (isDbDisabled()) {
     return res.json([
-      { id: 't1', agentId, title: 'Example Topic', essence: 'demo', tags: [] }
+      { id: 't1', agentId: routeAgentId, title: 'Example Topic', essence: 'demo', tags: [] }
     ]);
   }
   // Proxy once boardId mapping is resolved via agentId column
   const prisma = new PrismaClient();
-  const { agentId } = req.query as any;
-  if (agentId) {
+  const { agentId: queryAgentId } = req.query as any;
+  if (queryAgentId) {
     try {
-      const board = await prisma.board.findFirst({ where: { agentId: String(agentId) } });
+      const board = await prisma.board.findFirst({ where: { agentId: String(queryAgentId) } });
       if (board) {
         // For now return empty array to avoid breaking clients; full proxy would call board-data endpoint
         return res.json([]);
@@ -35,16 +36,16 @@ topicsRouter.get('/:id/topics', async (req: Request, res: Response) => {
 
 // CREATE
 topicsRouter.post('/:id/topics', async (req: Request, res: Response) => {
-  const agentId = req.params.id;
+  const routeAgentId = req.params.id;
   const { title, essence, tags = [] } = (req.body ?? {}) as { title?: string; essence?: string; tags?: string[] };
   if (isDbDisabled()) {
     const createdId = 't_new';
-    emitActivity({ agentId, kind: 'topic', action: 'create', message: `Topic "${title}" created`, linkedIds: { topicId: createdId } });
-    broadcastAgentEvent({ type: 'topic.created', agentId, topicId: createdId, data: { title }, at: new Date().toISOString() });
-    return res.status(201).json({ id: createdId, agentId, title, essence, tags });
+    emitActivity({ agentId: routeAgentId, kind: 'topic', action: 'create', message: `Topic "${title}" created`, linkedIds: { topicId: createdId } });
+    broadcastAgentEvent({ type: 'topic.created', agentId: routeAgentId, topicId: createdId, data: { title }, at: new Date().toISOString() });
+    return res.status(201).json({ id: createdId, agentId: routeAgentId, title, essence, tags });
   }
   // TODO: Proxy to /api/board-data/:boardId/topics
-  return res.status(201).json({ id: 't_new', agentId, title, essence, tags });
+  return res.status(201).json({ id: 't_new', agentId: routeAgentId, title, essence, tags });
 });
 
 // UPDATE

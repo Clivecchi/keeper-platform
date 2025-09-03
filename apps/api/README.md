@@ -122,3 +122,4 @@ All packages now use:
 - **2025-01-24**: COMPREHENSIVE SOLUTION - Single-stage Docker build with consistent TypeScript configs and proper imports 
 - **2025-07-16**: Implemented secure authentication flow. Replaced static test login/register routes with database-driven implementations using bcryptjs for password hashing and jsonwebtoken for signing JWTs. Added Zod validation schemas (AuthLoginSchema, AuthRegisterSchema) for strict input validation. Updated auth middleware remains compatible. Now profile updates via PUT /api/users/:id succeed with valid tokens. 
  - **2025-08-29**: Added global Vitest setup `apps/api/vitest.setup.ts` to enforce safe test env. Defaulted `DISABLE_REDIS=true` to use internal no-op Redis in tests. Updated `vitest.config.ts` to include setup and exclude two non-suite demo files.
+ - **2025-09-03**: Fixed TypeScript errors in `src/api/agents/topics.ts` by importing `PrismaClient` and resolving variable shadowing for `agentId`.
