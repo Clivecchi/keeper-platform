@@ -318,6 +318,7 @@ This package was created during the monorepo migration to centralize all databas
 - **2025-06-23**: Implemented fallback mock data for development
 - **2025-06-23**: Added development setup documentation
 - **2025-06-25**: Added @keeper/shared as a dependency and updated build process to ensure correct build order for Railway.
+- **2025-09-03**: Removed TS path alias to `@keeper/shared/src` to fix Vercel/Railway builds. Now `@keeper/database` depends on compiled `@keeper/shared` output.
 
 ---
 

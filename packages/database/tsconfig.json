@@ -13,11 +13,7 @@
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
-    "paths": {
-      "@keeper/shared": ["../shared/src"],
-      "@keeper/shared/*": ["../shared/src/*"]
-    }
+    "baseUrl": "."
   },
   "include": [
     "src/**/*"

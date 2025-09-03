@@ -1,6 +1,28 @@
 # @keeper/database - Database Package
 
 ## 📌 Purpose
+The Database package provides centralized database access and management for the Keeper Platform using Prisma ORM. This package includes the Prisma client, database schema, common query helpers, and type definitions that are shared across all applications.
+
+## 🧱 Key Files
+- `src/index.ts`
+- `src/queries/index.ts`
+- `src/types.ts`
+- `prisma/schema.prisma`
+
+## 🔄 Data & Behavior
+Centralizes Prisma client, schema, and helpers. Exposes stateless helpers and types for API and services.
+
+## ⚠️ Notes & ToDo
+- [ ] Pending issues or improvements
+- [ ] Behavior to confirm with Kip
+
+## 📆 Update Log
+- 2025-06-23 – Package created during monorepo migration
+- 2025-06-25 – Added @keeper/shared dependency and adjusted build order
+- 2025-09-03 – Removed TS path alias to shared/src to fix builds; rely on compiled shared output
+# @keeper/database - Database Package
+
+## 📌 Purpose
 
 The Database package provides centralized database access and management for the Keeper Platform using Prisma ORM. This package includes the Prisma client, database schema, common query helpers, and type definitions that are shared across all applications.
 
