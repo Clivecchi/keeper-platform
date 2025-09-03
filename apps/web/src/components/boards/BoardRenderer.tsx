@@ -411,16 +411,19 @@ export const BoardRenderer: React.FC<BoardRendererProps> = ({
     ? layoutRegistry[board.config.layout] 
     : GridLayout;
 
-  // Phase 9: derive frames to render from board.data.frames order and visible flag if present
+  // Phase 9 chip list (board.data.frames) should not hide runtime frames unless fully resolvable
   const framesToRender = useMemo(() => {
     if (!board) return [] as ExtendedFrameInstance[];
     const dataFrames = (board.data?.frames ?? []) as Array<{ id: string; visible?: boolean }>;
     if (!dataFrames.length) return board.frames;
     const idToFull = new Map(board.frames.map((f) => [f.id, f] as const));
-    return dataFrames
+    const mapped = dataFrames
       .filter((df) => df.visible !== false)
       .map((df) => idToFull.get(df.id))
       .filter(Boolean) as ExtendedFrameInstance[];
+    // If any chip id failed to resolve, fall back to the persisted frames list (runtime safety)
+    const allResolvable = mapped.length === dataFrames.filter((df) => df.visible !== false).length;
+    return allResolvable ? mapped : board.frames;
   }, [board]);
 
   if (isLoading) {

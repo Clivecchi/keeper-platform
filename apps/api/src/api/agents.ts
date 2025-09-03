@@ -297,7 +297,8 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
             behavior: {
               ...(board as any).behavior || {},
               realtime: { enabled: true, ...((board as any).behavior?.realtime || {}) },
-              composition: { allowEdits: true, ...((board as any).behavior?.composition || {}) }
+              // Agent runtime boards should not allow composition edits by default
+              composition: { allowEdits: false, ...((board as any).behavior?.composition || {}) }
             }
           }
         });
