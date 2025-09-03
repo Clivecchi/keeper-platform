@@ -12,7 +12,12 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@keeper/shared": ["../shared/src"],
+      "@keeper/shared/*": ["../shared/src/*"]
+    }
   },
   "include": [
     "src/**/*"

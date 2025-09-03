@@ -270,7 +270,9 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
           const stored = localStorage.getItem(`agentBoardLayout:${boardId}`);
           if (stored) localLayout = JSON.parse(stored);
         }
-      } catch {}
+      } catch (e) {
+        // ignore malformed local storage content
+      }
 
       const layoutPrefs = (payload?.data?.layoutPrefs as Record<string, unknown>) || localLayout || {};
       const frames = Array.isArray(payload?.frames) ? payload.frames : [];

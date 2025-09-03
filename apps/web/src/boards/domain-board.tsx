@@ -217,15 +217,17 @@ export const DomainBoard: React.FC<DomainBoardProps> = ({
     
     // Handle domain-specific interactions
     switch (interaction.data?.action) {
-      case 'next_step':
+      case 'next_step': {
         const nextStep = Math.min(currentStep + 1, 3);
         setCurrentStep(nextStep);
         break;
+      }
         
-      case 'previous_step':
+      case 'previous_step': {
         const prevStep = Math.max(currentStep - 1, 0);
         setCurrentStep(prevStep);
         break;
+      }
         
       case 'domain_update':
         console.log('Updating domain:', interaction.data);

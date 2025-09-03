@@ -8,21 +8,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ClockIcon,
-  UserIcon,
-  PlusIcon,
-  PencilIcon,
-  TrashIcon,
-  ShareIcon,
-  ChatBubbleLeftIcon,
-  EyeIcon,
-  HeartIcon,
-  ArrowRightIcon,
-  FunnelIcon,
-  CalendarIcon,
-  CheckCircleIcon
-} from '@heroicons/react/24/outline';
+import { ClockIcon } from '@heroicons/react/24/outline';
 import { BaseFrameProps } from '../../types/frame';
 import { useFrame } from '../../context/FrameContext';
 import { BoardContext } from '../../boards/BoardContext';

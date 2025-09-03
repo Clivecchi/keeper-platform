@@ -22,7 +22,6 @@ import {
 import { makeFrameInstance } from '../utils/frameFactory';
 import { useAgentEvents, AgentEvent } from '../hooks/useAgentEvents';
 import { useRef } from 'react';
-import { BoardToolbar } from './components/BoardToolbar';
 import { AgentRuntimeToolbar } from './components/AgentRuntimeToolbar';
 import { apiFetch } from '../lib/api';
 import { useNavigate } from 'react-router-dom';

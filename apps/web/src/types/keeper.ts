@@ -478,12 +478,12 @@ export interface UpdateAgentDraftRequest {
 /**
  * API Response Types
  */
-export interface TopicResponse extends KeeperApiResponse<Topic> {}
-export interface TopicListResponse extends KeeperApiResponse<Topic[]> {}
-export interface TopicHighlightResponse extends KeeperApiResponse<TopicHighlight> {}
-export interface TopicHighlightListResponse extends KeeperApiResponse<TopicHighlight[]> {}
-export interface AgentDraftResponse extends KeeperApiResponse<AgentDraft> {}
-export interface AgentDraftHistoryResponse extends KeeperApiResponse<AgentDraftHistory[]> {}
+export type TopicResponse = KeeperApiResponse<Topic>;
+export type TopicListResponse = KeeperApiResponse<Topic[]>;
+export type TopicHighlightResponse = KeeperApiResponse<TopicHighlight>;
+export type TopicHighlightListResponse = KeeperApiResponse<TopicHighlight[]>;
+export type AgentDraftResponse = KeeperApiResponse<AgentDraft>;
+export type AgentDraftHistoryResponse = KeeperApiResponse<AgentDraftHistory[]>;
 
 /**
  * Agent Home Board Bootstrap Response

@@ -257,17 +257,19 @@ export const PeopleBoard: React.FC<PeopleBoardProps> = ({
         onPeopleUpdate?.(personId, interaction.data);
         break;
         
-      case 'toggle_mode':
+      case 'toggle_mode': {
         const newMode = engagementMode === 'canvas' ? 'wizard' : 'canvas';
         setEngagementMode(newMode);
         console.log('Toggling engagement mode:', newMode);
         break;
+      }
         
-      case 'filter_change':
+      case 'filter_change': {
         const filterValue = interaction.data?.filter as typeof filterMode;
         setFilterMode(filterValue || 'all');
         console.log('Changing filter:', filterValue);
         break;
+      }
         
       case 'people_share':
         console.log('Sharing people data:', interaction.data);

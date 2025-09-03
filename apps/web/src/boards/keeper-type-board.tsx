@@ -245,15 +245,17 @@ export const KeeperTypeBoard: React.FC<KeeperTypeBoardProps> = ({
     
     // Handle keeper type-specific interactions
     switch (interaction.data?.action) {
-      case 'next_step':
+      case 'next_step': {
         const nextStep = Math.min(currentStep + 1, 4);
         setCurrentStep(nextStep);
         break;
+      }
         
-      case 'previous_step':
+      case 'previous_step': {
         const prevStep = Math.max(currentStep - 1, 0);
         setCurrentStep(prevStep);
         break;
+      }
         
       case 'keeper_type_update':
         console.log('Updating keeper type:', interaction.data);
@@ -268,11 +270,12 @@ export const KeeperTypeBoard: React.FC<KeeperTypeBoardProps> = ({
         console.log('Linking agent:', interaction.data);
         break;
         
-      case 'toggle_mode':
+      case 'toggle_mode': {
         const newMode = engagementMode === 'wizard' ? 'canvas' : 'wizard';
         setEngagementMode(newMode);
         console.log('Toggling engagement mode:', newMode);
         break;
+      }
         
       case 'keeper_type_share':
         console.log('Sharing keeper type:', interaction.data);

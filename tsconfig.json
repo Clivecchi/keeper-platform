@@ -1,7 +1,12 @@
 {
   "extends": "./tools/tsconfig/base.json",
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@keeper/shared": ["packages/shared/src"],
+      "@keeper/shared/*": ["packages/shared/src/*"]
+    }
   },
   "include": [
     "packages/*/src/**/*",
