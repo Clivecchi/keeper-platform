@@ -343,10 +343,10 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
         )
       );
 
-      // Create default frames
+      // Create default frames (UUID ids)
       const defaultFrames = [
         {
-          id: `dialog-${agentId}`,
+          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Agent Conversation',
@@ -369,7 +369,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           updatedAt: new Date(),
         },
         {
-          id: `agent-preview-${agentId}`,
+          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Agent Preview',
@@ -394,7 +394,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           updatedAt: new Date(),
         },
         {
-          id: `topics-${agentId}`,
+          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Topics',
@@ -415,7 +415,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           updatedAt: new Date(),
         },
         {
-          id: `draft-${agentId}`,
+          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Draft',
@@ -434,7 +434,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           updatedAt: new Date(),
         },
         {
-          id: `config-panel-${agentId}`,
+          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Configuration',
@@ -479,6 +479,146 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
       }
 
       board = refetchedBoard;
+    } else {
+      // Repair: if board exists but has no frames, backfill defaults (UUID ids)
+      if ((board.frames || []).length === 0) {
+        try {
+          const frameConfigs = [
+            { name: 'dialog-default', description: 'Default config for dialog frames', theme: {} },
+            { name: 'agent-preview-default', description: 'Default config for agent preview frames', theme: {} },
+            { name: 'topics-default', description: 'Default config for topics frames', theme: {} },
+            { name: 'draft-default', description: 'Default config for draft frames', theme: {} },
+            { name: 'config-panel-default', description: 'Default config for config panel frames', theme: {} },
+          ];
+          const createdConfigs = await Promise.all(
+            frameConfigs.map(config => prisma.frameConfig.create({ data: config }))
+          );
+          const defaultFrames = [
+            {
+              id: randomUUID(),
+              boardId: board.id,
+              role: null,
+              name: 'Agent Conversation',
+              pattern: 'dialogic',
+              frameType: 'dialog',
+              orderIndex: 0,
+              layoutKind: 'canvas',
+              layoutData: {},
+              props: {
+                title: 'Agent Conversation',
+                placeholder: `Chat with ${agent.name}...`,
+                showHistory: true,
+                maxMessages: 50,
+                agentId: agentId,
+                agentName: agent.name
+              },
+              entityType: 'agent',
+              entityId: agentId,
+              configId: createdConfigs[0].id,
+              updatedAt: new Date(),
+            },
+            {
+              id: randomUUID(),
+              boardId: board.id,
+              role: null,
+              name: 'Agent Preview',
+              pattern: 'focus',
+              frameType: 'agent_preview',
+              orderIndex: 1,
+              layoutKind: 'focus',
+              layoutData: {},
+              props: {
+                showCapabilities: true,
+                showStatus: true,
+                showMetrics: true,
+                agentId: agentId,
+                agentName: agent.name,
+                model: agent.model,
+                provider: agent.model_provider,
+                status: agent.status
+              },
+              entityType: 'agent',
+              entityId: agentId,
+              configId: createdConfigs[1].id,
+              updatedAt: new Date(),
+            },
+            {
+              id: randomUUID(),
+              boardId: board.id,
+              role: null,
+              name: 'Topics',
+              pattern: 'focus',
+              frameType: 'topics',
+              orderIndex: 2,
+              layoutKind: 'focus',
+              layoutData: {},
+              props: {
+                view: 'list',
+                showTags: true,
+                groupBy: 'status',
+                boardId: board.id
+              },
+              entityType: 'agent',
+              entityId: agentId,
+              configId: createdConfigs[2].id,
+              updatedAt: new Date(),
+            },
+            {
+              id: randomUUID(),
+              boardId: board.id,
+              role: null,
+              name: 'Draft',
+              pattern: 'canvas',
+              frameType: 'draft',
+              orderIndex: 3,
+              layoutKind: 'canvas',
+              layoutData: {},
+              props: {
+                tabs: ['Form', 'JSON', 'Diff', 'History'],
+                agentId: agentId
+              },
+              entityType: 'agent',
+              entityId: agentId,
+              configId: createdConfigs[3].id,
+              updatedAt: new Date(),
+            },
+            {
+              id: randomUUID(),
+              boardId: board.id,
+              role: null,
+              name: 'Configuration',
+              pattern: 'wizard',
+              frameType: 'config_panel',
+              orderIndex: 4,
+              layoutKind: 'wizard',
+              layoutData: {},
+              props: {
+                layout: 'tabbed',
+                allowSave: true,
+                validation: true,
+                agentId: agentId
+              },
+              entityType: 'agent',
+              entityId: agentId,
+              configId: createdConfigs[4].id,
+              updatedAt: new Date(),
+            }
+          ];
+          await prisma.frameInstance.createMany({ data: defaultFrames });
+          const refetched = await prisma.board.findUnique({
+            where: { id: board.id },
+            include: {
+              frames: {
+                orderBy: { orderIndex: 'asc' },
+                include: { FrameConfig: true }
+              }
+            }
+          });
+          if (refetched) board = refetched;
+        } catch (e) {
+          console.warn('[home-board:frames:backfill:error]', { reqId, message: e instanceof Error ? e.message : String(e) });
+        }
+      }
     }
 
     return res.json({
