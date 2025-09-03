@@ -23,6 +23,7 @@ import { makeFrameInstance } from '../utils/frameFactory';
 import { useAgentEvents, AgentEvent } from '../hooks/useAgentEvents';
 import { useRef } from 'react';
 import { BoardToolbar } from './components/BoardToolbar';
+import { AgentRuntimeToolbar } from './components/AgentRuntimeToolbar';
 import { apiFetch } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 
@@ -329,17 +330,16 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
             </div>
           </div>
 
-          {/* Quick Actions */}
+          {/* Quick Actions (runtime-only). Hide builder toolbar on Agent Home Board */}
           {showControls && (
-            <div className="flex items-center space-x-2">
-              <BoardToolbar />
-              <button
-                onClick={() => activeBoard?.id && navigate(`/studio/board-studio?boardId=${encodeURIComponent(activeBoard.id)}`)}
-                className="px-3 py-2 rounded-lg border bg-white text-gray-600 hover:bg-gray-50"
-              >
-                Edit in Board Studio
-              </button>
-            </div>
+            <AgentRuntimeToolbar
+              boardId={activeBoard?.id}
+              onRefresh={() => refreshBoard()}
+              onOpenStudio={(id?: string) => {
+                if (!id) return;
+                navigate(`/studio/board-studio?boardId=${encodeURIComponent(id)}`);
+              }}
+            />
           )}
         </div>
       </div>
