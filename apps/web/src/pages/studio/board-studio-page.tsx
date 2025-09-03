@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiFetch } from '../../lib/api';
 import { Button } from '../../features/board-studio/v0/components/ui/button';
@@ -791,6 +792,39 @@ const BoardStudioPage: React.FC = () => {
       console.error('Error creating board:', error);
     }
   };
+
+  // Deep-link: /studio/board-studio?boardId=UUID
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const id = searchParams.get('boardId');
+    if (!id) return;
+    if (selectedBoardId === id) return;
+    (async () => {
+      try {
+        const res = await apiFetch(`/api/board-data/${id}`);
+        const b = res?.data;
+        if (!b) return;
+        setBoards(prev => {
+          if (prev.some(x => x.id === b.id)) return prev;
+          return [
+            ...prev,
+            {
+              id: b.id,
+              name: b.name,
+              type: (b?.data?.scope || 'custom'),
+              description: b.description || '',
+              lastModified: new Date(b.updatedAt),
+              frameCount: (b.frames || []).length,
+              engagementMode: (b?.behavior?.defaultPattern || 'canvas')
+            }
+          ];
+        });
+        setSelectedBoardId(b.id);
+      } catch (e) {
+        console.error('Failed to load board from URL:', e);
+      }
+    })();
+  }, [searchParams, selectedBoardId]);
 
   // Autosave save function
   const saveBoard = async (data: any, options?: { etag?: string; force?: boolean }) => {

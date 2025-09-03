@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../../lib/api';
 import FramePicker from './FramePicker';
 import { useBoard } from '../../context/BoardContext';
 
@@ -15,8 +16,7 @@ export const BoardToolbar: React.FC = () => {
     if (!showApply) return;
     (async () => {
       try {
-        const res = await fetch('/api/board-templates', { credentials: 'include' });
-        const json = await res.json();
+        const json = await apiFetch('/api/board-templates');
         setTemplates(json?.data || []);
       } catch (e) {
         console.error('Failed to load templates', e);
@@ -29,8 +29,8 @@ export const BoardToolbar: React.FC = () => {
     try {
       const frames = (activeBoard.data?.frames ?? []).map((f) => ({ id: f.id, key: f.key, title: f.title, visible: f.visible ?? true, props: f.props, region: f.region }));
       const layoutPrefs = (activeBoard.data as any)?.layoutPrefs;
-      await fetch('/api/board-templates', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+      await apiFetch('/api/board-templates', {
+        method: 'POST',
         body: JSON.stringify({ name, description, frames, layoutPrefs })
       });
       setShowSave(false);
@@ -44,7 +44,7 @@ export const BoardToolbar: React.FC = () => {
   const applyTemplate = async (templateId: string) => {
     if (!activeBoard) return;
     try {
-      await fetch(`/api/board-templates/${templateId}/apply?boardId=${activeBoard.id}`, { method: 'POST', credentials: 'include' });
+      await apiFetch(`/api/board-templates/${templateId}/apply?boardId=${activeBoard.id}`, { method: 'POST' });
       setShowApply(false);
       await refreshBoard();
     } catch (e) {

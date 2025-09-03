@@ -24,6 +24,7 @@ import { BaseFrameProps } from '../../types/frame';
 import { AgentDraft, AgentDraftHistory, UpdateAgentDraftRequest } from '../../types/keeper';
 import { useFrame } from '../../context/FrameContext';
 import { BoardContext } from '../../boards/BoardContext';
+import { apiFetch } from '../../lib/api';
 
 interface DraftFrameProps extends BaseFrameProps {
   agentId?: string;
@@ -81,9 +82,8 @@ const DraftFrame: React.FC<DraftFrameProps> = ({
         // List drafts (plural) and take first for MVP
         const listUrl = new URL(`/api/agents/${agentId}/drafts`, window.location.origin);
         if (currentTopicId) listUrl.searchParams.set('topicId', currentTopicId);
-        const listRes = await fetch(listUrl.toString(), { credentials: 'include' });
-        if (listRes.ok) {
-          const listData = await listRes.json();
+        try {
+          const listData = await apiFetch(listUrl.toString());
           const first = Array.isArray(listData) ? listData[0] : (listData.data?.[0]);
           if (first) {
             const loadedDraft = {
@@ -107,18 +107,17 @@ const DraftFrame: React.FC<DraftFrameProps> = ({
           } else {
             setDraft({ status: 'editing', title: '', payload: {} });
           }
-        } else {
+        } catch {
           setDraft({ status: 'editing', title: '', payload: {} });
         }
 
         // Load draft history if we have an id (mock path supports plural history)
         const histUrl = new URL(`/api/agents/${agentId}/drafts/d1/history`, window.location.origin);
         if (currentTopicId) histUrl.searchParams.set('topicId', currentTopicId);
-        const historyResponse = await fetch(histUrl.toString(), { credentials: 'include' });
-        if (historyResponse.ok) {
-          const historyData = await historyResponse.json();
+        try {
+          const historyData = await apiFetch(histUrl.toString());
           setHistory(Array.isArray(historyData) ? historyData : (historyData.data || []));
-        }
+        } catch {}
       } catch (err) {
         console.error('Error loading draft:', err);
         setError(err instanceof Error ? err.message : 'Failed to load draft');
@@ -187,11 +186,10 @@ const DraftFrame: React.FC<DraftFrameProps> = ({
         };
       }
       const request: UpdateAgentDraftRequest = { status: 'editing', title: formData.title, payload };
-      const putRes = await fetch(`/api/agents/${agentId}/drafts/d1`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(request)
+      const data = await apiFetch(`/api/agents/${agentId}/drafts/d1`, {
+        method: 'PUT',
+        body: JSON.stringify(request)
       });
-      if (!putRes.ok) throw new Error('Failed to save draft');
-      const data = await putRes.json();
       setDraft({ status: (data.status as any) || 'editing', title: data.title || '', payload: data.data || {} });
       setHasUnsavedChanges(false);
       handleFrameInteraction({ type: 'submit', frameId: frameInstance.id, data: { action: 'save_draft', agentId }, timestamp: new Date() });
@@ -207,9 +205,7 @@ const DraftFrame: React.FC<DraftFrameProps> = ({
     try {
       setIsSaving(true);
       setError(null);
-      const response = await fetch(`/api/agents/${agentId}/drafts/d1/propose`, { method: 'POST', credentials: 'include' });
-      if (!response.ok) throw new Error('Failed to propose draft');
-      const data = await response.json();
+      const data = await apiFetch(`/api/agents/${agentId}/drafts/d1/propose`, { method: 'POST' });
       setDraft({ status: (data.status as any) || 'proposed', title: data.title || draft.title, payload: data.data || draft.payload });
       handleFrameInteraction({ type: 'submit', frameId: frameInstance.id, data: { action: 'propose_draft', agentId }, timestamp: new Date() });
     } catch (err) {
@@ -224,12 +220,12 @@ const DraftFrame: React.FC<DraftFrameProps> = ({
     try {
       setIsSaving(true);
       setError(null);
-      const response = await fetch(`/api/agents/${agentId}/drafts/d1/commit`, { method: 'POST', credentials: 'include' });
-      if (!response.ok) throw new Error('Failed to commit draft');
-      const data = await response.json();
+      const data = await apiFetch(`/api/agents/${agentId}/drafts/d1/commit`, { method: 'POST' });
       setDraft({ status: (data.status as any) || 'committed', title: data.title || draft.title, payload: data.data || draft.payload });
-      const histRes = await fetch(`/api/agents/${agentId}/drafts/d1/history`, { credentials: 'include' });
-      if (histRes.ok) { const histData = await histRes.json(); setHistory(Array.isArray(histData) ? histData : (histData.data || [])); }
+      try {
+        const histData = await apiFetch(`/api/agents/${agentId}/drafts/d1/history`);
+        setHistory(Array.isArray(histData) ? histData : (histData.data || []));
+      } catch {}
       handleFrameInteraction({ type: 'submit', frameId: frameInstance.id, data: { action: 'commit_draft', agentId }, timestamp: new Date() });
     } catch (err) {
       console.error('Error committing draft:', err);

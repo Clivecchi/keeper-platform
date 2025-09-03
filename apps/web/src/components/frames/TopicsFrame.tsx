@@ -19,6 +19,7 @@ import {
   ClockIcon
 } from '@heroicons/react/24/outline';
 import { BaseFrameProps } from '../../types/frame';
+import { apiFetch } from '../../lib/api';
 import { Topic, TopicHighlight, CreateTopicRequest, CreateTopicHighlightRequest } from '../../types/keeper';
 import { useFrame } from '../../context/FrameContext';
 import { BoardContext } from '../../boards/BoardContext';
@@ -69,9 +70,7 @@ const TopicsFrame: React.FC<TopicsFrameProps> = ({
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetch(`/api/agents/${agentId}/topics`, { credentials: 'include' });
-        if (!response.ok) throw new Error('Failed to load topics');
-        const data = await response.json();
+        const data = await apiFetch(`/api/agents/${agentId}/topics`);
         setTopics(Array.isArray(data) ? data : (data.data || []));
       } catch (err) {
         console.error('Error loading topics:', err);
@@ -92,14 +91,10 @@ const TopicsFrame: React.FC<TopicsFrameProps> = ({
         tags: newTopicTags.split(',').map(t => t.trim()).filter(t => t)
       };
       const agentId = frameInstance.entityId;
-      const response = await fetch(`/api/agents/${agentId}/topics`, {
+      const data = await apiFetch(`/api/agents/${agentId}/topics`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(request)
       });
-      if (!response.ok) throw new Error('Failed to create topic');
-      const data = await response.json();
       const created: Topic = (data.id ? data : data.data) as Topic;
       setTopics(prev => [created, ...prev]);
       setNewTopicTitle('');
@@ -122,14 +117,10 @@ const TopicsFrame: React.FC<TopicsFrameProps> = ({
   const handleUpdateTopic = async (topic: Topic, patch: Partial<Topic>) => {
     try {
       const agentId = frameInstance.entityId;
-      const response = await fetch(`/api/agents/${agentId}/topics/${topic.id}`, {
+      const data = await apiFetch(`/api/agents/${agentId}/topics/${topic.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(patch)
       });
-      if (!response.ok) throw new Error('Failed to update topic');
-      const data = await response.json();
       const updated: Topic = (data.id ? data : data.data) as Topic;
       setTopics(prev => prev.map(t => t.id === updated.id ? { ...t, ...updated } : t));
       setCurrentTopicId(updated.id);
@@ -143,11 +134,7 @@ const TopicsFrame: React.FC<TopicsFrameProps> = ({
   const handleArchiveTopic = async (topicId: string) => {
     try {
       const agentId = frameInstance.entityId;
-      const response = await fetch(`/api/agents/${agentId}/topics/${topicId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to archive topic');
+      await apiFetch(`/api/agents/${agentId}/topics/${topicId}`, { method: 'DELETE' });
       setTopics(prev => prev.map(topic => topic.id === topicId ? { ...topic, status: 'archived' } : topic));
       handleFrameInteraction({
         type: 'click',
@@ -172,18 +159,10 @@ const TopicsFrame: React.FC<TopicsFrameProps> = ({
       };
 
       // TODO: Replace with actual API call
-      const response = await fetch(`/api/topics/${selectedTopic.id}/highlights`, {
+      const data = await apiFetch(`/api/topics/${selectedTopic.id}/highlights`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(request)
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to add highlight');
-      }
-
-      const data = await response.json();
       const highlight: TopicHighlight = data.data;
 
       setTopics(prev => prev.map(topic => 
