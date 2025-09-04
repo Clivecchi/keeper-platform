@@ -352,7 +352,7 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
         <BoardRenderer
           boardInstance={activeBoard || undefined}
           onFrameInteraction={handleAgentFrameInteraction}
-          showLayoutControls={showControls}
+          showLayoutControls={false}
           className="min-h-[600px]"
         />
       </motion.div>
