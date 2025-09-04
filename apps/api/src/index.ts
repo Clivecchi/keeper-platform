@@ -38,9 +38,14 @@ import keeperRoutes from './api/keeper/routes.js';
 import debugRouter from './api/debug.js';
 import { addLog as addInternalLog } from './utils/LogStore.js';
 import { getLogs as getInternalLogs } from './utils/LogStore.js';
+import adminDiagnostics from './api/admin/diagnostics.js';
+import { runMigrationsOnce } from './startup/migrate.js';
 
 // Load environment variables
 dotenv.config();
+
+// Apply database migrations (idempotent on each boot)
+runMigrationsOnce();
 
 // Log level configuration
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
@@ -707,6 +712,7 @@ app.use('/api/admin/domains', adminDomainRoutes);
 // Platform role management
 app.use('/api/admin/roles', adminRolesRoutes);
 app.use('/api/admin/users', adminUsersRoutes);
+app.use('/api/admin', adminDiagnostics);
 
 // NEW: Connect Keeper routes
 app.use('/api/keeper', keeperRoutes);

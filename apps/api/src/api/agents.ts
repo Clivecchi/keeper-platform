@@ -237,13 +237,14 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
     });
 
     // If no board exists, create one using the agent template
+    const foundExisting = Boolean(board);
     if (!board) {
       // Create the board (DB generates id)
-      board = await prisma.board.create({
-        data: {
-          keeperId: agent.created_by || userId, // Use agent creator as keeper, fallback to current user
-          name: `${agent.name} Home Board`,
-          slug: `agent-${agent.slug}-home`,
+      const safeSlug = `agent-${(agent.slug || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^(-)+|(-)+$/g, '')}-home`;
+      const createData: any = {
+        keeperId: agent.created_by || userId, // Use agent creator as keeper, fallback to current user
+        name: `${agent.name} Home Board`,
+        slug: safeSlug,
           description: `Home board for ${agent.name} agent`,
           theme: {},
           behavior: {
@@ -270,14 +271,31 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           },
           updatedAt: new Date(),
           agentId: agentId
-        },
-        include: {
-          frames: {
-            orderBy: { orderIndex: 'asc' },
-            include: { FrameConfig: true }
-          }
+      };
+      const includeFrames: any = {
+        frames: {
+          orderBy: { orderIndex: 'asc' },
+          include: { FrameConfig: true }
         }
-      });
+      };
+      try {
+        board = await prisma.board.create({ data: createData, include: includeFrames });
+      } catch (err: any) {
+        const msg = String(err?.message || '');
+        if (msg.includes('Unique constraint failed') && createData.slug) {
+          const existing = await prisma.board.findFirst({
+            where: { keeperId: createData.keeperId, slug: createData.slug },
+            include: includeFrames,
+          });
+          if (existing) {
+            board = existing;
+          } else {
+            throw err;
+          }
+        } else {
+          throw err;
+        }
+      }
 
       // Ensure Board.data defaults are present (idempotent)
       try {
@@ -339,9 +357,10 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
         )
       );
 
-      // Create default frames (DB generates ids)
+      // Create default frames (explicit ids)
       const defaultFrames = [
         {
+          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Agent Conversation',
@@ -364,6 +383,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           updatedAt: new Date(),
         },
         {
+          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Agent Preview',
@@ -388,6 +408,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           updatedAt: new Date(),
         },
         {
+          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Topics',
@@ -408,6 +429,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           updatedAt: new Date(),
         },
         {
+          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Draft',
@@ -426,6 +448,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           updatedAt: new Date(),
         },
         {
+          id: randomUUID(),
           boardId: board.id,
           role: null,
           name: 'Configuration',
@@ -448,9 +471,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
       ];
 
       // Insert frames idempotently
-      await prisma.$transaction([
-        prisma.frameInstance.createMany({ data: defaultFrames, skipDuplicates: true })
-      ]);
+      const createdBatch = await prisma.frameInstance.createMany({ data: defaultFrames as any, skipDuplicates: true });
 
       // Refetch board with frames
       const refetchedBoard = await prisma.board.findUnique({
@@ -470,6 +491,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
       }
 
       board = refetchedBoard;
+      console.log('[home-board:ensure]', { boardId: board.id, agentId, foundExisting, seededFrames: (createdBatch?.count ?? 0) });
     } else {
       // Repair: compute missing frames (out of 5) and seed only those (idempotent)
       const required = [
@@ -539,10 +561,10 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
             configId: cfgByName[m.cfg],
             updatedAt: new Date(),
           }));
+          let seededFrames = 0;
           if (toCreate.length > 0) {
-            await prisma.$transaction([
-              prisma.frameInstance.createMany({ data: toCreate, skipDuplicates: true })
-            ]);
+            const created = await prisma.frameInstance.createMany({ data: toCreate.map(t => ({ id: randomUUID(), ...t })), skipDuplicates: true });
+            seededFrames = created?.count ?? 0;
             const refetched = await prisma.board.findUnique({
               where: { id: board.id },
               include: {
@@ -550,6 +572,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
               }
             });
             if (refetched) board = refetched;
+            console.log('[home-board:ensure]', { boardId: board.id, agentId, foundExisting: true, seededFrames });
           }
         } catch (e) {
           console.warn('[home-board:frames:heal:error]', { reqId, message: e instanceof Error ? e.message : String(e) });
