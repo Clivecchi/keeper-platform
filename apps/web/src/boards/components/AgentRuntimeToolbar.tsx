@@ -16,15 +16,7 @@ export const AgentRuntimeToolbar: React.FC<AgentRuntimeToolbarProps> = ({ boardI
       >
         Refresh
       </button>
-      {boardId && (
-        <button
-          onClick={() => onOpenStudio?.(boardId)}
-          className="px-3 py-2 rounded-lg border bg-white text-gray-600 hover:bg-gray-50"
-          title="Open this board in Board Studio"
-        >
-          Edit in Board Studio
-        </button>
-      )}
+      {/* Runtime must not expose Studio editing controls for AHB */}
     </div>
   );
 };

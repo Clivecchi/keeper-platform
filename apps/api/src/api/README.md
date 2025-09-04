@@ -126,6 +126,7 @@ All endpoints include:
 
 - 2025-09-02: Added UUID validation on board-data, raw inspector endpoint, reqId propagation, and safer defaults to prevent 500s when data/behavior are malformed.
  - 2025-09-04: Agent Home Board ensure made idempotent (agentId-first, slug fallback, P2002-safe). Added `GET /api/admin/inspect/agent-home/:agentId`.
+ - 2025-09-04: Agent Home Board harden: ensure path now prunes duplicate/non-canonical frames and enforces exactly five canonical roles; Studio alias now calls the same ensure path; runtime "Edit in Board Studio" button removed for AHB.
 
 ## 🔧 Development
 

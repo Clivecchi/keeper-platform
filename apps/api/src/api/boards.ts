@@ -14,6 +14,8 @@ import type { IncomingHttpHeaders } from 'http';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
+// Import ensure so Studio alias uses the same canonical ensure logic for AHB
+import { ensureAgentHomeBoard } from './agents.js';
 
 // UUID v4 validator
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -1346,34 +1348,8 @@ studioAliasRouter.get('/agents/:id/home', authMiddlewareCompat, async (req: Requ
       return res.status(400).json({ success: false, error: 'Invalid agent id', reqId });
     }
 
-    // Delegate to the same ensure function by hitting the internal agents route via prisma
-    // Column-first lookup: find existing by agentId
-    let board = await prisma.board.findFirst({
-      where: { agentId: agentId },
-      include: { frames: { orderBy: { orderIndex: 'asc' }, include: { FrameConfig: true } } }
-    });
-
-    if (!board) {
-      // Fallback: call ensure by emulating minimal logic (avoid duplicating full logic)
-      // We minimally ensure existence by creating a shell board; the agents route handles rich seeding elsewhere
-      const agent = await prisma.kip_agents.findUnique({ where: { id: agentId } });
-      if (!agent) return res.status(404).json({ success: false, error: 'Agent not found', reqId });
-      board = await prisma.board.create({
-        data: {
-          keeperId: agent.created_by || (req as any).user?.id,
-          name: `${agent.name} Home Board`,
-          slug: `agent-${agent.slug}-home`,
-          description: `Home board for ${agent.name} agent`,
-          theme: {},
-          behavior: { showGrid: true, snapToGrid: true, gridSize: 8, defaultPattern: 'dialogic', startFrameId: null, draftMode: false, autosave: true, frameOrder: [] },
-          data: { scope: 'agent', entityId: agentId, agentId: agentId, dataBindings: {} },
-          access: { visibility: 'private', roles: {}, allowComments: false, shareLinkEnabled: false },
-          updatedAt: new Date(),
-          agentId: agentId
-        },
-        include: { frames: { orderBy: { orderIndex: 'asc' }, include: { FrameConfig: true } } }
-      });
-    }
+    // Ensure via canonical logic (idempotent, seeds five frames, dedupes)
+    const board = await ensureAgentHomeBoard(prisma as any, agentId, { reqId, fallbackKeeperId: (req as any).user?.id });
 
     // Return board-data shape consistent with GET /api/board-data/:id
     const safeDataAny = (board.data as any) ?? {};

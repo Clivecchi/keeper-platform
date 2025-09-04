@@ -127,6 +127,38 @@ export async function ensureAgentHomeBoard(client: PrismaClient, agentId: string
     { role: 'config_panel', name: 'Configuration', frameType: 'config_panel', pattern: 'wizard', orderIndex: 4 },
   ] as const;
 
+  // Enforce canonical set: delete extraneous frames and dedupe multiples per role
+  const canonicalRoles = new Set(required.map(r => r.role));
+
+  await client.$transaction(async (tx) => {
+    const frames = await tx.frameInstance.findMany({
+      where: { boardId: board!.id },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    // 4a) Remove any frames that are not part of the canonical AHB roles
+    const extras = frames.filter((f: any) => !canonicalRoles.has((f.role as string | null) || ''));
+    for (const f of extras) {
+      await tx.frameInstance.delete({ where: { id: f.id } });
+      console.log('[agent-home:ensure:prune:extra-frame]', { reqId, boardId: board!.id, frameId: f.id, role: f.role, frameType: f.frameType });
+    }
+
+    // 4b) For each canonical role, keep first (oldest) and delete duplicates
+    for (const role of canonicalRoles) {
+      const byRole = frames.filter((f: any) => f.role === role);
+      if (byRole.length > 1) {
+        const [, ...dups] = byRole; // keep first
+        for (const d of dups) {
+          await tx.frameInstance.delete({ where: { id: d.id } });
+          console.log('[agent-home:ensure:prune:dup-role]', { reqId, boardId: board!.id, role, frameId: d.id });
+        }
+      }
+    }
+  });
+
+  // Reload board after pruning
+  board = await client.board.findUnique({ where: { id: board!.id }, include: includeBoard });
+
   const existingByType = new Map((board?.frames ?? []).map((f: any) => [f.frameType, f]));
   const toCreate = required.filter(r => !existingByType.has(r.frameType));
   if (toCreate.length) {
