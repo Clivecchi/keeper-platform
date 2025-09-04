@@ -26,6 +26,161 @@ router.use(tasksRouter);
 router.use(eventsRouter);
 const prisma = new PrismaClient();
 
+// Ensure the Agent Home Board exists and has the required frames (idempotent)
+export async function ensureAgentHomeBoard(client: PrismaClient, agentId: string, opts?: { reqId?: string; fallbackKeeperId?: string }) {
+  const reqId = opts?.reqId || '';
+  console.log('[agent-home:ensure:start]', { reqId, agentId });
+
+  // Validate UUID shape (36-char UUID)
+  const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!UUID_V4.test(agentId)) {
+    throw Object.assign(new Error('Invalid agent id'), { status: 400 });
+  }
+
+  const agent = await client.kip_agents.findUnique({ where: { id: agentId } });
+  if (!agent) {
+    const err = new Error('Agent not found');
+    (err as any).status = 404;
+    throw err;
+  }
+
+  const keeperId = (agent.created_by as string | null) || opts?.fallbackKeeperId || '';
+  const safeSlug = `agent-${(agent.slug || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^(-)+|(-)+$/g, '')}-home`;
+
+  // Helper to include frames consistently
+  const includeBoard = {
+    frames: {
+      orderBy: { orderIndex: 'asc' },
+      include: { FrameConfig: true },
+    },
+  } as const;
+
+  // 1) Prefer lookup by agentId
+  let board = await client.board.findFirst({ where: { agentId: agent.id }, include: includeBoard });
+  if (board) {
+    console.log('[agent-home:ensure:found-by-agentId]', { reqId, agentId, boardId: board.id });
+  }
+
+  // 2) Fallback by (keeperId, slug)
+  if (!board) {
+    board = await client.board.findFirst({ where: { keeperId, slug: safeSlug }, include: includeBoard });
+    if (board) {
+      console.log('[agent-home:ensure:found-by-slug]', { reqId, agentId, boardId: board.id, keeperId, slug: safeSlug });
+      if (!board.agentId) {
+        board = await client.board.update({
+          where: { id: board.id },
+          data: { agentId: agent.id, data: { ...(board.data as any ?? {}), scope: 'agent' } },
+          include: includeBoard,
+        });
+        console.log('[agent-home:ensure:attached-agentId]', { reqId, boardId: board.id, agentId });
+      }
+    }
+  }
+
+  // 3) Create only if truly missing
+  if (!board) {
+    try {
+      board = await client.board.create({
+        data: {
+          keeperId: keeperId || agent.created_by || agent.id, // ensure set so Studio can list it
+          name: `${agent.name} Home Board`,
+          slug: safeSlug,
+          description: `Home board for ${agent.name} agent`,
+          behavior: { defaultPattern: 'dialogic' },
+          data: { scope: 'agent', agentId: agent.id, entityId: agent.id, dataBindings: {} },
+          access: { visibility: 'private' },
+          updatedAt: new Date(),
+          agentId: agent.id,
+        },
+        include: includeBoard,
+      });
+      console.log('[agent-home:ensure:created]', { reqId, agentId, boardId: board.id });
+    } catch (e: any) {
+      // P2002: already exists under (keeperId, slug) – fetch and attach
+      if (e?.code === 'P2002') {
+        console.warn('[agent-home:ensure:create-conflict-P2002]', { reqId, agentId, keeperId, slug: safeSlug });
+        board = await client.board.findFirst({ where: { keeperId, slug: safeSlug }, include: includeBoard });
+        if (board && !board.agentId) {
+          board = await client.board.update({
+            where: { id: board.id },
+            data: { agentId: agent.id, data: { ...(board.data as any ?? {}), scope: 'agent' } },
+            include: includeBoard,
+          });
+          console.log('[agent-home:ensure:attached-agentId-post-conflict]', { reqId, boardId: board.id, agentId });
+        }
+      } else {
+        console.error('[agent-home:ensure:create-failed]', { reqId, agentId, error: e?.message || String(e) });
+        throw e;
+      }
+    }
+  }
+
+  // 4) Idempotent seed/repair of frames
+  const required = [
+    { role: 'dialog', name: 'Agent Conversation', frameType: 'dialog', pattern: 'dialogic', orderIndex: 0 },
+    { role: 'agent_preview', name: 'Agent Preview', frameType: 'agent_preview', pattern: 'focus', orderIndex: 1 },
+    { role: 'topics', name: 'Topics', frameType: 'topics', pattern: 'focus', orderIndex: 2 },
+    { role: 'draft', name: 'Draft', frameType: 'draft', pattern: 'canvas', orderIndex: 3 },
+    { role: 'config_panel', name: 'Configuration', frameType: 'config_panel', pattern: 'wizard', orderIndex: 4 },
+  ] as const;
+
+  const existingByType = new Map((board?.frames ?? []).map((f: any) => [f.frameType, f]));
+  const toCreate = required.filter(r => !existingByType.has(r.frameType));
+  if (toCreate.length) {
+    // Ensure FrameConfig for each role
+    const configNameByRole: Record<string, string> = {
+      dialog: 'dialogic-default',
+      agent_preview: 'preview-default',
+      topics: 'topics-default',
+      draft: 'draft-default',
+      config_panel: 'config-panel-default',
+    };
+
+    for (const r of toCreate) {
+      const name = configNameByRole[r.role];
+      const cfg = await client.frameConfig.findFirst({ where: { name } }) || await client.frameConfig.create({ data: { name, description: `Default config for ${name}`, theme: {} } });
+      await client.frameInstance.create({
+        data: {
+          id: randomUUID(),
+          boardId: board!.id,
+          role: r.role,
+          name: r.name,
+          pattern: r.pattern,
+          frameType: r.frameType,
+          orderIndex: r.orderIndex,
+          layoutKind: r.pattern === 'wizard' ? 'wizard' : (r.pattern === 'focus' ? 'focus' : 'canvas'),
+          layoutData: {},
+          props: r.role === 'dialog' ? {
+            title: 'Agent Conversation', placeholder: `Chat with ${agent.name}...`, showHistory: true, maxMessages: 50, agentId: agent.id, agentName: agent.name
+          } : r.role === 'agent_preview' ? {
+            showCapabilities: true, showStatus: true, showMetrics: true, agentId: agent.id, agentName: agent.name, model: agent.model, provider: agent.model_provider, status: agent.status
+          } : r.role === 'topics' ? {
+            view: 'list', showTags: true, groupBy: 'status', boardId: board!.id
+          } : r.role === 'draft' ? {
+            tabs: ['Form', 'JSON', 'Diff', 'History'], agentId: agent.id
+          } : {
+            layout: 'tabbed', allowSave: true, validation: true, agentId: agent.id
+          },
+          entityType: 'agent',
+          entityId: agent.id,
+          configId: cfg.id,
+          updatedAt: new Date(),
+        }
+      });
+      console.log('[agent-home:ensure:seed:frame]', { reqId, boardId: board!.id, frameType: r.frameType, upserted: true });
+    }
+
+    // Reload board with frames
+    board = await client.board.findUnique({ where: { id: board!.id }, include: includeBoard });
+  }
+
+  console.log('[agent-home:ensure:done]', { reqId, agentId, boardId: board!.id, frames: (board!.frames || []).length });
+  return board!;
+}
+
 // Validation schemas
 const agentQuerySchema = z.object({
   domainId: z.string().optional(),
@@ -215,135 +370,20 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
       return res.status(400).json({ success: false, error: 'Invalid agent id', reqId });
     }
 
-    console.log('[agent-home:ensure:start]', { agentId, reqId });
-
-    const agent = await prisma.kip_agents.findUnique({ where: { id: agentId } });
-    if (!agent) {
-      return res.status(404).json({ success: false, error: 'Agent not found', reqId });
-    }
-
-    const result = await prisma.$transaction(async (tx) => {
-      const existing = await tx.board.findFirst({
-        where: { agentId },
-        include: { frames: { orderBy: { orderIndex: 'asc' }, include: { FrameConfig: true } } }
-      });
-      if (existing) {
-        console.log('[agent-home:ensure:found]', { agentId, boardId: existing.id });
-        return existing;
-      }
-
-      const safeSlug = `agent-${(agent.slug || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^(-)+|(-)+$/g, '')}-home`;
-      const createData: any = {
-        keeperId: agent.created_by || userId,
-        name: `${agent.name} Home Board`,
-        slug: safeSlug,
-        description: `Home board for ${agent.name} agent`,
-        theme: {},
-        behavior: {
-          showGrid: true,
-          snapToGrid: true,
-          gridSize: 8,
-          defaultPattern: 'dialogic',
-          startFrameId: null,
-          draftMode: false,
-          autosave: true,
-          frameOrder: []
-        },
-        data: { scope: 'agent', entityId: agentId, agentId, dataBindings: {} },
-        access: { visibility: 'private', roles: {}, allowComments: false, shareLinkEnabled: false },
-        updatedAt: new Date(),
-        agentId
-      };
-
-      let board = await tx.board.create({
-        data: createData,
-        include: { frames: { orderBy: { orderIndex: 'asc' }, include: { FrameConfig: true } } }
-      });
-      console.log('[agent-home:ensure:created]', { agentId, boardId: board.id });
-
-      const configNameByRole: Record<string, string> = {
-        dialog: 'dialogic-default',
-        agent_preview: 'preview-default',
-        topics: 'topics-default',
-        draft: 'draft-default',
-        config_panel: 'config-panel-default'
-      };
-
-      const ensureConfig = async (name: string) => {
-        const found = await tx.frameConfig.findFirst({ where: { name } });
-        if (found) return found.id;
-        const created = await tx.frameConfig.create({ data: { name, description: `Default config for ${name}`, theme: {} } });
-        return created.id;
-      };
-
-      const roles = [
-        { role: 'dialog', name: 'Agent Conversation', frameType: 'dialog', pattern: 'dialogic', orderIndex: 0 },
-        { role: 'agent_preview', name: 'Agent Preview', frameType: 'agent_preview', pattern: 'focus', orderIndex: 1 },
-        { role: 'topics', name: 'Topics', frameType: 'topics', pattern: 'focus', orderIndex: 2 },
-        { role: 'draft', name: 'Draft', frameType: 'draft', pattern: 'canvas', orderIndex: 3 },
-        { role: 'config_panel', name: 'Configuration', frameType: 'config_panel', pattern: 'wizard', orderIndex: 4 }
-      ];
-
-      for (const r of roles) {
-        const cfgId = await ensureConfig(configNameByRole[r.role]);
-        const existingFrame = await tx.frameInstance.findFirst({ where: { boardId: board.id, role: r.role } });
-        if (!existingFrame) {
-          await tx.frameInstance.create({
-            data: {
-              id: randomUUID(),
-              boardId: board.id,
-              role: r.role,
-              name: r.name,
-              pattern: r.pattern,
-              frameType: r.frameType,
-              orderIndex: r.orderIndex,
-              layoutKind: r.pattern === 'wizard' ? 'wizard' : (r.pattern === 'focus' ? 'focus' : 'canvas'),
-              layoutData: {},
-              props: r.role === 'dialog' ? {
-                title: 'Agent Conversation', placeholder: `Chat with ${agent.name}...`, showHistory: true, maxMessages: 50, agentId, agentName: agent.name
-              } : r.role === 'agent_preview' ? {
-                showCapabilities: true, showStatus: true, showMetrics: true, agentId, agentName: agent.name, model: agent.model, provider: agent.model_provider, status: agent.status
-              } : r.role === 'topics' ? {
-                view: 'list', showTags: true, groupBy: 'status', boardId: board.id
-              } : r.role === 'draft' ? {
-                tabs: ['Form', 'JSON', 'Diff', 'History'], agentId
-              } : {
-                layout: 'tabbed', allowSave: true, validation: true, agentId
-              },
-              entityType: 'agent',
-              entityId: agentId,
-              configId: cfgId,
-              updatedAt: new Date(),
-            }
-          });
-          console.log('[agent-home:ensure:seed:frame]', { boardId: board.id, role: r.role, upserted: true });
-        }
-      }
-
-      board = await tx.board.findUnique({ where: { id: board.id }, include: { frames: { orderBy: { orderIndex: 'asc' }, include: { FrameConfig: true } } } }) as typeof board;
-      return board;
-    });
-
-    console.log('[agent-home:ensure:done]', { agentId, boardId: result.id });
+    const board = await ensureAgentHomeBoard(prisma, agentId, { reqId, fallbackKeeperId: userId });
 
     return res.json({
       success: true,
       data: {
-        board: result,
-        agent: {
-          id: agentId,
-          name: agent.name,
-          status: agent.status,
-          model: agent.model,
-          provider: agent.model_provider
-        }
+        board,
       },
-      reqId
+      reqId,
     });
   } catch (error) {
     const reqId = (req as any).reqId || req.get('x-request-id') || '';
+    const status = (error as any)?.status || 500;
     console.error('[home-board:get:error]', { reqId, agentId: req.params?.id, message: error instanceof Error ? error.message : String(error) });
-    return res.status(500).json({ success: false, error: 'Internal server error', reqId });
+    return res.status(status).json({ success: false, error: (error as any)?.message || 'Internal server error', reqId });
   }
 });
 

@@ -40,6 +40,7 @@ import { addLog as addInternalLog } from './utils/LogStore.js';
 import { getLogs as getInternalLogs } from './utils/LogStore.js';
 import adminDiagnostics from './api/admin/diagnostics.js';
 import adminRepair from './api/admin/repair.js';
+import adminInspect from './api/admin/inspect.js';
 import { runMigrationsOnce } from './startup/migrate.js';
 
 // Load environment variables
@@ -715,6 +716,7 @@ app.use('/api/admin/roles', adminRolesRoutes);
 app.use('/api/admin/users', adminUsersRoutes);
 app.use('/api/admin', adminDiagnostics);
 app.use('/api/admin', adminRepair);
+app.use('/api/admin', adminInspect);
 
 // NEW: Connect Keeper routes
 app.use('/api/keeper', keeperRoutes);

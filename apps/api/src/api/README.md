@@ -125,6 +125,7 @@ All endpoints include:
 ## 📆 Update Log
 
 - 2025-09-02: Added UUID validation on board-data, raw inspector endpoint, reqId propagation, and safer defaults to prevent 500s when data/behavior are malformed.
+ - 2025-09-04: Agent Home Board ensure made idempotent (agentId-first, slug fallback, P2002-safe). Added `GET /api/admin/inspect/agent-home/:agentId`.
 
 ## 🔧 Development
 
