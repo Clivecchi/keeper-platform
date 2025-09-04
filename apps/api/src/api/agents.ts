@@ -128,7 +128,7 @@ export async function ensureAgentHomeBoard(client: PrismaClient, agentId: string
   ] as const;
 
   // Enforce canonical set: delete extraneous frames and dedupe multiples per role
-  const canonicalRoles = new Set(required.map(r => r.role));
+  const canonicalRoles = new Set<string>(required.map(r => r.role));
 
   await client.$transaction(async (tx) => {
     const frames = await tx.frameInstance.findMany({
