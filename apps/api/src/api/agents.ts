@@ -272,20 +272,27 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
           updatedAt: new Date(),
           agentId: agentId
       };
-      const includeFrames: any = {
-        frames: {
-          orderBy: { orderIndex: 'asc' },
-          include: { FrameConfig: true }
-        }
-      };
       try {
-        board = await prisma.board.create({ data: createData, include: includeFrames });
+        board = await prisma.board.create({
+          data: createData,
+          include: {
+            frames: {
+              orderBy: { orderIndex: 'asc' },
+              include: { FrameConfig: true }
+            }
+          }
+        });
       } catch (err: any) {
         const msg = String(err?.message || '');
         if (msg.includes('Unique constraint failed') && createData.slug) {
           const existing = await prisma.board.findFirst({
             where: { keeperId: createData.keeperId, slug: createData.slug },
-            include: includeFrames,
+            include: {
+              frames: {
+                orderBy: { orderIndex: 'asc' },
+                include: { FrameConfig: true }
+              }
+            }
           });
           if (existing) {
             board = existing;
