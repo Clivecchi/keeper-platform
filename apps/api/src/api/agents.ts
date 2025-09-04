@@ -210,389 +210,128 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
       return res.status(401).json({ success: false, error: 'Unauthorized', reqId });
     }
 
-    // Strict UUID v4 validation for agentId
     const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!UUID_V4.test(agentId)) {
       return res.status(400).json({ success: false, error: 'Invalid agent id', reqId });
     }
 
-    // Check if agent exists
-    const agent = await prisma.kip_agents.findUnique({
-      where: { id: agentId }
-    });
+    console.log('[agent-home:ensure:start]', { agentId, reqId });
 
+    const agent = await prisma.kip_agents.findUnique({ where: { id: agentId } });
     if (!agent) {
       return res.status(404).json({ success: false, error: 'Agent not found', reqId });
     }
 
-    // Look for existing Agent Home Board (column-first lookup)
-    let board = await prisma.board.findFirst({
-      where: { agentId },
-      include: {
-        frames: {
-          orderBy: { orderIndex: 'asc' },
-          include: { FrameConfig: true }
-        }
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.board.findFirst({
+        where: { agentId },
+        include: { frames: { orderBy: { orderIndex: 'asc' }, include: { FrameConfig: true } } }
+      });
+      if (existing) {
+        console.log('[agent-home:ensure:found]', { agentId, boardId: existing.id });
+        return existing;
       }
-    });
 
-    // If no board exists, create one using the agent template
-    const foundExisting = Boolean(board);
-    if (!board) {
-      // Create the board (DB generates id)
       const safeSlug = `agent-${(agent.slug || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^(-)+|(-)+$/g, '')}-home`;
       const createData: any = {
-        keeperId: agent.created_by || userId, // Use agent creator as keeper, fallback to current user
+        keeperId: agent.created_by || userId,
         name: `${agent.name} Home Board`,
         slug: safeSlug,
-          description: `Home board for ${agent.name} agent`,
-          theme: {},
-          behavior: {
-            showGrid: true,
-            snapToGrid: true,
-            gridSize: 8,
-            defaultPattern: 'dialogic',
-            startFrameId: null,
-            draftMode: false,
-            autosave: true,
-            frameOrder: []
-          },
-          data: {
-            scope: 'agent',
-            entityId: agentId,
-            agentId: agentId,
-            dataBindings: {}
-          },
-          access: {
-            visibility: 'private',
-            roles: {},
-            allowComments: false,
-            shareLinkEnabled: false
-          },
-          updatedAt: new Date(),
-          agentId: agentId
+        description: `Home board for ${agent.name} agent`,
+        theme: {},
+        behavior: {
+          showGrid: true,
+          snapToGrid: true,
+          gridSize: 8,
+          defaultPattern: 'dialogic',
+          startFrameId: null,
+          draftMode: false,
+          autosave: true,
+          frameOrder: []
+        },
+        data: { scope: 'agent', entityId: agentId, agentId, dataBindings: {} },
+        access: { visibility: 'private', roles: {}, allowComments: false, shareLinkEnabled: false },
+        updatedAt: new Date(),
+        agentId
       };
-      try {
-        board = await prisma.board.create({
-          data: createData,
-          include: {
-            frames: {
-              orderBy: { orderIndex: 'asc' },
-              include: { FrameConfig: true }
-            }
-          }
-        });
-      } catch (err: any) {
-        const msg = String(err?.message || '');
-        if (msg.includes('Unique constraint failed') && createData.slug) {
-          const existing = await prisma.board.findFirst({
-            where: { keeperId: createData.keeperId, slug: createData.slug },
-            include: {
-              frames: {
-                orderBy: { orderIndex: 'asc' },
-                include: { FrameConfig: true }
-              }
+
+      let board = await tx.board.create({
+        data: createData,
+        include: { frames: { orderBy: { orderIndex: 'asc' }, include: { FrameConfig: true } } }
+      });
+      console.log('[agent-home:ensure:created]', { agentId, boardId: board.id });
+
+      const configNameByRole: Record<string, string> = {
+        dialog: 'dialogic-default',
+        agent_preview: 'preview-default',
+        topics: 'topics-default',
+        draft: 'draft-default',
+        config_panel: 'config-panel-default'
+      };
+
+      const ensureConfig = async (name: string) => {
+        const found = await tx.frameConfig.findFirst({ where: { name } });
+        if (found) return found.id;
+        const created = await tx.frameConfig.create({ data: { name, description: `Default config for ${name}`, theme: {} } });
+        return created.id;
+      };
+
+      const roles = [
+        { role: 'dialog', name: 'Agent Conversation', frameType: 'dialog', pattern: 'dialogic', orderIndex: 0 },
+        { role: 'agent_preview', name: 'Agent Preview', frameType: 'agent_preview', pattern: 'focus', orderIndex: 1 },
+        { role: 'topics', name: 'Topics', frameType: 'topics', pattern: 'focus', orderIndex: 2 },
+        { role: 'draft', name: 'Draft', frameType: 'draft', pattern: 'canvas', orderIndex: 3 },
+        { role: 'config_panel', name: 'Configuration', frameType: 'config_panel', pattern: 'wizard', orderIndex: 4 }
+      ];
+
+      for (const r of roles) {
+        const cfgId = await ensureConfig(configNameByRole[r.role]);
+        const existingFrame = await tx.frameInstance.findFirst({ where: { boardId: board.id, role: r.role } });
+        if (!existingFrame) {
+          await tx.frameInstance.create({
+            data: {
+              id: randomUUID(),
+              boardId: board.id,
+              role: r.role,
+              name: r.name,
+              pattern: r.pattern,
+              frameType: r.frameType,
+              orderIndex: r.orderIndex,
+              layoutKind: r.pattern === 'wizard' ? 'wizard' : (r.pattern === 'focus' ? 'focus' : 'canvas'),
+              layoutData: {},
+              props: r.role === 'dialog' ? {
+                title: 'Agent Conversation', placeholder: `Chat with ${agent.name}...`, showHistory: true, maxMessages: 50, agentId, agentName: agent.name
+              } : r.role === 'agent_preview' ? {
+                showCapabilities: true, showStatus: true, showMetrics: true, agentId, agentName: agent.name, model: agent.model, provider: agent.model_provider, status: agent.status
+              } : r.role === 'topics' ? {
+                view: 'list', showTags: true, groupBy: 'status', boardId: board.id
+              } : r.role === 'draft' ? {
+                tabs: ['Form', 'JSON', 'Diff', 'History'], agentId
+              } : {
+                layout: 'tabbed', allowSave: true, validation: true, agentId
+              },
+              entityType: 'agent',
+              entityId: agentId,
+              configId: cfgId,
+              updatedAt: new Date(),
             }
           });
-          if (existing) {
-            board = existing;
-          } else {
-            throw err;
-          }
-        } else {
-          throw err;
+          console.log('[agent-home:ensure:seed:frame]', { boardId: board.id, role: r.role, upserted: true });
         }
       }
 
-      // Ensure Board.data defaults are present (idempotent)
-      try {
-        await prisma.board.update({
-          where: { id: board.id },
-          data: {
-            data: {
-              ...(board.data as any || {}),
-              frames: Array.isArray((board.data as any)?.frames) ? (board.data as any).frames : [],
-              layoutPrefs: ((board.data as any)?.layoutPrefs && typeof (board.data as any).layoutPrefs === 'object') ? (board.data as any).layoutPrefs : {}
-            },
-            behavior: {
-              ...(board as any).behavior || {},
-              realtime: { enabled: true, ...((board as any).behavior?.realtime || {}) },
-              // Agent runtime boards should not allow composition edits by default
-              composition: { allowEdits: false, ...((board as any).behavior?.composition || {}) }
-            }
-          }
-        });
-      } catch (e) {
-        console.warn('home-board: failed to apply default board data/behavior (non-fatal):', { reqId, error: e instanceof Error ? e.message : String(e) });
-      }
+      board = await tx.board.findUnique({ where: { id: board.id }, include: { frames: { orderBy: { orderIndex: 'asc' }, include: { FrameConfig: true } } } }) as typeof board;
+      return board;
+    });
 
-      // Create default frames for Agent Home Board
-      const frameConfigs = [
-        {
-          name: 'dialog-default',
-          description: 'Default config for dialog frames',
-          theme: {},
-        },
-        {
-          name: 'agent-preview-default', 
-          description: 'Default config for agent preview frames',
-          theme: {},
-        },
-        {
-          name: 'topics-default',
-          description: 'Default config for topics frames',
-          theme: {},
-        },
-        {
-          name: 'draft-default',
-          description: 'Default config for draft frames', 
-          theme: {},
-        },
-        {
-          name: 'config-panel-default',
-          description: 'Default config for config panel frames',
-          theme: {},
-        }
-      ];
-
-      // Create frame configs
-      const createdConfigs = await Promise.all(
-        frameConfigs.map(config => 
-          prisma.frameConfig.create({
-            data: config
-          })
-        )
-      );
-
-      // Create default frames (explicit ids)
-      const defaultFrames = [
-        {
-          id: randomUUID(),
-          boardId: board.id,
-          role: null,
-          name: 'Agent Conversation',
-          pattern: 'dialogic',
-          frameType: 'dialog',
-          orderIndex: 0,
-          layoutKind: 'canvas',
-          layoutData: {},
-          props: {
-            title: 'Agent Conversation',
-            placeholder: `Chat with ${agent.name}...`,
-            showHistory: true,
-            maxMessages: 50,
-            agentId: agentId,
-            agentName: agent.name
-          },
-          entityType: 'agent',
-          entityId: agentId,
-          configId: createdConfigs[0].id,
-          updatedAt: new Date(),
-        },
-        {
-          id: randomUUID(),
-          boardId: board.id,
-          role: null,
-          name: 'Agent Preview',
-          pattern: 'focus',
-          frameType: 'agent_preview',
-          orderIndex: 1,
-          layoutKind: 'focus',
-          layoutData: {},
-          props: {
-            showCapabilities: true,
-            showStatus: true,
-            showMetrics: true,
-            agentId: agentId,
-            agentName: agent.name,
-            model: agent.model,
-            provider: agent.model_provider,
-            status: agent.status
-          },
-          entityType: 'agent',
-          entityId: agentId,
-          configId: createdConfigs[1].id,
-          updatedAt: new Date(),
-        },
-        {
-          id: randomUUID(),
-          boardId: board.id,
-          role: null,
-          name: 'Topics',
-          pattern: 'focus',
-          frameType: 'topics',
-          orderIndex: 2,
-          layoutKind: 'focus',
-          layoutData: {},
-          props: {
-            view: 'list',
-            showTags: true,
-            groupBy: 'status',
-            boardId: board.id
-          },
-          entityType: 'agent',
-          entityId: agentId,
-          configId: createdConfigs[2].id,
-          updatedAt: new Date(),
-        },
-        {
-          id: randomUUID(),
-          boardId: board.id,
-          role: null,
-          name: 'Draft',
-          pattern: 'canvas',
-          frameType: 'draft',
-          orderIndex: 3,
-          layoutKind: 'canvas',
-          layoutData: {},
-          props: {
-            tabs: ['Form', 'JSON', 'Diff', 'History'],
-            agentId: agentId
-          },
-          entityType: 'agent',
-          entityId: agentId,
-          configId: createdConfigs[3].id,
-          updatedAt: new Date(),
-        },
-        {
-          id: randomUUID(),
-          boardId: board.id,
-          role: null,
-          name: 'Configuration',
-          pattern: 'wizard',
-          frameType: 'config_panel',
-          orderIndex: 4,
-          layoutKind: 'wizard',
-          layoutData: {},
-          props: {
-            layout: 'tabbed',
-            allowSave: true,
-            validation: true,
-            agentId: agentId
-          },
-          entityType: 'agent',
-          entityId: agentId,
-          configId: createdConfigs[4].id,
-          updatedAt: new Date(),
-        }
-      ];
-
-      // Insert frames idempotently
-      const createdBatch = await prisma.frameInstance.createMany({ data: defaultFrames as any, skipDuplicates: true });
-
-      // Refetch board with frames
-      const refetchedBoard = await prisma.board.findUnique({
-        where: { id: board.id },
-        include: {
-          frames: {
-            orderBy: { orderIndex: 'asc' },
-            include: {
-              FrameConfig: true
-            }
-          }
-        }
-      });
-
-      if (!refetchedBoard) {
-        return res.status(500).json({ success: false, error: 'Failed to create board' });
-      }
-
-      board = refetchedBoard;
-      console.log('[home-board:ensure]', { boardId: board.id, agentId, foundExisting, seededFrames: (createdBatch?.count ?? 0) });
-    } else {
-      // Repair: compute missing frames (out of 5) and seed only those (idempotent)
-      const required = [
-        { name: 'Agent Conversation', frameType: 'dialog', pattern: 'dialogic', orderIndex: 0, cfg: 'dialog-default' as const },
-        { name: 'Agent Preview', frameType: 'agent_preview', pattern: 'focus', orderIndex: 1, cfg: 'agent-preview-default' as const },
-        { name: 'Topics', frameType: 'topics', pattern: 'focus', orderIndex: 2, cfg: 'topics-default' as const },
-        { name: 'Draft', frameType: 'draft', pattern: 'canvas', orderIndex: 3, cfg: 'draft-default' as const },
-        { name: 'Configuration', frameType: 'config_panel', pattern: 'wizard', orderIndex: 4, cfg: 'config-panel-default' as const },
-      ];
-      const have = new Set((board.frames || []).map(f => f.name));
-      const missing = required.filter(r => !have.has(r.name));
-      if (missing.length > 0) {
-        try {
-          // Ensure configs exist
-          const cfgNames = Array.from(new Set(missing.map(m => m.cfg)));
-          const cfgByName: Record<string, string> = {};
-          for (const name of cfgNames) {
-            const existing = await prisma.frameConfig.findFirst({ where: { name } });
-            if (existing) {
-              cfgByName[name] = existing.id;
-            } else {
-              const created = await prisma.frameConfig.create({ data: { name, description: `Default config for ${name.replace('-default','')}`, theme: {} } });
-              cfgByName[name] = created.id;
-            }
-          }
-          const toCreate = missing.map(m => ({
-            boardId: board.id,
-            role: null,
-            name: m.name,
-            pattern: m.pattern,
-            frameType: m.frameType,
-            orderIndex: m.orderIndex,
-            layoutKind: m.pattern === 'wizard' ? 'wizard' : (m.pattern === 'focus' ? 'focus' : 'canvas'),
-            layoutData: {},
-            props: m.name === 'Agent Conversation' ? {
-              title: 'Agent Conversation',
-              placeholder: `Chat with ${agent.name}...`,
-              showHistory: true,
-              maxMessages: 50,
-              agentId: agentId,
-              agentName: agent.name
-            } : m.name === 'Agent Preview' ? {
-              showCapabilities: true,
-              showStatus: true,
-              showMetrics: true,
-              agentId: agentId,
-              agentName: agent.name,
-              model: agent.model,
-              provider: agent.model_provider,
-              status: agent.status
-            } : m.name === 'Topics' ? {
-              view: 'list',
-              showTags: true,
-              groupBy: 'status',
-              boardId: board.id
-            } : m.name === 'Draft' ? {
-              tabs: ['Form', 'JSON', 'Diff', 'History'],
-              agentId: agentId
-            } : {
-              layout: 'tabbed',
-              allowSave: true,
-              validation: true,
-              agentId: agentId
-            },
-            entityType: 'agent',
-            entityId: agentId,
-            configId: cfgByName[m.cfg],
-            updatedAt: new Date(),
-          }));
-          let seededFrames = 0;
-          if (toCreate.length > 0) {
-            const created = await prisma.frameInstance.createMany({ data: toCreate.map(t => ({ id: randomUUID(), ...t })), skipDuplicates: true });
-            seededFrames = created?.count ?? 0;
-            const refetched = await prisma.board.findUnique({
-              where: { id: board.id },
-              include: {
-                frames: { orderBy: { orderIndex: 'asc' }, include: { FrameConfig: true } }
-              }
-            });
-            if (refetched) board = refetched;
-            console.log('[home-board:ensure]', { boardId: board.id, agentId, foundExisting: true, seededFrames });
-          }
-        } catch (e) {
-          console.warn('[home-board:frames:heal:error]', { reqId, message: e instanceof Error ? e.message : String(e) });
-        }
-      }
-    }
+    console.log('[agent-home:ensure:done]', { agentId, boardId: result.id });
 
     return res.json({
       success: true,
       data: {
-        board,
+        board: result,
         agent: {
-          id: agent.id,
+          id: agentId,
           name: agent.name,
           status: agent.status,
           model: agent.model,
@@ -603,12 +342,7 @@ router.get('/:id/home-board', authMiddlewareCompat, async (req: Request, res: Re
     });
   } catch (error) {
     const reqId = (req as any).reqId || req.get('x-request-id') || '';
-    console.error('[home-board:get:error]', {
-      reqId,
-      agentId: req.params?.id,
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    console.error('[home-board:get:error]', { reqId, agentId: req.params?.id, message: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ success: false, error: 'Internal server error', reqId });
   }
 });
