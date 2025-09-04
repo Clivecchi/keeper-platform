@@ -80,6 +80,7 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
       }
     ]
   });
+  const [agentMode, setAgentMode] = useState<boolean>(false);
 
   const [activeFrameId, setActiveFrameId] = useState<string>('');
   const [configFrameId, setConfigFrameId] = useState<string | null>(null);
@@ -109,11 +110,14 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
     
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/boards/${boardId}`);
+      const response = await fetch(`/api/board-data/${boardId}`);
       if (response.ok) {
-        const boardData = await response.json();
+        const payload = await response.json();
+        const boardData = payload?.data?.board || payload; // support both shapes
         setBoard(boardData);
-        setActiveFrameId(boardData.frames[0]?.id || '');
+        setActiveFrameId(boardData.frames?.[0]?.id || '');
+        const isAgent = Boolean(boardData?.agentId) || (boardData?.data?.scope === 'agent');
+        setAgentMode(isAgent);
       } else {
         console.error('Failed to load board:', response.statusText);
       }
