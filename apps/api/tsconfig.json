@@ -9,10 +9,12 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "types": ["node", "express"]
   },
   "include": [
-    "src/**/*"
+    "src/**/*.ts",
+    "src/**/*.d.ts"
   ],
   "exclude": [
     "node_modules",
