@@ -42,6 +42,8 @@ import adminDiagnostics from './api/admin/diagnostics.js';
 import adminRepair from './api/admin/repair.js';
 import adminInspect from './api/admin/inspect.js';
 import { runMigrationsOnce } from './startup/migrate.js';
+// KAM routes
+import kamRouter from './kam/routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -735,6 +737,8 @@ app.use('/api/agents', agentsRoutes);
 app.use('/api/journeys', journeysRoutes);
 app.use('/api/keeper-types', keeperTypesRoutes);
 app.use('/api/people', peopleRoutes);
+// Mount KAM read-only API
+app.use('/kam', kamRouter);
 
 // Connect KIP routes
 app.use('/api/kip/agents', kipAgentsHandler);
