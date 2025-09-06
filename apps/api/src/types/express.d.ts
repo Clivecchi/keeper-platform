@@ -1,17 +1,19 @@
-import 'express-serve-static-core';
+import 'express';
 
-declare module 'express-serve-static-core' {
-  interface Request {
-    /** high-res ms since epoch set by kamAudit/kamAuth start */
-    requestStartTs?: number;
+declare global {
+  namespace Express {
+    interface Request {
+      /** high-res ms since epoch set by kamAudit/kamAuth start */
+      requestStartTs?: number;
 
-    /** KAM context populated by middleware chain */
-    kam?: {
-      keyId?: string;
-      scopes?: string[];
-      domainId?: string;
-    };
+      /** KAM context populated by middleware chain */
+      kam?: {
+        keyId?: string;
+        scopes?: string[];
+        domainId?: string;
+      };
+    }
   }
 }
 
-
+export {};
