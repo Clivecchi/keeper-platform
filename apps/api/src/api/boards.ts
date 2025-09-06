@@ -7,6 +7,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
+import { kamAuth, kamScope } from '../kam/middleware.js';
 import { randomUUID } from 'crypto';
 import { broadcastAgentEvent } from './agents/events.js';
 import { extractRole, can } from '../kam/permissions.js';
@@ -1379,6 +1380,54 @@ studioAliasRouter.get('/agents/:id/home', authMiddlewareCompat, async (req: Requ
   } catch (error) {
     console.error('[studio-alias:get:error]', { reqId, message: error instanceof Error ? error.message : String(error) });
     return res.status(500).json({ success: false, error: 'Internal server error', reqId });
+  }
+});
+
+// ============================================================================
+// RO Parity: GET /api/board-data/agents/:id/home → read-only, service-key auth
+// Returns DTO with boardId and ordered frame kinds matching runtime mapping
+// ============================================================================
+export const boardDataRoRouter = Router();
+
+function normalizeKindForRo(role: string | null, frameType: string): string {
+  if (role === 'dialog') return 'dialog';
+  if (role === 'agent_preview') return 'preview';
+  if (role === 'topics') return 'topics';
+  if (role === 'draft') return 'drafts';
+  if (role === 'config_panel') return 'config';
+  return frameType || 'unknown';
+}
+
+boardDataRoRouter.get('/agents/:id/home', kamAuth, kamScope(['boards.ro']), async (req: Request, res: Response) => {
+  try {
+    const { id: agentId } = req.params as { id: string };
+    // Find existing home board by agentId; do not create/mutate
+    const board = await prisma.board.findFirst({
+      where: { agentId },
+      select: { id: true }
+    });
+
+    if (!board) {
+      return res.json({ boardId: null, frames: [] });
+    }
+
+    const frames = await prisma.frameInstance.findMany({
+      where: { boardId: board.id },
+      orderBy: { orderIndex: 'asc' },
+      select: { id: true, role: true, frameType: true, orderIndex: true, name: true }
+    });
+
+    return res.json({
+      boardId: board.id,
+      frames: frames.map((f) => ({
+        id: f.id,
+        kind: normalizeKindForRo(f.role as string | null, f.frameType as string),
+        order: f.orderIndex,
+        title: f.name || null
+      }))
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'internal' });
   }
 });
 

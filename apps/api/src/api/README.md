@@ -125,8 +125,17 @@ All endpoints include:
 ## 📆 Update Log
 
 - 2025-09-02: Added UUID validation on board-data, raw inspector endpoint, reqId propagation, and safer defaults to prevent 500s when data/behavior are malformed.
- - 2025-09-04: Agent Home Board ensure made idempotent (agentId-first, slug fallback, P2002-safe). Added `GET /api/admin/inspect/agent-home/:agentId`.
- - 2025-09-04: Agent Home Board harden: ensure path now prunes duplicate/non-canonical frames and enforces exactly five canonical roles; Studio alias now calls the same ensure path; runtime "Edit in Board Studio" button removed for AHB.
+- 2025-09-04: Agent Home Board ensure made idempotent (agentId-first, slug fallback, P2002-safe). Added `GET /api/admin/inspect/agent-home/:agentId`.
+- 2025-09-04: Agent Home Board harden: ensure path now prunes duplicate/non-canonical frames and enforces exactly five canonical roles; Studio alias now calls the same ensure path; runtime "Edit in Board Studio" button removed for AHB.
+- 2025-09-06: Added RO parity endpoint `GET /api/board-data/agents/:id/home` secured by KAM service key for Studio-vs-Runtime parity checks.
+
+### Auth Notes (Parity)
+
+- `/api/board-data/agents/:id/home` uses KAM service-key auth (not user JWT)
+- Supported headers:
+  - `Authorization: Bearer <service-key>`
+  - `X-KAM-Service-Key: <service-key>` (alternative)
+- Optional `X-KAM-Scopes: boards.ro` header is accepted; scopes are enforced via `kamScope(['boards.ro'])`.
 
 ## 🔧 Development
 

@@ -26,5 +26,9 @@ Expose read-only endpoints for Agent → Board → Frame → Config with scoped 
 
 ## 📆 Update Log
 - 2025-09-04: Initial read-only implementation.
+- 2025-09-06: Added `lib/kamKeyLoader.ts`, normalized env key loading (CSV + single),
+  dev-only diagnostics on first request, and bearer parsing improvements.
+- 2025-09-06: Updated `/kam/agents/:agentId/home` to support domain discovery (no X-Domain-Id required).
+- 2025-09-06: Allow domainless agents on ID/list routes (no domain header required if agent.domainId is null).
 
 

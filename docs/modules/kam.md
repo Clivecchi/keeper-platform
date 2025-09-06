@@ -201,3 +201,6 @@ This package was extracted from the previous `apps/web/src/kam` and `apps/api/sr
 - **2025-06-23**: Implemented package exports for modular imports
 - **2025-06-25T02:03:00Z**: Dev Environment Fix
 - 2025-06-25 – Fixed TypeScript errors in domainAuth.ts and ensured all code paths return a value. 
+ - 2025-09-06 – API: Added KAM service key loader and dev-only diagnostics in `apps/api/src/kam`.
+ - 2025-09-06 – API: `/kam/agents/:agentId/home` now supports domain discovery (no domain header).
+ - 2025-09-06 – API: ID/list routes allow domainless agents (no domain header required when agent has no domain).

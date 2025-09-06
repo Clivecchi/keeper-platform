@@ -21,29 +21,28 @@ kamRouter.use(kamAuth);
 kamRouter.use(kamRateLimit);
 kamRouter.use(kamAudit);
 
-// 1) GET /kam/agents/:agentId/home (RO)
+// 1) GET /kam/agents/:agentId/home (RO) - Domain discovery, no X-Domain-Id required
 kamRouter.get('/agents/:agentId/home', kamScope(['boards.ro']), async (req: Request, res: Response) => {
   try {
-    const domainId = req.get('X-Domain-Id') || req.get('x-domain-id');
     const { agentId } = req.params as { agentId: string };
-    if (!domainId) return bad(res);
 
-    const agent = await prisma.kip_agents.findUnique({ where: { id: agentId } });
+    const agent = await prisma.kip_agents.findUnique({
+      where: { id: agentId },
+      select: { id: true }
+    });
     if (!agent) return notFound(res);
 
-    // Enforce tenancy strictly by agent.domainId
+    // Resolve the agent's domainId directly from agent record
     const agentDomainId = (agent as any).domainId || null;
-    if (!agentDomainId || String(agentDomainId) !== String(domainId)) {
-      return notFound(res);
-    }
 
     const board = await prisma.board.findFirst({
       where: { agentId: agentId },
-      select: { id: true }
+      select: { id: true },
+      orderBy: { createdAt: 'asc' }
     });
     return res.json({
       agentId,
-      domainId,
+      domainId: agentDomainId,
       boardId: board?.id || null
     });
   } catch (err) {
@@ -54,25 +53,25 @@ kamRouter.get('/agents/:agentId/home', kamScope(['boards.ro']), async (req: Requ
 // 2) GET /kam/boards/:boardId (RO)
 kamRouter.get('/boards/:boardId', kamScope(['boards.ro']), async (req: Request, res: Response) => {
   try {
-    const domainId = req.get('X-Domain-Id') || req.get('x-domain-id');
+    const headerDomainId = req.get('X-Domain-Id') || req.get('x-domain-id') || '';
     const { boardId } = req.params as { boardId: string };
-    if (!domainId) return bad(res);
 
     const board = await prisma.board.findUnique({ where: { id: boardId } });
     if (!board) return notFound(res);
-    // Tenancy guard: board must map to an agent with this domain id
+    // Tenancy guard: board must map to an agent with this domain id, unless agent has null domain
     if ((board as any).agentId) {
       const agent = await prisma.kip_agents.findUnique({ where: { id: (board as any).agentId } });
-      const agentDomainId = (agent as any)?.domainId || null;
-      if (!agentDomainId || String(agentDomainId) !== String(domainId)) {
-        return notFound(res);
+      const agentDomainId = (agent as any)?.domainId ?? null;
+      if (agentDomainId !== null) {
+        if (!headerDomainId) return bad(res);
+        if (String(agentDomainId) !== String(headerDomainId)) return notFound(res);
       }
     }
     // Domain filter: current schema lacks domainId on Board; expose domainId from request for tenancy tagging
     return res.json({
       id: board.id,
       agentId: (board as any).agentId || null,
-      domainId,
+      domainId: headerDomainId,
       slug: (board as any).slug,
       template: false,
       createdAt: (board as any).createdAt,
@@ -86,18 +85,18 @@ kamRouter.get('/boards/:boardId', kamScope(['boards.ro']), async (req: Request, 
 // 3) GET /kam/boards/:boardId/frames (RO)
 kamRouter.get('/boards/:boardId/frames', kamScope(['frames.ro']), async (req: Request, res: Response) => {
   try {
-    const domainId = req.get('X-Domain-Id') || req.get('x-domain-id');
+    const headerDomainId = req.get('X-Domain-Id') || req.get('x-domain-id') || '';
     const { boardId } = req.params as { boardId: string };
-    if (!domainId) return bad(res);
 
     // Tenancy guard: verify board ↔ agent matches domain
     const board = await prisma.board.findUnique({ where: { id: boardId } });
     if (!board) return notFound(res);
     if ((board as any).agentId) {
       const agent = await prisma.kip_agents.findUnique({ where: { id: (board as any).agentId } });
-      const agentDomainId = (agent as any)?.domainId || null;
-      if (!agentDomainId || String(agentDomainId) !== String(domainId)) {
-        return notFound(res);
+      const agentDomainId = (agent as any)?.domainId ?? null;
+      if (agentDomainId !== null) {
+        if (!headerDomainId) return bad(res);
+        if (String(agentDomainId) !== String(headerDomainId)) return notFound(res);
       }
     }
 
@@ -123,9 +122,8 @@ kamRouter.get('/boards/:boardId/frames', kamScope(['frames.ro']), async (req: Re
 // 4) GET /kam/frames/:frameInstanceId/config (RO)
 kamRouter.get('/frames/:frameInstanceId/config', kamScope(['frames.ro']), async (req: Request, res: Response) => {
   try {
-    const domainId = req.get('X-Domain-Id') || req.get('x-domain-id');
+    const headerDomainId = req.get('X-Domain-Id') || req.get('x-domain-id') || '';
     const { frameInstanceId } = req.params as { frameInstanceId: string };
-    if (!domainId) return bad(res);
 
     const f = await prisma.frameInstance.findUnique({
       where: { id: frameInstanceId },
@@ -136,9 +134,10 @@ kamRouter.get('/frames/:frameInstanceId/config', kamScope(['frames.ro']), async 
       const board = await prisma.board.findUnique({ where: { id: f.boardId } });
       if ((board as any)?.agentId) {
         const agent = await prisma.kip_agents.findUnique({ where: { id: (board as any).agentId } });
-        const agentDomainId = (agent as any)?.domainId || null;
-        if (!agentDomainId || String(agentDomainId) !== String(domainId)) {
-          return notFound(res);
+        const agentDomainId = (agent as any)?.domainId ?? null;
+        if (agentDomainId !== null) {
+          if (!headerDomainId) return bad(res);
+          if (String(agentDomainId) !== String(headerDomainId)) return notFound(res);
         }
       }
     }
@@ -157,17 +156,20 @@ kamRouter.get('/frames/:frameInstanceId/config', kamScope(['frames.ro']), async 
 // 5) GET /kam/boards?agentId= (RO)
 kamRouter.get('/boards', kamScope(['boards.ro']), async (req: Request, res: Response) => {
   try {
-    const domainId = req.get('X-Domain-Id') || req.get('x-domain-id');
+    const headerDomainId = req.get('X-Domain-Id') || req.get('x-domain-id') || '';
     const agentId = (req.query?.agentId as string) || '';
-    if (!domainId) return bad(res);
 
     if (!agentId) return res.json({ items: [] });
 
     // Enforce tenancy by checking agent domainId
     const agent = await prisma.kip_agents.findUnique({ where: { id: agentId } });
-    const agentDomainId = (agent as any)?.domainId || null;
-    if (!agent || !agentDomainId || String(agentDomainId) !== String(domainId)) {
-      return res.json({ items: [] });
+    if (!agent) return notFound(res);
+    const agentDomainId = (agent as any)?.domainId ?? null;
+    if (agentDomainId !== null) {
+      if (!headerDomainId) return bad(res);
+      if (String(agentDomainId) !== String(headerDomainId)) {
+        return res.json({ items: [] });
+      }
     }
 
     const boards = await prisma.board.findMany({ where: { agentId }, orderBy: { createdAt: 'desc' } });
