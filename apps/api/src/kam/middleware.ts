@@ -6,13 +6,6 @@ type KamServiceKeyRecord = {
   scopes: string[];
 };
 
-declare module 'express-serve-static-core' {
-  interface Request {
-    kam?: KamServiceKeyRecord;
-    requestStartTs?: number;
-  }
-}
-
 // In-memory rate limiter state: (keyId:domainId) -> { windowStart: number, count: number }
 const RATE_LIMIT_WINDOW_MS = Number(process.env.KAM_RATE_LIMIT_WINDOW_MS || 5 * 60 * 1000);
 const RATE_LIMIT_MAX = Number(process.env.KAM_RATE_LIMIT_MAX || 100);
