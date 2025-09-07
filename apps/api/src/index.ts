@@ -25,6 +25,7 @@ import frameRoutes from './routes/frames.js';
 import newBoardRoutes from './api/boards.js';
 import newBoardRoutesDefault, { templatesRouter as boardTemplatesRouter, studioAliasRouter as boardStudioAliasRouter, boardDataRoRouter } from './api/boards.js';
 import { kamAuth, kamScope } from './kam/middleware.js';
+import { kamOrUserAuth, roBoardsGuard } from './middleware/auth-combined.js';
 import entitiesRoutes from './api/entities/routes.js';
 import uploadsRoutes from './api/uploads/routes.js';
 import agentsRoutes from './api/agents.js';
@@ -729,8 +730,8 @@ app.use('/api/boards', boardRoutes);
 app.use('/api/frames', frameRoutes);
 
 // Connect new board data API routes
-// Mount RO parity first with service-key auth to avoid user JWT requirement
-app.use('/api/board-data', kamAuth, kamScope(['boards.ro']), boardDataRoRouter);
+// Mount RO parity with composite auth: KAM service key or user JWT
+app.use('/api/board-data', kamOrUserAuth, roBoardsGuard, boardDataRoRouter);
 app.use('/api/board-data', newBoardRoutesDefault);
 app.use('/api/board-templates', boardTemplatesRouter);
 app.use('/api/board-data', boardStudioAliasRouter);

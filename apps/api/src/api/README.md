@@ -129,13 +129,13 @@ All endpoints include:
 - 2025-09-04: Agent Home Board harden: ensure path now prunes duplicate/non-canonical frames and enforces exactly five canonical roles; Studio alias now calls the same ensure path; runtime "Edit in Board Studio" button removed for AHB.
 - 2025-09-06: Added RO parity endpoint `GET /api/board-data/agents/:id/home` secured by KAM service key for Studio-vs-Runtime parity checks.
 
-### Auth Notes (Parity)
+### Auth Notes (Board-Data RO)
 
-- `/api/board-data/agents/:id/home` uses KAM service-key auth (not user JWT)
-- Supported headers:
-  - `Authorization: Bearer <service-key>`
-  - `X-KAM-Service-Key: <service-key>` (alternative)
-- Optional `X-KAM-Scopes: boards.ro` header is accepted; scopes are enforced via `kamScope(['boards.ro'])`.
+- `/api/board-data/*` accepts either:
+  - KAM service key (`Authorization: Bearer <service-key>` or `X-KAM-Service-Key: <service-key>`)
+  - User JWT (Studio, logged-in users)
+- Composite guard: service key is tried first, then user JWT; if neither valid → 401.
+- Read-only scope: if KAM key is used, `boards.ro` is required; any authenticated user can read.
 
 ## 🔧 Development
 

@@ -3,6 +3,7 @@ import request from 'supertest';
 import express from 'express';
 import kamRouter from '../kam/routes.js';
 import { boardDataRoRouter } from '../api/boards.js';
+import { kamOrUserAuth, roBoardsGuard } from '../middleware/auth-combined.js';
 
 const AGENT_ID = process.env.KAM_TEST_AGENT_ID || '00000000-0000-0000-0000-000000000000';
 
@@ -15,7 +16,8 @@ describe('KAM ↔ Board-Data parity (RO)', () => {
     process.env.KAM_SERVICE_KEYS = 'dev';
   });
   app.use('/kam', kamRouter);
-  app.use('/api/board-data', boardDataRoRouter);
+  // Mount with composite auth to mirror production order
+  app.use('/api/board-data', kamOrUserAuth, roBoardsGuard, boardDataRoRouter);
 
   it('home parity returns same boardId and consistent frames', async () => {
     const home = await request(app)
