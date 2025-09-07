@@ -128,6 +128,22 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@22.15.30)(jiti@2.4.2)(lightningcss@1.30.1)(tsx@4.20.3)(yaml@2.8.0)
 
+  apps/proxy:
+    dependencies:
+      express:
+        specifier: ^4.19.2
+        version: 4.21.2
+    devDependencies:
+      '@types/express':
+        specifier: 4.17.21
+        version: 4.17.21
+      '@types/node':
+        specifier: ^20.12.12
+        version: 20.19.13
+      typescript:
+        specifier: ^5.5.2
+        version: 5.8.3
+
   apps/web:
     dependencies:
       '@heroicons/react':
@@ -1355,6 +1371,9 @@ packages:
 
   '@types/node@18.19.118':
     resolution: {integrity: sha512-hIPK0hSrrcaoAu/gJMzN3QClXE4QdCdFvaenJ0JsjIbExP1JFFVH+RHcBt25c9n8bx5dkIfqKE+uw6BmBns7ug==}
+
+  '@types/node@20.19.13':
+    resolution: {integrity: sha512-yCAeZl7a0DxgNVteXFHt9+uyFbqXGy/ShC4BlcHkoE0AfGXYv/BUiplV72DjMYXHDBXFjhvr6DD1NiRVfB4j8g==}
 
   '@types/node@22.15.30':
     resolution: {integrity: sha512-6Q7lr06bEHdlfplU6YRbgG1SFBdlsfNC4/lX+SkhiTs0cpJkOElmWls8PxDFv4yY/xKb8Y6SO0OmSX4wgqTZbA==}
@@ -4350,6 +4369,10 @@ snapshots:
   '@types/node@18.19.118':
     dependencies:
       undici-types: 5.26.5
+
+  '@types/node@20.19.13':
+    dependencies:
+      undici-types: 6.21.0
 
   '@types/node@22.15.30':
     dependencies:
