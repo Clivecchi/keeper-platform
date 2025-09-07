@@ -87,6 +87,8 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
   const [configPropId, setConfigPropId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [authRequired, setAuthRequired] = useState(false);
+  const [noAhb, setNoAhb] = useState(false);
   
   // Keeper state (stubbed for now)
   const [activeKeeper] = useState({
@@ -104,6 +106,42 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
       setActiveFrameId(board.frames[0]?.id || '');
     }
   }, [boardId]);
+
+  // Parity loader: allow agentId query to drive Studio via /api/board-data/agents/:agentId/home
+  useEffect(() => {
+    try {
+      const search = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const agentId = search?.get('agentId') || '';
+      if (!agentId) return;
+
+      const loadFromAgent = async () => {
+        setIsLoading(true);
+        setAuthRequired(false);
+        setNoAhb(false);
+        try {
+          const r = await fetch(`/api/board-data/agents/${agentId}/home`);
+          if (r.status === 401) {
+            setAuthRequired(true);
+            return;
+          }
+          if (!r.ok) return;
+          const data = await r.json();
+          const bid = data?.boardId || null;
+          if (!bid) {
+            setNoAhb(true);
+            return;
+          }
+          console.info('[Studio] Loaded Agent Home Board', { boardId: bid });
+          await loadBoardById(bid);
+        } catch (e) {
+          console.error('[Studio] parity load error', e);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      loadFromAgent();
+    } catch {}
+  }, []);
 
   const loadBoard = async () => {
     if (!boardId) return;
@@ -123,6 +161,25 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
       }
     } catch (error) {
       console.error('Error loading board:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadBoardById = async (id: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/board-data/${id}`);
+      if (response.ok) {
+        const payload = await response.json();
+        const boardData = payload?.data?.board || payload;
+        setBoard(boardData);
+        setActiveFrameId(boardData.frames?.[0]?.id || '');
+        const isAgent = Boolean(boardData?.agentId) || (boardData?.data?.scope === 'agent');
+        setAgentMode(isAgent);
+      }
+    } catch (e) {
+      console.error('Error loading board by id:', e);
     } finally {
       setIsLoading(false);
     }
@@ -352,16 +409,25 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
                 </div>
               ) : (
                 <div className="w-full max-w-4xl h-full flex items-center justify-center">
-                  {/* V0 Canvas Content */}
-                  <div className="w-full h-96 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <div className="text-center text-white">
-                      <div className="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center mb-4 mx-auto">
-                        <Film className="w-8 h-8" />
-                      </div>
-                      <h1 className="text-2xl font-bold mb-2">Product Launch Story</h1>
-                      <p className="text-blue-100">Discover the journey behind our latest innovation</p>
+                  {authRequired ? (
+                    <div className="text-center text-gray-600">
+                      <p>Please sign in to view this board.</p>
                     </div>
-                  </div>
+                  ) : noAhb ? (
+                    <div className="text-center text-gray-600">
+                      <p>No Agent Home Board for this agent.</p>
+                    </div>
+                  ) : (
+                    <div className="w-full h-96 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                      <div className="text-center text-white">
+                        <div className="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center mb-4 mx-auto">
+                          <Film className="w-8 h-8" />
+                        </div>
+                        <h1 className="text-2xl font-bold mb-2">Product Launch Story</h1>
+                        <p className="text-blue-100">Discover the journey behind our latest innovation</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
