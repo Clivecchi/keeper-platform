@@ -12,6 +12,11 @@ declare global {
         scopes?: string[];
         domainId?: string;
       };
+
+      /** Unified auth hint for downstream routes */
+      auth?:
+        | { kind: 'kam'; scopes: string[] }
+        | { kind: 'user'; userId: string };
     }
   }
 }

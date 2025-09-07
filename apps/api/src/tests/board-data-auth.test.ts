@@ -52,6 +52,9 @@ describe('Board-Data RO auth: KAM service key OR user JWT', () => {
   router.get('/agents/:id/home', (_req, res) => {
     res.json({ boardId: 'stub-board', frames: [] });
   });
+  router.get('/:boardId', (_req, res) => {
+    res.json({ id: 'stub-board', frames: [] });
+  });
 
   app.use('/api/board-data', localKamOrUserAuth, roBoardsGuard, router);
 
@@ -72,6 +75,27 @@ describe('Board-Data RO auth: KAM service key OR user JWT', () => {
   it('200 with user JWT (stubbed via X-Test-User)', async () => {
     const res = await request(app)
       .get('/api/board-data/agents/00000000-0000-0000-0000-000000000000/home')
+      .set({ 'X-Test-User': '1' });
+    expect(res.status).toBe(200);
+  });
+
+  it('200 for GET /api/board-data/{boardId} with X-KAM-Service-Key only', async () => {
+    const res = await request(app)
+      .get('/api/board-data/11111111-1111-1111-1111-111111111111')
+      .set({ 'X-KAM-Service-Key': KEY });
+    expect(res.status).toBe(200);
+  });
+
+  it('200 for GET /api/board-data/{boardId} with Authorization: Bearer <service-key> (non-JWT)', async () => {
+    const res = await request(app)
+      .get('/api/board-data/11111111-1111-1111-1111-111111111111')
+      .set({ Authorization: `Bearer ${KEY}` });
+    expect(res.status).toBe(200);
+  });
+
+  it('200 for GET /api/board-data/{boardId} with user JWT', async () => {
+    const res = await request(app)
+      .get('/api/board-data/11111111-1111-1111-1111-111111111111')
       .set({ 'X-Test-User': '1' });
     expect(res.status).toBe(200);
   });
