@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { PrismaClient } from '@keeper/database';
 
 export const boardDataDevRouter = Router();
@@ -37,10 +38,10 @@ boardDataDevRouter.patch('/dev/frames/:id/max-messages', async (req: Request, re
       return;
     }
 
-    const props = (frame.props as Record<string, unknown>) || {};
-    const nextProps = { ...props, maxMessages: value } as Record<string, unknown>;
+    const props = (frame.props as Prisma.JsonObject) || {} as Prisma.JsonObject;
+    const nextProps: Prisma.JsonObject = { ...props, maxMessages: value };
 
-    await prisma.frameInstance.update({ where: { id }, data: { props: nextProps, updatedAt: new Date() } });
+    await prisma.frameInstance.update({ where: { id }, data: { props: nextProps as Prisma.InputJsonValue, updatedAt: new Date() } });
 
     res.json({ id, kind: 'dialog', props: { maxMessages: value } });
   } catch (err) {
