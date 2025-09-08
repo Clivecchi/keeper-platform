@@ -104,3 +104,4 @@ Frames are designed to be used within Board components:
 - Added comprehensive TypeScript types and interfaces
 - Implemented dynamic rendering with lazy loading
 - Added interaction tracking and analytics hooks
+- 2025-09-08: Switched `activity-feed-frame.tsx` to use `apiFetch` with error/empty states and dev logs

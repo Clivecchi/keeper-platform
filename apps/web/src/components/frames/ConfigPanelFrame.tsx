@@ -16,6 +16,7 @@ import {
 import { ConfigPanelFrameProps, FrameTab } from '../../types/frame';
 import { useFrame } from '../../context/FrameContext';
 import { useBoard } from '../../context/BoardContext';
+import { apiFetch } from '../../lib/api';
 
 const ConfigPanelFrame: React.FC<ConfigPanelFrameProps> = ({
   frameInstance,
@@ -68,10 +69,9 @@ const ConfigPanelFrame: React.FC<ConfigPanelFrameProps> = ({
       // Persist behavior flags
       const boardId = activeBoard?.id;
       if (boardId) {
-        await fetch(`/api/board-data/${boardId}`, {
+        await apiFetch(`/api/board-data/${boardId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ behavior: { realtime: { enabled: realtimeEnabled }, composition: { allowEdits } } })
         });
       }

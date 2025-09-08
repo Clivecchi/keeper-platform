@@ -12,6 +12,7 @@ import { ClockIcon } from '@heroicons/react/24/outline';
 import { BaseFrameProps } from '../../types/frame';
 import { useFrame } from '../../context/FrameContext';
 import { BoardContext } from '../../boards/BoardContext';
+import { apiFetch } from '../../lib/api';
 
 interface ActivityItem {
   id: string;
@@ -69,11 +70,29 @@ const ActivityFeedFrame: React.FC<BaseFrameProps> = ({
     if (typeFilter) url.searchParams.set('type', typeFilter);
     if (q.trim()) url.searchParams.set('q', q.trim());
     if (!reset && cursor) url.searchParams.set('cursor', cursor);
-    const res = await fetch(url.toString(), { credentials: 'include' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    setNextCursor(data.nextCursor ?? null);
-    setItems(reset ? (data.items || []) : [...items, ...(data.items || [])]);
+
+    if (process.env.NODE_ENV !== 'production') {
+      // Minimal dev log for diagnostics
+      // eslint-disable-next-line no-console
+      console.debug('activity: start', { url: url.toString(), agentId, topicId: currentTopicId, type: typeFilter, q, reset, cursor });
+    }
+
+    try {
+      const data = await apiFetch(url.toString());
+      setNextCursor(data.nextCursor ?? null);
+      const newItems = data.items || [];
+      setItems(reset ? newItems : [...items, ...newItems]);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.debug('activity: end', { count: newItems.length, nextCursor: data.nextCursor ?? null });
+      }
+    } catch (e) {
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.debug('activity: error', e);
+      }
+      throw e;
+    }
   }
 
   useEffect(() => {
@@ -83,8 +102,8 @@ const ActivityFeedFrame: React.FC<BaseFrameProps> = ({
         setLoading(true);
         setError(null);
         await load(true);
-      } catch (e: any) {
-        if (!ignore) setError(String(e?.message || e));
+      } catch (_e: any) {
+        if (!ignore) setError('Could not load activity.');
       } finally {
         if (!ignore) setLoading(false);
       }
@@ -154,6 +173,9 @@ const ActivityFeedFrame: React.FC<BaseFrameProps> = ({
       <div className="p-4 space-y-2">
         {error && (
           <div className="p-2 border border-red-200 bg-red-50 text-red-700 rounded text-sm">{error}</div>
+        )}
+        {(!loading && !error && items.length === 0) && (
+          <div className="text-sm text-gray-500">No activity yet.</div>
         )}
         {items.map((a) => (
           <div key={a.id} className="p-3 border rounded">

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { apiFetch } from "../../lib/api";
 
 type MemoryItem = { id: string; text: string; createdAt: string };
 type PinnedNote = { id: string; text: string; pinnedAt: string };
@@ -20,9 +21,7 @@ export function MemoryFrame({ agentId, limit = 20 }: MemoryFrameProps) {
       try {
         setLoading(true);
         setErr(null);
-        const res = await fetch(`/api/agents/${agentId}/memory?limit=${limit}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const data = await apiFetch(`/api/agents/${agentId}/memory?limit=${limit}`);
         if (!ignore) {
           setPinnedNotes(Array.isArray(data.pinnedNotes) ? data.pinnedNotes : []);
           setRecentLearnings(Array.isArray(data.recentLearnings) ? data.recentLearnings : []);

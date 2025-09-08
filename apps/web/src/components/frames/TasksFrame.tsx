@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { BoardContext } from '../../boards/BoardContext';
+import { apiFetch } from '../../lib/api';
 
 type Task = {
   id: string;
@@ -18,17 +19,15 @@ export function TasksFrame({ agentId }: { agentId: string }) {
   const [title, setTitle] = useState('');
 
   async function load() {
-    const url = new URL(`/api/agents/${agentId}/tasks`, window.location.origin);
-    if (currentTopicId) url.searchParams.set('topicId', currentTopicId);
-    const res = await fetch(url.toString());
-    const data = await res.json();
+    const params = currentTopicId ? `?topicId=${encodeURIComponent(currentTopicId)}` : '';
+    const data = await apiFetch(`/api/agents/${agentId}/tasks${params}`);
     setItems(Array.isArray(data) ? data : (data.data || []));
   }
 
   useEffect(() => { load(); }, [agentId, currentTopicId]);
 
   async function create() {
-    const res = await fetch(`/api/agents/${agentId}/tasks`, {
+    const res = await apiFetch(`/api/agents/${agentId}/tasks`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -36,19 +35,19 @@ export function TasksFrame({ agentId }: { agentId: string }) {
         linkedTopicId: currentTopicId || undefined
       })
     });
-    if (res.ok) {
+    if (res?.success || res?.id) {
       setTitle('');
       await load();
     }
   }
 
   async function setStatus(id: string, status: Task['status']) {
-    const res = await fetch(`/api/agents/${agentId}/tasks/${id}/status`, {
+    const res = await apiFetch(`/api/agents/${agentId}/tasks/${id}/status`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ status })
     });
-    if (res.ok) await load();
+    if (res?.success) await load();
   }
 
   return (

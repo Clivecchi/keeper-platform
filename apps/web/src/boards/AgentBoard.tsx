@@ -23,6 +23,8 @@ import { makeFrameInstance } from '../utils/frameFactory';
 import { useAgentEvents, AgentEvent } from '../hooks/useAgentEvents';
 import { useRef } from 'react';
 import { AgentRuntimeToolbar } from './components/AgentRuntimeToolbar';
+import { useAuth } from '../context/AuthContext';
+import { isStudioAdminFromToken } from '../lib/authz';
 import { apiFetch } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 
@@ -164,6 +166,8 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
   onAgentUpdate,
   showControls = true,
 }) => {
+  const { token } = useAuth();
+  const canOpenStudio = isStudioAdminFromToken(token);
   const { 
     activeBoard, 
     loadBoard, 
@@ -338,6 +342,7 @@ export const AgentBoard: React.FC<AgentBoardProps> = ({
                 if (!id) return;
                 navigate(`/studio/board-studio?boardId=${encodeURIComponent(id)}`);
               }}
+              canOpenStudio={canOpenStudio}
             />
           )}
         </div>
