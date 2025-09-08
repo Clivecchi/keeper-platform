@@ -1,13 +1,11 @@
 import express, { Request, Response, NextFunction } from "express";
-import { createProxyAuthMiddleware } from "./middleware/auth";
+import { requireProxyKey } from "./middleware/auth";
 import { createCorsMiddleware } from "./middleware/cors";
 import { createRateLimiterMiddleware } from "./middleware/ratelimit";
 import { httpGetJson } from "./http";
 
 // Environment configuration and validation
-const PORT = Number(process.env.PORT || 8080);
-const NODE_ENV = process.env.NODE_ENV || "production";
-const PROXY_API_KEY = String(process.env.PROXY_API_KEY || "dev-proxy-key");
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const KAM_SERVICE_KEY = String(process.env.KAM_SERVICE_KEY || "dev-kam-key");
 const KEEPER_API_BASE = String(process.env.KEEPER_API_BASE || "https://keeper-platform-production.up.railway.app");
 const CORS_ORIGINS = String(process.env.CORS_ORIGINS || "http://localhost:3000")
@@ -17,20 +15,22 @@ const CORS_ORIGINS = String(process.env.CORS_ORIGINS || "http://localhost:3000")
 
 const app = express();
 app.set("trust proxy", true);
+app.use(express.json());
 
-// Middlewares
+// Middlewares (CORS global; health is public; rate limit after health)
 app.use(createCorsMiddleware(CORS_ORIGINS));
+// Public healthz
+app.get("/healthz", (_req: Request, res: Response) => {
+  res.status(200).json({ ok: true });
+});
+// Rate limiter (does not affect /healthz because mounted after)
 app.use(createRateLimiterMiddleware({
   tokensPerSecond: 5,
   bucketCapacity: 5,
   keySelector: (req) => req.headers["authorization"]?.toString() || "anonymous",
 }));
-app.use(createProxyAuthMiddleware(PROXY_API_KEY));
-
-// Health check
-app.get("/healthz", (_req: Request, res: Response) => {
-  res.status(200).json({ ok: true });
-});
+// Protect only /v1 routes
+app.use("/v1", requireProxyKey);
 
 // Helpers to build upstream URLs
 const withBase = (path: string) => `${KEEPER_API_BASE}${path}`;
@@ -96,9 +96,9 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   res.status(502).json({ error: "Upstream error" });
 });
 
-app.listen(PORT, () => {
+app.listen(port, () => {
   // eslint-disable-next-line no-console
-  console.log(`Proxy listening on port ${PORT} (env: ${NODE_ENV})`);
+  console.log(`Proxy listening on port ${port} (env: ${process.env.NODE_ENV || "dev"})`);
 });
 
 
