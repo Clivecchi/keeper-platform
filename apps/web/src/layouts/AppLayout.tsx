@@ -19,12 +19,8 @@ const GlobalDebugButton: React.FC = () => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       console.log('🔍 Fetching debug data from:', apiUrl);
       
-      const response = await fetch(`${apiUrl}/debug`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
+      const response = await apiFetch(`/debug`, {
+        method: 'GET'
       });
 
       if (!response.ok) {
@@ -37,12 +33,8 @@ const GlobalDebugButton: React.FC = () => {
       try {
         const token = localStorage.getItem('keeper_token');
         if (token) {
-          const domainsRes = await fetch(`${apiUrl}/api/domains/my`, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            credentials: 'include',
+          const domainsRes = await apiFetch(`/api/domains/my`, {
+            method: 'GET'
           });
 
           const bodyText = await domainsRes.text();

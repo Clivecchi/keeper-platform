@@ -15,6 +15,7 @@ import { getFeatureFlagService } from '@keeper/database';
 import customDomainRoutes from './custom-domain-routes.js';
 import { createDomainResolutionMiddleware } from '../../middleware/domainResolutionMiddleware.js';
 import { DomainService } from '@keeper/database';
+import { ensureDomainManagementBoard } from '../../services/boards/domainManagement.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -31,6 +32,24 @@ router.use(createDomainResolutionMiddleware());
 // Mount custom domain routes to support both legacy and new paths
 router.use(customDomainRoutes); // legacy: /api/domains/:domainId/custom-domain
 router.use('/custom', customDomainRoutes); // new: /api/domains/custom/:domainId/custom-domain
+
+// GET /api/domains/:domainId/management-board
+router.get('/:domainId/management-board', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Authentication required' });
+
+    const domainId = req.params.domainId;
+    const perm = await permissionService.checkPermission({ userId: req.user.id, domainId, permission: 'admin' });
+    if (!perm.hasPermission) return res.status(403).json({ error: 'Access denied' });
+
+    const board = await ensureDomainManagementBoard(prisma as any, domainId);
+    const frames = (board.frames || []).map((f: any) => ({ id: f.id, role: f.role, name: f.name, frameType: f.frameType, orderIndex: f.orderIndex }));
+    return res.json({ boardId: board.id, domainId, frames });
+  } catch (err) {
+    console.error('[domains:management-board:error]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // User search for member management
 router.get('/users/search', authMiddlewareCompat, async (req: Request, res: Response) => {

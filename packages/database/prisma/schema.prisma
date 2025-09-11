@@ -134,9 +134,19 @@ model Board {
   kip_agents  kip_agents?     @relation(fields: [agentId], references: [id])
   // END: Phase-0 addition
 
+  // Domain-scoped fields
+  domainId    String?
+  /**
+   * Logical type of board used for uniqueness within a scope.
+   * Examples: 'agent-home', 'domain-home', 'journey-home'
+   */
+  boardType   String?
+
   @@unique([keeperId, slug])
   @@index([keeperId])
   @@index([agentId])
+  @@index([domainId])
+  @@unique([domainId, boardType])
 }
 
 // Phase 11: Agent-scoped entities

@@ -1,3 +1,24 @@
+# Services
+
+## 📌 Purpose
+Central location for API service-layer modules used by route handlers.
+
+## 🧱 Key Files
+- `KipAgentPermissionService.ts`
+- `PlatformApiKeyService.ts`
+- `SoleMemoryService.ts`
+- `VercelDomainManagerService.ts`
+- `boards/domainManagement.ts`
+
+## 🔄 Data & Behavior
+Services encapsulate business logic and data access via Prisma and caches. They are stateless and idempotent where possible.
+
+## ⚠️ Notes & ToDo
+- [ ] Document domain board ensure/hydration behaviors
+- [ ] Behavior to confirm with Kip
+
+## 📆 Update Log
+- 2025-09-11: Added `boards/domainManagement.ts` ensure service for Domain Management Board.
 # Services Module
 
 ## 📌 Purpose

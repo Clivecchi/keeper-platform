@@ -119,7 +119,7 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
         setAuthRequired(false);
         setNoAhb(false);
         try {
-          const r = await fetch(`/api/board-data/agents/${agentId}/home`);
+          const r = await apiFetch(`/api/board-data/agents/${agentId}/home`);
           if (r.status === 401) {
             setAuthRequired(true);
             return;
@@ -148,7 +148,7 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
     
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/board-data/${boardId}`);
+      const response = await apiFetch(`/api/board-data/${boardId}`);
       if (response.ok) {
         const payload = await response.json();
         const boardData = payload?.data?.board || payload; // support both shapes
@@ -169,7 +169,7 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
   const loadBoardById = async (id: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/board-data/${id}`);
+      const response = await apiFetch(`/api/board-data/${id}`);
       if (response.ok) {
         const payload = await response.json();
         const boardData = payload?.data?.board || payload;
@@ -190,7 +190,7 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
     
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/boards/${boardId}`, {
+      const response = await apiFetch(`/api/boards/${boardId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,33 +1,19 @@
 // Use same-origin calls; leave env override for local dev if explicitly set
 const BASE_URL = '';
 
-export async function apiFetch(path: string, options: RequestInit = {}) {
+export async function apiFetch(path: string, init?: RequestInit): Promise<any> {
   // Get token from localStorage for authenticated requests
   const token = localStorage.getItem('keeper_token');
   
   const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
+    ...(init || {}),
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...(options.headers || {}),
+      ...(init?.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
+    credentials: 'include'
   });
-
-  if (!res.ok) {
-    // Create a proper error object instead of throwing the response
-    // This prevents browser authentication prompts
-    const errorBody = await res.text().catch(() => 'Network error');
-    const error = new Error(`HTTP ${res.status}: ${res.statusText}`) as Error & {
-      status: number;
-      statusText: string;
-      body: string;
-    };
-    error.status = res.status;
-    error.statusText = res.statusText;
-    error.body = errorBody;
-    throw error;
-  }
-  
+  if (!res.ok) throw new Error(`API error ${res.status}`);
   return res.json();
 } 
