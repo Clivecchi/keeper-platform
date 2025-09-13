@@ -32,8 +32,11 @@ export async function apiFetch(path: string, opts: FetchOptions = {}) {
   const headers: Record<string, string> = { ...(opts.headers || {}) };
 
   // JSON defaults
-  if (!headers['Content-Type'] && opts.body && typeof opts.body === 'object' && !(opts.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
+  const isObjectBody = opts.body && typeof opts.body === 'object' && !(opts.body instanceof FormData);
+  const isStringBody = typeof opts.body === 'string';
+  if (!headers['Content-Type']) {
+    if (isObjectBody) headers['Content-Type'] = 'application/json';
+    else if (isStringBody) headers['Content-Type'] = 'application/json';
   }
 
   // Auth
@@ -42,7 +45,15 @@ export async function apiFetch(path: string, opts: FetchOptions = {}) {
     if (jwt) headers['Authorization'] = `Bearer ${jwt}`;
   }
 
-  const res = await fetch(url, { ...opts, headers });
+  // Normalize body
+  let body: BodyInit | undefined = opts.body as any;
+  if (isObjectBody) {
+    try {
+      body = JSON.stringify(opts.body);
+    } catch {}
+  }
+
+  const res = await fetch(url, { ...opts, headers, body, credentials: opts.credentials ?? 'include' });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     const err = new Error(`HTTP ${res.status}: ${text}`);
