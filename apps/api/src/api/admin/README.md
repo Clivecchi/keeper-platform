@@ -18,4 +18,5 @@ Provides platform-level administration endpoints for managing domains and platfo
 - [ ] Consider pagination for users-with-roles endpoint when user count grows.
 
 ## 📆 Update Log
-- 2025-07-19 – Initial creation with domain & role management endpoints. 
+- 2025-07-19 – Initial creation with domain & role management endpoints.
+- 2025-09-12 – Added GET `/api/admin/tenant-scan` for tenant diagnostics (counts, recents, migrations, pg_stat). Added temporary alias `GET /api/admin/domains/my` 307-redirecting to `/api/keepers/my` to prevent UI 404s. // TODO: Verify table name mapping (Domain/Keeper/Board) for raw SQL.

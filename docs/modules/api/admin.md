@@ -18,4 +18,5 @@ Provides platform-level administration endpoints for managing domains and platfo
 - [ ] Add pagination for large user lists.
 
 ## 📆 Update Log
-- 2025-07-19 – Module created for new admin routes. 
+- 2025-07-19 – Module created for new admin routes.
+- 2025-09-12 – Added GET `/api/admin/tenant-scan` (tenant diagnostics) and alias `GET /api/admin/domains/my` → 307 → `/api/keepers/my`. // TODO: Verify raw SQL table names vs Prisma models.

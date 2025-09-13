@@ -44,6 +44,7 @@ import { getLogs as getInternalLogs } from './utils/LogStore.js';
 import adminDiagnostics from './api/admin/diagnostics.js';
 import adminRepair from './api/admin/repair.js';
 import adminInspect from './api/admin/inspect.js';
+import { tenantScanHandler } from './api/admin/tenant-scan.js';
 import { runMigrationsOnce } from './startup/migrate.js';
 // KAM routes
 import kamRouter from './kam/routes.js';
@@ -722,6 +723,12 @@ app.use('/api/admin/users', adminUsersRoutes);
 app.use('/api/admin', adminDiagnostics);
 app.use('/api/admin', adminRepair);
 app.use('/api/admin', adminInspect);
+// GET /api/admin/tenant-scan (KAM-protected via authMiddlewareCompat)
+app.get('/api/admin/tenant-scan', authMiddlewareCompat, tenantScanHandler);
+// TEMP alias to stop UI 404s: redirect /api/admin/domains/my → /api/keepers/my
+app.get('/api/admin/domains/my', (req, res) => {
+  res.redirect(307, '/api/keepers/my');
+});
 
 // NEW: Connect Keeper routes
 app.use('/api/keeper', keeperRoutes);
