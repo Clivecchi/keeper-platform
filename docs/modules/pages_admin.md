@@ -11,4 +11,5 @@ Platform-level administration user interface within the Keeper web app.
 See folder README.
 
 ## 📆 Update Log
-- 2025-07-19 – Documentation created. 
+- 2025-09-13 – Admin Domains base URL triage info added (DomainsPage shows resolved API base)
+- 2025-07-19 – Documentation created.

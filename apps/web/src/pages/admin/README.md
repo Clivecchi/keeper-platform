@@ -47,6 +47,9 @@ System administration pages for platform-level management, separate from domain-
 
 ## 📆 Update Log
 
+### 2025-09-13 - Admin Domains base URL triage info
+Added API base display on `DomainsPage.tsx` to surface resolved base URL for quick diagnosis during deployments.
+
 ### 2025-01-21
 - Added UserManagementPage for platform user administration
 - Clarified separation between platform and domain user management

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../lib/apiFetch';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import { motion } from 'framer-motion';
@@ -16,32 +17,27 @@ const GlobalDebugButton: React.FC = () => {
     setError(null);
     
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const apiUrl = (import.meta as any).env.VITE_API_URL || (globalThis as any).__API_URL || location.origin;
       console.log('🔍 Fetching debug data from:', apiUrl);
       
-      const response = await apiFetch(`/debug`, {
-        method: 'GET'
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await apiFetch(`/debug`, { method: 'GET' });
 
       // --- Extra call: /api/domains/my ---------------------------------
       try {
         const token = localStorage.getItem('keeper_token');
         if (token) {
-          const domainsRes = await apiFetch(`/api/domains/my`, {
-            method: 'GET'
-          });
-
-          const bodyText = await domainsRes.text();
-          data.extra_my_domains = {
-            status: domainsRes.status,
-            body: bodyText,
-          };
+          try {
+            const myDomains = await apiFetch(`/api/domains/my`, { method: 'GET' });
+            data.extra_my_domains = {
+              status: 200,
+              body: JSON.stringify(myDomains),
+            };
+          } catch (innerErr: any) {
+            data.extra_my_domains = {
+              status: innerErr?.status || 'error',
+              body: String(innerErr?.message || innerErr),
+            };
+          }
         } else {
           data.extra_my_domains = {
             status: 'no-token',
@@ -113,7 +109,7 @@ const GlobalDebugButton: React.FC = () => {
                       <li>Check if Railway API is running</li>
                       <li>Verify VITE_API_URL is set correctly</li>
                       <li>Check browser console for CORS errors</li>
-                      <li>Current API URL: {import.meta.env.VITE_API_URL || 'http://localhost:3001'}</li>
+                      <li>Current API URL: {(import.meta as any).env.VITE_API_URL || (globalThis as any).__API_URL || location.origin}</li>
                     </ul>
                   </div>
                 </div>

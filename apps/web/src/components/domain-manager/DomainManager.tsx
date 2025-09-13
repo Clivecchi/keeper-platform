@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { apiFetch } from '../../lib/api';
+import { apiFetch } from '../../lib/apiFetch';
 import DomainDetailForm from './DomainDetailForm';
 import DnsStatusBadge from './DnsStatusBadge';
 import DnsInfoPanel from './DnsInfoPanel';
@@ -41,8 +41,8 @@ const DomainManager: React.FC<Props> = ({ scope, allowCreate = true }) => {
     setLoading(true);
     setError(null);
     try {
-      const baseUrl = scope === 'user' ? '/api/domains' : '/api/admin/domains';
-      const response = await apiFetch(`${baseUrl}/my`);
+      // Use unified endpoint to avoid 404s across environments
+      const response = await apiFetch(`/api/domains`);
       const domainsWithDns = Array.isArray(response) ? response : [];
       setDomains(domainsWithDns);
       

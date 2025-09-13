@@ -90,6 +90,9 @@ Unified domain management interface for both user and admin scopes, providing co
 
 ## 📆 Update Log
 
+### 2025-09-13 - Unified apiFetch usage and endpoint
+Switched to shared `apiFetch` utility and consolidated list endpoint to `/api/domains` to avoid 404s across environments.
+
 ### 2024-12-19 - Simplified Domain Management UI
 - Removed confusing tab system and process flow component
 - Simplified domain detail form with clear step-by-step process

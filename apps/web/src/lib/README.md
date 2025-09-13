@@ -27,6 +27,10 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2025-09-13 - Added shared apiFetch with env/global/same-origin base and JWT
+**Change**: Introduced `apiFetch.ts` with base URL resolution priority: `VITE_API_URL` → `window.__API_URL` → `location.origin`. Added JWT auto-injection from storage and JSON content-type defaults. Exported as global `apiFetch` for legacy callers. Updated `api.ts` to re-export from `apiFetch`.
+**Impact**: Fixes "apiFetch is not defined" and prevents 404s due to env drift; compatible with Vercel same-origin.
+
 ### 2025-01-15 - Microsoft Authentication Fix
 **Issue Resolved**: Fixed double Microsoft sign-in prompts during login
 **Root Cause**: API error handling was throwing raw Response objects, which could trigger browser-level authentication prompts when responses contained certain headers
