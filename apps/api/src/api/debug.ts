@@ -812,17 +812,23 @@ export default router;
 // GET /api/debug/board-studio-snapshot
 // Returns high-signal data for diagnosing Board Studio loading issues
 // Small index to list debug endpoints and usage
-router.get('/', (_req, res) => {
-  res.json({
-    success: true,
-    message: 'Keeper Debug API',
-    usage: {
-      'GET /api/debug/board-studio-snapshot': 'Authenticated preferred. Optionally pass ?userId= to run unauthenticated.',
-      'GET /api/debug/logs': 'Recent high-signal server logs (in-memory).',
-      'GET /api/debug/railway-status': 'Railway runtime info.',
-      'GET /api/debug/all': 'One-shot aggregate of snapshot + logs + env + railway. Optional ?userId=',
-    },
-  });
+router.get('/', async (_req, res) => {
+  try {
+    const [now, domains, keepers, boards] = await Promise.all([
+      prisma.$queryRawUnsafe<{ now: string }[]>(`SELECT NOW()::timestamptz AS now;`),
+      prisma.$queryRawUnsafe<{ c: number }[]>(`SELECT COUNT(*)::int AS c FROM "Domain";`).catch(() => [{ c: 0 }]),
+      prisma.$queryRawUnsafe<{ c: number }[]>(`SELECT COUNT(*)::int AS c FROM "Keeper";`).catch(() => [{ c: 0 }]),
+      prisma.$queryRawUnsafe<{ c: number }[]>(`SELECT COUNT(*)::int AS c FROM "Board";`).catch(() => [{ c: 0 }]),
+    ]);
+    res.json({
+      ok: true,
+      now: now?.[0]?.now ?? null,
+      counts: { domains: domains?.[0]?.c ?? 0, keepers: keepers?.[0]?.c ?? 0, boards: boards?.[0]?.c ?? 0 },
+      env: { node: process.version, runtime: 'express' }
+    });
+  } catch (err: any) {
+    res.status(500).json({ ok: false, error: err?.message ?? 'debug-failed' });
+  }
 });
 
 router.get('/board-studio-snapshot', optionalAuthMiddleware as any, async (req, res) => {

@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
 
 // Import domain routes
 import domainRoutes from './api/domains/routes.js';
+import flatDomainsRouter from './api/domains.js';
 import adminDomainRoutes from './api/admin/domains.js';
 import adminRolesRoutes from './api/admin/roles.js';
 import adminUsersRoutes from './api/admin/users.js';
@@ -711,7 +712,8 @@ app.get('/api/users/search', authMiddlewareCompat, async (req: Request, res: Res
   }
 });
 
-// Connect domain routes
+// Flat admin list first, then full domain routes
+app.use('/api/domains', flatDomainsRouter);
 app.use('/api/domains', domainRoutes);
 
 // Admin domain management (super-admin only)
