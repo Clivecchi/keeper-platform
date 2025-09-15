@@ -14,6 +14,7 @@ import adminDomainRoutes from './api/admin/domains.js';
 import adminRolesRoutes from './api/admin/roles.js';
 import adminUsersRoutes from './api/admin/users.js';
 import adminRouter from './api/admin.js';
+import { adminQueryRouter } from './api/admin/query.js';
 // Import KIP routes
 import kipAgentsHandler from './api/kip/agents.js';
 import kipPlatformKeysRouter from './api/kip/platform-keys.js';
@@ -727,6 +728,7 @@ app.use('/api/admin', adminDiagnostics);
 app.use('/api/admin', adminRepair);
 app.use('/api/admin', adminInspect);
 app.use('/api/admin', adminRouter);
+app.use('/api/admin/query', adminQueryRouter);
 // GET /api/admin/tenant-scan (KAM-protected via authMiddlewareCompat)
 app.get('/api/admin/tenant-scan', authMiddlewareCompat, tenantScanHandler);
 // TEMP alias to stop UI 404s: redirect /api/admin/domains/my → /api/keepers/my

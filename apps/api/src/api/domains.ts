@@ -10,12 +10,26 @@ domainsRouter.use(authMiddlewareCompat);
 // GET /api/domains – flat array, minimal fields
 domainsRouter.get('/', async (req, res) => {
   try {
-    const includeDeleted = String(req.query.includeDeleted || '0') === '1';
+    const includeDeleted = String(req.query.includeDeleted || '0').toLowerCase() === '1';
+    const limit = Math.min(Number(req.query.limit) || 100, 1000);
+    const q = (req.query.q ? String(req.query.q) : '').trim();
+
+    const where: any = {};
+    if (!includeDeleted) (where as any).deletedAt = null;
+    if (q) {
+      (where as any).OR = [
+        { id: q },
+        { name: { contains: q, mode: 'insensitive' } },
+        { customDomain: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
     try {
       const rows = await prisma.domain.findMany({
-        where: includeDeleted ? {} : { deletedAt: null },
+        where,
         select: { id: true, name: true, customDomain: true, createdAt: true, updatedAt: true, deletedAt: true },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        take: limit,
       });
       return res.json(rows);
     } catch (e: any) {
@@ -23,8 +37,18 @@ domainsRouter.get('/', async (req, res) => {
       const message = String(e?.message || '');
       if (message.includes('column') && message.includes('deletedAt')) {
         const rows = await prisma.domain.findMany({
+          where: q
+            ? {
+                OR: [
+                  { id: q },
+                  { name: { contains: q, mode: 'insensitive' } },
+                  { customDomain: { contains: q, mode: 'insensitive' } },
+                ],
+              }
+            : {},
           select: { id: true, name: true, customDomain: true, createdAt: true, updatedAt: true },
-          orderBy: { createdAt: 'desc' }
+          orderBy: { createdAt: 'desc' },
+          take: limit,
         });
         return res.json(rows);
       }
