@@ -11,27 +11,50 @@ domainsRouter.use(authMiddlewareCompat);
 domainsRouter.get('/', async (req, res) => {
   try {
     const includeDeleted = String(req.query.includeDeleted || '0') === '1';
-    const rows = await prisma.domain.findMany({
-      where: includeDeleted ? {} : { deletedAt: null },
-      select: { id: true, name: true, customDomain: true, createdAt: true, updatedAt: true, deletedAt: true },
-      orderBy: { createdAt: 'desc' }
-    }).catch(() => []);
-    res.json(rows);
+    try {
+      const rows = await prisma.domain.findMany({
+        where: includeDeleted ? {} : { deletedAt: null },
+        select: { id: true, name: true, customDomain: true, createdAt: true, updatedAt: true, deletedAt: true },
+        orderBy: { createdAt: 'desc' }
+      });
+      return res.json(rows);
+    } catch (e: any) {
+      // Fallback if deletedAt column not present yet
+      const message = String(e?.message || '');
+      if (message.includes('column') && message.includes('deletedAt')) {
+        const rows = await prisma.domain.findMany({
+          select: { id: true, name: true, customDomain: true, createdAt: true, updatedAt: true },
+          orderBy: { createdAt: 'desc' }
+        });
+        return res.json(rows);
+      }
+      throw e;
+    }
   } catch (err) {
     console.error('[flat-domains] error', err);
-    res.json([]);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // GET /api/domains/my – unchanged logic here, but ignore soft-deleted
 domainsRouter.get('/my', async (req, res) => {
   try {
-    const domain = await prisma.domain.findFirst({
-      where: { deletedAt: null },
-      orderBy: { createdAt: 'asc' }
-    });
-    if (!domain) return res.status(404).json({ error: 'No domain' });
-    res.json(domain);
+    try {
+      const domain = await prisma.domain.findFirst({
+        where: { deletedAt: null },
+        orderBy: { createdAt: 'asc' }
+      });
+      if (!domain) return res.status(404).json({ error: 'No domain' });
+      return res.json(domain);
+    } catch (e: any) {
+      const message = String(e?.message || '');
+      if (message.includes('column') && message.includes('deletedAt')) {
+        const domain = await prisma.domain.findFirst({ orderBy: { createdAt: 'asc' } });
+        if (!domain) return res.status(404).json({ error: 'No domain' });
+        return res.json(domain);
+      }
+      throw e;
+    }
   } catch (e) {
     res.status(500).json({ error: 'Internal server error' });
   }
