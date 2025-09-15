@@ -847,6 +847,7 @@ model Domain {
   isActive                                                 Boolean                    @default(true)
   createdAt                                                DateTime                   @default(now())
   updatedAt                                                DateTime                   @updatedAt
+  deletedAt                                                DateTime?
   theme                                                    Json?                      @default("{}")
   settings                                                 Json?                      @default("{}")
   CollaborationActivity                                    CollaborationActivity[]
@@ -874,6 +875,21 @@ model Domain {
   @@index([status])
   @@index([isActive])
   @@index([isPublic])
+}
+
+model DomainAudit {
+  id          String   @id @default(uuid())
+  domainId    String
+  action      String
+  actorUserId String?
+  actorEmail  String?
+  ip          String?
+  userAgent   String?
+  before      Json?
+  after       Json?
+  createdAt   DateTime @default(now())
+
+  @@index([domainId, createdAt])
 }
 
 model DomainPermission {
