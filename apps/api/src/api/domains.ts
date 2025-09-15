@@ -41,10 +41,22 @@ domainsRouter.get('/my', async (req, res) => {
 domainsRouter.post('/', async (req, res) => {
   try {
     const user = (req as any).user;
+    if (!user?.id) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
     const ip = req.headers['x-forwarded-for']?.toString() || req.socket.remoteAddress || '';
     const ua = req.headers['user-agent']?.toString();
     const { name, customDomain } = req.body ?? {};
-    const created = await prisma.domain.create({ data: { name, customDomain } });
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'name is required' });
+    }
+    const baseSlug = String(name)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 48);
+    const slug = baseSlug || `domain-${Date.now()}`;
+    const created = await prisma.domain.create({ data: { name, slug, ownerId: user.id, customDomain } });
     await writeDomainAudit({
       action: 'create',
       domainId: created.id,

@@ -13,7 +13,7 @@ import flatDomainsRouter from './api/domains.js';
 import adminDomainRoutes from './api/admin/domains.js';
 import adminRolesRoutes from './api/admin/roles.js';
 import adminUsersRoutes from './api/admin/users.js';
-import adminRouter from './api/admin.ts';
+import adminRouter from './api/admin.js';
 // Import KIP routes
 import kipAgentsHandler from './api/kip/agents.js';
 import kipPlatformKeysRouter from './api/kip/platform-keys.js';
