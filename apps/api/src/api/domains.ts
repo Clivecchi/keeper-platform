@@ -2,10 +2,14 @@ import { Router } from 'express';
 import { prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { writeDomainAudit } from '../lib/audit/domainAudit.js';
+import { domainsManagementRouter } from './domains.management.js';
 
 // Minimal flat list for Admin screens and health checks
 const domainsRouter = Router();
 domainsRouter.use(authMiddlewareCompat);
+
+// Mount management sub-routes (ensure DMB)
+domainsRouter.use('/', domainsManagementRouter);
 
 // GET /api/domains – flat array, minimal fields
 domainsRouter.get('/', async (req, res) => {

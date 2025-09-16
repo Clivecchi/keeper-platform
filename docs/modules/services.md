@@ -23,3 +23,5 @@ Services are stateless classes instantiated on demand by route handlers or other
 ### 2025-07-31
 - Added initial README with module overview and file summaries.
 - Updated `VercelDomainManagerService.ts` request body (`{ domain }` instead of `{ name }`) to match Vercel REST API specification.
+### 2025-09-16
+- Added `apps/api/src/services/ensureDomainManagementBoard.ts` to expose Domain Management Board ensure as a simple API-facing helper, delegating to `boards/domainManagement.ts` and returning `{ boardId, domainId }`.

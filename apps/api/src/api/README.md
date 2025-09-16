@@ -129,6 +129,7 @@ All endpoints include:
 - 2025-09-04: Agent Home Board harden: ensure path now prunes duplicate/non-canonical frames and enforces exactly five canonical roles; Studio alias now calls the same ensure path; runtime "Edit in Board Studio" button removed for AHB.
 - 2025-09-06: Added RO parity endpoint `GET /api/board-data/agents/:id/home` secured by KAM service key for Studio-vs-Runtime parity checks.
 - 2025-09-11: Added `GET /api/domains/:domainId/management-board` calling ensure service for DMB (idempotent, deterministic frames).
+- 2025-09-16: Mounted `domains.management.ts` under `domains.ts` providing `GET /api/domains/:id/management-board` that returns `{ boardId, domainId }`.
 
 ### Auth Notes (Board-Data RO)
 

@@ -19,6 +19,7 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 
 ## 📆 Update Log
 - 2025-09-11: Added `boards/domainManagement.ts` ensure service for Domain Management Board.
+- 2025-09-16: Added wrapper `ensureDomainManagementBoard.ts` to expose idempotent ensure via API service.
 # Services Module
 
 ## 📌 Purpose
