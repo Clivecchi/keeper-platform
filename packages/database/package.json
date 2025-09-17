@@ -15,6 +15,7 @@
   "scripts": {
     "generate": "prisma generate",
     "build": "prisma generate && tsc",
+    "migrate:deploy": "prisma migrate deploy",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "push": "prisma db push",
