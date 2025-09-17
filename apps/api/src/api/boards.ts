@@ -12,6 +12,7 @@ import { randomUUID } from 'crypto';
 import { broadcastAgentEvent } from './agents/events.js';
 import { extractRole, can } from '../kam/permissions.js';
 import type { IncomingHttpHeaders } from 'http';
+import { ensureDomainTableShape } from '../lib/db-guards.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -552,6 +553,7 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
  */
 router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
+    await ensureDomainTableShape();
     const { id } = req.params;
     const userId = (req as any).user?.id;
     const reqId = (req as any).reqId || req.get('x-request-id') || '';
@@ -575,6 +577,15 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
         }
       }
     });
+    // Resolve domain context and enforce if mismatch
+    try {
+      const ctxDomainId = (req as any).context?.domainId ?? (board as any)?.domainId;
+      const boardDomainId = (board as any)?.domainId ?? null;
+      if (boardDomainId && ctxDomainId && boardDomainId !== ctxDomainId) {
+        return res.status(403).json({ success: false, error: 'DOMAIN_MISMATCH', boardDomainId, ctxDomainId, reqId });
+      }
+    } catch {}
+
 
     if (!board) {
       return res.status(404).json({ success: false, error: 'Board not found', reqId });

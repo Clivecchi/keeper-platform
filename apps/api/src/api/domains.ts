@@ -3,6 +3,7 @@ import { prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { writeDomainAudit } from '../lib/audit/domainAudit.js';
 import { domainsManagementRouter } from './domains.management.js';
+import { ensureDomainTableShape } from '../lib/db-guards.js';
 
 // Minimal flat list for Admin screens and health checks
 const domainsRouter = Router();
@@ -64,27 +65,80 @@ domainsRouter.get('/', async (req, res) => {
   }
 });
 
-// GET /api/domains/my – unchanged logic here, but ignore soft-deleted
+// GET /api/domains/my – robust resolution with guard and membership fallbacks
 domainsRouter.get('/my', async (req, res) => {
   try {
-    try {
-      const domain = await prisma.domain.findFirst({
-        where: { deletedAt: null },
-        orderBy: { createdAt: 'asc' }
-      });
-      if (!domain) return res.status(404).json({ error: 'No domain' });
-      return res.json(domain);
-    } catch (e: any) {
-      const message = String(e?.message || '');
-      if (message.includes('column') && message.includes('deletedAt')) {
-        const domain = await prisma.domain.findFirst({ orderBy: { createdAt: 'asc' } });
-        if (!domain) return res.status(404).json({ error: 'No domain' });
-        return res.json(domain);
-      }
-      throw e;
+    await ensureDomainTableShape();
+
+    const userId = (req as any).user?.id as string | undefined;
+    if (!userId) {
+      return res.status(401).json({ error: 'UNAUTHENTICATED' });
     }
-  } catch (e) {
-    res.status(500).json({ error: 'Internal server error' });
+
+    const ctxDomainId = (req as any).context?.domainId as string | undefined;
+
+    async function pickActive(where: Record<string, unknown>): Promise<any | null> {
+      try {
+        return await prisma.domain.findFirst({ where: { ...where, deletedAt: null } as any });
+      } catch (e: any) {
+        const message = String(e?.message || '');
+        if (message.includes('column') && message.includes('deletedAt')) {
+          return await prisma.domain.findFirst({ where: where as any });
+        }
+        throw e;
+      }
+    }
+
+    let domain: any | null = null;
+
+    // 1) Prefer context domain if middleware set it (and not soft-deleted)
+    if (ctxDomainId) {
+      domain = await prisma.domain.findUnique({ where: { id: ctxDomainId } });
+      if (domain && (domain as any).deletedAt) {
+        domain = null;
+      }
+    }
+
+    // 2) User primaryDomainId
+    if (!domain) {
+      const user = await prisma.users.findUnique({ where: { id: userId }, select: { primaryDomainId: true } });
+      if (user?.primaryDomainId) {
+        domain = await pickActive({ id: user.primaryDomainId });
+      }
+    }
+
+    // 3) Membership via DomainPermission
+    if (!domain) {
+      const membership = await prisma.domainPermission.findFirst({
+        where: { userId },
+        include: { Domain: true },
+        orderBy: { grantedAt: 'asc' }
+      });
+      const d = membership?.Domain as any | undefined;
+      if (d && (!('deletedAt' in d) || (d as any).deletedAt == null)) {
+        domain = d;
+      }
+    }
+
+    // 4) Ownership fallback
+    if (!domain) {
+      domain = await pickActive({ ownerId: userId });
+    }
+
+    // 5) Absolute fallback: any active domain
+    if (!domain) {
+      domain = await pickActive({});
+    }
+
+    if (!domain) return res.status(404).json({ error: 'DOMAIN_NOT_FOUND' });
+
+    return res.json({
+      id: domain.id,
+      name: domain.name,
+      customDomain: (domain as any).customDomain ?? null,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'DOMAINS_MY_EXCEPTION', message: String(err?.message || err) });
   }
 });
 

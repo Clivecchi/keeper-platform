@@ -130,6 +130,9 @@ All endpoints include:
 - 2025-09-06: Added RO parity endpoint `GET /api/board-data/agents/:id/home` secured by KAM service key for Studio-vs-Runtime parity checks.
 - 2025-09-11: Added `GET /api/domains/:domainId/management-board` calling ensure service for DMB (idempotent, deterministic frames).
 - 2025-09-16: Mounted `domains.management.ts` under `domains.ts` providing `GET /api/domains/:id/management-board` that returns `{ boardId, domainId }`.
+- 2025-09-17: Hardened domain resolution and board-data error handling:
+  - `/api/domains/my` now idempotently self-heals `Domain.deletedAt` column via guard and resolves robustly using context, user primary, membership, and ownership fallbacks.
+  - `GET /api/board-data/:id` calls the same DB guard and returns `403` on domain mismatch with `{ boardDomainId, ctxDomainId }` to prevent UI 500s on deep links.
 
 ### Auth Notes (Board-Data RO)
 
