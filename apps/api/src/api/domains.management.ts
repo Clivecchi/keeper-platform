@@ -10,12 +10,24 @@ domainsManagementRouter.use(authMiddlewareCompat);
 domainsManagementRouter.get('/:id/management-board', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const ensured = await ensureDomainManagementBoard(id);
-    if (!ensured) return res.status(404).json({ error: 'Domain not found', code: 'DOMAIN_NOT_FOUND' });
-    return res.json(ensured);
+    const result = await ensureDomainManagementBoard(id);
+
+    if (!result.ok && result.error === 'DOMAIN_NOT_FOUND') {
+      return res.status(404).json({ error: 'Domain not found', code: 'DOMAIN_NOT_FOUND' });
+    }
+
+    if (result.ok) {
+      if (result.warnings?.length) {
+        console.warn('[DMB:WARN]', { domainId: id, warnings: result.warnings });
+      }
+      return res.json({ boardId: result.boardId, domainId: result.domainId, warnings: result.warnings ?? [] });
+    }
+
+    console.error('[DMB:ERROR]', { domainId: id, result });
+    return res.status(500).json({ error: 'ENSURE_DMB_FAILED', hint: result.error ?? 'unknown' });
   } catch (err: any) {
-    console.error('ensure DMB error', err);
-    return res.status(500).json({ error: 'ENSURE_DMB_FAILED', message: err?.message ?? 'unknown' });
+    console.error('[DMB:EXCEPTION]', { err });
+    return res.status(500).json({ error: 'ENSURE_DMB_EXCEPTION', message: err?.message ?? 'unknown' });
   }
 });
 
