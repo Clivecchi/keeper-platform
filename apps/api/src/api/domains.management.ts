@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { ensureDomainManagementBoard } from '../services/ensureDomainManagementBoard.js';
+import { ensureDomainTableShape } from '../lib/db-guards.js';
 
 export const domainsManagementRouter = Router();
 domainsManagementRouter.use(authMiddlewareCompat);
@@ -10,6 +11,7 @@ domainsManagementRouter.use(authMiddlewareCompat);
 domainsManagementRouter.get('/:id/management-board', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const guardWarnings = await ensureDomainTableShape();
     const result = await ensureDomainManagementBoard(id);
 
     if (!result.ok && result.error === 'DOMAIN_NOT_FOUND') {
@@ -17,10 +19,11 @@ domainsManagementRouter.get('/:id/management-board', async (req: Request, res: R
     }
 
     if (result.ok) {
-      if (result.warnings?.length) {
-        console.warn('[DMB:WARN]', { domainId: id, warnings: result.warnings });
+      const warnings = [...(guardWarnings ?? []), ...(result.warnings ?? [])];
+      if (warnings.length) {
+        console.warn('[DMB:WARN]', { domainId: id, warnings });
       }
-      return res.json({ boardId: result.boardId, domainId: result.domainId, warnings: result.warnings ?? [] });
+      return res.json({ boardId: result.boardId, domainId: result.domainId, warnings });
     }
 
     console.error('[DMB:ERROR]', { domainId: id, result });
