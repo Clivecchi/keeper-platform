@@ -804,6 +804,22 @@ router.get('/logs', async (_req, res) => {
   return res.json({ success: true, logs: getLogs() });
 });
 
+// GET /api/debug/req/:reqId  → returns recent in-memory logs filtered by reqId
+router.get('/req/:reqId', async (req, res) => {
+  try {
+    const { reqId } = req.params as { reqId: string };
+    const { getLogs } = await import('../utils/LogStore.js');
+    const all = getLogs?.() || [];
+    const logs = (all || []).filter((l: any) => {
+      const m = l?.meta || l;
+      return m?.reqId === reqId;
+    });
+    return res.json({ reqId, count: logs.length, logs });
+  } catch (e: any) {
+    return res.status(500).json({ error: 'DEBUG_REQ_FETCH_FAILED', message: String(e?.message || e) });
+  }
+});
+
 export default router; 
 
 // =============================================================================

@@ -12,6 +12,7 @@ import {
   ExtendedFrameInstance 
 } from '../types/frame';
 import { apiFetch } from '../lib/api';
+import { setLastBoardDataError } from '../lib/debug';
 
 // =============================================================================
 // BOARD TYPES
@@ -305,6 +306,19 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error loading board:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load board';
+      try {
+        const anyErr = error as any;
+        const body = anyErr?.body;
+        const parsed = typeof body === 'string' ? JSON.parse(body) : body;
+        const reqId = parsed?.reqId ?? null;
+        setLastBoardDataError({
+          reqId,
+          url: (anyErr?.url as string) || `/api/board-data/${boardId}`,
+          status: anyErr?.status ?? null,
+          boardId,
+          at: new Date().toISOString()
+        });
+      } catch {}
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
