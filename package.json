@@ -38,7 +38,13 @@
     "smoke:web": "pnpm -F keeper-web run type-check && pnpm -F keeper-web run build",
     "smoke:api": "pnpm -F keeper-api run type-check && pnpm -F keeper-api exec vitest run src/tests/smoke --reporter=dot --silent",
     "smoke": "pnpm run smoke:api && pnpm run smoke:web",
-    "postinstall": "pnpm --filter @keeper/database generate"
+    "postinstall": "pnpm --filter @keeper/database generate",
+    "diag:boards": "tsx tools/diag/boards-domains-report.ts"
+    ,
+    "diag:verify:board-data": "tsx tools/diag/verify-board-data-mounts.ts",
+    "diag:verify:dmb": "tsx tools/diag/verify-dmb-mounts.ts",
+    "diag:verify:ctx": "tsx tools/diag/find-context-reads.ts",
+    "diag:verify:all": "pnpm diag:verify:board-data && pnpm diag:verify:dmb && pnpm diag:verify:ctx"
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",

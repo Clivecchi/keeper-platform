@@ -1,0 +1,50 @@
+{
+  "mountedBase": "/api/board-data",
+  "mounts": [
+    {
+      "base": "/api/board-data",
+      "arg": "kamOrUserAuth",
+      "importSource": "./middleware/auth-combined.js"
+    },
+    {
+      "base": "/api/board-data",
+      "arg": "kamOrUserAuth",
+      "importSource": "./middleware/auth-combined.js"
+    },
+    {
+      "base": "/api/board-data",
+      "arg": "newBoardRoutesDefault",
+      "importSource": "./api/boards.js"
+    },
+    {
+      "base": "/api/board-data",
+      "arg": "boardStudioAliasRouter",
+      "importSource": "./api/boards.js"
+    }
+  ],
+  "routerVars": [
+    "templatesRouter",
+    "studioAliasRouter",
+    "boardDataRoRouter",
+    "router",
+    "req"
+  ],
+  "defaultExportVar": "router",
+  "routesOnDefault": [
+    "GET /",
+    "POST /",
+    "GET /:id",
+    "GET /:id/raw",
+    "POST /:id/frames",
+    "POST /:id/frames-data",
+    "PATCH /:id/frames-data/:frameId",
+    "DELETE /:id/frames-data/:frameId",
+    "PATCH /:id/frames-data/reorder",
+    "PATCH /:id/frames/:frameId",
+    "DELETE /:id/frames/:frameId",
+    "PATCH /:id/frames/reorder"
+  ],
+  "foundGetIdHandler": true,
+  "fallbackGetId": [],
+  "partial": true
+}

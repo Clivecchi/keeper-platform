@@ -1,0 +1,300 @@
+{
+  "mounts": [
+    {
+      "base": "/api/domains",
+      "varName": "flatDomainsRouter",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains.js"
+    },
+    {
+      "base": "/api/domains",
+      "varName": "domainRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.js"
+    },
+    {
+      "base": "/api/admin/domains",
+      "varName": "adminDomainRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\domains.js"
+    },
+    {
+      "base": "/api/admin/roles",
+      "varName": "adminRolesRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\roles.js"
+    },
+    {
+      "base": "/api/admin/users",
+      "varName": "adminUsersRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\users.js"
+    },
+    {
+      "base": "/api/admin",
+      "varName": "adminDiagnostics",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\diagnostics.js"
+    },
+    {
+      "base": "/api/admin",
+      "varName": "adminRepair",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\repair.js"
+    },
+    {
+      "base": "/api/admin",
+      "varName": "adminInspect",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\inspect.js"
+    },
+    {
+      "base": "/api/admin",
+      "varName": "adminRouter",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin.js"
+    },
+    {
+      "base": "/api/admin/query",
+      "varName": "adminQueryRouter",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\query.js"
+    },
+    {
+      "base": "/api/keeper",
+      "varName": "keeperRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\keeper\\routes.js"
+    },
+    {
+      "base": "/api/boards",
+      "varName": "boardRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\routes\\boards.js"
+    },
+    {
+      "base": "/api/frames",
+      "varName": "frameRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\routes\\frames.js"
+    },
+    {
+      "base": "/api/board-data",
+      "varName": "kamOrUserAuth",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\middleware\\auth-combined.js"
+    },
+    {
+      "base": "/api/board-data",
+      "varName": "kamOrUserAuth",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\middleware\\auth-combined.js"
+    },
+    {
+      "base": "/api/board-data",
+      "varName": "newBoardRoutesDefault",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\boards.js"
+    },
+    {
+      "base": "/api/board-templates",
+      "varName": "boardTemplatesRouter",
+      "file": null
+    },
+    {
+      "base": "/api/board-data",
+      "varName": "boardStudioAliasRouter",
+      "file": null
+    },
+    {
+      "base": "/api/entities",
+      "varName": "entitiesRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\entities\\routes.js"
+    },
+    {
+      "base": "/api/uploads",
+      "varName": "uploadsRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\uploads\\routes.js"
+    },
+    {
+      "base": "/api/agents",
+      "varName": "agentsRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\agents.js"
+    },
+    {
+      "base": "/api/journeys",
+      "varName": "journeysRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\journeys.js"
+    },
+    {
+      "base": "/api/keeper-types",
+      "varName": "keeperTypesRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\keeper-types.js"
+    },
+    {
+      "base": "/api/people",
+      "varName": "peopleRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\people.js"
+    },
+    {
+      "base": "/kam",
+      "varName": "kamRouter",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\kam\\routes.js"
+    },
+    {
+      "base": "/api/kip/agents",
+      "varName": "kipAgentsHandler",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\kip\\agents.js"
+    },
+    {
+      "base": "/api/kip/platform-keys",
+      "varName": "kipPlatformKeysRouter",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\kip\\platform-keys.js"
+    },
+    {
+      "base": "/api/debug",
+      "varName": "debugRouter",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\debug.js"
+    },
+    {
+      "base": "/",
+      "varName": "healthRouter",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\health.js"
+    },
+    {
+      "base": "*",
+      "varName": "(req: Request",
+      "file": null
+    }
+  ],
+  "endpoints": [
+    {
+      "endpoint": "GET /api/domains/my",
+      "base": "/api/domains",
+      "tail": "/my",
+      "handlers": [
+        {
+          "via": {
+            "base": "/api/domains",
+            "varName": "flatDomainsRouter",
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains.js"
+          },
+          "handler": {
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.ts",
+            "snippet": "n res.json(users);\r\n  } catch (error) {\r\n    console.error('Error searching users:', error);\r\n    return res.status(500).json({ error: 'Failed to search users' });\r\n  }\r\n});\r\n\r\n// Mount routes first\r\nrouter.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {\r\n  try {\r\n    if (!req.user) {\r\n      return res.status(401).json({ error: 'Authentication required' });\r\n    }\r\n\r\n    // Pass user context to feature flag check\r\n    if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED', { \r\n      userId: req.user.id,\r\n      userRole: req.user.role || 'user'\r\n    })) {\r\n      return res"
+          }
+        },
+        {
+          "via": {
+            "base": "/api/domains",
+            "varName": "domainRoutes",
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.js"
+          },
+          "handler": {
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.ts",
+            "snippet": "n res.json(users);\r\n  } catch (error) {\r\n    console.error('Error searching users:', error);\r\n    return res.status(500).json({ error: 'Failed to search users' });\r\n  }\r\n});\r\n\r\n// Mount routes first\r\nrouter.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {\r\n  try {\r\n    if (!req.user) {\r\n      return res.status(401).json({ error: 'Authentication required' });\r\n    }\r\n\r\n    // Pass user context to feature flag check\r\n    if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED', { \r\n      userId: req.user.id,\r\n      userRole: req.user.role || 'user'\r\n    })) {\r\n      return res"
+          }
+        },
+        {
+          "via": {
+            "base": "/api/domains",
+            "varName": "domainRoutes",
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.js"
+          },
+          "handler": {
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.ts",
+            "snippet": "n res.json(users);\r\n  } catch (error) {\r\n    console.error('Error searching users:', error);\r\n    return res.status(500).json({ error: 'Failed to search users' });\r\n  }\r\n});\r\n\r\n// Mount routes first\r\nrouter.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {\r\n  try {\r\n    if (!req.user) {\r\n      return res.status(401).json({ error: 'Authentication required' });\r\n    }\r\n\r\n    // Pass user context to feature flag check\r\n    if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED', { \r\n      userId: req.user.id,\r\n      userRole: req.user.role || 'user'\r\n    })) {\r\n      return res"
+          }
+        },
+        {
+          "via": {
+            "base": "/",
+            "varName": "healthRouter",
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\health.js"
+          },
+          "handler": {
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.ts",
+            "snippet": "n res.json(users);\r\n  } catch (error) {\r\n    console.error('Error searching users:', error);\r\n    return res.status(500).json({ error: 'Failed to search users' });\r\n  }\r\n});\r\n\r\n// Mount routes first\r\nrouter.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {\r\n  try {\r\n    if (!req.user) {\r\n      return res.status(401).json({ error: 'Authentication required' });\r\n    }\r\n\r\n    // Pass user context to feature flag check\r\n    if (!featureFlags.isEnabled('DOMAIN_LAYER_ENABLED', { \r\n      userId: req.user.id,\r\n      userRole: req.user.role || 'user'\r\n    })) {\r\n      return res"
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "GET /api/domains/:id/management-board",
+      "base": "/api/domains",
+      "tail": "/:id/management-board",
+      "handlers": [
+        {
+          "via": {
+            "base": "/api/domains",
+            "varName": "flatDomainsRouter",
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains.js"
+          },
+          "handler": {
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.ts",
+            "snippet": " legacy: /api/domains/:domainId/custom-domain\r\nrouter.use('/custom', customDomainRoutes); // new: /api/domains/custom/:domainId/custom-domain\r\n\r\n// GET /api/domains/:domainId/management-board\r\nrouter.get('/:domainId/management-board', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {\r\n  try {\r\n    if (!req.user) return res.status(401).json({ error: 'Authentication required' });\r\n\r\n    const domainId = req.params.domainId;\r\n    const perm = await permissionService.checkPermission({ userId: req.user.id, domainId, permission: 'admin' });\r\n    if (!perm.hasPermission) return res.status(403).json({ error: 'Access denied' });\r\n\r\n    const board = await ensureDomainManagem"
+          }
+        },
+        {
+          "via": {
+            "base": "/api/domains",
+            "varName": "flatDomainsRouter",
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains.js"
+          },
+          "handler": {
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains.management.ts",
+            "snippet": "rom '../lib/db-guards.js';\r\n\r\nexport const domainsManagementRouter = Router();\r\ndomainsManagementRouter.use(authMiddlewareCompat);\r\n\r\n// GET /api/domains/:id/management-board\r\ndomainsManagementRouter.get('/:id/management-board', async (req: Request, res: Response) => {\r\n  try {\r\n    const { id } = req.params;\r\n    const guardWarnings = await ensureDomainTableShape();\r\n    const result = await ensureDomainManagementBoard(id);\r\n\r\n    if (!result.ok && result.error === 'DOMAIN_NOT_FOUND') {\r\n      return res.status(404).json({ error: 'Domain not found', code: 'DOMAIN_NOT_FOUND' });\r\n    }\r\n\r\n    if (result.ok) {\r\n      const warnings = [...(guardWarnings ?? []), ...(result.warnings ?? [])];\r\n  "
+          }
+        },
+        {
+          "via": {
+            "base": "/api/domains",
+            "varName": "domainRoutes",
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.js"
+          },
+          "handler": {
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.ts",
+            "snippet": " legacy: /api/domains/:domainId/custom-domain\r\nrouter.use('/custom', customDomainRoutes); // new: /api/domains/custom/:domainId/custom-domain\r\n\r\n// GET /api/domains/:domainId/management-board\r\nrouter.get('/:domainId/management-board', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {\r\n  try {\r\n    if (!req.user) return res.status(401).json({ error: 'Authentication required' });\r\n\r\n    const domainId = req.params.domainId;\r\n    const perm = await permissionService.checkPermission({ userId: req.user.id, domainId, permission: 'admin' });\r\n    if (!perm.hasPermission) return res.status(403).json({ error: 'Access denied' });\r\n\r\n    const board = await ensureDomainManagem"
+          }
+        },
+        {
+          "via": {
+            "base": "/api/domains",
+            "varName": "domainRoutes",
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.js"
+          },
+          "handler": {
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.ts",
+            "snippet": " legacy: /api/domains/:domainId/custom-domain\r\nrouter.use('/custom', customDomainRoutes); // new: /api/domains/custom/:domainId/custom-domain\r\n\r\n// GET /api/domains/:domainId/management-board\r\nrouter.get('/:domainId/management-board', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {\r\n  try {\r\n    if (!req.user) return res.status(401).json({ error: 'Authentication required' });\r\n\r\n    const domainId = req.params.domainId;\r\n    const perm = await permissionService.checkPermission({ userId: req.user.id, domainId, permission: 'admin' });\r\n    if (!perm.hasPermission) return res.status(403).json({ error: 'Access denied' });\r\n\r\n    const board = await ensureDomainManagem"
+          }
+        },
+        {
+          "via": {
+            "base": "/api/domains",
+            "varName": "domainRoutes",
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.js"
+          },
+          "handler": {
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains.management.ts",
+            "snippet": "rom '../lib/db-guards.js';\r\n\r\nexport const domainsManagementRouter = Router();\r\ndomainsManagementRouter.use(authMiddlewareCompat);\r\n\r\n// GET /api/domains/:id/management-board\r\ndomainsManagementRouter.get('/:id/management-board', async (req: Request, res: Response) => {\r\n  try {\r\n    const { id } = req.params;\r\n    const guardWarnings = await ensureDomainTableShape();\r\n    const result = await ensureDomainManagementBoard(id);\r\n\r\n    if (!result.ok && result.error === 'DOMAIN_NOT_FOUND') {\r\n      return res.status(404).json({ error: 'Domain not found', code: 'DOMAIN_NOT_FOUND' });\r\n    }\r\n\r\n    if (result.ok) {\r\n      const warnings = [...(guardWarnings ?? []), ...(result.warnings ?? [])];\r\n  "
+          }
+        },
+        {
+          "via": {
+            "base": "/",
+            "varName": "healthRouter",
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\health.js"
+          },
+          "handler": {
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.ts",
+            "snippet": " legacy: /api/domains/:domainId/custom-domain\r\nrouter.use('/custom', customDomainRoutes); // new: /api/domains/custom/:domainId/custom-domain\r\n\r\n// GET /api/domains/:domainId/management-board\r\nrouter.get('/:domainId/management-board', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {\r\n  try {\r\n    if (!req.user) return res.status(401).json({ error: 'Authentication required' });\r\n\r\n    const domainId = req.params.domainId;\r\n    const perm = await permissionService.checkPermission({ userId: req.user.id, domainId, permission: 'admin' });\r\n    if (!perm.hasPermission) return res.status(403).json({ error: 'Access denied' });\r\n\r\n    const board = await ensureDomainManagem"
+          }
+        },
+        {
+          "via": {
+            "base": "/",
+            "varName": "healthRouter",
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\health.js"
+          },
+          "handler": {
+            "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains.management.ts",
+            "snippet": "rom '../lib/db-guards.js';\r\n\r\nexport const domainsManagementRouter = Router();\r\ndomainsManagementRouter.use(authMiddlewareCompat);\r\n\r\n// GET /api/domains/:id/management-board\r\ndomainsManagementRouter.get('/:id/management-board', async (req: Request, res: Response) => {\r\n  try {\r\n    const { id } = req.params;\r\n    const guardWarnings = await ensureDomainTableShape();\r\n    const result = await ensureDomainManagementBoard(id);\r\n\r\n    if (!result.ok && result.error === 'DOMAIN_NOT_FOUND') {\r\n      return res.status(404).json({ error: 'Domain not found', code: 'DOMAIN_NOT_FOUND' });\r\n    }\r\n\r\n    if (result.ok) {\r\n      const warnings = [...(guardWarnings ?? []), ...(result.warnings ?? [])];\r\n  "
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "GET /api/board-data/:id",
+      "base": "/api/board-data",
+      "tail": "/:id",
+      "handlers": []
+    }
+  ],
+  "db": {
+    "enabled": false
+  }
+}

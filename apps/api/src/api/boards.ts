@@ -558,6 +558,11 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     const userId = (req as any).user?.id;
     const reqId = (req as any).reqId || req.get('x-request-id') || '';
 
+    // ── DEBUG: surface domain-context keys to catch mismatch early
+    const ctxA = (req as any).context?.domainId ?? null;
+    const ctxB = (req as any).domainContext?.domain?.id ?? null;
+    console.info('[board-data/:id] before-prisma', { reqId, id, userId, ctxA, ctxB });
+
     if (!UUID_V4.test(id)) {
       return res.status(400).json({ success: false, error: 'Invalid board id', reqId });
     }
@@ -566,22 +571,40 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       return res.status(401).json({ success: false, error: 'Unauthorized', reqId });
     }
 
-    const board = await prisma.board.findUnique({
-      where: { id },
-      include: {
-        frames: {
-          orderBy: { orderIndex: 'asc' },
-          include: {
-            FrameConfig: true
+    let board: any;
+    try {
+      board = await prisma.board.findUnique({
+        where: { id },
+        include: {
+          frames: {
+            orderBy: { orderIndex: 'asc' },
+            include: {
+              FrameConfig: true
+            }
           }
         }
-      }
-    });
+      });
+      console.info('[board-data/:id] after-prisma', {
+        reqId,
+        boardId: board?.id ?? null,
+        framesCount: Array.isArray(board?.frames) ? board.frames.length : null
+      });
+    } catch (e: any) {
+      // ── DEBUG: catch Prisma-layer throws to see exact failure signature
+      console.error('[board-data/:id] prisma-error', {
+        reqId,
+        name: e?.name,
+        code: e?.code,
+        message: e?.message
+      });
+      throw e; // preserve existing behavior
+    }
     // Resolve domain context and enforce if mismatch
     try {
       const ctxDomainId = (req as any).context?.domainId ?? (board as any)?.domainId;
       const boardDomainId = (board as any)?.domainId ?? null;
       if (boardDomainId && ctxDomainId && boardDomainId !== ctxDomainId) {
+        console.warn('[board-data/:id] domain-mismatch', { reqId, boardDomainId, ctxDomainId });
         return res.status(403).json({ success: false, error: 'DOMAIN_MISMATCH', boardDomainId, ctxDomainId, reqId });
       }
     } catch {}
@@ -626,20 +649,18 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       }
     });
 
-    return res.json({
-      success: true,
+    const payload = {
+      ...board,
+      behavior: safeBehavior,
       data: {
-        ...board,
-        behavior: safeBehavior,
-        data: {
-          ...rawData,
-          frames: safeFrames,
-          layoutPrefs: safeLayoutPrefs
-        },
-        etag
+        ...rawData,
+        frames: safeFrames,
+        layoutPrefs: safeLayoutPrefs
       },
-      reqId
-    });
+      etag
+    };
+    console.info('[board-data/:id] response-shape', { reqId, keys: Object.keys(payload) });
+    return res.json({ success: true, data: payload, reqId });
   } catch (error) {
     const reqId = (req as any).reqId || req.get('x-request-id') || '';
     console.error('[board-data:get:error]', {

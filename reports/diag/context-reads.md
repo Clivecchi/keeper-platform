@@ -1,0 +1,31 @@
+Context Reads
+
+- domainContext :: apps\api\src\middleware\domain\requireDomainPermissions.ts:35 — if (!req.domainContext?.domain) {
+- domainContext :: apps\api\src\middleware\domain\requireDomainPermissions.ts:40 — const { domain } = req.domainContext;
+- domainContext :: apps\api\src\middleware\domain\requireDomainPermissions.ts:81 — if (!req.domainContext?.domain) {
+- domainContext :: apps\api\src\middleware\domain\requireDomainPermissions.ts:86 — const { domain } = req.domainContext;
+- domainContext :: apps\api\src\middleware\domain\requireDomainPermissions.ts:127 — if (!req.domainContext?.domain) {
+- domainContext :: apps\api\src\middleware\domain\requireDomainPermissions.ts:132 — const { domain } = req.domainContext;
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:78 — if (!req.domainContext) {
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:96 — current: req.domainContext.permissions || []
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:115 — if (!req.domainContext) {
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:125 — const isOwner = await this.isDomainOwner(req.user.id, req.domainContext.domain);
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:133 — req.domainContext = {
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:134 — ...req.domainContext,
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:154 — if (!req.domainContext) {
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:161 — req.domainContext = {
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:162 — ...req.domainContext,
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:172 — const isOwner = await this.isDomainOwner(req.user.id, req.domainContext.domain);
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:175 — req.domainContext = {
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:176 — ...req.domainContext,
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:186 — const userPermissions = await this.getUserPermissions(req.user.id, req.domainContext.domain);
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:188 — req.domainContext = {
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:189 — ...req.domainContext,
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:207 — if (!req.domainContext) {
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:211 — const userPermissions = req.domainContext.permissions || [];
+- domainContext :: apps\api\src\middleware\domainPermissionMiddleware.ts:216 — (req.domainContext?.isOwner && permission !== 'delete') // Owner has all permissions except delete (which requires explicit permission)
+- domainContext :: apps\api\src\middleware\domainResolutionMiddleware.ts:157 — req.domainContext = {
+- domainContext :: apps\api\src\middleware\dynamicCorsMiddleware.ts:126 — if (req.domainContext?.domain) {
+- domainContext :: apps\api\src\middleware\dynamicCorsMiddleware.ts:127 — const domainConfig = await this.getDomainSpecificConfig(req.domainContext.domain);
+- domainContext :: apps\api\src\middleware\dynamicCorsMiddleware.ts:195 — if (this.isOriginAllowed(origin, req.domainContext)) {
+- domainContext :: apps\api\src\middleware\memoryAccessMiddleware.ts:320 — req.domainContext?.domain?.id ||

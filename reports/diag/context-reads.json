@@ -1,0 +1,176 @@
+[
+  {
+    "file": "apps\\api\\src\\middleware\\domain\\requireDomainPermissions.ts",
+    "line": 35,
+    "snippet": "if (!req.domainContext?.domain) {",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domain\\requireDomainPermissions.ts",
+    "line": 40,
+    "snippet": "const { domain } = req.domainContext;",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domain\\requireDomainPermissions.ts",
+    "line": 81,
+    "snippet": "if (!req.domainContext?.domain) {",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domain\\requireDomainPermissions.ts",
+    "line": 86,
+    "snippet": "const { domain } = req.domainContext;",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domain\\requireDomainPermissions.ts",
+    "line": 127,
+    "snippet": "if (!req.domainContext?.domain) {",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domain\\requireDomainPermissions.ts",
+    "line": 132,
+    "snippet": "const { domain } = req.domainContext;",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 78,
+    "snippet": "if (!req.domainContext) {",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 96,
+    "snippet": "current: req.domainContext.permissions || []",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 115,
+    "snippet": "if (!req.domainContext) {",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 125,
+    "snippet": "const isOwner = await this.isDomainOwner(req.user.id, req.domainContext.domain);",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 133,
+    "snippet": "req.domainContext = {",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 134,
+    "snippet": "...req.domainContext,",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 154,
+    "snippet": "if (!req.domainContext) {",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 161,
+    "snippet": "req.domainContext = {",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 162,
+    "snippet": "...req.domainContext,",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 172,
+    "snippet": "const isOwner = await this.isDomainOwner(req.user.id, req.domainContext.domain);",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 175,
+    "snippet": "req.domainContext = {",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 176,
+    "snippet": "...req.domainContext,",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 186,
+    "snippet": "const userPermissions = await this.getUserPermissions(req.user.id, req.domainContext.domain);",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 188,
+    "snippet": "req.domainContext = {",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 189,
+    "snippet": "...req.domainContext,",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 207,
+    "snippet": "if (!req.domainContext) {",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 211,
+    "snippet": "const userPermissions = req.domainContext.permissions || [];",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainPermissionMiddleware.ts",
+    "line": 216,
+    "snippet": "(req.domainContext?.isOwner && permission !== 'delete') // Owner has all permissions except delete (which requires explicit permission)",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\domainResolutionMiddleware.ts",
+    "line": 157,
+    "snippet": "req.domainContext = {",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\dynamicCorsMiddleware.ts",
+    "line": 126,
+    "snippet": "if (req.domainContext?.domain) {",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\dynamicCorsMiddleware.ts",
+    "line": 127,
+    "snippet": "const domainConfig = await this.getDomainSpecificConfig(req.domainContext.domain);",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\dynamicCorsMiddleware.ts",
+    "line": 195,
+    "snippet": "if (this.isOriginAllowed(origin, req.domainContext)) {",
+    "kind": "domainContext"
+  },
+  {
+    "file": "apps\\api\\src\\middleware\\memoryAccessMiddleware.ts",
+    "line": 320,
+    "snippet": "req.domainContext?.domain?.id ||",
+    "kind": "domainContext"
+  }
+]

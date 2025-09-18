@@ -1,0 +1,204 @@
+{
+  "mounts": [
+    {
+      "base": "/api/domains",
+      "varName": "flatDomainsRouter",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains.js"
+    },
+    {
+      "base": "/api/domains",
+      "varName": "domainRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.js"
+    },
+    {
+      "base": "/api/admin/domains",
+      "varName": "adminDomainRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\domains.js"
+    },
+    {
+      "base": "/api/admin/roles",
+      "varName": "adminRolesRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\roles.js"
+    },
+    {
+      "base": "/api/admin/users",
+      "varName": "adminUsersRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\users.js"
+    },
+    {
+      "base": "/api/admin",
+      "varName": "adminDiagnostics",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\diagnostics.js"
+    },
+    {
+      "base": "/api/admin",
+      "varName": "adminRepair",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\repair.js"
+    },
+    {
+      "base": "/api/admin",
+      "varName": "adminInspect",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\inspect.js"
+    },
+    {
+      "base": "/api/admin",
+      "varName": "adminRouter",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin.js"
+    },
+    {
+      "base": "/api/admin/query",
+      "varName": "adminQueryRouter",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\query.js"
+    },
+    {
+      "base": "/api/keeper",
+      "varName": "keeperRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\keeper\\routes.js"
+    },
+    {
+      "base": "/api/boards",
+      "varName": "boardRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\routes\\boards.js"
+    },
+    {
+      "base": "/api/frames",
+      "varName": "frameRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\routes\\frames.js"
+    },
+    {
+      "base": "/api/board-data",
+      "varName": "kamOrUserAuth",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\middleware\\auth-combined.js"
+    },
+    {
+      "base": "/api/board-data",
+      "varName": "kamOrUserAuth",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\middleware\\auth-combined.js"
+    },
+    {
+      "base": "/api/board-data",
+      "varName": "newBoardRoutesDefault",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\boards.js"
+    },
+    {
+      "base": "/api/board-templates",
+      "varName": "boardTemplatesRouter",
+      "file": null
+    },
+    {
+      "base": "/api/board-data",
+      "varName": "boardStudioAliasRouter",
+      "file": null
+    },
+    {
+      "base": "/api/entities",
+      "varName": "entitiesRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\entities\\routes.js"
+    },
+    {
+      "base": "/api/uploads",
+      "varName": "uploadsRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\uploads\\routes.js"
+    },
+    {
+      "base": "/api/agents",
+      "varName": "agentsRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\agents.js"
+    },
+    {
+      "base": "/api/journeys",
+      "varName": "journeysRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\journeys.js"
+    },
+    {
+      "base": "/api/keeper-types",
+      "varName": "keeperTypesRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\keeper-types.js"
+    },
+    {
+      "base": "/api/people",
+      "varName": "peopleRoutes",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\people.js"
+    },
+    {
+      "base": "/kam",
+      "varName": "kamRouter",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\kam\\routes.js"
+    },
+    {
+      "base": "/api/kip/agents",
+      "varName": "kipAgentsHandler",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\kip\\agents.js"
+    },
+    {
+      "base": "/api/kip/platform-keys",
+      "varName": "kipPlatformKeysRouter",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\kip\\platform-keys.js"
+    },
+    {
+      "base": "/api/debug",
+      "varName": "debugRouter",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\debug.js"
+    },
+    {
+      "base": "/",
+      "varName": "healthRouter",
+      "file": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\health.js"
+    },
+    {
+      "base": "*",
+      "varName": "(req: Request",
+      "file": null
+    }
+  ],
+  "imports": {
+    "domainRoutes": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains\\routes.js",
+    "flatDomainsRouter": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\domains.js",
+    "adminDomainRoutes": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\domains.js",
+    "adminRolesRoutes": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\roles.js",
+    "adminUsersRoutes": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\users.js",
+    "adminRouter": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin.js",
+    "adminQueryRouter": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\query.js",
+    "kipAgentsHandler": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\kip\\agents.js",
+    "kipPlatformKeysRouter": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\kip\\platform-keys.js",
+    "getUserKeys": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\kip\\user-keys.js",
+    "setUserKey": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\kip\\user-keys.js",
+    "deleteUserKey": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\kip\\user-keys.js",
+    "getUserProviders": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\kip\\user-keys.js",
+    "kamSettingsHandler": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\kam\\settings.js",
+    "boardRoutes": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\routes\\boards.js",
+    "frameRoutes": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\routes\\frames.js",
+    "newBoardRoutes": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\boards.js",
+    "newBoardRoutesDefault": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\boards.js",
+    "templatesRouter as boardTemplatesRouter": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\boards.js",
+    "studioAliasRouter as boardStudioAliasRouter": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\boards.js",
+    "boardDataRoRouter": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\boards.js",
+    "boardDataDevRouter": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\board-data\\dev.js",
+    "kamAuth": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\kam\\middleware.js",
+    "kamScope": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\kam\\middleware.js",
+    "kamOrUserAuth": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\middleware\\auth-combined.js",
+    "roBoardsGuard": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\middleware\\auth-combined.js",
+    "entitiesRoutes": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\entities\\routes.js",
+    "uploadsRoutes": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\uploads\\routes.js",
+    "agentsRoutes": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\agents.js",
+    "journeysRoutes": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\journeys.js",
+    "keeperTypesRoutes": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\keeper-types.js",
+    "peopleRoutes": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\people.js",
+    "healthRouter": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\health.js",
+    "authMiddleware": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\middleware\\authMiddleware.js",
+    "authMiddlewareCompat": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\middleware\\authMiddleware.js",
+    "AuthenticatedRequest": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\middleware\\authMiddleware.js",
+    "keeperRoutes": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\keeper\\routes.js",
+    "debugRouter": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\debug.js",
+    "addLog as addInternalLog": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\utils\\LogStore.js",
+    "getLogs as getInternalLogs": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\utils\\LogStore.js",
+    "adminDiagnostics": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\diagnostics.js",
+    "adminRepair": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\repair.js",
+    "adminInspect": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\inspect.js",
+    "tenantScanHandler": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\api\\admin\\tenant-scan.js",
+    "runMigrationsOnce": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\startup\\migrate.js",
+    "kamRouter": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\kam\\routes.js",
+    "isRedisDisabled": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\lib\\redis.js",
+    "isRedisAvailable": "C:\\Users\\Chucks-Domain\\Documents\\GitHub\\keeper-platform\\apps\\api\\src\\lib\\redis.js"
+  }
+}
