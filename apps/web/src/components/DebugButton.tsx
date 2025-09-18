@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import { getLastBoardDataError } from '../lib/debug';
 
@@ -17,6 +17,8 @@ export const DebugButton: React.FC<DebugButtonProps> = ({ variant = 'floating' }
   const [loading, setLoading] = useState(false);
   const [server, setServer] = useState<{ count: number; logs: any[] } | null>(null);
   const latest = useMemo(() => getLastBoardDataError(), []);
+  const location = useLocation();
+  const onDebugRoute = (location?.pathname || '').startsWith('/debug');
 
   const floatingStyles = {
     position: 'fixed' as const,
@@ -73,7 +75,7 @@ export const DebugButton: React.FC<DebugButtonProps> = ({ variant = 'floating' }
       <>
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => (onDebugRoute ? setOpen(true) : navigate('/debug'))}
           style={sidebarStyles}
           className="hover:bg-muted/50 hover:text-foreground"
         >
@@ -135,7 +137,7 @@ export const DebugButton: React.FC<DebugButtonProps> = ({ variant = 'floating' }
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} style={floatingStyles}>🔧 DEBUG</button>
+      <button type="button" onClick={() => (onDebugRoute ? setOpen(true) : navigate('/debug'))} style={floatingStyles}>🔧 DEBUG</button>
       {open && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40">
           <div className="w-[560px] max-w-[90vw] rounded-2xl bg-white p-4 shadow-xl">
