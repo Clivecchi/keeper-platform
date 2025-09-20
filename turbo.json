@@ -8,7 +8,7 @@
     "build": {
       "dependsOn": ["^build", "generate"],
       "outputs": ["dist/**", ".next/**", "build/**"],
-      "env": ["NODE_ENV"]
+      "env": ["NODE_ENV", "VITE_API_URL"]
     },
     "start": {
       "cache": false,
@@ -43,5 +43,5 @@
     }
   },
   "globalDependencies": ["**/.env.*local"],
-  "globalEnv": ["NODE_ENV"]
+  "globalEnv": ["NODE_ENV", "VITE_API_URL"]
 } 
