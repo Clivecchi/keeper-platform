@@ -13,6 +13,7 @@ import { broadcastAgentEvent } from './agents/events.js';
 import { extractRole, can } from '../kam/permissions.js';
 import type { IncomingHttpHeaders } from 'http';
 import { ensureDomainTableShape } from '../lib/db-guards.js';
+import { addLog as addInternalLog } from '../utils/LogStore.js';
 import { ensureDomainManagementBoard } from '../services/boards/domainManagement.js';
 
 const router: Router = Router();
@@ -595,6 +596,7 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     }
 
     let board: any;
+    addInternalLog(reqId, { tag: 'BOARD_FETCH_START', id, ctxA: (req as any).context?.domainId ?? null, ctxB: (req as any).domainContext?.domain?.id ?? null });
     try {
       board = await prisma.board.findUnique({
         where: { id: boardId },
@@ -620,9 +622,9 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
         code: e?.code,
         message: e?.message
       });
+      addInternalLog(reqId, { tag: 'BOARD_PRISMA_ERROR', name: e?.name, code: e?.code, message: e?.message });
       // H1: mark error for outer handler observability without changing behavior
-      try { (e as any).__keeperTag = 'BOARD_READ_FAILED'; } catch {}
-      throw e; // preserve existing behavior
+      return res.status(500).json({ success: false, error: 'BOARD_READ_FAILED', reqId });
     }
     // Resolve domain context and enforce if mismatch
     try {
@@ -634,6 +636,7 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       const boardDomainId = (board as any)?.domainId ?? null;
       if (boardDomainId && ctxDomainId && boardDomainId !== ctxDomainId) {
         console.warn('[board-data/:id] domain-mismatch', { reqId, boardDomainId, ctxDomainId });
+        addInternalLog(reqId, { tag: 'BOARD_DOMAIN_MISMATCH', boardDomainId, ctxDomainId });
         return res.status(403).json({ success: false, error: 'DOMAIN_MISMATCH', boardDomainId, ctxDomainId, reqId });
       }
     } catch {}
