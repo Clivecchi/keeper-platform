@@ -3,7 +3,6 @@ import type { Router as ExpressRouter } from 'express';
 import { logger } from '@keeper/shared';
 import { prisma } from '@keeper/database';
 import { randomUUID } from 'crypto';
-import { prisma } from '@keeper/database';
 import { ModelProviderService } from '../services/ModelProviderService.js';
 import type { ModelProvider } from '@keeper/database';
 import { authMiddlewareCompat, optionalAuthMiddleware } from '../middleware/authMiddleware.js';
