@@ -13,6 +13,7 @@ import { broadcastAgentEvent } from './agents/events.js';
 import { extractRole, can } from '../kam/permissions.js';
 import type { IncomingHttpHeaders } from 'http';
 import { ensureDomainTableShape } from '../lib/db-guards.js';
+import { ensureDomainManagementBoard } from '../services/boards/domainManagement.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
