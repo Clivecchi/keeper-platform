@@ -19,3 +19,4 @@ Tracks Prisma schema and SQL migrations for the Keeper Platform database.
 
 ## 📆 Update Log
 - 2025-09-17: Added soft-delete column `deletedAt` to `Domain`. Migration `20250915_add_deletedAt_to_Domain` uses `IF NOT EXISTS` for idempotency.
+- 2025-09-21: Added `BoardAlias` and `RequestLog` models. Migration `20250921_board_alias_request_log` creates tables and indices with IF NOT EXISTS.

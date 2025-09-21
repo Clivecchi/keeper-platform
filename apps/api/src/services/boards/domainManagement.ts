@@ -1,5 +1,6 @@
 import { randomUUID, createHash } from 'crypto';
 import { PrismaClient } from '@keeper/database';
+import { logReq } from '../../utils/requestLog.js';
 
 type FrameKey =
   | 'domain.summary'
@@ -60,7 +61,7 @@ const FRAME_SPECS: Array<{ key: FrameKey; name: string; pattern: string; frameTy
     { key: 'domain.activity', name: 'Activity', pattern: 'canvas', frameType: 'media_card', orderIndex: 6 },
   ];
 
-export async function ensureDomainManagementBoard(client: PrismaClient, domainId: string) {
+export async function ensureDomainManagementBoard(client: PrismaClient, domainId: string, opts?: { reqId?: string }) {
   const includeBoard = {
     frames: {
       orderBy: { orderIndex: 'asc' },
@@ -98,6 +99,7 @@ export async function ensureDomainManagementBoard(client: PrismaClient, domainId
         },
         include: includeBoard,
       });
+      await logReq(opts?.reqId, 'ENSURE_DMB_CREATED', { domainId, boardId: board.id });
 
       // Seed cover + settings
       await client.frameInstance.createMany({
@@ -141,6 +143,7 @@ export async function ensureDomainManagementBoard(client: PrismaClient, domainId
         // Unique (domainId, boardType) or (keeperId, slug) conflict — fetch the existing
         board = await client.board.findFirst({ where: { domainId, boardType: BOARD_TYPE }, include: includeBoard })
           || await client.board.findFirst({ where: { keeperId: domainId, slug: safeSlug }, include: includeBoard });
+        await logReq(opts?.reqId, 'ENSURE_DMB_CONFLICT_EXISTING', { domainId, boardId: board?.id });
       } else {
         throw e;
       }
@@ -191,6 +194,18 @@ export async function ensureDomainManagementBoard(client: PrismaClient, domainId
   // Reload and return
   const full = await client.board.findUnique({ where: { id: board.id }, include: includeBoard });
   if (!full) throw new Error('Failed to load domain management board');
+
+  // Migrate legacy alias rows that use textual ids by creating alias entries
+  try {
+    // If any historical code referenced 'domain-board-1' within this domain, ensure alias maps to new UUID
+    const alias = 'domain-board-1';
+    const existing = await client.boardAlias.findUnique({ where: { domainId_alias: { domainId, alias } } as any });
+    if (!existing) {
+      await client.boardAlias.create({ data: { domainId, alias, boardId: full.id } as any });
+      await logReq(opts?.reqId, 'ENSURE_DMB_ALIAS_CREATED', { domainId, alias, boardId: full.id });
+    }
+  } catch {}
+
   return full;
 }
 

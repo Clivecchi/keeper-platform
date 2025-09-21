@@ -3,6 +3,7 @@ import type { Router as ExpressRouter } from 'express';
 import { logger } from '@keeper/shared';
 import { prisma } from '@keeper/database';
 import { randomUUID } from 'crypto';
+import { prisma } from '@keeper/database';
 import { ModelProviderService } from '../services/ModelProviderService.js';
 import type { ModelProvider } from '@keeper/database';
 import { authMiddlewareCompat, optionalAuthMiddleware } from '../middleware/authMiddleware.js';
@@ -808,13 +809,19 @@ router.get('/logs', async (_req, res) => {
 router.get('/req/:reqId', async (req, res) => {
   try {
     const { reqId } = req.params as { reqId: string };
-    const { getLogs } = await import('../utils/LogStore.js');
-    const all = getLogs?.() || [];
-    const logs = (all || []).filter((l: any) => {
-      const m = l?.meta || l;
-      return m?.reqId === reqId;
-    });
-    return res.json({ reqId, count: logs.length, logs });
+    // Prefer durable RequestLog; fallback to in-memory if table missing
+    try {
+      const rows = await prisma.requestLog.findMany({ where: { reqId }, orderBy: { at: 'asc' } as any });
+      return res.json({ reqId, count: rows.length, logs: rows });
+    } catch {
+      const { getLogs } = await import('../utils/LogStore.js');
+      const all = getLogs?.() || [];
+      const logs = (all || []).filter((l: any) => {
+        const m = l?.meta || l;
+        return m?.reqId === reqId;
+      });
+      return res.json({ reqId, count: logs.length, logs, fallback: true });
+    }
   } catch (e: any) {
     return res.status(500).json({ error: 'DEBUG_REQ_FETCH_FAILED', message: String(e?.message || e) });
   }

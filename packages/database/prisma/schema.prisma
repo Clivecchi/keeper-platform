@@ -1538,3 +1538,25 @@ model media_frame_instances {
   MediaFrameConfig                                                  MediaFrameConfig @relation(fields: [configId], references: [id])
   MediaContent_media_frame_instances_currentContentIdToMediaContent MediaContent?    @relation("media_frame_instances_currentContentIdToMediaContent", fields: [currentContentId], references: [id])
 }
+
+/// Alias mapping for legacy board identifiers within a domain scope
+model BoardAlias {
+  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  domainId String
+  boardId  String @db.Uuid
+  alias    String
+
+  @@unique([domainId, alias])
+}
+
+/// Durable request logging for diagnostics and correlation
+model RequestLog {
+  id    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reqId String
+  at    DateTime @default(now())
+  level String
+  step  String
+  meta  Json?
+
+  @@index([reqId, at])
+}

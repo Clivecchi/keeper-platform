@@ -15,6 +15,7 @@ import type { IncomingHttpHeaders } from 'http';
 import { ensureDomainTableShape } from '../lib/db-guards.js';
 import { addLog as addInternalLog } from '../utils/LogStore.js';
 import { ensureDomainManagementBoard } from '../services/boards/domainManagement.js';
+import { logReq } from '../utils/requestLog.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -564,30 +565,28 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     const ctxA = (req as any).context?.domainId ?? null;
     const ctxB = (req as any).domainContext?.domain?.id ?? null;
     console.info('[board-data/:id] before-prisma', { reqId, id, userId, ctxA, ctxB });
+    await logReq(reqId, 'BOARD_GET_ENTER', { id, userId, ctxA, ctxB });
 
     let boardId = id;
-    // B: alias compatibility — resolve known aliases to real board UUIDs using domain context
+    // Alias compatibility — resolve non-UUID via BoardAlias scoped by domainId
     if (!UUID_V4.test(boardId)) {
       try {
-        const domainId =
-          (req as any).domainContext?.domain?.id ??
-          (req as any).context?.domainId ??
-          null;
+        const domainId = (req as any).domainContext?.domain?.id || (req as any).context?.domainId || null;
         if (!domainId) {
-          return res.status(400).json({ success: false, error: 'Missing domain context for alias', reqId });
+          await logReq(reqId, 'BOARD_ALIAS_MISSING_DOMAIN', { id });
+          return res.status(400).json({ success: false, error: 'Missing domainId for alias', reqId });
         }
-        const mgmt = await ensureDomainManagementBoard(prisma as any, domainId);
-        const aliasMap: Record<string, string> = {
-          'agent-board-1': mgmt.id,
-          'domain-board-1': mgmt.id
-        };
-        if (!aliasMap[boardId]) {
-          return res.status(400).json({ success: false, error: 'Invalid board id (alias unknown)', reqId });
+        const alias = await prisma.boardAlias.findUnique({ where: { domainId_alias: { domainId, alias: boardId } } as any });
+        if (!alias) {
+          await logReq(reqId, 'BOARD_ALIAS_NOT_FOUND', { id, domainId });
+          return res.status(404).json({ success: false, error: 'Board alias not found', reqId });
         }
-        boardId = aliasMap[boardId];
+        boardId = alias.boardId;
+        await logReq(reqId, 'BOARD_ALIAS_RESOLVED', { alias: id, boardId, domainId });
       } catch (e: any) {
         console.warn('[board-data/:id] alias-resolution-failed', { reqId, id, message: e?.message });
-        return res.status(400).json({ success: false, error: 'Invalid board id (alias resolution failed)', reqId });
+        await logReq(reqId, 'BOARD_ALIAS_ERROR', { id, message: e?.message }, 'error');
+        return res.status(400).json({ success: false, error: 'Alias resolution failed', reqId });
       }
     }
 
@@ -614,6 +613,7 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
         boardId: board?.id ?? null,
         framesCount: Array.isArray(board?.frames) ? board.frames.length : null
       });
+      await logReq(reqId, 'BOARD_FETCHED', { boardId: board?.id, frames: Array.isArray(board?.frames) ? board.frames.length : null });
     } catch (e: any) {
       // ── DEBUG: catch Prisma-layer throws to see exact failure signature
       console.error('[board-data/:id] prisma-error', {
@@ -622,6 +622,7 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
         code: e?.code,
         message: e?.message
       });
+      await logReq(reqId, 'BOARD_PRISMA_ERROR', { name: e?.name, code: e?.code, message: e?.message }, 'error');
       addInternalLog(reqId, { tag: 'BOARD_PRISMA_ERROR', name: e?.name, code: e?.code, message: e?.message });
       // H1: mark error for outer handler observability without changing behavior
       return res.status(500).json({ success: false, error: 'BOARD_READ_FAILED', reqId });
@@ -637,6 +638,7 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       if (boardDomainId && ctxDomainId && boardDomainId !== ctxDomainId) {
         console.warn('[board-data/:id] domain-mismatch', { reqId, boardDomainId, ctxDomainId });
         addInternalLog(reqId, { tag: 'BOARD_DOMAIN_MISMATCH', boardDomainId, ctxDomainId });
+        await logReq(reqId, 'BOARD_DOMAIN_MISMATCH', { boardDomainId, ctxDomainId }, 'warn');
         return res.status(403).json({ success: false, error: 'DOMAIN_MISMATCH', boardDomainId, ctxDomainId, reqId });
       }
     } catch {}
@@ -692,6 +694,7 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       etag
     };
     console.info('[board-data/:id] response-shape', { reqId, keys: Object.keys(payload) });
+    await logReq(reqId, 'BOARD_GET_OK', { boardId: payload.id });
     return res.json({ success: true, data: payload, reqId });
   } catch (error) {
     const reqId = (req as any).reqId || req.get('x-request-id') || '';
@@ -703,6 +706,7 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     });
+    await logReq(reqId, 'BOARD_GET_ERROR', { message: error instanceof Error ? error.message : String(error) }, 'error');
     if (tag === 'BOARD_READ_FAILED') {
       // H1: surface a specific error code for diagnostics without changing status code
       return res.status(500).json({ success: false, error: 'BOARD_READ_FAILED', reqId });

@@ -274,4 +274,5 @@ export async function registerUser(data: RegisterInput) {
 ```
 
 ## 📆 Update Log
-- 2025-06-25 – Added @keeper/shared as a dependency and updated build process to ensure correct build order for Railway. 
+- 2025-06-25 – Added @keeper/shared as a dependency and updated build process to ensure correct build order for Railway.
+- 2025-09-21 – Added BoardAlias and RequestLog models; created migration 20250921_board_alias_request_log.

@@ -136,6 +136,8 @@ All endpoints include:
  - 2025-09-21: H-updates
    - H2: Normalize domain context in `GET /api/board-data/:id` (prefer `req.domainContext.domain.id`, then legacy `req.context.domainId`, then `board.domainId`).
    - H1: Improve observability for Prisma read errors by tagging rethrown errors as `BOARD_READ_FAILED` and surfacing that code in 500 responses.
+  - Alias→UUID compatibility: if `:id` not UUID, resolve via `BoardAlias(domainId, alias)` with required domainId. 404 if not found.
+  - Request logging: durable `RequestLog` table and `/api/debug/req/:id` to fetch logs.
 
 ### Auth Notes (Board-Data RO)
 

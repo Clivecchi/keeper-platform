@@ -17,3 +17,4 @@ Service logic for domain-scoped boards, including idempotent ensure/hydration of
 
 ## 📆 Update Log
 - 2025-09-11: Added `ensureDomainManagementBoard(domainId)` with deterministic frames and idempotent behavior.
+- 2025-09-21: ensure() now records alias `domain-board-1` to `BoardAlias` and logs steps via `RequestLog`.
