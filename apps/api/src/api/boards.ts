@@ -563,8 +563,30 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     const ctxB = (req as any).domainContext?.domain?.id ?? null;
     console.info('[board-data/:id] before-prisma', { reqId, id, userId, ctxA, ctxB });
 
-    if (!UUID_V4.test(id)) {
-      return res.status(400).json({ success: false, error: 'Invalid board id', reqId });
+    let boardId = id;
+    // B: alias compatibility — resolve known aliases to real board UUIDs using domain context
+    if (!UUID_V4.test(boardId)) {
+      try {
+        const domainId =
+          (req as any).domainContext?.domain?.id ??
+          (req as any).context?.domainId ??
+          null;
+        if (!domainId) {
+          return res.status(400).json({ success: false, error: 'Missing domain context for alias', reqId });
+        }
+        const mgmt = await ensureDomainManagementBoard(prisma as any, domainId);
+        const aliasMap: Record<string, string> = {
+          'agent-board-1': mgmt.id,
+          'domain-board-1': mgmt.id
+        };
+        if (!aliasMap[boardId]) {
+          return res.status(400).json({ success: false, error: 'Invalid board id (alias unknown)', reqId });
+        }
+        boardId = aliasMap[boardId];
+      } catch (e: any) {
+        console.warn('[board-data/:id] alias-resolution-failed', { reqId, id, message: e?.message });
+        return res.status(400).json({ success: false, error: 'Invalid board id (alias resolution failed)', reqId });
+      }
     }
 
     if (!userId) {
@@ -574,7 +596,7 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     let board: any;
     try {
       board = await prisma.board.findUnique({
-        where: { id },
+        where: { id: boardId },
         include: {
           frames: {
             orderBy: { orderIndex: 'asc' },

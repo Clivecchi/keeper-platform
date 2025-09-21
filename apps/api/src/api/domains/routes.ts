@@ -47,9 +47,9 @@ router.get('/:domainId/management-board', authMiddlewareCompat, async (req: Auth
     const perm = await permissionService.checkPermission({ userId: req.user.id, domainId, permission: 'admin' });
     if (!perm.hasPermission) return res.status(403).json({ error: 'Access denied' });
 
+    // A: Return a real Prisma UUID for the domain's management/agent board
     const board = await ensureDomainManagementBoard(prisma as any, domainId);
-    const frames = (board.frames || []).map((f: any) => ({ id: f.id, role: f.role, name: f.name, frameType: f.frameType, orderIndex: f.orderIndex }));
-    return res.json({ boardId: board.id, domainId, frames });
+    return res.json({ boardId: board.id, domainId });
   } catch (err) {
     console.error('[domains:management-board:error]', err);
     return res.status(500).json({ error: 'Internal server error' });
