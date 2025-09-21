@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import { getLastBoardDataError } from '../lib/debug';
+import { apiFetch } from '../lib/apiFetch';
 
 interface DebugButtonProps {
   variant?: 'floating' | 'sidebar';
@@ -55,9 +56,8 @@ export const DebugButton: React.FC<DebugButtonProps> = ({ variant = 'floating' }
     setLoading(true);
     setServer(null);
     try {
-      const res = await fetch(`/api/debug/req/${latest.reqId}`);
-      if (!res.ok) throw new Error('not_ok');
-      const data = await res.json();
+      // H5: use apiFetch so requests hit the correct API base and include auth
+      const data = await apiFetch(`/api/debug/req/${latest.reqId}`);
       setServer({ count: data?.count ?? 0, logs: data?.logs ?? [] });
     } catch {
       setServer({ count: 0, logs: [] });

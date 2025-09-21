@@ -133,6 +133,9 @@ All endpoints include:
 - 2025-09-17: Hardened domain resolution and board-data error handling:
   - `/api/domains/my` now idempotently self-heals `Domain.deletedAt` column via guard and resolves robustly using context, user primary, membership, and ownership fallbacks.
   - `GET /api/board-data/:id` calls the same DB guard and returns `403` on domain mismatch with `{ boardDomainId, ctxDomainId }` to prevent UI 500s on deep links.
+ - 2025-09-21: H-updates
+   - H2: Normalize domain context in `GET /api/board-data/:id` (prefer `req.domainContext.domain.id`, then legacy `req.context.domainId`, then `board.domainId`).
+   - H1: Improve observability for Prisma read errors by tagging rethrown errors as `BOARD_READ_FAILED` and surfacing that code in 500 responses.
 
 ### Auth Notes (Board-Data RO)
 

@@ -597,11 +597,17 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
         code: e?.code,
         message: e?.message
       });
+      // H1: mark error for outer handler observability without changing behavior
+      try { (e as any).__keeperTag = 'BOARD_READ_FAILED'; } catch {}
       throw e; // preserve existing behavior
     }
     // Resolve domain context and enforce if mismatch
     try {
-      const ctxDomainId = (req as any).context?.domainId ?? (board as any)?.domainId;
+      // H2: domain context normalization (prefer domainContext, then legacy context, then board)
+      const ctxDomainId =
+        (req as any).domainContext?.domain?.id
+        ?? (req as any).context?.domainId
+        ?? (board as any)?.domainId;
       const boardDomainId = (board as any)?.domainId ?? null;
       if (boardDomainId && ctxDomainId && boardDomainId !== ctxDomainId) {
         console.warn('[board-data/:id] domain-mismatch', { reqId, boardDomainId, ctxDomainId });
@@ -663,12 +669,18 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     return res.json({ success: true, data: payload, reqId });
   } catch (error) {
     const reqId = (req as any).reqId || req.get('x-request-id') || '';
+    const tag = (error as any)?.__keeperTag;
     console.error('[board-data:get:error]', {
       reqId,
       boardId: req.params?.id,
+      tag,
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     });
+    if (tag === 'BOARD_READ_FAILED') {
+      // H1: surface a specific error code for diagnostics without changing status code
+      return res.status(500).json({ success: false, error: 'BOARD_READ_FAILED', reqId });
+    }
     return res.status(500).json({ success: false, error: 'Internal server error', reqId });
   }
 });

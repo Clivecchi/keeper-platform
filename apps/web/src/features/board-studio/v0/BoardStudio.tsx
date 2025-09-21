@@ -119,13 +119,8 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
         setAuthRequired(false);
         setNoAhb(false);
         try {
-          const r = await apiFetch(`/api/board-data/agents/${agentId}/home`);
-          if (r.status === 401) {
-            setAuthRequired(true);
-            return;
-          }
-          if (!r.ok) return;
-          const data = await r.json();
+          // H5: apiFetch returns parsed data or throws; treat 401 via catch
+          const data = await apiFetch(`/api/board-data/agents/${agentId}/home`);
           const bid = data?.boardId || null;
           if (!bid) {
             setNoAhb(true);
@@ -133,7 +128,11 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
           }
           console.info('[Studio] Loaded Agent Home Board', { boardId: bid });
           await loadBoardById(bid);
-        } catch (e) {
+        } catch (e: any) {
+          if (e?.status === 401) {
+            setAuthRequired(true);
+            return;
+          }
           console.error('[Studio] parity load error', e);
         } finally {
           setIsLoading(false);
@@ -148,17 +147,13 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
     
     setIsLoading(true);
     try {
-      const response = await apiFetch(`/api/board-data/${boardId}`);
-      if (response.ok) {
-        const payload = await response.json();
-        const boardData = payload?.data?.board || payload; // support both shapes
-        setBoard(boardData);
-        setActiveFrameId(boardData.frames?.[0]?.id || '');
-        const isAgent = Boolean(boardData?.agentId) || (boardData?.data?.scope === 'agent');
-        setAgentMode(isAgent);
-      } else {
-        console.error('Failed to load board:', response.statusText);
-      }
+      // H5: apiFetch returns payload or throws; use directly
+      const payload = await apiFetch(`/api/board-data/${boardId}`);
+      const boardData = payload?.data?.board || payload; // support both shapes
+      setBoard(boardData);
+      setActiveFrameId(boardData.frames?.[0]?.id || '');
+      const isAgent = Boolean(boardData?.agentId) || (boardData?.data?.scope === 'agent');
+      setAgentMode(isAgent);
     } catch (error) {
       console.error('Error loading board:', error);
     } finally {
@@ -169,15 +164,13 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
   const loadBoardById = async (id: string) => {
     setIsLoading(true);
     try {
-      const response = await apiFetch(`/api/board-data/${id}`);
-      if (response.ok) {
-        const payload = await response.json();
-        const boardData = payload?.data?.board || payload;
-        setBoard(boardData);
-        setActiveFrameId(boardData.frames?.[0]?.id || '');
-        const isAgent = Boolean(boardData?.agentId) || (boardData?.data?.scope === 'agent');
-        setAgentMode(isAgent);
-      }
+      // H5: use apiFetch return directly
+      const payload = await apiFetch(`/api/board-data/${id}`);
+      const boardData = payload?.data?.board || payload;
+      setBoard(boardData);
+      setActiveFrameId(boardData.frames?.[0]?.id || '');
+      const isAgent = Boolean(boardData?.agentId) || (boardData?.data?.scope === 'agent');
+      setAgentMode(isAgent);
     } catch (e) {
       console.error('Error loading board by id:', e);
     } finally {
@@ -190,19 +183,15 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
     
     setIsSaving(true);
     try {
-      const response = await apiFetch(`/api/boards/${boardId}`, {
+      // H5: apiFetch throws on non-OK; success means no exception
+      await apiFetch(`/api/boards/${boardId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(board),
       });
-      
-      if (response.ok) {
-        console.log('Board saved successfully');
-      } else {
-        console.error('Failed to save board:', response.statusText);
-      }
+      console.log('Board saved successfully');
     } catch (error) {
       console.error('Error saving board:', error);
     } finally {

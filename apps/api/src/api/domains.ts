@@ -9,8 +9,8 @@ import { ensureDomainTableShape } from '../lib/db-guards.js';
 const domainsRouter = Router();
 domainsRouter.use(authMiddlewareCompat);
 
-// Mount management sub-routes (ensure DMB)
-domainsRouter.use('/', domainsManagementRouter);
+// H3: avoid shadowing nested management-board route by mounting under /admin
+domainsRouter.use('/admin', domainsManagementRouter);
 
 // GET /api/domains – flat array, minimal fields
 domainsRouter.get('/', async (req, res) => {

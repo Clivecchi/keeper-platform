@@ -14,6 +14,7 @@ import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { getFeatureFlagService } from '@keeper/database';
 import customDomainRoutes from './custom-domain-routes.js';
 import { createDomainResolutionMiddleware } from '../../middleware/domainResolutionMiddleware.js';
+import { ensureDomainTableShape } from '../../lib/db-guards.js';
 import { DomainService } from '@keeper/database';
 import { ensureDomainManagementBoard } from '../../services/boards/domainManagement.js';
 
@@ -36,6 +37,10 @@ router.use('/custom', customDomainRoutes); // new: /api/domains/custom/:domainId
 // GET /api/domains/:domainId/management-board
 router.get('/:domainId/management-board', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    // H4: guard to ensure 'deletedAt' (and future) column shape
+    try { await ensureDomainTableShape(); } catch (e: any) {
+      console.warn('[domains:management-board] guard warning', { message: e?.message });
+    }
     if (!req.user) return res.status(401).json({ error: 'Authentication required' });
 
     const domainId = req.params.domainId;
