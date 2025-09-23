@@ -41,8 +41,16 @@ ENABLE_REQUEST_LOGGING="false"
 # =================================================================
 
 # Allowed CORS origins (comma-separated)
-# Default: * (allow all origins)
-CORS_ORIGINS="http://localhost:3000,http://localhost:5173"
+# Production: set to https://www.ke3p.com,https://api.ke3p.com
+# Development: include localhost:
+CORS_ALLOWLIST="http://localhost:3000,http://localhost:5173"
+
+# Public web origin and API origin
+PUBLIC_WEB_ORIGIN="https://www.ke3p.com"
+APP_ORIGIN="https://api.ke3p.com"
+
+# Fallback domain for unknown hosts (MVP single-domain)
+FALLBACK_DOMAIN="www.ke3p.com"
 
 # =================================================================
 # REDIS SETTINGS (Optional)

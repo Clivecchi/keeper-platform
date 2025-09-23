@@ -46,3 +46,9 @@ Core utility functions and API clients for the Keeper web application, including
 - Added agentRegistry.ts with mock agents and TypeAgent simulation
 - Added kipApi.ts with database-backed KIP agent operations
 - Established core API client functionality 
+
+### Single-Domain MVP URLs
+
+- All API calls resolve base from `VITE_API_URL` first, falling back to same-origin.
+- Build absolute links using `VITE_PUBLIC_APP_ORIGIN` where needed.
+- No hardcoded domains remain; prepare to re-enable subdomains post-MVP. // TODO(domains) 

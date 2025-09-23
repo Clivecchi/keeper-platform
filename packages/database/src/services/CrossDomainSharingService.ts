@@ -346,11 +346,12 @@ export class CrossDomainSharingService {
 
     // Generate access token
     const accessToken = crypto.randomBytes(32).toString('hex');
+    const webOrigin = (process.env.PUBLIC_WEB_ORIGIN || '').replace(/\/+$/, '');
     const accessUrl = config?.generateLink 
-      ? `https://keeper.tools/shared/${accessToken}`
+      ? `${webOrigin || 'https://www.ke3p.com'}/shared/${accessToken}`
       : null;
     const embedCode = config?.generateEmbed
-      ? `<iframe src="https://keeper.tools/embed/${accessToken}"></iframe>`
+      ? `<iframe src="${webOrigin || 'https://www.ke3p.com'}/embed/${accessToken}"></iframe>`
       : null;
 
     // Create activation

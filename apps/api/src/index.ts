@@ -2,6 +2,7 @@ import express from 'express';
 import type { Request, Response, Express, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import { createDomainResolutionMiddleware } from './middleware/domainResolutionMiddleware.js';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
@@ -134,42 +135,41 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// CORS setup - optimized to reduce duplicate requests
+// Domain resolution MUST run before CORS, auth, and route guards
+const domainResolution = createDomainResolutionMiddleware({
+  fallbackDomain: process.env.FALLBACK_DOMAIN ?? 'www.ke3p.com',
+});
+app.use(domainResolution);
+
+// CORS setup - strict allowlist
 console.log('⚙️ Setting up CORS...');
+const DEV_ALLOWLIST = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
+const isProd = process.env.NODE_ENV === 'production';
+const envAllowlist = (process.env.CORS_ALLOWLIST || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+const derivedFromOrigins = [process.env.PUBLIC_WEB_ORIGIN, process.env.APP_ORIGIN]
+  .filter(Boolean) as string[];
+const allowlist = envAllowlist.length > 0
+  ? envAllowlist
+  : (isProd ? derivedFromOrigins : [...derivedFromOrigins, ...DEV_ALLOWLIST].filter(Boolean));
+
 app.use(cors({
   origin: function(origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:5173', 
-      'https://keeper-platform-hm1kukq25-clivecchis-projects.vercel.app',
-      'https://v0-keeper.vercel.app',
-      'https://keeper-platform.vercel.app',
-      'https://keeper-platform-7iglsskfh-clivecchis-projects.vercel.app',  // Add Vercel preview URL
-      'https://sheyenne.livecchi.biz'
-    ];
-    // Allow this Vercel project’s preview deployments
-    const isVercelPreview = typeof origin === 'string' && /^https:\/\/keeper-platform-git-[a-z0-9-]+-clivecchis-projects\.vercel\.app$/.test(origin);
-    
-    // Allow requests with no origin (e.g., mobile apps, Postman)
-    if (!origin) {
-      return callback(null, true);
-    }
-    
-    // Check if origin is in allowed list
-    if (allowedOrigins.includes(origin) || isVercelPreview) {
-      return callback(null, true);
-    }
-    
-    // For debugging, allow all origins temporarily
-    return callback(null, true);
+    if (!origin) return callback(null, true);
+    if (allowlist.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'x-debug-token'],
   exposedHeaders: ['x-debug-info'],
-  // Add preflightContinue to prevent duplicate handling
   preflightContinue: false,
-  // Cache preflight results for 24 hours
-  maxAge: 86400
+  maxAge: 86400,
 }));
 
 // CORS preflight requests are handled automatically by the cors middleware above

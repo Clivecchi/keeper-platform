@@ -18,15 +18,16 @@ import {
   SoleMemoryCardResponse
 } from '../types/keeper';
 
-// Same-origin: rely on window.location
-const API_BASE_URL = '';
+// Env-driven absolute API origin for building links
+const API_BASE_URL = (import.meta as any)?.env?.VITE_API_URL || '';
 
 class KeeperApiService {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${API_BASE_URL}/api/keeper${endpoint}`;
+    const base = API_BASE_URL && String(API_BASE_URL).startsWith('http') ? API_BASE_URL.replace(/\/+$/, '') : location.origin;
+    const url = `${base}/api/keeper${endpoint}`;
     
     const config: RequestInit = {
       headers: {

@@ -29,3 +29,8 @@ Express middleware for authentication, domain resolution, permissions, CORS, and
 
 ## 📆 Update Log
 - 2024-06-09: Updated all middleware to use Redis-optional pattern. Redis is now only instantiated if `REDIS_URL` is set and `DISABLE_REDIS` is not true. All middleware must check for null before using Redis. In development, Redis is optional and features degrade gracefully. // TODO: Verify all downstream code is null-safe. 
+// 2025-09-23: Enforced single-domain MVP
+- Domain resolution fallback now uses `FALLBACK_DOMAIN` env (default `www.ke3p.com`).
+- Domain resolution runs before CORS, auth, and route guards.
+- CORS locked down to exact allowlist from `CORS_ALLOWLIST`. Dev allows `http://localhost:5173` and `http://localhost:3000` when not in production.
+- TODO(domains): enable subdomain and custom domain handling after MVP.

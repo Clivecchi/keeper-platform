@@ -59,16 +59,18 @@ export class DynamicCorsMiddleware {
   private defaultConfig: DomainCorsConfig;
 
   constructor(config: DomainCorsConfig = {}) {
-    // Merge hard-coded platform origins with any comma-separated list provided via CORS_ORIGINS env var
-    const envAllowedOrigins = process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
+    // Merge strict allowlist from CORS_ALLOWLIST env var
+    const envAllowedOrigins = process.env.CORS_ALLOWLIST
+      ? process.env.CORS_ALLOWLIST.split(',').map(o => o.trim()).filter(Boolean)
       : [];
 
     this.defaultConfig = {
-      // Base platform domains
+      // Env-driven base platform domains (no literals in production)
       allowedOrigins: [
-        'https://keeper.tools',
-        'https://app.keeper.tools',
+        ...(process.env.NODE_ENV !== 'production' ? [
+          'http://localhost:3000',
+          'http://localhost:5173',
+        ] : []),
         ...envAllowedOrigins,
       ],
       allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -153,19 +155,11 @@ export class DynamicCorsMiddleware {
         ];
       }
 
-      // Add subdomain to allowed origins
+      // TODO(domains): enable *.keeper.domains after MVP
+      // Skip dynamic subdomain origin for single-domain MVP
       config.allowedOrigins = config.allowedOrigins || [...this.defaultConfig.allowedOrigins!];
-      config.allowedOrigins.push(`https://${domain.slug}.keeper.tools`);
 
-      // Add development origins
-      if (process.env.NODE_ENV === 'development') {
-        config.allowedOrigins.push(
-          'http://localhost:3000',
-          'http://localhost:5173',
-          'http://127.0.0.1:3000',
-          'http://127.0.0.1:5173'
-        );
-      }
+      // Dev-only localhost exceptions are handled in defaultConfig
 
       return config;
     } catch (error) {
@@ -231,11 +225,7 @@ export class DynamicCorsMiddleware {
       }
     }
 
-    // Check subdomain
-    const subdomainOrigin = `https://${domain.slug}.keeper.tools`;
-    if (origin === subdomainOrigin) {
-      return true;
-    }
+      // TODO(domains): support slug subdomains when multi-tenancy is enabled
 
     // Check for wildcard subdomains (if enabled)
     if (domain.settings?.cors?.allowWildcardSubdomains) {

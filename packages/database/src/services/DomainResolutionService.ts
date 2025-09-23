@@ -42,21 +42,26 @@ export class DomainResolutionService {
   
   // Platform domains that should resolve to default behavior
   private readonly PLATFORM_DOMAINS = [
-    'keeper.tools',
-    'app.keeper.tools',
-    'studio.keeper.tools',
-    'api.keeper.tools',
+    // Use env-driven platform base domain only
+    // TODO(domains): restore keeper.domains and subdomain handling after MVP
+    (() => {
+      const origin = process.env.PUBLIC_WEB_ORIGIN || process.env.APP_ORIGIN || '';
+      try { return origin ? new URL(origin).host : ''; } catch { return ''; }
+    })(),
     'localhost',
     '127.0.0.1',
-  ];
+  ].filter(Boolean);
 
   // Default CORS origins for development
   private readonly DEFAULT_ORIGINS = [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://keeper.tools',
-    'https://app.keeper.tools',
-    'https://studio.keeper.tools',
+    ...(process.env.NODE_ENV !== 'production' ? [
+      'http://localhost:3000',
+      'http://localhost:5173',
+    ] : []),
+    ...((process.env.CORS_ALLOWLIST || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean)),
   ];
 
   constructor(domainService: DomainService, cacheService: DomainCacheService) {
@@ -132,7 +137,8 @@ export class DomainResolutionService {
   private async resolveSubdomain(hostname: string): Promise<DomainResolutionResult> {
     const { subdomain, baseDomain } = this.parseSubdomain(hostname);
     
-    // Only handle keeper.tools subdomains
+    // Single-domain MVP: skip subdomain resolution
+    // TODO(domains): enable slug resolution when multi-tenancy is active
     if (!subdomain || !this.isPlatformDomain(baseDomain)) {
       return this.createNotFoundResult(hostname);
     }
@@ -225,7 +231,7 @@ export class DomainResolutionService {
     }
 
     // Add domain slug origin
-    origins.push(`https://${domain.slug}.keeper.tools`);
+    // TODO(domains): add slug subdomain origin when multi-tenancy enabled
 
     // Add custom domain if verified
     if (domain.customDomain && domain.customDomainVerified) {
@@ -269,7 +275,16 @@ export class DomainResolutionService {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: https: blob:",
-      "connect-src 'self' https://api.keeper.tools wss://api.keeper.tools",
+      // connect-src populated from env origins
+      (() => {
+        const api = process.env.APP_ORIGIN || '';
+        if (!api) return "connect-src 'self'";
+        try {
+          const u = new URL(api);
+          const ws = `${u.protocol === 'https:' ? 'wss' : 'ws'}://${u.host}`;
+          return `connect-src 'self' ${u.origin} ${ws}`;
+        } catch { return "connect-src 'self'"; }
+      })(),
     ];
 
     // Add domain-specific CSP rules

@@ -121,7 +121,9 @@ export class DomainResolutionMiddleware {
     this.domainService = domainService;
     this.cacheService = cacheService;
     this.config = {
-      fallbackDomain: 'keeper.tools',
+      // Use env-driven fallback; default to www.ke3p.com for MVP single-domain
+      // TODO(domains): revisit fallback behavior when enabling multi-tenancy
+      fallbackDomain: process.env.FALLBACK_DOMAIN ?? 'www.ke3p.com',
       redirectSubdomains: true,
       enforceHttps: true,
       customErrorHandling: true,
@@ -230,6 +232,18 @@ export class DomainResolutionMiddleware {
     }
 
     // Not found
+    // In production, redirect unknown hosts to the platform fallback domain
+    if (process.env.NODE_ENV === 'production' && this.config.fallbackDomain) {
+      const target = `https://${this.config.fallbackDomain}`;
+      return {
+        domain: null,
+        isCustomDomain: false,
+        originalHostname: hostname,
+        resolvedSlug: '',
+        redirectUrl: target,
+      };
+    }
+
     return {
       domain: null,
       isCustomDomain: false,
@@ -534,7 +548,9 @@ export class DomainResolutionMiddleware {
   private isPlatformBaseDomain(baseDomain: string): boolean {
     // Base platform domains always considered "platform" (no domain context required)
     const platformDomains = [
-      'keeper.tools',
+      // TODO(domains): enable *.keeper.domains after MVP
+      // Use env-driven public web origin host if available; keep localhost variants
+      (process.env.PUBLIC_WEB_ORIGIN ? new URL(process.env.PUBLIC_WEB_ORIGIN).host : ''),
       'localhost:3000',
       'localhost:5173',
       'localhost:3001',
