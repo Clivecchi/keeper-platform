@@ -547,14 +547,17 @@ export class DomainResolutionMiddleware {
    */
   private isPlatformBaseDomain(baseDomain: string): boolean {
     // Base platform domains always considered "platform" (no domain context required)
+    const hostOnly = baseDomain.split(':')[0];
     const platformDomains = [
       // TODO(domains): enable *.keeper.domains after MVP
       // Use env-driven public web origin host if available; keep localhost variants
       (process.env.PUBLIC_WEB_ORIGIN ? new URL(process.env.PUBLIC_WEB_ORIGIN).host : ''),
-      'localhost:3000',
-      'localhost:5173',
-      'localhost:3001',
-    ];
+    ].filter(Boolean) as string[];
+
+    // Always treat localhost/127.0.0.1/0.0.0.0 as platform, any port
+    if (hostOnly === 'localhost' || hostOnly === '127.0.0.1' || hostOnly === '0.0.0.0') {
+      return true;
+    }
 
     // Include Railway domains from env (they change per deployment)
     if (process.env.RAILWAY_PUBLIC_DOMAIN) {
@@ -565,11 +568,11 @@ export class DomainResolutionMiddleware {
     }
 
     // Treat any ".up.railway.app" host as platform base (preview/prod URL)
-    if (baseDomain.endsWith('.up.railway.app')) {
+    if (hostOnly.endsWith('.up.railway.app')) {
       return true;
     }
 
-    return platformDomains.includes(baseDomain);
+    return platformDomains.includes(hostOnly);
   }
 
   /**
