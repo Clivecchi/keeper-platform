@@ -139,6 +139,12 @@ export class DomainResolutionMiddleware {
   createMiddleware() {
     return async (req: DomainResolvedRequest, res: Response, next: NextFunction): Promise<void> => {
       try {
+        // Bypass for health and diagnostics endpoints
+        const safePaths = ['/health', '/ping', '/debug', '/railway-status'];
+        if (safePaths.some(p => req.path === p || req.path.startsWith(p + '/'))) {
+          return next();
+        }
+
         const hostname = this.extractHostname(req);
         const resolution = await this.resolveDomain(hostname, req);
 

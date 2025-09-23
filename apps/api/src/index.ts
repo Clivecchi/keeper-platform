@@ -56,8 +56,7 @@ import kamRouter from './kam/routes.js';
 // Load environment variables
 dotenv.config();
 
-// Apply database migrations (idempotent on each boot)
-runMigrationsOnce();
+// Defer database migrations until after the server starts to avoid blocking healthchecks
 
 // Log level configuration
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
@@ -991,6 +990,17 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('  🔧 KAM SETTINGS:');
   console.log('  - GET  /api/kam/settings (user settings)');
   console.log('\n✅ Domain Layer + KIP API + User Profile Updates + Theme API fully functional!\n');
+
+  // Kick off migrations in the background (non-blocking)
+  try {
+    setTimeout(() => {
+      try {
+        runMigrationsOnce();
+      } catch (e) {
+        console.error('[migrate:post-start:error]', (e as Error)?.message || e);
+      }
+    }, 0);
+  } catch {}
 });
 
 server.on('error', (error: Error) => {
