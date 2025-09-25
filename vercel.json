@@ -2,6 +2,11 @@
   "outputDirectory": "apps/web/dist",
   "rewrites": [
     {
+      "source": "/health",
+      "has": [{ "type": "host", "value": "api.ke3p.com" }],
+      "destination": "https://keeper-platform-production.up.railway.app/health"
+    },
+    {
       "source": "/api/:path*",
       "has": [{ "type": "host", "value": "api.ke3p.com" }],
       "destination": "https://keeper-platform-production.up.railway.app/api/:path*"
