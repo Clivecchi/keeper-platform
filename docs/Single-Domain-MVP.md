@@ -12,6 +12,7 @@ Required envs:
   - APP_ORIGIN=https://api.ke3p.com
   - CORS_ALLOWLIST=https://www.ke3p.com,https://api.ke3p.com
   - FALLBACK_DOMAIN=www.ke3p.com
+  - KEEPER_PROXY_ENABLED=false (keep false in production)
 
 CORS policy:
 - Production: allow only https://www.ke3p.com and https://api.ke3p.com

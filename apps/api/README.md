@@ -1,3 +1,24 @@
+# API
+
+## 📌 Purpose
+Express API service for Keeper Platform. Serves authenticated JSON endpoints and health checks.
+
+## 🧱 Key Files
+- `src/index.ts`
+- `src/health.ts`
+- `src/middleware/*`
+- `src/api/*`
+
+## 🔄 Data & Behavior
+Runs Prisma-backed endpoints, CORS hardened for single-domain MVP. Origins are driven by `PUBLIC_WEB_ORIGIN` and `APP_ORIGIN`. Domain resolution middleware is present but routes remain platform-scoped for MVP.
+
+## ⚠️ Notes & ToDo
+- [ ] Consider enabling multi-tenant custom domains post-MVP
+- [ ] Expand structured logging and metrics
+
+## 📆 Update Log
+- [2025-09-24] Boot log now prints `ProxyEnabled`, `APP_ORIGIN`, and `PUBLIC_WEB_ORIGIN`. Adopted `KEEPER_PROXY_ENABLED=false` for single-domain MVP (proxy disabled by default).
+
 # Keeper API
 
 ## 📌 Purpose

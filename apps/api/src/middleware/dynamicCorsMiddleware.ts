@@ -108,7 +108,8 @@ export class DynamicCorsMiddleware {
         corsMiddleware(req, res, (err) => {
           if (err) {
             console.error('CORS error:', err);
-            res.status(500).json({ error: 'CORS configuration error' });
+            // Harden: return 403, not 500, on CORS failures
+            res.status(403).json({ error: 'CORS: origin not allowed' });
             return;
           }
           next();

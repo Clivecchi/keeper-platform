@@ -90,6 +90,8 @@ Routing is managed by `react-router-dom` in `App.tsx`. Public and protected rout
 - **STYLE**: Added custom fonts (`Playfair Display`, `EB Garamond`, `Inter`) and base styles.
 - **REFACTOR**: Redesigned authentication pages (`LoginPage`, `RegisterPage`) with a card-based UI.
 - **REFACTOR**: Updated routing in `App.tsx` to use the new layout and providers.
+### 2025-09-24
+- **CHORE**: Add root `vercel.json` rewrite to forward to Railway API for `api.ke3p.com`.
 
 # Keeper Platform: Source Structure
 
@@ -156,10 +158,15 @@ pnpm --filter @keeper/database run migrate
   - `APP_ORIGIN=https://api.ke3p.com`
   - `CORS_ALLOWLIST=https://www.ke3p.com,https://api.ke3p.com`
   - `FALLBACK_DOMAIN=www.ke3p.com`
+  - `KEEPER_PROXY_ENABLED=false` (must remain false in production)
 
 CORS policy:
 - Production: allow only `https://www.ke3p.com` and `https://api.ke3p.com`.
 - Development: also allow `http://localhost:5173` and `http://localhost:3000`.
+
+Production endpoints:
+- Web: `https://www.ke3p.com`
+- API: `https://api.ke3p.com` (sole production API entrypoint; `api.keeper.domains` disabled)
 
 Run:
 - Web: set envs above, then `pnpm dev` in `apps/web`

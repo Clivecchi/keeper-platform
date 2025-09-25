@@ -15,6 +15,17 @@ const CORS_ORIGINS = String(process.env.CORS_ORIGINS || "http://localhost:3000")
   .map((s) => s.trim())
   .filter((s) => s.length > 0);
 
+// Feature flag: Keeper‑Domains‑Proxy is disabled by default
+const PROXY_ENABLED = String(process.env.KEEPER_PROXY_ENABLED || "false").toLowerCase() === "true";
+if (!PROXY_ENABLED) {
+  // eslint-disable-next-line no-console
+  console.log(
+    `Keeper‑Domains‑Proxy disabled (KEEPER_PROXY_ENABLED=${process.env.KEEPER_PROXY_ENABLED || "false"}). Exiting without starting server.`
+  );
+  // Ensure the process does not bind a port when disabled
+  process.exit(0);
+}
+
 const app = express();
 app.set("trust proxy", true);
 app.use(express.json());

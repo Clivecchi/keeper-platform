@@ -17,10 +17,10 @@ Provides same-origin API access for board data, eliminating mock data and connec
 
 ## 🔄 Data & Behavior
 
-### Security: Same-Origin Routing
+### Security: Single-Domain Routing (MVP)
 - All endpoints use relative paths (`/api/agents`, `/api/journeys`, etc.)
-- Routes through Vercel proxy in production
-- No CORS needed for same-origin calls
+- Production API is served at `https://api.ke3p.com` with strict CORS allowlist
+- Web origin is `https://www.ke3p.com`
 - Authentication via `authMiddlewareCompat`
 
 ### API Structure
@@ -138,6 +138,7 @@ All endpoints include:
    - H1: Improve observability for Prisma read errors by tagging rethrown errors as `BOARD_READ_FAILED` and surfacing that code in 500 responses.
   - Alias→UUID compatibility: if `:id` not UUID, resolve via `BoardAlias(domainId, alias)` with required domainId. 404 if not found.
   - Request logging: durable `RequestLog` table and `/api/debug/req/:id` to fetch logs.
+ - 2025-09-24: Single-domain MVP docs update. Production API entrypoint is `https://api.ke3p.com`; removed note about Vercel proxy. Added `KEEPER_PROXY_ENABLED=false` flag documentation at root.
 
 ### Auth Notes (Board-Data RO)
 

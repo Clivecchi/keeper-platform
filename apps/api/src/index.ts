@@ -91,6 +91,12 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : (process.env.NO
 
 console.log(`🔧 Server initializing on port ${PORT} (NODE_ENV: ${process.env.NODE_ENV})`);
 
+// Boot status: show proxy flag and origins
+const PROXY_ENABLED = String(process.env.KEEPER_PROXY_ENABLED || 'false').toLowerCase() === 'true';
+console.log(
+  `Boot: ProxyEnabled: ${PROXY_ENABLED} | APP_ORIGIN=${process.env.APP_ORIGIN || ''} | PUBLIC_WEB_ORIGIN=${process.env.PUBLIC_WEB_ORIGIN || ''}`
+);
+
 // Error handling
 process.on('uncaughtException', (error) => {
   console.error('🚨 Uncaught Exception:', error.message);
@@ -140,29 +146,58 @@ const domainResolution = createDomainResolutionMiddleware({
 });
 app.use(domainResolution);
 
-// CORS setup - strict allowlist
+// CORS setup - exact allowlist with 403 on failures (no 500)
 console.log('⚙️ Setting up CORS...');
-const DEV_ALLOWLIST = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-];
-const isProd = process.env.NODE_ENV === 'production';
-const envAllowlist = (process.env.CORS_ALLOWLIST || '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
-const derivedFromOrigins = [process.env.PUBLIC_WEB_ORIGIN, process.env.APP_ORIGIN]
-  .filter(Boolean) as string[];
-const allowlist = envAllowlist.length > 0
-  ? envAllowlist
-  : (isProd ? derivedFromOrigins : [...derivedFromOrigins, ...DEV_ALLOWLIST].filter(Boolean));
 
+function buildCorsAllowlist(): string[] {
+  const csv = String(process.env.CORS_ALLOWLIST || '').trim();
+  const parsed = csv
+    ? csv.split(',').map(s => s.trim()).filter(Boolean)
+    : [];
+
+  if (process.env.NODE_ENV === 'production' && parsed.length === 0) {
+    // Default to single-domain MVP exact origins when not explicitly set
+    const defaults = [process.env.PUBLIC_WEB_ORIGIN, process.env.APP_ORIGIN]
+      .filter(Boolean) as string[];
+    return defaults;
+  }
+  return parsed;
+}
+
+const CORS_ALLOWLIST = new Set(buildCorsAllowlist());
+
+function isOriginAllowed(origin: string | undefined): boolean {
+  if (!origin) return true; // non-browser/server-to-server
+  if (CORS_ALLOWLIST.size === 0) return true; // no restriction configured
+  return CORS_ALLOWLIST.has(origin);
+}
+
+// Guard middleware to short-circuit disallowed origins with 403
+app.use((req, res, next) => {
+  const origin = req.get('origin') || undefined;
+  if (!isOriginAllowed(origin)) {
+    res.status(403).json({ error: 'CORS: origin not allowed' });
+    return;
+  }
+
+  // Handle preflight for allowed origins
+  if (req.method === 'OPTIONS' && origin) {
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-debug-token');
+    res.header('Access-Control-Max-Age', '86400');
+    res.status(200).end();
+    return;
+  }
+
+  next();
+});
+
+// Apply cors after guard so allowed origins receive ACA headers
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowlist.includes(origin)) return callback(null, true);
-    return callback(new Error('Not allowed by CORS'));
-  },
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'x-debug-token'],
@@ -856,7 +891,7 @@ function globalErrorHandler(err: unknown, req: Request, res: Response, next: Nex
   }
   // Validation errors (Zod)
   else if (err instanceof Error && err.name === 'ZodError') {
-    statusCode = 400;
+    statusCode = 422;
     errorCode = 'VALIDATION_ERROR';
     message = 'Invalid request data';
     details = (err as unknown as { errors: unknown[] }).errors as unknown as Record<string, unknown>;

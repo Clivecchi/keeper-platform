@@ -52,6 +52,10 @@ APP_ORIGIN="https://api.ke3p.com"
 # Fallback domain for unknown hosts (MVP single-domain)
 FALLBACK_DOMAIN="www.ke3p.com"
 
+# Keeper-Domains-Proxy feature flag
+# Must remain "false" in production for single-domain MVP
+KEEPER_PROXY_ENABLED="false"
+
 # =================================================================
 # REDIS SETTINGS (Optional)
 # =================================================================

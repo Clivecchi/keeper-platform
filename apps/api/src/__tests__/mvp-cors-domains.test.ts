@@ -29,27 +29,23 @@ describe('MVP CORS and Domain Fallback', () => {
     expect(res.headers['access-control-allow-origin']).toBe('https://www.ke3p.com');
   });
 
-  it('rejects unknown origin', async () => {
+  it('rejects unknown origin with 403 (no 500)', async () => {
     const app = express();
     const allowlist = ['https://www.ke3p.com', 'https://api.ke3p.com'];
     app.use((req, res, next) => {
-      cors({
-        origin(origin, cb) {
-          if (!origin) return cb(null, true);
-          if (allowlist.includes(origin)) return cb(null, true);
-          return cb(new Error('Not allowed by CORS'));
-        },
-      })(req, res, (err) => {
-        if (err) return res.status(500).send('CORS error');
-        next();
-      });
+      const origin = req.get('origin') || undefined;
+      if (origin && !allowlist.includes(origin)) {
+        res.status(403).json({ error: 'CORS: origin not allowed' });
+        return;
+      }
+      next();
     });
     app.get('/ping', (_req, res) => res.send('pong'));
 
     const res = await request(app)
       .get('/ping')
       .set('Origin', 'https://evil.example');
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(403);
   });
 
   it('does not use wildcard * for ACAO', async () => {
