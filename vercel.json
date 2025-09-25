@@ -3,7 +3,13 @@
   "rewrites": [
     {
       "source": "/health",
+      "has": [{ "type": "host", "value": "api.ke3p.com" }],
       "destination": "https://keeper-platform-production.up.railway.app/health"
+    },
+    {
+      "source": "/health/:path*",
+      "has": [{ "type": "host", "value": "api.ke3p.com" }],
+      "destination": "https://keeper-platform-production.up.railway.app/health/:path*"
     },
     {
       "source": "/api/:path*",
