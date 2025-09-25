@@ -3,12 +3,12 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "has": [{ "type": "header", "key": "host", "value": "api.ke3p.com" }],
+      "has": [{ "type": "host", "value": "api.ke3p.com" }],
       "destination": "https://keeper-platform-production.up.railway.app/api/:path*"
     },
     {
       "source": "/(.*)",
-      "has": [{ "type": "header", "key": "host", "value": "api.ke3p.com" }],
+      "has": [{ "type": "host", "value": "api.ke3p.com" }],
       "destination": "https://keeper-platform-production.up.railway.app/$1"
     }
   ]
