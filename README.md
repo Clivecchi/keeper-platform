@@ -168,6 +168,11 @@ Production endpoints:
 - Web: `https://www.ke3p.com`
 - API: `https://api.ke3p.com` (sole production API entrypoint; `api.keeper.domains` disabled)
 
+Health & CORS checks:
+- Health:   `GET https://api.ke3p.com/api/health` (expect 200)
+- CORS OK:  `GET https://api.ke3p.com/api/test` with `Origin: https://www.ke3p.com` (expect 200)
+- CORS NO:  `GET https://api.ke3p.com/api/test` with `Origin: https://evil.example` (expect 403)
+
 Run:
 - Web: set envs above, then `pnpm dev` in `apps/web`
 - API: set envs above, then `pnpm dev` in `apps/api`

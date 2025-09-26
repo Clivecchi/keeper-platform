@@ -16,8 +16,8 @@ const baseUrl = normalizeBaseUrl(
 ) || 'http://localhost:8080';
 
 describe('Production smoke (Railway) @smoke:prod', () => {
-  it('GET /health returns 200', async () => {
-    const res = await fetch(`${baseUrl}/health`, { method: 'GET' });
+  it('GET /api/health returns 200', async () => {
+    const res = await fetch(`${baseUrl}/api/health`, { method: 'GET' });
     expect(res.status).toBe(200);
   }, 30_000);
 
@@ -27,6 +27,14 @@ describe('Production smoke (Railway) @smoke:prod', () => {
       headers: { Origin: 'https://www.ke3p.com' },
     });
     expect(res.status).toBe(200);
+  }, 30_000);
+
+  it('GET /api/test with Origin https://evil.example returns 403', async () => {
+    const res = await fetch(`${baseUrl}/api/test`, {
+      method: 'GET',
+      headers: { Origin: 'https://evil.example' },
+    });
+    expect(res.status).toBe(403);
   }, 30_000);
 
   it('POST /api/kam/auth/register returns 201', async () => {
