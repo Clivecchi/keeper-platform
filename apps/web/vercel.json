@@ -1,8 +1,9 @@
 {
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://keeper-platform-production.up.railway.app/api/:path*"
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "api.ke3p.com" }],
+      "destination": "https://keeper-platform-production.up.railway.app/$1"
     }
   ]
-} 
+}
