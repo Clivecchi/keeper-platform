@@ -74,6 +74,23 @@ const ProtectedRoute: React.FC = () => {
 
 const App: React.FC = () => {
   console.log('[App] Component rendered in environment:', import.meta.env.MODE);
+  // Temporary SystemStatus health ping - remove after validation
+  React.useEffect(() => {
+    const controller = new AbortController();
+    const endpoint = 'https://api.ke3p.com/api/health';
+    fetch(endpoint, { method: 'GET', signal: controller.signal })
+      .then((res) => {
+        if (res.ok) {
+          console.log('SystemStatus: health ok', { endpoint, status: res.status });
+        } else {
+          console.warn('SystemStatus: health failed', { endpoint, status: res.status });
+        }
+      })
+      .catch((err) => {
+        console.warn('SystemStatus: health error', { endpoint, error: String(err) });
+      });
+    return () => controller.abort();
+  }, []);
   
   return (
     <Routes>

@@ -41,6 +41,10 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false }) => {
 
       if (result.success) {
         auth.login(result.data);
+        // Non-blocking auth check to confirm env-based API base URL works
+        apiFetch('/api/kam/me', { method: 'GET' })
+          .then(() => console.log('SystemStatus: /api/kam/me ok'))
+          .catch((e) => console.warn('SystemStatus: /api/kam/me failed', e));
         navigate('/root');
       } else {
         setError(result.error?.message || 'An unknown error occurred.');
