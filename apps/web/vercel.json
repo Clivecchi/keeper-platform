@@ -4,6 +4,11 @@
       "source": "/(.*)",
       "has": [{ "type": "host", "value": "api.ke3p.com" }],
       "destination": "https://keeper-platform-production.up.railway.app/$1"
+    },
+    {
+      "source": "/api/:path*",
+      "has": [{ "type": "host", "value": "www.ke3p.com" }],
+      "destination": "https://keeper-platform-production.up.railway.app/api/:path*"
     }
   ]
 }
