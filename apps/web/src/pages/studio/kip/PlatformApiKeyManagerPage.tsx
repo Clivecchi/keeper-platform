@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 import { ModelProvider } from '../../../types/kip';
 import ApiKeyForm from '../../../components/ui/ApiKeyForm';
 import HelpTooltip from '../../../components/ui/HelpTooltip';
@@ -91,12 +92,7 @@ const PlatformApiKeyManagerPage: React.FC = () => {
       }
       
       console.log('🔑 Loading platform API keys for user:', user.id);
-      const response = await fetch('/api/kip/platform-keys', {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user.id
-        }
-      });
+      const response = await api.get('api/kip/platform-keys', { headers: { 'Content-Type': 'application/json', 'x-user-id': user.id } });
       
       console.log('📡 Platform keys response status:', response.status);
       
@@ -135,19 +131,7 @@ const PlatformApiKeyManagerPage: React.FC = () => {
         throw new Error('User not authenticated');
       }
       
-      const response = await fetch('/api/kip/platform-keys', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user.id
-        },
-        body: JSON.stringify({ 
-          provider, 
-          api_key: apiKey,
-          label: label || undefined,
-          is_active: true 
-        })
-      });
+      const response = await api.post('api/kip/platform-keys', { provider, api_key: apiKey, label: label || undefined, is_active: true }, { headers: { 'Content-Type': 'application/json', 'x-user-id': user.id } });
       
       const data = await response.json();
       
@@ -183,12 +167,7 @@ const PlatformApiKeyManagerPage: React.FC = () => {
         throw new Error('User not authenticated');
       }
       
-      const response = await fetch(`/api/kip/platform-keys/${provider}`, {
-        method: 'DELETE',
-        headers: {
-          'x-user-id': user.id
-        }
-      });
+      const response = await fetch(new URL(`api/kip/platform-keys/${provider}`, (import.meta as any).env.VITE_API_URL).toString(), { method: 'DELETE', headers: { 'x-user-id': user.id } });
       
       const data = await response.json();
       

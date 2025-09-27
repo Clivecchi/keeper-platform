@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import { motion } from 'framer-motion';
 import { Navbar } from '../components/layout/Navbar';
+import { API_BASE } from '@/lib/api';
 
 // Global Debug Button Component
 const GlobalDebugButton: React.FC = () => {
@@ -198,6 +199,10 @@ const GlobalDebugButton: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Temporary tiny debug banner for API base */}
+      <div className="fixed bottom-2 right-3 z-40 text-[10px] text-gray-500 bg-white/70 px-2 py-1 rounded border border-gray-200">
+        API_BASE: {API_BASE}
+      </div>
     </>
   );
 };

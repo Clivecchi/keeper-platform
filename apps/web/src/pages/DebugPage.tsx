@@ -723,7 +723,7 @@ const DebugPage: React.FC = () => {
       // Test 14: Database Fix Auto-Repair
       addLog('🔧 Testing database auto-repair and Kip provider fix...');
       try {
-        const fixResponse = await fetch('/api/debug/fix-kip-provider', {
+        const fixResponse = await fetch(new URL('api/debug/fix-kip-provider', (import.meta as any).env.VITE_API_URL).toString(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
