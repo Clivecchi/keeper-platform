@@ -16,12 +16,12 @@
     {
       "source": "/api/:path*",
       "has": [{ "type": "host", "value": "www.ke3p.com" }],
-      "destination": "https://keeper-platform-production.up.railway.app/api/:path*"
+      "destination": "https://api.ke3p.com/api/:path*"
     },
     {
       "source": "/api/:path*",
       "has": [{ "type": "host", "value": "ke3p.com" }],
-      "destination": "https://keeper-platform-production.up.railway.app/api/:path*"
+      "destination": "https://api.ke3p.com/api/:path*"
     }
   ]
 }

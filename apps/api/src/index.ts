@@ -517,6 +517,18 @@ app.get('/api/test', (req, res) => {
   });
 });
 
+// Route introspection for debugging deployed routing
+app.get('/api/__routes', (_req, res) => {
+  const routes: Array<{ method: string; path: string }> = [];
+  (app as any)._router?.stack?.forEach((layer: any) => {
+    if (layer.route && layer.route.path) {
+      const methods = Object.keys(layer.route.methods || {}).filter(Boolean);
+      methods.forEach((m) => routes.push({ method: m.toUpperCase(), path: layer.route.path }));
+    }
+  });
+  res.json({ routes });
+});
+
 // KAM Auth endpoints that the frontend is trying to access
 app.post('/api/kam/auth/login', async (req, res) => {
   try {
@@ -960,7 +972,8 @@ app.use(globalErrorHandler);
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {
-  console.log(`📍 404 - Route not found: ${req.method} ${req.originalUrl}`);
+  const host = req.get('host');
+  console.log(`📍 404 - Route not found: ${req.method} ${req.originalUrl} [host=${host}]`);
   res.status(404).json({
     error: 'Route not found',
     message: `Cannot ${req.method} ${req.originalUrl}`,
