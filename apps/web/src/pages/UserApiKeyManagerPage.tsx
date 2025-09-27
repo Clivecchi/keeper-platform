@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 import { ModelProvider, UserApiKey } from '../types/kip';
 import ApiKeyForm from '../components/ui/ApiKeyForm';
 import HelpTooltip from '../components/ui/HelpTooltip';
@@ -67,11 +68,7 @@ const UserApiKeyManagerPage: React.FC = () => {
       setError(null);
       
       // Mock API call - replace with actual API
-      const response = await fetch('/api/kip/user-keys', {
-        headers: {
-          'x-user-id': 'current-user-id' // This should come from auth context
-        }
-      });
+      const response = await api.get('api/kip/user-keys', { headers: { 'x-user-id': 'current-user-id' } });
       
       if (!response.ok) {
         throw new Error('Failed to load API keys');
@@ -101,14 +98,7 @@ const UserApiKeyManagerPage: React.FC = () => {
       setSubmitting(true);
       setError(null);
       
-      const response = await fetch('/api/kip/user-keys', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': 'current-user-id'
-        },
-        body: JSON.stringify({ provider, apiKey })
-      });
+      const response = await api.post('api/kip/user-keys', { provider, apiKey }, { headers: { 'x-user-id': 'current-user-id' } });
       
       if (!response.ok) {
         throw new Error('Failed to save API key');
@@ -137,12 +127,7 @@ const UserApiKeyManagerPage: React.FC = () => {
       setSubmitting(true);
       setError(null);
       
-      const response = await fetch(`/api/kip/user-keys/${provider}`, {
-        method: 'DELETE',
-        headers: {
-          'x-user-id': 'current-user-id'
-        }
-      });
+      const response = await fetch(new URL(`api/kip/user-keys/${provider}`, (import.meta as any).env.VITE_API_URL).toString(), { method: 'DELETE', headers: { 'x-user-id': 'current-user-id' } });
       
       if (!response.ok) {
         throw new Error('Failed to delete API key');
