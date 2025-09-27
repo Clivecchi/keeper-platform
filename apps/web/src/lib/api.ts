@@ -18,5 +18,3 @@ export const api = {
 
 // Back-compat: re-export existing apiFetch where used
 export { apiFetch } from './apiFetch';
-
-export { apiFetch } from './apiFetch';
