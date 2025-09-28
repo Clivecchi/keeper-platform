@@ -148,7 +148,8 @@ export { createUser, User };`,
       html: 'bg-orange-100 text-orange-800',
       json: 'bg-gray-100 text-gray-800',
     };
-    return colors[language.toLowerCase()] || 'bg-gray-100 text-gray-800';
+    const safe = (language ?? '').toString().toLowerCase();
+    return colors[safe] || 'bg-gray-100 text-gray-800';
   };
 
   if (isPreview) {

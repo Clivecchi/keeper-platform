@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from '@/lib/api';
 import { motion } from 'framer-motion';
 import { ChevronDownIcon, ChevronUpIcon, TagIcon, CalendarIcon, BoltIcon } from '@heroicons/react/24/outline';
 import { SoleMemoryCard, SoleMemoryCardListResponse } from '../../types/keeper';
@@ -73,13 +74,7 @@ const MemoryCardManager: React.FC<MemoryCardManagerProps> = ({ keeperId, agentId
     }
 
     try {
-      const response = await fetch(`/api/keeper/keepers/${keeperId}/memory-cards?userId=${agentId}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch memory cards');
-      }
-
-      const data: SoleMemoryCardListResponse = await response.json();
+      const data: SoleMemoryCardListResponse = await apiFetch(`/api/keeper/keepers/${keeperId}/memory-cards?userId=${agentId}`);
       
       if (data.success && data.data) {
         setMemoryCards(data.data);

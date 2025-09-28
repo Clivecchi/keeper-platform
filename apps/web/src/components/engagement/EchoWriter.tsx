@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from '@/lib/api';
 import { motion } from 'framer-motion';
 import { 
   PlusIcon, 
@@ -74,13 +75,7 @@ const EchoWriter: React.FC<EchoWriterProps> = ({ keeperId, agentId, isDemo = fal
     }
 
     try {
-      const response = await fetch(`/api/keeper/keepers/${keeperId}/echoes?userId=${agentId}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch echoes');
-      }
-
-      const data: SoleEchoListResponse = await response.json();
+      const data: SoleEchoListResponse = await apiFetch(`/api/keeper/keepers/${keeperId}/echoes?userId=${agentId}`);
       
       if (data.success && data.data) {
         setEchoes(data.data);
@@ -107,19 +102,10 @@ const EchoWriter: React.FC<EchoWriterProps> = ({ keeperId, agentId, isDemo = fal
     }
 
     try {
-      const response = await fetch(`/api/keeper/keepers/${keeperId}/echoes?userId=${agentId}`, {
+      const data = await apiFetch(`/api/keeper/keepers/${keeperId}/echoes?userId=${agentId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(echoData),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create echo');
-      }
-
-      const data = await response.json();
       if (data.success && data.data) {
         setEchoes([data.data, ...echoes]);
       } else {
@@ -139,19 +125,10 @@ const EchoWriter: React.FC<EchoWriterProps> = ({ keeperId, agentId, isDemo = fal
     }
 
     try {
-      const response = await fetch(`/api/keeper/echoes/${id}?userId=${agentId}`, {
+      const data = await apiFetch(`/api/keeper/echoes/${id}?userId=${agentId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(updates),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update echo');
-      }
-
-      const data = await response.json();
       if (data.success && data.data) {
         setEchoes(echoes.map(echo => 
           echo.id === id ? data.data : echo
@@ -171,13 +148,9 @@ const EchoWriter: React.FC<EchoWriterProps> = ({ keeperId, agentId, isDemo = fal
     }
 
     try {
-      const response = await fetch(`/api/keeper/echoes/${id}?userId=${agentId}`, {
+      await apiFetch(`/api/keeper/echoes/${id}?userId=${agentId}`, {
         method: 'DELETE',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete echo');
-      }
 
       setEchoes(echoes.filter(echo => echo.id !== id));
     } catch (err) {
@@ -194,15 +167,9 @@ const EchoWriter: React.FC<EchoWriterProps> = ({ keeperId, agentId, isDemo = fal
     }
 
     try {
-      const response = await fetch(`/api/keeper/echoes/${id}/deliver?userId=${agentId}`, {
+      const data = await apiFetch(`/api/keeper/echoes/${id}/deliver?userId=${agentId}`, {
         method: 'POST',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to deliver echo');
-      }
-
-      const data = await response.json();
       if (data.success && data.data) {
         setEchoes(echoes.map(echo => 
           echo.id === id ? data.data : echo

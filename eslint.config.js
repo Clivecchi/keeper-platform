@@ -39,13 +39,17 @@ export default tseslint.config(
         }
       ],
       '@typescript-eslint/no-explicit-any': 'warn',
-      // Disallow bare '/api/' path fetches in web to enforce absolute API base
+      // Disallow bare '/api/*' URLs; enforce usage of apiFetch from src/lib/api.ts
       'no-restricted-syntax': [
         'error',
         {
-          selector: "CallExpression[callee.name='fetch'] Literal[value=/^\\/api\\//]",
-          message: "Use api.get/api.post from src/lib/api.ts (absolute base) instead of bare '/api/'",
+          selector: "Literal[value='/api' i]",
+          message: "Use apiFetch() from src/lib/api.ts — do not hardcode '/api/*' URLs.",
         },
+        {
+          selector: "TemplateElement[value.raw=/\\/api\\//]",
+          message: "Use apiFetch() from src/lib/api.ts — do not hardcode '/api/*' URLs.",
+        }
       ],
     },
   },

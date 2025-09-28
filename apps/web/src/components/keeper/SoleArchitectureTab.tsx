@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { motion } from 'framer-motion';
 import { 
   CheckIcon, 
@@ -33,14 +34,9 @@ const SoleArchitectureTab: React.FC<SoleArchitectureTabProps> = ({
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/keeper/${keeper.id}/sole/approve?userId=${userId}`, {
+      const result = await apiFetch(`/api/keeper/${keeper.id}/sole/approve?userId=${userId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
-
-      const result = await response.json();
       
       if (result.success) {
         onUpdate(result.data);
@@ -61,14 +57,9 @@ const SoleArchitectureTab: React.FC<SoleArchitectureTabProps> = ({
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/keeper/${keeper.id}/sole/reject?userId=${userId}`, {
+      const result = await apiFetch(`/api/keeper/${keeper.id}/sole/reject?userId=${userId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
-
-      const result = await response.json();
       
       if (result.success) {
         onUpdate(result.data);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
@@ -28,13 +29,7 @@ const EchoWriterPage: React.FC = () => {
 
     const fetchKeeper = async () => {
       try {
-        const response = await fetch(`/api/keeper/keepers/${id}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch keeper');
-        }
-
-        const data = await response.json();
+        const data = await apiFetch(`/api/keeper/keepers/${id}`);
         
         if (data.success && data.data) {
           setKeeper(data.data);

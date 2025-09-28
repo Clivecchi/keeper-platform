@@ -1487,8 +1487,10 @@ const BoardStudioPage: React.FC = () => {
 
   // Filter frames
   const filteredFrameTypes = frameTypes.filter(frame => {
-    const matchesSearch = frame.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         frame.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const name = (frame.name ?? '').toString().toLowerCase();
+    const desc = (frame.description ?? '').toString().toLowerCase();
+    const query = (searchTerm ?? '').toString().toLowerCase();
+    const matchesSearch = name.includes(query) || desc.includes(query);
     const matchesCategory = selectedCategory === 'all' || frame.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });

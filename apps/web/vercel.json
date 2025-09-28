@@ -1,27 +1,13 @@
 {
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://api.ke3p.com/api/$1" }
+  ],
   "redirects": [
     {
       "source": "/(.*)",
       "has": [{ "type": "host", "value": "ke3p.com" }],
       "destination": "https://www.ke3p.com/$1",
       "permanent": true
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "has": [{ "type": "host", "value": "api.ke3p.com" }],
-      "destination": "https://keeper-platform-production.up.railway.app/$1"
-    },
-    {
-      "source": "/api/:path*",
-      "has": [{ "type": "host", "value": "www.ke3p.com" }],
-      "destination": "https://api.ke3p.com/api/:path*"
-    },
-    {
-      "source": "/api/:path*",
-      "has": [{ "type": "host", "value": "ke3p.com" }],
-      "destination": "https://api.ke3p.com/api/:path*"
     }
   ]
 }

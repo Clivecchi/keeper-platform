@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { apiFetch } from '@/lib/api';
 import { 
   PlusIcon, 
   PencilIcon, 
@@ -64,13 +65,7 @@ const VoicePanel: React.FC<VoicePanelProps> = ({ keeperId, agentId, isDemo = fal
     }
 
     try {
-      const response = await fetch(`/api/keeper/keepers/${keeperId}/voice-entries?userId=${agentId}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch voice entries');
-      }
-
-      const data: SoleVoiceEntryListResponse = await response.json();
+      const data: SoleVoiceEntryListResponse = await apiFetch(`/api/keeper/keepers/${keeperId}/voice-entries?userId=${agentId}`);
       
       if (data.success && data.data) {
         setVoiceEntries(data.data);
@@ -97,19 +92,10 @@ const VoicePanel: React.FC<VoicePanelProps> = ({ keeperId, agentId, isDemo = fal
     }
 
     try {
-      const response = await fetch(`/api/keeper/keepers/${keeperId}/voice-entries?userId=${agentId}`, {
+      const data = await apiFetch(`/api/keeper/keepers/${keeperId}/voice-entries?userId=${agentId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(entryData),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create voice entry');
-      }
-
-      const data = await response.json();
       if (data.success && data.data) {
         setVoiceEntries([data.data, ...voiceEntries]);
       } else {
@@ -131,19 +117,10 @@ const VoicePanel: React.FC<VoicePanelProps> = ({ keeperId, agentId, isDemo = fal
     }
 
     try {
-      const response = await fetch(`/api/keeper/voice-entries/${id}?userId=${agentId}`, {
+      const data = await apiFetch(`/api/keeper/voice-entries/${id}?userId=${agentId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(updates),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update voice entry');
-      }
-
-      const data = await response.json();
       if (data.success && data.data) {
         setVoiceEntries(voiceEntries.map(entry => 
           entry.id === id ? data.data : entry
@@ -163,13 +140,9 @@ const VoicePanel: React.FC<VoicePanelProps> = ({ keeperId, agentId, isDemo = fal
     }
 
     try {
-      const response = await fetch(`/api/keeper/voice-entries/${id}?userId=${agentId}`, {
+      await apiFetch(`/api/keeper/voice-entries/${id}?userId=${agentId}`, {
         method: 'DELETE',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete voice entry');
-      }
 
       setVoiceEntries(voiceEntries.filter(entry => entry.id !== id));
     } catch (err) {

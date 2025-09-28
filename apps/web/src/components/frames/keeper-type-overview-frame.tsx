@@ -97,7 +97,7 @@ const KeeperTypeOverviewFrame: React.FC<BaseFrameProps> = ({
   };
 
   const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
+    switch ((category ?? '').toString().toLowerCase()) {
       case 'development':
         return <CodeBracketIcon className="w-4 h-4 text-blue-500" />;
       case 'business':

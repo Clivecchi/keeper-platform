@@ -433,9 +433,12 @@ This content is currently simulated for demonstration purposes.`;
   };
 
   const filteredDocuments = documents.filter(doc => {
-    const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doc.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doc.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const name = (doc.name ?? '').toString().toLowerCase();
+    const desc = (doc.description ?? '').toString().toLowerCase();
+    const query = (searchTerm ?? '').toString().toLowerCase();
+    const matchesSearch = name.includes(query) ||
+                         desc.includes(query) ||
+                         (doc.tags || []).some(tag => (tag ?? '').toString().toLowerCase().includes(query));
     const matchesType = filterType === 'all' || doc.type === filterType;
     return matchesSearch && matchesType;
   });

@@ -78,8 +78,10 @@ const AllKeepersPage: React.FC = () => {
   };
 
   const filteredKeepers = keepers.filter(keeper => {
-    const matchesSearch = keeper.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         keeper.purpose.toLowerCase().includes(searchTerm.toLowerCase());
+    const title = (keeper.title ?? '').toString().toLowerCase();
+    const purpose = (keeper.purpose ?? '').toString().toLowerCase();
+    const query = (searchTerm ?? '').toString().toLowerCase();
+    const matchesSearch = title.includes(query) || purpose.includes(query);
     const matchesType = !selectedType || keeper.keeperType === selectedType;
     return matchesSearch && matchesType;
   });

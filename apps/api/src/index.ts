@@ -164,7 +164,13 @@ function buildCorsAllowlist(): string[] {
   return parsed;
 }
 
-const CORS_ALLOWLIST = new Set(buildCorsAllowlist());
+const CORS_ALLOWLIST = new Set([
+  ...buildCorsAllowlist(),
+  'https://www.ke3p.com',
+  'https://ke3p.com',
+  process.env.PUBLIC_WEB_ORIGIN || '',
+  process.env.APP_ORIGIN || '',
+].filter(Boolean));
 
 function isOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return true; // non-browser/server-to-server
@@ -197,7 +203,11 @@ app.use((req, res, next) => {
 
 // Apply cors after guard so allowed origins receive ACA headers
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const allowed = isOriginAllowed(origin);
+    callback(null, allowed);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'x-debug-token'],
@@ -517,17 +527,19 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-// Route introspection for debugging deployed routing
-app.get('/api/__routes', (_req, res) => {
-  const routes: Array<{ method: string; path: string }> = [];
-  (app as any)._router?.stack?.forEach((layer: any) => {
-    if (layer.route && layer.route.path) {
-      const methods = Object.keys(layer.route.methods || {}).filter(Boolean);
-      methods.forEach((m) => routes.push({ method: m.toUpperCase(), path: layer.route.path }));
-    }
+// Route introspection for acceptance only
+if (process.env.ENABLE_INTROSPECTION === '1') {
+  app.get('/api/__routes', (_req, res) => {
+    const routes: Array<{ method: string; path: string }> = [];
+    (app as any)._router?.stack?.forEach((layer: any) => {
+      if (layer.route && layer.route.path) {
+        const methods = Object.keys(layer.route.methods || {}).filter(Boolean);
+        methods.forEach((m) => routes.push({ method: m.toUpperCase(), path: layer.route.path }));
+      }
+    });
+    res.json({ routes });
   });
-  res.json({ routes });
-});
+}
 
 // KAM Auth endpoints that the frontend is trying to access
 app.post('/api/kam/auth/login', async (req, res) => {
@@ -970,7 +982,7 @@ function globalErrorHandler(err: unknown, req: Request, res: Response, next: Nex
 // Mount the global error handler
 app.use(globalErrorHandler);
 
-// 404 handler
+// 404 handler with tracer
 app.use('*', (req: Request, res: Response) => {
   const host = req.get('host');
   console.log(`📍 404 - Route not found: ${req.method} ${req.originalUrl} [host=${host}]`);

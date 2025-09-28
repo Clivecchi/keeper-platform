@@ -170,9 +170,11 @@ const LinkedAgentsFrame: React.FC<BaseFrameProps> = ({
   };
 
   const filteredAgents = linkedAgents.filter(agent => {
-    const matchesSearch = agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         agent.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         agent.owner.toLowerCase().includes(searchTerm.toLowerCase());
+    const name = (agent.name ?? '').toString().toLowerCase();
+    const desc = (agent.description ?? '').toString().toLowerCase();
+    const owner = (agent.owner ?? '').toString().toLowerCase();
+    const query = (searchTerm ?? '').toString().toLowerCase();
+    const matchesSearch = name.includes(query) || desc.includes(query) || owner.includes(query);
     const matchesStatus = statusFilter === 'all' || agent.status === statusFilter;
     return matchesSearch && matchesStatus;
   });

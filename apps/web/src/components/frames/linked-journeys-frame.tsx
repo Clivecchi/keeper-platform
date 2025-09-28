@@ -145,9 +145,11 @@ const LinkedJourneysFrame: React.FC<BaseFrameProps> = ({
   };
 
   const filteredJourneys = linkedJourneys.filter(journey => {
-    const matchesSearch = journey.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         journey.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         journey.category.toLowerCase().includes(searchTerm.toLowerCase());
+    const title = (journey.title ?? '').toString().toLowerCase();
+    const desc = (journey.description ?? '').toString().toLowerCase();
+    const category = (journey.category ?? '').toString().toLowerCase();
+    const query = (searchTerm ?? '').toString().toLowerCase();
+    const matchesSearch = title.includes(query) || desc.includes(query) || category.includes(query);
     const matchesStatus = statusFilter === 'all' || journey.status === statusFilter;
     return matchesSearch && matchesStatus;
   });

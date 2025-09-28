@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from '@/lib/api';
 import { motion } from 'framer-motion';
 import { 
   PlusIcon, 
@@ -89,18 +90,14 @@ const IdentityLogbook: React.FC<IdentityLogbookProps> = ({ keeperId, agentId, is
 
     try {
       const [entriesResponse, categoriesResponse, tagsResponse] = await Promise.all([
-        fetch(`/api/keeper/keepers/${keeperId}/logbook-entries?userId=${agentId}`),
-        fetch(`/api/keeper/keepers/${keeperId}/logbook-entries/categories?userId=${agentId}`),
-        fetch(`/api/keeper/keepers/${keeperId}/logbook-entries/tags?userId=${agentId}`)
+        apiFetch(`/api/keeper/keepers/${keeperId}/logbook-entries?userId=${agentId}`),
+        apiFetch(`/api/keeper/keepers/${keeperId}/logbook-entries/categories?userId=${agentId}`),
+        apiFetch(`/api/keeper/keepers/${keeperId}/logbook-entries/tags?userId=${agentId}`)
       ]);
 
-      if (!entriesResponse.ok) {
-        throw new Error('Failed to fetch logbook entries');
-      }
-
-      const entriesData: SoleLogbookEntryListResponse = await entriesResponse.json();
-      const categoriesData: CategoryListResponse = await categoriesResponse.json();
-      const tagsData: TagListResponse = await tagsResponse.json();
+      const entriesData: SoleLogbookEntryListResponse = entriesResponse;
+      const categoriesData: CategoryListResponse = categoriesResponse;
+      const tagsData: TagListResponse = tagsResponse;
 
       if (entriesData.success && entriesData.data) {
         setLogbookEntries(entriesData.data);
@@ -141,19 +138,10 @@ const IdentityLogbook: React.FC<IdentityLogbookProps> = ({ keeperId, agentId, is
     }
 
     try {
-      const response = await fetch(`/api/keeper/keepers/${keeperId}/logbook-entries?userId=${agentId}`, {
+      const data = await apiFetch(`/api/keeper/keepers/${keeperId}/logbook-entries?userId=${agentId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(entryData),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create logbook entry');
-      }
-
-      const data = await response.json();
       if (data.success && data.data) {
         setLogbookEntries([data.data, ...logbookEntries]);
         // Refetch categories and tags
@@ -175,19 +163,10 @@ const IdentityLogbook: React.FC<IdentityLogbookProps> = ({ keeperId, agentId, is
     }
 
     try {
-      const response = await fetch(`/api/keeper/logbook-entries/${id}?userId=${agentId}`, {
+      const data = await apiFetch(`/api/keeper/logbook-entries/${id}?userId=${agentId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(updates),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update logbook entry');
-      }
-
-      const data = await response.json();
       if (data.success && data.data) {
         setLogbookEntries(logbookEntries.map(entry => 
           entry.id === id ? data.data : entry
@@ -207,13 +186,9 @@ const IdentityLogbook: React.FC<IdentityLogbookProps> = ({ keeperId, agentId, is
     }
 
     try {
-      const response = await fetch(`/api/keeper/logbook-entries/${id}?userId=${agentId}`, {
+      await apiFetch(`/api/keeper/logbook-entries/${id}?userId=${agentId}`, {
         method: 'DELETE',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete logbook entry');
-      }
 
       setLogbookEntries(logbookEntries.filter(entry => entry.id !== id));
     } catch (err) {

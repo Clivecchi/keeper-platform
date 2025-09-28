@@ -184,9 +184,12 @@ const PeopleOverviewFrame: React.FC<BaseFrameProps> = ({
   };
 
   const filteredPeople = people.filter(person => {
-    const matchesSearch = person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         person.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         person.domains.some(domain => domain.toLowerCase().includes(searchTerm.toLowerCase()));
+    const name = (person.name ?? '').toString().toLowerCase();
+    const email = (person.email ?? '').toString().toLowerCase();
+    const query = (searchTerm ?? '').toString().toLowerCase();
+    const matchesSearch = name.includes(query) ||
+                         email.includes(query) ||
+                         (person.domains || []).some(domain => (domain ?? '').toString().toLowerCase().includes(query));
     const matchesStatus = statusFilter === 'all' || person.status === statusFilter;
     const matchesRole = roleFilter === 'all' || person.role === roleFilter;
     return matchesSearch && matchesStatus && matchesRole;
