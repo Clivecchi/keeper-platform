@@ -59,3 +59,6 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<an
 export function SystemStatus(): Promise<any> {
   return apiFetch('/api/health', { method: 'GET' });
 }
+
+// Back-compat: expose API_BASE for legacy imports (e.g., AppLayout)
+export const API_BASE: string | undefined = ((import.meta as any).env?.VITE_API_URL as string | undefined)?.replace(/\/$/, '');
