@@ -34,3 +34,4 @@ A tiny Express proxy exposing read-only routes to Keeper APIs with auth, CORS, a
 ## 📆 Update Log
 - [2025-09-09T00:00:00.000Z] Add TEMP `/v1/topics` (mini payloads) with `proxy_topics` table.
 - [2025-09-24T00:00:00.000Z] Production disablement for single-domain MVP. Service gated by `KEEPER_PROXY_ENABLED` (default `false`) and scaled to 0 replicas in Railway. `api.keeper.domains` DNS removed/parked.
+- [2025-09-30] Align TypeScript to ~5.8.3 and confirm build script tsc -p tsconfig.json works.
