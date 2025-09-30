@@ -1,3 +1,5 @@
 {
+  "installCommand": "pnpm install --frozen-lockfile --prod=false",
+  "buildCommand": "pnpm run build",
   "outputDirectory": "apps/web/dist"
 }
