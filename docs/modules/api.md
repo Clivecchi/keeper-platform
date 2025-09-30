@@ -23,4 +23,5 @@ Uses Express, CORS, `@keeper/database` for Prisma, `@keeper/kam` for auth, and `
  - 2025-09-17: Hardened domain resolution and board-data error handling:
    - `/api/domains/my` now self-heals `Domain.deletedAt` via guard and resolves robustly using context, user primary, membership, and ownership fallbacks.
    - `GET /api/board-data/:id` calls the guard and returns `403` on domain mismatch with `{ boardDomainId, ctxDomainId }` to prevent UI 500s.
+- 2025-09-30 – CORS updated with debug logging and wildcard support (reads `CORS_ALLOWLIST` and `CORS_ORIGINS`, supports patterns like `https://*.vercel.app`). Added explicit `app.options('*', cors(corsOptions))` preflight handling.
 

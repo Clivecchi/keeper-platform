@@ -146,41 +146,64 @@ const domainResolution = createDomainResolutionMiddleware({
 });
 app.use(domainResolution);
 
-// CORS setup - exact allowlist with 403 on failures (no 500)
+// CORS setup - debug logging + wildcard support with 403 on failures (no 500)
 console.log('⚙️ Setting up CORS...');
 
-function buildCorsAllowlist(): string[] {
-  const csv = String(process.env.CORS_ALLOWLIST || '').trim();
-  const parsed = csv
-    ? csv.split(',').map(s => s.trim()).filter(Boolean)
-    : [];
+function getCsv(name: string): string[] {
+  const raw = String(process.env[name] || '').trim();
+  return raw ? raw.split(',').map(s => s.trim()).filter(Boolean) : [];
+}
 
-  if (process.env.NODE_ENV === 'production' && parsed.length === 0) {
+function buildCorsAllowlist(): string[] {
+  // Support both CORS_ALLOWLIST and CORS_ORIGINS (preview deployments often set CORS_ORIGINS)
+  const fromAllowlist = getCsv('CORS_ALLOWLIST');
+  const fromOrigins = getCsv('CORS_ORIGINS');
+  const combined = [...fromAllowlist, ...fromOrigins];
+
+  if (process.env.NODE_ENV === 'production' && combined.length === 0) {
     // Default to single-domain MVP exact origins when not explicitly set
     const defaults = [process.env.PUBLIC_WEB_ORIGIN, process.env.APP_ORIGIN]
       .filter(Boolean) as string[];
     return defaults;
   }
-  return parsed;
+  return combined;
 }
 
-const CORS_ALLOWLIST = new Set([
+function patternToRegex(pattern: string): RegExp {
+  // Escape regex special chars, then replace wildcard '*' with '.*'
+  const escaped = pattern
+    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\\\*/g, '.*');
+  return new RegExp(`^${escaped}$`);
+}
+
+const ALLOWLIST_ARRAY = [
   ...buildCorsAllowlist(),
   'https://www.ke3p.com',
   'https://ke3p.com',
   process.env.PUBLIC_WEB_ORIGIN || '',
   process.env.APP_ORIGIN || '',
-].filter(Boolean));
+].filter(Boolean);
+const CORS_ALLOWLIST = new Set(ALLOWLIST_ARRAY.filter(o => !o.includes('*')));
+const CORS_WILDCARDS = ALLOWLIST_ARRAY.filter(o => o.includes('*')).map(patternToRegex);
 
 function isOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return true; // non-browser/server-to-server
-  if (CORS_ALLOWLIST.size === 0) return true; // no restriction configured
-  return CORS_ALLOWLIST.has(origin);
+  if (CORS_ALLOWLIST.size === 0 && CORS_WILDCARDS.length === 0) return true; // no restriction configured
+  if (CORS_ALLOWLIST.has(origin)) return true;
+  return CORS_WILDCARDS.some(rx => rx.test(origin));
 }
 
 // Guard middleware to short-circuit disallowed origins with 403
 app.use((req, res, next) => {
   const origin = req.get('origin') || undefined;
+  if (process.env.ENABLE_REQUEST_LOGGING === 'true' || process.env.NODE_ENV !== 'production') {
+    console.log('CORS Guard Check:', {
+      origin,
+      env_allowlist: process.env.CORS_ALLOWLIST,
+      env_origins: process.env.CORS_ORIGINS
+    });
+  }
   if (!isOriginAllowed(origin)) {
     res.status(403).json({ error: 'CORS: origin not allowed' });
     return;
@@ -202,11 +225,15 @@ app.use((req, res, next) => {
 });
 
 // Apply cors after guard so allowed origins receive ACA headers
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    const allowed = isOriginAllowed(origin);
-    callback(null, allowed);
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    console.log('CORS Origin Check:', { origin, env: process.env.CORS_ORIGINS });
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    const allow = isOriginAllowed(origin);
+    callback(allow ? null : new Error('CORS: origin not allowed'), allow);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -214,9 +241,11 @@ app.use(cors({
   exposedHeaders: ['x-debug-info'],
   preflightContinue: false,
   maxAge: 86400,
-}));
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
-// CORS preflight requests are handled automatically by the cors middleware above
+// CORS preflight requests are handled by the cors middleware above
 
 // Basic middleware
 app.use(express.json());

@@ -18,6 +18,7 @@ Runs Prisma-backed endpoints, CORS hardened for single-domain MVP. Origins are d
 
 ## 📆 Update Log
 - [2025-09-24] Boot log now prints `ProxyEnabled`, `APP_ORIGIN`, and `PUBLIC_WEB_ORIGIN`. Adopted `KEEPER_PROXY_ENABLED=false` for single-domain MVP (proxy disabled by default).
+- [2025-09-30] CORS updated with debug logging and wildcard support (reads `CORS_ALLOWLIST` and `CORS_ORIGINS`, supports patterns like `https://*.vercel.app`). Added explicit `app.options('*', cors(corsOptions))` preflight handling.
 
 # Keeper API
 
