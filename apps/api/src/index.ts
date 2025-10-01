@@ -227,12 +227,20 @@ app.use((req, res, next) => {
 // Apply cors after guard so allowed origins receive ACA headers
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    console.log('CORS Origin Check:', { origin, env: process.env.CORS_ORIGINS });
-    if (!origin) {
-      callback(null, true);
-      return;
-    }
-    const allow = isOriginAllowed(origin);
+    const envSplit = (process.env.CORS_ORIGINS || '')
+      .split(',')
+      .map(o => o.trim())
+      .filter(Boolean);
+    const matchFromEnv = envSplit.some(o =>
+      o === origin || (o.includes('*') && (origin ? new RegExp(o.replace('*', '.*')).test(origin) : false))
+    );
+    const allow = !origin ? true : isOriginAllowed(origin);
+    console.log('CORS Debug:', {
+      origin,
+      envSplit,
+      match: matchFromEnv,
+      allow
+    });
     callback(allow ? null : new Error('CORS: origin not allowed'), allow);
   },
   credentials: true,
