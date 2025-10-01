@@ -1,5 +1,16 @@
 {
   "installCommand": "pnpm install --frozen-lockfile --prod=false",
   "buildCommand": "pnpm run build",
-  "outputDirectory": "apps/web/dist"
+  "outputDirectory": "apps/web/dist",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://keeper-platform-production.up.railway.app/api/$1" }
+  ],
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "ke3p.com" }],
+      "destination": "https://www.ke3p.com/$1",
+      "permanent": true
+    }
+  ]
 }
