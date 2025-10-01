@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://api.ke3p.com/api/$1" }
+    { "source": "/api/(.*)", "destination": "https://keeper-platform-production.up.railway.app/api/$1" }
   ],
   "redirects": [
     {
