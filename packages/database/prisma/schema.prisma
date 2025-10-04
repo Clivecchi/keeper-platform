@@ -136,6 +136,7 @@ model Board {
 
   // Domain-scoped fields
   domainId    String?
+  domain      Domain?         @relation(fields: [domainId], references: [id], onDelete: SetNull)
   /**
    * Logical type of board used for uniqueness within a scope.
    * Examples: 'agent-home', 'domain-home', 'journey-home'
@@ -855,6 +856,7 @@ model Domain {
   CrossDomainShare_CrossDomainShare_sourceDomainIdToDomain CrossDomainShare[]         @relation("CrossDomainShare_sourceDomainIdToDomain")
   CrossDomainShare_CrossDomainShare_targetDomainIdToDomain CrossDomainShare[]         @relation("CrossDomainShare_targetDomainIdToDomain")
   users                                                    users                      @relation(fields: [ownerId], references: [id])
+  boards                                                   Board[]
   DomainInvitation                                         DomainInvitation[]
   DomainPermission                                         DomainPermission[]
   DomainTransfer                                           DomainTransfer[]
