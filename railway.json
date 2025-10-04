@@ -5,7 +5,7 @@
     "buildCommand": null
   },
   "deploy": {
-    "startCommand": "cd /app && pnpm --filter @keeper/database prisma migrate deploy && echo '=== Migration complete, starting server ===' && cd /app && pwd && ls -la apps/api/dist/ && node apps/api/dist/index.js",
+    "startCommand": "sh -c 'pnpm --filter @keeper/database prisma migrate deploy && echo \"=== Migration complete, starting server ===\" && node apps/api/dist/index.js'",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300
   },
