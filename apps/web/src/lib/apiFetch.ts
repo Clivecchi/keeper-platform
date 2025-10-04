@@ -1,4 +1,6 @@
 // apps/web/src/lib/apiFetch.ts
+import { getStoredToken } from './token';
+
 type FetchOptions = RequestInit & { headers?: Record<string, string> };
 
 function getApiBase(): string {
@@ -12,7 +14,11 @@ function getApiBase(): string {
 }
 
 function getJWT(): string | undefined {
-  // scan storages for a JWT-like token
+  // 1) explicit key first (our real source of truth)
+  const direct = getStoredToken();
+  if (direct) return direct;
+
+  // 2) legacy heuristic fallback (keep for safety)
   const scan = (store: Storage) => {
     try {
       for (let i = 0; i < store.length; i++) {
@@ -39,8 +45,8 @@ export async function apiFetch(path: string, opts: FetchOptions = {}) {
     else if (isStringBody) headers['Content-Type'] = 'application/json';
   }
 
-  // Auth
-  if (!headers['Authorization']) {
+  // Auth - inject Authorization header if not present
+  if (!headers['Authorization'] && !headers['authorization']) {
     const jwt = getJWT();
     if (jwt) headers['Authorization'] = `Bearer ${jwt}`;
   }

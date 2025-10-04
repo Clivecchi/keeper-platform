@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { apiFetch } from '../lib/apiFetch';
+import { apiFetch, API_BASE } from '@/lib/api';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import { motion } from 'framer-motion';
 import { Navbar } from '../components/layout/Navbar';
-import { API_BASE } from '@/lib/api';
 
 // Global Debug Button Component
 const GlobalDebugButton: React.FC = () => {
