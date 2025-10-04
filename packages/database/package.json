@@ -17,6 +17,7 @@
     "generate": "prisma generate",
     "build": "prisma generate && tsc",
     "migrate:deploy": "prisma migrate deploy",
+    "migrate:resolve": "node scripts/resolve-failed-migration.js",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "push": "prisma db push",
