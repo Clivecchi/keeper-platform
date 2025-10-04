@@ -10,7 +10,7 @@ async function resolveMigration() {
     console.log('🔧 Resolving failed migration...');
     
     const result = await prisma.$executeRawUnsafe(
-      `DELETE FROM "_prisma_migrations" WHERE migration_name = '20250110_add_board_domain_fkey'`
+      `DELETE FROM "_prisma_migrations" WHERE migration_name IN ('20250110_add_board_domain_fkey', '20250110_add_board_domain_fkey_fixed')`
     );
     
     console.log('✅ Deleted failed migration record');
