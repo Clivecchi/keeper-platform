@@ -13,6 +13,7 @@ import {
 } from '../types/frame';
 import { apiFetch } from '../lib/api';
 import { setLastBoardDataError } from '../lib/debug';
+import { handleAuthError } from '../auth/handleAuthError';
 
 // =============================================================================
 // BOARD TYPES
@@ -305,6 +306,12 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
       dispatch({ type: 'SET_BOARD', payload: board });
     } catch (error) {
       console.error('Error loading board:', error);
+      
+      // Handle 401 errors by clearing auth and redirecting to login
+      if (handleAuthError(undefined, error)) {
+        return; // handleAuthError redirects, no need to continue
+      }
+      
       const errorMessage = error instanceof Error ? error.message : 'Failed to load board';
       try {
         const anyErr = error as any;

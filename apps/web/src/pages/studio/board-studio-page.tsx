@@ -10,6 +10,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiFetch } from '../../lib/api';
+import { handleAuthError } from '../../auth/handleAuthError';
 import { Button } from '../../features/board-studio/v0/components/ui/button';
 import { ScrollArea } from '../../features/board-studio/v0/components/ui/scroll-area';
 import { 
@@ -626,6 +627,12 @@ const BoardStudioPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to load board:', error);
+      
+      // Handle 401 errors by clearing auth and redirecting to login
+      if (handleAuthError(undefined, error)) {
+        return; // handleAuthError redirects, no need to continue
+      }
+      
       setBoardName('Error Loading Board');
       setBoardDescription('Please try selecting another board');
       
@@ -687,8 +694,23 @@ const BoardStudioPage: React.FC = () => {
       setBoards(transformedBoards);
       console.log('Loaded boards from API:', transformedBoards);
     } catch (error) {
-      console.warn('Board API not available, using fallback data:', error);
-      // Fallback data if API not available
+      console.warn('Board API not available:', error);
+      
+      // Handle 401 errors by clearing auth and redirecting to login
+      if (handleAuthError(undefined, error)) {
+        return; // handleAuthError redirects, no need to continue
+      }
+      
+      // Only use fallback data in development mode
+      const ALLOW_FALLBACK = import.meta.env.DEV && import.meta.env.VITE_ENABLE_STUDIO_FALLBACK === '1';
+      if (!ALLOW_FALLBACK) {
+        console.error('Board API failed and fallback disabled in production');
+        setBoards([]);
+        return;
+      }
+      
+      console.log('Using fallback data (dev mode only)');
+      // Fallback data if API not available (dev mode only)
       setBoards([
         {
           id: 'agent-board-1',
