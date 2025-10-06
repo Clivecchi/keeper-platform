@@ -4,6 +4,9 @@
 interface KeeperDiagnostics {
   fetchShimInstalled?: boolean;
   fetchShimDebug?: boolean;
+  authStatus?: 'checking' | 'authed' | 'guest';
+  authGateLoaded?: boolean;
+  user?: any;
   
   // Methods
   checkAuth: () => {
@@ -11,6 +14,7 @@ interface KeeperDiagnostics {
     tokenLocation: 'localStorage' | 'sessionStorage' | 'none';
     tokenLength: number;
     tokenPreview: string;
+    authGateStatus?: string;
   };
   
   checkApiConnection: () => Promise<{
@@ -43,7 +47,8 @@ if (typeof window !== 'undefined') {
       hasToken: !!token,
       tokenLocation: localToken ? 'localStorage' : sessionToken ? 'sessionStorage' : 'none',
       tokenLength: token.length,
-      tokenPreview: token ? `${token.slice(0, 20)}...${token.slice(-10)}` : 'none'
+      tokenPreview: token ? `${token.slice(0, 20)}...${token.slice(-10)}` : 'none',
+      authGateStatus: keeper.authStatus || 'not loaded'
     };
   };
   
