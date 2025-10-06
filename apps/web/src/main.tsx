@@ -16,24 +16,26 @@ import { ensureSession } from './auth/ensureSession'
 import './index.css'
 
 // Validate session before rendering app
-await ensureSession();
-
-createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <ThemeProvider>
-          <ViewModeProvider>
-            <KeeperProvider>
-              <FrameProvider>
-                <BoardProvider>
-                  <App />
-                </BoardProvider>
-              </FrameProvider>
-            </KeeperProvider>
-          </ViewModeProvider>
-        </ThemeProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  </React.StrictMode>,
-)
+(async () => {
+  await ensureSession();
+  
+  createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <BrowserRouter>
+        <AuthProvider>
+          <ThemeProvider>
+            <ViewModeProvider>
+              <KeeperProvider>
+                <FrameProvider>
+                  <BoardProvider>
+                    <App />
+                  </BoardProvider>
+                </FrameProvider>
+              </KeeperProvider>
+            </ViewModeProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </React.StrictMode>,
+  );
+})();
