@@ -2,6 +2,7 @@ import express from 'express';
 import type { Request, Response, Express, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { createDomainResolutionMiddleware } from './middleware/domainResolutionMiddleware.js';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
@@ -52,6 +53,7 @@ import { tenantScanHandler } from './api/admin/tenant-scan.js';
 import { runMigrationsOnce } from './startup/migrate.js';
 // KAM routes
 import kamRouter from './kam/routes.js';
+import authRouter from './kam/auth-routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -258,6 +260,7 @@ app.options('*', cors(corsOptions));
 // Basic middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser()); // Parse cookies for session management
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
@@ -853,6 +856,8 @@ app.use('/api/keeper-types', keeperTypesRoutes);
 app.use('/api/people', peopleRoutes);
 // Mount KAM read-only API
 app.use('/kam', kamRouter);
+// Mount auth routes (cookie-based session management)
+app.use('/api/kam/auth', authRouter);
 
 // Connect KIP routes
 app.use('/api/kip/agents', kipAgentsHandler);

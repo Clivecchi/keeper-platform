@@ -1,6 +1,7 @@
 // src/boot/fetch-shim.ts
 // Global fetch interceptor for Keeper Platform
-// Injects Authorization headers for all API requests
+// In PRODUCTION: Uses HttpOnly cookies ONLY (no localStorage token injection)
+// In DEV: Can inject Authorization header from localStorage for testing
 // MUST be loaded first in main.tsx before any other imports
 
 (function installGlobalFetchShim() {
@@ -8,6 +9,7 @@
   if ((window as any).__keeper?.fetchShimInstalled) return;
 
   const DEBUG = Boolean((import.meta as any)?.env?.VITE_FETCH_SHIM_DEBUG);
+  const IS_PROD = (import.meta as any)?.env?.PROD === true;
   const ORIG = window.fetch.bind(window);
 
   function log(...args: any[]) {
@@ -47,25 +49,27 @@
     // Compose headers (support Request object)
     const headers = new Headers(input instanceof Request ? input.headers : init?.headers);
 
-    // Read token from storage
-    const token =
-      localStorage.getItem('keeper_token') ||
-      sessionStorage.getItem('keeper_token') ||
-      '';
-
-    log('API match → inject token?', Boolean(token), 'has Authorization already?', headers.has('Authorization'));
-
-    if (token && !headers.has('Authorization')) {
-      headers.set('Authorization', `Bearer ${token}`);
-      log('✓ injected Bearer token');
-    } else if (!token) {
-      log('⚠ no token found in storage');
+    // PRODUCTION: Never inject token from localStorage - rely on HttpOnly cookies
+    // DEV: Allow Bearer token from localStorage for testing/local development
+    if (!IS_PROD && !headers.has('Authorization')) {
+      const token =
+        localStorage.getItem('keeper_token') ||
+        sessionStorage.getItem('keeper_token') ||
+        '';
+      
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+        log('✓ DEV: injected Bearer token from storage');
+      }
     }
+
+    log('API match → mode:', IS_PROD ? 'PROD (cookies only)' : 'DEV (fallback to storage)', 
+        'has Authorization?', headers.has('Authorization'));
 
     const nextInit: RequestInit = {
       ...(input instanceof Request ? {} : init),
       headers,
-      credentials: init?.credentials || 'include',
+      credentials: init?.credentials || 'include', // Always send cookies
     };
 
     const nextInput =
@@ -77,7 +81,8 @@
   (window as any).__keeper = (window as any).__keeper || {};
   (window as any).__keeper.fetchShimInstalled = true;
   (window as any).__keeper.fetchShimDebug = DEBUG;
+  (window as any).__keeper.fetchShimMode = IS_PROD ? 'production' : 'development';
 
-  log('installed (debug=', DEBUG, ')');
+  log('installed (debug=', DEBUG, 'mode=', IS_PROD ? 'PROD' : 'DEV', ')');
 })();
 

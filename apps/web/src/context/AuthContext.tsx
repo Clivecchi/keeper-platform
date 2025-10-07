@@ -31,15 +31,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // In production, rely on HttpOnly cookies - don't trust localStorage
+    // In development, allow localStorage for testing
+    const IS_PROD = import.meta.env.PROD;
+    
+    if (IS_PROD) {
+      // Production: Don't read from localStorage - AuthGate already validated with server
+      console.log('[AuthContext] Production mode: skipping localStorage (using cookies)');
+      setIsLoading(false);
+      return;
+    }
+
+    // Development only: read from localStorage for local testing
     try {
       const storedToken = localStorage.getItem('keeper_token');
       const storedUser = localStorage.getItem('keeper_user');
       if (storedToken && storedUser) {
+        console.log('[AuthContext] Dev mode: loaded auth from localStorage');
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
       }
     } catch (error) {
-      console.error("Failed to parse auth data from localStorage", error);
+      console.error("[AuthContext] Failed to parse auth data from localStorage", error);
       localStorage.removeItem('keeper_token');
       localStorage.removeItem('keeper_user');
     } finally {
@@ -51,8 +64,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (data.user && data.token) {
       setUser(data.user);
       setToken(data.token);
-      localStorage.setItem('keeper_user', JSON.stringify(data.user));
-      localStorage.setItem('keeper_token', data.token);
+      
+      // In production, server sets HttpOnly cookie - don't store in localStorage
+      // In development, store for local testing
+      if (!import.meta.env.PROD) {
+        localStorage.setItem('keeper_user', JSON.stringify(data.user));
+        localStorage.setItem('keeper_token', data.token);
+        console.log('[AuthContext] Dev mode: stored auth in localStorage');
+      } else {
+        console.log('[AuthContext] Production mode: auth via cookie only');
+      }
     }
   };
 

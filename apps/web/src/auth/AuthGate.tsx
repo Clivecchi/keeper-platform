@@ -1,5 +1,6 @@
 // src/auth/AuthGate.tsx
 // Strict authentication gate: validates with server before rendering app
+// Uses HttpOnly cookie-based authentication (extension-proof)
 // Prevents "phantom login" where UI shows logged-in state without valid token
 
 import React from 'react';
@@ -12,45 +13,31 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     (async () => {
-      // Do not trust local state: verify with server
-      const token =
-        localStorage.getItem('keeper_token') ||
-        sessionStorage.getItem('keeper_token');
-
-      if (!token) {
-        // no token → definitely guest
-        console.log('[AuthGate] No token found, setting guest status');
-        setUser(null);
-        setStatus('guest');
-        return;
-      }
-
       try {
-        // Fast server ping to validate token using /api/domains/my
-        console.log('[AuthGate] Validating token with server...');
+        // Verify session with server using HttpOnly cookie
+        // No need to check localStorage - server uses cookie for auth
+        console.log('[AuthGate] Validating session with server (cookie-based)...');
         const apiUrl = (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com';
-        const response = await fetch(`${apiUrl}/api/domains/my`, {
+        const response = await fetch(`${apiUrl}/api/kam/auth/me`, {
           method: 'GET',
-          headers: { Authorization: `Bearer ${token}` },
-          credentials: 'include',
+          credentials: 'include', // Send HttpOnly cookie
         });
 
         if (response.ok) {
-          // Token is valid - we don't need the domain data, just the 200 response
-          console.log('[AuthGate] Token validated, user authenticated');
-          // Set a minimal user object or null - AuthProvider will handle full user state
-          setUser({ validated: true });
+          const data = await response.json();
+          console.log('[AuthGate] Session validated, user authenticated');
+          setUser(data.user || { validated: true });
           setStatus('authed');
           return;
         }
         
-        console.warn('[AuthGate] Server rejected token:', response.status);
+        console.log('[AuthGate] No valid session, setting guest status');
       } catch (e) {
-        console.error('[AuthGate] Token validation failed:', e);
+        console.error('[AuthGate] Session validation failed:', e);
       }
 
-      // If server rejects, nuke any client auth and go guest
-      console.log('[AuthGate] Clearing invalid token and setting guest status');
+      // If server rejects or no session cookie, go guest
+      // Clean up any stale localStorage data (legacy)
       localStorage.removeItem('keeper_token');
       localStorage.removeItem('keeper_user');
       sessionStorage.removeItem('keeper_token');
