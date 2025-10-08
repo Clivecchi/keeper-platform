@@ -193,7 +193,24 @@ function isOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return true; // non-browser/server-to-server
   if (CORS_ALLOWLIST.size === 0 && CORS_WILDCARDS.length === 0) return true; // no restriction configured
   if (CORS_ALLOWLIST.has(origin)) return true;
-  return CORS_WILDCARDS.some(rx => rx.test(origin));
+  if (CORS_WILDCARDS.some(rx => rx.test(origin))) return true;
+  
+  // Check for preview origins (if enabled)
+  if (process.env.WEB_PREVIEW_ALLOW === '1') {
+    try {
+      const url = new URL(origin);
+      const suffix = process.env.WEB_PREVIEW_HOST_SUFFIX || '.vercel.app';
+      const prefix = process.env.WEB_PREVIEW_HOST_PREFIX || '';
+      const endsWithSuffix = url.hostname.endsWith(suffix);
+      const startsWithPrefix = prefix ? url.hostname.startsWith(prefix) : true;
+      if (endsWithSuffix && startsWithPrefix) {
+        console.log('[CORS] Allowing preview origin:', origin);
+        return true;
+      }
+    } catch {}
+  }
+  
+  return false;
 }
 
 // Guard middleware to short-circuit disallowed origins with 403

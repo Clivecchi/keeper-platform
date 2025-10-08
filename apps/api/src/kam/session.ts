@@ -9,16 +9,40 @@ const COOKIE_NAME = 'keeper_session';
 const DOMAIN = '.ke3p.com'; // works for www.ke3p.com and api.ke3p.com
 const JWT_SECRET = process.env.JWT_SECRET!; // ensure set in Railway
 
-// Set secure HttpOnly session cookie
-export function setSessionCookie(res: Response, token: string) {
+// Check if request is from a Vercel preview deployment
+function isPreviewOrigin(req: Request): boolean {
+  const origin = req.headers.origin;
+  if (!origin) return false;
+  
+  try {
+    const url = new URL(origin);
+    const suffix = process.env.WEB_PREVIEW_HOST_SUFFIX || '.vercel.app';
+    const prefix = process.env.WEB_PREVIEW_HOST_PREFIX || '';
+    const endsWithSuffix = url.hostname.endsWith(suffix);
+    const startsWithPrefix = prefix ? url.hostname.startsWith(prefix) : true;
+    return endsWithSuffix && startsWithPrefix;
+  } catch {
+    return false;
+  }
+}
+
+// Set secure HttpOnly session cookie (preview-aware)
+export function setSessionCookie(req: Request, res: Response, token: string) {
+  const isPreview = isPreviewOrigin(req);
+  
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     secure: true, // HTTPS only
-    sameSite: 'lax', // Changed from 'Lax' to 'lax' for TypeScript
+    // For preview (cross-site), use None; for prod use Lax
+    sameSite: isPreview ? 'none' : 'lax',
     domain: DOMAIN,
     path: '/',
     maxAge: 7 * 24 * 3600_000, // 7 days
   });
+  
+  if (isPreview) {
+    console.log('[session] Set preview cookie (SameSite=None) for origin:', req.headers.origin);
+  }
 }
 
 // Clear session cookie on logout
@@ -54,16 +78,33 @@ export function csrfGuard(req: Request, res: Response, next: NextFunction) {
   
   const origin = req.headers.origin || '';
   const referer = req.headers.referer || '';
-  const ok =
+  
+  // Check production origins
+  const okProd =
     origin.endsWith('.ke3p.com') ||
     referer.includes('.ke3p.com') ||
     !origin; // Allow server-to-server (no Origin header)
 
-  if (!ok) {
-    console.warn(`[CSRF] Rejected request from origin: ${origin}, referer: ${referer}`);
-    return res.status(403).json({ error: 'CSRF check failed' });
+  // Check preview origins (if enabled)
+  let okPreview = false;
+  if (process.env.WEB_PREVIEW_ALLOW === '1') {
+    try {
+      const urlToCheck = origin || referer || '';
+      if (urlToCheck) {
+        const url = new URL(urlToCheck);
+        const suffix = process.env.WEB_PREVIEW_HOST_SUFFIX || '.vercel.app';
+        const prefix = process.env.WEB_PREVIEW_HOST_PREFIX || '';
+        const endsWithSuffix = url.hostname.endsWith(suffix);
+        const startsWithPrefix = prefix ? url.hostname.startsWith(prefix) : true;
+        okPreview = endsWithSuffix && startsWithPrefix;
+      }
+    } catch {}
   }
-  return next();
+
+  if (okProd || okPreview) return next();
+  
+  console.warn(`[CSRF] Rejected request from origin: ${origin}, referer: ${referer}`);
+  return res.status(403).json({ error: 'CSRF check failed' });
 }
 
 // Helper: require authenticated user

@@ -41,8 +41,8 @@ export async function login(req: Request, res: Response) {
       { expiresIn: '7d' }
     );
 
-    // Set HttpOnly cookie
-    setSessionCookie(res, token);
+    // Set HttpOnly cookie (preview-aware)
+    setSessionCookie(req, res, token);
 
     // Return success (still include token for CLI/tools, but web will ignore it)
     return res.json({
