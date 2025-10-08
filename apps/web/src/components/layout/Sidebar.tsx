@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useViewMode } from '../../context/ViewModeContext';
 import { ViewMode } from '../../types/viewMode';
 import DebugButton from '../DebugButton';
+import { logout as logoutWithCookie } from '../../auth/logout';
 import { 
   ChevronLeftIcon, 
   ChevronRightIcon,
@@ -202,7 +203,7 @@ export const Sidebar: React.FC = () => {
     myKeeper: true,
     admin: true
   });
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { currentMode } = useViewMode();
   const location = useLocation();
 
@@ -413,7 +414,7 @@ export const Sidebar: React.FC = () => {
             </div>
           </div>
           <button
-            onClick={logout}
+            onClick={logoutWithCookie}
             className="w-full text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Sign out

@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 import { apiFetch } from '../../lib/api';
+import { logout } from '../../auth/logout';
 
 const NavItem: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => (
   <NavLink
@@ -80,6 +81,14 @@ const UserIdentityDropdown: React.FC<{ user: any; domains: DomainWithRole[] }> =
           <NavLink to="/root" className="block px-4 py-2 text-sm hover:bg-gray-50">
             Root Dashboard
           </NavLink>
+          <button
+            type="button"
+            onClick={logout}
+            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+            aria-label="Logout"
+          >
+            Logout
+          </button>
         </div>
       )}
     </div>
