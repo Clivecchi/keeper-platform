@@ -24,12 +24,12 @@ export async function login(req: Request, res: Response) {
       where: { email },
     });
 
-    if (!user || !user.password_hash) {
+    if (!user || !user.hashedPassword) {
       return res.status(401).json({ error: 'invalid_credentials' });
     }
 
     // Verify password
-    const isValid = await bcrypt.compare(password, user.password_hash);
+    const isValid = await bcrypt.compare(password, user.hashedPassword);
     if (!isValid) {
       return res.status(401).json({ error: 'invalid_credentials' });
     }
