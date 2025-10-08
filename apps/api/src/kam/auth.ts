@@ -20,7 +20,7 @@ export async function login(req: Request, res: Response) {
     }
 
     // Find user by email
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email },
     });
 
@@ -81,7 +81,7 @@ export async function me(req: Request, res: Response) {
 
   try {
     // Fetch full user details from database
-    const dbUser = await prisma.user.findUnique({
+    const dbUser = await prisma.users.findUnique({
       where: { id: user.id },
       select: {
         id: true,
