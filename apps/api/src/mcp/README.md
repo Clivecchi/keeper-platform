@@ -3,6 +3,8 @@
 ## 📌 Purpose
 Minimal MCP server for OpenAI Agent integration. Provides safe, domain-scoped tools that the agent can call via API key authentication.
 
+**✨ Updated for OpenAI Agent Builder**: Includes universal CORS headers to prevent connection hanging.
+
 ## 🧱 Key Files
 - `index.ts` - Express router with MCP routes
 - `auth.ts` - API key authentication middleware
@@ -177,6 +179,34 @@ curl -X GET https://api.ke3p.com/api/mcp/schema \
   -H "x-api-key: YOUR_MCP_KEY"
 ```
 
+## 🌐 CORS & OpenAI Agent Builder
+
+### CORS Headers
+All MCP endpoints include universal CORS headers:
+- `Access-Control-Allow-Origin: *`
+- `Access-Control-Allow-Methods: GET,POST,OPTIONS`
+- `Access-Control-Allow-Headers: Content-Type, Authorization, x-api-key, x-domain-id`
+- `Access-Control-Max-Age: 600`
+
+### Content-Type
+All responses include:
+- `Content-Type: application/json; charset=utf-8`
+
+### Preflight Handling
+OPTIONS requests are handled automatically and return 200 OK with CORS headers.
+
+### OpenAI Agent Builder Setup
+1. **Base URL**: `https://api.ke3p.com/api/mcp`
+2. **Authentication**: Bearer token
+3. **API Key**: Your `OPAI_AGENT_MCP_KEY` value
+4. **Expected Status**: "Connected" (not "Establishing connection...")
+
+**Troubleshooting Connection Hangs:**
+- ✅ Verify CORS headers with `curl -i -X OPTIONS https://api.ke3p.com/api/mcp/schema`
+- ✅ Check Content-Type header is `application/json; charset=utf-8`
+- ✅ Test health check: `curl https://api.ke3p.com/api/mcp/ -H "Authorization: Bearer YOUR_KEY"`
+- ✅ Run CORS tests: `bash test-mcp-cors.sh`
+
 ## 🔒 Security
 
 ### API Key Storage
@@ -199,7 +229,7 @@ curl -X GET https://api.ke3p.com/api/mcp/schema \
 
 ## 🧪 Testing
 
-### Run Tests
+### Run Unit Tests
 ```bash
 # From repo root
 pnpm --filter @keeper/api test src/mcp/mcp.test.ts
@@ -209,12 +239,35 @@ pnpm --filter @keeper/api test:watch src/mcp/mcp.test.ts
 ```
 
 ### Test Coverage
+- ✅ CORS headers (OPTIONS preflight, wildcard origin)
+- ✅ Content-Type headers (charset=utf-8)
 - ✅ Authentication (valid/invalid keys, different headers)
 - ✅ Health check endpoint
 - ✅ Schema endpoint
 - ✅ Tool call endpoint
 - ✅ Domain scoping
 - ✅ Error handling
+- ✅ Timestamp in all responses
+
+### Test CORS with Curl
+```bash
+# Set your API key
+export OPAI_AGENT_MCP_KEY="your_key_here"
+
+# Run CORS tests
+bash test-mcp-cors.sh
+```
+
+**Expected Output:**
+```
+✅ PASS: Preflight returns 200
+✅ PASS: CORS Origin is *
+✅ PASS: CORS Methods include GET and POST
+✅ PASS: Content-Type is application/json; charset=utf-8
+✅ PASS: Response body contains ok:true
+✅ PASS: Schema contains tools and timestamp
+✅ PASS: Tool call response valid
+```
 
 ## 🚀 Deployment
 
@@ -309,7 +362,9 @@ it('calls my_new_tool successfully', async () => {
 - [ ] Add per-tool permission scopes
 
 ## 📆 Update Log
-**2025-10-11**: Initial MCP server implementation with two mock tools, API key auth, and unit tests.
+**2025-10-11 (v2)**: Added universal CORS headers and proper Content-Type to fix OpenAI Agent Builder connection hanging. All responses now include timestamps.
+
+**2025-10-11 (v1)**: Initial MCP server implementation with two mock tools, API key auth, and unit tests.
 
 ## 🔗 Related Documentation
 - [KAM Authentication](../kam/README.md) - Cookie-based web auth

@@ -22,18 +22,55 @@ describe('MCP Server', () => {
     app.use('/api/mcp', mcpRouter);
   });
 
+  describe('CORS Headers', () => {
+    it('includes CORS headers on GET requests', async () => {
+      const res = await request(app)
+        .get('/api/mcp/')
+        .set('Authorization', `Bearer ${VALID_KEY}`);
+      
+      expect(res.headers['access-control-allow-origin']).toBe('*');
+      expect(res.headers['access-control-allow-methods']).toBeDefined();
+    });
+
+    it('handles OPTIONS preflight requests', async () => {
+      const res = await request(app)
+        .options('/api/mcp/schema')
+        .set('Origin', 'https://platform.openai.com');
+      
+      expect(res.status).toBe(200);
+      expect(res.headers['access-control-allow-origin']).toBe('*');
+      expect(res.headers['access-control-allow-methods']).toContain('GET');
+      expect(res.headers['access-control-allow-methods']).toContain('POST');
+      expect(res.headers['access-control-allow-headers']).toContain('Authorization');
+      expect(res.headers['access-control-allow-headers']).toContain('x-api-key');
+    });
+
+    it('includes Content-Type header on all responses', async () => {
+      const res = await request(app)
+        .get('/api/mcp/')
+        .set('Authorization', `Bearer ${VALID_KEY}`);
+      
+      expect(res.headers['content-type']).toContain('application/json');
+      expect(res.headers['content-type']).toContain('charset=utf-8');
+    });
+  });
+
   describe('Authentication', () => {
     it('401 when Authorization header missing', async () => {
       const res = await request(app).get('/api/mcp/');
       expect(res.status).toBe(401);
       expect(res.body).toHaveProperty('error');
       expect(res.body.error).toBe('Unauthorized');
+      expect(res.body).toHaveProperty('timestamp');
+      expect(res.body.ok).toBe(false);
     });
 
     it('401 when x-api-key header missing', async () => {
       const res = await request(app).get('/api/mcp/schema');
       expect(res.status).toBe(401);
       expect(res.body).toHaveProperty('error');
+      expect(res.body).toHaveProperty('timestamp');
+      expect(res.body.ok).toBe(false);
     });
 
     it('401 when API key is wrong', async () => {
@@ -116,6 +153,7 @@ describe('MCP Server', () => {
       expect(res.body).toHaveProperty('service', 'keeper-mcp');
       expect(res.body).toHaveProperty('version', '0.0.1');
       expect(res.body).toHaveProperty('tools');
+      expect(res.body).toHaveProperty('timestamp');
       expect(Array.isArray(res.body.tools)).toBe(true);
     });
 
@@ -155,6 +193,7 @@ describe('MCP Server', () => {
       expect(res.status).toBe(400);
       expect(res.body.ok).toBe(false);
       expect(res.body.error).toBe('Missing tool name');
+      expect(res.body).toHaveProperty('timestamp');
     });
 
     it('400 when tool not found', async () => {
@@ -166,6 +205,7 @@ describe('MCP Server', () => {
       expect(res.status).toBe(400);
       expect(res.body.ok).toBe(false);
       expect(res.body.error).toContain('Unknown tool');
+      expect(res.body).toHaveProperty('timestamp');
     });
 
     it('calls gk_recent_moments successfully', async () => {
