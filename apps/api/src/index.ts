@@ -880,8 +880,11 @@ app.use('/api/kam/auth', authRouter);
 
 // MCP OPTIONS preflight handler (must be before router mount)
 app.options('/api/mcp/*', (_req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  const origin = (_req.headers.origin as string) || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,HEAD');
   res.setHeader(
     'Access-Control-Allow-Headers',
     'Content-Type, Authorization, x-api-key, x-domain-id'

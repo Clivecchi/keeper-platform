@@ -14,6 +14,16 @@ const router = Router();
 router.use(mcpCors);
 
 /**
+ * Allow unauthenticated HEAD requests for discovery
+ * Some tool UIs probe with HEAD before making actual requests
+ * No data is leaked - just returns 200 OK
+ */
+router.head(['/', '/schema', '/call'], (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.sendStatus(200);
+});
+
+/**
  * Auth Middleware
  * Accepts both Authorization: Bearer and x-api-key headers
  */
@@ -98,7 +108,7 @@ router.post('/call', async (req: Request, res: Response) => {
     const result = await callTool(
       String(name), 
       args ?? {}, 
-      { domainId: (req as any).domainId }
+      { domainId: (req as any).domainId ?? null }
     );
     
     res.json({ 

@@ -24,26 +24,42 @@ describe('MCP Server', () => {
   });
 
   describe('CORS Headers', () => {
-    it('includes CORS headers on GET requests', async () => {
+    it('echoes Origin header on GET requests', async () => {
+      const testOrigin = 'https://platform.openai.com';
+      const res = await request(app)
+        .get('/api/mcp/')
+        .set('Authorization', `Bearer ${VALID_KEY}`)
+        .set('Origin', testOrigin);
+      
+      expect(res.headers['access-control-allow-origin']).toBe(testOrigin);
+      expect(res.headers['access-control-allow-credentials']).toBe('true');
+      expect(res.headers['access-control-allow-methods']).toBeDefined();
+      expect(res.headers['vary']).toBe('Origin');
+    });
+
+    it('defaults to * when no Origin header present', async () => {
       const res = await request(app)
         .get('/api/mcp/')
         .set('Authorization', `Bearer ${VALID_KEY}`);
       
       expect(res.headers['access-control-allow-origin']).toBe('*');
-      expect(res.headers['access-control-allow-methods']).toBeDefined();
+      expect(res.headers['access-control-allow-credentials']).toBe('true');
       expect(res.headers['vary']).toBe('Origin');
     });
 
-    it('handles OPTIONS preflight requests', async () => {
+    it('handles OPTIONS preflight requests with Origin', async () => {
+      const testOrigin = 'https://platform.openai.com';
       const res = await request(app)
         .options('/api/mcp/schema')
-        .set('Origin', 'https://platform.openai.com');
+        .set('Origin', testOrigin);
       
       expect(res.status).toBe(200);
-      expect(res.headers['access-control-allow-origin']).toBe('*');
+      expect(res.headers['access-control-allow-origin']).toBe(testOrigin);
+      expect(res.headers['access-control-allow-credentials']).toBe('true');
       expect(res.headers['vary']).toBe('Origin');
       expect(res.headers['access-control-allow-methods']).toContain('GET');
       expect(res.headers['access-control-allow-methods']).toContain('POST');
+      expect(res.headers['access-control-allow-methods']).toContain('HEAD');
       expect(res.headers['access-control-allow-headers']).toContain('Authorization');
       expect(res.headers['access-control-allow-headers']).toContain('x-api-key');
     });
@@ -55,6 +71,29 @@ describe('MCP Server', () => {
       
       expect(res.headers['content-type']).toContain('application/json');
       expect(res.headers['content-type']).toContain('charset=utf-8');
+    });
+  });
+
+  describe('HEAD Requests (Discovery)', () => {
+    it('allows unauthenticated HEAD on /', async () => {
+      const res = await request(app).head('/api/mcp/');
+      
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('application/json');
+    });
+
+    it('allows unauthenticated HEAD on /schema', async () => {
+      const res = await request(app).head('/api/mcp/schema');
+      
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('application/json');
+    });
+
+    it('allows unauthenticated HEAD on /call', async () => {
+      const res = await request(app).head('/api/mcp/call');
+      
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('application/json');
     });
   });
 
