@@ -7,9 +7,9 @@ Minimal MCP server for OpenAI Agent integration. Provides safe, domain-scoped to
 
 ## 🧱 Key Files
 - `index.ts` - Express router with MCP routes
-- `auth.ts` - API key authentication middleware
+- `cors.ts` - CORS middleware (universal headers for OpenAI Agent Builder)
 - `tools.ts` - Tool registry and handlers
-- `mcp.test.ts` - Unit tests
+- `mcp.test.ts` - Unit tests (21 test cases)
 
 ## 🔄 Data & Behavior
 
@@ -362,6 +362,8 @@ it('calls my_new_tool successfully', async () => {
 - [ ] Add per-tool permission scopes
 
 ## 📆 Update Log
+**2025-10-11 (v3)**: Refactored CORS into dedicated `cors.ts` file. Added server-level OPTIONS handler and `Vary: Origin` header. Improved code organization and maintainability.
+
 **2025-10-11 (v2)**: Added universal CORS headers and proper Content-Type to fix OpenAI Agent Builder connection hanging. All responses now include timestamps.
 
 **2025-10-11 (v1)**: Initial MCP server implementation with two mock tools, API key auth, and unit tests.

@@ -5,28 +5,13 @@
 
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
+import { mcpCors } from './cors.js';
 import { getSchema, callTool } from './tools.js';
 
 const router = Router();
 
-/**
- * Universal CORS + Preflight Handler
- * Ensures OpenAI Agent Builder can connect without hanging
- */
-router.use((req: Request, res: Response, next: NextFunction) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key, x-domain-id');
-  res.setHeader('Access-Control-Max-Age', '600');
-  
-  // Handle preflight
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-    return;
-  }
-  
-  next();
-});
+// Apply CORS middleware first
+router.use(mcpCors);
 
 /**
  * Auth Middleware
@@ -37,7 +22,7 @@ router.use((req: Request, res: Response, next: NextFunction) => {
   const apiKey = (req.headers['x-api-key'] as string) || bearer;
   const expected = process.env.OPAI_AGENT_MCP_KEY?.trim();
   
-  if (!expected || !apiKey || apiKey !== expected) {
+  if (!expected || apiKey !== expected) {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.status(401).json({ 
       ok: false, 

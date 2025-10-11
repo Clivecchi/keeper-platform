@@ -6,6 +6,7 @@ import request from 'supertest';
 import express from 'express';
 import type { Express } from 'express';
 import mcpRouter from './index.js';
+import { mcpCors } from './cors.js';
 
 describe('MCP Server', () => {
   let app: Express;
@@ -30,6 +31,7 @@ describe('MCP Server', () => {
       
       expect(res.headers['access-control-allow-origin']).toBe('*');
       expect(res.headers['access-control-allow-methods']).toBeDefined();
+      expect(res.headers['vary']).toBe('Origin');
     });
 
     it('handles OPTIONS preflight requests', async () => {
@@ -39,6 +41,7 @@ describe('MCP Server', () => {
       
       expect(res.status).toBe(200);
       expect(res.headers['access-control-allow-origin']).toBe('*');
+      expect(res.headers['vary']).toBe('Origin');
       expect(res.headers['access-control-allow-methods']).toContain('GET');
       expect(res.headers['access-control-allow-methods']).toContain('POST');
       expect(res.headers['access-control-allow-headers']).toContain('Authorization');

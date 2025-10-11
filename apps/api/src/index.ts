@@ -877,6 +877,19 @@ app.use('/api/people', peopleRoutes);
 app.use('/kam', kamRouter);
 // Mount auth routes (cookie-based session management)
 app.use('/api/kam/auth', authRouter);
+
+// MCP OPTIONS preflight handler (must be before router mount)
+app.options('/api/mcp/*', (_req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, x-api-key, x-domain-id'
+  );
+  res.setHeader('Access-Control-Max-Age', '600');
+  res.sendStatus(200);
+});
+
 // Mount MCP routes (OpenAI Agent integration)
 app.use('/api/mcp', mcpRouter);
 
