@@ -54,6 +54,8 @@ import { runMigrationsOnce } from './startup/migrate.js';
 // KAM routes
 import kamRouter from './kam/routes.js';
 import authRouter from './kam/auth-routes.js';
+// MCP routes (OpenAI Agent integration)
+import mcpRouter from './mcp/index.js';
 
 // Load environment variables
 dotenv.config();
@@ -875,6 +877,8 @@ app.use('/api/people', peopleRoutes);
 app.use('/kam', kamRouter);
 // Mount auth routes (cookie-based session management)
 app.use('/api/kam/auth', authRouter);
+// Mount MCP routes (OpenAI Agent integration)
+app.use('/api/mcp', mcpRouter);
 
 // Connect KIP routes
 app.use('/api/kip/agents', kipAgentsHandler);

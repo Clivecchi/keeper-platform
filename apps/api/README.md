@@ -15,10 +15,12 @@ Runs Prisma-backed endpoints, CORS hardened for single-domain MVP. Origins are d
 ## ⚠️ Notes & ToDo
 - [ ] Consider enabling multi-tenant custom domains post-MVP
 - [ ] Expand structured logging and metrics
+- [x] MCP server for OpenAI Agent integration
 
 ## 📆 Update Log
-- [2025-09-24] Boot log now prints `ProxyEnabled`, `APP_ORIGIN`, and `PUBLIC_WEB_ORIGIN`. Adopted `KEEPER_PROXY_ENABLED=false` for single-domain MVP (proxy disabled by default).
+- **2025-10-11**: Added MCP (Model Context Protocol) server at `/api/mcp` for OpenAI Agent integration. Includes API key auth, tool registry, and unit tests.
 - [2025-09-30] CORS updated with debug logging and wildcard support (reads `CORS_ALLOWLIST` and `CORS_ORIGINS`, supports patterns like `https://*.vercel.app`). Added explicit `app.options('*', cors(corsOptions))` preflight handling.
+- [2025-09-24] Boot log now prints `ProxyEnabled`, `APP_ORIGIN`, and `PUBLIC_WEB_ORIGIN`. Adopted `KEEPER_PROXY_ENABLED=false` for single-domain MVP (proxy disabled by default).
 
 # Keeper API
 
@@ -48,6 +50,10 @@ The API server uses:
 - `POST /api/kam/auth/login` - User authentication
 - `POST /api/kam/settings` - User settings management
 - `/api/debug/*` - Debug endpoints (development)
+- `/api/mcp/*` - MCP (Model Context Protocol) server for OpenAI Agent integration
+  - `GET /api/mcp/` - Health check
+  - `GET /api/mcp/schema` - Get tool schemas
+  - `POST /api/mcp/call` - Call a tool
 
 ## 🚀 Railway Deployment
 
