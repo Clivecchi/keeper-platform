@@ -122,6 +122,7 @@ src/
 - **Input Validation**: Zod schemas for all inputs
 - **Type Safety**: Full TypeScript coverage
 - **Session Management**: Secure token invalidation
+- **Cookie-Only Auth (Web)**: Web browsers must use HttpOnly cookies in production
 
 ## 🎨 Theme Integration
 
@@ -182,6 +183,7 @@ app.use('/api/protected', async (req, res, next) => {
 
 - [x] Fixed dev environment build issues by changing TypeScript moduleResolution from "bundler" to "node"
 - [x] Ensured JavaScript files are generated for workspace consumption
+- [x] Enforced cookie-only authentication for web browsers in production
 - [ ] Add comprehensive testing for all auth flows
 - [ ] Behavior to confirm with Kip
 
@@ -195,12 +197,13 @@ This package was extracted from the previous `apps/web/src/kam` and `apps/api/sr
 - All KAM functionality consolidated in single package
 
 ## 📆 Update Log
-- **2025-06-23**: Created @keeper/kam package during monorepo migration
-- **2025-06-23**: Consolidated auth logic from web and API apps
-- **2025-06-23**: Added comprehensive TypeScript configurations
-- **2025-06-23**: Implemented package exports for modular imports
+- **2025-10-11**: API: Updated `session.ts` - `authWeb` middleware now ignores Authorization headers from browser requests (detected via Origin header). Header auth only allowed for CLI/tools (no Origin) or when `X-Client: cli` header is present. Enforces cookie-only authentication for web browsers in production.
+- **2025-09-06** – API: ID/list routes allow domainless agents (no domain header required when agent has no domain).
+- **2025-09-06** – API: `/kam/agents/:agentId/home` now supports domain discovery (no domain header).
+- **2025-09-06** – API: Added KAM service key loader and dev-only diagnostics in `apps/api/src/kam`.
+- **2025-06-25** – Fixed TypeScript errors in domainAuth.ts and ensured all code paths return a value. 
 - **2025-06-25T02:03:00Z**: Dev Environment Fix
-- 2025-06-25 – Fixed TypeScript errors in domainAuth.ts and ensured all code paths return a value. 
- - 2025-09-06 – API: Added KAM service key loader and dev-only diagnostics in `apps/api/src/kam`.
- - 2025-09-06 – API: `/kam/agents/:agentId/home` now supports domain discovery (no domain header).
- - 2025-09-06 – API: ID/list routes allow domainless agents (no domain header required when agent has no domain).
+- **2025-06-23**: Implemented package exports for modular imports
+- **2025-06-23**: Added comprehensive TypeScript configurations
+- **2025-06-23**: Consolidated auth logic from web and API apps
+- **2025-06-23**: Created @keeper/kam package during monorepo migration

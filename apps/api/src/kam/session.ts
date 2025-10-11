@@ -58,10 +58,16 @@ export function clearSessionCookie(res: Response) {
 
 // Auth middleware: prefer cookie, fallback to Authorization header for tools/CLI
 export function authWeb(req: Request, _res: Response, next: NextFunction) {
+  const origin = req.headers.origin; // present for browser CORS/XHR/fetch
+  const cliHeader = (req.headers['x-client'] || '').toString().toLowerCase() === 'cli';
+
   const cookieToken = req.cookies?.[COOKIE_NAME];
   const headerToken = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
 
-  const token = cookieToken || headerToken || '';
+  // Accept header token only when NOT a browser fetch (no Origin) or explicitly marked CLI
+  const allowHeader = !origin || cliHeader;
+
+  const token = cookieToken || (allowHeader ? headerToken : '');
   if (!token) return next();
 
   try {
