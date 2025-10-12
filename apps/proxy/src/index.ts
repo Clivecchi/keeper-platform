@@ -165,11 +165,6 @@ app.post("/v1/topics", async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
-// MCP Proxy health check
-app.get("/api/mcp", (_req, res) =>
-  res.json({ ok: true, service: "keeper-mcp-proxy", ts: new Date().toISOString() })
-);
-
 // MCP Proxy routes
 app.use("/api/mcp", mcpProxy);
 
