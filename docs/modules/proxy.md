@@ -26,7 +26,7 @@ A tiny Express proxy exposing read-only routes to Keeper APIs with auth, CORS, a
     - `HEAD /api/mcp` -> Base health probe (200)
     - `HEAD /api/mcp/schema` -> Schema health probe (200)
     - `HEAD /api/mcp/call` -> Call health probe (200)
-    - `GET /api/mcp/schema` -> Fetches from `${KEEPER_API_BASE}/api/mcp/schema` and transforms to MCP v1 format with `input_schema` instead of `parameters`.
+    - `GET /api/mcp/schema` -> `${KEEPER_API_BASE}/api/mcp/schema` with extracted API key sent as both `x-api-key` and `Authorization: Bearer`.
     - `POST /api/mcp/call` -> `${KEEPER_API_BASE}/api/mcp/call` with extracted API key sent as both `x-api-key` and `Authorization: Bearer`.
     - Auth extraction: Accepts `x-api-key` header OR `Authorization: Bearer <token>` and forwards both styles to upstream.
  - TEMP local endpoints (to be migrated into KAM):
@@ -47,3 +47,4 @@ A tiny Express proxy exposing read-only routes to Keeper APIs with auth, CORS, a
 - [2025-10-12] Add MCP proxy routes `/api/mcp/schema` and `/api/mcp/call` in `src/mcpProxy.ts` with dedicated CORS handling. Forwards requests to `${KEEPER_API_BASE}/api/mcp/*` with authentication headers.
 - [2025-10-12] Update MCP proxy with HEAD probes for OpenAI Agent Builder compatibility. Added health check endpoints (`GET/HEAD /api/mcp`, `HEAD /schema`, `HEAD /call`) and dual auth support (x-api-key OR Bearer token extraction). Content-Type includes charset=utf-8.
 - [2025-10-12] Transform `/api/mcp/schema` response to MCP v1 format: `{ mcp: { version }, server: { name: { human_readable }, version }, tools: [{ name, description, input_schema }] }`. Renames `parameters` to `input_schema` per MCP spec.
+- [2025-10-12] **STRICT JSON SCHEMA COMPLIANCE**: Added `normalizeJsonSchema()` to fix OpenAI Agent Builder 424 errors. Ensures all `input_schema` objects have: `type: "object"`, `properties: {}` (always present), `additionalProperties: boolean`, `required: string[]`, and only standard JSON Schema primitives (`string|number|integer|boolean|array|object`). Normalizes non-standard types (e.g., `float` → `number`). Added `diag_echo` diagnostic tool and `inputSchema` camelCase mirror for compatibility.
