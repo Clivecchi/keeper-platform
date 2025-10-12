@@ -5,53 +5,25 @@ const router = express.Router();
 const BASE = process.env.KEEPER_API_BASE!;
 
 // ============================================================================
-// JSON Schema Normalizer for MCP v1 Strict Compliance
+// Minimal JSON Schema Normalizer for MCP v1 Compliance
 // ============================================================================
 
-type JsonSchema = {
-  type?: string;
-  properties?: Record<string, any>;
-  required?: string[];
-  additionalProperties?: boolean;
-};
-
-function isPlainObj(v: unknown): v is Record<string, any> {
-  return !!v && typeof v === "object" && !Array.isArray(v);
+function isObj(x: any): x is Record<string, any> {
+  return !!x && typeof x === "object" && !Array.isArray(x);
 }
 
-function normalizeJsonSchema(input: any): JsonSchema {
-  const out: JsonSchema = isPlainObj(input) ? { ...input } : {};
-  // force root to object schema
+function normalizeRootSchema(input: any) {
+  const out: any = isObj(input) ? { ...input } : {};
   out.type = "object";
-
-  // properties: must be an object (empty allowed)
-  const props = isPlainObj((input ?? {}).properties) ? (input as any).properties : {};
-  out.properties = { ...props };
-
-  // additionalProperties: must be boolean
-  const ap = (input ?? {}).additionalProperties;
-  out.additionalProperties = typeof ap === "boolean" ? ap : false;
-
-  // required: must be string[]
-  const req = (input ?? {}).required;
-  out.required = Array.isArray(req) ? req.filter((x: any) => typeof x === "string") : [];
-
-  // sanitize nested property types to standard primitives
-  for (const [k, prop] of Object.entries(out.properties)) {
-    if (isPlainObj(prop) && typeof prop.type === "string") {
-      const t = prop.type.toLowerCase();
-      const ok = ["string", "number", "integer", "boolean", "array", "object"];
-      const map: Record<string, string> = { float: "number", double: "number", decimal: "number" };
-      const mapped = map[t] ?? t;
-      if (!ok.includes(mapped)) {
-        // if not standard, remove 'type' and let other keywords (enum, anyOf, etc.) stand
-        delete (prop as any).type;
-      } else {
-        (prop as any).type = mapped;
-      }
-    }
+  out.properties = isObj(input?.properties) ? { ...input.properties } : {};
+  out.required = Array.isArray(input?.required)
+    ? input.required.filter((s: any) => typeof s === "string")
+    : [];
+  if (typeof input?.additionalProperties === "boolean") {
+    out.additionalProperties = input.additionalProperties;
+  } else {
+    out.additionalProperties = false;
   }
-
   return out;
 }
 
@@ -95,36 +67,12 @@ router.get("/schema", async (req: Request, res: Response) => {
   });
   const upstream = await r.json(); // current shape: { service, version, tools:[ { name, description, parameters } ] }
 
-  // Transform to MCP v1 with strict JSON Schema normalization
-  const tools = (upstream.tools || []).map((t: any) => {
-    const input_schema = normalizeJsonSchema(t.parameters); // <- normalize root + props + types
-    const tool: any = {
-      name: t.name,
-      description: t.description,
-      input_schema,
-    };
-    // Optional compatibility shim (does not violate spec):
-    tool.inputSchema = input_schema; // camelCase mirror for clients expecting it
-    return tool;
-  });
-
-  // Optional diagnostic tool for validation
-  tools.push({
-    name: "diag_echo",
-    description: "Echo input for validation",
-    input_schema: {
-      type: "object",
-      properties: { msg: { type: "string" } },
-      required: ["msg"],
-      additionalProperties: false,
-    },
-    inputSchema: { // camelCase mirror, optional
-      type: "object",
-      properties: { msg: { type: "string" } },
-      required: ["msg"],
-      additionalProperties: false,
-    }
-  });
+  // Transform to MCP v1
+  const tools = (upstream.tools || []).map((t: any) => ({
+    name: t.name,
+    description: t.description,
+    input_schema: normalizeRootSchema(t.parameters),
+  }));
 
   res
     .status(200)
@@ -170,33 +118,11 @@ if (process.env.NODE_ENV !== "production") {
       const upstream = await r.json();
 
       // Apply same transform as production route
-      const tools = (upstream.tools || []).map((t: any) => {
-        const input_schema = normalizeJsonSchema(t.parameters);
-        return {
-          name: t.name,
-          description: t.description,
-          input_schema,
-          inputSchema: input_schema, // camelCase mirror
-        };
-      });
-
-      // Add diagnostic tool
-      tools.push({
-        name: "diag_echo",
-        description: "Echo input for validation",
-        input_schema: {
-          type: "object",
-          properties: { msg: { type: "string" } },
-          required: ["msg"],
-          additionalProperties: false,
-        },
-        inputSchema: {
-          type: "object",
-          properties: { msg: { type: "string" } },
-          required: ["msg"],
-          additionalProperties: false,
-        }
-      });
+      const tools = (upstream.tools || []).map((t: any) => ({
+        name: t.name,
+        description: t.description,
+        input_schema: normalizeRootSchema(t.parameters),
+      }));
 
       const mcpSchema = {
         mcp: { version: "1.0" },

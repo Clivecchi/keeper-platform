@@ -37,7 +37,7 @@ describe("MCP Proxy Schema Handler", () => {
   });
 
   describe("GET /api/mcp/schema - MCP v1 Compliance", () => {
-    it("should transform upstream schema to MCP v1 format with strict JSON Schema", async () => {
+    it("should transform upstream schema to MCP v1 format", async () => {
       // Mock upstream response
       const upstreamSchema = {
         service: "keeper-mcp",
@@ -97,9 +97,9 @@ describe("MCP Proxy Schema Handler", () => {
       expect(body.server.name).toHaveProperty("human_readable", "keeper-mcp");
       expect(body.server).toHaveProperty("version", "0.0.1");
 
-      // Assert tools structure (includes diag_echo)
+      // Assert tools structure
       expect(Array.isArray(body.tools)).toBe(true);
-      expect(body.tools.length).toBe(3); // 2 upstream + diag_echo
+      expect(body.tools.length).toBe(2);
 
       // Assert first tool has required MCP v1 fields
       const tool1 = body.tools[0];
@@ -120,12 +120,6 @@ describe("MCP Proxy Schema Handler", () => {
       expect(tool2).toHaveProperty("name", "list_topics");
       expect(tool2).toHaveProperty("input_schema");
       expect(tool2.input_schema.properties).toHaveProperty("limit");
-
-      // Assert diagnostic tool exists
-      const diagTool = body.tools.find((t: any) => t.name === "diag_echo");
-      expect(diagTool).toBeDefined();
-      expect(diagTool.input_schema.type).toBe("object");
-      expect(diagTool.input_schema.properties.msg).toBeDefined();
     });
 
     it("should handle x-api-key header authentication", async () => {
@@ -243,7 +237,7 @@ describe("MCP Proxy Schema Handler", () => {
       expect(response.headers["content-type"]).toMatch(/application\/json.*charset=utf-8/);
     });
 
-    it("tools have valid input_schema roots with strict JSON Schema compliance", async () => {
+    it("tools have valid input_schema with properties as object", async () => {
       const upstreamSchema = {
         service: "test-service",
         version: "1.0.0",
@@ -256,7 +250,6 @@ describe("MCP Proxy Schema Handler", () => {
               properties: {
                 field1: { type: "string" },
                 field2: { type: "integer" },
-                field3: { type: "float" }, // should be normalized to "number"
               },
               required: ["field1"],
               additionalProperties: true
@@ -316,32 +309,7 @@ describe("MCP Proxy Schema Handler", () => {
         
         // required must be array
         expect(Array.isArray(s.required)).toBe(true);
-        
-        // Each property type must be standard JSON Schema primitive
-        for (const [k, p] of Object.entries(s.properties ?? {})) {
-          if (p && typeof (p as any).type === "string") {
-            const allowedTypes = ["string", "number", "integer", "boolean", "array", "object"];
-            expect(allowedTypes).toContain((p as any).type);
-          }
-        }
-        
-        // Verify camelCase compatibility mirror exists
-        expect(t).toHaveProperty("inputSchema");
-        expect(t.inputSchema).toEqual(s);
       }
-
-      // Verify diag_echo diagnostic tool is present
-      const diagTool = body.tools.find((t: any) => t.name === "diag_echo");
-      expect(diagTool).toBeDefined();
-      expect(diagTool?.description).toBe("Echo input for validation");
-      expect(diagTool?.input_schema.type).toBe("object");
-      expect(diagTool?.input_schema.properties.msg).toBeDefined();
-      expect(diagTool?.input_schema.required).toContain("msg");
-      expect(diagTool?.input_schema.additionalProperties).toBe(false);
-
-      // Verify type normalization (float -> number)
-      const toolA = body.tools.find((t: any) => t.name === "tool_a");
-      expect(toolA?.input_schema.properties.field3.type).toBe("number");
       
       // Verify properties exists even when missing in upstream
       const toolB = body.tools.find((t: any) => t.name === "tool_b");
