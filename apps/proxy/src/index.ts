@@ -4,6 +4,7 @@ import { createCorsMiddleware } from "./middleware/cors";
 import { createRateLimiterMiddleware } from "./middleware/ratelimit";
 import { httpGetJson } from "./http";
 import { initProxyTopics, insertProxyTopic, listProxyTopics } from "./db";
+import mcpProxy from "./mcpProxy";
 import crypto from "node:crypto";
 
 // Environment configuration and validation
@@ -163,6 +164,9 @@ app.post("/v1/topics", async (req: Request, res: Response, next: NextFunction) =
     next(error);
   }
 });
+
+// MCP Proxy routes
+app.use("/api/mcp", mcpProxy);
 
 // Error handler
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

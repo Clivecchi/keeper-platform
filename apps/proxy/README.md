@@ -5,6 +5,7 @@ A tiny Express proxy exposing read-only routes to Keeper APIs with auth, CORS, a
 
 ## 🧱 Key Files
 - `src/index.ts`
+- `src/mcpProxy.ts`
 - `src/middleware/auth.ts`
 - `src/middleware/cors.ts`
 - `src/middleware/ratelimit.ts`
@@ -20,6 +21,9 @@ A tiny Express proxy exposing read-only routes to Keeper APIs with auth, CORS, a
   - `/v1/agents/:agentId/home` -> `${KEEPER_API_BASE}/api/board-data/agents/:agentId/home` with pass-through user JWT if provided via `x-user-authorization` or `x-user-token`, else uses `KAM_SERVICE_KEY`.
   - `/v1/boards/:boardId/frames` -> `${KEEPER_API_BASE}/kam/boards/:boardId/frames` with `KAM_SERVICE_KEY`.
   - `/v1/frames/:frameId/config` -> `${KEEPER_API_BASE}/kam/frames/:frameId/config` with `KAM_SERVICE_KEY`.
+  - MCP routes with dedicated CORS handling:
+    - `GET /api/mcp/schema` -> `${KEEPER_API_BASE}/api/mcp/schema` with `x-api-key` and `authorization` headers.
+    - `POST /api/mcp/call` -> `${KEEPER_API_BASE}/api/mcp/call` with `x-api-key` and `authorization` headers.
  - TEMP local endpoints (to be migrated into KAM):
    - `GET /v1/topics` list mini payloads (id, slug, title, area, status, createdAt). Supports `?limit=&q=&verbose=true`.
    - `POST /v1/topics` create topic with `{ slug, title, area, status?, notes?, actions? }`.
@@ -35,3 +39,4 @@ A tiny Express proxy exposing read-only routes to Keeper APIs with auth, CORS, a
 - [2025-09-09T00:00:00.000Z] Add TEMP `/v1/topics` (mini payloads) with `proxy_topics` table.
 - [2025-09-24T00:00:00.000Z] Production disablement for single-domain MVP. Service gated by `KEEPER_PROXY_ENABLED` (default `false`) and scaled to 0 replicas in Railway. `api.keeper.domains` DNS removed/parked.
 - [2025-09-30] Align TypeScript to ~5.8.3 and confirm build script tsc -p tsconfig.json works.
+- [2025-10-12] Add MCP proxy routes `/api/mcp/schema` and `/api/mcp/call` in `src/mcpProxy.ts` with dedicated CORS handling. Forwards requests to `${KEEPER_API_BASE}/api/mcp/*` with authentication headers.
