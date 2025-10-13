@@ -8,22 +8,28 @@ const BASE = process.env.KEEPER_API_BASE!;
 // Minimal JSON Schema Normalizer for MCP v1 Compliance
 // ============================================================================
 
-function isObj(x: any): x is Record<string, any> {
+function isPlainObj(x: any): x is Record<string, any> {
   return !!x && typeof x === "object" && !Array.isArray(x);
 }
 
 function normalizeRootSchema(input: any) {
-  const out: any = isObj(input) ? { ...input } : {};
-  out.type = "object";
-  out.properties = isObj(input?.properties) ? { ...input.properties } : {};
+  const out: any = isPlainObj(input) ? { ...input } : {};
+  out.type = "object"; // enforce object schema
+
+  // ensure properties is a plain object (never null/array/string)
+  out.properties = isPlainObj(input?.properties) ? { ...input.properties } : {};
+
+  // keep required as string[]
   out.required = Array.isArray(input?.required)
     ? input.required.filter((s: any) => typeof s === "string")
     : [];
-  if (typeof input?.additionalProperties === "boolean") {
-    out.additionalProperties = input.additionalProperties;
-  } else {
-    out.additionalProperties = false;
-  }
+
+  // additionalProperties must be boolean if present; else default false
+  out.additionalProperties =
+    typeof input?.additionalProperties === "boolean"
+      ? input.additionalProperties
+      : false;
+
   return out;
 }
 
@@ -73,6 +79,9 @@ router.get("/schema", async (req: Request, res: Response) => {
     description: t.description,
     input_schema: normalizeRootSchema(t.parameters),
   }));
+
+  // Dev-only debug: verify properties shape
+  console.log("[mcp/schema] properties types:", tools.map(t => [t.name, typeof t.input_schema?.properties]));
 
   res
     .status(200)

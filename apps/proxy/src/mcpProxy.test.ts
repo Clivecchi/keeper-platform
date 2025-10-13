@@ -237,6 +237,44 @@ describe("MCP Proxy Schema Handler", () => {
       expect(response.headers["content-type"]).toMatch(/application\/json.*charset=utf-8/);
     });
 
+    it("ensures input_schema.properties is an object for every tool", async () => {
+      const upstreamSchema = {
+        service: "test-service",
+        version: "1.0.0",
+        tools: [
+          {
+            name: "tool_with_properties",
+            description: "Has properties",
+            parameters: {
+              type: "object",
+              properties: { field: { type: "string" } }
+            }
+          },
+          {
+            name: "tool_without_properties",
+            description: "Missing properties",
+            parameters: { type: "object" }
+          }
+        ]
+      };
+
+      (fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce(
+        new Response(JSON.stringify(upstreamSchema), { status: 200 })
+      );
+
+      const res = await request(app)
+        .get("/api/mcp/schema")
+        .set("Authorization", "Bearer TEST_KEY");
+
+      expect(res.status).toBe(200);
+      for (const t of res.body.tools) {
+        expect(t).toHaveProperty("input_schema.properties");
+        expect(typeof t.input_schema.properties).toBe("object");
+        expect(Array.isArray(t.input_schema.properties)).toBe(false);
+        expect(t.input_schema.properties).not.toBeNull();
+      }
+    });
+
     it("tools have valid input_schema with properties as object", async () => {
       const upstreamSchema = {
         service: "test-service",
