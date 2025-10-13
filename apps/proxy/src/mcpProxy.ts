@@ -14,17 +14,18 @@ function isPlainObj(x: any): x is Record<string, any> {
 
 function normalizeRootSchema(input: any) {
   const out: any = isPlainObj(input) ? { ...input } : {};
-  out.type = "object"; // enforce object schema
+  // Root must be an object schema
+  out.type = "object";
 
-  // ensure properties is a plain object (never null/array/string)
+  // 🔧 Ensure properties is a plain object (never null/array/string)
   out.properties = isPlainObj(input?.properties) ? { ...input.properties } : {};
 
-  // keep required as string[]
+  // Keep required as string[]
   out.required = Array.isArray(input?.required)
     ? input.required.filter((s: any) => typeof s === "string")
     : [];
 
-  // additionalProperties must be boolean if present; else default false
+  // additionalProperties must be boolean (or default false)
   out.additionalProperties =
     typeof input?.additionalProperties === "boolean"
       ? input.additionalProperties
