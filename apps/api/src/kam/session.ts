@@ -6,7 +6,7 @@ import type { Request, Response, NextFunction} from 'express';
 import jwt from 'jsonwebtoken';
 
 const COOKIE_NAME = 'keeper_session';
-const DOMAIN = '.ke3p.com'; // works for www.ke3p.com and api.ke3p.com
+const DOMAIN = process.env.COOKIE_DOMAIN || '.ke3p.com'; // works for www.ke3p.com and api.ke3p.com
 const JWT_SECRET = process.env.JWT_SECRET!; // ensure set in Railway
 
 // Check if request is from a Vercel preview deployment

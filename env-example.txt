@@ -36,6 +36,12 @@ LOG_LEVEL="info"
 # Default: false
 ENABLE_REQUEST_LOGGING="false"
 
+# ----------------------------------------------------------------
+# Cookies (Auth)
+# ----------------------------------------------------------------
+# Cookie domain for HttpOnly session cookie. For prod, use .ke3p.com
+COOKIE_DOMAIN=".ke3p.com"
+
 # -----------------------------------------------------------------
 # Studio Debug Flags (Frontend Vite)
 # -----------------------------------------------------------------

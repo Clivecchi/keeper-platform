@@ -890,6 +890,11 @@ app.use('/api/people', peopleRoutes);
 app.use('/kam', kamRouter);
 // Mount auth routes (cookie-based session management)
 app.use('/api/kam/auth', authRouter);
+// Back-compat alias expected by some clients: /api/kam/me → /api/kam/auth/me
+app.get('/api/kam/me', (req, res, next) => {
+  (req.url as any) = '/me';
+  (authRouter as any).handle(req, res, next);
+});
 
 // MCP OPTIONS preflight handler (must be before router mount)
 app.options('/api/mcp/*', (_req, res) => {
