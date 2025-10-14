@@ -54,7 +54,7 @@ import ConflictDialog from '../../components/studio/ConflictDialog';
 import AIAssistPanel from '../../components/studio/AIAssistPanel';
 import TemplateChooser from '../../components/studio/TemplateChooser';
 import { type TemplateId } from '../../boards/templates';
-import { useStudioDebug } from '../../features/studio/debug/useStudioDebug';
+import { lazy, Suspense } from 'react';
 
 // =============================================================================
 // TYPES
@@ -524,8 +524,12 @@ const BoardStudioPage: React.FC = () => {
   // Mock frames for the selected board (since BoardContext might not work)
   const [mockFrames, setMockFrames] = useState<any[]>([]);
 
-  // Unified Studio Debug hook
-  const debug = useStudioDebug();
+  // Lazy, flag-gated debug panel safe to render in production
+  const StudioDebug = lazy(() => (
+    import.meta.env.VITE_STUDIO_DEBUG === '1'
+      ? import('../../features/studio/debug/StudioDebug')
+      : Promise.resolve({ default: () => null })
+  ));
 
   // Board Properties
   const [boardName, setBoardName] = useState('');
@@ -2445,7 +2449,7 @@ const BoardStudioPage: React.FC = () => {
               </ScrollArea>
               </div>
         )}
-        {debug.Panel ? <debug.Panel /> : null}
+        <Suspense fallback={null}><StudioDebug /></Suspense>
           </aside>
         )}
       </div>

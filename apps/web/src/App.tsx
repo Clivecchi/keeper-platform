@@ -104,7 +104,7 @@ const App: React.FC = () => {
           <Route path="/root/api-keys" element={<UserApiKeyManagerPage />} />
           
           {/* Studio Section */}
-          <Route path="/studio" element={<Navigate to="/studio/agents" replace />} />
+          <Route path="/studio" element={<BoardStudioPage />} />
           <Route path="/studio/agents" element={<AgentsPage />} />
           <Route path="/studio/agents/:agentId" element={<AgentBoardPage />} />
           <Route path="/studio/agent-board" element={<AgentBoardPage />} />
@@ -115,7 +115,8 @@ const App: React.FC = () => {
           <Route path="/studio/board-studio" element={<BoardStudioPage />} />
 
           {/* Backward-compat alias to handle direct links or outdated menus */}
-          <Route path="/board-studio" element={<Navigate to="/studio/board-studio" replace />} />
+          <Route path="/board-studio" element={<BoardStudioPage />} />
+          <Route path="/boards/studio" element={<BoardStudioPage />} />
           <Route path="/studio/memory-patterns" element={<MemoryPatternsPage />} />
           <Route path="/studio/agent-classes" element={<AgentClassesPage />} />
           <Route path="/studio/engagement-templates" element={<KipStudioPage />} />
