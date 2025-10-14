@@ -102,6 +102,7 @@ if (typeof window !== 'undefined') {
     '  window.__keeper.fetchShimInstalled (boolean)\n' +
     '  window.__keeper.fetchShimDebug (boolean)'
   );
+  try { console.log('[Keeper] API base =', (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com'); } catch {}
 }
 
 export {};
