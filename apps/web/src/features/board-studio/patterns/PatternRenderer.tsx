@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+const __DEBUG_STUDIO__ = import.meta.env.VITE_STUDIO_DEBUG === '1';
 import SettingsRenderer from '../settings/SettingsRenderer';
 import MediaUploader from '../../../components/studio/MediaUploader';
 import PropManager from '../../../components/props/PropManager';
@@ -459,7 +460,7 @@ const GalleryPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
 };
 
 const CanvasPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
-  console.log('🎨 CanvasPattern: Rendering frame', {
+  if (__DEBUG_STUDIO__) console.log('🎨 CanvasPattern: Rendering frame', {
     frameId: frame.id,
     frameName: frame.name,
     frameProps: frame.props,
@@ -480,7 +481,7 @@ const CanvasPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
     }
   }
   
-  console.log('🎨 CanvasPattern: Processed props array', {
+  if (__DEBUG_STUDIO__) console.log('🎨 CanvasPattern: Processed props array', {
     originalProps: frame.props,
     propsArrayLength: propsArray.length,
     propsArray: propsArray,
@@ -492,7 +493,7 @@ const CanvasPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
   const sortedProps = propsArray.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
   
   const renderProp = (prop: any) => {
-    console.log('🎯 CanvasPattern: Rendering prop', {
+    if (__DEBUG_STUDIO__) console.log('🎯 CanvasPattern: Rendering prop', {
       propId: prop.id,
       propType: prop.type,
       propConfig: prop.config,
@@ -656,7 +657,7 @@ const CanvasPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
     }
   };
   
-  console.log('🎨 CanvasPattern: Final render', {
+  if (__DEBUG_STUDIO__) console.log('🎨 CanvasPattern: Final render', {
     sortedPropsLength: sortedProps.length,
     sortedProps: sortedProps.map(p => ({id: p.id, type: p.type}))
   });
@@ -701,7 +702,7 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
   onBoardUpdate
 }) => {
   // Debug logging to understand what's happening
-  console.log('🎨 PatternRenderer: Rendering frame', {
+  if (__DEBUG_STUDIO__) console.log('🎨 PatternRenderer: Rendering frame', {
     frameId: frame.id,
     frameName: frame.name,
     frameRole: frame.role,
@@ -714,7 +715,7 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
   
   // Specific debug for Preview mode
   if (mode === 'preview') {
-    console.log('🔍 PatternRenderer: PREVIEW MODE detected', {
+    if (__DEBUG_STUDIO__) console.log('🔍 PatternRenderer: PREVIEW MODE detected', {
       frameRole: frame.role,
       framePattern: frame.pattern,
       willUseFocusPattern: frame.role === 'cover',
@@ -822,10 +823,10 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
     case 'gallery':
       return <GalleryPattern frame={frame} />;
     case 'canvas':
-      console.log('🎯 PatternRenderer: Using CanvasPattern for canvas pattern');
+      if (__DEBUG_STUDIO__) console.log('🎯 PatternRenderer: Using CanvasPattern for canvas pattern');
       return <CanvasPattern frame={frame} />;
     default:
-      console.log('🎯 PatternRenderer: Using CanvasPattern as default for pattern:', frame.pattern);
+      if (__DEBUG_STUDIO__) console.log('🎯 PatternRenderer: Using CanvasPattern as default for pattern:', frame.pattern);
       // For content frames, default to CanvasPattern to show props
       return <CanvasPattern frame={frame} />;
   }

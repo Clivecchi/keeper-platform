@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     if (IS_PROD) {
       // Production: Don't read from localStorage - AuthGate already validated with server
-      console.log('[AuthContext] Production mode: skipping localStorage (using cookies)');
+      if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] Production mode: skipping localStorage (using cookies)');
       setIsLoading(false);
       return;
     }
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const storedToken = localStorage.getItem('keeper_token');
       const storedUser = localStorage.getItem('keeper_user');
       if (storedToken && storedUser) {
-        console.log('[AuthContext] Dev mode: loaded auth from localStorage');
+        if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] Dev mode: loaded auth from localStorage');
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
       }
@@ -70,9 +70,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!import.meta.env.PROD) {
         localStorage.setItem('keeper_user', JSON.stringify(data.user));
         localStorage.setItem('keeper_token', data.token);
-        console.log('[AuthContext] Dev mode: stored auth in localStorage');
+        if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] Dev mode: stored auth in localStorage');
       } else {
-        console.log('[AuthContext] Production mode: auth via cookie only');
+        if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] Production mode: auth via cookie only');
       }
     }
   };

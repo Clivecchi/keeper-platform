@@ -54,6 +54,7 @@ import ConflictDialog from '../../components/studio/ConflictDialog';
 import AIAssistPanel from '../../components/studio/AIAssistPanel';
 import TemplateChooser from '../../components/studio/TemplateChooser';
 import { type TemplateId } from '../../boards/templates';
+import { useStudioDebug } from '../../features/studio/debug/useStudioDebug';
 
 // =============================================================================
 // TYPES
@@ -476,16 +477,17 @@ class BoardStudioErrorBoundary extends React.Component<{ children: React.ReactNo
 }
 
 const BoardStudioPage: React.FC = () => {
-  console.log('BoardStudioPage: Component initializing');
+  const DEBUG_STUDIO = import.meta.env.VITE_STUDIO_DEBUG === '1';
+  if (DEBUG_STUDIO) console.log('BoardStudioPage: Component initializing');
   
   const { user } = useAuth();
-  console.log('BoardStudioPage: useAuth hook called, user:', user);
+  if (DEBUG_STUDIO) console.log('BoardStudioPage: useAuth hook called, user:', user);
   
   const { activeBoard, loadBoard, isLoading, addFrame } = useBoard();
-  console.log('BoardStudioPage: useBoard hook called, activeBoard:', activeBoard);
+  if (DEBUG_STUDIO) console.log('BoardStudioPage: useBoard hook called, activeBoard:', activeBoard);
   
   const { handleFrameInteraction } = useFrame();
-  console.log('BoardStudioPage: useFrame hook called');
+  if (DEBUG_STUDIO) console.log('BoardStudioPage: useFrame hook called');
 
   // UI State
   const { activeKeeper, keepers, setActiveKeeperId } = useKeeperContext();
@@ -522,6 +524,9 @@ const BoardStudioPage: React.FC = () => {
   // Mock frames for the selected board (since BoardContext might not work)
   const [mockFrames, setMockFrames] = useState<any[]>([]);
 
+  // Unified Studio Debug hook
+  const debug = useStudioDebug();
+
   // Board Properties
   const [boardName, setBoardName] = useState('');
   const [boardDescription, setBoardDescription] = useState('');
@@ -545,7 +550,7 @@ const BoardStudioPage: React.FC = () => {
     setHasInitializedBoard(false); // Reset initialization flag
     
     try {
-      console.log('Loading board:', boardId);
+      if (DEBUG_STUDIO) console.log('Loading board:', boardId);
       
       // Load full board data from API
       const boardData = await apiFetch(`/api/board-data/${boardId}`);
@@ -568,7 +573,7 @@ const BoardStudioPage: React.FC = () => {
         });
         
         // Debug the raw board data from API
-        console.log('🔍 Debug: Raw board data from API:', {
+        if (DEBUG_STUDIO) console.log('🔍 Debug: Raw board data from API:', {
           boardId: board.id,
           boardName: board.name,
           totalFrames: board.frames?.length || 0,
@@ -593,7 +598,7 @@ const BoardStudioPage: React.FC = () => {
           orderIndex: frame.orderIndex
         }));
         
-        console.log('🔍 Debug: Processed frames for mockFrames:', {
+        if (DEBUG_STUDIO) console.log('🔍 Debug: Processed frames for mockFrames:', {
           processedFrames: frames.length,
           framesWithProps: frames.filter((f: any) => f.props && Object.keys(f.props as object).length > 0).length,
           frameDetails: frames.map((f: any) => ({
@@ -616,7 +621,7 @@ const BoardStudioPage: React.FC = () => {
           autosave.updateEtag(board.etag);
         }
         
-        console.log('Board loaded successfully:', board);
+        if (DEBUG_STUDIO) console.log('Board loaded successfully:', board);
         
         // Set initialization flag after a delay to prevent immediate autosave
         setTimeout(() => {
@@ -669,14 +674,14 @@ const BoardStudioPage: React.FC = () => {
 
   // Debug modal state
   useEffect(() => {
-    console.log('showHelpModal state changed:', showHelpModal);
+      if (DEBUG_STUDIO) console.log('showHelpModal state changed:', showHelpModal);
   }, [showHelpModal]);
 
   // Note: Board properties are now managed in handleBoardSelect to avoid conflicts
 
   const loadBoardsAndFrames = async () => {
     try {
-      console.log('Loading boards from API...');
+      if (DEBUG_STUDIO) console.log('Loading boards from API...');
       // Load boards using the correct API endpoint
       const boardsData = await apiFetch(`/api/board-data?keeperId=${activeKeeper?.id || '00000000-0000-0000-0000-000000000001'}`);
       
@@ -692,7 +697,7 @@ const BoardStudioPage: React.FC = () => {
       }));
       
       setBoards(transformedBoards);
-      console.log('Loaded boards from API:', transformedBoards);
+      if (DEBUG_STUDIO) console.log('Loaded boards from API:', transformedBoards);
     } catch (error) {
       console.warn('Board API not available:', error);
       
@@ -709,7 +714,7 @@ const BoardStudioPage: React.FC = () => {
         return;
       }
       
-      console.log('Using fallback data (dev mode only)');
+      if (DEBUG_STUDIO) console.log('Using fallback data (dev mode only)');
       // Fallback data if API not available (dev mode only)
       setBoards([
         {
@@ -848,6 +853,21 @@ const BoardStudioPage: React.FC = () => {
     })();
   }, [searchParams, selectedBoardId]);
 
+  // Wire Studio Debug context
+  useEffect(() => {
+    debug.setContext({ boardId: selectedBoardId, activeFrameId: selectedFrameId });
+  }, [selectedBoardId, selectedFrameId]);
+
+  useEffect(() => {
+    debug.setUiPropCounter(() => {
+      const f = mockFrames.find(f => f.id === selectedFrameId);
+      if (!f) return 0;
+      const arrays = [f.props && Array.isArray(f.props) ? f.props : undefined, f.items, f.elements].filter(Boolean) as any[][];
+      if (arrays.length) return arrays.reduce((n, a) => n + a.length, 0);
+      try { return f.props ? Object.keys(f.props as object).length : 0; } catch { return 0; }
+    });
+  }, [mockFrames, selectedFrameId]);
+
   // Autosave save function
   const saveBoard = async (data: any, options?: { etag?: string; force?: boolean }) => {
     if (!selectedBoardId) throw new Error('No board selected');
@@ -866,11 +886,18 @@ const BoardStudioPage: React.FC = () => {
       ? `/api/board-data/${selectedBoardId}?force=true`
       : `/api/board-data/${selectedBoardId}`;
 
-    return await apiFetch(url, {
+    try {
+      const body = await apiFetch(url, {
       method: 'PUT',
       headers,
       body: JSON.stringify(data)
     });
+      debug.recordSave({ payload: { url, method: 'PUT', data }, response: { ok: true, status: 200, body } });
+      return body;
+    } catch (err: any) {
+      debug.recordSave({ payload: { url, method: 'PUT', data }, response: { ok: false, status: err?.status || 0, body: { error: err?.message } } });
+      throw err;
+    }
   };
 
   // Autosave hook with improved error handling
@@ -937,9 +964,11 @@ const BoardStudioPage: React.FC = () => {
           method: 'PUT',
           body: JSON.stringify(boardToSave)
         });
-        console.log('Board saved successfully via API:', savedBoard);
+        if (DEBUG_STUDIO) console.log('Board saved successfully via API:', savedBoard);
+        debug.recordSave({ payload: { url: `/api/board-data/${selectedBoardId}`, method: 'PUT', body: boardToSave }, response: { ok: true, status: 200, body: savedBoard } });
       } catch (apiError) {
         console.error('Board save API failed:', apiError);
+        debug.recordSave({ payload: { url: `/api/board-data/${selectedBoardId}`, method: 'PUT', body: boardToSave }, response: { ok: false, status: (apiError as any)?.status || 0, body: { error: (apiError as any)?.message } } });
         alert('Failed to save board. Please try again.');
         return;
       }
@@ -954,10 +983,12 @@ const BoardStudioPage: React.FC = () => {
             subtitle: boardDescription || coverFrame.props?.subtitle
           };
 
-          await apiFetch(`/api/board-data/${selectedBoardId}/frames/${coverFrame.id}`, {
+          const body = { props: updatedProps };
+          const result = await apiFetch(`/api/board-data/${selectedBoardId}/frames/${coverFrame.id}`, {
             method: 'PATCH',
-            body: JSON.stringify({ props: updatedProps })
+            body: JSON.stringify(body)
           });
+          debug.recordSave({ payload: { url: `/api/board-data/${selectedBoardId}/frames/${coverFrame.id}`, method: 'PATCH', body }, response: { ok: true, status: 200, body: result } });
 
           // Update local frame state
           setMockFrames(prev => prev.map(frame =>
@@ -969,6 +1000,7 @@ const BoardStudioPage: React.FC = () => {
           console.log('Cover frame title updated to match board name');
         } catch (frameError) {
           console.warn('Failed to update Cover frame title:', frameError);
+          debug.recordSave({ payload: { url: `/api/board-data/${selectedBoardId}/frames/${coverFrame.id}`, method: 'PATCH' }, response: { ok: false, status: (frameError as any)?.status || 0, body: { error: (frameError as any)?.message } } });
         }
       }
 
@@ -1075,9 +1107,10 @@ const BoardStudioPage: React.FC = () => {
     if (!selectedBoardId) return;
     
     try {
+      const payload = { order: newOrder };
       const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames/reorder`, {
         method: 'PATCH',
-        body: JSON.stringify({ order: newOrder })
+        body: JSON.stringify(payload)
       });
       
       if (response.success) {
@@ -1088,7 +1121,8 @@ const BoardStudioPage: React.FC = () => {
         }).filter(Boolean);
         
         setMockFrames(reorderedFrames as any[]);
-        console.log('Tabs reordered successfully');
+        if (DEBUG_STUDIO) console.log('Tabs reordered successfully');
+        debug.recordSave({ payload: { url: `/api/board-data/${selectedBoardId}/frames/reorder`, method: 'PATCH', body: payload }, response: { ok: true, status: 200, body: response } });
         
         // Emit telemetry event
         console.log('Telemetry: frame_reordered', { 
@@ -1098,6 +1132,7 @@ const BoardStudioPage: React.FC = () => {
         });
       } else {
         console.error('Failed to reorder tabs:', response.error);
+        debug.recordSave({ payload: { url: `/api/board-data/${selectedBoardId}/frames/reorder`, method: 'PATCH', body: payload }, response: { ok: false, status: 400, body: response } });
       }
     } catch (error) {
       console.error('Error reordering tabs:', error);
@@ -1124,16 +1159,15 @@ const BoardStudioPage: React.FC = () => {
       ));
       
       // Persist to server
+      const payload = { engagementMode: newMode, pattern: newMode };
       const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ 
-          engagementMode: newMode,
-          pattern: newMode // Also update pattern field for compatibility
-        })
+        body: JSON.stringify(payload)
       });
       
       if (response.success) {
-        console.log('Frame mode updated successfully');
+        if (DEBUG_STUDIO) console.log('Frame mode updated successfully');
+        debug.recordSave({ payload: { url: `/api/board-data/${selectedBoardId}/frames/${frameId}`, method: 'PATCH', body: payload }, response: { ok: true, status: 200, body: response } });
         
         // Emit telemetry event
         console.log('Telemetry: frame_mode_changed', { 
@@ -1144,6 +1178,7 @@ const BoardStudioPage: React.FC = () => {
         });
       } else {
         console.error('Failed to update frame mode:', response.error);
+        debug.recordSave({ payload: { url: `/api/board-data/${selectedBoardId}/frames/${frameId}`, method: 'PATCH', body: payload }, response: { ok: false, status: 400, body: response } });
         // Revert local state on error
         setMockFrames(prev => prev.map(frame =>
           frame.id === frameId
@@ -1194,15 +1229,15 @@ const BoardStudioPage: React.FC = () => {
       ));
       
       // Persist to server
+      const payload = { isPinned };
       const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ 
-          isPinned: isPinned
-        })
+        body: JSON.stringify(payload)
       });
       
       if (response.success) {
-        console.log('Frame pin status updated successfully');
+        if (DEBUG_STUDIO) console.log('Frame pin status updated successfully');
+        debug.recordSave({ payload: { url: `/api/board-data/${selectedBoardId}/frames/${frameId}`, method: 'PATCH', body: payload }, response: { ok: true, status: 200, body: response } });
         
         // Emit telemetry event
         console.log('Telemetry: frame_pin_toggled', { 
@@ -1527,7 +1562,7 @@ const BoardStudioPage: React.FC = () => {
 
   const categories = ['all', ...Array.from(new Set(frameTypes.map(f => f.category)))];
 
-  console.log('BoardStudioPage: About to render component');
+  if (DEBUG_STUDIO) console.log('BoardStudioPage: About to render component');
   
   // Simple test render to see if component loads
   if (!user) {
@@ -1867,16 +1902,18 @@ const BoardStudioPage: React.FC = () => {
                     <div className="w-full h-full p-8">
                       {selectedFrameId && mockFrames.length > 0 ? (
                         <>
-                          {/* Debug info - remove after fixing */}
-                          <div className="mb-4 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
-                            <strong>Debug Info:</strong><br/>
-                            Selected Frame ID: {selectedFrameId}<br/>
-                            Total Frames: {mockFrames.length}<br/>
-                            Frame Roles: {mockFrames.map(f => `${f.data?.name}(${f.data?.role})`).join(', ')}<br/>
-                            Selected Frame Role: {mockFrames.find(f => f.id === selectedFrameId)?.data?.role}<br/>
-                            Selected Frame Pattern: {mockFrames.find(f => f.id === selectedFrameId)?.FrameConfig?.engagementMode}<br/>
-                            Mode: {editorMode}
-                          </div>
+                          {/* Debug info (flag-gated) */}
+                          {DEBUG_STUDIO && (
+                            <div className="mb-4 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
+                              <strong>Debug Info:</strong><br/>
+                              Selected Frame ID: {selectedFrameId}<br/>
+                              Total Frames: {mockFrames.length}<br/>
+                              Frame Roles: {mockFrames.map(f => `${f.data?.name}(${f.data?.role})`).join(', ')}<br/>
+                              Selected Frame Role: {mockFrames.find(f => f.id === selectedFrameId)?.data?.role}<br/>
+                              Selected Frame Pattern: {mockFrames.find(f => f.id === selectedFrameId)?.FrameConfig?.engagementMode}<br/>
+                              Mode: {editorMode}
+                            </div>
+                          )}
                           <PatternRenderer
                           frame={{
                             id: selectedFrameId,
@@ -2407,7 +2444,8 @@ const BoardStudioPage: React.FC = () => {
                 </div>
               </ScrollArea>
               </div>
-            )}
+        )}
+        {debug.Panel ? <debug.Panel /> : null}
           </aside>
         )}
       </div>

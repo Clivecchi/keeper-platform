@@ -45,20 +45,20 @@
     const req = input instanceof Request ? input : undefined;
     const headers = new Headers(req ? req.headers : init?.headers);
     const api = isApi(input);
+    const urlObj = toURL(input);
+    const method = (req?.method || init?.method || 'GET').toUpperCase();
+    let authStripped = false;
 
     // PROD: strip any Authorization header going to our API (extensions or libs can't force header auth)
     if (IS_PROD && api && headers.has('Authorization')) {
       headers.delete('Authorization');
-      log('PROD: stripped Authorization for', toURL(input)?.href);
+      authStripped = true;
     }
 
     // DEV only: allow token injection from storage for convenience
     if (!IS_PROD && api && !headers.has('Authorization')) {
       const t = localStorage.getItem('keeper_token') || sessionStorage.getItem('keeper_token');
-      if (t) {
-        headers.set('Authorization', `Bearer ${t}`);
-        log('DEV: injected Authorization from storage for', toURL(input)?.href);
-      }
+      if (t) headers.set('Authorization', `Bearer ${t}`);
     }
 
     const nextInit: RequestInit = {
@@ -67,7 +67,13 @@
       credentials: init?.credentials || 'include',
     };
 
-    return ORIG(req ? new Request(req, nextInit) : (input as any), nextInit);
+    const started = Date.now();
+    const res = await ORIG(req ? new Request(req, nextInit) : (input as any), nextInit);
+    if (DEBUG) {
+      const path = urlObj ? (urlObj.origin === location.origin ? urlObj.pathname + urlObj.search : urlObj.href) : String(input);
+      console.log(`[keeper:fetch] ${method} ${path} → ${res.status} (authHeaderStripped: ${authStripped ? 'yes' : 'no'}) in ${Date.now() - started}ms`);
+    }
+    return res;
   };
 
   // Belt & suspenders: nuke any lingering dev tokens in PROD

@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
+const __DEBUG_STUDIO__ = import.meta.env.VITE_STUDIO_DEBUG === '1';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlusIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { cn } from '../../features/board-studio/v0/lib/utils';
@@ -67,18 +68,18 @@ export const PropDropZone: React.FC<PropDropZoneProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('🎯 PropDropZone: Drop event received');
+    if (__DEBUG_STUDIO__) console.log('🎯 PropDropZone: Drop event received');
     
     setIsDragOver(false);
     setDragPosition(null);
 
     try {
       const propData = e.dataTransfer.getData('application/json');
-      console.log('📦 PropDropZone: Raw drop data:', propData);
+      if (__DEBUG_STUDIO__) console.log('📦 PropDropZone: Raw drop data:', propData);
       
       if (propData) {
         const { type, config } = JSON.parse(propData);
-        console.log('✅ PropDropZone: Parsed prop data:', { type, config });
+        if (__DEBUG_STUDIO__) console.log('✅ PropDropZone: Parsed prop data:', { type, config });
         
         const rect = e.currentTarget.getBoundingClientRect();
         const dropPosition = {
@@ -86,8 +87,8 @@ export const PropDropZone: React.FC<PropDropZoneProps> = ({
           y: e.clientY - rect.top
         };
         
-        console.log('📍 PropDropZone: Drop position:', dropPosition);
-        console.log('🚀 PropDropZone: Calling onPropDrop...');
+        if (__DEBUG_STUDIO__) console.log('📍 PropDropZone: Drop position:', dropPosition);
+        if (__DEBUG_STUDIO__) console.log('🚀 PropDropZone: Calling onPropDrop...');
         
         onPropDrop(type, config, dropPosition);
       } else {

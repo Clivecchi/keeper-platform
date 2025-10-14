@@ -36,6 +36,19 @@ LOG_LEVEL="info"
 # Default: false
 ENABLE_REQUEST_LOGGING="false"
 
+# -----------------------------------------------------------------
+# Studio Debug Flags (Frontend Vite)
+# -----------------------------------------------------------------
+# Enable Studio Debug panel in Board Studio (toggle: Ctrl/Cmd+Alt+D)
+VITE_STUDIO_DEBUG="1"
+# Enable one-line network logs from fetch shim (dev troubleshooting)
+VITE_FETCH_SHIM_DEBUG="0"
+# In production, web auth is cookie-only; do not allow header auth
+VITE_ALLOW_HEADER_AUTH="0"
+
+# Optional concise HTTP traces on the API server
+DEBUG_HTTP="0"
+
 # =================================================================
 # CORS SETTINGS
 # =================================================================

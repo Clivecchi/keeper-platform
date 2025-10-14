@@ -16,7 +16,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       try {
         // Verify session with server using HttpOnly cookie
         // No need to check localStorage - server uses cookie for auth
-        console.log('[AuthGate] Validating session with server (cookie-based)...');
+        if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthGate] Validating session with server (cookie-based)...');
         const apiUrl = (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com';
         const response = await fetch(`${apiUrl}/api/kam/auth/me`, {
           method: 'GET',
@@ -25,13 +25,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
         if (response.ok) {
           const data = await response.json();
-          console.log('[AuthGate] Session validated, user authenticated');
+          if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthGate] Session validated, user authenticated');
           setUser(data.user || { validated: true });
           setStatus('authed');
           return;
         }
         
-        console.log('[AuthGate] No valid session, setting guest status');
+        if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthGate] No valid session, setting guest status');
       } catch (e) {
         console.error('[AuthGate] Session validation failed:', e);
       }

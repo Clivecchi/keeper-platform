@@ -258,7 +258,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     dispatch({ type: 'SET_ERROR', payload: null });
 
     try {
-      console.log(`Loading board: ${boardId}`);
+      if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log(`Loading board: ${boardId}`);
       
       // Make API call to load board instance using apiFetch with authentication
       const response = await apiFetch(`/api/board-data/${boardId}`);
@@ -335,7 +335,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
   const updateBoard = useCallback(async (boardId: string, updates: Partial<BoardInstance>) => {
     try {
       // TODO: Implement API call to update board
-      console.log(`Updating board: ${boardId}`, updates);
+      if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log(`Updating board: ${boardId}`, updates);
       
       // Mock update - replace with actual API call
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -350,7 +350,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
   const addFrame = useCallback(async (boardId: string, frame: ExtendedFrameInstance) => {
     try {
       // TODO: Implement API call to add frame to board
-      console.log(`Adding frame to board: ${boardId}`, frame);
+      if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log(`Adding frame to board: ${boardId}`, frame);
       
       await new Promise(resolve => setTimeout(resolve, 200));
       
@@ -364,7 +364,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
   const removeFrame = useCallback(async (boardId: string, frameId: string) => {
     try {
       // TODO: Implement API call to remove frame from board
-      console.log(`Removing frame from board: ${boardId}`, frameId);
+      if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log(`Removing frame from board: ${boardId}`, frameId);
       
       await new Promise(resolve => setTimeout(resolve, 200));
       
@@ -378,7 +378,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
   const updateFrame = useCallback(async (boardId: string, frameId: string, updates: Partial<ExtendedFrameInstance>) => {
     try {
       // TODO: Implement API call to update frame
-      console.log(`Updating frame: ${frameId}`, updates);
+      if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log(`Updating frame: ${frameId}`, updates);
       
       await new Promise(resolve => setTimeout(resolve, 200));
       
@@ -392,7 +392,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
   const reorderFrames = useCallback(async (boardId: string, frameIds: string[]) => {
     try {
       // TODO: Implement API call to reorder frames
-      console.log(`Reordering frames in board: ${boardId}`, frameIds);
+      if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log(`Reordering frames in board: ${boardId}`, frameIds);
       
       await new Promise(resolve => setTimeout(resolve, 200));
       

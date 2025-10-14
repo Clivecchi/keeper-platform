@@ -114,6 +114,19 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
+// Optional concise HTTP trace (one-line) when DEBUG_HTTP=1
+if (process.env.DEBUG_HTTP === '1') {
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const started = Date.now();
+    res.on('finish', () => {
+      const ms = Date.now() - started;
+      // no bodies, no secrets
+      console.log(`[http] ${req.method} ${req.path} → ${res.statusCode} ${ms}ms`);
+    });
+    next();
+  });
+}
+
 // Request logging middleware (applied to all requests) - optimized to reduce noise
 app.use((req: Request, res: Response, next: NextFunction) => {
   const timestamp = new Date().toISOString();

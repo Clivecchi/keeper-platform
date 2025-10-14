@@ -114,7 +114,7 @@ export const FrameProvider: React.FC<FrameProviderProps> = ({ children }) => {
     try {
       // TODO: Implement API call to load frame instance
       // For now, this is a placeholder that will be implemented when backend APIs are ready
-      console.log(`Loading frame: ${frameId}`);
+      if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log(`Loading frame: ${frameId}`);
       
       // Mock frame loading - replace with actual API call
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -141,7 +141,7 @@ export const FrameProvider: React.FC<FrameProviderProps> = ({ children }) => {
   const updateFrame = useCallback(async (frameId: string, updates: Partial<ExtendedFrameInstance>) => {
     try {
       // TODO: Implement API call to update frame instance
-      console.log(`Updating frame: ${frameId}`, updates);
+      if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log(`Updating frame: ${frameId}`, updates);
       
       // Mock update - replace with actual API call
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -163,7 +163,7 @@ export const FrameProvider: React.FC<FrameProviderProps> = ({ children }) => {
 
   const handleFrameInteraction = useCallback((interaction: FrameInteraction) => {
     // Handle frame interactions - can be extended for analytics, logging, etc.
-    console.log('Frame interaction:', interaction);
+    if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('Frame interaction:', interaction);
     
     // TODO: Implement interaction handling logic
     // - Analytics tracking
