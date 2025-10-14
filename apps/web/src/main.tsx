@@ -1,9 +1,7 @@
 // MUST BE FIRST: Install global fetch shim before any other imports
-try {
-  await import('./boot/fetch-shim');
-} catch (e) {
+import('./boot/fetch-shim').catch((e) => {
   console.warn('[fetch-shim] failed to load (continuing):', e);
-}
+});
 import './lib/diagnostics';
 
 import React from 'react';
