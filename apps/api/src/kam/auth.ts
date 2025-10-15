@@ -44,15 +44,17 @@ export async function login(req: Request, res: Response) {
     // Set HttpOnly cookie (preview-aware)
     setSessionCookie(req, res, token);
 
-    // Return success (still include token for CLI/tools, but web will ignore it)
+    // Return success (format matches frontend expectation)
     return res.json({
-      ok: true,
-      token, // For backward compatibility with CLI tools
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatar_url: user.avatar_url,
+      success: true,
+      data: {
+        token, // For backward compatibility with CLI tools
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          avatar_url: user.avatar_url,
+        },
       },
     });
   } catch (error) {
@@ -64,7 +66,7 @@ export async function login(req: Request, res: Response) {
 // POST /api/kam/auth/logout
 export async function logout(_req: Request, res: Response) {
   clearSessionCookie(res);
-  return res.json({ ok: true });
+  return res.json({ success: true });
 }
 
 // GET /api/kam/auth/me
