@@ -25,6 +25,7 @@ Expose read-only endpoints for Agent → Board → Frame → Config with scoped 
 - [ ] Add automated tests.
 
 ## 📆 Update Log
+- 2025-10-15 (Critical Fix): Fixed `session.ts` - changed `sameSite` from `'lax'` to `'none'` to enable cross-subdomain cookies between `api.ke3p.com` and `www.ke3p.com`. The `sameSite: 'lax'` setting was preventing the browser from storing the cookie when set from the API subdomain.
 - 2025-10-15: Fixed `auth.ts` response format - login endpoint now returns `{ success: true, data: { token, user } }` to match frontend expectation (was `{ ok: true, token, user }`). Logout endpoint also changed from `{ ok: true }` to `{ success: true }`.
 - 2025-10-11: Updated `session.ts` - `authWeb` middleware now ignores Authorization headers from browser requests (detected via Origin header). Header auth only allowed for CLI/tools (no Origin) or when `X-Client: cli` header is present. Enforces cookie-only authentication for web browsers in production.
 - 2025-09-06: Allow domainless agents on ID/list routes (no domain header required if agent.domainId is null).

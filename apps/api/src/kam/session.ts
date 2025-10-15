@@ -33,8 +33,8 @@ export function setSessionCookie(req: Request, res: Response, token: string) {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     secure: true, // HTTPS only
-    // For preview (cross-site), use None; for prod use Lax
-    sameSite: isPreview ? 'none' : 'lax',
+    // Required for cross-subdomain (api.ke3p.com → www.ke3p.com)
+    sameSite: 'none',
     domain: DOMAIN,
     path: '/',
     maxAge: 7 * 24 * 3600_000, // 7 days
