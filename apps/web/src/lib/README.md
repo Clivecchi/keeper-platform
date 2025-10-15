@@ -27,6 +27,12 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2025-10-15 - apiFetch JSON Parsing Fix
+**Issue Resolved**: `apiFetch` was returning raw Response objects instead of parsed JSON
+**Root Cause**: The function was calling `return fetch(...)` directly without awaiting and parsing the response body
+**Solution**: Updated `apiFetch` to await response, check status, and return parsed JSON. Error responses are caught and thrown as Error objects with meaningful messages.
+**Impact**: All API calls now receive parsed JSON data directly, fixing login errors and simplifying error handling across the application
+
 ### 2025-09-13 - Added shared apiFetch with env/global/same-origin base and JWT
 **Change**: Introduced `apiFetch.ts` with base URL resolution priority: `VITE_API_URL` → `window.__API_URL` → `location.origin`. Added JWT auto-injection from storage and JSON content-type defaults. Exported as global `apiFetch` for legacy callers. Updated `api.ts` to re-export from `apiFetch`.
 **Impact**: Fixes "apiFetch is not defined" and prevents 404s due to env drift; compatible with Vercel same-origin.

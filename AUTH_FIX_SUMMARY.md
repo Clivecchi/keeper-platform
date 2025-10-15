@@ -2,7 +2,7 @@
 
 ## Quick Reference
 
-Two authentication issues were identified and fixed:
+Three authentication issues were identified and fixed:
 
 ### Issue #1: Cookie Name Mismatch
 **Symptom**: `GET /api/whoami` → `401 Unauthorized`  
@@ -15,6 +15,12 @@ Two authentication issues were identified and fixed:
 **Root Cause**: Backend returned `{ ok: true, token, user }`, frontend expected `{ success: true, data: { token, user } }`  
 **Fix**: Updated login/logout endpoints to return standardized format  
 **Files Changed**: `apps/api/src/kam/auth.ts` (lines 48-59, 69)
+
+### Issue #3: API Client Not Parsing JSON
+**Symptom**: Login still shows "unknown error" after fixes #1 and #2; console logs `Response` objects  
+**Root Cause**: `apiFetch` returned raw `Response` object instead of parsed JSON  
+**Fix**: Updated `apiFetch` to await response, parse JSON, and return parsed data  
+**Files Changed**: `apps/web/src/lib/apiFetch.ts` (lines 36-60)
 
 ---
 
@@ -47,6 +53,28 @@ Two authentication issues were identified and fixed:
 // Logout endpoint (line 69)
 - return res.json({ ok: true });
 + return res.json({ success: true });
+```
+
+### File 3: `apps/web/src/lib/apiFetch.ts`
+```typescript
+// Lines 36-60
+- return fetch(url, nextInit);
+
++ const response = await fetch(url, nextInit);
++ 
++ if (!response.ok) {
++   try {
++     const errorData = await response.json();
++     throw new Error(errorData.error || errorData.message || `HTTP ${response.status}`);
++   } catch (err) {
++     if (err instanceof Error && err.message.startsWith('HTTP')) {
++       throw err;
++     }
++     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
++   }
++ }
++ 
++ return response.json();
 ```
 
 ---
@@ -119,31 +147,35 @@ return res.json({ ok: true });
 
 1. ✅ `apps/api/src/middleware/README.md` - Cookie fix documented
 2. ✅ `apps/api/src/kam/README.md` - Response format fix documented
-3. ✅ `docs/modules/middleware.md` - Synced with source
-4. ✅ `AUTH_FIX_2025-10-15.md` - Comprehensive analysis
-5. ✅ `AUTH_FIX_SUMMARY.md` - This quick reference
+3. ✅ `apps/web/src/lib/README.md` - API client fix documented
+4. ✅ `docs/modules/middleware.md` - Synced with source
+5. ✅ `AUTH_FIX_2025-10-15.md` - Comprehensive analysis
+6. ✅ `AUTH_FIX_SUMMARY.md` - This quick reference
 
 ---
 
 ## Status
 
-- [x] Issue #1 identified and fixed
-- [x] Issue #2 identified and fixed
+- [x] Issue #1 identified and fixed (cookie name)
+- [x] Issue #2 identified and fixed (response format)
+- [x] Issue #3 identified and fixed (JSON parsing)
 - [x] No linter errors
 - [x] Documentation updated
-- [ ] Deployed to Railway
+- [ ] Deployed to Railway (backend)
+- [ ] Deployed to Vercel (frontend)
 - [ ] Verified in production
 
 ---
 
 ## Next Steps
 
-1. Deploy backend to Railway
-2. Test login flow
-3. Verify authenticated endpoints work
-4. Monitor logs for errors
+1. Deploy backend to Railway (Fixes #1 and #2)
+2. Deploy frontend to Vercel (Fix #3)
+3. Test login flow
+4. Verify authenticated endpoints work
+5. Monitor logs for errors
 
-**Estimated Deploy Time**: 2-3 minutes  
+**Estimated Deploy Time**: 3-5 minutes (both deployments)  
 **Risk Level**: Low (minimal, backward-compatible changes)  
-**Rollback Time**: < 1 minute (simple revert)
+**Rollback Time**: < 2 minutes (simple revert on both platforms)
 
