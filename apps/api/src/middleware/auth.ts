@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
 const { JWT_SECRET = '' } = process.env;
-const COOKIE_CANDIDATES = ['token', 'keeper_token', 'auth_token'];
+const COOKIE_CANDIDATES = ['keeper_session', 'token', 'keeper_token', 'auth_token'];
 
 function getToken(req: Request): string | null {
   const auth = req.headers.authorization || '';

@@ -20,7 +20,7 @@ Express middleware for authentication, domain resolution, permissions, CORS, and
 - All middleware now uses a Redis-optional pattern:
   - Redis is only instantiated if `REDIS_URL` is set and `DISABLE_REDIS` is not true
   - If Redis is not available, all downstream code must check for null before using Redis
-  - In development, Redis is optional and features will degrade gracefully if not available
+  - In development, Redis is optional and features will degrade gracefully
 
 ## ⚠️ Notes & ToDo
 - [ ] Ensure all new middleware follows the Redis-optional pattern
@@ -37,3 +37,4 @@ Express middleware for authentication, domain resolution, permissions, CORS, and
 - Domain resolution runs before CORS, auth, and route guards.
 - CORS locked down to exact allowlist from `CORS_ALLOWLIST`. Dev allows `http://localhost:5173` and `http://localhost:3000` when not in production.
 - TODO(domains): enable subdomain and custom domain handling after MVP.
+
