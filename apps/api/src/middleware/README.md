@@ -28,6 +28,8 @@ Express middleware for authentication, domain resolution, permissions, CORS, and
 - [ ] Confirm all cache-dependent features degrade gracefully
 
 ## 📆 Update Log
+
+- 2025-10-15: Added lightweight `attachUser` in `auth.ts` to parse Bearer/cookies and set `req.user` early without DB lookups. Used by debug and KIP routes during stabilization.
 - 2024-06-09: Updated all middleware to use Redis-optional pattern. Redis is now only instantiated if `REDIS_URL` is set and `DISABLE_REDIS` is not true. All middleware must check for null before using Redis. In development, Redis is optional and features degrade gracefully. // TODO: Verify all downstream code is null-safe. 
 // 2025-09-23: Enforced single-domain MVP
 - Domain resolution fallback now uses `FALLBACK_DOMAIN` env (default `www.ke3p.com`).

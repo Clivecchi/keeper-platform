@@ -3,6 +3,7 @@ import type { Request, Response, Express, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { attachUser } from './middleware/auth.js';
 import { createDomainResolutionMiddleware } from './middleware/domainResolutionMiddleware.js';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
@@ -293,6 +294,8 @@ app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser()); // Parse cookies for session management
+// Attach lightweight user context early; tolerant to missing/invalid tokens
+app.use(attachUser);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
@@ -303,6 +306,13 @@ app.get('/', (req: Request, res: Response) => {
     service: 'keeper-api',
     environment: process.env.NODE_ENV || 'development'
   });
+});
+
+// Who am I (acceptance check) – relies on attachUser
+app.get('/api/whoami', (req: Request, res: Response) => {
+  const u = (req as any).user || null;
+  if (!u?.id) return res.status(401).json({ error: 'Unauthorized' });
+  res.json({ userId: u.id, email: u.email || null });
 });
 
 // Basic endpoints

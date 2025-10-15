@@ -6,9 +6,22 @@ import { randomUUID } from 'crypto';
 import { ModelProviderService } from '../services/ModelProviderService.js';
 import type { ModelProvider } from '@keeper/database';
 import { authMiddlewareCompat, optionalAuthMiddleware } from '../middleware/authMiddleware.js';
+import { KipUserKeyService } from '../services/KipUserKeyService.js';
 import { requireDomainReadCompat } from '../middleware/domainPermissionMiddleware.js';
 
 const router: ExpressRouter = Router();
+
+// Basic health (no DB calls; app-level checks only)
+router.get('/health', (_req, res) => {
+  res.json({ ok: true, service: 'keeper-api', ts: new Date().toISOString() });
+});
+
+// Who am I (auth required via attachUser)
+router.get('/whoami', (req, res) => {
+  const u = (req as any).user || null;
+  if (!u?.id) return res.status(401).json({ error: 'Unauthorized' });
+  res.json({ userId: u.id, email: u.email || null });
+});
 
 // Debug endpoint for testing connectivity
 router.post('/', (req, res) => {
@@ -26,6 +39,26 @@ router.post('/', (req, res) => {
     }
   });
 });
+// Provider status (server-only; env-driven OpenAI tiny call)
+router.get('/providers/status', async (_req, res) => {
+  try {
+    const key = process.env.OPENAI_API_KEY;
+    if (!key) return res.status(500).json({ provider: 'openai', ok: false, error: 'Missing OPENAI_API_KEY' });
+    const { default: OpenAI } = await import('openai');
+    const client = new OpenAI({ apiKey: key });
+    const model = process.env.OPENAI_MODEL || 'gpt-4o';
+    const resp = await client.chat.completions.create({
+      model,
+      messages: [{ role: 'user', content: 'ok' }],
+      max_tokens: 4,
+      temperature: 0,
+    });
+    res.json({ provider: 'openai', ok: true, model, id: (resp as any).id });
+  } catch (e: any) {
+    res.status(200).json({ provider: 'openai', ok: false, error: String(e?.message ?? e) });
+  }
+});
+
 
 // Railway status endpoint
 router.get('/railway-status', (req, res) => {
@@ -348,45 +381,17 @@ router.get('/railway-logs', async (req, res) => {
  */
 router.post('/model-provider-test', async (req, res) => {
   try {
-    const { provider, messages, userId } = req.body;
-    
-    if (!provider || !messages) {
-      return res.status(400).json({
-        success: false,
-        error: 'Provider and messages are required'
-      });
-    }
-
-    console.log(`[Debug] Testing ModelProviderService with provider: ${provider}, userId: ${userId}`);
-    
-    // Get default settings for the provider
-    const settings = ModelProviderService.getDefaultSettings(provider as ModelProvider);
-    
-    // Test the model call
-    const result = await ModelProviderService.callModel({
-      messages,
-      settings,
-      provider: provider as ModelProvider,
-      userId
-    });
-    
-    return res.json({
-      success: true,
-      data: {
-        modelResponse: result,
-        testSettings: settings,
-        provider,
-        userId,
-        timestamp: new Date().toISOString()
-      }
-    });
-  } catch (error) {
-    console.error('Model provider test error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
-    });
+    const { provider, model, messages } = req.body || {};
+    if (!provider || !messages) return res.status(200).json({ success: false, error: 'Provider and messages are required' });
+    if (provider !== 'openai') return res.status(200).json({ success: false, error: 'Only openai supported in debug' });
+    const key = process.env.OPENAI_API_KEY;
+    if (!key) return res.status(200).json({ success: false, error: 'Missing OPENAI_API_KEY' });
+    const { default: OpenAI } = await import('openai');
+    const client = new OpenAI({ apiKey: key });
+    const resp = await client.chat.completions.create({ model: model || process.env.OPENAI_MODEL || 'gpt-4o', messages, max_tokens: 12 });
+    return res.json({ success: true, data: { provider: 'openai', model: (resp as any).model, reply: (resp as any)?.choices?.[0]?.message?.content ?? '' } });
+  } catch (e: any) {
+    return res.status(200).json({ success: false, error: String(e?.message ?? e) });
   }
 });
 
@@ -803,6 +808,19 @@ router.get('/logs', async (_req, res) => {
   const { getLogs } = await import('../utils/LogStore.js');
   return res.json({ success: true, logs: getLogs() });
 });
+// Self-test for user-keys without cookies (env gated)
+router.get('/self-test-user-keys', async (_req, res) => {
+  if (process.env.STABILIZE_MODE !== '1') return res.status(404).json({ error: 'Route disabled' });
+  const ownerId = process.env.STABILIZE_OWNER_ID as string | undefined;
+  if (!ownerId) return res.status(500).json({ error: 'Missing STABILIZE_OWNER_ID' });
+  try {
+    const keys = await KipUserKeyService.getUserKeysMasked(ownerId);
+    return res.json({ success: true, data: keys ?? [] });
+  } catch (e: any) {
+    return res.status(200).json({ success: false, error: String(e?.message ?? e) });
+  }
+});
+
 
 // GET /api/debug/req/:reqId  → returns recent in-memory logs filtered by reqId
 router.get('/req/:reqId', async (req, res) => {

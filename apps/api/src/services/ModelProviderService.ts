@@ -202,27 +202,35 @@ export class ModelProviderService {
     let apiKey: string | null = null;
     let keySource = 'none';
     
-    // 1. Try user's personal API key first (highest priority)
-    if (userId) {
-      apiKey = await KipUserKeyService.getUserKey(provider, userId);
-      if (apiKey) {
-        keySource = 'user';
+    // When stabilization mode is enabled, force env-only keys for runtime
+    if (process.env.STABILIZE_MODE === '1') {
+      if (provider === 'openai') {
+        apiKey = process.env.OPENAI_API_KEY || null;
+        keySource = apiKey ? 'environment' : 'none';
       }
-    }
-    
-    // 2. Fall back to platform key if no user key
-    if (!apiKey) {
-      apiKey = await PlatformApiKeyService.getKeyForProvider(provider);
-      if (apiKey) {
-        keySource = 'platform';
+    } else {
+      // 1. Try user's personal API key first (highest priority)
+      if (userId) {
+        apiKey = await KipUserKeyService.getUserKey(provider, userId);
+        if (apiKey) {
+          keySource = 'user';
+        }
       }
-    }
-    
-    // 3. Fall back to environment key as last resort (for backward compatibility)
-    if (!apiKey && provider === 'openai') {
-      apiKey = process.env.OPENAI_API_KEY || null;
-      if (apiKey) {
-        keySource = 'environment';
+      
+      // 2. Fall back to platform key if no user key
+      if (!apiKey) {
+        apiKey = await PlatformApiKeyService.getKeyForProvider(provider);
+        if (apiKey) {
+          keySource = 'platform';
+        }
+      }
+      
+      // 3. Fall back to environment key as last resort
+      if (!apiKey && provider === 'openai') {
+        apiKey = process.env.OPENAI_API_KEY || null;
+        if (apiKey) {
+          keySource = 'environment';
+        }
       }
     }
     

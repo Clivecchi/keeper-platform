@@ -17,6 +17,7 @@ Uses Express, CORS, `@keeper/database` for Prisma, `@keeper/kam` for auth, and `
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2025-10-15 – Stabilization: mounted lightweight auth attach, added `/api/whoami`, debug providers status and env-gated self-test routes; ModelProviderService respects `STABILIZE_MODE=1` (env-only keys). Updated `turbo.json` to expose `VITE_API_BASE_URL`.
 - 2025-09-03 – Fixed TS errors in `src/api/agents/topics.ts` (import `PrismaClient`, resolved `agentId` shadowing).
 - 2025-09-04 – Agent Home Board ensure made idempotent; added admin inspect route `GET /api/admin/inspect/agent-home/:agentId`.
 - 2025-09-11: Added API `GET /api/domains/:domainId/management-board` to ensure and fetch Domain Management Board (idempotent).

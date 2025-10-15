@@ -15,10 +15,10 @@ import type { ModelProvider } from '@keeper/database';
  */
 export async function getUserKeys(req: Request, res: Response) {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = ((req as any).user?.id as string) || (req.headers['x-user-id'] as string);
     
     if (!userId) {
-      return res.status(401).json({ error: 'User ID required' });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const maskedKeys = await KipUserKeyService.getUserKeysMasked(userId);
@@ -42,11 +42,11 @@ export async function getUserKeys(req: Request, res: Response) {
  */
 export async function setUserKey(req: Request, res: Response) {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = ((req as any).user?.id as string) || (req.headers['x-user-id'] as string);
     const { provider, apiKey } = req.body;
     
     if (!userId) {
-      return res.status(401).json({ error: 'User ID required' });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     if (!provider || !apiKey) {
@@ -90,11 +90,11 @@ export async function setUserKey(req: Request, res: Response) {
  */
 export async function deleteUserKey(req: Request, res: Response) {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = ((req as any).user?.id as string) || (req.headers['x-user-id'] as string);
     const { provider } = req.params;
     
     if (!userId) {
-      return res.status(401).json({ error: 'User ID required' });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const validProviders: ModelProvider[] = ['openai', 'anthropic', 'together', 'elevenlabs'];
@@ -132,10 +132,10 @@ export async function deleteUserKey(req: Request, res: Response) {
  */
 export async function getUserProviders(req: Request, res: Response) {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = ((req as any).user?.id as string) || (req.headers['x-user-id'] as string);
     
     if (!userId) {
-      return res.status(401).json({ error: 'User ID required' });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const providers = await KipUserKeyService.getUserProviders(userId);
