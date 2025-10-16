@@ -30,32 +30,22 @@ function isPreviewOrigin(req: Request): boolean {
 export function setSessionCookie(req: Request, res: Response, token: string) {
   const isPreview = isPreviewOrigin(req);
   
-  // 🔍 DEBUG: Log cookie configuration before setting
-  console.log('🔍 [DEBUG] setSessionCookie called:', {
-    cookieName: COOKIE_NAME,
-    domain: DOMAIN,
-    domainFromEnv: process.env.COOKIE_DOMAIN,
-    origin: req.headers.origin,
-    isPreview,
-    tokenLength: token.length,
-  });
+  // Build cookie string manually to ensure it's set correctly
+  const maxAge = 7 * 24 * 3600; // 7 days in seconds
+  const cookieValue = [
+    `${COOKIE_NAME}=${token}`,
+    `Domain=${DOMAIN}`,
+    'Path=/',
+    'HttpOnly',
+    'Secure',
+    'SameSite=None',
+    `Max-Age=${maxAge}`
+  ].join('; ');
   
-  res.cookie(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: true, // HTTPS only
-    // Required for cross-subdomain (api.ke3p.com → www.ke3p.com)
-    sameSite: 'none',
-    domain: DOMAIN,
-    path: '/',
-    maxAge: 7 * 24 * 3600_000, // 7 days
-  });
+  // Set cookie header directly
+  res.setHeader('Set-Cookie', cookieValue);
   
-  // 🔍 DEBUG: Verify Set-Cookie header was added to response
-  const setCookieHeader = res.getHeader('set-cookie');
-  console.log('🔍 [DEBUG] Set-Cookie header after res.cookie():', {
-    present: !!setCookieHeader,
-    value: setCookieHeader,
-  });
+  console.log('[session] Cookie set manually:', { domain: DOMAIN, origin: req.headers.origin, isPreview });
   
   if (isPreview) {
     console.log('[session] Set preview cookie (SameSite=None) for origin:', req.headers.origin);

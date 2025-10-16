@@ -653,9 +653,25 @@ app.post('/api/kam/auth/login', async (req, res) => {
     }
 
     // Sign JWT
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'fallback-secret', {
+    const token = jwt.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET || 'fallback-secret', {
       expiresIn: '7d',
     });
+
+    // 🍪 SET COOKIE - This was missing!
+    const COOKIE_NAME = 'keeper_session';
+    const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '.ke3p.com';
+    const maxAge = 7 * 24 * 3600; // 7 days in seconds
+    const cookieValue = [
+      `${COOKIE_NAME}=${token}`,
+      `Domain=${COOKIE_DOMAIN}`,
+      'Path=/',
+      'HttpOnly',
+      'Secure',
+      'SameSite=None',
+      `Max-Age=${maxAge}`
+    ].join('; ');
+    res.setHeader('Set-Cookie', cookieValue);
+    console.log('[auth] Cookie set for login:', { domain: COOKIE_DOMAIN, user: user.email });
 
     return res.json({
       success: true,
