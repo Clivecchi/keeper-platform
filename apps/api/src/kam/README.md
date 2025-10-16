@@ -24,7 +24,21 @@ Expose read-only endpoints for Agent → Board → Frame → Config with scoped 
 - [ ] Persist audit to DB table `kam_audit` (future).
 - [ ] Add automated tests.
 
+## 🚨 CRITICAL: Duplicate Login Handlers
+
+**WARNING**: The login/register handlers in `auth.ts` are **NOT USED** in production!
+
+The actual handlers being used are **inline in `apps/api/src/index.ts`** (lines 628-750+).
+
+**Why this matters:**
+- Changes to `auth.ts` login handler will NOT affect production
+- Cookie setting MUST be done in the `index.ts` handler
+- This caused a critical auth bug (2025-10-15) where cookies weren't being set
+
+**TODO**: Consolidate to use a single source of truth for auth handlers.
+
 ## 📆 Update Log
+- 2025-10-15 (CRITICAL BUG FIX): Discovered and fixed missing cookie setting in login handler. The inline handler in `index.ts` (line 628) was being used instead of `auth.ts`, and it wasn't setting cookies at all. Added cookie setting directly to the `index.ts` handler. This explains why authenticated requests returned 401 despite successful login - no session cookie was ever being set!
 - 2025-10-15 (Critical Fix): Fixed `session.ts` - changed `sameSite` from `'lax'` to `'none'` to enable cross-subdomain cookies between `api.ke3p.com` and `www.ke3p.com`. The `sameSite: 'lax'` setting was preventing the browser from storing the cookie when set from the API subdomain.
 - 2025-10-15: Fixed `auth.ts` response format - login endpoint now returns `{ success: true, data: { token, user } }` to match frontend expectation (was `{ ok: true, token, user }`). Logout endpoint also changed from `{ ok: true }` to `{ success: true }`.
 - 2025-10-11: Updated `session.ts` - `authWeb` middleware now ignores Authorization headers from browser requests (detected via Origin header). Header auth only allowed for CLI/tools (no Origin) or when `X-Client: cli` header is present. Enforces cookie-only authentication for web browsers in production.

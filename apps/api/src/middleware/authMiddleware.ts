@@ -56,7 +56,16 @@ export function getAuthenticatedUser(req: Request): AuthenticatedRequest['user']
  */
 export const authMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    // Check Authorization header first
+    let token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    // If no header token, check for cookie (cookie-based auth for browsers)
+    if (!token) {
+      const cookieToken = (req as any).cookies?.keeper_session;
+      if (cookieToken) {
+        token = cookieToken;
+      }
+    }
     
     if (!token) {
       res.status(401).json({ error: 'No token provided' });
@@ -118,7 +127,16 @@ export const authMiddlewareCompat = async (req: Request, res: Response, next: Ne
   } catch {}
 
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    // Check Authorization header first
+    let token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    // If no header token, check for cookie (cookie-based auth for browsers)
+    if (!token) {
+      const cookieToken = (req as any).cookies?.keeper_session;
+      if (cookieToken) {
+        token = cookieToken;
+      }
+    }
     
     if (!token) {
       res.status(401).json({ error: 'No token provided' });
@@ -174,7 +192,16 @@ export const optionalAuthMiddleware = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    // Check Authorization header first
+    let token = req.headers.authorization?.replace('Bearer ', '');
+    
+    // If no header token, check for cookie (cookie-based auth for browsers)
+    if (!token) {
+      const cookieToken = (req as any).cookies?.keeper_session;
+      if (cookieToken) {
+        token = cookieToken;
+      }
+    }
     
     if (!token) {
       next();

@@ -17,7 +17,23 @@ Runs Prisma-backed endpoints, CORS hardened for single-domain MVP. Origins are d
 - [ ] Expand structured logging and metrics
 - [x] MCP server for OpenAI Agent integration
 
+## 🚨 CRITICAL: Authentication Handler Location
+
+**WARNING**: Login and register handlers are defined **inline in `src/index.ts`** (starting around line 628), NOT in the KAM package!
+
+**Files:**
+- ❌ `packages/kam/src/auth/*.ts` - These handlers are NOT being used
+- ✅ `apps/api/src/index.ts` lines 628+ - These are the ACTUAL handlers
+
+**Why this matters:**
+- Cookie setting must be done in the `index.ts` handlers
+- Changes to KAM auth files will NOT affect production
+- This caused a critical bug (2025-10-15) where cookies weren't being set
+
+**TODO**: Consolidate auth handlers to use KAM package or clearly document which is canonical.
+
 ## 📆 Update Log
+- **2025-10-15**: CRITICAL BUG FIX - Fixed missing cookie setting in login handler. The inline handler in `index.ts` (line 628) wasn't setting session cookies, causing all authenticated requests to return 401. Added cookie setting with `Set-Cookie` header directly. Cookie attributes: `keeper_session`, `Domain=.ke3p.com`, `HttpOnly`, `Secure`, `SameSite=None`, 7-day expiry.
 - **2025-10-11**: Added MCP (Model Context Protocol) server at `/api/mcp` for OpenAI Agent integration. Includes API key auth, tool registry, and unit tests.
 - [2025-09-30] CORS updated with debug logging and wildcard support (reads `CORS_ALLOWLIST` and `CORS_ORIGINS`, supports patterns like `https://*.vercel.app`). Added explicit `app.options('*', cors(corsOptions))` preflight handling.
 - [2025-09-24] Boot log now prints `ProxyEnabled`, `APP_ORIGIN`, and `PUBLIC_WEB_ORIGIN`. Adopted `KEEPER_PROXY_ENABLED=false` for single-domain MVP (proxy disabled by default).

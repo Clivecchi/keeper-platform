@@ -624,6 +624,11 @@ if (process.env.ENABLE_INTROSPECTION === '1') {
   });
 }
 
+// ⚠️ CRITICAL: These inline auth handlers are the ACTUAL handlers being used in production!
+// The handlers in packages/kam/src/auth/*.ts are NOT being used.
+// Any changes to authentication (including cookie setting) MUST be done here.
+// See apps/api/README.md and apps/api/src/kam/README.md for details.
+
 // KAM Auth endpoints that the frontend is trying to access
 app.post('/api/kam/auth/login', async (req, res) => {
   try {
