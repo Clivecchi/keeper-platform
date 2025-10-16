@@ -1,3 +1,4 @@
+// Force Railway rebuild - clear build cache - 2025-10-15 20:42
 import express from 'express';
 import type { Request, Response, Express, NextFunction } from 'express';
 import dotenv from 'dotenv';
