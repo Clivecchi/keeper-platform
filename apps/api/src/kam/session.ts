@@ -30,6 +30,16 @@ function isPreviewOrigin(req: Request): boolean {
 export function setSessionCookie(req: Request, res: Response, token: string) {
   const isPreview = isPreviewOrigin(req);
   
+  // 🔍 DEBUG: Log cookie configuration before setting
+  console.log('🔍 [DEBUG] setSessionCookie called:', {
+    cookieName: COOKIE_NAME,
+    domain: DOMAIN,
+    domainFromEnv: process.env.COOKIE_DOMAIN,
+    origin: req.headers.origin,
+    isPreview,
+    tokenLength: token.length,
+  });
+  
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     secure: true, // HTTPS only
@@ -38,6 +48,13 @@ export function setSessionCookie(req: Request, res: Response, token: string) {
     domain: DOMAIN,
     path: '/',
     maxAge: 7 * 24 * 3600_000, // 7 days
+  });
+  
+  // 🔍 DEBUG: Verify Set-Cookie header was added to response
+  const setCookieHeader = res.getHeader('set-cookie');
+  console.log('🔍 [DEBUG] Set-Cookie header after res.cookie():', {
+    present: !!setCookieHeader,
+    value: setCookieHeader,
   });
   
   if (isPreview) {

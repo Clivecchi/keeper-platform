@@ -41,8 +41,14 @@ export async function login(req: Request, res: Response) {
       { expiresIn: '7d' }
     );
 
+    // 🔍 DEBUG: Log successful authentication
+    console.log('🔍 [DEBUG] Login successful for user:', user.email);
+
     // Set HttpOnly cookie (preview-aware)
     setSessionCookie(req, res, token);
+
+    // 🔍 DEBUG: Confirm we're about to send response
+    console.log('🔍 [DEBUG] Sending login success response');
 
     // Return success (format matches frontend expectation)
     return res.json({
