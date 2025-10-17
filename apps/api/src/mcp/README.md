@@ -25,9 +25,23 @@ Minimal MCP server for OpenAI Agent integration. Provides safe, domain-scoped to
 2. **`pool_create_quote`** - Create PoolKeeper quote with business rules
 
 ### Endpoints
-- `GET /api/mcp/` - Health check
-- `GET /api/mcp/schema` - Get tool list with JSON schemas
-- `POST /api/mcp/call` - Invoke a tool
+
+MCP routes are mounted at BOTH `/mcp` and `/api/mcp` for compatibility.
+
+**No Auth Required:**
+- `GET /mcp/health` - Health check / reachability test
+
+**Auth Required** (Bearer token):
+- `GET /mcp/` - Root endpoint
+- `GET /mcp/whoami` - Auth validation
+- `GET /mcp/tools` - Standard tool discovery (OpenAI Agent Builder)
+- `GET /mcp/capabilities` - Server capabilities
+- `GET /mcp/.well-known/mcp` - Well-known discovery
+- `GET /mcp/schema` - Detailed tool schemas
+- `POST /mcp/call` - Invoke a tool
+
+**404 Handling:**
+- All unsupported `/mcp/*` paths return JSON 404 (not HTML)
 
 ## 📚 API Examples
 
@@ -362,6 +376,9 @@ it('calls my_new_tool successfully', async () => {
 - [ ] Add per-tool permission scopes
 
 ## 📆 Update Log
+
+**2025-10-17 (v4)**: Fixed MCP routing to prevent web app SPA interception. Added standard discovery endpoints (`/tools`, `/capabilities`, `/.well-known/mcp`, `/whoami`). Dual-mounted at `/mcp` and `/api/mcp` for OpenAI Agent Builder compatibility. Added 404 handler to return JSON instead of HTML for unsupported routes.
+
 **2025-10-11 (v3)**: Refactored CORS into dedicated `cors.ts` file. Added server-level OPTIONS handler and `Vary: Origin` header. Improved code organization and maintainability.
 
 **2025-10-11 (v2)**: Added universal CORS headers and proper Content-Type to fix OpenAI Agent Builder connection hanging. All responses now include timestamps.

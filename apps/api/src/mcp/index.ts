@@ -18,14 +18,30 @@ router.use(mcpCors);
  * Some tool UIs probe with HEAD before making actual requests
  * No data is leaked - just returns 200 OK
  */
-router.head(['/', '/schema', '/call'], (_req: Request, res: Response) => {
+router.head(['/', '/health', '/schema', '/call'], (_req: Request, res: Response) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.sendStatus(200);
 });
 
 /**
+ * GET /api/mcp/health (BEFORE auth middleware)
+ * Health check endpoint - accessible without authentication for monitoring
+ */
+router.get('/health', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.json({ 
+    ok: true, 
+    service: 'keeper-mcp', 
+    version: '0.0.1',
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
  * Auth Middleware
  * Accepts both Authorization: Bearer and x-api-key headers
+ * Applied to all routes below this point
  */
 router.use((req: Request, res: Response, next: NextFunction) => {
   const bearer = req.headers.authorization?.replace(/^Bearer\s+/i, '');
@@ -36,7 +52,7 @@ router.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.status(401).json({ 
       ok: false, 
-      error: 'Unauthorized',
+      error: 'unauthorized',
       timestamp: new Date().toISOString()
     });
     return;
@@ -50,7 +66,7 @@ router.use((req: Request, res: Response, next: NextFunction) => {
 
 /**
  * GET /api/mcp/
- * Health check endpoint
+ * Root endpoint - requires auth
  */
 router.get('/', (_req: Request, res: Response) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -58,6 +74,21 @@ router.get('/', (_req: Request, res: Response) => {
     ok: true, 
     service: 'keeper-mcp', 
     version: '0.0.1',
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
+ * GET /api/mcp/whoami
+ * Auth check endpoint - verifies bearer token is valid
+ */
+router.get('/whoami', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.json({ 
+    ok: true,
+    authenticated: true,
+    service: 'keeper-mcp',
+    domainId: (req as any).domainId || null,
     timestamp: new Date().toISOString()
   });
 });
@@ -71,6 +102,70 @@ router.get('/schema', (_req: Request, res: Response) => {
   res.json({ 
     ...getSchema(), 
     timestamp: new Date().toISOString() 
+  });
+});
+
+/**
+ * GET /api/mcp/tools
+ * Standard MCP endpoint - Returns list of available tools
+ * Compatible with OpenAI Agent Builder discovery
+ */
+router.get('/tools', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  const schema = getSchema();
+  res.json({ 
+    tools: schema.tools.map(t => ({
+      name: t.name,
+      description: t.description,
+      parameters: t.parameters
+    })),
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
+ * GET /api/mcp/capabilities
+ * Standard MCP endpoint - Returns server capabilities
+ */
+router.get('/capabilities', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  const schema = getSchema();
+  res.json({ 
+    service: schema.service,
+    version: schema.version,
+    capabilities: {
+      tools: true,
+      toolExecution: true,
+      domainScoping: true
+    },
+    toolCount: schema.tools.length,
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
+ * GET /api/mcp/.well-known/mcp
+ * Well-known discovery endpoint for MCP
+ */
+router.get('/.well-known/mcp', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  const schema = getSchema();
+  res.json({ 
+    service: schema.service,
+    version: schema.version,
+    endpoints: {
+      health: '/',
+      tools: '/tools',
+      capabilities: '/capabilities',
+      schema: '/schema',
+      call: '/call'
+    },
+    capabilities: {
+      tools: true,
+      toolExecution: true,
+      domainScoping: true
+    },
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -123,6 +218,21 @@ router.post('/call', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString()
     });
   }
+});
+
+/**
+ * Catch-all 404 handler for unsupported MCP routes
+ * Returns JSON instead of falling through to SPA
+ */
+router.use('*', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.status(404).json({
+    ok: false,
+    error: 'Not found',
+    path: req.originalUrl,
+    availableEndpoints: ['/', '/tools', '/capabilities', '/.well-known/mcp', '/schema', '/call'],
+    timestamp: new Date().toISOString()
+  });
 });
 
 export default router;

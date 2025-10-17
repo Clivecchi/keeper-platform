@@ -944,6 +944,8 @@ app.options('/api/mcp/*', (_req, res) => {
 });
 
 // Mount MCP routes (OpenAI Agent integration)
+// Mount at BOTH /mcp and /api/mcp for compatibility with different clients
+app.use('/mcp', mcpRouter);
 app.use('/api/mcp', mcpRouter);
 
 // Connect KIP routes

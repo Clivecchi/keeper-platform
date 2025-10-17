@@ -511,11 +511,11 @@ router.get('/opai-mcp-probe', async (_req, res) => {
   // Step 3: MCP handshake (tool discovery)
   if (probeResult.authOk && mcpKey) {
     try {
-      // Try common MCP tool list endpoints
+      // Try standard MCP tool discovery endpoints
       const toolEndpoints = [
         mcpUrl.endsWith('/') ? `${mcpUrl}tools` : `${mcpUrl}/tools`,
-        mcpUrl.endsWith('/') ? `${mcpUrl}mcp/tools` : `${mcpUrl}/mcp/tools`,
-        mcpUrl.endsWith('/') ? `${mcpUrl}api/tools` : `${mcpUrl}/api/tools`
+        mcpUrl.endsWith('/') ? `${mcpUrl}capabilities` : `${mcpUrl}/capabilities`,
+        mcpUrl.endsWith('/') ? `${mcpUrl}.well-known/mcp` : `${mcpUrl}/.well-known/mcp`
       ];
       
       let handshakeSuccess = false;
