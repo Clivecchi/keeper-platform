@@ -376,6 +376,230 @@ router.get('/railway-logs', async (req, res) => {
 });
 
 /**
+ * GET /api/debug/opai-mcp-probe
+ * Read-only probe for OpenAI Agent Builder "Opai" MCP connectivity
+ * Tests reachability, auth, and MCP handshake without modifying anything
+ */
+router.get('/opai-mcp-probe', async (_req, res) => {
+  const timestamp = new Date().toISOString();
+  
+  // Read environment variables
+  const mcpUrl = process.env.OPAI_AGENT_MCP_URL;
+  const mcpKey = process.env.OPAI_AGENT_MCP_KEY;
+  
+  // Initialize response object
+  const probeResult: {
+    mcpUrl: string | null;
+    reachable: boolean;
+    reach: { status: number | null; ok: boolean; error: string | null };
+    authOk: boolean;
+    auth: { status: number | null; ok: boolean; error: string | null };
+    handshakeOk: boolean;
+    tools: string[];
+    error: string | null;
+    timestamp: string;
+  } = {
+    mcpUrl: mcpUrl || null,
+    reachable: false,
+    reach: { status: null, ok: false, error: null },
+    authOk: false,
+    auth: { status: null, ok: false, error: null },
+    handshakeOk: false,
+    tools: [],
+    error: null,
+    timestamp
+  };
+
+  // Check if MCP URL is set
+  if (!mcpUrl) {
+    probeResult.error = 'missing OPAI_AGENT_MCP_URL';
+    return res.status(200).json(probeResult);
+  }
+
+  // Mask the key for logging (show last 4 chars only)
+  const maskedKey = mcpKey ? `****${mcpKey.slice(-4)}` : 'not_set';
+  logger.info('[Opai MCP Probe] Starting probe', { mcpUrl, keyPresent: !!mcpKey, maskedKey });
+
+  // Step 1: Reachability test
+  try {
+    const reachUrl = mcpUrl.endsWith('/') ? `${mcpUrl}health` : `${mcpUrl}/health`;
+    logger.info('[Opai MCP Probe] Testing reachability', { reachUrl });
+    
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    
+    try {
+      const reachResponse = await fetch(reachUrl, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      clearTimeout(timeout);
+      
+      probeResult.reach.status = reachResponse.status;
+      probeResult.reach.ok = reachResponse.ok;
+      probeResult.reachable = reachResponse.ok;
+      
+      logger.info('[Opai MCP Probe] Reachability test result', { 
+        status: reachResponse.status, 
+        ok: reachResponse.ok 
+      });
+    } catch (fetchError: any) {
+      clearTimeout(timeout);
+      const errorMsg = fetchError.name === 'AbortError' 
+        ? 'timeout after 5s' 
+        : fetchError.message || 'network error';
+      probeResult.reach.error = errorMsg;
+      logger.warn('[Opai MCP Probe] Reachability test failed', { error: errorMsg });
+    }
+  } catch (error: any) {
+    probeResult.reach.error = error.message || 'unknown error';
+    logger.error('[Opai MCP Probe] Reachability test error', { error: error.message });
+  }
+
+  // Step 2: Auth test
+  if (!mcpKey) {
+    probeResult.auth.error = 'missing OPAI_AGENT_MCP_KEY';
+    logger.warn('[Opai MCP Probe] Auth test skipped - no key');
+  } else {
+    try {
+      const authUrl = mcpUrl.endsWith('/') ? `${mcpUrl}whoami` : `${mcpUrl}/whoami`;
+      logger.info('[Opai MCP Probe] Testing auth', { authUrl });
+      
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      
+      try {
+        const authResponse = await fetch(authUrl, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'Authorization': `Bearer ${mcpKey}`,
+            'Accept': 'application/json'
+          }
+        });
+        clearTimeout(timeout);
+        
+        probeResult.auth.status = authResponse.status;
+        probeResult.auth.ok = authResponse.ok;
+        probeResult.authOk = authResponse.ok;
+        
+        if (!authResponse.ok) {
+          probeResult.auth.error = `HTTP ${authResponse.status}`;
+        }
+        
+        logger.info('[Opai MCP Probe] Auth test result', { 
+          status: authResponse.status, 
+          ok: authResponse.ok 
+        });
+      } catch (fetchError: any) {
+        clearTimeout(timeout);
+        const errorMsg = fetchError.name === 'AbortError' 
+          ? 'timeout after 5s' 
+          : fetchError.message || 'network error';
+        probeResult.auth.error = errorMsg;
+        logger.warn('[Opai MCP Probe] Auth test failed', { error: errorMsg });
+      }
+    } catch (error: any) {
+      probeResult.auth.error = error.message || 'unknown error';
+      logger.error('[Opai MCP Probe] Auth test error', { error: error.message });
+    }
+  }
+
+  // Step 3: MCP handshake (tool discovery)
+  if (probeResult.authOk && mcpKey) {
+    try {
+      // Try common MCP tool list endpoints
+      const toolEndpoints = [
+        mcpUrl.endsWith('/') ? `${mcpUrl}tools` : `${mcpUrl}/tools`,
+        mcpUrl.endsWith('/') ? `${mcpUrl}mcp/tools` : `${mcpUrl}/mcp/tools`,
+        mcpUrl.endsWith('/') ? `${mcpUrl}api/tools` : `${mcpUrl}/api/tools`
+      ];
+      
+      let handshakeSuccess = false;
+      
+      for (const toolUrl of toolEndpoints) {
+        if (handshakeSuccess) break;
+        
+        try {
+          logger.info('[Opai MCP Probe] Testing MCP handshake', { toolUrl });
+          
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 5000);
+          
+          const toolResponse = await fetch(toolUrl, {
+            method: 'GET',
+            signal: controller.signal,
+            headers: {
+              'Authorization': `Bearer ${mcpKey}`,
+              'Accept': 'application/json'
+            }
+          });
+          clearTimeout(timeout);
+          
+          if (toolResponse.ok) {
+            try {
+              const toolData = await toolResponse.json();
+              
+              // Extract tool names from various possible response formats
+              let toolNames: string[] = [];
+              
+              if (Array.isArray(toolData)) {
+                toolNames = toolData.map((t: any) => t.name || t.id || String(t)).filter(Boolean);
+              } else if (toolData.tools && Array.isArray(toolData.tools)) {
+                toolNames = toolData.tools.map((t: any) => t.name || t.id || String(t)).filter(Boolean);
+              } else if (toolData.data && Array.isArray(toolData.data)) {
+                toolNames = toolData.data.map((t: any) => t.name || t.id || String(t)).filter(Boolean);
+              }
+              
+              probeResult.handshakeOk = true;
+              probeResult.tools = toolNames;
+              handshakeSuccess = true;
+              
+              logger.info('[Opai MCP Probe] MCP handshake succeeded', { 
+                toolCount: toolNames.length,
+                tools: toolNames
+              });
+            } catch (jsonError) {
+              logger.warn('[Opai MCP Probe] MCP response not JSON', { toolUrl });
+            }
+          }
+        } catch (fetchError: any) {
+          // Try next endpoint
+          logger.debug('[Opai MCP Probe] Tool endpoint failed', { 
+            toolUrl, 
+            error: fetchError.message 
+          });
+        }
+      }
+      
+      if (!handshakeSuccess) {
+        probeResult.error = 'MCP handshake failed - no tool endpoints responded';
+        logger.warn('[Opai MCP Probe] All MCP tool endpoints failed');
+      }
+    } catch (error: any) {
+      probeResult.error = `MCP handshake error: ${error.message}`;
+      logger.error('[Opai MCP Probe] MCP handshake error', { error: error.message });
+    }
+  } else {
+    logger.info('[Opai MCP Probe] MCP handshake skipped - auth failed or no key');
+  }
+
+  // Log final result (no secrets)
+  logger.info('[Opai MCP Probe] Probe complete', {
+    reachable: probeResult.reachable,
+    authOk: probeResult.authOk,
+    handshakeOk: probeResult.handshakeOk,
+    toolCount: probeResult.tools.length,
+    error: probeResult.error
+  });
+
+  return res.status(200).json(probeResult);
+});
+
+/**
  * GET /api/debug/key-source
  * Get the key source used for the last model provider call
  */
