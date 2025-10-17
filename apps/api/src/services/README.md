@@ -42,6 +42,17 @@ Services are stateless classes instantiated on demand by route handlers or other
 - [ ] Ensure all external requests include proper timeouts.
 
 ## 📆 Update Log
+### 2025-10-17
+- **ModelProviderService.ts**: Changed API key resolution order to ENV-first
+  - **NEW ORDER**: Environment (`process.env.OPENAI_API_KEY`) → User keys → Platform DB keys
+  - **OLD ORDER**: User keys → Platform DB keys → Environment (last resort)
+  - **Rationale**: Prefer fresh ENV keys over potentially stale DB keys for reliability
+  - Added `lastKeySource` tracking to expose which key source was used
+  - Added `getLastKeySource()` method for debugging
+  - Error messages now include key source information
+  - **Impact**: Agents will now use Railway environment keys by default, with DB as fallback
+  - **Benefits**: Aligns with 12-factor app principles, avoids stale key issues, better DevOps
+
 ### 2025-07-31
 - Reverted Vercel request body to `{ name }` per API spec.
 - Added initial README with module overview and file summaries.

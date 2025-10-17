@@ -1,3 +1,25 @@
+# Services
+
+## 📌 Purpose
+Central location for API service-layer modules used by route handlers.
+
+## 🧱 Key Files
+- `KipAgentPermissionService.ts`
+- `PlatformApiKeyService.ts`
+- `SoleMemoryService.ts`
+- `VercelDomainManagerService.ts`
+- `boards/domainManagement.ts`
+
+## 🔄 Data & Behavior
+Services encapsulate business logic and data access via Prisma and caches. They are stateless and idempotent where possible.
+
+## ⚠️ Notes & ToDo
+- [ ] Document domain board ensure/hydration behaviors
+- [ ] Behavior to confirm with Kip
+
+## 📆 Update Log
+- 2025-09-11: Added `boards/domainManagement.ts` ensure service for Domain Management Board.
+- 2025-09-16: Added wrapper `ensureDomainManagementBoard.ts` to expose idempotent ensure via API service.
 # Services Module
 
 ## 📌 Purpose
@@ -20,8 +42,18 @@ Services are stateless classes instantiated on demand by route handlers or other
 - [ ] Ensure all external requests include proper timeouts.
 
 ## 📆 Update Log
+### 2025-10-17
+- **ModelProviderService.ts**: Changed API key resolution order to ENV-first
+  - **NEW ORDER**: Environment (`process.env.OPENAI_API_KEY`) → User keys → Platform DB keys
+  - **OLD ORDER**: User keys → Platform DB keys → Environment (last resort)
+  - **Rationale**: Prefer fresh ENV keys over potentially stale DB keys for reliability
+  - Added `lastKeySource` tracking to expose which key source was used
+  - Added `getLastKeySource()` method for debugging
+  - Error messages now include key source information
+  - **Impact**: Agents will now use Railway environment keys by default, with DB as fallback
+  - **Benefits**: Aligns with 12-factor app principles, avoids stale key issues, better DevOps
+
 ### 2025-07-31
+- Reverted Vercel request body to `{ name }` per API spec.
 - Added initial README with module overview and file summaries.
 - Updated `VercelDomainManagerService.ts` request body (`{ domain }` instead of `{ name }`) to match Vercel REST API specification.
-### 2025-09-16
-- Added `apps/api/src/services/ensureDomainManagementBoard.ts` to expose Domain Management Board ensure as a simple API-facing helper, delegating to `boards/domainManagement.ts` and returning `{ boardId, domainId }`.

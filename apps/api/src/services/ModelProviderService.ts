@@ -190,6 +190,16 @@ class ElevenLabsProvider {
  * Main Model Provider Service
  */
 export class ModelProviderService {
+  // Track last key source for debugging
+  private static lastKeySource: { provider: ModelProvider; keySource: string; timestamp: string } | null = null;
+
+  /**
+   * Get the last key source used (for debugging)
+   */
+  static getLastKeySource() {
+    return this.lastKeySource;
+  }
+
   /**
    * Call a model with the specified options and retry logic
    */
@@ -198,7 +208,8 @@ export class ModelProviderService {
     const { messages, settings, provider, userId } = options;
     const retryConfig = settings.retry || { max_retries: 3, retry_delay_ms: 1000 };
     
-    // Implement key resolution hierarchy: user key → platform key → environment key
+    // Implement key resolution hierarchy: environment key → platform key → user key
+    // NEW ORDER: Prefer ENV over DB for long-term reliability
     let apiKey: string | null = null;
     let keySource = 'none';
     
@@ -206,33 +217,40 @@ export class ModelProviderService {
     if (process.env.STABILIZE_MODE === '1') {
       if (provider === 'openai') {
         apiKey = process.env.OPENAI_API_KEY || null;
-        keySource = apiKey ? 'environment' : 'none';
+        keySource = apiKey ? 'env' : 'none';
       }
     } else {
-      // 1. Try user's personal API key first (highest priority)
-      if (userId) {
+      // 1. Try environment key first (highest priority, recommended long-term)
+      if (provider === 'openai') {
+        apiKey = process.env.OPENAI_API_KEY || null;
+        if (apiKey) {
+          keySource = 'env';
+        }
+      }
+      
+      // 2. Fall back to user's personal API key if env not set
+      if (!apiKey && userId) {
         apiKey = await KipUserKeyService.getUserKey(provider, userId);
         if (apiKey) {
           keySource = 'user';
         }
       }
       
-      // 2. Fall back to platform key if no user key
+      // 3. Fall back to platform key from DB as last resort
       if (!apiKey) {
         apiKey = await PlatformApiKeyService.getKeyForProvider(provider);
         if (apiKey) {
           keySource = 'platform';
         }
       }
-      
-      // 3. Fall back to environment key as last resort
-      if (!apiKey && provider === 'openai') {
-        apiKey = process.env.OPENAI_API_KEY || null;
-        if (apiKey) {
-          keySource = 'environment';
-        }
-      }
     }
+    
+    // Track key source for debugging
+    this.lastKeySource = {
+      provider,
+      keySource,
+      timestamp: new Date().toISOString()
+    };
     
     console.log(`[ModelProvider] Using ${keySource} key for ${provider} (user: ${userId || 'none'})`);
     
@@ -258,7 +276,7 @@ export class ModelProviderService {
       }
     }
     
-    // All retries failed
+    // All retries failed - include key source in error for debugging
     return {
       success: false,
       content: '',

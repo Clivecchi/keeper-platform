@@ -376,8 +376,44 @@ router.get('/railway-logs', async (req, res) => {
 });
 
 /**
+ * GET /api/debug/key-source
+ * Get the key source used for the last model provider call
+ */
+router.get('/key-source', async (_req, res) => {
+  try {
+    const lastKeySource = ModelProviderService.getLastKeySource();
+    if (!lastKeySource) {
+      return res.json({
+        success: true,
+        data: {
+          message: 'No model calls have been made yet',
+          keySource: null
+        }
+      });
+    }
+    return res.json({
+      success: true,
+      data: {
+        provider: lastKeySource.provider,
+        keySource: lastKeySource.keySource,
+        timestamp: lastKeySource.timestamp,
+        description: lastKeySource.keySource === 'env' 
+          ? 'Using environment variable (OPENAI_API_KEY)' 
+          : lastKeySource.keySource === 'platform'
+          ? 'Using platform key from database'
+          : lastKeySource.keySource === 'user'
+          ? 'Using user-specific key from database'
+          : 'No key found'
+      }
+    });
+  } catch (e: any) {
+    return res.status(500).json({ success: false, error: String(e?.message ?? e) });
+  }
+});
+
+/**
  * POST /api/debug/model-provider-test
- * Test the ModelProviderService directly
+ * Test the ModelProviderService directly and expose key source
  */
 router.post('/model-provider-test', async (req, res) => {
   try {
@@ -385,13 +421,22 @@ router.post('/model-provider-test', async (req, res) => {
     if (!provider || !messages) return res.status(200).json({ success: false, error: 'Provider and messages are required' });
     if (provider !== 'openai') return res.status(200).json({ success: false, error: 'Only openai supported in debug' });
     const key = process.env.OPENAI_API_KEY;
-    if (!key) return res.status(200).json({ success: false, error: 'Missing OPENAI_API_KEY' });
+    if (!key) return res.status(200).json({ success: false, error: 'Missing OPENAI_API_KEY', keySource: 'none' });
     const { default: OpenAI } = await import('openai');
     const client = new OpenAI({ apiKey: key });
     const resp = await client.chat.completions.create({ model: model || process.env.OPENAI_MODEL || 'gpt-4o', messages, max_tokens: 12 });
-    return res.json({ success: true, data: { provider: 'openai', model: (resp as any).model, reply: (resp as any)?.choices?.[0]?.message?.content ?? '' } });
+    return res.json({ 
+      success: true, 
+      data: { 
+        provider: 'openai', 
+        model: (resp as any).model, 
+        reply: (resp as any)?.choices?.[0]?.message?.content ?? '',
+        keySource: 'env', // This test endpoint always uses env key
+        ok: true
+      } 
+    });
   } catch (e: any) {
-    return res.status(200).json({ success: false, error: String(e?.message ?? e) });
+    return res.status(200).json({ success: false, error: String(e?.message ?? e), keySource: 'env' });
   }
 });
 
