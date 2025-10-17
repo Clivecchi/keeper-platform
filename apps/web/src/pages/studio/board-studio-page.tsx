@@ -11,6 +11,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiFetch } from '../../lib/api';
 import { handleAuthError } from '../../auth/handleAuthError';
+import { debug } from '../../lib/debug';
 import { Button } from '../../features/board-studio/v0/components/ui/button';
 import { ScrollArea } from '../../features/board-studio/v0/components/ui/scroll-area';
 import { 
