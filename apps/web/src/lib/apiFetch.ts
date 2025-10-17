@@ -46,13 +46,24 @@ export async function apiFetch(input: string | URL, opts: FetchOptions = {}) {
     // For error responses, try to parse JSON error message
     try {
       const errorData = await response.json();
-      throw new Error(errorData.error || errorData.message || `HTTP ${response.status}`);
+      const error: any = new Error(errorData.error || errorData.message || `HTTP ${response.status}`);
+      error.status = response.status; // Attach status for handleAuthError
+      error.response = response; // Attach response for additional context
+      throw error;
     } catch (err) {
       // If JSON parsing fails or we already threw, use status code
       if (err instanceof Error && err.message.startsWith('HTTP')) {
-        throw err; // Re-throw our custom error
+        // Re-throw our custom error (already has status attached from above)
+        if (!(err as any).status) {
+          (err as any).status = response.status;
+          (err as any).response = response;
+        }
+        throw err;
       }
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const error: any = new Error(`HTTP ${response.status}: ${response.statusText}`);
+      error.status = response.status; // Attach status for handleAuthError
+      error.response = response; // Attach response for additional context
+      throw error;
     }
   }
   

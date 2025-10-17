@@ -27,6 +27,12 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2025-10-17 - apiFetch Error Status Attachment Fix
+**Issue Resolved**: Error objects thrown by `apiFetch` didn't include `status` property, preventing `handleAuthError` from detecting 401s
+**Root Cause**: Plain `Error` objects were thrown without attaching the HTTP status code from the response
+**Solution**: All error objects now include `error.status` and `error.response` properties for proper error handling
+**Impact**: 401 errors are now properly detected and handled, preventing inappropriate session clearing on non-auth errors
+
 ### 2025-10-15 - apiFetch JSON Parsing Fix
 **Issue Resolved**: `apiFetch` was returning raw Response objects instead of parsed JSON
 **Root Cause**: The function was calling `return fetch(...)` directly without awaiting and parsing the response body
