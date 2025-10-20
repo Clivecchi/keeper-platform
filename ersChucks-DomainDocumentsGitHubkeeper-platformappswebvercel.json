@@ -11,16 +11,5 @@
       "destination": "https://www.ke3p.com/$1",
       "permanent": true
     }
-  ],
-  "headers": [
-    {
-      "source": "/mcp/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, no-cache, must-revalidate"
-        }
-      ]
-    }
   ]
 }
