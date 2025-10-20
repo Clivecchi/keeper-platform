@@ -124,6 +124,42 @@ router.get('/tools', (_req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/mcp/actions
+ * OpenAI Agent Builder expects actions discovery at this endpoint
+ * Returns the same tools but formatted as "actions" for compatibility
+ */
+router.get('/actions', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  const schema = getSchema();
+  res.json({ 
+    actions: schema.tools.map(t => ({
+      name: t.name,
+      description: t.description,
+      parameters: t.parameters
+    })),
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
+ * POST /api/mcp/actions/list
+ * OpenAI Agent Builder may use POST for listing actions
+ * Returns the same actions list as GET /actions
+ */
+router.post('/actions/list', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  const schema = getSchema();
+  res.json({ 
+    actions: schema.tools.map(t => ({
+      name: t.name,
+      description: t.description,
+      parameters: t.parameters
+    })),
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
  * GET /api/mcp/capabilities
  * Standard MCP endpoint - Returns server capabilities
  */
@@ -156,12 +192,14 @@ router.get('/.well-known/mcp', (_req: Request, res: Response) => {
     endpoints: {
       health: '/',
       tools: '/tools',
+      actions: '/actions',
       capabilities: '/capabilities',
       schema: '/schema',
       call: '/call'
     },
     capabilities: {
       tools: true,
+      actions: true,
       toolExecution: true,
       domainScoping: true
     },
@@ -230,7 +268,7 @@ router.use('*', (req: Request, res: Response) => {
     ok: false,
     error: 'Not found',
     path: req.originalUrl,
-    availableEndpoints: ['/', '/tools', '/capabilities', '/.well-known/mcp', '/schema', '/call'],
+    availableEndpoints: ['/', '/tools', '/actions', '/capabilities', '/.well-known/mcp', '/schema', '/call'],
     timestamp: new Date().toISOString()
   });
 });
