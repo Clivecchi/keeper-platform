@@ -24,6 +24,17 @@ const ALLOWED_HEADERS = 'Content-Type, Authorization, x-api-key, x-domain-id';
  */
 export function mcpCors(req: Request, res: Response, next: NextFunction): void {
   const origin = (req.headers.origin as string) || '*';
+  const hasOrigin = !!req.headers.origin;
+  
+  // Debug log for CORS decision (no secrets)
+  console.info('[MCP CORS]', JSON.stringify({
+    ts: new Date().toISOString(),
+    path: req.path,
+    method: req.method,
+    origin: origin,
+    hasOrigin,
+    allow: true
+  }));
   
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Vary', 'Origin');
