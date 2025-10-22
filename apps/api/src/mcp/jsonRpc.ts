@@ -1,0 +1,223 @@
+// src/mcp/jsonRpc.ts
+// JSON-RPC 2.0 dispatcher for MCP endpoints
+// Enables OpenAI Agent Builder compatibility by accepting JSON-RPC payloads
+
+import type { Request, Response } from 'express';
+import { mcpListActions, mcpCallAction, mcpGetCapabilities } from './core.js';
+import { logMcp } from './log.js';
+import { rid } from './id.js';
+
+/**
+ * JSON-RPC 2.0 Request
+ * Standard JSON-RPC format expected by OpenAI Agent Builder
+ */
+type JsonRpcRequest = {
+  jsonrpc: '2.0';
+  id: string | number | null;
+  method: string;
+  params?: Record<string, any>;
+};
+
+/**
+ * Minimal Request Format
+ * Alternative simpler format for flexibility
+ */
+type MinimalRequest = {
+  action: string;
+  name?: string;
+  arguments?: Record<string, any>;
+};
+
+/**
+ * JSON-RPC 2.0 Success Response
+ */
+type JsonRpcSuccess = {
+  jsonrpc: '2.0';
+  id: string | number | null;
+  result: any;
+};
+
+/**
+ * JSON-RPC 2.0 Error Response
+ */
+type JsonRpcError = {
+  jsonrpc: '2.0';
+  id: string | number | null;
+  error: {
+    code: number;
+    message: string;
+    data?: any;
+  };
+};
+
+/**
+ * JSON-RPC Error Codes
+ * Standard codes from JSON-RPC 2.0 specification
+ */
+const ErrorCodes = {
+  PARSE_ERROR: -32700,
+  INVALID_REQUEST: -32600,
+  METHOD_NOT_FOUND: -32601,
+  INVALID_PARAMS: -32602,
+  INTERNAL_ERROR: -32603,
+  SERVER_ERROR: -32000,
+} as const;
+
+/**
+ * JSON-RPC Dispatcher
+ * 
+ * Handles JSON-RPC 2.0 requests at the base MCP endpoints.
+ * Supports both JSON-RPC format and simplified format for flexibility.
+ * 
+ * Expected to be mounted at:
+ * - POST /
+ * - POST /mcp
+ * 
+ * Methods:
+ * - list_actions → returns available tools/actions
+ * - call_action → invokes a tool
+ * - capabilities → returns server capabilities
+ */
+export async function jsonRpcDispatcher(req: Request, res: Response): Promise<void> {
+  const t0 = Date.now();
+  const requestId = rid();
+  
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('x-request-id', requestId);
+
+  try {
+    const body = req.body;
+    
+    // Detect format: JSON-RPC or minimal
+    const isJsonRpc = body && body.jsonrpc === '2.0';
+    const isMinimal = body && body.action;
+
+    if (!isJsonRpc && !isMinimal) {
+      const response: JsonRpcError = {
+        jsonrpc: '2.0',
+        id: null,
+        error: {
+          code: ErrorCodes.INVALID_REQUEST,
+          message: 'Invalid request format. Expected JSON-RPC 2.0 or { action: "..." }',
+        },
+      };
+      res.status(400).json(response);
+      logMcp(req, 400, t0, requestId);
+      return;
+    }
+
+    // Parse request based on format
+    let method: string;
+    let params: Record<string, any> = {};
+    let rpcId: string | number | null = null;
+
+    if (isJsonRpc) {
+      const jsonRpcReq = body as JsonRpcRequest;
+      method = jsonRpcReq.method;
+      params = jsonRpcReq.params || {};
+      rpcId = jsonRpcReq.id;
+    } else {
+      // Minimal format
+      const minimalReq = body as MinimalRequest;
+      method = minimalReq.action;
+      if (minimalReq.name) params.name = minimalReq.name;
+      if (minimalReq.arguments) params.arguments = minimalReq.arguments;
+      rpcId = requestId; // Use our request ID
+    }
+
+    // Extract domain context from headers
+    const domainId = (req.headers['x-domain-id'] as string) ?? null;
+    const ctx = { domainId };
+
+    // Dispatch to appropriate handler
+    let result: any;
+    let rpcMethod = method; // for logging
+
+    switch (method) {
+      case 'list_actions':
+      case 'actions.list':
+        result = mcpListActions();
+        break;
+
+      case 'call_action':
+      case 'action.call':
+      case 'call':
+        {
+          const toolName = params.name || params.tool;
+          const toolArgs = params.arguments || params.args || params.parameters || {};
+          
+          if (!toolName) {
+            const response: JsonRpcError = {
+              jsonrpc: '2.0',
+              id: rpcId,
+              error: {
+                code: ErrorCodes.INVALID_PARAMS,
+                message: 'Missing required parameter: name (tool name)',
+              },
+            };
+            res.status(400).json(response);
+            logMcp(req, 400, t0, requestId, 'call_action');
+            return;
+          }
+
+          result = await mcpCallAction(toolName, toolArgs, ctx);
+          rpcMethod = `call_action:${toolName}`;
+        }
+        break;
+
+      case 'capabilities':
+      case 'server.capabilities':
+        result = mcpGetCapabilities();
+        break;
+
+      default:
+        {
+          const response: JsonRpcError = {
+            jsonrpc: '2.0',
+            id: rpcId,
+            error: {
+              code: ErrorCodes.METHOD_NOT_FOUND,
+              message: `Method not found: ${method}`,
+              data: {
+                availableMethods: [
+                  'list_actions',
+                  'call_action',
+                  'capabilities',
+                ],
+              },
+            },
+          };
+          res.status(404).json(response);
+          logMcp(req, 404, t0, requestId, method);
+          return;
+        }
+    }
+
+    // Success response
+    const response: JsonRpcSuccess = {
+      jsonrpc: '2.0',
+      id: rpcId,
+      result,
+    };
+
+    res.status(200).json(response);
+    logMcp(req, 200, t0, requestId, rpcMethod);
+  } catch (error: any) {
+    // Handle errors
+    const errorMessage = error?.message || 'Internal server error';
+    const sanitizedMessage = errorMessage.replace(/\b(sk_|token_|key_)[a-zA-Z0-9_]+/gi, '***REDACTED***');
+
+    const response: JsonRpcError = {
+      jsonrpc: '2.0',
+      id: req.body?.id ?? null,
+      error: {
+        code: ErrorCodes.SERVER_ERROR,
+        message: sanitizedMessage,
+      },
+    };
+
+    res.status(500).json(response);
+    logMcp(req, 500, t0, requestId, req.body?.method || 'unknown');
+  }
+}
+

@@ -10,6 +10,8 @@ import { mcpCors } from './cors.js';
 import { getSchema, callTool } from './tools.js';
 import { logMcp } from './log.js';
 import { rid } from './id.js';
+import { mcpListActions, mcpCallAction, mcpGetCapabilities } from './core.js';
+import { jsonRpcDispatcher } from './jsonRpc.js';
 
 const router = Router();
 
@@ -78,6 +80,14 @@ router.use((req: Request, res: Response, next: NextFunction) => {
   
   next();
 });
+
+/**
+ * POST /mcp (JSON-RPC base endpoint)
+ * OpenAI Agent Builder's primary endpoint - uses JSON-RPC 2.0 format
+ * Handles: list_actions, call_action, capabilities
+ * This solves the 424 Failed Dependency error by providing a base endpoint
+ */
+router.post('/', jsonRpcDispatcher);
 
 /**
  * GET /api/mcp/
@@ -164,13 +174,9 @@ router.get('/actions', (req: Request, res: Response) => {
   const id = rid();
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('x-request-id', id);
-  const schema = getSchema();
+  const result = mcpListActions();
   res.json({ 
-    actions: schema.tools.map(t => ({
-      name: t.name,
-      description: t.description,
-      parameters: t.parameters
-    })),
+    ...result,
     timestamp: new Date().toISOString()
   });
   logMcp(req, 200, t0, id);
@@ -186,13 +192,9 @@ router.post('/actions/list', (req: Request, res: Response) => {
   const id = rid();
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('x-request-id', id);
-  const schema = getSchema();
+  const result = mcpListActions();
   res.json({ 
-    actions: schema.tools.map(t => ({
-      name: t.name,
-      description: t.description,
-      parameters: t.parameters
-    })),
+    ...result,
     timestamp: new Date().toISOString()
   });
   logMcp(req, 200, t0, id);
@@ -207,16 +209,9 @@ router.get('/capabilities', (req: Request, res: Response) => {
   const id = rid();
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('x-request-id', id);
-  const schema = getSchema();
+  const result = mcpGetCapabilities();
   res.json({ 
-    service: schema.service,
-    version: schema.version,
-    capabilities: {
-      tools: true,
-      toolExecution: true,
-      domainScoping: true
-    },
-    toolCount: schema.tools.length,
+    ...result,
     timestamp: new Date().toISOString()
   });
   logMcp(req, 200, t0, id);
@@ -289,7 +284,7 @@ router.post('/call', async (req: Request, res: Response) => {
       return;
     }
     
-    const result = await callTool(
+    const result = await mcpCallAction(
       String(name), 
       args ?? {}, 
       { domainId: (req as any).domainId ?? null }
