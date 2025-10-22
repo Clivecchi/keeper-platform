@@ -10,11 +10,12 @@ import { rid } from './id.js';
 /**
  * JSON-RPC 2.0 Request
  * Standard JSON-RPC format expected by OpenAI Agent Builder
+ * Made flexible to tolerate missing/default jsonrpc field
  */
 type JsonRpcRequest = {
-  jsonrpc: '2.0';
-  id: string | number | null;
-  method: string;
+  jsonrpc?: '2.0' | string;
+  id?: string | number | null;
+  method?: string;
   params?: Record<string, any>;
 };
 
@@ -81,49 +82,55 @@ const ErrorCodes = {
 export async function jsonRpcDispatcher(req: Request, res: Response): Promise<void> {
   const t0 = Date.now();
   const requestId = rid();
+  const hasAuth = !!req.header('authorization');
   
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('x-request-id', requestId);
 
   try {
-    const body = req.body;
+    const body = req.body || {};
     
-    // Detect format: JSON-RPC or minimal
-    const isJsonRpc = body && body.jsonrpc === '2.0';
-    const isMinimal = body && body.action;
-
-    if (!isJsonRpc && !isMinimal) {
+    // Defensive: tolerate missing jsonrpc field, default to "2.0"
+    const jsonrpcVersion = body.jsonrpc || '2.0';
+    const method = body.method || body.action;
+    const rpcId = body.id ?? requestId;
+    
+    // Require POST method
+    if (req.method !== 'POST') {
       const response: JsonRpcError = {
         jsonrpc: '2.0',
-        id: null,
+        id: rpcId,
+        error: {
+          code: 405,
+          message: 'Method Not Allowed',
+        },
+      };
+      res.status(405).json(response);
+      logMcp(req, 405, t0, requestId);
+      console.warn(`[MCP JSONRPC] rid=${requestId} method=${req.method} -> 405 Not POST`);
+      return;
+    }
+
+    // Validate method is present
+    if (!method) {
+      const response: JsonRpcError = {
+        jsonrpc: '2.0',
+        id: rpcId,
         error: {
           code: ErrorCodes.INVALID_REQUEST,
-          message: 'Invalid request format. Expected JSON-RPC 2.0 or { action: "..." }',
+          message: 'Invalid request format. Missing "method" or "action" field.',
         },
       };
       res.status(400).json(response);
       logMcp(req, 400, t0, requestId);
+      console.warn(`[MCP JSONRPC] rid=${requestId} -> 400 Missing method`);
       return;
     }
 
-    // Parse request based on format
-    let method: string;
-    let params: Record<string, any> = {};
-    let rpcId: string | number | null = null;
-
-    if (isJsonRpc) {
-      const jsonRpcReq = body as JsonRpcRequest;
-      method = jsonRpcReq.method;
-      params = jsonRpcReq.params || {};
-      rpcId = jsonRpcReq.id;
-    } else {
-      // Minimal format
-      const minimalReq = body as MinimalRequest;
-      method = minimalReq.action;
-      if (minimalReq.name) params.name = minimalReq.name;
-      if (minimalReq.arguments) params.arguments = minimalReq.arguments;
-      rpcId = requestId; // Use our request ID
-    }
+    // Parse params (support both params and arguments)
+    let params: Record<string, any> = body.params || {};
+    if (body.action && body.name) params.name = body.name;
+    if (body.action && body.arguments) params.arguments = body.arguments;
 
     // Extract domain context from headers
     const domainId = (req.headers['x-domain-id'] as string) ?? null;
@@ -133,10 +140,22 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
     let result: any;
     let rpcMethod = method; // for logging
 
+    // Add canary marker function
+    const addCanary = (data: any) => ({
+      ...data,
+      __keeper_canary: {
+        origin: 'railway-api',
+        service: 'keeper-api-mcp',
+        build: process.env.RAILWAY_DEPLOYMENT_ID || process.env.BUILD_ID || 'dev',
+        timestamp: new Date().toISOString()
+      }
+    });
+
     switch (method) {
       case 'list_actions':
       case 'actions.list':
-        result = mcpListActions();
+        result = addCanary(mcpListActions());
+        console.log(`[MCP JSONRPC] rid=${requestId} method=list_actions hasAuth=${hasAuth}`);
         break;
 
       case 'call_action':
@@ -157,17 +176,21 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
             };
             res.status(400).json(response);
             logMcp(req, 400, t0, requestId, 'call_action');
+            console.warn(`[MCP JSONRPC] rid=${requestId} method=call_action -> 400 Missing name`);
             return;
           }
 
-          result = await mcpCallAction(toolName, toolArgs, ctx);
+          const rawResult = await mcpCallAction(toolName, toolArgs, ctx);
+          result = addCanary(rawResult);
           rpcMethod = `call_action:${toolName}`;
+          console.log(`[MCP JSONRPC] rid=${requestId} method=call_action name=${toolName} hasAuth=${hasAuth}`);
         }
         break;
 
       case 'capabilities':
       case 'server.capabilities':
-        result = mcpGetCapabilities();
+        result = addCanary(mcpGetCapabilities());
+        console.log(`[MCP JSONRPC] rid=${requestId} method=capabilities hasAuth=${hasAuth}`);
         break;
 
       default:
@@ -187,8 +210,9 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
               },
             },
           };
-          res.status(404).json(response);
-          logMcp(req, 404, t0, requestId, method);
+          res.status(200).json(response); // JSON-RPC errors return 200
+          logMcp(req, 200, t0, requestId, method);
+          console.warn(`[MCP JSONRPC] rid=${requestId} method=${method} -> Method not found`);
           return;
         }
     }
@@ -216,8 +240,9 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
       },
     };
 
-    res.status(500).json(response);
-    logMcp(req, 500, t0, requestId, req.body?.method || 'unknown');
+    res.status(200).json(response); // JSON-RPC errors return 200
+    logMcp(req, 200, t0, requestId, req.body?.method || 'unknown');
+    console.error(`[MCP JSONRPC] rid=${requestId} error:`, sanitizedMessage);
   }
 }
 

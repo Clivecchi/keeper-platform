@@ -291,10 +291,24 @@ app.options('*', cors(corsOptions));
 
 // CORS preflight requests are handled by the cors middleware above
 
-// Basic middleware
-app.use(express.json());
+// Basic middleware with defensive JSON parsing for MCP compatibility
+app.use(express.json({ limit: '1mb', type: ['application/json', 'text/json', '*/json'] as any }));
+app.use(express.text({ type: '*/*', limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser()); // Parse cookies for session management
+
+// Defensive JSON parser: accept JSON even if Content-Type is odd/missing
+app.use((req, _res, next) => {
+  if (!req.is('application/json') && typeof req.body === 'string') {
+    try { 
+      req.body = JSON.parse(req.body); 
+    } catch { 
+      /* ignore non-JSON */ 
+    }
+  }
+  next();
+});
+
 // Attach lightweight user context early; tolerant to missing/invalid tokens
 app.use(attachUser);
 
@@ -928,6 +942,64 @@ app.get('/api/kam/me', (req, res, next) => {
   (authRouter as any).handle(req, res, next);
 });
 
+// ═══════════════════════════════════════════════════════════════
+// MCP CANARY VERIFICATION (trace + headers + teapot endpoint)
+// ═══════════════════════════════════════════════════════════════
+
+// Trace ALL /mcp* hits early (before routing), even OPTIONS
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.path === '/mcp' || req.path.startsWith('/mcp/') || 
+      req.path === '/api/mcp' || req.path.startsWith('/api/mcp/')) {
+    const rid  = req.header('x-request-id') || req.header('x-railway-request-id') || '';
+    const ua   = req.header('user-agent') || '';
+    const host = req.header('host') || '';
+    const origin = req.header('origin') || '';
+    console.log(`[MCP TRACE] method=${req.method} path=${req.path} host=${host} origin="${origin}" ua="${ua}" rid=${rid}`);
+  }
+  next();
+});
+
+// Canary headers for any /mcp* response (proves backend reached)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.path === '/mcp' || req.path.startsWith('/mcp/') || 
+      req.path === '/api/mcp' || req.path.startsWith('/api/mcp/')) {
+    res.setHeader('X-Keeper-Origin', 'railway-api');
+    res.setHeader('X-Keeper-Build', process.env.RAILWAY_DEPLOYMENT_ID || process.env.BUILD_ID || 'dev');
+    res.setHeader('X-Keeper-Service', 'keeper-api-mcp');
+  }
+  next();
+});
+
+// Teapot canary: proves backend reached (418 = I'm a teapot)
+app.all('/mcp/_canary', (req: Request, res: Response) => {
+  const rid = req.header('x-request-id') || req.header('x-railway-request-id') || '';
+  console.log(`[MCP CANARY] method=${req.method} path=${req.path} rid=${rid}`);
+  res.status(418).json({
+    ok: true,
+    why: 'teapot',
+    method: req.method,
+    path: req.path,
+    origin: 'railway-api',
+    service: 'keeper-api-mcp',
+    build: process.env.RAILWAY_DEPLOYMENT_ID || process.env.BUILD_ID || 'dev',
+    timestamp: new Date().toISOString()
+  });
+});
+app.all('/api/mcp/_canary', (req: Request, res: Response) => {
+  const rid = req.header('x-request-id') || req.header('x-railway-request-id') || '';
+  console.log(`[MCP CANARY] method=${req.method} path=${req.path} rid=${rid}`);
+  res.status(418).json({
+    ok: true,
+    why: 'teapot',
+    method: req.method,
+    path: req.path,
+    origin: 'railway-api',
+    service: 'keeper-api-mcp',
+    build: process.env.RAILWAY_DEPLOYMENT_ID || process.env.BUILD_ID || 'dev',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // MCP OPTIONS preflight handler (must be before router mount)
 app.options('/api/mcp/*', (_req, res) => {
   const origin = (_req.headers.origin as string) || '*';
@@ -965,6 +1037,26 @@ app.get('/api/kam/settings', kamSettingsHandler);
 
 // Healthcheck route
 app.use('/', healthRouter);
+
+// Catch-all 404 for /mcp* paths with explicit log + JSON body
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.path === '/mcp' || req.path.startsWith('/mcp/') || 
+      req.path === '/api/mcp' || req.path.startsWith('/api/mcp/')) {
+    const rid = req.header('x-request-id') || req.header('x-railway-request-id') || '';
+    console.warn(`[MCP 404] method=${req.method} path=${req.path} rid=${rid}`);
+    if (!res.headersSent) {
+      return res.status(404).json({ 
+        ok: false, 
+        where: 'railway-api', 
+        error: 'Not Found',
+        path: req.path,
+        method: req.method,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+  next();
+});
 
 // Themes route
 app.get('/api/themes/:id', async (req: Request, res: Response) => {

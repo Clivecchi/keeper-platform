@@ -698,7 +698,70 @@ it('calls my_new_tool successfully', async () => {
 - [ ] Implement key rotation mechanism
 - [ ] Add per-tool permission scopes
 
+## 🐤 Canary Verification System
+
+To prove whether MCP requests reach Railway backend (not dying at Vercel edge), we've added comprehensive canary markers:
+
+### Canary Headers
+All `/mcp*` responses include:
+- `X-Keeper-Origin: railway-api`
+- `X-Keeper-Build: <deployment-id>`
+- `X-Keeper-Service: keeper-api-mcp`
+
+### Teapot Endpoint
+`GET/POST /mcp/_canary` returns **418 I'm a teapot** with:
+```json
+{
+  "ok": true,
+  "why": "teapot",
+  "origin": "railway-api",
+  "service": "keeper-api-mcp",
+  "build": "prod-abc123",
+  "timestamp": "..."
+}
+```
+
+### JSON-RPC Canary Markers
+All JSON-RPC success responses include `__keeper_canary`:
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-1",
+  "result": {
+    "actions": [...],
+    "__keeper_canary": {
+      "origin": "railway-api",
+      "service": "keeper-api-mcp",
+      "build": "prod-abc123",
+      "timestamp": "..."
+    }
+  }
+}
+```
+
+### Trace Logging
+Every `/mcp*` request logged:
+```
+[MCP TRACE] method=POST path=/mcp host=api.ke3p.com origin="..." ua="..." rid=abc-123
+```
+
+### 404 Detection
+Missed routes explicitly logged:
+```
+[MCP 404] method=POST path=/mcp/invalid rid=abc-123
+```
+
+### Testing
+Run comprehensive verification:
+```powershell
+.\test-mcp-canary.ps1
+```
+
+See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full details.
+
 ## 📆 Update Log
+
+**2025-10-22 (v8)**: Added comprehensive canary verification system to prove MCP requests reach Railway backend. Includes: canary headers (`X-Keeper-Origin`), teapot endpoint (`/_canary` → 418), JSON-RPC canary markers (`__keeper_canary`), trace logging (`[MCP TRACE]`), 404 detection, and defensive JSON parsing. Also added PowerShell test script (`test-mcp-canary.ps1`) for A/B verification (Vercel vs direct Railway).
 
 **2025-10-22 (v7)**: Fixed Vercel routing to forward `POST /mcp` to Railway API. Added exact path rewrite for `/mcp` (not just `/mcp/*`) in `vercel.json`. This resolves 405 Method Not Allowed errors when OpenAI Agent Builder POSTs to the base MCP endpoint. Vercel now correctly proxies both `/mcp` and `/mcp/*` to Railway.
 
