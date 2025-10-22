@@ -700,6 +700,8 @@ it('calls my_new_tool successfully', async () => {
 
 ## 📆 Update Log
 
+**2025-10-22 (v7)**: Fixed Vercel routing to forward `POST /mcp` to Railway API. Added exact path rewrite for `/mcp` (not just `/mcp/*`) in `vercel.json`. This resolves 405 Method Not Allowed errors when OpenAI Agent Builder POSTs to the base MCP endpoint. Vercel now correctly proxies both `/mcp` and `/mcp/*` to Railway.
+
 **2025-10-22 (v6)**: Added JSON-RPC 2.0 dispatcher (`jsonRpc.ts`, `core.ts`) to fix OpenAI Agent Builder 424 errors. Base endpoint `POST /mcp` now accepts JSON-RPC requests with methods `list_actions`, `call_action`, `capabilities`. Extracted core logic to `core.ts` for reuse by both REST and JSON-RPC dispatchers. Supports both standard JSON-RPC 2.0 format and simplified format. OpenAI Agent Builder now connects successfully without 424 errors!
 
 **2025-10-21 (v5)**: Added production-safe structured logging (`log.ts`, `id.ts`) for troubleshooting OpenAI Agent 424s. All endpoints now emit `[MCP]` JSON logs with request ID, status, latency, hasAuth flag (no secrets). Added `/_diag` diagnostic endpoint. All responses include `x-request-id` header for correlation. CORS middleware logs origin decisions separately.
