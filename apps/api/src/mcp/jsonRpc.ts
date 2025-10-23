@@ -97,9 +97,13 @@ const ErrorCodes = {
  * - POST /mcp
  * 
  * Methods:
- * - list_actions → returns available tools/actions
- * - call_action → invokes a tool
+ * - initialize → MCP handshake, returns server capabilities
+ * - initialized → MCP handshake acknowledgment (no-op)
+ * - list_actions → returns available tools/actions (legacy)
+ * - call_action → invokes a tool (legacy)
  * - capabilities → returns server capabilities
+ * - tools/list → returns available tools (MCP standard)
+ * - tools/call → invokes a tool (MCP standard)
  */
 export async function jsonRpcDispatcher(req: Request, res: Response): Promise<void> {
   const t0 = Date.now();
@@ -116,6 +120,9 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
     const jsonrpcVersion = body.jsonrpc || '2.0';
     const method = body.method || body.action;
     const rpcId = body.id ?? requestId;
+    
+    // Log every method call for diagnostics
+    console.log(`[MCP METHOD] rid=${requestId} method=${method}`);
     
     // Require POST method
     if (req.method !== 'POST') {
@@ -172,6 +179,45 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
         timestamp: new Date().toISOString()
       }
     });
+
+    // ===== MCP Handshake: initialize / initialized =====
+    // Handle the MCP protocol handshake before proceeding to tool operations
+    
+    if (method === 'initialize') {
+      // Accept typical MCP initialize and return minimal capabilities
+      // Shape is intentionally permissive and future-proof
+      const result = {
+        protocolVersion: '2024-10-01',
+        serverInfo: { name: 'keeper-mcp', version: '0.0.1' },
+        capabilities: {
+          tools: { list: true, call: true }
+          // Future: resources, prompts, etc.
+        }
+      };
+      console.log(`[MCP JSONRPC] rid=${requestId} method=initialize -> ok`);
+      const response: JsonRpcSuccess = {
+        jsonrpc: '2.0',
+        id: rpcId,
+        result,
+      };
+      res.status(200).json(response);
+      logMcp(req, 200, t0, requestId, 'initialize');
+      return;
+    }
+
+    if (method === 'initialized') {
+      // Some clients send a follow-up notification; acknowledge no-op
+      console.log(`[MCP JSONRPC] rid=${requestId} method=initialized (noop)`);
+      // Notifications may have null/absent id; still return 200 envelope
+      const response: JsonRpcSuccess = {
+        jsonrpc: '2.0',
+        id: rpcId ?? null,
+        result: { ok: true },
+      };
+      res.status(200).json(response);
+      logMcp(req, 200, t0, requestId, 'initialized');
+      return;
+    }
 
     switch (method) {
       case 'list_actions':
@@ -267,6 +313,8 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
               message: `Method not found: ${method}`,
               data: {
                 availableMethods: [
+                  'initialize',
+                  'initialized',
                   'list_actions',
                   'call_action',
                   'capabilities',

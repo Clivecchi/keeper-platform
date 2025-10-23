@@ -3,18 +3,18 @@
 ## 📌 Purpose
 Minimal MCP server for OpenAI Agent integration. Provides safe, domain-scoped tools that the agent can call via API key authentication.
 
-**✨ Updated for OpenAI Agent Builder**: Includes universal CORS headers and JSON-RPC 2.0 support to prevent connection issues.
+**✨ Updated for OpenAI Agent Builder**: Includes universal CORS headers to prevent connection hanging.
 
 ## 🧱 Key Files
-- `apps/api/src/mcp/index.ts` - Express router with MCP routes (instrumented with logging)
-- `apps/api/src/mcp/jsonRpc.ts` - JSON-RPC 2.0 dispatcher for OpenAI Agent Builder
-- `apps/api/src/mcp/core.ts` - Core business logic (shared by REST and JSON-RPC)
-- `apps/api/src/mcp/cors.ts` - CORS middleware (universal headers for OpenAI Agent Builder)
-- `apps/api/src/mcp/tools.ts` - Tool registry and handlers
-- `apps/api/src/mcp/log.ts` - Structured logging for production diagnostics
-- `apps/api/src/mcp/id.ts` - Request ID generator for correlation
-- `apps/api/src/mcp/auth.ts` - Authentication helper
-- `apps/api/src/mcp/mcp.test.ts` - Unit tests (21 test cases)
+- `index.ts` - Express router with MCP routes (instrumented with logging)
+- `jsonRpc.ts` - JSON-RPC 2.0 dispatcher for OpenAI Agent Builder
+- `core.ts` - Core business logic (shared by REST and JSON-RPC)
+- `cors.ts` - CORS middleware (universal headers for OpenAI Agent Builder)
+- `tools.ts` - Tool registry and handlers
+- `log.ts` - Structured logging for production diagnostics
+- `id.ts` - Request ID generator for correlation
+- `auth.ts` - Authentication helper
+- `mcp.test.ts` - Unit tests (21 test cases)
 
 ## 🔄 Data & Behavior
 
@@ -40,79 +40,633 @@ MCP routes are mounted at BOTH `/mcp` and `/api/mcp` for compatibility.
 **Auth Required** (Bearer token):
 
 *JSON-RPC 2.0 Endpoint (OpenAI Agent Builder):*
-- `POST /mcp` - **JSON-RPC base endpoint** (list_actions, call_action, capabilities)
+- `POST /mcp` - **JSON-RPC base endpoint** (initialize, tools/list, tools/call, and legacy methods)
 - `POST /api/mcp` - Same as above (alias for compatibility)
 
 *REST Endpoints (backward compatibility):*
 - `GET /mcp/` - Root endpoint
 - `GET /mcp/whoami` - Auth validation
-- `GET /mcp/tools` - Standard tool discovery
-- `GET /mcp/actions` - Actions discovery
+- `GET /mcp/tools` - Standard tool discovery (OpenAI Agent Builder)
+- `GET /mcp/actions` - Actions discovery (OpenAI compatibility)
 - `POST /mcp/actions/list` - Actions listing (POST variant)
 - `GET /mcp/capabilities` - Server capabilities
 - `GET /mcp/.well-known/mcp` - Well-known discovery
 - `GET /mcp/schema` - Detailed tool schemas
 - `POST /mcp/call` - Invoke a tool
 
+**404 Handling:**
+- All unsupported `/mcp/*` paths return JSON 404 (not HTML)
+
+## 📚 API Examples
+
+### Health Check
+```bash
+curl -X GET https://api.ke3p.com/api/mcp/ \
+  -H "Authorization: Bearer YOUR_MCP_KEY"
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "service": "keeper-mcp",
+  "version": "0.0.1",
+  "timestamp": "2025-10-11T12:00:00.000Z"
+}
+```
+
+### Get Tool Schema
+```bash
+curl -X GET https://api.ke3p.com/api/mcp/schema \
+  -H "Authorization: Bearer YOUR_MCP_KEY"
+```
+
+**Response:**
+```json
+{
+  "service": "keeper-mcp",
+  "version": "0.0.1",
+  "tools": [
+    {
+      "name": "gk_recent_moments",
+      "description": "List recent GenerationKeeper moments in the current domain.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 5,
+            "description": "Number of moments to return (1-20)"
+          }
+        }
+      }
+    },
+    {
+      "name": "pool_create_quote",
+      "description": "Create a PoolKeeper quote with business rules.",
+      "parameters": {
+        "type": "object",
+        "required": ["projectId"],
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "description": "ID of the project to quote"
+          },
+          "craneOverHouse": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether crane must go over house"
+          },
+          "includesHeatPump": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether quote includes heat pump installation"
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+### Call Tool: gk_recent_moments
+```bash
+curl -X POST https://api.ke3p.com/api/mcp/call \
+  -H "Authorization: Bearer YOUR_MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -H "x-domain-id: domain-123" \
+  -d '{
+    "name": "gk_recent_moments",
+    "args": {
+      "limit": 5
+    }
+  }'
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "result": {
+    "moments": [
+      {
+        "id": "mom_1",
+        "title": "Mock Moment 1",
+        "domain_id": "domain-123"
+      },
+      {
+        "id": "mom_2",
+        "title": "Mock Moment 2",
+        "domain_id": "domain-123"
+      }
+    ]
+  },
+  "timestamp": "2025-10-11T12:00:00.000Z"
+}
+```
+
+### Call Tool: pool_create_quote
+```bash
+curl -X POST https://api.ke3p.com/api/mcp/call \
+  -H "Authorization: Bearer YOUR_MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -H "x-domain-id: domain-456" \
+  -d '{
+    "name": "pool_create_quote",
+    "args": {
+      "projectId": "proj_abc123",
+      "craneOverHouse": true,
+      "includesHeatPump": false
+    }
+  }'
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "result": {
+    "quoteId": "q_1728648000000",
+    "projectId": "proj_abc123",
+    "domainId": "domain-456",
+    "appliedRules": {
+      "craneOverHouse": true,
+      "includesHeatPump": false
+    },
+    "timestamp": "2025-10-11T12:00:00.000Z"
+  },
+  "timestamp": "2025-10-11T12:00:00.000Z"
+}
+```
+
+### Using x-api-key Header (Alternative)
+```bash
+curl -X GET https://api.ke3p.com/api/mcp/schema \
+  -H "x-api-key: YOUR_MCP_KEY"
+```
+
 ## 🔌 JSON-RPC 2.0 Support
 
-### Supported Methods
-1. **`list_actions`** - Returns available tools/actions with schemas
-2. **`call_action`** - Invokes a specific tool by name
-3. **`capabilities`** - Returns server capabilities
+### Overview
+OpenAI Agent Builder uses JSON-RPC 2.0 format to communicate with MCP servers. The base endpoint `POST /mcp` (and `POST /api/mcp`) accepts JSON-RPC requests and returns JSON-RPC responses.
 
-### Request Format
+**MCP Handshake Flow:**
+1. Agent Builder sends `initialize` → Server responds with capabilities
+2. Agent Builder optionally sends `initialized` → Server acknowledges (no-op)
+3. Agent Builder calls `tools/list` → Server returns available tools
+4. Agent Builder calls `tools/call` → Server executes tool and returns result
+
+This implements the full MCP protocol handshake, solving the **424 Failed Dependency** and **"Unable to load tools"** errors.
+
+### JSON-RPC Request Format
 ```json
 {
   "jsonrpc": "2.0",
-  "id": "request-id",
+  "id": "request-1",
   "method": "list_actions",
   "params": {}
 }
 ```
 
-### Response Format
+### Supported Methods
+
+#### 0. initialize (MCP handshake)
+MCP protocol handshake that returns server capabilities. Must be called before other methods.
+
+**Request:**
+```bash
+curl -X POST https://api.ke3p.com/mcp \
+  -H "Authorization: Bearer YOUR_MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "req-0",
+    "method": "initialize",
+    "params": {}
+  }'
+```
+
+**Response:**
 ```json
 {
   "jsonrpc": "2.0",
-  "id": "request-id",
+  "id": "req-0",
   "result": {
-    "actions": [...]
+    "protocolVersion": "2024-10-01",
+    "serverInfo": {
+      "name": "keeper-mcp",
+      "version": "0.0.1"
+    },
+    "capabilities": {
+      "tools": {
+        "list": true,
+        "call": true
+      }
+    }
   }
 }
 ```
 
-### Error Format
+#### 0b. initialized (MCP handshake acknowledgment)
+Optional follow-up notification from client. Server acknowledges with no-op response.
+
+**Request:**
+```bash
+curl -X POST https://api.ke3p.com/mcp \
+  -H "Authorization: Bearer YOUR_MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "req-0b",
+    "method": "initialized",
+    "params": {}
+  }'
+```
+
+**Response:**
 ```json
 {
   "jsonrpc": "2.0",
-  "id": "request-id",
+  "id": "req-0b",
+  "result": {
+    "ok": true
+  }
+}
+```
+
+#### 1. list_actions (legacy)
+Lists all available tools/actions in legacy format.
+
+**Request:**
+```bash
+curl -X POST https://api.ke3p.com/mcp \
+  -H "Authorization: Bearer YOUR_MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "req-1",
+    "method": "list_actions",
+    "params": {}
+  }'
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-1",
+  "result": {
+    "actions": [
+      {
+        "name": "gk_recent_moments",
+        "description": "List recent GenerationKeeper moments in the current domain.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 5
+            }
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+#### 1b. tools/list (OpenAI Agent Builder format)
+Lists all available tools with `input_schema` (MCP standard format).
+
+**Request:**
+```bash
+curl -X POST https://api.ke3p.com/mcp \
+  -H "Authorization: Bearer YOUR_MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "req-1",
+    "method": "tools/list",
+    "params": {}
+  }'
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-1",
+  "result": {
+    "tools": [
+      {
+        "name": "gk_recent_moments",
+        "description": "List recent GenerationKeeper moments in the current domain.",
+        "input_schema": {
+          "$schema": "https://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 5,
+              "description": "Number of moments to return (1-20)"
+            }
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+#### 2. call_action (legacy)
+Invokes a specific tool/action using legacy format.
+
+**Request:**
+```bash
+curl -X POST https://api.ke3p.com/mcp \
+  -H "Authorization: Bearer YOUR_MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -H "x-domain-id: domain-123" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "req-2",
+    "method": "call_action",
+    "params": {
+      "name": "gk_recent_moments",
+      "arguments": {
+        "limit": 5
+      }
+    }
+  }'
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-2",
+  "result": {
+    "moments": [
+      {
+        "id": "mom_1",
+        "title": "Mock Moment 1",
+        "domain_id": "domain-123"
+      }
+    ]
+  }
+}
+```
+
+#### 2b. tools/call (OpenAI Agent Builder format)
+Invokes a specific tool using MCP standard format with `arguments` parameter.
+
+**Request:**
+```bash
+curl -X POST https://api.ke3p.com/mcp \
+  -H "Authorization: Bearer YOUR_MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -H "x-domain-id: domain-123" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "req-2b",
+    "method": "tools/call",
+    "params": {
+      "name": "gk_recent_moments",
+      "arguments": {
+        "limit": 5
+      }
+    }
+  }'
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-2b",
+  "result": {
+    "moments": [
+      {
+        "id": "mom_1",
+        "title": "Mock Moment 1",
+        "domain_id": "domain-123"
+      }
+    ]
+  }
+}
+```
+
+#### 3. capabilities
+Returns server capabilities.
+
+**Request:**
+```bash
+curl -X POST https://api.ke3p.com/mcp \
+  -H "Authorization: Bearer YOUR_MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "req-3",
+    "method": "capabilities",
+    "params": {}
+  }'
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-3",
+  "result": {
+    "service": "keeper-mcp",
+    "version": "0.0.1",
+    "protocol": "http",
+    "capabilities": {
+      "tools": true,
+      "actions": true,
+      "toolExecution": true,
+      "domainScoping": true
+    }
+  }
+}
+```
+
+### Error Responses
+JSON-RPC errors follow the standard format:
+
+**Method Not Found:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-x",
   "error": {
     "code": -32601,
-    "message": "Method not found"
+    "message": "Method not found: unknown_method",
+    "data": {
+      "availableMethods": [
+        "initialize",
+        "initialized",
+        "list_actions",
+        "call_action",
+        "capabilities",
+        "tools/list",
+        "tools/call"
+      ]
+    }
   }
 }
 ```
 
-## 🔧 Vercel Routing Configuration
-
-The Vercel edge proxy must forward both the exact `/mcp` path and all `/mcp/*` sub-paths to Railway.
-
-**Critical:** The exact path rewrite must come **before** the wildcard pattern:
-
+**Invalid Parameters:**
 ```json
 {
-  "rewrites": [
-    { "source": "/mcp", "destination": "https://keeper-platform-production.up.railway.app/mcp" },
-    { "source": "/mcp/(.*)", "destination": "https://keeper-platform-production.up.railway.app/mcp/$1" }
-  ]
+  "jsonrpc": "2.0",
+  "id": "req-x",
+  "error": {
+    "code": -32602,
+    "message": "Missing required parameter: name (tool name)"
+  }
 }
 ```
 
-**Why This Matters:**
-- OpenAI Agent Builder POSTs JSON-RPC requests to the **base URL** (`/mcp`), not sub-paths
-- Without the exact path rewrite, Vercel returns 405 Method Not Allowed
-- The wildcard pattern `/mcp/(.*)` only matches paths like `/mcp/something`, not `/mcp` exactly
+**Server Error:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-x",
+  "error": {
+    "code": -32000,
+    "message": "Tool execution failed"
+  }
+}
+```
+
+### Minimal Format Support
+For simpler clients, a minimal format is also supported:
+
+```json
+{
+  "action": "list_actions"
+}
+```
+
+```json
+{
+  "action": "call",
+  "name": "gk_recent_moments",
+  "arguments": { "limit": 3 }
+}
+```
+
+## 🔍 Logging & Diagnostics
+
+### Request Logging
+Every MCP request produces a structured JSON log with zero secrets:
+```json
+{
+  "ts": "2025-10-21T12:34:56.789Z",
+  "id": "a7f3k9m2",
+  "path": "/mcp/actions/list",
+  "method": "POST",
+  "status": 200,
+  "ms": 12,
+  "hasAuth": true,
+  "ua": "OpenAI-Agent/1.0",
+  "origin": "https://agent.openai.com",
+  "tool": "gk_recent_moments"
+}
+```
+
+**Log Fields:**
+- `ts` - ISO 8601 timestamp
+- `id` - Unique request ID (also in `x-request-id` response header)
+- `path` - Request path
+- `method` - HTTP method
+- `status` - Response status code
+- `ms` - Request latency in milliseconds
+- `hasAuth` - Boolean indicating if Authorization header was present (never logs the actual token)
+- `ua` - User-Agent header
+- `origin` - Origin header (may be "n/a" for server-to-server)
+- `tool` - Tool name (only for `/call` endpoint)
+
+**CORS Logging:**
+CORS middleware logs each decision separately:
+```json
+{
+  "ts": "2025-10-21T12:34:56.789Z",
+  "path": "/mcp/tools",
+  "method": "GET",
+  "origin": "https://agent.openai.com",
+  "hasOrigin": true,
+  "allow": true
+}
+```
+
+### Diagnostic Endpoint
+Use `GET /mcp/_diag` to troubleshoot OpenAI Agent 424s:
+
+```bash
+curl https://api.ke3p.com/mcp/_diag \
+  -H "Authorization: Bearer YOUR_KEY"
+```
+
+**Response:**
+```json
+{
+  "service": "keeper-mcp",
+  "version": "0.0.1",
+  "endpoints": [
+    "/mcp/tools",
+    "/mcp/actions",
+    "/mcp/actions/list",
+    "/mcp/call",
+    "/mcp/schema",
+    "/mcp/_diag",
+    "/mcp/health",
+    "/mcp/whoami",
+    "/mcp/capabilities",
+    "/mcp/.well-known/mcp"
+  ],
+  "hasAuthHeader": true,
+  "timestamp": "2025-10-21T12:34:56.789Z"
+}
+```
+
+**Security:** No bearer tokens, API keys, or sensitive data are logged. Only boolean `hasAuth` / `hasAuthHeader` flags.
+
+### Response Headers
+All MCP responses include:
+- `x-request-id` - Unique ID matching the log entry
+- `Content-Type: application/json; charset=utf-8`
+
+### Troubleshooting OpenAI 424s
+1. Check Railway/Vercel logs for `[MCP]` entries
+2. Look for requests from OpenAI's origin
+3. Verify `hasAuth: true` in logs
+4. Check `status` codes (should be 200 for discovery endpoints)
+5. Confirm latency is reasonable (`ms < 1000`)
+6. Hit `/_diag` to verify server is responding
+
+**Log Grep Examples:**
+```bash
+# Find all MCP requests in Railway logs
+railway logs | grep '\[MCP\]'
+
+# Find failed auth attempts
+railway logs | grep '\[MCP\]' | grep '"status":401'
+
+# Find OpenAI Agent requests
+railway logs | grep '\[MCP\]' | grep 'OpenAI'
+
+# Find slow requests (>1s)
+railway logs | grep '\[MCP\]' | grep '"ms":[0-9]\{4,\}'
+```
 
 ## 🌐 CORS & OpenAI Agent Builder
 
@@ -123,40 +677,31 @@ All MCP endpoints include universal CORS headers:
 - `Access-Control-Allow-Headers: Content-Type, Authorization, x-api-key, x-domain-id`
 - `Access-Control-Max-Age: 600`
 
+### Content-Type
+All responses include:
+- `Content-Type: application/json; charset=utf-8`
+
+### Preflight Handling
+OPTIONS requests are handled automatically and return 200 OK with CORS headers.
+
 ### OpenAI Agent Builder Setup
 1. **Base URL**: `https://api.ke3p.com/mcp` (or `https://api.ke3p.com/api/mcp`)
 2. **Authentication**: Custom Header
 3. **Header Name**: `Authorization`
 4. **Header Value**: `Bearer YOUR_OPAI_AGENT_MCP_KEY`
-5. **Expected Status**: "Connected" ✅
+5. **Expected Status**: "Connected" ✅ (not "Establishing connection..." or 424)
 
-## 🔍 Logging & Diagnostics
+**Key Points:**
+- OpenAI Agent Builder POSTs JSON-RPC 2.0 requests to the **base URL** (no sub-path)
+- The base endpoint now supports JSON-RPC format
+- No more 424 Failed Dependency errors!
 
-### Structured Logging
-Every MCP request produces a structured JSON log:
-```json
-{
-  "ts": "2025-10-22T12:34:56.789Z",
-  "id": "a7f3k9m2",
-  "path": "/mcp",
-  "method": "POST",
-  "status": 200,
-  "ms": 12,
-  "hasAuth": true,
-  "ua": "OpenAI-Agent/1.0",
-  "origin": "https://agent.openai.com",
-  "rpcMethod": "list_actions"
-}
-```
-
-**Security:** No bearer tokens, API keys, or sensitive data are logged. Only boolean `hasAuth` flags.
-
-### Diagnostic Endpoint
-Use `GET /mcp/_diag` to troubleshoot connection issues:
-```bash
-curl https://api.ke3p.com/mcp/_diag \
-  -H "Authorization: Bearer YOUR_KEY"
-```
+**Troubleshooting Connection Issues:**
+- ✅ Verify CORS headers with `curl -i -X OPTIONS https://api.ke3p.com/mcp`
+- ✅ Check Content-Type header is `application/json; charset=utf-8`
+- ✅ Test JSON-RPC: `curl -X POST https://api.ke3p.com/mcp -H "Authorization: Bearer YOUR_KEY" -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":"test","method":"list_actions","params":{}}'`
+- ✅ Check logs for `[MCP]` entries with `rpcMethod` field
+- ✅ Verify `/_diag` endpoint: `curl https://api.ke3p.com/mcp/_diag -H "Authorization: Bearer YOUR_KEY"`
 
 ## 🔒 Security
 
@@ -171,8 +716,15 @@ curl https://api.ke3p.com/mcp/_diag \
 - Null domain = cross-domain or unscoped operation
 
 ### Rate Limiting
-- TODO: Add rate limiting middleware
+- TODO: Add rate limiting middleware (e.g., express-rate-limit)
 - Recommended: 100 requests per 5 minutes per key
+
+### Audit Logging
+- ✅ Production-safe structured logs to console (Railway/Vercel)
+- ✅ Request ID correlation via `x-request-id` header
+- ✅ Zero secrets in logs (only boolean hasAuth flag)
+- TODO: Persist logs to database audit table
+- TODO: Include full args in DB audit (not console logs)
 
 ## 🧪 Testing
 
@@ -185,23 +737,35 @@ pnpm --filter @keeper/api test src/mcp/mcp.test.ts
 pnpm --filter @keeper/api test:watch src/mcp/mcp.test.ts
 ```
 
-### Test JSON-RPC with Curl
+### Test Coverage
+- ✅ CORS headers (OPTIONS preflight, wildcard origin)
+- ✅ Content-Type headers (charset=utf-8)
+- ✅ Authentication (valid/invalid keys, different headers)
+- ✅ Health check endpoint
+- ✅ Schema endpoint
+- ✅ Tool call endpoint
+- ✅ Domain scoping
+- ✅ Error handling
+- ✅ Timestamp in all responses
+
+### Test CORS with Curl
 ```bash
 # Set your API key
 export OPAI_AGENT_MCP_KEY="your_key_here"
 
-# Test list_actions
-curl -X POST https://api.ke3p.com/mcp \
-  -H "Authorization: Bearer $OPAI_AGENT_MCP_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":"test-1","method":"list_actions","params":{}}'
+# Run CORS tests
+bash test-mcp-cors.sh
+```
 
-# Test call_action
-curl -X POST https://api.ke3p.com/mcp \
-  -H "Authorization: Bearer $OPAI_AGENT_MCP_KEY" \
-  -H "Content-Type: application/json" \
-  -H "x-domain-id: domain-123" \
-  -d '{"jsonrpc":"2.0","id":"test-2","method":"call_action","params":{"name":"gk_recent_moments","arguments":{"limit":5}}}'
+**Expected Output:**
+```
+✅ PASS: Preflight returns 200
+✅ PASS: CORS Origin is *
+✅ PASS: CORS Methods include GET and POST
+✅ PASS: Content-Type is application/json; charset=utf-8
+✅ PASS: Response body contains ok:true
+✅ PASS: Schema contains tools and timestamp
+✅ PASS: Tool call response valid
 ```
 
 ## 🚀 Deployment
@@ -220,12 +784,55 @@ JWT_SECRET=...
 1. Go to Railway project → Variables
 2. Add `OPAI_AGENT_MCP_KEY` with secure value
 3. Deploy API
-4. Test with curl
+4. Test with curl:
+   ```bash
+   curl https://api.ke3p.com/api/mcp/ \
+     -H "Authorization: Bearer YOUR_KEY"
+   ```
 
-### Vercel Setup
-1. Ensure `vercel.json` includes exact `/mcp` path rewrite
-2. Deploy to Vercel (automatic on git push)
-3. Verify rewrites in Vercel Dashboard
+## 🛠️ Adding New Tools
+
+### Step 1: Define Tool in tools.ts
+```typescript
+{
+  name: 'my_new_tool',
+  description: 'Does something useful',
+  parameters: {
+    type: 'object',
+    required: ['requiredParam'],
+    properties: {
+      requiredParam: { type: 'string' },
+      optionalParam: { type: 'number', default: 10 }
+    }
+  },
+  async handler(args, ctx) {
+    // Implement tool logic
+    // Use ctx.domainId for scoping
+    return { result: 'success' };
+  }
+}
+```
+
+### Step 2: Add Tests
+```typescript
+it('calls my_new_tool successfully', async () => {
+  const res = await request(app)
+    .post('/api/mcp/call')
+    .set('Authorization', `Bearer ${VALID_KEY}`)
+    .send({ 
+      name: 'my_new_tool',
+      args: { requiredParam: 'value' }
+    });
+  
+  expect(res.status).toBe(200);
+  expect(res.body.ok).toBe(true);
+});
+```
+
+### Step 3: Update Documentation
+- Add tool description to this README
+- Include curl example
+- Document any special behavior
 
 ## ⚠️ Notes & ToDo
 
@@ -241,7 +848,11 @@ JWT_SECRET=...
 - [ ] Add rate limiting middleware
 - [ ] Add audit logging to `mcp_audit_log` table
 - [ ] Add request/response schema validation (Zod)
-- [ ] Add more tools (boards, frames, domains, users)
+- [ ] Add more tools:
+  - Board management (list, create, update)
+  - Frame operations
+  - Domain queries
+  - User lookups
 
 ### Security Enhancements
 - [ ] Add IP whitelisting option
@@ -249,18 +860,90 @@ JWT_SECRET=...
 - [ ] Implement key rotation mechanism
 - [ ] Add per-tool permission scopes
 
+## 🐤 Canary Verification System
+
+To prove whether MCP requests reach Railway backend (not dying at Vercel edge), we've added comprehensive canary markers:
+
+### Canary Headers
+All `/mcp*` responses include:
+- `X-Keeper-Origin: railway-api`
+- `X-Keeper-Build: <deployment-id>`
+- `X-Keeper-Service: keeper-api-mcp`
+
+### Teapot Endpoint
+`GET/POST /mcp/_canary` returns **418 I'm a teapot** with:
+```json
+{
+  "ok": true,
+  "why": "teapot",
+  "origin": "railway-api",
+  "service": "keeper-api-mcp",
+  "build": "prod-abc123",
+  "timestamp": "..."
+}
+```
+
+### JSON-RPC Canary Markers
+All JSON-RPC success responses include `__keeper_canary`:
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-1",
+  "result": {
+    "actions": [...],
+    "__keeper_canary": {
+      "origin": "railway-api",
+      "service": "keeper-api-mcp",
+      "build": "prod-abc123",
+      "timestamp": "..."
+    }
+  }
+}
+```
+
+### Trace Logging
+Every `/mcp*` request logged:
+```
+[MCP TRACE] method=POST path=/mcp host=api.ke3p.com origin="..." ua="..." rid=abc-123
+```
+
+### 404 Detection
+Missed routes explicitly logged:
+```
+[MCP 404] method=POST path=/mcp/invalid rid=abc-123
+```
+
+### Testing
+Run comprehensive verification:
+```powershell
+.\test-mcp-canary.ps1
+```
+
+See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full details.
+
 ## 📆 Update Log
 
-**2025-10-22 (v7)**: Fixed Vercel routing to forward `POST /mcp` to Railway API. Added exact path rewrite for `/mcp` (not just `/mcp/*`) in `vercel.json`. This resolves 405 Method Not Allowed errors when OpenAI Agent Builder POSTs to the base MCP endpoint.
+**2025-10-23 (v10)**: Implemented MCP handshake protocol with `initialize` and `initialized` methods. The `initialize` method returns server capabilities (`protocolVersion: "2024-10-01"`, tools support) required by OpenAI Agent Builder before it proceeds to `tools/list`. The `initialized` method handles optional follow-up notifications as a no-op. Added `[MCP METHOD]` logger to track every incoming method call for diagnostics. This fixes "Unable to load tools" errors in Agent Builder by properly completing the MCP handshake sequence.
 
-**2025-10-22 (v6)**: Added JSON-RPC 2.0 dispatcher (`jsonRpc.ts`, `core.ts`) to fix OpenAI Agent Builder 424 errors. Base endpoint `POST /mcp` now accepts JSON-RPC requests with methods `list_actions`, `call_action`, `capabilities`.
+**2025-10-22 (v9)**: Added OpenAI Agent Builder MCP compatibility with `tools/list` and `tools/call` methods. These complement existing `list_actions` and `call_action` methods. Tools format uses `input_schema` (instead of `parameters`) with JSON Schema draft-07 `$schema` property. Preserves backward compatibility with legacy action methods. Enhanced logging to clearly show which method variant is being called. Updated error responses to list all available methods.
 
-**2025-10-21 (v5)**: Added production-safe structured logging (`log.ts`, `id.ts`) for troubleshooting. All endpoints now emit `[MCP]` JSON logs with request ID, status, latency, hasAuth flag (no secrets).
+**2025-10-22 (v8)**: Added comprehensive canary verification system to prove MCP requests reach Railway backend. Includes: canary headers (`X-Keeper-Origin`), teapot endpoint (`/_canary` → 418), JSON-RPC canary markers (`__keeper_canary`), trace logging (`[MCP TRACE]`), 404 detection, and defensive JSON parsing. Also added PowerShell test script (`test-mcp-canary.ps1`) for A/B verification (Vercel vs direct Railway).
 
-**2025-10-17 (v4)**: Fixed MCP routing to prevent web app SPA interception. Added standard discovery endpoints. Dual-mounted at `/mcp` and `/api/mcp` for compatibility.
+**2025-10-22 (v7)**: Fixed Vercel routing to forward `POST /mcp` to Railway API. Added exact path rewrite for `/mcp` (not just `/mcp/*`) in `vercel.json`. This resolves 405 Method Not Allowed errors when OpenAI Agent Builder POSTs to the base MCP endpoint. Vercel now correctly proxies both `/mcp` and `/mcp/*` to Railway.
+
+**2025-10-22 (v6)**: Added JSON-RPC 2.0 dispatcher (`jsonRpc.ts`, `core.ts`) to fix OpenAI Agent Builder 424 errors. Base endpoint `POST /mcp` now accepts JSON-RPC requests with methods `list_actions`, `call_action`, `capabilities`. Extracted core logic to `core.ts` for reuse by both REST and JSON-RPC dispatchers. Supports both standard JSON-RPC 2.0 format and simplified format. OpenAI Agent Builder now connects successfully without 424 errors!
+
+**2025-10-21 (v5)**: Added production-safe structured logging (`log.ts`, `id.ts`) for troubleshooting OpenAI Agent 424s. All endpoints now emit `[MCP]` JSON logs with request ID, status, latency, hasAuth flag (no secrets). Added `/_diag` diagnostic endpoint. All responses include `x-request-id` header for correlation. CORS middleware logs origin decisions separately.
+
+**2025-10-17 (v4)**: Fixed MCP routing to prevent web app SPA interception. Added standard discovery endpoints (`/tools`, `/capabilities`, `/.well-known/mcp`, `/whoami`). Dual-mounted at `/mcp` and `/api/mcp` for OpenAI Agent Builder compatibility. Added 404 handler to return JSON instead of HTML for unsupported routes.
+
+**2025-10-11 (v3)**: Refactored CORS into dedicated `cors.ts` file. Added server-level OPTIONS handler and `Vary: Origin` header. Improved code organization and maintainability.
+
+**2025-10-11 (v2)**: Added universal CORS headers and proper Content-Type to fix OpenAI Agent Builder connection hanging. All responses now include timestamps.
+
+**2025-10-11 (v1)**: Initial MCP server implementation with two mock tools, API key auth, and unit tests.
 
 ## 🔗 Related Documentation
-- [MCP Base URL Fix](../../MCP_BASE_URL_FIX_COMPLETE.md) - Latest routing fix
-- [KAM Authentication](../../apps/api/src/kam/README.md) - Cookie-based web auth
-- [Domain Management](./domain-manager.md) - Domain scoping
-- [Board Studio API](../../apps/api/src/api/boards.js) - Board operations
+- [KAM Authentication](../kam/README.md) - Cookie-based web auth
+- [Domain Management](../../docs/modules/domain-manager.md) - Domain scoping
+- [Board Studio API](../api/boards.js) - Board operations

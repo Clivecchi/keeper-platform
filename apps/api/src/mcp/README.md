@@ -40,7 +40,7 @@ MCP routes are mounted at BOTH `/mcp` and `/api/mcp` for compatibility.
 **Auth Required** (Bearer token):
 
 *JSON-RPC 2.0 Endpoint (OpenAI Agent Builder):*
-- `POST /mcp` - **JSON-RPC base endpoint** (list_actions, call_action, capabilities)
+- `POST /mcp` - **JSON-RPC base endpoint** (initialize, tools/list, tools/call, and legacy methods)
 - `POST /api/mcp` - Same as above (alias for compatibility)
 
 *REST Endpoints (backward compatibility):*
@@ -212,7 +212,13 @@ curl -X GET https://api.ke3p.com/api/mcp/schema \
 ### Overview
 OpenAI Agent Builder uses JSON-RPC 2.0 format to communicate with MCP servers. The base endpoint `POST /mcp` (and `POST /api/mcp`) accepts JSON-RPC requests and returns JSON-RPC responses.
 
-This solves the **424 Failed Dependency** error that occurs when OpenAI Agent Builder tries to POST to the base URL.
+**MCP Handshake Flow:**
+1. Agent Builder sends `initialize` → Server responds with capabilities
+2. Agent Builder optionally sends `initialized` → Server acknowledges (no-op)
+3. Agent Builder calls `tools/list` → Server returns available tools
+4. Agent Builder calls `tools/call` → Server executes tool and returns result
+
+This implements the full MCP protocol handshake, solving the **424 Failed Dependency** and **"Unable to load tools"** errors.
 
 ### JSON-RPC Request Format
 ```json
@@ -225,6 +231,70 @@ This solves the **424 Failed Dependency** error that occurs when OpenAI Agent Bu
 ```
 
 ### Supported Methods
+
+#### 0. initialize (MCP handshake)
+MCP protocol handshake that returns server capabilities. Must be called before other methods.
+
+**Request:**
+```bash
+curl -X POST https://api.ke3p.com/mcp \
+  -H "Authorization: Bearer YOUR_MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "req-0",
+    "method": "initialize",
+    "params": {}
+  }'
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-0",
+  "result": {
+    "protocolVersion": "2024-10-01",
+    "serverInfo": {
+      "name": "keeper-mcp",
+      "version": "0.0.1"
+    },
+    "capabilities": {
+      "tools": {
+        "list": true,
+        "call": true
+      }
+    }
+  }
+}
+```
+
+#### 0b. initialized (MCP handshake acknowledgment)
+Optional follow-up notification from client. Server acknowledges with no-op response.
+
+**Request:**
+```bash
+curl -X POST https://api.ke3p.com/mcp \
+  -H "Authorization: Bearer YOUR_MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "req-0b",
+    "method": "initialized",
+    "params": {}
+  }'
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-0b",
+  "result": {
+    "ok": true
+  }
+}
+```
 
 #### 1. list_actions (legacy)
 Lists all available tools/actions in legacy format.
@@ -440,6 +510,8 @@ JSON-RPC errors follow the standard format:
     "message": "Method not found: unknown_method",
     "data": {
       "availableMethods": [
+        "initialize",
+        "initialized",
         "list_actions",
         "call_action",
         "capabilities",
@@ -850,6 +922,8 @@ Run comprehensive verification:
 See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full details.
 
 ## 📆 Update Log
+
+**2025-10-23 (v10)**: Implemented MCP handshake protocol with `initialize` and `initialized` methods. The `initialize` method returns server capabilities (`protocolVersion: "2024-10-01"`, tools support) required by OpenAI Agent Builder before it proceeds to `tools/list`. The `initialized` method handles optional follow-up notifications as a no-op. Added `[MCP METHOD]` logger to track every incoming method call for diagnostics. This fixes "Unable to load tools" errors in Agent Builder by properly completing the MCP handshake sequence.
 
 **2025-10-22 (v9)**: Added OpenAI Agent Builder MCP compatibility with `tools/list` and `tools/call` methods. These complement existing `list_actions` and `call_action` methods. Tools format uses `input_schema` (instead of `parameters`) with JSON Schema draft-07 `$schema` property. Preserves backward compatibility with legacy action methods. Enhanced logging to clearly show which method variant is being called. Updated error responses to list all available methods.
 
