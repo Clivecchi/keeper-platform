@@ -20,6 +20,28 @@ type JsonRpcRequest = {
 };
 
 /**
+ * Convert actions to MCP tools format
+ * 
+ * Transforms our internal action format to OpenAI Agent Builder's expected tools format:
+ * - Renames 'parameters' to 'input_schema'
+ * - Adds JSON Schema draft-07 $schema property
+ * - Maintains name and description
+ * 
+ * @param actions - Array of actions from mcpListActions()
+ * @returns Array of tools in MCP format
+ */
+function actionsToTools(actions: any[]): any[] {
+  return (actions || []).map((a: any) => ({
+    name: a.name,
+    description: a.description,
+    input_schema: {
+      $schema: 'https://json-schema.org/draft-07/schema#',
+      ...(a.parameters ?? { type: 'object', properties: {} })
+    }
+  }));
+}
+
+/**
  * Minimal Request Format
  * Alternative simpler format for flexibility
  */
@@ -193,6 +215,48 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
         console.log(`[MCP JSONRPC] rid=${requestId} method=capabilities hasAuth=${hasAuth}`);
         break;
 
+      // ===== OpenAI Agent Builder MCP Compatibility =====
+      // Tools API - alternative to actions API, expected by Agent Builder
+      
+      case 'tools/list':
+      case 'list_tools':
+        {
+          const { actions } = mcpListActions();
+          const tools = actionsToTools(actions);
+          result = addCanary({ tools });
+          console.log(`[MCP JSONRPC] rid=${requestId} method=${method} hasAuth=${hasAuth} tools=${tools.length}`);
+        }
+        break;
+
+      case 'tools/call':
+      case 'call_tool':
+        {
+          // Agent Builder sends 'arguments' instead of 'args'
+          const toolName = params.name || params.tool;
+          const toolArgs = params.arguments || params.args || params.parameters || {};
+          
+          if (!toolName) {
+            const response: JsonRpcError = {
+              jsonrpc: '2.0',
+              id: rpcId,
+              error: {
+                code: ErrorCodes.INVALID_PARAMS,
+                message: 'Missing required parameter: name (tool name)',
+              },
+            };
+            res.status(400).json(response);
+            logMcp(req, 400, t0, requestId, 'tools/call');
+            console.warn(`[MCP JSONRPC] rid=${requestId} method=${method} -> 400 Missing name`);
+            return;
+          }
+
+          const rawResult = await mcpCallAction(toolName, toolArgs, ctx);
+          result = addCanary(rawResult);
+          rpcMethod = `tools/call:${toolName}`;
+          console.log(`[MCP JSONRPC] rid=${requestId} method=${method} name=${toolName} hasAuth=${hasAuth}`);
+        }
+        break;
+
       default:
         {
           const response: JsonRpcError = {
@@ -206,6 +270,8 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
                   'list_actions',
                   'call_action',
                   'capabilities',
+                  'tools/list',
+                  'tools/call',
                 ],
               },
             },

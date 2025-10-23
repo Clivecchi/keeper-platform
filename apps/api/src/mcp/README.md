@@ -226,8 +226,8 @@ This solves the **424 Failed Dependency** error that occurs when OpenAI Agent Bu
 
 ### Supported Methods
 
-#### 1. list_actions
-Lists all available tools/actions.
+#### 1. list_actions (legacy)
+Lists all available tools/actions in legacy format.
 
 **Request:**
 ```bash
@@ -269,8 +269,53 @@ curl -X POST https://api.ke3p.com/mcp \
 }
 ```
 
-#### 2. call_action
-Invokes a specific tool/action.
+#### 1b. tools/list (OpenAI Agent Builder format)
+Lists all available tools with `input_schema` (MCP standard format).
+
+**Request:**
+```bash
+curl -X POST https://api.ke3p.com/mcp \
+  -H "Authorization: Bearer YOUR_MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "req-1",
+    "method": "tools/list",
+    "params": {}
+  }'
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-1",
+  "result": {
+    "tools": [
+      {
+        "name": "gk_recent_moments",
+        "description": "List recent GenerationKeeper moments in the current domain.",
+        "input_schema": {
+          "$schema": "https://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 5,
+              "description": "Number of moments to return (1-20)"
+            }
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+#### 2. call_action (legacy)
+Invokes a specific tool/action using legacy format.
 
 **Request:**
 ```bash
@@ -296,6 +341,45 @@ curl -X POST https://api.ke3p.com/mcp \
 {
   "jsonrpc": "2.0",
   "id": "req-2",
+  "result": {
+    "moments": [
+      {
+        "id": "mom_1",
+        "title": "Mock Moment 1",
+        "domain_id": "domain-123"
+      }
+    ]
+  }
+}
+```
+
+#### 2b. tools/call (OpenAI Agent Builder format)
+Invokes a specific tool using MCP standard format with `arguments` parameter.
+
+**Request:**
+```bash
+curl -X POST https://api.ke3p.com/mcp \
+  -H "Authorization: Bearer YOUR_MCP_KEY" \
+  -H "Content-Type: application/json" \
+  -H "x-domain-id: domain-123" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "req-2b",
+    "method": "tools/call",
+    "params": {
+      "name": "gk_recent_moments",
+      "arguments": {
+        "limit": 5
+      }
+    }
+  }'
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "req-2b",
   "result": {
     "moments": [
       {
@@ -355,7 +439,13 @@ JSON-RPC errors follow the standard format:
     "code": -32601,
     "message": "Method not found: unknown_method",
     "data": {
-      "availableMethods": ["list_actions", "call_action", "capabilities"]
+      "availableMethods": [
+        "list_actions",
+        "call_action",
+        "capabilities",
+        "tools/list",
+        "tools/call"
+      ]
     }
   }
 }
@@ -760,6 +850,8 @@ Run comprehensive verification:
 See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full details.
 
 ## 📆 Update Log
+
+**2025-10-22 (v9)**: Added OpenAI Agent Builder MCP compatibility with `tools/list` and `tools/call` methods. These complement existing `list_actions` and `call_action` methods. Tools format uses `input_schema` (instead of `parameters`) with JSON Schema draft-07 `$schema` property. Preserves backward compatibility with legacy action methods. Enhanced logging to clearly show which method variant is being called. Updated error responses to list all available methods.
 
 **2025-10-22 (v8)**: Added comprehensive canary verification system to prove MCP requests reach Railway backend. Includes: canary headers (`X-Keeper-Origin`), teapot endpoint (`/_canary` → 418), JSON-RPC canary markers (`__keeper_canary`), trace logging (`[MCP TRACE]`), 404 detection, and defensive JSON parsing. Also added PowerShell test script (`test-mcp-canary.ps1`) for A/B verification (Vercel vs direct Railway).
 
