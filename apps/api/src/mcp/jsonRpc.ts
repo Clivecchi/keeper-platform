@@ -20,10 +20,21 @@ type JsonRpcRequest = {
 };
 
 /**
+ * Initialize Request Params
+ * Parameters sent by client during MCP handshake
+ */
+type InitializeParams = {
+  protocolVersion?: string;
+  capabilities?: Record<string, any>;
+  clientInfo?: { name?: string; version?: string };
+};
+
+/**
  * Convert actions to MCP tools format
  * 
  * Transforms our internal action format to OpenAI Agent Builder's expected tools format:
- * - Renames 'parameters' to 'input_schema'
+ * - Uses camelCase 'inputSchema' (spec-correct)
+ * - Adds optional 'title' field
  * - Adds JSON Schema draft-07 $schema property
  * - Maintains name and description
  * 
@@ -33,8 +44,9 @@ type JsonRpcRequest = {
 function actionsToTools(actions: any[]): any[] {
   return (actions || []).map((a: any) => ({
     name: a.name,
+    title: a.title ?? a.name, // Optional title field
     description: a.description,
-    input_schema: {
+    inputSchema: {
       $schema: 'https://json-schema.org/draft-07/schema#',
       ...(a.parameters ?? { type: 'object', properties: {} })
     }
@@ -113,6 +125,12 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('x-request-id', requestId);
 
+  // Transport nicety: echo MCP protocol version header if present
+  const protoHdr = req.header('MCP-Protocol-Version');
+  if (protoHdr) {
+    res.setHeader('MCP-Protocol-Version', protoHdr);
+  }
+
   try {
     const body = req.body || {};
     
@@ -184,17 +202,25 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
     // Handle the MCP protocol handshake before proceeding to tool operations
     
     if (method === 'initialize') {
-      // Accept typical MCP initialize and return minimal capabilities
-      // Shape is intentionally permissive and future-proof
+      // Echo protocolVersion from client request per MCP spec
+      const params = (body.params ?? {}) as InitializeParams;
+      const requested = (typeof params.protocolVersion === 'string' && params.protocolVersion.trim()) 
+        ? params.protocolVersion 
+        : '2025-03-26';
+
       const result = {
-        protocolVersion: '2024-10-01',
-        serverInfo: { name: 'keeper-mcp', version: '0.0.1' },
+        protocolVersion: requested, // Echo per spec
         capabilities: {
-          tools: { list: true, call: true }
-          // Future: resources, prompts, etc.
-        }
+          logging: {},
+          prompts: { listChanged: true },
+          resources: { subscribe: true, listChanged: true },
+          tools: { listChanged: true } // Spec-friendly format
+        },
+        serverInfo: { name: 'keeper-mcp', version: '0.0.1' },
+        instructions: 'Keeper MCP'
       };
-      console.log(`[MCP JSONRPC] rid=${requestId} method=initialize -> ok`);
+      
+      console.log(`[MCP JSONRPC] rid=${requestId} method=initialize ok proto=${requested}`);
       const response: JsonRpcSuccess = {
         jsonrpc: '2.0',
         id: rpcId,
@@ -205,9 +231,9 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
       return;
     }
 
-    if (method === 'initialized') {
-      // Some clients send a follow-up notification; acknowledge no-op
-      console.log(`[MCP JSONRPC] rid=${requestId} method=initialized (noop)`);
+    // Accept spec notification + legacy alias
+    if (method === 'notifications/initialized' || method === 'initialized') {
+      console.log(`[MCP JSONRPC] rid=${requestId} method=${method} (noop)`);
       // Notifications may have null/absent id; still return 200 envelope
       const response: JsonRpcSuccess = {
         jsonrpc: '2.0',
@@ -215,7 +241,7 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
         result: { ok: true },
       };
       res.status(200).json(response);
-      logMcp(req, 200, t0, requestId, 'initialized');
+      logMcp(req, 200, t0, requestId, method);
       return;
     }
 
@@ -277,9 +303,9 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
       case 'tools/call':
       case 'call_tool':
         {
-          // Agent Builder sends 'arguments' instead of 'args'
+          // Agent Builder sends 'arguments' (prefer spec) but also accept legacy 'args'
           const toolName = params.name || params.tool;
-          const toolArgs = params.arguments || params.args || params.parameters || {};
+          const toolArgs = params.arguments ?? params.args ?? params.parameters ?? {};
           
           if (!toolName) {
             const response: JsonRpcError = {
@@ -297,11 +323,26 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
           }
 
           const rawResult = await mcpCallAction(toolName, toolArgs, ctx);
-          result = addCanary(rawResult);
+          
+          // Return both textual content and structured content for richer clients
+          const toolResult = {
+            content: [{ type: 'text', text: JSON.stringify(rawResult) }],
+            structuredContent: rawResult,
+            ...addCanary({}) // Add canary to top level
+          };
+          
           rpcMethod = `tools/call:${toolName}`;
           console.log(`[MCP JSONRPC] rid=${requestId} method=${method} name=${toolName} hasAuth=${hasAuth}`);
+          
+          const response: JsonRpcSuccess = {
+            jsonrpc: '2.0',
+            id: rpcId,
+            result: toolResult,
+          };
+          res.status(200).json(response);
+          logMcp(req, 200, t0, requestId, rpcMethod);
+          return;
         }
-        break;
 
       default:
         {
@@ -314,6 +355,7 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
               data: {
                 availableMethods: [
                   'initialize',
+                  'notifications/initialized',
                   'initialized',
                   'list_actions',
                   'call_action',

@@ -212,13 +212,21 @@ curl -X GET https://api.ke3p.com/api/mcp/schema \
 ### Overview
 OpenAI Agent Builder uses JSON-RPC 2.0 format to communicate with MCP servers. The base endpoint `POST /mcp` (and `POST /api/mcp`) accepts JSON-RPC requests and returns JSON-RPC responses.
 
-**MCP Handshake Flow:**
-1. Agent Builder sends `initialize` → Server responds with capabilities
-2. Agent Builder optionally sends `initialized` → Server acknowledges (no-op)
-3. Agent Builder calls `tools/list` → Server returns available tools
-4. Agent Builder calls `tools/call` → Server executes tool and returns result
+**MCP Handshake Flow (Spec-Aligned):**
+1. Agent Builder sends `initialize` with `protocolVersion` → Server echoes version and responds with spec-correct capabilities
+2. Agent Builder optionally sends `notifications/initialized` → Server acknowledges (no-op)
+3. Agent Builder calls `tools/list` → Server returns tools with camelCase `inputSchema` and optional `title`
+4. Agent Builder calls `tools/call` with `arguments` → Server executes tool and returns structured response with `content` array
 
-This implements the full MCP protocol handshake, solving the **424 Failed Dependency** and **"Unable to load tools"** errors.
+**Key Spec Compliance:**
+- ✅ Echoes `protocolVersion` from client request (defaults to "2025-03-26")
+- ✅ Returns spec-correct capabilities: `logging`, `prompts`, `resources`, `tools`
+- ✅ Echoes `MCP-Protocol-Version` header when provided
+- ✅ Uses camelCase `inputSchema` (not snake_case)
+- ✅ Returns `content` array + `structuredContent` in tool responses
+- ✅ Accepts both spec (`arguments`, `notifications/initialized`) and legacy formats
+
+This implements the full MCP protocol per OpenAI spec, solving **424 Failed Dependency** and **"Unable to load tools"** errors.
 
 ### JSON-RPC Request Format
 ```json
@@ -233,18 +241,25 @@ This implements the full MCP protocol handshake, solving the **424 Failed Depend
 ### Supported Methods
 
 #### 0. initialize (MCP handshake)
-MCP protocol handshake that returns server capabilities. Must be called before other methods.
+MCP protocol handshake that returns server capabilities. Echoes the client's requested `protocolVersion` per spec.
 
 **Request:**
 ```bash
 curl -X POST https://api.ke3p.com/mcp \
   -H "Authorization: Bearer YOUR_MCP_KEY" \
   -H "Content-Type: application/json" \
+  -H "MCP-Protocol-Version: 2025-03-26" \
   -d '{
     "jsonrpc": "2.0",
     "id": "req-0",
     "method": "initialize",
-    "params": {}
+    "params": {
+      "protocolVersion": "2025-03-26",
+      "clientInfo": {
+        "name": "openai-agent-builder",
+        "version": "1.0"
+      }
+    }
   }'
 ```
 
@@ -254,23 +269,35 @@ curl -X POST https://api.ke3p.com/mcp \
   "jsonrpc": "2.0",
   "id": "req-0",
   "result": {
-    "protocolVersion": "2024-10-01",
+    "protocolVersion": "2025-03-26",
+    "capabilities": {
+      "logging": {},
+      "prompts": {
+        "listChanged": true
+      },
+      "resources": {
+        "subscribe": true,
+        "listChanged": true
+      },
+      "tools": {
+        "listChanged": true
+      }
+    },
     "serverInfo": {
       "name": "keeper-mcp",
       "version": "0.0.1"
     },
-    "capabilities": {
-      "tools": {
-        "list": true,
-        "call": true
-      }
-    }
+    "instructions": "Keeper MCP"
   }
 }
 ```
 
+**Note:** Server echoes `MCP-Protocol-Version` header if provided by client.
+
 #### 0b. initialized (MCP handshake acknowledgment)
 Optional follow-up notification from client. Server acknowledges with no-op response.
+
+Accepts both `notifications/initialized` (spec) and `initialized` (legacy).
 
 **Request:**
 ```bash
@@ -280,7 +307,7 @@ curl -X POST https://api.ke3p.com/mcp \
   -d '{
     "jsonrpc": "2.0",
     "id": "req-0b",
-    "method": "initialized",
+    "method": "notifications/initialized",
     "params": {}
   }'
 ```
@@ -340,7 +367,7 @@ curl -X POST https://api.ke3p.com/mcp \
 ```
 
 #### 1b. tools/list (OpenAI Agent Builder format)
-Lists all available tools with `input_schema` (MCP standard format).
+Lists all available tools with `inputSchema` in camelCase (MCP spec-correct format).
 
 **Request:**
 ```bash
@@ -364,8 +391,9 @@ curl -X POST https://api.ke3p.com/mcp \
     "tools": [
       {
         "name": "gk_recent_moments",
+        "title": "gk_recent_moments",
         "description": "List recent GenerationKeeper moments in the current domain.",
-        "input_schema": {
+        "inputSchema": {
           "$schema": "https://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
@@ -383,6 +411,8 @@ curl -X POST https://api.ke3p.com/mcp \
   }
 }
 ```
+
+**Note:** Uses camelCase `inputSchema` (not `input_schema`) and includes optional `title` field per MCP spec.
 
 #### 2. call_action (legacy)
 Invokes a specific tool/action using legacy format.
@@ -424,7 +454,7 @@ curl -X POST https://api.ke3p.com/mcp \
 ```
 
 #### 2b. tools/call (OpenAI Agent Builder format)
-Invokes a specific tool using MCP standard format with `arguments` parameter.
+Invokes a specific tool using MCP standard format with `arguments` parameter. Returns structured response with both textual and structured content.
 
 **Request:**
 ```bash
@@ -451,16 +481,32 @@ curl -X POST https://api.ke3p.com/mcp \
   "jsonrpc": "2.0",
   "id": "req-2b",
   "result": {
-    "moments": [
+    "content": [
       {
-        "id": "mom_1",
-        "title": "Mock Moment 1",
-        "domain_id": "domain-123"
+        "type": "text",
+        "text": "{\"moments\":[{\"id\":\"mom_1\",\"title\":\"Mock Moment 1\",\"domain_id\":\"domain-123\"}]}"
       }
-    ]
+    ],
+    "structuredContent": {
+      "moments": [
+        {
+          "id": "mom_1",
+          "title": "Mock Moment 1",
+          "domain_id": "domain-123"
+        }
+      ]
+    },
+    "__keeper_canary": {
+      "origin": "railway-api",
+      "service": "keeper-api-mcp",
+      "build": "dev",
+      "timestamp": "2025-10-23T12:00:00.000Z"
+    }
   }
 }
 ```
+
+**Note:** Accepts both `arguments` (spec) and `args` (legacy). Returns content array for richer client support.
 
 #### 3. capabilities
 Returns server capabilities.
@@ -511,6 +557,7 @@ JSON-RPC errors follow the standard format:
     "data": {
       "availableMethods": [
         "initialize",
+        "notifications/initialized",
         "initialized",
         "list_actions",
         "call_action",
@@ -923,6 +970,8 @@ See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full d
 
 ## 📆 Update Log
 
+**2025-10-23 (v11)**: Aligned MCP JSON-RPC implementation with OpenAI spec for full compatibility. Key changes: (1) `initialize` now echoes client's `protocolVersion` from params (defaults to "2025-03-26"), returns spec-correct capabilities object with logging/prompts/resources/tools, adds `instructions` field; (2) accepts both `notifications/initialized` (spec) and `initialized` (legacy); (3) `tools/list` now uses camelCase `inputSchema` (not snake_case) and includes optional `title` field; (4) `tools/call` returns structured response with `content` array and `structuredContent` for richer client support, accepts both `arguments` (spec) and `args` (legacy); (5) echoes `MCP-Protocol-Version` header when provided by client. All legacy methods remain fully functional.
+
 **2025-10-23 (v10)**: Implemented MCP handshake protocol with `initialize` and `initialized` methods. The `initialize` method returns server capabilities (`protocolVersion: "2024-10-01"`, tools support) required by OpenAI Agent Builder before it proceeds to `tools/list`. The `initialized` method handles optional follow-up notifications as a no-op. Added `[MCP METHOD]` logger to track every incoming method call for diagnostics. This fixes "Unable to load tools" errors in Agent Builder by properly completing the MCP handshake sequence.
 
 **2025-10-22 (v9)**: Added OpenAI Agent Builder MCP compatibility with `tools/list` and `tools/call` methods. These complement existing `list_actions` and `call_action` methods. Tools format uses `input_schema` (instead of `parameters`) with JSON Schema draft-07 `$schema` property. Preserves backward compatibility with legacy action methods. Enhanced logging to clearly show which method variant is being called. Updated error responses to list all available methods.
@@ -947,3 +996,4 @@ See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full d
 - [KAM Authentication](../kam/README.md) - Cookie-based web auth
 - [Domain Management](../../docs/modules/domain-manager.md) - Domain scoping
 - [Board Studio API](../api/boards.js) - Board operations
+
