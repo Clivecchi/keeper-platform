@@ -1854,7 +1854,7 @@ const BoardStudioPage: React.FC = () => {
                             props: mockFrames.find(f => f.id === selectedFrameId)?.props || {},
                             role: mockFrames.find(f => f.id === selectedFrameId)?.data?.role
                           }}
-                          mode={editorMode}
+                          mode="preview"
                           boardName={boardName}
                           boardDescription={boardDescription}
                           boardData={{
@@ -1930,7 +1930,7 @@ const BoardStudioPage: React.FC = () => {
                             props: mockFrames.find(f => f.id === selectedFrameId)?.props || {},
                             role: mockFrames.find(f => f.id === selectedFrameId)?.data?.role
                           }}
-                          mode={editorMode}
+                          mode="preview"
                           boardName={boardName}
                           boardDescription={boardDescription}
                           boardData={{
