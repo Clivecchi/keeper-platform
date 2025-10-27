@@ -334,14 +334,25 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
 
   const updateBoard = useCallback(async (boardId: string, updates: Partial<BoardInstance>) => {
     try {
-      // TODO: Implement API call to update board
       if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log(`Updating board: ${boardId}`, updates);
       
-      // Mock update - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Call backend API to update board metadata
+      const response = await apiFetch(`/api/boards/${boardId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: updates.config?.name,
+          description: updates.config?.description,
+          theme: updates.config?.theme
+        })
+      });
       
-      dispatch({ type: 'UPDATE_BOARD', payload: updates });
+      if (response.success) {
+        dispatch({ type: 'UPDATE_BOARD', payload: updates });
+        console.log('✅ Board updated');
+      }
     } catch (error) {
+      console.error('❌ Failed to update board:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to update board';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
     }
@@ -349,13 +360,29 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
 
   const addFrame = useCallback(async (boardId: string, frame: ExtendedFrameInstance) => {
     try {
-      // TODO: Implement API call to add frame to board
       if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log(`Adding frame to board: ${boardId}`, frame);
       
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Call backend API to create frame
+      const response = await apiFetch(`/api/boards/${boardId}/frames`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: frame.name || 'New Frame',
+          pattern: (frame as any).pattern || 'dialogic',
+          frameType: frame.frameType || 'media_card',
+          orderIndex: (frame as any).orderIndex || 0,
+          layoutKind: frame.layoutKind || 'canvas',
+          props: (frame as any).props || {}
+        })
+      });
       
-      dispatch({ type: 'ADD_FRAME', payload: frame });
+      if (response.success && response.data) {
+        // Add server-created frame to state
+        dispatch({ type: 'ADD_FRAME', payload: response.data });
+        console.log('✅ Frame created and persisted:', response.data.id);
+      }
     } catch (error) {
+      console.error('❌ Failed to add frame:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to add frame';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
     }
@@ -363,13 +390,17 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
 
   const removeFrame = useCallback(async (boardId: string, frameId: string) => {
     try {
-      // TODO: Implement API call to remove frame from board
       if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log(`Removing frame from board: ${boardId}`, frameId);
       
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Call backend API to delete frame
+      await apiFetch(`/api/boards/${boardId}/frames/${frameId}`, {
+        method: 'DELETE'
+      });
       
       dispatch({ type: 'REMOVE_FRAME', payload: frameId });
+      console.log('✅ Frame deleted:', frameId);
     } catch (error) {
+      console.error('❌ Failed to remove frame:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to remove frame';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
     }
@@ -377,13 +408,31 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
 
   const updateFrame = useCallback(async (boardId: string, frameId: string, updates: Partial<ExtendedFrameInstance>) => {
     try {
-      // TODO: Implement API call to update frame
       if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log(`Updating frame: ${frameId}`, updates);
       
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Call backend API to update frame
+      const response = await apiFetch(`/api/boards/${boardId}/frames/${frameId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: updates.name,
+          pattern: (updates as any).pattern,
+          layoutKind: updates.layoutKind,
+          layoutData: updates.layoutData,
+          props: (updates as any).props
+        })
+      });
       
-      dispatch({ type: 'UPDATE_FRAME', payload: { frameId, updates } });
+      if (response.success && response.data) {
+        // Update with server response
+        dispatch({ type: 'UPDATE_FRAME', payload: { frameId, updates: response.data } });
+        console.log('✅ Frame updated and persisted:', frameId);
+      } else {
+        // Fallback to optimistic update if no data returned
+        dispatch({ type: 'UPDATE_FRAME', payload: { frameId, updates } });
+      }
     } catch (error) {
+      console.error('❌ Failed to update frame:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to update frame';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
     }
@@ -391,13 +440,19 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
 
   const reorderFrames = useCallback(async (boardId: string, frameIds: string[]) => {
     try {
-      // TODO: Implement API call to reorder frames
       if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log(`Reordering frames in board: ${boardId}`, frameIds);
       
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Call backend API to reorder frames
+      await apiFetch(`/api/boards/${boardId}/frames/reorder`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: frameIds })
+      });
       
       dispatch({ type: 'REORDER_FRAMES', payload: frameIds });
+      console.log('✅ Frames reordered');
     } catch (error) {
+      console.error('❌ Failed to reorder frames:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to reorder frames';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
     }
