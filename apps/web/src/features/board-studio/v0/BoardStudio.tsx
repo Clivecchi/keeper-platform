@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { apiFetch } from "../../../lib/api"
 import { Button } from "./components/ui/button"
 import { Input } from "./components/ui/input"
 import { Textarea } from "./components/ui/textarea"
@@ -179,21 +180,28 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
   };
 
   const saveBoard = async () => {
-    if (!boardId) return;
+    if (!boardId || boardId === 'new-board') return;
     
     setIsSaving(true);
     try {
-      // H5: apiFetch throws on non-OK; success means no exception
+      // Only save board-level metadata (name, description, theme, etc.)
+      // Frames are separate entities and saved via frame endpoints
+      const boardMetadata = {
+        name: board.name,
+        description: board.description,
+        // Don't send frames array - they're managed separately
+      };
+      
       await apiFetch(`/api/boards/${boardId}`, {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(board),
+        body: JSON.stringify(boardMetadata),
       });
-      console.log('Board saved successfully');
+      console.log('✅ Board metadata saved successfully');
     } catch (error) {
-      console.error('Error saving board:', error);
+      console.error('❌ Error saving board:', error);
     } finally {
       setIsSaving(false);
     }
@@ -201,52 +209,201 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
 
   const activeFrame = board.frames.find(f => f.id === activeFrameId);
 
-  const addFrame = () => {
+  const addFrame = async () => {
+    if (!boardId || boardId === 'new-board') {
+      console.warn('Cannot add frame: no valid boardId');
+      return;
+    }
+
+    const tempId = `temp-frame-${Date.now()}`;
     const newFrame: StudioFrame = {
-      id: `frame-${Date.now()}`,
+      id: tempId,
       name: `Frame ${board.frames.length + 1}`,
       role: 'custom',
       pattern: 'canvas',
       props: []
     };
+    
+    // Optimistic update
     setBoard(prev => ({
       ...prev,
       frames: [...prev.frames, newFrame]
     }));
+    
+    try {
+      // Persist to backend
+      const response = await apiFetch(`/api/boards/${boardId}/frames`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newFrame.name,
+          pattern: newFrame.pattern,
+          frameType: 'media_card',
+          orderIndex: board.frames.length
+        })
+      });
+      
+      if (response.success && response.data) {
+        // Replace temp ID with real server ID
+        setBoard(prev => ({
+          ...prev,
+          frames: prev.frames.map(f => 
+            f.id === tempId ? { 
+              ...f, 
+              id: response.data.id,
+              name: response.data.name,
+              pattern: response.data.pattern 
+            } : f
+          )
+        }));
+        console.log('✅ Frame created and persisted:', response.data.id);
+      }
+    } catch (error) {
+      console.error('❌ Failed to create frame:', error);
+      // Revert optimistic update on error
+      setBoard(prev => ({
+        ...prev,
+        frames: prev.frames.filter(f => f.id !== tempId)
+      }));
+    }
   };
 
-  const updateFrame = (frameId: string, updates: Partial<StudioFrame>) => {
+  const updateFrame = async (frameId: string, updates: Partial<StudioFrame>) => {
+    // Optimistic update
     setBoard(prev => ({
       ...prev,
       frames: prev.frames.map(frame => 
         frame.id === frameId ? { ...frame, ...updates } : frame
       )
     }));
-    // Auto-save after frame updates
+    
+    // Persist to backend immediately
     if (boardId && boardId !== 'new-board') {
-      setTimeout(saveBoard, 500); // Debounced save
+      try {
+        const response = await apiFetch(`/api/boards/${boardId}/frames/${frameId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
+        
+        if (response.success && response.data) {
+          // Update with server response to ensure consistency
+          setBoard(prev => ({
+            ...prev,
+            frames: prev.frames.map(frame => 
+              frame.id === frameId ? { 
+                ...frame, 
+                ...updates,
+                // Merge server data if available
+                name: response.data.name || frame.name,
+                pattern: response.data.pattern || frame.pattern,
+                props: response.data.props || frame.props
+              } : frame
+            )
+          }));
+          console.log('✅ Frame updated and persisted:', frameId);
+        }
+      } catch (error) {
+        console.error('❌ Failed to update frame:', error);
+      }
     }
   };
 
-  const addPropToFrame = (frameId: string, propType: string) => {
+  const addPropToFrame = async (frameId: string, propType: string, propConfig?: Record<string, any>) => {
+    const frame = board.frames.find(f => f.id === frameId);
+    if (!frame) {
+      console.warn('Frame not found:', frameId);
+      return;
+    }
+
     const newProp: StudioProp = {
       id: `prop-${Date.now()}`,
       type: propType,
-      config: propType === 'token' ? {
+      config: propConfig || (propType === 'token' ? {
         displayName: 'AI Assistant',
         avatarUrl: '/placeholder.svg',
         personaNote: 'Helpful AI assistant',
-      } : {}
+      } : {})
     };
     
+    const updatedProps = [...frame.props, newProp];
+    
+    // Optimistic update
     setBoard(prev => ({
       ...prev,
-      frames: prev.frames.map(frame => 
-        frame.id === frameId 
-          ? { ...frame, props: [...frame.props, newProp] }
-          : frame
+      frames: prev.frames.map(f => 
+        f.id === frameId 
+          ? { ...f, props: updatedProps }
+          : f
       )
     }));
+    
+    // Persist to backend
+    if (boardId && boardId !== 'new-board') {
+      try {
+        const response = await apiFetch(`/api/boards/${boardId}/frames/${frameId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ props: updatedProps })
+        });
+        
+        if (response.success) {
+          console.log('✅ Props persisted to server for frame:', frameId);
+        }
+      } catch (error) {
+        console.error('❌ Failed to update frame props:', error);
+        // Revert optimistic update on error
+        setBoard(prev => ({
+          ...prev,
+          frames: prev.frames.map(f => 
+            f.id === frameId ? { ...f, props: frame.props } : f
+          )
+        }));
+      }
+    }
+  };
+
+  const deleteFrame = async (frameId: string) => {
+    const frame = board.frames.find(f => f.id === frameId);
+    if (!frame) return;
+    
+    // Prevent deletion of cover and settings frames
+    if (frame.role === 'cover' || frame.role === 'settings') {
+      alert('Cannot delete default frames (Cover/Settings)');
+      return;
+    }
+    
+    if (!confirm(`Delete frame "${frame.name}"?`)) return;
+    
+    // Optimistic update
+    const originalFrames = board.frames;
+    setBoard(prev => ({
+      ...prev,
+      frames: prev.frames.filter(f => f.id !== frameId)
+    }));
+    
+    // Switch to first frame if deleting active frame
+    if (activeFrameId === frameId) {
+      const remainingFrames = originalFrames.filter(f => f.id !== frameId);
+      setActiveFrameId(remainingFrames[0]?.id || '');
+    }
+    
+    // Persist to backend
+    if (boardId && boardId !== 'new-board') {
+      try {
+        await apiFetch(`/api/boards/${boardId}/frames/${frameId}`, {
+          method: 'DELETE'
+        });
+        console.log('✅ Frame deleted:', frameId);
+      } catch (error) {
+        console.error('❌ Failed to delete frame:', error);
+        // Revert optimistic update on error
+        setBoard(prev => ({
+          ...prev,
+          frames: originalFrames
+        }));
+      }
+    }
   };
 
   return (
@@ -367,11 +524,16 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem onClick={() => setConfigFrameId(frame.id)}>
-                        Settings
+                        Configure
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        Form
-                      </DropdownMenuItem>
+                      {frame.role !== 'cover' && frame.role !== 'settings' && (
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={() => deleteFrame(frame.id)}
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -396,27 +558,69 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                   <p className="text-gray-600">Loading board...</p>
                 </div>
+              ) : authRequired ? (
+                <div className="text-center text-gray-600">
+                  <p>Please sign in to view this board.</p>
+                </div>
+              ) : noAhb ? (
+                <div className="text-center text-gray-600">
+                  <p>No Agent Home Board for this agent.</p>
+                </div>
+              ) : !activeFrame ? (
+                <div className="text-center text-gray-600">
+                  <p>Select or create a frame to get started</p>
+                </div>
               ) : (
-                <div className="w-full max-w-4xl h-full flex items-center justify-center">
-                  {authRequired ? (
-                    <div className="text-center text-gray-600">
-                      <p>Please sign in to view this board.</p>
+                <div className="w-full max-w-4xl">
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                    <div className="mb-4 pb-4 border-b">
+                      <h2 className="text-xl font-semibold text-gray-900 mb-1">{activeFrame.name}</h2>
+                      <p className="text-sm text-gray-500">Pattern: {activeFrame.pattern}</p>
                     </div>
-                  ) : noAhb ? (
-                    <div className="text-center text-gray-600">
-                      <p>No Agent Home Board for this agent.</p>
-                    </div>
-                  ) : (
-                    <div className="w-full h-96 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                      <div className="text-center text-white">
-                        <div className="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center mb-4 mx-auto">
-                          <Film className="w-8 h-8" />
+                    
+                    {activeFrame.props.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
+                          <Layout className="w-8 h-8 text-gray-400" />
                         </div>
-                        <h1 className="text-2xl font-bold mb-2">Product Launch Story</h1>
-                        <p className="text-blue-100">Discover the journey behind our latest innovation</p>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Empty Frame</h3>
+                        <p className="text-gray-600 mb-4">Add props from the library to build your frame</p>
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-medium text-gray-700 mb-2">Props ({activeFrame.props.length}):</h3>
+                        {activeFrame.props.map((prop, index) => (
+                          <div 
+                            key={prop.id} 
+                            className="border border-gray-200 rounded-md p-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-gray-500">#{index + 1}</span>
+                                <span className="text-sm font-medium text-gray-900">{prop.type}</span>
+                              </div>
+                              <button 
+                                className="text-xs text-red-600 hover:text-red-700"
+                                onClick={() => {
+                                  const updatedProps = activeFrame.props.filter(p => p.id !== prop.id);
+                                  updateFrame(activeFrame.id, { props: updatedProps });
+                                }}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                            {Object.keys(prop.config).length > 0 && (
+                              <div className="mt-2 text-xs text-gray-600">
+                                <pre className="bg-white p-2 rounded border border-gray-200 overflow-x-auto">
+                                  {JSON.stringify(prop.config, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -428,8 +632,24 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
           <div className="p-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-gray-900">Props Library</h3>
-              <span className="text-xs text-gray-500">Drag elements to your frame</span>
+              <span className="text-xs text-gray-500">Click to add to frame</span>
             </div>
+            
+            {!activeFrameId && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-xs text-yellow-800">
+                  Select a frame to add props
+                </p>
+              </div>
+            )}
+            
+            {activeFrameId && (
+              <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-xs text-blue-800">
+                  Adding to: <span className="font-medium">{activeFrame?.name || 'Unknown'}</span>
+                </p>
+              </div>
+            )}
             
             <ScrollArea className="h-[calc(100vh-140px)]">
               <div className="space-y-4">
@@ -446,21 +666,42 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
                     <ChevronDown className="w-3 h-3" />
                   </Button>
                   <div className="ml-6 mt-2 space-y-2">
-                    <div className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer">
+                    <div 
+                      className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                      onClick={() => activeFrameId && addPropToFrame(activeFrameId, 'hero-image', { 
+                        title: 'Hero Image',
+                        url: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800',
+                        alt: 'Hero image placeholder'
+                      })}
+                    >
                       <Image className="w-4 h-4 text-gray-500" />
                       <div>
                         <div className="text-sm text-gray-900">Hero Image</div>
                         <div className="text-xs text-gray-500">Large featured image</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer">
+                    <div 
+                      className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                      onClick={() => activeFrameId && addPropToFrame(activeFrameId, 'video-player', {
+                        title: 'Video Player',
+                        url: '',
+                        autoplay: false
+                      })}
+                    >
                       <Video className="w-4 h-4 text-gray-500" />
                       <div>
                         <div className="text-sm text-gray-900">Video Player</div>
                         <div className="text-xs text-gray-500">Embedded video content</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer">
+                    <div 
+                      className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                      onClick={() => activeFrameId && addPropToFrame(activeFrameId, 'image-gallery', {
+                        title: 'Image Gallery',
+                        images: [],
+                        layout: 'grid'
+                      })}
+                    >
                       <ImageIcon className="w-4 h-4 text-gray-500" />
                       <div>
                         <div className="text-sm text-gray-900">Image Gallery</div>
@@ -483,21 +724,42 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
                     <ChevronDown className="w-3 h-3" />
                   </Button>
                   <div className="ml-6 mt-2 space-y-2">
-                    <div className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer">
+                    <div 
+                      className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                      onClick={() => activeFrameId && addPropToFrame(activeFrameId, 'heading', {
+                        text: 'Heading Text',
+                        level: 2,
+                        alignment: 'left'
+                      })}
+                    >
                       <Type className="w-4 h-4 text-gray-500" />
                       <div>
                         <div className="text-sm text-gray-900">Heading</div>
                         <div className="text-xs text-gray-500">Title or section header</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer">
+                    <div 
+                      className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                      onClick={() => activeFrameId && addPropToFrame(activeFrameId, 'text-block', {
+                        text: 'Your content goes here...',
+                        alignment: 'left',
+                        fontSize: 'medium'
+                      })}
+                    >
                       <Type className="w-4 h-4 text-gray-500" />
                       <div>
                         <div className="text-sm text-gray-900">Text Block</div>
                         <div className="text-xs text-gray-500">Body text content</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer">
+                    <div 
+                      className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                      onClick={() => activeFrameId && addPropToFrame(activeFrameId, 'quote', {
+                        text: 'This is a quote',
+                        author: 'Author Name',
+                        style: 'bordered'
+                      })}
+                    >
                       <Type className="w-4 h-4 text-gray-500" />
                       <div>
                         <div className="text-sm text-gray-900">Quote</div>
@@ -520,14 +782,29 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
                     <ChevronDown className="w-3 h-3" />
                   </Button>
                   <div className="ml-6 mt-2 space-y-2">
-                    <div className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer">
+                    <div 
+                      className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                      onClick={() => activeFrameId && addPropToFrame(activeFrameId, 'action-button', {
+                        text: 'Click Me',
+                        variant: 'primary',
+                        action: 'navigate',
+                        url: '#'
+                      })}
+                    >
                       <MousePointer className="w-4 h-4 text-gray-500" />
                       <div>
                         <div className="text-sm text-gray-900">Action Button</div>
                         <div className="text-xs text-gray-500">Clickable call-to-action</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer">
+                    <div 
+                      className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
+                      onClick={() => activeFrameId && addPropToFrame(activeFrameId, 'form', {
+                        title: 'Form',
+                        fields: [],
+                        submitText: 'Submit'
+                      })}
+                    >
                       <Type className="w-4 h-4 text-gray-500" />
                       <div>
                         <div className="text-sm text-gray-900">Form</div>
@@ -552,7 +829,11 @@ export default function BoardStudio({ boardId, initialBoard }: BoardStudioProps)
                   <div className="ml-6 mt-2 space-y-2">
                     <div 
                       className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
-                      onClick={() => activeFrameId && addPropToFrame(activeFrameId, 'token')}
+                      onClick={() => activeFrameId && addPropToFrame(activeFrameId, 'token', {
+                        displayName: 'AI Assistant',
+                        avatarUrl: '/placeholder.svg',
+                        personaNote: 'Helpful AI assistant'
+                      })}
                     >
                       <Bot className="w-4 h-4 text-gray-500" />
                       <div>
