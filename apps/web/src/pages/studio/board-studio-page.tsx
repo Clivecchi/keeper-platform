@@ -617,6 +617,19 @@ const BoardStudioPage: React.FC = () => {
         });
         
         setMockFrames(frames);
+        
+        // Debug: Check for frame count discrepancy
+        console.log('🔍 Frame Count Debug:', {
+          boardId: board.id,
+          boardName: board.name,
+          apiReturnedFrames: board.frames?.length || 0,
+          parsedFramesCount: frames.length,
+          mockFramesLength: frames.length,
+          frameIds: frames.map((f: any) => f.id),
+          frameNames: frames.map((f: any) => f.data?.name),
+          frameRoles: frames.map((f: any) => f.data?.role)
+        });
+        
         // Select the content frame (not cover) by default
         const contentFrame = frames.find((f: any) => f.data?.role !== 'cover' && f.data?.role !== 'settings') || frames[1] || frames[0];
         setSelectedFrameId(contentFrame?.id || null);
@@ -700,6 +713,17 @@ const BoardStudioPage: React.FC = () => {
         frameCount: board.frameCount || 0,
         engagementMode: board.engagementMode || 'canvas'
       }));
+      
+      // Debug: Log board list to identify frameCount source
+      console.log('🔍 Boards List Debug:', {
+        totalBoards: transformedBoards.length,
+        boards: transformedBoards.map(b => ({
+          id: b.id,
+          name: b.name,
+          frameCount: b.frameCount,
+          frameCountFromAPI: (boardsData.data || []).find((apib: any) => apib.id === b.id)?.frameCount
+        }))
+      });
       
       setBoards(transformedBoards);
       if (DEBUG_STUDIO) console.log('Loaded boards from API:', transformedBoards);
@@ -1363,6 +1387,66 @@ const BoardStudioPage: React.FC = () => {
     console.log('Frame drag started:', frame);
   };
 
+  // Add prop to currently selected frame
+  const handleAddPropToFrame = async (propType: string, propConfig: Record<string, any>) => {
+    if (!selectedFrameId) {
+      alert('Please select a frame first');
+      return;
+    }
+    
+    if (!selectedBoardId) {
+      alert('Please select a board first');
+      return;
+    }
+
+    try {
+      console.log('Adding prop to frame:', { propType, propConfig, frameId: selectedFrameId });
+      
+      // Find the current frame
+      const currentFrame = mockFrames.find(f => f.id === selectedFrameId);
+      if (!currentFrame) {
+        console.error('Frame not found:', selectedFrameId);
+        return;
+      }
+      
+      // Create new prop
+      const newProp = {
+        id: `prop_${Date.now()}`,
+        type: propType,
+        config: propConfig
+      };
+      
+      // Get existing props (handle both object and array formats)
+      const existingProps = currentFrame.props || {};
+      const updatedProps = {
+        ...existingProps,
+        [newProp.id]: newProp
+      };
+      
+      console.log('Updating frame props:', { frameId: selectedFrameId, updatedProps });
+      
+      // Update via API
+      const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames/${selectedFrameId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ props: updatedProps })
+      });
+      
+      if (response.success) {
+        console.log('✅ Prop added successfully');
+        
+        // Update local state
+        setMockFrames(prev => prev.map(f => 
+          f.id === selectedFrameId 
+            ? { ...f, props: updatedProps }
+            : f
+        ));
+      }
+    } catch (error) {
+      console.error('❌ Failed to add prop:', error);
+      alert('Failed to add prop to frame');
+    }
+  };
+
   const handleAddFrameToBoard = async (frame: FrameType) => {
     if (!selectedBoardId) {
       alert('Please select a board first');
@@ -1636,7 +1720,9 @@ const BoardStudioPage: React.FC = () => {
                         selectedBoardId === board.id ? 'bg-blue-500' : 'bg-gray-300'
                       }`}></div>
                       <span className="text-sm font-medium text-gray-900 flex-1 truncate">{board.name}</span>
-                      <span className="text-xs text-gray-500">{board.frameCount} frames</span>
+                      <span className="text-xs text-gray-500">
+                        {selectedBoardId === board.id ? mockFrames.length : board.frameCount} frames
+                      </span>
                     </div>
                   ))
                 ) : (
@@ -1767,6 +1853,24 @@ const BoardStudioPage: React.FC = () => {
                 </div>
                 <div className="text-xs text-gray-500">
                   {mockFrames.length} frame{mockFrames.length !== 1 ? 's' : ''}
+                  {(() => {
+                    const sidebarBoard = boards.find(b => b.id === selectedBoardId);
+                    if (sidebarBoard && sidebarBoard.frameCount !== mockFrames.length) {
+                      console.warn('⚠️ Frame count mismatch detected:', {
+                        boardId: selectedBoardId,
+                        boardName,
+                        sidebarCount: sidebarBoard.frameCount,
+                        actualCount: mockFrames.length,
+                        difference: sidebarBoard.frameCount - mockFrames.length
+                      });
+                      return (
+                        <span className="ml-2 text-yellow-600" title={`Sidebar shows ${sidebarBoard.frameCount}`}>
+                          ⚠️
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               </div>
             </div>
@@ -2120,7 +2224,7 @@ const BoardStudioPage: React.FC = () => {
                           }));
                         }}
                         onDragEnd={() => setDraggedItemType(null)}
-                        onClick={() => handleAddFrameToBoard({ id: 'hero-image', name: 'Hero Image', type: 'media_card', description: 'Large featured image', category: 'content', icon: '🖼️' })}
+                        onClick={() => handleAddPropToFrame('image', { url: '', alt: 'Hero image', size: 'large', name: 'Hero Image' })}
                       >
                         <Image className="w-4 h-4 text-gray-500" />
                         <div>
@@ -2144,7 +2248,7 @@ const BoardStudioPage: React.FC = () => {
                           }));
                         }}
                         onDragEnd={() => setDraggedItemType(null)}
-                        onClick={() => handleAddFrameToBoard({ id: 'video-player', name: 'Video Player', type: 'media_card', description: 'Embedded video content', category: 'content', icon: '🎥' })}
+                        onClick={() => handleAddPropToFrame('media', { url: '', type: 'video', autoplay: false, name: 'Video Player' })}
                       >
                         <Video className="w-4 h-4 text-gray-500" />
                         <div>
@@ -2168,7 +2272,7 @@ const BoardStudioPage: React.FC = () => {
                           }));
                         }}
                         onDragEnd={() => setDraggedItemType(null)}
-                        onClick={() => handleAddFrameToBoard({ id: 'image-gallery', name: 'Image Gallery', type: 'media_card', description: 'Collection of images', category: 'content', icon: '🖼️' })}
+                        onClick={() => handleAddPropToFrame('gallery', { images: [], layout: 'grid', columns: 3, name: 'Image Gallery' })}
                       >
                         <ImageIcon className="w-4 h-4 text-gray-500" />
                         <div>
@@ -2210,7 +2314,7 @@ const BoardStudioPage: React.FC = () => {
                             } 
                           }));
                         }}
-                        onClick={() => handleAddFrameToBoard({ id: 'heading', name: 'Heading', type: 'preview', description: 'Title or section header', category: 'content', icon: '📝' })}
+                        onClick={() => handleAddPropToFrame('heading', { content: 'Enter heading text...', level: 2, alignment: 'left', name: 'Heading' })}
                       >
                         <Type className="w-4 h-4 text-gray-500" />
                         <div>
@@ -2234,7 +2338,7 @@ const BoardStudioPage: React.FC = () => {
                           }));
                         }}
                         onDragEnd={() => setDraggedItemType(null)}
-                        onClick={() => handleAddFrameToBoard({ id: 'text-block', name: 'Text Block', type: 'preview', description: 'Body text content', category: 'content', icon: '📝' })}
+                        onClick={() => handleAddPropToFrame('text', { content: 'Enter your text here...', fontSize: 'medium', bold: false, name: 'Text Block' })}
                       >
                         <Type className="w-4 h-4 text-gray-500" />
                         <div>
@@ -2257,7 +2361,7 @@ const BoardStudioPage: React.FC = () => {
                             } 
                           }));
                         }}
-                        onClick={() => handleAddFrameToBoard({ id: 'quote', name: 'Quote', type: 'preview', description: 'Highlighted testimonial', category: 'content', icon: '💬' })}
+                        onClick={() => handleAddPropToFrame('quote', { content: 'Enter quote text...', author: '', style: 'default', name: 'Quote' })}
                       >
                         <Type className="w-4 h-4 text-gray-500" />
                         <div>
@@ -2300,7 +2404,7 @@ const BoardStudioPage: React.FC = () => {
                           }));
                         }}
                         onDragEnd={() => setDraggedItemType(null)}
-                        onClick={() => handleAddFrameToBoard({ id: 'action-button', name: 'Action Button', type: 'dialog', description: 'Clickable call-to-action', category: 'interaction', icon: '🔘' })}
+                        onClick={() => handleAddPropToFrame('button', { label: 'Click me', action: '', variant: 'primary', name: 'Action Button' })}
                       >
                         <MousePointer className="w-4 h-4 text-gray-500" />
                         <div>
@@ -2323,7 +2427,7 @@ const BoardStudioPage: React.FC = () => {
                             } 
                           }));
                         }}
-                        onClick={() => handleAddFrameToBoard({ id: 'form', name: 'Form', type: 'config_panel', description: 'Input collection interface', category: 'configuration', icon: '📋' })}
+                        onClick={() => handleAddPropToFrame('form', { fields: [], submitLabel: 'Submit', action: '', name: 'Form' })}
                       >
                         <Type className="w-4 h-4 text-gray-500" />
                         <div>
@@ -2366,7 +2470,7 @@ const BoardStudioPage: React.FC = () => {
                           }));
                         }}
                         onDragEnd={() => setDraggedItemType(null)}
-                          onClick={() => handleAddFrameToBoard({ id: 'ai-token', name: 'AI Token', type: 'ai_token', description: 'AI agent placeholder and configuration', category: 'interaction', icon: '🎯' })}
+                          onClick={() => handleAddPropToFrame('ai-assistant', { displayName: 'AI Assistant', avatarUrl: '/placeholder.svg', personaNote: 'Helpful AI assistant', name: 'AI Token' })}
                         >
                           <SparklesIcon className="w-4 h-4 text-gray-500" />
                           <div>
@@ -2389,7 +2493,7 @@ const BoardStudioPage: React.FC = () => {
                               } 
                             }));
                           }}
-                          onClick={() => handleAddFrameToBoard({ id: 'image-slider', name: 'Image Slider', type: 'media_card', description: 'Animated image carousel', category: 'content', icon: '🎞️' })}
+                          onClick={() => handleAddPropToFrame('gallery', { images: [], layout: 'slider', autoplay: true, name: 'Image Slider' })}
                         >
                           <ImageIcon className="w-4 h-4 text-gray-500" />
                           <div>
@@ -2412,7 +2516,7 @@ const BoardStudioPage: React.FC = () => {
                               } 
                             }));
                           }}
-                          onClick={() => handleAddFrameToBoard({ id: 'ai-assistant', name: 'AI Assistant', type: 'agent_preview', description: 'Conversational AI interface', category: 'interaction', icon: '🤖' })}
+                          onClick={() => handleAddPropToFrame('ai-assistant', { greeting: 'Hello! How can I help you?', capabilities: [], name: 'AI Assistant' })}
                         >
                           <Bot className="w-4 h-4 text-gray-500" />
                           <div>
@@ -2435,7 +2539,7 @@ const BoardStudioPage: React.FC = () => {
                               } 
                             }));
                           }}
-                          onClick={() => handleAddFrameToBoard({ id: 'smart-suggestions', name: 'Smart Suggestions', type: 'ai_widget', description: 'AI-powered content recommendations', category: 'interaction', icon: '💡' })}
+                          onClick={() => handleAddPropToFrame('ai-assistant', { type: 'suggestions', title: 'Smart Suggestions', suggestions: [], name: 'Smart Suggestions' })}
                         >
                           <Sparkles className="w-4 h-4 text-gray-500" />
                           <div>
