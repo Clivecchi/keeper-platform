@@ -14,6 +14,9 @@ import { handleAuthError } from '../../auth/handleAuthError';
 import { debug } from '../../lib/debug';
 import { Button } from '../../features/board-studio/v0/components/ui/button';
 import { ScrollArea } from '../../features/board-studio/v0/components/ui/scroll-area';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../../features/board-studio/v0/components/ui/sheet';
+import { Input } from '../../features/board-studio/v0/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../features/board-studio/v0/components/ui/select';
 import { 
   PlusIcon,
   Squares2X2Icon,
@@ -1879,14 +1882,20 @@ const BoardStudioPage: React.FC = () => {
             <div className="border-b border-dotted border-gray-300 bg-white">
               <div className="flex items-center justify-between">
                 <DraggableTabs
-                  tabs={mockFrames.map((frame: any) => ({
-                    id: frame.id,
-                    name: frame.data?.name || 'Frame',
-                    role: frame.data?.role,
-                    pattern: frame.FrameConfig?.engagementMode || 'canvas',
-                    isPinned: frame.data?.isPinned || false,
-                    allowedModes: ['default', 'canvas', 'dialogic', 'wizard', 'focus']
-                  }))}
+                  tabs={mockFrames.map((frame: any) => {
+                    const propsCount = frame.props ? Object.keys(frame.props).filter(k => {
+                      const val = frame.props[k];
+                      return val && typeof val === 'object' && 'type' in val;
+                    }).length : 0;
+                    return {
+                      id: frame.id,
+                      name: `${frame.data?.name || 'Frame'}${propsCount > 0 ? ` (${propsCount})` : ''}`,
+                      role: frame.data?.role,
+                      pattern: frame.FrameConfig?.engagementMode || 'canvas',
+                      isPinned: frame.data?.isPinned || false,
+                      allowedModes: ['default', 'canvas', 'dialogic', 'wizard', 'focus']
+                    };
+                  })}
                   selectedTabId={selectedFrameId || undefined}
                   onTabSelect={setSelectedFrameId}
                   onTabReorder={handleTabReorder}
@@ -1958,7 +1967,7 @@ const BoardStudioPage: React.FC = () => {
                             props: mockFrames.find(f => f.id === selectedFrameId)?.props || {},
                             role: mockFrames.find(f => f.id === selectedFrameId)?.data?.role
                           }}
-                          mode="preview"
+                          mode={editorMode}
                           boardName={boardName}
                           boardDescription={boardDescription}
                           boardData={{
@@ -2034,7 +2043,7 @@ const BoardStudioPage: React.FC = () => {
                             props: mockFrames.find(f => f.id === selectedFrameId)?.props || {},
                             role: mockFrames.find(f => f.id === selectedFrameId)?.data?.role
                           }}
-                          mode="preview"
+                          mode={editorMode}
                           boardName={boardName}
                           boardDescription={boardDescription}
                           boardData={{
@@ -2725,6 +2734,205 @@ const BoardStudioPage: React.FC = () => {
         onSelectTemplate={handleCreateBoardWithTemplate}
         onSkip={() => handleCreateBoardWithTemplate(null)}
       />
+
+      {/* Frame Configuration Sheet */}
+      <Sheet open={!!openFrameConfigId} onOpenChange={(open) => !open && setOpenFrameConfigId(null)}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Frame Configuration</SheetTitle>
+          </SheetHeader>
+          {openFrameConfigId && (() => {
+            const frame = mockFrames.find(f => f.id === openFrameConfigId);
+            if (!frame) return null;
+            
+            const propsCount = frame.props ? Object.keys(frame.props).filter(k => {
+              const val = frame.props[k];
+              return val && typeof val === 'object' && 'type' in val;
+            }).length : 0;
+            
+            return (
+              <div className="space-y-6 mt-6">
+                {/* Frame Name */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Frame Name</label>
+                  <Input
+                    value={frame.data?.name || ''}
+                    onChange={async (e) => {
+                      const newName = e.target.value;
+                      // Optimistic update
+                      setMockFrames(prev => prev.map(f => 
+                        f.id === openFrameConfigId 
+                          ? { ...f, data: { ...f.data, name: newName } }
+                          : f
+                      ));
+                      
+                      // Persist to backend
+                      try {
+                        await apiFetch(`/api/board-data/${selectedBoardId}/frames/${openFrameConfigId}`, {
+                          method: 'PATCH',
+                          body: JSON.stringify({ name: newName })
+                        });
+                        console.log('✅ Frame name updated');
+                      } catch (error) {
+                        console.error('❌ Failed to update frame name:', error);
+                      }
+                    }}
+                    placeholder="Enter frame name"
+                  />
+                </div>
+
+                {/* Frame Role */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Frame Role</label>
+                  <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600">
+                    {frame.data?.role === 'cover' && 'Cover Frame'}
+                    {frame.data?.role === 'settings' && 'Settings Frame'}
+                    {!frame.data?.role && 'Custom Frame'}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {frame.data?.role === 'cover' && 'The main cover/landing frame'}
+                    {frame.data?.role === 'settings' && 'Board settings and configuration'}
+                    {!frame.data?.role && 'User-created content frame'}
+                  </p>
+                </div>
+
+                {/* Engagement Pattern */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Engagement Pattern</label>
+                  <Select
+                    value={frame.FrameConfig?.engagementMode || 'canvas'}
+                    onValueChange={async (pattern) => {
+                      // Optimistic update
+                      setMockFrames(prev => prev.map(f => 
+                        f.id === openFrameConfigId 
+                          ? { ...f, FrameConfig: { ...f.FrameConfig, engagementMode: pattern } }
+                          : f
+                      ));
+                      
+                      // Persist to backend
+                      try {
+                        await apiFetch(`/api/board-data/${selectedBoardId}/frames/${openFrameConfigId}`, {
+                          method: 'PATCH',
+                          body: JSON.stringify({ pattern })
+                        });
+                        console.log('✅ Frame pattern updated');
+                      } catch (error) {
+                        console.error('❌ Failed to update frame pattern:', error);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="dialogic">
+                        <div>
+                          <div className="font-medium">Dialogic</div>
+                          <div className="text-xs text-gray-500">Agent-guided conversation</div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="wizard">
+                        <div>
+                          <div className="font-medium">Wizard</div>
+                          <div className="text-xs text-gray-500">Step-by-step flow</div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="focus">
+                        <div>
+                          <div className="font-medium">Focus</div>
+                          <div className="text-xs text-gray-500">Single hero element</div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="canvas">
+                        <div>
+                          <div className="font-medium">Canvas</div>
+                          <div className="text-xs text-gray-500">Freeform composition</div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="gallery">
+                        <div>
+                          <div className="font-medium">Gallery</div>
+                          <div className="text-xs text-gray-500">Image-first grid</div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="form">
+                        <div>
+                          <div className="font-medium">Form</div>
+                          <div className="text-xs text-gray-500">Data entry / config</div>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Choose how users interact with this frame
+                  </p>
+                </div>
+
+                {/* Props List */}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Frame Props ({propsCount})
+                  </label>
+                  {propsCount === 0 ? (
+                    <div className="px-3 py-6 bg-gray-50 border border-dashed border-gray-300 rounded-lg text-center">
+                      <p className="text-sm text-gray-500">No props added yet</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Add props from the Props Library
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {Object.entries(frame.props || {})
+                        .filter(([_, val]) => val && typeof val === 'object' && 'type' in val)
+                        .map(([propId, prop]: [string, any], index) => (
+                          <div
+                            key={propId}
+                            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-gray-500">
+                                #{index + 1}
+                              </span>
+                              <span className="text-xs font-medium text-gray-900">
+                                {prop.type}
+                              </span>
+                            </div>
+                            {prop.config && Object.keys(prop.config).length > 0 && (
+                              <div className="text-xs text-gray-600 mt-1">
+                                {Object.entries(prop.config)
+                                  .slice(0, 2)
+                                  .map(([key, value]) => (
+                                    <div key={key} className="truncate">
+                                      <span className="font-medium">{key}:</span>{' '}
+                                      {String(value).substring(0, 30)}
+                                      {String(value).length > 30 ? '...' : ''}
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">
+                    Per-prop editing coming soon
+                  </p>
+                </div>
+
+                {/* Advanced Options (placeholder) */}
+                <div className="pt-4 border-t border-gray-200">
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Advanced Options
+                  </label>
+                  <div className="text-sm text-gray-500 italic">
+                    Pattern options, data bindings, and visibility settings coming soon...
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

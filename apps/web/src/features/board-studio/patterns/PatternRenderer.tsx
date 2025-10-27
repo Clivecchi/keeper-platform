@@ -763,8 +763,8 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
             isActive={true}
             framePattern={frame.pattern}
             showDraftToggle={mode === 'edit'}
-            isDraggable={mode === 'edit'}
-            isEditMode={mode === 'edit'}
+            isDraggable={mode === 'layout'}
+            isEditMode={mode === 'edit' || mode === 'layout'}
             onPropsUpdate={async (frameId, props) => {
               console.log('🔄 PatternRenderer: onPropsUpdate called', { 
                 frameId, 
