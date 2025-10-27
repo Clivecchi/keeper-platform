@@ -40,10 +40,10 @@ export function FrameRenderer({
   onFrameUpdate,
   onBoardUpdate,
 }: FrameRendererProps) {
-  // Convert our mode to PatternRenderer's mode
-  // In studio mode, we use 'edit' for PatternRenderer to enable editing features
-  // In preview mode, we use 'preview' for PatternRenderer
-  const patternMode = mode === 'studio' ? 'edit' : 'preview'
+  // CRITICAL: Always use 'preview' mode for PatternRenderer
+  // This ensures consistent rendering in both studio and preview modes
+  // The difference is the chrome we add around it, not the content itself
+  const patternMode = 'preview'
 
   const handleClick = (e: React.MouseEvent) => {
     // Only handle selection in studio mode

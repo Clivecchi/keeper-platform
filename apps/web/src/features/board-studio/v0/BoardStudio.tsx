@@ -22,7 +22,6 @@ import {
 } from "lucide-react"
 import { BoardStudioProvider, useBoardStudio } from "./context/BoardStudioContext"
 import { FrameRenderer } from "./components/FrameRenderer"
-import { FrameConfigPanel } from "./components/FrameConfigPanel"
 import type { StudioBoard, StudioFrame } from "./types"
 
 interface BoardStudioProps {
@@ -292,7 +291,7 @@ function BoardStudioContent() {
           </div>
         </main>
 
-        {/* Right Sidebar - Props Library (Studio Mode) or Frame Config Panel */}
+        {/* Right Sidebar - Props Library in Studio Mode */}
         {mode === 'studio' && (
           <aside className="w-80 bg-white border-l">
             <div className="p-4">
@@ -514,9 +513,6 @@ function BoardStudioContent() {
           </div>
         </aside>
         )}
-        
-        {/* Frame Config Panel - Replaces right sidebar in Studio mode */}
-        <FrameConfigPanel />
       </div>
     </div>
   )
