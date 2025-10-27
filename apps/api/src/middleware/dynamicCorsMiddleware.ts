@@ -73,9 +73,9 @@ export class DynamicCorsMiddleware {
         ] : []),
         ...envAllowedOrigins,
       ],
-      allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-      exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
+      allowedMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'If-Match', 'ETag'],
+      exposedHeaders: ['X-Total-Count', 'X-Page-Count', 'ETag'],
       credentials: true,
       maxAge: 86400, // 24 hours
       preflightContinue: false,
@@ -266,8 +266,8 @@ export class DynamicCorsMiddleware {
     
     return {
       allowOrigin: req.headers.origin || '*',
-      allowMethods: config.allowedMethods?.join(', ') || 'GET, POST, PUT, DELETE, OPTIONS',
-      allowHeaders: config.allowedHeaders?.join(', ') || 'Content-Type, Authorization',
+      allowMethods: config.allowedMethods?.join(', ') || 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      allowHeaders: config.allowedHeaders?.join(', ') || 'Content-Type, Authorization, If-Match, ETag',
       maxAge: config.maxAge || 86400,
     };
   }
