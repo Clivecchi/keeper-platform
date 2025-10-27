@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import PropDropZone from './PropDropZone';
-import { TrashIcon, GripVerticalIcon } from '@heroicons/react/24/outline';
+import { TrashIcon, Bars3Icon } from '@heroicons/react/24/outline';
 
 type PropData = {
   id?: string;
@@ -92,7 +92,7 @@ const PropManager: React.FC<PropManagerProps> = ({
         {/* Drag handle (if draggable) */}
         {isDraggable && (
           <div className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 cursor-move">
-            <GripVerticalIcon className="w-4 h-4 text-gray-400" />
+            <Bars3Icon className="w-4 h-4 text-gray-400" />
           </div>
         )}
         
