@@ -1,6 +1,6 @@
 /**
- * Media Uploader Component - Phase 3 Implementation
- * Drag-drop + file picker for Cover frame media
+ * Media Uploader Component - Vercel Blob Integration
+ * Drag-drop + file picker with actual file uploads to Vercel Blob
  */
 
 import React, { useState, useRef, useCallback } from 'react';
@@ -114,23 +114,38 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ value, onChange, disabled
       const { url, fields, key } = signResponse.data;
       setUploadState(prev => ({ ...prev, progress: 25 }));
 
-      // Step 2: Upload file directly (simulated for Phase 3)
-      // In production, this would be a multipart form upload to Vercel Blob/S3
+      // Step 2: Convert file to base64
+      const fileBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data:image/png;base64, prefix
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      setUploadState(prev => ({ ...prev, progress: 50 }));
+
+      // Step 3: Upload to Vercel Blob via our API
       const uploadResponse = await apiFetch(url, {
         method: 'POST',
         body: JSON.stringify({
           ...fields,
+          file: fileBase64,
           size: file.size
         })
       });
 
       if (!uploadResponse.success) {
-        throw new Error('Upload failed');
+        throw new Error(uploadResponse.error || 'Upload failed');
       }
 
       setUploadState(prev => ({ ...prev, progress: 75 }));
 
-      // Step 3: Create media data object
+      // Step 4: Create media data object with Vercel Blob URL
       const mediaData: MediaData = {
         type: getFileType(file),
         url: uploadResponse.data.url,

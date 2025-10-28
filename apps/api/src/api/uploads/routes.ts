@@ -1,10 +1,11 @@
 /**
- * Upload API Routes - Phase 3 Implementation
- * Signed uploads for media assets (Vercel Blob)
+ * Upload API Routes - Vercel Blob Integration
+ * Direct uploads for media assets using Vercel Blob Storage
  */
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import { put, del } from '@vercel/blob';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 
 const router: Router = Router();
@@ -24,7 +25,8 @@ const SignUploadSchema = z.object({
 // =============================================================================
 
 /**
- * POST /api/uploads/sign → returns signed URL for direct upload
+ * POST /api/uploads/sign → prepare upload metadata and return endpoint
+ * Client will send the actual file to /api/uploads/direct
  */
 router.post('/sign', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
@@ -36,23 +38,21 @@ router.post('/sign', authMiddlewareCompat, async (req: Request, res: Response) =
     // Validate request
     const { filename, contentType, size } = SignUploadSchema.parse(req.body);
 
-    // Generate unique key
+    // Generate unique key for this upload
     const timestamp = Date.now();
     const randomSuffix = Math.random().toString(36).substring(2, 8);
     const extension = filename.split('.').pop();
     const key = `uploads/${userId}/${timestamp}-${randomSuffix}.${extension}`;
 
-    // For now, we'll use a simple approach without Vercel Blob
-    // In production, you would integrate with Vercel Blob or S3 here
-    // For Phase 3, we'll provide a fallback that accepts direct uploads
-    
+    // Return upload endpoint - client will POST the file here with the key
     const signedData = {
       url: `${process.env.API_BASE_URL || 'http://localhost:3001'}/api/uploads/direct`,
       method: 'POST',
       fields: {
         key,
         'Content-Type': contentType,
-        'x-user-id': userId
+        'x-user-id': userId,
+        'x-filename': filename
       },
       key,
       expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 1 hour
@@ -76,7 +76,8 @@ router.post('/sign', authMiddlewareCompat, async (req: Request, res: Response) =
 });
 
 /**
- * POST /api/uploads/direct → direct upload endpoint (fallback)
+ * POST /api/uploads/direct → upload file to Vercel Blob
+ * Expects JSON body with { key, file: base64String, contentType }
  */
 router.post('/direct', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
@@ -85,56 +86,92 @@ router.post('/direct', authMiddlewareCompat, async (req: Request, res: Response)
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    // In a real implementation, you would:
-    // 1. Validate the uploaded file
-    // 2. Store it in Vercel Blob/S3
-    // 3. Return the public URL
+    const { key, file, contentType } = req.body;
     
-    // For Phase 3, we'll simulate a successful upload
-    const { key } = req.body;
-    
-    if (!key) {
-      return res.status(400).json({ success: false, error: 'Missing key' });
+    if (!key || !file) {
+      return res.status(400).json({ success: false, error: 'Missing key or file data' });
     }
 
-    // Simulate upload success with a placeholder URL
-    const publicUrl = `https://placeholder.keeper.com/${key}`;
+    // Validate user owns this key
+    if (!key.startsWith(`uploads/${userId}/`)) {
+      return res.status(403).json({ success: false, error: 'Invalid upload key' });
+    }
+
+    // Check if BLOB_READ_WRITE_TOKEN is configured
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.warn('BLOB_READ_WRITE_TOKEN not configured, upload will fail');
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Storage not configured. Please set BLOB_READ_WRITE_TOKEN environment variable.' 
+      });
+    }
+
+    // Convert base64 to Buffer
+    const fileBuffer = Buffer.from(file, 'base64');
+
+    // Upload to Vercel Blob
+    const blob = await put(key, fileBuffer, {
+      access: 'public',
+      contentType: contentType || 'application/octet-stream',
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    });
+
+    console.log(`✅ Uploaded file to Vercel Blob: ${blob.url}`);
 
     return res.json({
       success: true,
       data: {
-        url: publicUrl,
-        key,
-        size: req.body.size || 0,
-        contentType: req.body['Content-Type'] || 'image/jpeg'
+        url: blob.url,
+        key: key,
+        size: fileBuffer.length,
+        contentType: contentType || 'application/octet-stream'
       }
     });
   } catch (error) {
     console.error('Error in direct upload:', error);
-    return res.status(500).json({ success: false, error: 'Upload failed' });
+    return res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Upload failed' 
+    });
   }
 });
 
 /**
- * DELETE /api/uploads/:key → remove uploaded asset
+ * DELETE /api/uploads/:key → remove uploaded asset from Vercel Blob
  */
-router.delete('/:key', authMiddlewareCompat, async (req: Request, res: Response) => {
+router.delete('/:key(*)', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    const { key } = req.params;
+    const key = req.params.key;
     
+    if (!key) {
+      return res.status(400).json({ success: false, error: 'Missing key' });
+    }
+
     // Validate that the user owns this upload (key should start with uploads/{userId}/)
     if (!key.startsWith(`uploads/${userId}/`)) {
       return res.status(403).json({ success: false, error: 'Access denied' });
     }
 
-    // In a real implementation, you would delete from Vercel Blob/S3
-    // For Phase 3, we'll just return success
-    console.log(`Simulated deletion of upload key: ${key}`);
+    // Check if BLOB_READ_WRITE_TOKEN is configured
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.warn('BLOB_READ_WRITE_TOKEN not configured, delete will be skipped');
+      return res.json({
+        success: true,
+        data: { key, deleted: false, reason: 'Storage not configured' }
+      });
+    }
+
+    // Delete from Vercel Blob
+    await del(key, {
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    });
+
+    console.log(`✅ Deleted file from Vercel Blob: ${key}`);
 
     return res.json({
       success: true,
@@ -142,7 +179,10 @@ router.delete('/:key', authMiddlewareCompat, async (req: Request, res: Response)
     });
   } catch (error) {
     console.error('Error deleting upload:', error);
-    return res.status(500).json({ success: false, error: 'Delete failed' });
+    return res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Delete failed' 
+    });
   }
 });
 

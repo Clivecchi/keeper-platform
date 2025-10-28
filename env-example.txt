@@ -197,6 +197,11 @@ VERCEL_TOKEN=""
 # Vercel project ID for custom domain management
 VERCEL_PROJECT_ID=""
 
+# Vercel Blob Storage token for media uploads
+# Generate at: https://vercel.com/dashboard/stores
+# Required for image/video uploads in Board Studio
+BLOB_READ_WRITE_TOKEN=""
+
 # =================================================================
 # TESTING (Optional)
 # =================================================================
