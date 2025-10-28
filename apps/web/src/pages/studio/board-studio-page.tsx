@@ -44,6 +44,7 @@ import {
   Bot,
   Video,
   Image,
+  PencilIcon as PencilIconLucide,
 } from "lucide-react";
 import { useBoard } from '../../context/BoardContext';
 import { useFrame } from '../../context/FrameContext';
@@ -495,7 +496,7 @@ const BoardStudioPage: React.FC = () => {
 
   // UI State
   const { activeKeeper, keepers, setActiveKeeperId } = useKeeperContext();
-  const [editorMode, setEditorMode] = useState<'edit'|'layout'|'preview'|'assist'>('edit');
+  const [editorMode, setEditorMode] = useState<'studio'|'preview'|'assist'>('studio');
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [isPropertiesPanelOpen, setIsPropertiesPanelOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -1742,37 +1743,24 @@ const BoardStudioPage: React.FC = () => {
         <main className="flex-1 flex flex-col bg-gray-100 p-4">
           {/* Mode Toolbar - Above Board Composition */}
           <div className="flex items-center justify-between mb-4 bg-white/60 backdrop-blur-sm rounded-lg p-1 border border-gray-200/50">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 bg-gray-100 rounded-md p-1">
               <Button 
-                variant={editorMode === 'edit' ? 'default' : 'ghost'} 
+                variant={editorMode === 'studio' ? 'default' : 'ghost'} 
                 size="sm"
-                className={`h-8 px-3 text-xs transition-all ${
-                  editorMode === 'edit' 
+                className={`h-8 px-4 text-xs transition-all ${
+                  editorMode === 'studio' 
                     ? 'bg-blue-600 text-white shadow-sm' 
                     : 'hover:bg-white hover:shadow-sm text-gray-700'
                 }`}
-                onClick={() => setEditorMode('edit')}
+                onClick={() => setEditorMode('studio')}
               >
                 <Edit3 className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-              <Button 
-                variant={editorMode === 'layout' ? 'default' : 'ghost'} 
-                size="sm"
-                className={`h-8 px-3 text-xs transition-all ${
-                  editorMode === 'layout' 
-                    ? 'bg-blue-600 text-white shadow-sm' 
-                    : 'hover:bg-white hover:shadow-sm text-gray-700'
-                }`}
-                onClick={() => setEditorMode('layout')}
-              >
-                <Layout className="w-4 h-4 mr-2" />
-                Layout
+                Studio
               </Button>
               <Button 
                 variant={editorMode === 'preview' ? 'default' : 'ghost'} 
                 size="sm"
-                className={`h-8 px-3 text-xs transition-all ${
+                className={`h-8 px-4 text-xs transition-all ${
                   editorMode === 'preview' 
                     ? 'bg-blue-600 text-white shadow-sm' 
                     : 'hover:bg-white hover:shadow-sm text-gray-700'
@@ -1785,7 +1773,7 @@ const BoardStudioPage: React.FC = () => {
               <Button 
                 variant={editorMode === 'assist' ? 'default' : 'ghost'} 
                 size="sm"
-                className={`h-8 px-3 text-xs transition-all ${
+                className={`h-8 px-4 text-xs transition-all ${
                   editorMode === 'assist' 
                     ? 'bg-blue-600 text-white shadow-sm' 
                     : 'hover:bg-white hover:shadow-sm text-gray-700'
@@ -1793,7 +1781,7 @@ const BoardStudioPage: React.FC = () => {
                 onClick={() => setEditorMode('assist')}
               >
                 <Sparkles className="w-4 h-4 mr-2" />
-                AI assist
+                Kip Assist
               </Button>
             </div>
             
@@ -2159,7 +2147,7 @@ const BoardStudioPage: React.FC = () => {
         </main>
 
         {/* Right Sidebar - Props Library or AI Assist */}
-        {(editorMode === 'edit' || editorMode === 'assist') && (
+        {(editorMode === 'studio' || editorMode === 'edit' || editorMode === 'assist') && (
           <aside className="w-80 bg-white border-l">
             {editorMode === 'assist' ? (
               <AIAssistPanel
@@ -2737,9 +2725,10 @@ const BoardStudioPage: React.FC = () => {
 
       {/* Frame Configuration Sheet */}
       <Sheet open={!!openFrameConfigId} onOpenChange={(open) => !open && setOpenFrameConfigId(null)}>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>Frame Configuration</SheetTitle>
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader className="pb-4 border-b">
+            <SheetTitle className="text-lg font-semibold">Frame Configuration</SheetTitle>
+            <p className="text-xs text-gray-500 mt-1">Configure frame settings and content</p>
           </SheetHeader>
           {openFrameConfigId && (() => {
             const frame = mockFrames.find(f => f.id === openFrameConfigId);
@@ -2751,49 +2740,49 @@ const BoardStudioPage: React.FC = () => {
             }).length : 0;
             
             return (
-              <div className="space-y-6 mt-6">
-                {/* Frame Name */}
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Frame Name</label>
-                  <Input
-                    value={frame.data?.name || ''}
-                    onChange={async (e) => {
-                      const newName = e.target.value;
-                      // Optimistic update
-                      setMockFrames(prev => prev.map(f => 
-                        f.id === openFrameConfigId 
-                          ? { ...f, data: { ...f.data, name: newName } }
-                          : f
-                      ));
-                      
-                      // Persist to backend
-                      try {
-                        await apiFetch(`/api/board-data/${selectedBoardId}/frames/${openFrameConfigId}`, {
-                          method: 'PATCH',
-                          body: JSON.stringify({ name: newName })
-                        });
-                        console.log('✅ Frame name updated');
-                      } catch (error) {
-                        console.error('❌ Failed to update frame name:', error);
-                      }
-                    }}
-                    placeholder="Enter frame name"
-                  />
-                </div>
-
-                {/* Frame Role */}
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Frame Role</label>
-                  <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600">
-                    {frame.data?.role === 'cover' && 'Cover Frame'}
-                    {frame.data?.role === 'settings' && 'Settings Frame'}
-                    {!frame.data?.role && 'Custom Frame'}
+              <ScrollArea className="h-[calc(100vh-8rem)] pr-4">
+              <div className="space-y-6 mt-6 pb-6">
+                {/* Basic Info Section */}
+                <div className="space-y-4 pb-6 border-b border-gray-200">
+                  <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wide">Basic Info</h3>
+                  
+                  <div>
+                    <label className="text-sm font-medium mb-2 block text-gray-700">Frame Name</label>
+                    <Input
+                      value={frame.data?.name || ''}
+                      onChange={async (e) => {
+                        const newName = e.target.value;
+                        // Optimistic update
+                        setMockFrames(prev => prev.map(f => 
+                          f.id === openFrameConfigId 
+                            ? { ...f, data: { ...f.data, name: newName } }
+                            : f
+                        ));
+                        
+                        // Persist to backend
+                        try {
+                          await apiFetch(`/api/board-data/${selectedBoardId}/frames/${openFrameConfigId}`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({ name: newName })
+                          });
+                          console.log('✅ Frame name updated');
+                        } catch (error) {
+                          console.error('❌ Failed to update frame name:', error);
+                        }
+                      }}
+                      placeholder="Enter frame name"
+                      className="h-9"
+                    />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {frame.data?.role === 'cover' && 'The main cover/landing frame'}
-                    {frame.data?.role === 'settings' && 'Board settings and configuration'}
-                    {!frame.data?.role && 'User-created content frame'}
-                  </p>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block text-gray-700">Type</label>
+                    <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600">
+                      {frame.data?.role === 'cover' && '📄 Cover Frame'}
+                      {frame.data?.role === 'settings' && '⚙️ Settings Frame'}
+                      {!frame.data?.role && '✨ Custom Frame'}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Engagement Pattern */}
@@ -2868,16 +2857,23 @@ const BoardStudioPage: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Props List */}
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Frame Props ({propsCount})
-                  </label>
+                {/* Content Section */}
+                <div className="space-y-4 pb-6 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wide">
+                      Content ({propsCount})
+                    </h3>
+                    <span className="text-xs text-gray-500">
+                      Switch to Edit mode to manage
+                    </span>
+                  </div>
+                  
                   {propsCount === 0 ? (
-                    <div className="px-3 py-6 bg-gray-50 border border-dashed border-gray-300 rounded-lg text-center">
-                      <p className="text-sm text-gray-500">No props added yet</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Add props from the Props Library
+                    <div className="px-4 py-6 bg-gradient-to-br from-gray-50 to-gray-100 border border-dashed border-gray-300 rounded-lg text-center">
+                      <div className="text-2xl mb-2">📝</div>
+                      <p className="text-sm font-medium text-gray-600 mb-1">No props yet</p>
+                      <p className="text-xs text-gray-500">
+                        Add props from the Props Library →
                       </p>
                     </div>
                   ) : (
@@ -2887,25 +2883,32 @@ const BoardStudioPage: React.FC = () => {
                         .map(([propId, prop]: [string, any], index) => (
                           <div
                             key={propId}
-                            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                            className="px-3 py-2.5 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
+                            onClick={() => {
+                              // Close config panel
+                              setOpenFrameConfigId(null);
+                              // Note: Could auto-select this prop in Edit mode
+                            }}
                           >
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-medium text-gray-500">
-                                #{index + 1}
-                              </span>
-                              <span className="text-xs font-medium text-gray-900">
-                                {prop.type}
-                              </span>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-gray-400">
+                                  {index + 1}
+                                </span>
+                                <span className="text-sm font-semibold text-gray-900">
+                                  {prop.type}
+                                </span>
+                              </div>
+                              <span className="text-xs text-blue-600">→</span>
                             </div>
                             {prop.config && Object.keys(prop.config).length > 0 && (
-                              <div className="text-xs text-gray-600 mt-1">
+                              <div className="text-xs text-gray-500 mt-1 ml-6">
                                 {Object.entries(prop.config)
-                                  .slice(0, 2)
+                                  .slice(0, 1)
                                   .map(([key, value]) => (
                                     <div key={key} className="truncate">
-                                      <span className="font-medium">{key}:</span>{' '}
-                                      {String(value).substring(0, 30)}
-                                      {String(value).length > 30 ? '...' : ''}
+                                      {String(value).substring(0, 40)}
+                                      {String(value).length > 40 ? '...' : ''}
                                     </div>
                                   ))}
                               </div>
@@ -2914,21 +2917,13 @@ const BoardStudioPage: React.FC = () => {
                         ))}
                     </div>
                   )}
-                  <p className="text-xs text-gray-500 mt-2">
-                    Per-prop editing coming soon
+                  <p className="text-xs text-blue-600 mt-3 flex items-center gap-1">
+                    <PencilIconLucide className="w-3 h-3" />
+                    Click ✎ in Edit mode for inline editing
                   </p>
                 </div>
-
-                {/* Advanced Options (placeholder) */}
-                <div className="pt-4 border-t border-gray-200">
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Advanced Options
-                  </label>
-                  <div className="text-sm text-gray-500 italic">
-                    Pattern options, data bindings, and visibility settings coming soon...
-                  </div>
-                </div>
               </div>
+              </ScrollArea>
             );
           })()}
         </SheetContent>

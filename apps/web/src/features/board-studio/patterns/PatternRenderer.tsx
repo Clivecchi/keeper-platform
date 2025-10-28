@@ -35,7 +35,7 @@ export interface FrameData {
 
 interface PatternRendererProps {
   frame: FrameData;
-  mode: 'edit' | 'layout' | 'preview' | 'assist';
+  mode: 'edit' | 'layout' | 'preview' | 'assist' | 'studio';
   boardName?: string;
   boardDescription?: string;
   boardData?: any; // Full board data for Settings frame
@@ -68,8 +68,8 @@ const FocusPattern: React.FC<{
     const title = props.title === '__BOARD_NAME__' ? boardName : props.title;
     const subtitle = props.subtitle === '__BOARD_DESC__' ? boardDescription : props.subtitle;
     
-    // Edit mode - show media configuration
-    if (mode === 'edit') {
+    // Edit/Studio mode - show media configuration
+    if (mode === 'edit' || mode === 'studio') {
       return (
         <div className="w-full max-w-4xl mx-auto space-y-6">
           {/* Preview */}
@@ -262,7 +262,7 @@ const FormPattern: React.FC<{
       <SettingsRenderer
         board={boardData}
         frames={frames}
-        mode={mode === 'edit' ? 'edit' : 'preview'}
+        mode={(mode === 'edit' || mode === 'studio') ? 'edit' : 'preview'}
         onSave={onBoardUpdate}
       />
     );
@@ -722,8 +722,8 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
       willUseCanvasPattern: frame.role !== 'cover' && frame.pattern === 'canvas'
     });
   }
-  // In Edit and Layout modes, show PropManager for prop drop behavior
-  if (mode === 'edit' || mode === 'layout') {
+  // In Studio, Edit, and Layout modes, show PropManager for prop editing and drag-drop
+  if (mode === 'edit' || mode === 'layout' || mode === 'studio') {
     return (
       <div className="w-full max-w-4xl mx-auto">
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
@@ -762,9 +762,9 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
             })()}
             isActive={true}
             framePattern={frame.pattern}
-            showDraftToggle={mode === 'edit'}
-            isDraggable={mode === 'layout'}
-            isEditMode={mode === 'edit' || mode === 'layout'}
+            showDraftToggle={mode === 'edit' || mode === 'studio'}
+            isDraggable={mode === 'layout' || mode === 'studio'}
+            isEditMode={mode === 'edit' || mode === 'layout' || mode === 'studio'}
             onPropsUpdate={async (frameId, props) => {
               console.log('🔄 PatternRenderer: onPropsUpdate called', { 
                 frameId, 
