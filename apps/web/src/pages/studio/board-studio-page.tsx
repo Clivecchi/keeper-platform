@@ -2144,8 +2144,89 @@ const BoardStudioPage: React.FC = () => {
           </div>
         </main>
 
-        {/* Right Sidebar - Props Library or AI Assist */}
-        {(editorMode === 'studio' || editorMode === 'edit' || editorMode === 'assist') && (
+        {/* Right Sidebar - Frame Config, Props Library, or AI Assist */}
+        {openFrameConfigId && (() => {
+          const frame = mockFrames.find(f => f.id === openFrameConfigId);
+          if (!frame) return null;
+          
+          const framePropsList = Object.entries(frame.props || {})
+            .filter(([_, val]) => val && typeof val === 'object' && 'type' in val)
+            .map(([propId, prop]: [string, any]) => ({
+              id: propId,
+              type: prop.type,
+              summary: (() => {
+                const firstValue = Object.values(prop.config || {})[0];
+                if (typeof firstValue === 'string') {
+                  return firstValue.substring(0, 40) + (firstValue.length > 40 ? '...' : '');
+                }
+                if (Array.isArray(firstValue)) {
+                  return `${firstValue.length} items`;
+                }
+                return prop.type;
+              })()
+            }));
+          
+          const propLibraryItems = [
+            { type: 'heading', label: 'Heading', description: 'Title text', icon: <Type className="w-4 h-4" /> },
+            { type: 'text', label: 'Text', description: 'Body content', icon: <Type className="w-4 h-4" /> },
+            { type: 'quote', label: 'Quote', description: 'Testimonial', icon: <Type className="w-4 h-4" /> },
+            { type: 'image', label: 'Image', description: 'Photo/graphic', icon: <Image className="w-4 h-4" /> },
+            { type: 'gallery', label: 'Gallery', description: 'Image grid', icon: <ImageIcon className="w-4 h-4" /> },
+            { type: 'button', label: 'Button', description: 'Call-to-action', icon: <MousePointer className="w-4 h-4" /> },
+          ];
+          
+          return (
+            <FrameConfigPanel
+              frame={{
+                id: frame.id,
+                name: frame.data?.name || 'Frame',
+                pattern: frame.FrameConfig?.engagementMode || 'canvas',
+                role: frame.data?.role,
+                props: frame.props || {},
+                previewThumbUrl: undefined
+              }}
+              onRenameFrame={async (frameId, newName) => {
+                setMockFrames(prev => prev.map(f => 
+                  f.id === frameId 
+                    ? { ...f, data: { ...f.data, name: newName } }
+                    : f
+                ));
+                
+                try {
+                  await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ name: newName })
+                  });
+                  console.log('✅ Frame name updated');
+                } catch (error) {
+                  console.error('❌ Failed to update frame name:', error);
+                }
+              }}
+              onChangePattern={async (frameId, pattern) => {
+                setMockFrames(prev => prev.map(f => 
+                  f.id === frameId 
+                    ? { ...f, FrameConfig: { ...f.FrameConfig, engagementMode: pattern } }
+                    : f
+                ));
+                
+                try {
+                  await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ pattern })
+                  });
+                  console.log('✅ Frame pattern updated');
+                } catch (error) {
+                  console.error('❌ Failed to update frame pattern:', error);
+                }
+              }}
+              propLibraryItems={propLibraryItems}
+              onAddPropToFrame={handleAddPropToFrame}
+              framePropsList={framePropsList}
+            />
+          );
+        })()}
+        
+        {!openFrameConfigId && (editorMode === 'studio' || editorMode === 'edit' || editorMode === 'assist') && (
           <aside className="w-80 bg-white border-l">
             {editorMode === 'assist' ? (
               <AIAssistPanel
@@ -2720,103 +2801,6 @@ const BoardStudioPage: React.FC = () => {
         onSelectTemplate={handleCreateBoardWithTemplate}
         onSkip={() => handleCreateBoardWithTemplate(null)}
       />
-
-      {/* Frame Configuration Panel */}
-      {openFrameConfigId && (() => {
-        const frame = mockFrames.find(f => f.id === openFrameConfigId);
-        if (!frame) return null;
-        
-        // Build props list for display
-        const framePropsList = Object.entries(frame.props || {})
-          .filter(([_, val]) => val && typeof val === 'object' && 'type' in val)
-          .map(([propId, prop]: [string, any]) => ({
-            id: propId,
-            type: prop.type,
-            summary: (() => {
-              const firstValue = Object.values(prop.config || {})[0];
-              if (typeof firstValue === 'string') {
-                return firstValue.substring(0, 40) + (firstValue.length > 40 ? '...' : '');
-              }
-              if (Array.isArray(firstValue)) {
-                return `${firstValue.length} items`;
-              }
-              return prop.type;
-            })()
-          }));
-        
-        // Build prop library items for add section
-        const propLibraryItems = [
-          { type: 'heading', label: 'Heading', description: 'Title text', icon: <Type className="w-4 h-4" /> },
-          { type: 'text', label: 'Text', description: 'Body content', icon: <Type className="w-4 h-4" /> },
-          { type: 'quote', label: 'Quote', description: 'Testimonial', icon: <Type className="w-4 h-4" /> },
-          { type: 'image', label: 'Image', description: 'Photo/graphic', icon: <Image className="w-4 h-4" /> },
-          { type: 'gallery', label: 'Gallery', description: 'Image grid', icon: <ImageIcon className="w-4 h-4" /> },
-          { type: 'button', label: 'Button', description: 'Call-to-action', icon: <MousePointer className="w-4 h-4" /> },
-        ];
-        
-        return (
-          <div className="fixed top-0 right-0 h-screen z-50 shadow-xl">
-            <FrameConfigPanel
-              frame={{
-                id: frame.id,
-                name: frame.data?.name || 'Frame',
-                pattern: frame.FrameConfig?.engagementMode || 'canvas',
-                role: frame.data?.role,
-                props: frame.props || {},
-                previewThumbUrl: undefined
-              }}
-              onRenameFrame={async (frameId, newName) => {
-                // Optimistic update
-                setMockFrames(prev => prev.map(f => 
-                  f.id === frameId 
-                    ? { ...f, data: { ...f.data, name: newName } }
-                    : f
-                ));
-                
-                // Persist to backend
-                try {
-                  await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ name: newName })
-                  });
-                  console.log('✅ Frame name updated');
-                } catch (error) {
-                  console.error('❌ Failed to update frame name:', error);
-                }
-              }}
-              onChangePattern={async (frameId, pattern) => {
-                // Optimistic update
-                setMockFrames(prev => prev.map(f => 
-                  f.id === frameId 
-                    ? { ...f, FrameConfig: { ...f.FrameConfig, engagementMode: pattern } }
-                    : f
-                ));
-                
-                // Persist to backend
-                try {
-                  await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ pattern })
-                  });
-                  console.log('✅ Frame pattern updated');
-                } catch (error) {
-                  console.error('❌ Failed to update frame pattern:', error);
-                }
-              }}
-              propLibraryItems={propLibraryItems}
-              onAddPropToFrame={handleAddPropToFrame}
-              framePropsList={framePropsList}
-            />
-            {/* Close button overlay */}
-            <button
-              onClick={() => setOpenFrameConfigId(null)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-background border border-border hover:bg-accent flex items-center justify-center z-10"
-            >
-              <XMarkIcon className="w-4 h-4" />
-            </button>
-          </div>
-        );
-      })()}
     </div>
   );
 };
