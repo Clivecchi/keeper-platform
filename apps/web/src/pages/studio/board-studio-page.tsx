@@ -14,9 +14,7 @@ import { handleAuthError } from '../../auth/handleAuthError';
 import { debug } from '../../lib/debug';
 import { Button } from '../../features/board-studio/v0/components/ui/button';
 import { ScrollArea } from '../../features/board-studio/v0/components/ui/scroll-area';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../../features/board-studio/v0/components/ui/sheet';
-import { Input } from '../../features/board-studio/v0/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../features/board-studio/v0/components/ui/select';
+import FrameConfigPanel from '../../features/board-studio/components/FrameConfigPanel';
 import { 
   PlusIcon,
   Squares2X2Icon,
@@ -2723,211 +2721,102 @@ const BoardStudioPage: React.FC = () => {
         onSkip={() => handleCreateBoardWithTemplate(null)}
       />
 
-      {/* Frame Configuration Sheet */}
-      <Sheet open={!!openFrameConfigId} onOpenChange={(open) => !open && setOpenFrameConfigId(null)}>
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader className="pb-4 border-b">
-            <SheetTitle className="text-lg font-semibold">Frame Configuration</SheetTitle>
-            <p className="text-xs text-gray-500 mt-1">Configure frame settings and content</p>
-          </SheetHeader>
-          {openFrameConfigId && (() => {
-            const frame = mockFrames.find(f => f.id === openFrameConfigId);
-            if (!frame) return null;
-            
-            const propsCount = frame.props ? Object.keys(frame.props).filter(k => {
-              const val = frame.props[k];
-              return val && typeof val === 'object' && 'type' in val;
-            }).length : 0;
-            
-            return (
-              <ScrollArea className="h-[calc(100vh-8rem)] pr-4">
-              <div className="space-y-6 mt-6 pb-6">
-                {/* Basic Info Section */}
-                <div className="space-y-4 pb-6 border-b border-gray-200">
-                  <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wide">Basic Info</h3>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-2 block text-gray-700">Frame Name</label>
-                    <Input
-                      value={frame.data?.name || ''}
-                      onChange={async (e) => {
-                        const newName = e.target.value;
-                        // Optimistic update
-                        setMockFrames(prev => prev.map(f => 
-                          f.id === openFrameConfigId 
-                            ? { ...f, data: { ...f.data, name: newName } }
-                            : f
-                        ));
-                        
-                        // Persist to backend
-                        try {
-                          await apiFetch(`/api/board-data/${selectedBoardId}/frames/${openFrameConfigId}`, {
-                            method: 'PATCH',
-                            body: JSON.stringify({ name: newName })
-                          });
-                          console.log('✅ Frame name updated');
-                        } catch (error) {
-                          console.error('❌ Failed to update frame name:', error);
-                        }
-                      }}
-                      placeholder="Enter frame name"
-                      className="h-9"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block text-gray-700">Type</label>
-                    <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600">
-                      {frame.data?.role === 'cover' && '📄 Cover Frame'}
-                      {frame.data?.role === 'settings' && '⚙️ Settings Frame'}
-                      {!frame.data?.role && '✨ Custom Frame'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Engagement Pattern */}
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Engagement Pattern</label>
-                  <Select
-                    value={frame.FrameConfig?.engagementMode || 'canvas'}
-                    onValueChange={async (pattern) => {
-                      // Optimistic update
-                      setMockFrames(prev => prev.map(f => 
-                        f.id === openFrameConfigId 
-                          ? { ...f, FrameConfig: { ...f.FrameConfig, engagementMode: pattern } }
-                          : f
-                      ));
-                      
-                      // Persist to backend
-                      try {
-                        await apiFetch(`/api/board-data/${selectedBoardId}/frames/${openFrameConfigId}`, {
-                          method: 'PATCH',
-                          body: JSON.stringify({ pattern })
-                        });
-                        console.log('✅ Frame pattern updated');
-                      } catch (error) {
-                        console.error('❌ Failed to update frame pattern:', error);
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="dialogic">
-                        <div>
-                          <div className="font-medium">Dialogic</div>
-                          <div className="text-xs text-gray-500">Agent-guided conversation</div>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="wizard">
-                        <div>
-                          <div className="font-medium">Wizard</div>
-                          <div className="text-xs text-gray-500">Step-by-step flow</div>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="focus">
-                        <div>
-                          <div className="font-medium">Focus</div>
-                          <div className="text-xs text-gray-500">Single hero element</div>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="canvas">
-                        <div>
-                          <div className="font-medium">Canvas</div>
-                          <div className="text-xs text-gray-500">Freeform composition</div>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="gallery">
-                        <div>
-                          <div className="font-medium">Gallery</div>
-                          <div className="text-xs text-gray-500">Image-first grid</div>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="form">
-                        <div>
-                          <div className="font-medium">Form</div>
-                          <div className="text-xs text-gray-500">Data entry / config</div>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Choose how users interact with this frame
-                  </p>
-                </div>
-
-                {/* Content Section */}
-                <div className="space-y-4 pb-6 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wide">
-                      Content ({propsCount})
-                    </h3>
-                    <span className="text-xs text-gray-500">
-                      Switch to Edit mode to manage
-                    </span>
-                  </div>
-                  
-                  {propsCount === 0 ? (
-                    <div className="px-4 py-6 bg-gradient-to-br from-gray-50 to-gray-100 border border-dashed border-gray-300 rounded-lg text-center">
-                      <div className="text-2xl mb-2">📝</div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">No props yet</p>
-                      <p className="text-xs text-gray-500">
-                        Add props from the Props Library →
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {Object.entries(frame.props || {})
-                        .filter(([_, val]) => val && typeof val === 'object' && 'type' in val)
-                        .map(([propId, prop]: [string, any], index) => (
-                          <div
-                            key={propId}
-                            className="px-3 py-2.5 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
-                            onClick={() => {
-                              // Close config panel
-                              setOpenFrameConfigId(null);
-                              // Note: Could auto-select this prop in Edit mode
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-medium text-gray-400">
-                                  {index + 1}
-                                </span>
-                                <span className="text-sm font-semibold text-gray-900">
-                                  {prop.type}
-                                </span>
-                              </div>
-                              <span className="text-xs text-blue-600">→</span>
-                            </div>
-                            {prop.config && Object.keys(prop.config).length > 0 && (
-                              <div className="text-xs text-gray-500 mt-1 ml-6">
-                                {Object.entries(prop.config)
-                                  .slice(0, 1)
-                                  .map(([key, value]) => (
-                                    <div key={key} className="truncate">
-                                      {String(value).substring(0, 40)}
-                                      {String(value).length > 40 ? '...' : ''}
-                                    </div>
-                                  ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                    </div>
-                  )}
-                  <p className="text-xs text-blue-600 mt-3 flex items-center gap-1">
-                    <PencilIconLucide className="w-3 h-3" />
-                    Click ✎ in Edit mode for inline editing
-                  </p>
-                </div>
-              </div>
-              </ScrollArea>
-            );
-          })()}
-        </SheetContent>
-      </Sheet>
+      {/* Frame Configuration Panel */}
+      {openFrameConfigId && (() => {
+        const frame = mockFrames.find(f => f.id === openFrameConfigId);
+        if (!frame) return null;
+        
+        // Build props list for display
+        const framePropsList = Object.entries(frame.props || {})
+          .filter(([_, val]) => val && typeof val === 'object' && 'type' in val)
+          .map(([propId, prop]: [string, any]) => ({
+            id: propId,
+            type: prop.type,
+            summary: (() => {
+              const firstValue = Object.values(prop.config || {})[0];
+              if (typeof firstValue === 'string') {
+                return firstValue.substring(0, 40) + (firstValue.length > 40 ? '...' : '');
+              }
+              if (Array.isArray(firstValue)) {
+                return `${firstValue.length} items`;
+              }
+              return prop.type;
+            })()
+          }));
+        
+        // Build prop library items for add section
+        const propLibraryItems = [
+          { type: 'heading', label: 'Heading', description: 'Title text', icon: <Type className="w-4 h-4" /> },
+          { type: 'text', label: 'Text', description: 'Body content', icon: <Type className="w-4 h-4" /> },
+          { type: 'quote', label: 'Quote', description: 'Testimonial', icon: <Type className="w-4 h-4" /> },
+          { type: 'image', label: 'Image', description: 'Photo/graphic', icon: <Image className="w-4 h-4" /> },
+          { type: 'gallery', label: 'Gallery', description: 'Image grid', icon: <ImageIcon className="w-4 h-4" /> },
+          { type: 'button', label: 'Button', description: 'Call-to-action', icon: <MousePointer className="w-4 h-4" /> },
+        ];
+        
+        return (
+          <div className="fixed top-0 right-0 h-screen z-50 shadow-xl">
+            <FrameConfigPanel
+              frame={{
+                id: frame.id,
+                name: frame.data?.name || 'Frame',
+                pattern: frame.FrameConfig?.engagementMode || 'canvas',
+                role: frame.data?.role,
+                props: frame.props || {},
+                previewThumbUrl: undefined
+              }}
+              onRenameFrame={async (frameId, newName) => {
+                // Optimistic update
+                setMockFrames(prev => prev.map(f => 
+                  f.id === frameId 
+                    ? { ...f, data: { ...f.data, name: newName } }
+                    : f
+                ));
+                
+                // Persist to backend
+                try {
+                  await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ name: newName })
+                  });
+                  console.log('✅ Frame name updated');
+                } catch (error) {
+                  console.error('❌ Failed to update frame name:', error);
+                }
+              }}
+              onChangePattern={async (frameId, pattern) => {
+                // Optimistic update
+                setMockFrames(prev => prev.map(f => 
+                  f.id === frameId 
+                    ? { ...f, FrameConfig: { ...f.FrameConfig, engagementMode: pattern } }
+                    : f
+                ));
+                
+                // Persist to backend
+                try {
+                  await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ pattern })
+                  });
+                  console.log('✅ Frame pattern updated');
+                } catch (error) {
+                  console.error('❌ Failed to update frame pattern:', error);
+                }
+              }}
+              propLibraryItems={propLibraryItems}
+              onAddPropToFrame={handleAddPropToFrame}
+              framePropsList={framePropsList}
+            />
+            {/* Close button overlay */}
+            <button
+              onClick={() => setOpenFrameConfigId(null)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-background border border-border hover:bg-accent flex items-center justify-center z-10"
+            >
+              <XMarkIcon className="w-4 h-4" />
+            </button>
+          </div>
+        );
+      })()}
     </div>
   );
 };
