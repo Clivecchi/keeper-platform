@@ -10,6 +10,7 @@ import { Button } from '../../../features/board-studio/v0/components/ui/button';
 import { Input } from '../../../features/board-studio/v0/components/ui/input';
 import { Textarea } from '../../../features/board-studio/v0/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../features/board-studio/v0/components/ui/select';
+import MediaUploader from '../../studio/MediaUploader';
 
 interface BasePropEditorProps {
   config: Record<string, any>;
@@ -204,7 +205,21 @@ export const ImagePropEditor: React.FC<BasePropEditorProps> = ({ config, onChang
   return (
     <div className="space-y-3 p-3 bg-gray-50 rounded border border-gray-200">
       <div>
-        <label className="text-xs font-medium text-gray-700 mb-1 block">Image URL</label>
+        <label className="text-xs font-medium text-gray-700 mb-2 block">Upload Image</label>
+        <MediaUploader
+          value={config.url ? { type: 'image', url: config.url } : null}
+          onChange={(media) => {
+            if (media) {
+              onChange({ url: media.url });
+            } else {
+              onChange({ url: '' });
+            }
+          }}
+        />
+      </div>
+      
+      <div>
+        <label className="text-xs font-medium text-gray-700 mb-1 block">Or Enter URL Manually</label>
         <Input
           value={config.url || ''}
           onChange={(e) => onChange({ url: e.target.value })}
@@ -241,13 +256,6 @@ export const ImagePropEditor: React.FC<BasePropEditorProps> = ({ config, onChang
         </Select>
       </div>
       
-      {config.url && (
-        <div className="rounded overflow-hidden border border-gray-200">
-          <img src={config.url} alt={config.alt || 'Preview'} className="w-full h-32 object-cover" />
-          <div className="text-xs text-gray-500 p-2 bg-white">Preview</div>
-        </div>
-      )}
-      
       <div className="flex justify-end gap-2 pt-2 border-t">
         <Button onClick={onCancel} variant="ghost" size="sm" className="text-xs h-7">
           Cancel
@@ -263,14 +271,19 @@ export const ImagePropEditor: React.FC<BasePropEditorProps> = ({ config, onChang
 // Gallery Prop Editor
 export const GalleryPropEditor: React.FC<BasePropEditorProps> = ({ config, onChange, onSave, onCancel }) => {
   const images = Array.isArray(config.images) ? config.images : [];
+  const [expandedImageIndex, setExpandedImageIndex] = React.useState<number | null>(null);
   
   const addImage = () => {
     const newImage = { url: '', alt: '' };
     onChange({ images: [...images, newImage] });
+    setExpandedImageIndex(images.length);
   };
   
   const removeImage = (index: number) => {
     onChange({ images: images.filter((_: any, i: number) => i !== index) });
+    if (expandedImageIndex === index) {
+      setExpandedImageIndex(null);
+    }
   };
   
   const updateImage = (index: number, field: string, value: string) => {
@@ -335,11 +348,16 @@ export const GalleryPropEditor: React.FC<BasePropEditorProps> = ({ config, onCha
           </Button>
         </div>
         
-        <div className="space-y-2 max-h-48 overflow-y-auto">
+        <div className="space-y-3 max-h-96 overflow-y-auto">
           {images.map((img: any, index: number) => (
-            <div key={index} className="p-2 bg-white rounded border border-gray-200">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-500">Image {index + 1}</span>
+            <div key={index} className="p-3 bg-white rounded border border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <button
+                  onClick={() => setExpandedImageIndex(expandedImageIndex === index ? null : index)}
+                  className="text-xs font-medium text-gray-700 hover:text-gray-900"
+                >
+                  Image {index + 1} {img.url ? '✓' : '○'}
+                </button>
                 <button
                   onClick={() => removeImage(index)}
                   className="text-xs text-red-600 hover:text-red-700"
@@ -347,24 +365,54 @@ export const GalleryPropEditor: React.FC<BasePropEditorProps> = ({ config, onCha
                   Remove
                 </button>
               </div>
-              <Input
-                value={img.url || ''}
-                onChange={(e) => updateImage(index, 'url', e.target.value)}
-                placeholder="Image URL"
-                className="text-xs h-7 mb-1"
-              />
-              <Input
-                value={img.alt || ''}
-                onChange={(e) => updateImage(index, 'alt', e.target.value)}
-                placeholder="Alt text"
-                className="text-xs h-7"
-              />
+              
+              {expandedImageIndex === index ? (
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-xs text-gray-600 mb-1 block">Upload</label>
+                    <MediaUploader
+                      value={img.url ? { type: 'image', url: img.url } : null}
+                      onChange={(media) => {
+                        if (media) {
+                          updateImage(index, 'url', media.url);
+                        } else {
+                          updateImage(index, 'url', '');
+                        }
+                      }}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs text-gray-600 mb-1 block">Or URL</label>
+                    <Input
+                      value={img.url || ''}
+                      onChange={(e) => updateImage(index, 'url', e.target.value)}
+                      placeholder="https://..."
+                      className="text-xs h-7"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-xs text-gray-600 mb-1 block">Alt text</label>
+                    <Input
+                      value={img.alt || ''}
+                      onChange={(e) => updateImage(index, 'alt', e.target.value)}
+                      placeholder="Describe image"
+                      className="text-xs h-7"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-gray-500 truncate">
+                  {img.url ? img.url.substring(0, 40) + '...' : 'Click to configure'}
+                </div>
+              )}
             </div>
           ))}
           
           {images.length === 0 && (
             <div className="text-center py-4 text-xs text-gray-500">
-              No images yet. Click "Add Image" to start.
+              No images yet. Click "+ Add Image" to start.
             </div>
           )}
         </div>
