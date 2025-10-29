@@ -1455,12 +1455,14 @@ const BoardStudioPage: React.FC = () => {
       return;
     }
 
+    const tempId = `frame-${Date.now()}`;
+
     try {
       console.log('Adding frame to board:', frame);
       
-      // Create a new frame instance
-      const newFrame = {
-        id: `frame-${Date.now()}`,
+      // Optimistic UI update with temp frame
+      const tempFrame = {
+        id: tempId,
         data: {
           name: frame.name,
           description: frame.description,
@@ -1468,69 +1470,58 @@ const BoardStudioPage: React.FC = () => {
           icon: frame.icon,
         },
         FrameConfig: {
-          engagementMode: 'dialogic', // Default pattern
-        }
+          engagementMode: 'dialogic',
+        },
+        props: {},
+        frameType: frame.type || 'media_card',
+        layoutKind: 'canvas',
+        layoutData: {}
       };
 
-      // Add to mock frames immediately for responsive UI
-      setMockFrames(prev => [...prev, newFrame]);
-      setSelectedFrameId(newFrame.id);
+      setMockFrames(prev => [...prev, tempFrame]);
+      setSelectedFrameId(tempId);
       
-      console.log(`Added ${frame.name} to board locally`);
+      // Create frame on backend
+      console.log('📌 Creating new frame on backend:', { tempId, frameName: frame.name });
+      const response = await apiFetch(`/api/boards/${selectedBoardId}/frames`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: frame.name,
+          pattern: 'dialogic',
+          frameType: frame.type || 'media_card',
+          orderIndex: mockFrames.length
+        })
+      });
       
-      // Persist the frame to the backend
-      try {
-        const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames`, {
-          method: 'POST',
-          body: JSON.stringify({
-            id: newFrame.id,
-            name: frame.name,
-            description: frame.description,
-            category: frame.category,
-            icon: frame.icon,
-            pattern: 'dialogic',
-            props: {},
-            layoutKind: 'default',
-            layoutData: {},
-            orderIndex: 0
-          })
-        });
+      if (response.success && response.data) {
+        const serverId = response.data.id;
+        console.log('📌 New frame persisted:', { tempId, serverId });
         
-        if (response.success) {
-          console.log('Frame persisted to backend successfully');
-        } else {
-          console.error('Failed to persist frame to backend:', response.error);
-          // Optionally revert the optimistic update
-        }
-      } catch (error) {
-        console.error('Error persisting frame to backend:', error);
-        // Optionally revert the optimistic update
+        // Replace temp ID with server UUID
+        setMockFrames(prev => prev.map(f => 
+          f.id === tempId 
+            ? { 
+                ...f, 
+                id: serverId,
+                data: { ...f.data, name: response.data.name },
+                FrameConfig: { ...f.FrameConfig, engagementMode: response.data.pattern }
+              }
+            : f
+        ));
+        
+        // Update selected frame ID to use real UUID
+        setSelectedFrameId(serverId);
+        console.log('✅ Frame created and ID replaced:', serverId);
+      } else {
+        throw new Error(response.error || 'Frame creation failed');
       }
-      
-      // Try to add via the board context as well (but don't break if it fails)
-      try {
-        if (activeBoard && addFrame) {
-          // Create a proper frame instance for the context
-          const contextFrame = makeFrameInstance({
-            name: newFrame.data.name,
-            role: 'settings',
-            pattern: 'preview',
-            props: {},
-            entityType: 'board',
-            entityId: activeBoard.id,
-            configId: 'context'
-          });
-          await addFrame(activeBoard.id, contextFrame);
-        }
-      } catch (contextError) {
-        console.warn('Board context add frame failed, but continuing with local state:', contextError);
-      }
-      
-      console.log(`Added ${frame.name} to board successfully`);
-      
     } catch (error) {
-      console.error('Error adding frame to board:', error);
-      alert('Failed to add frame to board');
+      console.error('❌ Failed to create frame on backend:', error);
+      // Revert optimistic update
+      setMockFrames(prev => prev.filter(f => f.id !== tempId));
+      setSelectedFrameId(mockFrames[0]?.id || null);
+      alert(`Failed to add ${frame.name} to board. Please try again.`);
     }
   };
 
@@ -1572,12 +1563,16 @@ const BoardStudioPage: React.FC = () => {
       // Check if this is a frame or prop
       if (draggedData.name && draggedData.description && draggedData.category) {
         // This is a frame being dropped on the board
-        if (selectedBoardId) {
+        if (!selectedBoardId) return;
+        
+        const tempId = `frame-${Date.now()}`;
+        
+        try {
           console.log('Frame dropped:', draggedData);
           
-          // Create a new frame instance
-          const newFrame = {
-            id: `frame-${Date.now()}`,
+          // Optimistic UI update
+          const tempFrame = {
+            id: tempId,
             data: {
               name: draggedData.name,
               description: draggedData.description,
@@ -1586,43 +1581,56 @@ const BoardStudioPage: React.FC = () => {
             },
             FrameConfig: {
               engagementMode: 'dialogic',
-            }
+            },
+            props: {},
+            frameType: draggedData.type || 'media_card',
+            layoutKind: 'canvas',
+            layoutData: {}
           };
 
-          // Add to mock frames immediately for responsive UI
-          setMockFrames(prev => [...prev, newFrame]);
-          setSelectedFrameId(newFrame.id);
+          setMockFrames(prev => [...prev, tempFrame]);
+          setSelectedFrameId(tempId);
           
-          console.log(`Dropped and added ${draggedData.name} to board`);
+          // Create frame on backend
+          console.log('📌 Creating dropped frame on backend:', { tempId, frameName: draggedData.name });
+          const response = await apiFetch(`/api/boards/${selectedBoardId}/frames`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: draggedData.name,
+              pattern: 'dialogic',
+              frameType: draggedData.type || 'media_card',
+              orderIndex: mockFrames.length
+            })
+          });
           
-          // Persist the frame to the backend
-          try {
-            const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames`, {
-              method: 'POST',
-              body: JSON.stringify({
-                id: newFrame.id,
-                name: draggedData.name,
-                description: draggedData.description,
-                category: draggedData.category,
-                icon: draggedData.icon,
-                pattern: 'dialogic',
-                props: {},
-                layoutKind: 'default',
-                layoutData: {},
-                orderIndex: 0
-              })
-            });
+          if (response.success && response.data) {
+            const serverId = response.data.id;
+            console.log('📌 New frame persisted:', { tempId, serverId });
             
-            if (response.success) {
-              console.log('Frame persisted to backend successfully');
-            } else {
-              console.error('Failed to persist frame to backend:', response.error);
-              // Optionally revert the optimistic update
-            }
-          } catch (error) {
-            console.error('Error persisting frame to backend:', error);
-            // Optionally revert the optimistic update
+            // Replace temp ID with server UUID
+            setMockFrames(prev => prev.map(f => 
+              f.id === tempId 
+                ? { 
+                    ...f, 
+                    id: serverId,
+                    data: { ...f.data, name: response.data.name },
+                    FrameConfig: { ...f.FrameConfig, engagementMode: response.data.pattern }
+                  }
+                : f
+            ));
+            
+            // Update selected frame ID to use real UUID
+            setSelectedFrameId(serverId);
+            console.log('✅ Dropped frame created and ID replaced:', serverId);
+          } else {
+            throw new Error(response.error || 'Frame creation failed');
           }
+        } catch (error) {
+          console.error('❌ Failed to create dropped frame on backend:', error);
+          // Revert optimistic update
+          setMockFrames(prev => prev.filter(f => f.id !== tempId));
+          setSelectedFrameId(mockFrames[0]?.id || null);
         }
       } else if (draggedData.type && draggedData.config) {
         // This is a prop being dropped - should not happen on canvas
@@ -1892,15 +1900,65 @@ const BoardStudioPage: React.FC = () => {
                 />
                 <div className="px-4 py-2">
                   <Button
-                    onClick={() => {
-                      if (selectedBoardId) {
-                        const newFrame = {
-                          id: `frame-${Date.now()}`,
-                          data: { name: `Frame ${mockFrames.length + 1}` },
-                          FrameConfig: { engagementMode: 'dialogic' }
-                        };
-                        setMockFrames(prev => [...prev, newFrame]);
-                        setSelectedFrameId(newFrame.id);
+                    onClick={async () => {
+                      if (!selectedBoardId) return;
+                      
+                      const tempId = `frame-${Date.now()}`;
+                      const frameName = `Frame ${mockFrames.length + 1}`;
+                      
+                      // Optimistic UI update
+                      const tempFrame = {
+                        id: tempId,
+                        data: { name: frameName },
+                        FrameConfig: { engagementMode: 'dialogic' },
+                        props: {},
+                        frameType: 'media_card',
+                        layoutKind: 'canvas',
+                        layoutData: {}
+                      };
+                      setMockFrames(prev => [...prev, tempFrame]);
+                      setSelectedFrameId(tempId);
+                      
+                      try {
+                        // Create frame on backend
+                        console.log('📌 Creating new frame on backend:', { tempId, frameName });
+                        const response = await apiFetch(`/api/boards/${selectedBoardId}/frames`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            name: frameName,
+                            pattern: 'dialogic',
+                            frameType: 'media_card',
+                            orderIndex: mockFrames.length
+                          })
+                        });
+                        
+                        if (response.success && response.data) {
+                          const serverId = response.data.id;
+                          console.log('📌 New frame persisted:', { tempId, serverId });
+                          
+                          // Replace temp ID with server UUID
+                          setMockFrames(prev => prev.map(f => 
+                            f.id === tempId 
+                              ? { 
+                                  ...f, 
+                                  id: serverId,
+                                  data: { ...f.data, name: response.data.name },
+                                  FrameConfig: { ...f.FrameConfig, engagementMode: response.data.pattern }
+                                }
+                              : f
+                          ));
+                          
+                          // Update selected frame ID to use real UUID
+                          setSelectedFrameId(serverId);
+                          console.log('✅ Frame created and ID replaced:', serverId);
+                        }
+                      } catch (error) {
+                        console.error('❌ Failed to create frame on backend:', error);
+                        // Revert optimistic update
+                        setMockFrames(prev => prev.filter(f => f.id !== tempId));
+                        setSelectedFrameId(null);
+                        alert('Failed to create frame. Please try again.');
                       }
                     }}
                     variant="ghost"
