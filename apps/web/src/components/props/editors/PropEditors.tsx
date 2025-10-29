@@ -22,54 +22,56 @@ interface BasePropEditorProps {
 // Text Prop Editor
 export const TextPropEditor: React.FC<BasePropEditorProps> = ({ config, onChange, onSave, onCancel }) => {
   return (
-    <div className="space-y-3 p-3 bg-gray-50 rounded border border-gray-200">
-      <div>
-        <label className="text-xs font-medium text-gray-700 mb-1 block">Text Content</label>
-        <Textarea
-          value={config.content || ''}
-          onChange={(e) => onChange({ content: e.target.value })}
-          placeholder="Enter your text here..."
-          rows={3}
-          className="w-full text-sm"
-        />
-      </div>
-      
-      <div className="grid grid-cols-2 gap-2">
+    <div className="bg-gray-50 rounded border border-gray-200">
+      <div className="overflow-y-auto max-h-[calc(100vh-12rem)] p-3 space-y-3">
         <div>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">Font Size</label>
-          <Select
-            value={config.fontSize || 'medium'}
-            onValueChange={(value) => onChange({ fontSize: value })}
-          >
-            <SelectTrigger className="text-xs h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="small">Small</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="large">Large</SelectItem>
-            </SelectContent>
-          </Select>
+          <label className="text-xs font-medium text-gray-700 mb-1 block">Text Content</label>
+          <Textarea
+            value={config.content || ''}
+            onChange={(e) => onChange({ content: e.target.value })}
+            placeholder="Enter your text here..."
+            rows={3}
+            className="w-full text-sm"
+          />
         </div>
         
-        <div>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">Style</label>
-          <Select
-            value={config.bold ? 'bold' : 'normal'}
-            onValueChange={(value) => onChange({ bold: value === 'bold' })}
-          >
-            <SelectTrigger className="text-xs h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="normal">Normal</SelectItem>
-              <SelectItem value="bold">Bold</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">Font Size</label>
+            <Select
+              value={config.fontSize || 'medium'}
+              onValueChange={(value) => onChange({ fontSize: value })}
+            >
+              <SelectTrigger className="text-xs h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="small">Small</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="large">Large</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">Style</label>
+            <Select
+              value={config.bold ? 'bold' : 'normal'}
+              onValueChange={(value) => onChange({ bold: value === 'bold' })}
+            >
+              <SelectTrigger className="text-xs h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="bold">Bold</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
       
-      <div className="flex justify-end gap-2 pt-2 border-t">
+      <div className="flex justify-end gap-2 p-3 border-t bg-white">
         <Button onClick={onCancel} variant="ghost" size="sm" className="text-xs h-7">
           Cancel
         </Button>
@@ -84,7 +86,8 @@ export const TextPropEditor: React.FC<BasePropEditorProps> = ({ config, onChange
 // Heading Prop Editor
 export const HeadingPropEditor: React.FC<BasePropEditorProps> = ({ config, onChange, onSave, onCancel }) => {
   return (
-    <div className="space-y-3 p-3 bg-gray-50 rounded border border-gray-200">
+    <div className="bg-gray-50 rounded border border-gray-200">
+      <div className="overflow-y-auto max-h-[calc(100vh-12rem)] p-3 space-y-3">
       <div>
         <label className="text-xs font-medium text-gray-700 mb-1 block">Heading Text</label>
         <Input
@@ -133,8 +136,9 @@ export const HeadingPropEditor: React.FC<BasePropEditorProps> = ({ config, onCha
           </Select>
         </div>
       </div>
+      </div>
       
-      <div className="flex justify-end gap-2 pt-2 border-t">
+      <div className="flex justify-end gap-2 p-3 border-t bg-white">
         <Button onClick={onCancel} variant="ghost" size="sm" className="text-xs h-7">
           Cancel
         </Button>
@@ -149,7 +153,8 @@ export const HeadingPropEditor: React.FC<BasePropEditorProps> = ({ config, onCha
 // Quote Prop Editor
 export const QuotePropEditor: React.FC<BasePropEditorProps> = ({ config, onChange, onSave, onCancel }) => {
   return (
-    <div className="space-y-3 p-3 bg-gray-50 rounded border border-gray-200">
+    <div className="bg-gray-50 rounded border border-gray-200">
+      <div className="overflow-y-auto max-h-[calc(100vh-12rem)] p-3 space-y-3">
       <div>
         <label className="text-xs font-medium text-gray-700 mb-1 block">Quote Text</label>
         <Textarea
@@ -187,8 +192,9 @@ export const QuotePropEditor: React.FC<BasePropEditorProps> = ({ config, onChang
           </SelectContent>
         </Select>
       </div>
+      </div>
       
-      <div className="flex justify-end gap-2 pt-2 border-t">
+      <div className="flex justify-end gap-2 p-3 border-t bg-white">
         <Button onClick={onCancel} variant="ghost" size="sm" className="text-xs h-7">
           Cancel
         </Button>
@@ -203,7 +209,8 @@ export const QuotePropEditor: React.FC<BasePropEditorProps> = ({ config, onChang
 // Image/Gallery Prop Editor
 export const ImagePropEditor: React.FC<BasePropEditorProps> = ({ config, onChange, onSave, onCancel }) => {
   return (
-    <div className="space-y-3 p-3 bg-gray-50 rounded border border-gray-200">
+    <div className="bg-gray-50 rounded border border-gray-200">
+      <div className="overflow-y-auto max-h-[calc(100vh-12rem)] p-3 space-y-3">
       <div>
         <label className="text-xs font-medium text-gray-700 mb-2 block">Upload Image</label>
         <MediaUploader
@@ -255,8 +262,9 @@ export const ImagePropEditor: React.FC<BasePropEditorProps> = ({ config, onChang
           </SelectContent>
         </Select>
       </div>
+      </div>
       
-      <div className="flex justify-end gap-2 pt-2 border-t">
+      <div className="flex justify-end gap-2 p-3 border-t bg-white">
         <Button onClick={onCancel} variant="ghost" size="sm" className="text-xs h-7">
           Cancel
         </Button>
@@ -293,7 +301,8 @@ export const GalleryPropEditor: React.FC<BasePropEditorProps> = ({ config, onCha
   };
   
   return (
-    <div className="space-y-3 p-3 bg-gray-50 rounded border border-gray-200">
+    <div className="bg-gray-50 rounded border border-gray-200">
+      <div className="overflow-y-auto max-h-[calc(100vh-12rem)] p-3 space-y-3">
       <div>
         <label className="text-xs font-medium text-gray-700 mb-1 block">Gallery Name</label>
         <Input
@@ -348,7 +357,7 @@ export const GalleryPropEditor: React.FC<BasePropEditorProps> = ({ config, onCha
           </Button>
         </div>
         
-        <div className="space-y-3 max-h-96 overflow-y-auto">
+        <div className="space-y-3">
           {images.map((img: any, index: number) => (
             <div key={index} className="p-3 bg-white rounded border border-gray-200">
               <div className="flex items-center justify-between mb-2">
@@ -417,8 +426,9 @@ export const GalleryPropEditor: React.FC<BasePropEditorProps> = ({ config, onCha
           )}
         </div>
       </div>
+      </div>
       
-      <div className="flex justify-end gap-2 pt-2 border-t">
+      <div className="flex justify-end gap-2 p-3 border-t bg-white">
         <Button onClick={onCancel} variant="ghost" size="sm" className="text-xs h-7">
           Cancel
         </Button>
@@ -433,7 +443,8 @@ export const GalleryPropEditor: React.FC<BasePropEditorProps> = ({ config, onCha
 // Button Prop Editor
 export const ButtonPropEditor: React.FC<BasePropEditorProps> = ({ config, onChange, onSave, onCancel }) => {
   return (
-    <div className="space-y-3 p-3 bg-gray-50 rounded border border-gray-200">
+    <div className="bg-gray-50 rounded border border-gray-200">
+      <div className="overflow-y-auto max-h-[calc(100vh-12rem)] p-3 space-y-3">
       <div>
         <label className="text-xs font-medium text-gray-700 mb-1 block">Button Label</label>
         <Input
@@ -471,8 +482,9 @@ export const ButtonPropEditor: React.FC<BasePropEditorProps> = ({ config, onChan
           </SelectContent>
         </Select>
       </div>
+      </div>
       
-      <div className="flex justify-end gap-2 pt-2 border-t">
+      <div className="flex justify-end gap-2 p-3 border-t bg-white">
         <Button onClick={onCancel} variant="ghost" size="sm" className="text-xs h-7">
           Cancel
         </Button>
@@ -497,7 +509,8 @@ export const FormPropEditor: React.FC<BasePropEditorProps> = ({ config, onChange
   };
   
   return (
-    <div className="space-y-3 p-3 bg-gray-50 rounded border border-gray-200">
+    <div className="bg-gray-50 rounded border border-gray-200">
+      <div className="overflow-y-auto max-h-[calc(100vh-12rem)] p-3 space-y-3">
       <div>
         <label className="text-xs font-medium text-gray-700 mb-1 block">Form Name</label>
         <Input
@@ -516,7 +529,7 @@ export const FormPropEditor: React.FC<BasePropEditorProps> = ({ config, onChange
           </Button>
         </div>
         
-        <div className="space-y-2 max-h-48 overflow-y-auto">
+        <div className="space-y-2">
           {fields.map((field: any, index: number) => (
             <div key={index} className="p-2 bg-white rounded border border-gray-200 text-xs">
               <div className="flex items-center justify-between mb-1">
@@ -545,8 +558,9 @@ export const FormPropEditor: React.FC<BasePropEditorProps> = ({ config, onChange
           className="text-sm"
         />
       </div>
+      </div>
       
-      <div className="flex justify-end gap-2 pt-2 border-t">
+      <div className="flex justify-end gap-2 p-3 border-t bg-white">
         <Button onClick={onCancel} variant="ghost" size="sm" className="text-xs h-7">
           Cancel
         </Button>
@@ -561,7 +575,8 @@ export const FormPropEditor: React.FC<BasePropEditorProps> = ({ config, onChange
 // AI Assistant Prop Editor
 export const AIAssistantPropEditor: React.FC<BasePropEditorProps> = ({ config, onChange, onSave, onCancel }) => {
   return (
-    <div className="space-y-3 p-3 bg-gray-50 rounded border border-gray-200">
+    <div className="bg-gray-50 rounded border border-gray-200">
+      <div className="overflow-y-auto max-h-[calc(100vh-12rem)] p-3 space-y-3">
       <div>
         <label className="text-xs font-medium text-gray-700 mb-1 block">Display Name</label>
         <Input
@@ -592,8 +607,9 @@ export const AIAssistantPropEditor: React.FC<BasePropEditorProps> = ({ config, o
           className="text-sm"
         />
       </div>
+      </div>
       
-      <div className="flex justify-end gap-2 pt-2 border-t">
+      <div className="flex justify-end gap-2 p-3 border-t bg-white">
         <Button onClick={onCancel} variant="ghost" size="sm" className="text-xs h-7">
           Cancel
         </Button>
@@ -608,7 +624,8 @@ export const AIAssistantPropEditor: React.FC<BasePropEditorProps> = ({ config, o
 // Media (Video) Prop Editor
 export const MediaPropEditor: React.FC<BasePropEditorProps> = ({ config, onChange, onSave, onCancel }) => {
   return (
-    <div className="space-y-3 p-3 bg-gray-50 rounded border border-gray-200">
+    <div className="bg-gray-50 rounded border border-gray-200">
+      <div className="overflow-y-auto max-h-[calc(100vh-12rem)] p-3 space-y-3">
       <div>
         <label className="text-xs font-medium text-gray-700 mb-1 block">Media Type</label>
         <Select
@@ -647,8 +664,9 @@ export const MediaPropEditor: React.FC<BasePropEditorProps> = ({ config, onChang
           Autoplay
         </label>
       </div>
+      </div>
       
-      <div className="flex justify-end gap-2 pt-2 border-t">
+      <div className="flex justify-end gap-2 p-3 border-t bg-white">
         <Button onClick={onCancel} variant="ghost" size="sm" className="text-xs h-7">
           Cancel
         </Button>
@@ -663,7 +681,8 @@ export const MediaPropEditor: React.FC<BasePropEditorProps> = ({ config, onChang
 // Default/Generic Prop Editor (fallback)
 export const GenericPropEditor: React.FC<BasePropEditorProps> = ({ config, onChange, onSave, onCancel }) => {
   return (
-    <div className="space-y-3 p-3 bg-gray-50 rounded border border-gray-200">
+    <div className="bg-gray-50 rounded border border-gray-200">
+      <div className="overflow-y-auto max-h-[calc(100vh-12rem)] p-3 space-y-3">
       <div>
         <label className="text-xs font-medium text-gray-700 mb-1 block">Configuration (JSON)</label>
         <Textarea
@@ -680,8 +699,9 @@ export const GenericPropEditor: React.FC<BasePropEditorProps> = ({ config, onCha
           className="text-xs font-mono"
         />
       </div>
+      </div>
       
-      <div className="flex justify-end gap-2 pt-2 border-t">
+      <div className="flex justify-end gap-2 p-3 border-t bg-white">
         <Button onClick={onCancel} variant="ghost" size="sm" className="text-xs h-7">
           Cancel
         </Button>

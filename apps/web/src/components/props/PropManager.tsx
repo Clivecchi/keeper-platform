@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import PropDropZone from './PropDropZone';
 import { TrashIcon, Bars3Icon, PencilIcon } from '@heroicons/react/24/outline';
+import { Button } from '../../features/board-studio/v0/components/ui/button';
 import {
   TextPropEditor,
   HeadingPropEditor,
@@ -255,54 +256,45 @@ const PropManager: React.FC<PropManagerProps> = ({
             />
           </div>
         ) : (
-          // Preview mode - show summary with action buttons
-          <div className={`p-4 ${isDraggable ? 'pl-8' : ''}`}>
+          // Preview mode - show clean summary card
+          <div className={`p-3 ${isDraggable ? 'pl-8' : ''}`}>
             <div className="flex items-start justify-between mb-2">
-              <div>
-                <span className="text-xs font-medium text-gray-500">#{index + 1}</span>
-                <span className="ml-2 text-sm font-semibold text-gray-900">{prop.type}</span>
-              </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => prop.id && handleEditProp(prop.id, prop.config)}
-                  className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
-                  title="Edit prop"
-                >
-                  <PencilIcon className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => prop.id && handleDeleteProp(prop.id)}
-                  className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                  title="Delete prop"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm text-gray-900 mb-1">
+                  {prop.config.name || prop.config.content?.substring(0, 40) || prop.config.label || prop.type}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {prop.type} · {(() => {
+                    const configKeys = Object.keys(prop.config || {});
+                    if (Array.isArray(prop.config.images)) return `${prop.config.images.length} images`;
+                    if (Array.isArray(prop.config.fields)) return `${prop.config.fields.length} fields`;
+                    if (prop.config.content) return prop.config.content.substring(0, 50);
+                    if (prop.config.label) return prop.config.label;
+                    return `${configKeys.length} settings`;
+                  })()}
+                </div>
               </div>
             </div>
             
-            {/* Show prop config preview */}
-            <div className="text-xs text-gray-600 space-y-1">
-              {Object.entries(prop.config || {}).slice(0, 3).map(([key, value]) => (
-                <div key={key} className="truncate">
-                  <span className="font-medium text-gray-700">{key}:</span>{' '}
-                  <span className="text-gray-600">
-                    {typeof value === 'string' ? (
-                      value.substring(0, 50) + (value.length > 50 ? '...' : '')
-                    ) : Array.isArray(value) ? (
-                      `[${value.length} items]`
-                    ) : typeof value === 'object' ? (
-                      '{...}'
-                    ) : (
-                      String(value)
-                    )}
-                  </span>
-                </div>
-              ))}
-              {Object.keys(prop.config || {}).length > 3 && (
-                <div className="text-gray-500 italic">
-                  +{Object.keys(prop.config).length - 3} more fields...
-                </div>
-              )}
+            <div className="flex gap-2 mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-7 flex-1"
+                onClick={() => prop.id && handleEditProp(prop.id, prop.config)}
+              >
+                <PencilIcon className="w-3 h-3 mr-1" />
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-7"
+                onClick={() => prop.id && handleDeleteProp(prop.id)}
+              >
+                <TrashIcon className="w-3 h-3 mr-1" />
+                Delete
+              </Button>
             </div>
             
             {prop.isDraft && (
@@ -310,11 +302,6 @@ const PropManager: React.FC<PropManagerProps> = ({
                 Draft
               </div>
             )}
-            
-            {/* Click to edit hint */}
-            <div className="mt-2 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-              Click ✎ to edit
-            </div>
           </div>
         )}
       </div>
