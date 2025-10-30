@@ -164,7 +164,7 @@ export function BoardStudioProvider({
         
         // Set the new frame as active
         setActiveFrameId(response.data.id)
-        console.log('✅ Frame created and persisted:', response.data.id)
+        console.log("📌 New frame persisted", { tempId, serverId: response.data.id })
       }
     } catch (error) {
       console.error('❌ Failed to create frame:', error)

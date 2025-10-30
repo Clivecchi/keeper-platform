@@ -206,7 +206,10 @@ function BoardStudioContent() {
                       variant={activeFrameId === frame.id ? "default" : "ghost"}
                       size="sm"
                       className="h-8 px-3 text-xs"
-                      onClick={() => setActiveFrame(frame.id)}
+                      onClick={() => {
+                        console.log("🔎 Active frame", { activeFrameId, tabIdClicked: frame.id })
+                        setActiveFrame(frame.id)
+                      }}
                     >
                       <span>{frame.name}</span>
                     </Button>

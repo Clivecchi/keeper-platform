@@ -75,9 +75,12 @@ export function FrameConfigPanel() {
             </label>
             <Input
               value={activeFrame.name}
-              onChange={(e) => updateFrame(activeFrame.id, { name: e.target.value })}
+              onChange={(e) => {
+                console.log("✏️ Update frame", { frameId: activeFrame.id, field: 'name', value: e.target.value })
+                updateFrame(activeFrame.id, { name: e.target.value })
+              }}
               placeholder="Enter frame name"
-              className="w-full"
+              className="w-full bg-background"
             />
             <p className="text-xs text-gray-500 mt-1">
               The name of this frame (visible in tabs)
@@ -108,14 +111,15 @@ export function FrameConfigPanel() {
             </label>
             <Select
               value={activeFrame.pattern}
-              onValueChange={(pattern: PatternId) => 
+              onValueChange={(pattern: PatternId) => {
+                console.log("✏️ Update frame", { frameId: activeFrame.id, field: 'pattern', value: pattern })
                 updateFrame(activeFrame.id, { pattern })
-              }
+              }}
             >
-              <SelectTrigger>
+              <SelectTrigger className="bg-background border ring-0 shadow-none">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-50 bg-popover">
                 {Object.values(PATTERNS).map((pattern) => (
                   <SelectItem key={pattern.id} value={pattern.id}>
                     <div>
