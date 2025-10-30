@@ -47,6 +47,9 @@ export function FrameConfigPanel({
   onAddPropToFrame,
   framePropsList
 }: FrameConfigPanelProps) {
+  // Dev log to track which frame the config panel is targeting
+  console.log("🔎 Active frame in config panel", { frameId: frame.id, frameName: frame.name });
+  
   const propsCount = framePropsList.length;
   
   // Get first letter for avatar fallback
@@ -85,9 +88,12 @@ export function FrameConfigPanel({
             </label>
             <Input
               value={frame.name}
-              onChange={(e) => onRenameFrame(frame.id, e.target.value)}
+              onChange={(e) => {
+                console.log("✏️ Update frame", { frameId: frame.id, field: 'name', value: e.target.value })
+                onRenameFrame(frame.id, e.target.value)
+              }}
               onBlur={(e) => onRenameFrame(frame.id, e.target.value)}
-              className="text-sm h-8 w-full bg-background"
+              className="text-sm h-8 w-full bg-background text-foreground border border-border"
               placeholder="Frame name"
             />
           </div>
@@ -105,12 +111,15 @@ export function FrameConfigPanel({
           </label>
           <Select
             value={frame.pattern}
-            onValueChange={(value) => onChangePattern(frame.id, value)}
+            onValueChange={(value) => {
+              console.log("✏️ Update frame", { frameId: frame.id, field: 'pattern', value })
+              onChangePattern(frame.id, value)
+            }}
           >
-            <SelectTrigger className="h-8 text-sm w-full bg-background">
+            <SelectTrigger className="h-8 text-sm w-full bg-background text-foreground border border-border shadow-none ring-0 focus:ring-1 focus:ring-ring">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-popover text-popover-foreground border border-border shadow-md z-50">
               <SelectItem value="dialogic">
                 <div>
                   <div className="font-medium text-sm">Dialogic</div>

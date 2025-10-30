@@ -1497,6 +1497,8 @@ const BoardStudioPage: React.FC = () => {
         
         setMockFrames(prev => [...prev, newFrame]);
         setSelectedFrameId(serverFrame.id);
+        setOpenFrameConfigId(serverFrame.id);  // Open config panel for new frame
+        console.log("🔎 Active frame", { activeFrameId: serverFrame.id, frameInPanel: serverFrame.id });
       } else {
         throw new Error(response.error || 'Frame creation failed');
       }
@@ -1589,6 +1591,8 @@ const BoardStudioPage: React.FC = () => {
             
             setMockFrames(prev => [...prev, newFrame]);
             setSelectedFrameId(serverFrame.id);
+            setOpenFrameConfigId(serverFrame.id);  // Open config panel for new frame
+            console.log("🔎 Active frame", { activeFrameId: serverFrame.id, frameInPanel: serverFrame.id });
           } else {
             throw new Error(response.error || 'Frame creation failed');
           }
@@ -1904,6 +1908,8 @@ const BoardStudioPage: React.FC = () => {
                           
                           setMockFrames(prev => [...prev, newFrame]);
                           setSelectedFrameId(serverFrame.id);
+                          setOpenFrameConfigId(serverFrame.id);  // Open config panel for new frame
+                          console.log("🔎 Active frame", { activeFrameId: serverFrame.id, frameInPanel: serverFrame.id });
                         } else {
                           throw new Error(response.error || 'Frame creation failed');
                         }
@@ -2196,6 +2202,19 @@ const BoardStudioPage: React.FC = () => {
                 previewThumbUrl: undefined
               }}
               onRenameFrame={async (frameId, newName) => {
+                // Guard: Warn if trying to PATCH a temp/invalid frame ID
+                if (frameId.startsWith('frame-') || frameId.startsWith('temp-')) {
+                  console.warn("⚠️ Attempted PATCH on temp frame ID:", frameId);
+                  alert('Cannot update frame: frame not yet persisted to server');
+                  return;
+                }
+                
+                const frameExists = mockFrames.some(f => f.id === frameId);
+                if (!frameExists) {
+                  console.warn("⚠️ Attempted PATCH on non-existent frame ID:", frameId);
+                  return;
+                }
+                
                 setMockFrames(prev => prev.map(f => 
                   f.id === frameId 
                     ? { ...f, data: { ...f.data, name: newName } }
@@ -2213,6 +2232,19 @@ const BoardStudioPage: React.FC = () => {
                 }
               }}
               onChangePattern={async (frameId, pattern) => {
+                // Guard: Warn if trying to PATCH a temp/invalid frame ID
+                if (frameId.startsWith('frame-') || frameId.startsWith('temp-')) {
+                  console.warn("⚠️ Attempted PATCH on temp frame ID:", frameId);
+                  alert('Cannot update frame: frame not yet persisted to server');
+                  return;
+                }
+                
+                const frameExists = mockFrames.some(f => f.id === frameId);
+                if (!frameExists) {
+                  console.warn("⚠️ Attempted PATCH on non-existent frame ID:", frameId);
+                  return;
+                }
+                
                 setMockFrames(prev => prev.map(f => 
                   f.id === frameId 
                     ? { ...f, FrameConfig: { ...f.FrameConfig, engagementMode: pattern } }
