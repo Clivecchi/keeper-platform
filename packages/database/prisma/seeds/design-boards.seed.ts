@@ -608,15 +608,3 @@ export default async function seed() {
   console.log('✅ Design Board Templates seeded successfully!');
 }
 
-// Run if called directly
-if (require.main === module) {
-  seed()
-    .catch((e) => {
-      console.error('❌ Seed failed:', e);
-      process.exit(1);
-    })
-    .finally(async () => {
-      await prisma.$disconnect();
-    });
-}
-

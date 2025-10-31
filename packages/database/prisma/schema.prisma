@@ -162,7 +162,7 @@ model Board {
   // END: Phase-0 addition
 
   // Domain-scoped fields
-  domainId    String?         @db.Uuid
+  domainId    String?
   domain      Domain?         @relation(fields: [domainId], references: [id], onDelete: SetNull)
   /**
    * Logical type of board used for uniqueness within a scope.
