@@ -21,6 +21,10 @@ async function main() {
     const seedDomain = await import('./seeds/domain.seed.ts');
     await seedDomain.default();
 
+    console.log('🎨 Seeding Design Board Templates...');
+    const seedDesignBoards = await import('./seeds/design-boards.seed.ts');
+    await seedDesignBoards.default();
+
     console.log('🎉 Database seed completed successfully!');
   } catch (error) {
     console.error('❌ Error during seeding:', error);

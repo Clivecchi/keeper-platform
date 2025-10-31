@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { ScrollArea } from './ui/scroll-area'
@@ -9,28 +9,44 @@ import { PATTERNS } from '../patterns/registry'
 import { useBoardStudio } from '../context/BoardStudioContext'
 
 /**
- * FrameConfigPanel - Right sidebar panel for frame configuration
+ * FrameConfigPanel - Stable right sidebar panel for frame configuration
  * 
  * Shows configuration options for the currently active frame:
- * - Frame name (editable)
+ * - Frame name (editable with controlled input)
  * - Pattern selector
  * - Props list (read-only for now)
  * 
  * When no frame is active, shows a friendly empty state.
+ * 
+ * Fixed issues:
+ * - Controlled input with local state prevents deletion issues
+ * - Fixed width panel prevents jitter
+ * - Proper background styling on dropdowns
  */
 export function FrameConfigPanel() {
   const { activeFrameId, frames, updateFrame, mode } = useBoardStudio()
+  const activeFrame = frames.find(f => f.id === activeFrameId)
+  
+  // Local state for frame name to fix input issues
+  const [frameNameDraft, setFrameNameDraft] = useState('')
+  const [isDirty, setIsDirty] = useState(false)
+
+  // Sync local state when active frame changes
+  useEffect(() => {
+    if (activeFrame) {
+      setFrameNameDraft(activeFrame.name)
+      setIsDirty(false)
+    }
+  }, [activeFrame?.id, activeFrame?.name])
 
   // Only show in studio mode
   if (mode !== 'studio') {
     return null
   }
 
-  const activeFrame = frames.find(f => f.id === activeFrameId)
-
   if (!activeFrame) {
     return (
-      <aside className="w-80 bg-white border-l">
+      <aside className="w-80 bg-white border-l flex-shrink-0">
         <div className="p-6">
           <h3 className="text-sm font-semibold text-gray-900 mb-4">Frame Configuration</h3>
           <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -59,31 +75,50 @@ export function FrameConfigPanel() {
     )
   }
 
+  const handleNameBlur = () => {
+    if (isDirty && frameNameDraft !== activeFrame.name) {
+      console.log("✏️ Saving frame name", { frameId: activeFrame.id, newName: frameNameDraft })
+      updateFrame(activeFrame.id, { name: frameNameDraft })
+      setIsDirty(false)
+    }
+  }
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFrameNameDraft(e.target.value)
+    setIsDirty(true)
+  }
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur()
+    }
+  }
+
   return (
-    <aside className="w-80 bg-white border-l flex flex-col">
-      <div className="p-4 border-b">
+    <aside className="w-80 bg-white border-l flex-shrink-0 flex flex-col">
+      <div className="p-4 border-b flex-shrink-0">
         <h3 className="text-sm font-semibold text-gray-900">Frame Configuration</h3>
         <p className="text-xs text-gray-500 mt-1">Configure the selected frame</p>
       </div>
 
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-6">
-          {/* Frame Name */}
+          {/* Frame Name - Fixed controlled input */}
           <div>
             <label className="text-sm font-medium text-gray-700 mb-2 block">
               Frame Name
             </label>
             <Input
-              value={activeFrame.name}
-              onChange={(e) => {
-                console.log("✏️ Update frame", { frameId: activeFrame.id, field: 'name', value: e.target.value })
-                updateFrame(activeFrame.id, { name: e.target.value })
-              }}
+              value={frameNameDraft}
+              onChange={handleNameChange}
+              onBlur={handleNameBlur}
+              onKeyDown={handleNameKeyDown}
               placeholder="Enter frame name"
-              className="w-full bg-background"
+              className="w-full bg-white"
             />
             <p className="text-xs text-gray-500 mt-1">
               The name of this frame (visible in tabs)
+              {isDirty && <span className="text-amber-600"> • Unsaved</span>}
             </p>
           </div>
 
@@ -104,7 +139,7 @@ export function FrameConfigPanel() {
             </p>
           </div>
 
-          {/* Engagement Pattern */}
+          {/* Engagement Pattern - Fixed dropdown styling */}
           <div>
             <label className="text-sm font-medium text-gray-700 mb-2 block">
               Engagement Pattern
@@ -116,12 +151,12 @@ export function FrameConfigPanel() {
                 updateFrame(activeFrame.id, { pattern })
               }}
             >
-              <SelectTrigger className="bg-background border ring-0 shadow-none">
+              <SelectTrigger className="bg-white border border-gray-300 hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="z-50 bg-popover">
+              <SelectContent className="z-50 bg-white border border-gray-200 shadow-lg">
                 {Object.values(PATTERNS).map((pattern) => (
-                  <SelectItem key={pattern.id} value={pattern.id}>
+                  <SelectItem key={pattern.id} value={pattern.id} className="hover:bg-gray-100">
                     <div>
                       <div className="font-medium">{pattern.name}</div>
                       <div className="text-xs text-gray-500">{pattern.summary}</div>

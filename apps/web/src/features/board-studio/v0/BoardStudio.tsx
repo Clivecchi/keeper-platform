@@ -114,11 +114,33 @@ function BoardStudioContent() {
               <span className="font-semibold text-gray-900">Keeper</span>
             </div>
             <div className="h-4 w-px bg-gray-300" />
-            <span className="text-sm text-gray-600">Board Studio</span>
+            <span className="text-sm text-gray-600">Design Board Studio</span>
             {board && (
               <>
                 <div className="h-4 w-px bg-gray-300" />
                 <span className="text-sm font-medium text-gray-900">{board.name}</span>
+                {/* Template Badge */}
+                {(board as any).isTemplate && (
+                  <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800">
+                    Template
+                  </span>
+                )}
+                {/* Mode Indicator */}
+                {mode === 'studio' && (
+                  <span className="inline-flex items-center text-xs text-gray-500">
+                    {(board as any).isTemplate ? (
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                        Template Mode
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                        Instance Mode
+                      </span>
+                    )}
+                  </span>
+                )}
               </>
             )}
           </div>
@@ -175,7 +197,7 @@ function BoardStudioContent() {
             <div className="p-4">
               <div className="space-y-1">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-gray-700">Boards</span>
+                  <span className="text-sm font-medium text-gray-700">Design Boards</span>
                   <Button variant="ghost" size="icon" className="h-6 w-6">
                     <Plus className="w-3 h-3" />
                   </Button>

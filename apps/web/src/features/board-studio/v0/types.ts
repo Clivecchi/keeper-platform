@@ -22,6 +22,7 @@ export type StudioBoard = {
   name: string;
   description?: string;
   frames: StudioFrame[];
+  isTemplate?: boolean; // Design Board Template System
 };
 
 // AI Token v1 config (placeholder only)

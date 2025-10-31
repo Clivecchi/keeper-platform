@@ -93,13 +93,40 @@ model KeeperMapping {
   MemoryCard         MemoryCard @relation(fields: [memoryCardId], references: [id])
 }
 
+model KeeperRecord {
+  id            String     @id @default(uuid())
+  
+  // which KeeperType this record is an instance of
+  typeId        String
+  type          KeeperType @relation(fields: [typeId], references: [id])
+  
+  // optional per-record board override
+  customBoardId String?    @db.Uuid
+  customBoard   Board?     @relation("CustomBoard", fields: [customBoardId], references: [id])
+  
+  // actual data for the record (JSON blob for flexibility)
+  data          Json       @default("{}")
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@index([typeId])
+  @@index([customBoardId])
+}
+
 model KeeperType {
   id                               String                             @id
   name                             String
   createdAt                        DateTime                           @default(now())
   memoryPattern                    String?
   system                           Boolean                            @default(false)
+  
+  // Design Board Template System
+  defaultBoardTemplateId           String?                            @db.Uuid
+  defaultBoardTemplate             Board?                             @relation("DefaultBoardTemplate", fields: [defaultBoardTemplateId], references: [id])
+  
   Keeper                           Keeper[]
+  KeeperRecord                     KeeperRecord[]
   keeper_type_engagement_templates keeper_type_engagement_templates[]
   kip_agent_keeper_types           kip_agent_keeper_types[]
 }
@@ -143,10 +170,16 @@ model Board {
    */
   boardType   String?
 
+  // Design Board Template System
+  isTemplate  Boolean         @default(false)
+  KeeperType  KeeperType[]    @relation("DefaultBoardTemplate")
+  KeeperRecord KeeperRecord[] @relation("CustomBoard")
+
   @@unique([keeperId, slug])
   @@index([keeperId])
   @@index([agentId])
   @@index([domainId])
+  @@index([isTemplate])
   @@unique([domainId, boardType])
 }
 
