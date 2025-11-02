@@ -296,7 +296,7 @@ function FormProp({
 function AIAssistantProp({ config, value }: { config: PropConfig; value: any }) {
   const agentData = value;
   const name = agentData?.name || 'No agent assigned';
-  const persona = agentData?.persona || config.content || '';
+  const purpose = agentData?.purpose || config.content || '';
   
   return (
     <div className="p-4 border rounded bg-gradient-to-br from-purple-50 to-blue-50 mb-4">
@@ -306,7 +306,7 @@ function AIAssistantProp({ config, value }: { config: PropConfig; value: any }) 
         </div>
         <div>
           <h4 className="font-medium text-gray-900">{name}</h4>
-          {persona && <p className="text-xs text-gray-600">{persona}</p>}
+          {purpose && <p className="text-xs text-gray-600">{purpose}</p>}
         </div>
       </div>
     </div>

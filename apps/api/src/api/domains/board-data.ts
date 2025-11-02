@@ -46,13 +46,7 @@ router.get('/:domainId/board-data', authMiddlewareCompat, async (req: Authentica
     const domain = await prisma.domain.findUnique({
       where: { id: domainId },
       include: {
-        users: {
-          select: { id: true, name: true, email: true }
-        },
-        DomainPermission: userId ? {
-          where: { userId },
-          select: { permission: true }
-        } : false,
+        users: true, // Owner relation (singular)
       }
     });
 
@@ -172,7 +166,11 @@ router.get('/:domainId/board-data', authMiddlewareCompat, async (req: Authentica
         isPublic: domain.isPublic,
         theme: domain.theme,
         settings: domain.settings,
-        owner: domain.users,
+        owner: domain.users ? {
+          id: domain.users.id,
+          name: domain.users.name,
+          email: domain.users.email
+        } : null,
         status: domain.status
       },
       userPermissions
@@ -246,7 +244,7 @@ async function hydrateDataSource(
     if (agentId) {
       const agent = await prisma.kip_agents.findUnique({
         where: { id: agentId },
-        select: { id: true, name: true, persona: true }
+        select: { id: true, name: true, purpose: true }
       });
       return agent;
     }
