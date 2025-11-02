@@ -1769,8 +1769,9 @@ const BoardStudioPage: React.FC = () => {
                     templates.map((template) => (
                       <div 
                         key={template.id}
+                        onClick={() => handleBoardSelect(template.id)}
                         className="flex items-center gap-2 p-2 rounded-md border border-purple-200 bg-purple-50/50 hover:bg-purple-50 cursor-pointer transition-colors"
-                        title={`Used by KeeperTypes - click to view`}
+                        title="Click to view and edit this template"
                       >
                         <div className="w-2 h-2 rounded-full bg-purple-500"></div>
                         <span className="text-sm font-medium text-purple-900 flex-1 truncate">{template.name}</span>
@@ -1909,6 +1910,18 @@ const BoardStudioPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <span className="text-sm font-medium text-gray-900">{boardName || 'Untitled Board'}</span>
+                  {(() => {
+                    const currentBoard = [...boards, ...templates].find(b => b.id === selectedBoardId);
+                    if (currentBoard && (currentBoard as any).isTemplate) {
+                      return (
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                          <Sparkles className="w-3 h-3" />
+                          Template
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                   {boardDescription && (
                     <>
                       <span className="text-gray-400">•</span>
