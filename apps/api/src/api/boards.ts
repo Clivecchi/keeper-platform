@@ -387,6 +387,83 @@ async function applyTemplate(boardId: string, templateId: string): Promise<any[]
 // =============================================================================
 
 /**
+ * GET /api/board-data/templates → list all template boards
+ */
+router.get('/templates', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const templates = await prisma.board.findMany({
+      where: { isTemplate: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        isTemplate: true,
+        behavior: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: { frames: true }
+        }
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    // Transform to include frameCount
+    const templatesWithFrameCount = templates.map(tpl => ({
+      ...tpl,
+      frameCount: tpl._count.frames,
+      _count: undefined
+    }));
+
+    return res.json({
+      success: true,
+      data: templatesWithFrameCount
+    });
+  } catch (error) {
+    console.error('Error fetching templates:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/board-data/templates/:id/keeper-types → get KeeperTypes using this template
+ */
+router.get('/templates/:id/keeper-types', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const keeperTypes = await prisma.keeperType.findMany({
+      where: { defaultBoardTemplateId: id },
+      select: {
+        id: true,
+        name: true,
+        system: true,
+      },
+    });
+
+    return res.json({
+      success: true,
+      data: keeperTypes
+    });
+  } catch (error) {
+    console.error('Error fetching keeper types for template:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
  * GET /api/boards?keeperId=:keeperId → list boards
  */
 router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {

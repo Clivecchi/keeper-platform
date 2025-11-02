@@ -468,7 +468,7 @@ class BoardStudioErrorBoundary extends React.Component<{ children: React.ReactNo
       return (
         <div className="h-screen flex items-center justify-center bg-slate-50">
           <div className="max-w-md text-center">
-            <h1 className="text-xl font-semibold text-slate-900 mb-2">Board Studio recovered from an error</h1>
+            <h1 className="text-xl font-semibold text-slate-900 mb-2">Design Boards recovered from an error</h1>
             <p className="text-slate-600 mb-4">You can continue by creating a new board. Developer console has details.</p>
             <a href="/studio/board-studio" className="inline-flex items-center space-x-2 px-4 py-2 bg-slate-700 text-white rounded-lg">Reload Board Studio</a>
           </div>
@@ -511,6 +511,8 @@ const BoardStudioPage: React.FC = () => {
 
   // Board Studio State
   const [boards, setBoards] = useState<BoardListItem[]>([]);
+  const [templates, setTemplates] = useState<BoardListItem[]>([]);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [frameTypes, setFrameTypes] = useState<FrameType[]>(FRAME_TYPES);
   const [selectedFrameId, setSelectedFrameId] = useState<string | null>(null);
   const [openFrameConfigId, setOpenFrameConfigId] = useState<string | null>(null);
@@ -684,6 +686,7 @@ const BoardStudioPage: React.FC = () => {
   // Load boards and frame types on mount
   useEffect(() => {
     loadBoardsAndFrames();
+    loadTemplates();
   }, []);
 
   // Auto-select first board if none selected
@@ -701,9 +704,20 @@ const BoardStudioPage: React.FC = () => {
 
   const loadBoardsAndFrames = async () => {
     try {
+      console.log('🔍 [Design Boards] Loading boards...', {
+        hasActiveKeeper: !!activeKeeper,
+        keeperId: activeKeeper?.id,
+        keeperName: activeKeeper?.name,
+        fallbackId: '00000000-0000-0000-0000-000000000001'
+      });
+      
       if (DEBUG_STUDIO) console.log('Loading boards from API...');
       // Load boards using the correct API endpoint
-      const boardsData = await apiFetch(`/api/board-data?keeperId=${activeKeeper?.id || '00000000-0000-0000-0000-000000000001'}`);
+      const keeperId = activeKeeper?.id || '00000000-0000-0000-0000-000000000001';
+      const url = `/api/board-data?keeperId=${keeperId}`;
+      console.log('🔍 [Design Boards] API call:', url);
+      
+      const boardsData = await apiFetch(url);
       
       // Transform API response to match our BoardListItem interface
       const transformedBoards = (boardsData.data || []).map((board: any) => ({
@@ -728,8 +742,14 @@ const BoardStudioPage: React.FC = () => {
       });
       
       setBoards(transformedBoards);
+      console.log('✅ [Design Boards] Loaded boards:', {
+        count: transformedBoards.length,
+        boards: transformedBoards.map(b => ({ id: b.id, name: b.name, frames: b.frameCount }))
+      });
+      
       if (DEBUG_STUDIO) console.log('Loaded boards from API:', transformedBoards);
     } catch (error) {
+      console.error('❌ [Design Boards] API error:', error);
       console.warn('Board API not available:', error);
       
       // Handle 401 errors by clearing auth and redirecting to login
@@ -776,6 +796,37 @@ const BoardStudioPage: React.FC = () => {
           engagementMode: 'canvas'
         }
       ]);
+    }
+  };
+
+  const loadTemplates = async () => {
+    try {
+      console.log('🎨 [Design Boards] Loading templates...');
+      
+      // Query boards where isTemplate = true
+      const response = await apiFetch(`/api/board-data/templates`);
+      
+      if (response.success && response.data) {
+        const templateList = response.data.map((tpl: any) => ({
+          id: tpl.id,
+          name: tpl.name,
+          type: 'template',
+          description: tpl.description || 'Design Board Template',
+          lastModified: new Date(tpl.updatedAt),
+          frameCount: tpl._count?.frames || tpl.frameCount || 0,
+          engagementMode: tpl.behavior?.defaultPattern || 'canvas',
+          isTemplate: true
+        }));
+        
+        setTemplates(templateList);
+        console.log('✅ [Design Boards] Loaded templates:', {
+          count: templateList.length,
+          templates: templateList.map((t: any) => ({ name: t.name, frames: t.frameCount }))
+        });
+      }
+    } catch (error) {
+      console.warn('❌ [Design Boards] Templates not available:', error);
+      setTemplates([]);
     }
   };
 
@@ -1636,7 +1687,7 @@ const BoardStudioPage: React.FC = () => {
   if (!user) {
     return (
       <div className="p-8">
-        <h1>Board Studio - Loading...</h1>
+        <h1>Design Boards - Loading...</h1>
         <p>Waiting for authentication...</p>
       </div>
     );
@@ -1664,17 +1715,45 @@ const BoardStudioPage: React.FC = () => {
         {/* Left Sidebar - Boards List Only */}
         <aside className="w-64 bg-white border-r">
           <div className="p-4">
+            {/* View Toggle */}
+            <div className="flex gap-1 mb-3 bg-gray-100 rounded-md p-1">
+              <button
+                onClick={() => setShowTemplates(false)}
+                className={`flex-1 px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  !showTemplates 
+                    ? 'bg-white shadow-sm text-gray-900' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                My Boards
+              </button>
+              <button
+                onClick={() => setShowTemplates(true)}
+                className={`flex-1 px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  showTemplates 
+                    ? 'bg-white shadow-sm text-gray-900' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Templates
+              </button>
+            </div>
+            
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-gray-700">Boards</span>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6"
-                  onClick={handleCreateBoard}
-                >
-                  <Plus className="w-3 h-3" />
-                </Button>
+                <span className="text-sm font-medium text-gray-700">
+                  {showTemplates ? 'Design Templates' : 'Boards'}
+                </span>
+                {!showTemplates && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6"
+                    onClick={handleCreateBoard}
+                  >
+                    <Plus className="w-3 h-3" />
+                  </Button>
+                )}
               </div>
               
               {/* Board List Items */}
@@ -1682,9 +1761,29 @@ const BoardStudioPage: React.FC = () => {
                 {isLoading ? (
                   <div className="text-center py-4">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                    <span className="text-xs text-gray-500">Loading boards...</span>
+                    <span className="text-xs text-gray-500">Loading {showTemplates ? 'templates' : 'boards'}...</span>
                   </div>
+                ) : showTemplates ? (
+                  // Templates View
+                  templates.length > 0 ? (
+                    templates.map((template) => (
+                      <div 
+                        key={template.id}
+                        className="flex items-center gap-2 p-2 rounded-md border border-purple-200 bg-purple-50/50 hover:bg-purple-50 cursor-pointer transition-colors"
+                        title={`Used by KeeperTypes - click to view`}
+                      >
+                        <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                        <span className="text-sm font-medium text-purple-900 flex-1 truncate">{template.name}</span>
+                        <span className="text-xs text-purple-600">{template.frameCount} frames</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4">
+                      <span className="text-xs text-gray-500">No templates found</span>
+                    </div>
+                  )
                 ) : boards.length > 0 ? (
+                  // Boards View
                   boards.map((board) => (
                     <div 
                       key={board.id}

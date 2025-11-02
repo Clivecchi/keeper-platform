@@ -237,7 +237,7 @@ export const Sidebar: React.FC = () => {
           Agent Classes
         </SidebarItem>
         <SidebarItem to="/studio/board-studio" icon={<Squares2X2Icon />} isCollapsed={isCollapsed}>
-          Board Studio
+          Design Boards
         </SidebarItem>
       </SidebarSection>
 
