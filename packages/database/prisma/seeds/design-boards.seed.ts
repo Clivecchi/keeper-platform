@@ -71,9 +71,9 @@ export default async function seed() {
     data: {
       id: domainBoardId,
       keeperId: systemKeeperId,
-      name: 'Domain Management',
-      slug: 'domain-management-template',
-      description: 'Default board for managing domains',
+      name: 'Domain Design Board',
+      slug: 'domain-design-board-template',
+      description: 'Canonical board for domains - public showcase + admin operations',
       isTemplate: true,
       theme: {},
       behavior: {
@@ -87,39 +87,71 @@ export default async function seed() {
     }
   });
 
-  // Domain frames
+  // Domain frames - Canonical 5-frame design
   const domainFrames = [
+    // Frame A: Hero / Identity (Public + Admin)
     {
-      layout: { x: 0, y: 0, w: 12, h: 3 },
-      name: 'Domain Header',
-      props: {
-        type: 'FieldGridProp',
-        dataSource: ['record.data.name', 'record.data.healthStatus']
-      }
+      layout: { x: 0, y: 0, w: 12, h: 4 },
+      name: 'Hero / Identity',
+      pattern: 'focus',
+      visibility: 'public',
+      props: [
+        { type: 'HeroImageProp', dataSource: 'domain.theme.coverImage' },
+        { type: 'HeadingProp', dataSource: 'domain.name', level: 1 },
+        { type: 'TextBlockProp', dataSource: 'domain.description', style: 'tagline' },
+        { type: 'StatusBadgeProp', dataSource: 'domain.status' },
+        { type: 'ActionButtonProp', label: 'Contact / Follow / Enter', engagementTemplate: 'domain.public.contact' }
+      ]
     },
+    // Frame B: Activity / Assets / Surface (Public + Admin)
     {
-      layout: { x: 0, y: 3, w: 6, h: 6 },
-      name: 'Open Quotes',
-      props: {
-        type: 'RecordListProp',
-        dataSource: 'record.data.openQuotes'
-      }
+      layout: { x: 0, y: 4, w: 8, h: 6 },
+      name: 'Activity / Assets',
+      pattern: 'gallery',
+      visibility: 'public',
+      props: [
+        { type: 'HeadingProp', value: 'What We\'re Building', level: 2 },
+        { type: 'CardListProp', dataSource: 'domain.keepers', display: 'grid' },
+        { type: 'CardListProp', dataSource: 'domain.journeys', display: 'masonry' }
+      ]
     },
+    // Frame C: People / Membership (Public + Admin)
     {
-      layout: { x: 6, y: 3, w: 6, h: 6 },
-      name: 'Open Tasks',
-      props: {
-        type: 'TaskListProp',
-        dataSource: 'record.data.openTasks'
-      }
+      layout: { x: 8, y: 4, w: 4, h: 6 },
+      name: 'People / Membership',
+      pattern: 'canvas',
+      visibility: 'public',
+      props: [
+        { type: 'HeadingProp', value: 'Team', level: 2 },
+        { type: 'AvatarListProp', dataSource: 'domain.members', showRole: true }
+      ]
     },
+    // Frame D: Domain Operations (Admin Only)
     {
-      layout: { x: 0, y: 9, w: 12, h: 4 },
-      name: 'AI Assistant',
-      props: {
-        type: 'AIAssistantProp',
-        dataSource: 'record.data.primaryAgentId'
-      }
+      layout: { x: 0, y: 10, w: 6, h: 8 },
+      name: 'Domain Operations',
+      pattern: 'form',
+      visibility: 'admin',
+      props: [
+        { type: 'HeadingProp', value: 'Domain Operations', level: 2 },
+        { type: 'FormProp', fields: ['name', 'slug', 'description'], submitEngagement: 'domain.admin.update' },
+        { type: 'StatusCardProp', title: 'DNS Configuration', dataSource: 'domain.dns' },
+        { type: 'ActionButtonProp', label: 'Verify Domain', engagementTemplate: 'domain.admin.verify' },
+        { type: 'CopyableTextProp', label: 'Nameservers', dataSource: 'domain.dns.nameservers' }
+      ]
+    },
+    // Frame E: Keys / Integrations / Agents (Admin Only)
+    {
+      layout: { x: 6, y: 10, w: 6, h: 8 },
+      name: 'Keys / Integrations',
+      pattern: 'canvas',
+      visibility: 'admin',
+      props: [
+        { type: 'HeadingProp', value: 'AI & Integrations', level: 2 },
+        { type: 'KeyStatusCardProp', title: 'OpenAI', dataSource: 'domain.keys.openai' },
+        { type: 'KeyStatusCardProp', title: 'Anthropic', dataSource: 'domain.keys.anthropic' },
+        { type: 'AIAssistantProp', title: 'Primary Agent', dataSource: 'domain.primaryAgent' }
+      ]
     }
   ];
 
@@ -135,12 +167,15 @@ export default async function seed() {
         entityId: domainBoardId,
         configId,
         name: frame.name,
-        pattern: 'canvas',
+        pattern: frame.pattern || 'canvas',
         frameType: 'media_card',
         orderIndex: i,
         layoutKind: 'canvas',
         layoutData: frame.layout,
-        props: frame.props,
+        props: {
+          items: frame.props,
+          visibility: frame.visibility || 'public'
+        },
       }
     });
   }
