@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
 
@@ -110,6 +111,7 @@ async function main() {
         updated_at: new Date()
       },
       create: {
+        id: randomUUID(),
         ...theme,
         created_at: new Date(),
         updated_at: new Date()
@@ -124,14 +126,3 @@ async function main() {
 // Export main function for use in seed runner
 export default main;
 
-// Run if called directly
-if (require.main === module) {
-  main()
-    .catch((e) => {
-      console.error('❌ Error seeding themes:', e);
-      process.exit(1);
-    })
-    .finally(async () => {
-      await prisma.$disconnect();
-    });
-}
