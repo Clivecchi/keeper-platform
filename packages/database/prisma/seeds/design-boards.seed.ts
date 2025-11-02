@@ -87,70 +87,185 @@ export default async function seed() {
     }
   });
 
-  // Domain frames - Canonical 5-frame design
+  // Domain frames - Canonical 5-frame design with seeded props
   const domainFrames = [
-    // Frame A: Hero / Identity (Public + Admin)
+    // Frame 0: Hero / Identity (Public)
     {
       layout: { x: 0, y: 0, w: 12, h: 4 },
       name: 'Hero / Identity',
       pattern: 'focus',
       visibility: 'public',
       props: [
-        { type: 'HeroImageProp', dataSource: 'domain.theme.coverImage' },
-        { type: 'HeadingProp', dataSource: 'domain.name', level: 1 },
-        { type: 'TextBlockProp', dataSource: 'domain.description', style: 'tagline' },
-        { type: 'StatusBadgeProp', dataSource: 'domain.status' },
-        { type: 'ActionButtonProp', label: 'Contact / Follow / Enter', engagementTemplate: 'domain.public.contact' }
+        {
+          type: 'HeroImage',
+          key: 'coverImage',
+          dataSource: 'domain.theme.coverImage',
+          style: { variant: 'full-bleed' }
+        },
+        {
+          type: 'Heading',
+          key: 'domainTitle',
+          dataSource: 'domain.name',
+          style: { level: 'h1' }
+        },
+        {
+          type: 'TextBlock',
+          key: 'domainTagline',
+          dataSource: 'domain.description',
+          style: { tone: 'soft' }
+        },
+        {
+          type: 'ActionButton',
+          key: 'contactButton',
+          label: 'Contact',
+          engagementTemplate: 'domain.public.contact',
+          visibility: 'public'
+        }
       ]
     },
-    // Frame B: Activity / Assets / Surface (Public + Admin)
+    // Frame 1: Activity / Assets (Public)
     {
       layout: { x: 0, y: 4, w: 8, h: 6 },
       name: 'Activity / Assets',
       pattern: 'gallery',
       visibility: 'public',
       props: [
-        { type: 'HeadingProp', value: 'What We\'re Building', level: 2 },
-        { type: 'CardListProp', dataSource: 'domain.keepers', display: 'grid' },
-        { type: 'CardListProp', dataSource: 'domain.journeys', display: 'masonry' }
+        {
+          type: 'Heading',
+          key: 'activityHeading',
+          text: 'What We\'re Building',
+          style: { level: 'h2' }
+        },
+        {
+          type: 'ImageGallery',
+          key: 'featuredWork',
+          dataSource: 'domain.featured.keepersOrJourneys',
+          style: { layout: 'cards' }
+        },
+        {
+          type: 'Quote',
+          key: 'ethosQuote',
+          dataSource: 'domain.values.statement',
+          fallback: 'We show our worth by what we build and keep.',
+          style: { variant: 'accent' }
+        }
       ]
     },
-    // Frame C: People / Membership (Public + Admin)
+    // Frame 2: People / Membership (Public)
     {
       layout: { x: 8, y: 4, w: 4, h: 6 },
       name: 'People / Membership',
       pattern: 'canvas',
       visibility: 'public',
       props: [
-        { type: 'HeadingProp', value: 'Team', level: 2 },
-        { type: 'AvatarListProp', dataSource: 'domain.members', showRole: true }
+        {
+          type: 'Heading',
+          key: 'teamHeading',
+          text: 'Who\'s Here',
+          style: { level: 'h2' }
+        },
+        {
+          type: 'ImageGallery',
+          key: 'memberGallery',
+          dataSource: 'domain.members',
+          style: { layout: 'avatars+labels' }
+        },
+        {
+          type: 'TextBlock',
+          key: 'teamNote',
+          text: 'People who build, protect, and speak for this domain.',
+          style: { tone: 'subtle' }
+        }
       ]
     },
-    // Frame D: Domain Operations (Admin Only)
+    // Frame 3: Domain Operations (Admin Only)
     {
       layout: { x: 0, y: 10, w: 6, h: 8 },
       name: 'Domain Operations',
       pattern: 'form',
       visibility: 'admin',
       props: [
-        { type: 'HeadingProp', value: 'Domain Operations', level: 2 },
-        { type: 'FormProp', fields: ['name', 'slug', 'description'], submitEngagement: 'domain.admin.update' },
-        { type: 'StatusCardProp', title: 'DNS Configuration', dataSource: 'domain.dns' },
-        { type: 'ActionButtonProp', label: 'Verify Domain', engagementTemplate: 'domain.admin.verify' },
-        { type: 'CopyableTextProp', label: 'Nameservers', dataSource: 'domain.dns.nameservers' }
+        {
+          type: 'Heading',
+          key: 'opsHeading',
+          text: 'Domain Settings',
+          style: { level: 'h2' },
+          visibility: 'admin'
+        },
+        {
+          type: 'Form',
+          key: 'updateDomainInfoForm',
+          engagementTemplate: 'domain.admin.update',
+          fields: [
+            { name: 'name', dataSource: 'domain.name' },
+            { name: 'slug', dataSource: 'domain.slug' },
+            { name: 'description', dataSource: 'domain.description' }
+          ],
+          visibility: 'admin'
+        },
+        {
+          type: 'ActionButton',
+          key: 'verifyDomainButton',
+          label: 'Verify Domain',
+          engagementTemplate: 'domain.admin.verify',
+          visibility: 'admin'
+        },
+        {
+          type: 'TextBlock',
+          key: 'dnsInfo',
+          dataSource: 'domain.dns.statusMessage',
+          fallback: 'DNS detected — waiting for verification. You may click Verify now.',
+          style: { tone: 'status' },
+          visibility: 'admin'
+        }
       ]
     },
-    // Frame E: Keys / Integrations / Agents (Admin Only)
+    // Frame 4: Keys / Integrations (Admin Only)
     {
       layout: { x: 6, y: 10, w: 6, h: 8 },
       name: 'Keys / Integrations',
       pattern: 'canvas',
       visibility: 'admin',
       props: [
-        { type: 'HeadingProp', value: 'AI & Integrations', level: 2 },
-        { type: 'KeyStatusCardProp', title: 'OpenAI', dataSource: 'domain.keys.openai' },
-        { type: 'KeyStatusCardProp', title: 'Anthropic', dataSource: 'domain.keys.anthropic' },
-        { type: 'AIAssistantProp', title: 'Primary Agent', dataSource: 'domain.primaryAgent' }
+        {
+          type: 'Heading',
+          key: 'keysHeading',
+          text: 'Keys & Integrations',
+          style: { level: 'h2' },
+          visibility: 'admin'
+        },
+        {
+          type: 'TextBlock',
+          key: 'keyReminder',
+          text: 'Bring your own keys to control cost and access. If you don\'t add keys, we\'ll use shared platform fallbacks.',
+          visibility: 'admin'
+        },
+        {
+          type: 'Form',
+          key: 'editApiKeyForm',
+          engagementTemplate: 'domain.admin.editApiKey',
+          fields: [
+            { name: 'provider', type: 'select', optionsSource: 'providers' },
+            { name: 'apiKey', type: 'password' }
+          ],
+          visibility: 'admin'
+        },
+        {
+          type: 'Form',
+          key: 'assignAgentForm',
+          engagementTemplate: 'domain.admin.assignAgent',
+          fields: [
+            { name: 'agentId', type: 'select', optionsSource: 'agents' }
+          ],
+          visibility: 'admin'
+        },
+        {
+          type: 'AI Assistant',
+          key: 'primaryAgentCard',
+          dataSource: 'domain.settings.primaryAgentSummary',
+          fallback: 'No primary agent assigned.',
+          visibility: 'admin'
+        }
       ]
     }
   ];
@@ -172,10 +287,7 @@ export default async function seed() {
         orderIndex: i,
         layoutKind: 'canvas',
         layoutData: frame.layout,
-        props: {
-          items: frame.props,
-          visibility: frame.visibility || 'public'
-        },
+        props: frame.props, // Store props array directly
       }
     });
   }
