@@ -64,7 +64,7 @@ router.get('/:id/board-data', authMiddlewareCompat, async (req: Request, res: Re
                 id: true,
                 name: true,
                 email: true,
-                avatar: true
+                avatar_url: true
               }
             }
           },
@@ -128,7 +128,7 @@ router.get('/:id/board-data', authMiddlewareCompat, async (req: Request, res: Re
     }
 
     // Transform members for Frame C
-    const members = domainData.DomainPermission.map(dp => ({
+    const members = domainData?.DomainPermission?.map(dp => ({
       id: dp.id,
       role: dp.role,
       permissions: dp.permissions,
@@ -137,12 +137,12 @@ router.get('/:id/board-data', authMiddlewareCompat, async (req: Request, res: Re
         id: dp.users_DomainPermission_userIdTousers.id,
         name: dp.users_DomainPermission_userIdTousers.name,
         email: dp.users_DomainPermission_userIdTousers.email,
-        avatarUrl: dp.users_DomainPermission_userIdTousers.avatar
+        avatarUrl: dp.users_DomainPermission_userIdTousers.avatar_url
       }
-    }));
+    })) || [];
 
     // Transform keepers for Frame B
-    const keepers = domainData.keepers.map(k => ({
+    const keepers = domainData?.keepers?.map(k => ({
       id: k.id,
       title: k.title,
       purpose: k.purpose,
@@ -152,16 +152,16 @@ router.get('/:id/board-data', authMiddlewareCompat, async (req: Request, res: Re
       journeyCount: k.Journey.length,
       keeperType: k.KeeperType?.name,
       createdAt: k.createdAt
-    }));
+    })) || [];
 
     // Transform journeys for Frame B
-    const journeys = domainData.journeys.map(j => ({
+    const journeys = domainData?.journeys?.map(j => ({
       id: j.id,
       name: j.name,
       forward: j.forward,
       keeper: j.Keeper,
       createdAt: j.createdAt
-    }));
+    })) || [];
 
     // Base response (always included for public + admin)
     const response: any = {
@@ -182,7 +182,7 @@ router.get('/:id/board-data', authMiddlewareCompat, async (req: Request, res: Re
       // Frame B: Activity / Assets
       keepers,
       journeys,
-      boards: domainData.boards,
+      boards: domainData?.boards || [],
       
       // Frame C: People / Membership
       members: isAdmin ? members : members.slice(0, 5), // Limit to 5 for public
@@ -241,10 +241,9 @@ router.get('/:id/board-data', authMiddlewareCompat, async (req: Request, res: Re
       // Frame E: Keys / Integrations
       // Check for user's API keys
       const userKeys = await prisma.kip_user_keys.findMany({
-        where: { userId },
+        where: { user_id: userId },
         select: {
           provider: true,
-          is_active: true,
           created_at: true
         }
       });
@@ -363,11 +362,9 @@ function getKeyStatus(userKeys: any[], provider: string): 'active' | 'fallback' 
     return 'missing';
   }
   
-  if (key.is_active) {
-    return 'active';
-  }
-  
-  return 'fallback';
+  // If key exists and was created, assume active
+  // In future, could check last_used or other metrics
+  return 'active';
 }
 
 export default router;
