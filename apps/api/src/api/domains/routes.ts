@@ -13,6 +13,7 @@ import { requireDomainAdminCompat, requireDomainReadCompat, requireDomainWriteCo
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { getFeatureFlagService } from '@keeper/database';
 import customDomainRoutes from './custom-domain-routes.js';
+import contactRoutes from './contact.js';
 import { createDomainResolutionMiddleware } from '../../middleware/domainResolutionMiddleware.js';
 import { ensureDomainTableShape } from '../../lib/db-guards.js';
 import { DomainService } from '@keeper/database';
@@ -33,6 +34,9 @@ router.use(createDomainResolutionMiddleware());
 // Mount custom domain routes to support both legacy and new paths
 router.use(customDomainRoutes); // legacy: /api/domains/:domainId/custom-domain
 router.use('/custom', customDomainRoutes); // new: /api/domains/custom/:domainId/custom-domain
+
+// Mount contact routes
+router.use(contactRoutes);
 
 // GET /api/domains/:domainId/management-board
 router.get('/:domainId/management-board', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
