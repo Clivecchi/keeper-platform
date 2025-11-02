@@ -1,122 +1,130 @@
 /**
- * Engagement Modal Component
+ * EngagementModal
+ * Modal dialog for engagement template forms
  * 
- * Displays a form modal for engagement templates that require user input
- * Handles form state, validation, and submission
+ * Features:
+ * - Dynamically renders fields based on template definition
+ * - Pre-fills values from dataSource if available
+ * - Validates inputs before submission
+ * - Shows loading state during execution
  */
 
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../features/board-studio/v0/components/ui/dialog';
-import { Button } from '../../features/board-studio/v0/components/ui/button';
 import { Input } from '../../features/board-studio/v0/components/ui/input';
-import { Label } from '../../features/board-studio/v0/components/ui/label';
-import { Textarea } from '../../features/board-studio/v0/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../features/board-studio/v0/components/ui/select';
 
 interface TemplateField {
   name: string;
   type: string;
   label: string;
-  required: boolean;
   placeholder?: string;
+  required: boolean;
   config?: {
-    options?: Array<{ value: string; label: string }>;
     dataSource?: string;
-    minLength?: number;
-    maxLength?: number;
     pattern?: string;
     message?: string;
+    minLength?: number;
+    maxLength?: number;
+    options?: Array<{ value: string; label: string }>;
   };
 }
 
-interface Template {
+interface TemplateDefinition {
+  id: string;
   slug: string;
   label: string;
-  fields: TemplateField[];
+  type: string;
   config: {
+    visibility: string;
+    requiresConfirmation?: boolean;
     action: {
-      successMessage?: string;
+      successMessage: string;
     };
   };
+  fields: TemplateField[];
 }
 
 interface EngagementModalProps {
-  template: Template;
-  onSubmit: (inputs: any) => Promise<void>;
-  onCancel: () => void;
+  template: TemplateDefinition;
+  context: {
+    domainId: string;
+    entityType: string;
+    entityId: string;
+  };
+  onSubmit: (inputs: Record<string, any>) => Promise<void>;
+  onClose: () => void;
   isLoading: boolean;
-  error?: string | null;
-  initialValues?: any;
+  prefillData?: Record<string, any>;
 }
 
 export function EngagementModal({
   template,
+  context,
   onSubmit,
-  onCancel,
+  onClose,
   isLoading,
-  error,
-  initialValues = {}
+  prefillData = {},
 }: EngagementModalProps) {
-  const [formData, setFormData] = useState<any>({});
-  const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
+  const [inputs, setInputs] = useState<Record<string, any>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Initialize form data
+  // Initialize inputs with prefilled data
   useEffect(() => {
-    const initial: any = {};
+    const initialInputs: Record<string, any> = {};
+    
     template.fields.forEach(field => {
-      initial[field.name] = initialValues[field.name] || '';
+      // Try to prefill from dataSource
+      if (field.config?.dataSource && prefillData) {
+        const path = field.config.dataSource.split('.');
+        let value = prefillData;
+        for (const key of path) {
+          value = value?.[key];
+        }
+        if (value !== undefined) {
+          initialInputs[field.name] = value;
+        }
+      }
     });
-    setFormData(initial);
-  }, [template, initialValues]);
 
-  /**
-   * Handle field change
-   */
-  const handleChange = (fieldName: string, value: any) => {
-    setFormData((prev: any) => ({
+    setInputs(initialInputs);
+  }, [template, prefillData]);
+
+  const handleInputChange = (fieldName: string, value: any) => {
+    setInputs(prev => ({
       ...prev,
-      [fieldName]: value
+      [fieldName]: value,
     }));
     
-    // Clear validation error for this field
-    if (validationErrors[fieldName]) {
-      setValidationErrors(prev => {
-        const next = { ...prev };
-        delete next[fieldName];
-        return next;
+    // Clear error for this field
+    if (errors[fieldName]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
       });
     }
   };
 
-  /**
-   * Validate form before submission
-   */
-  const validate = (): boolean => {
-    const errors: { [key: string]: string } = {};
+  const validateInputs = (): boolean => {
+    const newErrors: Record<string, string> = {};
 
     template.fields.forEach(field => {
-      const value = formData[field.name];
+      const value = inputs[field.name];
 
       // Check required
-      if (field.required && !value) {
-        errors[field.name] = `${field.label} is required`;
+      if (field.required && (value === undefined || value === null || value === '')) {
+        newErrors[field.name] = `${field.label} is required`;
         return;
       }
 
-      // Skip if empty and not required
+      // Skip further validation if empty and not required
       if (!value) return;
 
       // Email validation
       if (field.type === 'email') {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
-          errors[field.name] = 'Invalid email format';
+          newErrors[field.name] = `${field.label} must be a valid email`;
         }
       }
 
@@ -124,174 +132,159 @@ export function EngagementModal({
       if (field.config?.pattern) {
         const regex = new RegExp(field.config.pattern);
         if (!regex.test(value)) {
-          errors[field.name] = field.config.message || 'Invalid format';
+          newErrors[field.name] = field.config.message || `${field.label} format is invalid`;
         }
       }
 
       // Length validation
       if (field.config?.minLength && value.length < field.config.minLength) {
-        errors[field.name] = `Must be at least ${field.config.minLength} characters`;
+        newErrors[field.name] = `${field.label} must be at least ${field.config.minLength} characters`;
       }
 
       if (field.config?.maxLength && value.length > field.config.maxLength) {
-        errors[field.name] = `Must be at most ${field.config.maxLength} characters`;
+        newErrors[field.name] = `${field.label} must be at most ${field.config.maxLength} characters`;
       }
     });
 
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  /**
-   * Handle form submission
-   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validate()) {
+    if (!validateInputs()) {
       return;
     }
 
-    await onSubmit(formData);
-  };
-
-  /**
-   * Render form field based on type
-   */
-  const renderField = (field: TemplateField) => {
-    const value = formData[field.name] || '';
-    const hasError = !!validationErrors[field.name];
-
-    switch (field.type) {
-      case 'textarea':
-        return (
-          <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name}>
-              {field.label}
-              {field.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            <Textarea
-              id={field.name}
-              value={value}
-              onChange={(e) => handleChange(field.name, e.target.value)}
-              placeholder={field.placeholder}
-              className={hasError ? 'border-red-500' : ''}
-              disabled={isLoading}
-              rows={4}
-            />
-            {hasError && (
-              <p className="text-xs text-red-600">{validationErrors[field.name]}</p>
-            )}
-          </div>
-        );
-
-      case 'select':
-        return (
-          <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name}>
-              {field.label}
-              {field.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            <Select
-              value={value}
-              onValueChange={(val) => handleChange(field.name, val)}
-              disabled={isLoading}
-            >
-              <SelectTrigger className={hasError ? 'border-red-500' : ''}>
-                <SelectValue placeholder={field.placeholder || `Select ${field.label}`} />
-              </SelectTrigger>
-              <SelectContent>
-                {field.config?.options?.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {hasError && (
-              <p className="text-xs text-red-600">{validationErrors[field.name]}</p>
-            )}
-          </div>
-        );
-
-      case 'password':
-      case 'email':
-      case 'text':
-      default:
-        return (
-          <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name}>
-              {field.label}
-              {field.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            <Input
-              id={field.name}
-              type={field.type}
-              value={value}
-              onChange={(e) => handleChange(field.name, e.target.value)}
-              placeholder={field.placeholder}
-              className={hasError ? 'border-red-500' : ''}
-              disabled={isLoading}
-            />
-            {hasError && (
-              <p className="text-xs text-red-600">{validationErrors[field.name]}</p>
-            )}
-          </div>
-        );
-    }
+    await onSubmit(inputs);
   };
 
   return (
-    <>
-      <Button
-        onClick={handleClick}
-        variant={variant}
-        size={size}
-        className={className}
-        disabled={disabled || isLoading}
-      >
-        {isLoading ? 'Loading...' : (children || label || 'Execute')}
-      </Button>
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>{template.label}</DialogTitle>
+          </DialogHeader>
 
-      {showModal && template && (
-        <Dialog open={showModal} onOpenChange={(open) => !isLoading && setShowModal(open)}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>{template.label}</DialogTitle>
-            </DialogHeader>
+          <div className="space-y-4 my-4">
+            {template.fields.map(field => (
+              <FieldRenderer
+                key={field.name}
+                field={field}
+                value={inputs[field.name]}
+                error={errors[field.name]}
+                onChange={(value) => handleInputChange(field.name, value)}
+                disabled={isLoading}
+              />
+            ))}
+          </div>
 
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4 py-4">
-                {template.fields.map((field: TemplateField) => renderField(field))}
-                
-                {error && (
-                  <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-800">
-                    {error}
-                  </div>
-                )}
-              </div>
-
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleModalCancel}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Submitting...' : 'Submit'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
-    </>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {isLoading ? 'Submitting...' : 'Submit'}
+            </button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
+// ============================================================================
+// FIELD RENDERER
+// ============================================================================
+
+interface FieldRendererProps {
+  field: TemplateField;
+  value: any;
+  error?: string;
+  onChange: (value: any) => void;
+  disabled: boolean;
+}
+
+function FieldRenderer({ field, value, error, onChange, disabled }: FieldRendererProps) {
+  const inputClasses = `
+    w-full px-3 py-2 border rounded
+    focus:outline-none focus:ring-2 focus:ring-blue-500
+    disabled:bg-gray-100 disabled:cursor-not-allowed
+    ${error ? 'border-red-500' : 'border-gray-300'}
+  `;
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {field.label}
+        {field.required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+
+      {field.type === 'textarea' && (
+        <textarea
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+          disabled={disabled}
+          rows={4}
+          className={inputClasses}
+        />
+      )}
+
+      {field.type === 'select' && field.config?.options && (
+        <select
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          className={inputClasses}
+        >
+          <option value="">{field.placeholder || 'Select...'}</option>
+          {field.config.options.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {field.type === 'password' && (
+        <Input
+          type="password"
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+          disabled={disabled}
+          className={error ? 'border-red-500' : ''}
+        />
+      )}
+
+      {!['textarea', 'select', 'password'].includes(field.type) && (
+        <Input
+          type={field.type}
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+          disabled={disabled}
+          className={error ? 'border-red-500' : ''}
+        />
+      )}
+
+      {error && (
+        <p className="mt-1 text-sm text-red-600">{error}</p>
+      )}
+    </div>
+  );
+}
+
+export default EngagementModal;

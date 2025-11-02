@@ -14,6 +14,7 @@ import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { getFeatureFlagService } from '@keeper/database';
 import customDomainRoutes from './custom-domain-routes.js';
 import contactRoutes from './contact.js';
+import boardDataRoutes from './board-data.js';
 import { createDomainResolutionMiddleware } from '../../middleware/domainResolutionMiddleware.js';
 import { ensureDomainTableShape } from '../../lib/db-guards.js';
 import { DomainService } from '@keeper/database';
@@ -37,6 +38,9 @@ router.use('/custom', customDomainRoutes); // new: /api/domains/custom/:domainId
 
 // Mount contact routes
 router.use(contactRoutes);
+
+// Mount board data routes
+router.use(boardDataRoutes);
 
 // GET /api/domains/:domainId/management-board
 router.get('/:domainId/management-board', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
@@ -194,6 +198,35 @@ const searchDomainsSchema = z.object({
 /**
  * Domain CRUD Operations
  */
+
+// GET /api/domains/by-slug/:slug - Get domain by slug (public route for landing pages)
+router.get('/by-slug/:slug', async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+    
+    const domain = await prisma.domain.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        isPublic: true,
+        customDomain: true,
+        customDomainVerified: true,
+      }
+    });
+
+    if (!domain) {
+      return res.status(404).json({ error: 'Domain not found' });
+    }
+
+    return res.json(domain);
+  } catch (error) {
+    console.error('Error getting domain by slug:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // GET /api/domains - Search and list domains
 router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {

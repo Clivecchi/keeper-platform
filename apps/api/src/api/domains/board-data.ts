@@ -1,371 +1,273 @@
 /**
- * Domain Board Data API
- * 
- * Provides all data needed for the Domain Design Board (5 frames)
- * Handles permission-based data filtering (public vs admin view)
+ * Domain Board Data Hydration API
+ * Loads the Domain Design Board template and enriches it with live domain data
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { PrismaClient } from '@keeper/database';
-import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
+import { AuthenticatedRequest, authMiddlewareCompat } from '../../middleware/authMiddleware.js';
+import { DomainPermissionService, DomainCacheService } from '@keeper/database';
+import { getRedis } from '../../lib/redis.js';
 
-const router = Router();
+const router: Router = Router();
 const prisma = new PrismaClient();
+const redis = getRedis();
+const cacheService = new DomainCacheService(redis);
+const permissionService = new DomainPermissionService(prisma, cacheService);
 
 /**
- * GET /api/domains/:id/board-data
+ * GET /api/domains/:domainId/board-data
  * 
- * Returns all data for Domain Design Board frames:
- * - Frame A: Hero / Identity (public)
- * - Frame B: Activity / Assets (public)
- * - Frame C: People / Membership (public)
- * - Frame D: Domain Operations (admin only)
- * - Frame E: Keys / Integrations (admin only)
+ * Returns the Domain Design Board with live data hydration
+ * 
+ * Response structure:
+ * {
+ *   board: {
+ *     id, name, description, theme, behavior,
+ *     frames: [
+ *       {
+ *         id, name, pattern, visibility,
+ *         props: [
+ *           { id, type, config, value }  // value = hydrated data
+ *         ]
+ *       }
+ *     ]
+ *   },
+ *   domain: { ... },  // Full domain object for context
+ *   userPermissions: { canEdit: boolean, role: string }
+ * }
  */
-router.get('/:id/board-data', authMiddlewareCompat, async (req: Request, res: Response) => {
+router.get('/:domainId/board-data', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id: domainId } = req.params;
-    const userId = (req as any).user?.id;
+    const { domainId } = req.params;
+    const userId = req.user?.id;
 
-    if (!userId) {
-      return res.status(401).json({ 
-        success: false, 
-        error: 'Authentication required' 
-      });
+    // Load domain
+    const domain = await prisma.domain.findUnique({
+      where: { id: domainId },
+      include: {
+        users: {
+          select: { id: true, name: true, email: true }
+        },
+        DomainPermission: userId ? {
+          where: { userId },
+          select: { permission: true }
+        } : false,
+      }
+    });
+
+    if (!domain) {
+      return res.status(404).json({ error: 'Domain not found' });
     }
 
     // Check permissions
-    const permission = await prisma.domainPermission.findUnique({
-      where: { 
-        domainId_userId: { 
-          domainId, 
-          userId 
-        } 
+    let userPermissions = { canEdit: false, role: 'visitor' as string };
+    if (userId) {
+      const perm = await permissionService.checkPermission({
+        userId,
+        domainId,
+        permission: 'read'
+      });
+      
+      if (perm.hasPermission) {
+        userPermissions.canEdit = perm.permission === 'admin' || perm.permission === 'write';
+        userPermissions.role = perm.permission || 'visitor';
       }
-    });
+    }
 
-    const domain = await prisma.domain.findUnique({
-      where: { id: domainId },
-      select: { ownerId: true }
-    });
-
-    const isOwner = domain?.ownerId === userId;
-    const isAdmin = isOwner || permission?.role === 'admin' || permission?.role === 'owner';
-
-    // Fetch domain with all necessary relations
-    const domainData = await prisma.domain.findUnique({
-      where: { id: domainId },
+    // Load Domain Design Board template
+    const domainKeeperType = await prisma.keeperType.findFirst({
+      where: { name: 'Domain' },
       include: {
-        // People / Membership (Frame C)
-        DomainPermission: {
+        defaultBoardTemplate: {
           include: {
-            users_DomainPermission_userIdTousers: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                avatar_url: true
-              }
+            frames: {
+              orderBy: { orderIndex: 'asc' }
             }
-          },
-          orderBy: { grantedAt: 'asc' }
-        },
-        // Activity / Assets (Frame B)
-        keepers: {
-          select: {
-            id: true,
-            title: true,
-            purpose: true,
-            theme_id: true,
-            createdAt: true,
-            Journey: {
-              select: { id: true }
-            },
-            KeeperType: {
-              select: { name: true }
-            }
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 20 // Limit for performance
-        },
-        journeys: {
-          select: {
-            id: true,
-            name: true,
-            forward: true,
-            createdAt: true,
-            Keeper: {
-              select: {
-                id: true,
-                title: true
-              }
-            }
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 20
-        },
-        boards: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            description: true
-          },
-          where: {
-            isTemplate: false
-          },
-          orderBy: { updatedAt: 'desc' },
-          take: 10
+          }
         }
       }
     });
 
-    if (!domainData) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Domain not found' 
+    if (!domainKeeperType?.defaultBoardTemplate) {
+      return res.status(500).json({ 
+        error: 'Domain Design Board template not found. Run database seed.'
       });
     }
 
-    // Transform members for Frame C
-    const members = domainData?.DomainPermission?.map(dp => ({
-      id: dp.id,
-      role: dp.role,
-      permissions: dp.permissions,
-      grantedAt: dp.grantedAt,
-      user: {
-        id: dp.users_DomainPermission_userIdTousers.id,
-        name: dp.users_DomainPermission_userIdTousers.name,
-        email: dp.users_DomainPermission_userIdTousers.email,
-        avatarUrl: dp.users_DomainPermission_userIdTousers.avatar_url
-      }
-    })) || [];
+    const template = domainKeeperType.defaultBoardTemplate;
 
-    // Transform keepers for Frame B
-    const keepers = domainData?.keepers?.map(k => ({
-      id: k.id,
-      title: k.title,
-      purpose: k.purpose,
-      theme: {
-        coverImage: null // Add when theme system is implemented
+    // Filter frames by visibility
+    const isAdmin = userPermissions.role === 'admin';
+    const visibleFrames = template.frames.filter(frame => {
+      const frameData = frame as any;
+      const visibility = frameData.props?.visibility || (frame as any).visibility;
+      return visibility === 'public' || (visibility === 'admin' && isAdmin);
+    });
+
+    // Hydrate props with live data
+    const hydratedFrames = await Promise.all(
+      visibleFrames.map(async (frame) => {
+        const frameData = frame as any;
+        const props = Array.isArray(frameData.props) ? frameData.props : [];
+
+        const hydratedProps = await Promise.all(
+          props.map(async (prop: any) => {
+            // Filter by prop-level visibility
+            const propVisibility = prop.config?.visibility;
+            if (propVisibility === 'admin' && !isAdmin) {
+              return null; // Hide admin-only props from non-admins
+            }
+
+            // Hydrate based on dataSource
+            let value = prop.config?.content || prop.config?.defaultValue;
+            const dataSource = prop.config?.dataSource;
+
+            if (dataSource) {
+              value = await hydrateDataSource(dataSource, domain, prisma);
+            }
+
+            return {
+              id: prop.id,
+              type: prop.type,
+              config: prop.config,
+              value, // Live data
+              orderIndex: prop.orderIndex
+            };
+          })
+        );
+
+        // Remove null props (hidden by visibility)
+        const filteredProps = hydratedProps.filter(p => p !== null);
+
+        return {
+          id: frame.id,
+          name: frame.name,
+          pattern: frame.pattern,
+          visibility: frameData.visibility || 'public',
+          layoutData: frame.layoutData,
+          props: filteredProps
+        };
+      })
+    );
+
+    // Build response
+    const response = {
+      board: {
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        slug: template.slug,
+        theme: template.theme,
+        behavior: template.behavior,
+        frames: hydratedFrames
       },
-      journeyCount: k.Journey.length,
-      keeperType: k.KeeperType?.name,
-      createdAt: k.createdAt
-    })) || [];
-
-    // Transform journeys for Frame B
-    const journeys = domainData?.journeys?.map(j => ({
-      id: j.id,
-      name: j.name,
-      forward: j.forward,
-      keeper: j.Keeper,
-      createdAt: j.createdAt
-    })) || [];
-
-    // Base response (always included for public + admin)
-    const response: any = {
-      // Frame A: Hero / Identity
       domain: {
-        id: domainData.id,
-        name: domainData.name,
-        slug: domainData.slug,
-        description: domainData.description,
-        status: domainData.status,
-        createdAt: domainData.createdAt,
-        theme: (domainData.theme as any) || {
-          coverImage: null,
-          primaryColor: '#3b82f6'
-        }
+        id: domain.id,
+        name: domain.name,
+        slug: domain.slug,
+        description: domain.description,
+        customDomain: domain.customDomain,
+        customDomainVerified: domain.customDomainVerified,
+        isPublic: domain.isPublic,
+        theme: domain.theme,
+        settings: domain.settings,
+        owner: domain.users,
+        status: domain.status
       },
-      
-      // Frame B: Activity / Assets
-      keepers,
-      journeys,
-      boards: domainData?.boards || [],
-      
-      // Frame C: People / Membership
-      members: isAdmin ? members : members.slice(0, 5), // Limit to 5 for public
-      
-      verification: {
-        badge: domainData.customDomainVerified 
-          ? `Verified domain of ${domainData.name}` 
-          : null
-      },
-      
-      // Viewer permissions (for frame visibility)
-      viewerPermissions: {
-        isOwner,
-        isAdmin,
-        canEdit: isAdmin,
-        role: permission?.role || (isOwner ? 'owner' : 'viewer')
-      },
-      
-      // Available actions
-      actions: getAvailableActions(isAdmin)
+      userPermissions
     };
 
-    // Frame D & E: Admin-only data
-    if (isAdmin) {
-      // Frame D: Domain Operations
-      response.dns = {
-        configured: !!domainData.customDomain,
-        verified: domainData.customDomainVerified,
-        nameservers: [
-          'ns1.vercel-dns.com',
-          'ns2.vercel-dns.com'
-        ], // These would come from your DNS provider
-        records: domainData.customDomain ? [
-          {
-            type: 'CNAME',
-            name: domainData.customDomain,
-            value: 'cname.vercel-dns.com',
-            status: domainData.customDomainVerified ? 'verified' : 'pending'
-          }
-        ] : []
-      };
-      
-      response.ssl = {
-        issued: domainData.customDomainVerified,
-        pending: !!domainData.customDomain && !domainData.customDomainVerified,
-        expiresAt: null // Add when SSL cert system is implemented
-      };
-      
-      response.customDomains = domainData.customDomain ? [{
-        domain: domainData.customDomain,
-        verified: domainData.customDomainVerified,
-        status: domainData.customDomainVerified ? 'verified' : 'pending',
-        verificationMethod: domainData.verificationMethod || 'CNAME'
-      }] : [];
-      
-      // Frame E: Keys / Integrations
-      // Check for user's API keys
-      const userKeys = await prisma.kip_user_keys.findMany({
-        where: { user_id: userId },
-        select: {
-          provider: true,
-          created_at: true
-        }
-      });
-      
-      response.keys = {
-        openai: {
-          configured: userKeys.some(k => k.provider === 'openai'),
-          status: getKeyStatus(userKeys, 'openai'),
-          lastUsed: null // Add when usage tracking is implemented
-        },
-        anthropic: {
-          configured: userKeys.some(k => k.provider === 'anthropic'),
-          status: getKeyStatus(userKeys, 'anthropic'),
-          lastUsed: null
-        }
-      };
-      
-      // Primary agent (if domain has one assigned)
-      // For now, we'll look for agents associated with this domain's keepers
-      const domainAgents = await prisma.kip_agents.findMany({
-        where: {
-          OR: [
-            { name: { contains: domainData.name } },
-            // Add domain-agent relation when schema supports it
-          ]
-        },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          agent_class: true
-        },
-        take: 1
-      });
-      
-      if (domainAgents.length > 0) {
-        response.primaryAgent = {
-          id: domainAgents[0].id,
-          name: domainAgents[0].name,
-          slug: domainAgents[0].slug,
-          agentClass: domainAgents[0].agent_class
-        };
-      }
-    }
+    return res.json(response);
 
-    return res.json({
-      success: true,
-      data: response
-    });
   } catch (error) {
-    console.error('Error fetching domain board data:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
+    console.error('[domains:board-data] Error:', error);
+    return res.status(500).json({ error: 'Failed to load board data' });
   }
 });
 
 /**
- * Helper: Get available engagement template actions
+ * Hydrate a data source path with live data
+ * 
+ * Examples:
+ *   domain.name → domain.name
+ *   domain.description → domain.description
+ *   domain.dns.statusMessage → computed DNS status
+ *   domain.members → count of members
+ *   domain.settings.primaryAgentSummary → agent info
  */
-function getAvailableActions(isAdmin: boolean): any[] {
-  const publicActions = [
-    { 
-      id: 'domain.public.contact', 
-      name: 'Contact Domain', 
-      visibility: 'public',
-      availableInFrame: 'hero-identity'
+async function hydrateDataSource(
+  dataSource: string,
+  domain: any,
+  prisma: PrismaClient
+): Promise<any> {
+  const parts = dataSource.split('.');
+
+  // Handle simple domain properties
+  if (parts[0] === 'domain' && parts.length === 2) {
+    const field = parts[1];
+    if (field in domain) {
+      return domain[field];
     }
-  ];
-  
-  const adminActions = [
-    { 
-      id: 'domain.admin.update', 
-      name: 'Update Domain Info', 
-      visibility: 'admin',
-      availableInFrame: 'domain-operations'
-    },
-    { 
-      id: 'domain.admin.verify', 
-      name: 'Verify Domain', 
-      visibility: 'admin',
-      availableInFrame: 'domain-operations'
-    },
-    { 
-      id: 'domain.admin.addCustomDomain', 
-      name: 'Add Custom Domain', 
-      visibility: 'admin',
-      availableInFrame: 'domain-operations'
-    },
-    { 
-      id: 'domain.admin.editApiKey', 
-      name: 'Edit API Key', 
-      visibility: 'admin',
-      availableInFrame: 'keys-integrations'
-    },
-    { 
-      id: 'domain.admin.assignAgent', 
-      name: 'Assign Primary Agent', 
-      visibility: 'admin',
-      availableInFrame: 'keys-integrations'
+  }
+
+  // Handle nested paths
+  if (dataSource === 'domain.theme.coverImage') {
+    return domain.theme?.coverImage || null;
+  }
+
+  if (dataSource === 'domain.dns.statusMessage') {
+    return computeDnsStatus(domain);
+  }
+
+  if (dataSource === 'domain.members') {
+    const count = await prisma.domainPermission.count({
+      where: { domainId: domain.id }
+    });
+    return count;
+  }
+
+  if (dataSource === 'domain.featured.keepersOrJourneys') {
+    // Load featured keepers/journeys
+    const keepers = await prisma.keeper.findMany({
+      where: { domainId: domain.id },
+      take: 6,
+      orderBy: { createdAt: 'desc' }
+    });
+    return keepers;
+  }
+
+  if (dataSource === 'domain.values.statement') {
+    return domain.settings?.ethosStatement || domain.description || 'Building something meaningful.';
+  }
+
+  if (dataSource === 'domain.settings.primaryAgentSummary') {
+    const agentId = domain.settings?.primaryAgentId;
+    if (agentId) {
+      const agent = await prisma.kip_agents.findUnique({
+        where: { id: agentId },
+        select: { id: true, name: true, persona: true }
+      });
+      return agent;
     }
-  ];
-  
-  return isAdmin ? [...publicActions, ...adminActions] : publicActions;
+    return null;
+  }
+
+  // Default: return null if not found
+  return null;
 }
 
 /**
- * Helper: Determine API key status
+ * Compute DNS status message
  */
-function getKeyStatus(userKeys: any[], provider: string): 'active' | 'fallback' | 'missing' {
-  const key = userKeys.find(k => k.provider === provider);
-  
-  if (!key) {
-    return 'missing';
+function computeDnsStatus(domain: any): string {
+  if (!domain.customDomain) {
+    return 'No custom domain configured.';
   }
-  
-  // If key exists and was created, assume active
-  // In future, could check last_used or other metrics
-  return 'active';
+  if (domain.customDomainVerified) {
+    return `✓ ${domain.customDomain} is verified and active.`;
+  }
+  return `DNS detected for ${domain.customDomain} — waiting for verification. You may click Verify now.`;
 }
 
 export default router;
-

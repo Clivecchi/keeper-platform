@@ -1,171 +1,196 @@
 /**
- * Engagement Button Component
+ * EngagementButton
+ * Triggers engagement template execution
  * 
- * Triggers engagement templates with optional form inputs
- * Handles loading states, success/error messages, and callbacks
+ * Features:
+ * - Fetches template definition
+ * - Opens modal if template has fields
+ * - Executes immediately if no fields (with optional confirmation)
+ * - Handles success/error states
+ * - Refreshes board data after successful execution
  */
 
 import React, { useState } from 'react';
-import { Button } from '../../features/board-studio/v0/components/ui/button';
 import { apiFetch } from '../../lib/api';
 import { EngagementModal } from './EngagementModal';
 
 interface EngagementButtonProps {
   templateSlug: string;
   context: {
-    entityType: 'domain' | 'keeper' | 'journey' | 'agent' | 'board';
+    domainId: string;
+    entityType: string;
     entityId: string;
-    domainId?: string;
   };
   label?: string;
-  variant?: 'default' | 'primary' | 'secondary' | 'outline' | 'ghost';
-  size?: 'default' | 'sm' | 'lg' | 'icon';
+  variant?: 'primary' | 'secondary' | 'danger';
+  icon?: string;
   className?: string;
-  disabled?: boolean;
   onSuccess?: (result: any) => void;
   onError?: (error: any) => void;
-  children?: React.ReactNode;
+}
+
+interface TemplateDefinition {
+  id: string;
+  slug: string;
+  label: string;
+  type: string;
+  config: {
+    visibility: string;
+    requiresConfirmation?: boolean;
+    action: {
+      successMessage: string;
+      errorMessages?: Record<string, string>;
+    };
+  };
+  fields: Array<{
+    name: string;
+    type: string;
+    label: string;
+    required: boolean;
+    config?: any;
+  }>;
 }
 
 export function EngagementButton({
   templateSlug,
   context,
   label,
-  variant = 'default',
-  size = 'default',
+  variant = 'primary',
   className = '',
-  disabled = false,
   onSuccess,
   onError,
-  children
 }: EngagementButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [template, setTemplate] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [template, setTemplate] = useState<TemplateDefinition | null>(null);
 
-  /**
-   * Handle button click - load template and show modal if needed
-   */
+  const variantClasses = {
+    primary: 'bg-blue-600 hover:bg-blue-700 text-white',
+    secondary: 'bg-gray-600 hover:bg-gray-700 text-white',
+    danger: 'bg-red-600 hover:bg-red-700 text-white',
+  };
+
   const handleClick = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+    setIsLoading(true);
 
-      // Load template definition
+    try {
+      // Fetch template definition
       const response = await apiFetch(`/api/engagement/templates/${templateSlug}`);
       
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to load template');
+      if (!response.success || !response.data) {
+        throw new Error('Template not found');
       }
 
-      const templateData = response.data;
+      const templateData: TemplateDefinition = response.data;
       setTemplate(templateData);
 
       // If template has fields, show modal
       if (templateData.fields && templateData.fields.length > 0) {
         setShowModal(true);
         setIsLoading(false);
-      } else {
-        // No inputs needed, execute immediately
-        await executeTemplate({});
+        return;
       }
-    } catch (err) {
-      console.error('Error loading template:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load template');
-      setIsLoading(false);
-      
+
+      // If template requires confirmation and has no fields, confirm first
+      if (templateData.config.requiresConfirmation) {
+        const confirmed = window.confirm(
+          `Are you sure you want to ${templateData.label.toLowerCase()}?`
+        );
+        if (!confirmed) {
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Execute immediately for action-only templates (no fields)
+      await executeTemplate({});
+    } catch (error) {
+      console.error('Error loading template:', error);
       if (onError) {
-        onError(err);
+        onError(error);
       }
+      alert('Failed to load template. Please try again.');
+      setIsLoading(false);
     }
   };
 
-  /**
-   * Execute the template with provided inputs
-   */
-  const executeTemplate = async (inputs: any) => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  const executeTemplate = async (inputs: Record<string, any>) => {
+    setIsLoading(true);
 
+    try {
       const response = await apiFetch('/api/engagement/execute', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           templateSlug,
           context,
-          inputs
-        })
+          inputs,
+        }),
       });
 
       if (response.success) {
-        // Success
+        // Success!
         if (onSuccess) {
           onSuccess(response);
         }
         
+        // Show success message
+        const message = response.message || template?.config.action.successMessage || 'Action completed successfully';
+        alert(message); // TODO: Replace with toast notification
+        
         setShowModal(false);
-        setIsLoading(false);
       } else {
         // Error from execution
-        throw new Error(response.message || response.error || 'Execution failed');
+        throw new Error(response.message || response.error || 'Action failed');
       }
-    } catch (err) {
-      console.error('Error executing template:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Execution failed';
-      setError(errorMessage);
-      setIsLoading(false);
-      
+    } catch (error) {
+      console.error('Error executing template:', error);
       if (onError) {
-        onError(err);
+        onError(error);
       }
+      
+      const errorMessage = error instanceof Error ? error.message : 'Action failed. Please try again.';
+      alert(errorMessage); // TODO: Replace with toast notification
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  /**
-   * Handle modal submit
-   */
-  const handleModalSubmit = async (inputs: any) => {
+  const handleModalSubmit = async (inputs: Record<string, any>) => {
     await executeTemplate(inputs);
   };
 
-  /**
-   * Handle modal cancel
-   */
-  const handleModalCancel = () => {
+  const handleModalClose = () => {
     setShowModal(false);
     setIsLoading(false);
-    setError(null);
   };
 
   return (
     <>
-      <Button
+      <button
         onClick={handleClick}
-        variant={variant}
-        size={size}
-        className={className}
-        disabled={disabled || isLoading}
+        disabled={isLoading}
+        className={`
+          px-4 py-2 rounded font-medium transition-colors
+          disabled:opacity-50 disabled:cursor-not-allowed
+          ${variantClasses[variant]}
+          ${className}
+        `}
       >
-        {isLoading ? 'Loading...' : (children || label || 'Execute')}
-      </Button>
-
-      {error && (
-        <div className="text-xs text-red-600 mt-1">
-          {error}
-        </div>
-      )}
+        {isLoading ? 'Loading...' : label || 'Execute'}
+      </button>
 
       {showModal && template && (
         <EngagementModal
           template={template}
+          context={context}
           onSubmit={handleModalSubmit}
-          onCancel={handleModalCancel}
+          onClose={handleModalClose}
           isLoading={isLoading}
-          error={error}
         />
       )}
     </>
   );
 }
 
+export default EngagementButton;
