@@ -97,29 +97,48 @@ export default async function seed() {
       visibility: 'public',
       props: [
         {
-          type: 'HeroImage',
-          key: 'coverImage',
-          dataSource: 'domain.theme.coverImage',
-          style: { variant: 'full-bleed' }
+          id: 'hero-cover-image',
+          type: 'image',
+          config: {
+            name: 'Cover Image',
+            key: 'coverImage',
+            dataSource: 'domain.theme.coverImage',
+            variant: 'full-bleed'
+          },
+          orderIndex: 0
         },
         {
-          type: 'Heading',
-          key: 'domainTitle',
-          dataSource: 'domain.name',
-          style: { level: 'h1' }
+          id: 'hero-title',
+          type: 'heading',
+          config: {
+            name: 'Domain Title',
+            key: 'domainTitle',
+            dataSource: 'domain.name',
+            level: 'h1'
+          },
+          orderIndex: 1
         },
         {
-          type: 'TextBlock',
-          key: 'domainTagline',
-          dataSource: 'domain.description',
-          style: { tone: 'soft' }
+          id: 'hero-tagline',
+          type: 'text',
+          config: {
+            name: 'Tagline',
+            key: 'domainTagline',
+            dataSource: 'domain.description',
+            tone: 'soft'
+          },
+          orderIndex: 2
         },
         {
-          type: 'ActionButton',
-          key: 'contactButton',
-          label: 'Contact',
-          engagementTemplate: 'domain.public.contact',
-          visibility: 'public'
+          id: 'hero-contact-btn',
+          type: 'button',
+          config: {
+            name: 'Contact Button',
+            label: 'Contact',
+            engagementTemplate: 'domain.public.contact',
+            visibility: 'public'
+          },
+          orderIndex: 3
         }
       ]
     },
@@ -131,23 +150,37 @@ export default async function seed() {
       visibility: 'public',
       props: [
         {
-          type: 'Heading',
-          key: 'activityHeading',
-          text: 'What We\'re Building',
-          style: { level: 'h2' }
+          id: 'activity-heading',
+          type: 'heading',
+          config: {
+            name: 'Activity Heading',
+            content: 'What We\'re Building',
+            level: 'h2'
+          },
+          orderIndex: 0
         },
         {
-          type: 'ImageGallery',
-          key: 'featuredWork',
-          dataSource: 'domain.featured.keepersOrJourneys',
-          style: { layout: 'cards' }
+          id: 'featured-work-gallery',
+          type: 'gallery',
+          config: {
+            name: 'Featured Work',
+            key: 'featuredWork',
+            dataSource: 'domain.featured.keepersOrJourneys',
+            layout: 'cards'
+          },
+          orderIndex: 1
         },
         {
-          type: 'Quote',
-          key: 'ethosQuote',
-          dataSource: 'domain.values.statement',
-          fallback: 'We show our worth by what we build and keep.',
-          style: { variant: 'accent' }
+          id: 'ethos-quote',
+          type: 'quote',
+          config: {
+            name: 'Ethos Quote',
+            key: 'ethosQuote',
+            dataSource: 'domain.values.statement',
+            content: 'We show our worth by what we build and keep.',
+            variant: 'accent'
+          },
+          orderIndex: 2
         }
       ]
     },
@@ -159,22 +192,35 @@ export default async function seed() {
       visibility: 'public',
       props: [
         {
-          type: 'Heading',
-          key: 'teamHeading',
-          text: 'Who\'s Here',
-          style: { level: 'h2' }
+          id: 'team-heading',
+          type: 'heading',
+          config: {
+            name: 'Team Heading',
+            content: 'Who\'s Here',
+            level: 'h2'
+          },
+          orderIndex: 0
         },
         {
-          type: 'ImageGallery',
-          key: 'memberGallery',
-          dataSource: 'domain.members',
-          style: { layout: 'avatars+labels' }
+          id: 'member-gallery',
+          type: 'gallery',
+          config: {
+            name: 'Member Gallery',
+            key: 'memberGallery',
+            dataSource: 'domain.members',
+            layout: 'avatars+labels'
+          },
+          orderIndex: 1
         },
         {
-          type: 'TextBlock',
-          key: 'teamNote',
-          text: 'People who build, protect, and speak for this domain.',
-          style: { tone: 'subtle' }
+          id: 'team-note',
+          type: 'text',
+          config: {
+            name: 'Team Note',
+            content: 'People who build, protect, and speak for this domain.',
+            tone: 'subtle'
+          },
+          orderIndex: 2
         }
       ]
     },
@@ -186,37 +232,53 @@ export default async function seed() {
       visibility: 'admin',
       props: [
         {
-          type: 'Heading',
-          key: 'opsHeading',
-          text: 'Domain Settings',
-          style: { level: 'h2' },
-          visibility: 'admin'
+          id: 'ops-heading',
+          type: 'heading',
+          config: {
+            name: 'Operations Heading',
+            content: 'Domain Settings',
+            level: 'h2',
+            visibility: 'admin'
+          },
+          orderIndex: 0
         },
         {
-          type: 'Form',
-          key: 'updateDomainInfoForm',
-          engagementTemplate: 'domain.admin.update',
-          fields: [
-            { name: 'name', dataSource: 'domain.name' },
-            { name: 'slug', dataSource: 'domain.slug' },
-            { name: 'description', dataSource: 'domain.description' }
-          ],
-          visibility: 'admin'
+          id: 'update-domain-form',
+          type: 'form',
+          config: {
+            name: 'Update Domain Form',
+            engagementTemplate: 'domain.admin.update',
+            fields: [
+              { name: 'name', dataSource: 'domain.name', label: 'Domain Name' },
+              { name: 'slug', dataSource: 'domain.slug', label: 'Slug' },
+              { name: 'description', dataSource: 'domain.description', label: 'Description' }
+            ],
+            visibility: 'admin'
+          },
+          orderIndex: 1
         },
         {
-          type: 'ActionButton',
-          key: 'verifyDomainButton',
-          label: 'Verify Domain',
-          engagementTemplate: 'domain.admin.verify',
-          visibility: 'admin'
+          id: 'verify-domain-btn',
+          type: 'button',
+          config: {
+            name: 'Verify Domain Button',
+            label: 'Verify Domain',
+            engagementTemplate: 'domain.admin.verify',
+            visibility: 'admin'
+          },
+          orderIndex: 2
         },
         {
-          type: 'TextBlock',
-          key: 'dnsInfo',
-          dataSource: 'domain.dns.statusMessage',
-          fallback: 'DNS detected — waiting for verification. You may click Verify now.',
-          style: { tone: 'status' },
-          visibility: 'admin'
+          id: 'dns-status',
+          type: 'text',
+          config: {
+            name: 'DNS Status',
+            dataSource: 'domain.dns.statusMessage',
+            content: 'DNS detected — waiting for verification. You may click Verify now.',
+            tone: 'status',
+            visibility: 'admin'
+          },
+          orderIndex: 3
         }
       ]
     },
@@ -228,43 +290,65 @@ export default async function seed() {
       visibility: 'admin',
       props: [
         {
-          type: 'Heading',
-          key: 'keysHeading',
-          text: 'Keys & Integrations',
-          style: { level: 'h2' },
-          visibility: 'admin'
+          id: 'keys-heading',
+          type: 'heading',
+          config: {
+            name: 'Keys Heading',
+            content: 'Keys & Integrations',
+            level: 'h2',
+            visibility: 'admin'
+          },
+          orderIndex: 0
         },
         {
-          type: 'TextBlock',
-          key: 'keyReminder',
-          text: 'Bring your own keys to control cost and access. If you don\'t add keys, we\'ll use shared platform fallbacks.',
-          visibility: 'admin'
+          id: 'key-reminder',
+          type: 'text',
+          config: {
+            name: 'Key Reminder',
+            content: 'Bring your own keys to control cost and access. If you don\'t add keys, we\'ll use shared platform fallbacks.',
+            visibility: 'admin'
+          },
+          orderIndex: 1
         },
         {
-          type: 'Form',
-          key: 'editApiKeyForm',
-          engagementTemplate: 'domain.admin.editApiKey',
-          fields: [
-            { name: 'provider', type: 'select', optionsSource: 'providers' },
-            { name: 'apiKey', type: 'password' }
-          ],
-          visibility: 'admin'
+          id: 'edit-api-key-form',
+          type: 'form',
+          config: {
+            name: 'Edit API Key Form',
+            label: 'Edit API Key',
+            engagementTemplate: 'domain.admin.editApiKey',
+            fields: [
+              { name: 'provider', type: 'select', label: 'Provider', optionsSource: 'providers' },
+              { name: 'apiKey', type: 'password', label: 'API Key' }
+            ],
+            visibility: 'admin'
+          },
+          orderIndex: 2
         },
         {
-          type: 'Form',
-          key: 'assignAgentForm',
-          engagementTemplate: 'domain.admin.assignAgent',
-          fields: [
-            { name: 'agentId', type: 'select', optionsSource: 'agents' }
-          ],
-          visibility: 'admin'
+          id: 'assign-agent-form',
+          type: 'form',
+          config: {
+            name: 'Assign Agent Form',
+            label: 'Assign Primary Agent',
+            engagementTemplate: 'domain.admin.assignAgent',
+            fields: [
+              { name: 'agentId', type: 'select', label: 'Agent', optionsSource: 'agents' }
+            ],
+            visibility: 'admin'
+          },
+          orderIndex: 3
         },
         {
-          type: 'AI Assistant',
-          key: 'primaryAgentCard',
-          dataSource: 'domain.settings.primaryAgentSummary',
-          fallback: 'No primary agent assigned.',
-          visibility: 'admin'
+          id: 'primary-agent-card',
+          type: 'ai-assistant',
+          config: {
+            name: 'Primary Agent Card',
+            dataSource: 'domain.settings.primaryAgentSummary',
+            content: 'No primary agent assigned.',
+            visibility: 'admin'
+          },
+          orderIndex: 4
         }
       ]
     }
