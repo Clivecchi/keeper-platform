@@ -2,7 +2,7 @@
  * Public Domain Landing Page
  * Renders the Domain Design Board for public visitors
  * 
- * Route: /d/[slug]
+ * Route: /d/:slug
  * Example: /d/housefrogmore
  * 
  * Features:
@@ -15,7 +15,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { DomainBoardRenderer } from '../../components/domain/DomainBoardRenderer';
-import { EngagementButton } from '../../components/engagement/EngagementButton';
 import { apiFetch } from '../../lib/api';
 
 export default function PublicDomainPage() {
@@ -55,11 +54,6 @@ export default function PublicDomainPage() {
     // For public landing, we need to handle engagement actions specially
     // This will trigger EngagementButton which handles the full flow
     console.log('Engagement action triggered:', templateSlug, context);
-  };
-
-  const handleEngagementSuccess = () => {
-    // Refresh the page after successful engagement
-    window.location.reload();
   };
 
   if (isLoading) {

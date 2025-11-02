@@ -167,6 +167,7 @@ const createDomainSchema = z.object({
 
 const updateDomainSchema = z.object({
   name: z.string().min(1).max(100).optional(),
+  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/).optional(),
   description: z.string().max(500).optional(),
   isPublic: z.boolean().optional(),
   allowRequests: z.boolean().optional(),

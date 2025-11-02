@@ -46,6 +46,10 @@ import VoicePanelPage from './pages/keeper/VoicePanelPage';
 import EchoWriterPage from './pages/keeper/EchoWriterPage';
 import IdentityLogbookPage from './pages/keeper/IdentityLogbookPage';
 import EngagementTemplatesPage from './pages/keeper/EngagementTemplatesPage';
+import DomainDashboardPage from './pages/keeper/DomainDashboardPage';
+
+// Domain Public Pages
+import PublicDomainPage from './pages/d/PublicDomainPage';
 
 // Legacy Pages
 import UserApiKeyManagerPage from './pages/UserApiKeyManagerPage';
@@ -143,6 +147,7 @@ const App: React.FC = () => {
           <Route path="/keeper/manage" element={<KeeperManagePage />} />
           <Route path="/keeper/types" element={<KeeperTypesPage />} />
           <Route path="/keeper/engagement-templates" element={<EngagementTemplatesPage />} />
+          <Route path="/keeper/domain-dashboard" element={<DomainDashboardPage />} />
           <Route path="/keeper/new" element={<CreateKeeperPage />} />
           <Route path="/keeper/:id/dashboard" element={<KeeperDashboardPage />} />
           <Route path="/keeper/:id/memory" element={<KeeperMemoryPage />} />
@@ -174,6 +179,9 @@ const App: React.FC = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/debug" element={<DebugPage />} />
         <Route path="/board-demo" element={<BoardDemoPage />} />
+        
+        {/* Public Domain Board */}
+        <Route path="/d/:slug" element={<PublicDomainPage />} />
       </Route>
       
       {/* Dynamic Lead Agent Routes - Must be last to avoid conflicts */}
