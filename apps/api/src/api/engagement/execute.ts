@@ -55,13 +55,18 @@ router.post('/execute', authMiddlewareCompat, async (req: Request, res: Response
     // Validate request
     const validatedData = ExecuteTemplateSchema.parse(req.body);
 
+    // Build execution context with proper typing
+    const executionContext = {
+      userId,
+      entityType: validatedData.context.entityType,
+      entityId: validatedData.context.entityId,
+      domainId: validatedData.context.domainId
+    };
+
     // Execute template
     const result = await engagementExecutor.execute(
       validatedData.templateSlug,
-      {
-        userId,
-        ...validatedData.context
-      },
+      executionContext,
       validatedData.inputs,
       req
     );
