@@ -5,7 +5,8 @@
 
 import { Router, Response } from 'express';
 import { PrismaClient } from '@keeper/database';
-import { AuthenticatedRequest, authMiddlewareCompat } from '../../middleware/authMiddleware.js';
+import { AuthenticatedRequest } from '../../middleware/authMiddleware.js';
+import { attachUser } from '../../middleware/auth.js';
 import { DomainPermissionService, DomainCacheService } from '@keeper/database';
 import { getRedis } from '../../lib/redis.js';
 
@@ -37,7 +38,7 @@ const permissionService = new DomainPermissionService(prisma, cacheService);
  *   userPermissions: { canEdit: boolean, role: string }
  * }
  */
-router.get('/:domainId/board-data', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:domainId/board-data', attachUser, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { domainId } = req.params;
     const userId = req.user?.id;
