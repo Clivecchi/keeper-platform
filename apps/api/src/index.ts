@@ -894,9 +894,9 @@ app.get('/api/users/search', authMiddlewareCompat, async (req: Request, res: Res
   }
 });
 
-// Mount domain routes in order: public routes first, then authenticated
-app.use('/api/domains', domainRoutes);          // Public /by-slug route here
-app.use('/api/domains', domainBoardDataRouter); // Board data endpoint
+// Mount domain routes in order: specific routes first, then generic patterns
+app.use('/api/domains', domainBoardDataRouter); // Specific: /:domainId/board-data (public with optional auth)
+app.use('/api/domains', domainRoutes);          // Has /by-slug (public) and /:id (auth required)
 app.use('/api/domains', flatDomainsRouter);     // Authenticated admin list
 
 // Admin domain management (super-admin only)
