@@ -29,7 +29,42 @@ const permissionService = new DomainPermissionService(prisma, cacheService);
 const verificationService = new DomainVerificationService(prisma, cacheService);
 const featureFlags = getFeatureFlagService();
 
-// Apply domain resolution middleware
+// ============================================================================
+// PUBLIC ROUTES (Before middleware that requires auth)
+// ============================================================================
+
+// GET /api/domains/by-slug/:slug - Public route for landing pages
+router.get('/by-slug/:slug', async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+    
+    const domain = await prisma.domain.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        isPublic: true,
+        customDomain: true,
+        customDomainVerified: true,
+      }
+    });
+
+    if (!domain) {
+      return res.status(404).json({ error: 'Domain not found' });
+    }
+
+    return res.json(domain);
+  } catch (error) {
+    console.error('Error getting domain by slug:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// Apply domain resolution middleware (affects routes below)
+// ============================================================================
 router.use(createDomainResolutionMiddleware());
 
 // Mount custom domain routes to support both legacy and new paths
@@ -199,35 +234,6 @@ const searchDomainsSchema = z.object({
 /**
  * Domain CRUD Operations
  */
-
-// GET /api/domains/by-slug/:slug - Get domain by slug (public route for landing pages)
-router.get('/by-slug/:slug', async (req: Request, res: Response) => {
-  try {
-    const { slug } = req.params;
-    
-    const domain = await prisma.domain.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        isPublic: true,
-        customDomain: true,
-        customDomainVerified: true,
-      }
-    });
-
-    if (!domain) {
-      return res.status(404).json({ error: 'Domain not found' });
-    }
-
-    return res.json(domain);
-  } catch (error) {
-    console.error('Error getting domain by slug:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
 
 // GET /api/domains - Search and list domains
 router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
