@@ -90,11 +90,11 @@ export function DomainBoardRenderer({
         endpoint = `/api/domains/${domainId}/board-data`;
       } else if (domainSlug) {
         // First resolve slug to ID
-        const domainResponse = await apiFetch(`/api/domains/slug/${domainSlug}`);
-        if (!domainResponse.success || !domainResponse.data) {
+        const domainResponse = await apiFetch(`/api/domains/by-slug/${domainSlug}`);
+        if (domainResponse.error || !domainResponse.id) {
           throw new Error('Domain not found');
         }
-        endpoint = `/api/domains/${domainResponse.data.id}/board-data`;
+        endpoint = `/api/domains/${domainResponse.id}/board-data`;
       } else {
         throw new Error('Either domainId or domainSlug must be provided');
       }
