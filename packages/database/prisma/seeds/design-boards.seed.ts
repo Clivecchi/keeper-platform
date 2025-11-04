@@ -65,27 +65,68 @@ export default async function seed() {
   console.log('  📋 Creating Domain Management template...');
   
   const domainTypeId = await ensureKeeperType('Domain');
-  const domainBoardId = randomUUID();
   
-  const domainBoard = await prisma.board.create({
-    data: {
-      id: domainBoardId,
+  // Check if board already exists
+  let domainBoard = await prisma.board.findFirst({
+    where: {
       keeperId: systemKeeperId,
-      name: 'Domain Design Board',
       slug: 'domain-design-board-template',
-      description: 'Canonical board for domains - public showcase + admin operations',
       isTemplate: true,
-      theme: {},
-      behavior: {
-        showGrid: true,
-        snapToGrid: true,
-        gridSize: 12,
-        defaultPattern: 'canvas',
-      },
-      data: {},
-      access: { visibility: 'private' },
+    },
+    include: {
+      frames: true
     }
   });
+  
+  let domainBoardId: string;
+  
+  let shouldCreateFrames = true;
+  
+  if (domainBoard) {
+    console.log('    ℹ️  Domain Design Board template already exists');
+    domainBoardId = domainBoard.id;
+    
+    // Check if it has frames
+    if (domainBoard.frames && domainBoard.frames.length > 0) {
+      console.log(`    ✅ Template has ${domainBoard.frames.length} frames, skipping frame creation...`);
+      shouldCreateFrames = false;
+      
+      // Just update the link
+      await prisma.keeperType.update({
+        where: { id: domainTypeId },
+        data: { defaultBoardTemplateId: domainBoardId }
+      });
+      
+      console.log('    ✅ Domain Management template verified');
+    } else {
+      console.log('    ⚠️  Template exists but has no frames, will add them...');
+      shouldCreateFrames = true;
+    }
+  } else {
+    // Create new board
+    domainBoardId = randomUUID();
+    domainBoard = await prisma.board.create({
+      data: {
+        id: domainBoardId,
+        keeperId: systemKeeperId,
+        name: 'Domain Design Board',
+        slug: 'domain-design-board-template',
+        description: 'Canonical board for domains - public showcase + admin operations',
+        isTemplate: true,
+        theme: {},
+        behavior: {
+          showGrid: true,
+          snapToGrid: true,
+          gridSize: 12,
+          defaultPattern: 'canvas',
+        },
+        data: {},
+        access: { visibility: 'private' },
+      }
+    });
+    console.log('    ✅ Created new Domain Design Board template');
+    shouldCreateFrames = true;
+  }
 
   // Domain frames - Canonical 5-frame design with seeded props
   const domainFrames = [
@@ -354,26 +395,33 @@ export default async function seed() {
     }
   ];
 
-  for (let i = 0; i < domainFrames.length; i++) {
-    const frame = domainFrames[i];
-    const configId = await ensureFrameConfig(`domain-frame-${i}`);
+  // Only create frames if needed
+  if (shouldCreateFrames) {
+    console.log(`    📝 Creating ${domainFrames.length} frames...`);
     
-    await prisma.frameInstance.create({
-      data: {
-        id: randomUUID(),
-        boardId: domainBoardId,
-        entityType: 'board',
-        entityId: domainBoardId,
-        configId,
-        name: frame.name,
-        pattern: frame.pattern || 'canvas',
-        frameType: 'media_card',
-        orderIndex: i,
-        layoutKind: 'canvas',
-        layoutData: frame.layout,
-        props: frame.props, // Store props array directly
-      }
-    });
+    for (let i = 0; i < domainFrames.length; i++) {
+      const frame = domainFrames[i];
+      const configId = await ensureFrameConfig(`domain-frame-${i}`);
+      
+      await prisma.frameInstance.create({
+        data: {
+          id: randomUUID(),
+          boardId: domainBoardId,
+          entityType: 'board',
+          entityId: domainBoardId,
+          configId,
+          name: frame.name,
+          pattern: frame.pattern || 'canvas',
+          frameType: 'media_card',
+          orderIndex: i,
+          layoutKind: 'canvas',
+          layoutData: frame.layout,
+          props: frame.props, // Store props array directly
+        }
+      });
+    }
+    
+    console.log(`    ✅ Created ${domainFrames.length} frames`);
   }
 
   // Link to KeeperType
@@ -382,7 +430,7 @@ export default async function seed() {
     data: { defaultBoardTemplateId: domainBoardId }
   });
 
-  console.log('    ✅ Domain Management template created');
+  console.log('    ✅ Domain Management template complete');
 
   // ==========================================================================
   // 2. AGENT COCKPIT BOARD TEMPLATE
