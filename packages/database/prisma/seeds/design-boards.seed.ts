@@ -415,7 +415,10 @@ export default async function seed() {
           frameType: 'media_card',
           orderIndex: i,
           layoutKind: 'canvas',
-          layoutData: frame.layout,
+          layoutData: {
+            ...frame.layout,
+            visibility: frame.visibility || 'public' // Store visibility in layoutData
+          },
           props: frame.props, // Store props array directly
         }
       });

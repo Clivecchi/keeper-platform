@@ -96,7 +96,8 @@ router.get('/:domainId/board-data', attachUser, async (req: AuthenticatedRequest
     const isAdmin = userPermissions.role === 'admin';
     const visibleFrames = template.frames.filter(frame => {
       const frameData = frame as any;
-      const visibility = frameData.props?.visibility || (frame as any).visibility;
+      // Check visibility in layoutData JSON field (where we store it)
+      const visibility = frameData.layoutData?.visibility || 'public';
       return visibility === 'public' || (visibility === 'admin' && isAdmin);
     });
 
