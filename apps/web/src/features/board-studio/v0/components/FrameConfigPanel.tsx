@@ -139,6 +139,42 @@ export function FrameConfigPanel() {
             </p>
           </div>
 
+          {/* Visibility Control */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-2 block">
+              Visibility
+            </label>
+            <Select
+              value={(activeFrame as any).visibility || 'admin'}
+              onValueChange={(visibility: string) => {
+                console.log("✏️ Update frame visibility", { frameId: activeFrame.id, visibility })
+                updateFrame(activeFrame.id, { visibility } as any)
+              }}
+            >
+              <SelectTrigger className="w-full bg-white">
+                <SelectValue placeholder="Select visibility" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                <SelectItem value="public" className="bg-white hover:bg-gray-100">
+                  <div>
+                    <div className="font-medium">Public</div>
+                    <div className="text-xs text-gray-500">Visible to everyone</div>
+                  </div>
+                </SelectItem>
+                <SelectItem value="admin" className="bg-white hover:bg-gray-100">
+                  <div>
+                    <div className="font-medium">Admin Only</div>
+                    <div className="text-xs text-gray-500">Only domain admins</div>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500 mt-1">
+              {(activeFrame as any).visibility === 'public' && 'This frame is visible to all visitors'}
+              {((activeFrame as any).visibility === 'admin' || !(activeFrame as any).visibility) && 'This frame is only visible to admins'}
+            </p>
+          </div>
+
           {/* Engagement Pattern - Fixed dropdown styling */}
           <div>
             <label className="text-sm font-medium text-gray-700 mb-2 block">

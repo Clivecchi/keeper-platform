@@ -130,10 +130,10 @@ export default async function seed() {
 
   // Domain frames - Canonical 5-frame design with seeded props
   const domainFrames = [
-    // Frame 0: Hero / Identity (Public)
+    // Frame 0: Board Cover (PUBLIC - only public frame by default)
     {
       layout: { x: 0, y: 0, w: 12, h: 4 },
-      name: 'Hero / Identity',
+      name: 'Board Cover',
       pattern: 'focus',
       visibility: 'public',
       props: [
@@ -183,12 +183,12 @@ export default async function seed() {
         }
       ]
     },
-    // Frame 1: Activity / Assets (Public)
+    // Frame 1: Activity / Assets (ADMIN)
     {
       layout: { x: 0, y: 4, w: 8, h: 6 },
       name: 'Activity / Assets',
       pattern: 'gallery',
-      visibility: 'public',
+      visibility: 'admin',
       props: [
         {
           id: 'activity-heading',
@@ -225,12 +225,12 @@ export default async function seed() {
         }
       ]
     },
-    // Frame 2: People / Membership (Public)
+    // Frame 2: People / Membership (ADMIN)
     {
       layout: { x: 8, y: 4, w: 4, h: 6 },
       name: 'People / Membership',
       pattern: 'canvas',
-      visibility: 'public',
+      visibility: 'admin',
       props: [
         {
           id: 'team-heading',
@@ -415,10 +415,8 @@ export default async function seed() {
           frameType: 'media_card',
           orderIndex: i,
           layoutKind: 'canvas',
-          layoutData: {
-            ...frame.layout,
-            visibility: frame.visibility || 'public' // Store visibility in layoutData
-          },
+          layoutData: frame.layout,
+          visibility: frame.visibility || 'admin', // Store visibility in dedicated column (default: admin)
           props: frame.props, // Store props array directly
         }
       });

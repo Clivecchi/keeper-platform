@@ -96,8 +96,8 @@ router.get('/:domainId/board-data', attachUser, async (req: AuthenticatedRequest
     const isAdmin = userPermissions.role === 'admin';
     const visibleFrames = template.frames.filter(frame => {
       const frameData = frame as any;
-      // Check visibility in layoutData JSON field (where we store it)
-      const visibility = frameData.layoutData?.visibility || 'public';
+      // Check visibility column (defaults to 'admin' if not set for security)
+      const visibility = frameData.visibility || 'admin';
       return visibility === 'public' || (visibility === 'admin' && isAdmin);
     });
 
@@ -140,7 +140,7 @@ router.get('/:domainId/board-data', attachUser, async (req: AuthenticatedRequest
           id: frame.id,
           name: frame.name,
           pattern: frame.pattern,
-          visibility: frameData.visibility || 'public',
+          visibility: frame.visibility || 'admin',
           layoutData: frame.layoutData,
           props: filteredProps
         };
