@@ -22,6 +22,7 @@ export interface FrameConfigPanelProps {
   
   onRenameFrame: (frameId: string, newName: string) => void;
   onChangePattern: (frameId: string, newPattern: string) => void;
+  onUpdateVisibility?: (frameId: string, visibility: string) => void;
   
   propLibraryItems: Array<{
     type: string;
@@ -43,6 +44,7 @@ export function FrameConfigPanel({
   frame,
   onRenameFrame,
   onChangePattern,
+  onUpdateVisibility,
   propLibraryItems,
   onAddPropToFrame,
   framePropsList
@@ -129,6 +131,43 @@ export function FrameConfigPanel({
           ID: {frame.id.substring(0, 8)}... · {frame.pattern}
         </div>
         
+        {/* Visibility Selector */}
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-medium uppercase tracking-wide text-gray-500 block">
+            Visibility
+          </label>
+          <Select
+            value={(frame as any).visibility || 'admin'}
+            onValueChange={(value) => {
+              console.log("✏️ Update frame visibility", { frameId: frame.id, visibility: value });
+              if (onUpdateVisibility) {
+                onUpdateVisibility(frame.id, value);
+              }
+            }}
+          >
+            <SelectTrigger className="w-full bg-white text-gray-900 border border-gray-300 rounded px-2 py-1 text-sm shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500 h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white text-gray-900 border border-gray-300 shadow-md z-50">
+              <SelectItem value="public" className="text-gray-900">
+                <div>
+                  <div className="font-medium text-sm">🌐 Public</div>
+                  <div className="text-[10px] text-gray-500">Visible to everyone</div>
+                </div>
+              </SelectItem>
+              <SelectItem value="admin" className="text-gray-900">
+                <div>
+                  <div className="font-medium text-sm">🔒 Admin Only</div>
+                  <div className="text-[10px] text-gray-500">Only domain admins</div>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="text-[10px] text-gray-500">
+            {(frame as any).visibility === 'public' ? '🌐 Visible to all visitors' : '🔒 Admin only'}
+          </div>
+        </div>
+
         {/* Pattern Selector - HARD-CODED WHITE BACKGROUNDS */}
         <div className="space-y-1.5">
           <label className="text-[10px] font-medium uppercase tracking-wide text-gray-500 block">

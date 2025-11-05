@@ -2311,8 +2311,9 @@ const BoardStudioPage: React.FC = () => {
                 pattern: frame.FrameConfig?.engagementMode || 'canvas',
                 role: frame.data?.role,
                 props: frame.props || {},
-                previewThumbUrl: undefined
-              }}
+                previewThumbUrl: undefined,
+                visibility: (frame as any).visibility || 'admin'
+              } as any}
               onRenameFrame={async (frameId, newName) => {
                 // Guard: Warn if trying to PATCH a temp/invalid frame ID
                 if (frameId.startsWith('frame-') || frameId.startsWith('temp-')) {
@@ -2371,6 +2372,37 @@ const BoardStudioPage: React.FC = () => {
                   console.log('✅ Frame pattern updated');
                 } catch (error) {
                   console.error('❌ Failed to update frame pattern:', error);
+                }
+              }}
+              onUpdateVisibility={async (frameId, visibility) => {
+                // Guard: Warn if trying to PATCH a temp/invalid frame ID
+                if (frameId.startsWith('frame-') || frameId.startsWith('temp-')) {
+                  console.warn("⚠️ Attempted PATCH on temp frame ID:", frameId);
+                  alert('Cannot update frame: frame not yet persisted to server');
+                  return;
+                }
+                
+                const frameExists = mockFrames.some(f => f.id === frameId);
+                if (!frameExists) {
+                  console.warn("⚠️ Attempted PATCH on non-existent frame ID:", frameId);
+                  return;
+                }
+                
+                // Update local state
+                setMockFrames(prev => prev.map(f => 
+                  f.id === frameId 
+                    ? { ...f, visibility }
+                    : f
+                ));
+                
+                try {
+                  await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ visibility })
+                  });
+                  console.log('✅ Frame visibility updated');
+                } catch (error) {
+                  console.error('❌ Failed to update frame visibility:', error);
                 }
               }}
               propLibraryItems={propLibraryItems}
