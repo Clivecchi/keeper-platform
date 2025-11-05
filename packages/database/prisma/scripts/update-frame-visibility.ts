@@ -44,10 +44,13 @@ async function main() {
     for (const frame of template.frames) {
       let targetVisibility = 'admin'; // Default
 
-      // Board Cover (or Hero) should be public
-      if (frame.name.toLowerCase().includes('hero') || 
-          frame.name.toLowerCase().includes('board cover') ||
-          frame.name.toLowerCase().includes('identity')) {
+      // Board Cover (or Hero, Cover, Identity) should be public
+      // Match: "Cover", "Board Cover", "Hero", "Hero / Identity"
+      const nameLower = frame.name.toLowerCase();
+      if (nameLower === 'cover' ||
+          nameLower.includes('board cover') ||
+          nameLower.includes('hero') ||
+          nameLower.includes('identity')) {
         targetVisibility = 'public';
       }
 
