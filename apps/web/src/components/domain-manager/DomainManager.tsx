@@ -43,7 +43,9 @@ const DomainManager: React.FC<Props> = ({ scope, allowCreate = true }) => {
     try {
       // Use unified endpoint to avoid 404s across environments
       const response = await apiFetch(`/api/domains`);
-      const domainsWithDns = Array.isArray(response) ? response : [];
+      // Backend returns { domains: [...], total, page } - extract domains array
+      const domainsWithDns = response.domains || [];
+      console.log('📊 Loaded domains:', { count: domainsWithDns.length, total: response.total });
       setDomains(domainsWithDns);
       
       // Load DNS status for domains with custom domains
