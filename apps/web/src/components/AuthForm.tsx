@@ -5,9 +5,10 @@ import { apiFetch } from '@/lib/api';
 
 interface AuthFormProps {
   isRegister?: boolean;
+  returnTo?: string;
 }
 
-export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false }) => {
+export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,7 +46,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false }) => {
         apiFetch('/api/kam/me', { method: 'GET' })
           .then(() => console.log('SystemStatus: /api/kam/me ok'))
           .catch((e) => console.warn('SystemStatus: /api/kam/me failed', e));
-        navigate('/root');
+        // Navigate to returnTo URL if provided, otherwise default to /root
+        navigate(returnTo || '/root');
       } else {
         setError(result.error?.message || 'An unknown error occurred.');
       }

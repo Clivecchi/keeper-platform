@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { AppLayout } from './layouts/AppLayout';
 import { PublicLayout } from './layouts/PublicLayout';
+import { BoardPublicLayout } from './layouts/BoardPublicLayout';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -179,8 +180,11 @@ const App: React.FC = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/debug" element={<DebugPage />} />
         <Route path="/board-demo" element={<BoardDemoPage />} />
-        
-        {/* Public Domain Board */}
+      </Route>
+      
+      {/* Board Routes - Full Viewport, No Shell UI */}
+      <Route element={<BoardPublicLayout />}>
+        {/* Public Domain Board - Hybrid access (works for both anonymous and authenticated) */}
         <Route path="/d/:slug" element={<PublicDomainPage />} />
       </Route>
       

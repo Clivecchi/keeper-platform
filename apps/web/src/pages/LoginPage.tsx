@@ -1,9 +1,12 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AuthForm } from '../components/AuthForm';
 import { motion } from 'framer-motion';
 
 const LoginPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo') || undefined;
+
   return (
     <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <motion.div
@@ -12,7 +15,7 @@ const LoginPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
-        <AuthForm />
+        <AuthForm returnTo={returnTo} />
         <p className="mt-6 text-center text-md text-secondary">
           Don't have a keeper yet?{' '}
           <Link to="/register" className="font-serif font-medium text-primary hover:underline">
