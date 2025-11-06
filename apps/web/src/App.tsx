@@ -176,7 +176,6 @@ const App: React.FC = () => {
       {/* Public Routes - No Authentication Required */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/debug" element={<DebugPage />} />
         <Route path="/board-demo" element={<BoardDemoPage />} />
@@ -184,6 +183,8 @@ const App: React.FC = () => {
       
       {/* Board Routes - Full Viewport, No Shell UI */}
       <Route element={<BoardPublicLayout />}>
+        {/* Login - Minimal layout for board-first experience */}
+        <Route path="/login" element={<LoginPage />} />
         {/* Public Domain Board - Hybrid access (works for both anonymous and authenticated) */}
         <Route path="/d/:slug" element={<PublicDomainPage />} />
       </Route>

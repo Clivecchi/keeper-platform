@@ -293,7 +293,15 @@ This document describes Phase 1 of the board-driven interface refactor. The goal
 
 ## 📆 Update Log
 
-### 2025-11-06
+### 2025-11-06 - Phase 1.1 Polish (Follow-up)
+- Moved auth controls inside board as overlay header
+- Login page now uses minimal BoardPublicLayout
+- Added "View Domain Board" navigation in admin pages
+- Added disabled Edit affordance for authenticated owners
+- Polished footer styling (reduced opacity)
+- See `board-first-phase1.1.md` for details
+
+### 2025-11-06 - Phase 1 Initial Implementation
 - Initial implementation of Phase 1
 - Created `AppProviders`, `BoardPublicLayout`
 - Updated routing, main entry, and board page

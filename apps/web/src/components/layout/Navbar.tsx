@@ -41,6 +41,7 @@ interface DomainWithRole {
 const UserIdentityDropdown: React.FC<{ user: any; domains: DomainWithRole[] }> = ({ user, domains }) => {
   const [isOpen, setIsOpen] = useState(false);
   const primaryDomain = domains.find(d => d.isPrimary);
+  const domainSlug = primaryDomain?.slug || 'default';
 
   return (
     <div className="relative">
@@ -59,37 +60,55 @@ const UserIdentityDropdown: React.FC<{ user: any; domains: DomainWithRole[] }> =
         </svg>
       </button>
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
-          {/* Primary Domain */}
-          {primaryDomain && (
-            <div className="px-4 py-2 hover:bg-gray-50">
-              <div className="flex items-center space-x-2">
-                <span className="text-yellow-500">★</span>
-                <span className="text-sm font-medium">Owner.{primaryDomain.slug}</span>
-                <span className="text-xs text-gray-500">(Primary)</span>
+        <>
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
+            {/* Primary Domain */}
+            {primaryDomain && (
+              <div className="px-4 py-2 hover:bg-gray-50">
+                <div className="flex items-center space-x-2">
+                  <span className="text-yellow-500">★</span>
+                  <span className="text-sm font-medium">Owner.{primaryDomain.slug}</span>
+                  <span className="text-xs text-gray-500">(Primary)</span>
+                </div>
               </div>
-            </div>
-          )}
-          {/* Other Domains */}
-          {domains.filter(d => !d.isPrimary).map(domain => (
-            <div key={domain.id} className="px-4 py-2 hover:bg-gray-50">
-              <span className="text-sm">{domain.role}.{domain.slug}</span>
-            </div>
-          ))}
-          <div className="border-t border-gray-200 my-1"></div>
-          {/* Settings */}
-          <NavLink to="/root" className="block px-4 py-2 text-sm hover:bg-gray-50">
-            Root Dashboard
-          </NavLink>
-          <button
-            type="button"
-            onClick={logout}
-            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
-            aria-label="Logout"
-          >
-            Logout
-          </button>
-        </div>
+            )}
+            {/* Other Domains */}
+            {domains.filter(d => !d.isPrimary).map(domain => (
+              <div key={domain.id} className="px-4 py-2 hover:bg-gray-50">
+                <span className="text-sm">{domain.role}.{domain.slug}</span>
+              </div>
+            ))}
+            <div className="border-t border-gray-200 my-1"></div>
+            {/* Quick Actions */}
+            <NavLink 
+              to={`/d/${domainSlug}`} 
+              className="block px-4 py-2 text-sm hover:bg-gray-50"
+              onClick={() => setIsOpen(false)}
+            >
+              View Domain Board
+            </NavLink>
+            <NavLink 
+              to="/root" 
+              className="block px-4 py-2 text-sm hover:bg-gray-50"
+              onClick={() => setIsOpen(false)}
+            >
+              Dashboard
+            </NavLink>
+            <div className="border-t border-gray-200 my-1"></div>
+            <button
+              type="button"
+              onClick={logout}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+              aria-label="Logout"
+            >
+              Logout
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
@@ -98,6 +117,8 @@ const UserIdentityDropdown: React.FC<{ user: any; domains: DomainWithRole[] }> =
 export const Navbar: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const [domains, setDomains] = useState<DomainWithRole[]>([]);
+  const primaryDomain = domains.find(d => d.isPrimary);
+  const domainSlug = primaryDomain?.slug || 'default';
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -125,9 +146,22 @@ export const Navbar: React.FC = () => {
   return (
     <header className="py-8">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-        <NavLink to={isAuthenticated ? '/root' : '/'} className="font-display text-3xl font-bold text-stone-800">
-          Keeper
-        </NavLink>
+        <div className="flex items-center space-x-6">
+          <NavLink to={isAuthenticated ? '/root' : '/'} className="font-display text-3xl font-bold text-stone-800">
+            Keeper
+          </NavLink>
+          {isAuthenticated && (
+            <NavLink 
+              to={`/d/${domainSlug}`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              View Domain Board
+            </NavLink>
+          )}
+        </div>
         <div className="flex items-center space-x-12">
           {isAuthenticated ? (
             <UserIdentityDropdown user={user} domains={domains} />
