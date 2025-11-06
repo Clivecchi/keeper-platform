@@ -44,9 +44,14 @@ router.post('/sign', authMiddlewareCompat, async (req: Request, res: Response) =
     const extension = filename.split('.').pop();
     const key = `uploads/${userId}/${timestamp}-${randomSuffix}.${extension}`;
 
+    // Build upload URL using request's origin/protocol
+    const protocol = req.protocol || 'https';
+    const host = req.get('host') || 'api.ke3p.com';
+    const baseUrl = process.env.API_BASE_URL || `${protocol}://${host}`;
+
     // Return upload endpoint - client will POST the file here with the key
     const signedData = {
-      url: `${process.env.API_BASE_URL || 'http://localhost:3001'}/api/uploads/direct`,
+      url: `${baseUrl}/api/uploads/direct`,
       method: 'POST',
       fields: {
         key,
