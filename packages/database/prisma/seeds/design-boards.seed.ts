@@ -128,7 +128,7 @@ export default async function seed() {
     shouldCreateFrames = true;
   }
 
-  // Domain frames - Canonical 5-frame design with seeded props
+  // Domain frames - Canonical 6-frame design with seeded props (includes manifesto)
   const domainFrames = [
     // Frame 0: Board Cover (PUBLIC - only public frame by default)
     {
@@ -183,9 +183,34 @@ export default async function seed() {
         }
       ]
     },
-    // Frame 1: Activity / Assets (ADMIN)
+    // Frame 1: The Clean Surface Doctrine (PUBLIC - Manifesto)
     {
-      layout: { x: 0, y: 4, w: 8, h: 6 },
+      layout: { x: 0, y: 4, w: 12, h: 6 },
+      name: 'The Clean Surface Doctrine',
+      pattern: 'focus',
+      visibility: 'public',
+      props: [
+        {
+          id: 'clean-surface-manifesto',
+          type: 'manifesto',
+          config: {
+            title: 'The Clean Surface Doctrine',
+            kicker: 'Keeper Design Manifesto',
+            quote: 'If the surface isn\'t calm, the depth can\'t be seen.',
+            content: 'Keeper exists to preserve what\'s worthy of effort. Every screen, panel, and interaction must serve that mission. When the interface feels like administration instead of creation, we lose the spirit of what we\'re building. The Clean Surface Doctrine keeps us honest — to ensure everything we design reflects calm, clarity, and creative dignity.\n\nClarity is sacred. Every surface should feel worth keeping. Build only what serves creation. Emotionally clean equals functionally clear. Kip should feel present, not panels. Preserve creative dignity. These are our design laws.\n\nTo build worth keeping, we must first design worth keeping — surfaces that honor the soul of creation, not the noise of control.',
+            cta: {
+              label: 'Read Full Doctrine',
+              href: '/manifestos/clean-surface-doctrine'
+            },
+            themeVariant: 'system'
+          },
+          orderIndex: 0
+        }
+      ]
+    },
+    // Frame 2: Activity / Assets (ADMIN)
+    {
+      layout: { x: 0, y: 10, w: 8, h: 6 },
       name: 'Activity / Assets',
       pattern: 'gallery',
       visibility: 'admin',
@@ -225,9 +250,9 @@ export default async function seed() {
         }
       ]
     },
-    // Frame 2: People / Membership (ADMIN)
+    // Frame 3: People / Membership (ADMIN)
     {
-      layout: { x: 8, y: 4, w: 4, h: 6 },
+      layout: { x: 8, y: 10, w: 4, h: 6 },
       name: 'People / Membership',
       pattern: 'canvas',
       visibility: 'admin',
@@ -265,9 +290,9 @@ export default async function seed() {
         }
       ]
     },
-    // Frame 3: Domain Operations (Admin Only)
+    // Frame 4: Domain Operations (Admin Only)
     {
-      layout: { x: 0, y: 10, w: 6, h: 8 },
+      layout: { x: 0, y: 16, w: 6, h: 8 },
       name: 'Domain Operations',
       pattern: 'form',
       visibility: 'admin',
@@ -323,9 +348,9 @@ export default async function seed() {
         }
       ]
     },
-    // Frame 4: Keys / Integrations (Admin Only)
+    // Frame 5: Keys / Integrations (Admin Only)
     {
-      layout: { x: 6, y: 10, w: 6, h: 8 },
+      layout: { x: 6, y: 16, w: 6, h: 8 },
       name: 'Keys / Integrations',
       pattern: 'canvas',
       visibility: 'admin',
