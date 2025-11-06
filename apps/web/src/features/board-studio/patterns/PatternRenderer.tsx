@@ -8,6 +8,8 @@ const __DEBUG_STUDIO__ = import.meta.env.VITE_STUDIO_DEBUG === '1';
 import SettingsRenderer from '../settings/SettingsRenderer';
 import MediaUploader from '../../../components/studio/MediaUploader';
 import PropManager from '../../../components/props/PropManager';
+import { PathwayNav } from '../../../components/patterns/PathwayNav';
+import { ManifestoCard } from '../../../components/patterns/ManifestoCard';
 import { 
   ChevronLeftIcon, 
   ChevronRightIcon,
@@ -459,6 +461,42 @@ const GalleryPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
   );
 };
 
+const PathwayNavPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
+  const { props } = frame;
+  
+  return (
+    <div className="w-full">
+      <PathwayNav {...props} />
+    </div>
+  );
+};
+
+const ManifestoPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
+  // Extract manifesto config from props
+  // Props can be an array with a manifesto type prop, or a direct config object
+  let manifestoConfig = frame.props;
+  
+  if (Array.isArray(frame.props)) {
+    const manifestoProp = frame.props.find((p: any) => p.type === 'manifesto');
+    if (manifestoProp?.config) {
+      manifestoConfig = manifestoProp.config;
+    }
+  } else if (frame.props?.config) {
+    manifestoConfig = frame.props.config;
+  }
+  
+  if (__DEBUG_STUDIO__) console.log('📜 ManifestoPattern: Rendering', {
+    frameId: frame.id,
+    manifestoConfig
+  });
+  
+  return (
+    <div className="w-full max-w-4xl mx-auto p-4">
+      <ManifestoCard {...manifestoConfig} />
+    </div>
+  );
+};
+
 const CanvasPattern: React.FC<{ frame: FrameData }> = ({ frame }) => {
   if (__DEBUG_STUDIO__) console.log('🎨 CanvasPattern: Rendering frame', {
     frameId: frame.id,
@@ -822,6 +860,12 @@ const PatternRenderer: React.FC<PatternRendererProps> = ({
       return <WizardPattern frame={frame} />;
     case 'gallery':
       return <GalleryPattern frame={frame} />;
+    case 'PathwayNav':
+      if (__DEBUG_STUDIO__) console.log('🎯 PatternRenderer: Using PathwayNavPattern');
+      return <PathwayNavPattern frame={frame} />;
+    case 'manifesto':
+      if (__DEBUG_STUDIO__) console.log('🎯 PatternRenderer: Using ManifestoPattern');
+      return <ManifestoPattern frame={frame} />;
     case 'canvas':
       if (__DEBUG_STUDIO__) console.log('🎯 PatternRenderer: Using CanvasPattern for canvas pattern');
       return <CanvasPattern frame={frame} />;

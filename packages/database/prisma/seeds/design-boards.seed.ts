@@ -208,9 +208,49 @@ export default async function seed() {
         }
       ]
     },
-    // Frame 2: Activity / Assets (ADMIN)
+    // Frame 2: Paths (PUBLIC - PathwayNav)
     {
-      layout: { x: 0, y: 10, w: 8, h: 6 },
+      layout: { x: 0, y: 10, w: 12, h: 1 },
+      name: 'Paths',
+      pattern: 'PathwayNav',
+      visibility: 'public',
+      props: {
+        layout: 'edge',
+        orientation: 'vertical',
+        position: 'right',
+        themeVariant: 'system',
+        visibleFor: ['public', 'authed'],
+        ownerOnlyAuthedPaths: true,
+        paths: [
+          { 
+            label: 'Sign In', 
+            href: '/login', 
+            variant: 'dark', 
+            analyticsId: 'path.signin', 
+            description: 'Continue your journey' 
+          },
+          { 
+            label: 'Get Started', 
+            href: '/signup', 
+            variant: 'accent', 
+            analyticsId: 'path.getstarted', 
+            description: 'Begin your own Keeper' 
+          }
+        ],
+        authedPaths: [
+          { 
+            label: 'Edit Domain', 
+            href: '/studio', 
+            variant: 'dark', 
+            analyticsId: 'path.editdomain', 
+            description: 'Return to creation mode' 
+          }
+        ]
+      }
+    },
+    // Frame 3: Activity / Assets (ADMIN)
+    {
+      layout: { x: 0, y: 11, w: 8, h: 6 },
       name: 'Activity / Assets',
       pattern: 'gallery',
       visibility: 'admin',
@@ -250,9 +290,9 @@ export default async function seed() {
         }
       ]
     },
-    // Frame 3: People / Membership (ADMIN)
+    // Frame 4: People / Membership (ADMIN)
     {
-      layout: { x: 8, y: 10, w: 4, h: 6 },
+      layout: { x: 8, y: 11, w: 4, h: 6 },
       name: 'People / Membership',
       pattern: 'canvas',
       visibility: 'admin',
@@ -290,9 +330,9 @@ export default async function seed() {
         }
       ]
     },
-    // Frame 4: Domain Operations (Admin Only)
+    // Frame 5: Domain Operations (Admin Only)
     {
-      layout: { x: 0, y: 16, w: 6, h: 8 },
+      layout: { x: 0, y: 17, w: 6, h: 8 },
       name: 'Domain Operations',
       pattern: 'form',
       visibility: 'admin',
@@ -348,9 +388,9 @@ export default async function seed() {
         }
       ]
     },
-    // Frame 5: Keys / Integrations (Admin Only)
+    // Frame 6: Keys / Integrations (Admin Only)
     {
-      layout: { x: 6, y: 16, w: 6, h: 8 },
+      layout: { x: 6, y: 17, w: 6, h: 8 },
       name: 'Keys / Integrations',
       pattern: 'canvas',
       visibility: 'admin',

@@ -1,7 +1,7 @@
 import type { ZodSchema } from 'zod';
 import React from 'react';
 
-export type PatternId = 'dialogic'|'wizard'|'focus'|'canvas'|'gallery'|'form';
+export type PatternId = 'dialogic'|'wizard'|'focus'|'canvas'|'gallery'|'form'|'PathwayNav'|'manifesto';
 
 export type PatternMeta = {
   id: PatternId;
@@ -84,6 +84,26 @@ export const patternRegistry: Record<PatternId, PatternMeta> = {
     optionsSchema: null,
     Preview: PlaceholderPreview,
     whenToUse: ['Settings','Data entry']
+  },
+  PathwayNav: {
+    id: 'PathwayNav',
+    name: 'PathwayNav',
+    icon: PlaceholderIcon,
+    summary: 'Narrative navigation frame with auth-aware path markers.',
+    slots: [{ id: 'navigation', label: 'Navigation', accepts: ['navigation'] }],
+    optionsSchema: null,
+    Preview: PlaceholderPreview,
+    whenToUse: ['Domain navigation','Auth-aware paths','Call-to-actions']
+  },
+  manifesto: {
+    id: 'manifesto',
+    name: 'Manifesto',
+    icon: PlaceholderIcon,
+    summary: 'Branded manifesto card for domain principles.',
+    slots: [{ id: 'content', label: 'Content', accepts: ['text','media'] }],
+    optionsSchema: null,
+    Preview: PlaceholderPreview,
+    whenToUse: ['Brand storytelling','Domain values','Mission statements']
   },
 };
 
