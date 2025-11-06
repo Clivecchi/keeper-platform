@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { ManifestoCard, type ManifestoProps } from '../patterns/ManifestoCard';
 
 interface PropConfig {
   name?: string;
@@ -72,6 +73,9 @@ export function PropRenderer({ prop, domain, onEngagementAction }: PropRendererP
     
     case 'ai-assistant':
       return <AIAssistantProp config={config} value={value} />;
+    
+    case 'manifesto':
+      return <ManifestoProp config={config} value={value} />;
     
     default:
       return (
@@ -311,5 +315,19 @@ function AIAssistantProp({ config, value }: { config: PropConfig; value: any }) 
       </div>
     </div>
   );
+}
+
+function ManifestoProp({ config, value }: { config: PropConfig; value: any }) {
+  // Extract manifesto data from config or value
+  const manifestoData: ManifestoProps = {
+    title: config.title || value?.title || 'Manifesto',
+    kicker: config.kicker || value?.kicker,
+    quote: config.quote || value?.quote || '',
+    content: config.content || value?.content,
+    cta: config.cta || value?.cta,
+    themeVariant: (config.themeVariant || value?.themeVariant || 'system') as ManifestoProps['themeVariant'],
+  };
+  
+  return <ManifestoCard {...manifestoData} />;
 }
 

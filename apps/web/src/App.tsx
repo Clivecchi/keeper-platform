@@ -52,6 +52,9 @@ import DomainDashboardPage from './pages/keeper/DomainDashboardPage';
 // Domain Public Pages
 import PublicDomainPage from './pages/d/PublicDomainPage';
 
+// Manifesto Pages
+import CleanSurfaceDoctrinePage from './pages/manifestos/CleanSurfaceDoctrinePage';
+
 // Legacy Pages
 import UserApiKeyManagerPage from './pages/UserApiKeyManagerPage';
 import LeadAgentPage from './pages/LeadAgentPage';
@@ -187,6 +190,8 @@ const App: React.FC = () => {
         <Route path="/login" element={<LoginPage />} />
         {/* Public Domain Board - Hybrid access (works for both anonymous and authenticated) */}
         <Route path="/d/:slug" element={<PublicDomainPage />} />
+        {/* Manifesto Pages - Clean, distraction-free reading */}
+        <Route path="/manifestos/clean-surface-doctrine" element={<CleanSurfaceDoctrinePage />} />
       </Route>
       
       {/* Dynamic Lead Agent Routes - Must be last to avoid conflicts */}
