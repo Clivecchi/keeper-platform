@@ -353,6 +353,12 @@ If issues arise:
 
 ## 📆 Update Log
 
+### 2025-11-06 - Phase 1.1a (Follow-up)
+- Implemented admin frame visibility filtering
+- Edit button now only shows for authorized users (owner/admin)
+- Added permission checking based on user role
+- See `board-first-phase1.1a.md` for complete details
+
 ### 2025-11-06 - Phase 1.1 Implementation
 - Moved auth controls inside board as overlay header
 - Login page now uses minimal BoardPublicLayout

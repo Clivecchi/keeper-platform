@@ -28,12 +28,14 @@ export default function PublicDomainPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [isDomainAdmin, setIsDomainAdmin] = useState(false);
 
   useEffect(() => {
     if (slug) {
       loadDomain();
     }
-  }, [slug]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, isAuthenticated, user]);
 
   async function loadDomain() {
     setIsLoading(true);
@@ -48,6 +50,20 @@ export default function PublicDomainPage() {
       }
 
       setDomainId(response.id);
+
+      // If authenticated, fetch user permissions for this domain
+      if (isAuthenticated && user) {
+        try {
+          const boardDataResponse = await apiFetch(`/api/domains/${response.id}/board-data`);
+          if (boardDataResponse && boardDataResponse.userPermissions) {
+            const { canEdit, role } = boardDataResponse.userPermissions;
+            setIsDomainAdmin(canEdit || role === 'owner' || role === 'admin');
+          }
+        } catch (permErr) {
+          console.warn('Could not fetch user permissions:', permErr);
+          // Non-fatal: continue without admin status
+        }
+      }
     } catch (err) {
       console.error('Error loading domain:', err);
       setError('Domain not found');
@@ -120,8 +136,8 @@ export default function PublicDomainPage() {
         {/* Overlay header - inside board container */}
         <div className="absolute top-4 right-4 left-4 z-50 flex justify-end items-center gap-3 pointer-events-none">
           <div className="flex gap-2 pointer-events-auto">
-            {/* Edit affordance - authenticated owners only */}
-            {isAuthenticated && (
+            {/* Edit affordance - authenticated owners/admins only */}
+            {isAuthenticated && isDomainAdmin && (
               <button
                 onClick={handleEditClick}
                 disabled

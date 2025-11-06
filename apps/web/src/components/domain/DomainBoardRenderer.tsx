@@ -176,20 +176,36 @@ export function DomainBoardRenderer({
 
   const { board, domain, userPermissions } = boardData;
 
+  // Determine if user is domain admin (owner or admin role)
+  const isDomainAdmin = userPermissions.canEdit || 
+                        userPermissions.role === 'owner' || 
+                        userPermissions.role === 'admin';
+
+  // Filter frames based on visibility and user role
+  // Anonymous or non-admin: show only 'public' frames
+  // Admin: show both 'public' and 'admin' frames
+  const visibleFrames = board.frames.filter((frame) => {
+    if (frame.visibility === 'public') return true;
+    if (frame.visibility === 'admin' && isDomainAdmin) return true;
+    return false;
+  });
+
   return (
     <div className={`w-full max-w-7xl mx-auto p-6 ${className}`}>
       {/* Debug info (can be removed later) */}
       {process.env.NODE_ENV === 'development' && (
         <div className="mb-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
           <strong>Board:</strong> {board.name} | 
-          <strong> Frames:</strong> {board.frames.length} | 
-          <strong> Role:</strong> {userPermissions.role}
+          <strong> Total Frames:</strong> {board.frames.length} | 
+          <strong> Visible:</strong> {visibleFrames.length} |
+          <strong> Role:</strong> {userPermissions.role} |
+          <strong> Is Admin:</strong> {isDomainAdmin ? 'Yes' : 'No'}
         </div>
       )}
 
       {/* Render frames */}
       <div className="space-y-8">
-        {board.frames.map((frame) => (
+        {visibleFrames.map((frame) => (
           <FrameRenderer
             key={frame.id}
             frame={frame}
@@ -199,9 +215,14 @@ export function DomainBoardRenderer({
         ))}
       </div>
 
-      {board.frames.length === 0 && (
+      {visibleFrames.length === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-600">No frames to display</p>
+          {!isDomainAdmin && board.frames.length > 0 && (
+            <p className="text-sm text-gray-500 mt-2">
+              Sign in as the domain owner to see admin frames
+            </p>
+          )}
         </div>
       )}
     </div>
