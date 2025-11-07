@@ -98,6 +98,8 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ value, onChange, disabled
 
     try {
       // Step 1: Get signed upload URL
+      console.log('[MediaUploader] Starting upload for:', file.name, file.type, file.size);
+      
       const signResponse = await apiFetch('/api/uploads/sign', {
         method: 'POST',
         body: JSON.stringify({
@@ -106,6 +108,8 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ value, onChange, disabled
           size: file.size
         })
       });
+
+      console.log('[MediaUploader] Sign response:', signResponse);
 
       if (!signResponse.success) {
         throw new Error(signResponse.error || 'Failed to get upload URL');
@@ -173,11 +177,26 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({ value, onChange, disabled
       setUploadState({ status: 'success', progress: 100 });
       setTimeout(() => setUploadState({ status: 'idle', progress: 0 }), 2000);
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('[MediaUploader] Upload error:', error);
+      
+      // Provide more helpful error messages
+      let errorMessage = 'Upload failed';
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'Cannot connect to server. Check your internet connection and ensure the API server is running.';
+        } else if (error.message.includes('Unauthorized') || error.message.includes('401')) {
+          errorMessage = 'You must be logged in to upload files. Please log in and try again.';
+        } else if (error.message.includes('Storage not configured')) {
+          errorMessage = 'Server storage is not configured. Contact your administrator.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       setUploadState({ 
         status: 'error', 
         progress: 0, 
-        error: error instanceof Error ? error.message : 'Upload failed' 
+        error: errorMessage
       });
     }
   }, [onChange]);
