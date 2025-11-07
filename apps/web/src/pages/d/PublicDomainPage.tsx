@@ -29,6 +29,10 @@ export default function PublicDomainPage() {
   const [error, setError] = useState<string | null>(null);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [isDomainAdmin, setIsDomainAdmin] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [boardChanges, setBoardChanges] = useState<any>(null);
 
   useEffect(() => {
     if (slug) {
@@ -124,9 +128,60 @@ export default function PublicDomainPage() {
   }
 
   const handleEditClick = () => {
-    // TODO: Implement board editing in Phase 2
-    // For now, show a toast notification
-    alert('Board editing is coming soon. For now, use Dashboard → Domain settings.');
+    setIsEditMode(true);
+  };
+
+  const handleCancelEdit = () => {
+    if (hasUnsavedChanges) {
+      if (!window.confirm('You have unsaved changes. Are you sure you want to cancel?')) {
+        return;
+      }
+    }
+    setIsEditMode(false);
+    setHasUnsavedChanges(false);
+    // Reload the board to discard changes
+    loadDomain();
+  };
+
+  const handleSaveChanges = async () => {
+    if (!boardChanges || !domainId) {
+      console.warn('No changes to save');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await apiFetch(`/api/domains/${domainId}/board-data`, {
+        method: 'PUT',
+        body: JSON.stringify(boardChanges)
+      });
+
+      if (response.success) {
+        console.log('✅ Board saved successfully:', response.data);
+        setIsEditMode(false);
+        setHasUnsavedChanges(false);
+        setBoardChanges(null);
+        // Reload the board to show saved changes
+        await loadDomain();
+      } else {
+        throw new Error(response.error || 'Save failed');
+      }
+    } catch (error) {
+      console.error('Error saving changes:', error);
+      alert(
+        'Failed to save changes. ' +
+        (error instanceof Error ? error.message : 'Please try again.')
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleBoardUpdate = async (changes: any) => {
+    // Store the changes for later save
+    setBoardChanges(changes);
+    // Mark that we have unsaved changes
+    setHasUnsavedChanges(true);
   };
 
   return (
@@ -137,12 +192,10 @@ export default function PublicDomainPage() {
         <div className="absolute top-4 right-4 left-4 z-50 flex justify-end items-center gap-3 pointer-events-none">
           <div className="flex gap-2 pointer-events-auto">
             {/* Edit affordance - authenticated owners/admins only */}
-            {isAuthenticated && isDomainAdmin && (
+            {isAuthenticated && isDomainAdmin && !isEditMode && (
               <button
                 onClick={handleEditClick}
-                disabled
-                title="Editing coming soon"
-                className="px-3 py-1.5 text-sm font-medium text-gray-400 bg-white/90 hover:bg-white/95 border border-gray-200 rounded-lg shadow-sm transition-colors cursor-not-allowed opacity-60"
+                className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
               >
                 <span className="flex items-center gap-1.5">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,6 +204,36 @@ export default function PublicDomainPage() {
                   Edit
                 </span>
               </button>
+            )}
+
+            {/* Save/Cancel buttons in edit mode */}
+            {isEditMode && (
+              <>
+                <button
+                  onClick={handleCancelEdit}
+                  disabled={isSaving}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveChanges}
+                  disabled={isSaving || !hasUnsavedChanges}
+                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? (
+                    <span className="flex items-center gap-1.5">
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Saving...
+                    </span>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+              </>
             )}
             
             {/* Auth controls */}
@@ -225,9 +308,30 @@ export default function PublicDomainPage() {
           </div>
         </div>
         
+        {/* Edit mode indicator overlay */}
+        {isEditMode && (
+          <div className="fixed top-16 left-4 right-4 z-40 pointer-events-none">
+            <div className="max-w-7xl mx-auto">
+              <div className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 pointer-events-auto">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span>Editing Mode - Click on any element to edit</span>
+                {hasUnsavedChanges && (
+                  <span className="ml-2 px-2 py-0.5 bg-yellow-500 text-yellow-900 rounded text-xs font-semibold">
+                    Unsaved changes
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <DomainBoardRenderer
           domainId={domainId}
+          isEditMode={isEditMode}
           onEngagementAction={handleEngagementAction}
+          onBoardUpdate={handleBoardUpdate}
         />
       </main>
 

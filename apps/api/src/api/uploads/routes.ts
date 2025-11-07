@@ -44,8 +44,11 @@ router.post('/sign', authMiddlewareCompat, async (req: Request, res: Response) =
     const extension = filename.split('.').pop();
     const key = `uploads/${userId}/${timestamp}-${randomSuffix}.${extension}`;
 
-    // Build upload URL using request's origin/protocol
-    const protocol = req.protocol || 'https';
+    // Build upload URL - always use HTTPS in production
+    // Railway terminates SSL at load balancer, so req.protocol may be 'http' internally
+    // but we need to return HTTPS URLs for the frontend
+    const isProduction = process.env.NODE_ENV === 'production';
+    const protocol = isProduction ? 'https' : (req.protocol || 'http');
     const host = req.get('host') || 'api.ke3p.com';
     const baseUrl = process.env.API_BASE_URL || `${protocol}://${host}`;
 

@@ -258,6 +258,166 @@ async function hydrateDataSource(
 }
 
 /**
+ * PUT /api/domains/:domainId/board-data
+ * 
+ * Saves board changes (frame props) for inline editing
+ * 
+ * Request body:
+ * {
+ *   frames: [
+ *     {
+ *       id: "frame-123",
+ *       props: [
+ *         { id: "prop-456", type: "text", config: {...}, orderIndex: 0 }
+ *       ]
+ *     }
+ *   ]
+ * }
+ */
+router.put('/:domainId/board-data', attachUser, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { domainId } = req.params;
+    const { frames } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    if (!frames || !Array.isArray(frames)) {
+      return res.status(400).json({ error: 'Invalid request: frames array required' });
+    }
+
+    // Load domain and check permissions
+    const domain = await prisma.domain.findUnique({
+      where: { id: domainId }
+    });
+
+    if (!domain) {
+      return res.status(404).json({ error: 'Domain not found' });
+    }
+
+    // Check if user has edit permission
+    const perm = await permissionService.checkPermission({
+      userId,
+      domainId,
+      permission: 'write'
+    });
+
+    if (!perm.hasPermission) {
+      return res.status(403).json({ error: 'No permission to edit this domain' });
+    }
+
+    // Get the Domain board template to validate frame IDs
+    const domainKeeperType = await prisma.keeperType.findFirst({
+      where: { name: 'Domain' },
+      include: {
+        defaultBoardTemplate: {
+          include: {
+            frames: {
+              select: { id: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!domainKeeperType?.defaultBoardTemplate) {
+      return res.status(500).json({ error: 'Domain board template not found' });
+    }
+
+    const validFrameIds = new Set(
+      domainKeeperType.defaultBoardTemplate.frames.map(f => f.id)
+    );
+
+    // Process each frame's props
+    const updateResults = [];
+    
+    for (const frameUpdate of frames) {
+      // Validate frame ID
+      if (!validFrameIds.has(frameUpdate.id)) {
+        console.warn(`[board-data:save] Invalid frame ID: ${frameUpdate.id}`);
+        continue;
+      }
+
+      // Process each prop in the frame
+      for (const propUpdate of frameUpdate.props) {
+        try {
+          // Check if prop exists
+          const existingProp = await prisma.prop.findUnique({
+            where: { id: propUpdate.id }
+          });
+
+          if (existingProp) {
+            // Update existing prop
+            await prisma.prop.update({
+              where: { id: propUpdate.id },
+              data: {
+                type: propUpdate.type,
+                config: propUpdate.config as any,
+                orderIndex: propUpdate.orderIndex,
+                isVisible: propUpdate.isVisible !== false,
+                isDraft: propUpdate.isDraft || false,
+                updatedAt: new Date()
+              }
+            });
+            updateResults.push({ id: propUpdate.id, action: 'updated' });
+          } else {
+            // Create new prop (for newly added props)
+            await prisma.prop.create({
+              data: {
+                id: propUpdate.id,
+                frameId: frameUpdate.id,
+                type: propUpdate.type,
+                config: propUpdate.config as any,
+                orderIndex: propUpdate.orderIndex,
+                isVisible: propUpdate.isVisible !== false,
+                isDraft: propUpdate.isDraft || false,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              }
+            });
+            updateResults.push({ id: propUpdate.id, action: 'created' });
+          }
+        } catch (propError) {
+          console.error(`[board-data:save] Error updating prop ${propUpdate.id}:`, propError);
+          updateResults.push({ 
+            id: propUpdate.id, 
+            action: 'error',
+            error: propError instanceof Error ? propError.message : 'Unknown error'
+          });
+        }
+      }
+    }
+
+    // Clear cache for this domain
+    try {
+      await cacheService.invalidate(`board-data:${domainId}`);
+    } catch (cacheError) {
+      console.warn('[board-data:save] Cache invalidation warning:', cacheError);
+      // Non-fatal: continue even if cache clear fails
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        domainId,
+        boardId: domainKeeperType.defaultBoardTemplate.id,
+        updatedAt: new Date().toISOString(),
+        results: updateResults
+      }
+    });
+
+  } catch (error) {
+    console.error('[domains:board-data:save] Error:', error);
+    return res.status(500).json({ 
+      error: 'Failed to save board changes',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
  * Compute DNS status message
  */
 function computeDnsStatus(domain: any): string {

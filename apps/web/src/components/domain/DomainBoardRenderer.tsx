@@ -13,6 +13,8 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../../lib/api';
 import { PropRenderer } from './PropRenderer';
+import { PathwayNav } from '../patterns/PathwayNav';
+import PropManager from '../props/PropManager';
 
 interface Frame {
   id: string;
@@ -62,22 +64,34 @@ interface DomainBoardRendererProps {
   domainId?: string;
   domainSlug?: string;
   className?: string;
+  isEditMode?: boolean;
   onEngagementAction?: (templateSlug: string, context: any) => void;
+  onBoardUpdate?: (changes: { frames: any[] }) => void;
 }
 
 export function DomainBoardRenderer({ 
   domainId, 
   domainSlug,
   className = '',
-  onEngagementAction
+  isEditMode = false,
+  onEngagementAction,
+  onBoardUpdate
 }: DomainBoardRendererProps) {
   const [boardData, setBoardData] = useState<BoardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [frameChanges, setFrameChanges] = useState<Map<string, any[]>>(new Map());
 
   useEffect(() => {
     loadBoardData();
   }, [domainId, domainSlug]);
+
+  // Clear frame changes when exiting edit mode
+  useEffect(() => {
+    if (!isEditMode) {
+      setFrameChanges(new Map());
+    }
+  }, [isEditMode]);
 
   async function loadBoardData() {
     setIsLoading(true);
@@ -126,6 +140,29 @@ export function DomainBoardRenderer({
       // Default behavior: just refresh after a moment
       setTimeout(refreshBoardData, 1000);
     }
+  };
+
+  const handleFrameUpdate = (frameId: string, updatedProps: any[]) => {
+    // Store the updated props for this frame
+    const newFrameChanges = new Map(frameChanges);
+    newFrameChanges.set(frameId, updatedProps);
+    setFrameChanges(newFrameChanges);
+
+    // Build the complete changes object to send to parent
+    const frames = Array.from(newFrameChanges.entries()).map(([id, props]) => ({
+      id,
+      props: props.map(prop => ({
+        id: prop.id,
+        type: prop.type,
+        config: prop.config,
+        orderIndex: prop.orderIndex,
+        isVisible: prop.isVisible,
+        isDraft: prop.isDraft
+      }))
+    }));
+
+    // Notify parent that changes were made
+    onBoardUpdate?.({ frames });
   };
 
   if (isLoading) {
@@ -190,42 +227,109 @@ export function DomainBoardRenderer({
     return false;
   });
 
+  // Separate Pathway frames from content frames
+  const pathwayFrame = visibleFrames.find((frame) => 
+    frame.pattern === 'pathway' || frame.name.toLowerCase().includes('pathway')
+  );
+  const contentFrames = visibleFrames.filter((frame) => 
+    frame.pattern !== 'pathway' && !frame.name.toLowerCase().includes('pathway')
+  );
+
   return (
-    <div className={`w-full max-w-7xl mx-auto p-6 ${className}`}>
+    <div className={`w-full ${className}`}>
       {/* Debug info (can be removed later) */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="mb-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
+        <div className="max-w-7xl mx-auto mb-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
           <strong>Board:</strong> {board.name} | 
           <strong> Total Frames:</strong> {board.frames.length} | 
           <strong> Visible:</strong> {visibleFrames.length} |
+          <strong> Pathway:</strong> {pathwayFrame ? 'Yes' : 'No'} |
           <strong> Role:</strong> {userPermissions.role} |
           <strong> Is Admin:</strong> {isDomainAdmin ? 'Yes' : 'No'}
         </div>
       )}
 
-      {/* Render frames */}
-      <div className="space-y-8">
-        {visibleFrames.map((frame) => (
-          <FrameRenderer
-            key={frame.id}
-            frame={frame}
-            domain={domain}
-            onEngagementAction={handleEngagementAction}
-          />
-        ))}
-      </div>
+      {/* Render Pathway navigation if exists */}
+      {pathwayFrame && (
+        <PathwayRenderer 
+          frame={pathwayFrame} 
+          domain={domain}
+        />
+      )}
 
-      {visibleFrames.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-600">No frames to display</p>
-          {!isDomainAdmin && board.frames.length > 0 && (
-            <p className="text-sm text-gray-500 mt-2">
-              Sign in as the domain owner to see admin frames
-            </p>
+      {/* Render content frames */}
+      <div className="w-full max-w-7xl mx-auto p-6">
+        <div className="space-y-8">
+          {contentFrames.map((frame) => (
+            <FrameRenderer
+              key={frame.id}
+              frame={frame}
+              domain={domain}
+              isEditMode={isEditMode}
+              onEngagementAction={handleEngagementAction}
+              onFrameUpdate={handleFrameUpdate}
+            />
+          ))}
+
+          {contentFrames.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-600">No frames to display</p>
+              {!isDomainAdmin && board.frames.length > 0 && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Sign in as the domain owner to see admin frames
+                </p>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
+  );
+}
+
+// ============================================================================
+// PATHWAY RENDERER
+// ============================================================================
+
+interface PathwayRendererProps {
+  frame: Frame;
+  domain: any;
+}
+
+function PathwayRenderer({ frame, domain }: PathwayRendererProps) {
+  // Extract pathway configuration from props
+  const pathwayConfig = frame.props.find(p => p.type === 'pathway-config')?.config || {};
+  
+  // Extract path items from props
+  const pathProps = frame.props.filter(p => p.type === 'pathway-item' || p.type === 'link');
+  
+  // Convert props to pathway items format
+  const paths = pathProps
+    .sort((a, b) => a.orderIndex - b.orderIndex)
+    .map(prop => ({
+      label: prop.config.label || prop.config.text || 'Link',
+      href: prop.config.href || prop.config.url || '#',
+      description: prop.config.description || prop.config.label,
+      variant: prop.config.variant || 'system',
+      analyticsId: prop.config.analyticsId
+    }));
+
+  // If no paths configured, don't render anything
+  if (paths.length === 0) {
+    return null;
+  }
+
+  return (
+    <PathwayNav
+      layout={pathwayConfig.layout || 'inline'}
+      orientation={pathwayConfig.orientation || 'horizontal'}
+      position={pathwayConfig.position || 'right'}
+      themeVariant={pathwayConfig.themeVariant || 'system'}
+      paths={paths}
+      authedPaths={pathwayConfig.authedPaths || []}
+      visibleFor={pathwayConfig.visibleFor || ['public', 'authed']}
+      ownerOnlyAuthedPaths={pathwayConfig.ownerOnlyAuthedPaths || false}
+    />
   );
 }
 
@@ -236,12 +340,22 @@ export function DomainBoardRenderer({
 interface FrameRendererProps {
   frame: Frame;
   domain: any;
+  isEditMode?: boolean;
   onEngagementAction: (templateSlug: string, context: any) => void;
+  onFrameUpdate?: (frameId: string, props: any[]) => void;
 }
 
-function FrameRenderer({ frame, domain, onEngagementAction }: FrameRendererProps) {
+function FrameRenderer({ frame, domain, isEditMode = false, onEngagementAction, onFrameUpdate }: FrameRendererProps) {
   // Sort props by orderIndex
   const sortedProps = [...frame.props].sort((a, b) => a.orderIndex - b.orderIndex);
+  const [localProps, setLocalProps] = React.useState(sortedProps);
+
+  // Update local props when frame props change (unless in edit mode with unsaved changes)
+  React.useEffect(() => {
+    if (!isEditMode) {
+      setLocalProps(sortedProps);
+    }
+  }, [frame.props, isEditMode, sortedProps]);
 
   // Pattern-based styling
   const patternStyles = {
@@ -254,33 +368,63 @@ function FrameRenderer({ frame, domain, onEngagementAction }: FrameRendererProps
   };
 
   const frameClasses = patternStyles[frame.pattern as keyof typeof patternStyles] || patternStyles.canvas;
+  
+  // Add edit mode styling
+  const editModeClasses = isEditMode 
+    ? 'ring-2 ring-blue-500 ring-opacity-50 hover:ring-opacity-100 transition-all' 
+    : '';
+
+  const handlePropsUpdate = async (frameId: string, updatedProps: any[]) => {
+    setLocalProps(updatedProps);
+    // Notify parent renderer of the changes
+    onFrameUpdate?.(frameId, updatedProps);
+  };
 
   return (
     <section 
-      className={frameClasses}
+      className={`${frameClasses} ${editModeClasses}`}
       data-frame-id={frame.id}
       data-pattern={frame.pattern}
     >
       {/* Frame header (optional, can be styled based on pattern) */}
       {frame.name && frame.pattern !== 'focus' && (
-        <h3 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-          {frame.name}
-        </h3>
+        <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
+          <h3 className="text-xl font-semibold text-gray-800">
+            {frame.name}
+          </h3>
+          {isEditMode && (
+            <span className="text-xs text-blue-600 font-medium px-2 py-1 bg-blue-50 rounded">
+              Editable
+            </span>
+          )}
+        </div>
       )}
 
-      {/* Render props */}
-      <div className="space-y-3">
-        {sortedProps.map((prop) => (
-          <PropRenderer
-            key={prop.id}
-            prop={prop}
-            domain={domain}
-            onEngagementAction={onEngagementAction}
-          />
-        ))}
-      </div>
+      {/* Render props - use PropManager in edit mode, PropRenderer in view mode */}
+      {isEditMode ? (
+        <PropManager
+          frameId={frame.id}
+          initialProps={localProps}
+          isActive={true}
+          framePattern={frame.pattern}
+          isEditMode={true}
+          isDraggable={false}
+          onPropsUpdate={handlePropsUpdate}
+        />
+      ) : (
+        <div className="space-y-3">
+          {sortedProps.map((prop) => (
+            <PropRenderer
+              key={prop.id}
+              prop={prop}
+              domain={domain}
+              onEngagementAction={onEngagementAction}
+            />
+          ))}
+        </div>
+      )}
 
-      {sortedProps.length === 0 && (
+      {sortedProps.length === 0 && !isEditMode && (
         <div className="text-sm text-gray-500 italic">
           No content configured for this frame
         </div>
