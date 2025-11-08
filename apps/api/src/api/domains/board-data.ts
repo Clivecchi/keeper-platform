@@ -340,59 +340,35 @@ router.put('/:domainId/board-data', attachUser, async (req: AuthenticatedRequest
         continue;
       }
 
-      // Process each prop in the frame
-      for (const propUpdate of frameUpdate.props) {
-        try {
-          // Check if prop exists
-          const existingProp = await prisma.prop.findUnique({
-            where: { id: propUpdate.id }
-          });
-
-          if (existingProp) {
-            // Update existing prop
-            await prisma.prop.update({
-              where: { id: propUpdate.id },
-              data: {
-                type: propUpdate.type,
-                config: propUpdate.config as any,
-                orderIndex: propUpdate.orderIndex,
-                isVisible: propUpdate.isVisible !== false,
-                isDraft: propUpdate.isDraft || false,
-                updatedAt: new Date()
-              }
-            });
-            updateResults.push({ id: propUpdate.id, action: 'updated' });
-          } else {
-            // Create new prop (for newly added props)
-            await prisma.prop.create({
-              data: {
-                id: propUpdate.id,
-                frameId: frameUpdate.id,
-                type: propUpdate.type,
-                config: propUpdate.config as any,
-                orderIndex: propUpdate.orderIndex,
-                isVisible: propUpdate.isVisible !== false,
-                isDraft: propUpdate.isDraft || false,
-                createdAt: new Date(),
-                updatedAt: new Date()
-              }
-            });
-            updateResults.push({ id: propUpdate.id, action: 'created' });
+      try {
+        // Update the frame's props JSON field
+        // Props are stored as JSON array in FrameInstance.props, not as separate rows
+        await prisma.frameInstance.update({
+          where: { id: frameUpdate.id },
+          data: {
+            props: frameUpdate.props as any,
+            updatedAt: new Date()
           }
-        } catch (propError) {
-          console.error(`[board-data:save] Error updating prop ${propUpdate.id}:`, propError);
-          updateResults.push({ 
-            id: propUpdate.id, 
-            action: 'error',
-            error: propError instanceof Error ? propError.message : 'Unknown error'
-          });
-        }
+        });
+        
+        updateResults.push({ 
+          frameId: frameUpdate.id, 
+          action: 'updated',
+          propsCount: frameUpdate.props.length 
+        });
+      } catch (frameError) {
+        console.error(`[board-data:save] Error updating frame ${frameUpdate.id}:`, frameError);
+        updateResults.push({ 
+          frameId: frameUpdate.id, 
+          action: 'error',
+          error: frameError instanceof Error ? frameError.message : 'Unknown error'
+        });
       }
     }
 
     // Clear cache for this domain
     try {
-      await cacheService.invalidate(`board-data:${domainId}`);
+      await cacheService.invalidateDomain(domainId);
     } catch (cacheError) {
       console.warn('[board-data:save] Cache invalidation warning:', cacheError);
       // Non-fatal: continue even if cache clear fails
