@@ -127,8 +127,20 @@ function TextProp({ config, value }: { config: PropConfig; value: any }) {
 }
 
 function ImageProp({ config, value }: { config: PropConfig; value: any }) {
-  const src = value || config.content || '/placeholder.svg';
-  const alt = config.name || 'Image';
+  // Handle both simple string URLs and media object format from MediaUploader
+  let src: string;
+  if (typeof value === 'string') {
+    src = value;
+  } else if (value && typeof value === 'object' && value.url) {
+    // MediaUploader format: { type: 'image', url: '...', width: ..., height: ... }
+    src = value.url;
+  } else if (config.content) {
+    src = config.content;
+  } else {
+    src = '/placeholder.svg';
+  }
+  
+  const alt = config.name || config.alt || 'Image';
   const variant = config.variant || 'normal';
   
   if (variant === 'full-bleed') {
@@ -138,6 +150,10 @@ function ImageProp({ config, value }: { config: PropConfig; value: any }) {
           src={src} 
           alt={alt} 
           className="w-full h-64 object-cover"
+          onError={(e) => {
+            console.error('Image load error:', src);
+            e.currentTarget.style.display = 'none';
+          }}
         />
       </div>
     );
@@ -148,6 +164,10 @@ function ImageProp({ config, value }: { config: PropConfig; value: any }) {
       src={src} 
       alt={alt} 
       className="w-full rounded-lg mb-4"
+      onError={(e) => {
+        console.error('Image load error:', src);
+        e.currentTarget.style.display = 'none';
+      }}
     />
   );
 }
