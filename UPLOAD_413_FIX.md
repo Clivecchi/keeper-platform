@@ -121,6 +121,43 @@ Before closing this issue, verify:
 - [ ] Uploaded images display correctly in preview
 - [ ] Delete functionality works
 
+## Additional Issue Found: HTTP 401 on Upload
+
+### Problem
+After fixing the HTTP 413 error, uploads were still failing with HTTP 401 "Unauthorized" on the second request (`/api/uploads/direct`).
+
+### Root Cause
+The backend was returning the Railway hostname (`keeper-platform-production.up.railway.app`) in the upload URL instead of the proper API domain (`api.ke3p.com`). Since the session cookie is set for domain `.ke3p.com`, the browser wouldn't send it with requests to the Railway hostname, causing authentication to fail.
+
+**Railway Logs Showed:**
+```
+[AuthMiddleware] Token check: {
+  path: '/sign',
+  hasCookie: true,  ← Cookie present for first request
+  ...
+}
+
+[AuthMiddleware] Token check: {
+  path: '/direct',
+  hasCookie: false,  ← NO COOKIE for second request!
+  ...
+}
+```
+
+### Solution
+Modified `apps/api/src/api/uploads/routes.ts` to always return `https://api.ke3p.com` in production instead of using the request hostname:
+
+```typescript
+// Before
+const host = req.get('host') || 'api.ke3p.com';
+const baseUrl = process.env.API_BASE_URL || `${protocol}://${host}`;
+
+// After  
+const baseUrl = process.env.API_BASE_URL || (isProduction ? 'https://api.ke3p.com' : `${req.protocol || 'http'}://${req.get('host')}`);
+```
+
+This ensures the upload URL uses the same domain as the cookie, allowing authentication to work properly.
+
 ## Status
 **Fixed - Pending Deployment**
 
@@ -128,10 +165,17 @@ Date: November 9, 2025
 Developer: Claude (Cursor AI)  
 Verified by: [Pending]
 
+## Files Modified
+1. `apps/api/src/index.ts` - Increased body parser limits (HTTP 413 fix)
+2. `apps/api/src/api/uploads/routes.ts` - Fixed URL domain for cookie auth (HTTP 401 fix)
+3. `apps/api/src/middleware/authMiddleware.ts` - Added debug logging
+
 ## Next Steps
 1. Commit and push changes
 2. Monitor Railway deployment
 3. Test in production with various file sizes
-4. Update `IMAGE_UPLOAD_SETUP.md` if needed
-5. Close related GitHub issues
+4. Verify upload URL in logs shows `https://api.ke3p.com/api/uploads/direct`
+5. Confirm both requests have `hasCookie: true` in logs
+6. Update `IMAGE_UPLOAD_SETUP.md` if needed
+7. Close related GitHub issues
 

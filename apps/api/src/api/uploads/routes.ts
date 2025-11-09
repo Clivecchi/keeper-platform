@@ -58,10 +58,10 @@ router.post('/sign', authMiddlewareCompat, async (req: Request, res: Response) =
     // Build upload URL - always use HTTPS in production
     // Railway terminates SSL at load balancer, so req.protocol may be 'http' internally
     // but we need to return HTTPS URLs for the frontend
+    // IMPORTANT: Use the proper API domain (api.ke3p.com) not the Railway hostname
+    // to ensure cookies are sent with the upload request
     const isProduction = process.env.NODE_ENV === 'production';
-    const protocol = isProduction ? 'https' : (req.protocol || 'http');
-    const host = req.get('host') || 'api.ke3p.com';
-    const baseUrl = process.env.API_BASE_URL || `${protocol}://${host}`;
+    const baseUrl = process.env.API_BASE_URL || (isProduction ? 'https://api.ke3p.com' : `${req.protocol || 'http'}://${req.get('host')}`);
 
     // Return upload endpoint - client will POST the file here with the key
     const signedData = {
@@ -76,6 +76,12 @@ router.post('/sign', authMiddlewareCompat, async (req: Request, res: Response) =
       key,
       expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 1 hour
     };
+
+    console.log('[Upload Sign] Returning signed URL:', {
+      url: signedData.url,
+      baseUrl,
+      requestHost: req.get('host')
+    });
 
     return res.json({
       success: true,
