@@ -138,7 +138,19 @@ export const authMiddlewareCompat = async (req: Request, res: Response, next: Ne
       }
     }
     
+    // Debug logging for auth troubleshooting
+    console.log('[AuthMiddleware] Token check:', {
+      path: req.path,
+      hasAuthHeader: !!req.header('Authorization'),
+      hasCookie: !!(req as any).cookies?.keeper_session,
+      hasToken: !!token,
+      tokenLength: token?.length || 0,
+      origin: req.get('origin'),
+      host: req.get('host')
+    });
+    
     if (!token) {
+      console.error('[AuthMiddleware] No token found in header or cookie');
       res.status(401).json({ error: 'No token provided' });
       return;
     }

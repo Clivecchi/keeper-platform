@@ -30,8 +30,19 @@ const SignUploadSchema = z.object({
  */
 router.post('/sign', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
+    // Debug logging for auth issues
+    console.log('[Upload Sign] Auth check:', {
+      hasUser: !!(req as any).user,
+      userId: (req as any).user?.id,
+      hasCookie: !!(req as any).cookies?.keeper_session,
+      hasAuthHeader: !!req.header('Authorization'),
+      origin: req.get('origin'),
+      host: req.get('host')
+    });
+    
     const userId = (req as any).user?.id;
     if (!userId) {
+      console.error('[Upload Sign] No user ID found - returning 401');
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
