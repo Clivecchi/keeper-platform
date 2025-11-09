@@ -14,6 +14,8 @@ interface PropConfig {
   variant?: string;
   tone?: string;
   content?: string;
+  url?: string;  // For image props
+  alt?: string;  // For image alt text
   engagementTemplate?: string;
   visibility?: 'public' | 'admin';
   fields?: any[];
@@ -134,6 +136,9 @@ function ImageProp({ config, value }: { config: PropConfig; value: any }) {
   } else if (value && typeof value === 'object' && value.url) {
     // MediaUploader format: { type: 'image', url: '...', width: ..., height: ... }
     src = value.url;
+  } else if (config.url) {
+    // ImagePropEditor saves to config.url
+    src = config.url;
   } else if (config.content) {
     src = config.content;
   } else {
@@ -142,6 +147,8 @@ function ImageProp({ config, value }: { config: PropConfig; value: any }) {
   
   const alt = config.name || config.alt || 'Image';
   const variant = config.variant || 'normal';
+  
+  console.log('[ImageProp] Rendering image:', { src, hasValue: !!value, hasConfigUrl: !!config.url, hasConfigContent: !!config.content });
   
   if (variant === 'full-bleed') {
     return (

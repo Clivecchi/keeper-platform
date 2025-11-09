@@ -83,45 +83,42 @@ const baseUrl = process.env.API_BASE_URL || (isProduction ? 'https://api.ke3p.co
 - ❌ Public board view showed "Cover Image" placeholder
 
 ### Root Cause
-`ImageProp` renderer expected simple string URL:
+`ImageProp` renderer expected simple string URL in `value` or `config.content`:
 ```typescript
 const src = value || config.content || '/placeholder.svg';
 ```
 
-But `MediaUploader` saves structured object:
-```typescript
-{
-  type: 'image',
-  url: 'https://....blob.vercel-storage.com/...',
-  width: 1200,
-  height: 630,
-  key: 'uploads/...'
-}
-```
+But the data could be in multiple places:
+1. **From MediaUploader**: Structured object in `value`: `{ type: 'image', url: '...', width, height }`
+2. **From ImagePropEditor**: String URL in `config.url`
+3. **Legacy**: String URL in `config.content`
+
+The renderer wasn't checking `config.url`, so images uploaded via the editor weren't displaying.
 
 ### Solution
 **File**: `apps/web/src/components/domain/PropRenderer.tsx` (lines 129-173)
 
 ```typescript
 function ImageProp({ config, value }: { config: PropConfig; value: any }) {
-  // Handle both simple string URLs and media object format
+  // Handle multiple data formats
   let src: string;
   if (typeof value === 'string') {
-    src = value;
+    src = value;  // Simple string URL
   } else if (value && typeof value === 'object' && value.url) {
-    // MediaUploader format: { type: 'image', url: '...', ... }
-    src = value.url;
+    src = value.url;  // MediaUploader format: { type, url, width, height }
+  } else if (config.url) {
+    src = config.url;  // ImagePropEditor saves here ← FIX
   } else if (config.content) {
-    src = config.content;
+    src = config.content;  // Legacy format
   } else {
-    src = '/placeholder.svg';
+    src = '/placeholder.svg';  // Fallback
   }
   
   // ... render image with src
 }
 ```
 
-**Result**: Renderer now extracts URL from media object correctly.
+**Result**: Renderer now checks all possible locations for image URL, including `config.url` where the editor saves it.
 
 ---
 
