@@ -296,9 +296,10 @@ app.options('*', cors(corsOptions));
 // CORS preflight requests are handled by the cors middleware above
 
 // Basic middleware with defensive JSON parsing for MCP compatibility
-app.use(express.json({ limit: '1mb', type: ['application/json', 'text/json', '*/json'] as any }));
-app.use(express.text({ type: '*/*', limit: '1mb' }));
-app.use(express.urlencoded({ extended: true }));
+// Increased limit to 50mb to support base64-encoded files (25MB file → ~33MB base64)
+app.use(express.json({ limit: '50mb', type: ['application/json', 'text/json', '*/json'] as any }));
+app.use(express.text({ type: '*/*', limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser()); // Parse cookies for session management
 
 // Defensive JSON parser: accept JSON even if Content-Type is odd/missing
