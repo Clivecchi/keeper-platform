@@ -29,6 +29,10 @@ async function main() {
     const seedDomainEngagement = await import('./seeds/domain-engagement-templates.seed.ts');
     await seedDomainEngagement.default();
 
+    console.log('🎯 Seeding Domain Board Management Templates...');
+    const seedDomainBoardEngagement = await import('./seeds/domain-board-engagement-templates.seed.ts');
+    await seedDomainBoardEngagement.default();
+
     console.log('🎉 Database seed completed successfully!');
   } catch (error) {
     console.error('❌ Error during seeding:', error);

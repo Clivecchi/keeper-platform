@@ -5,6 +5,9 @@ This folder contains utility functions and helper modules used throughout the AP
 
 ## 🧱 Key Files
 - `domain.ts` - Domain context utilities and validation functions
+- `audit.ts` - Audit logging for board operations (NEW)
+- `requestLog.ts` - Request logging utilities
+- `LogStore.ts` - Log storage and retrieval
 - `README.md` - This documentation file
 
 ## 🔄 Data & Behavior
@@ -84,6 +87,7 @@ const result = validator(req);
 - [ ] Add unit tests for all utility functions
 
 ## 📆 Update Log
+- **2025-11-09**: Added `audit.ts` for board operation audit logging. Includes `logAudit()` and `computeHash()` utilities. Logs to console and DomainAudit table.
 - **2025-01-11**: Created domain.ts with core extraction and validation functions
 - **2025-01-11**: Added UUID validation and subdomain parsing capabilities
 - **2025-01-11**: Implemented comprehensive domain context extraction with fallback strategies

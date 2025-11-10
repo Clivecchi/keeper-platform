@@ -1,217 +1,141 @@
-# Board Services
+# 📌 Purpose
 
-## 📌 Purpose
-
-This folder contains board-related business logic and services for the Keeper platform, including board resolution, template management, and domain-specific board operations.
+Board management services providing core business logic for Domain Board operations. Handles board CRUD, frame management, and domain permission validation.
 
 ## 🧱 Key Files
 
-- `boardResolver.ts` - Runtime board resolution for Keeper Types and records
+- `BoardsService.ts` - Core board management operations (NEW)
+  - setViewerMode - Control board viewer access
+  - addFrame - Add frames to boards
+  - updateFrame - Update frame properties
+  - setCover - Set board cover image
+  - upsertNav - Manage navigation items
+  - publishBoard - Publish/unpublish boards
+  - checkBoardPermission - Domain permission validation
+
+- `boardResolver.ts` - Board resolution and lookup utilities
 - `domainManagement.ts` - Domain-specific board operations
 - `README.md` - This file
 
 ## 🔄 Data & Behavior
 
-### Board Resolver Service
+### Permission Model
+All board operations check domain permissions:
+- Requires: owner, admin, or editor role on the board's domain
+- Falls back gracefully with ACCESS_DENIED error
 
-The `boardResolver.ts` module provides the core logic for resolving which board template to use for a given record or entity.
+### Board Configuration
+Uses `Board.config` JSON field to store:
+- `coverId` - Media ID for board cover image
+- `nav` - Array of navigation items `{label, href, icon?}`
 
-**Key Functions:**
+### Frame Management
+- Frames link to boards via `boardId`
+- Auto-increments `orderIndex` when adding frames
+- Validates patch fields in updateFrame (whitelist)
 
-1. **`resolveBoardForRecord(prisma, recordId)`**
-   - Resolves board for generic KeeperRecord
-   - Resolution order: Custom board → Default template → Error
-   - Returns board with frames included
+### Media Upload
+Currently returns mock responses - integrate with actual media service later.
 
-2. **`resolveBoardForEntity(prisma, entityType, entityId)`**
-   - Helper for first-class entities (Keeper, Journey, Agent, Domain)
-   - Backwards compatible with existing models
-   - Returns null if no template available
+## API Usage Examples
 
-3. **`getAllBoardTemplates(prisma)`**
-   - Fetches all boards with `isTemplate = true`
-   - Includes frames ordered by orderIndex
-   - Useful for template galleries
+### Set Viewer Mode
+```typescript
+import { setViewerMode } from './BoardsService';
 
-4. **`forkTemplateForRecord(prisma, recordId, templateBoardId, keeperId)`**
-   - Creates custom board from template
-   - Copies all frames with proper configuration
-   - Links to specific record automatically
-
-### Data Flow
-
-```
-KeeperRecord → [Resolver] → Custom Board? → Yes → Return Custom Board
-                    ↓
-                    No
-                    ↓
-            Default Template? → Yes → Return Template
-                    ↓
-                    No
-                    ↓
-                 Error
+const result = await setViewerMode({
+  boardId: 'board-uuid',
+  mode: 'public',
+  userId: 'user-uuid'
+});
 ```
 
-### State Management
+### Add Frame
+```typescript
+import { addFrame } from './BoardsService';
 
-- **Prisma Relations:** Board ↔ KeeperType (default template)
-- **Prisma Relations:** Board ↔ KeeperRecord (custom board)
-- **Caching:** Results can be cached at API layer
-- **Transactions:** Fork operation uses Prisma transactions
+const result = await addFrame({
+  boardId: 'board-uuid',
+  pattern: 'dialogic',
+  name: 'Cover Frame',
+  index: 0,
+  props: { style: 'modern' },
+  userId: 'user-uuid'
+});
+```
+
+### Update Frame
+```typescript
+import { updateFrame } from './BoardsService';
+
+const result = await updateFrame({
+  frameId: 'frame-uuid',
+  patch: { name: 'New Name', props: { color: 'blue' } },
+  userId: 'user-uuid'
+});
+```
+
+### Set Cover
+```typescript
+import { setCover } from './BoardsService';
+
+const result = await setCover({
+  boardId: 'board-uuid',
+  mediaId: 'media-uuid',
+  userId: 'user-uuid'
+});
+```
+
+### Upsert Navigation
+```typescript
+import { upsertNav } from './BoardsService';
+
+const result = await upsertNav({
+  boardId: 'board-uuid',
+  items: [
+    { label: 'Home', href: '/', icon: 'home' },
+    { label: 'About', href: '/about' }
+  ],
+  userId: 'user-uuid'
+});
+```
+
+### Publish Board
+```typescript
+import { publishBoard } from './BoardsService';
+
+const result = await publishBoard({
+  boardId: 'board-uuid',
+  isPublic: true,
+  userId: 'user-uuid'
+});
+```
+
+## Error Handling
+
+All functions throw errors with specific codes:
+- `ACCESS_DENIED` - User lacks domain permission
+- `FRAME_NOT_FOUND` - Frame doesn't exist
+- `BOARD_NOT_FOUND` - Board doesn't exist
+- `INVALID_PATCH` - No valid fields in patch
+
+Routes should catch these and map to appropriate HTTP status codes.
 
 ## ⚠️ Notes & ToDo
 
-### Current Status
-- ✅ Board resolution for generic KeeperRecord
-- ✅ First-class entity support (Keeper, Journey, Domain, Agent)
-- ✅ Template forking functionality
-- ✅ Comprehensive error handling
-
-### Future Improvements
-- [ ] Add caching layer for frequently accessed templates
-- [ ] Implement template versioning
-- [ ] Add template update propagation to instances
-- [ ] Add rollback capability for forked boards
-- [ ] Add template inheritance (template extends template)
-- [ ] Add permission checks for template access
-- [ ] Add analytics for template usage
-
-### Known Limitations
-- Template changes don't propagate to existing instances
-- No version control for templates
-- No diff/merge for template updates
-- Fork operation doesn't preserve frame IDs (creates new)
+- [ ] Integrate real media upload service (currently mocked)
+- [ ] Add frame bulk operations (reorder, delete multiple)
+- [ ] Add frame visibility toggle endpoint
+- [ ] Consider caching permission checks
+- [ ] Add frame soft-delete support
+- [ ] Add board cloning/templating
 
 ## 📆 Update Log
 
-### 2025-10-30 - Initial Implementation
-- Created `boardResolver.ts` with core resolution functions
-- Added support for generic KeeperRecord model
-- Added backwards compatibility for first-class entities
-- Implemented template forking functionality
-- Added comprehensive TypeScript types
-- Documented API and usage patterns
-
-## 🔧 Usage Examples
-
-### Basic Resolution
-
-```typescript
-import { resolveBoardForRecord } from './boardResolver';
-import { PrismaClient } from '@keeper/database';
-
-const prisma = new PrismaClient();
-
-// Resolve board for a record
-const result = await resolveBoardForRecord(prisma, recordId);
-
-console.log(`Board: ${result.board.name}`);
-console.log(`Source: ${result.source}`);
-console.log(`Frames: ${result.board.frames.length}`);
-```
-
-### Template Management
-
-```typescript
-import { getAllBoardTemplates } from './boardResolver';
-
-// Get all templates for a template gallery
-const templates = await getAllBoardTemplates(prisma);
-
-templates.forEach(template => {
-  console.log(`${template.name}: ${template.frames.length} frames`);
-});
-```
-
-### Custom Board Creation
-
-```typescript
-import { forkTemplateForRecord } from './boardResolver';
-
-// Create a custom board for a specific record
-const customBoard = await forkTemplateForRecord(
-  prisma,
-  recordId,
-  templateBoardId,
-  keeperId
-);
-
-console.log(`Created custom board: ${customBoard.id}`);
-```
-
-### Error Handling
-
-```typescript
-try {
-  const result = await resolveBoardForRecord(prisma, recordId);
-  // Use result.board
-} catch (error) {
-  if (error.message.includes('No record found')) {
-    // Handle missing record
-  } else if (error.message.includes('No board available')) {
-    // Handle missing template
-  } else {
-    // Handle other errors
-  }
-}
-```
-
-## 🏗️ Architecture
-
-### Design Patterns
-
-- **Service Layer:** Business logic separated from controllers
-- **Repository Pattern:** Prisma queries abstracted into functions
-- **Factory Pattern:** Board forking creates new instances from templates
-- **Strategy Pattern:** Different resolution strategies for different entity types
-
-### Dependencies
-
-- `@keeper/database` - Prisma Client
-- Node.js built-ins (no external runtime dependencies)
-
-### Integration Points
-
-- **API Routes:** Used by board and record endpoints
-- **Seed Scripts:** Templates created by seed scripts
-- **Studio UI:** Resolved boards rendered in Board Studio
-- **Runtime Views:** Quote, Journey, Domain views use resolver
-
-## 🧪 Testing
-
-### Unit Tests (Recommended)
-
-```typescript
-describe('boardResolver', () => {
-  describe('resolveBoardForRecord', () => {
-    it('should return custom board if set', async () => {
-      // Test custom board priority
-    });
-
-    it('should fall back to default template', async () => {
-      // Test template fallback
-    });
-
-    it('should throw error if no board available', async () => {
-      // Test error case
-    });
-  });
-
-  describe('forkTemplateForRecord', () => {
-    it('should create new board with copied frames', async () => {
-      // Test forking
-    });
-
-    it('should link to record', async () => {
-      // Test linking
-    });
-  });
-});
-```
-
-## 📚 Related Documentation
-
-- [Design Board Migration Guide](../../../../../../DESIGN_BOARD_MIGRATION.md)
-- [Implementation Summary](../../../../../../DESIGN_BOARD_IMPLEMENTATION_SUMMARY.md)
-- [Prisma Schema](../../../../../../packages/database/prisma/schema.prisma)
-- [Design Board Types](../../types/design-boards.ts)
+### 2025-11-09 - Domain Board Management Implementation
+- Created `BoardsService.ts` with 6 core operations
+- Added domain permission checking via `checkBoardPermission`
+- Implemented config-based storage for nav and cover
+- Added frame CRUD with proper ordering
+- All operations return deterministic success payloads
+- Ready for integration with engagement templates

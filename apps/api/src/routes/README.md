@@ -1,0 +1,182 @@
+# API Routes
+
+## 📌 Purpose
+
+Express route handlers for all API endpoints. Handles HTTP request/response cycles, validation, authentication, and delegates to services.
+
+## 🧱 Key Files
+
+- `boards.ts` - Board CRUD and management operations
+  - Standard CRUD: GET, POST, PATCH, DELETE
+  - Domain Board Management: viewer-mode, frames, cover, nav, publish (NEW)
+- `boards.schemas.ts` - Zod validation schemas for board operations (NEW)
+- `frames.ts` - Frame operations
+
+## 🔄 Data & Behavior
+
+### Board Routes (`boards.ts`)
+
+#### Legacy CRUD Operations
+- `GET /api/boards` - List boards (deprecated, returns mock data)
+- `POST /api/boards` - Create board (mock)
+- `GET /api/boards/:boardId` - Get board details (mock)
+- `PATCH /api/boards/:boardId` - Update board (mock)
+- `DELETE /api/boards/:boardId` - Delete board (mock)
+
+#### Domain Board Management (NEW - 2025-11-09)
+
+All endpoints support:
+- ✅ Authentication via Bearer token
+- ✅ Domain permission checking
+- ✅ Zod schema validation
+- ✅ Idempotency via `requestId`
+- ✅ Dry-run mode via `dryRun: true`
+- ✅ Audit logging
+
+**Set Viewer Mode**
+```
+PATCH /api/boards/:boardId/viewer-mode
+Body: { mode: 'public'|'member'|'editor', dryRun?: boolean, requestId?: uuid }
+```
+
+**Add Frame**
+```
+POST /api/boards/:boardId/frames
+Body: { 
+  pattern: string, 
+  name: string, 
+  index?: number, 
+  props?: object,
+  dryRun?: boolean, 
+  requestId?: uuid 
+}
+```
+
+**Update Frame**
+```
+PATCH /api/boards/frames/:frameId
+Body: { patch: object, dryRun?: boolean, requestId?: uuid }
+```
+
+**Set Cover**
+```
+POST /api/boards/:boardId/cover
+Body: { 
+  mime: string, 
+  name: string, 
+  bytesBase64: string, 
+  dryRun?: boolean, 
+  requestId?: uuid 
+}
+```
+
+**Upsert Navigation**
+```
+PUT /api/boards/:boardId/nav
+Body: { 
+  items: Array<{label: string, href: string, icon?: string}>, 
+  dryRun?: boolean, 
+  requestId?: uuid 
+}
+```
+
+**Publish Board**
+```
+PATCH /api/boards/:boardId/publish
+Body: { isPublic: boolean, dryRun?: boolean, requestId?: uuid }
+```
+
+### Validation Schemas (`boards.schemas.ts`)
+
+All schemas use Zod for type-safe validation:
+- `viewerModeSchema` - Validates mode enum
+- `addFrameSchema` - Validates frame creation
+- `updateFrameSchema` - Validates frame patch
+- `setCoverSchema` - Validates cover upload
+- `upsertNavSchema` - Validates nav items array
+- `publishSchema` - Validates publish flag
+
+### Middleware Stack
+
+Typical endpoint stack:
+```typescript
+router.patch(
+  '/:boardId/viewer-mode',
+  authMiddlewareCompat,           // Authentication
+  idempotencyMiddleware(),        // Idempotency
+  validationMiddleware(schema),   // Input validation
+  async (req, res) => { ... }     // Handler
+);
+```
+
+### Error Handling
+
+Standard error responses:
+- `401` - Authentication required
+- `403` - ACCESS_DENIED (insufficient permissions)
+- `404` - Resource not found (FRAME_NOT_FOUND, BOARD_NOT_FOUND)
+- `409` - Conflict (duplicate requestId with different input)
+- `400` - Validation error or INVALID_PATCH
+- `500` - Internal server error
+
+### Dry-Run Mode
+
+All endpoints support dry-run for safe testing:
+```json
+{
+  "dryRun": true
+}
+```
+
+Returns:
+```json
+{
+  "ok": true,
+  "dryRun": true,
+  "diff": {
+    "boardId": "...",
+    "message": "Would update viewer mode",
+    ...
+  }
+}
+```
+
+### Idempotency
+
+Using `requestId` prevents duplicate operations:
+```json
+{
+  "requestId": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+- First call: executes and caches (10 min TTL)
+- Repeated call: returns cached result with `cached: true`
+- Same ID + different input: returns `409 Conflict`
+
+## ⚠️ Notes & ToDo
+
+- [ ] Replace legacy CRUD mock responses with real persistence
+- [ ] Add frame reordering endpoint
+- [ ] Add bulk frame operations
+- [ ] Add board cloning endpoint
+- [ ] Add frame visibility toggle
+- [ ] Add board search/filter endpoints
+- [ ] Consider pagination for board lists
+- [ ] Add board versioning/history
+
+## 📆 Update Log
+
+### 2025-11-09 - Domain Board Management
+- Added 6 new board management endpoints
+- Created `boards.schemas.ts` with Zod validation
+- Integrated idempotency middleware
+- Added audit logging to all operations
+- All endpoints support dry-run mode
+- Linked to Domain engagement templates
+- Permission checking via domain scope
+
+### Earlier
+- Basic CRUD operations (mock implementation)
+- Frame routes scaffolding
+

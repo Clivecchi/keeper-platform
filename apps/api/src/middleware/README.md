@@ -11,6 +11,7 @@ Express middleware for authentication, domain resolution, permissions, CORS, and
 - `memoryAccessMiddleware.ts`
 - `logRequestMiddleware.ts`
 - `validationMiddleware.ts`
+- `idempotency.ts` - Request idempotency via requestId (NEW)
 
 ## 🔄 Data & Behavior
 - Handles user authentication and session management
@@ -29,6 +30,7 @@ Express middleware for authentication, domain resolution, permissions, CORS, and
 
 ## 📆 Update Log
 
+- 2025-11-09: Added `idempotency.ts` middleware for requestId-based idempotency. Prevents duplicate operations using in-memory cache with 10-minute TTL. Returns cached results for matching requestId+input, returns 409 for same requestId with different input.
 - 2025-10-15 (Fix): Fixed cookie name mismatch in `auth.ts` - added `keeper_session` to COOKIE_CANDIDATES array. This resolves authenticated access failure where login sets `keeper_session` cookie but middleware was only checking for `token`, `keeper_token`, and `auth_token`.
 - 2025-10-15: Added lightweight `attachUser` in `auth.ts` to parse Bearer/cookies and set `req.user` early without DB lookups. Used by debug and KIP routes during stabilization.
 - 2024-06-09: Updated all middleware to use Redis-optional pattern. Redis is now only instantiated if `REDIS_URL` is set and `DISABLE_REDIS` is not true. All middleware must check for null before using Redis. In development, Redis is optional and features degrade gracefully. // TODO: Verify all downstream code is null-safe. 

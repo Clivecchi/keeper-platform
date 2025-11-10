@@ -11,6 +11,25 @@ import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { validationMiddleware } from '../middleware/validationMiddleware.js';
+import { idempotencyMiddleware } from '../middleware/idempotency.js';
+import {
+  viewerModeSchema,
+  addFrameSchema,
+  updateFrameSchema,
+  setCoverSchema,
+  upsertNavSchema,
+  publishSchema
+} from './boards.schemas.js';
+import {
+  setViewerMode,
+  addFrame,
+  updateFrame,
+  setCover,
+  upsertNav,
+  publishBoard,
+  uploadMedia
+} from '../services/boards/BoardsService.js';
+import { logAudit, computeHash } from '../utils/audit.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -294,5 +313,412 @@ router.delete('/:boardId', authMiddlewareCompat, async (req: Request, res: Respo
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// =============================================================================
+// DOMAIN BOARD MANAGEMENT ENDPOINTS
+// =============================================================================
+
+/**
+ * PATCH /api/boards/:boardId/viewer-mode
+ * Set viewer mode for a board
+ */
+router.patch(
+  '/:boardId/viewer-mode',
+  authMiddlewareCompat,
+  idempotencyMiddleware(),
+  validationMiddleware(viewerModeSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { boardId } = req.params;
+      const { mode, dryRun, requestId } = req.body;
+
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const inputHash = computeHash({ boardId, mode, dryRun });
+
+      // Dry run mode
+      if (dryRun) {
+        return res.json({
+          ok: true,
+          dryRun: true,
+          diff: {
+            boardId,
+            mode,
+            message: 'Would update viewer mode'
+          }
+        });
+      }
+
+      // Execute the operation
+      const result = await setViewerMode({
+        boardId,
+        mode,
+        userId: req.user.id
+      });
+
+      const resultHash = computeHash(result);
+
+      // Log audit
+      await logAudit({
+        who: req.user.id,
+        tool: 'domain.board.setViewerMode',
+        boardId,
+        inputHash,
+        resultHash,
+        requestId
+      });
+
+      return res.json(result);
+    } catch (error: any) {
+      console.error('Error setting viewer mode:', error);
+      if (error.message === 'ACCESS_DENIED') {
+        return res.status(403).json({ error: 'ACCESS_DENIED', message: 'You do not have permission to modify this board' });
+      }
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+/**
+ * POST /api/boards/:boardId/frames
+ * Add a frame to a board
+ */
+router.post(
+  '/:boardId/frames',
+  authMiddlewareCompat,
+  idempotencyMiddleware(),
+  validationMiddleware(addFrameSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { boardId } = req.params;
+      const { pattern, name, index, props, dryRun, requestId } = req.body;
+
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const inputHash = computeHash({ boardId, pattern, name, index, props, dryRun });
+
+      // Dry run mode
+      if (dryRun) {
+        return res.json({
+          ok: true,
+          dryRun: true,
+          diff: {
+            boardId,
+            pattern,
+            name,
+            index,
+            props,
+            message: 'Would add frame'
+          }
+        });
+      }
+
+      // Execute the operation
+      const result = await addFrame({
+        boardId,
+        pattern,
+        name,
+        index,
+        props,
+        userId: req.user.id
+      });
+
+      const resultHash = computeHash(result);
+
+      // Log audit
+      await logAudit({
+        who: req.user.id,
+        tool: 'domain.board.addFrame',
+        boardId,
+        frameId: result.frame.id,
+        inputHash,
+        resultHash,
+        requestId
+      });
+
+      return res.json(result);
+    } catch (error: any) {
+      console.error('Error adding frame:', error);
+      if (error.message === 'ACCESS_DENIED') {
+        return res.status(403).json({ error: 'ACCESS_DENIED', message: 'You do not have permission to modify this board' });
+      }
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+/**
+ * PATCH /api/boards/frames/:frameId
+ * Update a frame
+ */
+router.patch(
+  '/frames/:frameId',
+  authMiddlewareCompat,
+  idempotencyMiddleware(),
+  validationMiddleware(updateFrameSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { frameId } = req.params;
+      const { patch, dryRun, requestId } = req.body;
+
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const inputHash = computeHash({ frameId, patch, dryRun });
+
+      // Dry run mode
+      if (dryRun) {
+        return res.json({
+          ok: true,
+          dryRun: true,
+          diff: {
+            frameId,
+            patch,
+            message: 'Would update frame'
+          }
+        });
+      }
+
+      // Execute the operation
+      const result = await updateFrame({
+        frameId,
+        patch,
+        userId: req.user.id
+      });
+
+      const resultHash = computeHash(result);
+
+      // Log audit
+      await logAudit({
+        who: req.user.id,
+        tool: 'domain.board.updateFrame',
+        frameId,
+        inputHash,
+        resultHash,
+        requestId
+      });
+
+      return res.json(result);
+    } catch (error: any) {
+      console.error('Error updating frame:', error);
+      if (error.message === 'ACCESS_DENIED') {
+        return res.status(403).json({ error: 'ACCESS_DENIED', message: 'You do not have permission to modify this frame' });
+      }
+      if (error.message === 'FRAME_NOT_FOUND') {
+        return res.status(404).json({ error: 'FRAME_NOT_FOUND', message: 'Frame not found' });
+      }
+      if (error.message === 'INVALID_PATCH') {
+        return res.status(400).json({ error: 'INVALID_PATCH', message: 'Invalid patch data' });
+      }
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+/**
+ * POST /api/boards/:boardId/cover
+ * Set board cover image
+ */
+router.post(
+  '/:boardId/cover',
+  authMiddlewareCompat,
+  idempotencyMiddleware(),
+  validationMiddleware(setCoverSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { boardId } = req.params;
+      const { mime, name, bytesBase64, dryRun, requestId } = req.body;
+
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const inputHash = computeHash({ boardId, mime, name, bytesBase64: bytesBase64.substring(0, 100), dryRun });
+
+      // Dry run mode
+      if (dryRun) {
+        return res.json({
+          ok: true,
+          dryRun: true,
+          diff: {
+            boardId,
+            mime,
+            name,
+            message: 'Would upload cover and set as board cover'
+          }
+        });
+      }
+
+      // Step 1: Upload media
+      const uploadResult = await uploadMedia({
+        mime,
+        name,
+        bytesBase64,
+        userId: req.user.id
+      });
+
+      // Step 2: Set as cover
+      const result = await setCover({
+        boardId,
+        mediaId: uploadResult.mediaId,
+        userId: req.user.id
+      });
+
+      const resultHash = computeHash(result);
+
+      // Log audit
+      await logAudit({
+        who: req.user.id,
+        tool: 'domain.board.setCover',
+        boardId,
+        inputHash,
+        resultHash,
+        requestId
+      });
+
+      return res.json({
+        ...result,
+        mediaUrl: uploadResult.url
+      });
+    } catch (error: any) {
+      console.error('Error setting cover:', error);
+      if (error.message === 'ACCESS_DENIED') {
+        return res.status(403).json({ error: 'ACCESS_DENIED', message: 'You do not have permission to modify this board' });
+      }
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+/**
+ * PUT /api/boards/:boardId/nav
+ * Upsert pathway navigation items
+ */
+router.put(
+  '/:boardId/nav',
+  authMiddlewareCompat,
+  idempotencyMiddleware(),
+  validationMiddleware(upsertNavSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { boardId } = req.params;
+      const { items, dryRun, requestId } = req.body;
+
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const inputHash = computeHash({ boardId, items, dryRun });
+
+      // Dry run mode
+      if (dryRun) {
+        return res.json({
+          ok: true,
+          dryRun: true,
+          diff: {
+            boardId,
+            items,
+            message: 'Would update navigation items'
+          }
+        });
+      }
+
+      // Execute the operation
+      const result = await upsertNav({
+        boardId,
+        items,
+        userId: req.user.id
+      });
+
+      const resultHash = computeHash(result);
+
+      // Log audit
+      await logAudit({
+        who: req.user.id,
+        tool: 'domain.board.upsertPathwayNav',
+        boardId,
+        inputHash,
+        resultHash,
+        requestId
+      });
+
+      return res.json(result);
+    } catch (error: any) {
+      console.error('Error upserting nav:', error);
+      if (error.message === 'ACCESS_DENIED') {
+        return res.status(403).json({ error: 'ACCESS_DENIED', message: 'You do not have permission to modify this board' });
+      }
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+/**
+ * PATCH /api/boards/:boardId/publish
+ * Publish or unpublish a board
+ */
+router.patch(
+  '/:boardId/publish',
+  authMiddlewareCompat,
+  idempotencyMiddleware(),
+  validationMiddleware(publishSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { boardId } = req.params;
+      const { isPublic, dryRun, requestId } = req.body;
+
+      if (!req.user) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const inputHash = computeHash({ boardId, isPublic, dryRun });
+
+      // Dry run mode
+      if (dryRun) {
+        return res.json({
+          ok: true,
+          dryRun: true,
+          diff: {
+            boardId,
+            isPublic,
+            message: `Would ${isPublic ? 'publish' : 'unpublish'} board`
+          }
+        });
+      }
+
+      // Execute the operation
+      const result = await publishBoard({
+        boardId,
+        isPublic,
+        userId: req.user.id
+      });
+
+      const resultHash = computeHash(result);
+
+      // Log audit
+      await logAudit({
+        who: req.user.id,
+        tool: 'domain.board.publish',
+        boardId,
+        inputHash,
+        resultHash,
+        requestId
+      });
+
+      return res.json(result);
+    } catch (error: any) {
+      console.error('Error publishing board:', error);
+      if (error.message === 'ACCESS_DENIED') {
+        return res.status(403).json({ error: 'ACCESS_DENIED', message: 'You do not have permission to modify this board' });
+      }
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
 
 export default router;
