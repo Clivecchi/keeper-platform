@@ -5,9 +5,9 @@
  */
 
 import { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/features/board-studio/v0/components/ui/button';
+import { Input } from '@/features/board-studio/v0/components/ui/input';
+import { Label } from '@/features/board-studio/v0/components/ui/label';
 import { generateRequestId } from '@/lib/uid/requestId';
 import { EngagementTemplate, SubmitOptions } from '@/lib/engagement/types';
 

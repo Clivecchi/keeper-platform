@@ -5,8 +5,8 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { Switch } from '@/features/board-studio/v0/components/ui/switch';
+import { Label } from '@/features/board-studio/v0/components/ui/label';
 import { generateRequestId } from '@/lib/uid/requestId';
 import { EngagementTemplate, SubmitOptions } from '@/lib/engagement/types';
 

@@ -5,12 +5,11 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/features/board-studio/v0/components/ui/button';
+import { Input } from '@/features/board-studio/v0/components/ui/input';
+import { Label } from '@/features/board-studio/v0/components/ui/label';
+import { Textarea } from '@/features/board-studio/v0/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/features/board-studio/v0/components/ui/select';
 import { generateRequestId } from '@/lib/uid/requestId';
 import { EngagementTemplate, SubmitOptions, TemplateField } from '@/lib/engagement/types';
 
@@ -215,10 +214,12 @@ function renderField(field: TemplateField, value: any, onChange: (value: any) =>
     case 'checkbox':
       return (
         <div className="flex items-center gap-2">
-          <Checkbox
+          <input
+            type="checkbox"
             id={id}
             checked={!!value}
-            onCheckedChange={onChange}
+            onChange={(e) => onChange(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300"
           />
           <Label htmlFor={id} className="cursor-pointer">
             {label}

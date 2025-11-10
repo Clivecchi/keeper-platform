@@ -4,8 +4,8 @@
  * Provides viewer role and viewerMode for visibility checks
  */
 
-import { useContext, useMemo } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import { useMemo } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { ViewerMode } from '../lib/engagement/types';
 
 interface ViewerContext {
@@ -20,11 +20,11 @@ interface ViewerContext {
  * Used by ActionPropRenderer to enforce visibility rules
  */
 export function useViewerContext(): ViewerContext {
-  const authContext = useContext(AuthContext);
+  const authContext = useAuth();
 
   return useMemo(() => {
-    const isAuthenticated = !!authContext?.isAuthenticated;
-    const userId = authContext?.user?.id || null;
+    const isAuthenticated = authContext.isAuthenticated;
+    const userId = authContext.user?.id || null;
 
     // Determine roles from auth context
     // TODO: Fetch actual roles from user permissions/domain permissions

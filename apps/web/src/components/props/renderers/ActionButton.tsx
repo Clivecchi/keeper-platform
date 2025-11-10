@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/features/board-studio/v0/components/ui/button';
 import { generateRequestId } from '@/lib/uid/requestId';
 import { EngagementTemplate, SubmitOptions } from '@/lib/engagement/types';
 
