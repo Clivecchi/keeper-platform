@@ -18,6 +18,7 @@ import domainBoardDataRouter from './api/domains/board-data.js';
 import adminDomainRoutes from './api/admin/domains.js';
 // Import engagement routes
 import engagementExecuteRouter from './api/engagement/execute.js';
+import engagementTemplatesRouter from './api/engagement/templates.js';
 import adminRolesRoutes from './api/admin/roles.js';
 import adminUsersRoutes from './api/admin/users.js';
 import adminRouter from './api/admin.js';
@@ -927,6 +928,7 @@ app.use('/api/frames', frameRoutes);
 
 // Connect engagement template execution
 app.use('/api/engagement', engagementExecuteRouter);
+app.use('/api/engagement/templates', engagementTemplatesRouter);
 
 // Connect new board data API routes
 // Mount RO parity with composite auth: KAM service key or user JWT

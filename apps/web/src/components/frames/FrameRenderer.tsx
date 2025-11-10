@@ -16,6 +16,7 @@ import {
 } from '../../types/frame';
 import { getFrameDef, registerFrameType as registerFrameTypeFromRegistry, parseFrameProps } from './registry';
 import { registerAllExistingFrames } from './registerFrames';
+import ActionPropRenderer from '../props/ActionPropRenderer';
 
 // =============================================================================
 // LAZY LOADED FRAME COMPONENTS
@@ -257,18 +258,40 @@ export const FrameRenderer: React.FC<FrameRendererProps> = ({
     }
   }
 
+  // Extract action props from frameInstance
+  const frameProps = (frameInstance as any)?.props || [];
+  const actionProps = Array.isArray(frameProps) 
+    ? frameProps.filter((p: any) => p?.type?.startsWith('action.'))
+    : [];
+
   const content = (
-    <Suspense 
-      fallback={showLoadingSpinner ? <FrameLoadingSpinner className={className} /> : null}
-    >
-      <FrameComponent
-        frameInstance={frameInstance}
-        className={className}
-        onInteraction={onInteraction}
-        isPreview={isPreview}
-        {...(parsedProps || {})}
-      />
-    </Suspense>
+    <div className="space-y-4">
+      <Suspense 
+        fallback={showLoadingSpinner ? <FrameLoadingSpinner className={className} /> : null}
+      >
+        <FrameComponent
+          frameInstance={frameInstance}
+          className={className}
+          onInteraction={onInteraction}
+          isPreview={isPreview}
+          {...(parsedProps || {})}
+        />
+      </Suspense>
+      
+      {/* Render action props if any exist */}
+      {actionProps.length > 0 && (
+        <div className="mt-4 space-y-2 border-t pt-4">
+          {actionProps.map((prop: any) => (
+            <ActionPropRenderer
+              key={prop.id}
+              prop={prop}
+              boardId={(frameInstance as any)?.boardId}
+              frameId={frameInstance.id}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 
   // Apply animation if specified
