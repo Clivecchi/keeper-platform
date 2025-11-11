@@ -31,14 +31,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // In production, rely on HttpOnly cookies - don't trust localStorage
+    // In production, fetch user data from server using HttpOnly cookies
     // In development, allow localStorage for testing
     const IS_PROD = import.meta.env.PROD;
     
     if (IS_PROD) {
-      // Production: Don't read from localStorage - AuthGate already validated with server
-      if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] Production mode: skipping localStorage (using cookies)');
-      setIsLoading(false);
+      // Production: Fetch user data from server (cookie-based auth)
+      if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] Production mode: fetching user from server');
+      
+      (async () => {
+        try {
+          const apiUrl = (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com';
+          const response = await fetch(`${apiUrl}/api/kam/auth/me`, {
+            method: 'GET',
+            credentials: 'include', // Send HttpOnly cookie
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.user) {
+              if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] User authenticated:', data.user);
+              setUser(data.user);
+              // In production, we don't have a token in the frontend - it's in the HttpOnly cookie
+              // Set a placeholder to indicate authentication
+              setToken('cookie-based');
+            }
+          } else {
+            if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] No valid session');
+          }
+        } catch (error) {
+          console.error('[AuthContext] Failed to fetch user session:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      })();
       return;
     }
 
@@ -61,17 +87,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = (data: AuthSuccessData) => {
-    if (data.user && data.token) {
+    if (data.user) {
       setUser(data.user);
-      setToken(data.token);
       
-      // In production, server sets HttpOnly cookie - don't store in localStorage
-      // In development, store for local testing
-      if (!import.meta.env.PROD) {
+      // In production, server sets HttpOnly cookie - use placeholder token
+      // In development, store actual token for local testing
+      if (!import.meta.env.PROD && data.token) {
+        setToken(data.token);
         localStorage.setItem('keeper_user', JSON.stringify(data.user));
         localStorage.setItem('keeper_token', data.token);
         if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] Dev mode: stored auth in localStorage');
       } else {
+        // Production: indicate authenticated via cookie
+        setToken('cookie-based');
         if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] Production mode: auth via cookie only');
       }
     }

@@ -61,12 +61,22 @@ export default function PublicDomainPage() {
           const boardDataResponse = await apiFetch(`/api/domains/${response.id}/board-data`);
           if (boardDataResponse && boardDataResponse.userPermissions) {
             const { canEdit, role } = boardDataResponse.userPermissions;
-            setIsDomainAdmin(canEdit || role === 'owner' || role === 'admin');
+            const isAdmin = canEdit || role === 'owner' || role === 'admin';
+            setIsDomainAdmin(isAdmin);
+            console.log('[PublicDomainPage] User permissions:', { 
+              user: user.email, 
+              role, 
+              canEdit, 
+              isDomainAdmin: isAdmin,
+              totalFrames: boardDataResponse.board?.frames?.length || 0
+            });
           }
         } catch (permErr) {
           console.warn('Could not fetch user permissions:', permErr);
           // Non-fatal: continue without admin status
         }
+      } else {
+        console.log('[PublicDomainPage] Not authenticated or no user:', { isAuthenticated, hasUser: !!user });
       }
     } catch (err) {
       console.error('Error loading domain:', err);

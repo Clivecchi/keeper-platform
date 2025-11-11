@@ -227,6 +227,19 @@ export function DomainBoardRenderer({
     return false;
   });
 
+  console.log('[DomainBoardRenderer] Frame visibility:', {
+    totalFrames: board.frames.length,
+    visibleFrames: visibleFrames.length,
+    isDomainAdmin,
+    role: userPermissions.role,
+    canEdit: userPermissions.canEdit,
+    isEditMode,
+    framesByVisibility: {
+      public: board.frames.filter(f => f.visibility === 'public').length,
+      admin: board.frames.filter(f => f.visibility === 'admin').length
+    }
+  });
+
   // Separate Pathway frames from content frames
   const pathwayFrame = visibleFrames.find((frame) => 
     frame.pattern === 'pathway' || frame.name.toLowerCase().includes('pathway')
