@@ -21,6 +21,7 @@ interface Member {
 }
 
 const ROLES = [
+  { value: 'owner', label: 'Owner' },
   { value: 'admin', label: 'Admin' },
   { value: 'user', label: 'User' },
   { value: 'friend', label: 'Friend' },
@@ -331,6 +332,76 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
     }
   };
 
+  // Handle custom domain removal
+  const handleRemoveCustomDomain = async () => {
+    if (!domain || !domain.customDomain) return;
+    if (!confirm(`Are you sure you want to remove the custom domain "${domain.customDomain}"? This will revert to using the default domain.`)) return;
+    setError(null);
+    setSaving(true);
+
+    try {
+      const response = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain`, {
+        method: 'DELETE'
+      });
+      
+      if (response.success) {
+        setCustomDomain('');
+        setVercelConfigured(false);
+        setDnsStatus(null);
+        setSuccess('Custom domain removed successfully');
+        // Notify parent to refresh
+        if (onSave) {
+          await onSave(form);
+        }
+      } else {
+        setError(response.error || 'Failed to remove custom domain');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to remove custom domain');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle domain deletion
+  const handleDeleteDomain = async () => {
+    if (!domain) return;
+    
+    const confirmed = confirm(
+      `⚠️ WARNING: This will permanently delete the domain "${domain.name}".\n\n` +
+      `This action CANNOT be undone. All associated data will be lost.\n\n` +
+      `Type the domain name to confirm: "${domain.name}"`
+    );
+    
+    if (!confirmed) return;
+    
+    const domainNameConfirm = prompt(`Type "${domain.name}" to confirm deletion:`);
+    if (domainNameConfirm !== domain.name) {
+      setError('Domain name did not match. Deletion cancelled.');
+      return;
+    }
+
+    setError(null);
+    setSaving(true);
+
+    try {
+      await apiFetch(`/api/domains/${domain.id}`, {
+        method: 'DELETE'
+      });
+      setSuccess('Domain deleted successfully');
+      // Close the modal and refresh the parent
+      setTimeout(() => {
+        onClose();
+        if (onSave) {
+          onSave(form); // Trigger parent refresh
+        }
+      }, 1000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete domain');
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
@@ -344,6 +415,24 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
             <XMarkIcon className="w-6 h-6" />
           </button>
         </div>
+
+        {/* Status Messages */}
+        {(error || success) && (
+          <div className="px-6 py-3 border-b">
+            {error && (
+              <div className="flex items-center gap-2 text-red-600 bg-red-50 px-3 py-2 rounded">
+                <ExclamationTriangleIcon className="w-5 h-5" />
+                <span>{error}</span>
+              </div>
+            )}
+            {success && (
+              <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-2 rounded">
+                <CheckCircleIcon className="w-5 h-5" />
+                <span>{success}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Content - Scrollable */}
         <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
@@ -453,12 +542,23 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <GlobeAltIcon className="w-5 h-5 text-blue-600" />
-                      <span className="font-medium">{domain.customDomain}</span>
-                      {domain.customDomainVerified && (
-                        <CheckCircleIcon className="w-5 h-5 text-green-600" />
-                      )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <GlobeAltIcon className="w-5 h-5 text-blue-600" />
+                        <span className="font-medium">{domain.customDomain}</span>
+                        {domain.customDomainVerified && (
+                          <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                        )}
+                      </div>
+                      <button
+                        onClick={handleRemoveCustomDomain}
+                        disabled={saving}
+                        className="flex items-center gap-1 px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded disabled:opacity-50"
+                        title="Remove custom domain"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                        <span>Remove</span>
+                      </button>
                     </div>
 
                     {/* Domain Setup Process */}
@@ -640,6 +740,24 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Danger Zone */}
+            {domain && (
+              <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                <h4 className="font-medium text-red-900 mb-2">Danger Zone</h4>
+                <p className="text-sm text-red-700 mb-3">
+                  Permanently delete this domain. This action cannot be undone.
+                </p>
+                <button
+                  onClick={handleDeleteDomain}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                  <span>Delete Domain</span>
+                </button>
               </div>
             )}
 
