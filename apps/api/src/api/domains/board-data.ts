@@ -58,15 +58,28 @@ router.get('/:domainId/board-data', attachUser, async (req: AuthenticatedRequest
     // Check permissions
     let userPermissions = { canEdit: false, role: 'visitor' as string };
     if (userId) {
-      const perm = await permissionService.checkPermission({
-        userId,
-        domainId,
-        permission: 'read'
-      });
+      // PRIORITY 1: Check if user is domain owner
+      const isOwner = domain.ownerId === userId;
       
-      if (perm.hasPermission) {
-        userPermissions.canEdit = perm.permission === 'admin' || perm.permission === 'write';
-        userPermissions.role = perm.permission || 'visitor';
+      if (isOwner) {
+        console.log(`[board-data] User ${userId} is domain owner - granting full access`);
+        userPermissions.canEdit = true;
+        userPermissions.role = 'owner';
+      } else {
+        // PRIORITY 2: Check DomainPermission table for member permissions
+        const perm = await permissionService.checkPermission({
+          userId,
+          domainId,
+          permission: 'read'
+        });
+        
+        if (perm.hasPermission) {
+          userPermissions.canEdit = perm.permission === 'admin' || perm.permission === 'write';
+          userPermissions.role = perm.permission || 'visitor';
+          console.log(`[board-data] User ${userId} has member permission:`, perm.permission);
+        } else {
+          console.log(`[board-data] User ${userId} has no permissions on domain ${domainId}`);
+        }
       }
     }
 
@@ -93,7 +106,7 @@ router.get('/:domainId/board-data', attachUser, async (req: AuthenticatedRequest
     const template = domainKeeperType.defaultBoardTemplate;
 
     // Filter frames by visibility
-    const isAdmin = userPermissions.role === 'admin';
+    const isAdmin = userPermissions.role === 'admin' || userPermissions.role === 'owner';
     const visibleFrames = template.frames.filter(frame => {
       const frameData = frame as any;
       // Check visibility column (defaults to 'admin' if not set for security)

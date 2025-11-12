@@ -29,43 +29,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastFetch, setLastFetch] = useState<number>(0);
 
-  useEffect(() => {
-    // In production, fetch user data from server using HttpOnly cookies
-    // In development, allow localStorage for testing
+  // Fetch user session from server
+  const fetchUserSession = React.useCallback(async () => {
     const IS_PROD = import.meta.env.PROD;
     
     if (IS_PROD) {
       // Production: Fetch user data from server (cookie-based auth)
-      if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] Production mode: fetching user from server');
+      console.log('[AuthContext] Fetching user session from server...');
       
-      (async () => {
-        try {
-          const apiUrl = (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com';
-          const response = await fetch(`${apiUrl}/api/kam/auth/me`, {
-            method: 'GET',
-            credentials: 'include', // Send HttpOnly cookie
-          });
+      try {
+        const apiUrl = (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com';
+        const response = await fetch(`${apiUrl}/api/kam/auth/me`, {
+          method: 'GET',
+          credentials: 'include', // Send HttpOnly cookie
+        });
 
-          if (response.ok) {
-            const data = await response.json();
-            if (data.user) {
-              if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] User authenticated:', data.user);
-              setUser(data.user);
-              // In production, we don't have a token in the frontend - it's in the HttpOnly cookie
-              // Set a placeholder to indicate authentication
-              setToken('cookie-based');
-            }
-          } else {
-            if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] No valid session');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user) {
+            console.log('[AuthContext] ✅ User authenticated:', data.user.email);
+            setUser(data.user);
+            setToken('cookie-based');
+            setLastFetch(Date.now());
+            return true;
           }
-        } catch (error) {
-          console.error('[AuthContext] Failed to fetch user session:', error);
-        } finally {
-          setIsLoading(false);
+        } else {
+          console.log('[AuthContext] ❌ No valid session (401)');
+          setUser(null);
+          setToken(null);
         }
-      })();
-      return;
+      } catch (error) {
+        console.error('[AuthContext] Failed to fetch user session:', error);
+        setUser(null);
+        setToken(null);
+      }
+      return false;
     }
 
     // Development only: read from localStorage for local testing
@@ -73,18 +73,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const storedToken = localStorage.getItem('keeper_token');
       const storedUser = localStorage.getItem('keeper_user');
       if (storedToken && storedUser) {
-        if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] Dev mode: loaded auth from localStorage');
+        console.log('[AuthContext] Dev mode: loaded auth from localStorage');
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
+        return true;
       }
     } catch (error) {
       console.error("[AuthContext] Failed to parse auth data from localStorage", error);
       localStorage.removeItem('keeper_token');
       localStorage.removeItem('keeper_user');
-    } finally {
-      setIsLoading(false);
     }
+    return false;
   }, []);
+
+  // Initial load
+  useEffect(() => {
+    (async () => {
+      await fetchUserSession();
+      setIsLoading(false);
+    })();
+  }, [fetchUserSession]);
+
+  // Refresh session periodically if stale (every 30 seconds)
+  useEffect(() => {
+    if (!import.meta.env.PROD) return;
+    
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const timeSinceLastFetch = now - lastFetch;
+      
+      // If it's been more than 30 seconds since last fetch, refresh
+      if (timeSinceLastFetch > 30000) {
+        console.log('[AuthContext] Refreshing stale session...');
+        fetchUserSession();
+      }
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [lastFetch, fetchUserSession]);
 
   const login = (data: AuthSuccessData) => {
     if (data.user) {
