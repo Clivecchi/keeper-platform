@@ -106,7 +106,8 @@ export default function PublicDomainPage() {
   const handleDashboard = () => {
     console.log('[PublicDomainPage] Dashboard clicked, navigating to /root');
     console.log('[PublicDomainPage] Current auth state:', { isAuthenticated, user: user?.email, token: !!user });
-    navigate('/root');
+    // Use window.location for full page navigation to ensure auth state is fresh
+    window.location.href = '/root';
   };
 
   if (isLoading) {
