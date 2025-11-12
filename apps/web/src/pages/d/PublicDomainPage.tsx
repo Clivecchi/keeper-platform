@@ -104,6 +104,8 @@ export default function PublicDomainPage() {
   };
 
   const handleDashboard = () => {
+    console.log('[PublicDomainPage] Dashboard clicked, navigating to /root');
+    console.log('[PublicDomainPage] Current auth state:', { isAuthenticated, user: user?.email, token: !!user });
     navigate('/root');
   };
 
@@ -194,10 +196,34 @@ export default function PublicDomainPage() {
     setHasUnsavedChanges(true);
   };
 
+  // Debug logging for render
+  console.log('[PublicDomainPage] Rendering with state:', {
+    isAuthenticated,
+    isDomainAdmin,
+    isEditMode,
+    hasUser: !!user,
+    userEmail: user?.email,
+    domainId,
+    slug
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Full viewport board render with overlay header */}
       <main className="min-h-screen relative">
+        {/* Debug panel - TEMPORARY */}
+        {process.env.NODE_ENV !== 'production' && (
+          <div className="absolute top-4 left-4 z-50 max-w-sm bg-yellow-100 border border-yellow-400 rounded p-3 text-xs pointer-events-auto">
+            <strong>Debug Info:</strong>
+            <div>isAuthenticated: {String(isAuthenticated)}</div>
+            <div>isDomainAdmin: {String(isDomainAdmin)}</div>
+            <div>user: {user?.email || 'none'}</div>
+            <div>domainId: {domainId || 'none'}</div>
+            <div>isEditMode: {String(isEditMode)}</div>
+            <div>Should show Edit: {String(isAuthenticated && isDomainAdmin && !isEditMode)}</div>
+          </div>
+        )}
+        
         {/* Overlay header - inside board container */}
         <div className="absolute top-4 right-4 left-4 z-50 flex justify-end items-center gap-3 pointer-events-none">
           <div className="flex gap-2 pointer-events-auto">
@@ -289,7 +315,10 @@ export default function PublicDomainPage() {
                     />
                     <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
                       <button
-                        onClick={handleDashboard}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleDashboard();
+                        }}
                         className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                       >
                         Dashboard
