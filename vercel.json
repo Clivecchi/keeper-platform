@@ -1,6 +1,6 @@
 {
   "installCommand": "pnpm install --frozen-lockfile --prod=false",
-  "buildCommand": "pnpm run build",
+  "buildCommand": "cd apps/web && pnpm build",
   "outputDirectory": "apps/web/dist",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "https://keeper-platform-production.up.railway.app/api/$1" },
