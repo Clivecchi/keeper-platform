@@ -58,26 +58,27 @@ export function EditableProp({
     );
   }
 
-  // Edit mode but not actively editing - show hover affordance
+  // Edit mode but not actively editing - show subtle controls
   return (
     <div
-      className="relative group cursor-pointer"
-      onClick={handleClick}
+      className="relative group"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      <div className={`
-        relative
-        ${isHovering ? 'ring-2 ring-blue-400 ring-opacity-50 rounded' : ''}
-        transition-all duration-150
-      `}>
+      <div className="relative">
         {children}
         
-        {/* Edit affordance overlay */}
+        {/* Subtle edit controls on hover */}
         {isHovering && (
-          <div className="absolute top-0 right-0 m-2 bg-blue-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1 shadow-lg pointer-events-none">
-            <PencilIcon className="w-3 h-3" />
-            <span>Click to edit</span>
+          <div className="absolute top-0 right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={handleClick}
+              className="bg-white border border-gray-300 text-gray-700 px-2 py-1 rounded text-xs flex items-center gap-1 shadow-sm hover:bg-gray-50"
+              title="Edit this element"
+            >
+              <PencilIcon className="w-3 h-3" />
+              <span>Edit</span>
+            </button>
           </div>
         )}
       </div>

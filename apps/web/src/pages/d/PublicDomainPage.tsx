@@ -212,18 +212,7 @@ export default function PublicDomainPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Full viewport board render with overlay header */}
       <main className="min-h-screen relative">
-        {/* Debug panel - TEMPORARY */}
-        {process.env.NODE_ENV !== 'production' && (
-          <div className="absolute top-4 left-4 z-50 max-w-sm bg-yellow-100 border border-yellow-400 rounded p-3 text-xs pointer-events-auto">
-            <strong>Debug Info:</strong>
-            <div>isAuthenticated: {String(isAuthenticated)}</div>
-            <div>isDomainAdmin: {String(isDomainAdmin)}</div>
-            <div>user: {user?.email || 'none'}</div>
-            <div>domainId: {domainId || 'none'}</div>
-            <div>isEditMode: {String(isEditMode)}</div>
-            <div>Should show Edit: {String(isAuthenticated && isDomainAdmin && !isEditMode)}</div>
-          </div>
-        )}
+        {/* Debug panel removed - clean UI */}
         
         {/* Overlay header - inside board container */}
         <div className="absolute top-4 right-4 left-4 z-50 flex justify-end items-center gap-3 pointer-events-none">
@@ -256,7 +245,11 @@ export default function PublicDomainPage() {
                 <button
                   onClick={handleSaveChanges}
                   disabled={isSaving || !hasUnsavedChanges}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    hasUnsavedChanges
+                      ? 'text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                      : 'text-gray-500 bg-gray-200 cursor-not-allowed'
+                  }`}
                 >
                   {isSaving ? (
                     <span className="flex items-center gap-1.5">
@@ -266,8 +259,12 @@ export default function PublicDomainPage() {
                       </svg>
                       Saving...
                     </span>
+                  ) : hasUnsavedChanges ? (
+                    <span className="flex items-center gap-1.5">
+                      💾 Save Changes
+                    </span>
                   ) : (
-                    'Save Changes'
+                    'No changes'
                   )}
                 </button>
               </>
@@ -348,24 +345,7 @@ export default function PublicDomainPage() {
           </div>
         </div>
         
-        {/* Edit mode indicator overlay */}
-        {isEditMode && (
-          <div className="fixed top-16 left-4 right-4 z-40 pointer-events-none">
-            <div className="max-w-7xl mx-auto">
-              <div className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 pointer-events-auto">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <span>Editing Mode - Click on any element to edit</span>
-                {hasUnsavedChanges && (
-                  <span className="ml-2 px-2 py-0.5 bg-yellow-500 text-yellow-900 rounded text-xs font-semibold">
-                    Unsaved changes
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Removed useless editing mode banner - made editing harder */}
 
         <DomainBoardRenderer
           domainId={domainId}

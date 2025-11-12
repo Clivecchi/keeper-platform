@@ -399,16 +399,29 @@ function FrameRenderer({ frame, domain, isEditMode = false, onEngagementAction, 
       data-frame-id={frame.id}
       data-pattern={frame.pattern}
     >
-      {/* Frame header (optional, can be styled based on pattern) */}
+      {/* Frame header with admin controls */}
       {frame.name && frame.pattern !== 'focus' && (
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
-          <h3 className="text-xl font-semibold text-gray-800">
-            {frame.name}
-          </h3>
+          <div className="flex items-center gap-3">
+            <h3 className="text-xl font-semibold text-gray-800">
+              {frame.name}
+            </h3>
+            {isEditMode && (
+              <span className="text-xs text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded">
+                {frame.pattern} • {sortedProps.length} props • {frame.visibility}
+              </span>
+            )}
+          </div>
           {isEditMode && (
-            <span className="text-xs text-blue-600 font-medium px-2 py-1 bg-blue-50 rounded">
-              Editable
-            </span>
+            <div className="flex items-center gap-2">
+              <a
+                href="/studio/board-studio"
+                className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded inline-flex items-center gap-1"
+                title="Open in Board Studio for advanced editing"
+              >
+                🎨 Board Studio
+              </a>
+            </div>
           )}
         </div>
       )}

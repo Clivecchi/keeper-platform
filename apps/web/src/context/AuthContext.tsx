@@ -94,23 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     })();
   }, [fetchUserSession]);
 
-  // Refresh session periodically if stale (every 30 seconds)
-  useEffect(() => {
-    if (!import.meta.env.PROD) return;
-    
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const timeSinceLastFetch = now - lastFetch;
-      
-      // If it's been more than 30 seconds since last fetch, refresh
-      if (timeSinceLastFetch > 30000) {
-        console.log('[AuthContext] Refreshing stale session...');
-        fetchUserSession();
-      }
-    }, 10000); // Check every 10 seconds
-
-    return () => clearInterval(interval);
-  }, [lastFetch, fetchUserSession]);
+  // Removed periodic refresh - was causing page loops and annoying refreshes
 
   const login = (data: AuthSuccessData) => {
     if (data.user) {
