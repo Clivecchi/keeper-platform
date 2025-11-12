@@ -14,7 +14,7 @@ import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../../lib/api';
 import { PropRenderer } from './PropRenderer';
 import { PathwayNav } from '../patterns/PathwayNav';
-import PropManager from '../props/PropManager';
+// PropManager removed - using inline editing instead
 
 interface Frame {
   id: string;
@@ -413,29 +413,59 @@ function FrameRenderer({ frame, domain, isEditMode = false, onEngagementAction, 
         </div>
       )}
 
-      {/* Render props - use PropManager in edit mode, PropRenderer in view mode */}
-      {isEditMode ? (
-        <PropManager
-          frameId={frame.id}
-          initialProps={localProps}
-          isActive={true}
-          framePattern={frame.pattern}
-          isEditMode={true}
-          isDraggable={false}
-          onPropsUpdate={handlePropsUpdate}
-        />
-      ) : (
-        <div className="space-y-3">
-          {sortedProps.map((prop) => (
-            <PropRenderer
-              key={prop.id}
-              prop={prop}
-              domain={domain}
-              onEngagementAction={onEngagementAction}
-            />
-          ))}
-        </div>
-      )}
+      {/* Render props with inline editing support */}
+      <div className="space-y-3">
+        {sortedProps.map((prop) => (
+          <PropRenderer
+            key={prop.id}
+            prop={prop}
+            domain={domain}
+            onEngagementAction={onEngagementAction}
+            isEditMode={isEditMode}
+            onPropUpdate={(propId, newValue) => {
+              // Update the prop in localProps
+              const updatedProps = localProps.map(p => {
+                if (p.id === propId) {
+                  // Handle different value types
+                  if (typeof newValue === 'object' && newValue.label !== undefined) {
+                    // Button with label and URL
+                    return { 
+                      ...p, 
+                      config: { 
+                        ...p.config, 
+                        label: newValue.label,
+                        name: newValue.label,
+                        url: newValue.url 
+                      },
+                      value: newValue
+                    };
+                  } else if (typeof newValue === 'object' && newValue.url !== undefined) {
+                    // Image with URL and alt
+                    return {
+                      ...p,
+                      config: {
+                        ...p.config,
+                        url: newValue.url,
+                        alt: newValue.alt
+                      },
+                      value: newValue
+                    };
+                  } else {
+                    // Simple text/heading
+                    return { 
+                      ...p, 
+                      config: { ...p.config, content: newValue }, 
+                      value: newValue 
+                    };
+                  }
+                }
+                return p;
+              });
+              handlePropsUpdate(frame.id, updatedProps);
+            }}
+          />
+        ))}
+      </div>
 
       {sortedProps.length === 0 && !isEditMode && (
         <div className="text-sm text-gray-500 italic">

@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { ManifestoCard, type ManifestoProps } from '../patterns/ManifestoCard';
+import { EditableProp } from './EditableProp';
 
 interface PropConfig {
   name?: string;
@@ -34,20 +35,58 @@ interface PropRendererProps {
   prop: Prop;
   domain?: any;
   onEngagementAction?: (templateSlug: string, context: any) => void;
+  isEditMode?: boolean;
+  onPropUpdate?: (propId: string, newValue: any) => void;
 }
 
-export function PropRenderer({ prop, domain, onEngagementAction }: PropRendererProps) {
+export function PropRenderer({ prop, domain, onEngagementAction, isEditMode = false, onPropUpdate }: PropRendererProps) {
   const { type, config, value } = prop;
+
+  const handleUpdate = (propId: string, newValue: any) => {
+    if (onPropUpdate) {
+      onPropUpdate(propId, newValue);
+    }
+  };
 
   switch (type) {
     case 'heading':
-      return <HeadingProp config={config} value={value} />;
+      return (
+        <EditableProp
+          propId={prop.id}
+          propType="heading"
+          currentValue={value || config.content || config.name}
+          isEditMode={isEditMode}
+          onUpdate={handleUpdate}
+        >
+          <HeadingProp config={config} value={value} />
+        </EditableProp>
+      );
     
     case 'text':
-      return <TextProp config={config} value={value} />;
+      return (
+        <EditableProp
+          propId={prop.id}
+          propType="text"
+          currentValue={value || config.content}
+          isEditMode={isEditMode}
+          onUpdate={handleUpdate}
+        >
+          <TextProp config={config} value={value} />
+        </EditableProp>
+      );
     
     case 'image':
-      return <ImageProp config={config} value={value} />;
+      return (
+        <EditableProp
+          propId={prop.id}
+          propType="image"
+          currentValue={config.url || value}
+          isEditMode={isEditMode}
+          onUpdate={handleUpdate}
+        >
+          <ImageProp config={config} value={value} />
+        </EditableProp>
+      );
     
     case 'gallery':
       return <GalleryProp config={config} value={value} />;
@@ -57,11 +96,19 @@ export function PropRenderer({ prop, domain, onEngagementAction }: PropRendererP
     
     case 'button':
       return (
-        <ButtonProp 
-          config={config} 
-          domain={domain}
-          onEngagementAction={onEngagementAction}
-        />
+        <EditableProp
+          propId={prop.id}
+          propType="button"
+          currentValue={{ label: config.label || config.name, url: config.url }}
+          isEditMode={isEditMode}
+          onUpdate={handleUpdate}
+        >
+          <ButtonProp 
+            config={config} 
+            domain={domain}
+            onEngagementAction={onEngagementAction}
+          />
+        </EditableProp>
       );
     
     case 'form':
