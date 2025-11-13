@@ -49,7 +49,8 @@ import { useFrame } from '../../context/FrameContext';
 import { useAuth } from '../../context/AuthContext';
 import { useKeeperContext } from '../../context/KeeperContext';
 import { useWorldMode } from '../../context/WorldModeContext';
-import { PresentationBoardRenderer } from '../../worlds/shared/BoardRenderer';
+import { NarrativeFrameRenderer } from '../../worlds/presentation/NarrativeFrameRenderer';
+import { StructuralFrameRenderer } from '../../worlds/workshop/StructuralFrameRenderer';
 import PatternRenderer from '../../features/board-studio/patterns/PatternRenderer';
 import type { ExtendedFrameInstance } from '../../types/frame';
 import { makeFrameInstance } from '../../utils/frameFactory';
@@ -2075,87 +2076,54 @@ const BoardStudioPage: React.FC<BoardStudioPageProps> = ({ domainId }) => {
                       </div>
                     </div>
                   ) : editorMode === 'preview' ? (
-                    <div className="w-full h-full presentation-mode">
-                      {/* If domainId is provided, use exact Presentation renderer */}
-                      {domainId ? (
-                        <div className="w-full h-full">
-                          <PresentationBoardRenderer
-                            domainId={domainId}
-                            className="min-h-full"
-                          />
-                        </div>
-                      ) : selectedFrameId && mockFrames.length > 0 ? (
-                        /* Fallback to PatternRenderer for non-domain boards */
-                        <div className="w-full h-full p-8">
-                          <PatternRenderer
-                            frame={{
-                              id: selectedFrameId,
-                              name: mockFrames.find(f => f.id === selectedFrameId)?.data?.name || 'Frame Content',
-                              pattern: mockFrames.find(f => f.id === selectedFrameId)?.FrameConfig?.engagementMode || 'canvas',
-                              frameType: mockFrames.find(f => f.id === selectedFrameId)?.frameType || 'media_card',
-                              layoutKind: mockFrames.find(f => f.id === selectedFrameId)?.layoutKind || 'canvas',
-                              layoutData: mockFrames.find(f => f.id === selectedFrameId)?.layoutData || {},
-                              props: mockFrames.find(f => f.id === selectedFrameId)?.props || {},
-                              role: mockFrames.find(f => f.id === selectedFrameId)?.data?.role
-                            }}
-                            mode="preview"
-                            boardName={boardName}
-                            boardDescription={boardDescription}
-                            boardData={{
-                              id: selectedBoardId,
-                              name: boardName,
-                              slug: `board-${selectedBoardId}`,
-                              description: boardDescription,
-                              theme: boardTheme,
-                              behavior: {
-                                showGrid: true,
-                                snapToGrid: true,
-                                gridSize: 8,
-                                defaultPattern: engagementMode
-                              },
-                              data: {
-                                scope: 'keeper',
-                                entityId: activeKeeper?.id
-                              },
-                              access: {
-                                visibility: 'private',
-                                allowComments: false,
-                                shareLinkEnabled: false
-                              }
-                            }}
-                            frames={mockFrames.map(f => ({
-                              id: f.id,
-                              name: f.data?.name || 'Frame',
-                              role: f.data?.role
-                            }))}
-                            onFrameUpdate={async (frameId, updates) => {
-                              console.log('🔄 Board Studio: onFrameUpdate called in Preview mode', { 
-                                frameId, 
-                                updates,
-                                selectedBoardId 
-                              });
-                              // In preview mode, we might not want to allow updates
-                              // But we'll keep the handler for consistency
-                            }}
-                            onBoardUpdate={handleSaveBoard}
-                          />
-                        </div>
+                    <div className="w-full h-full presentation-mode p-8">
+                      {/* Preview mode: Render selected frame using NarrativeFrameRenderer */}
+                      {selectedFrameId && mockFrames.length > 0 ? (
+                        (() => {
+                          const selectedFrame = mockFrames.find(f => f.id === selectedFrameId);
+                          if (!selectedFrame) return null;
+                          
+                          // Convert mockFrame format to Frame format expected by NarrativeFrameRenderer
+                          const frameProps = selectedFrame.props || {};
+                          const propsArray = Object.keys(frameProps).map((key, index) => ({
+                            id: key,
+                            type: frameProps[key]?.type || 'text',
+                            config: frameProps[key]?.config || frameProps[key] || {},
+                            value: frameProps[key]?.value,
+                            orderIndex: frameProps[key]?.orderIndex ?? index
+                          }));
+                          
+                          const frame: any = {
+                            id: selectedFrame.id,
+                            name: selectedFrame.data?.name || 'Untitled Frame',
+                            pattern: selectedFrame.FrameConfig?.engagementMode || 'canvas',
+                            visibility: 'public' as const,
+                            props: propsArray
+                          };
+                          
+                          return (
+                            <NarrativeFrameRenderer
+                              frame={frame}
+                              domain={{ id: domainId || selectedBoardId }}
+                              onEngagementAction={handleEngagementAction}
+                            />
+                          );
+                        })()
                       ) : (
                         <div className="text-center py-12">
                           <Squares2X2Icon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                           <h3 className="text-xl font-medium text-gray-900 mb-2">
-                            {domainId ? 'Loading Domain Preview...' : 'No Frame Selected'}
+                            No Frame Selected
                           </h3>
                           <p className="text-gray-600 mb-6">
-                            {domainId 
-                              ? 'Previewing domain board as it will appear in Presentation mode.'
-                              : 'Select a frame to preview its content.'}
+                            Select a frame to preview its content in Presentation mode.
                           </p>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="w-full h-full p-8">
+                    <div className="w-full h-full p-8 workshop-mode">
+                      {/* Studio mode: Render selected frame using StructuralFrameRenderer */}
                       {selectedFrameId && mockFrames.length > 0 ? (
                         <>
                           {/* Debug info (flag-gated) */}
@@ -2170,99 +2138,87 @@ const BoardStudioPage: React.FC<BoardStudioPageProps> = ({ domainId }) => {
                               Mode: {editorMode}
                             </div>
                           )}
-                          <PatternRenderer
-                          frame={{
-                            id: selectedFrameId,
-                            name: mockFrames.find(f => f.id === selectedFrameId)?.data?.name || 'Frame Content',
-                            pattern: mockFrames.find(f => f.id === selectedFrameId)?.FrameConfig?.engagementMode || 'canvas',
-                            frameType: mockFrames.find(f => f.id === selectedFrameId)?.frameType || 'media_card',
-                            layoutKind: mockFrames.find(f => f.id === selectedFrameId)?.layoutKind || 'canvas',
-                            layoutData: mockFrames.find(f => f.id === selectedFrameId)?.layoutData || {},
-                            props: mockFrames.find(f => f.id === selectedFrameId)?.props || {},
-                            role: mockFrames.find(f => f.id === selectedFrameId)?.data?.role
-                          }}
-                          mode={editorMode}
-                          boardName={boardName}
-                          boardDescription={boardDescription}
-                          boardData={{
-                            id: selectedBoardId,
-                            name: boardName,
-                            slug: `board-${selectedBoardId}`,
-                            description: boardDescription,
-                            theme: boardTheme,
-                            behavior: {
-                              showGrid: true,
-                              snapToGrid: true,
-                              gridSize: 8,
-                              defaultPattern: engagementMode
-                            },
-                            data: {
-                              scope: 'keeper',
-                              entityId: activeKeeper?.id
-                            },
-                            access: {
-                              visibility: 'private',
-                              allowComments: false,
-                              shareLinkEnabled: false
-                            }
-                          }}
-                          frames={mockFrames.map(f => ({
-                            id: f.id,
-                            name: f.data?.name || 'Frame',
-                            role: f.data?.role
-                          }))}
-                          onFrameUpdate={async (frameId, updates) => {
-                            console.log('🔄 Board Studio: onFrameUpdate called', { 
-                              frameId, 
-                              updates,
-                              selectedBoardId 
-                            });
+                          {(() => {
+                            const selectedFrame = mockFrames.find(f => f.id === selectedFrameId);
+                            if (!selectedFrame) return null;
+                            
+                            // Convert mockFrame format to Frame format expected by StructuralFrameRenderer
+                            const frameProps = selectedFrame.props || {};
+                            const propsArray = Object.keys(frameProps).map((key, index) => ({
+                              id: key,
+                              type: frameProps[key]?.type || 'text',
+                              config: frameProps[key]?.config || frameProps[key] || {},
+                              value: frameProps[key]?.value,
+                              orderIndex: frameProps[key]?.orderIndex ?? index
+                            }));
+                            
+                            const frame: any = {
+                              id: selectedFrame.id,
+                              name: selectedFrame.data?.name || 'Untitled Frame',
+                              pattern: selectedFrame.FrameConfig?.engagementMode || 'canvas',
+                              visibility: 'public' as const,
+                              props: propsArray
+                            };
+                            
+                            return (
+                              <StructuralFrameRenderer
+                                frame={frame}
+                                domain={{ id: domainId || selectedBoardId }}
+                                isEditMode={true}
+                                onEngagementAction={handleEngagementAction}
+                                  console.log('🔄 Board Studio: onFrameUpdate called', { 
+                                    frameId, 
+                                    updates,
+                                    selectedBoardId 
+                                  });
 
-                            try {
-                              // Update frame via API
-                              console.log('📡 Board Studio: Making PATCH request to API...');
-                              const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
-                                method: 'PATCH',
-                                body: JSON.stringify(updates)
-                              });
-                              
-                              console.log('📡 Board Studio: API response received:', response);
-            
-            // Debug the frame data being loaded
-            if (response.data && response.data.frames) {
-              const framesResp = ((response.data as any)?.frames ?? []) as ExtendedFrameInstance[];
-              console.log('🔍 Debug: Frame data from API:', {
-                totalFrames: framesResp.length,
-                framesWithProps: framesResp.filter((f: ExtendedFrameInstance) => f.props && Object.keys(f.props as object).length > 0).length,
-                frameDetails: framesResp.map((f: ExtendedFrameInstance) => ({
-                  id: f.id,
-                  name: (f as any).name || (f as any).data?.name,
-                  role: (f as any).data?.role,
-                  hasProps: !!f.props,
-                  propsCount: f.props ? Object.keys(f.props as object).length : 0,
-                  props: f.props
-                }))
-              });
-            }
-                              
-                              // Update local state
-                              console.log('💾 Board Studio: Updating local mockFrames state...');
-                              setMockFrames(prev => {
-                                const updated = prev.map(frame =>
-                                  frame.id === frameId ? { ...frame, ...updates } : frame
-                                );
-                                console.log('📋 Board Studio: Updated mockFrames:', updated);
-                                return updated;
-                              });
-                              
-                              console.log('✅ Board Studio: Frame updated successfully');
-                            } catch (error) {
-                              console.error('❌ Board Studio: Failed to update frame:', error);
-                              throw error;
-                            }
-                          }}
-                          onBoardUpdate={handleSaveBoard}
-                        />
+                                  try {
+                                    // Update frame via API
+                                    console.log('📡 Board Studio: Making PATCH request to API...');
+                                    const response = await apiFetch(`/api/board-data/${selectedBoardId}/frames/${frameId}`, {
+                                      method: 'PATCH',
+                                      body: JSON.stringify(updates)
+                                    });
+                                    
+                                    console.log('📡 Board Studio: API response received:', response);
+                  
+                    // Debug the frame data being loaded
+                    if (response.data && response.data.frames) {
+                      const framesResp = ((response.data as any)?.frames ?? []) as ExtendedFrameInstance[];
+                      console.log('🔍 Debug: Frame data from API:', {
+                        totalFrames: framesResp.length,
+                        framesWithProps: framesResp.filter((f: ExtendedFrameInstance) => f.props && Object.keys(f.props as object).length > 0).length,
+                        frameDetails: framesResp.map((f: ExtendedFrameInstance) => ({
+                          id: f.id,
+                          name: (f as any).name || (f as any).data?.name,
+                          role: (f as any).data?.role,
+                          hasProps: !!f.props,
+                          propsCount: f.props ? Object.keys(f.props as object).length : 0,
+                          props: f.props
+                        }))
+                      });
+                    }
+                                    
+                                    // Update local state
+                                    console.log('💾 Board Studio: Updating local mockFrames state...');
+                                    setMockFrames(prev => {
+                                      const updated = prev.map(frame =>
+                                        frame.id === frameId ? { ...frame, ...updates } : frame
+                                      );
+                                      console.log('📋 Board Studio: Updated mockFrames:', updated);
+                                      return updated;
+                                    });
+                                    
+                                    console.log('✅ Board Studio: Frame updated successfully');
+                                  } catch (error) {
+                                    console.error('❌ Board Studio: Failed to update frame:', error);
+                                    throw error;
+                                  }
+                                }}
+                                showConfigControls={true}
+                              />
+                            );
+                          })()}
                         </>
                       ) : (
                         <div className="w-full max-w-4xl mx-auto">
