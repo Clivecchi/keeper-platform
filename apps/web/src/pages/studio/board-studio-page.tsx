@@ -48,6 +48,8 @@ import { useBoard } from '../../context/BoardContext';
 import { useFrame } from '../../context/FrameContext';
 import { useAuth } from '../../context/AuthContext';
 import { useKeeperContext } from '../../context/KeeperContext';
+import { useWorldMode } from '../../context/WorldModeContext';
+import { PresentationBoardRenderer } from '../../worlds/shared/BoardRenderer';
 import PatternRenderer from '../../features/board-studio/patterns/PatternRenderer';
 import type { ExtendedFrameInstance } from '../../types/frame';
 import { makeFrameInstance } from '../../utils/frameFactory';
@@ -479,7 +481,11 @@ class BoardStudioErrorBoundary extends React.Component<{ children: React.ReactNo
   }
 }
 
-const BoardStudioPage: React.FC = () => {
+interface BoardStudioPageProps {
+  domainId?: string;
+}
+
+const BoardStudioPage: React.FC<BoardStudioPageProps> = ({ domainId }) => {
   const DEBUG_STUDIO = import.meta.env.VITE_STUDIO_DEBUG === '1';
   if (DEBUG_STUDIO) console.log('BoardStudioPage: Component initializing');
   
@@ -494,6 +500,7 @@ const BoardStudioPage: React.FC = () => {
 
   // UI State
   const { activeKeeper, keepers, setActiveKeeperId } = useKeeperContext();
+  const { isWorkshop } = useWorldMode();
   const [editorMode, setEditorMode] = useState<'studio'|'preview'|'assist'>('studio');
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [isPropertiesPanelOpen, setIsPropertiesPanelOpen] = useState(true);
@@ -1815,7 +1822,7 @@ const BoardStudioPage: React.FC = () => {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col bg-gray-100 p-4">
+        <main className="flex-1 flex flex-col bg-gray-100 p-4 workshop-mode">
           {/* Mode Toolbar - Above Board Composition */}
           <div className="flex items-center justify-between mb-4 bg-white/60 backdrop-blur-sm rounded-lg p-1 border border-gray-200/50">
             <div className="flex items-center gap-1 bg-gray-100 rounded-md p-1">
@@ -2068,65 +2075,82 @@ const BoardStudioPage: React.FC = () => {
                       </div>
                     </div>
                   ) : editorMode === 'preview' ? (
-                    <div className="w-full h-full p-8">
-                      {selectedFrameId && mockFrames.length > 0 ? (
-                        <PatternRenderer
-                          frame={{
-                            id: selectedFrameId,
-                            name: mockFrames.find(f => f.id === selectedFrameId)?.data?.name || 'Frame Content',
-                            pattern: mockFrames.find(f => f.id === selectedFrameId)?.FrameConfig?.engagementMode || 'canvas',
-                            frameType: mockFrames.find(f => f.id === selectedFrameId)?.frameType || 'media_card',
-                            layoutKind: mockFrames.find(f => f.id === selectedFrameId)?.layoutKind || 'canvas',
-                            layoutData: mockFrames.find(f => f.id === selectedFrameId)?.layoutData || {},
-                            props: mockFrames.find(f => f.id === selectedFrameId)?.props || {},
-                            role: mockFrames.find(f => f.id === selectedFrameId)?.data?.role
-                          }}
-                          mode={editorMode}
-                          boardName={boardName}
-                          boardDescription={boardDescription}
-                          boardData={{
-                            id: selectedBoardId,
-                            name: boardName,
-                            slug: `board-${selectedBoardId}`,
-                            description: boardDescription,
-                            theme: boardTheme,
-                            behavior: {
-                              showGrid: true,
-                              snapToGrid: true,
-                              gridSize: 8,
-                              defaultPattern: engagementMode
-                            },
-                            data: {
-                              scope: 'keeper',
-                              entityId: activeKeeper?.id
-                            },
-                            access: {
-                              visibility: 'private',
-                              allowComments: false,
-                              shareLinkEnabled: false
-                            }
-                          }}
-                          frames={mockFrames.map(f => ({
-                            id: f.id,
-                            name: f.data?.name || 'Frame',
-                            role: f.data?.role
-                          }))}
-                          onFrameUpdate={async (frameId, updates) => {
-                            console.log('🔄 Board Studio: onFrameUpdate called in Preview mode', { 
-                              frameId, 
-                              updates,
-                              selectedBoardId 
-                            });
-                            // In preview mode, we might not want to allow updates
-                            // But we'll keep the handler for consistency
-                          }}
-                          onBoardUpdate={handleSaveBoard}
-                        />
+                    <div className="w-full h-full presentation-mode">
+                      {/* If domainId is provided, use exact Presentation renderer */}
+                      {domainId ? (
+                        <div className="w-full h-full">
+                          <PresentationBoardRenderer
+                            domainId={domainId}
+                            className="min-h-full"
+                          />
+                        </div>
+                      ) : selectedFrameId && mockFrames.length > 0 ? (
+                        /* Fallback to PatternRenderer for non-domain boards */
+                        <div className="w-full h-full p-8">
+                          <PatternRenderer
+                            frame={{
+                              id: selectedFrameId,
+                              name: mockFrames.find(f => f.id === selectedFrameId)?.data?.name || 'Frame Content',
+                              pattern: mockFrames.find(f => f.id === selectedFrameId)?.FrameConfig?.engagementMode || 'canvas',
+                              frameType: mockFrames.find(f => f.id === selectedFrameId)?.frameType || 'media_card',
+                              layoutKind: mockFrames.find(f => f.id === selectedFrameId)?.layoutKind || 'canvas',
+                              layoutData: mockFrames.find(f => f.id === selectedFrameId)?.layoutData || {},
+                              props: mockFrames.find(f => f.id === selectedFrameId)?.props || {},
+                              role: mockFrames.find(f => f.id === selectedFrameId)?.data?.role
+                            }}
+                            mode="preview"
+                            boardName={boardName}
+                            boardDescription={boardDescription}
+                            boardData={{
+                              id: selectedBoardId,
+                              name: boardName,
+                              slug: `board-${selectedBoardId}`,
+                              description: boardDescription,
+                              theme: boardTheme,
+                              behavior: {
+                                showGrid: true,
+                                snapToGrid: true,
+                                gridSize: 8,
+                                defaultPattern: engagementMode
+                              },
+                              data: {
+                                scope: 'keeper',
+                                entityId: activeKeeper?.id
+                              },
+                              access: {
+                                visibility: 'private',
+                                allowComments: false,
+                                shareLinkEnabled: false
+                              }
+                            }}
+                            frames={mockFrames.map(f => ({
+                              id: f.id,
+                              name: f.data?.name || 'Frame',
+                              role: f.data?.role
+                            }))}
+                            onFrameUpdate={async (frameId, updates) => {
+                              console.log('🔄 Board Studio: onFrameUpdate called in Preview mode', { 
+                                frameId, 
+                                updates,
+                                selectedBoardId 
+                              });
+                              // In preview mode, we might not want to allow updates
+                              // But we'll keep the handler for consistency
+                            }}
+                            onBoardUpdate={handleSaveBoard}
+                          />
+                        </div>
                       ) : (
-                        <div className="text-center">
+                        <div className="text-center py-12">
                           <Squares2X2Icon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                          <h3 className="text-xl font-medium text-gray-900 mb-2">No Frame Selected</h3>
-                          <p className="text-gray-600 mb-6">Select a frame to preview its content.</p>
+                          <h3 className="text-xl font-medium text-gray-900 mb-2">
+                            {domainId ? 'Loading Domain Preview...' : 'No Frame Selected'}
+                          </h3>
+                          <p className="text-gray-600 mb-6">
+                            {domainId 
+                              ? 'Previewing domain board as it will appear in Presentation mode.'
+                              : 'Select a frame to preview its content.'}
+                          </p>
                         </div>
                       )}
                     </div>

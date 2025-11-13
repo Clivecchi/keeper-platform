@@ -14,6 +14,10 @@ import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../../lib/api';
 import { PropRenderer } from './PropRenderer';
 import { PathwayNav } from '../patterns/PathwayNav';
+import { useWorldMode } from '../../context/WorldModeContext';
+import { NarrativeFrameRenderer, NarrativeFrameContainer } from '../../worlds/presentation/NarrativeFrameRenderer';
+import { StructuralFrameRenderer, StructuralFrameContainer } from '../../worlds/workshop/StructuralFrameRenderer';
+import { isPathwayFrame, extractPathwayConfig } from '../../worlds/shared/patternUtils';
 // PropManager removed - using inline editing instead
 
 interface Frame {
@@ -77,6 +81,10 @@ export function DomainBoardRenderer({
   onEngagementAction,
   onBoardUpdate
 }: DomainBoardRendererProps) {
+  const { mode: worldMode } = useWorldMode();
+  const isPresentation = worldMode === 'presentation';
+  const isWorkshop = worldMode === 'workshop';
+  
   const [boardData, setBoardData] = useState<BoardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -241,12 +249,8 @@ export function DomainBoardRenderer({
   });
 
   // Separate Pathway frames from content frames
-  const pathwayFrame = visibleFrames.find((frame) => 
-    frame.pattern === 'pathway' || frame.name.toLowerCase().includes('pathway')
-  );
-  const contentFrames = visibleFrames.filter((frame) => 
-    frame.pattern !== 'pathway' && !frame.name.toLowerCase().includes('pathway')
-  );
+  const pathwayFrame = visibleFrames.find((frame) => isPathwayFrame(frame));
+  const contentFrames = visibleFrames.filter((frame) => !isPathwayFrame(frame));
 
   return (
     <div className={`w-full ${className}`}>
@@ -270,20 +274,41 @@ export function DomainBoardRenderer({
         />
       )}
 
-      {/* Render content frames */}
-      <div className="w-full max-w-7xl mx-auto p-6">
-        <div className="space-y-8">
+      {/* Render content frames using mode-appropriate renderer */}
+      {isPresentation ? (
+        <NarrativeFrameContainer>
           {contentFrames.map((frame) => (
-            <FrameRenderer
+            <NarrativeFrameRenderer
+              key={frame.id}
+              frame={frame}
+              domain={domain}
+              onEngagementAction={handleEngagementAction}
+            />
+          ))}
+          {contentFrames.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-green-700 text-lg">No frames to display</p>
+              {!isDomainAdmin && board.frames.length > 0 && (
+                <p className="text-green-600 text-sm mt-2">
+                  Sign in as the domain owner to see admin frames
+                </p>
+              )}
+            </div>
+          )}
+        </NarrativeFrameContainer>
+      ) : (
+        <StructuralFrameContainer>
+          {contentFrames.map((frame) => (
+            <StructuralFrameRenderer
               key={frame.id}
               frame={frame}
               domain={domain}
               isEditMode={isEditMode}
               onEngagementAction={handleEngagementAction}
               onFrameUpdate={handleFrameUpdate}
+              showConfigControls={isEditMode}
             />
           ))}
-
           {contentFrames.length === 0 && (
             <div className="text-center py-12">
               <p className="text-gray-600">No frames to display</p>
@@ -294,8 +319,8 @@ export function DomainBoardRenderer({
               )}
             </div>
           )}
-        </div>
-      </div>
+        </StructuralFrameContainer>
+      )}
     </div>
   );
 }
@@ -310,22 +335,8 @@ interface PathwayRendererProps {
 }
 
 function PathwayRenderer({ frame, domain }: PathwayRendererProps) {
-  // Extract pathway configuration from props
-  const pathwayConfig = frame.props.find(p => p.type === 'pathway-config')?.config || {};
-  
-  // Extract path items from props
-  const pathProps = frame.props.filter(p => p.type === 'pathway-item' || p.type === 'link');
-  
-  // Convert props to pathway items format
-  const paths = pathProps
-    .sort((a, b) => a.orderIndex - b.orderIndex)
-    .map(prop => ({
-      label: prop.config.label || prop.config.text || 'Link',
-      href: prop.config.href || prop.config.url || '#',
-      description: prop.config.description || prop.config.label,
-      variant: prop.config.variant || 'system',
-      analyticsId: prop.config.analyticsId
-    }));
+  // Use shared utility to extract pathway config
+  const { pathwayConfig, paths } = extractPathwayConfig(frame);
 
   // If no paths configured, don't render anything
   if (paths.length === 0) {
@@ -347,147 +358,10 @@ function PathwayRenderer({ frame, domain }: PathwayRendererProps) {
 }
 
 // ============================================================================
-// FRAME RENDERER
+// LEGACY FRAME RENDERER (Deprecated - kept for backward compatibility)
 // ============================================================================
-
-interface FrameRendererProps {
-  frame: Frame;
-  domain: any;
-  isEditMode?: boolean;
-  onEngagementAction: (templateSlug: string, context: any) => void;
-  onFrameUpdate?: (frameId: string, props: any[]) => void;
-}
-
-function FrameRenderer({ frame, domain, isEditMode = false, onEngagementAction, onFrameUpdate }: FrameRendererProps) {
-  // Sort props by orderIndex
-  const sortedProps = [...frame.props].sort((a, b) => a.orderIndex - b.orderIndex);
-  const [localProps, setLocalProps] = React.useState(sortedProps);
-
-  // Update local props when frame props change (unless in edit mode with unsaved changes)
-  React.useEffect(() => {
-    if (!isEditMode) {
-      setLocalProps(sortedProps);
-    }
-  }, [frame.props, isEditMode, sortedProps]);
-
-  // Pattern-based styling
-  const patternStyles = {
-    focus: 'bg-white shadow-lg rounded-lg p-8',
-    canvas: 'bg-white border border-gray-200 rounded-lg p-6',
-    gallery: 'bg-gray-50 rounded-lg p-6',
-    form: 'bg-white border-2 border-gray-300 rounded-lg p-6',
-    dialogic: 'bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-6',
-    wizard: 'bg-white shadow-md rounded-lg p-6',
-  };
-
-  const frameClasses = patternStyles[frame.pattern as keyof typeof patternStyles] || patternStyles.canvas;
-  
-  // Add edit mode styling
-  const editModeClasses = isEditMode 
-    ? 'ring-2 ring-blue-500 ring-opacity-50 hover:ring-opacity-100 transition-all' 
-    : '';
-
-  const handlePropsUpdate = async (frameId: string, updatedProps: any[]) => {
-    setLocalProps(updatedProps);
-    // Notify parent renderer of the changes
-    onFrameUpdate?.(frameId, updatedProps);
-  };
-
-  return (
-    <section 
-      className={`${frameClasses} ${editModeClasses}`}
-      data-frame-id={frame.id}
-      data-pattern={frame.pattern}
-    >
-      {/* Frame header with admin controls */}
-      {frame.name && frame.pattern !== 'focus' && (
-        <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <h3 className="text-xl font-semibold text-gray-800">
-              {frame.name}
-            </h3>
-            {isEditMode && (
-              <span className="text-xs text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded">
-                {frame.pattern} • {sortedProps.length} props • {frame.visibility}
-              </span>
-            )}
-          </div>
-          {isEditMode && (
-            <div className="flex items-center gap-2">
-              <a
-                href="/studio/board-studio"
-                className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded inline-flex items-center gap-1"
-                title="Open in Board Studio for advanced editing"
-              >
-                🎨 Board Studio
-              </a>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Render props with inline editing support */}
-      <div className="space-y-3">
-        {sortedProps.map((prop) => (
-          <PropRenderer
-            key={prop.id}
-            prop={prop}
-            domain={domain}
-            onEngagementAction={onEngagementAction}
-            isEditMode={isEditMode}
-            onPropUpdate={(propId, newValue) => {
-              // Update the prop in localProps
-              const updatedProps = localProps.map(p => {
-                if (p.id === propId) {
-                  // Handle different value types
-                  if (typeof newValue === 'object' && newValue.label !== undefined) {
-                    // Button with label and URL
-                    return { 
-                      ...p, 
-                      config: { 
-                        ...p.config, 
-                        label: newValue.label,
-                        name: newValue.label,
-                        url: newValue.url 
-                      },
-                      value: newValue
-                    };
-                  } else if (typeof newValue === 'object' && newValue.url !== undefined) {
-                    // Image with URL and alt
-                    return {
-                      ...p,
-                      config: {
-                        ...p.config,
-                        url: newValue.url,
-                        alt: newValue.alt
-                      },
-                      value: newValue
-                    };
-                  } else {
-                    // Simple text/heading
-                    return { 
-                      ...p, 
-                      config: { ...p.config, content: newValue }, 
-                      value: newValue 
-                    };
-                  }
-                }
-                return p;
-              });
-              handlePropsUpdate(frame.id, updatedProps);
-            }}
-          />
-        ))}
-      </div>
-
-      {sortedProps.length === 0 && !isEditMode && (
-        <div className="text-sm text-gray-500 italic">
-          No content configured for this frame
-        </div>
-      )}
-    </section>
-  );
-}
+// Note: This is now replaced by NarrativeFrameRenderer and StructuralFrameRenderer
+// Kept here temporarily for any components that might still reference it
 
 export default DomainBoardRenderer;
 

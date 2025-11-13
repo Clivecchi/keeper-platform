@@ -52,6 +52,10 @@ import DomainDashboardPage from './pages/keeper/DomainDashboardPage';
 // Domain Public Pages
 import PublicDomainPage from './pages/d/PublicDomainPage';
 
+// Domain Workshop Pages
+import DomainWorkshopPage from './pages/studio/domain/DomainWorkshopPage';
+import DomainBoardStudioPage from './pages/studio/domain/DomainBoardStudioPage';
+
 // Manifesto Pages
 import CleanSurfaceDoctrinePage from './pages/manifestos/CleanSurfaceDoctrinePage';
 
@@ -121,6 +125,10 @@ const App: React.FC = () => {
           <Route path="/studio/keeper-type-board" element={<KeeperTypeBoardPage />} />
           <Route path="/studio/people-board" element={<PeopleBoardPage />} />
           <Route path="/studio/board-studio" element={<BoardStudioPage />} />
+          
+          {/* Domain Workshop Routes */}
+          <Route path="/studio/domain/:domainId" element={<DomainWorkshopPage />} />
+          <Route path="/studio/domain/:domainId/board-studio" element={<DomainBoardStudioPage />} />
 
           {/* Backward-compat alias to handle direct links or outdated menus */}
           <Route path="/board-studio" element={<BoardStudioPage />} />

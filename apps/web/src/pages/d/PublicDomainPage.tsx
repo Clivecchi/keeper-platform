@@ -19,20 +19,18 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DomainBoardRenderer } from '../../components/domain/DomainBoardRenderer';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { useWorldMode } from '../../context/WorldModeContext';
 
 export default function PublicDomainPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
+  const { isPresentation } = useWorldMode(); // Ensure we're in Presentation mode
   const [domainId, setDomainId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [isDomainAdmin, setIsDomainAdmin] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [boardChanges, setBoardChanges] = useState<any>(null);
 
   useEffect(() => {
     if (slug) {
@@ -92,6 +90,12 @@ export default function PublicDomainPage() {
     console.log('Engagement action triggered:', templateSlug, context);
   };
 
+  const handleEditInWorkshop = () => {
+    if (domainId) {
+      navigate(`/studio/domain/${domainId}/board-studio`);
+    }
+  };
+
   const handleLogin = () => {
     // Navigate to login with returnTo parameter
     const returnTo = encodeURIComponent(`/d/${slug}`);
@@ -109,6 +113,13 @@ export default function PublicDomainPage() {
     // Use window.location for full page navigation to ensure auth state is fresh
     window.location.href = '/root';
   };
+
+  // Ensure we're in Presentation mode (this route should always be Presentation)
+  useEffect(() => {
+    if (!isPresentation) {
+      console.warn('[PublicDomainPage] Route /d/:slug should always be Presentation mode');
+    }
+  }, [isPresentation]);
 
   if (isLoading) {
     return (
@@ -140,68 +151,12 @@ export default function PublicDomainPage() {
     );
   }
 
-  const handleEditClick = () => {
-    setIsEditMode(true);
-  };
-
-  const handleCancelEdit = () => {
-    if (hasUnsavedChanges) {
-      if (!window.confirm('You have unsaved changes. Are you sure you want to cancel?')) {
-        return;
-      }
-    }
-    setIsEditMode(false);
-    setHasUnsavedChanges(false);
-    // Reload the board to discard changes
-    loadDomain();
-  };
-
-  const handleSaveChanges = async () => {
-    if (!boardChanges || !domainId) {
-      console.warn('No changes to save');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const response = await apiFetch(`/api/domains/${domainId}/board-data`, {
-        method: 'PUT',
-        body: JSON.stringify(boardChanges)
-      });
-
-      if (response.success) {
-        console.log('✅ Board saved successfully:', response.data);
-        setIsEditMode(false);
-        setHasUnsavedChanges(false);
-        setBoardChanges(null);
-        // Reload the board to show saved changes
-        await loadDomain();
-      } else {
-        throw new Error(response.error || 'Save failed');
-      }
-    } catch (error) {
-      console.error('Error saving changes:', error);
-      alert(
-        'Failed to save changes. ' +
-        (error instanceof Error ? error.message : 'Please try again.')
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleBoardUpdate = async (changes: any) => {
-    // Store the changes for later save
-    setBoardChanges(changes);
-    // Mark that we have unsaved changes
-    setHasUnsavedChanges(true);
-  };
 
   // Debug logging for render
   console.log('[PublicDomainPage] Rendering with state:', {
     isAuthenticated,
     isDomainAdmin,
-    isEditMode,
+    isPresentation,
     hasUser: !!user,
     userEmail: user?.email,
     domainId,
@@ -209,7 +164,7 @@ export default function PublicDomainPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 presentation-mode">
       {/* Full viewport board render with overlay header */}
       <main className="min-h-screen relative">
         {/* Debug panel removed - clean UI */}
@@ -217,57 +172,20 @@ export default function PublicDomainPage() {
         {/* Overlay header - inside board container */}
         <div className="absolute top-4 right-4 left-4 z-50 flex justify-end items-center gap-3 pointer-events-none">
           <div className="flex gap-2 pointer-events-auto">
-            {/* Edit affordance - authenticated owners/admins only */}
-            {isAuthenticated && isDomainAdmin && !isEditMode && (
+            {/* Edit in Workshop button - authenticated owners/admins only */}
+            {isAuthenticated && isDomainAdmin && (
               <button
-                onClick={handleEditClick}
+                onClick={handleEditInWorkshop}
                 className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                title="Edit this domain in Workshop"
               >
                 <span className="flex items-center gap-1.5">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  Edit
+                  Edit in Workshop
                 </span>
               </button>
-            )}
-
-            {/* Save/Cancel buttons in edit mode */}
-            {isEditMode && (
-              <>
-                <button
-                  onClick={handleCancelEdit}
-                  disabled={isSaving}
-                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveChanges}
-                  disabled={isSaving || !hasUnsavedChanges}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${
-                    hasUnsavedChanges
-                      ? 'text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-                      : 'text-gray-500 bg-gray-200 cursor-not-allowed'
-                  }`}
-                >
-                  {isSaving ? (
-                    <span className="flex items-center gap-1.5">
-                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Saving...
-                    </span>
-                  ) : hasUnsavedChanges ? (
-                    <span className="flex items-center gap-1.5">
-                      💾 Save Changes
-                    </span>
-                  ) : (
-                    'No changes'
-                  )}
-                </button>
-              </>
             )}
             
             {/* Auth controls */}
@@ -345,13 +263,13 @@ export default function PublicDomainPage() {
           </div>
         </div>
         
-        {/* Removed useless editing mode banner - made editing harder */}
-
+        {/* Presentation mode - read-only rendering */}
         <DomainBoardRenderer
           domainId={domainId}
-          isEditMode={isEditMode}
+          domainSlug={slug}
+          isEditMode={false}
           onEngagementAction={handleEngagementAction}
-          onBoardUpdate={handleBoardUpdate}
+          // No onBoardUpdate - Presentation is read-only
         />
       </main>
 

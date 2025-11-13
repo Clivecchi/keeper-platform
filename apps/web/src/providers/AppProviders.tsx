@@ -10,6 +10,7 @@
  * - AuthProvider: Authentication state and user context
  * - ThemeProvider: Theme switching (light/dark)
  * - ViewModeProvider: View mode state
+ * - WorldModeProvider: World mode (Presentation vs Workshop)
  * - KeeperProvider: Keeper-specific context
  * - FrameProvider: Frame system context
  * - BoardProvider: Board-specific context
@@ -24,6 +25,7 @@ import { AuthGate } from '../auth/AuthGate';
 import { AuthProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import { ViewModeProvider } from '../context/ViewModeContext';
+import { WorldModeProvider } from '../context/WorldModeContext';
 import { FrameProvider } from '../context/FrameContext';
 import { KeeperProvider } from '../context/KeeperContext';
 import { BoardProvider } from '../context/BoardContext';
@@ -40,13 +42,15 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
           <AuthProvider>
             <ThemeProvider>
               <ViewModeProvider>
-                <KeeperProvider>
-                  <FrameProvider>
-                    <BoardProvider>
-                      {children}
-                    </BoardProvider>
-                  </FrameProvider>
-                </KeeperProvider>
+                <WorldModeProvider>
+                  <KeeperProvider>
+                    <FrameProvider>
+                      <BoardProvider>
+                        {children}
+                      </BoardProvider>
+                    </FrameProvider>
+                  </KeeperProvider>
+                </WorldModeProvider>
               </ViewModeProvider>
             </ThemeProvider>
           </AuthProvider>
