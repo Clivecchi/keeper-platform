@@ -2166,6 +2166,7 @@ const BoardStudioPage: React.FC<BoardStudioPageProps> = ({ domainId }) => {
                                 domain={{ id: domainId || selectedBoardId }}
                                 isEditMode={true}
                                 onEngagementAction={handleEngagementAction}
+                                onFrameUpdate={async (frameId, updates) => {
                                   console.log('🔄 Board Studio: onFrameUpdate called', { 
                                     frameId, 
                                     updates,
@@ -2182,22 +2183,22 @@ const BoardStudioPage: React.FC<BoardStudioPageProps> = ({ domainId }) => {
                                     
                                     console.log('📡 Board Studio: API response received:', response);
                   
-                    // Debug the frame data being loaded
-                    if (response.data && response.data.frames) {
-                      const framesResp = ((response.data as any)?.frames ?? []) as ExtendedFrameInstance[];
-                      console.log('🔍 Debug: Frame data from API:', {
-                        totalFrames: framesResp.length,
-                        framesWithProps: framesResp.filter((f: ExtendedFrameInstance) => f.props && Object.keys(f.props as object).length > 0).length,
-                        frameDetails: framesResp.map((f: ExtendedFrameInstance) => ({
-                          id: f.id,
-                          name: (f as any).name || (f as any).data?.name,
-                          role: (f as any).data?.role,
-                          hasProps: !!f.props,
-                          propsCount: f.props ? Object.keys(f.props as object).length : 0,
-                          props: f.props
-                        }))
-                      });
-                    }
+                                    // Debug the frame data being loaded
+                                    if (response.data && response.data.frames) {
+                                      const framesResp = ((response.data as any)?.frames ?? []) as ExtendedFrameInstance[];
+                                      console.log('🔍 Debug: Frame data from API:', {
+                                        totalFrames: framesResp.length,
+                                        framesWithProps: framesResp.filter((f: ExtendedFrameInstance) => f.props && Object.keys(f.props as object).length > 0).length,
+                                        frameDetails: framesResp.map((f: ExtendedFrameInstance) => ({
+                                          id: f.id,
+                                          name: (f as any).name || (f as any).data?.name,
+                                          role: (f as any).data?.role,
+                                          hasProps: !!f.props,
+                                          propsCount: f.props ? Object.keys(f.props as object).length : 0,
+                                          props: f.props
+                                        }))
+                                      });
+                                    }
                                     
                                     // Update local state
                                     console.log('💾 Board Studio: Updating local mockFrames state...');
