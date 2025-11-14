@@ -1823,7 +1823,7 @@ const BoardStudioPage: React.FC<BoardStudioPageProps> = ({ domainId }) => {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col bg-gray-100 p-4 workshop-mode">
+        <main className="flex-1 flex flex-col bg-gray-100 p-4 studio-mode">
           {/* Mode Toolbar - Above Board Composition */}
           <div className="flex items-center justify-between mb-4 bg-white/60 backdrop-blur-sm rounded-lg p-1 border border-gray-200/50">
             <div className="flex items-center gap-1 bg-gray-100 rounded-md p-1">
@@ -2122,7 +2122,7 @@ const BoardStudioPage: React.FC<BoardStudioPageProps> = ({ domainId }) => {
                       )}
                     </div>
                   ) : (
-                    <div className="w-full h-full p-8 workshop-mode">
+                    <div className="w-full h-full p-8 studio-mode">
                       {/* Studio mode: Render selected frame using StructuralFrameRenderer */}
                       {selectedFrameId && mockFrames.length > 0 ? (
                         <>

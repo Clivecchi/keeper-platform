@@ -64,6 +64,38 @@
   color: var(--workshop-text);
 }
 
+/* Studio Mode - Visual Design Environment */
+.studio-mode {
+  /* Clean, modern design palette */
+  --studio-primary: #3B82F6; /* Blue */
+  --studio-bg: #FAFBFC; /* Very light gray */
+  --studio-accent: #1E40AF; /* Dark blue */
+  --studio-text: #111827; /* Dark gray */
+  --studio-border: #E5E7EB; /* Light gray border */
+  
+  /* Typography - clean, readable */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  
+  /* Spacing - generous for visual clarity */
+  --studio-spacing: 2rem;
+  
+  /* Shadows - subtle, clean */
+  --studio-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  
+  /* Transitions - smooth, natural */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Background */
+  background: var(--studio-bg);
+}
+
+.studio-mode * {
+  /* Ensure clean tones throughout */
+  color: var(--studio-text);
+}
+
 /* Presentation Mode Specific Styles */
 .presentation-mode .board-renderer {
   background: var(--presentation-bg);
@@ -168,5 +200,88 @@
 
 .workshop-prop {
   transition: all 0.15s ease-in-out;
+}
+
+/* Studio Mode - Visual Design Environment */
+.studio-frame-container {
+  background: #FAFBFC;
+  padding: 2rem;
+}
+
+.studio-frame {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  border: 1px solid #E5E7EB;
+}
+
+.studio-props-container {
+  /* Generous spacing for visual clarity */
+  padding: 0.5rem 0;
+}
+
+.studio-prop-wrapper {
+  /* Ensure props render as visual content, not config cards */
+  position: relative;
+  min-height: 2rem;
+}
+
+.studio-prop-content {
+  /* Props render as actual visual content */
+  width: 100%;
+}
+
+/* Ensure images, headings, text render naturally in Studio */
+.studio-prop-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.studio-prop-content h1,
+.studio-prop-content h2,
+.studio-prop-content h3 {
+  margin: 0;
+  font-weight: 600;
+  color: #111827;
+}
+
+.studio-prop-content p {
+  margin: 0;
+  color: #374151;
+  line-height: 1.6;
+}
+
+/* Subtle hover effects for editing */
+.studio-prop-wrapper:hover {
+  outline: 1px solid rgba(59, 130, 246, 0.2);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+/* EditableProp styling in Studio mode */
+.studio-editable-prop {
+  /* Ensure visual content is always displayed */
+  display: block;
+  width: 100%;
+}
+
+.studio-prop-visual-content {
+  /* Visual content renders naturally */
+  width: 100%;
+  display: block;
+}
+
+/* Ensure props don't get hidden or minimized */
+.studio-editable-prop img,
+.studio-editable-prop h1,
+.studio-editable-prop h2,
+.studio-editable-prop h3,
+.studio-editable-prop p {
+  /* Visual content always visible */
+  opacity: 1 !important;
+  display: block !important;
 }
 

@@ -1,18 +1,17 @@
 /**
- * StructuralFrameRenderer - Workshop Mode Frame Renderer
- * =======================================================
+ * StructuralFrameRenderer - Studio Mode Frame Renderer
+ * =====================================================
  * 
- * Renders frames in Workshop mode with crisp, tool-like, structural styling.
- * This is the "Studio" renderer - designed for building, editing, configuration.
+ * Renders frames in Studio mode with visual, design-focused styling.
+ * This is the "Studio" renderer - designed for visual design and content creation.
  * 
  * Characteristics:
- * - Crisp color palette (blue tones)
- * - Tighter spacing
- * - Sharp shadows
- * - Technical typography
- * - Editing chrome visible
- * - Focus on structure and configuration
- * - Tool-like appearance
+ * - Visual content rendering (images show as images, text as text)
+ * - Generous spacing for visual clarity
+ * - Clean, modern design aesthetic
+ * - Subtle editing affordances
+ * - Focus on visual design, not configuration
+ * - Design tool appearance
  */
 
 import React from 'react';
@@ -45,8 +44,8 @@ export interface StructuralFrameRendererProps {
 /**
  * StructuralFrameRenderer
  * 
- * Renders a frame in Workshop mode with crisp, structural styling.
- * Includes editing controls and configuration options.
+ * Renders a frame in Studio mode with visual, design-focused styling.
+ * Props render as actual visual content (images, headings, text) with subtle editing controls.
  */
 export function StructuralFrameRenderer({
   frame,
@@ -65,12 +64,13 @@ export function StructuralFrameRenderer({
   
   const frameDisplayName = getFrameDisplayName(frame);
 
-  // Workshop-specific frame styling
+  // Studio-specific frame styling - visual design focus
   const frameClasses = `
     ${patternStyles.className}
-    workshop-frame
-    transition-all duration-150
-    ${isEditMode ? 'ring-2 ring-blue-500 ring-opacity-50 hover:ring-opacity-100' : ''}
+    studio-frame
+    bg-white rounded-lg shadow-sm
+    transition-all duration-200
+    ${isEditMode ? 'ring-1 ring-gray-200 hover:ring-gray-300' : ''}
   `.trim().replace(/\s+/g, ' ');
 
   const handlePropsUpdate = (propId: string, newValue: any) => {
@@ -119,67 +119,64 @@ export function StructuralFrameRenderer({
       className={frameClasses}
       data-frame-id={frame.id}
       data-pattern={frame.pattern}
-      data-world-mode="workshop"
+      data-world-mode="studio"
     >
-      {/* Frame header with structural styling and controls */}
+      {/* Frame header - clean, visual design */}
       {frameDisplayName && frame.pattern !== 'focus' && (
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <h3 className="text-xl font-semibold text-gray-900 tracking-tight">
-              {frameDisplayName}
-            </h3>
-            {showConfigControls && (
-              <span className="text-xs text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded">
-                {frame.pattern} • {sortedProps.length} props • {frame.visibility}
-              </span>
-            )}
-          </div>
-          
-          {isEditMode && showConfigControls && (
-            <div className="flex items-center gap-2">
-              <button
-                className="text-xs px-2 py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded inline-flex items-center gap-1 transition-colors"
-                title="Configure frame"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Config
-              </button>
-            </div>
+        <div className="mb-6 pb-4 border-b border-gray-100">
+          <h3 className="text-2xl font-semibold text-gray-900 tracking-tight">
+            {frameDisplayName}
+          </h3>
+          {showConfigControls && isEditMode && (
+            <p className="text-sm text-gray-500 mt-1">
+              {sortedProps.length} {sortedProps.length === 1 ? 'element' : 'elements'}
+            </p>
           )}
         </div>
       )}
 
-      {/* Render props with structural presentation */}
-      <div className="space-y-3">
+      {/* Render props as visual content with editing affordances */}
+      <div className="space-y-6 studio-props-container">
         {visibleProps.map((prop) => (
           <div 
             key={prop.id}
-            className="workshop-prop"
+            className="studio-prop-wrapper group relative"
           >
-            <PropRenderer
-              prop={prop}
-              domain={domain}
-              onEngagementAction={onEngagementAction}
-              isEditMode={isEditMode}
-              onPropUpdate={handlePropsUpdate}
-            />
+            {/* Visual content rendering - props show as actual images, headings, text, etc. */}
+            <div className="studio-prop-content">
+              <PropRenderer
+                prop={prop}
+                domain={domain}
+                onEngagementAction={onEngagementAction}
+                isEditMode={isEditMode}
+                onPropUpdate={handlePropsUpdate}
+              />
+            </div>
+            
+            {/* Subtle editing overlay - only visible on hover in edit mode */}
+            {isEditMode && (
+              <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <div className="absolute top-2 right-2 flex items-center gap-1">
+                  <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-md px-2 py-1 text-xs text-gray-600 shadow-sm">
+                    {prop.type}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Empty state - technical, actionable */}
+      {/* Empty state - visual, inviting */}
       {visibleProps.length === 0 && (
-        <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-          <div className="text-gray-400 text-2xl mb-2">📋</div>
-          <p className="text-gray-600 text-sm font-medium">
-            No props configured
+        <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+          <div className="text-gray-300 text-4xl mb-4">✨</div>
+          <p className="text-gray-600 text-base font-medium mb-2">
+            Start designing
           </p>
           {isEditMode && (
-            <p className="text-gray-500 text-xs mt-1">
-              Add props from the Props Library
+            <p className="text-gray-500 text-sm">
+              Drag elements from the Props Library or click to add
             </p>
           )}
         </div>
@@ -191,7 +188,7 @@ export function StructuralFrameRenderer({
 /**
  * StructuralFrameContainer
  * 
- * Wrapper component that provides Workshop-mode container styling
+ * Wrapper component that provides Studio-mode container styling
  */
 export function StructuralFrameContainer({ 
   children, 
@@ -201,9 +198,9 @@ export function StructuralFrameContainer({
   className?: string;
 }) {
   return (
-    <div className={`workshop-frame-container ${className}`}>
-      <div className="w-full max-w-7xl mx-auto p-6">
-        <div className="space-y-6">
+    <div className={`studio-frame-container ${className}`}>
+      <div className="w-full max-w-7xl mx-auto p-8">
+        <div className="space-y-8">
           {children}
         </div>
       </div>

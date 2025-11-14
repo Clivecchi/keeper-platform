@@ -58,30 +58,36 @@ export function EditableProp({
     );
   }
 
-  // Edit mode but not actively editing - show subtle controls
+  // Edit mode but not actively editing - show visual content with subtle controls
   return (
     <div
-      className="relative group"
+      className="relative group studio-editable-prop"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      <div className="relative">
+      {/* Visual content - always visible */}
+      <div className="studio-prop-visual-content">
         {children}
-        
-        {/* Subtle edit controls on hover */}
-        {isHovering && (
-          <div className="absolute top-0 right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={handleClick}
-              className="bg-white border border-gray-300 text-gray-700 px-2 py-1 rounded text-xs flex items-center gap-1 shadow-sm hover:bg-gray-50"
-              title="Edit this element"
-            >
-              <PencilIcon className="w-3 h-3" />
-              <span>Edit</span>
-            </button>
-          </div>
-        )}
       </div>
+      
+      {/* Subtle edit controls on hover - positioned absolutely, doesn't affect layout */}
+      {isHovering && (
+        <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <button
+            onClick={handleClick}
+            className="bg-white/95 backdrop-blur-sm border border-gray-200 text-gray-700 px-2.5 py-1.5 rounded-md text-xs flex items-center gap-1.5 shadow-md hover:shadow-lg hover:bg-white transition-all"
+            title="Edit this element"
+          >
+            <PencilIcon className="w-3.5 h-3.5" />
+            <span>Edit</span>
+          </button>
+        </div>
+      )}
+      
+      {/* Subtle outline on hover to indicate editability */}
+      {isHovering && (
+        <div className="absolute inset-0 pointer-events-none border-2 border-blue-400/30 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+      )}
     </div>
   );
 
