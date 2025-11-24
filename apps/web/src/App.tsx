@@ -51,6 +51,8 @@ import DomainDashboardPage from './pages/keeper/DomainDashboardPage';
 
 // Domain Public Pages
 import PublicDomainPage from './pages/d/PublicDomainPage';
+import DomainAdminPage from './pages/d/DomainAdminPage';
+import DomainAgentPage from './pages/d/DomainAgentPage';
 
 // Domain Workshop Pages
 import DomainWorkshopPage from './pages/studio/domain/DomainWorkshopPage';
@@ -182,6 +184,9 @@ const App: React.FC = () => {
           {/* Legacy Routes - maintain compatibility */}
           <Route path="/root/settings/api-keys" element={<UserApiKeyManagerPage />} />
         </Route>
+        {/* Domain-scoped authenticated routes without App shell */}
+        <Route path="/d/:slug/admin" element={<DomainAdminPage />} />
+        <Route path="/d/:slug/agent" element={<DomainAgentPage />} />
       </Route>
       
       {/* Public Routes - No Authentication Required */}
