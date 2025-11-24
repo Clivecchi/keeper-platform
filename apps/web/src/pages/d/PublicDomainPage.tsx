@@ -164,13 +164,13 @@ export default function PublicDomainPage() {
         {/* Overlay header - inside board container */}
         <div className="absolute top-4 right-4 left-4 z-50 flex justify-end pointer-events-none">
           <div className="flex flex-col items-end gap-3 pointer-events-auto">
-            {isAuthenticated && domainId ? (
+            {isAuthenticated ? (
               <>
                 <DomainViewNavigation
                   domainSlug={slug || ''}
-                  domainId={domainId}
+                  domainId={domainId ?? undefined}
                   currentView="public"
-                  canAccessWorkshop={isDomainAdmin}
+                  canAccessWorkshop={Boolean(isDomainAdmin && domainId)}
                   showAdminLink={isDomainAdmin}
                 />
                 <div className="flex items-center gap-2 text-xs text-gray-600">
