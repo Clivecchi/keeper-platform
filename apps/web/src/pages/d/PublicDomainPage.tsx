@@ -20,6 +20,7 @@ import { DomainBoardRenderer } from '../../components/domain/DomainBoardRenderer
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useWorldMode } from '../../context/WorldModeContext';
+import { KeeperDashboardLayout } from '../../layouts/KeeperDashboardLayout';
 
 export default function PublicDomainPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -163,103 +164,45 @@ export default function PublicDomainPage() {
     slug
   });
 
+  // When authenticated, render inside V0 dashboard layout
+  if (isAuthenticated) {
+    return (
+      <KeeperDashboardLayout 
+        title={slug || 'Domain'} 
+        subtitle="Your domain workspace"
+      >
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <DomainBoardRenderer
+            domainId={domainId}
+            domainSlug={slug}
+            isEditMode={false}
+            onEngagementAction={handleEngagementAction}
+          />
+        </div>
+      </KeeperDashboardLayout>
+    );
+  }
+
+  // When not authenticated, render public view (frame-driven, no shell)
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 presentation-mode">
       {/* Full viewport board render with overlay header */}
       <main className="min-h-screen relative">
-        {/* Debug panel removed - clean UI */}
-        
         {/* Overlay header - inside board container */}
         <div className="absolute top-4 right-4 left-4 z-50 flex justify-end items-center gap-3 pointer-events-none">
           <div className="flex gap-2 pointer-events-auto">
-            {/* Edit in Workshop button - authenticated owners/admins only */}
-            {isAuthenticated && isDomainAdmin && (
-              <button
-                onClick={handleEditInWorkshop}
-                className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                title="Edit this domain in Workshop"
-              >
-                <span className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  Edit in Workshop
-                </span>
-              </button>
-            )}
-            
-            {/* Auth controls */}
-            {!isAuthenticated ? (
-              <>
-                <button
-                  onClick={handleLogin}
-                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => navigate('/register')}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                >
-                  Get Started
-                </button>
-              </>
-            ) : (
-              <div className="relative">
-                <button
-                  onClick={() => setShowAccountMenu(!showAccountMenu)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                >
-                  {user?.avatar_url ? (
-                    <img src={user.avatar_url} alt="" className="w-5 h-5 rounded-full" />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold">
-                      {user?.name?.[0] || user?.email?.[0] || '?'}
-                    </div>
-                  )}
-                  <span className="max-w-[120px] truncate">{user?.name || user?.email || 'Account'}</span>
-                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                
-                {showAccountMenu && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-40" 
-                      onClick={() => setShowAccountMenu(false)}
-                    />
-                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleDashboard();
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                      >
-                        Dashboard
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowAccountMenu(false);
-                          // Stay on current board
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                      >
-                        View Domain
-                      </button>
-                      <hr className="my-1 border-gray-200" />
-                      <button
-                        onClick={handleLogout}
-                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 transition-colors"
-                      >
-                        Sign Out
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+            <button
+              onClick={handleLogin}
+              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => navigate('/register')}
+              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+            >
+              Get Started
+            </button>
           </div>
         </div>
         
@@ -269,7 +212,6 @@ export default function PublicDomainPage() {
           domainSlug={slug}
           isEditMode={false}
           onEngagementAction={handleEngagementAction}
-          // No onBoardUpdate - Presentation is read-only
         />
       </main>
 

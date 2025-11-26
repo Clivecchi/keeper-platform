@@ -51,6 +51,8 @@ import DomainDashboardPage from './pages/keeper/DomainDashboardPage';
 
 // Domain Public Pages
 import PublicDomainPage from './pages/d/PublicDomainPage';
+import DomainAdminPage from './pages/d/DomainAdminPage';
+import DomainAgentPage from './pages/d/DomainAgentPage';
 
 // Domain Workshop Pages
 import DomainWorkshopPage from './pages/studio/domain/DomainWorkshopPage';
@@ -178,6 +180,10 @@ const App: React.FC = () => {
           <Route path="/keeper/selected/metadata" element={<SelectedKeeperMetadataPage />} />
           <Route path="/keeper/selected/engagement-templates" element={<SelectedKeeperMetadataPage />} />
           <Route path="/keeper/selected/memory-tools" element={<SelectedKeeperMetadataPage />} />
+          
+          {/* Domain Admin & Agent Routes - V0 Dashboard Layout */}
+          <Route path="/d/:slug/admin" element={<DomainAdminPage />} />
+          <Route path="/d/:slug/agent" element={<DomainAgentPage />} />
           
           {/* Legacy Routes - maintain compatibility */}
           <Route path="/root/settings/api-keys" element={<UserApiKeyManagerPage />} />

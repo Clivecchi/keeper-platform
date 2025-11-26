@@ -1,0 +1,48 @@
+# Layouts
+
+## 📌 Purpose
+Layout components that provide consistent page shells and navigation structures across the Keeper Platform.
+
+## 🧱 Key Files
+- `AppLayout.tsx` - Main authenticated app layout with sidebar and navbar
+- `PublicLayout.tsx` - Public-facing pages layout
+- `BoardPublicLayout.tsx` - Full viewport board layout (no shell UI)
+- `KeeperDashboardLayout.tsx` - V0-aligned dashboard layout for logged-in experience
+
+## 🔄 Data & Behavior
+
+### KeeperDashboardLayout
+- **V0 Design Language**: Implements the canonical visual system from V0 screenshots
+- **Left Navigation**: Persistent sidebar with Feed, Kip, Keepers, Journeys, Profile
+- **Color Scheme**: Terracotta (#C96E59) for active states, soft cream background (#FAF9F6)
+- **Typography**: Large section headings, comfortable spacing
+- **Cards**: Rounded corners, soft shadows, white background
+- **Used For**: 
+  - `/d/:domainSlug` (when authenticated)
+  - `/d/:domainSlug/admin`
+  - `/d/:domainSlug/agent`
+
+### AppLayout
+- **Authenticated Routes**: Wraps all protected routes
+- **Sidebar Integration**: Uses ViewMode-aware Sidebar component
+- **Navbar**: Top navigation bar with user identity
+
+### BoardPublicLayout
+- **Full Viewport**: No shell UI, frame-driven experience
+- **Used For**: Public domain boards, login page
+
+## ⚠️ Notes & ToDo
+- [ ] Add responsive breakpoints for mobile navigation
+- [ ] Implement Create button dropdown functionality
+- [ ] Add navigation state persistence
+
+## 📆 Update Log
+
+### 2025-01-21 - V0 Dashboard Layout Implementation
+- Added `KeeperDashboardLayout.tsx` with V0-aligned design
+- Terracotta color scheme (#C96E59)
+- Left navigation sidebar with Feed, Kip, Keepers, Journeys, Profile
+- Soft cream background (#FAF9F6)
+- Rounded cards with soft shadows
+- Large typography with comfortable spacing
+
