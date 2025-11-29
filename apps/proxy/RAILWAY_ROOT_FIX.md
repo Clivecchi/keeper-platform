@@ -42,10 +42,23 @@ The current setup uses NIXPACKS builder which should work even with `apps/proxy`
 
 ## 🔧 Current Configuration
 
-- **Dockerfile Location:** `apps/proxy/Dockerfile`
-- **Railway Root:** Should be `.` (repo root), currently set to `apps/proxy` ❌
-- **Build Command:** Uses Dockerfile builder
-- **Start Command:** `node dist/index.js`
+- **Dockerfile Location:** `Dockerfile.proxy` (at repo root)
+- **Railway Config:** `railway.proxy.json` (at repo root)
+- **Railway Root:** `.` (repo root) ✅
+- **Build Command:** Uses Dockerfile builder with `Dockerfile.proxy`
+- **Start Command:** `node apps/proxy/dist/index.js`
+- **Healthcheck Path:** `/healthz` (proxy-specific)
+
+## ⚠️ Important: Railway Service Configuration
+
+After setting root directory to `.`, you must also configure Railway to use the proxy-specific files:
+
+1. Go to Railway Dashboard → Proxy Service → Settings
+2. In the build settings, ensure it's using `railway.proxy.json` OR
+3. Manually set:
+   - **Dockerfile Path:** `Dockerfile.proxy`
+   - **Start Command:** `node apps/proxy/dist/index.js`
+   - **Healthcheck Path:** `/healthz`
 
 ## ✅ Verification
 
