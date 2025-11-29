@@ -17,7 +17,7 @@
  */
 
 import React from 'react';
-import { NavLink, useLocation, useParams } from 'react-router-dom';
+import { NavLink, useLocation, useParams, Link } from 'react-router-dom';
 import { 
   HomeIcon,
   SparklesIcon,
@@ -25,8 +25,10 @@ import {
   MapIcon,
   UserIcon,
   PlusIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  EyeIcon
 } from '@heroicons/react/24/outline';
+import { UserIdentityDropdown } from '../components/layout/UserIdentityDropdown';
 
 interface KeeperDashboardLayoutProps {
   children: React.ReactNode;
@@ -54,7 +56,7 @@ export const KeeperDashboardLayout: React.FC<KeeperDashboardLayoutProps> = ({
     {
       label: 'Feed',
       icon: <HomeIcon className="w-5 h-5" />,
-      path: slug ? `/d/${slug}` : '/feed'
+      path: slug ? `/d/${slug}/feed` : '/feed'
     },
     {
       label: 'Kip',
@@ -64,7 +66,7 @@ export const KeeperDashboardLayout: React.FC<KeeperDashboardLayoutProps> = ({
     {
       label: 'Keepers',
       icon: <BuildingOfficeIcon className="w-5 h-5" />,
-      path: slug ? `/d/${slug}` : '/keepers'
+      path: slug ? `/d/${slug}/keepers` : '/keepers'
     },
     {
       label: 'Journeys',
@@ -92,11 +94,10 @@ export const KeeperDashboardLayout: React.FC<KeeperDashboardLayoutProps> = ({
     // Special cases
     if (path.includes('/admin')) return null; // Admin pages don't highlight nav
     if (path.includes('/agent')) return 'kip'; // Agent workspace uses Kip nav
-    
-    // Default: if we're on the domain root and it matches Keepers path, highlight it
-    if (slug && path === `/d/${slug}`) {
-      return 'keepers';
-    }
+    if (path.includes('/feed')) return 'feed'; // Feed page
+    if (path.includes('/keepers')) return 'keepers'; // Keepers page
+    if (path.includes('/journeys')) return 'journeys'; // Journeys page
+    if (path.includes('/profile')) return 'profile'; // Profile page
     
     return null;
   };
@@ -107,9 +108,14 @@ export const KeeperDashboardLayout: React.FC<KeeperDashboardLayoutProps> = ({
     <div className="flex h-screen bg-[#FAF9F6]">
       {/* Left Navigation Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        {/* Logo */}
+        {/* Logo - Clickable */}
         <div className="px-6 py-8">
-          <h1 className="text-2xl font-bold text-gray-900">Keeper</h1>
+          <Link 
+            to="/root" 
+            className="text-2xl font-bold text-gray-900 hover:text-[#C96E59] transition-colors cursor-pointer inline-block"
+          >
+            Keeper
+          </Link>
         </div>
 
         {/* Navigation Items */}
@@ -150,10 +156,29 @@ export const KeeperDashboardLayout: React.FC<KeeperDashboardLayoutProps> = ({
         <div className="max-w-7xl mx-auto px-8 py-12">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">{title}</h1>
-            {subtitle && (
-              <p className="text-lg text-gray-600">{subtitle}</p>
-            )}
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-4xl font-bold text-gray-900 mb-2">{title}</h1>
+                {subtitle && (
+                  <p className="text-lg text-gray-600">{subtitle}</p>
+                )}
+              </div>
+              {/* Right side: View Domain Board + Profile Menu */}
+              <div className="flex items-center gap-3">
+                {/* View Domain Board Link */}
+                {slug && (
+                  <Link
+                    to={`/d/${slug}/board`}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <EyeIcon className="w-4 h-4" />
+                    <span>View Domain Board</span>
+                  </Link>
+                )}
+                {/* Profile Menu */}
+                <UserIdentityDropdown />
+              </div>
+            </div>
           </div>
 
           {/* Main Content */}

@@ -15,16 +15,16 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { DomainBoardRenderer } from '../../components/domain/DomainBoardRenderer';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useWorldMode } from '../../context/WorldModeContext';
-import { KeeperDashboardLayout } from '../../layouts/KeeperDashboardLayout';
 
 export default function PublicDomainPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, user, logout } = useAuth();
   const { isPresentation } = useWorldMode(); // Ensure we're in Presentation mode
   const [domainId, setDomainId] = useState<string | null>(null);
@@ -32,6 +32,9 @@ export default function PublicDomainPage() {
   const [error, setError] = useState<string | null>(null);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [isDomainAdmin, setIsDomainAdmin] = useState(false);
+  
+  // Check if this is the /board route (always show board, even when authenticated)
+  const isBoardRoute = location.pathname.includes('/board');
 
   useEffect(() => {
     if (slug) {
@@ -161,48 +164,87 @@ export default function PublicDomainPage() {
     hasUser: !!user,
     userEmail: user?.email,
     domainId,
-    slug
+    slug,
+    isBoardRoute
   });
 
-  // When authenticated, render inside V0 dashboard layout
-  if (isAuthenticated) {
-    return (
-      <KeeperDashboardLayout 
-        title={slug || 'Domain'} 
-        subtitle="Your domain workspace"
-      >
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <DomainBoardRenderer
-            domainId={domainId}
-            domainSlug={slug}
-            isEditMode={false}
-            onEngagementAction={handleEngagementAction}
-          />
-        </div>
-      </KeeperDashboardLayout>
-    );
+  // When authenticated and NOT on /board route, redirect to Feed (domain dashboard)
+  // The Feed page will be rendered by DomainFeedPage component
+  // If on /board route, always show the board (for "View Domain Board" link)
+  if (isAuthenticated && slug && !isBoardRoute) {
+    return <Navigate to={`/d/${slug}/feed`} replace />;
   }
 
-  // When not authenticated, render public view (frame-driven, no shell)
+  // When on /board route (authenticated or not), or when not authenticated, render public board view
+  // This shows the full viewport board without dashboard shell
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 presentation-mode">
       {/* Full viewport board render with overlay header */}
       <main className="min-h-screen relative">
         {/* Overlay header - inside board container */}
-        <div className="absolute top-4 right-4 left-4 z-50 flex justify-end items-center gap-3 pointer-events-none">
-          <div className="flex gap-2 pointer-events-auto">
-            <button
-              onClick={handleLogin}
-              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => navigate('/register')}
-              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-            >
-              Get Started
-            </button>
+        <div className="absolute top-4 right-4 left-4 z-50 flex justify-between items-center gap-3 pointer-events-none">
+          {/* Left side - Back to Dashboard (when authenticated) */}
+          {isAuthenticated && slug && (
+            <div className="pointer-events-auto">
+              <button
+                onClick={() => navigate(`/d/${slug}/feed`)}
+                className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+              >
+                ← Back to Dashboard
+              </button>
+            </div>
+          )}
+          
+          {/* Right side - Auth controls */}
+          <div className="flex gap-2 pointer-events-auto ml-auto">
+            {isAuthenticated ? (
+              <>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowAccountMenu(!showAccountMenu)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                  >
+                    {user?.name || user?.email || 'Account'}
+                    {user?.name && (
+                      <span className="w-6 h-6 bg-[#C96E59] text-white rounded-full flex items-center justify-center text-xs font-medium">
+                        {user.name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </button>
+                  {showAccountMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <button
+                        onClick={handleDashboard}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        Dashboard
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleLogin}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => navigate('/register')}
+                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                >
+                  Get Started
+                </button>
+              </>
+            )}
           </div>
         </div>
         

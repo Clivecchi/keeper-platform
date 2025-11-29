@@ -53,6 +53,10 @@ import DomainDashboardPage from './pages/keeper/DomainDashboardPage';
 import PublicDomainPage from './pages/d/PublicDomainPage';
 import DomainAdminPage from './pages/d/DomainAdminPage';
 import DomainAgentPage from './pages/d/DomainAgentPage';
+import DomainFeedPage from './pages/d/DomainFeedPage';
+import DomainKeepersPage from './pages/d/DomainKeepersPage';
+import DomainJourneysPage from './pages/d/DomainJourneysPage';
+import DomainProfilePage from './pages/d/DomainProfilePage';
 
 // Domain Workshop Pages
 import DomainWorkshopPage from './pages/studio/domain/DomainWorkshopPage';
@@ -181,13 +185,19 @@ const App: React.FC = () => {
           <Route path="/keeper/selected/engagement-templates" element={<SelectedKeeperMetadataPage />} />
           <Route path="/keeper/selected/memory-tools" element={<SelectedKeeperMetadataPage />} />
           
-          {/* Domain Admin & Agent Routes - V0 Dashboard Layout */}
-          <Route path="/d/:slug/admin" element={<DomainAdminPage />} />
-          <Route path="/d/:slug/agent" element={<DomainAgentPage />} />
-          
           {/* Legacy Routes - maintain compatibility */}
           <Route path="/root/settings/api-keys" element={<UserApiKeyManagerPage />} />
         </Route>
+      </Route>
+      
+      {/* Domain Dashboard Routes - V0 Dashboard Layout (Outside AppLayout/Studio) */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/d/:slug/feed" element={<DomainFeedPage />} />
+        <Route path="/d/:slug/keepers" element={<DomainKeepersPage />} />
+        <Route path="/d/:slug/journeys" element={<DomainJourneysPage />} />
+        <Route path="/d/:slug/profile" element={<DomainProfilePage />} />
+        <Route path="/d/:slug/admin" element={<DomainAdminPage />} />
+        <Route path="/d/:slug/agent" element={<DomainAgentPage />} />
       </Route>
       
       {/* Public Routes - No Authentication Required */}
@@ -202,8 +212,10 @@ const App: React.FC = () => {
       <Route element={<BoardPublicLayout />}>
         {/* Login - Minimal layout for board-first experience */}
         <Route path="/login" element={<LoginPage />} />
-        {/* Public Domain Board - Hybrid access (works for both anonymous and authenticated) */}
+        {/* Public Domain Board - Shows board for logged out, redirects logged in to Feed */}
         <Route path="/d/:slug" element={<PublicDomainPage />} />
+        {/* Public Domain Board View - Always shows board, even when logged in */}
+        <Route path="/d/:slug/board" element={<PublicDomainPage />} />
         {/* Manifesto Pages - Clean, distraction-free reading */}
         <Route path="/manifestos/clean-surface-doctrine" element={<CleanSurfaceDoctrinePage />} />
       </Route>
