@@ -1,0 +1,45 @@
+# Use Node.js 20 (Keeper rule)
+FROM node:20-alpine
+
+# Install pnpm with the CORRECT version that matches our lockfile (pnpm v10+)
+RUN npm install -g pnpm@10.11.0
+
+# Set working directory
+WORKDIR /app
+
+# Set Railway-specific environment variables
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
+ENV NPM_CONFIG_FUND=false
+
+# Copy package files first (for Docker layer caching)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Copy proxy package.json
+COPY apps/proxy/package.json ./apps/proxy/
+
+# Install dependencies for proxy only
+RUN pnpm install --frozen-lockfile --filter proxy --no-optional
+
+# Copy proxy source
+COPY apps/proxy ./apps/proxy
+
+# Build proxy
+RUN pnpm --filter proxy build
+
+# Verify proxy build
+RUN echo "=== Verifying Proxy build ===" && \
+    ls -la apps/proxy/dist/ && \
+    test -f apps/proxy/dist/index.js && echo "✓ Proxy index.js found!" || echo "✗ Proxy index.js missing!"
+
+# Set environment
+ENV NODE_ENV=production
+
+# Railway will set PORT dynamically, but expose 8080 as default
+EXPOSE 8080
+
+# Start the proxy
+WORKDIR /app/apps/proxy
+CMD ["node", "dist/index.js"]
+
