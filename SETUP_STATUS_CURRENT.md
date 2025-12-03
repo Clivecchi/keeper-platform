@@ -115,3 +115,5 @@ pnpm type-check
 **Ready to Use:**
 - Yes! You can start developing, just need to add PATH in each session or fix it permanently.
 
+
+

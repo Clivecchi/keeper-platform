@@ -21,6 +21,10 @@ async function main() {
     const seedDomain = await import('./seeds/domain.seed.ts');
     await seedDomain.default();
 
+    console.log('🧊 Seeding canonical system boards...');
+    const seedSystemBoards = await import('./seeds/system-boards.seed.ts');
+    await seedSystemBoards.default();
+
     console.log('🎨 Seeding Design Board Templates...');
     const seedDesignBoards = await import('./seeds/design-boards.seed.ts');
     await seedDesignBoards.default();

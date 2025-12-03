@@ -20,6 +20,7 @@ Stateless utilities and types; no runtime state. Logger writes to stdout in all 
 - 2025-06-18 – Initial package scaffold created.
 - 2025-06-25 – Verified build script and dependency order for monorepo builds.
 - 2025-09-03 – Confirmed consumers import compiled output only; no cross-package TS path aliases.
+- 2025-11-22 – Added canonical board slug helpers for logged-in experience coordination.
 # shared
 
 ## 📌 Purpose
@@ -41,3 +42,4 @@ This package exposes pure functions and type definitions; it holds no runtime st
 ## 📆 Update Log
 - 2025-06-18 – Initial package scaffold created. 
 - 2025-06-25 – Verified build script and dependency order for monorepo builds. 
+- 2025-11-22 – Added canonical board slug helpers for logged-in experience coordination.

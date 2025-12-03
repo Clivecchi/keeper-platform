@@ -90,6 +90,17 @@ export {
 } from './factories/DomainServiceFactory.js'
 
 // =============================================================================
+// SYSTEM BOARD EXPORTS
+// =============================================================================
+export {
+  SYSTEM_BOARD_DEFINITIONS,
+  ensureCanonicalBoard,
+  ensureAllCanonicalBoards,
+  type SystemBoardDefinition,
+  type SystemFrameDefinition,
+} from './system-boards/index.js'
+
+// =============================================================================
 // TYPE EXPORTS
 // =============================================================================
 export * from './types/domain.js'

@@ -153,6 +153,7 @@ model Board {
   data        Json            @default("{}")
   config      Json            @default("{}")
   access      Json            @default("{}")
+  tags        Json            @default("[]")
   viewerMode  String?         @default("public")
   isPublic    Boolean         @default(false)
   createdAt   DateTime        @default(now())
