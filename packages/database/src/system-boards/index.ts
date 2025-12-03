@@ -3,7 +3,7 @@ import { createHash, randomUUID } from 'crypto';
 import {
   CANONICAL_BOARD_SLUGS,
   type CanonicalBoardSlug,
-} from '@keeper/shared/canonicalBoards.js';
+} from '@keeper/shared';
 
 type Visibility = 'public' | 'admin';
 
@@ -434,5 +434,6 @@ export async function ensureAllCanonicalBoards(prisma: PrismaClient, domainId: s
     await ensureCanonicalBoard(prisma, domainId, slug);
   }
 }
+
 
 
