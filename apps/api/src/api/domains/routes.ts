@@ -20,6 +20,7 @@ import { ensureDomainTableShape } from '../../lib/db-guards.js';
 import { DomainService } from '@keeper/database';
 import { ensureDomainManagementBoard } from '../../services/boards/domainManagement.js';
 import { KipAgentService } from '../kip/agents.js';
+import type { AgentResponse, KipCommandIntent } from '@keeper/database';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -569,7 +570,7 @@ router.post('/:domainId/agent/execute', authMiddlewareCompat, async (req: Authen
       payload.sessionId,
     );
 
-    if (!agentResult.success) {
+    if (!isAgentResponse(agentResult) || !agentResult.success) {
       return res.status(502).json({
         error: 'AGENT_EXECUTION_FAILED',
         message: extractAgentError(agentResult),
@@ -616,6 +617,12 @@ type DomainAgentContextInput = {
   journeyId?: string;
   extra?: Record<string, unknown>;
 };
+
+type AgentExecutionResult = AgentResponse | KipCommandIntent;
+
+function isAgentResponse(result: AgentExecutionResult): result is AgentResponse {
+  return typeof (result as AgentResponse)?.success === 'boolean';
+}
 
 function extractAgentReply(agentResult: any): string | null {
   const payload = agentResult?.data;
