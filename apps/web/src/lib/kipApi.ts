@@ -118,6 +118,41 @@ export interface SessionInput {
   session_name?: string;
 }
 
+export type DomainAgentLocation = 'kip' | 'feed' | 'keepers' | 'journeys' | 'profile';
+
+export interface DomainAgentExecuteContext {
+  location?: DomainAgentLocation;
+  keeperId?: string;
+  journeyId?: string;
+  extra?: Record<string, unknown>;
+}
+
+export interface DomainAgentExecuteRequest {
+  message: string;
+  context?: DomainAgentExecuteContext;
+  sessionId?: string;
+}
+
+export interface DomainAgentExecuteMetadata {
+  agentId: string;
+  domainId: string;
+  model?: string;
+  usedMemoryPattern?: string | null;
+  executionId?: string | null;
+  sessionId?: string | null;
+  context?: {
+    location: DomainAgentLocation;
+    keeperId?: string | null;
+    journeyId?: string | null;
+    extra?: Record<string, unknown>;
+  };
+}
+
+export interface DomainAgentExecuteResponse {
+  reply: string;
+  metadata: DomainAgentExecuteMetadata;
+}
+
 // Mock data for fallback
 const mockAgents: KipAgent[] = [
   {
@@ -679,6 +714,26 @@ export class KipApi {
         return baseSettings as ModelSettings;
     }
   }
+}
+
+export async function executeDomainAgent(
+  domainId: string,
+  payload: DomainAgentExecuteRequest
+): Promise<DomainAgentExecuteResponse> {
+  const normalizedBody = {
+    ...payload,
+    context: {
+      location: payload.context?.location ?? 'kip',
+      keeperId: payload.context?.keeperId,
+      journeyId: payload.context?.journeyId,
+      extra: payload.context?.extra ?? {},
+    },
+  };
+
+  return apiFetch(`/api/domains/${domainId}/agent/execute`, {
+    method: 'POST',
+    body: JSON.stringify(normalizedBody),
+  });
 }
 
 /**

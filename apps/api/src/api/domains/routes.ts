@@ -19,6 +19,7 @@ import { createDomainResolutionMiddleware } from '../../middleware/domainResolut
 import { ensureDomainTableShape } from '../../lib/db-guards.js';
 import { DomainService } from '@keeper/database';
 import { ensureDomainManagementBoard } from '../../services/boards/domainManagement.js';
+import { KipAgentService } from '../kip/agents.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -229,6 +230,19 @@ const searchDomainsSchema = z.object({
   categories: z.array(z.string()).optional(),
   limit: z.number().min(1).max(100).default(20),
   offset: z.number().min(0).default(0),
+});
+
+const domainAgentExecutionSchema = z.object({
+  message: z.string().min(1, 'Message is required'),
+  context: z
+    .object({
+      location: z.enum(['kip', 'feed', 'keepers', 'journeys', 'profile']).default('kip'),
+      keeperId: z.string().optional(),
+      journeyId: z.string().optional(),
+      extra: z.record(z.any()).optional(),
+    })
+    .optional(),
+  sessionId: z.string().optional(),
 });
 
 /**
@@ -513,6 +527,153 @@ router.delete('/:id/permissions/:userId', authMiddlewareCompat, async (req: Requ
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+router.post('/:domainId/agent/execute', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+    }
+
+    const { domainId } = req.params;
+    const payload = domainAgentExecutionSchema.parse(req.body ?? {});
+    const domain = await domainService.getDomainById(domainId);
+
+    if (!domain) {
+      return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
+    }
+
+    const permission = await permissionService.checkPermission({
+      userId: req.user.id,
+      domainId,
+      permission: 'read',
+    });
+
+    if (!permission.hasPermission) {
+      return res.status(403).json({ error: 'ACCESS_DENIED', message: 'You do not have access to this domain' });
+    }
+
+    const domainSettings = ((domain.settings as Record<string, any>) || {});
+    const primaryAgentId = typeof domainSettings.primaryAgentId === 'string' ? domainSettings.primaryAgentId : null;
+
+    if (!primaryAgentId) {
+      return res.status(400).json({
+        error: 'NO_PRIMARY_AGENT',
+        message: 'No primary agent is configured for this domain.',
+      });
+    }
+
+    const agentResult = await KipAgentService.runAgent(
+      primaryAgentId,
+      payload.message,
+      req.user.id,
+      payload.sessionId,
+    );
+
+    if (!agentResult.success) {
+      return res.status(502).json({
+        error: 'AGENT_EXECUTION_FAILED',
+        message: extractAgentError(agentResult),
+        details: agentResult.data,
+      });
+    }
+
+    const reply = extractAgentReply(agentResult) || 'Kip responded without additional details.';
+    const normalizedContext = normalizeExecutionContext(payload.context);
+    const sessionIdFromResult = extractSessionId(agentResult) ?? payload.sessionId ?? null;
+
+    return res.json({
+      reply,
+      metadata: {
+        agentId: primaryAgentId,
+        domainId,
+        model: extractAgentModel(agentResult),
+        usedMemoryPattern: extractMemoryPattern(agentResult),
+        executionId: null,
+        sessionId: sessionIdFromResult,
+        context: normalizedContext,
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: 'INVALID_REQUEST',
+        message: 'Invalid request body',
+        details: error.errors,
+      });
+    }
+
+    console.error('[domains:agent-execute:error]', error);
+    return res.status(500).json({
+      error: 'AGENT_EXECUTION_ERROR',
+      message: 'Failed to execute the domain agent.',
+    });
+  }
+});
+
+type DomainAgentContextInput = {
+  location?: 'kip' | 'feed' | 'keepers' | 'journeys' | 'profile';
+  keeperId?: string;
+  journeyId?: string;
+  extra?: Record<string, unknown>;
+};
+
+function extractAgentReply(agentResult: any): string | null {
+  const payload = agentResult?.data;
+  if (!payload) return null;
+  if (payload?.data?.response && typeof payload.data.response === 'string') {
+    return payload.data.response;
+  }
+  if (typeof payload?.message === 'string') {
+    return payload.message;
+  }
+  if (typeof payload?.data?.message === 'string') {
+    return payload.data.message;
+  }
+  return null;
+}
+
+function extractAgentModel(agentResult: any): string | undefined {
+  const payload = agentResult?.data;
+  if (typeof payload?.data?.model === 'string') {
+    return payload.data.model;
+  }
+  return undefined;
+}
+
+function extractMemoryPattern(agentResult: any): string | null {
+  const payload = agentResult?.data;
+  if (payload?.data?.memory_enabled) {
+    return 'SOLE';
+  }
+  return null;
+}
+
+function extractSessionId(agentResult: any): string | undefined {
+  const payload = agentResult?.data;
+  if (typeof payload?.data?.session_id === 'string') {
+    return payload.data.session_id;
+  }
+  if (typeof payload?.data?.sessionId === 'string') {
+    return payload.data.sessionId;
+  }
+  return undefined;
+}
+
+function extractAgentError(agentResult: any): string {
+  if (agentResult?.data?.error && typeof agentResult.data.error === 'string') {
+    return agentResult.data.error;
+  }
+  return 'Agent execution failed';
+}
+
+function normalizeExecutionContext(context?: DomainAgentContextInput) {
+  return {
+    location: context?.location ?? 'kip',
+    keeperId: context?.keeperId ?? null,
+    journeyId: context?.journeyId ?? null,
+    extra: context?.extra ?? {},
+  };
+}
 
 /**
  * Domain Resolution and Verification

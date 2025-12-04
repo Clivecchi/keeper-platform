@@ -162,15 +162,41 @@ const getKipAgentLogs = async (options: {
     ...(userId && { user_id: userId })
   };
 
-  const [logs, total] = await Promise.all([
+  const [rawLogs, total] = await Promise.all([
     prisma.kip_agent_logs.findMany({
       where,
       orderBy: { created_at: 'desc' },
       skip,
-      take: pageSize
+      take: pageSize,
+      include: {
+        kip_agents: {
+          select: { id: true, name: true, slug: true }
+        },
+        users: {
+          select: { id: true, name: true, email: true }
+        }
+      }
     }),
     prisma.kip_agent_logs.count({ where })
   ]);
+
+  const logs = rawLogs.map(({ kip_agents, users, ...log }) => ({
+    ...log,
+    agent: kip_agents
+      ? {
+          id: kip_agents.id,
+          name: kip_agents.name,
+          slug: kip_agents.slug
+        }
+      : null,
+    user: users
+      ? {
+          id: users.id,
+          name: users.name,
+          email: users.email
+        }
+      : null
+  }));
 
   return {
     logs,
