@@ -5,7 +5,7 @@
     "buildCommand": "cd ../.. && pnpm install --frozen-lockfile && pnpm --filter proxy build"
   },
   "deploy": {
-    "startCommand": "cd apps/proxy && node dist/index.js",
+    "startCommand": "sh -c 'cd apps/proxy && node dist/index.js'",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
