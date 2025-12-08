@@ -32,6 +32,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const { isAuthenticated, token } = useAuth();
+  const hasUsableBearer = Boolean(token && token !== 'cookie-based');
   const [theme, setTheme] = useState<Theme | null>(KEEPER_CLASSIC_FALLBACK); // Initialize with fallback
   const [mode, setMode] = useState<ThemeMode>('light');
 
@@ -52,7 +53,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const loadUserSettings = async () => {
       let themeIdToLoad = KEEPER_CLASSIC_ID;
       
-      if (isAuthenticated && token) {
+      if (isAuthenticated && hasUsableBearer) {
         try {
           const settings = await apiFetch('/api/kam/settings', {
             headers: { Authorization: `Bearer ${token}` },
@@ -71,13 +72,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         }
 
       } else {
-        // For public visitors, use the hardcoded fallback immediately.
+        // For public visitors or cookie-auth flows (no bearer token), stick with the baked-in fallback.
         setTheme(KEEPER_CLASSIC_FALLBACK);
       }
     };
     
     loadUserSettings();
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, hasUsableBearer]);
 
   // 3. Apply the current theme and mode to the document
   useEffect(() => {

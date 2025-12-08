@@ -18,6 +18,7 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2025-12-08: ModelProviderService now emits typed error codes (`MISSING_API_KEY`, `INVALID_MODEL`, `PROVIDER_UNAVAILABLE`) instead of mock responses.
 - 2025-09-11: Added `boards/domainManagement.ts` ensure service for Domain Management Board.
 - 2025-09-16: Added wrapper `ensureDomainManagementBoard.ts` to expose idempotent ensure via API service.
 # Services Module
@@ -42,6 +43,8 @@ Services are stateless classes instantiated on demand by route handlers or other
 - [ ] Ensure all external requests include proper timeouts.
 
 ## 📆 Update Log
+### 2025-12-08
+- **ModelProviderService.ts**: Replaced mock responses with structured `ModelProviderException` handling so agent callers receive concrete error codes such as `MISSING_API_KEY`, `INVALID_MODEL`, and `PROVIDER_UNAVAILABLE`. Updated retry logic to honor non-retryable errors and propagate the failing code to callers.
 ### 2025-10-17
 - **ModelProviderService.ts**: Changed API key resolution order to ENV-first
   - **NEW ORDER**: Environment (`process.env.OPENAI_API_KEY`) → User keys → Platform DB keys

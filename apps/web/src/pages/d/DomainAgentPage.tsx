@@ -44,6 +44,40 @@ const formatTimestamp = (value: string) => {
   }
 };
 
+type AgentErrorCode =
+  | 'NO_PRIMARY_AGENT'
+  | 'MISSING_API_KEY'
+  | 'INVALID_MODEL'
+  | 'PROVIDER_UNAVAILABLE'
+  | 'AGENT_MISCONFIGURED'
+  | 'UNKNOWN';
+
+type ApiError = Error & {
+  status?: number;
+  code?: string;
+  data?: {
+    error?: string;
+    message?: string;
+  };
+};
+
+const friendlyAgentErrorMessage = (code?: string, fallback?: string): string => {
+  switch (code as AgentErrorCode | undefined) {
+    case 'NO_PRIMARY_AGENT':
+      return 'No primary agent is configured for this domain yet. Configure Kip from Studio or the Domain Board.';
+    case 'MISSING_API_KEY':
+      return 'Kip can’t run yet because this domain is missing an AI provider API key. Ask an admin to add one in Studio.';
+    case 'INVALID_MODEL':
+      return 'The model configured for Kip is not available. Update the agent to use a supported model.';
+    case 'PROVIDER_UNAVAILABLE':
+      return 'The AI provider is temporarily unavailable. Please try again in a few minutes.';
+    case 'AGENT_MISCONFIGURED':
+      return 'Kip’s configuration looks incomplete. Re-save the agent in Studio or assign a different primary agent.';
+    default:
+      return fallback || 'Kip ran into an unexpected issue. Please try again.';
+  }
+};
+
 export default function DomainAgentPage() {
   const { slug } = useParams<{ slug: string }>();
   const [domain, setDomain] = useState<DomainData | null>(null);
@@ -134,14 +168,14 @@ export default function DomainAgentPage() {
       setSessionId(response.metadata?.sessionId ?? null);
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
-      const execError = err as Error;
-
-      if (execError.message === 'NO_PRIMARY_AGENT') {
+      const execError = err as ApiError;
+      const errorCode = (execError.code || execError.data?.error) as AgentErrorCode | undefined;
+      if (errorCode === 'NO_PRIMARY_AGENT') {
         setNoAgentConfigured(true);
-        setAgentError('No primary agent is configured for this domain yet. Configure Kip from Studio or the Domain Board.');
       } else {
-        setAgentError(execError.message || 'Something went wrong while talking to Kip.');
+        setNoAgentConfigured(false);
       }
+      setAgentError(friendlyAgentErrorMessage(errorCode, execError.message));
     } finally {
       setIsSending(false);
     }

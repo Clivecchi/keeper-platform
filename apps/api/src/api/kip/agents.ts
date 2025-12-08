@@ -22,7 +22,26 @@ import type {
   ModelProvider,
   ModelSettings
 } from '@keeper/database';
-import { ModelProviderService, ModelMessage } from '../../services/ModelProviderService.js';
+import { ModelProviderService, ModelMessage, ModelProviderErrorCode } from '../../services/ModelProviderService.js';
+
+type AgentErrorCode =
+  | 'MISSING_API_KEY'
+  | 'INVALID_MODEL'
+  | 'PROVIDER_UNAVAILABLE'
+  | 'AGENT_MISCONFIGURED'
+  | 'UNKNOWN';
+
+class AgentExecutionError extends Error {
+  code: AgentErrorCode;
+  details?: Record<string, unknown>;
+
+  constructor(code: AgentErrorCode, message: string, details?: Record<string, unknown>) {
+    super(message);
+    this.name = 'AgentExecutionError';
+    this.code = code;
+    this.details = details;
+  }
+}
 
 // Database helper functions
 const getAllKipAgents = async () => {
@@ -567,10 +586,18 @@ Please respond in character, using your specific capabilities and personality. K
       
       if (response.success) {
         return response.content;
-      } else {
-        console.error('AI model call failed:', response.error);
-        throw new Error(`AI model call failed: ${response.error}`);
       }
+
+      const mappedCode = mapProviderCodeToAgentCode(response.errorCode);
+      throw new AgentExecutionError(
+        mappedCode,
+        response.error || 'AI model call failed',
+        {
+          provider: modelProvider,
+          model: modelSettings.model,
+          retries: response.retries_used
+        }
+      );
     } catch (error) {
       console.error('Error calling AI model:', error);
       throw error;
@@ -779,7 +806,12 @@ Please respond in character, using your specific capabilities and personality. K
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error running agent:', error);
+      const errorCode = resolveAgentErrorCode(error);
+      const errorDetails = error instanceof AgentExecutionError ? error.details : undefined;
+      console.error('Error running agent:', {
+        message: errorMessage,
+        code: errorCode,
+      });
       
       logData.execution_time_ms = Date.now() - startTime;
       logData.error = errorMessage;
@@ -794,7 +826,7 @@ Please respond in character, using your specific capabilities and personality. K
       return {
         id: agentId,
         success: false,
-        data: { error: errorMessage },
+        data: { error: errorMessage, errorCode, details: errorDetails },
         processing_time_ms: logData.execution_time_ms
       };
     }
@@ -862,6 +894,30 @@ Please respond in character, using your specific capabilities and personality. K
         };
     }
   }
+}
+
+function mapProviderCodeToAgentCode(code?: ModelProviderErrorCode): AgentErrorCode {
+  switch (code) {
+    case 'MISSING_API_KEY':
+      return 'MISSING_API_KEY';
+    case 'INVALID_MODEL':
+      return 'INVALID_MODEL';
+    case 'PROVIDER_UNAVAILABLE':
+    default:
+      return 'PROVIDER_UNAVAILABLE';
+  }
+}
+
+function resolveAgentErrorCode(error: unknown): AgentErrorCode {
+  if (error instanceof AgentExecutionError) {
+    return error.code;
+  }
+
+  if (error instanceof Error && /not found/i.test(error.message)) {
+    return 'AGENT_MISCONFIGURED';
+  }
+
+  return 'UNKNOWN';
 }
 
 /**

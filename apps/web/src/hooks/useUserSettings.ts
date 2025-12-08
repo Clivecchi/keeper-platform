@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 interface UserSettings {
   id: string;
@@ -33,11 +34,20 @@ export function useUserSettings(): UseUserSettingsResult {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, token } = useAuth();
+  const hasUsableBearer = Boolean(token && token !== 'cookie-based');
 
   useEffect(() => {
     async function fetchSettings() {
+      if (!isAuthenticated || !hasUsableBearer) {
+        // TODO: Replace with a cookie-authenticated settings endpoint once available.
+        setLoading(false);
+        setSettings(null);
+        setError(null);
+        return;
+      }
+
       try {
-        const token = localStorage.getItem('token'); // Or fetch from context
         const data = (await apiFetch('/api/kam/settings', {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -58,7 +68,7 @@ export function useUserSettings(): UseUserSettingsResult {
     }
 
     fetchSettings();
-  }, []);
+  }, [isAuthenticated, hasUsableBearer, token]);
 
   return { settings, loading, error };
 } 

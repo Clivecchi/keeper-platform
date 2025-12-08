@@ -46,9 +46,14 @@ export async function apiFetch(input: string | URL, opts: FetchOptions = {}) {
     // For error responses, try to parse JSON error message
     try {
       const errorData = await response.json();
-      const error: any = new Error(errorData.error || errorData.message || `HTTP ${response.status}`);
+      const errorMessage = errorData.message || errorData.error || `HTTP ${response.status}`;
+      const error: any = new Error(errorMessage);
       error.status = response.status; // Attach status for handleAuthError
       error.response = response; // Attach response for additional context
+      if (errorData?.error) {
+        error.code = errorData.error;
+      }
+      error.data = errorData;
       throw error;
     } catch (err) {
       // If JSON parsing fails or we already threw, use status code

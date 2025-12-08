@@ -554,9 +554,17 @@ router.post('/:domainId/agent/execute', authMiddlewareCompat, async (req: Authen
     }
 
     const domainSettings = ((domain.settings as Record<string, any>) || {});
-    const primaryAgentId = typeof domainSettings.primaryAgentId === 'string' ? domainSettings.primaryAgentId : null;
+    let primaryAgentId = typeof domainSettings.primaryAgentId === 'string' ? domainSettings.primaryAgentId : null;
 
     if (!primaryAgentId) {
+      primaryAgentId = await ensurePrimaryAgentAssignment(domain);
+    }
+
+    if (!primaryAgentId) {
+      console.warn('[domains:agent-execute] Missing primary agent', {
+        domainId,
+        slug: domain.slug,
+      });
       return res.status(400).json({
         error: 'NO_PRIMARY_AGENT',
         message: 'No primary agent is configured for this domain.',
@@ -570,12 +578,17 @@ router.post('/:domainId/agent/execute', authMiddlewareCompat, async (req: Authen
       payload.sessionId,
     );
 
-    if (!isAgentResponse(agentResult) || !agentResult.success) {
+    if (!isAgentResponse(agentResult)) {
       return res.status(502).json({
         error: 'AGENT_EXECUTION_FAILED',
-        message: extractAgentError(agentResult),
-        details: agentResult.data,
+        message: 'Agent returned an unsupported payload.',
+        details: agentResult,
       });
+    }
+
+    if (!agentResult.success) {
+      const errorResponse = mapAgentExecutionFailure(agentResult);
+      return res.status(errorResponse.status).json(errorResponse.body);
     }
 
     const reply = extractAgentReply(agentResult) || 'Kip responded without additional details.';
@@ -680,6 +693,105 @@ function normalizeExecutionContext(context?: DomainAgentContextInput) {
     journeyId: context?.journeyId ?? null,
     extra: context?.extra ?? {},
   };
+}
+
+async function ensurePrimaryAgentAssignment(domain: any): Promise<string | null> {
+  try {
+    const kipAgent = await prisma.kip_agents.findFirst({
+      where: { slug: 'kip' },
+      select: { id: true },
+    });
+
+    if (!kipAgent) {
+      console.warn('[domains:agent-execute] Unable to auto-assign primary agent – Kip agent missing', {
+        domainId: domain.id,
+        slug: domain.slug,
+      });
+      return null;
+    }
+
+    const nextSettings = {
+      ...((domain.settings as Record<string, any>) || {}),
+      primaryAgentId: kipAgent.id,
+    };
+
+    await prisma.domain.update({
+      where: { id: domain.id },
+      data: { settings: nextSettings },
+    });
+
+    console.info('[domains:agent-execute] Auto-assigned Kip as primary agent', {
+      domainId: domain.id,
+      slug: domain.slug,
+      agentId: kipAgent.id,
+    });
+
+    // Ensure callers can read the new value immediately
+    domain.settings = nextSettings;
+    return kipAgent.id;
+  } catch (error) {
+    console.error('[domains:agent-execute] Failed to auto-assign Kip agent', {
+      domainId: domain.id,
+      slug: domain.slug,
+      error: error instanceof Error ? error.message : error,
+    });
+    return null;
+  }
+}
+
+function mapAgentExecutionFailure(agentResult: AgentResponse) {
+  const errorPayload = (agentResult?.data as any) || {};
+  const errorCode: string | undefined = typeof errorPayload.errorCode === 'string' ? errorPayload.errorCode : undefined;
+  const providerMessage = typeof errorPayload.error === 'string' ? errorPayload.error : 'Agent execution failed';
+  const details = errorPayload.details ?? errorPayload;
+
+  switch (errorCode) {
+    case 'MISSING_API_KEY':
+      return {
+        status: 400,
+        body: {
+          error: 'MISSING_API_KEY',
+          message: 'Kip cannot run because no AI provider API key is configured for this agent.',
+          details,
+        },
+      };
+    case 'INVALID_MODEL':
+      return {
+        status: 400,
+        body: {
+          error: 'INVALID_MODEL',
+          message: 'The model configured for this agent is not available. Please update the agent to use a supported model.',
+          details,
+        },
+      };
+    case 'AGENT_MISCONFIGURED':
+      return {
+        status: 400,
+        body: {
+          error: 'AGENT_MISCONFIGURED',
+          message: 'Kip’s configuration is incomplete. Re-save the agent in Studio or assign a different primary agent.',
+          details,
+        },
+      };
+    case 'PROVIDER_UNAVAILABLE':
+      return {
+        status: 503,
+        body: {
+          error: 'PROVIDER_UNAVAILABLE',
+          message: 'The AI provider is temporarily unavailable. Please try again shortly.',
+          details,
+        },
+      };
+    default:
+      return {
+        status: 502,
+        body: {
+          error: 'AGENT_EXECUTION_FAILED',
+          message: providerMessage,
+          details,
+        },
+      };
+  }
 }
 
 /**

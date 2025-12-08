@@ -66,4 +66,4 @@ Core utility functions and API clients for the Keeper web application, including
 
 - All API calls resolve base from `VITE_API_URL` first, falling back to same-origin.
 - Build absolute links using `VITE_PUBLIC_APP_ORIGIN` where needed.
-- No hardcoded domains remain; prepare to re-enable subdomains post-MVP. // TODO(domains) 
+- No hardcoded domains remain; prepare to re-enable subdomains post-MVP. // TODO(domains)

@@ -28,6 +28,21 @@ export interface ModelResponse {
   error?: string;
   retries_used: number;
   execution_time_ms: number;
+  errorCode?: ModelProviderErrorCode;
+}
+
+export type ModelProviderErrorCode = 'MISSING_API_KEY' | 'INVALID_MODEL' | 'PROVIDER_UNAVAILABLE';
+
+class ModelProviderException extends Error {
+  code: ModelProviderErrorCode;
+  retryable: boolean;
+
+  constructor(code: ModelProviderErrorCode, message: string, options?: { retryable?: boolean }) {
+    super(message);
+    this.name = 'ModelProviderException';
+    this.code = code;
+    this.retryable = options?.retryable ?? code === 'PROVIDER_UNAVAILABLE';
+  }
 }
 
 export interface ModelCallOptions {
@@ -49,8 +64,7 @@ class OpenAIProvider {
     // Use provided API key or fall back to system key
     const finalApiKey = apiKey || process.env.OPENAI_API_KEY;
     if (!finalApiKey) {
-      console.warn('OpenAI API key not found, using mock response');
-      return this.getMockResponse(messages, settings);
+      throw new ModelProviderException('MISSING_API_KEY', 'OpenAI API key is not configured', { retryable: false });
     }
 
     try {
@@ -89,15 +103,7 @@ class OpenAIProvider {
       };
     } catch (error) {
       console.error('OpenAI API error:', error);
-      
-      // TEMPORARILY DISABLED: Fall back to mock for development
-      // We need to see the real error to fix the issue
-      // if (process.env.NODE_ENV === 'development') {
-      //   console.warn('Falling back to mock response for development');
-      //   return this.getMockResponse(messages, settings);
-      // }
-      
-      throw error;
+      throw normalizeProviderError('openai', error);
     }
   }
 
@@ -254,9 +260,11 @@ export class ModelProviderService {
     
     console.log(`[ModelProvider] Using ${keySource} key for ${provider} (user: ${userId || 'none'})`);
     
-    let lastError: Error | null = null;
+    let lastError: ModelProviderException | Error | null = null;
+    let attemptsUsed = 0;
     
     for (let attempt = 0; attempt <= retryConfig.max_retries; attempt++) {
+      attemptsUsed = attempt;
       try {
         const response = await this.callProviderModel(provider, messages, settings, apiKey);
         
@@ -267,24 +275,38 @@ export class ModelProviderService {
           execution_time_ms: Date.now() - startTime
         };
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error('Unknown error');
-        console.warn(`Attempt ${attempt + 1}/${retryConfig.max_retries + 1} failed for ${provider}:`, lastError.message);
-        
-        if (attempt < retryConfig.max_retries) {
-          await this.delay(retryConfig.retry_delay_ms);
+        const normalizedError = error instanceof ModelProviderException
+          ? error
+          : normalizeProviderError(provider, error);
+
+        lastError = normalizedError;
+        console.warn(
+          `Attempt ${attempt + 1}/${retryConfig.max_retries + 1} failed for ${provider}:`,
+          normalizedError.message
+        );
+
+        if (!normalizedError.retryable || attempt >= retryConfig.max_retries) {
+          break;
         }
+
+        await this.delay(retryConfig.retry_delay_ms);
       }
     }
     
     // All retries failed - include key source in error for debugging
+    const fallbackErrorMessage = lastError
+      ? lastError.message
+      : 'Unknown model provider error';
+
     return {
       success: false,
       content: '',
-      error: `All ${retryConfig.max_retries + 1} attempts failed. Last error: ${lastError?.message}. Key source: ${keySource}`,
+      error: `${fallbackErrorMessage} (key source: ${keySource})`,
       model: settings.model,
       provider,
-      retries_used: retryConfig.max_retries,
-      execution_time_ms: Date.now() - startTime
+      retries_used: attemptsUsed,
+      execution_time_ms: Date.now() - startTime,
+      errorCode: lastError instanceof ModelProviderException ? lastError.code : undefined
     };
   }
 
@@ -317,6 +339,28 @@ export class ModelProviderService {
   private static delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
+function normalizeProviderError(provider: ModelProvider, error: unknown): ModelProviderException {
+  if (error instanceof ModelProviderException) {
+    return error;
+  }
+
+  const err = error as any;
+  const message = error instanceof Error ? error.message : 'Unknown provider error';
+  const providerCode = err?.error?.code || err?.code;
+  const status = err?.status || err?.response?.status;
+  const lowerMessage = typeof message === 'string' ? message.toLowerCase() : '';
+
+  if (status === 401 || lowerMessage.includes('api key')) {
+    return new ModelProviderException('MISSING_API_KEY', message, { retryable: false });
+  }
+
+  if (providerCode === 'model_not_found' || lowerMessage.includes('model') && lowerMessage.includes('not')) {
+    return new ModelProviderException('INVALID_MODEL', message, { retryable: false });
+  }
+
+  return new ModelProviderException('PROVIDER_UNAVAILABLE', message, { retryable: true });
+}
 
   /**
    * Get available models for a provider
