@@ -52,6 +52,80 @@ export interface ModelCallOptions {
   userId?: string; // Optional user ID for user-scoped API keys
 }
 
+const RETRY_TEMPLATE = Object.freeze({
+  max_retries: 3,
+  retry_delay_ms: 1000
+});
+
+const createRetryConfig = () => ({
+  ...RETRY_TEMPLATE
+});
+
+const PROVIDER_MODEL_CATALOG: Record<ModelProvider, string[]> = {
+  openai: [
+    'gpt-4o',
+    'gpt-4o-mini',
+    'gpt-4-turbo',
+    'gpt-4',
+    'gpt-3.5-turbo'
+  ],
+  anthropic: [
+    'claude-3-5-sonnet-20241022',
+    'claude-3-5-haiku-20241022',
+    'claude-3-opus-20240229',
+    'claude-3-sonnet-20240229',
+    'claude-3-haiku-20240307'
+  ],
+  together: [
+    'meta-llama/Llama-2-70b-chat-hf',
+    'meta-llama/Llama-2-13b-chat-hf',
+    'meta-llama/Llama-2-7b-chat-hf',
+    'mistralai/Mixtral-8x7B-Instruct-v0.1'
+  ],
+  elevenlabs: [
+    'eleven_monolingual_v1',
+    'eleven_multilingual_v2',
+    'eleven_turbo_v2'
+  ]
+};
+
+const DEFAULT_SETTINGS_FACTORY: Record<ModelProvider, () => ModelSettings> = {
+  openai: () => ({
+    model: 'gpt-4o',
+    temperature: 0.7,
+    max_tokens: 2000,
+    top_p: 1.0,
+    frequency_penalty: 0,
+    presence_penalty: 0,
+    retry: createRetryConfig()
+  }),
+  anthropic: () => ({
+    model: 'claude-3-5-sonnet-20241022',
+    temperature: 0.7,
+    max_tokens: 4000,
+    retry: createRetryConfig()
+  }),
+  together: () => ({
+    model: 'meta-llama/Llama-2-70b-chat-hf',
+    temperature: 0.7,
+    max_tokens: 2000,
+    retry: createRetryConfig()
+  }),
+  elevenlabs: () => ({
+    model: 'eleven_multilingual_v2',
+    temperature: 0.5,
+    max_tokens: 1000,
+    retry: createRetryConfig()
+  })
+};
+
+const createFallbackSettings = (): ModelSettings => ({
+  model: 'gpt-4o',
+  temperature: 0.7,
+  max_tokens: 2000,
+  retry: createRetryConfig()
+});
+
 /**
  * OpenAI Provider Implementation
  */
@@ -340,6 +414,23 @@ export class ModelProviderService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  /**
+   * Get available models for a provider
+   */
+  static getAvailableModels(provider: ModelProvider): string[] {
+    const catalog = PROVIDER_MODEL_CATALOG[provider];
+    return catalog ? [...catalog] : [];
+  }
+
+  /**
+   * Get default settings for a provider
+   */
+  static getDefaultSettings(provider: ModelProvider): ModelSettings {
+    const factory = DEFAULT_SETTINGS_FACTORY[provider];
+    return factory ? factory() : createFallbackSettings();
+  }
+} 
+
 function normalizeProviderError(provider: ModelProvider, error: unknown): ModelProviderException {
   if (error instanceof ModelProviderException) {
     return error;
@@ -355,97 +446,9 @@ function normalizeProviderError(provider: ModelProvider, error: unknown): ModelP
     return new ModelProviderException('MISSING_API_KEY', message, { retryable: false });
   }
 
-  if (providerCode === 'model_not_found' || lowerMessage.includes('model') && lowerMessage.includes('not')) {
+  if (providerCode === 'model_not_found' || (lowerMessage.includes('model') && lowerMessage.includes('not'))) {
     return new ModelProviderException('INVALID_MODEL', message, { retryable: false });
   }
 
   return new ModelProviderException('PROVIDER_UNAVAILABLE', message, { retryable: true });
 }
-
-  /**
-   * Get available models for a provider
-   */
-  static getAvailableModels(provider: ModelProvider): string[] {
-    switch (provider) {
-      case 'openai':
-        return [
-          'gpt-4o',
-          'gpt-4o-mini',
-          'gpt-4-turbo',
-          'gpt-4',
-          'gpt-3.5-turbo'
-        ];
-      case 'anthropic':
-        return [
-          'claude-3-5-sonnet-20241022',
-          'claude-3-5-haiku-20241022',
-          'claude-3-opus-20240229',
-          'claude-3-sonnet-20240229',
-          'claude-3-haiku-20240307'
-        ];
-      case 'together':
-        return [
-          'meta-llama/Llama-2-70b-chat-hf',
-          'meta-llama/Llama-2-13b-chat-hf',
-          'meta-llama/Llama-2-7b-chat-hf',
-          'mistralai/Mixtral-8x7B-Instruct-v0.1'
-        ];
-      case 'elevenlabs':
-        return [
-          'eleven_monolingual_v1',
-          'eleven_multilingual_v2',
-          'eleven_turbo_v2'
-        ];
-      default:
-        return [];
-    }
-  }
-
-  /**
-   * Get default settings for a provider
-   */
-  static getDefaultSettings(provider: ModelProvider): ModelSettings {
-    const baseSettings = {
-      retry: {
-        max_retries: 3,
-        retry_delay_ms: 1000
-      }
-    };
-
-    switch (provider) {
-      case 'openai':
-        return {
-          ...baseSettings,
-          model: 'gpt-4o',
-          temperature: 0.7,
-          max_tokens: 2000,
-          top_p: 1.0,
-          frequency_penalty: 0,
-          presence_penalty: 0
-        };
-      case 'anthropic':
-        return {
-          ...baseSettings,
-          model: 'claude-3-5-sonnet-20241022',
-          temperature: 0.7,
-          max_tokens: 4000
-        };
-      case 'together':
-        return {
-          ...baseSettings,
-          model: 'meta-llama/Llama-2-70b-chat-hf',
-          temperature: 0.7,
-          max_tokens: 2000
-        };
-      case 'elevenlabs':
-        return {
-          ...baseSettings,
-          model: 'eleven_multilingual_v2',
-          temperature: 0.5,
-          max_tokens: 1000
-        };
-      default:
-        return baseSettings as ModelSettings;
-    }
-  }
-} 
