@@ -6,3 +6,5 @@ ADD COLUMN IF NOT EXISTS "tags" JSONB NOT NULL DEFAULT '[]';
 
 
 
+
+
