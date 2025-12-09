@@ -20,6 +20,10 @@ Expose read-only endpoints for Agent → Board → Frame → Config with scoped 
 - `GET /kam/frames/:frameInstanceId/config` – Config/props of a frame.
 - `GET /kam/boards?agentId=` – List boards by agent.
 
+## Auth Endpoints (V0 UI)
+- `/api/kam/auth/me` keeps the standard cookie session flow (`keeper_token` + `keeper_session`). The `authWeb` middleware now accepts both names so the V0 UI can confirm identity without re-logging.
+- `/api/kam/settings` is kept for opt-in theme experiments. It now reads the same HttpOnly cookies (preferred) and falls back to Bearer tokens for CLI/KAM tooling, preventing the previous 401 spam during normal browsing.
+
 ## ⚠️ Notes & ToDo
 - [ ] Persist audit to DB table `kam_audit` (future).
 - [ ] Add automated tests.
@@ -38,6 +42,7 @@ The actual handlers being used are **inline in `apps/api/src/index.ts`** (lines 
 **TODO**: Consolidate to use a single source of truth for auth handlers.
 
 ## 📆 Update Log
+- 2025-12-09: Fixed `/api/kam/auth/me` 401 noise by allowing legacy `keeper_token` cookies in `authWeb`, and taught `/api/kam/settings` to reuse cookie auth (with Bearer fallback) so the V0 UI stops hitting it unauthenticated.
 - 2025-10-15 (CRITICAL BUG FIX): Discovered and fixed missing cookie setting in login handler. The inline handler in `index.ts` (line 628) was being used instead of `auth.ts`, and it wasn't setting cookies at all. Added cookie setting directly to the `index.ts` handler. This explains why authenticated requests returned 401 despite successful login - no session cookie was ever being set!
 - 2025-10-15 (Critical Fix): Fixed `session.ts` - changed `sameSite` from `'lax'` to `'none'` to enable cross-subdomain cookies between `api.ke3p.com` and `www.ke3p.com`. The `sameSite: 'lax'` setting was preventing the browser from storing the cookie when set from the API subdomain.
 - 2025-10-15: Fixed `auth.ts` response format - login endpoint now returns `{ success: true, data: { token, user } }` to match frontend expectation (was `{ ok: true, token, user }`). Logout endpoint also changed from `{ ok: true }` to `{ success: true }`.

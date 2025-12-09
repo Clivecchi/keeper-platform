@@ -6,6 +6,7 @@ import type { Request, Response, NextFunction} from 'express';
 import jwt from 'jsonwebtoken';
 
 const COOKIE_NAME = 'keeper_session';
+const COOKIE_CANDIDATES = [COOKIE_NAME, 'keeper_token', 'token', 'auth_token'];
 const DOMAIN = process.env.COOKIE_DOMAIN || '.ke3p.com'; // works for www.ke3p.com and api.ke3p.com
 const JWT_SECRET = process.env.JWT_SECRET!; // ensure set in Railway
 
@@ -63,12 +64,24 @@ export function clearSessionCookie(res: Response) {
   });
 }
 
+function readCookieToken(req: Request): string | undefined {
+  const cookies = req.cookies || {};
+  for (const name of COOKIE_CANDIDATES) {
+    if (cookies[name]) {
+      return cookies[name] as string;
+    }
+  }
+  return undefined;
+}
+
 // Auth middleware: prefer cookie, fallback to Authorization header for tools/CLI
 export function authWeb(req: Request, _res: Response, next: NextFunction) {
   const origin = req.headers.origin; // present for browser CORS/XHR/fetch
   const cliHeader = (req.headers['x-client'] || '').toString().toLowerCase() === 'cli';
 
-  const cookieToken = req.cookies?.[COOKIE_NAME];
+  // Legacy V0 sessions still ship `keeper_token`, so treat it as an alias to
+  // avoid noisy /api/kam/auth/me 401s without changing the cookie contract.
+  const cookieToken = readCookieToken(req);
   const headerToken = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
 
   // Accept header token only when NOT a browser fetch (no Origin) or explicitly marked CLI

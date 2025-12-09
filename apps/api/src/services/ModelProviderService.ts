@@ -333,6 +333,24 @@ export class ModelProviderService {
     };
     
     console.log(`[ModelProvider] Using ${keySource} key for ${provider} (user: ${userId || 'none'})`);
+
+    // Error taxonomy representative: surface MISSING_API_KEY before we ever hit the SDK.
+    const requiresExplicitKey = provider === 'openai'; // extend as additional providers go live
+    if (requiresExplicitKey && !apiKey) {
+      const message = userId
+        ? `No ${provider} API key is configured for user ${userId}, platform storage, or env`
+        : `No ${provider} API key is configured for the platform or environment`;
+      return {
+        success: false,
+        content: '',
+        error: message,
+        model: settings.model,
+        provider,
+        retries_used: 0,
+        execution_time_ms: Date.now() - startTime,
+        errorCode: 'MISSING_API_KEY'
+      };
+    }
     
     let lastError: ModelProviderException | Error | null = null;
     let attemptsUsed = 0;

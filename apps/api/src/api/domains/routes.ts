@@ -739,59 +739,67 @@ async function ensurePrimaryAgentAssignment(domain: any): Promise<string | null>
   }
 }
 
+type AgentPipelineErrorCode =
+  | 'MISSING_API_KEY'
+  | 'INVALID_MODEL'
+  | 'AGENT_MISCONFIGURED'
+  | 'PROVIDER_UNAVAILABLE'
+  | 'AGENT_EXECUTION_FAILED';
+
+const AGENT_ERROR_TAXONOMY: Record<
+  AgentPipelineErrorCode,
+  { status: number; layer: 'provider' | 'agent'; message: string }
+> = {
+  MISSING_API_KEY: {
+    status: 400,
+    layer: 'provider',
+    message: 'Kip cannot run because no AI provider API key is configured for this agent.',
+  },
+  INVALID_MODEL: {
+    status: 400,
+    layer: 'provider',
+    message: 'The model configured for this agent is not available. Please update it to a supported model.',
+  },
+  AGENT_MISCONFIGURED: {
+    status: 400,
+    layer: 'agent',
+    message: 'Kip’s configuration is incomplete. Re-save the agent in Studio or assign a different primary agent.',
+  },
+  PROVIDER_UNAVAILABLE: {
+    status: 503,
+    layer: 'provider',
+    message: 'The AI provider is temporarily unavailable. Please try again shortly.',
+  },
+  AGENT_EXECUTION_FAILED: {
+    status: 502,
+    layer: 'agent',
+    message: 'Agent returned an unsupported payload.',
+  },
+};
+
+/**
+ * Agent error taxonomy (provider/agent layers) → HTTP response mapping.
+ * Domain-level errors (AUTH_REQUIRED, ACCESS_DENIED, NO_PRIMARY_AGENT, etc.)
+ * are handled earlier in the route so this function only worries about
+ * failures coming back from KipAgentService / ModelProviderService.
+ */
 function mapAgentExecutionFailure(agentResult: AgentResponse) {
   const errorPayload = (agentResult?.data as any) || {};
-  const errorCode: string | undefined = typeof errorPayload.errorCode === 'string' ? errorPayload.errorCode : undefined;
   const providerMessage = typeof errorPayload.error === 'string' ? errorPayload.error : 'Agent execution failed';
   const details = errorPayload.details ?? errorPayload;
+  const rawCode: string | undefined = typeof errorPayload.errorCode === 'string' ? errorPayload.errorCode : undefined;
+  const normalizedCode: AgentPipelineErrorCode =
+    rawCode && rawCode in AGENT_ERROR_TAXONOMY ? (rawCode as AgentPipelineErrorCode) : 'AGENT_EXECUTION_FAILED';
+  const taxonomy = AGENT_ERROR_TAXONOMY[normalizedCode];
 
-  switch (errorCode) {
-    case 'MISSING_API_KEY':
-      return {
-        status: 400,
-        body: {
-          error: 'MISSING_API_KEY',
-          message: 'Kip cannot run because no AI provider API key is configured for this agent.',
-          details,
-        },
-      };
-    case 'INVALID_MODEL':
-      return {
-        status: 400,
-        body: {
-          error: 'INVALID_MODEL',
-          message: 'The model configured for this agent is not available. Please update the agent to use a supported model.',
-          details,
-        },
-      };
-    case 'AGENT_MISCONFIGURED':
-      return {
-        status: 400,
-        body: {
-          error: 'AGENT_MISCONFIGURED',
-          message: 'Kip’s configuration is incomplete. Re-save the agent in Studio or assign a different primary agent.',
-          details,
-        },
-      };
-    case 'PROVIDER_UNAVAILABLE':
-      return {
-        status: 503,
-        body: {
-          error: 'PROVIDER_UNAVAILABLE',
-          message: 'The AI provider is temporarily unavailable. Please try again shortly.',
-          details,
-        },
-      };
-    default:
-      return {
-        status: 502,
-        body: {
-          error: 'AGENT_EXECUTION_FAILED',
-          message: providerMessage,
-          details,
-        },
-      };
-  }
+  return {
+    status: taxonomy.status,
+    body: {
+      error: normalizedCode,
+      message: normalizedCode === 'AGENT_EXECUTION_FAILED' ? providerMessage : taxonomy.message,
+      details,
+    },
+  };
 }
 
 /**

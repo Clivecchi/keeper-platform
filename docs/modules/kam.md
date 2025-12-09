@@ -187,6 +187,10 @@ app.use('/api/protected', async (req, res, next) => {
 - [ ] Add comprehensive testing for all auth flows
 - [ ] Behavior to confirm with Kip
 
+## Auth Endpoints (V0 UI)
+- `/api/kam/auth/me` reuses the same cookie session (`keeper_token` + `keeper_session`). `authWeb` now accepts both cookie names, eliminating bogus 401s when the V0 UI pings it for identity.
+- `/api/kam/settings` remains optional for theme experiments. It first authenticates via HttpOnly cookies and only falls back to Bearer tokens for CLI/service calls, which prevents log noise for normal browsing.
+
 ## 🔄 Migration Notes
 
 This package was extracted from the previous `apps/web/src/kam` and `apps/api/src/kam` structures to provide a centralized, reusable authentication system across the entire Keeper Platform.
@@ -197,6 +201,7 @@ This package was extracted from the previous `apps/web/src/kam` and `apps/api/sr
 - All KAM functionality consolidated in single package
 
 ## 📆 Update Log
+- **2025-12-09** – API: Accepted `keeper_token` cookies inside `authWeb` and updated `/api/kam/settings` to honor cookie auth (with Bearer fallback) so the V0 UI stops emitting 401 noise while browsing.
 - **2025-10-11**: API: Updated `session.ts` - `authWeb` middleware now ignores Authorization headers from browser requests (detected via Origin header). Header auth only allowed for CLI/tools (no Origin) or when `X-Client: cli` header is present. Enforces cookie-only authentication for web browsers in production.
 - **2025-09-06** – API: ID/list routes allow domainless agents (no domain header required when agent has no domain).
 - **2025-09-06** – API: `/kam/agents/:agentId/home` now supports domain discovery (no domain header).
