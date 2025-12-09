@@ -7,6 +7,7 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - `KipAgentBoardPage.tsx` – Routed at `/kip`, renders the Agent Board layout (header, tabs, context column, and right-side frames) on top of `KeeperDashboardLayout`.
 
 ## 🔄 Data & Behavior
+- `KipAgentBoard` (exported from this page) encapsulates the header, tabs, session column, and dialogue frame so other routes (e.g., `/d/:slug/agent`) can reuse the exact layout.
 - Relies on `useAgentSessions` to load, normalize, and create `kip_sessions` via `/api/kip/agents?sessions=true&agentId=...` and `action="createSession"`.
 - Dialogue tab fetches `kip_messages` with `/api/kip/agents?messages=true&sessionId=...`, renders metadata cards, and posts user input through `action="run"` when sending messages.
 - Cockpit and context cards share the latest session metadata plus placeholder journey/keeper links until those APIs are wired.
@@ -16,6 +17,9 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - [ ] Replace Cockpit diagnostics placeholders with backend stats once exposed.
 
 ## 📆 Update Log
+### 2025-12-09 - Shared Kip Agent Board Component
+- Exported `KipAgentBoard` so `/d/:slug/agent` can reuse the same Dialogue/Cockpit/Sessions layout and API wiring without duplicating UI logic.
+
 ### 2025-12-09 - LinkedCard Context Panels
 - Wired Related Journeys + Active Keeper panels and dialogue metadata to the shared `LinkedCard` component + prop type, replacing the temporary inline card markup.
 

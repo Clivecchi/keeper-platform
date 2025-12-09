@@ -23,6 +23,14 @@ interface AgentDialogueMessage {
   linkedCard?: LinkedCardProps;
 }
 
+export interface KipAgentBoardProps {
+  agentSlug?: string;
+  contextLabel?: string;
+  scopeLabel?: string;
+  journeys?: LinkedCardProps[];
+  keepers?: LinkedCardProps[];
+}
+
 const BOARD_TABS: { id: AgentBoardTab; label: string }[] = [
   { id: 'dialogue', label: 'Dialogue' },
   { id: 'cockpit', label: 'Cockpit' },
@@ -75,9 +83,19 @@ const MOCK_KEEPERS: LinkedCardProps[] = [
   },
 ];
 
-const KIP_AGENT_SLUG = 'kip';
+const KipAgentBoardDefaults = {
+  agentSlug: 'kip',
+  contextLabel: 'Lead Agent of the KE3P Domain',
+  scopeLabel: 'KE3P Domain',
+} as const;
 
-const KipAgentBoardPage: React.FC = () => {
+export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
+  agentSlug = KipAgentBoardDefaults.agentSlug,
+  contextLabel = KipAgentBoardDefaults.contextLabel,
+  scopeLabel = KipAgentBoardDefaults.scopeLabel,
+  journeys = MOCK_JOURNEYS,
+  keepers = MOCK_KEEPERS,
+}) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [agent, setAgent] = useState<KipAgent | null>(null);
   const [agentError, setAgentError] = useState<string | null>(null);
@@ -122,7 +140,7 @@ const KipAgentBoardPage: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     setIsAgentLoading(true);
-    KipApi.getLeadAgent(KIP_AGENT_SLUG)
+    KipApi.getLeadAgent(agentSlug)
       .then((data) => {
         if (!isMounted) return;
         setAgent(data);
@@ -141,7 +159,7 @@ const KipAgentBoardPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [agentSlug]);
 
   const fetchMessages = useCallback(
     async (sessionId: string, options: { silent?: boolean } = {}) => {
@@ -246,47 +264,46 @@ const KipAgentBoardPage: React.FC = () => {
     () => [
       { label: 'Model', value: agent?.model_settings?.model || agent?.model || 'gpt-4o' },
       { label: 'Memory', value: agent?.memory_enabled ? 'SOLE' : 'Off' },
-      { label: 'Scope', value: 'KE3P Domain' },
+      { label: 'Scope', value: scopeLabel },
     ],
-    [agent],
+    [agent, scopeLabel],
   );
 
   if (agentError) {
     return (
-      <KeeperDashboardLayout title="Kip Agent Board" subtitle="Lead Agent of the KE3P Domain">
+      <div className="space-y-6">
         <div className="bg-white border border-red-200 rounded-2xl p-8 text-center">
           <h2 className="text-2xl font-semibold text-gray-900 mb-2">Unable to load Kip</h2>
           <p className="text-gray-600">{agentError}</p>
         </div>
-      </KeeperDashboardLayout>
+      </div>
     );
   }
 
   return (
-    <KeeperDashboardLayout title="Kip Agent Board" subtitle="Lead Agent of the KE3P Domain">
-      <div className="space-y-6">
-        <AgentBoardHeader agent={agent} />
+    <div className="space-y-6">
+      <AgentBoardHeader agent={agent} contextLabel={contextLabel} scopeLabel={scopeLabel} />
 
-        <AgentBoardTabs activeTab={activeTab} onChange={handleTabChange} />
+      <AgentBoardTabs activeTab={activeTab} onChange={handleTabChange} />
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)]">
-          <div className="space-y-6">
-            <FrameCard title="Agent Identity">
-              {isAgentLoading ? (
-                <SkeletonLine />
-              ) : (
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xl font-semibold text-gray-900">{agent?.name ?? 'Kip'}</p>
-                    <p className="text-sm text-gray-500">Lead Agent · KE3P Domain</p>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm font-medium text-emerald-600">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                    Online
-                  </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)]">
+        <div className="space-y-6">
+          <FrameCard title="Agent Identity">
+            {isAgentLoading ? (
+              <SkeletonLine />
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xl font-semibold text-gray-900">{agent?.name ?? 'Kip'}</p>
+                  <p className="text-sm text-gray-500">{contextLabel}</p>
                 </div>
-              )}
-            </FrameCard>
+                <div className="flex items-center gap-2 text-sm font-medium text-emerald-600">
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                  Online
+                </div>
+              </div>
+            )}
+          </FrameCard>
 
             <FrameCard
               title="Sessions"
@@ -331,7 +348,7 @@ const KipAgentBoardPage: React.FC = () => {
 
             <FrameCard title="Related Journeys">
               <div className="space-y-3">
-                {MOCK_JOURNEYS.map((journey) => (
+                {journeys.map((journey) => (
                   <LinkedCard key={journey.entityId} {...journey} />
                 ))}
               </div>
@@ -339,7 +356,7 @@ const KipAgentBoardPage: React.FC = () => {
 
             <FrameCard title="Active Keeper">
               <div className="space-y-3">
-                {MOCK_KEEPERS.map((keeper) => (
+                {keepers.map((keeper) => (
                   <LinkedCard key={keeper.entityId} {...keeper} />
                 ))}
               </div>
@@ -431,20 +448,33 @@ const KipAgentBoardPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </KeeperDashboardLayout>
+    </div>
   );
 };
 
+const KipAgentBoardPage: React.FC = () => (
+  <KeeperDashboardLayout title="Kip Agent Board" subtitle="Lead Agent of the KE3P Domain">
+    <KipAgentBoard />
+  </KeeperDashboardLayout>
+);
+
 export default KipAgentBoardPage;
 
-const AgentBoardHeader: React.FC<{ agent: KipAgent | null }> = ({ agent }) => (
+const AgentBoardHeader: React.FC<{
+  agent: KipAgent | null;
+  contextLabel: string;
+  scopeLabel: string;
+}> = ({ agent, contextLabel, scopeLabel }) => (
   <div className="rounded-2xl border border-[#E6DED5] bg-white p-6 shadow-sm">
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div>
         <p className="text-sm uppercase tracking-wide text-gray-500">Lead Agent</p>
         <h1 className="text-3xl font-semibold text-gray-900">{agent?.name ?? 'Kip'}</h1>
         <p className="text-sm text-gray-500">
-          Model {agent?.model_settings?.model || agent?.model || 'gpt-4o'} · Role: Keeper Lead Agent
+          Model {agent?.model_settings?.model || agent?.model || 'gpt-4o'} · Role: Lead Agent
+        </p>
+        <p className="text-sm text-gray-500">
+          {contextLabel}
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
@@ -452,7 +482,7 @@ const AgentBoardHeader: React.FC<{ agent: KipAgent | null }> = ({ agent }) => (
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
           Online
         </span>
-        <span className="text-sm text-gray-500">Scope: KE3P Domain</span>
+        <span className="text-sm text-gray-500">Scope: {scopeLabel}</span>
       </div>
     </div>
   </div>
