@@ -609,7 +609,7 @@ export class KipApi {
   static async getSessionsByAgentId(agentId: string, options: {
     page?: number;
     pageSize?: number;
-  } = {}): Promise<unknown> {
+  } = {}): Promise<KipSession[]> {
     try {
       const params = new URLSearchParams();
       params.append('sessions', 'true');
@@ -619,7 +619,7 @@ export class KipApi {
 
       const response = await apiFetch(`/api/kip/agents?${params.toString()}`);
       if (response.success) {
-        return response.data;
+        return response.data as KipSession[];
       }
       throw new Error(response.error || 'Failed to fetch sessions');
     } catch (error) {

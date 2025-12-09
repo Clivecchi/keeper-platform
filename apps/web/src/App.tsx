@@ -68,6 +68,7 @@ import CleanSurfaceDoctrinePage from './pages/manifestos/CleanSurfaceDoctrinePag
 // Legacy Pages
 import UserApiKeyManagerPage from './pages/UserApiKeyManagerPage';
 import LeadAgentPage from './pages/LeadAgentPage';
+import KipAgentBoardPage from './pages/kip/KipAgentBoardPage';
 import DebugPage from './pages/DebugPage';
 
 // Library Pages
@@ -192,6 +193,7 @@ const App: React.FC = () => {
       
       {/* Domain Dashboard Routes - V0 Dashboard Layout (Outside AppLayout/Studio) */}
       <Route element={<ProtectedRoute />}>
+        <Route path="/kip" element={<KipAgentBoardPage />} />
         <Route path="/d/:slug/feed" element={<DomainFeedPage />} />
         <Route path="/d/:slug/keepers" element={<DomainKeepersPage />} />
         <Route path="/d/:slug/journeys" element={<DomainJourneysPage />} />
