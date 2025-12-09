@@ -16,6 +16,9 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - [ ] Replace Cockpit diagnostics placeholders with backend stats once exposed.
 
 ## 📆 Update Log
+### 2025-12-09 - LinkedCard Context Panels
+- Wired Related Journeys + Active Keeper panels and dialogue metadata to the shared `LinkedCard` component + prop type, replacing the temporary inline card markup.
+
 ### 2025-12-09 - Kip Agent Board V01
 - Introduced `KipAgentBoardPage` with tabbed layout, context column, and dialogue wiring backed by `kip_sessions` + `kip_messages`.
 - Added `useAgentSessions` consumption plus create-session + run-agent flows for the `/kip` route.

@@ -6,6 +6,8 @@
 import React from 'react';
 import { ManifestoCard, type ManifestoProps } from '../patterns/ManifestoCard';
 import { EditableProp } from './EditableProp';
+import { LinkedCard } from '../props/LinkedCard';
+import type { LinkedCardProps } from '../../types/props';
 
 interface PropConfig {
   name?: string;
@@ -125,6 +127,18 @@ export function PropRenderer({ prop, domain, onEngagementAction, isEditMode = fa
     
     case 'manifesto':
       return <ManifestoProp config={config} value={value} />;
+
+    case 'linked_card': {
+      const linkedCard = resolveLinkedCardPayload(value, config);
+      if (!linkedCard) {
+        return (
+          <div className="rounded border border-dashed border-red-200 bg-red-50 p-3 text-sm text-red-600">
+            Linked card is missing required fields (entityType, entityId, title, href).
+          </div>
+        );
+      }
+      return <LinkedCard {...linkedCard} />;
+    }
     
     default:
       return (
@@ -403,5 +417,41 @@ function ManifestoProp({ config, value }: { config: PropConfig; value: any }) {
   };
   
   return <ManifestoCard {...manifestoData} />;
+}
+
+function resolveLinkedCardPayload(value: any, config: PropConfig): LinkedCardProps | null {
+  const payload = (value && typeof value === 'object' ? value : null) || config;
+  if (!payload) return null;
+
+  const entityType = payload.entityType;
+  const entityId = payload.entityId || payload.id || payload.href;
+  const title = payload.title || payload.name;
+  const href = payload.href || payload.url;
+
+  if (!entityType || !entityId || !title || !href) {
+    return null;
+  }
+
+  const previewValue = payload.preview;
+  const preview =
+    previewValue && typeof previewValue === 'object'
+      ? {
+          image: previewValue.image,
+          date: previewValue.date,
+          snippet: previewValue.snippet,
+        }
+      : undefined;
+
+  return {
+    entityType,
+    entityId,
+    title,
+    subtitle: payload.subtitle,
+    description: payload.description,
+    href,
+    icon: payload.icon,
+    color: payload.color,
+    preview,
+  };
 }
 

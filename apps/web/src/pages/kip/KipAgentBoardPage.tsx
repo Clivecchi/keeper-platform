@@ -1,20 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import { PaperAirplaneIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { KeeperDashboardLayout } from '../../layouts/KeeperDashboardLayout';
 import { KipApi, KipAgent, KipMessage } from '../../lib/kipApi';
 import { AgentConversationSession, useAgentSessions } from '../../hooks/useAgentSessions';
+import { LinkedCard } from '../../components/props/LinkedCard';
+import type { LinkedCardProps } from '../../types/props';
 
 type AgentBoardTab = 'dialogue' | 'cockpit' | 'sessions';
-
-interface LinkedCardData {
-  entityType: 'journey' | 'keeper';
-  entityId: string;
-  title: string;
-  subtitle?: string;
-  href: string;
-}
 
 interface DialogueMetaItem {
   label: string;
@@ -26,7 +20,7 @@ interface AgentDialogueMessage {
   role: 'user' | 'agent';
   content: string;
   createdAt: string;
-  linkedCard?: LinkedCardData;
+  linkedCard?: LinkedCardProps;
 }
 
 const BOARD_TABS: { id: AgentBoardTab; label: string }[] = [
@@ -35,30 +29,49 @@ const BOARD_TABS: { id: AgentBoardTab; label: string }[] = [
   { id: 'sessions', label: 'Sessions' },
 ];
 
-const MOCK_JOURNEYS: LinkedCardData[] = [
+const MOCK_JOURNEYS: LinkedCardProps[] = [
   {
     entityType: 'journey',
     entityId: 'journey-career-evolution',
     title: 'Career Evolution',
     subtitle: '8 moments',
+    description: 'Documenting the transition from operator to strategic advisor.',
     href: '/journeys/career-evolution',
+    color: '#C96E59',
+    preview: {
+      snippet: 'Next checkpoint with Kip scheduled for Friday.',
+      date: '2025-12-05',
+    },
   },
   {
     entityType: 'journey',
     entityId: 'journey-professional-dev',
     title: 'Professional Development',
     subtitle: '5 moments',
+    description: 'Focus on communication habits and leadership presence.',
     href: '/journeys/professional-development',
+    color: '#5A6ECD',
+    preview: {
+      snippet: 'Drafted a new narrative for Q1 planning.',
+      date: '2025-12-02',
+    },
   },
 ];
 
-const MOCK_KEEPERS: LinkedCardData[] = [
+const MOCK_KEEPERS: LinkedCardProps[] = [
   {
     entityType: 'keeper',
     entityId: 'keeper-pool-company',
     title: 'Building the Pool Company',
     subtitle: '18 moments',
     href: '/keepers/building-the-pool-company',
+    description: 'Entrepreneurial build story that Kip references for decisions.',
+    color: '#0E9384',
+    preview: {
+      snippet: 'Kip flagged 3 new milestones during the last session.',
+      image:
+        'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=600&q=80',
+    },
   },
 ];
 
@@ -319,7 +332,7 @@ const KipAgentBoardPage: React.FC = () => {
             <FrameCard title="Related Journeys">
               <div className="space-y-3">
                 {MOCK_JOURNEYS.map((journey) => (
-                  <LinkedCard key={journey.entityId} card={journey} />
+                  <LinkedCard key={journey.entityId} {...journey} />
                 ))}
               </div>
             </FrameCard>
@@ -327,7 +340,7 @@ const KipAgentBoardPage: React.FC = () => {
             <FrameCard title="Active Keeper">
               <div className="space-y-3">
                 {MOCK_KEEPERS.map((keeper) => (
-                  <LinkedCard key={keeper.entityId} card={keeper} />
+                  <LinkedCard key={keeper.entityId} {...keeper} />
                 ))}
               </div>
             </FrameCard>
@@ -520,16 +533,6 @@ const SessionCard: React.FC<{
   </button>
 );
 
-const LinkedCard: React.FC<{ card: LinkedCardData }> = ({ card }) => (
-  <Link
-    to={card.href}
-    className="block rounded-2xl border border-[#E6DED5] px-4 py-3 hover:border-[#C96E59]"
-  >
-    <p className="text-sm font-semibold text-gray-900">{card.title}</p>
-    {card.subtitle && <p className="text-xs text-gray-500">{card.subtitle}</p>}
-  </Link>
-);
-
 const DialogueMetaStrip: React.FC<{
   items: DialogueMetaItem[];
   activeSessionId: string | null;
@@ -587,7 +590,7 @@ const DialogueMessageList: React.FC<{
             <p className="whitespace-pre-line">{message.content}</p>
             {message.linkedCard && (
               <div className="mt-3">
-                <LinkedCardInline card={message.linkedCard} />
+                <LinkedCard {...message.linkedCard} variant="inline" />
               </div>
             )}
             <span
@@ -607,16 +610,6 @@ const DialogueMessageList: React.FC<{
     )}
     {error && <p className="text-xs text-red-600">Messages error: {error}</p>}
   </div>
-);
-
-const LinkedCardInline: React.FC<{ card: LinkedCardData }> = ({ card }) => (
-  <Link
-    to={card.href}
-    className="block rounded-xl border border-dashed border-[#E6DED5] bg-white/70 px-3 py-2 text-sm font-medium text-[#C96E59] hover:border-[#C96E59]"
-  >
-    {card.title}
-    {card.subtitle && <span className="ml-2 text-xs text-gray-500">{card.subtitle}</span>}
-  </Link>
 );
 
 const CockpitPanel: React.FC<{
@@ -733,7 +726,7 @@ const normalizeMessage = (message: KipMessage): AgentDialogueMessage => {
   };
 };
 
-const extractLinkedCard = (metadata: unknown): LinkedCardData | undefined => {
+const extractLinkedCard = (metadata: unknown): LinkedCardProps | undefined => {
   if (!metadata) return undefined;
   let payload: any = metadata;
   if (typeof metadata === 'string') {
@@ -746,12 +739,25 @@ const extractLinkedCard = (metadata: unknown): LinkedCardData | undefined => {
   const linked = payload?.linkedCard || payload?.linked_card;
   if (!linked || typeof linked !== 'object') return undefined;
   if (!linked.title || !linked.entityType || !linked.href) return undefined;
+  const previewCandidate = linked.preview;
+  const preview =
+    previewCandidate && typeof previewCandidate === 'object'
+      ? {
+          image: previewCandidate.image,
+          date: previewCandidate.date,
+          snippet: previewCandidate.snippet,
+        }
+      : undefined;
   return {
     entityType: linked.entityType,
     entityId: linked.entityId || linked.id || linked.href,
     title: linked.title,
     subtitle: linked.subtitle,
+    description: linked.description,
     href: linked.href,
+    icon: linked.icon,
+    color: linked.color,
+    preview,
   };
 };
 

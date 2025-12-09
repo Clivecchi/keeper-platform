@@ -18,6 +18,7 @@ Canonical system board definitions plus helper utilities that ensure each domain
 ## 📆 Update Log
 - 2025-11-22: Added canonical board definitions and Prisma ensure helpers.
 - 2025-12-03: Updated shared import path to use package root for build stability.
+- 2025-12-09: Added LinkedCard prop entries plus Related Journeys & Active Keeper frames to the Kip Agent board definition.
 
 
 
