@@ -111,10 +111,13 @@ router.get('/',
       ]);
 
       return res.json({
-        keepers,
-        total,
-        page: Math.floor((Number(filters.offset) || 0) / (Number(filters.limit) || 20)) + 1,
-        limit: Number(filters.limit) || 20,
+        success: true,
+        data: {
+          keepers,
+          total,
+          page: Math.floor((Number(filters.offset) || 0) / (Number(filters.limit) || 20)) + 1,
+          limit: Number(filters.limit) || 20,
+        },
       });
     } catch (error) {
       console.error('Error fetching keepers:', error);

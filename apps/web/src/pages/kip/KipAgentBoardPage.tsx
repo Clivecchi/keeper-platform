@@ -165,7 +165,11 @@ const useAgentRelatedJourneys = ({
       try {
         const params = new URLSearchParams({ domainId, limit: String(limit) });
         const response = await apiFetch(`/api/journeys?${params.toString()}`);
-        const items = Array.isArray(response?.journeys) ? response.journeys : [];
+        const items = Array.isArray(response?.journeys)
+          ? response.journeys
+          : Array.isArray(response?.data?.journeys)
+            ? response.data.journeys
+            : [];
         const mapped = items
           .sort((a: any, b: any) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime())
           .slice(0, limit)
@@ -188,11 +192,16 @@ const useAgentRelatedJourneys = ({
         if (!cancelled) {
           setJourneys(mapped);
         }
-      } catch (err) {
+      } catch (err: any) {
         if (cancelled) return;
-        const message = err instanceof Error ? err.message : 'Unable to load journeys';
-        setError(message);
-        setJourneys([]);
+        if (err?.status === 401) {
+          setJourneys([]);
+          setError(null);
+        } else {
+          const message = err instanceof Error ? err.message : 'Unable to load journeys';
+          setError(message);
+          setJourneys([]);
+        }
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -230,7 +239,11 @@ const useAgentActiveKeeper = ({
       try {
         const params = new URLSearchParams({ domainId, limit: '1' });
         const response = await apiFetch(`/api/keepers?${params.toString()}`);
-        const list = Array.isArray(response?.keepers) ? response.keepers : [];
+        const list = Array.isArray(response?.keepers)
+          ? response.keepers
+          : Array.isArray(response?.data?.keepers)
+            ? response.data.keepers
+            : [];
         const top = list[0];
         if (top) {
           const subtitleParts: string[] = [];
@@ -253,11 +266,16 @@ const useAgentActiveKeeper = ({
         } else if (!cancelled) {
           setKeepers([]);
         }
-      } catch (err) {
+      } catch (err: any) {
         if (cancelled) return;
-        const message = err instanceof Error ? err.message : 'Unable to load keeper';
-        setError(message);
-        setKeepers([]);
+        if (err?.status === 401) {
+          setKeepers([]);
+          setError(null);
+        } else {
+          const message = err instanceof Error ? err.message : 'Unable to load keeper';
+          setError(message);
+          setKeepers([]);
+        }
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -306,16 +324,34 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const querySessionId = searchParams.get('sessionId');
   const activeSessionId = querySessionId ?? (sessions.length ? sessions[0].id : null);
 
+  const agentDomainId =
+    (agent as any)?.domainId ||
+    (agent as any)?.domain_id ||
+    (agent as any)?.config?.domainId ||
+    (agent as any)?.scope?.domainId ||
+    (agent as any)?.scope?.domain_id ||
+    null;
+  const agentDomainSlug =
+    (agent as any)?.domainSlug || (agent as any)?.domain_slug || (agent as any)?.config?.domainSlug || domainSlug;
+
   const {
     journeys: relatedJourneys,
     isLoading: isJourneysLoading,
     error: relatedJourneysError,
-  } = useAgentRelatedJourneys({ domainId, domainSlug, initialJourneys: journeys });
+  } = useAgentRelatedJourneys({
+    domainId: domainId || agentDomainId,
+    domainSlug: agentDomainSlug,
+    initialJourneys: journeys,
+  });
   const {
     keepers: activeKeepers,
     isLoading: isKeepersLoading,
     error: activeKeeperError,
-  } = useAgentActiveKeeper({ domainId, domainSlug, initialKeepers: keepers });
+  } = useAgentActiveKeeper({
+    domainId: domainId || agentDomainId,
+    domainSlug: agentDomainSlug,
+    initialKeepers: keepers,
+  });
 
   useEffect(() => {
     if (!searchParams.get('view')) {

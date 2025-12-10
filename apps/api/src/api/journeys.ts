@@ -80,25 +80,28 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
     const total = await prisma.journey.count({ where });
 
     return res.json({
-      journeys: journeys.map(journey => ({
-        id: journey.id,
-        name: journey.name,
-        forward: journey.forward,
-        ownerId: journey.ownerId,
-        domainId: journey.domainId,
-        keeperId: journey.keeperId,
-        createdAt: journey.createdAt,
-        updatedAt: journey.updatedAt,
-        keeper: journey.Keeper,
-        paths: journey.Path,
-        moment: journey.Moment,
-        theme: journey.themes,
-        pathCount: journey.Path.length,
-        momentCount: journey.Moment ? 1 : 0,
-      })),
-      total,
-      page: Math.floor(offset / limit) + 1,
-      limit,
+      success: true,
+      data: {
+        journeys: journeys.map(journey => ({
+          id: journey.id,
+          name: journey.name,
+          forward: journey.forward,
+          ownerId: journey.ownerId,
+          domainId: journey.domainId,
+          keeperId: journey.keeperId,
+          createdAt: journey.createdAt,
+          updatedAt: journey.updatedAt,
+          keeper: journey.Keeper,
+          paths: journey.Path,
+          moment: journey.Moment,
+          theme: journey.themes,
+          pathCount: journey.Path.length,
+          momentCount: journey.Moment ? 1 : 0,
+        })),
+        total,
+        page: Math.floor(offset / limit) + 1,
+        limit,
+      },
     });
   } catch (error) {
     console.error('Error fetching journeys:', error);
