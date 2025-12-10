@@ -24,6 +24,15 @@ import {
   MapIcon
 } from '@heroicons/react/24/outline';
 
+// TODO: Replace stubbed preview data with live board/frame feed data
+const useDomainFeedPreview = (domainId?: string | null) => {
+  return {
+    items: [],
+    isStub: true,
+    domainId: domainId || null,
+  };
+};
+
 interface DomainData {
   id: string;
   name: string;
@@ -36,6 +45,7 @@ export default function DomainFeedPage() {
   const [domain, setDomain] = useState<DomainData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const feedPreview = useDomainFeedPreview(domain?.id);
 
   useEffect(() => {
     if (slug) {
@@ -121,33 +131,41 @@ export default function DomainFeedPage() {
             </p>
           </div>
 
-          {/* Activity Preview Cards (Placeholder) */}
+          {/* Activity Preview Cards (Placeholder, ready for live data) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <div className="flex items-center gap-2 mb-2">
-                <SparklesIcon className="w-5 h-5 text-[#C96E59]" />
-                <span className="text-sm font-medium text-gray-700">Moments</span>
-              </div>
-              <p className="text-sm text-gray-500">Coming soon</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <div className="flex items-center gap-2 mb-2">
-                <BuildingOfficeIcon className="w-5 h-5 text-[#C96E59]" />
-                <span className="text-sm font-medium text-gray-700">Keepers</span>
-              </div>
-              <p className="text-sm text-gray-500">Coming soon</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <div className="flex items-center gap-2 mb-2">
-                <MapIcon className="w-5 h-5 text-[#C96E59]" />
-                <span className="text-sm font-medium text-gray-700">Journeys</span>
-              </div>
-              <p className="text-sm text-gray-500">Coming soon</p>
-            </div>
+            <ComingSoonTile
+              icon={<SparklesIcon className="w-5 h-5 text-[#C96E59]" />}
+              title="Moments"
+              message={feedPreview.isStub ? 'Coming soon' : 'No recent moments'}
+            />
+            <ComingSoonTile
+              icon={<BuildingOfficeIcon className="w-5 h-5 text-[#C96E59]" />}
+              title="Keepers"
+              message={feedPreview.isStub ? 'Coming soon' : 'No keeper updates yet'}
+            />
+            <ComingSoonTile
+              icon={<MapIcon className="w-5 h-5 text-[#C96E59]" />}
+              title="Journeys"
+              message={feedPreview.isStub ? 'Coming soon' : 'No journey updates yet'}
+            />
           </div>
         </div>
       </div>
     </KeeperDashboardLayout>
   );
 }
+
+const ComingSoonTile: React.FC<{ icon: React.ReactNode; title: string; message: string }> = ({
+  icon,
+  title,
+  message,
+}) => (
+  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+    <div className="flex items-center gap-2 mb-2">
+      {icon}
+      <span className="text-sm font-medium text-gray-700">{title}</span>
+    </div>
+    <p className="text-sm text-gray-500">{message}</p>
+  </div>
+);
 

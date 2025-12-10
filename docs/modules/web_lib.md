@@ -27,6 +27,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2025-12-10 - Kip sessions response normalization
+- `KipApi.getSessionsByAgentId` now understands the `{ sessions, total, page }` envelope and returns the sessions array, preventing UI `.map` errors in the Kip Agent Board.
+
 ### 2025-12-08 - apiFetch Error Payload Propagation
 - Error objects now prefer API-provided `message` values and include `error.code` plus the parsed response body on `error.data`. This enables UI surfaces (e.g., DomainAgentPage) to render actionable error copy instead of generic HTTP codes.
 

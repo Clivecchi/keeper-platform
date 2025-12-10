@@ -21,6 +21,8 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - [ ] Expose `useAgentEvents` telemetry for analytics dashboards.
 
 ## 📆 Update Log
+### 2025-12-10 - Kip sessions envelope guard
+- `useAgentSessions` now handles the `{ sessions, total, page }` response shape safely, guards against non-array payloads, and preserves updatedAt sorting to avoid `.map` runtime errors on the Kip Agent Board.
 ### 2025-12-09 - Kip Agent Sessions Hook
 - Added `useAgentSessions` to back the Kip Agent Board V01 UI, including normalized previews, creation helpers, and refresh controls.
 

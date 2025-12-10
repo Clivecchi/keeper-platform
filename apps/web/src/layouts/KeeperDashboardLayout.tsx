@@ -56,7 +56,7 @@ export const KeeperDashboardLayout: React.FC<KeeperDashboardLayoutProps> = ({
     {
       label: 'Feed',
       icon: <HomeIcon className="w-5 h-5" />,
-      path: slug ? `/d/${slug}/feed` : '/feed'
+      path: slug ? `/d/${slug}/feed` : '/root'
     },
     {
       label: 'Kip',
@@ -66,17 +66,17 @@ export const KeeperDashboardLayout: React.FC<KeeperDashboardLayoutProps> = ({
     {
       label: 'Keepers',
       icon: <BuildingOfficeIcon className="w-5 h-5" />,
-      path: slug ? `/d/${slug}/keepers` : '/keepers'
+      path: slug ? `/d/${slug}/keepers` : '/keeper'
     },
     {
       label: 'Journeys',
       icon: <MapIcon className="w-5 h-5" />,
-      path: slug ? `/d/${slug}/journeys` : '/journeys'
+      path: slug ? `/d/${slug}/journeys` : '/keeper'
     },
     {
       label: 'Profile',
       icon: <UserIcon className="w-5 h-5" />,
-      path: slug ? `/d/${slug}/profile` : '/profile'
+      path: slug ? `/d/${slug}/profile` : '/root/profile'
     }
   ];
 

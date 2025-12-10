@@ -606,10 +606,13 @@ export class KipApi {
   /**
    * Get all sessions for an agent
    */
-  static async getSessionsByAgentId(agentId: string, options: {
-    page?: number;
-    pageSize?: number;
-  } = {}): Promise<KipSession[]> {
+  static async getSessionsByAgentId(
+    agentId: string,
+    options: {
+      page?: number;
+      pageSize?: number;
+    } = {},
+  ): Promise<KipSession[]> {
     try {
       const params = new URLSearchParams();
       params.append('sessions', 'true');
@@ -618,8 +621,15 @@ export class KipApi {
       if (options.pageSize) params.append('pageSize', options.pageSize.toString());
 
       const response = await apiFetch(`/api/kip/agents?${params.toString()}`);
-      if (response.success) {
-        return response.data as KipSession[];
+      // Backend returns { success, data: { sessions, total, page, ... } }
+      if (response?.success) {
+        const sessionsResult = response.data as
+          | { sessions?: KipSession[]; total?: number; page?: number; pageSize?: number }
+          | KipSession[];
+        if (Array.isArray(sessionsResult)) {
+          return sessionsResult;
+        }
+        return Array.isArray(sessionsResult?.sessions) ? sessionsResult.sessions : [];
       }
       throw new Error(response.error || 'Failed to fetch sessions');
     } catch (error) {

@@ -18,6 +18,15 @@ import { KeeperDashboardLayout } from '../../layouts/KeeperDashboardLayout';
 import { apiFetch } from '../../lib/api';
 import { MapIcon } from '@heroicons/react/24/outline';
 
+// TODO: Replace stubbed journeys preview with live data + board frames
+const useDomainJourneysPreview = (domainId?: string | null) => {
+  return {
+    journeys: [],
+    isStub: true,
+    domainId: domainId || null,
+  };
+};
+
 interface DomainData {
   id: string;
   name: string;
@@ -30,6 +39,7 @@ export default function DomainJourneysPage() {
   const [domain, setDomain] = useState<DomainData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const journeysPreview = useDomainJourneysPreview(domain?.id);
 
   useEffect(() => {
     if (slug) {
@@ -102,28 +112,34 @@ export default function DomainJourneysPage() {
       {/* Journeys Listing - Placeholder */}
       <div className="space-y-4">
         {/* Sample Journey Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-[#C96E59]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-              <MapIcon className="w-6 h-6 text-[#C96E59]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                Journey Placeholder
-              </h3>
-              <p className="text-sm text-gray-600 mb-3">
-                Journeys for this domain will appear here.
-              </p>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <span>0 steps</span>
-                <span>•</span>
-                <span>Not started</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <JourneyPlaceholderCard
+          title="Journey Placeholder"
+          description={journeysPreview.isStub ? 'Journeys for this domain will appear here.' : 'No journeys yet.'}
+        />
       </div>
     </KeeperDashboardLayout>
   );
 }
+
+const JourneyPlaceholderCard: React.FC<{ title: string; description: string }> = ({
+  title,
+  description,
+}) => (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+    <div className="flex items-start gap-4">
+      <div className="w-12 h-12 bg-[#C96E59]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+        <MapIcon className="w-6 h-6 text-[#C96E59]" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">{title}</h3>
+        <p className="text-sm text-gray-600 mb-3">{description}</p>
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <span>0 steps</span>
+          <span>•</span>
+          <span>Not started</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 

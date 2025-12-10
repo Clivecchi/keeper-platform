@@ -52,6 +52,9 @@ All domain dashboard pages use `KeeperDashboardLayout` with left nav (Feed, Kip,
 
 ## 📆 Update Log
 
+### 2025-12-10 - Stubbed domain previews ready for board wiring
+- Added stub hooks (`useDomainFeedPreview`, `useDomainJourneysPreview`, `useDomainKeepersPreview`) and centralized placeholder cards so the V0 dashboard pages can swap to real board/frame data without structural changes.
+
 ### 2025-12-09 - Kip Agent Board in Domain Shell
 - `DomainAgentPage` now renders the shared `KipAgentBoard`, reusing the Dialogue/Cockpit/Sessions tabs and `/api/kip/agents` flows instead of the legacy `/api/domains/:id/agent/execute` endpoint.
 

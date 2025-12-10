@@ -38,6 +38,9 @@ Layout components that provide consistent page shells and navigation structures 
 
 ## 📆 Update Log
 
+### 2025-12-10 - KeeperDashboardLayout nav safety
+- Updated sidebar links to prefer `/d/:slug/...` routes and fall back to existing routes (`/root`, `/kip`, `/keeper`, `/root/profile`) to avoid broken navigation when slug is absent.
+
 ### 2025-01-21 - V0 Dashboard Layout Implementation
 - Added `KeeperDashboardLayout.tsx` with V0-aligned design
 - Terracotta color scheme (#C96E59)

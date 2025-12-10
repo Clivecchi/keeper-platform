@@ -89,6 +89,16 @@ const KipAgentBoardDefaults = {
   scopeLabel: 'KE3P Domain',
 } as const;
 
+// TODO: Wire to journeys API once available
+const useAgentRelatedJourneys = (initialJourneys: LinkedCardProps[]) => {
+  return { journeys: initialJourneys };
+};
+
+// TODO: Wire to keepers API once available
+const useAgentActiveKeeper = (initialKeepers: LinkedCardProps[]) => {
+  return { keepers: initialKeepers };
+};
+
 export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   agentSlug = KipAgentBoardDefaults.agentSlug,
   contextLabel = KipAgentBoardDefaults.contextLabel,
@@ -120,6 +130,9 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
 
   const querySessionId = searchParams.get('sessionId');
   const activeSessionId = querySessionId ?? (sessions.length ? sessions[0].id : null);
+
+  const { journeys: relatedJourneys } = useAgentRelatedJourneys(journeys);
+  const { keepers: activeKeepers } = useAgentActiveKeeper(keepers);
 
   useEffect(() => {
     if (!searchParams.get('view')) {
@@ -348,7 +361,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
 
             <FrameCard title="Related Journeys">
               <div className="space-y-3">
-                {journeys.map((journey) => (
+                {relatedJourneys.map((journey) => (
                   <LinkedCard key={journey.entityId} {...journey} />
                 ))}
               </div>
@@ -356,7 +369,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
 
             <FrameCard title="Active Keeper">
               <div className="space-y-3">
-                {keepers.map((keeper) => (
+                {activeKeepers.map((keeper) => (
                   <LinkedCard key={keeper.entityId} {...keeper} />
                 ))}
               </div>
@@ -687,7 +700,10 @@ const CockpitPanel: React.FC<{
             <dd className="font-semibold">{agent?.model_settings?.temperature ?? 0.7}</dd>
           </div>
           <div className="text-xs text-gray-500">
-            System prompt: {agent?.config?.prompt_label ?? 'Custom'}
+            System prompt:{' '}
+            {typeof agent?.config?.prompt_label === 'string'
+              ? agent.config.prompt_label
+              : 'Custom'}
           </div>
         </dl>
       </FrameCard>

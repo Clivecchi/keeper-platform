@@ -52,7 +52,8 @@ export function useAgentSessions(agentId?: string | null) {
     setError(null);
     try {
       const data = await KipApi.getSessionsByAgentId(agentId);
-      const normalized = data
+      const arrayData = Array.isArray(data) ? data : [];
+      const normalized = arrayData
         .map(normalizeSession)
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       setSessions(normalized);
