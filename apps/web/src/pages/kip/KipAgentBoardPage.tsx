@@ -194,7 +194,7 @@ const useAgentRelatedJourneys = ({
         }
       } catch (err: any) {
         if (cancelled) return;
-        if (err?.status === 401) {
+        if (err?.status === 401 || err?.status === 404) {
           setJourneys([]);
           setError(null);
         } else {
@@ -268,7 +268,7 @@ const useAgentActiveKeeper = ({
         }
       } catch (err: any) {
         if (cancelled) return;
-        if (err?.status === 401) {
+        if (err?.status === 401 || err?.status === 404) {
           setKeepers([]);
           setError(null);
         } else {
@@ -586,7 +586,12 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                 {isDomainLoading || isJourneysLoading ? (
                   <p className="text-sm text-gray-500">Loading journeys…</p>
                 ) : relatedJourneys.length === 0 ? (
-                  <p className="text-sm text-gray-500">No journeys yet for this domain.</p>
+                  <div className="space-y-2 text-sm text-gray-500">
+                    <p>No journeys yet for this domain.</p>
+                    <ActionLink href={agentDomainSlug ? `/d/${agentDomainSlug}/journeys` : '/journeys'}>
+                      Add a journey
+                    </ActionLink>
+                  </div>
                 ) : (
                   relatedJourneys.map((journey) => (
                     <LinkedCard key={journey.entityId} {...journey} />
@@ -603,7 +608,12 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                 {isDomainLoading || isKeepersLoading ? (
                   <p className="text-sm text-gray-500">Loading keeper…</p>
                 ) : activeKeepers.length === 0 ? (
-                  <p className="text-sm text-gray-500">No keepers for this domain yet.</p>
+                  <div className="space-y-2 text-sm text-gray-500">
+                    <p>No keepers for this domain yet.</p>
+                    <ActionLink href={agentDomainSlug ? `/d/${agentDomainSlug}/keepers` : '/keeper'}>
+                      Add a keeper
+                    </ActionLink>
+                  </div>
                 ) : (
                   activeKeepers.map((keeper) => (
                     <LinkedCard key={keeper.entityId} {...keeper} />
@@ -1059,4 +1069,14 @@ const formatRelative = (value: string): string => {
 };
 
 const shortId = (id: string): string => id.slice(0, 6).toUpperCase();
+
+const ActionLink: React.FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => (
+  <a
+    href={href}
+    className="inline-flex items-center gap-2 text-sm font-semibold text-[#C96E59] hover:text-[#B85D4A]"
+  >
+    <span>＋</span>
+    {children}
+  </a>
+);
 
