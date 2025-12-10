@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import { PaperAirplaneIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { KeeperDashboardLayout } from '../../layouts/KeeperDashboardLayout';
@@ -7,6 +7,7 @@ import { KipApi, KipAgent, KipMessage } from '../../lib/kipApi';
 import { AgentConversationSession, useAgentSessions } from '../../hooks/useAgentSessions';
 import { LinkedCard } from '../../components/props/LinkedCard';
 import type { LinkedCardProps } from '../../types/props';
+import { apiFetch } from '../../lib/api';
 
 type AgentBoardTab = 'dialogue' | 'cockpit' | 'sessions';
 
@@ -89,14 +90,187 @@ const KipAgentBoardDefaults = {
   scopeLabel: 'KE3P Domain',
 } as const;
 
-// TODO: Wire to journeys API once available
-const useAgentRelatedJourneys = (initialJourneys: LinkedCardProps[]) => {
-  return { journeys: initialJourneys };
+type DomainBasics = { domainId: string | null; domainSlug: string | null };
+
+const useDomainIdentifier = (): {
+  domainId: string | null;
+  domainSlug: string | null;
+  isLoading: boolean;
+  error: string | null;
+} => {
+  const { slug } = useParams<{ slug: string }>();
+  const [domainId, setDomainId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!slug) {
+      setDomainId(null);
+      setError(null);
+      return;
+    }
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+    apiFetch(`/api/domains/by-slug/${slug}`)
+      .then((resp) => {
+        if (cancelled) return;
+        if (resp?.id) {
+          setDomainId(resp.id);
+        } else {
+          setError('Domain not found');
+          setDomainId(null);
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : 'Unable to load domain';
+        setError(message);
+        setDomainId(null);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
+  return { domainId, domainSlug: slug ?? null, isLoading, error };
 };
 
-// TODO: Wire to keepers API once available
-const useAgentActiveKeeper = (initialKeepers: LinkedCardProps[]) => {
-  return { keepers: initialKeepers };
+const useAgentRelatedJourneys = ({
+  domainId,
+  domainSlug,
+  limit = 4,
+  initialJourneys = [],
+}: DomainBasics & { limit?: number; initialJourneys?: LinkedCardProps[] }) => {
+  const [journeys, setJourneys] = useState<LinkedCardProps[]>(initialJourneys);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!domainId) {
+      setJourneys(initialJourneys);
+      setError(null);
+      return;
+    }
+    let cancelled = false;
+    const fetchJourneys = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({ domainId, limit: String(limit) });
+        const response = await apiFetch(`/api/journeys?${params.toString()}`);
+        const items = Array.isArray(response?.journeys) ? response.journeys : [];
+        const mapped = items
+          .sort((a: any, b: any) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime())
+          .slice(0, limit)
+          .map((journey: any): LinkedCardProps => {
+            const updated = journey.updatedAt || journey.createdAt;
+            const subtitleParts: string[] = [];
+            if (journey.pathCount != null) subtitleParts.push(`${journey.pathCount} paths`);
+            if (journey.momentCount != null) subtitleParts.push(`${journey.momentCount} moments`);
+            if (updated) subtitleParts.push(`Updated ${formatRelative(updated)}`);
+            return {
+              entityType: 'journey',
+              entityId: journey.id,
+              title: journey.name || journey.title || 'Journey',
+              subtitle: subtitleParts.length ? subtitleParts.join(' • ') : journey.forward,
+              description: journey.forward,
+              href: domainSlug ? `/d/${domainSlug}/journeys` : '/journeys',
+              color: journey.theme?.palette?.primary,
+            };
+          });
+        if (!cancelled) {
+          setJourneys(mapped);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : 'Unable to load journeys';
+        setError(message);
+        setJourneys([]);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+    fetchJourneys();
+    return () => {
+      cancelled = true;
+    };
+  }, [domainId, domainSlug, limit, initialJourneys]);
+
+  return { journeys, isLoading, error };
+};
+
+const useAgentActiveKeeper = ({
+  domainId,
+  domainSlug,
+  initialKeepers = [],
+}: DomainBasics & { initialKeepers?: LinkedCardProps[] }) => {
+  const [keepers, setKeepers] = useState<LinkedCardProps[]>(initialKeepers);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!domainId) {
+      setKeepers(initialKeepers);
+      setError(null);
+      return;
+    }
+    let cancelled = false;
+    const fetchKeeper = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({ domainId, limit: '1' });
+        const response = await apiFetch(`/api/keepers?${params.toString()}`);
+        const list = Array.isArray(response?.keepers) ? response.keepers : [];
+        const top = list[0];
+        if (top) {
+          const subtitleParts: string[] = [];
+          if (top.type) subtitleParts.push(top.type);
+          if (top.purpose) subtitleParts.push(top.purpose);
+          const updated = top.updatedAt || top.createdAt;
+          if (updated) subtitleParts.push(`Updated ${formatRelative(updated)}`);
+          const mapped: LinkedCardProps = {
+            entityType: 'keeper',
+            entityId: top.id,
+            title: top.title || 'Keeper',
+            subtitle: subtitleParts.join(' • ') || undefined,
+            description: top.purpose,
+            href: domainSlug ? `/d/${domainSlug}/keepers` : '/keeper',
+            color: '#0E9384',
+          };
+          if (!cancelled) {
+            setKeepers([mapped]);
+          }
+        } else if (!cancelled) {
+          setKeepers([]);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : 'Unable to load keeper';
+        setError(message);
+        setKeepers([]);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+    fetchKeeper();
+    return () => {
+      cancelled = true;
+    };
+  }, [domainId, domainSlug, initialKeepers]);
+
+  return { keepers, isLoading, error };
 };
 
 export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
@@ -107,6 +281,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   keepers = MOCK_KEEPERS,
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { domainId, domainSlug, isLoading: isDomainLoading } = useDomainIdentifier();
   const [agent, setAgent] = useState<KipAgent | null>(null);
   const [agentError, setAgentError] = useState<string | null>(null);
   const [isAgentLoading, setIsAgentLoading] = useState<boolean>(true);
@@ -131,8 +306,16 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const querySessionId = searchParams.get('sessionId');
   const activeSessionId = querySessionId ?? (sessions.length ? sessions[0].id : null);
 
-  const { journeys: relatedJourneys } = useAgentRelatedJourneys(journeys);
-  const { keepers: activeKeepers } = useAgentActiveKeeper(keepers);
+  const {
+    journeys: relatedJourneys,
+    isLoading: isJourneysLoading,
+    error: relatedJourneysError,
+  } = useAgentRelatedJourneys({ domainId, domainSlug, initialJourneys: journeys });
+  const {
+    keepers: activeKeepers,
+    isLoading: isKeepersLoading,
+    error: activeKeeperError,
+  } = useAgentActiveKeeper({ domainId, domainSlug, initialKeepers: keepers });
 
   useEffect(() => {
     if (!searchParams.get('view')) {
@@ -361,17 +544,35 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
 
             <FrameCard title="Related Journeys">
               <div className="space-y-3">
-                {relatedJourneys.map((journey) => (
-                  <LinkedCard key={journey.entityId} {...journey} />
-                ))}
+                {relatedJourneysError && (
+                  <p className="text-sm text-red-600">Unable to load journeys right now.</p>
+                )}
+                {isDomainLoading || isJourneysLoading ? (
+                  <p className="text-sm text-gray-500">Loading journeys…</p>
+                ) : relatedJourneys.length === 0 ? (
+                  <p className="text-sm text-gray-500">No journeys yet for this domain.</p>
+                ) : (
+                  relatedJourneys.map((journey) => (
+                    <LinkedCard key={journey.entityId} {...journey} />
+                  ))
+                )}
               </div>
             </FrameCard>
 
             <FrameCard title="Active Keeper">
               <div className="space-y-3">
-                {activeKeepers.map((keeper) => (
-                  <LinkedCard key={keeper.entityId} {...keeper} />
-                ))}
+                {activeKeeperError && (
+                  <p className="text-sm text-red-600">Unable to load keeper right now.</p>
+                )}
+                {isDomainLoading || isKeepersLoading ? (
+                  <p className="text-sm text-gray-500">Loading keeper…</p>
+                ) : activeKeepers.length === 0 ? (
+                  <p className="text-sm text-gray-500">No keepers for this domain yet.</p>
+                ) : (
+                  activeKeepers.map((keeper) => (
+                    <LinkedCard key={keeper.entityId} {...keeper} />
+                  ))
+                )}
               </div>
             </FrameCard>
           </div>
