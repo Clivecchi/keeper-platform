@@ -445,7 +445,6 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
             {activeTab === 'cockpit' && (
               <CockpitPanel agent={agent} sessions={sessions} activeSessionId={activeSessionId} />
             )}
-          </div>
         </div>
       </div>
     </div>
