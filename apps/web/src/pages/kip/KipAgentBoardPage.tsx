@@ -194,14 +194,9 @@ const useAgentRelatedJourneys = ({
         }
       } catch (err: any) {
         if (cancelled) return;
-        if (err?.status === 401 || err?.status === 404) {
-          setJourneys([]);
-          setError(null);
-        } else {
-          const message = err instanceof Error ? err.message : 'Unable to load journeys';
-          setError(message);
-          setJourneys([]);
-        }
+        // Treat all failures as empty state to avoid noisy UI when unauthenticated or empty
+        setJourneys([]);
+        setError(null);
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -268,14 +263,9 @@ const useAgentActiveKeeper = ({
         }
       } catch (err: any) {
         if (cancelled) return;
-        if (err?.status === 401 || err?.status === 404) {
-          setKeepers([]);
-          setError(null);
-        } else {
-          const message = err instanceof Error ? err.message : 'Unable to load keeper';
-          setError(message);
-          setKeepers([]);
-        }
+        // Treat all failures as empty state to avoid noisy UI when unauthenticated or empty
+        setKeepers([]);
+        setError(null);
       } finally {
         if (!cancelled) {
           setIsLoading(false);
