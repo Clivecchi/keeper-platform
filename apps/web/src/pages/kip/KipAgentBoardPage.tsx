@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
-import { PaperAirplaneIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon, PlusIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { KeeperDashboardLayout } from '../../layouts/KeeperDashboardLayout';
 import { KipApi, KipAgent, KipMessage } from '../../lib/kipApi';
 import { AgentConversationSession, useAgentSessions } from '../../hooks/useAgentSessions';
@@ -504,70 +504,20 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
 
   return (
     <div className="space-y-6">
-      <AgentBoardHeader agent={agent} contextLabel={contextLabel} scopeLabel={scopeLabel} />
+      <AgentHeader
+        agent={agent}
+        domainSlug={domainSlug || agentDomainSlug || undefined}
+        contextLabel={contextLabel}
+        scopeLabel={scopeLabel}
+        sessionId={activeSessionId}
+        dialogueMeta={dialogueMeta}
+      />
 
       <AgentBoardTabs activeTab={activeTab} onChange={handleTabChange} />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)]">
-        <div className="space-y-6">
-          <FrameCard title="Agent Identity">
-            {isAgentLoading ? (
-              <SkeletonLine />
-            ) : (
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xl font-semibold text-gray-900">{agent?.name ?? 'Kip'}</p>
-                  <p className="text-sm text-gray-500">{contextLabel}</p>
-                </div>
-                <div className="flex items-center gap-2 text-sm font-medium text-emerald-600">
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                  Online
-                </div>
-              </div>
-            )}
-          </FrameCard>
-
-            <FrameCard
-              title="Sessions"
-              subtitle="Latest conversations with Kip"
-              action={
-                <button
-                  type="button"
-                  onClick={handleCreateSession}
-                  disabled={isCreatingSession || !agent}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#C96E59]/40 px-3 py-1.5 text-sm font-medium text-[#C96E59] hover:border-[#C96E59] disabled:opacity-50"
-                >
-                  <PlusIcon className="h-4 w-4" />
-                  New Session
-                </button>
-              }
-            >
-              {sessionsError && (
-                <p className="mb-3 text-sm text-red-600">{sessionsError}</p>
-              )}
-              <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                {isSessionsLoading ? (
-                  <>
-                    <SkeletonCard />
-                    <SkeletonCard />
-                  </>
-                ) : sessions.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    No sessions yet. Start one to begin tracking thoughts with Kip.
-                  </p>
-                ) : (
-                  sessions.map((session) => (
-                    <SessionCard
-                      key={session.id}
-                      session={session}
-                      isActive={session.id === activeSessionId}
-                      onSelect={() => handleSessionSelect(session.id)}
-                    />
-                  ))
-                )}
-              </div>
-            </FrameCard>
-
+      {activeTab === 'dialogue' && (
+        <div className="grid gap-6 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)]">
+          <div className="space-y-6">
             <FrameCard title="Related Journeys">
               <div className="space-y-3">
                 {relatedJourneysError && (
@@ -614,89 +564,102 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
           </div>
 
           <div className="space-y-6">
-            {activeTab === 'dialogue' && (
-              <FrameCard title="Dialogue" subtitle="Live conversation with Kip">
-                <div className="space-y-4">
-                  <DialogueMetaStrip items={dialogueMeta} activeSessionId={activeSessionId} />
-                  <DialogueMessageList
-                    isLoading={isLoadingMessages || isAgentLoading}
-                    messages={messages}
-                    isSending={isSending}
-                    error={messagesError}
+            <FrameCard title="Dialogue" subtitle="Live conversation with Kip">
+              <div className="space-y-4">
+                <DialogueMetaInline items={dialogueMeta} activeSessionId={activeSessionId} />
+                <DialogueMessageList
+                  isLoading={isLoadingMessages || isAgentLoading}
+                  messages={messages}
+                  isSending={isSending}
+                  error={messagesError}
+                />
+                <form onSubmit={handleSendMessage} className="flex gap-3 pt-2">
+                  <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(event) => setInputValue(event.target.value)}
+                    placeholder={
+                      activeSessionId
+                        ? 'Share your thoughts...'
+                        : 'Create a session to start chatting'
+                    }
+                    disabled={!activeSessionId || isSending}
+                    className="flex-1 rounded-xl border border-[#E6DED5] px-4 py-3 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/30 disabled:bg-gray-50"
                   />
-                  <form onSubmit={handleSendMessage} className="flex gap-3 pt-2">
-                    <input
-                      type="text"
-                      value={inputValue}
-                      onChange={(event) => setInputValue(event.target.value)}
-                      placeholder={
-                        activeSessionId
-                          ? 'Share your thoughts...'
-                          : 'Create a session to start chatting'
-                      }
-                      disabled={!activeSessionId || isSending}
-                      className="flex-1 rounded-xl border border-[#E6DED5] px-4 py-3 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/30 disabled:bg-gray-50"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!inputValue.trim() || !activeSessionId || isSending}
-                      className="inline-flex items-center justify-center rounded-xl bg-[#C96E59] px-4 py-3 text-white hover:bg-[#B85D4A] disabled:opacity-50"
-                    >
-                      {isSending ? (
-                        <span className="text-sm font-semibold">Sending…</span>
-                      ) : (
-                        <PaperAirplaneIcon className="h-5 w-5" />
-                      )}
-                    </button>
-                  </form>
-                  {messagesError && (
-                    <p className="text-sm text-red-600">Message error: {messagesError}</p>
-                  )}
-                </div>
-              </FrameCard>
-            )}
-
-            {activeTab === 'sessions' && (
-              <FrameCard
-                title="All Sessions"
-                subtitle="Browse and jump into recent conversations"
-                action={
                   <button
-                    type="button"
-                    onClick={handleCreateSession}
-                    disabled={isCreatingSession || !agent}
-                    className="inline-flex items-center gap-2 rounded-full border border-[#C96E59]/40 px-3 py-1.5 text-sm font-medium text-[#C96E59] hover:border-[#C96E59] disabled:opacity-50"
+                    type="submit"
+                    disabled={!inputValue.trim() || !activeSessionId || isSending}
+                    className="inline-flex items-center justify-center rounded-xl bg-[#C96E59] px-4 py-3 text-white hover:bg-[#B85D4A] disabled:opacity-50"
                   >
-                    <PlusIcon className="h-4 w-4" />
-                    New Session
+                    {isSending ? (
+                      <span className="text-sm font-semibold">Sending…</span>
+                    ) : (
+                      <PaperAirplaneIcon className="h-5 w-5" />
+                    )}
                   </button>
-                }
-              >
-                {sessions.length === 0 && !isSessionsLoading ? (
-                  <p className="text-sm text-gray-500">
-                    No sessions yet. Start a new one to begin documenting conversations.
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    {sessions.map((session) => (
-                      <SessionCard
-                        key={session.id}
-                        session={session}
-                        isActive={session.id === activeSessionId}
-                        variant="full"
-                        onSelect={() => handleSessionSelect(session.id)}
-                      />
-                    ))}
-                  </div>
+                </form>
+                {messagesError && (
+                  <p className="text-sm text-red-600">Message error: {messagesError}</p>
                 )}
-              </FrameCard>
-            )}
-
-            {activeTab === 'cockpit' && (
-              <CockpitPanel agent={agent} sessions={sessions} activeSessionId={activeSessionId} />
-            )}
+              </div>
+            </FrameCard>
+          </div>
         </div>
-      </div>
+      )}
+
+      {activeTab === 'sessions' && (
+        <div className="space-y-6">
+          <FrameCard
+            title="All Sessions"
+            subtitle="Browse and jump into recent conversations"
+            action={
+              <button
+                type="button"
+                onClick={handleCreateSession}
+                disabled={isCreatingSession || !agent}
+                className="inline-flex items-center gap-2 rounded-full border border-[#C96E59]/40 px-3 py-1.5 text-sm font-medium text-[#C96E59] hover:border-[#C96E59] disabled:opacity-50"
+              >
+                <PlusIcon className="h-4 w-4" />
+                New Session
+              </button>
+            }
+          >
+            {sessionsError && (
+              <p className="mb-3 text-sm text-red-600">{sessionsError}</p>
+            )}
+            {sessions.length === 0 && !isSessionsLoading ? (
+              <p className="text-sm text-gray-500">
+                No sessions yet. Start a new one to begin documenting conversations.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {isSessionsLoading ? (
+                  <>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                  </>
+                ) : (
+                  sessions.map((session) => (
+                    <SessionCard
+                      key={session.id}
+                      session={session}
+                      isActive={session.id === activeSessionId}
+                      variant="full"
+                      onSelect={() => handleSessionSelect(session.id)}
+                    />
+                  ))
+                )}
+              </div>
+            )}
+          </FrameCard>
+        </div>
+      )}
+
+      {activeTab === 'cockpit' && (
+        <div className="space-y-6">
+          <CockpitPanel agent={agent} sessions={sessions} activeSessionId={activeSessionId} />
+        </div>
+      )}
     </div>
   );
 };
@@ -812,24 +775,15 @@ const SessionCard: React.FC<{
   </button>
 );
 
-const DialogueMetaStrip: React.FC<{
+const DialogueMetaInline: React.FC<{
   items: DialogueMetaItem[];
   activeSessionId: string | null;
 }> = ({ items, activeSessionId }) => (
-  <div className="flex flex-wrap gap-2">
-    {items.map((item) => (
-      <span
-        key={item.label}
-        className="inline-flex items-center gap-2 rounded-full bg-[#F7F3EE] px-4 py-1.5 text-xs font-semibold uppercase text-gray-600"
-      >
-        {item.label}: <span className="text-gray-900 normal-case">{item.value}</span>
-      </span>
-    ))}
-    {activeSessionId && (
-      <span className="inline-flex items-center gap-2 rounded-full bg-[#E7F6EF] px-4 py-1.5 text-xs font-semibold uppercase text-emerald-700">
-        Session {shortId(activeSessionId)}
-      </span>
-    )}
+  <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+    <span>
+      {items.map((item) => `${item.label}: ${item.value}`).join(' • ')}
+      {activeSessionId ? ` • Session ${shortId(activeSessionId)}` : ''}
+    </span>
   </div>
 );
 
@@ -1059,6 +1013,87 @@ const formatRelative = (value: string): string => {
 };
 
 const shortId = (id: string): string => id.slice(0, 6).toUpperCase();
+
+const AgentHeader: React.FC<{
+  agent: KipAgent | null;
+  domainSlug?: string;
+  contextLabel: string;
+  scopeLabel: string;
+  sessionId: string | null;
+  dialogueMeta: DialogueMetaItem[];
+}> = ({ agent, domainSlug, contextLabel, scopeLabel, sessionId, dialogueMeta }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const agentName = agent?.name || 'Kip';
+  const roleText = domainSlug ? `Lead Agent for ${domainSlug}` : contextLabel;
+
+  return (
+    <div className="relative flex items-center justify-between rounded-2xl border border-[#E6DED5] bg-white px-4 py-3 shadow-sm">
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-semibold text-gray-900">{agentName}</h1>
+          <span className="inline-flex items-center gap-2 text-sm text-emerald-600">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            Online
+          </span>
+        </div>
+        <p className="text-sm text-gray-600">{roleText}</p>
+      </div>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsOpen((prev) => !prev)}
+          className="inline-flex items-center gap-2 rounded-full border border-[#E6DED5] bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:border-[#C96E59] hover:text-[#C96E59]"
+          title="Agent mechanics"
+        >
+          <Cog6ToothIcon className="h-4 w-4" />
+          Config
+        </button>
+        {isOpen && (
+          <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-[#E6DED5] bg-white p-4 shadow-lg z-20">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">Agent configuration</h3>
+            <dl className="space-y-2 text-sm text-gray-700">
+              <div className="flex justify-between gap-2">
+                <dt className="text-gray-500">Model</dt>
+                <dd className="font-semibold">
+                  {agent?.model_settings?.model || agent?.model || '—'}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-gray-500">Memory</dt>
+                <dd className="font-semibold">{agent?.memory_enabled ? 'SOLE' : 'Off'}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-gray-500">Scope</dt>
+                <dd className="font-semibold">{scopeLabel}</dd>
+              </div>
+              {sessionId && (
+                <div className="flex justify-between gap-2">
+                  <dt className="text-gray-500">Session</dt>
+                  <dd className="font-semibold">{shortId(sessionId)}</dd>
+                </div>
+              )}
+              <div className="flex justify-between gap-2">
+                <dt className="text-gray-500">Agent ID</dt>
+                <dd className="font-mono text-xs text-gray-600 truncate max-w-[10rem]">
+                  {agent?.id || '—'}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-gray-500">Slug</dt>
+                <dd className="font-semibold">{agent?.slug || '—'}</dd>
+              </div>
+            </dl>
+            <div className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500 space-y-1">
+              {dialogueMeta.map((item) => (
+                <div key={item.label}>{item.label}: {item.value}</div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const ActionLink: React.FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => (
   <a
