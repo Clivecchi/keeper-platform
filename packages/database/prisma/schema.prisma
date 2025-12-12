@@ -637,7 +637,7 @@ model kip_sessions {
   session_name String?
   topic        String?
   summary      String?
-  tags         String[]?
+  tags         String[]       @default([])
   primary_keeper_id  String?
   primary_journey_id String?
   created_at   DateTime       @default(now())

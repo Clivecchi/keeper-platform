@@ -309,7 +309,7 @@ export type KipSessionWithRelations = {
   session_name?: string | null;
   topic?: string | null;
   summary?: string | null;
-  tags?: string[] | null;
+  tags?: string[];
   primary_keeper_id?: string | null;
   primary_journey_id?: string | null;
   created_at: Date;

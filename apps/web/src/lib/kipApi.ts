@@ -84,7 +84,7 @@ export interface KipSession {
   session_name?: string | null;
   topic?: string | null;
   summary?: string | null;
-  tags?: string[] | null;
+  tags?: string[];
   primary_keeper_id?: string | null;
   primary_journey_id?: string | null;
   primaryKeeperId?: string | null;
@@ -125,7 +125,7 @@ export interface SessionInput {
   session_name?: string;
   topic?: string | null;
   summary?: string | null;
-  tags?: string[] | null;
+  tags?: string[];
   primary_keeper_id?: string | null;
   primary_journey_id?: string | null;
 }

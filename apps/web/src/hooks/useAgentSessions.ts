@@ -7,7 +7,7 @@ export interface AgentConversationSession {
   subtitle?: string;
   topic?: string | null;
   summary?: string | null;
-  tags?: string[] | null;
+  tags?: string[];
   primaryKeeperId?: string | null;
   primaryJourneyId?: string | null;
   createdAt: string;
@@ -43,7 +43,7 @@ const normalizeSession = (session: KipSession): AgentConversationSession => {
     subtitle,
     topic,
     summary: summary || null,
-    tags: session.tags ?? null,
+    tags: session.tags ?? [],
     primaryKeeperId:
       (session as any).primaryKeeperId ??
       (session as any).primary_keeper_id ??
