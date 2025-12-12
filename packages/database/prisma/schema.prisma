@@ -635,6 +635,11 @@ model kip_sessions {
   agent_id     String         @db.Uuid
   user_id      String?
   session_name String?
+  topic        String?
+  summary      String?
+  tags         String[]?
+  primary_keeper_id  String?
+  primary_journey_id String?
   created_at   DateTime       @default(now())
   updated_at   DateTime       @default(now())
   kip_messages kip_messages[]

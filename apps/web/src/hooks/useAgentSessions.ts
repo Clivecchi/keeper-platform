@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { KipApi, KipSession } from '../lib/kipApi';
+import { KipApi, KipSession, SessionMetadataUpdate } from '../lib/kipApi';
 
 export interface AgentConversationSession {
   id: string;
   title: string;
+  subtitle?: string;
+  topic?: string | null;
+  summary?: string | null;
+  tags?: string[] | null;
+  primaryKeeperId?: string | null;
+  primaryJourneyId?: string | null;
   createdAt: string;
   updatedAt: string;
   lastMessagePreview?: string;
@@ -22,10 +28,30 @@ const normalizeSession = (session: KipSession): AgentConversationSession => {
   const createdAtDate = session.created_at ? new Date(session.created_at) : new Date();
   const updatedAtDate = session.updated_at ? new Date(session.updated_at) : createdAtDate;
   const lastMessage = session.messages?.[session.messages.length - 1];
+  const topic = session.topic?.toString().trim() || null;
+  const summary = session.summary?.toString().trim() || null;
+  const primaryTitle = topic || session.session_name?.trim() || 'Session with Kip';
+  const subtitle = summary
+    ? truncate(summary, 120)
+    : lastMessage?.content
+      ? truncate(lastMessage.content, 120)
+      : 'No summary yet.';
 
   return {
     id: session.id,
-    title: session.session_name?.trim() || `Session • ${readableDate(createdAtDate)}`,
+    title: primaryTitle || `Session • ${readableDate(createdAtDate)}`,
+    subtitle,
+    topic,
+    summary: summary || null,
+    tags: session.tags ?? null,
+    primaryKeeperId:
+      (session as any).primaryKeeperId ??
+      (session as any).primary_keeper_id ??
+      null,
+    primaryJourneyId:
+      (session as any).primaryJourneyId ??
+      (session as any).primary_journey_id ??
+      null,
     createdAt: createdAtDate.toISOString(),
     updatedAt: updatedAtDate.toISOString(),
     lastMessagePreview: lastMessage?.content ? truncate(lastMessage.content) : undefined,
@@ -39,6 +65,7 @@ export function useAgentSessions(agentId?: string | null) {
   const [sessions, setSessions] = useState<AgentConversationSession[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
+  const [updatingSessionId, setUpdatingSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSessions = useCallback(async () => {
@@ -92,13 +119,39 @@ export function useAgentSessions(agentId?: string | null) {
     [agentId],
   );
 
+  const updateSessionMetadata = useCallback(
+    async (sessionId: string, updates: SessionMetadataUpdate) => {
+      setUpdatingSessionId(sessionId);
+      setError(null);
+      try {
+        const updated = await KipApi.updateSessionMetadata(sessionId, updates);
+        const normalized = normalizeSession(updated);
+        setSessions((prev) => {
+          const filtered = prev.filter((existing) => existing.id !== sessionId);
+          const next = [normalized, ...filtered];
+          return next.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        });
+        return normalized;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unable to update session';
+        setError(message);
+        throw err;
+      } finally {
+        setUpdatingSessionId(null);
+      }
+    },
+    [],
+  );
+
   return {
     sessions,
     isLoading,
     isCreating,
+    updatingSessionId,
     error,
     refresh: fetchSessions,
     createSession: handleCreateSession,
+    updateSessionMetadata,
   };
 }
 

@@ -509,6 +509,11 @@ export async function createKipSession(data: {
   agent_id: string;
   user_id?: string;
   session_name?: string;
+  topic?: string | null;
+  summary?: string | null;
+  tags?: string[] | null;
+  primary_keeper_id?: string | null;
+  primary_journey_id?: string | null;
 }) {
   return prisma.kip_sessions.create({
     data: {
@@ -660,6 +665,47 @@ export async function getSessionsByUserId(userId: string, options: {
     hasNext: page * pageSize < total,
     hasPrevious: page > 1
   }
+}
+
+/**
+ * Update session metadata fields (topic, summary, tags, primary links)
+ */
+export async function updateKipSessionMetadata(sessionId: string, data: {
+  topic?: string | null;
+  summary?: string | null;
+  tags?: string[] | null;
+  primary_keeper_id?: string | null;
+  primary_journey_id?: string | null;
+}) {
+  const payload = {
+    ...(data.topic !== undefined ? { topic: data.topic } : {}),
+    ...(data.summary !== undefined ? { summary: data.summary } : {}),
+    ...(data.tags !== undefined ? { tags: data.tags } : {}),
+    ...(data.primary_keeper_id !== undefined ? { primary_keeper_id: data.primary_keeper_id } : {}),
+    ...(data.primary_journey_id !== undefined ? { primary_journey_id: data.primary_journey_id } : {}),
+    updated_at: new Date()
+  }
+
+  return prisma.kip_sessions.update({
+    where: { id: sessionId },
+    data: payload,
+    include: {
+      kip_agents: {
+        select: {
+          id: true,
+          name: true,
+          slug: true
+        }
+      },
+      users: {
+        select: {
+          id: true,
+          name: true,
+          email: true
+        }
+      }
+    }
+  })
 }
 
 /**

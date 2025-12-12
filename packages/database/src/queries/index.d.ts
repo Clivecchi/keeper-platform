@@ -634,6 +634,11 @@ export declare function createKipSession(data: {
     agent_id: string;
     user_id?: string;
     session_name?: string;
+    topic?: string | null;
+    summary?: string | null;
+    tags?: string[] | null;
+    primary_keeper_id?: string | null;
+    primary_journey_id?: string | null;
 }): Promise<{
     agent: {
         name: string;
@@ -652,6 +657,11 @@ export declare function createKipSession(data: {
     updated_at: Date;
     user_id: string | null;
     session_name: string | null;
+    topic: string | null;
+    summary: string | null;
+    tags: string[] | null;
+    primary_keeper_id: string | null;
+    primary_journey_id: string | null;
 }>;
 /**
  * Get a KIP session by ID with messages
@@ -683,6 +693,11 @@ export declare function getKipSessionById(sessionId: string): Promise<({
     updated_at: Date;
     user_id: string | null;
     session_name: string | null;
+    topic: string | null;
+    summary: string | null;
+    tags: string[] | null;
+    primary_keeper_id: string | null;
+    primary_journey_id: string | null;
 }) | null>;
 /**
  * Get all sessions for an agent
@@ -712,6 +727,11 @@ export declare function getSessionsByAgentId(agentId: string, options?: {
         updated_at: Date;
         user_id: string | null;
         session_name: string | null;
+        topic: string | null;
+        summary: string | null;
+        tags: string[] | null;
+        primary_keeper_id: string | null;
+        primary_journey_id: string | null;
     })[];
     total: number;
     page: number;
@@ -748,6 +768,11 @@ export declare function getSessionsByUserId(userId: string, options?: {
         updated_at: Date;
         user_id: string | null;
         session_name: string | null;
+        topic: string | null;
+        summary: string | null;
+        tags: string[] | null;
+        primary_keeper_id: string | null;
+        primary_journey_id: string | null;
     })[];
     total: number;
     page: number;
@@ -766,6 +791,44 @@ export declare function updateSessionTimestamp(sessionId: string): Promise<{
     updated_at: Date;
     user_id: string | null;
     session_name: string | null;
+    topic: string | null;
+    summary: string | null;
+    tags: string[] | null;
+    primary_keeper_id: string | null;
+    primary_journey_id: string | null;
+}>;
+/**
+ * Update session metadata fields (topic, summary, tags, primary links)
+ */
+export declare function updateKipSessionMetadata(sessionId: string, data: {
+    topic?: string | null;
+    summary?: string | null;
+    tags?: string[] | null;
+    primary_keeper_id?: string | null;
+    primary_journey_id?: string | null;
+}): Promise<{
+    agent: {
+        name: string;
+        id: string;
+        slug: string;
+    };
+    user: {
+        name: string | null;
+        id: string;
+        email: string | null;
+    } | null;
+} & {
+    id: string;
+    agent_id: string;
+    created_at: Date;
+    updated_at: Date;
+    user_id: string | null;
+    session_name: string | null;
+    topic: string | null;
+    summary: string | null;
+    tags: string[] | null;
+    primary_keeper_id: string | null;
+    primary_journey_id: string | null;
 }>;
 /**
  * Delete a KIP session and all its messages

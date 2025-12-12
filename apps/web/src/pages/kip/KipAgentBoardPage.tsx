@@ -299,6 +299,10 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const [isLoadingMessages, setIsLoadingMessages] = useState<boolean>(false);
   const [isSending, setIsSending] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState('');
+  const [isEditingSession, setIsEditingSession] = useState<boolean>(false);
+  const [sessionTopicDraft, setSessionTopicDraft] = useState<string>('');
+  const [sessionSummaryDraft, setSessionSummaryDraft] = useState<string>('');
+  const [sessionMetadataError, setSessionMetadataError] = useState<string | null>(null);
 
   const activeTab = (searchParams.get('view') as AgentBoardTab) ?? 'dialogue';
 
@@ -306,13 +310,20 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     sessions,
     isLoading: isSessionsLoading,
     isCreating: isCreatingSession,
+    updatingSessionId,
     error: sessionsError,
     refresh: refreshSessions,
     createSession,
+    updateSessionMetadata,
   } = useAgentSessions(agent?.id);
 
   const querySessionId = searchParams.get('sessionId');
   const activeSessionId = querySessionId ?? (sessions.length ? sessions[0].id : null);
+  const activeSession = useMemo(
+    () => (activeSessionId ? sessions.find((session) => session.id === activeSessionId) || null : null),
+    [activeSessionId, sessions],
+  );
+  const isSavingSessionMetadata = updatingSessionId === activeSessionId;
 
   const agentDomainId =
     (agent as any)?.domainId ||
@@ -439,6 +450,34 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to create session';
       setMessagesError(message);
+    }
+  };
+
+  const handleStartEditSession = () => {
+    if (!activeSession) return;
+    setIsEditingSession(true);
+    setSessionMetadataError(null);
+    setSessionTopicDraft(activeSession.topic || activeSession.title || 'Session with Kip');
+    setSessionSummaryDraft(activeSession.summary || '');
+  };
+
+  const handleCancelEditSession = () => {
+    setIsEditingSession(false);
+    setSessionMetadataError(null);
+  };
+
+  const handleSaveSessionMetadata = async () => {
+    if (!activeSessionId) return;
+    setSessionMetadataError(null);
+    try {
+      await updateSessionMetadata(activeSessionId, {
+        topic: sessionTopicDraft.trim() || null,
+        summary: sessionSummaryDraft.trim() || null,
+      });
+      setIsEditingSession(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to update session details';
+      setSessionMetadataError(message);
     }
   };
 
@@ -646,9 +685,72 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                       isActive={session.id === activeSessionId}
                       variant="full"
                       onSelect={() => handleSessionSelect(session.id)}
+                      onEdit={session.id === activeSessionId ? handleStartEditSession : undefined}
                     />
                   ))
                 )}
+              </div>
+            )}
+            {isEditingSession && activeSession && (
+              <div className="mt-4 space-y-3 rounded-xl border border-dashed border-[#E6DED5] bg-[#FFFBF7] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Edit session details</p>
+                    <p className="text-xs text-gray-500">Update the topic and summary for this conversation.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCancelEditSession}
+                    className="text-xs font-semibold text-gray-500 hover:text-gray-700"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-gray-600" htmlFor="session-topic">
+                    Topic
+                  </label>
+                  <input
+                    id="session-topic"
+                    value={sessionTopicDraft}
+                    onChange={(event) => setSessionTopicDraft(event.target.value)}
+                    placeholder="Session with Kip"
+                    className="w-full rounded-lg border border-[#E6DED5] px-3 py-2 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/20"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-gray-600" htmlFor="session-summary">
+                    Summary
+                  </label>
+                  <textarea
+                    id="session-summary"
+                    value={sessionSummaryDraft}
+                    onChange={(event) => setSessionSummaryDraft(event.target.value)}
+                    placeholder="Short description of what this session is about"
+                    rows={3}
+                    className="w-full rounded-lg border border-[#E6DED5] px-3 py-2 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/20"
+                  />
+                </div>
+                {sessionMetadataError && (
+                  <p className="text-sm text-red-600">{sessionMetadataError}</p>
+                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSaveSessionMetadata}
+                    disabled={isSavingSessionMetadata}
+                    className="inline-flex items-center justify-center rounded-lg bg-[#C96E59] px-3 py-2 text-sm font-semibold text-white hover:bg-[#B85D4A] disabled:opacity-50"
+                  >
+                    {isSavingSessionMetadata ? 'Saving…' : 'Save'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelEditSession}
+                    className="text-sm font-semibold text-gray-600 hover:text-gray-800"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             )}
           </FrameCard>
@@ -749,7 +851,16 @@ const SessionCard: React.FC<{
   isActive?: boolean;
   onSelect?: () => void;
   variant?: 'compact' | 'full';
-}> = ({ session, isActive, onSelect, variant = 'compact' }) => (
+  onEdit?: () => void;
+}> = ({ session, isActive, onSelect, variant = 'compact', onEdit }) => {
+  const secondaryLine =
+    session.subtitle ||
+    session.summary ||
+    session.lastMessagePreview ||
+    'No summary yet.';
+  const primaryLine = session.title || 'Session with Kip';
+
+  return (
   <button
     type="button"
     onClick={onSelect}
@@ -760,12 +871,26 @@ const SessionCard: React.FC<{
         : 'border-[#E6DED5] bg-white hover:shadow',
     )}
   >
-    <p className="text-sm font-semibold text-gray-900">{session.title}</p>
-    {session.lastMessagePreview && (
-      <p className="mt-1 text-sm text-gray-500">
-        {session.lastMessagePreview}
-      </p>
-    )}
+    <div className="flex items-start justify-between gap-2">
+      <div className="flex-1">
+        <p className="text-sm font-semibold text-gray-900">{primaryLine}</p>
+        {secondaryLine ? (
+          <p className="mt-1 text-sm text-gray-500">{secondaryLine}</p>
+        ) : null}
+      </div>
+      {isActive && onEdit ? (
+        <span
+          className="text-xs font-semibold text-[#C96E59] hover:underline"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onEdit();
+          }}
+        >
+          Edit
+        </span>
+      ) : null}
+    </div>
     <p className="mt-1 text-xs text-gray-400">
       {formatDate(session.updatedAt || session.createdAt)}
     </p>
@@ -773,7 +898,8 @@ const SessionCard: React.FC<{
       <p className="mt-1 text-xs text-gray-500">Session ID: {shortId(session.id)}</p>
     )}
   </button>
-);
+  );
+};
 
 const DialogueMetaInline: React.FC<{
   items: DialogueMetaItem[];

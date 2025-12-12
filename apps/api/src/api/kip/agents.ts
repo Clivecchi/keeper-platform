@@ -8,7 +8,7 @@
 
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { prisma } from '@keeper/database';
+import { prisma, updateKipSessionMetadata as updateKipSessionMetadataQuery } from '@keeper/database';
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import type { 
@@ -291,6 +291,15 @@ const CreateSessionSchema = z.object({
   sessionName: z.string().optional()
 });
 
+const UpdateSessionMetadataSchema = z.object({
+  sessionId: z.string().min(1, 'Session ID is required'),
+  topic: z.string().optional().nullable(),
+  summary: z.string().optional().nullable(),
+  tags: z.array(z.string()).optional().nullable(),
+  primaryKeeperId: z.string().optional().nullable(),
+  primaryJourneyId: z.string().optional().nullable()
+});
+
 /**
  * KipAgentService - Core agent management functions
  */
@@ -446,13 +455,34 @@ export class KipAgentService {
       const sessionData: KipSessionInput = {
         agent_id: agent.id,
         user_id: userId || 'anonymous',
-        session_name: sessionName || `Session with ${agent.name}`
+        session_name: sessionName || `Session with ${agent.name}`,
+        topic: sessionName || `Session with ${agent.name}`
       };
 
       return await createKipSession(sessionData);
     } catch (error) {
       console.error('Error creating session:', error);
       throw new Error(`Failed to create session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Update session metadata (topic, summary, tags, primary links)
+   */
+  static async updateSessionMetadata(input: z.infer<typeof UpdateSessionMetadataSchema>): Promise<KipSessionWithRelations> {
+    try {
+      const payload = {
+        ...(input.topic !== undefined ? { topic: input.topic } : {}),
+        ...(input.summary !== undefined ? { summary: input.summary } : {}),
+        ...(input.tags !== undefined ? { tags: input.tags } : {}),
+        ...(input.primaryKeeperId !== undefined ? { primary_keeper_id: input.primaryKeeperId } : {}),
+        ...(input.primaryJourneyId !== undefined ? { primary_journey_id: input.primaryJourneyId } : {})
+      };
+
+      return await updateKipSessionMetadataQuery(input.sessionId, payload);
+    } catch (error) {
+      console.error('Error updating session metadata:', error);
+      throw new Error(`Failed to update session metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -1078,6 +1108,20 @@ export default async function handler(req: Request, res: Response) {
         const newAgent = await KipAgentService.createAgent(createData);
         return res.status(201).json({ success: true, data: newAgent });
 
+      case 'PATCH': {
+        const validation = UpdateSessionMetadataSchema.safeParse(req.body);
+        if (!validation.success) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid session metadata',
+            details: validation.error.errors
+          });
+        }
+
+        const updatedSession = await KipAgentService.updateSessionMetadata(validation.data);
+        return res.status(200).json({ success: true, data: updatedSession });
+      }
+
       case 'PUT':
         // Handle agent update
         const { id: updateId, ...updateData } = req.body;
@@ -1107,7 +1151,7 @@ export default async function handler(req: Request, res: Response) {
         return res.status(200).json({ success: true, data: deleteResult });
 
       default:
-        res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+      res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
   } catch (error) {

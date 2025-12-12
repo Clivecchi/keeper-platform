@@ -82,6 +82,13 @@ export interface KipSession {
   agent_id: string;
   user_id?: string | null;
   session_name?: string | null;
+  topic?: string | null;
+  summary?: string | null;
+  tags?: string[] | null;
+  primary_keeper_id?: string | null;
+  primary_journey_id?: string | null;
+  primaryKeeperId?: string | null;
+  primaryJourneyId?: string | null;
   created_at: Date;
   updated_at: Date;
   agent?: {
@@ -116,7 +123,20 @@ export interface SessionInput {
   agent_id: string;
   user_id?: string;
   session_name?: string;
+  topic?: string | null;
+  summary?: string | null;
+  tags?: string[] | null;
+  primary_keeper_id?: string | null;
+  primary_journey_id?: string | null;
 }
+
+export type SessionMetadataUpdate = {
+  topic?: string | null;
+  summary?: string | null;
+  tags?: string[] | null;
+  primaryKeeperId?: string | null;
+  primaryJourneyId?: string | null;
+};
 
 export type DomainAgentLocation = 'kip' | 'feed' | 'keepers' | 'journeys' | 'profile';
 
@@ -567,6 +587,33 @@ export class KipApi {
       throw new Error(response.error || 'Failed to create session');
     } catch (error) {
       console.error('Error creating session:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update topic/summary metadata for a session
+   */
+  static async updateSessionMetadata(sessionId: string, updates: SessionMetadataUpdate): Promise<KipSession> {
+    try {
+      const response = await apiFetch('/api/kip/agents', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          sessionId,
+          topic: updates.topic ?? null,
+          summary: updates.summary ?? null,
+          tags: updates.tags ?? null,
+          primaryKeeperId: updates.primaryKeeperId ?? null,
+          primaryJourneyId: updates.primaryJourneyId ?? null
+        })
+      });
+
+      if (response?.success) {
+        return response.data;
+      }
+      throw new Error(response.error || 'Failed to update session metadata');
+    } catch (error) {
+      console.error('Error updating session metadata:', error);
       throw error;
     }
   }

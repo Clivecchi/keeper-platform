@@ -292,6 +292,11 @@ export type KipSessionInput = {
   agent_id: string;
   user_id?: string;
   session_name?: string;
+  topic?: string;
+  summary?: string;
+  tags?: string[];
+  primary_keeper_id?: string;
+  primary_journey_id?: string;
 }
 
 /**
@@ -302,6 +307,11 @@ export type KipSessionWithRelations = {
   agent_id: string;
   user_id?: string | null;
   session_name?: string | null;
+  topic?: string | null;
+  summary?: string | null;
+  tags?: string[] | null;
+  primary_keeper_id?: string | null;
+  primary_journey_id?: string | null;
   created_at: Date;
   updated_at: Date;
   agent?: {

@@ -533,6 +533,39 @@ export async function getSessionsByUserId(userId, options = {}) {
     };
 }
 /**
+ * Update session metadata fields (topic, summary, tags, primary links)
+ */
+export async function updateKipSessionMetadata(sessionId, data) {
+    const payload = {
+        ...(data.topic !== undefined ? { topic: data.topic } : {}),
+        ...(data.summary !== undefined ? { summary: data.summary } : {}),
+        ...(data.tags !== undefined ? { tags: data.tags } : {}),
+        ...(data.primary_keeper_id !== undefined ? { primary_keeper_id: data.primary_keeper_id } : {}),
+        ...(data.primary_journey_id !== undefined ? { primary_journey_id: data.primary_journey_id } : {}),
+        updated_at: new Date()
+    };
+    return prisma.kip_sessions.update({
+        where: { id: sessionId },
+        data: payload,
+        include: {
+            kip_agents: {
+                select: {
+                    id: true,
+                    name: true,
+                    slug: true
+                }
+            },
+            users: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true
+                }
+            }
+        }
+    });
+}
+/**
  * Update session updated_at timestamp
  */
 export async function updateSessionTimestamp(sessionId) {
