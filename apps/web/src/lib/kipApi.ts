@@ -668,17 +668,24 @@ export class KipApi {
       if (options.pageSize) params.append('pageSize', options.pageSize.toString());
 
       const response = await apiFetch(`/api/kip/agents?${params.toString()}`);
-      // Backend returns { success, data: { sessions, total, page, ... } }
+      // Backend returns { success, data: KipSession[] } or { success, data: { sessions, total, ... } }
       if (response?.success) {
-        const sessionsResult = response.data as
-          | { sessions?: KipSession[]; total?: number; page?: number; pageSize?: number }
-          | KipSession[];
-        if (Array.isArray(sessionsResult)) {
-          return sessionsResult;
+        const data = response.data as
+          | KipSession[]
+          | { sessions?: KipSession[]; total?: number; page?: number; pageSize?: number };
+
+        if (Array.isArray(data)) {
+          return data;
         }
-        return Array.isArray(sessionsResult?.sessions) ? sessionsResult.sessions : [];
+
+        if (data && Array.isArray((data as any).sessions)) {
+          return (data as any).sessions as KipSession[];
+        }
+
+        return [];
       }
-      throw new Error(response.error || 'Failed to fetch sessions');
+
+      throw new Error(response?.error || 'Failed to fetch sessions');
     } catch (error) {
       console.error('Error fetching sessions:', error);
       throw error;

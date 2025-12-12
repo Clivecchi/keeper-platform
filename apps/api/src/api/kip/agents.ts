@@ -974,9 +974,17 @@ export default async function handler(req: Request, res: Response) {
         }
         
         // Get sessions for an agent
-        if (sessions === 'true' && queryAgentId) {
-          if (typeof queryAgentId !== 'string') {
-            return res.status(400).json({ success: false, error: 'Invalid agent ID' });
+        if (sessions === 'true') {
+          // Basic logging for debugging session failures
+          console.info('[kip/agents] sessions request', {
+            queryAgentId,
+            page,
+            pageSize,
+            domainId: (req.query as any)?.domainId,
+          });
+
+          if (!queryAgentId || typeof queryAgentId !== 'string') {
+            return res.status(400).json({ success: false, error: 'agentId required' });
           }
           
           const options = {
@@ -992,8 +1000,25 @@ export default async function handler(req: Request, res: Response) {
             return res.status(400).json({ success: false, error: 'Invalid page size (must be 1-100)' });
           }
           
-          const sessionsResult = await getSessionsByAgentId(queryAgentId, options);
-          return res.status(200).json({ success: true, data: sessionsResult });
+          try {
+            const sessionsResult = await getSessionsByAgentId(queryAgentId, options);
+            console.info('[kip/agents] sessions success', {
+              agentId: queryAgentId,
+              count: Array.isArray((sessionsResult as any)?.sessions)
+                ? (sessionsResult as any).sessions.length
+                : Array.isArray(sessionsResult)
+                  ? (sessionsResult as any).length
+                  : null,
+            });
+            return res.status(200).json({ success: true, data: sessionsResult });
+          } catch (error) {
+            console.error('[kip/agents] sessions error', {
+              agentId: queryAgentId,
+              message: error instanceof Error ? error.message : error,
+              stack: error instanceof Error ? error.stack : undefined,
+            });
+            return res.status(500).json({ success: false, error: 'Failed to load sessions' });
+          }
         }
         
         // Get specific session by ID
