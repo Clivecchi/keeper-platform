@@ -295,7 +295,7 @@ const UpdateSessionMetadataSchema = z.object({
   sessionId: z.string().min(1, 'Session ID is required'),
   topic: z.string().optional().nullable(),
   summary: z.string().optional().nullable(),
-  tags: z.array(z.string()).optional().nullable(),
+  tags: z.array(z.string()).optional(),
   primaryKeeperId: z.string().optional().nullable(),
   primaryJourneyId: z.string().optional().nullable()
 });

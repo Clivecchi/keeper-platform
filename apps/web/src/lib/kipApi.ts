@@ -602,7 +602,7 @@ export class KipApi {
           sessionId,
           topic: updates.topic ?? null,
           summary: updates.summary ?? null,
-          tags: updates.tags ?? null,
+          tags: updates.tags !== undefined ? updates.tags : undefined,
           primaryKeeperId: updates.primaryKeeperId ?? null,
           primaryJourneyId: updates.primaryJourneyId ?? null
         })

@@ -511,13 +511,14 @@ export async function createKipSession(data: {
   session_name?: string;
   topic?: string | null;
   summary?: string | null;
-  tags?: string[] | null;
+  tags?: string[];
   primary_keeper_id?: string | null;
   primary_journey_id?: string | null;
 }) {
   return prisma.kip_sessions.create({
     data: {
       ...data,
+      tags: data.tags ?? [],
       updated_at: new Date()
     },
     include: {
@@ -673,7 +674,7 @@ export async function getSessionsByUserId(userId: string, options: {
 export async function updateKipSessionMetadata(sessionId: string, data: {
   topic?: string | null;
   summary?: string | null;
-  tags?: string[] | null;
+  tags?: string[];
   primary_keeper_id?: string | null;
   primary_journey_id?: string | null;
 }) {

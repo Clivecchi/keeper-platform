@@ -397,6 +397,7 @@ export async function createKipSession(data) {
     return prisma.kip_sessions.create({
         data: {
             ...data,
+            tags: data.tags ?? [],
             updated_at: new Date()
         },
         include: {
