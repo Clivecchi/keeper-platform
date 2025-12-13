@@ -9,6 +9,14 @@
 import { apiFetch } from './api';
 
 // Types matching the backend
+const shouldUseMockFallback = (error: unknown): boolean =>
+  error instanceof TypeError && Boolean((import.meta as any)?.env?.DEV);
+
+const pickErrorMessage = (response: any, fallback: string): string =>
+  response?.message ||
+  (typeof response?.error === 'string' ? response.error : response?.error?.message) ||
+  fallback;
+
 export type AgentClass = 'Standard' | 'Coordinator' | 'Lead' | 'Persona';
 export type ModelProvider = 'openai' | 'anthropic' | 'together' | 'elevenlabs';
 
@@ -345,13 +353,15 @@ export class KipApi {
       }
       throw new Error(response.error || 'Agent not found');
     } catch (error) {
-      console.warn('API connection failed, using mock data:', error);
-      // Return mock data as fallback
-      const mockAgent = mockAgents.find(agent => agent.id === id);
-      if (mockAgent) {
-        return mockAgent;
+      const message = error instanceof Error ? error.message : 'Agent not found';
+      if (shouldUseMockFallback(error)) {
+        console.warn('API connection failed, using mock data:', error);
+        const mockAgent = mockAgents.find(agent => agent.id === id);
+        if (mockAgent) {
+          return mockAgent;
+        }
       }
-      throw new Error('Agent not found');
+      throw new Error(message);
     }
   }
 
@@ -366,13 +376,15 @@ export class KipApi {
       }
       throw new Error(response.error || 'Agent not found');
     } catch (error) {
-      console.warn('API connection failed, using mock data:', error);
-      // Return mock data as fallback
-      const mockAgent = mockAgents.find(agent => agent.slug === slug);
-      if (mockAgent) {
-        return mockAgent;
+      const message = error instanceof Error ? error.message : 'Agent not found';
+      if (shouldUseMockFallback(error)) {
+        console.warn('API connection failed, using mock data:', error);
+        const mockAgent = mockAgents.find(agent => agent.slug === slug);
+        if (mockAgent) {
+          return mockAgent;
+        }
       }
-      throw new Error('Agent not found');
+      throw new Error(message);
     }
   }
 
@@ -584,7 +596,8 @@ export class KipApi {
       if (response.success) {
         return response.data;
       }
-      throw new Error(response.error || 'Failed to create session');
+      const message = pickErrorMessage(response, 'Failed to create session');
+      throw new Error(message);
     } catch (error) {
       console.error('Error creating session:', error);
       throw error;
@@ -643,7 +656,8 @@ export class KipApi {
       if (response.success) {
         return response.data;
       }
-      throw new Error(response.error || 'Failed to fetch session messages');
+      const message = pickErrorMessage(response, 'Failed to fetch session messages');
+      throw new Error(message);
     } catch (error) {
       console.error('Error fetching session messages:', error);
       throw error;
@@ -685,7 +699,8 @@ export class KipApi {
         return [];
       }
 
-      throw new Error(response?.error || 'Failed to fetch sessions');
+      const message = pickErrorMessage(response, 'Failed to fetch sessions');
+      throw new Error(message);
     } catch (error) {
       console.error('Error fetching sessions:', error);
       throw error;

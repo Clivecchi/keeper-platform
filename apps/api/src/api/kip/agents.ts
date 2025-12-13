@@ -954,6 +954,7 @@ function resolveAgentErrorCode(error: unknown): AgentErrorCode {
  * Express route handler for /api/kip/agents
  */
 export default async function handler(req: Request, res: Response) {
+  const requestId = (req.headers['x-request-id'] as string) || `kip-agents-${Date.now()}`;
   try {
     switch (req.method) {
       case 'GET':
@@ -965,12 +966,47 @@ export default async function handler(req: Request, res: Response) {
         const { id, slug, logs, agentId: queryAgentId, userId: queryUserId, page, pageSize, stats, sessions, sessionId: querySessionId, messages } = req.query;
         
         // Get session messages
-        if (messages === 'true' && querySessionId) {
-          if (typeof querySessionId !== 'string') {
-            return res.status(400).json({ success: false, error: 'Invalid session ID' });
+        if (messages === 'true') {
+          console.info('[kip/agents] messages request', {
+            requestId,
+            sessionId: querySessionId,
+            domainId: (req.query as any)?.domainId,
+          });
+
+          if (!querySessionId || typeof querySessionId !== 'string') {
+            return res.status(400).json({
+              success: false,
+              message: 'Invalid session ID',
+              error: { code: 'BAD_REQUEST', message: 'Invalid session ID' },
+            });
           }
-          const sessionMessages = await KipAgentService.getSessionMemory(querySessionId);
-          return res.status(200).json({ success: true, data: sessionMessages });
+
+          try {
+            const sessionMessages = await KipAgentService.getSessionMemory(querySessionId);
+            console.info('[kip/agents] messages success', {
+              requestId,
+              sessionId: querySessionId,
+              count: Array.isArray(sessionMessages) ? sessionMessages.length : null,
+            });
+            return res.status(200).json({ success: true, data: sessionMessages });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to load session messages';
+            const isNotFound = /not found/i.test(message);
+            console.error('[kip/agents] messages error', {
+              requestId,
+              sessionId: querySessionId,
+              message,
+              stack: error instanceof Error ? error.stack : undefined,
+            });
+            return res.status(isNotFound ? 404 : 500).json({
+              success: false,
+              message,
+              error: {
+                code: isNotFound ? 'SESSION_NOT_FOUND' : 'FAILED_TO_LOAD_MESSAGES',
+                message,
+              },
+            });
+          }
         }
         
         // Get sessions for an agent
@@ -1108,18 +1144,64 @@ export default async function handler(req: Request, res: Response) {
         }
         
         if (action === 'createSession') {
+          console.info('[kip/agents] createSession request', {
+            requestId,
+            agentId,
+            userId,
+            sessionName,
+            domainId: (req.body as any)?.domainId,
+          });
+
           // Validate using Zod schema
           const validation = CreateSessionSchema.safeParse({ agentId, userId, sessionName });
           if (!validation.success) {
             return res.status(400).json({ 
-              success: false, 
-              error: 'Invalid request data',
-              details: validation.error.errors
+              success: false,
+              message: 'Invalid request data',
+              error: {
+                code: 'BAD_REQUEST',
+                message: 'Invalid request data',
+                details: validation.error.errors
+              }
             });
           }
           
-          const session = await KipAgentService.createSession(agentId, userId, sessionName);
-          return res.status(201).json({ success: true, data: session });
+          try {
+            const session = await KipAgentService.createSession(agentId, userId, sessionName);
+            console.info('[kip/agents] createSession success', {
+              requestId,
+              agentId,
+              sessionId: session?.id,
+            });
+            return res.status(201).json({ success: true, data: session });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to create session';
+            const isNotFound = /not found/i.test(message);
+            const isBadInput = /invalid|required/i.test(message);
+            const status = isNotFound ? 404 : isBadInput ? 400 : 500;
+
+            console.error('[kip/agents] createSession error', {
+              requestId,
+              agentId,
+              userId,
+              sessionName,
+              message,
+              stack: error instanceof Error ? error.stack : undefined,
+            });
+
+            return res.status(status).json({ 
+              success: false, 
+              message,
+              error: {
+                code: isNotFound
+                  ? 'AGENT_NOT_FOUND'
+                  : isBadInput
+                    ? 'BAD_REQUEST'
+                    : 'FAILED_TO_CREATE_SESSION',
+                message
+              }
+            });
+          }
         }
         
         // Create new agent

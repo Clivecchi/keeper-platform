@@ -17,6 +17,8 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - [ ] Replace Cockpit diagnostics placeholders with backend stats once exposed.
 
 ## 📆 Update Log
+### 2025-12-12 - Strict agent fetch + API error surfacing
+- Kip Agent fetch no longer falls back to mock data on API 4xx, preventing invalid agent IDs from reaching create-session. User-facing errors now surface the API message from session create/message fetch failures instead of generic 500 text.
 ### 2025-12-11 - Session topic/summary surface + edit
 - Session cards now show `topic` with summary fallback, and the Sessions view includes a lightweight editor that patches session metadata (topic/summary) via `/api/kip/agents` PATCH.
 ### 2025-12-10 - Sessions guard + context stub hooks
