@@ -394,6 +394,20 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     };
   }, [agentSlug]);
 
+  const formatApiError = (err: any, fallback: string) => {
+    const status = err?.status;
+    const requestId = err?.requestId || err?.data?.requestId;
+    const details = err?.message && err.message !== fallback ? err.message : null;
+    const parts = [
+      details || fallback,
+      status ? `HTTP ${status}` : null,
+      requestId ? `requestId ${requestId}` : null,
+    ]
+      .filter(Boolean)
+      .join(' — ');
+    return parts || fallback;
+  };
+
   const fetchMessages = useCallback(
     async (sessionId: string, options: { silent?: boolean } = {}) => {
       if (!sessionId) {
@@ -408,7 +422,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
         const data = await KipApi.getSessionMessages(sessionId);
         setMessages(data.map(normalizeMessage));
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unable to load messages';
+        const message = formatApiError(err, 'Unable to load messages');
         setMessagesError(message);
       } finally {
         if (!options.silent) {
@@ -440,6 +454,17 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     setSearchParams(next, { replace: true });
   };
 
+  const handleEditSession = (sessionId: string) => {
+    handleSessionSelect(sessionId);
+    const target = sessions.find((s) => s.id === sessionId);
+    if (target) {
+      setIsEditingSession(true);
+      setSessionMetadataError(null);
+      setSessionTopicDraft(target.topic || target.title || 'Session with Kip');
+      setSessionSummaryDraft(target.summary || '');
+    }
+  };
+
   const handleCreateSession = async () => {
     try {
       const session = await createSession();
@@ -448,17 +473,9 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       setSearchParams(next, { replace: true });
       setMessages([]);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to create session';
+      const message = formatApiError(err, 'Unable to create session');
       setMessagesError(message);
     }
-  };
-
-  const handleStartEditSession = () => {
-    if (!activeSession) return;
-    setIsEditingSession(true);
-    setSessionMetadataError(null);
-    setSessionTopicDraft(activeSession.topic || activeSession.title || 'Session with Kip');
-    setSessionSummaryDraft(activeSession.summary || '');
   };
 
   const handleCancelEditSession = () => {
@@ -685,7 +702,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                       isActive={session.id === activeSessionId}
                       variant="full"
                       onSelect={() => handleSessionSelect(session.id)}
-                      onEdit={session.id === activeSessionId ? handleStartEditSession : undefined}
+                      onEdit={() => handleEditSession(session.id)}
                     />
                   ))
                 )}

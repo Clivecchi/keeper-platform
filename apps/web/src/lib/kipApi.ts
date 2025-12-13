@@ -17,6 +17,27 @@ const pickErrorMessage = (response: any, fallback: string): string =>
   (typeof response?.error === 'string' ? response.error : response?.error?.message) ||
   fallback;
 
+type ApiErrorShape = Error & { status?: number; response?: Response; requestId?: string; data?: any };
+
+const enrichApiError = (error: unknown, fallback: string): ApiErrorShape => {
+  const err = error as ApiErrorShape;
+  const status = err?.status || (err as any)?.response?.status;
+  const requestId =
+    err?.requestId ||
+    (err as any)?.response?.headers?.get?.('x-request-id') ||
+    (err as any)?.response?.headers?.get?.('x-railway-request-id') ||
+    undefined;
+  const apiMessage = (err as any)?.data?.error?.message || (err as any)?.data?.message;
+  const message = err?.message || apiMessage || fallback;
+
+  const nextError: ApiErrorShape = new Error(message) as ApiErrorShape;
+  nextError.status = status;
+  nextError.requestId = requestId;
+  nextError.data = (err as any)?.data;
+  nextError.response = err?.response;
+  return nextError;
+};
+
 export type AgentClass = 'Standard' | 'Coordinator' | 'Lead' | 'Persona';
 export type ModelProvider = 'openai' | 'anthropic' | 'together' | 'elevenlabs';
 
@@ -583,24 +604,29 @@ export class KipApi {
    */
   static async createSession(agentId: string, userId?: string, sessionName?: string): Promise<KipSession> {
     try {
+      const payload = {
+        action: 'createSession',
+        agentId,
+        userId,
+        sessionName,
+      };
+
+      console.info?.('[KipApi] createSession payload', payload);
+
       const response = await apiFetch('/api/kip/agents', {
         method: 'POST',
-        body: JSON.stringify({
-          action: 'createSession',
-          agentId,
-          userId,
-          sessionName
-        })
+        body: JSON.stringify(payload)
       });
       
       if (response.success) {
         return response.data;
       }
       const message = pickErrorMessage(response, 'Failed to create session');
-      throw new Error(message);
+      throw enrichApiError(new Error(message), 'Failed to create session');
     } catch (error) {
-      console.error('Error creating session:', error);
-      throw error;
+      const enriched = enrichApiError(error, 'Failed to create session');
+      console.error('Error creating session:', enriched);
+      throw enriched;
     }
   }
 
@@ -657,10 +683,11 @@ export class KipApi {
         return response.data;
       }
       const message = pickErrorMessage(response, 'Failed to fetch session messages');
-      throw new Error(message);
+      throw enrichApiError(new Error(message), 'Failed to fetch session messages');
     } catch (error) {
-      console.error('Error fetching session messages:', error);
-      throw error;
+      const enriched = enrichApiError(error, 'Failed to fetch session messages');
+      console.error('Error fetching session messages:', enriched);
+      throw enriched;
     }
   }
 

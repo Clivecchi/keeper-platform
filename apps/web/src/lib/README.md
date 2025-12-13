@@ -27,6 +27,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2025-12-12 - KipApi createSession/messaging error enrichment
+- KipApi now logs create-session payloads for debugging, enriches thrown errors with HTTP status and request ids from headers, and surfaces backend error messages for create-session and message fetch failures.
+
 ### 2025-12-11 - Session metadata patch endpoint
 - Added `KipApi.updateSessionMetadata`, surfaced topic/summary/tag fields on `KipSession`, and aligned session creation defaults with the new topic column.
 

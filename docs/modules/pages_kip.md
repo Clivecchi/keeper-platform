@@ -17,6 +17,10 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - [ ] Replace Cockpit diagnostics placeholders with backend stats once exposed.
 
 ## 📆 Update Log
+### 2025-12-12 - New session payload + edit wiring + richer errors
+- Kip “New Session” now sends the expected `action=createSession` payload (with request id surfaced) and shows backend error details/status when creation fails.
+- Session cards now open the inline edit panel when clicking Edit, even before the session is active.
+- Dialogue/message errors also show HTTP status and request id when available.
 ### 2025-12-12 - Strict agent fetch + API error surfacing
 - Kip Agent fetch no longer falls back to mock data on API 4xx, preventing invalid agent IDs from reaching create-session. User-facing errors now surface the API message from session create/message fetch failures instead of generic 500 text.
 ### 2025-12-11 - Session topic/summary surface + edit
