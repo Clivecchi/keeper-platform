@@ -463,11 +463,18 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       setSessionTopicDraft(target.topic || target.title || 'Session with Kip');
       setSessionSummaryDraft(target.summary || '');
     }
+    KipApi.getSessionById(sessionId).catch((err) => {
+      const message = formatApiError(err, 'Unable to load session');
+      setSessionMetadataError(message);
+    });
   };
 
   const handleCreateSession = async () => {
     try {
-      const session = await createSession();
+      const session = await createSession(undefined, {
+        domainId: domainId || agentDomainId,
+        domainSlug: domainSlug || agentDomainSlug,
+      });
       const next = new URLSearchParams(searchParams);
       next.set('sessionId', session.id);
       setSearchParams(next, { replace: true });

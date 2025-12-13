@@ -97,14 +97,22 @@ export function useAgentSessions(agentId?: string | null) {
   }, [fetchSessions]);
 
   const handleCreateSession = useCallback(
-    async (sessionName?: string) => {
+    async (
+      sessionName?: string,
+      options: { domainId?: string | null; domainSlug?: string | null } = {},
+    ) => {
       if (!agentId) {
         throw new Error('Agent id is required to create a session');
       }
       setIsCreating(true);
       setError(null);
       try {
-        const session = await KipApi.createSession(agentId, undefined, sessionName || createFriendlySessionName());
+        const session = await KipApi.createSession(
+          agentId,
+          undefined,
+          sessionName || createFriendlySessionName(),
+          options,
+        );
         const normalized = normalizeSession(session);
         setSessions((prev) => [normalized, ...prev.filter((existing) => existing.id !== normalized.id)]);
         return normalized;

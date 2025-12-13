@@ -17,6 +17,10 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - [ ] Replace Cockpit diagnostics placeholders with backend stats once exposed.
 
 ## 📆 Update Log
+### 2025-12-13 - Session create instrumentation + domain payload + edit fetch
+- “New Session” logs URL/body and sends optional domainId/domainSlug so backend traces are clear.
+- Edit now triggers a session fetch on click (visible network activity) while opening the inline editor.
+- Error banners include HTTP status/request id for creation/message loads.
 ### 2025-12-12 - New session payload + edit wiring + richer errors
 - Kip “New Session” now sends the expected `action=createSession` payload (with request id surfaced) and shows backend error details/status when creation fails.
 - Session cards now open the inline edit panel when clicking Edit, even before the session is active.

@@ -955,6 +955,14 @@ function resolveAgentErrorCode(error: unknown): AgentErrorCode {
  */
 export default async function handler(req: Request, res: Response) {
   const requestId = (req.headers['x-request-id'] as string) || `kip-agents-${Date.now()}`;
+  const baseContext = {
+    requestId,
+    path: req.path,
+    method: req.method,
+    domainResolution: req.headers['x-domain-resolution'],
+    domainSlug: req.headers['x-domain-slug'] || req.headers['x-domain'],
+    origin: req.headers.origin,
+  };
   try {
     switch (req.method) {
       case 'GET':
@@ -968,9 +976,9 @@ export default async function handler(req: Request, res: Response) {
         // Get session messages
         if (messages === 'true') {
           console.info('[kip/agents] messages request', {
-            requestId,
+            ...baseContext,
             sessionId: querySessionId,
-            domainId: (req.query as any)?.domainId,
+            query: req.query,
           });
 
           if (!querySessionId || typeof querySessionId !== 'string') {
@@ -984,7 +992,7 @@ export default async function handler(req: Request, res: Response) {
           try {
             const sessionMessages = await KipAgentService.getSessionMemory(querySessionId);
             console.info('[kip/agents] messages success', {
-              requestId,
+              ...baseContext,
               sessionId: querySessionId,
               count: Array.isArray(sessionMessages) ? sessionMessages.length : null,
             });
@@ -993,7 +1001,7 @@ export default async function handler(req: Request, res: Response) {
             const message = error instanceof Error ? error.message : 'Failed to load session messages';
             const isNotFound = /not found/i.test(message);
             console.error('[kip/agents] messages error', {
-              requestId,
+              ...baseContext,
               sessionId: querySessionId,
               message,
               stack: error instanceof Error ? error.stack : undefined,
@@ -1013,6 +1021,7 @@ export default async function handler(req: Request, res: Response) {
         if (sessions === 'true') {
           // Basic logging for debugging session failures
           console.info('[kip/agents] sessions request', {
+            ...baseContext,
             queryAgentId,
             page,
             pageSize,
@@ -1127,6 +1136,12 @@ export default async function handler(req: Request, res: Response) {
       case 'POST':
         // Handle agent execution or creation
         const { action, agentId, input, userId, sessionId, sessionName, ...createData } = req.body;
+        console.info('[kip/agents] post request', {
+          ...baseContext,
+          action,
+          body: req.body,
+          query: req.query,
+        });
         
         if (action === 'run') {
           // Validate using Zod schema
@@ -1145,16 +1160,24 @@ export default async function handler(req: Request, res: Response) {
         
         if (action === 'createSession') {
           console.info('[kip/agents] createSession request', {
-            requestId,
+            ...baseContext,
             agentId,
             userId,
             sessionName,
             domainId: (req.body as any)?.domainId,
+            domainSlug: (req.body as any)?.domainSlug,
           });
 
           // Validate using Zod schema
           const validation = CreateSessionSchema.safeParse({ agentId, userId, sessionName });
           if (!validation.success) {
+            console.warn('[kip/agents] createSession validation failed', {
+              ...baseContext,
+              agentId,
+              userId,
+              sessionName,
+              issues: validation.error.errors,
+            });
             return res.status(400).json({ 
               success: false,
               message: 'Invalid request data',

@@ -27,6 +27,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2025-12-13 - KipApi session diagnostics + domain-aware payload
+- `createSession` now accepts optional domainId/domainSlug and logs URL/body before the call; errors include HTTP status/request id for session create/message fetch.
+
 ### 2025-12-12 - KipApi createSession/messaging error enrichment
 - KipApi now logs create-session payloads for debugging, enriches thrown errors with HTTP status and request ids from headers, and surfaces backend error messages for create-session and message fetch failures.
 

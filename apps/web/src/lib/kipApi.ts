@@ -602,16 +602,27 @@ export class KipApi {
   /**
    * Create a new session for an agent
    */
-  static async createSession(agentId: string, userId?: string, sessionName?: string): Promise<KipSession> {
+  static async createSession(
+    agentId: string,
+    userId?: string,
+    sessionName?: string,
+    options: { domainId?: string | null; domainSlug?: string | null } = {},
+  ): Promise<KipSession> {
     try {
       const payload = {
         action: 'createSession',
         agentId,
         userId,
         sessionName,
+        ...(options.domainId ? { domainId: options.domainId } : {}),
+        ...(options.domainSlug ? { domainSlug: options.domainSlug } : {}),
       };
 
-      console.info?.('[KipApi] createSession payload', payload);
+      console.info?.('[KipApi] createSession payload', {
+        url: '/api/kip/agents',
+        method: 'POST',
+        body: payload,
+      });
 
       const response = await apiFetch('/api/kip/agents', {
         method: 'POST',
