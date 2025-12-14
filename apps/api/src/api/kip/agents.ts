@@ -1154,16 +1154,23 @@ export default async function handler(req: Request, res: Response) {
       case 'POST':
         // Handle agent execution or creation
         const { action, agentId, input, userId: bodyUserId, sessionId, sessionName, ...createData } = req.body;
+        const resolvedUser = resolveUserId(req);
+        const requestUserId = bodyUserId ?? resolvedUser.userId;
+        const requestUserIdSource: UserIdSource | 'body' | undefined = bodyUserId
+          ? 'body'
+          : resolvedUser.source;
         console.info('[kip/agents] post request', {
           ...baseContext,
           action,
           body: req.body,
           query: req.query,
+          requestUserId,
+          requestUserIdSource,
         });
         
         if (action === 'run') {
           // Validate using Zod schema
-          const validation = AgentRunSchema.safeParse({ agentId, input, userId, sessionId });
+          const validation = AgentRunSchema.safeParse({ agentId, input, userId: requestUserId, sessionId });
           if (!validation.success) {
             return res.status(400).json({ 
               success: false, 
@@ -1172,7 +1179,7 @@ export default async function handler(req: Request, res: Response) {
             });
           }
           
-          const result = await KipAgentService.runAgent(agentId, input, userId, sessionId);
+          const result = await KipAgentService.runAgent(agentId, input, requestUserId, sessionId);
           return res.status(200).json({ success: true, data: result });
         }
         
@@ -1242,7 +1249,7 @@ export default async function handler(req: Request, res: Response) {
             console.error('[kip/agents] createSession error', {
               requestId,
               agentId,
-              userId,
+              userId: derivedUserId,
               sessionName,
               message,
               stack: error instanceof Error ? error.stack : undefined,
