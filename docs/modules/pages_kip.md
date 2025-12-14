@@ -17,6 +17,9 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - [ ] Replace Cockpit diagnostics placeholders with backend stats once exposed.
 
 ## 📆 Update Log
+### 2025-12-14 - Dialogue Debug Brief + auth context
+- Debug Mode now shows auth context presence (user/auth/kam keys, authz header) and adds a Debug Brief generator with symptom capture and copy buttons.
+- Agent prompt gains a Debug Investigator Lens when Debug Mode is on to request concise evidence-focused replies.
 ### 2025-12-12 - Dialogue debug mode V01
 - Added session-scoped Dialogue Debug Mode toggle plus drawer with recent request capture and copy-to-clipboard bundle (redacted headers, last 50 requests).
 - Debug drawer surfaces agent/session/domain context and highlights recent failures for Kip sessions.

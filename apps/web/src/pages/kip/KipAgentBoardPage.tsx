@@ -11,6 +11,8 @@ import { apiFetch, API_BASE } from '../../lib/api';
 
 type AgentBoardTab = 'dialogue' | 'cockpit' | 'sessions';
 type DialogueMode = 'normal' | 'debug';
+const DEBUG_LENS_INSTRUCTION =
+  'Debug Investigator Lens: prioritize evidence (requests, status, payload summary), highlight auth/context hints, propose next actions; keep responses concise; avoid large dumps.';
 
 type DebugEntry = {
   id: string;
@@ -43,6 +45,16 @@ type DebugSummary = {
   agentId?: string | null;
   sessionId?: string | null;
   domainSlug?: string | null;
+};
+
+type AuthContextPresence = {
+  hasUser: boolean;
+  hasAuth: boolean;
+  hasKam: boolean;
+  userKeys: string[];
+  authKeys: string[];
+  kamKeys: string[];
+  authorizationHeaderPresent: boolean;
 };
 
 interface DialogueMetaItem {
@@ -340,6 +352,8 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const [dialogueMode, setDialogueMode] = useState<DialogueMode>('normal');
   const [debugEntries, setDebugEntries] = useState<DebugEntry[]>([]);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
+  const [debugSymptom, setDebugSymptom] = useState<string>('');
+  const [briefStatus, setBriefStatus] = useState<string | null>(null);
 
   const activeTab = (searchParams.get('view') as AgentBoardTab) ?? 'dialogue';
   const debugEnabled = dialogueMode === 'debug';
@@ -569,6 +583,50 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     }
   };
 
+  const dialogueMeta = useMemo<DialogueMetaItem[]>(
+    () => [
+      { label: 'Model', value: agent?.model_settings?.model || agent?.model || 'gpt-4o' },
+      { label: 'Memory', value: agent?.memory_enabled ? 'SOLE' : 'Off' },
+      { label: 'Scope', value: scopeLabel },
+    ],
+    [agent, scopeLabel],
+  );
+
+  const debugSummary = useMemo<DebugSummary>(
+    () => ({
+      origin: typeof window !== 'undefined' ? window.location.origin : '',
+      apiBase: API_BASE || 'https://api.ke3p.com',
+      agentId: agent?.id ?? null,
+      sessionId: activeSessionId,
+      domainSlug: domainSlug || agentDomainSlug || null,
+    }),
+    [agent?.id, activeSessionId, domainSlug, agentDomainSlug],
+  );
+
+  const authContextKeysPresent = useMemo<AuthContextPresence>(() => {
+    const safeKeys = (obj: unknown) => (obj && typeof obj === 'object' ? Object.keys(obj as any) : []);
+    const keeper = typeof window !== 'undefined' ? (window as any).__keeper || {} : {};
+    const user = (typeof window !== 'undefined' && (window as any).user) || keeper.user;
+    const auth = typeof window !== 'undefined' ? (keeper as any).auth || (window as any).__keeperAuth || (window as any).auth : undefined;
+    const kam = typeof window !== 'undefined' ? (keeper as any).kam || (window as any).kam : undefined;
+    const authorizationHeaderPresent = debugEntries.some((entry) =>
+      Boolean(
+        entry.request?.headers &&
+          Object.keys(entry.request.headers).some((key) => key.toLowerCase() === 'authorization'),
+      ),
+    );
+
+    return {
+      hasUser: Boolean(user),
+      hasAuth: Boolean(auth),
+      hasKam: Boolean(kam),
+      userKeys: safeKeys(user),
+      authKeys: safeKeys(auth),
+      kamKeys: safeKeys(kam),
+      authorizationHeaderPresent,
+    };
+  }, [debugEntries]);
+
   const handleClearDebugBundle = useCallback(() => {
     setDebugEntries([]);
     try {
@@ -588,6 +646,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       sessionId: activeSessionId,
       domainId: domainId || agentDomainId,
       domainSlug: domainSlug || agentDomainSlug || null,
+      authContextKeysPresent,
       entries: debugEntries.map((entry) => redactDebugEntry(entry)),
     };
 
@@ -614,7 +673,50 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     dialogueMode,
     domainId,
     domainSlug,
+    authContextKeysPresent,
   ]);
+
+  const handleCopyDebugBrief = useCallback(async () => {
+    const latest = [...debugEntries].reverse().find((entry) => isErrorStatus(entry.status) || entry.error) ||
+      debugEntries[debugEntries.length - 1];
+    if (!latest) {
+      setBriefStatus('No entries');
+      setTimeout(() => setBriefStatus(null), 1500);
+      return;
+    }
+
+    const headers = latest.response?.headers;
+    const requestBody = latest.request?.body && typeof latest.request.body === 'object' ? (latest.request.body as any) : undefined;
+    const requestId =
+      getHeader(headers, 'x-request-id') ||
+      getHeader(headers, 'x-railway-request-id') ||
+      getHeader(headers, 'x-ke3p-request-id');
+    const brief = buildDebugBrief({
+      userSymptom: debugSymptom.trim() || undefined,
+      request: latest,
+      response: latest,
+      error: latest.error,
+      context: {
+        summary: debugSummary,
+        auth: authContextKeysPresent,
+        requestId,
+        action: requestBody?.action || null,
+        domainId: (headers && (getHeader(headers, 'x-domain-id') || getHeader(headers, 'x-domain'))) || requestBody?.domainId || null,
+        userId: requestBody?.userId || null,
+      },
+    });
+
+    try {
+      if (!(navigator as any)?.clipboard?.writeText) throw new Error('Clipboard not available');
+      await navigator.clipboard.writeText(brief);
+      setBriefStatus('Brief copied');
+    } catch (err) {
+      console.error('Failed to copy debug brief', err);
+      setBriefStatus('Copy failed');
+    } finally {
+      setTimeout(() => setBriefStatus(null), 1800);
+    }
+  }, [authContextKeysPresent, debugEntries, debugSummary, debugSymptom]);
 
   const handleSendMessage = async (event?: React.FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
@@ -623,6 +725,10 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     }
 
     const content = inputValue.trim();
+    const contentToSend =
+      dialogueMode === 'debug'
+        ? `${DEBUG_LENS_INSTRUCTION}\n\n${content}`
+        : content;
     const optimisticMessage: AgentDialogueMessage = {
       id: `local-${Date.now()}`,
       role: 'user',
@@ -635,7 +741,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     setMessagesError(null);
 
     try {
-      const result = await KipApi.runAgent(agent.id, content, undefined, activeSessionId);
+      const result = await KipApi.runAgent(agent.id, contentToSend, undefined, activeSessionId);
       const sessionIdFromResponse =
         (result as any)?.data?.data?.session_id || (result as any)?.session_id || null;
 
@@ -655,26 +761,6 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       setIsSending(false);
     }
   };
-
-  const dialogueMeta = useMemo<DialogueMetaItem[]>(
-    () => [
-      { label: 'Model', value: agent?.model_settings?.model || agent?.model || 'gpt-4o' },
-      { label: 'Memory', value: agent?.memory_enabled ? 'SOLE' : 'Off' },
-      { label: 'Scope', value: scopeLabel },
-    ],
-    [agent, scopeLabel],
-  );
-
-  const debugSummary = useMemo<DebugSummary>(
-    () => ({
-      origin: typeof window !== 'undefined' ? window.location.origin : '',
-      apiBase: API_BASE || 'https://api.ke3p.com',
-      agentId: agent?.id ?? null,
-      sessionId: activeSessionId,
-      domainSlug: domainSlug || agentDomainSlug || null,
-    }),
-    [agent?.id, activeSessionId, domainSlug, agentDomainSlug],
-  );
 
   if (agentError) {
     return (
@@ -797,6 +883,11 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                 onCopy={handleCopyDebugBundle}
                 onClear={handleClearDebugBundle}
                 copyStatus={copyStatus}
+                authContext={authContextKeysPresent}
+                symptom={debugSymptom}
+                onSymptomChange={setDebugSymptom}
+                onCopyBrief={handleCopyDebugBrief}
+                briefStatus={briefStatus}
               />
             )}
           </div>
@@ -1165,7 +1256,12 @@ const DebugDrawer: React.FC<{
   onCopy: () => void | Promise<void>;
   onClear: () => void;
   copyStatus: string | null;
-}> = ({ entries, summary, onCopy, onClear, copyStatus }) => {
+  authContext: AuthContextPresence;
+  symptom: string;
+  onSymptomChange: (value: string) => void;
+  onCopyBrief: () => void | Promise<void>;
+  briefStatus: string | null;
+}> = ({ entries, summary, onCopy, onClear, copyStatus, authContext, symptom, onSymptomChange, onCopyBrief, briefStatus }) => {
   const failures = entries.filter((entry) => isErrorStatus(entry.status) || entry.error);
   const recent = [...entries].slice(-8).reverse();
 
@@ -1177,7 +1273,18 @@ const DebugDrawer: React.FC<{
           <p className="text-xs text-blue-700">Capturing last {entries.length || 0} requests (session only)</p>
         </div>
         <div className="flex items-center gap-2">
-          {copyStatus && <span className="text-xs font-semibold text-emerald-700">{copyStatus}</span>}
+          {(copyStatus || briefStatus) && (
+            <span className="text-xs font-semibold text-emerald-700">
+              {copyStatus || briefStatus}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onCopyBrief}
+            className="rounded-full bg-gray-900 px-3 py-1 text-xs font-semibold text-white hover:bg-gray-800"
+          >
+            Copy Debug Brief
+          </button>
           <button
             type="button"
             onClick={onCopy}
@@ -1193,6 +1300,20 @@ const DebugDrawer: React.FC<{
             Clear
           </button>
         </div>
+      </div>
+
+      <div className="mt-3 grid gap-2 text-xs text-blue-900 sm:grid-cols-3">
+        <div className="sm:col-span-2 rounded-xl border border-blue-100 bg-white/70 p-3">
+          <p className="text-[11px] font-semibold text-blue-900">Symptom (optional)</p>
+          <textarea
+            rows={2}
+            value={symptom}
+            onChange={(e) => onSymptomChange(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-blue-100 bg-white px-2 py-1 text-[11px] text-blue-900 focus:border-blue-300 focus:outline-none focus:ring-1 focus:ring-blue-200"
+            placeholder="What happened? (e.g., New Session 400 from kip_sessions_user_id_fkey)"
+          />
+        </div>
+        <DebugContextPanel authContext={authContext} />
       </div>
 
       <div className="mt-3 grid gap-2 text-xs text-blue-900 sm:grid-cols-2">
@@ -1280,6 +1401,29 @@ const DebugSummaryRow: React.FC<{ label: string; value: string }> = ({ label, va
   <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-white/70 px-2 py-1">
     <span className="text-[11px] font-semibold text-blue-900">{label}</span>
     <span className="truncate text-[11px] text-blue-800">{value}</span>
+  </div>
+);
+
+const DebugContextPanel: React.FC<{ authContext: AuthContextPresence }> = ({ authContext }) => (
+  <div className="rounded-xl border border-blue-100 bg-white/70 p-3">
+    <p className="text-[11px] font-semibold text-blue-900">Context</p>
+    <div className="mt-1 grid grid-cols-2 gap-1 text-[11px] text-blue-800">
+      <span>User</span>
+      <span className="text-right font-semibold">{authContext.hasUser ? 'yes' : 'no'}</span>
+      <span>Auth</span>
+      <span className="text-right font-semibold">{authContext.hasAuth ? 'yes' : 'no'}</span>
+      <span>KAM</span>
+      <span className="text-right font-semibold">{authContext.hasKam ? 'yes' : 'no'}</span>
+      <span>Authz header</span>
+      <span className="text-right font-semibold">
+        {authContext.authorizationHeaderPresent ? 'present' : 'missing'}
+      </span>
+    </div>
+    <div className="mt-2 space-y-1 text-[11px] text-blue-700">
+      <div>user keys: {authContext.userKeys.join(', ') || '—'}</div>
+      <div>auth keys: {authContext.authKeys.join(', ') || '—'}</div>
+      <div>kam keys: {authContext.kamKeys.join(', ') || '—'}</div>
+    </div>
   </div>
 );
 
@@ -1461,6 +1605,13 @@ const formatPath = (url: string): string => {
   }
 };
 
+const getHeader = (headers: Record<string, string> | undefined, name: string): string | undefined => {
+  if (!headers) return undefined;
+  const target = name.toLowerCase();
+  const found = Object.entries(headers).find(([key]) => key.toLowerCase() === target);
+  return found?.[1];
+};
+
 const stringifyDebugBody = (body: unknown): string => {
   if (body == null) return 'null';
   if (typeof body === 'string') return body;
@@ -1509,6 +1660,68 @@ const redactDebugEntry = (entry: DebugEntry): DebugEntry => {
 
 const isErrorStatus = (status: number | null | undefined): boolean =>
   typeof status === 'number' ? status >= 400 : false;
+
+type DebugBriefInput = {
+  userSymptom?: string;
+  request?: Pick<DebugEntry, 'method' | 'url' | 'timestamp' | 'request'>;
+  response?: Pick<DebugEntry, 'status' | 'response' | 'durationMs'>;
+  error?: DebugEntry['error'];
+  context: {
+    summary: DebugSummary;
+    auth: AuthContextPresence;
+    requestId?: string | null;
+    action?: string | null;
+    domainId?: string | null;
+    userId?: string | null;
+  };
+};
+
+const truncateValue = (value: string | null | undefined, limit: number): string => {
+  if (!value) return '';
+  return value.length > limit ? `${value.slice(0, limit)}…` : value;
+};
+
+const buildDebugBrief = ({
+  userSymptom,
+  request,
+  response,
+  error,
+  context,
+}: DebugBriefInput): string => {
+  const lines: string[] = [];
+  const summaryBullets = [
+    userSymptom ? `• Symptom: ${truncateValue(userSymptom, 160)}` : null,
+    request ? `• Request: ${request.method || '—'} ${formatPath(request.url || '')}` : null,
+    response ? `• Status: ${response.status ?? '—'} (${response.durationMs ?? '—'}ms)` : null,
+  ].filter(Boolean);
+
+  const evidenceParts = [
+    context.requestId ? `requestId=${context.requestId}` : null,
+    context.action ? `action=${context.action}` : null,
+    context.summary.agentId ? `agentId=${context.summary.agentId}` : null,
+    context.summary.domainSlug ? `domain=${context.summary.domainSlug}` : null,
+    context.summary.sessionId ? `session=${context.summary.sessionId}` : null,
+    context.userId ? `userId=${context.userId}` : null,
+    `auth: user=${context.auth.hasUser ? 'yes' : 'no'}, auth=${context.auth.hasAuth ? 'yes' : 'no'}, kam=${context.auth.hasKam ? 'yes' : 'no'}, authzHdr=${context.auth.authorizationHeaderPresent ? 'yes' : 'no'}`,
+  ].filter(Boolean);
+
+  const errorSection = error
+    ? `code=${truncateValue(error.message || 'error', 200)}`
+    : response?.status && response.status >= 400
+      ? `status=${response.status}`
+      : 'none observed';
+
+  const briefSections = [
+    `Summary\n${summaryBullets.length ? summaryBullets.join('\n') : '• Pending symptom'}`,
+    `Evidence\n- ${evidenceParts.join('\n- ') || 'No evidence captured'}`,
+    `Error\n- ${errorSection}`,
+    'Probable Cause\nLikely auth/context resolution issue or invalid payload; verify user context, domain headers, and session creation payload.',
+    'Next Actions\n- Reproduce with Debug Mode on\n- Check requestId in logs\n- Confirm user/session/domain headers\n- Inspect backend validation for createSession\n- Re-run after fixing auth context\n- Capture updated debug bundle',
+  ];
+
+  const brief = briefSections.join('\n\n');
+  return brief.length > 2000 ? `${brief.slice(0, 1995)}…` : brief;
+};
 
 const AgentHeader: React.FC<{
   agent: KipAgent | null;
