@@ -30,6 +30,8 @@ The fetch shim:
 - [ ] Currently catches both apiFetch and raw fetch calls for safety
 
 ## 📆 Update Log
+**2025-12-12**: Added debug capture hooks for Dialogue Debug Mode (window.__keeperDebug with redacted request/response snapshots, max 50 entries).
+
 **2025-10-11**: Enforced cookie-only auth for web browsers - strips Authorization headers in PROD, added VITE_ALLOW_HEADER_AUTH flag, auto-cleanup of dev tokens
 
 **2025-10-06**: Created fetch-shim.ts with comprehensive fetch interception and auth injection

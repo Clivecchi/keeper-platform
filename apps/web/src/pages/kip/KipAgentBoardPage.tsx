@@ -7,9 +7,43 @@ import { KipApi, KipAgent, KipMessage } from '../../lib/kipApi';
 import { AgentConversationSession, useAgentSessions } from '../../hooks/useAgentSessions';
 import { LinkedCard } from '../../components/props/LinkedCard';
 import type { LinkedCardProps } from '../../types/props';
-import { apiFetch } from '../../lib/api';
+import { apiFetch, API_BASE } from '../../lib/api';
 
 type AgentBoardTab = 'dialogue' | 'cockpit' | 'sessions';
+type DialogueMode = 'normal' | 'debug';
+
+type DebugEntry = {
+  id: string;
+  timestamp: string;
+  method: string;
+  url: string;
+  status: number | null;
+  durationMs: number | null;
+  request?: {
+    headers?: Record<string, string>;
+    body?: unknown;
+    authHeaderStripped?: string;
+  };
+  response?: {
+    status?: number | null;
+    headers?: Record<string, string>;
+    body?: unknown;
+  };
+  error?: {
+    message?: string;
+    stack?: string;
+  };
+  domainSlug?: string | null;
+  domainResolution?: string | null;
+};
+
+type DebugSummary = {
+  origin: string;
+  apiBase: string;
+  agentId?: string | null;
+  sessionId?: string | null;
+  domainSlug?: string | null;
+};
 
 interface DialogueMetaItem {
   label: string;
@@ -303,8 +337,12 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const [sessionTopicDraft, setSessionTopicDraft] = useState<string>('');
   const [sessionSummaryDraft, setSessionSummaryDraft] = useState<string>('');
   const [sessionMetadataError, setSessionMetadataError] = useState<string | null>(null);
+  const [dialogueMode, setDialogueMode] = useState<DialogueMode>('normal');
+  const [debugEntries, setDebugEntries] = useState<DebugEntry[]>([]);
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
   const activeTab = (searchParams.get('view') as AgentBoardTab) ?? 'dialogue';
+  const debugEnabled = dialogueMode === 'debug';
 
   const {
     sessions,
@@ -361,6 +399,32 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       setSearchParams(next, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const debugGlobal = ((window as any).__keeperDebug = (window as any).__keeperDebug || {});
+    debugGlobal.maxEntries = debugGlobal.maxEntries || 50;
+    debugGlobal.enabled = debugEnabled;
+    if (debugEnabled && Array.isArray(debugGlobal.entries)) {
+      setDebugEntries(debugGlobal.entries as DebugEntry[]);
+    }
+
+    const handleEntry = (event: Event) => {
+      if (!debugEnabled) return;
+      const detail = (event as CustomEvent<DebugEntry>).detail;
+      if (!detail) return;
+      setDebugEntries((prev) => [...prev.slice(-49), detail]);
+    };
+    const handleClear = () => setDebugEntries([]);
+
+    window.addEventListener('keeper:debug-fetch', handleEntry as EventListener);
+    window.addEventListener('keeper:debug-clear', handleClear as EventListener);
+
+    return () => {
+      window.removeEventListener('keeper:debug-fetch', handleEntry as EventListener);
+      window.removeEventListener('keeper:debug-clear', handleClear as EventListener);
+    };
+  }, [debugEnabled]);
 
   useEffect(() => {
     if (sessions.length && !querySessionId) {
@@ -505,6 +569,53 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     }
   };
 
+  const handleClearDebugBundle = useCallback(() => {
+    setDebugEntries([]);
+    try {
+      (window as any).__keeperDebug?.clear?.();
+    } catch {}
+  }, []);
+
+  const handleCopyDebugBundle = useCallback(async () => {
+    const safeBundle = {
+      timestamp: new Date().toISOString(),
+      mode: dialogueMode,
+      url: typeof window !== 'undefined' ? window.location.href : '',
+      origin: typeof window !== 'undefined' ? window.location.origin : '',
+      apiBase: API_BASE || 'https://api.ke3p.com',
+      agentId: agent?.id ?? null,
+      agentSlug: agent?.slug ?? agentSlug ?? null,
+      sessionId: activeSessionId,
+      domainId: domainId || agentDomainId,
+      domainSlug: domainSlug || agentDomainSlug || null,
+      entries: debugEntries.map((entry) => redactDebugEntry(entry)),
+    };
+
+    try {
+      if (!(navigator as any)?.clipboard?.writeText) {
+        throw new Error('Clipboard not available');
+      }
+      await navigator.clipboard.writeText(JSON.stringify(safeBundle, null, 2));
+      setCopyStatus('Copied');
+    } catch (err) {
+      console.error('Failed to copy debug bundle', err);
+      setCopyStatus('Copy failed');
+    } finally {
+      setTimeout(() => setCopyStatus(null), 1800);
+    }
+  }, [
+    activeSessionId,
+    agent?.id,
+    agent?.slug,
+    agentDomainId,
+    agentDomainSlug,
+    agentSlug,
+    debugEntries,
+    dialogueMode,
+    domainId,
+    domainSlug,
+  ]);
+
   const handleSendMessage = async (event?: React.FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     if (!agent?.id || !activeSessionId || !inputValue.trim() || isSending) {
@@ -554,6 +665,17 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     [agent, scopeLabel],
   );
 
+  const debugSummary = useMemo<DebugSummary>(
+    () => ({
+      origin: typeof window !== 'undefined' ? window.location.origin : '',
+      apiBase: API_BASE || 'https://api.ke3p.com',
+      agentId: agent?.id ?? null,
+      sessionId: activeSessionId,
+      domainSlug: domainSlug || agentDomainSlug || null,
+    }),
+    [agent?.id, activeSessionId, domainSlug, agentDomainSlug],
+  );
+
   if (agentError) {
     return (
       <div className="space-y-6">
@@ -574,6 +696,8 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
         scopeLabel={scopeLabel}
         sessionId={activeSessionId}
         dialogueMeta={dialogueMeta}
+        dialogueMode={dialogueMode}
+        onDialogueModeChange={setDialogueMode}
       />
 
       <AgentBoardTabs activeTab={activeTab} onChange={handleTabChange} />
@@ -666,6 +790,15 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                 )}
               </div>
             </FrameCard>
+            {dialogueMode === 'debug' && (
+              <DebugDrawer
+                entries={debugEntries}
+                summary={debugSummary}
+                onCopy={handleCopyDebugBundle}
+                onClear={handleClearDebugBundle}
+                copyStatus={copyStatus}
+              />
+            )}
           </div>
         </div>
       )}
@@ -995,6 +1128,161 @@ const DialogueMessageList: React.FC<{
   </div>
 );
 
+const DialogueModeToggle: React.FC<{
+  mode: DialogueMode;
+  onChange: (mode: DialogueMode) => void;
+}> = ({ mode, onChange }) => (
+  <div className="flex items-center gap-1 rounded-full border border-[#E6DED5] bg-white px-2 py-1 text-xs shadow-sm">
+    <span className="px-1 text-gray-600">Mode</span>
+    <button
+      type="button"
+      onClick={() => onChange('normal')}
+      className={clsx(
+        'rounded-full px-3 py-1 font-semibold transition-colors',
+        mode === 'normal' ? 'bg-[#C96E59] text-white shadow-sm' : 'text-gray-600 hover:text-[#C96E59]',
+      )}
+      aria-pressed={mode === 'normal'}
+    >
+      Normal
+    </button>
+    <button
+      type="button"
+      onClick={() => onChange('debug')}
+      className={clsx(
+        'rounded-full px-3 py-1 font-semibold transition-colors',
+        mode === 'debug' ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900',
+      )}
+      aria-pressed={mode === 'debug'}
+    >
+      Debug
+    </button>
+  </div>
+);
+
+const DebugDrawer: React.FC<{
+  entries: DebugEntry[];
+  summary: DebugSummary;
+  onCopy: () => void | Promise<void>;
+  onClear: () => void;
+  copyStatus: string | null;
+}> = ({ entries, summary, onCopy, onClear, copyStatus }) => {
+  const failures = entries.filter((entry) => isErrorStatus(entry.status) || entry.error);
+  const recent = [...entries].slice(-8).reverse();
+
+  return (
+    <div className="rounded-2xl border border-blue-200 bg-blue-50/80 p-4 shadow-inner">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-blue-900">Debug Mode</p>
+          <p className="text-xs text-blue-700">Capturing last {entries.length || 0} requests (session only)</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {copyStatus && <span className="text-xs font-semibold text-emerald-700">{copyStatus}</span>}
+          <button
+            type="button"
+            onClick={onCopy}
+            className="rounded-full bg-blue-900 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-800"
+          >
+            Copy Bundle
+          </button>
+          <button
+            type="button"
+            onClick={onClear}
+            className="rounded-full border border-blue-200 px-3 py-1 text-xs font-semibold text-blue-800 hover:border-blue-400"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-2 text-xs text-blue-900 sm:grid-cols-2">
+        <DebugSummaryRow label="Origin" value={summary.origin || '—'} />
+        <DebugSummaryRow label="API Base" value={summary.apiBase || '—'} />
+        <DebugSummaryRow label="Agent ID" value={summary.agentId || '—'} />
+        <DebugSummaryRow label="Session ID" value={summary.sessionId || '—'} />
+        <DebugSummaryRow label="Domain" value={summary.domainSlug || '—'} />
+      </div>
+
+      {failures.length > 0 && (
+        <div className="mt-3 rounded-xl border border-red-200 bg-white/70 p-3">
+          <p className="text-xs font-semibold text-red-700">Recent failures</p>
+          <ul className="mt-1 space-y-1 text-xs text-red-800">
+            {failures.slice(-5).reverse().map((entry) => (
+              <li key={entry.id}>
+                {entry.method} {formatPath(entry.url)} → {entry.status ?? '—'}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-3 space-y-2">
+        {recent.length === 0 ? (
+          <p className="text-xs text-blue-800">Requests will appear here while Debug Mode is on.</p>
+        ) : (
+          recent.map((entry) => <DebugRequestRow key={entry.id} entry={entry} />)
+        )}
+      </div>
+    </div>
+  );
+};
+
+const DebugRequestRow: React.FC<{ entry: DebugEntry }> = ({ entry }) => {
+  const path = formatPath(entry.url);
+  const statusText = entry.status ?? '—';
+  const isError = isErrorStatus(entry.status) || Boolean(entry.error);
+  const duration = entry.durationMs != null ? `${entry.durationMs}ms` : '—';
+
+  return (
+    <details className="group rounded-xl border border-blue-100 bg-white/80 px-3 py-2 text-xs text-gray-800 shadow-sm">
+      <summary className="flex cursor-pointer items-center gap-2 text-sm leading-5 text-gray-900">
+        <span className="font-mono text-[11px] uppercase text-blue-900">{entry.method}</span>
+        <span className="flex-1 truncate text-xs text-gray-700">{path}</span>
+        <span className={clsx('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold', isError ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800')}>
+          {statusText}
+        </span>
+      </summary>
+      <div className="mt-2 space-y-2">
+        <div className="grid grid-cols-2 gap-2 text-[11px] text-gray-600">
+          <span>Started: {entry.timestamp}</span>
+          <span className="text-right">Duration: {duration}</span>
+          {entry.domainSlug && <span>Domain: {entry.domainSlug}</span>}
+          {entry.domainResolution && <span className="text-right">Resolution: {entry.domainResolution}</span>}
+        </div>
+        {entry.error && (
+          <div className="rounded border border-red-100 bg-red-50 p-2 text-[11px] text-red-800">
+            <p className="font-semibold">Error</p>
+            <p>{entry.error.message}</p>
+          </div>
+        )}
+        {entry.request?.body !== undefined && (
+          <div>
+            <p className="font-semibold text-gray-800">Request</p>
+            <pre className="mt-1 max-h-40 overflow-auto rounded bg-gray-900/5 p-2 text-[11px] leading-tight text-gray-900">
+{stringifyDebugBody(entry.request.body)}
+            </pre>
+          </div>
+        )}
+        {entry.response?.body !== undefined && (
+          <div>
+            <p className="font-semibold text-gray-800">Response</p>
+            <pre className="mt-1 max-h-40 overflow-auto rounded bg-gray-900/5 p-2 text-[11px] leading-tight text-gray-900">
+{stringifyDebugBody(entry.response.body)}
+            </pre>
+          </div>
+        )}
+      </div>
+    </details>
+  );
+};
+
+const DebugSummaryRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-white/70 px-2 py-1">
+    <span className="text-[11px] font-semibold text-blue-900">{label}</span>
+    <span className="truncate text-[11px] text-blue-800">{value}</span>
+  </div>
+);
+
 const CockpitPanel: React.FC<{
   agent: KipAgent | null;
   sessions: AgentConversationSession[];
@@ -1164,6 +1452,64 @@ const formatRelative = (value: string): string => {
 
 const shortId = (id: string): string => id.slice(0, 6).toUpperCase();
 
+const formatPath = (url: string): string => {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return url;
+  }
+};
+
+const stringifyDebugBody = (body: unknown): string => {
+  if (body == null) return 'null';
+  if (typeof body === 'string') return body;
+  try {
+    return JSON.stringify(body, null, 2);
+  } catch {
+    return String(body);
+  }
+};
+
+const redactValue = (value: string): string =>
+  value
+    .replace(/authorization:[^\n]+/gi, 'authorization:<redacted>')
+    .replace(/bearer\s+[a-z0-9._-]+/gi, 'bearer <redacted>')
+    .replace(/keeper_session=[^;]+/gi, 'keeper_session=<redacted>');
+
+const redactHeadersRecord = (headers?: Record<string, string>) => {
+  if (!headers) return headers;
+  return Object.entries(headers).reduce<Record<string, string>>((acc, [key, value]) => {
+    const k = key.toLowerCase();
+    if (k === 'authorization' || k === 'cookie') {
+      acc[key] = '<redacted>';
+    } else {
+      acc[key] = redactValue(value);
+    }
+    return acc;
+  }, {});
+};
+
+const redactDebugEntry = (entry: DebugEntry): DebugEntry => {
+  const clone: DebugEntry = JSON.parse(JSON.stringify(entry));
+  if (clone.request?.headers) {
+    clone.request.headers = redactHeadersRecord(clone.request.headers);
+  }
+  if (clone.response?.headers) {
+    clone.response.headers = redactHeadersRecord(clone.response.headers);
+  }
+  if (typeof clone.request?.body === 'string') {
+    clone.request.body = redactValue(clone.request.body);
+  }
+  if (typeof clone.response?.body === 'string') {
+    clone.response.body = redactValue(clone.response.body);
+  }
+  return clone;
+};
+
+const isErrorStatus = (status: number | null | undefined): boolean =>
+  typeof status === 'number' ? status >= 400 : false;
+
 const AgentHeader: React.FC<{
   agent: KipAgent | null;
   domainSlug?: string;
@@ -1171,7 +1517,18 @@ const AgentHeader: React.FC<{
   scopeLabel: string;
   sessionId: string | null;
   dialogueMeta: DialogueMetaItem[];
-}> = ({ agent, domainSlug, contextLabel, scopeLabel, sessionId, dialogueMeta }) => {
+  dialogueMode: DialogueMode;
+  onDialogueModeChange: (mode: DialogueMode) => void;
+}> = ({
+  agent,
+  domainSlug,
+  contextLabel,
+  scopeLabel,
+  sessionId,
+  dialogueMeta,
+  dialogueMode,
+  onDialogueModeChange,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const agentName = agent?.name || 'Kip';
   const roleText = domainSlug ? `Lead Agent for ${domainSlug}` : contextLabel;
@@ -1188,58 +1545,61 @@ const AgentHeader: React.FC<{
         </div>
         <p className="text-sm text-gray-600">{roleText}</p>
       </div>
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setIsOpen((prev) => !prev)}
-          className="inline-flex items-center gap-2 rounded-full border border-[#E6DED5] bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:border-[#C96E59] hover:text-[#C96E59]"
-          title="Agent mechanics"
-        >
-          <Cog6ToothIcon className="h-4 w-4" />
-          Config
-        </button>
-        {isOpen && (
-          <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-[#E6DED5] bg-white p-4 shadow-lg z-20">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">Agent configuration</h3>
-            <dl className="space-y-2 text-sm text-gray-700">
-              <div className="flex justify-between gap-2">
-                <dt className="text-gray-500">Model</dt>
-                <dd className="font-semibold">
-                  {agent?.model_settings?.model || agent?.model || '—'}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt className="text-gray-500">Memory</dt>
-                <dd className="font-semibold">{agent?.memory_enabled ? 'SOLE' : 'Off'}</dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt className="text-gray-500">Scope</dt>
-                <dd className="font-semibold">{scopeLabel}</dd>
-              </div>
-              {sessionId && (
+      <div className="flex flex-wrap items-center gap-3">
+        <DialogueModeToggle mode={dialogueMode} onChange={onDialogueModeChange} />
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsOpen((prev) => !prev)}
+            className="inline-flex items-center gap-2 rounded-full border border-[#E6DED5] bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:border-[#C96E59] hover:text-[#C96E59]"
+            title="Agent mechanics"
+          >
+            <Cog6ToothIcon className="h-4 w-4" />
+            Config
+          </button>
+          {isOpen && (
+            <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-[#E6DED5] bg-white p-4 shadow-lg z-20">
+              <h3 className="text-sm font-semibold text-gray-900 mb-2">Agent configuration</h3>
+              <dl className="space-y-2 text-sm text-gray-700">
                 <div className="flex justify-between gap-2">
-                  <dt className="text-gray-500">Session</dt>
-                  <dd className="font-semibold">{shortId(sessionId)}</dd>
+                  <dt className="text-gray-500">Model</dt>
+                  <dd className="font-semibold">
+                    {agent?.model_settings?.model || agent?.model || '—'}
+                  </dd>
                 </div>
-              )}
-              <div className="flex justify-between gap-2">
-                <dt className="text-gray-500">Agent ID</dt>
-                <dd className="font-mono text-xs text-gray-600 truncate max-w-[10rem]">
-                  {agent?.id || '—'}
-                </dd>
+                <div className="flex justify-between gap-2">
+                  <dt className="text-gray-500">Memory</dt>
+                  <dd className="font-semibold">{agent?.memory_enabled ? 'SOLE' : 'Off'}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt className="text-gray-500">Scope</dt>
+                  <dd className="font-semibold">{scopeLabel}</dd>
+                </div>
+                {sessionId && (
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-gray-500">Session</dt>
+                    <dd className="font-semibold">{shortId(sessionId)}</dd>
+                  </div>
+                )}
+                <div className="flex justify-between gap-2">
+                  <dt className="text-gray-500">Agent ID</dt>
+                  <dd className="font-mono text-xs text-gray-600 truncate max-w-[10rem]">
+                    {agent?.id || '—'}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt className="text-gray-500">Slug</dt>
+                  <dd className="font-semibold">{agent?.slug || '—'}</dd>
+                </div>
+              </dl>
+              <div className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500 space-y-1">
+                {dialogueMeta.map((item) => (
+                  <div key={item.label}>{item.label}: {item.value}</div>
+                ))}
               </div>
-              <div className="flex justify-between gap-2">
-                <dt className="text-gray-500">Slug</dt>
-                <dd className="font-semibold">{agent?.slug || '—'}</dd>
-              </div>
-            </dl>
-            <div className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500 space-y-1">
-              {dialogueMeta.map((item) => (
-                <div key={item.label}>{item.label}: {item.value}</div>
-              ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
