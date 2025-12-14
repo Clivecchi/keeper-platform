@@ -449,12 +449,15 @@ export class KipAgentService {
    */
   static async createSession(agentId: string, userId?: string, sessionName?: string): Promise<KipSessionWithRelations> {
     try {
+      if (!userId) {
+        throw new Error('User ID is required to create a session');
+      }
       // Validate agent exists
       const agent = await this.getAgentSafely(agentId);
       
       const sessionData: KipSessionInput = {
         agent_id: agent.id,
-        user_id: userId || 'anonymous',
+        user_id: userId,
         session_name: sessionName || `Session with ${agent.name}`,
         topic: sessionName || `Session with ${agent.name}`
       };
@@ -950,6 +953,21 @@ function resolveAgentErrorCode(error: unknown): AgentErrorCode {
   return 'UNKNOWN';
 }
 
+type UserIdSource = 'req.user.id' | 'req.kam.userId' | 'req.auth.user.id';
+
+function resolveUserId(req: Request): { userId?: string; source?: UserIdSource } {
+  const fromReqUser = (req as any).user?.id;
+  if (fromReqUser) return { userId: String(fromReqUser), source: 'req.user.id' };
+
+  const fromReqAuth = (req as any).auth?.kind === 'user' ? (req as any).auth.userId : undefined;
+  if (fromReqAuth) return { userId: String(fromReqAuth), source: 'req.auth.user.id' };
+
+  const fromKam = (req as any).kam?.userId;
+  if (fromKam) return { userId: String(fromKam), source: 'req.kam.userId' };
+
+  return { userId: undefined, source: undefined };
+}
+
 /**
  * Express route handler for /api/kip/agents
  */
@@ -1135,7 +1153,7 @@ export default async function handler(req: Request, res: Response) {
 
       case 'POST':
         // Handle agent execution or creation
-        const { action, agentId, input, userId, sessionId, sessionName, ...createData } = req.body;
+        const { action, agentId, input, userId: bodyUserId, sessionId, sessionName, ...createData } = req.body;
         console.info('[kip/agents] post request', {
           ...baseContext,
           action,
@@ -1159,22 +1177,39 @@ export default async function handler(req: Request, res: Response) {
         }
         
         if (action === 'createSession') {
+          const { userId: derivedUserId, source: userIdSource } = resolveUserId(req);
+          if (!derivedUserId) {
+            console.warn('[kip/agents] createSession missing userId', {
+              ...baseContext,
+              agentId,
+              userIdSource: userIdSource || 'none',
+              hasBodyUserId: Boolean(bodyUserId),
+            });
+            return res.status(401).json({
+              success: false,
+              message: 'Unauthorized: user required',
+              error: { code: 'UNAUTHORIZED', message: 'User authentication required' },
+            });
+          }
+
           console.info('[kip/agents] createSession request', {
             ...baseContext,
             agentId,
-            userId,
+            userId: derivedUserId,
             sessionName,
             domainId: (req.body as any)?.domainId,
             domainSlug: (req.body as any)?.domainSlug,
+            userIdSource: userIdSource || 'unknown',
+            hasBodyUserId: Boolean(bodyUserId),
           });
 
           // Validate using Zod schema
-          const validation = CreateSessionSchema.safeParse({ agentId, userId, sessionName });
+          const validation = CreateSessionSchema.safeParse({ agentId, userId: derivedUserId, sessionName });
           if (!validation.success) {
             console.warn('[kip/agents] createSession validation failed', {
               ...baseContext,
               agentId,
-              userId,
+              userId: derivedUserId,
               sessionName,
               issues: validation.error.errors,
             });
@@ -1190,11 +1225,12 @@ export default async function handler(req: Request, res: Response) {
           }
           
           try {
-            const session = await KipAgentService.createSession(agentId, userId, sessionName);
+            const session = await KipAgentService.createSession(agentId, derivedUserId, sessionName);
             console.info('[kip/agents] createSession success', {
               requestId,
               agentId,
               sessionId: session?.id,
+              userIdSource: userIdSource || 'unknown',
             });
             return res.status(201).json({ success: true, data: session });
           } catch (error) {
