@@ -564,6 +564,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   };
 
   const handleEditSession = (sessionId: string) => {
+    console.log('[Kip] Opening session edit', { sessionId });
     handleSessionSelect(sessionId);
     const target = sessions.find((s) => s.id === sessionId);
     if (target) {
@@ -610,7 +611,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   };
 
   const handleSaveSessionMetadata = async () => {
-    if (!activeSessionId || !agent?.id) return;
+    if (!activeSessionId) return;
     setSessionMetadataError(null);
     let parsedTags: any | undefined = undefined;
     if (sessionTagsDraft.trim()) {
@@ -621,12 +622,31 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
         return;
       }
     }
+    const updates = {
+      session_name: sessionNameDraft.trim(),
+      topic: sessionTopicDraft.trim() || null,
+      tags: parsedTags,
+    };
+
+    console.log('[Kip] Saving session metadata', {
+      sessionId: activeSessionId,
+      agentId: agent?.id ?? null,
+      updates,
+    });
+
     try {
-      await KipApi.updateSessionMetadata(agent.id, activeSessionId, {
-        session_name: sessionNameDraft.trim(),
-        topic: sessionTopicDraft.trim() || null,
-        tags: parsedTags,
-      });
+      const updated = await updateSessionMetadata(activeSessionId, updates);
+      if (updated) {
+        setSessionNameDraft(updated.sessionName || updated.title || updates.session_name || '');
+        setSessionTopicDraft(updated.topic || '');
+        setSessionTagsDraft(
+          updated.tags
+            ? JSON.stringify(updated.tags, null, 2)
+            : updates.tags
+              ? JSON.stringify(updates.tags, null, 2)
+              : '',
+        );
+      }
       refreshSessions();
       setIsEditingSession(false);
     } catch (err) {
@@ -1312,43 +1332,53 @@ const SessionCard: React.FC<{
   const primaryLine = session.title || 'Session with Kip';
 
   return (
-  <button
-    type="button"
-    onClick={onSelect}
-    className={clsx(
-      'w-full rounded-2xl border px-4 py-3 text-left transition-shadow',
-      isActive
-        ? 'border-[#C96E59] bg-[#F7F1ED] shadow-sm'
-        : 'border-[#E6DED5] bg-white hover:shadow',
-    )}
-  >
-    <div className="flex items-start justify-between gap-2">
-      <div className="flex-1">
-        <p className="text-sm font-semibold text-gray-900">{primaryLine}</p>
-        {secondaryLine ? (
-          <p className="mt-1 text-sm text-gray-500">{secondaryLine}</p>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onSelect}
+      onKeyDown={(event) => {
+        if (!onSelect) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
+      className={clsx(
+        'w-full rounded-2xl border px-4 py-3 text-left transition-shadow focus:outline-none focus:ring-2 focus:ring-[#C96E59]/40',
+        isActive
+          ? 'border-[#C96E59] bg-[#F7F1ED] shadow-sm'
+          : 'border-[#E6DED5] bg-white hover:shadow',
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-gray-900">{primaryLine}</p>
+          {secondaryLine ? (
+            <p className="mt-1 text-sm text-gray-500">{secondaryLine}</p>
+          ) : null}
+        </div>
+        {onEdit ? (
+          <button
+            type="button"
+            className="text-xs font-semibold text-[#C96E59] hover:underline"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              console.log('[Kip] SessionCard edit click', { sessionId: session.id });
+              onEdit();
+            }}
+          >
+            Edit
+          </button>
         ) : null}
       </div>
-      {isActive && onEdit ? (
-        <span
-          className="text-xs font-semibold text-[#C96E59] hover:underline"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onEdit();
-          }}
-        >
-          Edit
-        </span>
-      ) : null}
+      <p className="mt-1 text-xs text-gray-400">
+        {formatDate(session.updatedAt || session.createdAt)}
+      </p>
+      {variant === 'full' && (
+        <p className="mt-1 text-xs text-gray-500">Session ID: {shortId(session.id)}</p>
+      )}
     </div>
-    <p className="mt-1 text-xs text-gray-400">
-      {formatDate(session.updatedAt || session.createdAt)}
-    </p>
-    {variant === 'full' && (
-      <p className="mt-1 text-xs text-gray-500">Session ID: {shortId(session.id)}</p>
-    )}
-  </button>
   );
 };
 

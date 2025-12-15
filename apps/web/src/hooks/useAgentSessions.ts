@@ -129,10 +129,13 @@ export function useAgentSessions(agentId?: string | null) {
 
   const updateSessionMetadata = useCallback(
     async (sessionId: string, updates: SessionMetadataUpdate) => {
+      if (!agentId) {
+        throw new Error('Agent id is required to update session metadata');
+      }
       setUpdatingSessionId(sessionId);
       setError(null);
       try {
-        const updated = await KipApi.updateSessionMetadata(sessionId, updates);
+        const updated = await KipApi.updateSessionMetadata(agentId, sessionId, updates);
         const normalized = normalizeSession(updated);
         setSessions((prev) => {
           const filtered = prev.filter((existing) => existing.id !== sessionId);
@@ -148,7 +151,7 @@ export function useAgentSessions(agentId?: string | null) {
         setUpdatingSessionId(null);
       }
     },
-    [],
+    [agentId],
   );
 
   return {

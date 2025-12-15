@@ -191,9 +191,10 @@ export interface SessionInput {
 }
 
 export type SessionMetadataUpdate = {
+  session_name?: string | null;
   topic?: string | null;
   summary?: string | null;
-  tags?: string[] | null;
+  tags?: any;
   primaryKeeperId?: string | null;
   primaryJourneyId?: string | null;
 };

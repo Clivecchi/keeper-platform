@@ -17,6 +17,9 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - [ ] Replace Cockpit diagnostics placeholders with backend stats once exposed.
 
 ## 📆 Update Log
+### 2025-12-14 - Session edit CTA + PATCH wiring
+- Session card Edit is now a dedicated button with preventDefault/stopPropagation and console instrumentation so clicks no longer bubble to the card selector.
+- Clicking Edit opens the inline editor consistently; Save logs the payload, patches `updateSessionMetadata`, updates the list immediately, and surfaces validation errors (including JSON tags parsing).
 ### 2025-12-14 - Mode dropdown + per-mode config
 - Replaced Normal with Domain mode, introduced dropdown + gear to open a right-side Mode Config drawer with per-mode lens selection, output style, limits, and debug capture settings; wired to `/api/kip/agents/:id/mode-config` and `/api/kip/lenses`.
 - Dialogue now sends the active mode, bounded debug bundle, and uses selected lenses; Debug Brief respects configured maxChars.
