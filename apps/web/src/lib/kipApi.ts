@@ -747,18 +747,24 @@ export class KipApi {
   /**
    * Update topic/summary metadata for a session
    */
-  static async updateSessionMetadata(sessionId: string, updates: SessionMetadataUpdate): Promise<KipSession> {
+  static async updateSessionMetadata(
+    agentId: string,
+    sessionId: string,
+    updates: { session_name?: string; topic?: string | null; tags?: any },
+  ): Promise<KipSession> {
     try {
       const response = await apiFetch('/api/kip/agents', {
         method: 'PATCH',
         body: JSON.stringify({
+          action: 'updateSessionMetadata',
+          agentId,
           sessionId,
-          topic: updates.topic ?? null,
-          summary: updates.summary ?? null,
-          tags: updates.tags !== undefined ? updates.tags : undefined,
-          primaryKeeperId: updates.primaryKeeperId ?? null,
-          primaryJourneyId: updates.primaryJourneyId ?? null
-        })
+          updates: {
+            ...(updates.session_name !== undefined ? { session_name: updates.session_name } : {}),
+            ...(updates.topic !== undefined ? { topic: updates.topic } : {}),
+            ...(updates.tags !== undefined ? { tags: updates.tags } : {}),
+          },
+        }),
       });
 
       if (response?.success) {

@@ -368,11 +368,21 @@ const CreateSessionSchema = z.object({
   sessionName: z.string().optional(),
 });
 
-const UpdateSessionMetadataSchema = z.object({
-  sessionId: z.string().min(1, 'Session ID is required'),
+const SessionMetadataUpdatesSchema = z.object({
+  session_name: z.string().optional(),
   topic: z.string().optional().nullable(),
-  summary: z.string().optional().nullable(),
-  tags: z.array(z.string()).optional(),
+  tags: z.record(z.any()).optional(),
+});
+
+const UpdateSessionMetadataSchema = z.object({
+  action: z.literal('updateSessionMetadata').optional(),
+  agentId: z.string().optional(),
+  sessionId: z.string().min(1, 'Session ID is required'),
+  updates: SessionMetadataUpdatesSchema.optional(),
+  // Back-compat top-level fields
+  session_name: z.string().optional(),
+  topic: z.string().optional().nullable(),
+  tags: z.record(z.any()).optional(),
   primaryKeeperId: z.string().optional().nullable(),
   primaryJourneyId: z.string().optional().nullable()
 });
@@ -550,10 +560,15 @@ export class KipAgentService {
    */
   static async updateSessionMetadata(input: z.infer<typeof UpdateSessionMetadataSchema>): Promise<KipSessionWithRelations> {
     try {
-      const payload = {
+      const updates = input.updates || {
+        ...(input.session_name !== undefined ? { session_name: input.session_name } : {}),
         ...(input.topic !== undefined ? { topic: input.topic } : {}),
-        ...(input.summary !== undefined ? { summary: input.summary } : {}),
         ...(input.tags !== undefined ? { tags: input.tags } : {}),
+      };
+      const payload = {
+        ...(updates.session_name !== undefined ? { session_name: updates.session_name } : {}),
+        ...(updates.topic !== undefined ? { topic: updates.topic } : {}),
+        ...(updates.tags !== undefined ? { tags: updates.tags } : {}),
         ...(input.primaryKeeperId !== undefined ? { primary_keeper_id: input.primaryKeeperId } : {}),
         ...(input.primaryJourneyId !== undefined ? { primary_journey_id: input.primaryJourneyId } : {})
       };

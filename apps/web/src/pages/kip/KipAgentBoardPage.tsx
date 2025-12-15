@@ -344,8 +344,9 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const [isSending, setIsSending] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState('');
   const [isEditingSession, setIsEditingSession] = useState<boolean>(false);
+  const [sessionNameDraft, setSessionNameDraft] = useState<string>('');
   const [sessionTopicDraft, setSessionTopicDraft] = useState<string>('');
-  const [sessionSummaryDraft, setSessionSummaryDraft] = useState<string>('');
+  const [sessionTagsDraft, setSessionTagsDraft] = useState<string>('');
   const [sessionMetadataError, setSessionMetadataError] = useState<string | null>(null);
   const [dialogueMode, setDialogueMode] = useState<DialogueMode>('domain');
   const [debugEntries, setDebugEntries] = useState<DebugEntry[]>([]);
@@ -568,8 +569,15 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     if (target) {
       setIsEditingSession(true);
       setSessionMetadataError(null);
-      setSessionTopicDraft(target.topic || target.title || 'Session with Kip');
-      setSessionSummaryDraft(target.summary || '');
+      setSessionNameDraft(target.sessionName || target.title || 'Session with Kip');
+      setSessionTopicDraft(target.topic || '');
+      setSessionTagsDraft(
+        target.tags && Array.isArray(target.tags)
+          ? JSON.stringify(target.tags, null, 2)
+          : target.tags && typeof target.tags === 'object'
+            ? JSON.stringify(target.tags, null, 2)
+            : '',
+      );
     }
     KipApi.getSessionById(sessionId).catch((err) => {
       const message = formatApiError(err, 'Unable to load session');
@@ -596,16 +604,30 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const handleCancelEditSession = () => {
     setIsEditingSession(false);
     setSessionMetadataError(null);
+    setSessionNameDraft('');
+    setSessionTopicDraft('');
+    setSessionTagsDraft('');
   };
 
   const handleSaveSessionMetadata = async () => {
-    if (!activeSessionId) return;
+    if (!activeSessionId || !agent?.id) return;
     setSessionMetadataError(null);
+    let parsedTags: any | undefined = undefined;
+    if (sessionTagsDraft.trim()) {
+      try {
+        parsedTags = JSON.parse(sessionTagsDraft);
+      } catch (err) {
+        setSessionMetadataError('Tags must be valid JSON');
+        return;
+      }
+    }
     try {
-      await updateSessionMetadata(activeSessionId, {
+      await KipApi.updateSessionMetadata(agent.id, activeSessionId, {
+        session_name: sessionNameDraft.trim(),
         topic: sessionTopicDraft.trim() || null,
-        summary: sessionSummaryDraft.trim() || null,
+        tags: parsedTags,
       });
+      refreshSessions();
       setIsEditingSession(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to update session details';
@@ -1111,7 +1133,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-gray-900">Edit session details</p>
-                    <p className="text-xs text-gray-500">Update the topic and summary for this conversation.</p>
+                    <p className="text-xs text-gray-500">Update the name, topic, or tags for this conversation.</p>
                   </div>
                   <button
                     type="button"
@@ -1121,27 +1143,41 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                     Cancel
                   </button>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-gray-600" htmlFor="session-topic">
-                    Topic
-                  </label>
-                  <input
-                    id="session-topic"
-                    value={sessionTopicDraft}
-                    onChange={(event) => setSessionTopicDraft(event.target.value)}
-                    placeholder="Session with Kip"
-                    className="w-full rounded-lg border border-[#E6DED5] px-3 py-2 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/20"
-                  />
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-600" htmlFor="session-name">
+                      Name
+                    </label>
+                    <input
+                      id="session-name"
+                      value={sessionNameDraft}
+                      onChange={(event) => setSessionNameDraft(event.target.value)}
+                      placeholder="Session with Kip"
+                      className="w-full rounded-lg border border-[#E6DED5] px-3 py-2 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/20"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-600" htmlFor="session-topic">
+                      Topic
+                    </label>
+                    <input
+                      id="session-topic"
+                      value={sessionTopicDraft}
+                      onChange={(event) => setSessionTopicDraft(event.target.value)}
+                      placeholder="Focus area for this session"
+                      className="w-full rounded-lg border border-[#E6DED5] px-3 py-2 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/20"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-gray-600" htmlFor="session-summary">
-                    Summary
+                  <label className="text-xs font-semibold text-gray-600" htmlFor="session-tags">
+                    Tags (JSON)
                   </label>
                   <textarea
-                    id="session-summary"
-                    value={sessionSummaryDraft}
-                    onChange={(event) => setSessionSummaryDraft(event.target.value)}
-                    placeholder="Short description of what this session is about"
+                    id="session-tags"
+                    value={sessionTagsDraft}
+                    onChange={(event) => setSessionTagsDraft(event.target.value)}
+                    placeholder='e.g., ["alpha","beta"] or {"status":"open"}'
                     rows={3}
                     className="w-full rounded-lg border border-[#E6DED5] px-3 py-2 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/20"
                   />
