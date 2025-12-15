@@ -1033,11 +1033,18 @@ app.options('/api/mcp/*', (_req, res) => {
 app.use('/mcp', mcpRouter);
 app.use('/api/mcp', mcpRouter);
 
-// Connect KIP routes
-app.use('/api/kip/lenses', kipLensesRouter);
-app.use('/api/kip/agents', kipModeConfigRouter);
-app.use('/api/kip/agents', kipAgentsHandler);
-app.use('/api/kip/platform-keys', kipPlatformKeysRouter);
+// Connect KIP routes (auth required; include service marker)
+const kipChain = [
+  authMiddlewareCompat,
+  (req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('x-keeper-service', 'keeper-platform');
+    next();
+  },
+];
+app.use('/api/kip/lenses', ...kipChain, kipLensesRouter);
+app.use('/api/kip/agents', ...kipChain, kipModeConfigRouter);
+app.use('/api/kip/agents', ...kipChain, kipAgentsHandler);
+app.use('/api/kip/platform-keys', ...kipChain, kipPlatformKeysRouter);
 // Connect unified Debug routes
 app.use('/api/debug', debugRouter);
 

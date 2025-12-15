@@ -25,6 +25,7 @@ import type {
 import { ModelProviderService, ModelMessage, ModelProviderErrorCode } from '../../services/ModelProviderService.js';
 import { loadModeState } from '../../services/kip/modeConfig.js';
 import type { AgentModeKey, AgentModeState, ModeConfig, OutputStyle } from '../../services/kip/modeConfig.js';
+import type { DomainResolvedRequest } from '../../middleware/domainResolutionMiddleware.js';
 
 type AgentErrorCode =
   | 'MISSING_API_KEY'
@@ -364,8 +365,7 @@ const AgentRunSchema = z.object({
 
 const CreateSessionSchema = z.object({
   agentId: z.string().min(1, 'Agent ID is required'),
-  userId: z.string().optional(),
-  sessionName: z.string().optional()
+  sessionName: z.string().optional(),
 });
 
 const UpdateSessionMetadataSchema = z.object({
@@ -1132,6 +1132,32 @@ function resolveUserId(req: Request): { userId?: string; source?: UserIdSource }
   return { userId: undefined, source: undefined };
 }
 
+const resolveDomain = (req: DomainResolvedRequest): { domainId: string | null; domainSlug: string | null } => {
+  const fromContext: any = req.domainContext?.domain;
+  const ctxId = (fromContext && (fromContext.id || (fromContext as any).domainId)) ?? null;
+  const ctxSlug = (fromContext && (fromContext.slug || (fromContext as any).domainSlug)) ?? req.domainContext?.resolvedSlug ?? null;
+
+  const headerId = (req.headers['x-domain-id'] as string | undefined) || null;
+  const headerSlug = (req.headers['x-domain-slug'] as string | undefined) || (req.headers['x-domain'] as string | undefined) || null;
+
+  const bodyId = (req.body as any)?.domainId || null;
+  const bodySlug = (req.body as any)?.domainSlug || null;
+
+  return {
+    domainId: ctxId || headerId || bodyId || null,
+    domainSlug: ctxSlug || headerSlug || bodySlug || null,
+  };
+};
+
+const buildContextFlags = (req: Request, userId?: string | null, domain?: { domainId: string | null; domainSlug: string | null }) => ({
+  authCookiePresent: Boolean((req as any).cookies?.keeper_session),
+  authHeaderPresent: Boolean(req.headers.authorization),
+  resolvedUserIdPresent: Boolean(userId),
+  domainContextPresent: Boolean((req as any).domainContext),
+  xDomainHeadersPresent: Boolean(req.headers['x-domain-id'] || req.headers['x-domain-slug'] || req.headers['x-domain']),
+  resolvedDomainIdPresent: Boolean(domain?.domainId),
+});
+
 const truncateValue = (value: string | undefined | null, limit = 160) => {
   if (!value) return '';
   return value.length > limit ? `${value.slice(0, limit)}…` : value;
@@ -1174,7 +1200,7 @@ const formatDebugBundleSummary = (bundle: DebugBundleInput | null | undefined, m
 /**
  * Express route handler for /api/kip/agents
  */
-export default async function handler(req: Request, res: Response) {
+export default async function handler(req: DomainResolvedRequest, res: Response) {
   const requestId = (req.headers['x-request-id'] as string) || `kip-agents-${Date.now()}`;
   const baseContext = {
     requestId,
@@ -1184,12 +1210,19 @@ export default async function handler(req: Request, res: Response) {
     domainSlug: req.headers['x-domain-slug'] || req.headers['x-domain'],
     origin: req.headers.origin,
   };
+  let ctxFlags: ReturnType<typeof buildContextFlags> | undefined;
   try {
+    const derivedUser = resolveUserId(req);
+    const resolvedDomain = resolveDomain(req);
+    ctxFlags = buildContextFlags(req, derivedUser.userId, resolvedDomain);
+    const respond = (status: number, body: Record<string, unknown>) =>
+      res.status(status).json({ ...body, ctx: ctxFlags });
+
     switch (req.method) {
       case 'GET':
         // Mock fallback when DB is disabled
         if (isDbDisabled()) {
-          return res.status(200).json({ success: true, agents: MOCK_AGENTS });
+          return respond(200, { success: true, agents: MOCK_AGENTS });
         }
         // Handle different GET routes
         const { id, slug, logs, agentId: queryAgentId, userId: queryUserId, page, pageSize, stats, sessions, sessionId: querySessionId, messages } = req.query;
@@ -1203,7 +1236,7 @@ export default async function handler(req: Request, res: Response) {
           });
 
           if (!querySessionId || typeof querySessionId !== 'string') {
-            return res.status(400).json({
+            return respond(400, {
               success: false,
               message: 'Invalid session ID',
               error: { code: 'BAD_REQUEST', message: 'Invalid session ID' },
@@ -1217,7 +1250,7 @@ export default async function handler(req: Request, res: Response) {
               sessionId: querySessionId,
               count: Array.isArray(sessionMessages) ? sessionMessages.length : null,
             });
-            return res.status(200).json({ success: true, data: sessionMessages });
+            return respond(200, { success: true, data: sessionMessages });
           } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to load session messages';
             const isNotFound = /not found/i.test(message);
@@ -1227,7 +1260,7 @@ export default async function handler(req: Request, res: Response) {
               message,
               stack: error instanceof Error ? error.stack : undefined,
             });
-            return res.status(isNotFound ? 404 : 500).json({
+            return respond(isNotFound ? 404 : 500, {
               success: false,
               message,
               error: {
@@ -1250,7 +1283,7 @@ export default async function handler(req: Request, res: Response) {
           });
 
           if (!queryAgentId || typeof queryAgentId !== 'string') {
-            return res.status(400).json({ success: false, error: 'agentId required' });
+            return respond(400, { success: false, error: 'agentId required' });
           }
           
           const options = {
@@ -1260,10 +1293,10 @@ export default async function handler(req: Request, res: Response) {
           
           // Validate pagination parameters
           if (options.page && (isNaN(options.page) || options.page < 1)) {
-            return res.status(400).json({ success: false, error: 'Invalid page number' });
+            return respond(400, { success: false, error: 'Invalid page number' });
           }
           if (options.pageSize && (isNaN(options.pageSize) || options.pageSize < 1 || options.pageSize > 100)) {
-            return res.status(400).json({ success: false, error: 'Invalid page size (must be 1-100)' });
+            return respond(400, { success: false, error: 'Invalid page size (must be 1-100)' });
           }
           
           try {
@@ -1276,27 +1309,27 @@ export default async function handler(req: Request, res: Response) {
                   ? (sessionsResult as any).length
                   : null,
             });
-            return res.status(200).json({ success: true, data: sessionsResult });
+            return respond(200, { success: true, data: sessionsResult });
           } catch (error) {
             console.error('[kip/agents] sessions error', {
               agentId: queryAgentId,
               message: error instanceof Error ? error.message : error,
               stack: error instanceof Error ? error.stack : undefined,
             });
-            return res.status(500).json({ success: false, error: 'Failed to load sessions' });
+            return respond(500, { success: false, error: 'Failed to load sessions' });
           }
         }
         
         // Get specific session by ID
         if (querySessionId && !messages) {
           if (typeof querySessionId !== 'string') {
-            return res.status(400).json({ success: false, error: 'Invalid session ID' });
+            return respond(400, { success: false, error: 'Invalid session ID' });
           }
           const session = await getKipSessionById(querySessionId);
           if (!session) {
-            return res.status(404).json({ success: false, error: 'Session not found' });
+            return respond(404, { success: false, error: 'Session not found' });
           }
-          return res.status(200).json({ success: true, data: session });
+          return respond(200, { success: true, data: session });
         }
         
         // Get agent logs
@@ -1310,58 +1343,56 @@ export default async function handler(req: Request, res: Response) {
           
           // Validate pagination parameters
           if (options.page && (isNaN(options.page) || options.page < 1)) {
-            return res.status(400).json({ success: false, error: 'Invalid page number' });
+            return respond(400, { success: false, error: 'Invalid page number' });
           }
           if (options.pageSize && (isNaN(options.pageSize) || options.pageSize < 1 || options.pageSize > 100)) {
-            return res.status(400).json({ success: false, error: 'Invalid page size (must be 1-100)' });
+            return respond(400, { success: false, error: 'Invalid page size (must be 1-100)' });
           }
           
           const logsResult = await getKipAgentLogs(options);
-          return res.status(200).json({ success: true, data: logsResult });
+          return respond(200, { success: true, data: logsResult });
         }
         
         // Get agent statistics
         if (stats === 'true') {
           const statsResult = await getAgentStats(queryAgentId as string);
-          return res.status(200).json({ success: true, data: statsResult });
+          return respond(200, { success: true, data: statsResult });
         }
         
         // Get specific agent by ID
         if (id) {
           if (typeof id !== 'string') {
-            return res.status(400).json({ success: false, error: 'Invalid agent ID' });
+            return respond(400, { success: false, error: 'Invalid agent ID' });
           }
           const agent = await getKipAgentById(id);
           if (!agent) {
-            return res.status(404).json({ success: false, error: 'Agent not found' });
+            return respond(404, { success: false, error: 'Agent not found' });
           }
-          return res.status(200).json({ success: true, data: agent });
+          return respond(200, { success: true, data: agent });
         }
         
         // Get specific agent by slug
         if (slug) {
           if (typeof slug !== 'string') {
-            return res.status(400).json({ success: false, error: 'Invalid agent slug' });
+            return respond(400, { success: false, error: 'Invalid agent slug' });
           }
           const agent = await getKipAgentBySlug(slug);
           if (!agent) {
-            return res.status(404).json({ success: false, error: 'Agent not found' });
+            return respond(404, { success: false, error: 'Agent not found' });
           }
-          return res.status(200).json({ success: true, data: agent });
+          return respond(200, { success: true, data: agent });
         }
         
         // Get all agents
         const agents = await KipAgentService.getAllAgents();
-        return res.status(200).json({ success: true, data: agents });
+        return respond(200, { success: true, data: agents });
 
       case 'POST':
         // Handle agent execution or creation
-        const { action, agentId, input, userId: bodyUserId, sessionId, sessionName, ...createData } = req.body;
-        const resolvedUser = resolveUserId(req);
-        const requestUserId = bodyUserId ?? resolvedUser.userId;
-        const requestUserIdSource: UserIdSource | 'body' | undefined = bodyUserId
-          ? 'body'
-          : resolvedUser.source;
+        const { action, agentId, input, sessionId, sessionName, ...createData } = req.body;
+        const resolvedUser = derivedUser;
+        const requestUserId = resolvedUser.userId;
+        const requestUserIdSource: UserIdSource | 'body' | undefined = resolvedUser.source;
         console.info('[kip/agents] post request', {
           ...baseContext,
           action,
@@ -1369,6 +1400,7 @@ export default async function handler(req: Request, res: Response) {
           query: req.query,
           requestUserId,
           requestUserIdSource,
+          domain: resolvedDomain,
         });
         
         if (action === 'run') {
@@ -1378,16 +1410,13 @@ export default async function handler(req: Request, res: Response) {
             input,
             userId: requestUserId,
             sessionId,
-            domainId: (req.body as any)?.domainId ?? (req.headers['x-domain-id'] as string | undefined),
-            domainSlug:
-              (req.body as any)?.domainSlug ??
-              ((req.headers['x-domain-slug'] as string | undefined) ??
-                (req.headers['x-domain'] as string | undefined)),
+            domainId: resolvedDomain.domainId,
+            domainSlug: resolvedDomain.domainSlug,
             mode: (req.body as any)?.mode,
             debugBundle: (req.body as any)?.debugBundle,
           });
           if (!validation.success) {
-            return res.status(400).json({ 
+            return respond(400, { 
               success: false, 
               error: 'Invalid request data',
               details: validation.error.errors
@@ -1395,27 +1424,29 @@ export default async function handler(req: Request, res: Response) {
           }
           
           const result = await KipAgentService.runAgent(agentId, input, requestUserId, sessionId, {
-            domainId: validation.data.domainId,
-            domainSlug: validation.data.domainSlug,
+            domainId: validation.data.domainId ?? resolvedDomain.domainId,
+            domainSlug: validation.data.domainSlug ?? resolvedDomain.domainSlug,
             mode: validation.data.mode as AgentModeKey | undefined,
             debugBundle: validation.data.debugBundle || null,
           });
-          return res.status(200).json({ success: true, data: result });
+          return respond(200, { success: true, data: result });
         }
         
         if (action === 'createSession') {
-          const { userId: derivedUserId, source: userIdSource } = resolveUserId(req);
+          const { userId: derivedUserId, source: userIdSource } = resolvedUser;
           if (!derivedUserId) {
             console.warn('[kip/agents] createSession missing userId', {
               ...baseContext,
               agentId,
               userIdSource: userIdSource || 'none',
-              hasBodyUserId: Boolean(bodyUserId),
+              warning: 'Missing user context; auth middleware not mounted or cookie not parsed',
+              ctx: ctxFlags,
             });
-            return res.status(401).json({
+            return respond(401, {
               success: false,
               message: 'Unauthorized: user required',
-              error: { code: 'UNAUTHORIZED', message: 'User authentication required' },
+              error: { code: 'UNAUTHORIZED', message: 'Missing user context' },
+              warning: 'Missing user context; auth middleware not mounted or cookie not parsed',
             });
           }
 
@@ -1424,14 +1455,14 @@ export default async function handler(req: Request, res: Response) {
             agentId,
             userId: derivedUserId,
             sessionName,
-            domainId: (req.body as any)?.domainId,
-            domainSlug: (req.body as any)?.domainSlug,
+            domainId: resolvedDomain.domainId,
+            domainSlug: resolvedDomain.domainSlug,
             userIdSource: userIdSource || 'unknown',
-            hasBodyUserId: Boolean(bodyUserId),
+            ctx: ctxFlags,
           });
 
           // Validate using Zod schema
-          const validation = CreateSessionSchema.safeParse({ agentId, userId: derivedUserId, sessionName });
+          const validation = CreateSessionSchema.safeParse({ agentId, sessionName });
           if (!validation.success) {
             console.warn('[kip/agents] createSession validation failed', {
               ...baseContext,
@@ -1439,8 +1470,9 @@ export default async function handler(req: Request, res: Response) {
               userId: derivedUserId,
               sessionName,
               issues: validation.error.errors,
+              ctx: ctxFlags,
             });
-            return res.status(400).json({ 
+            return respond(400, { 
               success: false,
               message: 'Invalid request data',
               error: {
@@ -1458,8 +1490,9 @@ export default async function handler(req: Request, res: Response) {
               agentId,
               sessionId: session?.id,
               userIdSource: userIdSource || 'unknown',
+              ctx: ctxFlags,
             });
-            return res.status(201).json({ success: true, data: session });
+            return respond(201, { success: true, data: session });
           } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to create session';
             const isNotFound = /not found/i.test(message);
@@ -1473,9 +1506,10 @@ export default async function handler(req: Request, res: Response) {
               sessionName,
               message,
               stack: error instanceof Error ? error.stack : undefined,
+              ctx: ctxFlags,
             });
 
-            return res.status(status).json({ 
+            return respond(status, { 
               success: false, 
               message,
               error: {
@@ -1492,27 +1526,50 @@ export default async function handler(req: Request, res: Response) {
         
         // Create new agent
         if (!createData.name || !createData.slug) {
-          return res.status(400).json({ 
+          return respond(400, { 
             success: false, 
             error: 'Agent name and slug are required'
           });
         }
         
         const newAgent = await KipAgentService.createAgent(createData);
-        return res.status(201).json({ success: true, data: newAgent });
+        return respond(201, { success: true, data: newAgent });
 
       case 'PATCH': {
         const validation = UpdateSessionMetadataSchema.safeParse(req.body);
         if (!validation.success) {
-          return res.status(400).json({
+          return respond(400, {
             success: false,
             error: 'Invalid session metadata',
             details: validation.error.errors
           });
         }
 
+        if (!resolvedUser.userId) {
+          console.warn('[kip/agents] updateSessionMetadata missing user', { requestId, ctx: ctxFlags });
+          return respond(401, {
+            success: false,
+            error: { code: 'UNAUTHORIZED', message: 'Missing user context' },
+            warning: 'Missing user context; auth middleware not mounted or cookie not parsed',
+          });
+        }
+
+        const existingSession = await prisma.kip_sessions.findUnique({
+          where: { id: validation.data.sessionId },
+          select: { id: true, user_id: true },
+        });
+        if (existingSession?.user_id && existingSession.user_id !== resolvedUser.userId) {
+          console.warn('[kip/agents] updateSessionMetadata ownership mismatch', {
+            requestId,
+            sessionId: validation.data.sessionId,
+            sessionUserId: existingSession.user_id,
+            resolvedUserId: resolvedUser.userId,
+            ctx: ctxFlags,
+          });
+        }
+
         const updatedSession = await KipAgentService.updateSessionMetadata(validation.data);
-        return res.status(200).json({ success: true, data: updatedSession });
+        return respond(200, { success: true, data: updatedSession });
       }
 
       case 'PUT':
@@ -1520,38 +1577,39 @@ export default async function handler(req: Request, res: Response) {
         const { id: updateId, ...updateData } = req.body;
         
         if (!updateId || typeof updateId !== 'string') {
-          return res.status(400).json({ 
+          return respond(400, { 
             success: false, 
             error: 'Valid agent ID is required for updating an agent' 
           });
         }
         
         const updatedAgent = await KipAgentService.updateAgent(updateId, updateData);
-        return res.status(200).json({ success: true, data: updatedAgent });
+        return respond(200, { success: true, data: updatedAgent });
 
       case 'DELETE':
         // Handle agent deletion
         const { id: deleteId } = req.body;
         
         if (!deleteId || typeof deleteId !== 'string') {
-          return res.status(400).json({ 
+          return respond(400, { 
             success: false, 
             error: 'Valid agent ID is required for deleting an agent' 
           });
         }
         
         const deleteResult = await KipAgentService.deleteAgent(deleteId);
-        return res.status(200).json({ success: true, data: deleteResult });
+        return respond(200, { success: true, data: deleteResult });
 
       default:
       res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
+        return respond(405, { success: false, error: 'Method not allowed' });
     }
   } catch (error) {
     console.error('KIP Agents API Error:', error);
     return res.status(500).json({ 
       success: false, 
-      error: error instanceof Error ? error.message : 'Internal server error' 
+      error: error instanceof Error ? error.message : 'Internal server error',
+      ...(ctxFlags ? { ctx: ctxFlags } : {}),
     });
   }
 } 
