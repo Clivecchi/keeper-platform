@@ -576,6 +576,7 @@ router.post('/:domainId/agent/execute', authMiddlewareCompat, async (req: Authen
       payload.message,
       req.user.id,
       payload.sessionId,
+      { domainId, domainSlug: domain.slug, mode: 'domain' },
     );
 
     if (!isAgentResponse(agentResult)) {

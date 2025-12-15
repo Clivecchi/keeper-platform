@@ -3,16 +3,14 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import { PaperAirplaneIcon, PlusIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { KeeperDashboardLayout } from '../../layouts/KeeperDashboardLayout';
-import { KipApi, KipAgent, KipMessage } from '../../lib/kipApi';
+import { AgentModeState, KipApi, KipAgent, KipLens, KipMessage, ModeConfig } from '../../lib/kipApi';
 import { AgentConversationSession, useAgentSessions } from '../../hooks/useAgentSessions';
 import { LinkedCard } from '../../components/props/LinkedCard';
 import type { LinkedCardProps } from '../../types/props';
 import { apiFetch, API_BASE } from '../../lib/api';
 
 type AgentBoardTab = 'dialogue' | 'cockpit' | 'sessions';
-type DialogueMode = 'normal' | 'debug';
-const DEBUG_LENS_INSTRUCTION =
-  'Debug Investigator Lens: prioritize evidence (requests, status, payload summary), highlight auth/context hints, propose next actions; keep responses concise; avoid large dumps.';
+type DialogueMode = 'domain' | 'debug';
 
 type DebugEntry = {
   id: string;
@@ -349,11 +347,21 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const [sessionTopicDraft, setSessionTopicDraft] = useState<string>('');
   const [sessionSummaryDraft, setSessionSummaryDraft] = useState<string>('');
   const [sessionMetadataError, setSessionMetadataError] = useState<string | null>(null);
-  const [dialogueMode, setDialogueMode] = useState<DialogueMode>('normal');
+  const [dialogueMode, setDialogueMode] = useState<DialogueMode>('domain');
   const [debugEntries, setDebugEntries] = useState<DebugEntry[]>([]);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [debugSymptom, setDebugSymptom] = useState<string>('');
   const [briefStatus, setBriefStatus] = useState<string | null>(null);
+  const [modeConfig, setModeConfig] = useState<AgentModeState | null>(null);
+  const [modeConfigDraft, setModeConfigDraft] = useState<Record<DialogueMode, ModeConfig> | null>(null);
+  const [modeConfigError, setModeConfigError] = useState<string | null>(null);
+  const [modeConfigLoading, setModeConfigLoading] = useState<boolean>(false);
+  const [isModeConfigOpen, setIsModeConfigOpen] = useState<boolean>(false);
+  const [isSavingModeConfig, setIsSavingModeConfig] = useState<boolean>(false);
+  const [lenses, setLenses] = useState<KipLens[]>([]);
+  const [editingLensId, setEditingLensId] = useState<string | null>(null);
+  const [editingLensText, setEditingLensText] = useState<string>('');
+  const [isSavingLens, setIsSavingLens] = useState<boolean>(false);
 
   const activeTab = (searchParams.get('view') as AgentBoardTab) ?? 'dialogue';
   const debugEnabled = dialogueMode === 'debug';
@@ -472,6 +480,28 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     };
   }, [agentSlug]);
 
+  useEffect(() => {
+    if (!agent?.id) return;
+    const domainKey = domainId || agentDomainId || null;
+    setModeConfigLoading(true);
+    setModeConfigError(null);
+    Promise.all([
+      KipApi.getModeConfig(agent.id, domainKey || undefined),
+      KipApi.getLenses(domainKey || undefined),
+    ])
+      .then(([state, fetchedLenses]) => {
+        setModeConfig(state);
+        setModeConfigDraft(state.modeConfigs as Record<DialogueMode, ModeConfig>);
+        setDialogueMode(state.activeMode as DialogueMode);
+        setLenses(fetchedLenses || []);
+      })
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : 'Unable to load mode config';
+        setModeConfigError(message);
+      })
+      .finally(() => setModeConfigLoading(false));
+  }, [agent?.id, agentDomainId, domainId]);
+
   const formatApiError = (err: any, fallback: string) => {
     const status = err?.status;
     const requestId = err?.requestId || err?.data?.requestId;
@@ -583,6 +613,83 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     }
   };
 
+  const handleModeChange = useCallback(
+    async (nextMode: DialogueMode) => {
+      setDialogueMode(nextMode);
+      setModeConfig((prev) => (prev ? { ...prev, activeMode: nextMode } : prev));
+      if (!agent?.id) return;
+      try {
+        const updated = await KipApi.updateModeConfig(agent.id, {
+          activeMode: nextMode,
+          domainId: domainId || agentDomainId || undefined,
+        });
+        setModeConfig(updated);
+        setModeConfigDraft(updated.modeConfigs as Record<DialogueMode, ModeConfig>);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unable to update mode';
+        setModeConfigError(message);
+      }
+    },
+    [agent?.id, agentDomainId, domainId],
+  );
+
+  const handleModeConfigChange = useCallback((mode: DialogueMode, patch: Partial<ModeConfig>) => {
+    setModeConfigDraft((prev) => {
+      if (!prev) return prev;
+      return { ...prev, [mode]: { ...prev[mode], ...patch } };
+    });
+  }, []);
+
+  const handleSaveModeConfig = useCallback(async () => {
+    if (!agent?.id || !modeConfigDraft) return;
+    setIsSavingModeConfig(true);
+    setModeConfigError(null);
+    try {
+      const payload: Partial<AgentModeState> = {
+        activeMode: dialogueMode,
+        modeConfigs: modeConfigDraft as any,
+      };
+      const updated = await KipApi.updateModeConfig(agent.id, {
+        ...payload,
+        domainId: domainId || agentDomainId || undefined,
+      });
+      setModeConfig(updated);
+      setModeConfigDraft(updated.modeConfigs as Record<DialogueMode, ModeConfig>);
+      setIsModeConfigOpen(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to save mode config';
+      setModeConfigError(message);
+    } finally {
+      setIsSavingModeConfig(false);
+    }
+  }, [agent?.id, agentDomainId, dialogueMode, domainId, modeConfigDraft]);
+
+  const handleEditLens = useCallback(
+    (lensId: string) => {
+      const lens = lenses.find((item) => item.id === lensId);
+      if (!lens) return;
+      setEditingLensId(lensId);
+      setEditingLensText(lens.systemPrompt || '');
+    },
+    [lenses],
+  );
+
+  const handleSaveLens = useCallback(async () => {
+    if (!editingLensId) return;
+    setIsSavingLens(true);
+    try {
+      const updated = await KipApi.updateLens(editingLensId, { systemPrompt: editingLensText });
+      setLenses((prev) => prev.map((lens) => (lens.id === updated.id ? updated : lens)));
+      setEditingLensId(null);
+      setEditingLensText('');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to save lens';
+      setModeConfigError(message);
+    } finally {
+      setIsSavingLens(false);
+    }
+  }, [editingLensId, editingLensText]);
+
   const dialogueMeta = useMemo<DialogueMetaItem[]>(
     () => [
       { label: 'Model', value: agent?.model_settings?.model || agent?.model || 'gpt-4o' },
@@ -691,6 +798,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       getHeader(headers, 'x-request-id') ||
       getHeader(headers, 'x-railway-request-id') ||
       getHeader(headers, 'x-ke3p-request-id');
+    const maxBriefChars = modeConfig?.modeConfigs?.debug?.limits?.maxChars ?? 2000;
     const brief = buildDebugBrief({
       userSymptom: debugSymptom.trim() || undefined,
       request: latest,
@@ -704,6 +812,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
         domainId: (headers && (getHeader(headers, 'x-domain-id') || getHeader(headers, 'x-domain'))) || requestBody?.domainId || null,
         userId: requestBody?.userId || null,
       },
+      maxChars: maxBriefChars,
     });
 
     try {
@@ -716,7 +825,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     } finally {
       setTimeout(() => setBriefStatus(null), 1800);
     }
-  }, [authContextKeysPresent, debugEntries, debugSummary, debugSymptom]);
+  }, [authContextKeysPresent, debugEntries, debugSummary, debugSymptom, modeConfig?.modeConfigs?.debug?.limits?.maxChars]);
 
   const handleSendMessage = async (event?: React.FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
@@ -725,10 +834,43 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     }
 
     const content = inputValue.trim();
-    const contentToSend =
+    const captureN =
+      modeConfigDraft?.debug?.captureN ??
+      modeConfig?.modeConfigs?.debug?.captureN ??
+      20;
+    const buildBundleEntry = (entry: DebugEntry) => {
+      const headers = entry.response?.headers;
+      const requestBody =
+        entry.request?.body && typeof entry.request.body === 'object'
+          ? (entry.request.body as any)
+          : undefined;
+      const requestId =
+        getHeader(headers, 'x-request-id') ||
+        getHeader(headers, 'x-railway-request-id') ||
+        getHeader(headers, 'x-ke3p-request-id');
+      return {
+        requestId,
+        method: entry.method,
+        url: entry.url,
+        status: entry.status,
+        action: requestBody?.action || null,
+        durationMs: entry.durationMs,
+        error: entry.error ? { message: entry.error.message } : undefined,
+      };
+    };
+
+    const debugBundle =
       dialogueMode === 'debug'
-        ? `${DEBUG_LENS_INSTRUCTION}\n\n${content}`
-        : content;
+        ? {
+            entries: debugEntries.slice(-captureN).map(buildBundleEntry),
+            failures: debugEntries
+              .filter((entry) => isErrorStatus(entry.status) || entry.error)
+              .slice(-captureN)
+              .map(buildBundleEntry),
+            authContextKeysPresent,
+            symptom: debugSymptom.trim() || undefined,
+          }
+        : undefined;
     const optimisticMessage: AgentDialogueMessage = {
       id: `local-${Date.now()}`,
       role: 'user',
@@ -741,7 +883,12 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     setMessagesError(null);
 
     try {
-      const result = await KipApi.runAgent(agent.id, contentToSend, undefined, activeSessionId);
+      const result = await KipApi.runAgent(agent.id, content, undefined, activeSessionId, {
+        domainId: domainId || agentDomainId || undefined,
+        domainSlug: domainSlug || agentDomainSlug || undefined,
+        mode: dialogueMode,
+        debugBundle,
+      });
       const sessionIdFromResponse =
         (result as any)?.data?.data?.session_id || (result as any)?.session_id || null;
 
@@ -775,6 +922,23 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
 
   return (
     <div className="space-y-6">
+      <ModeConfigDrawer
+        open={isModeConfigOpen && Boolean(modeConfigDraft)}
+        mode={dialogueMode}
+        drafts={modeConfigDraft || { domain: {}, debug: {} } as Record<DialogueMode, ModeConfig>}
+        lenses={lenses}
+        onClose={() => setIsModeConfigOpen(false)}
+        onChange={handleModeConfigChange}
+        onSave={handleSaveModeConfig}
+        isSaving={isSavingModeConfig}
+        error={modeConfigError}
+        onEditLens={handleEditLens}
+        editingLensId={editingLensId}
+        editingLensText={editingLensText}
+        onLensTextChange={setEditingLensText}
+        onSaveLens={handleSaveLens}
+        isSavingLens={isSavingLens}
+      />
       <AgentHeader
         agent={agent}
         domainSlug={domainSlug || agentDomainSlug || undefined}
@@ -783,7 +947,10 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
         sessionId={activeSessionId}
         dialogueMeta={dialogueMeta}
         dialogueMode={dialogueMode}
-        onDialogueModeChange={setDialogueMode}
+        onDialogueModeChange={handleModeChange}
+        onOpenModeConfig={() => setIsModeConfigOpen(true)}
+        modeConfigError={modeConfigError}
+        modeConfigLoading={modeConfigLoading}
       />
 
       <AgentBoardTabs activeTab={activeTab} onChange={handleTabChange} />
@@ -1222,33 +1389,225 @@ const DialogueMessageList: React.FC<{
 const DialogueModeToggle: React.FC<{
   mode: DialogueMode;
   onChange: (mode: DialogueMode) => void;
-}> = ({ mode, onChange }) => (
-  <div className="flex items-center gap-1 rounded-full border border-[#E6DED5] bg-white px-2 py-1 text-xs shadow-sm">
-    <span className="px-1 text-gray-600">Mode</span>
+  onOpenConfig: () => void;
+  isLoading?: boolean;
+  error?: string | null;
+}> = ({ mode, onChange, onOpenConfig, isLoading, error }) => (
+  <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 rounded-full border border-[#E6DED5] bg-white px-2 py-1 text-xs shadow-sm">
+      <span className="px-1 text-gray-600">Mode</span>
+      <select
+        value={mode}
+        onChange={(e) => onChange(e.target.value as DialogueMode)}
+        className="rounded-full border border-[#E6DED5] bg-white px-2 py-1 text-xs font-semibold text-gray-800 focus:border-[#C96E59] focus:outline-none"
+      >
+        <option value="domain">Domain</option>
+        <option value="debug">Debug</option>
+      </select>
+    </div>
     <button
       type="button"
-      onClick={() => onChange('normal')}
-      className={clsx(
-        'rounded-full px-3 py-1 font-semibold transition-colors',
-        mode === 'normal' ? 'bg-[#C96E59] text-white shadow-sm' : 'text-gray-600 hover:text-[#C96E59]',
-      )}
-      aria-pressed={mode === 'normal'}
+      onClick={onOpenConfig}
+      className="inline-flex items-center gap-1 rounded-full border border-[#E6DED5] bg-white px-2 py-1 text-xs font-semibold text-gray-700 shadow-sm hover:border-[#C96E59] hover:text-[#C96E59]"
+      title="Mode config"
     >
-      Normal
+      <Cog6ToothIcon className="h-4 w-4" />
+      Config
     </button>
-    <button
-      type="button"
-      onClick={() => onChange('debug')}
-      className={clsx(
-        'rounded-full px-3 py-1 font-semibold transition-colors',
-        mode === 'debug' ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900',
-      )}
-      aria-pressed={mode === 'debug'}
-    >
-      Debug
-    </button>
+    {isLoading && <span className="text-xs text-gray-500">Loading…</span>}
+    {error && <span className="text-xs text-red-600">{error}</span>}
   </div>
 );
+
+const ModeConfigDrawer: React.FC<{
+  open: boolean;
+  mode: DialogueMode;
+  drafts: Record<DialogueMode, ModeConfig>;
+  lenses: KipLens[];
+  onClose: () => void;
+  onChange: (mode: DialogueMode, patch: Partial<ModeConfig>) => void;
+  onSave: () => void;
+  isSaving: boolean;
+  error?: string | null;
+  onEditLens: (lensId: string) => void;
+  editingLensId: string | null;
+  editingLensText: string;
+  onLensTextChange: (value: string) => void;
+  onSaveLens: () => void;
+  isSavingLens: boolean;
+}> = ({
+  open,
+  mode,
+  drafts,
+  lenses,
+  onClose,
+  onChange,
+  onSave,
+  isSaving,
+  error,
+  onEditLens,
+  editingLensId,
+  editingLensText,
+  onLensTextChange,
+  onSaveLens,
+  isSavingLens,
+}) => {
+  if (!open) return null;
+  const config = drafts[mode] || {};
+  const selectedLens =
+    lenses.find((lens) => lens.id === config.lensId) ||
+    lenses.find((lens) => lens.name.toLowerCase().includes(mode === 'debug' ? 'debug' : 'domain'));
+  const lensPrompt = selectedLens?.systemPrompt || 'No lens prompt configured.';
+  const handleLensChange = (value: string) => onChange(mode, { lensId: value });
+
+  return (
+    <div className="fixed inset-y-0 right-0 z-40 w-full max-w-md transform bg-white shadow-2xl transition-transform duration-200 ease-out">
+      <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+        <div>
+          <p className="text-xs font-semibold text-gray-500">Mode Config</p>
+          <h3 className="text-lg font-semibold text-gray-900">Mode: {mode === 'debug' ? 'Debug' : 'Domain'}</h3>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 hover:border-gray-300"
+        >
+          Close
+        </button>
+      </div>
+      <div className="h-[calc(100%-4rem)] overflow-y-auto px-4 py-4 space-y-4">
+        {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-gray-700">Lens</label>
+          <select
+            value={config.lensId ?? ''}
+            onChange={(e) => handleLensChange(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:border-[#C96E59] focus:outline-none"
+          >
+            <option value="">Select a lens</option>
+            {lenses.map((lens) => (
+              <option key={lens.id} value={lens.id}>
+                {lens.name} {lens.domainId ? `(${lens.domainId})` : ''}
+              </option>
+            ))}
+          </select>
+          <div>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-gray-700">Lens Preview</p>
+              {selectedLens && (
+                <button
+                  type="button"
+                  onClick={() => onEditLens(selectedLens.id)}
+                  className="text-xs font-semibold text-[#C96E59] hover:text-[#B85D4A]"
+                >
+                  Edit Lens
+                </button>
+              )}
+            </div>
+            <textarea
+              readOnly={editingLensId !== selectedLens?.id}
+              value={editingLensId === selectedLens?.id ? editingLensText : lensPrompt}
+              onChange={(e) => onLensTextChange(e.target.value)}
+              className="mt-1 h-32 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 focus:border-[#C96E59] focus:outline-none"
+            />
+            {editingLensId === selectedLens?.id && (
+              <div className="mt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onSaveLens}
+                  disabled={isSavingLens}
+                  className="rounded-full bg-[#C96E59] px-3 py-1 text-xs font-semibold text-white hover:bg-[#B85D4A] disabled:opacity-60"
+                >
+                  {isSavingLens ? 'Saving…' : 'Save Lens'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onLensTextChange(lensPrompt)}
+                  className="rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700"
+                >
+                  Reset
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-gray-700">Output style</label>
+          <select
+            value={config.outputStyle || 'normal'}
+            onChange={(e) => onChange(mode, { outputStyle: e.target.value as ModeConfig['outputStyle'] })}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:border-[#C96E59] focus:outline-none"
+          >
+            <option value="concise">Concise</option>
+            <option value="normal">Normal</option>
+            <option value="expanded">Expanded</option>
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-gray-700">Hard limit (max chars)</label>
+          <input
+            type="number"
+            value={config.limits?.maxChars ?? (mode === 'debug' ? 2000 : 0)}
+            onChange={(e) => onChange(mode, { limits: { maxChars: Number(e.target.value) } })}
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:border-[#C96E59] focus:outline-none"
+          />
+          <p className="text-xs text-gray-500">
+            {mode === 'debug' ? 'Default 2000 chars; keep Debug Brief within this limit.' : '0 = unlimited.'}
+          </p>
+        </div>
+
+        {mode === 'debug' && (
+          <div className="space-y-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-3">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-blue-900">Capture last N requests</label>
+              <select
+                value={config.captureN ?? 20}
+                onChange={(e) => onChange('debug', { captureN: Number(e.target.value) })}
+                className="w-full rounded-lg border border-blue-100 bg-white px-3 py-2 text-sm text-blue-900 focus:border-blue-300 focus:outline-none"
+              >
+                {[10, 20, 50].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-blue-900">Auto-generate Debug Brief</label>
+              <input
+                type="checkbox"
+                checked={config.autoBrief ?? true}
+                onChange={(e) => onChange('debug', { autoBrief: e.target.checked })}
+                className="h-4 w-4"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-blue-900">Include Fix Plan section</label>
+              <input
+                type="checkbox"
+                checked={config.includeFixPlan ?? true}
+                onChange={(e) => onChange('debug', { includeFixPlan: e.target.checked })}
+                className="h-4 w-4"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="border-t border-gray-200 px-4 py-3">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={isSaving}
+          className="w-full rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-60"
+        >
+          {isSaving ? 'Saving...' : 'Save Mode Config'}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const DebugDrawer: React.FC<{
   entries: DebugEntry[];
@@ -1674,6 +2033,7 @@ type DebugBriefInput = {
     domainId?: string | null;
     userId?: string | null;
   };
+  maxChars?: number;
 };
 
 const truncateValue = (value: string | null | undefined, limit: number): string => {
@@ -1687,6 +2047,7 @@ const buildDebugBrief = ({
   response,
   error,
   context,
+  maxChars,
 }: DebugBriefInput): string => {
   const lines: string[] = [];
   const summaryBullets = [
@@ -1720,7 +2081,8 @@ const buildDebugBrief = ({
   ];
 
   const brief = briefSections.join('\n\n');
-  return brief.length > 2000 ? `${brief.slice(0, 1995)}…` : brief;
+  const limit = maxChars && maxChars > 0 ? maxChars : 2000;
+  return brief.length > limit ? `${brief.slice(0, Math.max(0, limit - 5))}…` : brief;
 };
 
 const AgentHeader: React.FC<{
@@ -1732,6 +2094,9 @@ const AgentHeader: React.FC<{
   dialogueMeta: DialogueMetaItem[];
   dialogueMode: DialogueMode;
   onDialogueModeChange: (mode: DialogueMode) => void;
+  onOpenModeConfig: () => void;
+  modeConfigError?: string | null;
+  modeConfigLoading?: boolean;
 }> = ({
   agent,
   domainSlug,
@@ -1741,6 +2106,9 @@ const AgentHeader: React.FC<{
   dialogueMeta,
   dialogueMode,
   onDialogueModeChange,
+  onOpenModeConfig,
+  modeConfigError,
+  modeConfigLoading,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const agentName = agent?.name || 'Kip';
@@ -1759,7 +2127,13 @@ const AgentHeader: React.FC<{
         <p className="text-sm text-gray-600">{roleText}</p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <DialogueModeToggle mode={dialogueMode} onChange={onDialogueModeChange} />
+        <DialogueModeToggle
+          mode={dialogueMode}
+          onChange={onDialogueModeChange}
+          onOpenConfig={onOpenModeConfig}
+          isLoading={modeConfigLoading}
+          error={modeConfigError}
+        />
         <div className="relative">
           <button
             type="button"

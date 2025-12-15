@@ -26,6 +26,8 @@ import { adminQueryRouter } from './api/admin/query.js';
 // Import KIP routes
 import kipAgentsHandler from './api/kip/agents.js';
 import kipPlatformKeysRouter from './api/kip/platform-keys.js';
+import kipLensesRouter from './api/kip/lenses.js';
+import kipModeConfigRouter from './api/kip/mode-config.js';
 import { getUserKeys, setUserKey, deleteUserKey, getUserProviders } from './api/kip/user-keys.js';
 // Import KAM settings handler
 import kamSettingsHandler from './api/kam/settings.js';
@@ -1032,6 +1034,8 @@ app.use('/mcp', mcpRouter);
 app.use('/api/mcp', mcpRouter);
 
 // Connect KIP routes
+app.use('/api/kip/lenses', kipLensesRouter);
+app.use('/api/kip/agents', kipModeConfigRouter);
 app.use('/api/kip/agents', kipAgentsHandler);
 app.use('/api/kip/platform-keys', kipPlatformKeysRouter);
 // Connect unified Debug routes

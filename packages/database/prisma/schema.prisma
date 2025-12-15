@@ -767,6 +767,21 @@ model kip_agent_keeper_types {
   @@index([keeper_type_id])
 }
 
+model kip_lenses {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  domainId         String?
+  name             String
+  systemPrompt     String
+  rulesJson        Json?
+  outputSchemaJson Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([domainId, name])
+  @@index([domainId])
+  @@index([name])
+}
+
 model keeper_type_engagement_templates {
   id                     String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   keeper_type_id         String

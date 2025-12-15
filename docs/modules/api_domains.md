@@ -26,6 +26,8 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+### 2025-12-14 - Mode-aware agent execute
+- Domain agent execute now forwards domainId/slug and explicit Domain mode to `KipAgentService.runAgent`, ensuring mode-specific lens/config selection is respected.
 ### 2025-12-09 - Agent Error Taxonomy
 - Added the shared `AGENT_ERROR_TAXONOMY` map and early `MISSING_API_KEY` detection in ModelProviderService so agents surface structured responses without inventing a new error system.
 ### 2025-12-08 - Kip Auto-Assignment & Error Mapping

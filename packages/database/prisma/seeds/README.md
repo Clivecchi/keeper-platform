@@ -68,3 +68,6 @@ Once seeded, the platform will have:
 - ✅ SOLE MemoryPattern supported in schema
 - ✅ Engagement Templates seeded, protected, and queryable
 - ✅ Foundation for Reflections UI and Kip assistant behavior development 
+
+## 📆 Update Log
+- 2025-12-14: Added `lenses.seed.ts` to create default Domain Lens and Debug Investigator Lens for the `default` domain via the TS seed runner.

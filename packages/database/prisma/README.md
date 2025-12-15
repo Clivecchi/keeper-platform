@@ -25,6 +25,7 @@ Tracks Prisma schema and SQL migrations for the Keeper Platform database.
 - [ ] Add lint to ensure `IF NOT EXISTS` on additive DDL
 
 ## 📆 Update Log
+- 2025-12-14: Added `kip_lenses` model with composite unique `(domainId, name)` plus seed to create default Domain/Debug lenses and wired seed runner to execute it.
 - 2025-12-11: Added topic, summary, tags, and keeper/journey linkage placeholders to `kip_sessions` plus migration `20251211_kip_session_topics`.
 - 2025-12-09: Documented canonical Board/Frame/Prop map and introduced the `linked_card` prop type + Kip Agent context frames in system board seeds.
 - 2025-09-17: Added soft-delete column `deletedAt` to `Domain`. Migration `20250915_add_deletedAt_to_Domain` uses `IF NOT EXISTS` for idempotency.

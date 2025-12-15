@@ -23,6 +23,8 @@ import type {
   ModelSettings
 } from '@keeper/database';
 import { ModelProviderService, ModelMessage, ModelProviderErrorCode } from '../../services/ModelProviderService.js';
+import { loadModeState } from '../../services/kip/modeConfig.js';
+import type { AgentModeKey, AgentModeState, ModeConfig, OutputStyle } from '../../services/kip/modeConfig.js';
 
 type AgentErrorCode =
   | 'MISSING_API_KEY'
@@ -30,6 +32,43 @@ type AgentErrorCode =
   | 'PROVIDER_UNAVAILABLE'
   | 'AGENT_MISCONFIGURED'
   | 'UNKNOWN';
+
+type DebugBundleEntry = {
+  id?: string;
+  requestId?: string;
+  method?: string;
+  url?: string;
+  status?: number | null;
+  action?: string | null;
+  durationMs?: number | null;
+  error?: {
+    message?: string;
+    code?: string;
+    constraint?: string;
+  };
+};
+
+type DebugBundleInput = {
+  entries?: DebugBundleEntry[];
+  failures?: DebugBundleEntry[];
+  authContextKeysPresent?: {
+    hasUser?: boolean;
+    hasAuth?: boolean;
+    hasKam?: boolean;
+    userKeys?: string[];
+    authKeys?: string[];
+    kamKeys?: string[];
+    authorizationHeaderPresent?: boolean;
+  };
+  symptom?: string | null;
+};
+
+type RunAgentOptions = {
+  domainId?: string | null;
+  domainSlug?: string | null;
+  mode?: AgentModeKey;
+  debugBundle?: DebugBundleInput | null;
+};
 
 class AgentExecutionError extends Error {
   code: AgentErrorCode;
@@ -278,11 +317,49 @@ interface TypedAgent {
 }
 
 // Input validation schemas
+const DebugBundleEntrySchema = z.object({
+  id: z.string().optional(),
+  requestId: z.string().optional(),
+  method: z.string().optional(),
+  url: z.string().optional(),
+  status: z.number().nullable().optional(),
+  action: z.string().nullable().optional(),
+  durationMs: z.number().nullable().optional(),
+  error: z
+    .object({
+      message: z.string().optional(),
+      code: z.string().optional(),
+      constraint: z.string().optional(),
+    })
+    .optional(),
+});
+
+const DebugBundleSchema = z.object({
+  entries: z.array(DebugBundleEntrySchema).optional(),
+  failures: z.array(DebugBundleEntrySchema).optional(),
+  authContextKeysPresent: z
+    .object({
+      hasUser: z.boolean().optional(),
+      hasAuth: z.boolean().optional(),
+      hasKam: z.boolean().optional(),
+      userKeys: z.array(z.string()).optional(),
+      authKeys: z.array(z.string()).optional(),
+      kamKeys: z.array(z.string()).optional(),
+      authorizationHeaderPresent: z.boolean().optional(),
+    })
+    .optional(),
+  symptom: z.string().nullable().optional(),
+}).optional();
+
 const AgentRunSchema = z.object({
   agentId: z.string().min(1, 'Agent ID is required'),
   input: z.string().min(1, 'Input is required'),
   userId: z.string().optional(),
-  sessionId: z.string().optional()
+  sessionId: z.string().optional(),
+  domainId: z.string().optional(),
+  domainSlug: z.string().optional(),
+  mode: z.enum(['domain', 'debug']).optional(),
+  debugBundle: DebugBundleSchema,
 });
 
 const CreateSessionSchema = z.object({
@@ -571,7 +648,22 @@ export class KipAgentService {
   /**
    * Call real AI model with conversation context
    */
-  static async callAIModel(agent: TypedAgent, input: string, previousMessages: KipMessageWithRelations[], userId?: string): Promise<string> {
+  static async callAIModel(
+    agent: TypedAgent,
+    input: string,
+    previousMessages: KipMessageWithRelations[],
+    userId?: string,
+    promptOptions?: {
+      mode: AgentModeKey;
+      modeConfig: ModeConfig;
+      lens?: { systemPrompt?: string | null };
+      debugSummary?: string | null;
+      maxChars?: number | null;
+      outputStyle?: OutputStyle;
+      includeFixPlan?: boolean;
+      autoBrief?: boolean;
+    },
+  ): Promise<string> {
     try {
       const modelProvider = agent.model_provider || 'openai';
       const modelSettings = agent.model_settings || ModelProviderService.getDefaultSettings(modelProvider);
@@ -581,18 +673,39 @@ export class KipAgentService {
       
       // Add system message with agent context
       const config = agent.config || {};
-      const systemPrompt = `You are ${agent.name}, ${agent.purpose}. ${config.tagline || ''}
-
-Key capabilities: ${agent.tools?.join(', ') || 'general assistance'}
-Personality: ${config.personality || 'helpful and professional'}
-Context scope: ${agent.context_scope || 'general'}
-
-Please respond in character, using your specific capabilities and personality. Keep responses conversational and helpful.`;
+      const styleHelper: Record<OutputStyle, string> = {
+        concise: 'Keep replies compact and bullet-first where possible.',
+        normal: 'Balance clarity with brevity; surface key evidence first.',
+        expanded: 'Provide fuller reasoning and details while staying structured.',
+      };
+      const outputStyle = (promptOptions?.outputStyle as OutputStyle) || 'normal';
+      const maxChars = typeof promptOptions?.maxChars === 'number' ? promptOptions.maxChars : null;
+      const mode = promptOptions?.mode || 'domain';
+      const systemPrompt = [
+        promptOptions?.lens?.systemPrompt || '',
+        `You are ${agent.name}, ${agent.purpose}. ${config.tagline || ''}`.trim(),
+        `Mode: ${mode.toUpperCase()}. Output style: ${styleHelper[outputStyle]}`,
+        maxChars && maxChars > 0
+          ? `Hard limit: keep the Debug Brief under ${maxChars} characters; prefer concise evidence.`
+          : 'No hard character limit configured for this mode.',
+        mode === 'debug' && promptOptions?.autoBrief !== false
+          ? `When in Debug mode, start with a "Debug Brief" that fits within the limit, including sections: Summary (bullets), Evidence (requestId/action/id/auth context), Error (code/constraint/message), Probable cause, Next actions (3-6 bullets)${promptOptions?.includeFixPlan ? ', and Fix Plan' : ''}. Cite evidence and ask for at most one missing fact. Avoid dumping raw bundles unless explicitly requested.`
+          : null,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
       
       messages.push({
         role: 'system',
         content: systemPrompt
       });
+
+      if (mode === 'debug' && promptOptions?.debugSummary) {
+        messages.push({
+          role: 'system',
+          content: `Bounded debug bundle:\n${promptOptions.debugSummary}`,
+        });
+      }
       
       // Add conversation history (last 10 messages to avoid token limits)
       const recentMessages = previousMessages.slice(-10);
@@ -640,7 +753,13 @@ Please respond in character, using your specific capabilities and personality. K
   /**
    * Run an agent with provided input, comprehensive logging, and memory persistence
    */
-  static async runAgent(agentId: string, input: string, userId?: string, sessionId?: string): Promise<AgentResponse | KipCommandIntent> {
+  static async runAgent(
+    agentId: string,
+    input: string,
+    userId?: string,
+    sessionId?: string,
+    options?: RunAgentOptions,
+  ): Promise<AgentResponse | KipCommandIntent> {
     const startTime = Date.now();
     const logData = {
       agent_id: agentId,
@@ -664,6 +783,32 @@ Please respond in character, using your specific capabilities and personality. K
       // Update log to use the actual agent UUID for consistency
       logData.agent_id = agent.id;
       logData.model = agent.model;
+
+      // Resolve mode configuration (per agent + domain)
+      const modeState = isDbDisabled() ? null : await loadModeState(agent.id, options?.domainId);
+      const activeMode: AgentModeKey =
+        options?.mode === 'debug'
+          ? 'debug'
+          : options?.mode === 'domain'
+            ? 'domain'
+            : modeState?.state.activeMode || 'domain';
+      const fallbackModeConfig: ModeConfig = {
+        outputStyle: 'normal',
+        limits: { maxChars: activeMode === 'debug' ? 2000 : 0 },
+        captureN: 20,
+        autoBrief: true,
+        includeFixPlan: true,
+      };
+      const activeModeConfig = (modeState?.state.modeConfigs[activeMode] as ModeConfig) || fallbackModeConfig;
+      const lensId =
+        activeModeConfig.lensId ||
+        (activeMode === 'debug' ? modeState?.lenses?.debugLensId : modeState?.lenses?.domainLensId) ||
+        null;
+      const lens =
+        !isDbDisabled() && lensId ? await prisma.kip_lenses.findUnique({ where: { id: lensId } }) : null;
+      const debugSummary =
+        activeMode === 'debug' ? formatDebugBundleSummary(options?.debugBundle, activeModeConfig) : null;
+      const maxChars = typeof activeModeConfig.limits?.maxChars === 'number' ? activeModeConfig.limits.maxChars : null;
 
       // Handle different agent classes
       let result: unknown;
@@ -708,7 +853,16 @@ Please respond in character, using your specific capabilities and personality. K
         }
         
         // Generate response using real AI model with memory context
-        const response = await this.callAIModel(agent, input, previousMessages, userId);
+        const response = await this.callAIModel(agent, input, previousMessages, userId, {
+          mode: activeMode,
+          modeConfig: activeModeConfig,
+          lens: { systemPrompt: lens?.systemPrompt || null },
+          debugSummary,
+          maxChars,
+          outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
+          includeFixPlan: activeModeConfig.includeFixPlan,
+          autoBrief: activeModeConfig.autoBrief,
+        });
         
         // Save agent response to memory if we have a session
         if (agent.memory_enabled && currentSessionId) {
@@ -769,7 +923,7 @@ Please respond in character, using your specific capabilities and personality. K
             try {
               const subAgent = await getKipAgentBySlug(slug);
               if (subAgent) {
-                const subResult = await this.runAgent(subAgent.id, input, userId, sessionId);
+                const subResult = await this.runAgent(subAgent.id, input, userId, sessionId, options);
                 const agentResponse = subResult as AgentResponse;
                 subResults.push({
                   agent_slug: slug,
@@ -967,6 +1121,45 @@ function resolveUserId(req: Request): { userId?: string; source?: UserIdSource }
 
   return { userId: undefined, source: undefined };
 }
+
+const truncateValue = (value: string | undefined | null, limit = 160) => {
+  if (!value) return '';
+  return value.length > limit ? `${value.slice(0, limit)}…` : value;
+};
+
+const summarizeDebugEntry = (entry: DebugBundleEntry): string => {
+  const method = entry.method || '';
+  const url = entry.url ? truncateValue(entry.url, 140) : '';
+  const status = typeof entry.status === 'number' ? entry.status : '—';
+  const duration = typeof entry.durationMs === 'number' ? `${entry.durationMs}ms` : '';
+  const requestId = entry.requestId ? `requestId=${entry.requestId}` : '';
+  const action = entry.action ? `action=${entry.action}` : '';
+  return [method, url, `→ ${status}`, duration, requestId, action].filter(Boolean).join(' ').trim();
+};
+
+const formatDebugBundleSummary = (bundle: DebugBundleInput | null | undefined, modeConfig?: ModeConfig): string | null => {
+  if (!bundle) return null;
+  const captureN = modeConfig?.captureN ?? 20;
+  const entries = (bundle.entries || []).slice(-captureN);
+  const failureCandidates = bundle.failures && bundle.failures.length > 0
+    ? bundle.failures
+    : entries.filter((entry) => (typeof entry.status === 'number' && entry.status >= 400) || entry.error);
+  const failures = failureCandidates.slice(-5);
+  const auth = bundle.authContextKeysPresent;
+  const authLine = auth
+    ? `Auth context: user=${auth.hasUser ? 'yes' : 'no'}, auth=${auth.hasAuth ? 'yes' : 'no'}, kam=${auth.hasKam ? 'yes' : 'no'}, authzHeader=${auth.authorizationHeaderPresent ? 'yes' : 'no'}, userKeys=${(auth.userKeys || []).join(',') || '—'}, authKeys=${(auth.authKeys || []).join(',') || '—'}, kamKeys=${(auth.kamKeys || []).join(',') || '—'}`
+    : 'Auth context: unknown';
+
+  const lines: string[] = [];
+  if (bundle.symptom) {
+    lines.push(`Symptom: ${truncateValue(bundle.symptom, 200)}`);
+  }
+  lines.push(authLine);
+  lines.push(failures.length ? `Recent failures:\n${failures.map(summarizeDebugEntry).join('\n')}` : 'Recent failures: none captured');
+  lines.push(entries.length ? `Recent requests (last ${entries.length}):\n${entries.map(summarizeDebugEntry).join('\n')}` : 'Recent requests: none captured');
+
+  return lines.join('\n');
+};
 
 /**
  * Express route handler for /api/kip/agents
@@ -1170,7 +1363,16 @@ export default async function handler(req: Request, res: Response) {
         
         if (action === 'run') {
           // Validate using Zod schema
-          const validation = AgentRunSchema.safeParse({ agentId, input, userId: requestUserId, sessionId });
+          const validation = AgentRunSchema.safeParse({
+            agentId,
+            input,
+            userId: requestUserId,
+            sessionId,
+            domainId: (req.body as any)?.domainId ?? (req.headers['x-domain-id'] as string | undefined),
+            domainSlug: (req.body as any)?.domainSlug ?? (req.headers['x-domain-slug'] as string | req.headers['x-domain'] as string | undefined),
+            mode: (req.body as any)?.mode,
+            debugBundle: (req.body as any)?.debugBundle,
+          });
           if (!validation.success) {
             return res.status(400).json({ 
               success: false, 
@@ -1179,7 +1381,12 @@ export default async function handler(req: Request, res: Response) {
             });
           }
           
-          const result = await KipAgentService.runAgent(agentId, input, requestUserId, sessionId);
+          const result = await KipAgentService.runAgent(agentId, input, requestUserId, sessionId, {
+            domainId: validation.data.domainId,
+            domainSlug: validation.data.domainSlug,
+            mode: validation.data.mode as AgentModeKey | undefined,
+            debugBundle: validation.data.debugBundle || null,
+          });
           return res.status(200).json({ success: true, data: result });
         }
         

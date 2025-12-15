@@ -17,6 +17,9 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - [ ] Replace Cockpit diagnostics placeholders with backend stats once exposed.
 
 ## 📆 Update Log
+### 2025-12-14 - Mode dropdown + per-mode config
+- Replaced Normal with Domain mode, introduced dropdown + gear to open a right-side Mode Config drawer with per-mode lens selection, output style, limits, and debug capture settings; wired to `/api/kip/agents/:id/mode-config` and `/api/kip/lenses`.
+- Dialogue now sends the active mode, bounded debug bundle, and uses selected lenses; Debug Brief respects configured maxChars.
 ### 2025-12-14 - Dialogue Debug Brief + auth context
 - Debug Mode now shows auth context presence (user/auth/kam keys, authz header) and adds a Debug Brief generator with symptom capture and copy buttons.
 - Agent prompt gains a Debug Investigator Lens when Debug Mode is on to request concise evidence-focused replies.

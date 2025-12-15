@@ -37,6 +37,10 @@ async function main() {
     const seedDomainBoardEngagement = await import('./seeds/domain-board-engagement-templates.seed.ts');
     await seedDomainBoardEngagement.default();
 
+    console.log('🔭 Seeding Kip lenses...');
+    const seedLenses = await import('./seeds/lenses.seed.ts');
+    await seedLenses.default();
+
     console.log('🎉 Database seed completed successfully!');
   } catch (error) {
     console.error('❌ Error during seeding:', error);

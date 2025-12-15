@@ -99,6 +99,37 @@ export interface AgentResponse {
   processing_time_ms: number;
 }
 
+export type AgentModeKey = 'domain' | 'debug';
+export type ModeOutputStyle = 'concise' | 'normal' | 'expanded';
+
+export type ModeConfig = {
+  lensId?: string | null;
+  outputStyle?: ModeOutputStyle;
+  limits?: { maxChars?: number | null };
+  contextFlags?: Record<string, boolean>;
+  captureN?: number;
+  autoBrief?: boolean;
+  includeFixPlan?: boolean;
+};
+
+export type AgentModeState = {
+  activeMode: AgentModeKey;
+  modeConfigs: Record<AgentModeKey, ModeConfig>;
+  domainKey?: string;
+  lenses?: { domainLensId: string | null; debugLensId: string | null };
+};
+
+export interface KipLens {
+  id: string;
+  domainId: string | null;
+  name: string;
+  systemPrompt: string;
+  rulesJson?: unknown;
+  outputSchemaJson?: unknown;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface KipCommandIntent {
   action: string;
   keeper_id: string;
@@ -488,7 +519,13 @@ export class KipApi {
   /**
    * Run an agent with input text and optional session for memory
    */
-  static async runAgent(agentId: string, input: string, userId?: string, sessionId?: string): Promise<AgentResponse> {
+  static async runAgent(
+    agentId: string,
+    input: string,
+    userId?: string,
+    sessionId?: string,
+    options?: { domainId?: string | null; domainSlug?: string | null; mode?: AgentModeKey; debugBundle?: unknown },
+  ): Promise<AgentResponse> {
     try {
       const response = await apiFetch('/api/kip/agents', {
         method: 'POST',
@@ -497,7 +534,11 @@ export class KipApi {
           agentId,
           input,
           userId,
-          sessionId
+          sessionId,
+          domainId: options?.domainId ?? undefined,
+          domainSlug: options?.domainSlug ?? undefined,
+          mode: options?.mode,
+          debugBundle: options?.debugBundle,
         })
       });
       
@@ -539,6 +580,68 @@ export class KipApi {
       
       return mockResult;
     }
+  }
+
+  /**
+   * Mode + Lens helpers
+   */
+  static async getLenses(domainId?: string): Promise<KipLens[]> {
+    const params = new URLSearchParams();
+    if (domainId) params.set('domainId', domainId);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const response = await apiFetch(`/api/kip/lenses${query}`);
+    if (response.success) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to load lenses');
+  }
+
+  static async createLens(input: { domainId?: string; name: string; systemPrompt: string; rulesJson?: unknown; outputSchemaJson?: unknown }): Promise<KipLens> {
+    const response = await apiFetch('/api/kip/lenses', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    if (response.success) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to create lens');
+  }
+
+  static async updateLens(id: string, input: Partial<KipLens>): Promise<KipLens> {
+    const response = await apiFetch(`/api/kip/lenses/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    });
+    if (response.success) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to update lens');
+  }
+
+  static async getModeConfig(agentId: string, domainId?: string): Promise<AgentModeState> {
+    const params = new URLSearchParams();
+    if (domainId) params.set('domainId', domainId);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const response = await apiFetch(`/api/kip/agents/${agentId}/mode-config${query}`);
+    if (response.success) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to load mode config');
+  }
+
+  static async updateModeConfig(agentId: string, payload: Partial<AgentModeState> & { domainId?: string | null }): Promise<AgentModeState> {
+    const params = new URLSearchParams();
+    if (payload.domainId) params.set('domainId', payload.domainId);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const { domainId, ...body } = payload;
+    const response = await apiFetch(`/api/kip/agents/${agentId}/mode-config${query}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    if (response.success) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to update mode config');
   }
 
   /**
