@@ -8,7 +8,7 @@
 
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { prisma, updateKipSessionMetadata as updateKipSessionMetadataQuery } from '@keeper/database';
+import { prisma } from '@keeper/database';
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import type { 
@@ -536,7 +536,6 @@ export class KipAgentService {
         agent_id: agent.id,
         user_id: userId,
         session_name: sessionName || `Session with ${agent.name}`,
-        topic: sessionName || `Session with ${agent.name}`
       };
 
       return await createKipSession(sessionData);
@@ -559,7 +558,18 @@ export class KipAgentService {
         ...(input.primaryJourneyId !== undefined ? { primary_journey_id: input.primaryJourneyId } : {})
       };
 
-      return await updateKipSessionMetadataQuery(input.sessionId, payload);
+      return await prisma.kip_sessions.update({
+        where: { id: input.sessionId },
+        data: {
+          ...payload,
+          updated_at: new Date(),
+        },
+        include: {
+          kip_messages: {
+            orderBy: { created_at: 'asc' },
+          },
+        },
+      }) as unknown as KipSessionWithRelations;
     } catch (error) {
       console.error('Error updating session metadata:', error);
       throw new Error(`Failed to update session metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -1369,7 +1379,10 @@ export default async function handler(req: Request, res: Response) {
             userId: requestUserId,
             sessionId,
             domainId: (req.body as any)?.domainId ?? (req.headers['x-domain-id'] as string | undefined),
-            domainSlug: (req.body as any)?.domainSlug ?? (req.headers['x-domain-slug'] as string | req.headers['x-domain'] as string | undefined),
+            domainSlug:
+              (req.body as any)?.domainSlug ??
+              ((req.headers['x-domain-slug'] as string | undefined) ??
+                (req.headers['x-domain'] as string | undefined)),
             mode: (req.body as any)?.mode,
             debugBundle: (req.body as any)?.debugBundle,
           });

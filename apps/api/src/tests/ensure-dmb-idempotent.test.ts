@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 
 describe('ensureDomainManagementBoard idempotency', () => {
   it('returns same UUID and creates/migrates alias', async () => {

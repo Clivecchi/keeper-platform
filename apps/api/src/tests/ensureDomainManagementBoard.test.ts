@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ensureDomainManagementBoard } from '../services/boards/domainManagement';
+import { ensureDomainManagementBoard } from '../services/boards/domainManagement.js';
 
 type BoardRow = {
   id: string; keeperId: string; name: string; slug: string; description: string | null;
@@ -10,7 +10,7 @@ type FrameConfigRow = { id: string; name: string; description?: string | null; t
 type FrameRow = {
   id: string; boardId: string; role: string | null; name: string; pattern: string; frameType: string;
   orderIndex: number; layoutKind: string; layoutData: any; props: any; entityType: string; entityId: string;
-  configId: string; updatedAt: Date;
+  configId: string; updatedAt: Date; createdAt?: Date;
 };
 
 function makeMockPrisma() {
@@ -78,12 +78,20 @@ function makeMockPrisma() {
       }
     },
     frameInstance: {
-      createMany: async ({ data }: any) => { for (const d of data) frames.push(d); return { count: data.length }; },
-      create: async ({ data }: any) => { frames.push(data); return data; },
+      createMany: async ({ data }: any) => { for (const d of data) frames.push({ createdAt: new Date(), ...d }); return { count: data.length }; },
+      create: async ({ data }: any) => { const row = { createdAt: new Date(), ...data }; frames.push(row); return row; },
       update: async ({ where: { id }, data }: any) => { const i = frames.findIndex(f => f.id === id); if (i !== -1) frames[i] = { ...frames[i], ...data }; return frames[i]; },
       findMany: async ({ where: { boardId }, orderBy }: any) => frames.filter(f => f.boardId === boardId).sort((a,b) => a.orderIndex - b.orderIndex),
     },
-    $transaction: async (fn: any) => fn({ frameInstance: { findMany: async ({ where: { boardId } }: any) => frames.filter(f => f.boardId === boardId).sort((a,b)=>a.createdAt?.getTime?.()-b.createdAt?.getTime?.() || 0), delete: async ({ where: { id } }: any) => { const i = frames.findIndex(f => f.id === id); if (i !== -1) frames.splice(i,1); } } }),
+    $transaction: async (fn: any) => fn({
+      frameInstance: {
+        findMany: async ({ where: { boardId } }: any) =>
+          frames
+            .filter(f => f.boardId === boardId)
+            .sort((a,b) => (a.createdAt?.getTime?.() || 0) - (b.createdAt?.getTime?.() || 0)),
+        delete: async ({ where: { id } }: any) => { const i = frames.findIndex(f => f.id === id); if (i !== -1) frames.splice(i,1); },
+      },
+    }),
   } as any;
 }
 

@@ -61,7 +61,18 @@ router.patch('/:agentId/mode-config', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid mode config input', details: validation.error.errors });
     }
 
-    const updated = await updateModeState(agentId, domainId, validation.data);
+    const payload = validation.data;
+    const updated = await updateModeState(agentId, domainId, {
+      ...(payload.activeMode ? { activeMode: payload.activeMode } : {}),
+      ...(payload.modeConfigs
+        ? {
+            modeConfigs: {
+              domain: payload.modeConfigs.domain || {},
+              debug: payload.modeConfigs.debug || {},
+            },
+          }
+        : {}),
+    });
     return res.json({ success: true, data: updated });
   } catch (error) {
     console.error('[kip/mode-config] PATCH error', error);
