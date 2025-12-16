@@ -368,11 +368,12 @@ const CreateSessionSchema = z.object({
   sessionName: z.string().optional(),
 });
 
+const TagsInputSchema = z.union([z.array(z.any()), z.string(), z.record(z.any())]).optional();
+
 const SessionMetadataUpdatesSchema = z.object({
   session_name: z.string().optional(),
   summary: z.string().optional().nullable(),
-  topic: z.string().optional().nullable(),
-  tags: z.union([z.record(z.any()), z.array(z.any())]).optional(),
+  tags: TagsInputSchema,
 });
 
 const UpdateSessionMetadataSchema = z.object({
@@ -382,12 +383,104 @@ const UpdateSessionMetadataSchema = z.object({
   updates: SessionMetadataUpdatesSchema.optional(),
   // Back-compat top-level fields
   session_name: z.string().optional(),
-  topic: z.string().optional().nullable(),
   summary: z.string().optional().nullable(),
-  tags: z.union([z.record(z.any()), z.array(z.any())]).optional(),
-  primaryKeeperId: z.string().optional().nullable(),
-  primaryJourneyId: z.string().optional().nullable()
+  tags: TagsInputSchema,
 });
+
+type NormalizedSessionMetadataUpdates = {
+  session_name?: string;
+  summary?: string | null;
+  tags?: string[];
+};
+
+type UpdateSessionMetadataParams = {
+  sessionId: string;
+  agentId: string;
+  userId: string;
+  updates: NormalizedSessionMetadataUpdates;
+};
+
+const cleanTagValue = (value: unknown): string | null => {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  if (!text) return null;
+  const bracketMatch = text.match(/^\[(.*)\]$/);
+  const stripped = bracketMatch ? bracketMatch[1]?.trim() : text;
+  return stripped || null;
+};
+
+const normalizeTagsInput = (raw: unknown): { tags?: string[]; error?: string } => {
+  if (raw === undefined) return { tags: undefined };
+  if (raw === null) return { tags: [] };
+
+  const finalize = (values: unknown[]) => {
+    const normalized = values
+      .map(cleanTagValue)
+      .filter((item): item is string => Boolean(item));
+    return Array.from(new Set(normalized));
+  };
+
+  if (Array.isArray(raw)) {
+    return { tags: finalize(raw) };
+  }
+
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return { tags: [] };
+
+    if (/^[\[{].*[\]}]$/.test(trimmed)) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return { tags: finalize(parsed) };
+        }
+      } catch {
+        // Fall through to comma/segment parsing
+      }
+    }
+
+    const segments = trimmed.includes(',') ? trimmed.split(',') : [trimmed];
+    return { tags: finalize(segments) };
+  }
+
+  if (typeof raw === 'object') {
+    const values = Object.values(raw as Record<string, unknown>);
+    return { tags: finalize(values) };
+  }
+
+  return { error: 'Invalid tags format' };
+};
+
+const normalizeSessionMetadataUpdates = (
+  input: z.infer<typeof UpdateSessionMetadataSchema>
+): { updates: NormalizedSessionMetadataUpdates; error?: string } => {
+  const source = input.updates || {};
+  const sessionName = input.session_name ?? (source as any).session_name;
+  const summary = input.summary ?? (source as any).summary;
+  const tagsRaw = input.tags !== undefined ? input.tags : (source as any).tags;
+
+  const updates: NormalizedSessionMetadataUpdates = {};
+
+  if (sessionName !== undefined) {
+    updates.session_name = sessionName;
+  }
+
+  if (summary !== undefined) {
+    updates.summary = summary ?? null;
+  }
+
+  if (tagsRaw !== undefined) {
+    const normalizedTags = normalizeTagsInput(tagsRaw);
+    if (normalizedTags.error) {
+      return { updates: {}, error: normalizedTags.error };
+    }
+    if (normalizedTags.tags !== undefined) {
+      updates.tags = normalizedTags.tags;
+    }
+  }
+
+  return { updates };
+};
 
 /**
  * KipAgentService - Core agent management functions
@@ -558,37 +651,50 @@ export class KipAgentService {
   }
 
   /**
-   * Update session metadata (topic, summary, tags, primary links)
+   * Update session metadata (name, summary, tags)
    */
-  static async updateSessionMetadata(input: z.infer<typeof UpdateSessionMetadataSchema>): Promise<KipSessionWithRelations> {
+  static async updateSessionMetadata(input: UpdateSessionMetadataParams): Promise<KipSessionWithRelations> {
     try {
-      const updates = input.updates || {
-        ...(input.session_name !== undefined ? { session_name: input.session_name } : {}),
-        ...(input.summary !== undefined ? { summary: input.summary } : {}),
-        ...(input.topic !== undefined ? { topic: input.topic } : {}),
-        ...(input.tags !== undefined ? { tags: input.tags } : {}),
-      };
       const payload = {
-        ...(updates.session_name !== undefined ? { session_name: updates.session_name } : {}),
-        ...(updates.summary !== undefined ? { summary: updates.summary } : {}),
-        ...(updates.topic !== undefined ? { topic: updates.topic } : {}),
-        ...(updates.tags !== undefined ? { tags: updates.tags } : {}),
-        ...(input.primaryKeeperId !== undefined ? { primary_keeper_id: input.primaryKeeperId } : {}),
-        ...(input.primaryJourneyId !== undefined ? { primary_journey_id: input.primaryJourneyId } : {})
+        ...(input.updates.session_name !== undefined ? { session_name: input.updates.session_name } : {}),
+        ...(input.updates.summary !== undefined ? { summary: input.updates.summary } : {}),
+        ...(input.updates.tags !== undefined ? { tags: input.updates.tags } : {}),
       };
 
-      return await prisma.kip_sessions.update({
-        where: { id: input.sessionId },
+      if (Object.keys(payload).length === 0) {
+        throw new Error('No session metadata provided to update');
+      }
+
+      const updated = await prisma.kip_sessions.updateMany({
+        where: {
+          id: input.sessionId,
+          agent_id: input.agentId,
+          user_id: input.userId,
+        },
         data: {
           ...payload,
           updated_at: new Date(),
         },
+      });
+
+      if (!updated.count) {
+        throw new Error('Session not found for user/agent');
+      }
+
+      const session = await prisma.kip_sessions.findUnique({
+        where: { id: input.sessionId },
         include: {
           kip_messages: {
             orderBy: { created_at: 'asc' },
           },
         },
-      }) as unknown as KipSessionWithRelations;
+      });
+
+      if (!session) {
+        throw new Error('Session not found after update');
+      }
+
+      return session as unknown as KipSessionWithRelations;
     } catch (error) {
       console.error('Error updating session metadata:', error);
       throw new Error(`Failed to update session metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -1136,9 +1242,12 @@ function resolveAgentErrorCode(error: unknown): AgentErrorCode {
   return 'UNKNOWN';
 }
 
-type UserIdSource = 'req.user.id' | 'req.kam.userId' | 'req.auth.user.id';
+type UserIdSource = 'req.user.id' | 'req.kam.userId' | 'req.auth.user.id' | 'res.locals.user.id';
 
-function resolveUserId(req: Request): { userId?: string; source?: UserIdSource } {
+function resolveUserId(req: Request, res?: Response): { userId?: string; source?: UserIdSource } {
+  const fromResLocals = (res as any)?.locals?.user?.id;
+  if (fromResLocals) return { userId: String(fromResLocals), source: 'res.locals.user.id' };
+
   const fromReqUser = (req as any).user?.id;
   if (fromReqUser) return { userId: String(fromReqUser), source: 'req.user.id' };
 
@@ -1231,9 +1340,9 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
   };
   let ctxFlags: ReturnType<typeof buildContextFlags> | undefined;
   try {
-    const derivedUser = resolveUserId(req);
+    const resolvedUser = resolveUserId(req, res);
     const resolvedDomain = resolveDomain(req);
-    ctxFlags = buildContextFlags(req, derivedUser.userId, resolvedDomain);
+    ctxFlags = buildContextFlags(req, resolvedUser.userId, resolvedDomain);
     const respond = (status: number, body: Record<string, unknown>) =>
       res.status(status).json({ ...body, ctx: ctxFlags });
 
@@ -1409,7 +1518,6 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
       case 'POST':
         // Handle agent execution or creation
         const { action, agentId, input, sessionId, sessionName, ...createData } = req.body;
-        const resolvedUser = derivedUser;
         const requestUserId = resolvedUser.userId;
         const requestUserIdSource: UserIdSource | 'body' | undefined = resolvedUser.source;
         console.info('[kip/agents] post request', {
@@ -1452,8 +1560,8 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
         }
         
         if (action === 'createSession') {
-          const { userId: derivedUserId, source: userIdSource } = resolvedUser;
-          if (!derivedUserId) {
+          const { userId: resolvedUserId, source: userIdSource } = resolvedUser;
+          if (!resolvedUserId) {
             console.warn('[kip/agents] createSession missing userId', {
               ...baseContext,
               agentId,
@@ -1472,7 +1580,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
           console.info('[kip/agents] createSession request', {
             ...baseContext,
             agentId,
-            userId: derivedUserId,
+            userId: resolvedUserId,
             sessionName,
             domainId: resolvedDomain.domainId,
             domainSlug: resolvedDomain.domainSlug,
@@ -1486,7 +1594,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             console.warn('[kip/agents] createSession validation failed', {
               ...baseContext,
               agentId,
-              userId: derivedUserId,
+              userId: resolvedUserId,
               sessionName,
               issues: validation.error.errors,
               ctx: ctxFlags,
@@ -1503,7 +1611,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
           }
           
           try {
-            const session = await KipAgentService.createSession(agentId, derivedUserId, sessionName);
+            const session = await KipAgentService.createSession(agentId, resolvedUserId, sessionName);
             console.info('[kip/agents] createSession success', {
               requestId,
               agentId,
@@ -1521,7 +1629,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             console.error('[kip/agents] createSession error', {
               requestId,
               agentId,
-              userId: derivedUserId,
+              userId: resolvedUserId,
               sessionName,
               message,
               stack: error instanceof Error ? error.stack : undefined,
@@ -1555,48 +1663,106 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
         return respond(201, { success: true, data: newAgent });
 
       case 'PATCH': {
-        const validation = UpdateSessionMetadataSchema.safeParse(req.body);
-        if (!validation.success) {
-          return respond(400, {
-            success: false,
-            error: 'Invalid session metadata',
-            details: validation.error.errors
-          });
-        }
+        try {
+          const validation = UpdateSessionMetadataSchema.safeParse(req.body);
+          if (!validation.success) {
+            return respond(400, {
+              success: false,
+              error: 'Invalid session metadata',
+              details: validation.error.errors
+            });
+          }
 
-        if (!resolvedUser.userId) {
-          console.warn('[kip/agents] updateSessionMetadata missing user', { requestId, ctx: ctxFlags });
-          return respond(401, {
-            success: false,
-            error: { code: 'UNAUTHORIZED', message: 'Missing user context' },
-            warning: 'Missing user context; auth middleware not mounted or cookie not parsed',
-          });
-        }
+          const resolvedUserId = resolvedUser.userId;
+          if (!resolvedUserId) {
+            console.warn('[kip/agents] updateSessionMetadata missing user', { requestId, ctx: ctxFlags });
+            return respond(401, {
+              success: false,
+              error: { code: 'UNAUTHORIZED', message: 'Missing user context' },
+              warning: 'Missing user context; auth middleware not mounted or cookie not parsed',
+            });
+          }
 
-        const existingSession = await prisma.kip_sessions.findUnique({
-          where: { id: validation.data.sessionId },
-          select: { id: true, user_id: true },
-        });
-        if (existingSession?.user_id && existingSession.user_id !== resolvedUser.userId) {
-          console.warn('[kip/agents] updateSessionMetadata ownership mismatch', {
+          const { sessionId } = validation.data;
+          const existingSession = await prisma.kip_sessions.findUnique({
+            where: { id: sessionId },
+            select: { id: true, user_id: true, agent_id: true },
+          });
+
+          if (!existingSession || existingSession.user_id !== resolvedUserId) {
+            console.warn('[kip/agents] updateSessionMetadata ownership mismatch', {
+              requestId,
+              sessionId,
+              sessionUserId: existingSession?.user_id,
+              resolvedUserId,
+              ctx: ctxFlags,
+            });
+            return respond(404, {
+              success: false,
+              error: 'Session not found',
+            });
+          }
+
+          const targetAgentId = validation.data.agentId ?? existingSession.agent_id;
+          if (!targetAgentId || existingSession.agent_id !== targetAgentId) {
+            console.warn('[kip/agents] updateSessionMetadata agent mismatch', {
+              requestId,
+              sessionId,
+              existingAgentId: existingSession.agent_id,
+              providedAgentId: validation.data.agentId,
+              ctx: ctxFlags,
+            });
+            return respond(404, { success: false, error: 'Session not found' });
+          }
+
+          const { updates, error: normalizationError } = normalizeSessionMetadataUpdates(validation.data);
+          if (normalizationError) {
+            return respond(400, {
+              success: false,
+              error: 'Invalid session metadata',
+              details: normalizationError,
+            });
+          }
+
+          if (!Object.keys(updates).length) {
+            return respond(400, {
+              success: false,
+              error: 'No session metadata provided to update',
+            });
+          }
+
+          const updatedSession = await KipAgentService.updateSessionMetadata({
+            sessionId,
+            agentId: targetAgentId,
+            userId: resolvedUserId,
+            updates,
+          });
+
+          console.info('[kip/agents] updateSessionMetadata success', {
             requestId,
-            sessionId: validation.data.sessionId,
-            sessionUserId: existingSession.user_id,
-            resolvedUserId: resolvedUser.userId,
+            sessionId,
+            agentId: targetAgentId,
             ctx: ctxFlags,
           });
+
+          return respond(200, { success: true, data: updatedSession });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to update session metadata';
+          const isNotFound = /not found/i.test(message);
+          const isInvalid = /invalid|metadata|tags|No session metadata provided/i.test(message);
+          console.error('[kip/agents] updateSessionMetadata error', {
+            requestId,
+            sessionId: (req.body as any)?.sessionId,
+            agentId: (req.body as any)?.agentId,
+            message,
+            stack: error instanceof Error ? error.stack : undefined,
+            ctx: ctxFlags,
+          });
+          return respond(isNotFound ? 404 : isInvalid ? 400 : 500, {
+            success: false,
+            error: message,
+          });
         }
-
-        const updatedSession = await KipAgentService.updateSessionMetadata(validation.data);
-
-        console.info('[kip/agents] updateSessionMetadata success', {
-          requestId,
-          sessionId: validation.data.sessionId,
-          agentId: validation.data.agentId || 'unknown',
-          ctx: ctxFlags,
-        });
-
-        return respond(200, { success: true, data: updatedSession });
       }
 
       case 'PUT':

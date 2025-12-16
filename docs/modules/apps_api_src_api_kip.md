@@ -19,6 +19,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2025-12-15: Hardened updateSessionMetadata auth (user+agent), normalized tags inputs, and fixed resolvedUser initialization to prevent PATCH 500s.
 - 2025-12-15: updateSessionMetadata now accepts summary + flexible tags (array or object) and logs requestId/sessionId on success for PATCH `/api/kip/agents`.
 - 2025-12-14: Added Lens CRUD endpoints (`/api/kip/lenses`) and agent mode config routes (`/api/kip/agents/:id/mode-config`) to drive Domain/Debug mode selection with lenses and per-mode limits.
 - 2025-12-13: Added structured request logging (headers/query/body/domain) for createSession/messages/sessions flows to make 400/500 causes traceable.
