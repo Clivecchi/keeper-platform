@@ -14,6 +14,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `/:domainId/agent/execute` now auto-assigns Kip as the primary agent when missing, then calls `KipAgentService` and surfaces typed error codes (`MISSING_API_KEY`, `INVALID_MODEL`, etc.).
 - Board data routes guard frame IDs via the Domain keeper type template, updating JSON props and flushing cache.
 - Custom domain routes share logic between legacy and `/custom` prefixed paths for compatibility.
+- `/:domainId/kip/environment` returns a stable, read-only Kip environment bundle; the agent execute route builds the same bundle and injects it into the model payload without changing response shapes.
 
 ## Error Taxonomy
 - **Domain layer** (this router) owns `AUTH_REQUIRED`, `DOMAIN_NOT_FOUND`, `ACCESS_DENIED`, and `NO_PRIMARY_AGENT`, returning 4xx immediately.
@@ -26,6 +27,8 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+### 2025-12-15 - Kip environment context surface
+- Added `GET /api/domains/:domainId/kip/environment` and wired `/agent/execute` to build the same Kip environment bundle and pass it into the model input (read-only, non-breaking).
 ### 2025-12-14 - Mode-aware agent execute
 - Domain agent execute now forwards domainId/slug and explicit Domain mode to `KipAgentService.runAgent`, ensuring mode-specific lens/config selection is respected.
 ### 2025-12-09 - Agent Error Taxonomy

@@ -50,6 +50,7 @@ export interface ModelCallOptions {
   settings: ModelSettings;
   provider: ModelProvider;
   userId?: string; // Optional user ID for user-scoped API keys
+  environment?: Record<string, unknown> | null;
 }
 
 const RETRY_TEMPLATE = Object.freeze({

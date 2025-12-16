@@ -21,6 +21,7 @@ import { DomainService } from '@keeper/database';
 import { ensureDomainManagementBoard } from '../../services/boards/domainManagement.js';
 import { KipAgentService } from '../kip/agents.js';
 import type { AgentResponse, KipCommandIntent } from '@keeper/database';
+import { buildKipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -241,6 +242,14 @@ const domainAgentExecutionSchema = z.object({
       keeperId: z.string().optional(),
       journeyId: z.string().optional(),
       extra: z.record(z.any()).optional(),
+    })
+    .optional(),
+  focus: z
+    .object({
+      boardId: z.string().optional(),
+      keeperId: z.string().optional(),
+      journeyId: z.string().optional(),
+      pathId: z.string().optional(),
     })
     .optional(),
   sessionId: z.string().optional(),
@@ -529,6 +538,44 @@ router.delete('/:id/permissions/:userId', authMiddlewareCompat, async (req: Requ
   }
 });
 
+router.get('/:domainId/kip/environment', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+    }
+
+    const { domainId } = req.params;
+    const domain = await domainService.getDomainById(domainId);
+
+    if (!domain) {
+      return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
+    }
+
+    const permission = await permissionService.checkPermission({
+      userId: req.user.id,
+      domainId,
+      permission: 'read',
+    });
+
+    if (!permission.hasPermission) {
+      return res.status(403).json({ error: 'ACCESS_DENIED', message: 'You do not have access to this domain' });
+    }
+
+    const environment = await buildKipEnvironmentContext({
+      domainId,
+      userId: req.user.id,
+    });
+
+    return res.json({ environment });
+  } catch (error) {
+    console.error('[domains:kip-environment:error]', error);
+    return res.status(500).json({
+      error: 'ENVIRONMENT_UNAVAILABLE',
+      message: 'Failed to build environment context.',
+    });
+  }
+});
+
 router.post('/:domainId/agent/execute', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user) {
@@ -571,12 +618,19 @@ router.post('/:domainId/agent/execute', authMiddlewareCompat, async (req: Authen
       });
     }
 
+    const focus = payload.focus ?? undefined;
+    const environment = await buildKipEnvironmentContext({
+      domainId,
+      userId: req.user.id,
+      focus,
+    });
+
     const agentResult = await KipAgentService.runAgent(
       primaryAgentId,
       payload.message,
       req.user.id,
       payload.sessionId,
-      { domainId, domainSlug: domain.slug, mode: 'domain' },
+      { domainId, domainSlug: domain.slug, mode: 'domain', environment },
     );
 
     if (!isAgentResponse(agentResult)) {

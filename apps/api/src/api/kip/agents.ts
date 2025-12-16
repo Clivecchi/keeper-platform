@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { prisma } from '@keeper/database';
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
+import type { KipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
 import type { 
   AgentInput, 
   AgentResponse, 
@@ -69,6 +70,7 @@ type RunAgentOptions = {
   domainSlug?: string | null;
   mode?: AgentModeKey;
   debugBundle?: DebugBundleInput | null;
+  environment?: KipEnvironmentContext | null;
 };
 
 class AgentExecutionError extends Error {
@@ -797,6 +799,7 @@ export class KipAgentService {
       outputStyle?: OutputStyle;
       includeFixPlan?: boolean;
       autoBrief?: boolean;
+      environment?: KipEnvironmentContext | null;
     },
   ): Promise<string> {
     try {
@@ -862,7 +865,8 @@ export class KipAgentService {
         messages,
         settings: modelSettings,
         provider: modelProvider,
-        userId
+        userId,
+        environment: promptOptions?.environment ?? undefined,
       });
       
       if (response.success) {
@@ -997,6 +1001,7 @@ export class KipAgentService {
           outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
           includeFixPlan: activeModeConfig.includeFixPlan,
           autoBrief: activeModeConfig.autoBrief,
+          environment: options?.environment ?? null,
         });
         
         // Save agent response to memory if we have a session
