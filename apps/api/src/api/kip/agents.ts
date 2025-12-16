@@ -370,8 +370,9 @@ const CreateSessionSchema = z.object({
 
 const SessionMetadataUpdatesSchema = z.object({
   session_name: z.string().optional(),
+  summary: z.string().optional().nullable(),
   topic: z.string().optional().nullable(),
-  tags: z.record(z.any()).optional(),
+  tags: z.union([z.record(z.any()), z.array(z.any())]).optional(),
 });
 
 const UpdateSessionMetadataSchema = z.object({
@@ -382,7 +383,8 @@ const UpdateSessionMetadataSchema = z.object({
   // Back-compat top-level fields
   session_name: z.string().optional(),
   topic: z.string().optional().nullable(),
-  tags: z.record(z.any()).optional(),
+  summary: z.string().optional().nullable(),
+  tags: z.union([z.record(z.any()), z.array(z.any())]).optional(),
   primaryKeeperId: z.string().optional().nullable(),
   primaryJourneyId: z.string().optional().nullable()
 });
@@ -562,11 +564,13 @@ export class KipAgentService {
     try {
       const updates = input.updates || {
         ...(input.session_name !== undefined ? { session_name: input.session_name } : {}),
+        ...(input.summary !== undefined ? { summary: input.summary } : {}),
         ...(input.topic !== undefined ? { topic: input.topic } : {}),
         ...(input.tags !== undefined ? { tags: input.tags } : {}),
       };
       const payload = {
         ...(updates.session_name !== undefined ? { session_name: updates.session_name } : {}),
+        ...(updates.summary !== undefined ? { summary: updates.summary } : {}),
         ...(updates.topic !== undefined ? { topic: updates.topic } : {}),
         ...(updates.tags !== undefined ? { tags: updates.tags } : {}),
         ...(input.primaryKeeperId !== undefined ? { primary_keeper_id: input.primaryKeeperId } : {}),
@@ -1584,6 +1588,14 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
         }
 
         const updatedSession = await KipAgentService.updateSessionMetadata(validation.data);
+
+        console.info('[kip/agents] updateSessionMetadata success', {
+          requestId,
+          sessionId: validation.data.sessionId,
+          agentId: validation.data.agentId || 'unknown',
+          ctx: ctxFlags,
+        });
+
         return respond(200, { success: true, data: updatedSession });
       }
 

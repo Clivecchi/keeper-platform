@@ -8,6 +8,7 @@ import { AgentConversationSession, useAgentSessions } from '../../hooks/useAgent
 import { LinkedCard } from '../../components/props/LinkedCard';
 import type { LinkedCardProps } from '../../types/props';
 import { apiFetch, API_BASE } from '../../lib/api';
+import { SessionEditModal } from './SessionEditModal';
 
 type AgentBoardTab = 'dialogue' | 'cockpit' | 'sessions';
 type DialogueMode = 'domain' | 'debug';
@@ -343,10 +344,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const [isLoadingMessages, setIsLoadingMessages] = useState<boolean>(false);
   const [isSending, setIsSending] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState('');
-  const [isEditingSession, setIsEditingSession] = useState<boolean>(false);
-  const [sessionNameDraft, setSessionNameDraft] = useState<string>('');
-  const [sessionTopicDraft, setSessionTopicDraft] = useState<string>('');
-  const [sessionTagsDraft, setSessionTagsDraft] = useState<string>('');
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [sessionMetadataError, setSessionMetadataError] = useState<string | null>(null);
   const [dialogueMode, setDialogueMode] = useState<DialogueMode>('domain');
   const [debugEntries, setDebugEntries] = useState<DebugEntry[]>([]);
@@ -384,7 +382,11 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     () => (activeSessionId ? sessions.find((session) => session.id === activeSessionId) || null : null),
     [activeSessionId, sessions],
   );
-  const isSavingSessionMetadata = updatingSessionId === activeSessionId;
+  const editingSession = useMemo(
+    () => (editingSessionId ? sessions.find((session) => session.id === editingSessionId) || null : null),
+    [editingSessionId, sessions],
+  );
+  const isSavingSessionMetadata = updatingSessionId === editingSessionId;
 
   const agentDomainId =
     (agent as any)?.domainId ||
@@ -566,20 +568,8 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const handleEditSession = (sessionId: string) => {
     console.log('[Kip] Opening session edit', { sessionId });
     handleSessionSelect(sessionId);
-    const target = sessions.find((s) => s.id === sessionId);
-    if (target) {
-      setIsEditingSession(true);
-      setSessionMetadataError(null);
-      setSessionNameDraft(target.sessionName || target.title || 'Session with Kip');
-      setSessionTopicDraft(target.topic || '');
-      setSessionTagsDraft(
-        target.tags && Array.isArray(target.tags)
-          ? JSON.stringify(target.tags, null, 2)
-          : target.tags && typeof target.tags === 'object'
-            ? JSON.stringify(target.tags, null, 2)
-            : '',
-      );
-    }
+    setEditingSessionId(sessionId);
+    setSessionMetadataError(null);
     KipApi.getSessionById(sessionId).catch((err) => {
       const message = formatApiError(err, 'Unable to load session');
       setSessionMetadataError(message);
@@ -603,55 +593,33 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   };
 
   const handleCancelEditSession = () => {
-    setIsEditingSession(false);
+    setEditingSessionId(null);
     setSessionMetadataError(null);
-    setSessionNameDraft('');
-    setSessionTopicDraft('');
-    setSessionTagsDraft('');
   };
 
-  const handleSaveSessionMetadata = async () => {
-    if (!activeSessionId) return;
-    setSessionMetadataError(null);
-    let parsedTags: any | undefined = undefined;
-    if (sessionTagsDraft.trim()) {
-      try {
-        parsedTags = JSON.parse(sessionTagsDraft);
-      } catch (err) {
-        setSessionMetadataError('Tags must be valid JSON');
-        return;
-      }
+  const handleSaveSessionMetadata = async (updates: { session_name: string; summary?: string | null; tags?: any }) => {
+    if (!editingSessionId || !agent?.id) {
+      setSessionMetadataError('Agent must be loaded to save session changes');
+      return;
     }
-    const updates = {
-      session_name: sessionNameDraft.trim(),
-      topic: sessionTopicDraft.trim() || null,
-      tags: parsedTags,
-    };
+    setSessionMetadataError(null);
 
     console.log('[Kip] Saving session metadata', {
-      sessionId: activeSessionId,
+      sessionId: editingSessionId,
       agentId: agent?.id ?? null,
       updates,
     });
 
     try {
-      const updated = await updateSessionMetadata(activeSessionId, updates);
-      if (updated) {
-        setSessionNameDraft(updated.sessionName || updated.title || updates.session_name || '');
-        setSessionTopicDraft(updated.topic || '');
-        setSessionTagsDraft(
-          updated.tags
-            ? JSON.stringify(updated.tags, null, 2)
-            : updates.tags
-              ? JSON.stringify(updates.tags, null, 2)
-              : '',
-        );
-      }
+      await updateSessionMetadata(editingSessionId, updates);
       refreshSessions();
-      setIsEditingSession(false);
+      setEditingSessionId(null);
+      console.log('[Kip] Session metadata saved', { sessionId: editingSessionId });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to update session details';
       setSessionMetadataError(message);
+      console.error('[Kip] Session metadata save failed', { sessionId: editingSessionId, error: err });
+      throw err;
     }
   };
 
@@ -1148,83 +1116,15 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                 )}
               </div>
             )}
-            {isEditingSession && activeSession && (
-              <div className="mt-4 space-y-3 rounded-xl border border-dashed border-[#E6DED5] bg-[#FFFBF7] p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">Edit session details</p>
-                    <p className="text-xs text-gray-500">Update the name, topic, or tags for this conversation.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleCancelEditSession}
-                    className="text-xs font-semibold text-gray-500 hover:text-gray-700"
-                  >
-                    Cancel
-                  </button>
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-gray-600" htmlFor="session-name">
-                      Name
-                    </label>
-                    <input
-                      id="session-name"
-                      value={sessionNameDraft}
-                      onChange={(event) => setSessionNameDraft(event.target.value)}
-                      placeholder="Session with Kip"
-                      className="w-full rounded-lg border border-[#E6DED5] px-3 py-2 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/20"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-gray-600" htmlFor="session-topic">
-                      Topic
-                    </label>
-                    <input
-                      id="session-topic"
-                      value={sessionTopicDraft}
-                      onChange={(event) => setSessionTopicDraft(event.target.value)}
-                      placeholder="Focus area for this session"
-                      className="w-full rounded-lg border border-[#E6DED5] px-3 py-2 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/20"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-gray-600" htmlFor="session-tags">
-                    Tags (JSON)
-                  </label>
-                  <textarea
-                    id="session-tags"
-                    value={sessionTagsDraft}
-                    onChange={(event) => setSessionTagsDraft(event.target.value)}
-                    placeholder='e.g., ["alpha","beta"] or {"status":"open"}'
-                    rows={3}
-                    className="w-full rounded-lg border border-[#E6DED5] px-3 py-2 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/20"
-                  />
-                </div>
-                {sessionMetadataError && (
-                  <p className="text-sm text-red-600">{sessionMetadataError}</p>
-                )}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleSaveSessionMetadata}
-                    disabled={isSavingSessionMetadata}
-                    className="inline-flex items-center justify-center rounded-lg bg-[#C96E59] px-3 py-2 text-sm font-semibold text-white hover:bg-[#B85D4A] disabled:opacity-50"
-                  >
-                    {isSavingSessionMetadata ? 'Saving…' : 'Save'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancelEditSession}
-                    className="text-sm font-semibold text-gray-600 hover:text-gray-800"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            )}
           </FrameCard>
+          <SessionEditModal
+            open={Boolean(editingSession)}
+            session={editingSession}
+            isSaving={isSavingSessionMetadata}
+            error={sessionMetadataError}
+            onClose={handleCancelEditSession}
+            onSave={handleSaveSessionMetadata}
+          />
         </div>
       )}
 

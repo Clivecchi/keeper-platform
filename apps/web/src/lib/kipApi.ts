@@ -751,7 +751,7 @@ export class KipApi {
   static async updateSessionMetadata(
     agentId: string,
     sessionId: string,
-    updates: { session_name?: string; topic?: string | null; tags?: any },
+    updates: { session_name?: string; summary?: string | null; tags?: any },
   ): Promise<KipSession> {
     try {
       const response = await apiFetch('/api/kip/agents', {
@@ -762,7 +762,7 @@ export class KipApi {
           sessionId,
           updates: {
             ...(updates.session_name !== undefined ? { session_name: updates.session_name } : {}),
-            ...(updates.topic !== undefined ? { topic: updates.topic } : {}),
+            ...(updates.summary !== undefined ? { summary: updates.summary } : {}),
             ...(updates.tags !== undefined ? { tags: updates.tags } : {}),
           },
         }),

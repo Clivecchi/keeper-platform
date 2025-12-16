@@ -134,6 +134,28 @@ export function useAgentSessions(agentId?: string | null) {
       }
       setUpdatingSessionId(sessionId);
       setError(null);
+      const previousSessions = sessions;
+      const existing = sessions.find((session) => session.id === sessionId);
+
+      if (existing) {
+        const optimistic: AgentConversationSession = {
+          ...existing,
+          sessionName: updates.session_name ?? existing.sessionName,
+          title: updates.session_name ?? existing.title,
+          summary:
+            updates.summary !== undefined
+              ? updates.summary || null
+              : existing.summary || null,
+          tags: updates.tags !== undefined ? updates.tags : existing.tags,
+          updatedAt: new Date().toISOString(),
+        };
+        setSessions((prev) => {
+          const filtered = prev.filter((item) => item.id !== sessionId);
+          const next = [optimistic, ...filtered];
+          return next.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        });
+      }
+
       try {
         const updated = await KipApi.updateSessionMetadata(agentId, sessionId, updates);
         const normalized = normalizeSession(updated);
@@ -146,12 +168,15 @@ export function useAgentSessions(agentId?: string | null) {
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unable to update session';
         setError(message);
+        if (previousSessions) {
+          setSessions(previousSessions);
+        }
         throw err;
       } finally {
         setUpdatingSessionId(null);
       }
     },
-    [agentId],
+    [agentId, sessions],
   );
 
   return {

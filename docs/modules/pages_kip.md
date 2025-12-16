@@ -17,6 +17,9 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - [ ] Replace Cockpit diagnostics placeholders with backend stats once exposed.
 
 ## 📆 Update Log
+### 2025-12-15 - Session edit modal + PATCH summary/tags
+- Added Session Edit modal with name/summary/tags fields launched from Session cards; uses Dialog UI, prevents click bubbling, and logs open/save for quick wiring verification.
+- Save now PATCHes `updateSessionMetadata` (session_name/summary/tags), keeps the modal open on error with inline messaging, and updates the sessions list immediately after success.
 ### 2025-12-14 - Session edit CTA + PATCH wiring
 - Session card Edit is now a dedicated button with preventDefault/stopPropagation and console instrumentation so clicks no longer bubble to the card selector.
 - Clicking Edit opens the inline editor consistently; Save logs the payload, patches `updateSessionMetadata`, updates the list immediately, and surfaces validation errors (including JSON tags parsing).
