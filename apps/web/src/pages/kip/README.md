@@ -17,6 +17,8 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - [ ] Replace Cockpit diagnostics placeholders with backend stats once exposed.
 
 ## 📆 Update Log
+### 2025-12-16 - Drafts tab + session active draft linkage
+- Added Drafts tab with domain-scoped directory, JSON editor, and Save flow plus set/clear active draft actions tied to the current session and KAM environment summary.
 ### 2025-12-15 - Session edit modal + PATCH summary/tags
 - Added Session Edit modal with name/summary/tags fields launched from Session cards; uses Dialog UI, prevents click bubbling, and logs open/save for quick wiring verification.
 - Save now PATCHes `updateSessionMetadata` (session_name/summary/tags), keeps the modal open on error with inline messaging, and updates the sessions list immediately after success.

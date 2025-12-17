@@ -630,6 +630,28 @@ model kip_agent_logs {
   @@index([created_at])
 }
 
+model kip_drafts {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  domain_id        String         @db.Uuid
+  owner_id         String         @db.Uuid
+  agent_id         String?        @db.Uuid
+  kind             String
+  key              String
+  title            String
+  summary          String?
+  status           String         @default("draft")
+  spec_json        Json           @default("{}")
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @default(now())
+  domain           Domain         @relation(fields: [domain_id], references: [id], onDelete: Cascade)
+  owner            users          @relation(fields: [owner_id], references: [id])
+  agent            kip_agents?    @relation(fields: [agent_id], references: [id], onDelete: SetNull)
+  active_sessions  kip_sessions[] @relation("KipDraftActiveSessions")
+
+  @@index([domain_id, owner_id, kind, status])
+  @@unique([domain_id, owner_id, kind, key])
+}
+
 model kip_sessions {
   id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   agent_id     String         @db.Uuid
@@ -640,14 +662,17 @@ model kip_sessions {
   tags         String[]       @default([])
   primary_keeper_id  String?
   primary_journey_id String?
+  active_draft_id    String?        @db.Uuid
   created_at   DateTime       @default(now())
   updated_at   DateTime       @default(now())
+  active_draft kip_drafts?    @relation("KipDraftActiveSessions", fields: [active_draft_id], references: [id], onDelete: SetNull)
   kip_messages kip_messages[]
   kip_agents   kip_agents     @relation(fields: [agent_id], references: [id], onDelete: Cascade)
   users        users?         @relation(fields: [user_id], references: [id])
 
   @@index([agent_id])
   @@index([user_id])
+  @@index([active_draft_id])
   @@index([created_at])
 }
 

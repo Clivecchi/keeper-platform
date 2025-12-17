@@ -21,6 +21,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2025-12-16: Kip run now forwards `sessionId` into KAM env resolution so env-v1 bundles can carry the session’s activeDraft summary when present.
 - 2025-12-17: Kip env injection now surfaces domain slug/name, agent identity, and per-run debug.canary UUID.
 - 2025-12-16: Kip run action now injects a KAM-resolved env-v1 context (with debug canary) into model input so `/api/kip/agents` executions are environment-aware even when anonymous.
 - 2025-12-15: Hardened updateSessionMetadata auth (user+agent), normalized tags inputs, and fixed resolvedUser initialization to prevent PATCH 500s.

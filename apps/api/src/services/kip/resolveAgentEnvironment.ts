@@ -25,6 +25,14 @@ export type AgentEnvironmentContext = {
     canDraft: boolean;
     canPromote: boolean;
   };
+  activeDraft?: {
+    id: string;
+    kind: string;
+    key: string;
+    title: string;
+    status: string;
+    updatedAt: Date;
+  };
   debug?: {
     resolvedBy: 'KAM';
     resolvedAt: string;
@@ -84,9 +92,10 @@ export async function resolveAgentEnvironment(args: {
   agentId: string;
   userId?: string;
   domainId?: string;
+  sessionId?: string;
   intent: 'interactive';
 }): Promise<AgentEnvironmentContext> {
-  const { agentId, userId, domainId } = args;
+  const { agentId, userId, domainId, sessionId } = args;
 
   const resolvedAt = new Date().toISOString();
   const environment: AgentEnvironmentContext = {
@@ -181,6 +190,48 @@ export async function resolveAgentEnvironment(args: {
     environment.domains = [];
     environment.capabilities.canDraft = false;
     environment.capabilities.canPromote = false;
+  }
+
+  if (sessionId) {
+    try {
+      const session = await prisma.kip_sessions.findUnique({
+        where: { id: sessionId },
+        select: { id: true, user_id: true, active_draft_id: true },
+      });
+
+      const ownsSession = !session?.user_id || (userId ? session.user_id === userId : false);
+
+      if (session?.active_draft_id && ownsSession) {
+        const draft = await prisma.kip_drafts.findFirst({
+          where: {
+            id: session.active_draft_id,
+            ...(domainId ? { domain_id: domainId } : {}),
+            ...(userId ? { owner_id: userId } : {}),
+          },
+          select: {
+            id: true,
+            kind: true,
+            key: true,
+            title: true,
+            status: true,
+            updated_at: true,
+          },
+        });
+
+        if (draft) {
+          environment.activeDraft = {
+            id: draft.id,
+            kind: draft.kind,
+            key: draft.key,
+            title: draft.title,
+            status: draft.status,
+            updatedAt: draft.updated_at,
+          };
+        }
+      }
+    } catch (error) {
+      console.warn('[resolveAgentEnvironment] active draft lookup failed', { sessionId, domainId, userId, error });
+    }
   }
 
   return environment;

@@ -1578,6 +1578,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
               agentId,
               userId: requestUserId,
               domainId: validation.data.domainId ?? resolvedDomain.domainId ?? undefined,
+              sessionId,
               intent: 'interactive',
             });
           } catch (error) {

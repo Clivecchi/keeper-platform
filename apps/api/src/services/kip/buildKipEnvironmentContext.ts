@@ -27,6 +27,14 @@ export type KipEnvironmentContext = {
     canPromote: boolean;
     canWriteProduction: boolean;
   };
+  activeDraft?: {
+    id: string;
+    kind: string;
+    key: string;
+    title: string;
+    status: string;
+    updatedAt: Date;
+  };
 };
 
 const prisma = new PrismaClient();
@@ -46,6 +54,7 @@ const FRAME_TYPE_REGISTRY: KipEnvironmentContext['registry']['frameTypes'] = [
 export async function buildKipEnvironmentContext(args: {
   domainId: string;
   userId: string;
+  sessionId?: string;
   focus?: {
     boardId?: string;
     keeperId?: string;
@@ -53,7 +62,7 @@ export async function buildKipEnvironmentContext(args: {
     pathId?: string;
   };
 }): Promise<KipEnvironmentContext> {
-  const { domainId, userId, focus } = args;
+  const { domainId, userId, focus, sessionId } = args;
 
   const environment: KipEnvironmentContext = {
     version: 'kip-env-v1',
@@ -149,6 +158,46 @@ export async function buildKipEnvironmentContext(args: {
       }
     } catch (error) {
       console.warn('[kip:environment] keeper lookup failed', { keeperId: focus.keeperId, error });
+    }
+  }
+
+  if (sessionId) {
+    try {
+      const session = await prisma.kip_sessions.findUnique({
+        where: { id: sessionId },
+        select: { id: true, user_id: true, active_draft_id: true },
+      });
+
+      if (session && session.active_draft_id && (!session.user_id || session.user_id === userId)) {
+        const draft = await prisma.kip_drafts.findFirst({
+          where: {
+            id: session.active_draft_id,
+            domain_id: domainId,
+            owner_id: userId,
+          },
+          select: {
+            id: true,
+            kind: true,
+            key: true,
+            title: true,
+            status: true,
+            updated_at: true,
+          },
+        });
+
+        if (draft) {
+          environment.activeDraft = {
+            id: draft.id,
+            kind: draft.kind,
+            key: draft.key,
+            title: draft.title,
+            status: draft.status,
+            updatedAt: draft.updated_at,
+          };
+        }
+      }
+    } catch (error) {
+      console.warn('[kip:environment] active draft lookup failed', { sessionId, domainId, userId, error });
     }
   }
 

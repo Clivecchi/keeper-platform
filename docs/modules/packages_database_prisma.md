@@ -25,6 +25,7 @@ Tracks Prisma schema and SQL migrations for the Keeper Platform database.
 - [ ] Add lint to ensure `IF NOT EXISTS` on additive DDL
 
 ## 📆 Update Log
+- 2025-12-16: Added `kip_drafts` table plus `active_draft_id` pointer on `kip_sessions` (domain+owner scoped with unique kind/key) to persist user-editable drafts across sessions.
 - 2025-12-14: Added `kip_lenses` model with composite unique `(domainId, name)` plus seed to create default Domain/Debug lenses and wired seed runner to execute it.
 - 2025-12-11: Added topic, summary, tags, and keeper/journey linkage placeholders to `kip_sessions` plus migration `20251211_kip_session_topics`.
 - 2025-12-09: Documented canonical Board/Frame/Prop map and introduced the `linked_card` prop type + Kip Agent context frames in system board seeds.

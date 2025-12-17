@@ -119,6 +119,34 @@ export type AgentModeState = {
   lenses?: { domainLensId: string | null; debugLensId: string | null };
 };
 
+export type KipDraftStatus = 'draft' | 'reviewed' | 'approved' | 'promoted' | 'archived';
+
+export interface KipDraftSummary {
+  id: string;
+  kind: string;
+  key: string;
+  title: string;
+  status: KipDraftStatus;
+  summary?: string | null;
+  updatedAt?: string | Date | null;
+}
+
+export interface KipDraft extends KipDraftSummary {
+  domain_id?: string;
+  owner_id?: string;
+  agent_id?: string | null;
+  spec?: unknown;
+  created_at?: string | Date;
+}
+
+export interface KipEnvironmentBundle {
+  domain: { id: string; slug?: string | null; name?: string | null };
+  actor: { userId: string; roles?: string[] };
+  ui?: Record<string, unknown>;
+  activeDraft?: KipDraftSummary;
+  [key: string]: unknown;
+}
+
 export interface KipLens {
   id: string;
   domainId: string | null;
@@ -147,6 +175,8 @@ export interface KipSession {
   tags?: string[];
   primary_keeper_id?: string | null;
   primary_journey_id?: string | null;
+  active_draft_id?: string | null;
+  activeDraftId?: string | null;
   primaryKeeperId?: string | null;
   primaryJourneyId?: string | null;
   created_at: Date;
@@ -643,6 +673,85 @@ export class KipApi {
       return response.data;
     }
     throw new Error(response.error || 'Failed to update mode config');
+  }
+
+  /**
+   * Drafts (domain-scoped)
+   */
+  static async listDrafts(domainId: string): Promise<KipDraftSummary[]> {
+    const response = await apiFetch(`/api/domains/${domainId}/kip/drafts`);
+    if (response?.drafts) {
+      return response.drafts as KipDraftSummary[];
+    }
+    if (response?.data?.drafts) {
+      return response.data.drafts as KipDraftSummary[];
+    }
+    throw new Error(pickErrorMessage(response, 'Failed to load drafts'));
+  }
+
+  static async getDraft(domainId: string, draftId: string): Promise<KipDraft> {
+    const response = await apiFetch(`/api/domains/${domainId}/kip/drafts/${draftId}`);
+    if (response?.draft) {
+      return response.draft as KipDraft;
+    }
+    throw new Error(pickErrorMessage(response, 'Failed to load draft'));
+  }
+
+  static async createDraft(
+    domainId: string,
+    payload: { kind: string; key: string; title: string; summary?: string; spec?: unknown; agentId?: string | null },
+  ): Promise<KipDraft> {
+    const response = await apiFetch(`/api/domains/${domainId}/kip/drafts`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (response?.draft) {
+      return response.draft as KipDraft;
+    }
+    throw new Error(pickErrorMessage(response, 'Failed to create draft'));
+  }
+
+  static async updateDraft(
+    domainId: string,
+    draftId: string,
+    payload: Partial<Pick<KipDraft, 'title' | 'summary' | 'status'>> & { spec?: unknown },
+  ): Promise<KipDraft> {
+    const response = await apiFetch(`/api/domains/${domainId}/kip/drafts/${draftId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    if (response?.draft) {
+      return response.draft as KipDraft;
+    }
+    throw new Error(pickErrorMessage(response, 'Failed to update draft'));
+  }
+
+  static async setActiveDraft(domainId: string, sessionId: string, draftId: string): Promise<KipDraftSummary | null> {
+    const response = await apiFetch(`/api/domains/${domainId}/kip/sessions/${sessionId}/active-draft`, {
+      method: 'POST',
+      body: JSON.stringify({ draftId }),
+    });
+    if (response?.activeDraft) {
+      return response.activeDraft as KipDraftSummary;
+    }
+    return null;
+  }
+
+  static async clearActiveDraft(domainId: string, sessionId: string): Promise<void> {
+    await apiFetch(`/api/domains/${domainId}/kip/sessions/${sessionId}/active-draft`, {
+      method: 'DELETE',
+    });
+  }
+
+  static async getEnvironment(domainId: string, sessionId?: string): Promise<KipEnvironmentBundle> {
+    const params = new URLSearchParams();
+    if (sessionId) params.set('sessionId', sessionId);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const response = await apiFetch(`/api/domains/${domainId}/kip/environment${query}`);
+    if (response?.environment) {
+      return response.environment as KipEnvironmentBundle;
+    }
+    throw new Error(pickErrorMessage(response, 'Failed to load Kip environment'));
   }
 
   /**

@@ -21,6 +21,8 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - [ ] Expose `useAgentEvents` telemetry for analytics dashboards.
 
 ## 📆 Update Log
+### 2025-12-16 - Active draft normalization
+- `useAgentSessions` now surfaces `activeDraftId` from `kip_sessions`, keeping session cards aware of session-level draft pointers for the Drafts tab.
 ### 2025-12-11 - Session topic metadata
 - `useAgentSessions` now normalizes topic/summary/tags, exposes metadata patching, and keeps local state in sync after edits for the Kip Agent Board.
 ### 2025-12-10 - Kip sessions envelope guard

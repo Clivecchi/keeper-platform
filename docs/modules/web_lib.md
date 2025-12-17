@@ -27,6 +27,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2025-12-16 - Kip drafts client + environment helper
+- Added Kip draft directory client helpers (list/read/create/update, set/clear active draft) and `getEnvironment` to surface session-bound activeDraft summaries from `/api/domains/:domainId/kip/environment`.
+
 ### 2025-12-13 - KipApi session diagnostics + domain-aware payload
 - `createSession` now accepts optional domainId/domainSlug and logs URL/body before the call; errors include HTTP status/request id for session create/message fetch.
 

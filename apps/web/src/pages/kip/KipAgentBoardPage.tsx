@@ -3,14 +3,25 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import { PaperAirplaneIcon, PlusIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { KeeperDashboardLayout } from '../../layouts/KeeperDashboardLayout';
-import { AgentModeState, KipApi, KipAgent, KipLens, KipMessage, ModeConfig } from '../../lib/kipApi';
+import {
+  AgentModeState,
+  KipApi,
+  KipAgent,
+  KipDraft,
+  KipDraftStatus,
+  KipDraftSummary,
+  KipEnvironmentBundle,
+  KipLens,
+  KipMessage,
+  ModeConfig,
+} from '../../lib/kipApi';
 import { AgentConversationSession, useAgentSessions } from '../../hooks/useAgentSessions';
 import { LinkedCard } from '../../components/props/LinkedCard';
 import type { LinkedCardProps } from '../../types/props';
 import { apiFetch, API_BASE } from '../../lib/api';
 import { SessionEditModal } from './SessionEditModal';
 
-type AgentBoardTab = 'dialogue' | 'cockpit' | 'sessions';
+type AgentBoardTab = 'dialogue' | 'drafts' | 'cockpit' | 'sessions';
 type DialogueMode = 'domain' | 'debug';
 
 type DebugEntry = {
@@ -79,6 +90,7 @@ export interface KipAgentBoardProps {
 
 const BOARD_TABS: { id: AgentBoardTab; label: string }[] = [
   { id: 'dialogue', label: 'Dialogue' },
+  { id: 'drafts', label: 'Drafts' },
   { id: 'cockpit', label: 'Cockpit' },
   { id: 'sessions', label: 'Sessions' },
 ];
@@ -134,6 +146,18 @@ const KipAgentBoardDefaults = {
   contextLabel: 'Lead Agent of the KE3P Domain',
   scopeLabel: 'KE3P Domain',
 } as const;
+
+const DRAFT_STATUSES: KipDraftStatus[] = ['draft', 'reviewed', 'approved', 'promoted', 'archived'];
+
+const DEFAULT_VEHICLE_KEEPER_TEMPLATE = {
+  template: {
+    type: 'vehicle',
+    version: 'draft-v1',
+    fields: [],
+    journeys: [],
+    boards: [],
+  },
+};
 
 type DomainBasics = { domainId: string | null; domainSlug: string | null };
 
@@ -361,6 +385,16 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const [editingLensId, setEditingLensId] = useState<string | null>(null);
   const [editingLensText, setEditingLensText] = useState<string>('');
   const [isSavingLens, setIsSavingLens] = useState<boolean>(false);
+  const [drafts, setDrafts] = useState<KipDraftSummary[]>([]);
+  const [draftsError, setDraftsError] = useState<string | null>(null);
+  const [isLoadingDrafts, setIsLoadingDrafts] = useState<boolean>(false);
+  const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false);
+  const [isCreatingDraft, setIsCreatingDraft] = useState<boolean>(false);
+  const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
+  const [draftDetail, setDraftDetail] = useState<KipDraft | null>(null);
+  const [draftSpecText, setDraftSpecText] = useState<string>('');
+  const [draftJsonError, setDraftJsonError] = useState<string | null>(null);
+  const [activeDraftSummary, setActiveDraftSummary] = useState<KipDraftSummary | null>(null);
 
   const activeTab = (searchParams.get('view') as AgentBoardTab) ?? 'dialogue';
   const debugEnabled = dialogueMode === 'debug';
@@ -387,6 +421,12 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     [editingSessionId, sessions],
   );
   const isSavingSessionMetadata = updatingSessionId === editingSessionId;
+  const selectedDraftSummary = selectedDraftId ? drafts.find((draft) => draft.id === selectedDraftId) || null : null;
+  const sessionActiveDraftId = activeDraftSummary?.id ?? activeSession?.activeDraftId ?? null;
+  const sessionActiveDraft =
+    sessionActiveDraftId && drafts.length
+      ? drafts.find((draft) => draft.id === sessionActiveDraftId) || activeDraftSummary
+      : activeDraftSummary;
 
   const agentDomainId =
     (agent as any)?.domainId ||
@@ -424,6 +464,28 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       setSearchParams(next, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (activeTab !== 'drafts') return;
+    refreshDrafts();
+  }, [activeTab, refreshDrafts]);
+
+  useEffect(() => {
+    if (activeTab !== 'drafts') return;
+    if (!selectedDraftId && drafts.length) {
+      setSelectedDraftId(drafts[0].id);
+    }
+  }, [activeTab, drafts, selectedDraftId]);
+
+  useEffect(() => {
+    if (activeTab !== 'drafts' || !selectedDraftId) return;
+    loadDraftDetail(selectedDraftId);
+  }, [activeTab, selectedDraftId, loadDraftDetail]);
+
+  useEffect(() => {
+    if (activeTab !== 'drafts') return;
+    refreshActiveDraft();
+  }, [activeTab, refreshActiveDraft]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -517,6 +579,154 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       .filter(Boolean)
       .join(' — ');
     return parts || fallback;
+  };
+
+  const refreshDrafts = useCallback(async () => {
+    if (!domainId) {
+      setDrafts([]);
+      return;
+    }
+    setIsLoadingDrafts(true);
+    setDraftsError(null);
+    try {
+      const list = await KipApi.listDrafts(domainId);
+      setDrafts(list);
+    } catch (err) {
+      const message = formatApiError(err, 'Unable to load drafts');
+      setDraftsError(message);
+    } finally {
+      setIsLoadingDrafts(false);
+    }
+  }, [domainId, formatApiError]);
+
+  const loadDraftDetail = useCallback(
+    async (draftId: string) => {
+      if (!domainId) return;
+      setIsLoadingDrafts(true);
+      setDraftJsonError(null);
+      try {
+        const draft = await KipApi.getDraft(domainId, draftId);
+        setDraftDetail(draft);
+        setDraftSpecText(JSON.stringify(draft.spec ?? {}, null, 2));
+      } catch (err) {
+        const message = formatApiError(err, 'Unable to load draft');
+        setDraftsError(message);
+        setDraftDetail(null);
+        setDraftSpecText('');
+      } finally {
+        setIsLoadingDrafts(false);
+      }
+    },
+    [domainId, formatApiError],
+  );
+
+  const refreshActiveDraft = useCallback(async () => {
+    if (!domainId) {
+      setActiveDraftSummary(null);
+      return;
+    }
+    try {
+      const env: KipEnvironmentBundle = await KipApi.getEnvironment(domainId, activeSessionId || undefined);
+      setActiveDraftSummary((env as any)?.activeDraft ?? env?.activeDraft ?? null);
+    } catch (err) {
+      // Silent failure to avoid blocking UI when environment is unavailable
+      setActiveDraftSummary(null);
+      if ((err as any)?.status && (err as any).status !== 401) {
+        console.warn('[Kip] Failed to load active draft from environment', err);
+      }
+    }
+  }, [domainId, activeSessionId]);
+
+  const handleCreateDraft = async () => {
+    if (!domainId) {
+      setDraftsError('Select a domain before creating drafts.');
+      return;
+    }
+    setIsCreatingDraft(true);
+    setDraftsError(null);
+    try {
+      const draft = await KipApi.createDraft(domainId, {
+        kind: 'keeper_template',
+        key: 'vehicle_keeper_template',
+        title: 'Vehicle Keeper Template',
+        summary: 'Vehicle template draft',
+        spec: DEFAULT_VEHICLE_KEEPER_TEMPLATE,
+      });
+      await refreshDrafts();
+      setSelectedDraftId(draft.id);
+      setDraftDetail(draft);
+      setDraftSpecText(JSON.stringify(draft.spec ?? {}, null, 2));
+    } catch (err) {
+      const message = formatApiError(err, 'Unable to create draft');
+      setDraftsError(message);
+    } finally {
+      setIsCreatingDraft(false);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!domainId || !draftDetail) return;
+    let parsedSpec: unknown = {};
+    try {
+      parsedSpec = draftSpecText.trim() ? JSON.parse(draftSpecText) : {};
+      setDraftJsonError(null);
+    } catch (err) {
+      setDraftJsonError('Spec JSON is invalid. Please fix and try again.');
+      return;
+    }
+
+    setIsSavingDraft(true);
+    setDraftsError(null);
+    try {
+      const updated = await KipApi.updateDraft(domainId, draftDetail.id, {
+        title: draftDetail.title,
+        summary: draftDetail.summary ?? undefined,
+        status: (draftDetail.status as KipDraftStatus) || 'draft',
+        spec: parsedSpec,
+      });
+      setDraftDetail(updated);
+      setDraftSpecText(JSON.stringify(updated.spec ?? {}, null, 2));
+      await refreshDrafts();
+    } catch (err) {
+      const message = formatApiError(err, 'Unable to save draft');
+      setDraftsError(message);
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
+  const handleSetActiveDraft = async (draftId: string) => {
+    if (!domainId || !activeSessionId) {
+      setDraftsError('Create or select a session to set an active draft.');
+      return;
+    }
+    try {
+      const summary = await KipApi.setActiveDraft(domainId, activeSessionId, draftId);
+      if (summary) {
+        setActiveDraftSummary(summary);
+      }
+      refreshSessions();
+      await refreshActiveDraft();
+    } catch (err) {
+      const message = formatApiError(err, 'Unable to set active draft');
+      setDraftsError(message);
+    }
+  };
+
+  const handleClearActiveDraft = async () => {
+    if (!domainId || !activeSessionId) {
+      setDraftsError('Create or select a session to clear an active draft.');
+      return;
+    }
+    try {
+      await KipApi.clearActiveDraft(domainId, activeSessionId);
+      setActiveDraftSummary(null);
+      refreshSessions();
+      await refreshActiveDraft();
+    } catch (err) {
+      const message = formatApiError(err, 'Unable to clear active draft');
+      setDraftsError(message);
+    }
   };
 
   const fetchMessages = useCallback(
@@ -1068,6 +1278,191 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
               />
             )}
           </div>
+        </div>
+      )}
+
+      {activeTab === 'drafts' && (
+        <div className="grid gap-6 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)]">
+          <FrameCard
+            title="Draft Directory"
+            subtitle="Domain-scoped drafts you own"
+            action={
+              <button
+                type="button"
+                onClick={handleCreateDraft}
+                disabled={isCreatingDraft || !domainId}
+                className="inline-flex items-center gap-2 rounded-full border border-[#C96E59]/40 px-3 py-1.5 text-sm font-medium text-[#C96E59] hover:border-[#C96E59] disabled:opacity-50"
+              >
+                {isCreatingDraft ? 'Creating…' : 'New Draft'}
+              </button>
+            }
+          >
+            {draftsError && <p className="mb-3 text-sm text-red-600">{draftsError}</p>}
+            {!domainId && <p className="text-sm text-gray-500">Select a domain to manage drafts.</p>}
+            {isLoadingDrafts ? (
+              <p className="text-sm text-gray-500">Loading drafts…</p>
+            ) : drafts.length === 0 ? (
+              <p className="text-sm text-gray-500">No drafts yet. Create one to get started.</p>
+            ) : (
+              <div className="space-y-3">
+                {drafts.map((draft) => {
+                  const isSelected = draft.id === selectedDraftId;
+                  return (
+                    <div
+                      key={draft.id}
+                      className={clsx(
+                        'rounded-2xl border px-3 py-2 transition-shadow',
+                        isSelected ? 'border-[#C96E59] bg-[#F7F1ED] shadow-sm' : 'border-[#E6DED5] bg-white hover:shadow',
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-gray-900">{draft.title}</p>
+                          <p className="text-xs text-gray-500">
+                            {draft.kind} • {draft.status}
+                          </p>
+                          <p className="text-[11px] text-gray-400">
+                            {draft.updatedAt ? `Updated ${formatRelative(draft.updatedAt as string)}` : '—'}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDraftId(draft.id)}
+                            className="text-xs font-semibold text-[#C96E59] hover:underline"
+                          >
+                            Open
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSetActiveDraft(draft.id)}
+                            disabled={!activeSessionId}
+                            className="text-xs font-semibold text-gray-600 hover:underline disabled:text-gray-400"
+                          >
+                            Set Active
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </FrameCard>
+
+          <FrameCard
+            title={draftDetail?.title || 'Draft Editor'}
+            subtitle="Edit title, summary, status, and JSON spec"
+            action={
+              <button
+                type="button"
+                onClick={handleSaveDraft}
+                disabled={!draftDetail || isSavingDraft || isLoadingDrafts}
+                className="inline-flex items-center gap-2 rounded-full border border-[#C96E59]/40 px-3 py-1.5 text-sm font-medium text-[#C96E59] hover:border-[#C96E59] disabled:opacity-50"
+              >
+                {isSavingDraft ? 'Saving…' : 'Save Draft'}
+              </button>
+            }
+          >
+            {!selectedDraftId ? (
+              <p className="text-sm text-gray-500">Select a draft to edit.</p>
+            ) : draftDetail ? (
+              <div className="space-y-4">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Title</span>
+                    <input
+                      type="text"
+                      value={draftDetail.title}
+                      onChange={(event) => setDraftDetail({ ...draftDetail, title: event.target.value })}
+                      className="w-full rounded-lg border border-[#E6DED5] px-3 py-2 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/30"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Status</span>
+                    <select
+                      value={(draftDetail.status as KipDraftStatus) || 'draft'}
+                      onChange={(event) =>
+                        setDraftDetail({ ...draftDetail, status: event.target.value as KipDraftStatus })
+                      }
+                      className="w-full rounded-lg border border-[#E6DED5] px-3 py-2 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/30"
+                    >
+                      {DRAFT_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <label className="space-y-1">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Summary</span>
+                  <textarea
+                    value={draftDetail.summary ?? ''}
+                    onChange={(event) => setDraftDetail({ ...draftDetail, summary: event.target.value })}
+                    rows={3}
+                    className="w-full rounded-lg border border-[#E6DED5] px-3 py-2 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/30"
+                  />
+                </label>
+
+                <div className="rounded-xl border border-[#E6DED5] bg-gray-50 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">Active draft for this session</p>
+                      <p className="text-xs text-gray-500">
+                        {sessionActiveDraftId
+                          ? `Active: ${sessionActiveDraft?.title || selectedDraftSummary?.title || 'Draft'}`
+                          : 'No active draft set for this session.'}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => selectedDraftId && handleSetActiveDraft(selectedDraftId)}
+                        disabled={!selectedDraftId || !activeSessionId}
+                        className="rounded-lg border border-[#C96E59]/40 px-3 py-1 text-xs font-semibold text-[#C96E59] hover:border-[#C96E59] disabled:opacity-50"
+                      >
+                        Set this draft active
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleClearActiveDraft}
+                        disabled={!sessionActiveDraftId}
+                        className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 hover:border-gray-500 disabled:opacity-50"
+                      >
+                        Clear active draft
+                      </button>
+                    </div>
+                  </div>
+                  {sessionActiveDraft && (
+                    <p className="mt-2 text-xs text-gray-600">
+                      {sessionActiveDraft.title} • {sessionActiveDraft.kind} • {sessionActiveDraft.status}
+                    </p>
+                  )}
+                </div>
+
+                <label className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Spec JSON</span>
+                    <span className="text-[11px] text-gray-400">Direct edits allowed</span>
+                  </div>
+                  <textarea
+                    value={draftSpecText}
+                    onChange={(event) => {
+                      setDraftSpecText(event.target.value);
+                      setDraftJsonError(null);
+                    }}
+                    rows={14}
+                    className="w-full rounded-lg border border-[#E6DED5] px-3 py-2 font-mono text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/30"
+                  />
+                </label>
+                {draftJsonError && <p className="text-sm text-red-600">{draftJsonError}</p>}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Loading draft…</p>
+            )}
+          </FrameCard>
         </div>
       )}
 

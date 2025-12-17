@@ -20,6 +20,7 @@ KIP-related service helpers and mock data sources.
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2025-12-16: Environment builders now accept `sessionId` and surface session-owned `activeDraft` summaries (domain-filtered) so KAM bundles and agent runs carry the active draft pointer safely.
 - 2025-12-17: `resolveAgentEnvironment` now surfaces domain slug/name, agent identity fields, and emits a per-run debug canary UUID.
 - 2025-12-16: Added `resolveAgentEnvironment` to return KAM-resolved env-v1 contexts for Kip runs and keep `/api/kip/agents` executions environment-aware.
 - 2025-12-15: Added `buildKipEnvironmentContext` to return stable, read-only environment bundles for Kip domain flows and agent execution.

@@ -15,6 +15,7 @@ import { getFeatureFlagService } from '@keeper/database';
 import customDomainRoutes from './custom-domain-routes.js';
 import contactRoutes from './contact.js';
 import boardDataRoutes from './board-data.js';
+import kipDraftRoutes from './kip-drafts.js';
 import { createDomainResolutionMiddleware } from '../../middleware/domainResolutionMiddleware.js';
 import { ensureDomainTableShape } from '../../lib/db-guards.js';
 import { DomainService } from '@keeper/database';
@@ -79,6 +80,7 @@ router.use(contactRoutes);
 
 // Mount board data routes
 router.use(boardDataRoutes);
+router.use(kipDraftRoutes);
 
 // GET /api/domains/:domainId/management-board
 router.get('/:domainId/management-board', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
@@ -561,9 +563,15 @@ router.get('/:domainId/kip/environment', authMiddlewareCompat, async (req: Authe
       return res.status(403).json({ error: 'ACCESS_DENIED', message: 'You do not have access to this domain' });
     }
 
+    const sessionId =
+      typeof req.query.sessionId === 'string'
+        ? (req.query.sessionId as string)
+        : undefined;
+
     const environment = await buildKipEnvironmentContext({
       domainId,
       userId: req.user.id,
+      sessionId,
     });
 
     return res.json({ environment });
@@ -623,6 +631,7 @@ router.post('/:domainId/agent/execute', authMiddlewareCompat, async (req: Authen
       domainId,
       userId: req.user.id,
       focus,
+      sessionId: payload.sessionId,
     });
 
     const agentResult = await KipAgentService.runAgent(

@@ -8,6 +8,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `board-data.ts` – Hydrates and persists domain board frame data for inline editing experiences.
 - `custom-domain-routes.ts` – Legacy + new custom domain verification endpoints.
 - `contact.ts` – Domain contact form submission handler.
+- `kip-drafts.ts` – Domain-scoped Kip draft directory and session active-draft pointer routes.
 
 ## 🔄 Data & Behavior
 - Applies `createDomainResolutionMiddleware` so downstream routes receive resolved domain metadata.
@@ -27,6 +28,9 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+### 2025-12-16 - Kip drafts directory + session pointers
+- Added domain-scoped Kip draft routes (`/kip/drafts` + `/kip/sessions/:sessionId/active-draft`) enforcing domain membership + ownership, enabling listing, CRUD, and session active-draft pointers.
+- `/kip/environment` now accepts `sessionId` to surface the current session’s activeDraft summary when set.
 ### 2025-12-15 - Kip environment context surface
 - Added `GET /api/domains/:domainId/kip/environment` and wired `/agent/execute` to build the same Kip environment bundle and pass it into the model input (read-only, non-breaking).
 ### 2025-12-14 - Mode-aware agent execute

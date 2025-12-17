@@ -10,6 +10,7 @@ export interface AgentConversationSession {
   tags?: string[];
   primaryKeeperId?: string | null;
   primaryJourneyId?: string | null;
+  activeDraftId?: string | null;
   createdAt: string;
   updatedAt: string;
   lastMessagePreview?: string;
@@ -30,6 +31,10 @@ const normalizeSession = (session: KipSession): AgentConversationSession => {
   const lastMessage = session.messages?.[session.messages.length - 1];
   const topic = session.topic?.toString().trim() || null;
   const summary = session.summary?.toString().trim() || null;
+  const activeDraftId =
+    (session as any).activeDraftId ??
+    (session as any).active_draft_id ??
+    null;
   const primaryTitle = topic || session.session_name?.trim() || 'Session with Kip';
   const subtitle = summary
     ? truncate(summary, 120)
@@ -52,6 +57,7 @@ const normalizeSession = (session: KipSession): AgentConversationSession => {
       (session as any).primaryJourneyId ??
       (session as any).primary_journey_id ??
       null,
+    activeDraftId,
     createdAt: createdAtDate.toISOString(),
     updatedAt: updatedAtDate.toISOString(),
     lastMessagePreview: lastMessage?.content ? truncate(lastMessage.content) : undefined,
