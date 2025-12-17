@@ -1,5 +1,6 @@
 import { Router, type Response } from 'express';
-import { PrismaClient, Prisma } from '@keeper/database';
+import { PrismaClient } from '@keeper/database';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { z } from 'zod';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
@@ -154,7 +155,7 @@ router.post(
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
         return res.status(409).json({
           error: 'DRAFT_EXISTS',
           message: 'Draft with the same kind/key already exists for this domain and owner.',
