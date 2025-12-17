@@ -21,6 +21,7 @@ export type AgentEnvironmentContext = {
   debug?: {
     resolvedBy: 'KAM';
     resolvedAt: string;
+    injectedAt?: string;
   };
 };
 

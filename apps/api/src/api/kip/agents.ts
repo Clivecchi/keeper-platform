@@ -12,6 +12,7 @@ import { prisma } from '@keeper/database';
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import { resolveAgentEnvironment, type AgentEnvironmentContext } from '../../services/kip/resolveAgentEnvironment.js';
+import type { KipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
 import type { 
   AgentInput, 
   AgentResponse, 
@@ -70,7 +71,7 @@ type RunAgentOptions = {
   domainSlug?: string | null;
   mode?: AgentModeKey;
   debugBundle?: DebugBundleInput | null;
-  environment?: AgentEnvironmentContext | null;
+  environment?: AgentEnvironmentContext | KipEnvironmentContext | null;
 };
 
 class AgentExecutionError extends Error {
@@ -799,7 +800,7 @@ export class KipAgentService {
       outputStyle?: OutputStyle;
       includeFixPlan?: boolean;
       autoBrief?: boolean;
-      environment?: AgentEnvironmentContext | null;
+      environment?: AgentEnvironmentContext | KipEnvironmentContext | null;
     },
   ): Promise<string> {
     try {
@@ -1589,8 +1590,8 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
           }
 
           const environmentDebug = {
-            ...(environment?.debug ?? {}),
             resolvedBy: 'KAM' as const,
+            resolvedAt: environment?.debug?.resolvedAt ?? new Date().toISOString(),
             injectedAt: new Date().toISOString(),
           };
 
