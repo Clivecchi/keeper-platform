@@ -1,8 +1,8 @@
 -- Create kip_drafts as a domain-scoped artifact directory
 CREATE TABLE IF NOT EXISTS "kip_drafts" (
   "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "domain_id" UUID NOT NULL,
-  "owner_id" UUID NOT NULL,
+  "domain_id" TEXT NOT NULL,
+  "owner_id" TEXT NOT NULL,
   "agent_id" UUID,
   "kind" TEXT NOT NULL,
   "key" TEXT NOT NULL,

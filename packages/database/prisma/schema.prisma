@@ -633,8 +633,8 @@ model kip_agent_logs {
 
 model kip_drafts {
   id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  domain_id        String         @db.Uuid
-  owner_id         String         @db.Uuid
+  domain_id        String
+  owner_id         String
   agent_id         String?        @db.Uuid
   kind             String
   key              String
