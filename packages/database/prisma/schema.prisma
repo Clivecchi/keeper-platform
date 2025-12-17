@@ -609,6 +609,7 @@ model kip_agents {
   kip_agent_logs         kip_agent_logs[]
   kip_agent_permissions  kip_agent_permissions[]
   kip_sessions           kip_sessions[]
+  kip_drafts             kip_drafts[]
   Board                  Board[]
 }
 
@@ -738,6 +739,7 @@ model users {
   UserStorageConfig                                    UserStorageConfig?
   kip_agent_logs                                       kip_agent_logs[]
   kip_sessions                                         kip_sessions[]
+  kip_drafts                                           kip_drafts[]
 }
 
 model kip_user_keys {
@@ -948,6 +950,7 @@ model Domain {
   journeys                                                 Journey[]
   keepers                                                  Keeper[]
   moments                                                  Moment[]
+  kip_drafts                                               kip_drafts[]
   ShareRequest_ShareRequest_sourceDomainIdToDomain         ShareRequest[]             @relation("ShareRequest_sourceDomainIdToDomain")
   ShareRequest_ShareRequest_targetDomainIdToDomain         ShareRequest[]             @relation("ShareRequest_targetDomainIdToDomain")
   ShareTemplate                                            ShareTemplate[]
