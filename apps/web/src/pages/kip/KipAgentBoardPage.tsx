@@ -458,36 +458,6 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   });
 
   useEffect(() => {
-    if (!searchParams.get('view')) {
-      const next = new URLSearchParams(searchParams);
-      next.set('view', 'dialogue');
-      setSearchParams(next, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
-
-  useEffect(() => {
-    if (activeTab !== 'drafts') return;
-    refreshDrafts();
-  }, [activeTab, refreshDrafts]);
-
-  useEffect(() => {
-    if (activeTab !== 'drafts') return;
-    if (!selectedDraftId && drafts.length) {
-      setSelectedDraftId(drafts[0].id);
-    }
-  }, [activeTab, drafts, selectedDraftId]);
-
-  useEffect(() => {
-    if (activeTab !== 'drafts' || !selectedDraftId) return;
-    loadDraftDetail(selectedDraftId);
-  }, [activeTab, selectedDraftId, loadDraftDetail]);
-
-  useEffect(() => {
-    if (activeTab !== 'drafts') return;
-    refreshActiveDraft();
-  }, [activeTab, refreshActiveDraft]);
-
-  useEffect(() => {
     if (typeof window === 'undefined') return;
     const debugGlobal = ((window as any).__keeperDebug = (window as any).__keeperDebug || {});
     debugGlobal.maxEntries = debugGlobal.maxEntries || 50;
@@ -636,6 +606,36 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       }
     }
   }, [domainId, activeSessionId]);
+
+  useEffect(() => {
+    if (!searchParams.get('view')) {
+      const next = new URLSearchParams(searchParams);
+      next.set('view', 'dialogue');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (activeTab !== 'drafts') return;
+    refreshDrafts();
+  }, [activeTab, refreshDrafts]);
+
+  useEffect(() => {
+    if (activeTab !== 'drafts') return;
+    if (!selectedDraftId && drafts.length) {
+      setSelectedDraftId(drafts[0].id);
+    }
+  }, [activeTab, drafts, selectedDraftId]);
+
+  useEffect(() => {
+    if (activeTab !== 'drafts' || !selectedDraftId) return;
+    loadDraftDetail(selectedDraftId);
+  }, [activeTab, selectedDraftId, loadDraftDetail]);
+
+  useEffect(() => {
+    if (activeTab !== 'drafts') return;
+    refreshActiveDraft();
+  }, [activeTab, refreshActiveDraft]);
 
   const handleCreateDraft = async () => {
     if (!domainId) {
