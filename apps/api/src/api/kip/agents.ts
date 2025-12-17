@@ -7,6 +7,7 @@
  */
 
 import { Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { prisma } from '@keeper/database';
 import { isDbDisabled } from '../../lib/env.js';
@@ -1593,6 +1594,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             resolvedBy: 'KAM' as const,
             resolvedAt: environment?.debug?.resolvedAt ?? new Date().toISOString(),
             injectedAt: new Date().toISOString(),
+            canary: randomUUID(),
           };
 
           if (environment) {

@@ -4,8 +4,15 @@ import { getRedis, isNoOpRedis, type RedisClientOrNoOp } from '../../lib/redis.j
 
 export type AgentEnvironmentContext = {
   version: 'env-v1';
+  agent?: {
+    id: string;
+    slug?: string | null;
+    name?: string | null;
+  };
   domains: Array<{
     domainId: string;
+    domainSlug?: string | null;
+    domainName?: string | null;
     role: 'home' | 'foreign';
     visibility: 'full' | 'filtered' | 'public';
     registry?: {
@@ -22,6 +29,7 @@ export type AgentEnvironmentContext = {
     resolvedBy: 'KAM';
     resolvedAt: string;
     injectedAt?: string;
+    canary?: string;
   };
 };
 
@@ -94,6 +102,21 @@ export async function resolveAgentEnvironment(args: {
     },
   };
 
+  try {
+    const agent = await prisma.kip_agents.findUnique({
+      where: { id: agentId },
+      select: { id: true, slug: true, name: true },
+    });
+    environment.agent = {
+      id: agentId,
+      slug: agent?.slug ?? null,
+      name: agent?.name ?? null,
+    };
+  } catch (error) {
+    console.warn('[resolveAgentEnvironment] agent lookup failed', { agentId, error });
+    environment.agent = { id: agentId, slug: null, name: null };
+  }
+
   let accessibleDomains: Array<{
     id: string;
     permissions: string[];
@@ -138,6 +161,8 @@ export async function resolveAgentEnvironment(args: {
 
       environment.domains.push({
         domainId: primaryDomainId,
+        domainSlug: domain?.slug ?? null,
+        domainName: domain?.name ?? null,
         role: domainRole,
         visibility,
         ...(registry ? { registry } : {}),
