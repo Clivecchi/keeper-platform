@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { prisma } from '@keeper/database';
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
-import type { KipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
+import { resolveAgentEnvironment, type AgentEnvironmentContext } from '../../services/kip/resolveAgentEnvironment.js';
 import type { 
   AgentInput, 
   AgentResponse, 
@@ -70,7 +70,7 @@ type RunAgentOptions = {
   domainSlug?: string | null;
   mode?: AgentModeKey;
   debugBundle?: DebugBundleInput | null;
-  environment?: KipEnvironmentContext | null;
+  environment?: AgentEnvironmentContext | null;
 };
 
 class AgentExecutionError extends Error {
@@ -799,7 +799,7 @@ export class KipAgentService {
       outputStyle?: OutputStyle;
       includeFixPlan?: boolean;
       autoBrief?: boolean;
-      environment?: KipEnvironmentContext | null;
+      environment?: AgentEnvironmentContext | null;
     },
   ): Promise<string> {
     try {
@@ -844,6 +844,20 @@ export class KipAgentService {
           content: `Bounded debug bundle:\n${promptOptions.debugSummary}`,
         });
       }
+
+      const environmentContext = promptOptions?.environment ?? null;
+      const modelInput = {
+        input,
+        environment: environmentContext,
+        agent: { id: agent.id },
+      };
+
+      if (environmentContext) {
+        messages.push({
+          role: 'system',
+          content: `Environment context (resolved via KAM):\n${JSON.stringify(environmentContext, null, 2)}`,
+        });
+      }
       
       // Add conversation history (last 10 messages to avoid token limits)
       const recentMessages = previousMessages.slice(-10);
@@ -855,9 +869,10 @@ export class KipAgentService {
       }
       
       // Add current user message
+      const userContent = typeof modelInput.input === 'string' ? modelInput.input : JSON.stringify(modelInput.input);
       messages.push({
         role: 'user',
-        content: input
+        content: userContent
       });
       
       // Call the model provider
@@ -1555,11 +1570,47 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             });
           }
           
+          let environment: AgentEnvironmentContext | null = null;
+          try {
+            environment = await resolveAgentEnvironment({
+              agentId,
+              userId: requestUserId,
+              domainId: validation.data.domainId ?? resolvedDomain.domainId ?? undefined,
+              intent: 'interactive',
+            });
+          } catch (error) {
+            console.warn('[kip/agents] environment resolution failed', {
+              requestId,
+              agentId,
+              userId: requestUserId,
+              domainId: validation.data.domainId ?? resolvedDomain.domainId ?? null,
+              error: error instanceof Error ? error.message : error,
+            });
+          }
+
+          const environmentDebug = {
+            ...(environment?.debug ?? {}),
+            resolvedBy: 'KAM' as const,
+            injectedAt: new Date().toISOString(),
+          };
+
+          if (environment) {
+            environment.debug = environmentDebug;
+          } else {
+            environment = {
+              version: 'env-v1',
+              domains: [],
+              capabilities: { canDraft: false, canPromote: false },
+              debug: environmentDebug,
+            };
+          }
+
           const result = await KipAgentService.runAgent(agentId, input, requestUserId, sessionId, {
             domainId: validation.data.domainId ?? resolvedDomain.domainId,
             domainSlug: validation.data.domainSlug ?? resolvedDomain.domainSlug,
             mode: validation.data.mode as AgentModeKey | undefined,
             debugBundle: validation.data.debugBundle || null,
+            environment,
           });
           return respond(200, { success: true, data: result });
         }

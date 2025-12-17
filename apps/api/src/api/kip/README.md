@@ -13,12 +13,14 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 ## 🔄 Data & Behavior
 - GET `/api/kip/agents` reads from DB normally.
 - When `DISABLE_DB=true` or `DATABASE_URL` is unset, it returns a static mock list instead of touching the DB.
+- POST `/api/kip/agents` (action=run) now resolves env-v1 context via KAM and injects it (with debug canary) into Kip model input without changing response shapes.
 
 ## ⚠️ Notes & ToDo
 - [ ] Expand mock set as needed
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2025-12-16: Kip run action now injects a KAM-resolved env-v1 context (with debug canary) into model input so `/api/kip/agents` executions are environment-aware even when anonymous.
 - 2025-12-15: Hardened updateSessionMetadata auth (user+agent), normalized tags inputs, and fixed resolvedUser initialization to prevent PATCH 500s.
 - 2025-12-15: updateSessionMetadata now accepts summary + flexible tags (array or object) and logs requestId/sessionId on success for PATCH `/api/kip/agents`.
 - 2025-12-14: Added Lens CRUD endpoints (`/api/kip/lenses`) and agent mode config routes (`/api/kip/agents/:id/mode-config`) to drive Domain/Debug mode selection with lenses and per-mode limits.
