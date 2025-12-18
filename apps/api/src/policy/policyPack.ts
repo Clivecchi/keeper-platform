@@ -1,7 +1,5 @@
 export const DEFAULT_POLICY_VERSION = 'policy-v1';
 
-export const DEFAULT_POLICY_VERSION = 'policy-v1';
-
 // Base policy JSON (stored in DB)
 export const DEFAULT_POLICY_PACK_V1 = {
   drafts: {
@@ -48,15 +46,12 @@ const DEFAULT_POLICY_PACK_RESOLVED: PolicyPackV1 = {
 export function mapPolicyJsonToPack(policyJson: any): PolicyPackV1 {
   const base = policyJson ?? {};
   const draftsEnabled = base?.drafts?.enabled !== false;
-  const allowListSource = Array.isArray(base?.actions?.allow) && base.actions.allow.length
-    ? base.actions.allow
-    : DEFAULT_POLICY_PACK_V1.actions.allow;
 
-  const allow = Array.from(
-    new Set(
-      allowListSource.filter((a: unknown) => typeof a === 'string').map((a: string) => a.trim()).filter(Boolean),
-    ),
-  );
+  const allowListSource: string[] = Array.isArray(base?.actions?.allow)
+    ? base.actions.allow.filter((a: unknown): a is string => typeof a === 'string')
+    : [...DEFAULT_POLICY_PACK_V1.actions.allow];
+
+  const allow = Array.from(new Set(allowListSource.map((a) => a.trim()).filter(Boolean)));
 
   const filteredAllow = draftsEnabled ? allow : allow.filter((action) => !action.startsWith('draft.'));
 

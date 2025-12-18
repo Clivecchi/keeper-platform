@@ -9,7 +9,8 @@
 import { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
-import { Prisma, prisma } from '@keeper/database';
+import { prisma } from '@keeper/database';
+import { Prisma } from '@prisma/client';
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import { resolveAgentEnvironment, type AgentEnvironmentContext } from '../../services/kip/resolveAgentEnvironment.js';
@@ -1909,7 +1910,15 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             environment = {
               version: 'env-v1',
               domains: [],
-              capabilities: { canDraft: false, canPromote: false },
+            capabilities: { canDraft: false, canPromote: false },
+            policyPack: buildPolicyPackFromEnvironment(null),
+            policy: {
+              version: DEFAULT_POLICY_VERSION,
+              policy: DEFAULT_POLICY_PACK_V1,
+              updatedAt: null,
+              source: 'default',
+            },
+            draftsDirectory: [],
               debug: environmentDebug,
             };
           }

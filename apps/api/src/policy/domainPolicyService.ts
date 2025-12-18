@@ -1,4 +1,5 @@
 import { prisma } from '@keeper/database';
+import type { Prisma } from '@prisma/client';
 import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, mapPolicyJsonToPack } from './policyPack.js';
 
 type PolicyRecord = {
@@ -36,10 +37,11 @@ export async function loadDomainPolicy(domainId: string): Promise<PolicyRecord> 
 }
 
 export async function upsertDomainPolicy(domainId: string, policy: unknown, version = DEFAULT_POLICY_VERSION) {
+  const jsonPolicy = policy as Prisma.InputJsonValue;
   const saved = await prisma.domainPolicy.upsert({
     where: { domainId },
-    update: { policy, version, updatedAt: new Date() },
-    create: { domainId, version, policy },
+    update: { policy: jsonPolicy, version, updatedAt: new Date() },
+    create: { domainId, version, policy: jsonPolicy },
     select: { version: true, policy: true, updatedAt: true },
   });
 
