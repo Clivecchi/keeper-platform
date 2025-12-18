@@ -537,7 +537,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       .finally(() => setModeConfigLoading(false));
   }, [agent?.id, agentDomainId, domainId]);
 
-  const formatApiError = (err: any, fallback: string) => {
+  const formatApiError = useCallback((err: any, fallback: string) => {
     const status = err?.status;
     const requestId = err?.requestId || err?.data?.requestId;
     const details = err?.message && err.message !== fallback ? err.message : null;
@@ -549,7 +549,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       .filter(Boolean)
       .join(' — ');
     return parts || fallback;
-  };
+  }, []);
 
   const refreshDrafts = useCallback(async () => {
     if (!domainId) {
