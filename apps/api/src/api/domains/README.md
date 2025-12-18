@@ -15,7 +15,8 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `/:domainId/agent/execute` now auto-assigns Kip as the primary agent when missing, then calls `KipAgentService` and surfaces typed error codes (`MISSING_API_KEY`, `INVALID_MODEL`, etc.).
 - Board data routes guard frame IDs via the Domain keeper type template, updating JSON props and flushing cache.
 - Custom domain routes share logic between legacy and `/custom` prefixed paths for compatibility.
-- `/:domainId/kip/environment` returns a stable, read-only Kip environment bundle; the agent execute route builds the same bundle and injects it into the model payload without changing response shapes.
+- `/:domainId/kip/environment` returns a stable, read-only Kip environment bundle (now with `policy` + `draftsDirectory`); the agent execute route builds the same bundle and injects it into the model payload without changing response shapes.
+- `/:domainId/policy` (GET/PATCH) exposes the resolved domain policy JSON (policy-v1 default) for viewing and editing.
 
 ## Error Taxonomy
 - **Domain layer** (this router) owns `AUTH_REQUIRED`, `DOMAIN_NOT_FOUND`, `ACCESS_DENIED`, and `NO_PRIMARY_AGENT`, returning 4xx immediately.
@@ -28,6 +29,9 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+### 2025-12-17 - Domain policy API + enriched environment
+- Added `GET/PATCH /api/domains/:domainId/policy` with domain membership enforcement and default `policy-v1` fallback.
+- Kip environment route now includes `policy` and `draftsDirectory` (last 25 drafts) for the authenticated owner.
 ### 2025-12-16 - Kip drafts directory + session pointers
 - Added domain-scoped Kip draft routes (`/kip/drafts` + `/kip/sessions/:sessionId/active-draft`) enforcing domain membership + ownership, enabling listing, CRUD, and session active-draft pointers.
 - `/kip/environment` now accepts `sessionId` to surface the current session’s activeDraft summary when set.

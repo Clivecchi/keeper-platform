@@ -951,6 +951,7 @@ model Domain {
   keepers                                                  Keeper[]
   moments                                                  Moment[]
   kip_drafts                                               kip_drafts[]
+  policy                                                   DomainPolicy?
   ShareRequest_ShareRequest_sourceDomainIdToDomain         ShareRequest[]             @relation("ShareRequest_sourceDomainIdToDomain")
   ShareRequest_ShareRequest_targetDomainIdToDomain         ShareRequest[]             @relation("ShareRequest_targetDomainIdToDomain")
   ShareTemplate                                            ShareTemplate[]
@@ -964,6 +965,17 @@ model Domain {
   @@index([status])
   @@index([isActive])
   @@index([isPublic])
+}
+
+model DomainPolicy {
+  id        String   @id @default(cuid())
+  domainId  String   @unique
+  version   String   @default("policy-v1")
+  policy    Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  domain Domain @relation(fields: [domainId], references: [id], onDelete: Cascade)
 }
 
 model DomainAudit {

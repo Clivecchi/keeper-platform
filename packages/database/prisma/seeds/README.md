@@ -70,4 +70,5 @@ Once seeded, the platform will have:
 - ✅ Foundation for Reflections UI and Kip assistant behavior development 
 
 ## 📆 Update Log
+- 2025-12-17: Added `policy.seed.ts` to upsert default policy-v1 for all domains (kept in sync with Kip policy pack) and wired it into the TypeScript seed runner after domain creation.
 - 2025-12-14: Added `lenses.seed.ts` to create default Domain Lens and Debug Investigator Lens for the `default` domain via the TS seed runner.

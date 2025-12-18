@@ -1,5 +1,7 @@
 import { PrismaClient, DomainPermissionService, DomainCacheService, DomainService } from '@keeper/database';
 import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
+import { loadDomainPolicy, resolvePolicyPackV1 } from '../../policy/domainPolicyService.js';
+import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, type PolicyPackV1 } from '../../policy/policyPack.js';
 
 export type KipEnvironmentContext = {
   version: 'kip-env-v1';
@@ -27,6 +29,21 @@ export type KipEnvironmentContext = {
     canPromote: boolean;
     canWriteProduction: boolean;
   };
+  policyPack: PolicyPackV1;
+  policy: {
+    version: string;
+    policy: unknown;
+    updatedAt?: Date | null;
+    source: 'domain' | 'default';
+  };
+  draftsDirectory: Array<{
+    id: string;
+    title: string;
+    kind: string;
+    status: string;
+    updatedAt: Date;
+    key?: string | null;
+  }>;
   activeDraft?: {
     id: string;
     kind: string;
@@ -42,6 +59,7 @@ const redis: RedisClientOrNoOp = getRedis();
 const cacheService = new DomainCacheService(redis);
 const domainService = new DomainService(prisma, cacheService);
 const permissionService = new DomainPermissionService(prisma, cacheService);
+const DRAFT_DIRECTORY_LIMIT = 25;
 
 const FRAME_TYPE_REGISTRY: KipEnvironmentContext['registry']['frameTypes'] = [
   { key: 'media_card', label: 'Media Card' },
@@ -85,6 +103,24 @@ export async function buildKipEnvironmentContext(args: {
       canPromote: false,
       canWriteProduction: false,
     },
+    policyPack: {
+      policyVersion: DEFAULT_POLICY_VERSION,
+      resolvedBy: 'KAM',
+      actions: { allow: [...DEFAULT_POLICY_PACK_V1.actions.allow] },
+      entities: {
+        drafts: { create: true, read: true, update: true, delete: false },
+        keepers: { create: false, read: true, update: false, delete: false },
+        journeys: { create: false, read: true, update: false, delete: false },
+        moments: { create: false, read: true, update: false, delete: false },
+      },
+    },
+    policy: {
+      version: DEFAULT_POLICY_VERSION,
+      policy: DEFAULT_POLICY_PACK_V1,
+      updatedAt: null,
+      source: 'default',
+    },
+    draftsDirectory: [],
   };
 
   try {
@@ -99,6 +135,24 @@ export async function buildKipEnvironmentContext(args: {
     }
   } catch (error) {
     console.warn('[kip:environment] domain lookup failed', { domainId, error });
+  }
+
+  try {
+    environment.policy = await loadDomainPolicy(domainId);
+  } catch (error) {
+    console.warn('[kip:environment] policy lookup failed, using default', { domainId, error });
+    environment.policy = {
+      version: DEFAULT_POLICY_VERSION,
+      policy: DEFAULT_POLICY_PACK_V1,
+      updatedAt: null,
+      source: 'default',
+    };
+  }
+
+  try {
+    environment.policyPack = await resolvePolicyPackV1({ domainId, userId });
+  } catch (error) {
+    console.warn('[kip:environment] policyPack resolution failed, using default', { domainId, error });
   }
 
   try {
@@ -199,6 +253,35 @@ export async function buildKipEnvironmentContext(args: {
     } catch (error) {
       console.warn('[kip:environment] active draft lookup failed', { sessionId, domainId, userId, error });
     }
+  }
+
+  try {
+    if (userId) {
+      const drafts = await prisma.kip_drafts.findMany({
+        where: { domain_id: domainId, owner_id: userId },
+        select: {
+          id: true,
+          kind: true,
+          key: true,
+          title: true,
+          status: true,
+          updated_at: true,
+        },
+        orderBy: { updated_at: 'desc' },
+        take: DRAFT_DIRECTORY_LIMIT,
+      });
+
+      environment.draftsDirectory = drafts.map((draft) => ({
+        id: draft.id,
+        kind: draft.kind,
+        key: draft.key,
+        title: draft.title,
+        status: draft.status,
+        updatedAt: draft.updated_at,
+      }));
+    }
+  } catch (error) {
+    console.warn('[kip:environment] drafts directory lookup failed', { domainId, userId, error });
   }
 
   try {

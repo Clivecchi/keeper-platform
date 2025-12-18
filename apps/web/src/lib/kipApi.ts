@@ -120,6 +120,12 @@ export type AgentModeState = {
 };
 
 export type KipDraftStatus = 'draft' | 'reviewed' | 'approved' | 'promoted' | 'archived';
+export interface DomainPolicy {
+  version: string;
+  policy: unknown;
+  updatedAt?: string | Date | null;
+  source?: 'domain' | 'default';
+}
 
 export interface KipDraftSummary {
   id: string;
@@ -144,6 +150,14 @@ export interface KipEnvironmentBundle {
   actor: { userId: string; roles?: string[] };
   ui?: Record<string, unknown>;
   activeDraft?: KipDraftSummary;
+  policyPack?: {
+    policyVersion: string;
+    resolvedBy: string;
+    actions: { allow: string[] };
+    entities: Record<string, { create: boolean; read: boolean; update: boolean; delete: boolean }>;
+  };
+  policy?: { version: string; policy: unknown; source?: string; updatedAt?: string | Date | null };
+  draftsDirectory?: KipDraftSummary[];
   [key: string]: unknown;
 }
 
@@ -752,6 +766,28 @@ export class KipApi {
       return response.environment as KipEnvironmentBundle;
     }
     throw new Error(pickErrorMessage(response, 'Failed to load Kip environment'));
+  }
+
+  /**
+   * Domain policy (domain-scoped)
+   */
+  static async getDomainPolicy(domainId: string): Promise<DomainPolicy> {
+    const response = await apiFetch(`/api/domains/${domainId}/policy`);
+    if (response?.policy) {
+      return response.policy as DomainPolicy;
+    }
+    throw new Error(pickErrorMessage(response, 'Failed to load policy'));
+  }
+
+  static async updateDomainPolicy(domainId: string, policy: unknown, version?: string): Promise<DomainPolicy> {
+    const response = await apiFetch(`/api/domains/${domainId}/policy`, {
+      method: 'PATCH',
+      body: JSON.stringify({ policy, version }),
+    });
+    if (response?.policy) {
+      return response.policy as DomainPolicy;
+    }
+    throw new Error(pickErrorMessage(response, 'Failed to save policy'));
   }
 
   /**

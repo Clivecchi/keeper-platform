@@ -9,7 +9,7 @@
 import { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
-import { prisma } from '@keeper/database';
+import { Prisma, prisma } from '@keeper/database';
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import { resolveAgentEnvironment, type AgentEnvironmentContext } from '../../services/kip/resolveAgentEnvironment.js';
@@ -29,6 +29,7 @@ import { ModelProviderService, ModelMessage, ModelProviderErrorCode } from '../.
 import { loadModeState } from '../../services/kip/modeConfig.js';
 import type { AgentModeKey, AgentModeState, ModeConfig, OutputStyle } from '../../services/kip/modeConfig.js';
 import type { DomainResolvedRequest } from '../../middleware/domainResolutionMiddleware.js';
+import { DEFAULT_POLICY_PACK_V1, buildPolicyPackFromEnvironment } from '../../policy/policyPack.js';
 
 type AgentErrorCode =
   | 'MISSING_API_KEY'
@@ -85,6 +86,264 @@ class AgentExecutionError extends Error {
     this.code = code;
     this.details = details;
   }
+}
+
+type StructuredAgentAction = { type: string; payload?: Record<string, any> | null };
+type ActionExecutionResult = {
+  type: string;
+  status: 'success' | 'error' | 'skipped';
+  message?: string;
+  data?: unknown;
+};
+
+const ACTION_DRAFT_LIMIT = 25;
+
+function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironmentContext | null): Set<string> {
+  const pack = buildPolicyPackFromEnvironment(environment);
+  return new Set(Array.isArray(pack?.actions?.allow) ? pack.actions.allow : DEFAULT_POLICY_PACK_V1.actions.allow);
+}
+
+function slugifyKey(input: string) {
+  return (
+    input
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || 'draft'
+  );
+}
+
+function parseStructuredAgentResponse(raw: string): { responseText: string; actions: StructuredAgentAction[]; raw: string } {
+  const trimmed = raw.trim();
+  const unfenced = trimmed.startsWith('```')
+    ? trimmed.replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim()
+    : trimmed;
+
+  try {
+    const parsed = JSON.parse(unfenced);
+    const responseText = typeof parsed?.response === 'string' ? parsed.response : raw;
+    const actions = Array.isArray(parsed?.actions)
+      ? parsed.actions
+          .filter((action: any) => action && typeof action.type === 'string')
+          .map((action: any) => ({
+            type: action.type,
+            payload: action.payload ?? null,
+          }))
+      : [];
+
+    return { responseText, actions, raw };
+  } catch {
+    return { responseText: raw, actions: [], raw };
+  }
+}
+
+async function executeAgentActions(
+  actions: StructuredAgentAction[],
+  ctx: { domainId?: string | null; userId?: string; agentId?: string | null; allowlist: Set<string> },
+): Promise<{ results: ActionExecutionResult[]; failedMessage: string | null }> {
+  const results: ActionExecutionResult[] = [];
+  if (!actions.length) return { results, failedMessage: null };
+
+  await prisma.$transaction(async (tx) => {
+    for (const action of actions) {
+      const baseResult: ActionExecutionResult = { type: action.type, status: 'skipped' };
+
+      try {
+        if (!ctx.allowlist.has(action.type)) {
+          results.push({ ...baseResult, status: 'error', message: 'Action not allowed by policy' });
+          continue;
+        }
+
+        if (!ctx.domainId || !ctx.userId) {
+          results.push({ ...baseResult, status: 'error', message: 'Missing domain or user context' });
+          continue;
+        }
+
+        switch (action.type) {
+          case 'draft.create': {
+            const payload = action.payload ?? {};
+            const title = typeof payload.title === 'string' && payload.title.trim() ? payload.title.trim() : 'Draft';
+            const kind = typeof payload.kind === 'string' && payload.kind.trim() ? payload.kind.trim() : 'draft';
+            const status = typeof payload.status === 'string' && payload.status.trim() ? payload.status.trim() : 'draft';
+            const summary = typeof payload.summary === 'string' ? payload.summary : null;
+            const spec = payload.spec ?? {};
+
+            let key = slugifyKey(payload.key || title || `draft-${Date.now()}`);
+            let created: any | null = null;
+            let attempts = 0;
+
+            while (!created && attempts < 2) {
+              try {
+                created = await tx.kip_drafts.create({
+                  data: {
+                    domain_id: ctx.domainId,
+                    owner_id: ctx.userId,
+                    agent_id: ctx.agentId ?? null,
+                    kind,
+                    key,
+                    title,
+                    summary,
+                    status,
+                    spec_json: spec,
+                    updated_at: new Date(),
+                  },
+                });
+              } catch (error) {
+                if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+                  key = slugifyKey(`${key}-${Date.now()}`);
+                  attempts += 1;
+                  continue;
+                }
+                throw error;
+              }
+            }
+
+            if (!created) {
+              results.push({ ...baseResult, status: 'error', message: 'Failed to create draft' });
+              break;
+            }
+
+            results.push({
+              type: action.type,
+              status: 'success',
+              data: {
+                id: created.id,
+                title: created.title,
+                kind: created.kind,
+                status: created.status,
+                key: created.key,
+                summary: created.summary,
+              },
+            });
+            break;
+          }
+          case 'draft.update': {
+            const payload = action.payload ?? {};
+            const draftId = payload.draftId || payload.id;
+            const kind = payload.kind;
+            const key = payload.key;
+
+            const draft = await tx.kip_drafts.findFirst({
+              where: {
+                domain_id: ctx.domainId,
+                owner_id: ctx.userId,
+                ...(draftId
+                  ? { id: draftId }
+                  : kind && key
+                    ? { kind: String(kind), key: String(key) }
+                    : {}),
+              },
+            });
+
+            if (!draft) {
+              results.push({ ...baseResult, status: 'error', message: 'Draft not found for update' });
+              break;
+            }
+
+            const updated = await tx.kip_drafts.update({
+              where: { id: draft.id },
+              data: {
+                title: typeof payload.title === 'string' ? payload.title : draft.title,
+                summary: typeof payload.summary === 'string' ? payload.summary : draft.summary,
+                status: typeof payload.status === 'string' ? payload.status : draft.status,
+                spec_json: payload.spec ?? draft.spec_json ?? {},
+                updated_at: new Date(),
+              },
+            });
+
+            results.push({
+              type: action.type,
+              status: 'success',
+              data: {
+                id: updated.id,
+                title: updated.title,
+                kind: updated.kind,
+                status: updated.status,
+                key: updated.key,
+                summary: updated.summary,
+              },
+            });
+            break;
+          }
+          case 'draft.list': {
+            const drafts = await tx.kip_drafts.findMany({
+              where: { domain_id: ctx.domainId, owner_id: ctx.userId },
+              select: { id: true, kind: true, key: true, title: true, status: true, summary: true, updated_at: true },
+              orderBy: { updated_at: 'desc' },
+              take: ACTION_DRAFT_LIMIT,
+            });
+
+            results.push({
+              type: action.type,
+              status: 'success',
+              data: drafts.map((draft) => ({
+                id: draft.id,
+                title: draft.title,
+                kind: draft.kind,
+                status: draft.status,
+                key: draft.key,
+                summary: draft.summary,
+                updatedAt: draft.updated_at,
+              })),
+            });
+            break;
+          }
+          case 'draft.get':
+          case 'draft.read': {
+            const payload = action.payload ?? {};
+            const draftId = payload.draftId || payload.id;
+            const kind = payload.kind;
+            const key = payload.key;
+
+            const draft = await tx.kip_drafts.findFirst({
+              where: {
+                domain_id: ctx.domainId,
+                owner_id: ctx.userId,
+                ...(draftId
+                  ? { id: draftId }
+                  : kind && key
+                    ? { kind: String(kind), key: String(key) }
+                    : {}),
+              },
+            });
+
+            if (!draft) {
+              results.push({ ...baseResult, status: 'error', message: 'Draft not found' });
+              break;
+            }
+
+            results.push({
+              type: action.type,
+              status: 'success',
+              data: {
+                id: draft.id,
+                title: draft.title,
+                kind: draft.kind,
+                status: draft.status,
+                key: draft.key,
+                summary: draft.summary,
+                spec: draft.spec_json,
+                updatedAt: draft.updated_at,
+              },
+            });
+            break;
+          }
+          default:
+            results.push({ ...baseResult, status: 'skipped', message: 'Unhandled action type' });
+            break;
+        }
+      } catch (error) {
+        results.push({
+          type: action.type,
+          status: 'error',
+          message: error instanceof Error ? error.message : 'Action failed',
+        });
+      }
+    }
+  });
+
+  const failed = results.find((result) => result.status === 'error');
+  return { results, failedMessage: failed?.message || null };
 }
 
 // Database helper functions
@@ -859,6 +1118,28 @@ export class KipAgentService {
           role: 'system',
           content: `Environment context (resolved via KAM):\n${JSON.stringify(environmentContext, null, 2)}`,
         });
+
+        const policyPack = buildPolicyPackFromEnvironment(environmentContext as any);
+        const allowList =
+          Array.isArray(policyPack?.actions?.allow) && policyPack.actions.allow.length
+            ? policyPack.actions.allow
+            : DEFAULT_POLICY_PACK_V1.actions.allow;
+
+        const draftRules = (environmentContext as any)?.policy?.policy?.drafts ?? {};
+        messages.push({
+          role: 'system',
+          content: [
+            'Structured response required: reply with JSON containing "response" (string) and optional "actions" (array).',
+            `Allowed actions: ${allowList.join(', ')}.`,
+            'Each action must include a "type" and optional "payload".',
+            'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
+            draftRules?.autoDraft?.enabled
+              ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a draft, include draft.create (or draft.update) with a short confirmation message.`
+              : 'If the user explicitly asks for a draft, include draft.create (or draft.update) with a short confirmation message.',
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        });
       }
       
       // Add conversation history (last 10 messages to avoid token limits)
@@ -1020,11 +1301,33 @@ export class KipAgentService {
           autoBrief: activeModeConfig.autoBrief,
           environment: options?.environment ?? null,
         });
+
+        const structured = parseStructuredAgentResponse(response);
+        const allowActions = buildAllowedActions(options?.environment ?? null);
+
+        let finalResponseText = structured.responseText;
+        let actionResults: ActionExecutionResult[] = [];
+
+        if (structured.actions.length) {
+          const execution = await executeAgentActions(structured.actions, {
+            domainId: options?.domainId ?? null,
+            userId,
+            agentId: agent.id,
+            allowlist: allowActions,
+          });
+          actionResults = execution.results;
+
+          if (execution.failedMessage) {
+            finalResponseText = structured.responseText
+              ? `${structured.responseText} I attempted to create a draft but saving failed: ${execution.failedMessage}`
+              : `I attempted to create a draft but saving failed: ${execution.failedMessage}`;
+          }
+        }
         
         // Save agent response to memory if we have a session
         if (agent.memory_enabled && currentSessionId) {
           try {
-            await this.saveMessage(currentSessionId, 'agent', response, 'assistant', {
+            await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
               timestamp: new Date().toISOString(),
               agent_id: agentId,
               model: agent.model
@@ -1040,7 +1343,7 @@ export class KipAgentService {
           keeper_id: userId || 'lead_user',
           type: 'conversation',
           data: {
-            response: response,
+            response: finalResponseText,
             agent_name: agent.name,
             agent_avatar: config.avatar || '🤖',
             agent_tagline: config.tagline || 'Your AI assistant',
@@ -1051,6 +1354,8 @@ export class KipAgentService {
             memory_enabled: agent.memory_enabled,
             message_count: previousMessages.length + (agent.memory_enabled ? 2 : 0), // +2 for current user/agent messages
             model: agent.model,
+            actions: actionResults,
+            model_response_raw: response,
             timestamp: new Date().toISOString()
           }
         };

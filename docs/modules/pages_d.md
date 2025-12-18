@@ -9,7 +9,7 @@ Pages for domain-related functionality, including public domain boards, domain d
 - `DomainKeepersPage.tsx` - Domain keepers listing (V0 dashboard)
 - `DomainJourneysPage.tsx` - Domain journeys listing (V0 dashboard)
 - `DomainProfilePage.tsx` - User profile within domain (V0 dashboard)
-- `DomainAdminPage.tsx` - Domain admin interface (V0 dashboard)
+- `DomainAdminPage.tsx` - Domain admin interface (V0 dashboard) with policy editor
 - `DomainAgentPage.tsx` - Kip Agent Board (Dialogue / Cockpit / Sessions) inside the domain shell
 
 ## 🔄 Data & Behavior
@@ -52,6 +52,8 @@ All domain dashboard pages use `KeeperDashboardLayout` with left nav (Feed, Kip,
 
 ## 📆 Update Log
 
+### 2025-12-17 - Domain policy editor
+- Added a JSON editor on `DomainAdminPage` that loads/saves domain policy via `/api/domains/:domainId/policy`, showing source/version and refresh controls.
 ### 2025-12-10 - Stubbed domain previews ready for board wiring
 - Added stub hooks (`useDomainFeedPreview`, `useDomainJourneysPreview`, `useDomainKeepersPreview`) and centralized placeholder cards so the V0 dashboard pages can swap to real board/frame data without structural changes.
 

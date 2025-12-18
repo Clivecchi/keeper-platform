@@ -1,6 +1,8 @@
 import { DomainCacheService, DomainPermissionService, DomainService, prisma } from '@keeper/database';
 import { DomainAuthManager } from '@keeper/kam';
 import { getRedis, isNoOpRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
+import { loadDomainPolicy, resolvePolicyPackV1 } from '../../policy/domainPolicyService.js';
+import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, type PolicyPackV1 } from '../../policy/policyPack.js';
 
 export type AgentEnvironmentContext = {
   version: 'env-v1';
@@ -25,6 +27,21 @@ export type AgentEnvironmentContext = {
     canDraft: boolean;
     canPromote: boolean;
   };
+  policyPack: PolicyPackV1;
+  policy: {
+    version: string;
+    policy: unknown;
+    updatedAt?: Date | null;
+    source: 'domain' | 'default';
+  };
+  draftsDirectory: Array<{
+    id: string;
+    title: string;
+    kind: string;
+    status: string;
+    updatedAt: Date;
+    key?: string | null;
+  }>;
   activeDraft?: {
     id: string;
     kind: string;
@@ -49,6 +66,7 @@ const domainAuthManager = new DomainAuthManager(
   prisma,
   isNoOpRedis(redisClient) ? undefined : (redisClient as any)
 );
+const DRAFT_DIRECTORY_LIMIT = 25;
 
 async function loadRegistry(domainId: string): Promise<AgentEnvironmentContext['domains'][number]['registry']> {
   const registry = {
@@ -105,6 +123,24 @@ export async function resolveAgentEnvironment(args: {
       canDraft: false,
       canPromote: false,
     },
+    policyPack: {
+      policyVersion: DEFAULT_POLICY_VERSION,
+      resolvedBy: 'KAM',
+      actions: { allow: [...DEFAULT_POLICY_PACK_V1.actions.allow] },
+      entities: {
+        drafts: { create: true, read: true, update: true, delete: false },
+        keepers: { create: false, read: true, update: false, delete: false },
+        journeys: { create: false, read: true, update: false, delete: false },
+        moments: { create: false, read: true, update: false, delete: false },
+      },
+    },
+    policy: {
+      version: DEFAULT_POLICY_VERSION,
+      policy: DEFAULT_POLICY_PACK_V1,
+      updatedAt: null,
+      source: 'default',
+    },
+    draftsDirectory: [],
     debug: {
       resolvedBy: 'KAM',
       resolvedAt,
@@ -180,6 +216,63 @@ export async function resolveAgentEnvironment(args: {
       const perms = accessibleMap.get(primaryDomainId)?.permissions || [];
       environment.capabilities.canDraft = hasReadAccess && perms.includes('write');
       environment.capabilities.canPromote = hasReadAccess && (perms.includes('admin') || perms.includes('share'));
+
+      try {
+        environment.policy = await loadDomainPolicy(primaryDomainId);
+      } catch (error) {
+        console.warn('[resolveAgentEnvironment] policy resolution failed, using default', {
+          domainId: primaryDomainId,
+          error,
+        });
+        environment.policy = {
+          version: DEFAULT_POLICY_VERSION,
+          policy: DEFAULT_POLICY_PACK_V1,
+          updatedAt: null,
+          source: 'default',
+        };
+      }
+
+      try {
+        environment.policyPack = await resolvePolicyPackV1({ domainId: primaryDomainId, userId, agentId });
+      } catch (error) {
+        console.warn('[resolveAgentEnvironment] policyPack resolution failed, using default', {
+          domainId: primaryDomainId,
+          error,
+        });
+      }
+
+      if (hasReadAccess && userId) {
+        try {
+          const drafts = await prisma.kip_drafts.findMany({
+            where: { domain_id: primaryDomainId, owner_id: userId },
+            select: {
+              id: true,
+              kind: true,
+              key: true,
+              title: true,
+              status: true,
+              updated_at: true,
+            },
+            orderBy: { updated_at: 'desc' },
+            take: DRAFT_DIRECTORY_LIMIT,
+          });
+
+          environment.draftsDirectory = drafts.map((draft) => ({
+            id: draft.id,
+            kind: draft.kind,
+            key: draft.key,
+            title: draft.title,
+            status: draft.status,
+            updatedAt: draft.updated_at,
+          }));
+        } catch (error) {
+          console.warn('[resolveAgentEnvironment] drafts directory load failed', {
+            domainId: primaryDomainId,
+            userId,
+            error,
+          });
+        }
+      }
     } catch (error) {
       console.warn('[resolveAgentEnvironment] domain resolution failed', { primaryDomainId, userId, agentId, error });
     }

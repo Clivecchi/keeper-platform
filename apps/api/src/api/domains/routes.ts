@@ -23,6 +23,8 @@ import { ensureDomainManagementBoard } from '../../services/boards/domainManagem
 import { KipAgentService } from '../kip/agents.js';
 import type { AgentResponse, KipCommandIntent } from '@keeper/database';
 import { buildKipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
+import { loadDomainPolicy, upsertDomainPolicy } from '../../policy/domainPolicyService.js';
+import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION } from '../../policy/policyPack.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -32,6 +34,10 @@ const domainService = new DomainService(prisma, cacheService);
 const permissionService = new DomainPermissionService(prisma, cacheService);
 const verificationService = new DomainVerificationService(prisma, cacheService);
 const featureFlags = getFeatureFlagService();
+const domainPolicySchema = z.object({
+  policy: z.record(z.any()).default(DEFAULT_POLICY_PACK_V1 as Record<string, unknown>),
+  version: z.string().optional(),
+});
 
 // ============================================================================
 // PUBLIC ROUTES (Before middleware that requires auth)
@@ -583,6 +589,59 @@ router.get('/:domainId/kip/environment', authMiddlewareCompat, async (req: Authe
     });
   }
 });
+
+router.get(
+  '/:domainId/policy',
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+
+      const { domainId } = req.params;
+      const domain = await domainService.getDomainById(domainId);
+      if (!domain) {
+        return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
+      }
+
+      const policy = await loadDomainPolicy(domainId);
+      return res.json({ policy });
+    } catch (error) {
+      console.error('[domains:policy:get:error]', error);
+      return res.status(500).json({ error: 'FAILED_TO_LOAD_POLICY' });
+    }
+  },
+);
+
+router.patch(
+  '/:domainId/policy',
+  authMiddlewareCompat,
+  validationMiddleware(domainPolicySchema),
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+
+      const { domainId } = req.params;
+      const domain = await domainService.getDomainById(domainId);
+      if (!domain) {
+        return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
+      }
+
+      const payload = domainPolicySchema.parse(req.body ?? {});
+      const policy = await upsertDomainPolicy(domainId, payload.policy ?? DEFAULT_POLICY_PACK_V1, payload.version ?? DEFAULT_POLICY_VERSION);
+
+      return res.json({ policy });
+    } catch (error) {
+      console.error('[domains:policy:update:error]', error);
+      return res.status(500).json({ error: 'FAILED_TO_SAVE_POLICY' });
+    }
+  },
+);
 
 router.post('/:domainId/agent/execute', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
   try {
