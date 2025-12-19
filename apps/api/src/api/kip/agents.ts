@@ -30,7 +30,7 @@ import { ModelProviderService, ModelMessage, ModelProviderErrorCode } from '../.
 import { loadModeState } from '../../services/kip/modeConfig.js';
 import type { AgentModeKey, AgentModeState, ModeConfig, OutputStyle } from '../../services/kip/modeConfig.js';
 import type { DomainResolvedRequest } from '../../middleware/domainResolutionMiddleware.js';
-import { DEFAULT_POLICY_PACK_V1, buildPolicyPackFromEnvironment } from '../../policy/policyPack.js';
+import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, buildPolicyPackFromEnvironment } from '../../policy/policyPack.js';
 
 type AgentErrorCode =
   | 'MISSING_API_KEY'
@@ -1910,15 +1910,15 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             environment = {
               version: 'env-v1',
               domains: [],
-            capabilities: { canDraft: false, canPromote: false },
-            policyPack: buildPolicyPackFromEnvironment(null),
-            policy: {
-              version: DEFAULT_POLICY_VERSION,
-              policy: DEFAULT_POLICY_PACK_V1,
-              updatedAt: null,
-              source: 'default',
-            },
-            draftsDirectory: [],
+              capabilities: { canDraft: false, canPromote: false },
+              policyPack: buildPolicyPackFromEnvironment(null),
+              policy: {
+                version: DEFAULT_POLICY_VERSION,
+                policy: DEFAULT_POLICY_PACK_V1,
+                updatedAt: null,
+                source: 'default',
+              },
+              draftsDirectory: [],
               debug: environmentDebug,
             };
           }
