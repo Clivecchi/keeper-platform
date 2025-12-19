@@ -19,6 +19,14 @@ export const DEFAULT_POLICY_PACK_V1 = {
 
 const DEFAULT_ENTITY_PERMS = { create: false, read: true, update: false, delete: false } as const;
 
+export type ActionPack = {
+  draft: string[];
+  keeper: string[];
+  journey: string[];
+  moment: string[];
+  [key: string]: string[];
+};
+
 export type PolicyPackV1 = {
   policyVersion: string;
   resolvedBy: 'KAM';
@@ -88,6 +96,29 @@ export function isActionAllowed(env: any, action: string): boolean {
   if (!action) return false;
   const pack = buildPolicyPackFromEnvironment(env);
   return Array.isArray(pack.actions.allow) ? pack.actions.allow.includes(action) : false;
+}
+
+export function buildActionPack(allow: string[] = []): ActionPack {
+  const actionPack: ActionPack = {
+    draft: [],
+    keeper: [],
+    journey: [],
+    moment: [],
+  };
+
+  for (const action of allow) {
+    if (typeof action !== 'string') continue;
+    const [entity, capability] = action.split('.');
+    if (!entity || !capability) continue;
+    if (!actionPack[entity]) {
+      actionPack[entity] = [];
+    }
+    if (!actionPack[entity].includes(capability)) {
+      actionPack[entity].push(capability);
+    }
+  }
+
+  return actionPack;
 }
 
 

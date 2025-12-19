@@ -2,7 +2,7 @@ import { DomainCacheService, DomainPermissionService, DomainService, prisma } fr
 import { DomainAuthManager } from '@keeper/kam';
 import { getRedis, isNoOpRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 import { loadDomainPolicy, resolvePolicyPackV1 } from '../../policy/domainPolicyService.js';
-import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, type PolicyPackV1 } from '../../policy/policyPack.js';
+import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, type PolicyPackV1, type ActionPack, buildActionPack } from '../../policy/policyPack.js';
 
 export type AgentEnvironmentContext = {
   version: 'env-v1';
@@ -27,6 +27,7 @@ export type AgentEnvironmentContext = {
     canDraft: boolean;
     canPromote: boolean;
   };
+  actionPack?: ActionPack;
   policyPack: PolicyPackV1;
   policy: {
     version: string;
@@ -123,6 +124,7 @@ export async function resolveAgentEnvironment(args: {
       canDraft: false,
       canPromote: false,
     },
+    actionPack: buildActionPack([...DEFAULT_POLICY_PACK_V1.actions.allow]),
     policyPack: {
       policyVersion: DEFAULT_POLICY_VERSION,
       resolvedBy: 'KAM',
@@ -234,6 +236,7 @@ export async function resolveAgentEnvironment(args: {
 
       try {
         environment.policyPack = await resolvePolicyPackV1({ domainId: primaryDomainId, userId, agentId });
+      environment.actionPack = buildActionPack(environment.policyPack.actions.allow ?? []);
       } catch (error) {
         console.warn('[resolveAgentEnvironment] policyPack resolution failed, using default', {
           domainId: primaryDomainId,

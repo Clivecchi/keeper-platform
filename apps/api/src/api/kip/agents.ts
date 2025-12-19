@@ -30,7 +30,13 @@ import { ModelProviderService, ModelMessage, ModelProviderErrorCode } from '../.
 import { loadModeState } from '../../services/kip/modeConfig.js';
 import type { AgentModeKey, AgentModeState, ModeConfig, OutputStyle } from '../../services/kip/modeConfig.js';
 import type { DomainResolvedRequest } from '../../middleware/domainResolutionMiddleware.js';
-import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, buildPolicyPackFromEnvironment } from '../../policy/policyPack.js';
+import {
+  DEFAULT_POLICY_PACK_V1,
+  DEFAULT_POLICY_VERSION,
+  buildPolicyPackFromEnvironment,
+  buildActionPack,
+  type ActionPack,
+} from '../../policy/policyPack.js';
 
 type AgentErrorCode =
   | 'MISSING_API_KEY'
@@ -75,6 +81,9 @@ type RunAgentOptions = {
   mode?: AgentModeKey;
   debugBundle?: DebugBundleInput | null;
   environment?: AgentEnvironmentContext | KipEnvironmentContext | null;
+  forceSkipActions?: boolean;
+  actionPack?: ActionPack;
+  draftIntentResult?: DraftIntentResult | null;
 };
 
 class AgentExecutionError extends Error {
@@ -89,6 +98,338 @@ class AgentExecutionError extends Error {
   }
 }
 
+type DraftSection = { id: string; title: string; bullets: string[] };
+type DraftIntentPayload = {
+  draftId?: string;
+  title?: string;
+  kind?: string;
+  summary?: string;
+  status?: string;
+  spec?: Record<string, any>;
+  setActive?: boolean;
+  key?: string;
+  raw?: string;
+};
+type DraftIntentResult = {
+  triggered: boolean;
+  created?: boolean;
+  updated?: boolean;
+  draft?: {
+    id: string;
+    title: string;
+    kind: string;
+    status: string;
+    key: string | null;
+    summary: string | null;
+    spec: Prisma.JsonValue | null;
+    updatedAt: Date;
+  };
+  setActive?: boolean;
+  reason?: string;
+  error?: string;
+};
+
+const extractFieldFromText = (label: string, input: string): string | null => {
+  const regex = new RegExp(`${label}\\s*[:\\-]\\s*(.+)`, 'i');
+  const match = input.match(regex);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+  return null;
+};
+
+const deriveTitleFromText = (input: string): string => {
+  const firstLine = input.split(/\r?\n/).find((line) => line.trim().length > 0) || input;
+  return firstLine.replace(/^draft(?:\s*this)?[:\-]?\s*/i, '').trim().slice(0, 120) || 'Draft';
+};
+
+const extractSummaryFromText = (input: string): string | null => {
+  const summaryLine = extractFieldFromText('summary', input);
+  if (summaryLine) return summaryLine;
+  const paragraphs = input.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  return paragraphs.length ? paragraphs[0].slice(0, 500) : null;
+};
+
+const extractSectionsFromText = (input: string): DraftSection[] => {
+  const lines = input.split(/\r?\n/);
+  const sections: DraftSection[] = [];
+  let current: DraftSection | null = null;
+
+  const pushCurrent = () => {
+    if (current) {
+      sections.push({ ...current, bullets: current.bullets.filter(Boolean) });
+      current = null;
+    }
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      pushCurrent();
+      continue;
+    }
+
+    const headingMatch = trimmed.match(/^(?:[-*]\s*)?([A-Za-z0-9 ][^:]{2,}):\s*(.*)$/);
+    if (headingMatch) {
+      pushCurrent();
+      const title = headingMatch[1].trim();
+      const firstBullet = headingMatch[2]?.trim();
+      current = { id: slugifyKey(title), title, bullets: [] };
+      if (firstBullet) current.bullets.push(firstBullet);
+      continue;
+    }
+
+    const bulletMatch = trimmed.match(/^(?:[-*]\s+)(.+)$/);
+    if (bulletMatch && current) {
+      current.bullets.push(bulletMatch[1].trim());
+      continue;
+    }
+  }
+
+  pushCurrent();
+  return sections.slice(0, 20);
+};
+
+const extractRulesFromText = (input: string): string[] => {
+  const rules: string[] = [];
+  const lines = input.split(/\r?\n/);
+  let collecting = false;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      collecting = false;
+      continue;
+    }
+
+    if (/^(rules|guardrails|constraints)\s*[:]/i.test(line)) {
+      collecting = true;
+      continue;
+    }
+
+    if (collecting && /^[-*]/.test(line)) {
+      rules.push(line.replace(/^[-*]\s*/, '').trim());
+      continue;
+    }
+
+    if (!collecting && /\bmust\b|\bshould\b|do not/i.test(line) && rules.length < 10) {
+      rules.push(line);
+    }
+  }
+
+  return Array.from(new Set(rules));
+};
+
+const parseDraftIntentFromText = (input: string): DraftIntentPayload => {
+  const title = extractFieldFromText('title', input) ?? deriveTitleFromText(input);
+  const kind = extractFieldFromText('kind', input) ?? 'draft';
+  const summary = extractSummaryFromText(input) ?? '';
+  const sections = extractSectionsFromText(input);
+  const rules = extractRulesFromText(input);
+  const setActive = /set active|make this active/i.test(input);
+
+  return {
+    title,
+    kind,
+    summary,
+    status: 'draft',
+    spec: {
+      purpose: summary,
+      sections,
+      rules,
+    },
+    setActive,
+    raw: input,
+  };
+};
+
+const detectDraftIntent = (input: string, body: any): DraftIntentPayload | null => {
+  if (body?.draftIntent && typeof body.draftIntent === 'object') {
+    return { ...(body.draftIntent as DraftIntentPayload), raw: body?.input ?? input };
+  }
+
+  const normalized = input?.trim() || '';
+  if (!normalized) return null;
+
+  const hasDraftKeyword = /draft this/i.test(normalized) || /^draft\s*[:\-]/i.test(normalized);
+  const hasKindAndTitle = /kind\s*[:\-]/i.test(normalized) && /title\s*[:\-]/i.test(normalized);
+
+  if (!hasDraftKeyword && !hasKindAndTitle) {
+    return null;
+  }
+
+  return parseDraftIntentFromText(normalized);
+};
+
+const normalizeSpecPayload = (
+  spec: unknown,
+  raw: string,
+  ctx: { sessionId?: string | null; requestId?: string | null },
+): Prisma.JsonValue => {
+  const base = spec && typeof spec === 'object' ? { ...(spec as Record<string, any>) } : {};
+  return {
+    ...base,
+    raw: base.raw ?? raw,
+    source: base.source ?? {
+      type: 'user_message',
+      sessionId: ctx.sessionId ?? null,
+      requestId: ctx.requestId ?? null,
+      createdAt: new Date().toISOString(),
+    },
+  };
+};
+
+async function processDraftIntent(
+  payload: DraftIntentPayload,
+  ctx: { domainId?: string | null; userId?: string | null; agentId?: string | null; sessionId?: string | null; requestId?: string },
+): Promise<DraftIntentResult> {
+  const { draftId } = payload;
+  let domainId = ctx.domainId ?? null;
+  let userId = ctx.userId ?? null;
+
+  try {
+    let existingDraft: {
+      id: string;
+      domain_id: string;
+      owner_id: string;
+      kind: string;
+      key: string | null;
+      title: string;
+      status: string;
+      summary: string | null;
+      spec_json: Prisma.JsonValue | null;
+      updated_at: Date;
+    } | null = null;
+
+    if ((!domainId || !userId) && draftId) {
+      existingDraft = await prisma.kip_drafts.findUnique({
+        where: { id: draftId },
+        select: {
+          id: true,
+          domain_id: true,
+          owner_id: true,
+          kind: true,
+          key: true,
+          title: true,
+          status: true,
+          summary: true,
+          spec_json: true,
+          updated_at: true,
+        },
+      });
+      domainId = domainId ?? existingDraft?.domain_id ?? null;
+      userId = userId ?? existingDraft?.owner_id ?? null;
+    }
+
+    if (!domainId || !userId) {
+      return {
+        triggered: true,
+        reason: 'missing_context',
+        error: 'Draft intent requires domain and user context',
+      };
+    }
+
+    const now = new Date();
+    const title = payload.title?.trim() || existingDraft?.title || 'Draft';
+    const kind = payload.kind?.trim() || existingDraft?.kind || 'draft';
+    const status = payload.status?.trim() || existingDraft?.status || 'draft';
+    const key = slugifyKey(payload.key || title || existingDraft?.key || `draft-${Date.now()}`);
+    const summary = payload.summary ?? existingDraft?.summary ?? null;
+    const specToPersist = normalizeSpecPayload(payload.spec ?? existingDraft?.spec_json ?? {}, payload.raw ?? title, {
+      sessionId: ctx.sessionId,
+      requestId: ctx.requestId ?? null,
+    });
+
+    const result = await prisma.$transaction(async (tx) => {
+      let draftRecord =
+        existingDraft ||
+        (draftId
+          ? await tx.kip_drafts.findFirst({
+              where: { id: draftId, domain_id: domainId, owner_id: userId },
+            })
+          : null);
+
+      if (!draftRecord) {
+        draftRecord = await tx.kip_drafts.findFirst({
+          where: { domain_id: domainId, owner_id: userId, kind, key },
+        });
+      }
+
+      let created = false;
+      if (!draftRecord) {
+        draftRecord = await tx.kip_drafts.create({
+          data: {
+            domain_id: domainId,
+            owner_id: userId,
+            agent_id: ctx.agentId ?? null,
+            kind,
+            key,
+            title,
+            summary,
+            status,
+            spec_json: specToPersist,
+            updated_at: now,
+          },
+        });
+        created = true;
+      } else {
+        draftRecord = await tx.kip_drafts.update({
+          where: { id: draftRecord.id },
+          data: {
+            title,
+            summary,
+            status,
+            spec_json: specToPersist,
+            updated_at: now,
+          },
+        });
+      }
+
+      let setActiveApplied = false;
+      const shouldSetActive = payload.setActive === true || (payload.setActive === undefined && created && !!ctx.sessionId);
+
+      if (shouldSetActive && ctx.sessionId) {
+        const sessionUpdate = await tx.kip_sessions.updateMany({
+          where: {
+            id: ctx.sessionId,
+            ...(userId ? { user_id: userId } : {}),
+          },
+          data: {
+            active_draft_id: draftRecord.id,
+            updated_at: now,
+          },
+        });
+        setActiveApplied = sessionUpdate.count > 0;
+      }
+
+      return { draftRecord, created, setActiveApplied };
+    });
+
+    return {
+      triggered: true,
+      created: result.created,
+      updated: !result.created,
+      setActive: result.setActiveApplied,
+      draft: {
+        id: result.draftRecord.id,
+        title: result.draftRecord.title,
+        kind: result.draftRecord.kind,
+        status: result.draftRecord.status,
+        key: result.draftRecord.key,
+        summary: result.draftRecord.summary,
+        spec: result.draftRecord.spec_json,
+        updatedAt: result.draftRecord.updated_at,
+      },
+    };
+  } catch (error) {
+    return {
+      triggered: true,
+      reason: 'error',
+      error: error instanceof Error ? error.message : 'Draft intent processing failed',
+    };
+  }
+}
+
 type StructuredAgentAction = { type: string; payload?: Record<string, any> | null };
 type ActionExecutionResult = {
   type: string;
@@ -98,10 +439,23 @@ type ActionExecutionResult = {
 };
 
 const ACTION_DRAFT_LIMIT = 25;
+const ACTION_ENVELOPE_TYPE = 'agent_output';
 
 function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironmentContext | null): Set<string> {
   const pack = buildPolicyPackFromEnvironment(environment);
-  return new Set(Array.isArray(pack?.actions?.allow) ? pack.actions.allow : DEFAULT_POLICY_PACK_V1.actions.allow);
+  const allow = new Set(Array.isArray(pack?.actions?.allow) ? pack.actions.allow : DEFAULT_POLICY_PACK_V1.actions.allow);
+  // Server-controlled drafts can always set active when context is present
+  allow.add('draft.setActive');
+  return allow;
+}
+
+function buildActionPackFromAllowlist(allowlist: Set<string>): ActionPack {
+  return buildActionPack(Array.from(allowlist));
+}
+
+function buildActionPackFromEnvironment(environment?: AgentEnvironmentContext | KipEnvironmentContext | null): ActionPack {
+  const allow = buildAllowedActions(environment);
+  return buildActionPackFromAllowlist(allow);
 }
 
 function slugifyKey(input: string) {
@@ -114,15 +468,28 @@ function slugifyKey(input: string) {
   );
 }
 
-function parseStructuredAgentResponse(raw: string): { responseText: string; actions: StructuredAgentAction[]; raw: string } {
+function parseStructuredAgentResponse(
+  raw: string,
+): { responseText: string; actions: StructuredAgentAction[]; raw: string; ignoredReason?: string } {
   const trimmed = raw.trim();
-  const unfenced = trimmed.startsWith('```')
-    ? trimmed.replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim()
-    : trimmed;
+
+  if (trimmed.startsWith('```')) {
+    return {
+      responseText: trimmed.replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim(),
+      actions: [],
+      raw,
+      ignoredReason: 'fenced_response',
+    };
+  }
 
   try {
-    const parsed = JSON.parse(unfenced);
+    const parsed = JSON.parse(trimmed);
     const responseText = typeof parsed?.response === 'string' ? parsed.response : raw;
+
+    if (parsed?.type !== ACTION_ENVELOPE_TYPE) {
+      return { responseText, actions: [], raw, ignoredReason: 'missing_agent_output_envelope' };
+    }
+
     const actions = Array.isArray(parsed?.actions)
       ? parsed.actions
           .filter((action: any) => action && typeof action.type === 'string')
@@ -134,13 +501,13 @@ function parseStructuredAgentResponse(raw: string): { responseText: string; acti
 
     return { responseText, actions, raw };
   } catch {
-    return { responseText: raw, actions: [], raw };
+    return { responseText: raw, actions: [], raw, ignoredReason: 'invalid_json' };
   }
 }
 
 async function executeAgentActions(
   actions: StructuredAgentAction[],
-  ctx: { domainId?: string | null; userId?: string; agentId?: string | null; allowlist: Set<string> },
+  ctx: { domainId?: string | null; userId?: string; agentId?: string | null; allowlist: Set<string>; sessionId?: string | null },
 ): Promise<{ results: ActionExecutionResult[]; failedMessage: string | null }> {
   const results: ActionExecutionResult[] = [];
   if (!actions.length) return { results, failedMessage: null };
@@ -326,6 +693,52 @@ async function executeAgentActions(
                 spec: draft.spec_json,
                 updatedAt: draft.updated_at,
               },
+            });
+            break;
+          }
+          case 'draft.setActive': {
+            const payload = action.payload ?? {};
+            const draftId = payload.draftId || payload.id;
+            const sessionId = payload.sessionId || ctx.sessionId;
+
+            if (!draftId || !sessionId) {
+              results.push({ ...baseResult, status: 'error', message: 'draftId and sessionId are required' });
+              break;
+            }
+
+            const draft = await tx.kip_drafts.findFirst({
+              where: {
+                id: draftId,
+                domain_id: ctx.domainId,
+                owner_id: ctx.userId,
+              },
+            });
+
+            if (!draft) {
+              results.push({ ...baseResult, status: 'error', message: 'Draft not found for setActive' });
+              break;
+            }
+
+            const updated = await tx.kip_sessions.updateMany({
+              where: {
+                id: sessionId,
+                ...(ctx.userId ? { user_id: ctx.userId } : {}),
+              },
+              data: {
+                active_draft_id: draft.id,
+                updated_at: new Date(),
+              },
+            });
+
+            results.push({
+              type: action.type,
+              status: updated.count > 0 ? 'success' : 'error',
+              data: {
+                draftId: draft.id,
+                sessionId,
+                active: updated.count > 0,
+              },
+              message: updated.count > 0 ? undefined : 'Session not updated',
             });
             break;
           }
@@ -1305,23 +1718,41 @@ export class KipAgentService {
 
         const structured = parseStructuredAgentResponse(response);
         const allowActions = buildAllowedActions(options?.environment ?? null);
+        const actionPack = options?.actionPack ?? buildActionPackFromAllowlist(allowActions);
 
         let finalResponseText = structured.responseText;
         let actionResults: ActionExecutionResult[] = [];
 
-        if (structured.actions.length) {
-          const execution = await executeAgentActions(structured.actions, {
-            domainId: options?.domainId ?? null,
-            userId,
+        if (structured.ignoredReason) {
+          console.info('[kip/agents] structured response ignored', {
+            reason: structured.ignoredReason,
             agentId: agent.id,
-            allowlist: allowActions,
+            userId,
           });
-          actionResults = execution.results;
+        }
 
-          if (execution.failedMessage) {
-            finalResponseText = structured.responseText
-              ? `${structured.responseText} I attempted to create a draft but saving failed: ${execution.failedMessage}`
-              : `I attempted to create a draft but saving failed: ${execution.failedMessage}`;
+        if (structured.actions.length) {
+          if (options?.forceSkipActions) {
+            actionResults = structured.actions.map((action) => ({
+              type: action.type,
+              status: 'skipped',
+              message: 'Action execution disabled by server (draft pipeline owns persistence)',
+            }));
+          } else {
+            const execution = await executeAgentActions(structured.actions, {
+              domainId: options?.domainId ?? null,
+              userId,
+              agentId: agent.id,
+              allowlist: allowActions,
+              sessionId: currentSessionId,
+            });
+            actionResults = execution.results;
+
+            if (execution.failedMessage) {
+              finalResponseText = structured.responseText
+                ? `${structured.responseText} I attempted to create a draft but saving failed: ${execution.failedMessage}`
+                : `I attempted to create a draft but saving failed: ${execution.failedMessage}`;
+            }
           }
         }
         
@@ -1356,7 +1787,9 @@ export class KipAgentService {
             message_count: previousMessages.length + (agent.memory_enabled ? 2 : 0), // +2 for current user/agent messages
             model: agent.model,
             actions: actionResults,
+            actionPack,
             model_response_raw: response,
+            draftIntent: options?.draftIntentResult ?? null,
             timestamp: new Date().toISOString()
           }
         };
@@ -1906,11 +2339,13 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
 
           if (environment) {
             environment.debug = environmentDebug;
+            environment.actionPack = environment.actionPack ?? buildActionPackFromEnvironment(environment);
           } else {
             environment = {
               version: 'env-v1',
               domains: [],
               capabilities: { canDraft: false, canPromote: false },
+              actionPack: buildActionPackFromEnvironment(null),
               policyPack: buildPolicyPackFromEnvironment(null),
               policy: {
                 version: DEFAULT_POLICY_VERSION,
@@ -1923,14 +2358,98 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             };
           }
 
+          const actionPack = environment?.actionPack ?? buildActionPackFromEnvironment(environment);
+          const draftIntentPayload = detectDraftIntent(input, req.body);
+          let draftIntentResult: DraftIntentResult | null = null;
+
+          if (draftIntentPayload) {
+            draftIntentResult = await processDraftIntent(draftIntentPayload, {
+              domainId: validation.data.domainId ?? resolvedDomain.domainId,
+              userId: requestUserId ?? null,
+              agentId,
+              sessionId,
+              requestId,
+            });
+
+            if (draftIntentResult?.draft && environment) {
+              const draft = draftIntentResult.draft;
+              const directoryEntry = {
+                id: draft.id,
+                kind: draft.kind,
+                key: draft.key,
+                title: draft.title,
+                status: draft.status,
+                updatedAt: draft.updatedAt,
+              };
+
+              environment.activeDraft = directoryEntry;
+              const existing = Array.isArray(environment.draftsDirectory) ? environment.draftsDirectory : [];
+              environment.draftsDirectory = [directoryEntry, ...existing.filter((item) => item.id !== draft.id)].slice(0, ACTION_DRAFT_LIMIT);
+            }
+          }
+
           const result = await KipAgentService.runAgent(agentId, input, requestUserId, sessionId, {
             domainId: validation.data.domainId ?? resolvedDomain.domainId,
             domainSlug: validation.data.domainSlug ?? resolvedDomain.domainSlug,
             mode: validation.data.mode as AgentModeKey | undefined,
             debugBundle: validation.data.debugBundle || null,
             environment,
+            forceSkipActions: Boolean(draftIntentPayload),
+            actionPack,
+            draftIntentResult,
           });
+
+          if (draftIntentResult && (result as AgentResponse)?.data && typeof (result as AgentResponse).data === 'object') {
+            (result as AgentResponse).data = {
+              ...(result as AgentResponse).data as Record<string, unknown>,
+              draftIntent: draftIntentResult,
+              actionPack,
+            };
+          } else if (actionPack && (result as AgentResponse)?.data && typeof (result as AgentResponse).data === 'object') {
+            (result as AgentResponse).data = {
+              ...(result as AgentResponse).data as Record<string, unknown>,
+              actionPack,
+            };
+          }
+
           return respond(200, { success: true, data: result });
+        }
+        
+        if (action === 'repairDraft') {
+          if (!requestUserId) {
+            return respond(401, {
+              success: false,
+              error: 'Unauthorized: user required for repairDraft',
+            });
+          }
+
+          const { draftId: repairDraftId, sourceMessage, sessionId: repairSessionId } = req.body ?? {};
+          if (!repairDraftId || typeof sourceMessage !== 'string' || !sourceMessage.trim()) {
+            return respond(400, {
+              success: false,
+              error: 'draftId and sourceMessage are required',
+            });
+          }
+
+          const draftIntentPayload = parseDraftIntentFromText(sourceMessage.trim());
+          draftIntentPayload.draftId = repairDraftId;
+          draftIntentPayload.setActive = false;
+          draftIntentPayload.raw = sourceMessage.trim();
+
+          const repairResult = await processDraftIntent(draftIntentPayload, {
+            domainId: resolvedDomain.domainId,
+            userId: requestUserId,
+            agentId,
+            sessionId: repairSessionId || sessionId || null,
+            requestId,
+          });
+
+          const success = !repairResult.error;
+          return respond(success ? 200 : 400, {
+            success,
+            data: repairResult,
+            error: repairResult.error,
+          });
         }
         
         if (action === 'createSession') {
