@@ -159,6 +159,19 @@ const DEFAULT_VEHICLE_KEEPER_TEMPLATE = {
   },
 };
 
+/**
+ * Generate a unique draft key from a title
+ * Creates a URL-safe slug with a random suffix to ensure uniqueness
+ */
+function makeDraftKey(title: string): string {
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+  const suffix = Math.random().toString(36).slice(2, 8);
+  return `${slug || 'draft'}-${suffix}`;
+}
+
 type DomainBasics = { domainId: string | null; domainSlug: string | null };
 
 const useDomainIdentifier = (): {
@@ -645,13 +658,16 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     setIsCreatingDraft(true);
     setDraftsError(null);
     try {
-      const draft = await KipApi.createDraft(domainId, {
-        kind: 'keeper_template',
-        key: 'vehicle_keeper_template',
-        title: 'Vehicle Keeper Template',
-        summary: 'Vehicle template draft',
-        spec: DEFAULT_VEHICLE_KEEPER_TEMPLATE,
-      });
+      const title = 'Untitled Draft';
+      const payload = {
+        kind: 'development_journey',
+        key: makeDraftKey(title),
+        title,
+        summary: null,
+        spec: {},
+      };
+      
+      const draft = await KipApi.createDraft(domainId, payload);
       await refreshDrafts();
       setSelectedDraftId(draft.id);
       setDraftDetail(draft);
@@ -1463,6 +1479,82 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
               <p className="text-sm text-gray-500">Loading draft…</p>
             )}
           </FrameCard>
+          
+          {/* Debug: Last POST /kip/drafts request */}
+          {(() => {
+            const lastDraftPost = debugEntries
+              .filter((e) => e.method === 'POST' && e.url?.includes('/kip/drafts') && !e.url.includes('/kip/drafts/'))
+              .slice(-1)[0];
+            
+            if (!lastDraftPost && dialogueMode !== 'debug') return null;
+            
+            return (
+              <FrameCard
+                title="Debug: Last POST /kip/drafts"
+                subtitle="Request/response details for troubleshooting"
+              >
+                {lastDraftPost ? (
+                  <div className="space-y-3 text-xs">
+                    <div className="grid gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                      <div className="font-semibold text-gray-700">Request</div>
+                      <div className="space-y-1">
+                        <div>
+                          <span className="font-medium">Method:</span> {lastDraftPost.method}
+                        </div>
+                        <div>
+                          <span className="font-medium">URL:</span> {lastDraftPost.url}
+                        </div>
+                        <div>
+                          <span className="font-medium">Status:</span>{' '}
+                          <span className={lastDraftPost.status && lastDraftPost.status >= 400 ? 'text-red-600' : 'text-green-600'}>
+                            {lastDraftPost.status ?? 'pending'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-medium">Request ID:</span>{' '}
+                          {lastDraftPost.response?.headers?.['x-request-id'] ||
+                            lastDraftPost.response?.headers?.['x-railway-request-id'] ||
+                            'N/A'}
+                        </div>
+                        <div>
+                          <span className="font-medium">Duration:</span> {lastDraftPost.durationMs ?? 'N/A'}ms
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {lastDraftPost.request?.body && (
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                        <div className="mb-1 font-semibold text-gray-700">Request Payload</div>
+                        <pre className="max-h-32 overflow-auto rounded bg-white p-2 text-[10px]">
+                          {JSON.stringify(lastDraftPost.request.body, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                    
+                    {lastDraftPost.response?.body && (
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                        <div className="mb-1 font-semibold text-gray-700">Response Body</div>
+                        <pre className="max-h-32 overflow-auto rounded bg-white p-2 text-[10px]">
+                          {typeof lastDraftPost.response.body === 'string'
+                            ? lastDraftPost.response.body
+                            : JSON.stringify(lastDraftPost.response.body, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                    
+                    {lastDraftPost.error && (
+                      <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                        <div className="mb-1 font-semibold text-red-700">Error</div>
+                        <div className="text-red-600">{lastDraftPost.error.message}</div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No POST requests to /kip/drafts yet.</p>
+                )}
+              </FrameCard>
+            );
+          })()}
         </div>
       )}
 
