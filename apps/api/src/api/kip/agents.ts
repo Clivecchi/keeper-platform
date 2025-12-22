@@ -533,56 +533,68 @@ async function executeAgentActions(
             const title = typeof payload.title === 'string' && payload.title.trim() ? payload.title.trim() : 'Draft';
             const kind = typeof payload.kind === 'string' && payload.kind.trim() ? payload.kind.trim() : 'draft';
             const status = typeof payload.status === 'string' && payload.status.trim() ? payload.status.trim() : 'draft';
-            const summary = typeof payload.summary === 'string' ? payload.summary : null;
+            // Normalize summary: null/undefined -> null, empty string -> null, otherwise keep as string
+            const summary = typeof payload.summary === 'string' && payload.summary.trim() ? payload.summary.trim() : null;
             const spec = payload.spec ?? {};
 
-            let key = slugifyKey(payload.key || title || `draft-${Date.now()}`);
-            let created: any | null = null;
-            let attempts = 0;
+            const key = slugifyKey(payload.key || title || `draft-${Date.now()}`);
+            const now = new Date();
 
-            while (!created && attempts < 2) {
-              try {
-                created = await tx.kip_drafts.create({
-                  data: {
+            try {
+              const updateData: any = {
+                title,
+                summary,
+                status,
+                spec_json: spec,
+                updated_at: now,
+              };
+
+              // Only update agent_id if provided
+              if (ctx.agentId !== undefined) {
+                updateData.agent_id = ctx.agentId ?? null;
+              }
+
+              const draft = await tx.kip_drafts.upsert({
+                where: {
+                  domain_id_owner_id_kind_key: {
                     domain_id: ctx.domainId,
                     owner_id: ctx.userId,
-                    agent_id: ctx.agentId ?? null,
                     kind,
                     key,
-                    title,
-                    summary,
-                    status,
-                    spec_json: spec,
-                    updated_at: new Date(),
                   },
-                });
-              } catch (error) {
-                if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-                  key = slugifyKey(`${key}-${Date.now()}`);
-                  attempts += 1;
-                  continue;
-                }
-                throw error;
-              }
-            }
+                },
+                update: updateData,
+                create: {
+                  domain_id: ctx.domainId,
+                  owner_id: ctx.userId,
+                  agent_id: ctx.agentId ?? null,
+                  kind,
+                  key,
+                  title,
+                  summary,
+                  status,
+                  spec_json: spec,
+                  created_at: now,
+                  updated_at: now,
+                },
+              });
 
-            if (!created) {
-              results.push({ ...baseResult, status: 'error', message: 'Failed to create draft' });
-              break;
+              results.push({
+                type: action.type,
+                status: 'success',
+                data: {
+                  id: draft.id,
+                  title: draft.title,
+                  kind: draft.kind,
+                  status: draft.status,
+                  key: draft.key,
+                  summary: draft.summary,
+                },
+              });
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'Failed to create/update draft';
+              results.push({ ...baseResult, status: 'error', message: errorMessage });
             }
-
-            results.push({
-              type: action.type,
-              status: 'success',
-              data: {
-                id: created.id,
-                title: created.title,
-                kind: created.kind,
-                status: created.status,
-                key: created.key,
-                summary: created.summary,
-              },
-            });
             break;
           }
           case 'draft.update': {

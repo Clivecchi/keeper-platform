@@ -325,5 +325,50 @@ router.delete(
   },
 );
 
+router.delete(
+  '/:domainId/kip/drafts/:draftId',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const requestId = (req.headers['x-request-id'] || req.headers['x-railway-request-id'] || 'unknown') as string;
+    const { domainId, draftId } = req.params;
+
+    try {
+      if (!req.user) {
+        logger.error({ requestId, domainId, draftId }, 'kip drafts delete: unauthenticated');
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+
+      const ownerId = req.user.id;
+
+      // Find the draft and verify ownership
+      const draft = await prisma.kip_drafts.findFirst({
+        where: {
+          id: draftId,
+          domain_id: domainId,
+          owner_id: ownerId,
+        },
+      });
+
+      if (!draft) {
+        logger.warn({ requestId, domainId, draftId, ownerId }, 'kip drafts delete: not found');
+        return res.status(404).json({ error: 'DRAFT_NOT_FOUND', message: 'Draft not found in this domain' });
+      }
+
+      // Delete the draft
+      await prisma.kip_drafts.delete({
+        where: { id: draftId },
+      });
+
+      logger.info({ requestId, domainId, draftId, ownerId, title: draft.title }, 'kip drafts delete ok');
+
+      return res.json({ success: true });
+    } catch (error) {
+      logger.error({ requestId, domainId, draftId, err: error, userId: req.user?.id }, 'kip drafts delete failed');
+      return res.status(500).json({ error: 'FAILED_TO_DELETE_DRAFT', code: 'INTERNAL_ERROR' });
+    }
+  },
+);
+
 export default router;
 

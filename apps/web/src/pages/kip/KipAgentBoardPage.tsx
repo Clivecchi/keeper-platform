@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
-import { PaperAirplaneIcon, PlusIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon, PlusIcon, Cog6ToothIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { KeeperDashboardLayout } from '../../layouts/KeeperDashboardLayout';
 import {
   AgentModeState,
@@ -408,6 +408,8 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const [draftSpecText, setDraftSpecText] = useState<string>('');
   const [draftJsonError, setDraftJsonError] = useState<string | null>(null);
   const [activeDraftSummary, setActiveDraftSummary] = useState<KipDraftSummary | null>(null);
+  const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
+  const [confirmDeleteDraftId, setConfirmDeleteDraftId] = useState<string | null>(null);
 
   const activeTab = (searchParams.get('view') as AgentBoardTab) ?? 'dialogue';
   const debugEnabled = dialogueMode === 'debug';
@@ -742,6 +744,39 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     } catch (err) {
       const message = formatApiError(err, 'Unable to clear active draft');
       setDraftsError(message);
+    }
+  };
+
+  const handleDeleteDraft = async (draftId: string) => {
+    if (!domainId) {
+      setDraftsError('Select a domain before deleting drafts.');
+      return;
+    }
+    setDeletingDraftId(draftId);
+    setDraftsError(null);
+    try {
+      await KipApi.deleteDraft(domainId, draftId);
+      
+      // If the deleted draft was selected, clear selection
+      if (selectedDraftId === draftId) {
+        setSelectedDraftId(null);
+        setDraftDetail(null);
+        setDraftSpecText('');
+      }
+      
+      // If the deleted draft was active, clear active draft
+      if (sessionActiveDraftId === draftId) {
+        setActiveDraftSummary(null);
+      }
+      
+      // Refresh the list
+      await refreshDrafts();
+    } catch (err) {
+      const message = formatApiError(err, 'Unable to delete draft');
+      setDraftsError(message);
+    } finally {
+      setDeletingDraftId(null);
+      setConfirmDeleteDraftId(null);
     }
   };
 
@@ -1357,6 +1392,15 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                           >
                             Set Active
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteDraftId(draft.id)}
+                            disabled={deletingDraftId === draft.id}
+                            className="text-xs font-semibold text-red-600 hover:underline disabled:text-gray-400 flex items-center gap-1"
+                          >
+                            <TrashIcon className="h-3 w-3" />
+                            Delete
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -1553,6 +1597,39 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                   <p className="text-sm text-gray-500">No POST requests to /kip/drafts yet.</p>
                 )}
               </FrameCard>
+            );
+          })()}
+          
+          {/* Delete Confirmation Dialog */}
+          {confirmDeleteDraftId && (() => {
+            const draftToDelete = drafts.find((d) => d.id === confirmDeleteDraftId);
+            return (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl max-w-md w-full mx-4">
+                  <h3 className="mb-2 text-lg font-semibold text-gray-900">Delete Draft</h3>
+                  <p className="mb-6 text-sm text-gray-600">
+                    Delete draft &quot;{draftToDelete?.title || 'Untitled'}&quot;? This can&apos;t be undone.
+                  </p>
+                  <div className="flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteDraftId(null)}
+                      disabled={deletingDraftId === confirmDeleteDraftId}
+                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => confirmDeleteDraftId && handleDeleteDraft(confirmDeleteDraftId)}
+                      disabled={deletingDraftId === confirmDeleteDraftId}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {deletingDraftId === confirmDeleteDraftId ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             );
           })()}
         </div>

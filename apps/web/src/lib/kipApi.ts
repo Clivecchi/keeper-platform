@@ -740,6 +740,31 @@ export class KipApi {
     throw new Error(pickErrorMessage(response, 'Failed to update draft'));
   }
 
+  static async deleteDraft(domainId: string, draftId: string): Promise<void> {
+    const response = await apiFetch(`/api/domains/${domainId}/kip/drafts/${draftId}`, {
+      method: 'DELETE',
+    });
+    if (!response?.success) {
+      throw new Error(pickErrorMessage(response, 'Failed to delete draft'));
+    }
+  }
+
+  /**
+   * Get domain-scoped agents (only agents assigned to the domain)
+   */
+  static async getDomainAgents(domainId: string): Promise<KipAgent[]> {
+    try {
+      const response = await apiFetch(`/api/domains/${domainId}/kip/agents`);
+      if (response.success) {
+        return response.data;
+      }
+      throw new Error(response.error || 'Failed to fetch domain agents');
+    } catch (error) {
+      console.error('Error fetching domain agents:', error);
+      throw error;
+    }
+  }
+
   static async setActiveDraft(domainId: string, sessionId: string, draftId: string): Promise<KipDraftSummary | null> {
     const response = await apiFetch(`/api/domains/${domainId}/kip/sessions/${sessionId}/active-draft`, {
       method: 'POST',
