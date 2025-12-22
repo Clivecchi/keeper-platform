@@ -16,14 +16,14 @@ const createDraftSchema = z.object({
   kind: z.string().min(1, 'kind is required'),
   key: z.string().min(1, 'key is required'),
   title: z.string().min(1, 'title is required'),
-  summary: z.string().optional(),
+  summary: z.string().optional().nullable(),
   spec: z.record(z.any()).optional(),
   agentId: z.string().uuid().optional(),
 });
 
 const updateDraftSchema = z.object({
   title: z.string().min(1).optional(),
-  summary: z.string().optional(),
+  summary: z.string().optional().nullable(),
   status: draftStatusEnum.optional(),
   spec: z.record(z.any()).optional(),
 });
