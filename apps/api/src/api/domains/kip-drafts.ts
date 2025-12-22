@@ -2,6 +2,7 @@ import { Router, type Response } from 'express';
 import { PrismaClient } from '@keeper/database';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { z } from 'zod';
+import { logger } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
@@ -77,11 +78,15 @@ router.get(
         orderBy: { updated_at: 'desc' },
       });
 
-      return res.json({
-        drafts: drafts.map(mapDraftSummary),
+      const mappedDrafts = drafts.map(mapDraftSummary);
+      
+      logger.info({ domainId, count: mappedDrafts.length }, 'kip drafts list ok');
+      
+      return res.status(200).json({
+        drafts: mappedDrafts,
       });
     } catch (error) {
-      console.error('[domains:kip-drafts:list:error]', error);
+      logger.error({ err: error, domainId: req.params.domainId }, 'kip drafts list failed');
       return res.status(500).json({ error: 'FAILED_TO_LIST_DRAFTS' });
     }
   },
