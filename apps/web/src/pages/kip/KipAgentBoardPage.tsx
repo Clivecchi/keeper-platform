@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
-import { PaperAirplaneIcon, PlusIcon, Cog6ToothIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon, PlusIcon, Cog6ToothIcon, TrashIcon, LinkIcon } from '@heroicons/react/24/outline';
 import { KeeperDashboardLayout } from '../../layouts/KeeperDashboardLayout';
 import {
   AgentModeState,
@@ -78,6 +78,15 @@ interface AgentDialogueMessage {
   content: string;
   createdAt: string;
   linkedCard?: LinkedCardProps;
+  actionResults?: Array<{
+    type: string;
+    ok: boolean;
+    result?: {
+      draft?: { id: string; title: string; kind: string; key: string };
+      links?: { open: string };
+    };
+    error?: { code?: string; message: string; details?: any };
+  }>;
 }
 
 export interface KipAgentBoardProps {
@@ -623,6 +632,16 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   }, [domainId, activeSessionId]);
 
   useEffect(() => {
+    // If draftId is in URL, activate drafts tab
+    const urlDraftId = searchParams.get('draftId');
+    if (urlDraftId && searchParams.get('view') !== 'drafts') {
+      const next = new URLSearchParams(searchParams);
+      next.set('view', 'drafts');
+      setSearchParams(next, { replace: true });
+      return;
+    }
+    
+    // Otherwise, default to dialogue if no view is set
     if (!searchParams.get('view')) {
       const next = new URLSearchParams(searchParams);
       next.set('view', 'dialogue');
@@ -637,10 +656,14 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
 
   useEffect(() => {
     if (activeTab !== 'drafts') return;
-    if (!selectedDraftId && drafts.length) {
+    // Check for draftId in URL params (deep link support)
+    const urlDraftId = searchParams.get('draftId');
+    if (urlDraftId) {
+      setSelectedDraftId(urlDraftId);
+    } else if (!selectedDraftId && drafts.length) {
       setSelectedDraftId(drafts[0].id);
     }
-  }, [activeTab, drafts, selectedDraftId]);
+  }, [activeTab, drafts, selectedDraftId, searchParams]);
 
   useEffect(() => {
     if (activeTab !== 'drafts' || !selectedDraftId) return;
@@ -1163,12 +1186,29 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       const sessionIdFromResponse =
         (result as any)?.data?.data?.session_id || (result as any)?.session_id || null;
 
+      // Extract actionResults from response
+      const actionResults = (result as any)?.data?.data?.actions || (result as any)?.actionResults || undefined;
+
       if (!activeSessionId && sessionIdFromResponse) {
         const next = new URLSearchParams(searchParams);
         next.set('sessionId', sessionIdFromResponse);
         setSearchParams(next, { replace: true });
       } else {
         await fetchMessages(activeSessionId, { silent: true });
+        // If we have actionResults, attach them to the last agent message
+        if (actionResults && Array.isArray(actionResults) && actionResults.length > 0) {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const lastAgentMessageIndex = updated.findLastIndex((msg) => msg.role === 'agent');
+            if (lastAgentMessageIndex >= 0) {
+              updated[lastAgentMessageIndex] = {
+                ...updated[lastAgentMessageIndex],
+                actionResults,
+              };
+            }
+            return updated;
+          });
+        }
       }
       refreshSessions();
     } catch (err) {
@@ -1283,6 +1323,12 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                   messages={messages}
                   isSending={isSending}
                   error={messagesError}
+                  onOpenDraft={(draftId) => {
+                    const next = new URLSearchParams(searchParams);
+                    next.set('view', 'drafts');
+                    next.set('draftId', draftId);
+                    setSearchParams(next, { replace: false });
+                  }}
                 />
                 <form onSubmit={handleSendMessage} className="flex gap-3 pt-2">
                   <input
@@ -1858,12 +1904,61 @@ const DialogueMetaInline: React.FC<{
   </div>
 );
 
+const DraftActionCard: React.FC<{
+  draft: { id: string; title: string; kind: string; key: string };
+  openUrl: string;
+  onOpen: () => void;
+}> = ({ draft, openUrl, onOpen }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(openUrl.startsWith('http') ? openUrl : `${window.location.origin}${openUrl}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy link', err);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-[#E6DED5] bg-[#FAF6F2] p-3">
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className="flex-1">
+          <p className="text-xs font-semibold text-gray-700">Draft saved</p>
+          <p className="mt-1 text-sm font-medium text-gray-900">{draft.title}</p>
+          <p className="mt-0.5 text-xs text-gray-500">{draft.kind} • {draft.key}</p>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex-1 rounded-lg bg-[#C96E59] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#B85D4A] transition-colors"
+        >
+          Open Draft
+        </button>
+        <button
+          type="button"
+          onClick={handleCopyLink}
+          className="flex items-center gap-1 rounded-lg border border-[#E6DED5] bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+          title="Copy link"
+        >
+          <LinkIcon className="h-3 w-3" />
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const DialogueMessageList: React.FC<{
   isLoading: boolean;
   messages: AgentDialogueMessage[];
   isSending: boolean;
   error: string | null;
-}> = ({ isLoading, messages, isSending, error }) => (
+  onOpenDraft?: (draftId: string) => void;
+}> = ({ isLoading, messages, isSending, error, onOpenDraft }) => (
   <div className="min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl bg-[#FAF6F2] px-4 py-4">
     {isLoading ? (
       <>
@@ -1895,6 +1990,29 @@ const DialogueMessageList: React.FC<{
             {message.linkedCard && (
               <div className="mt-3">
                 <LinkedCard {...message.linkedCard} variant="inline" />
+              </div>
+            )}
+            {message.actionResults && message.actionResults.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {message.actionResults.map((actionResult, idx) => {
+                  if (actionResult.type === 'draft.create' && actionResult.ok && actionResult.result?.draft && actionResult.result?.links?.open) {
+                    const draft = actionResult.result.draft;
+                    const openUrl = actionResult.result.links.open;
+                    return (
+                      <DraftActionCard
+                        key={idx}
+                        draft={draft}
+                        openUrl={openUrl}
+                        onOpen={() => {
+                          if (onOpenDraft) {
+                            onOpenDraft(draft.id);
+                          }
+                        }}
+                      />
+                    );
+                  }
+                  return null;
+                })}
               </div>
             )}
             <span

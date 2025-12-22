@@ -505,9 +505,21 @@ function parseStructuredAgentResponse(
   }
 }
 
+/**
+ * Build draft open URL
+ */
+function buildDraftOpenUrl(domainSlug: string, draftId: string): string {
+  const webOrigin = process.env.WEB_ORIGIN || process.env.NEXT_PUBLIC_WEB_ORIGIN || 'https://www.ke3p.com';
+  // Use relative URL if we can't determine origin reliably
+  if (!webOrigin || webOrigin.includes('localhost') || webOrigin.includes('127.0.0.1')) {
+    return `/d/${domainSlug}/agent?view=drafts&draftId=${draftId}`;
+  }
+  return `${webOrigin}/d/${domainSlug}/agent?view=drafts&draftId=${draftId}`;
+}
+
 async function executeAgentActions(
   actions: StructuredAgentAction[],
-  ctx: { domainId?: string | null; userId?: string; agentId?: string | null; allowlist: Set<string>; sessionId?: string | null },
+  ctx: { domainId?: string | null; domainSlug?: string | null; userId?: string; agentId?: string | null; allowlist: Set<string>; sessionId?: string | null },
 ): Promise<{ results: ActionExecutionResult[]; failedMessage: string | null }> {
   const results: ActionExecutionResult[] = [];
   if (!actions.length) return { results, failedMessage: null };
@@ -579,16 +591,31 @@ async function executeAgentActions(
                 },
               });
 
+              // Get domain slug for link generation if not provided
+              let domainSlug = ctx.domainSlug;
+              if (!domainSlug && ctx.domainId) {
+                const domain = await tx.domain.findUnique({
+                  where: { id: ctx.domainId },
+                  select: { slug: true },
+                });
+                domainSlug = domain?.slug || ctx.domainId;
+              }
+
               results.push({
                 type: action.type,
                 status: 'success',
                 data: {
-                  id: draft.id,
-                  title: draft.title,
-                  kind: draft.kind,
-                  status: draft.status,
-                  key: draft.key,
-                  summary: draft.summary,
+                  draft: {
+                    id: draft.id,
+                    title: draft.title,
+                    kind: draft.kind,
+                    status: draft.status,
+                    key: draft.key,
+                    summary: draft.summary,
+                  },
+                  links: domainSlug ? {
+                    open: buildDraftOpenUrl(domainSlug, draft.id),
+                  } : undefined,
                 },
               });
             } catch (error) {
@@ -1753,6 +1780,7 @@ export class KipAgentService {
           } else {
             const execution = await executeAgentActions(structured.actions, {
               domainId: options?.domainId ?? null,
+              domainSlug: options?.domainSlug ?? null,
               userId,
               agentId: agent.id,
               allowlist: allowActions,

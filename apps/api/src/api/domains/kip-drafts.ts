@@ -7,6 +7,18 @@ import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middlewar
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 
+/**
+ * Build draft open URL
+ */
+function buildDraftOpenUrl(domainSlug: string, draftId: string): string {
+  const webOrigin = process.env.WEB_ORIGIN || process.env.NEXT_PUBLIC_WEB_ORIGIN || 'https://www.ke3p.com';
+  // Use relative URL if we can't determine origin reliably
+  if (!webOrigin || webOrigin.includes('localhost') || webOrigin.includes('127.0.0.1')) {
+    return `/d/${domainSlug}/agent?view=drafts&draftId=${draftId}`;
+  }
+  return `${webOrigin}/d/${domainSlug}/agent?view=drafts&draftId=${draftId}`;
+}
+
 const prisma = new PrismaClient();
 const router = Router();
 
@@ -187,12 +199,22 @@ router.post(
         },
       });
 
+      // Get domain slug for link generation
+      const domain = await prisma.domain.findUnique({
+        where: { id: domainId },
+        select: { slug: true },
+      });
+      const domainSlug = domain?.slug || domainId;
+
       logger.info({ requestId, domainId, ownerId, draftId: draft.id, kind: body.kind, key: body.key }, 'kip drafts create ok');
 
       return res.status(200).json({
         draft: {
           ...draft,
           spec: draft.spec_json,
+        },
+        links: {
+          open: buildDraftOpenUrl(domainSlug, draft.id),
         },
       });
     } catch (error) {
