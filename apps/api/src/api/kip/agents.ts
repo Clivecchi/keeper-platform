@@ -41,6 +41,7 @@ import {
 import {
   parseActionsOrThrow,
   safeParseActions,
+  isActionParseSuccess,
   CORE_ACTIONS,
   normalizeSummary,
   type ActionValidationError,
@@ -498,7 +499,7 @@ function parseStructuredAgentResponse(
     // Try to parse actions using canonical schema
     const actionsResult = safeParseActions(parsed);
     
-    if (!actionsResult.ok) {
+    if (!isActionParseSuccess(actionsResult)) {
       const validationError = actionsResult.error;
       logger.warn({
         requestId,
@@ -601,7 +602,7 @@ async function executeAgentActions(
   let validatedActions: StructuredAgentAction[] = [];
   try {
     const validationResult = safeParseActions({ type: ACTION_ENVELOPE_TYPE, actions });
-    if (validationResult.ok) {
+    if (isActionParseSuccess(validationResult)) {
       validatedActions = validationResult.actions;
       logger.info({
         requestId,

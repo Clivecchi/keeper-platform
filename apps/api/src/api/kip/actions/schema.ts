@@ -242,6 +242,15 @@ export function parseActionsOrThrow(raw: unknown): Array<{ type: string; payload
 }
 
 /**
+ * Type guard for action parse result
+ */
+export function isActionParseSuccess(
+  result: { ok: true; actions: Array<{ type: string; payload?: unknown }> } | { ok: false; error: ActionValidationError }
+): result is { ok: true; actions: Array<{ type: string; payload?: unknown }> } {
+  return result.ok === true;
+}
+
+/**
  * Safe parse actions (returns result object instead of throwing)
  */
 export function safeParseActions(
