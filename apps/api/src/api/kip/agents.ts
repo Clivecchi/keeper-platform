@@ -499,16 +499,17 @@ function parseStructuredAgentResponse(
     const actionsResult = safeParseActions(parsed);
     
     if (!actionsResult.ok) {
+      const validationError = actionsResult.error;
       logger.warn({
         requestId,
         reason: 'action_validation_failed',
-        error: actionsResult.error.message,
-        context: actionsResult.error.context,
+        error: validationError.message,
+        context: validationError.context,
       }, '[kip.actions] failed to parse actions from agent response');
       
       // Fallback to legacy parsing for backward compatibility
       if (parsed?.type !== ACTION_ENVELOPE_TYPE) {
-        return { responseText, actions: [], raw, ignoredReason: 'missing_agent_output_envelope', validationError: actionsResult.error };
+        return { responseText, actions: [], raw, ignoredReason: 'missing_agent_output_envelope', validationError };
       }
 
       const legacyActions = Array.isArray(parsed?.actions)
@@ -520,7 +521,7 @@ function parseStructuredAgentResponse(
             }))
         : [];
 
-      return { responseText, actions: legacyActions, raw, validationError: actionsResult.error };
+      return { responseText, actions: legacyActions, raw, validationError };
     }
 
     return { responseText, actions: actionsResult.actions, raw };
@@ -608,10 +609,11 @@ async function executeAgentActions(
         types: validatedActions.map(a => a.type),
       }, '[kip.actions] validated');
     } else {
+      const validationError = validationResult.error;
       logger.error({
         requestId,
-        error: validationResult.error.message,
-        context: validationResult.error.context,
+        error: validationError.message,
+        context: validationError.context,
         actions: actions.map(a => ({ type: a.type, hasPayload: !!a.payload })),
       }, '[kip.actions] validation failed');
       // Continue with original actions but mark as potentially invalid
