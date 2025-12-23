@@ -6,6 +6,7 @@ import { logger } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
+import { normalizeSummary } from '../kip/actions/schema.js';
 
 /**
  * Build draft open URL
@@ -28,10 +29,14 @@ const createDraftSchema = z.object({
   kind: z.string().min(1, 'kind is required'),
   key: z.string().min(1, 'key is required'),
   title: z.string().min(1, 'title is required'),
-  summary: z.string().optional().nullable(),
+  summary: z.string().nullable().optional(),
   spec: z.record(z.any()).optional(),
   agentId: z.string().uuid().optional(),
-});
+}).transform((data) => ({
+  ...data,
+  // Normalize summary: null/undefined -> empty string (not null)
+  summary: normalizeSummary(data.summary),
+}));
 
 const updateDraftSchema = z.object({
   title: z.string().min(1).optional(),
@@ -163,7 +168,7 @@ router.post(
 
       const updateData: any = {
         title: body.title,
-        summary: body.summary ?? null,
+        summary: body.summary || null, // Empty string becomes null in DB
         status: 'draft',
         spec_json: body.spec ?? {},
         updated_at: now,
@@ -191,7 +196,7 @@ router.post(
           kind: body.kind,
           key: body.key,
           title: body.title,
-          summary: body.summary ?? null,
+          summary: body.summary || null, // Empty string becomes null in DB
           status: 'draft',
           spec_json: body.spec ?? {},
           created_at: now,
