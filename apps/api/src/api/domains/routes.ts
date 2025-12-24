@@ -918,14 +918,17 @@ function extractActionResults(agentResult: any): Array<{
       return {
         type: action.type,
         ok: true,
-        result: action.data || {},
+        result: {
+          ...(action.data || {}),
+          message: action.message, // Include message in result for normalization
+        },
       };
     } else {
       return {
         type: action.type,
         ok: false,
         error: {
-          code: action.status === 'error' ? 'EXECUTION_ERROR' : 'SKIPPED',
+          code: action.errorCode || (action.status === 'error' ? 'EXECUTION_ERROR' : 'SKIPPED'),
           message: action.message || 'Action execution failed',
           details: action.data,
         },

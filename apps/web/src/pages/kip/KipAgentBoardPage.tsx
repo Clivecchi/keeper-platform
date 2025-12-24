@@ -20,9 +20,69 @@ import { LinkedCard } from '../../components/props/LinkedCard';
 import type { LinkedCardProps } from '../../types/props';
 import { apiFetch, API_BASE } from '../../lib/api';
 import { SessionEditModal } from './SessionEditModal';
+import { ActionReceiptCard, type ActionReceipt } from '../../components/kip/ActionReceiptCard';
 
 type AgentBoardTab = 'dialogue' | 'drafts' | 'cockpit' | 'sessions';
 type DialogueMode = 'domain' | 'debug';
+
+/**
+ * Normalize action result from API format to standardized receipt format
+ */
+function normalizeActionReceipt(actionResult: {
+  type: string;
+  ok?: boolean;
+  status?: 'success' | 'error' | 'skipped';
+  message?: string;
+  errorCode?: string;
+  result?: {
+    draft?: { id: string; title: string; kind: string; key: string };
+    links?: { open: string };
+    entityIds?: string[];
+    message?: string;
+    [key: string]: unknown;
+  };
+  error?: { code?: string; message: string; details?: any };
+  data?: {
+    entityIds?: string[];
+    draft?: { id: string; title: string; kind: string; key: string };
+    links?: { open?: string; edit?: string };
+    [key: string]: unknown;
+  };
+}): ActionReceipt {
+  // If it's already in the standardized format (status field exists), return as-is
+  if (typeof actionResult.status === 'string') {
+    return {
+      type: actionResult.type,
+      status: actionResult.status,
+      message: actionResult.message || 'Action completed',
+      errorCode: actionResult.errorCode,
+      data: actionResult.data,
+    };
+  }
+
+  // Otherwise, normalize from the legacy format (ok/result/error)
+  if (actionResult.ok) {
+    return {
+      type: actionResult.type,
+      status: 'success',
+      message: actionResult.result?.message || 'Action completed successfully',
+      data: {
+        entityIds: actionResult.result?.entityIds,
+        draft: actionResult.result?.draft,
+        links: actionResult.result?.links,
+        ...(actionResult.result || {}),
+      },
+    };
+  } else {
+    return {
+      type: actionResult.type,
+      status: 'error',
+      message: actionResult.error?.message || 'Action failed',
+      errorCode: actionResult.error?.code,
+      data: actionResult.error?.details,
+    };
+  }
+}
 
 type DebugEntry = {
   id: string;
@@ -84,10 +144,12 @@ interface AgentDialogueMessage {
     result?: {
       draft?: { id: string; title: string; kind: string; key: string };
       links?: { open: string };
+      [key: string]: unknown;
     };
     error?: { code?: string; message: string; details?: any };
   }>;
 }
+
 
 export interface KipAgentBoardProps {
   agentSlug?: string;
@@ -1208,6 +1270,26 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
             }
             return updated;
           });
+
+          // Auto-refresh after successful draft mutations
+          const hasSuccessfulDraftMutation = actionResults.some((ar: any) => {
+            const normalized = normalizeActionReceipt(ar);
+            return (
+              normalized.status === 'success' &&
+              ['draft.create', 'draft.update', 'draft.delete', 'draft.setActive'].includes(normalized.type)
+            );
+          });
+
+          if (hasSuccessfulDraftMutation) {
+            // Refresh drafts and active draft state after mutations
+            try {
+              await refreshDrafts();
+              await refreshActiveDraft();
+            } catch (refreshErr) {
+              // Non-blocking: refresh failures shouldn't break the message flow
+              console.warn('[Kip] Failed to refresh drafts after mutation', refreshErr);
+            }
+          }
         }
       }
       refreshSessions();
@@ -1995,23 +2077,14 @@ const DialogueMessageList: React.FC<{
             {message.actionResults && message.actionResults.length > 0 && (
               <div className="mt-3 space-y-2">
                 {message.actionResults.map((actionResult, idx) => {
-                  if (actionResult.type === 'draft.create' && actionResult.ok && actionResult.result?.draft && actionResult.result?.links?.open) {
-                    const draft = actionResult.result.draft;
-                    const openUrl = actionResult.result.links.open;
-                    return (
-                      <DraftActionCard
-                        key={idx}
-                        draft={draft}
-                        openUrl={openUrl}
-                        onOpen={() => {
-                          if (onOpenDraft) {
-                            onOpenDraft(draft.id);
-                          }
-                        }}
-                      />
-                    );
-                  }
-                  return null;
+                  const receipt = normalizeActionReceipt(actionResult);
+                  return (
+                    <ActionReceiptCard
+                      key={idx}
+                      receipt={receipt}
+                      onOpenDraft={receipt.data?.draft?.id ? (draftId) => onOpenDraft?.(draftId) : undefined}
+                    />
+                  );
                 })}
               </div>
             )}

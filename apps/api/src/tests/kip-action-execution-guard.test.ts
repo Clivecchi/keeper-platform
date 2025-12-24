@@ -14,9 +14,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { randomUUID } from 'crypto';
 import { prisma } from '@keeper/database';
 import { parseActionsOrThrow, safeParseActions, CORE_ACTIONS } from '../api/kip/actions/schema.js';
-
-// Import executeAgentActions directly (we'll need to export it or test via integration)
-// For now, test the schema parsing and create a simpler integration test
+import { executeAgentActions } from '../api/kip/agents.js';
 
 describe('KIP Action Execution Guard: draft.create', () => {
   let testUserId: string;
@@ -215,5 +213,205 @@ describe('KIP Action Execution Guard: draft.create', () => {
     expect(normalizeSummary(undefined)).toBe('');
     expect(normalizeSummary('')).toBe('');
     expect(normalizeSummary('Valid summary')).toBe('Valid summary');
+  });
+});
+
+describe('KIP Action Execution Guard: draft.delete and receipt contract', () => {
+  let testUserId: string;
+  let testDomainId: string;
+  let testAgentId: string;
+  let testSessionId: string;
+
+  beforeEach(async () => {
+    testUserId = randomUUID();
+    testDomainId = randomUUID();
+    testAgentId = randomUUID();
+    testSessionId = randomUUID();
+
+    await prisma.user.create({
+      data: {
+        id: testUserId,
+        email: 'test@example.com',
+        name: 'Test User',
+      },
+    });
+
+    await prisma.domain.create({
+      data: {
+        id: testDomainId,
+        slug: 'test-domain',
+        name: 'Test Domain',
+        owner_id: testUserId,
+        settings: { primaryAgentId: testAgentId },
+      },
+    });
+
+    await prisma.kip_agents.create({
+      data: {
+        id: testAgentId,
+        slug: 'kip',
+        name: 'Kip',
+        status: 'active',
+        model_provider: 'openai',
+        model_name: 'gpt-4',
+      },
+    });
+
+    await prisma.kip_sessions.create({
+      data: {
+        id: testSessionId,
+        user_id: testUserId,
+        agent_id: testAgentId,
+      },
+    });
+  });
+
+  afterEach(async () => {
+    await prisma.kip_drafts.deleteMany({
+      where: { domain_id: testDomainId, owner_id: testUserId },
+    });
+    await prisma.kip_sessions.deleteMany({ where: { id: testSessionId } });
+    await prisma.kip_agents.deleteMany({ where: { id: testAgentId } });
+    await prisma.domain.deleteMany({ where: { id: testDomainId } });
+    await prisma.user.deleteMany({ where: { id: testUserId } });
+  });
+
+  it('executes draft.delete action and removes from database', async () => {
+    // Create a draft first
+    const draft = await prisma.kip_drafts.create({
+      data: {
+        domain_id: testDomainId,
+        owner_id: testUserId,
+        agent_id: testAgentId,
+        kind: 'test_kind',
+        key: 'delete-test-draft',
+        title: 'Draft to Delete',
+        status: 'draft',
+        spec_json: {},
+      },
+    });
+
+    const actions = [{
+      type: 'draft.delete',
+      payload: { id: draft.id },
+    }];
+
+    const results = await executeAgentActions(actions, {
+      domainId: testDomainId,
+      domainSlug: null,
+      userId: testUserId,
+      agentId: testAgentId,
+      allowlist: new Set(['draft.delete']),
+      sessionId: testSessionId,
+      requestId: 'test-req',
+    });
+
+    expect(results.results).toHaveLength(1);
+    expect(results.results[0].type).toBe('draft.delete');
+    expect(results.results[0].status).toBe('success');
+    expect(results.results[0].message).toBeTruthy();
+    expect(results.results[0].message.length).toBeGreaterThan(0);
+    expect(results.results[0].data?.entityIds).toContain(draft.id);
+    expect(results.results[0].data?.draft?.id).toBe(draft.id);
+    expect(results.failedMessage).toBeNull();
+
+    // Verify draft is deleted from database
+    const deleted = await prisma.kip_drafts.findUnique({
+      where: { id: draft.id },
+    });
+    expect(deleted).toBeNull();
+  });
+
+  it('receipt contract: all results have required fields (message, status)', async () => {
+    // Create a draft for update test
+    const draft = await prisma.kip_drafts.create({
+      data: {
+        domain_id: testDomainId,
+        owner_id: testUserId,
+        agent_id: testAgentId,
+        kind: 'test_kind',
+        key: 'receipt-test-draft',
+        title: 'Receipt Test Draft',
+        status: 'draft',
+        spec_json: {},
+      },
+    });
+
+    const actions = [{
+      type: 'draft.update',
+      payload: { id: draft.id, title: 'Updated Title' },
+    }];
+
+    const results = await executeAgentActions(actions, {
+      domainId: testDomainId,
+      domainSlug: null,
+      userId: testUserId,
+      agentId: testAgentId,
+      allowlist: new Set(['draft.update']),
+      sessionId: testSessionId,
+      requestId: 'test-req',
+    });
+
+    expect(results.results).toHaveLength(1);
+    const result = results.results[0];
+
+    // Required fields
+    expect(result.message).toBeDefined();
+    expect(typeof result.message).toBe('string');
+    expect(result.message.length).toBeGreaterThan(0);
+    expect(result.status).toBeDefined();
+    expect(['success', 'error', 'skipped']).toContain(result.status);
+    expect(result.type).toBe('draft.update');
+
+    // If error, errorCode should be present
+    if (result.status === 'error') {
+      expect(result.errorCode).toBeDefined();
+    }
+  });
+
+  it('unhandled allowlisted action returns error (not skipped)', async () => {
+    const actions = [{
+      type: 'some.fake.action',
+      payload: {},
+    }];
+
+    const results = await executeAgentActions(actions, {
+      domainId: testDomainId,
+      domainSlug: null,
+      userId: testUserId,
+      agentId: testAgentId,
+      allowlist: new Set(['some.fake.action']), // Allowlisted but no handler
+      sessionId: testSessionId,
+      requestId: 'test-req',
+    });
+
+    expect(results.results).toHaveLength(1);
+    const result = results.results[0];
+
+    expect(result.status).toBe('error');
+    expect(result.errorCode).toBe('UNHANDLED_ACTION');
+    expect(result.message).toContain('no handler implementation');
+  });
+
+  it('draft.delete with missing draftId returns error', async () => {
+    const actions = [{
+      type: 'draft.delete',
+      payload: {}, // Missing id
+    }];
+
+    const results = await executeAgentActions(actions, {
+      domainId: testDomainId,
+      domainSlug: null,
+      userId: testUserId,
+      agentId: testAgentId,
+      allowlist: new Set(['draft.delete']),
+      sessionId: testSessionId,
+      requestId: 'test-req',
+    });
+
+    expect(results.results).toHaveLength(1);
+    expect(results.results[0].status).toBe('error');
+    expect(results.results[0].errorCode).toBe('MISSING_DRAFT_ID');
+    expect(results.results[0].message).toContain('draftId is required');
   });
 });

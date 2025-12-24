@@ -575,7 +575,7 @@ function getRequestId(ctx: { requestId?: string }): string {
   return ctx.requestId || randomUUID();
 }
 
-async function executeAgentActions(
+export async function executeAgentActions(
   actions: StructuredAgentAction[],
   ctx: { domainId?: string | null; domainSlug?: string | null; userId?: string; agentId?: string | null; allowlist: Set<string>; sessionId?: string | null; requestId?: string },
 ): Promise<{ results: ActionExecutionResult[]; failedMessage: string | null }> {
