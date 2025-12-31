@@ -1,0 +1,210 @@
+# =================================================================
+# Keeper Platform Environment Configuration
+# =================================================================
+# Copy this file to .env and configure your environment variables
+# NEVER commit .env files to Git - they contain sensitive information
+
+# =================================================================
+# REQUIRED SETTINGS
+# =================================================================
+
+# PostgreSQL database connection URL
+# Format: postgresql://username:password@host:port/database
+DATABASE_URL="postgresql://username:password@localhost:5432/keeper_platform"
+
+# JWT secret for signing and verifying authentication tokens
+# Generate a secure random string: openssl rand -hex 32
+JWT_SECRET="your-super-secure-jwt-secret-change-this-in-production"
+
+# =================================================================
+# APPLICATION SETTINGS
+# =================================================================
+
+# Environment mode: development, production, test
+# Default: development
+NODE_ENV="development"
+
+# Server port
+# Default: 3001 (development), 8080 (production)
+PORT="3001"
+
+# Logging level: error, warn, info, debug
+# Default: info
+LOG_LEVEL="info"
+
+# Enable detailed request logging (development only)
+# Default: false
+ENABLE_REQUEST_LOGGING="false"
+
+# ----------------------------------------------------------------
+# Cookies (Auth)
+# ----------------------------------------------------------------
+# Cookie domain for HttpOnly session cookie. For prod, use .ke3p.com
+COOKIE_DOMAIN=".ke3p.com"
+
+# -----------------------------------------------------------------
+# Studio Debug Flags (Frontend Vite)
+# -----------------------------------------------------------------
+# Enable Studio Debug panel in Board Studio (toggle: Ctrl/Cmd+Alt+D)
+VITE_STUDIO_DEBUG="1"
+# Enable one-line network logs from fetch shim (dev troubleshooting)
+VITE_FETCH_SHIM_DEBUG="0"
+# In production, web auth is cookie-only; do not allow header auth
+VITE_ALLOW_HEADER_AUTH="0"
+
+# Optional concise HTTP traces on the API server
+DEBUG_HTTP="0"
+
+# =================================================================
+# CORS SETTINGS
+# =================================================================
+
+# Allowed CORS origins (comma-separated)
+# Production: set to https://www.ke3p.com,https://api.ke3p.com
+# Development: include localhost:
+CORS_ALLOWLIST="http://localhost:3000,http://localhost:5173"
+
+# Public web origin and API origin
+PUBLIC_WEB_ORIGIN="https://www.ke3p.com"
+APP_ORIGIN="https://api.ke3p.com"
+
+# Fallback domain for unknown hosts (MVP single-domain)
+FALLBACK_DOMAIN="www.ke3p.com"
+
+# Keeper-Domains-Proxy feature flag
+# Must remain "false" in production for single-domain MVP
+KEEPER_PROXY_ENABLED="false"
+
+# =================================================================
+# REDIS SETTINGS (Optional)
+# =================================================================
+
+# Disable Redis functionality (uses no-op adapter)
+# Set to 'true' to disable Redis completely
+# Default: false (Redis enabled)
+DISABLE_REDIS="false"
+
+# Redis connection URL
+# Only required if Redis is enabled (DISABLE_REDIS=false)
+# Default: redis://localhost:6379
+REDIS_URL="redis://localhost:6379"
+
+# =================================================================
+# ADVANCED REDIS SETTINGS (Optional)
+# =================================================================
+
+# Alternative Redis configuration (used if REDIS_URL not set)
+REDIS_HOST="localhost"
+REDIS_PORT="6379"
+REDIS_PASSWORD=""
+REDIS_DB="0"
+REDIS_KEY_PREFIX="keeper:"
+
+# Redis cluster configuration (advanced)
+REDIS_CLUSTER_ENABLED="false"
+REDIS_CLUSTER_NODES=""
+
+# =================================================================
+# DATABASE ADVANCED SETTINGS (Optional)
+# =================================================================
+
+# Connection pool settings
+DB_POOL_MIN="2"
+DB_POOL_MAX="10"
+
+# Database timeouts (milliseconds)
+DB_QUERY_TIMEOUT="30000"
+DB_STATEMENT_TIMEOUT="30000"
+
+# Database connection limits
+DB_MAX_CONNECTIONS="50"
+
+# Database SSL and logging
+DB_SSL="false"
+DB_LOGGING="false"
+
+# Slow query threshold (milliseconds)
+DB_SLOW_QUERY_THRESHOLD="1000"
+
+# Read replicas (comma-separated URLs)
+DB_READ_REPLICAS=""
+
+# Write instance (defaults to DATABASE_URL if not set)
+DB_WRITE_INSTANCE=""
+
+# =================================================================
+# DATABASE BACKUP SETTINGS (Optional)
+# =================================================================
+
+DB_BACKUP_ENABLED="false"
+DB_BACKUP_SCHEDULE="0 2 * * *"
+DB_BACKUP_RETENTION="30"
+DB_BACKUP_ENCRYPTION="true"
+
+# =================================================================
+# SECURITY SETTINGS (Optional)
+# =================================================================
+
+# CSRF protection
+CSRF_ENABLED="true"
+CSRF_SECRET=""
+
+# JWT token settings
+JWT_EXPIRES_IN="24h"
+JWT_REFRESH_EXPIRES_IN="7d"
+JWT_ISSUER="keeper.tools"
+JWT_AUDIENCE="keeper.tools"
+
+# =================================================================
+# PERFORMANCE & CLUSTERING (Optional)
+# =================================================================
+
+# Clustering configuration
+CLUSTERING_ENABLED="false"
+CLUSTERING_WORKERS="0"
+
+# Garbage collection tuning
+GC_ENABLED="false"
+
+# Request limits
+REQUEST_SIZE_LIMIT="50mb"
+REQUEST_TIMEOUT="30000"
+CONCURRENT_REQUESTS="1000"
+
+# Resource monitoring thresholds
+MEMORY_THRESHOLD="0.85"
+CPU_THRESHOLD="0.80"
+
+# =================================================================
+# LOGGING ADVANCED SETTINGS (Optional)
+# =================================================================
+
+LOG_FORMAT="json"
+LOG_DESTINATION="console"
+
+# Log rotation
+LOG_ROTATION_ENABLED="true"
+LOG_MAX_SIZE="100m"
+LOG_MAX_FILES="14"
+
+# =================================================================
+# VERCEL INTEGRATION (Optional)
+# =================================================================
+
+# Vercel API token for custom domain management
+VERCEL_TOKEN=""
+
+# Vercel project ID for custom domain management
+VERCEL_PROJECT_ID=""
+
+# Vercel Blob Storage token for media uploads
+# Generate at: https://vercel.com/dashboard/stores
+# Required for image/video uploads in Board Studio
+BLOB_READ_WRITE_TOKEN=""
+
+# =================================================================
+# TESTING (Optional)
+# =================================================================
+
+# Test database URL (for automated tests)
+TEST_DATABASE_URL="postgresql://test:test@localhost:5432/keeper_test"

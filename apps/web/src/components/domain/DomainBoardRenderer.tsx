@@ -1,0 +1,367 @@
+/**
+ * DomainBoardRenderer
+ * Fetches and renders the Domain Design Board with live data
+ * 
+ * Features:
+ * - Fetches /api/domains/:domainId/board-data
+ * - Renders frames in order
+ * - Renders props in order using PropRenderer
+ * - Handles loading/error states
+ * - Respects visibility filtering from backend
+ */
+
+import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../../lib/api';
+import { PropRenderer } from './PropRenderer';
+import { PathwayNav } from '../patterns/PathwayNav';
+import { useWorldMode } from '../../context/WorldModeContext';
+import { NarrativeFrameRenderer, NarrativeFrameContainer } from '../../worlds/presentation/NarrativeFrameRenderer';
+import { StructuralFrameRenderer, StructuralFrameContainer } from '../../worlds/workshop/StructuralFrameRenderer';
+import { isPathwayFrame, extractPathwayConfig } from '../../worlds/shared/patternUtils';
+// PropManager removed - using inline editing instead
+
+interface Frame {
+  id: string;
+  name: string;
+  pattern: string;
+  visibility: 'public' | 'admin';
+  layoutData?: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  };
+  props: Array<{
+    id: string;
+    type: string;
+    config: any;
+    value?: any;
+    orderIndex: number;
+  }>;
+}
+
+interface BoardData {
+  board: {
+    id: string;
+    name: string;
+    description?: string;
+    frames: Frame[];
+  };
+  domain: {
+    id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    customDomain?: string;
+    customDomainVerified?: boolean;
+    theme?: any;
+    settings?: any;
+    owner?: any;
+  };
+  userPermissions: {
+    canEdit: boolean;
+    role: string;
+  };
+}
+
+interface DomainBoardRendererProps {
+  domainId?: string;
+  domainSlug?: string;
+  className?: string;
+  isEditMode?: boolean;
+  onEngagementAction?: (templateSlug: string, context: any) => void;
+  onBoardUpdate?: (changes: { frames: any[] }) => void;
+}
+
+export function DomainBoardRenderer({ 
+  domainId, 
+  domainSlug,
+  className = '',
+  isEditMode = false,
+  onEngagementAction,
+  onBoardUpdate
+}: DomainBoardRendererProps) {
+  const { mode: worldMode } = useWorldMode();
+  const isPresentation = worldMode === 'presentation';
+  const isWorkshop = worldMode === 'workshop';
+  
+  const [boardData, setBoardData] = useState<BoardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [frameChanges, setFrameChanges] = useState<Map<string, any[]>>(new Map());
+
+  useEffect(() => {
+    loadBoardData();
+  }, [domainId, domainSlug]);
+
+  // Clear frame changes when exiting edit mode
+  useEffect(() => {
+    if (!isEditMode) {
+      setFrameChanges(new Map());
+    }
+  }, [isEditMode]);
+
+  async function loadBoardData() {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      let endpoint: string;
+      
+      if (domainId) {
+        endpoint = `/api/domains/${domainId}/board-data`;
+      } else if (domainSlug) {
+        // First resolve slug to ID
+        const domainResponse = await apiFetch(`/api/domains/by-slug/${domainSlug}`);
+        if (domainResponse.error || !domainResponse.id) {
+          throw new Error('Domain not found');
+        }
+        endpoint = `/api/domains/${domainResponse.id}/board-data`;
+      } else {
+        throw new Error('Either domainId or domainSlug must be provided');
+      }
+
+      const response = await apiFetch(endpoint);
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      setBoardData(response);
+    } catch (err) {
+      console.error('Error loading board data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load board');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const refreshBoardData = () => {
+    loadBoardData();
+  };
+
+  const handleEngagementAction = (templateSlug: string, context: any) => {
+    if (onEngagementAction) {
+      onEngagementAction(templateSlug, context);
+    } else {
+      console.log('Engagement action triggered:', templateSlug, context);
+      // Default behavior: just refresh after a moment
+      setTimeout(refreshBoardData, 1000);
+    }
+  };
+
+  const handleFrameUpdate = (frameId: string, updatedProps: any[]) => {
+    // Store the updated props for this frame
+    const newFrameChanges = new Map(frameChanges);
+    newFrameChanges.set(frameId, updatedProps);
+    setFrameChanges(newFrameChanges);
+
+    // Build the complete changes object to send to parent
+    const frames = Array.from(newFrameChanges.entries()).map(([id, props]) => ({
+      id,
+      props: props.map(prop => ({
+        id: prop.id,
+        type: prop.type,
+        config: prop.config,
+        orderIndex: prop.orderIndex,
+        isVisible: prop.isVisible,
+        isDraft: prop.isDraft
+      }))
+    }));
+
+    // Notify parent that changes were made
+    onBoardUpdate?.({ frames });
+  };
+
+  if (isLoading) {
+    return (
+      <div className={`w-full max-w-7xl mx-auto p-6 ${className}`}>
+        <div className="space-y-6">
+          {/* Loading skeleton */}
+          <div className="animate-pulse">
+            <div className="h-64 bg-gray-200 rounded-lg mb-6" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="h-48 bg-gray-200 rounded-lg" />
+              <div className="h-48 bg-gray-200 rounded-lg" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`w-full max-w-7xl mx-auto p-6 ${className}`}>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-red-900 mb-2">
+            Failed to load board
+          </h3>
+          <p className="text-red-700">{error}</p>
+          <button
+            onClick={loadBoardData}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!boardData) {
+    return (
+      <div className={`w-full max-w-7xl mx-auto p-6 ${className}`}>
+        <div className="text-center text-gray-600">
+          No board data available
+        </div>
+      </div>
+    );
+  }
+
+  const { board, domain, userPermissions } = boardData;
+
+  // Determine if user is domain admin (owner or admin role)
+  const isDomainAdmin = userPermissions.canEdit || 
+                        userPermissions.role === 'owner' || 
+                        userPermissions.role === 'admin';
+
+  // Filter frames based on visibility and user role
+  // Anonymous or non-admin: show only 'public' frames
+  // Admin: show both 'public' and 'admin' frames
+  const visibleFrames = board.frames.filter((frame) => {
+    if (frame.visibility === 'public') return true;
+    if (frame.visibility === 'admin' && isDomainAdmin) return true;
+    return false;
+  });
+
+  console.log('[DomainBoardRenderer] Frame visibility:', {
+    totalFrames: board.frames.length,
+    visibleFrames: visibleFrames.length,
+    isDomainAdmin,
+    role: userPermissions.role,
+    canEdit: userPermissions.canEdit,
+    isEditMode,
+    framesByVisibility: {
+      public: board.frames.filter(f => f.visibility === 'public').length,
+      admin: board.frames.filter(f => f.visibility === 'admin').length
+    }
+  });
+
+  // Separate Pathway frames from content frames
+  const pathwayFrame = visibleFrames.find((frame) => isPathwayFrame(frame));
+  const contentFrames = visibleFrames.filter((frame) => !isPathwayFrame(frame));
+
+  return (
+    <div className={`w-full ${className}`}>
+      {/* Debug info (can be removed later) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="max-w-7xl mx-auto mb-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
+          <strong>Board:</strong> {board.name} | 
+          <strong> Total Frames:</strong> {board.frames.length} | 
+          <strong> Visible:</strong> {visibleFrames.length} |
+          <strong> Pathway:</strong> {pathwayFrame ? 'Yes' : 'No'} |
+          <strong> Role:</strong> {userPermissions.role} |
+          <strong> Is Admin:</strong> {isDomainAdmin ? 'Yes' : 'No'}
+        </div>
+      )}
+
+      {/* Render Pathway navigation if exists */}
+      {pathwayFrame && (
+        <PathwayRenderer 
+          frame={pathwayFrame} 
+          domain={domain}
+        />
+      )}
+
+      {/* Render content frames using mode-appropriate renderer */}
+      {isPresentation ? (
+        <NarrativeFrameContainer>
+          {contentFrames.map((frame) => (
+            <NarrativeFrameRenderer
+              key={frame.id}
+              frame={frame}
+              domain={domain}
+              onEngagementAction={handleEngagementAction}
+            />
+          ))}
+          {contentFrames.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-green-700 text-lg">No frames to display</p>
+              {!isDomainAdmin && board.frames.length > 0 && (
+                <p className="text-green-600 text-sm mt-2">
+                  Sign in as the domain owner to see admin frames
+                </p>
+              )}
+            </div>
+          )}
+        </NarrativeFrameContainer>
+      ) : (
+        <StructuralFrameContainer>
+          {contentFrames.map((frame) => (
+            <StructuralFrameRenderer
+              key={frame.id}
+              frame={frame}
+              domain={domain}
+              isEditMode={isEditMode}
+              onEngagementAction={handleEngagementAction}
+              onFrameUpdate={handleFrameUpdate}
+              showConfigControls={isEditMode}
+            />
+          ))}
+          {contentFrames.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-600">No frames to display</p>
+              {!isDomainAdmin && board.frames.length > 0 && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Sign in as the domain owner to see admin frames
+                </p>
+              )}
+            </div>
+          )}
+        </StructuralFrameContainer>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// PATHWAY RENDERER
+// ============================================================================
+
+interface PathwayRendererProps {
+  frame: Frame;
+  domain: any;
+}
+
+function PathwayRenderer({ frame, domain }: PathwayRendererProps) {
+  // Use shared utility to extract pathway config
+  const { pathwayConfig, paths } = extractPathwayConfig(frame);
+
+  // If no paths configured, don't render anything
+  if (paths.length === 0) {
+    return null;
+  }
+
+  return (
+    <PathwayNav
+      layout={pathwayConfig.layout || 'inline'}
+      orientation={pathwayConfig.orientation || 'horizontal'}
+      position={pathwayConfig.position || 'right'}
+      themeVariant={pathwayConfig.themeVariant || 'system'}
+      paths={paths}
+      authedPaths={pathwayConfig.authedPaths || []}
+      visibleFor={pathwayConfig.visibleFor || ['public', 'authed']}
+      ownerOnlyAuthedPaths={pathwayConfig.ownerOnlyAuthedPaths || false}
+    />
+  );
+}
+
+// ============================================================================
+// LEGACY FRAME RENDERER (Deprecated - kept for backward compatibility)
+// ============================================================================
+// Note: This is now replaced by NarrativeFrameRenderer and StructuralFrameRenderer
+// Kept here temporarily for any components that might still reference it
+
+export default DomainBoardRenderer;
+

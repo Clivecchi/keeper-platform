@@ -1,14 +1,19 @@
 {
+  "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "env": {
-      "NODE_ENV": "production"
-    },
-    "command": "pnpm install && pnpm run build && pnpm run build:server"
-  },
-  "start": {
-    "command": "pnpm start"
+    "builder": "dockerfile",
+    "buildCommand": null
   },
   "deploy": {
-    "entrypoint": "."
+    "startCommand": "sh -c 'pnpm --filter @keeper/database prisma migrate deploy && echo \"=== Migration complete, starting server ===\" && node apps/api/dist/index.js'",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 300
+  },
+  "variables": {
+    "RAILWAY_DISABLE_BUILD_CACHE": "true",
+    "NODE_ENV": "production",
+    "PNPM_HOME": "/pnpm",
+    "NPM_CONFIG_UPDATE_NOTIFIER": "false",
+    "NPM_CONFIG_FUND": "false"
   }
 }

@@ -1,0 +1,878 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  XMarkIcon, 
+  CheckCircleIcon, 
+  ExclamationTriangleIcon,
+  GlobeAltIcon,
+  TrashIcon,
+  ClockIcon,
+  ClipboardDocumentIcon
+} from '@heroicons/react/24/outline';
+import { apiFetch } from '../../lib/api';
+import DnsInfoPanel from './DnsInfoPanel';
+import type { DomainDetailFormProps } from './types';
+
+interface Member {
+  userId: string;
+  name: string;
+  role: string;
+  permissions: string[];
+  expiresAt?: string;
+}
+
+const ROLES = [
+  { value: 'owner', label: 'Owner' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'user', label: 'User' },
+  { value: 'friend', label: 'Friend' },
+  { value: 'connection', label: 'Connection' }
+];
+
+const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, onSave }) => {
+  // Basic form state
+  const [form, setForm] = useState({
+    name: '',
+    slug: '',
+    description: ''
+  });
+
+  // Custom domain state
+  const [customDomain, setCustomDomain] = useState('');
+  const [dnsRecords, setDnsRecords] = useState<any[]>([]);
+  const [nameServers, setNameServers] = useState<string[]>([]);
+  const [verifying, setVerifying] = useState(false);
+  const [addingToVercel, setAddingToVercel] = useState(false);
+  const [vercelConfigured, setVercelConfigured] = useState(false);
+  const [dnsStatus, setDnsStatus] = useState<any>(null);
+  const [loadingDns, setLoadingDns] = useState(false);
+
+  // Members state
+  const [members, setMembers] = useState<Member[]>([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{
+    id: string;
+    name: string;
+    email: string;
+    createdAt: string;
+  }>>([]);
+  const [selectedUser, setSelectedUser] = useState<{
+    id: string;
+    name: string;
+    email: string;
+  } | null>(null);
+  const [newMemberRole, setNewMemberRole] = useState('user');
+
+  // UI state
+  const [activeTab, setActiveTab] = useState('details');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  // Load domain data
+  useEffect(() => {
+    if (domain) {
+      setForm({
+        name: domain.name,
+        slug: domain.slug,
+        description: domain.description || ''
+      });
+      if (domain.customDomain) {
+        setCustomDomain(domain.customDomain);
+      }
+      loadMembers();
+      loadDnsStatus();
+    }
+  }, [domain]);
+
+  // Load DNS status
+  const loadDnsStatus = async () => {
+    if (!domain || !domain.customDomain) return;
+    setLoadingDns(true);
+    try {
+      const status = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain/status`);
+      console.log('Frontend: DNS status loaded:', { domain: domain.customDomain, status });
+      
+      setDnsStatus(status);
+      setVercelConfigured(status.attached);
+      setDnsRecords(status.records || []);
+      setNameServers(status.nameServers || []);
+      
+      // Handle errors from Vercel
+      if (status.error) {
+        console.error('Frontend: Vercel status error:', {
+          domain: domain.customDomain,
+          error: status.error,
+          errorCode: status.errorCode,
+          details: status.details
+        });
+        
+        // Set appropriate error message based on error code
+        if (status.errorCode === '403') {
+          setError('Access denied to Vercel. Please check your Vercel configuration.');
+        } else if (status.errorCode === '404') {
+          setError('Domain not found in Vercel project. Please add it to Vercel first.');
+        } else if (status.errorCode === 'DNS_CONFIG_ERROR') {
+          setError('Failed to load DNS configuration. Please try again.');
+        } else {
+          setError(`Vercel error: ${status.error}`);
+        }
+      } else {
+        setError(null); // Clear any previous errors
+      }
+    } catch (err) {
+      console.error('Frontend: Error loading DNS status:', err);
+      setError('Failed to load domain status. Please try again.');
+    } finally {
+      setLoadingDns(false);
+    }
+  };
+
+  // Load domain members
+  const loadMembers = async () => {
+    if (!domain) return;
+    try {
+      const response = await apiFetch(`/api/domains/${domain.id}/members`);
+      setMembers(response.members);
+    } catch (err: any) {
+      console.error('Failed to load members:', err);
+    }
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Send debug info to our debug endpoint
+    try {
+      await apiFetch('/api/debug/form-debug', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'form_submit',
+          form_data: form,
+          domain_id: domain?.id,
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (debugErr) {
+      // Ignore debug errors
+    }
+    
+    setError(null);
+    setSaving(true);
+
+    try {
+      await onSave(form);
+      setSuccess('Domain saved successfully');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save domain');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle custom domain addition
+  const handleAddCustomDomain = async () => {
+    if (!domain || !customDomain) {
+      return;
+    }
+    
+    // Send debug info to our debug endpoint
+    try {
+      await apiFetch('/api/debug/form-debug', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'add_custom_domain',
+          domain_id: domain.id,
+          custom_domain: customDomain,
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (debugErr) {
+      // Ignore debug errors
+    }
+    
+    setError(null);
+    setSaving(true);
+
+    try {
+      const response = await apiFetch(`/api/domains/${domain.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ customDomain })
+      });
+      setSuccess('Custom domain added successfully');
+      setTimeout(() => loadDnsStatus(), 1000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to add custom domain');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle adding domain to Vercel
+  const handleAddToVercel = async () => {
+    if (!domain || !domain.customDomain) return;
+    setAddingToVercel(true);
+    setError(null);
+
+    try {
+      const response = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain`, {
+        method: 'POST',
+        body: JSON.stringify({ customDomain: domain.customDomain })
+      });
+      
+      if (response.success) {
+        setSuccess('Domain added to Vercel successfully');
+        await loadDnsStatus();
+      } else {
+        setError(response.error || 'Failed to add domain to Vercel');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to add domain to Vercel');
+    } finally {
+      setAddingToVercel(false);
+    }
+  };
+
+  // Handle domain verification
+  const handleVerifyDomain = async () => {
+    if (!domain || !domain.customDomain) return;
+    setVerifying(true);
+    setError(null);
+
+    try {
+      const response = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain/verify`, {
+        method: 'POST'
+      });
+      
+      if (response.success) {
+        setSuccess('Domain verified successfully');
+        await loadDnsStatus();
+      } else {
+        setError(response.error || 'Failed to verify domain');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to verify domain');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // Handle user search
+  const handleUserSearch = async (query: string) => {
+    setUserSearch(query);
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const response = await apiFetch(`/api/domains/users/search?query=${encodeURIComponent(query)}`);
+      setSearchResults(response);
+    } catch (err: any) {
+      console.error('Failed to search users:', err);
+    }
+  };
+
+  // Handle member addition
+  const handleAddMember = async () => {
+    if (!domain || !selectedUser) return;
+    setError(null);
+
+    try {
+      await apiFetch(`/api/domains/${domain.id}/members`, {
+        method: 'POST',
+        body: JSON.stringify({
+          userId: selectedUser.id,
+          role: newMemberRole
+        })
+      });
+      setSelectedUser(null);
+      setUserSearch('');
+      setSearchResults([]);
+      setNewMemberRole('user');
+      await loadMembers();
+      setSuccess('Member added successfully');
+    } catch (err: any) {
+      setError(err.message || 'Failed to add member');
+    }
+  };
+
+  // Handle member role update
+  const handleUpdateMemberRole = async (userId: string, role: string) => {
+    if (!domain) return;
+    setError(null);
+
+    try {
+      await apiFetch(`/api/domains/${domain.id}/members/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role })
+      });
+      await loadMembers();
+      setSuccess('Member role updated');
+    } catch (err: any) {
+      setError(err.message || 'Failed to update member role');
+    }
+  };
+
+  // Handle member removal
+  const handleRemoveMember = async (userId: string) => {
+    if (!domain) return;
+    if (!confirm('Are you sure you want to remove this member?')) return;
+    setError(null);
+
+    try {
+      await apiFetch(`/api/domains/${domain.id}/members/${userId}`, {
+        method: 'DELETE'
+      });
+      await loadMembers();
+      setSuccess('Member removed successfully');
+    } catch (err: any) {
+      setError(err.message || 'Failed to remove member');
+    }
+  };
+
+  // Handle custom domain removal
+  const handleRemoveCustomDomain = async () => {
+    if (!domain || !domain.customDomain) return;
+    if (!confirm(`Are you sure you want to remove the custom domain "${domain.customDomain}"? This will revert to using the default domain.`)) return;
+    setError(null);
+    setSaving(true);
+
+    try {
+      const response = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain`, {
+        method: 'DELETE'
+      });
+      
+      if (response.success) {
+        setCustomDomain('');
+        setVercelConfigured(false);
+        setDnsStatus(null);
+        setSuccess('Custom domain removed successfully');
+        // Notify parent to refresh
+        if (onSave) {
+          await onSave(form);
+        }
+      } else {
+        setError(response.error || 'Failed to remove custom domain');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to remove custom domain');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle domain deletion
+  const handleDeleteDomain = async () => {
+    if (!domain) return;
+    
+    const confirmed = confirm(
+      `⚠️ WARNING: This will permanently delete the domain "${domain.name}".\n\n` +
+      `This action CANNOT be undone. All associated data will be lost.\n\n` +
+      `Type the domain name to confirm: "${domain.name}"`
+    );
+    
+    if (!confirmed) return;
+    
+    const domainNameConfirm = prompt(`Type "${domain.name}" to confirm deletion:`);
+    if (domainNameConfirm !== domain.name) {
+      setError('Domain name did not match. Deletion cancelled.');
+      return;
+    }
+
+    setError(null);
+    setSaving(true);
+
+    try {
+      await apiFetch(`/api/domains/${domain.id}`, {
+        method: 'DELETE'
+      });
+      setSuccess('Domain deleted successfully');
+      // Close the modal and refresh the parent
+      setTimeout(() => {
+        onClose();
+        if (onSave) {
+          onSave(form); // Trigger parent refresh
+        }
+      }, 1000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete domain');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-semibold">Edit Domain</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <XMarkIcon className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Status Messages */}
+        {(error || success) && (
+          <div className="px-6 py-3 border-b">
+            {error && (
+              <div className="flex items-center gap-2 text-red-600 bg-red-50 px-3 py-2 rounded">
+                <ExclamationTriangleIcon className="w-5 h-5" />
+                <span>{error}</span>
+              </div>
+            )}
+            {success && (
+              <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-2 rounded">
+                <CheckCircleIcon className="w-5 h-5" />
+                <span>{success}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Content - Scrollable */}
+        <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="p-6 space-y-6">
+            {/* Domain Information */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-3">Domain Information</h4>
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Domain Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Domain Slug
+                  </label>
+                  <input
+                    type="text"
+                    value={form.slug}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, slug: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={form.description}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setForm({ ...form, description: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                    rows={3}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  onClick={async () => {
+                    try {
+                      await apiFetch('/api/debug/form-debug', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                          action: 'submit_button_clicked',
+                          domain_id: domain?.id,
+                          timestamp: new Date().toISOString()
+                        })
+                      });
+                    } catch (debugErr) {
+                      // Ignore debug errors
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </form>
+            </div>
+
+            {/* Custom Domain Setup */}
+            {domain && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-3">Custom Domain Setup</h4>
+                
+                {!domain.customDomain ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600">Add a custom domain to your Keeper platform.</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={customDomain}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomDomain(e.target.value)}
+                        className="flex-1 px-3 py-2 border rounded-md"
+                        placeholder="your-domain.com"
+                        disabled={saving}
+                      />
+                      <button
+                        onClick={async () => {
+                          try {
+                            await apiFetch('/api/debug/form-debug', {
+                              method: 'POST',
+                              body: JSON.stringify({
+                                action: 'add_domain_button_clicked',
+                                domain_id: domain?.id,
+                                custom_domain: customDomain,
+                                timestamp: new Date().toISOString()
+                              })
+                            });
+                          } catch (debugErr) {
+                            // Ignore debug errors
+                          }
+                          handleAddCustomDomain();
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                        disabled={saving || !customDomain}
+                      >
+                        Add Domain
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <GlobeAltIcon className="w-5 h-5 text-blue-600" />
+                        <span className="font-medium">{domain.customDomain}</span>
+                        {domain.customDomainVerified && (
+                          <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                        )}
+                      </div>
+                      <button
+                        onClick={handleRemoveCustomDomain}
+                        disabled={saving}
+                        className="flex items-center gap-1 px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded disabled:opacity-50"
+                        title="Remove custom domain"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                        <span>Remove</span>
+                      </button>
+                    </div>
+
+                    {/* Domain Setup Process */}
+                    <div className="space-y-3">
+                      {/* Step 1: Add to Vercel */}
+                      <div className="flex items-center justify-between p-3 bg-white rounded border">
+                        <div className="flex items-center gap-3">
+                          {vercelConfigured ? (
+                            <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                          ) : dnsStatus?.error ? (
+                            <ExclamationTriangleIcon className="w-5 h-5 text-red-600" />
+                          ) : (
+                            <ClockIcon className="w-5 h-5 text-gray-400" />
+                          )}
+                          <div>
+                            <h5 className="font-medium">Add to Vercel</h5>
+                            <p className="text-sm text-gray-600">
+                              {vercelConfigured 
+                                ? 'Domain added to Vercel' 
+                                : dnsStatus?.error 
+                                  ? `Error: ${dnsStatus.error}`
+                                  : 'Add domain to Vercel project'
+                              }
+                            </p>
+                            {dnsStatus?.error && (
+                              <p className="text-xs text-red-600 mt-1">
+                                {dnsStatus.errorCode === '403' && 'Check Vercel configuration'}
+                                {dnsStatus.errorCode === '404' && 'Domain not found in project'}
+                                {dnsStatus.errorCode === 'DNS_CONFIG_ERROR' && 'DNS config failed to load'}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {!vercelConfigured && !dnsStatus?.error && (
+                          <button
+                            onClick={handleAddToVercel}
+                            disabled={addingToVercel}
+                            className="px-3 py-1 text-sm bg-black text-white rounded hover:bg-gray-800 disabled:opacity-50"
+                          >
+                            {addingToVercel ? 'Adding...' : 'Add to Vercel'}
+                          </button>
+                        )}
+                        {dnsStatus?.error && (
+                          <button
+                            onClick={loadDnsStatus}
+                            className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                          >
+                            Retry
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Step 2: Configure DNS */}
+                      {vercelConfigured && (
+                        <div className="flex items-center justify-between p-3 bg-white rounded border">
+                          <div className="flex items-center gap-3">
+                            {dnsStatus?.configured ? (
+                              <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                            ) : (
+                              <ClockIcon className="w-5 h-5 text-yellow-600" />
+                            )}
+                            <div>
+                              <h5 className="font-medium">Configure DNS</h5>
+                              <p className="text-sm text-gray-600">
+                                {dnsStatus?.configured 
+                                  ? 'DNS configured' 
+                                  : 'Configure DNS records at your registrar'
+                                }
+                              </p>
+                            </div>
+                          </div>
+                          {!dnsStatus?.configured && (
+                            <button
+                              onClick={loadDnsStatus}
+                              disabled={loadingDns}
+                              className="px-3 py-1 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
+                            >
+                              {loadingDns ? 'Checking...' : 'Check DNS'}
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* DNS Status Message - Moved between Configure and Verify */}
+                      {vercelConfigured && (
+                        <div className={`p-3 rounded border ${
+                          dnsStatus?.configured 
+                            ? 'bg-green-50 border-green-200' 
+                            : 'bg-red-50 border-red-200'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            {dnsStatus?.configured ? (
+                              <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                            ) : (
+                              <ExclamationTriangleIcon className="w-5 h-5 text-red-600" />
+                            )}
+                            <p className="text-sm">
+                              {dnsStatus?.configured 
+                                ? 'DNS detected ✅ – waiting for verification. You may click Verify now.'
+                                : 'DNS not detected yet – add these records at your registrar then click Verify.'
+                              }
+                            </p>
+                          </div>
+                          
+                          {/* Show target nameservers when DNS is not configured */}
+                          {!dnsStatus?.configured && (
+                            <div className="mt-3 p-3 bg-white rounded border">
+                              <h6 className="font-medium text-sm mb-2">Required Nameservers:</h6>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">ns1.vercel-dns.com</span>
+                                  <button
+                                    onClick={() => navigator.clipboard.writeText('ns1.vercel-dns.com')}
+                                    className="text-blue-600 hover:text-blue-800"
+                                  >
+                                    <ClipboardDocumentIcon className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">ns2.vercel-dns.com</span>
+                                  <button
+                                    onClick={() => navigator.clipboard.writeText('ns2.vercel-dns.com')}
+                                    className="text-blue-600 hover:text-blue-800"
+                                  >
+                                    <ClipboardDocumentIcon className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-600 mt-2">
+                                Update your domain's nameservers at your registrar to these Vercel nameservers.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Step 3: Verify Domain */}
+                      {vercelConfigured && (
+                        <div className="flex items-center justify-between p-3 bg-white rounded border">
+                          <div className="flex items-center gap-3">
+                            {domain.customDomainVerified ? (
+                              <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                            ) : (
+                              <ClockIcon className="w-5 h-5 text-gray-400" />
+                            )}
+                            <div>
+                              <h5 className="font-medium">Verify Domain</h5>
+                              <p className="text-sm text-gray-600">
+                                {domain.customDomainVerified 
+                                  ? 'Domain verified' 
+                                  : 'Verify domain and get SSL certificate'
+                                }
+                              </p>
+                            </div>
+                          </div>
+                                                     {vercelConfigured && !domain.customDomainVerified && Boolean(dnsStatus?.configured) && (
+                            <button
+                              onClick={handleVerifyDomain}
+                              disabled={verifying}
+                              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                            >
+                              {verifying ? 'Verifying...' : 'Verify Domain'}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* DNS Information */}
+                    {(dnsRecords.length > 0 || nameServers.length > 0) && (
+                      <div className="mt-4">
+                        <DnsInfoPanel
+                          records={dnsRecords}
+                          nameServers={nameServers}
+                          configured={dnsStatus?.configured === true || false}
+                          verified={!!domain.customDomainVerified}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Danger Zone */}
+            {domain && (
+              <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                <h4 className="font-medium text-red-900 mb-2">Danger Zone</h4>
+                <p className="text-sm text-red-700 mb-3">
+                  Permanently delete this domain. This action cannot be undone.
+                </p>
+                <button
+                  onClick={handleDeleteDomain}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                  <span>Delete Domain</span>
+                </button>
+              </div>
+            )}
+
+            {/* Members */}
+            {domain && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-3">Domain Members</h4>
+                <div className="space-y-4">
+                  <div>
+                    <h5 className="text-sm font-medium mb-2">Add Member</h5>
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={userSearch}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUserSearch(e.target.value)}
+                          placeholder="Search users by name or email"
+                          className="w-full px-3 py-2 border rounded-md"
+                        />
+                        {searchResults.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                            {searchResults.map(user => (
+                              <button
+                                key={user.id}
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setUserSearch('');
+                                  setSearchResults([]);
+                                }}
+                                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
+                              >
+                                <div>
+                                  <div className="font-medium">{user.name}</div>
+                                  <div className="text-sm text-gray-500">{user.email}</div>
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  Joined {new Date(user.createdAt).toLocaleDateString()}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {selectedUser && (
+                        <div className="flex gap-2 items-center p-2 bg-white rounded border">
+                          <div className="flex-1">
+                            <div className="font-medium">{selectedUser.name}</div>
+                            <div className="text-sm text-gray-500">{selectedUser.email}</div>
+                          </div>
+                          <select
+                            value={newMemberRole}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewMemberRole(e.target.value)}
+                            className="px-3 py-2 border rounded-md"
+                          >
+                            {ROLES.map(role => (
+                              <option key={role.value} value={role.value}>
+                                {role.label}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={handleAddMember}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Current Members */}
+                  <div>
+                    <h5 className="text-sm font-medium mb-2">Current Members</h5>
+                    <div className="space-y-2">
+                      {members.map(member => (
+                        <div key={member.userId} className="flex items-center justify-between p-2 bg-white rounded border">
+                          <div>
+                            <div className="font-medium">{member.name}</div>
+                            <div className="text-sm text-gray-500">{member.role}</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={member.role}
+                              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => 
+                                handleUpdateMemberRole(member.userId, e.target.value)
+                              }
+                              className="px-2 py-1 text-sm border rounded"
+                            >
+                              {ROLES.map(role => (
+                                <option key={role.value} value={role.value}>
+                                  {role.label}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => handleRemoveMember(member.userId)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DomainDetailForm; 

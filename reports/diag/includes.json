@@ -1,0 +1,15 @@
+[
+  "include: {\r\n        frames: {\r\n          orderBy: { orderIndex: 'asc' }",
+  "include: {\r\n            FrameConfig: true\r\n          }",
+  "include: {\r\n        frames: {\r\n          orderBy: { orderIndex: 'asc' }",
+  "include: {\r\n            FrameConfig: true\r\n          }",
+  "include: {\r\n            frames: {\r\n              orderBy: { orderIndex: 'asc' }",
+  "include: {\r\n        frames: {\r\n          orderBy: { orderIndex: 'asc' }",
+  "include: {\r\n            FrameConfig: true\r\n          }",
+  "include: { frames: { select: { orderIndex: true }",
+  "include: {\r\n        FrameConfig: true\r\n      }",
+  "include: {\r\n        FrameConfig: true\r\n      }",
+  "include: {\r\n        frames: {\r\n          select: { id: true, role: true, orderIndex: true }",
+  "include: { Domain: true }",
+  "include: { users_DomainPermission_userIdTousers: { select: { id: true, name: true, email: true }"
+]

@@ -1,5 +1,7 @@
 # Keeper Platform
 
+![CI](https://github.com/<username>/<repo>/actions/workflows/ci.yml/badge.svg)
+
 A poetic digital space where people preserve what matters. This is the beginning of a life-centered UI.
 
 ## 🚀 Getting Started
@@ -8,6 +10,45 @@ This project contains a **React frontend** (for Vercel) and an **Express backend
 
 - **Frontend**: `React` `Vite` `TypeScript` `TailwindCSS` `Shadcn` `Framer Motion`
 - **Backend**: `Express.js` `Prisma` `Zod` `PostgreSQL`
+
+### Environment Setup
+
+**⚠️ Security Note**: Never commit `.env` files to Git. They contain sensitive information.
+
+1. **Copy the example environment file:**
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Configure your environment variables:**
+   - **Required:**
+     - `DATABASE_URL`: Your PostgreSQL database URL
+     - `JWT_SECRET`: A secure random string for JWT signing
+   - **Optional (Redis):**
+     - `DISABLE_REDIS`: Set to `true` to disable Redis (uses no-op adapter)
+     - `REDIS_URL`: Your Redis connection URL (if Redis is enabled)
+   - **Optional (Application):**
+     - `NODE_ENV`: Environment mode (development/production/test)
+     - `PORT`: Server port (default: 3001 development, 8080 production)
+     - `LOG_LEVEL`: Logging level (error/warn/info/debug, default: info)
+     - `ENABLE_REQUEST_LOGGING`: Enable detailed request logging (default: false)
+     - `CORS_ORIGINS`: Allowed CORS origins (comma-separated, default: *)
+   - **Optional (Advanced Database):**
+     - `DB_POOL_MIN`, `DB_POOL_MAX`: Connection pool settings
+     - `DB_QUERY_TIMEOUT`, `DB_STATEMENT_TIMEOUT`: Database timeouts
+     - `DB_SSL`, `DB_LOGGING`: Database SSL and query logging
+   - **Optional (Security):**
+     - `CSRF_ENABLED`, `CSRF_SECRET`: CSRF protection settings
+     - `JWT_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`: JWT token expiration
+   - **Optional (Vercel Integration):**
+     - `VERCEL_TOKEN`: Vercel API token for custom domain management
+     - `VERCEL_PROJECT_ID`: Vercel project ID for custom domain management
+   - **Optional (Testing):**
+     - `TEST_DATABASE_URL`: Test database URL for automated tests
+
+3. **For deployment platforms (Railway/Vercel):**
+   - Copy the values from your `.env` file
+   - Add them to your deployment platform's environment variables section
 
 ### Running Locally
 
@@ -49,6 +90,8 @@ Routing is managed by `react-router-dom` in `App.tsx`. Public and protected rout
 - **STYLE**: Added custom fonts (`Playfair Display`, `EB Garamond`, `Inter`) and base styles.
 - **REFACTOR**: Redesigned authentication pages (`LoginPage`, `RegisterPage`) with a card-based UI.
 - **REFACTOR**: Updated routing in `App.tsx` to use the new layout and providers.
+### 2025-09-24
+- **CHORE**: Add root `vercel.json` rewrite to forward to Railway API for `api.ke3p.com`.
 
 # Keeper Platform: Source Structure
 
@@ -65,3 +108,72 @@ This project contains both a **React frontend** (for Vercel) and an **Express ba
 ```bash
 pnpm run build        # Runs Vite + tsconfig.app.json
 pnpm run dev          # Local dev server for frontend
+
+```
+
+## 🗄️ Database Development
+
+### Seeding Canonical Data
+
+The application includes canonical themes and roles that should be seeded for development and production:
+
+```bash
+# Seed the database with canonical themes and roles
+pnpm --filter @keeper/database run seed
+```
+
+This will create:
+- **4 Canonical Themes**: `keeper-classic`, `keen-kip`, `lowcountry-summer`, `juke-joint`
+- **Platform Roles**: `super-admin`, `admin`, `support`, `moderator`, `analyst`, `developer`, `viewer`
+
+### Database Commands
+
+```bash
+# Generate Prisma client
+pnpm --filter @keeper/database run generate
+
+# Push schema changes to database
+pnpm --filter @keeper/database run push
+
+# Open Prisma Studio
+pnpm --filter @keeper/database run studio
+
+# Run migrations
+pnpm --filter @keeper/database run migrate
+```
+
+## 📦 Releases
+
+- **Current stable**: [`v0.1.0-stable`](https://github.com/<username>/<repo>/releases/tag/v0.1.0-stable)
+  - Stable: deterministic Redis tests + canonical .env.example + pnpm CI
+
+## Single-Domain MVP Setup
+
+- WEB env:
+  - `VITE_PUBLIC_APP_ORIGIN=https://www.ke3p.com`
+  - `VITE_API_URL=https://api.ke3p.com`
+  - `FALLBACK_DOMAIN=www.ke3p.com`
+- API env:
+  - `PUBLIC_WEB_ORIGIN=https://www.ke3p.com`
+  - `APP_ORIGIN=https://api.ke3p.com`
+  - `CORS_ALLOWLIST=https://www.ke3p.com,https://api.ke3p.com`
+  - `FALLBACK_DOMAIN=www.ke3p.com`
+  - `KEEPER_PROXY_ENABLED=false` (must remain false in production)
+
+CORS policy:
+- Production: allow only `https://www.ke3p.com` and `https://api.ke3p.com`.
+- Development: also allow `http://localhost:5173` and `http://localhost:3000`.
+
+Production endpoints:
+- Web: `https://www.ke3p.com`
+- API: `https://api.ke3p.com` (sole production API entrypoint; `api.keeper.domains` disabled)
+
+Health & CORS checks:
+- Health:   `GET https://api.ke3p.com/api/health` (expect 200)
+- CORS OK:  `GET https://api.ke3p.com/api/test` with `Origin: https://www.ke3p.com` (expect 200)
+- CORS NO:  `GET https://api.ke3p.com/api/test` with `Origin: https://evil.example` (expect 403)
+
+Run:
+- Web: set envs above, then `pnpm dev` in `apps/web`
+- API: set envs above, then `pnpm dev` in `apps/api`
+- Prisma: `pnpm prisma migrate dev && pnpm prisma db seed` in `packages/database`

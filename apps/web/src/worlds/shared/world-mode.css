@@ -1,0 +1,287 @@
+/**
+ * World Mode Styling
+ * ==================
+ * 
+ * CSS classes for Presentation vs Workshop mode styling.
+ * These classes provide visual distinction between the two worlds.
+ */
+
+/* Presentation Mode - Warm, Narrative, Emotional */
+.presentation-mode {
+  /* Warm color palette */
+  --presentation-primary: #059669; /* Green */
+  --presentation-bg: #F0FDF4; /* Light green */
+  --presentation-accent: #047857; /* Dark green */
+  --presentation-text: #1F2937; /* Warm gray */
+  --presentation-border: #BBF7D0; /* Soft green */
+  
+  /* Typography - softer, more readable */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+  
+  /* Spacing - more generous */
+  --presentation-spacing: 1.5rem;
+  
+  /* Shadows - softer, warmer */
+  --presentation-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  
+  /* Transitions - smoother, more organic */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.presentation-mode * {
+  /* Ensure warm tones throughout */
+  color: var(--presentation-text);
+}
+
+/* Workshop Mode - Modern, Crisp, Tool-like */
+.workshop-mode {
+  /* Modern color palette */
+  --workshop-primary: #3B82F6; /* Blue */
+  --workshop-bg: #F8FAFC; /* Cool gray */
+  --workshop-accent: #1E40AF; /* Dark blue */
+  --workshop-text: #0F172A; /* Cool dark */
+  --workshop-border: #CBD5E1; /* Cool gray border */
+  
+  /* Typography - crisp, technical */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  
+  /* Spacing - tighter, more efficient */
+  --workshop-spacing: 1rem;
+  
+  /* Shadows - sharper, more defined */
+  --workshop-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  
+  /* Transitions - snappy, precise */
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.workshop-mode * {
+  /* Ensure crisp tones throughout */
+  color: var(--workshop-text);
+}
+
+/* Studio Mode - Visual Design Environment */
+.studio-mode {
+  /* Clean, modern design palette */
+  --studio-primary: #3B82F6; /* Blue */
+  --studio-bg: #FAFBFC; /* Very light gray */
+  --studio-accent: #1E40AF; /* Dark blue */
+  --studio-text: #111827; /* Dark gray */
+  --studio-border: #E5E7EB; /* Light gray border */
+  
+  /* Typography - clean, readable */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  
+  /* Spacing - generous for visual clarity */
+  --studio-spacing: 2rem;
+  
+  /* Shadows - subtle, clean */
+  --studio-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  
+  /* Transitions - smooth, natural */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Background */
+  background: var(--studio-bg);
+}
+
+.studio-mode * {
+  /* Ensure clean tones throughout */
+  color: var(--studio-text);
+}
+
+/* Presentation Mode Specific Styles */
+.presentation-mode .board-renderer {
+  background: var(--presentation-bg);
+  padding: var(--presentation-spacing);
+}
+
+.presentation-mode .frame {
+  background: white;
+  border-radius: 12px;
+  box-shadow: var(--presentation-shadow);
+  padding: var(--presentation-spacing);
+  border: 1px solid var(--presentation-border);
+}
+
+.presentation-mode h1,
+.presentation-mode h2,
+.presentation-mode h3 {
+  font-weight: 600;
+  color: var(--presentation-primary);
+  letter-spacing: -0.02em;
+}
+
+.presentation-mode p {
+  color: var(--presentation-text);
+  line-height: 1.8;
+}
+
+/* Workshop Mode Specific Styles */
+.workshop-mode .board-renderer {
+  background: var(--workshop-bg);
+  padding: var(--workshop-spacing);
+}
+
+.workshop-mode .frame {
+  background: white;
+  border-radius: 8px;
+  box-shadow: var(--workshop-shadow);
+  padding: var(--workshop-spacing);
+  border: 1px solid var(--workshop-border);
+}
+
+.workshop-mode h1,
+.workshop-mode h2,
+.workshop-mode h3 {
+  font-weight: 700;
+  color: var(--workshop-primary);
+  letter-spacing: -0.03em;
+}
+
+.workshop-mode p {
+  color: var(--workshop-text);
+  line-height: 1.6;
+}
+
+/* Utility classes for mode-specific elements */
+.presentation-warm {
+  background: linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);
+}
+
+.workshop-crisp {
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+}
+
+/* Frame-specific styling */
+.presentation-frame {
+  /* Warm, narrative frame styling */
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(187, 247, 208, 0.5);
+}
+
+.presentation-frame:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.presentation-frame-container {
+  background: var(--presentation-bg);
+  padding: var(--presentation-spacing);
+}
+
+.presentation-prop {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.workshop-frame {
+  /* Crisp, structural frame styling */
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--workshop-border);
+}
+
+.workshop-frame:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.workshop-frame-container {
+  background: var(--workshop-bg);
+  padding: var(--workshop-spacing);
+}
+
+.workshop-prop {
+  transition: all 0.15s ease-in-out;
+}
+
+/* Studio Mode - Visual Design Environment */
+.studio-frame-container {
+  background: #FAFBFC;
+  padding: 2rem;
+}
+
+.studio-frame {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  border: 1px solid #E5E7EB;
+}
+
+.studio-props-container {
+  /* Generous spacing for visual clarity */
+  padding: 0.5rem 0;
+}
+
+.studio-prop-wrapper {
+  /* Ensure props render as visual content, not config cards */
+  position: relative;
+  min-height: 2rem;
+}
+
+.studio-prop-content {
+  /* Props render as actual visual content */
+  width: 100%;
+}
+
+/* Ensure images, headings, text render naturally in Studio */
+.studio-prop-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.studio-prop-content h1,
+.studio-prop-content h2,
+.studio-prop-content h3 {
+  margin: 0;
+  font-weight: 600;
+  color: #111827;
+}
+
+.studio-prop-content p {
+  margin: 0;
+  color: #374151;
+  line-height: 1.6;
+}
+
+/* Subtle hover effects for editing */
+.studio-prop-wrapper:hover {
+  outline: 1px solid rgba(59, 130, 246, 0.2);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+/* EditableProp styling in Studio mode */
+.studio-editable-prop {
+  /* Ensure visual content is always displayed */
+  display: block;
+  width: 100%;
+}
+
+.studio-prop-visual-content {
+  /* Visual content renders naturally */
+  width: 100%;
+  display: block;
+}
+
+/* Ensure props don't get hidden or minimized */
+.studio-editable-prop img,
+.studio-editable-prop h1,
+.studio-editable-prop h2,
+.studio-editable-prop h3,
+.studio-editable-prop p {
+  /* Visual content always visible */
+  opacity: 1 !important;
+  display: block !important;
+}
+

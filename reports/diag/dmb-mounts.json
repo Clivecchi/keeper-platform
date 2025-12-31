@@ -1,0 +1,14 @@
+{
+  "partial": true,
+  "handlers": [],
+  "mounts": [
+    {
+      "base": "/api/domains",
+      "arg": "flatDomainsRouter"
+    },
+    {
+      "base": "/api/domains",
+      "arg": "domainRoutes"
+    }
+  ]
+}

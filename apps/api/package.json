@@ -1,0 +1,56 @@
+{
+  "name": "keeper-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "build:server": "tsc -p apps/api/tsconfig.json",
+    "start": "pnpm --filter @keeper/database prisma migrate deploy && node --enable-source-maps apps/api/dist/index.js",
+    "test": "vitest",
+    "test:smoke": "vitest run --reporter=dot --silent=true src/tests/smoke",
+    "postinstall": "pnpm --filter @keeper/database generate",
+    "migrate:deploy": "pnpm --filter @keeper/database prisma migrate deploy",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@keeper/database": "workspace:*",
+    "@keeper/kam": "workspace:*",
+    "@keeper/shared": "workspace:*",
+    "@prisma/client": "^6.11.1",
+    "@vercel/blob": "^2.0.0",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "ioredis": "^5.3.2",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "openai": "^4.75.1",
+    "zod": "^3.25.45"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.2",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^22.15.30",
+    "@types/supertest": "^6.0.2",
+    "jsonwebtoken": "^9.0.2",
+    "supertest": "^7.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "~5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,0 +1,422 @@
+/**
+ * Domain Board Data Hydration API
+ * Loads the Domain Design Board template and enriches it with live domain data
+ */
+
+import { Router, Response } from 'express';
+import { PrismaClient } from '@keeper/database';
+import { AuthenticatedRequest } from '../../middleware/authMiddleware.js';
+import { attachUser } from '../../middleware/auth.js';
+import { DomainPermissionService, DomainCacheService } from '@keeper/database';
+import { getRedis } from '../../lib/redis.js';
+
+const router: Router = Router();
+const prisma = new PrismaClient();
+const redis = getRedis();
+const cacheService = new DomainCacheService(redis);
+const permissionService = new DomainPermissionService(prisma, cacheService);
+
+/**
+ * GET /api/domains/:domainId/board-data
+ * 
+ * Returns the Domain Design Board with live data hydration
+ * 
+ * Response structure:
+ * {
+ *   board: {
+ *     id, name, description, theme, behavior,
+ *     frames: [
+ *       {
+ *         id, name, pattern, visibility,
+ *         props: [
+ *           { id, type, config, value }  // value = hydrated data
+ *         ]
+ *       }
+ *     ]
+ *   },
+ *   domain: { ... },  // Full domain object for context
+ *   userPermissions: { canEdit: boolean, role: string }
+ * }
+ */
+router.get('/:domainId/board-data', attachUser, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { domainId } = req.params;
+    const userId = req.user?.id;
+
+    // Load domain
+    const domain = await prisma.domain.findUnique({
+      where: { id: domainId },
+      include: {
+        users: true, // Owner relation (singular)
+      }
+    });
+
+    if (!domain) {
+      return res.status(404).json({ error: 'Domain not found' });
+    }
+
+    // Check permissions
+    let userPermissions = { canEdit: false, role: 'visitor' as string };
+    if (userId) {
+      // PRIORITY 1: Check if user is domain owner
+      const isOwner = domain.ownerId === userId;
+      
+      if (isOwner) {
+        console.log(`[board-data] User ${userId} is domain owner - granting full access`);
+        userPermissions.canEdit = true;
+        userPermissions.role = 'owner';
+      } else {
+        // PRIORITY 2: Check DomainPermission table for member permissions
+        const perm = await permissionService.checkPermission({
+          userId,
+          domainId,
+          permission: 'read'
+        });
+        
+        if (perm.hasPermission) {
+          userPermissions.canEdit = perm.permission === 'admin' || perm.permission === 'write';
+          userPermissions.role = perm.permission || 'visitor';
+          console.log(`[board-data] User ${userId} has member permission:`, perm.permission);
+        } else {
+          console.log(`[board-data] User ${userId} has no permissions on domain ${domainId}`);
+        }
+      }
+    }
+
+    // Load Domain Design Board template
+    const domainKeeperType = await prisma.keeperType.findFirst({
+      where: { name: 'Domain' },
+      include: {
+        defaultBoardTemplate: {
+          include: {
+            frames: {
+              orderBy: { orderIndex: 'asc' }
+            }
+          }
+        }
+      }
+    });
+
+    if (!domainKeeperType?.defaultBoardTemplate) {
+      return res.status(500).json({ 
+        error: 'Domain Design Board template not found. Run database seed.'
+      });
+    }
+
+    const template = domainKeeperType.defaultBoardTemplate;
+
+    // Filter frames by visibility
+    const isAdmin = userPermissions.role === 'admin' || userPermissions.role === 'owner';
+    const visibleFrames = template.frames.filter(frame => {
+      const frameData = frame as any;
+      // Check visibility column (defaults to 'admin' if not set for security)
+      const visibility = frameData.visibility || 'admin';
+      return visibility === 'public' || (visibility === 'admin' && isAdmin);
+    });
+
+    // Hydrate props with live data
+    const hydratedFrames = await Promise.all(
+      visibleFrames.map(async (frame) => {
+        const frameData = frame as any;
+        const props = Array.isArray(frameData.props) ? frameData.props : [];
+
+        const hydratedProps = await Promise.all(
+          props.map(async (prop: any) => {
+            // Filter by prop-level visibility
+            const propVisibility = prop.config?.visibility;
+            if (propVisibility === 'admin' && !isAdmin) {
+              return null; // Hide admin-only props from non-admins
+            }
+
+            // Hydrate based on dataSource
+            let value = prop.config?.content || prop.config?.defaultValue;
+            const dataSource = prop.config?.dataSource;
+
+            if (dataSource) {
+              value = await hydrateDataSource(dataSource, domain, prisma);
+            }
+
+            return {
+              id: prop.id,
+              type: prop.type,
+              config: prop.config,
+              value, // Live data
+              orderIndex: prop.orderIndex
+            };
+          })
+        );
+
+        // Remove null props (hidden by visibility)
+        const filteredProps = hydratedProps.filter(p => p !== null);
+
+        return {
+          id: frame.id,
+          name: frame.name,
+          pattern: frame.pattern,
+          visibility: frame.visibility || 'admin',
+          layoutData: frame.layoutData,
+          props: filteredProps
+        };
+      })
+    );
+
+    // Build response
+    const response = {
+      board: {
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        slug: template.slug,
+        theme: template.theme,
+        behavior: template.behavior,
+        frames: hydratedFrames
+      },
+      domain: {
+        id: domain.id,
+        name: domain.name,
+        slug: domain.slug,
+        description: domain.description,
+        customDomain: domain.customDomain,
+        customDomainVerified: domain.customDomainVerified,
+        isPublic: domain.isPublic,
+        theme: domain.theme,
+        settings: domain.settings,
+        owner: domain.users ? {
+          id: domain.users.id,
+          name: domain.users.name,
+          email: domain.users.email
+        } : null,
+        status: domain.status
+      },
+      userPermissions
+    };
+
+    return res.json(response);
+
+  } catch (error) {
+    console.error('[domains:board-data] Error:', error);
+    return res.status(500).json({ error: 'Failed to load board data' });
+  }
+});
+
+/**
+ * Hydrate a data source path with live data
+ * 
+ * Examples:
+ *   domain.name → domain.name
+ *   domain.description → domain.description
+ *   domain.dns.statusMessage → computed DNS status
+ *   domain.members → count of members
+ *   domain.settings.primaryAgentSummary → agent info
+ */
+async function hydrateDataSource(
+  dataSource: string,
+  domain: any,
+  prisma: PrismaClient
+): Promise<any> {
+  const parts = dataSource.split('.');
+
+  // Handle simple domain properties
+  if (parts[0] === 'domain' && parts.length === 2) {
+    const field = parts[1];
+    if (field in domain) {
+      return domain[field];
+    }
+  }
+
+  // Handle nested paths
+  if (dataSource === 'domain.theme.coverImage') {
+    return domain.theme?.coverImage || null;
+  }
+
+  if (dataSource === 'domain.dns.statusMessage') {
+    return computeDnsStatus(domain);
+  }
+
+  if (dataSource === 'domain.members') {
+    const count = await prisma.domainPermission.count({
+      where: { domainId: domain.id }
+    });
+    return count;
+  }
+
+  if (dataSource === 'domain.featured.keepersOrJourneys') {
+    // Load featured keepers/journeys
+    const keepers = await prisma.keeper.findMany({
+      where: { domainId: domain.id },
+      take: 6,
+      orderBy: { createdAt: 'desc' }
+    });
+    return keepers;
+  }
+
+  if (dataSource === 'domain.values.statement') {
+    return domain.settings?.ethosStatement || domain.description || 'Building something meaningful.';
+  }
+
+  if (dataSource === 'domain.settings.primaryAgentSummary') {
+    const agentId = domain.settings?.primaryAgentId;
+    if (agentId) {
+      const agent = await prisma.kip_agents.findUnique({
+        where: { id: agentId },
+        select: { id: true, name: true, purpose: true }
+      });
+      return agent;
+    }
+    return null;
+  }
+
+  // Default: return null if not found
+  return null;
+}
+
+/**
+ * PUT /api/domains/:domainId/board-data
+ * 
+ * Saves board changes (frame props) for inline editing
+ * 
+ * Request body:
+ * {
+ *   frames: [
+ *     {
+ *       id: "frame-123",
+ *       props: [
+ *         { id: "prop-456", type: "text", config: {...}, orderIndex: 0 }
+ *       ]
+ *     }
+ *   ]
+ * }
+ */
+router.put('/:domainId/board-data', attachUser, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { domainId } = req.params;
+    const { frames } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    if (!frames || !Array.isArray(frames)) {
+      return res.status(400).json({ error: 'Invalid request: frames array required' });
+    }
+
+    // Load domain and check permissions
+    const domain = await prisma.domain.findUnique({
+      where: { id: domainId }
+    });
+
+    if (!domain) {
+      return res.status(404).json({ error: 'Domain not found' });
+    }
+
+    // Check if user has edit permission
+    const perm = await permissionService.checkPermission({
+      userId,
+      domainId,
+      permission: 'write'
+    });
+
+    if (!perm.hasPermission) {
+      return res.status(403).json({ error: 'No permission to edit this domain' });
+    }
+
+    // Get the Domain board template to validate frame IDs
+    const domainKeeperType = await prisma.keeperType.findFirst({
+      where: { name: 'Domain' },
+      include: {
+        defaultBoardTemplate: {
+          include: {
+            frames: {
+              select: { id: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!domainKeeperType?.defaultBoardTemplate) {
+      return res.status(500).json({ error: 'Domain board template not found' });
+    }
+
+    const validFrameIds = new Set(
+      domainKeeperType.defaultBoardTemplate.frames.map(f => f.id)
+    );
+
+    // Process each frame's props
+    const updateResults = [];
+    
+    for (const frameUpdate of frames) {
+      // Validate frame ID
+      if (!validFrameIds.has(frameUpdate.id)) {
+        console.warn(`[board-data:save] Invalid frame ID: ${frameUpdate.id}`);
+        continue;
+      }
+
+      try {
+        // Update the frame's props JSON field
+        // Props are stored as JSON array in FrameInstance.props, not as separate rows
+        await prisma.frameInstance.update({
+          where: { id: frameUpdate.id },
+          data: {
+            props: frameUpdate.props as any,
+            updatedAt: new Date()
+          }
+        });
+        
+        updateResults.push({ 
+          frameId: frameUpdate.id, 
+          action: 'updated',
+          propsCount: frameUpdate.props.length 
+        });
+      } catch (frameError) {
+        console.error(`[board-data:save] Error updating frame ${frameUpdate.id}:`, frameError);
+        updateResults.push({ 
+          frameId: frameUpdate.id, 
+          action: 'error',
+          error: frameError instanceof Error ? frameError.message : 'Unknown error'
+        });
+      }
+    }
+
+    // Clear cache for this domain
+    try {
+      await cacheService.invalidateDomain(domainId);
+    } catch (cacheError) {
+      console.warn('[board-data:save] Cache invalidation warning:', cacheError);
+      // Non-fatal: continue even if cache clear fails
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        domainId,
+        boardId: domainKeeperType.defaultBoardTemplate.id,
+        updatedAt: new Date().toISOString(),
+        results: updateResults
+      }
+    });
+
+  } catch (error) {
+    console.error('[domains:board-data:save] Error:', error);
+    return res.status(500).json({ 
+      error: 'Failed to save board changes',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * Compute DNS status message
+ */
+function computeDnsStatus(domain: any): string {
+  if (!domain.customDomain) {
+    return 'No custom domain configured.';
+  }
+  if (domain.customDomainVerified) {
+    return `✓ ${domain.customDomain} is verified and active.`;
+  }
+  return `DNS detected for ${domain.customDomain} — waiting for verification. You may click Verify now.`;
+}
+
+export default router;

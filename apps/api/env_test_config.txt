@@ -1,0 +1,17 @@
+# --- API test environment (no external services) ---
+NODE_ENV=test
+LOG_LEVEL=silent
+
+# Force Redis OFF in tests
+DISABLE_REDIS=true
+
+# Prisma may be imported; give it a harmless placeholder
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/keeper_test?schema=public
+
+# Required by auth/KAM paths that read it
+JWT_SECRET=dev_dev_dev_dev_dev
+
+# CORS safe default for supertest
+CORS_ORIGIN=http://localhost:5173
+
+# Do NOT set REDIS_URL here on purpose

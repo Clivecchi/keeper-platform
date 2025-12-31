@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  redis:
+    # Development-specific Redis configuration
+    command: redis-server --appendonly yes --appendfsync everysec --maxmemory 256mb --maxmemory-policy allkeys-lru
+    environment:
+      - REDIS_REPLICATION_MODE=master
+      - REDIS_DEBUG=1
+    volumes:
+      - redis-data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    labels:
+      - "traefik.enable=false"
+      - "keeper.service=redis"
+      - "keeper.environment=development"
+
+  postgres:
+    # Development-specific PostgreSQL configuration
+    environment:
+      - POSTGRES_USER=keeper
+      - POSTGRES_PASSWORD=keeper_dev_password
+      - POSTGRES_DB=keeper_dev
+      - POSTGRES_INITDB_ARGS="--encoding=UTF-8"
+      - POSTGRES_LOG_STATEMENT=all
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./packages/database/seeds:/docker-entrypoint-initdb.d
+      - ./packages/database/test-data:/docker-entrypoint-initdb.d/test-data
+    labels:
+      - "traefik.enable=false"
+      - "keeper.service=postgres"
+      - "keeper.environment=development"
+
+  # Add Redis Insight for development
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    container_name: keeper-redis-insight
+    ports:
+      - "8001:8001"
+    depends_on:
+      - redis
+    restart: unless-stopped
+    labels:
+      - "keeper.service=redis-insight"
+      - "keeper.environment=development"
+
+volumes:
+  redis-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/data/redis
+      o: bind
+  postgres-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/data/postgres
+      o: bind 

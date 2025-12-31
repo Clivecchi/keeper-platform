@@ -1,0 +1,21 @@
+# Nixpacks configuration for proxy service
+# This file helps Nixpacks detect and build the proxy service correctly
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "pnpm"]
+
+[phases.install]
+cmds = [
+  "cd ../..",
+  "pnpm install --frozen-lockfile"
+]
+
+[phases.build]
+cmds = [
+  "cd ../..",
+  "pnpm --filter proxy build"
+]
+
+[start]
+cmd = "cd apps/proxy && node dist/index.js"
+

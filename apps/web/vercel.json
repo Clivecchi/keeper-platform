@@ -1,0 +1,26 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://keeper-platform-production.up.railway.app/api/$1" },
+    { "source": "/mcp/(.*)", "destination": "https://keeper-platform-production.up.railway.app/mcp/$1" },
+    { "source": "/(.*)", "destination": "/" }
+  ],
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "ke3p.com" }],
+      "destination": "https://www.ke3p.com/$1",
+      "permanent": true
+    }
+  ],
+  "headers": [
+    {
+      "source": "/mcp/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    }
+  ]
+}
