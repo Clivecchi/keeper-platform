@@ -88,6 +88,104 @@ router.use(contactRoutes);
 router.use(boardDataRoutes);
 router.use(kipDraftRoutes);
 
+// GET /api/domains/:domainId/kip/agents - Domain-scoped agents list
+router.get('/:domainId/kip/agents', authMiddlewareCompat, requireDomainReadCompat, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+    }
+
+    const { domainId } = req.params;
+    const domain = await domainService.getDomainById(domainId);
+
+    if (!domain) {
+      return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
+    }
+
+    const permission = await permissionService.checkPermission({
+      userId: req.user.id,
+      domainId,
+      permission: 'read',
+    });
+
+    if (!permission.hasPermission) {
+      return res.status(403).json({ error: 'ACCESS_DENIED', message: 'You do not have access to this domain' });
+    }
+
+    // Get primary agent from domain settings
+    const domainSettings = ((domain.settings as Record<string, any>) || {});
+    const primaryAgentId = typeof domainSettings.primaryAgentId === 'string' ? domainSettings.primaryAgentId : null;
+
+    const agents = [];
+    
+    if (primaryAgentId) {
+      const primaryAgent = await prisma.kip_agents.findUnique({
+        where: { id: primaryAgentId },
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          purpose: true,
+          model: true,
+          context_scope: true,
+          memory_enabled: true,
+          tools: true,
+          permissions: true,
+          config: true,
+          status: true,
+          agent_class: true,
+          model_provider: true,
+          model_settings: true,
+          visibility: true,
+          created_at: true,
+          updated_at: true,
+        },
+      });
+
+      if (primaryAgent) {
+        agents.push(primaryAgent);
+      }
+    }
+
+    // If no primary agent, ensure Kip is assigned (auto-assign)
+    if (agents.length === 0) {
+      const kipAgentId = await ensurePrimaryAgentAssignment(domain);
+      if (kipAgentId) {
+        const kipAgent = await prisma.kip_agents.findUnique({
+          where: { id: kipAgentId },
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            purpose: true,
+            model: true,
+            context_scope: true,
+            memory_enabled: true,
+            tools: true,
+            permissions: true,
+            config: true,
+            status: true,
+            agent_class: true,
+            model_provider: true,
+            model_settings: true,
+            visibility: true,
+            created_at: true,
+            updated_at: true,
+          },
+        });
+        if (kipAgent) {
+          agents.push(kipAgent);
+        }
+      }
+    }
+
+    return res.json({ success: true, data: agents });
+  } catch (error) {
+    console.error('[domains:kip-agents:error]', error);
+    return res.status(500).json({ error: 'FAILED_TO_LOAD_AGENTS', message: 'Failed to load domain agents' });
+  }
+});
+
 // GET /api/domains/:domainId/management-board
 router.get('/:domainId/management-board', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -717,9 +815,11 @@ router.post('/:domainId/agent/execute', authMiddlewareCompat, async (req: Authen
     const reply = extractAgentReply(agentResult) || 'Kip responded without additional details.';
     const normalizedContext = normalizeExecutionContext(payload.context);
     const sessionIdFromResult = extractSessionId(agentResult) ?? payload.sessionId ?? null;
+    const actionResults = extractActionResults(agentResult);
 
     return res.json({
       reply,
+      actionResults: actionResults.length > 0 ? actionResults : undefined,
       metadata: {
         agentId: primaryAgentId,
         domainId,
@@ -800,6 +900,41 @@ function extractSessionId(agentResult: any): string | undefined {
     return payload.data.sessionId;
   }
   return undefined;
+}
+
+function extractActionResults(agentResult: any): Array<{
+  type: string;
+  ok: boolean;
+  result?: any;
+  error?: { code?: string; message: string; details?: any };
+}> {
+  const payload = agentResult?.data;
+  const actions = payload?.data?.actions;
+  if (!Array.isArray(actions)) return [];
+
+  // Transform ActionExecutionResult[] to the expected format
+  return actions.map((action: any) => {
+    if (action.status === 'success') {
+      return {
+        type: action.type,
+        ok: true,
+        result: {
+          ...(action.data || {}),
+          message: action.message, // Include message in result for normalization
+        },
+      };
+    } else {
+      return {
+        type: action.type,
+        ok: false,
+        error: {
+          code: action.errorCode || (action.status === 'error' ? 'EXECUTION_ERROR' : 'SKIPPED'),
+          message: action.message || 'Action execution failed',
+          details: action.data,
+        },
+      };
+    }
+  });
 }
 
 function extractAgentError(agentResult: any): string {

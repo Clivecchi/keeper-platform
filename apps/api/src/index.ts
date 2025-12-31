@@ -1265,12 +1265,56 @@ app.use('*', (req: Request, res: Response) => {
   });
 });
 
+// Assert core action handlers are available at startup
+function assertCoreActionHandlers() {
+  const { CORE_ACTIONS } = require('./api/kip/actions/schema.js');
+  const supportedActions = new Set([
+    'draft.create',
+    'draft.update',
+    'draft.delete',
+    'draft.list',
+    'draft.get',
+    'draft.read',
+    'draft.setActive',
+  ]);
+
+  const missing: string[] = [];
+  for (const coreAction of CORE_ACTIONS) {
+    if (!supportedActions.has(coreAction)) {
+      missing.push(coreAction);
+    }
+  }
+
+  if (missing.length > 0) {
+    const errorMsg = `[kip.actions] missing core handlers: ${missing.join(', ')}`;
+    console.error(`\n❌ ${errorMsg}\n`);
+    if (process.env.NODE_ENV !== 'production') {
+      throw new Error(errorMsg);
+    }
+    // In production, log but continue
+    console.error('[kip.actions] continuing in production mode despite missing core handlers');
+  } else {
+    console.log(`✅ [kip.actions] all core handlers available: ${CORE_ACTIONS.join(', ')}`);
+  }
+}
+
 // Start server
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('\n🚀 Keeper API Server (Domain-Enabled Version)');
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 Server running on port ${PORT}`);
   console.log(`🔗 Railway Public Domain: ${process.env.RAILWAY_PUBLIC_DOMAIN || 'Not set'}`);
+  
+  // Assert core action handlers
+  try {
+    assertCoreActionHandlers();
+  } catch (error) {
+    console.error('Failed to assert core action handlers:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      process.exit(1);
+    }
+  }
+  
   console.log('🔗 Available routes:');
   console.log('  - GET  /');
   console.log('  - GET  /ping');

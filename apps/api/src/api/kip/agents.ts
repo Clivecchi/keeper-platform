@@ -11,6 +11,7 @@ import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { prisma } from '@keeper/database';
 import { Prisma } from '@prisma/client';
+import { logger } from '@keeper/shared';
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import { resolveAgentEnvironment, type AgentEnvironmentContext } from '../../services/kip/resolveAgentEnvironment.js';
@@ -37,6 +38,15 @@ import {
   buildActionPack,
   type ActionPack,
 } from '../../policy/policyPack.js';
+import {
+  parseActionsOrThrow,
+  safeParseActions,
+  isActionParseSuccess,
+  CORE_ACTIONS,
+  normalizeSummary,
+  type ActionValidationError,
+  type CoreActionType,
+} from './actions/schema.js';
 
 type AgentErrorCode =
   | 'MISSING_API_KEY'
@@ -434,8 +444,15 @@ type StructuredAgentAction = { type: string; payload?: Record<string, any> | nul
 type ActionExecutionResult = {
   type: string;
   status: 'success' | 'error' | 'skipped';
-  message?: string;
-  data?: unknown;
+  message: string;
+  errorCode?: string;
+  data?: {
+    entityIds?: string[];
+    draft?: { id: string; title: string; kind: string; key: string };
+    links?: { open?: string; edit?: string };
+    // Optional: minimal payload for other future entity types
+    [key: string]: unknown;
+  };
 };
 
 const ACTION_DRAFT_LIMIT = 25;
@@ -470,7 +487,8 @@ function slugifyKey(input: string) {
 
 function parseStructuredAgentResponse(
   raw: string,
-): { responseText: string; actions: StructuredAgentAction[]; raw: string; ignoredReason?: string } {
+  requestId?: string,
+): { responseText: string; actions: StructuredAgentAction[]; raw: string; ignoredReason?: string; validationError?: ActionValidationError } {
   const trimmed = raw.trim();
 
   if (trimmed.startsWith('```')) {
@@ -486,44 +504,255 @@ function parseStructuredAgentResponse(
     const parsed = JSON.parse(trimmed);
     const responseText = typeof parsed?.response === 'string' ? parsed.response : raw;
 
-    if (parsed?.type !== ACTION_ENVELOPE_TYPE) {
-      return { responseText, actions: [], raw, ignoredReason: 'missing_agent_output_envelope' };
+    // Try to parse actions using canonical schema
+    const actionsResult = safeParseActions(parsed);
+    
+    if (!isActionParseSuccess(actionsResult)) {
+      const validationError = actionsResult.error;
+      logger.warn({
+        requestId,
+        reason: 'action_validation_failed',
+        error: validationError.message,
+        context: validationError.context,
+      }, '[kip.actions] failed to parse actions from agent response');
+      
+      // Fallback to legacy parsing for backward compatibility
+      if (parsed?.type !== ACTION_ENVELOPE_TYPE) {
+        return { responseText, actions: [], raw, ignoredReason: 'missing_agent_output_envelope', validationError };
+      }
+
+      const legacyActions = Array.isArray(parsed?.actions)
+        ? parsed.actions
+            .filter((action: any) => action && typeof action.type === 'string')
+            .map((action: any) => ({
+              type: action.type,
+              payload: action.payload ?? null,
+            }))
+        : [];
+
+      return { responseText, actions: legacyActions, raw, validationError };
     }
 
-    const actions = Array.isArray(parsed?.actions)
-      ? parsed.actions
-          .filter((action: any) => action && typeof action.type === 'string')
-          .map((action: any) => ({
-            type: action.type,
-            payload: action.payload ?? null,
-          }))
-      : [];
-
-    return { responseText, actions, raw };
-  } catch {
+    return { responseText, actions: actionsResult.actions, raw };
+  } catch (error) {
     return { responseText: raw, actions: [], raw, ignoredReason: 'invalid_json' };
   }
 }
 
-async function executeAgentActions(
+/**
+ * Build draft open URL
+ */
+function buildDraftOpenUrl(domainSlug: string, draftId: string): string {
+  const webOrigin = process.env.WEB_ORIGIN || process.env.NEXT_PUBLIC_WEB_ORIGIN || 'https://www.ke3p.com';
+  // Use relative URL if we can't determine origin reliably
+  if (!webOrigin || webOrigin.includes('localhost') || webOrigin.includes('127.0.0.1')) {
+    return `/d/${domainSlug}/agent?view=drafts&draftId=${draftId}`;
+  }
+  return `${webOrigin}/d/${domainSlug}/agent?view=drafts&draftId=${draftId}`;
+}
+
+/**
+ * Redact sensitive headers from log data
+ */
+function redactHeaders(headers: Record<string, unknown>): Record<string, unknown> {
+  const redacted = { ...headers };
+  const sensitiveKeys = ['authorization', 'cookie', 'x-api-key', 'x-auth-token'];
+  for (const key of sensitiveKeys) {
+    const lowerKey = key.toLowerCase();
+    for (const headerKey in redacted) {
+      if (headerKey.toLowerCase() === lowerKey && redacted[headerKey]) {
+        redacted[headerKey] = '[REDACTED]';
+      }
+    }
+  }
+  return redacted;
+}
+
+/**
+ * Get request ID from context or generate one
+ */
+function getRequestId(ctx: { requestId?: string }): string {
+  return ctx.requestId || randomUUID();
+}
+
+export async function executeAgentActions(
   actions: StructuredAgentAction[],
-  ctx: { domainId?: string | null; userId?: string; agentId?: string | null; allowlist: Set<string>; sessionId?: string | null },
+  ctx: { domainId?: string | null; domainSlug?: string | null; userId?: string; agentId?: string | null; allowlist: Set<string>; sessionId?: string | null; requestId?: string },
 ): Promise<{ results: ActionExecutionResult[]; failedMessage: string | null }> {
+  const requestId = getRequestId(ctx);
   const results: ActionExecutionResult[] = [];
-  if (!actions.length) return { results, failedMessage: null };
+  
+  if (!actions.length) {
+    logger.info({
+      requestId,
+      domainId: ctx.domainId,
+      userId: ctx.userId,
+      agentId: ctx.agentId,
+      sessionId: ctx.sessionId,
+      count: 0,
+    }, '[kip.actions] received: no actions');
+    return { results, failedMessage: null };
+  }
+
+  // Log received actions
+  const actionTypes = actions.map(a => a.type);
+  logger.info({
+    requestId,
+    domainId: ctx.domainId,
+    userId: ctx.userId,
+    agentId: ctx.agentId,
+    sessionId: ctx.sessionId,
+    count: actions.length,
+    types: actionTypes,
+  }, '[kip.actions] received');
+
+  // Validate actions using canonical schema - FAIL FAST on validation errors
+  let validatedActions: StructuredAgentAction[] = [];
+  try {
+    const validationResult = safeParseActions({ type: ACTION_ENVELOPE_TYPE, actions });
+    if (isActionParseSuccess(validationResult)) {
+      validatedActions = validationResult.actions;
+      logger.info({
+        requestId,
+        count: validatedActions.length,
+        types: validatedActions.map(a => a.type),
+      }, '[kip.actions] validated');
+    } else {
+      const validationError = validationResult.error;
+      logger.error({
+        requestId,
+        error: validationError.message,
+        context: validationError.context,
+        actions: actions.map(a => ({ type: a.type, hasPayload: !!a.payload })),
+      }, '[kip.actions] validation failed - failing fast');
+      
+      // Fail fast: return error results for all actions instead of continuing
+      const errorResults: ActionExecutionResult[] = actions.map((action) => ({
+        type: action.type,
+        status: 'error',
+        message: `Action validation failed: ${validationError.message}`,
+        errorCode: 'VALIDATION_ERROR',
+        data: undefined,
+      }));
+      
+      return { results: errorResults, failedMessage: validationError.message };
+    }
+  } catch (error) {
+    logger.error({
+      requestId,
+      error: error instanceof Error ? error.message : 'Unknown validation error',
+      actions: actions.map(a => ({ type: a.type, hasPayload: !!a.payload })),
+    }, '[kip.actions] validation error - failing fast');
+    
+    // Fail fast: return error results for all actions
+    const errorResults: ActionExecutionResult[] = actions.map((action) => ({
+      type: action.type,
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unknown validation error',
+      errorCode: 'VALIDATION_ERROR',
+      data: undefined,
+    }));
+    
+    return { results: errorResults, failedMessage: error instanceof Error ? error.message : 'Unknown validation error' };
+  }
+
+  // Check for core action handlers
+  const supportedActions = new Set([
+    'draft.create',
+    'draft.update',
+    'draft.delete',
+    'draft.list',
+    'draft.get',
+    'draft.read',
+    'draft.setActive',
+  ]);
+
+  for (const coreAction of CORE_ACTIONS) {
+    if (!supportedActions.has(coreAction)) {
+      const errorMsg = `[kip.actions] missing core handler ${coreAction}`;
+      logger.error({ requestId, coreAction }, errorMsg);
+      if (process.env.NODE_ENV !== 'production') {
+        throw new Error(errorMsg);
+      }
+    }
+  }
 
   await prisma.$transaction(async (tx) => {
-    for (const action of actions) {
-      const baseResult: ActionExecutionResult = { type: action.type, status: 'skipped' };
+    for (const action of validatedActions) {
+      const baseResult: ActionExecutionResult = { 
+        type: action.type, 
+        status: 'skipped',
+        message: 'Action skipped',
+      };
+      const actionStartTime = Date.now();
 
       try {
+        // Log executing action
+        const payloadIdentifiers: Record<string, unknown> = {};
+        if (action.payload) {
+          if (typeof action.payload === 'object' && action.payload !== null) {
+            const p = action.payload as Record<string, unknown>;
+            if (p.id) payloadIdentifiers.id = p.id;
+            if (p.draftId) payloadIdentifiers.draftId = p.draftId;
+            if (p.key) payloadIdentifiers.key = p.key;
+            if (p.kind) payloadIdentifiers.kind = p.kind;
+          }
+        }
+
+        logger.info({
+          requestId,
+          actionType: action.type,
+          ...payloadIdentifiers,
+        }, '[kip.actions] executing');
+
         if (!ctx.allowlist.has(action.type)) {
-          results.push({ ...baseResult, status: 'error', message: 'Action not allowed by policy' });
+          const reason = 'Action not allowed by policy';
+          logger.warn({
+            requestId,
+            actionType: action.type,
+            reason,
+          }, '[kip.actions] rejected');
+          results.push({ 
+            type: action.type,
+            status: 'error', 
+            message: reason, 
+            errorCode: 'NOT_ALLOWED',
+          });
           continue;
         }
 
         if (!ctx.domainId || !ctx.userId) {
-          results.push({ ...baseResult, status: 'error', message: 'Missing domain or user context' });
+          const reason = 'Missing domain or user context';
+          logger.warn({
+            requestId,
+            actionType: action.type,
+            reason,
+            hasDomainId: !!ctx.domainId,
+            hasUserId: !!ctx.userId,
+          }, '[kip.actions] rejected');
+          results.push({ 
+            type: action.type,
+            status: 'error', 
+            message: reason, 
+            errorCode: 'MISSING_CONTEXT',
+          });
+          continue;
+        }
+
+        // Runtime check for core actions
+        if (action.type === 'draft.create' && !supportedActions.has('draft.create')) {
+          const reason = 'ACTION_HANDLER_MISSING';
+          logger.error({
+            requestId,
+            actionType: action.type,
+            reason,
+          }, '[kip.actions] rejected: core handler missing');
+          results.push({ 
+            type: action.type,
+            status: 'error', 
+            message: reason, 
+            errorCode: 'UNHANDLED_ACTION',
+          });
           continue;
         }
 
@@ -533,56 +762,106 @@ async function executeAgentActions(
             const title = typeof payload.title === 'string' && payload.title.trim() ? payload.title.trim() : 'Draft';
             const kind = typeof payload.kind === 'string' && payload.kind.trim() ? payload.kind.trim() : 'draft';
             const status = typeof payload.status === 'string' && payload.status.trim() ? payload.status.trim() : 'draft';
-            const summary = typeof payload.summary === 'string' ? payload.summary : null;
+            // Normalize summary: null/undefined -> empty string, empty string stays empty string (per requirement)
+            const summary = normalizeSummary(payload.summary);
             const spec = payload.spec ?? {};
 
-            let key = slugifyKey(payload.key || title || `draft-${Date.now()}`);
-            let created: any | null = null;
-            let attempts = 0;
+            const key = slugifyKey(payload.key || title || `draft-${Date.now()}`);
+            const now = new Date();
 
-            while (!created && attempts < 2) {
-              try {
-                created = await tx.kip_drafts.create({
-                  data: {
+            try {
+              const updateData: any = {
+                title,
+                summary,
+                status,
+                spec_json: spec,
+                updated_at: now,
+              };
+
+              // Only update agent_id if provided
+              if (ctx.agentId !== undefined) {
+                updateData.agent_id = ctx.agentId ?? null;
+              }
+
+              const draft = await tx.kip_drafts.upsert({
+                where: {
+                  domain_id_owner_id_kind_key: {
                     domain_id: ctx.domainId,
                     owner_id: ctx.userId,
-                    agent_id: ctx.agentId ?? null,
                     kind,
                     key,
-                    title,
-                    summary,
-                    status,
-                    spec_json: spec,
-                    updated_at: new Date(),
                   },
+                },
+                update: updateData,
+                create: {
+                  domain_id: ctx.domainId,
+                  owner_id: ctx.userId,
+                  agent_id: ctx.agentId ?? null,
+                  kind,
+                  key,
+                  title,
+                  summary,
+                  status,
+                  spec_json: spec,
+                  created_at: now,
+                  updated_at: now,
+                },
+              });
+
+              // Get domain slug for link generation if not provided
+              let domainSlug = ctx.domainSlug;
+              if (!domainSlug && ctx.domainId) {
+                const domain = await tx.domain.findUnique({
+                  where: { id: ctx.domainId },
+                  select: { slug: true },
                 });
-              } catch (error) {
-                if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-                  key = slugifyKey(`${key}-${Date.now()}`);
-                  attempts += 1;
-                  continue;
-                }
-                throw error;
+                domainSlug = domain?.slug || ctx.domainId;
               }
-            }
 
-            if (!created) {
-              results.push({ ...baseResult, status: 'error', message: 'Failed to create draft' });
-              break;
-            }
+              const durationMs = Date.now() - actionStartTime;
+              logger.info({
+                requestId,
+                actionType: action.type,
+                durationMs,
+                draftId: draft.id,
+                kind: draft.kind,
+                key: draft.key,
+              }, '[kip.actions] executed');
 
-            results.push({
-              type: action.type,
-              status: 'success',
-              data: {
-                id: created.id,
-                title: created.title,
-                kind: created.kind,
-                status: created.status,
-                key: created.key,
-                summary: created.summary,
-              },
-            });
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: 'Draft created successfully',
+                data: {
+                  entityIds: [draft.id],
+                  draft: {
+                    id: draft.id,
+                    title: draft.title,
+                    kind: draft.kind,
+                    key: draft.key,
+                  },
+                  links: domainSlug ? {
+                    open: buildDraftOpenUrl(domainSlug, draft.id),
+                  } : undefined,
+                },
+              });
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'Failed to create/update draft';
+              const durationMs = Date.now() - actionStartTime;
+              logger.error({
+                requestId,
+                actionType: action.type,
+                durationMs,
+                error: errorMessage,
+                actionSnippet: { type: action.type, hasPayload: !!action.payload },
+              }, '[kip.actions] rejected');
+              results.push({ 
+                type: action.type,
+                status: 'error', 
+                message: errorMessage, 
+                errorCode: 'EXECUTION_ERROR',
+              });
+            }
             break;
           }
           case 'draft.update': {
@@ -604,7 +883,12 @@ async function executeAgentActions(
             });
 
             if (!draft) {
-              results.push({ ...baseResult, status: 'error', message: 'Draft not found for update' });
+              results.push({ 
+                type: action.type,
+                status: 'error', 
+                message: 'Draft not found for update', 
+                errorCode: 'DRAFT_NOT_FOUND',
+              });
               break;
             }
 
@@ -619,16 +903,31 @@ async function executeAgentActions(
               },
             });
 
+            // Get domain slug for link generation
+            let domainSlug = ctx.domainSlug;
+            if (!domainSlug && ctx.domainId) {
+              const domain = await tx.domain.findUnique({
+                where: { id: ctx.domainId },
+                select: { slug: true },
+              });
+              domainSlug = domain?.slug || ctx.domainId;
+            }
+
             results.push({
               type: action.type,
               status: 'success',
+              message: 'Draft updated successfully',
               data: {
-                id: updated.id,
-                title: updated.title,
-                kind: updated.kind,
-                status: updated.status,
-                key: updated.key,
-                summary: updated.summary,
+                entityIds: [updated.id],
+                draft: {
+                  id: updated.id,
+                  title: updated.title,
+                  kind: updated.kind,
+                  key: updated.key,
+                },
+                links: domainSlug ? {
+                  open: buildDraftOpenUrl(domainSlug, updated.id),
+                } : undefined,
               },
             });
             break;
@@ -644,15 +943,80 @@ async function executeAgentActions(
             results.push({
               type: action.type,
               status: 'success',
-              data: drafts.map((draft) => ({
-                id: draft.id,
-                title: draft.title,
-                kind: draft.kind,
-                status: draft.status,
-                key: draft.key,
-                summary: draft.summary,
-                updatedAt: draft.updated_at,
-              })),
+              message: `Found ${drafts.length} draft(s)`,
+              data: {
+                entityIds: drafts.map(d => d.id),
+                drafts: drafts.map((draft) => ({
+                  id: draft.id,
+                  title: draft.title,
+                  kind: draft.kind,
+                  status: draft.status,
+                  key: draft.key,
+                  summary: draft.summary,
+                  updatedAt: draft.updated_at,
+                })),
+              },
+            });
+            break;
+          }
+          case 'draft.delete': {
+            const payload = action.payload ?? {};
+            const draftId = payload.draftId || payload.id;
+
+            if (!draftId) {
+              results.push({ 
+                type: action.type,
+                status: 'error', 
+                message: 'draftId is required for draft.delete',
+                errorCode: 'MISSING_DRAFT_ID',
+              });
+              break;
+            }
+
+            const draft = await tx.kip_drafts.findFirst({
+              where: {
+                id: draftId,
+                domain_id: ctx.domainId,
+                owner_id: ctx.userId,
+              },
+            });
+
+            if (!draft) {
+              results.push({ 
+                type: action.type,
+                status: 'error', 
+                message: 'Draft not found for delete',
+                errorCode: 'DRAFT_NOT_FOUND',
+              });
+              break;
+            }
+
+            await tx.kip_drafts.delete({
+              where: { id: draft.id },
+            });
+
+            const durationMs = Date.now() - actionStartTime;
+            logger.info({
+              requestId,
+              actionType: action.type,
+              durationMs,
+              draftId: draft.id,
+              title: draft.title,
+            }, '[kip.actions] executed');
+
+            results.push({
+              type: action.type,
+              status: 'success',
+              message: 'Draft deleted successfully',
+              data: {
+                entityIds: [draft.id],
+                draft: {
+                  id: draft.id,
+                  title: draft.title,
+                  kind: draft.kind,
+                  key: draft.key,
+                },
+              },
             });
             break;
           }
@@ -676,21 +1040,30 @@ async function executeAgentActions(
             });
 
             if (!draft) {
-              results.push({ ...baseResult, status: 'error', message: 'Draft not found' });
+              results.push({ 
+                type: action.type,
+                status: 'error', 
+                message: 'Draft not found', 
+                errorCode: 'DRAFT_NOT_FOUND',
+              });
               break;
             }
 
             results.push({
               type: action.type,
               status: 'success',
+              message: 'Draft retrieved successfully',
               data: {
-                id: draft.id,
-                title: draft.title,
-                kind: draft.kind,
-                status: draft.status,
-                key: draft.key,
-                summary: draft.summary,
+                entityIds: [draft.id],
+                draft: {
+                  id: draft.id,
+                  title: draft.title,
+                  kind: draft.kind,
+                  key: draft.key,
+                },
                 spec: draft.spec_json,
+                summary: draft.summary,
+                status: draft.status,
                 updatedAt: draft.updated_at,
               },
             });
@@ -702,7 +1075,12 @@ async function executeAgentActions(
             const sessionId = payload.sessionId || ctx.sessionId;
 
             if (!draftId || !sessionId) {
-              results.push({ ...baseResult, status: 'error', message: 'draftId and sessionId are required' });
+              results.push({ 
+                type: action.type,
+                status: 'error', 
+                message: 'draftId and sessionId are required', 
+                errorCode: 'MISSING_REQUIRED_FIELDS',
+              });
               break;
             }
 
@@ -715,7 +1093,12 @@ async function executeAgentActions(
             });
 
             if (!draft) {
-              results.push({ ...baseResult, status: 'error', message: 'Draft not found for setActive' });
+              results.push({ 
+                type: action.type,
+                status: 'error', 
+                message: 'Draft not found for setActive', 
+                errorCode: 'DRAFT_NOT_FOUND',
+              });
               break;
             }
 
@@ -733,30 +1116,94 @@ async function executeAgentActions(
             results.push({
               type: action.type,
               status: updated.count > 0 ? 'success' : 'error',
+              message: updated.count > 0 ? 'Draft set as active' : 'Session not updated',
+              errorCode: updated.count > 0 ? undefined : 'SESSION_UPDATE_FAILED',
               data: {
-                draftId: draft.id,
+                entityIds: [draft.id],
+                draft: {
+                  id: draft.id,
+                  title: draft.title,
+                  kind: draft.kind,
+                  key: draft.key,
+                },
                 sessionId,
                 active: updated.count > 0,
               },
-              message: updated.count > 0 ? undefined : 'Session not updated',
             });
             break;
           }
           default:
-            results.push({ ...baseResult, status: 'skipped', message: 'Unhandled action type' });
+            // Fail loud: if action is in allowlist/CORE_ACTIONS but no handler exists, return error
+            // If action is not allowed, return skipped (policy rejection)
+            const isAllowlisted = ctx.allowlist.has(action.type);
+            const isCoreAction = CORE_ACTIONS.includes(action.type as CoreActionType);
+            
+            if (isAllowlisted || isCoreAction) {
+              const errorReason = `Action type '${action.type}' is allowlisted but has no handler implementation`;
+              logger.error({
+                requestId,
+                actionType: action.type,
+                reason: errorReason,
+                isAllowlisted,
+                isCoreAction,
+              }, '[kip.actions] rejected: unhandled allowlisted action');
+              results.push({ 
+                type: action.type,
+                status: 'error', 
+                message: errorReason,
+                errorCode: 'UNHANDLED_ACTION',
+              });
+            } else {
+              const skipReason = 'Action not allowed by policy';
+              logger.warn({
+                requestId,
+                actionType: action.type,
+                reason: skipReason,
+              }, '[kip.actions] rejected: not allowed');
+              results.push({ 
+                type: action.type,
+                status: 'skipped', 
+                message: skipReason,
+                errorCode: 'NOT_ALLOWED',
+              });
+            }
             break;
         }
       } catch (error) {
+        const durationMs = Date.now() - actionStartTime;
+        const errorMessage = error instanceof Error ? error.message : 'Action failed';
+        logger.error({
+          requestId,
+          actionType: action.type,
+          durationMs,
+          error: errorMessage,
+          actionSnippet: { type: action.type, hasPayload: !!action.payload },
+        }, '[kip.actions] rejected');
         results.push({
           type: action.type,
           status: 'error',
-          message: error instanceof Error ? error.message : 'Action failed',
+          message: errorMessage,
+          errorCode: 'EXECUTION_ERROR',
         });
       }
     }
   });
 
   const failed = results.find((result) => result.status === 'error');
+  const summary = {
+    requestId,
+    total: results.length,
+    success: results.filter(r => r.status === 'success').length,
+    error: results.filter(r => r.status === 'error').length,
+    skipped: results.filter(r => r.status === 'skipped').length,
+  };
+  
+  if (failed) {
+    logger.warn(summary, '[kip.actions] execution completed with errors');
+  } else {
+    logger.info(summary, '[kip.actions] execution completed');
+  }
+
   return { results, failedMessage: failed?.message || null };
 }
 
@@ -1716,7 +2163,8 @@ export class KipAgentService {
           environment: options?.environment ?? null,
         });
 
-        const structured = parseStructuredAgentResponse(response);
+        const requestId = randomUUID();
+        const structured = parseStructuredAgentResponse(response, requestId);
         const allowActions = buildAllowedActions(options?.environment ?? null);
         const actionPack = options?.actionPack ?? buildActionPackFromAllowlist(allowActions);
 
@@ -1724,11 +2172,21 @@ export class KipAgentService {
         let actionResults: ActionExecutionResult[] = [];
 
         if (structured.ignoredReason) {
-          console.info('[kip/agents] structured response ignored', {
+          logger.info({
+            requestId,
             reason: structured.ignoredReason,
             agentId: agent.id,
             userId,
-          });
+          }, '[kip/agents] structured response ignored');
+        }
+
+        if (structured.validationError) {
+          logger.warn({
+            requestId,
+            agentId: agent.id,
+            userId,
+            validationError: structured.validationError.message,
+          }, '[kip/agents] action validation warning');
         }
 
         if (structured.actions.length) {
@@ -1741,10 +2199,12 @@ export class KipAgentService {
           } else {
             const execution = await executeAgentActions(structured.actions, {
               domainId: options?.domainId ?? null,
+              domainSlug: options?.domainSlug ?? null,
               userId,
               agentId: agent.id,
               allowlist: allowActions,
               sessionId: currentSessionId,
+              requestId,
             });
             actionResults = execution.results;
 

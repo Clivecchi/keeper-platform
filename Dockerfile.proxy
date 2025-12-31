@@ -43,3 +43,4 @@ EXPOSE 8080
 WORKDIR /app/apps/proxy
 CMD ["node", "dist/index.js"]
 
+

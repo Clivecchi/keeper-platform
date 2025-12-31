@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
-import { PaperAirplaneIcon, PlusIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon, PlusIcon, Cog6ToothIcon, TrashIcon, LinkIcon } from '@heroicons/react/24/outline';
 import { KeeperDashboardLayout } from '../../layouts/KeeperDashboardLayout';
 import {
   AgentModeState,
@@ -20,9 +20,69 @@ import { LinkedCard } from '../../components/props/LinkedCard';
 import type { LinkedCardProps } from '../../types/props';
 import { apiFetch, API_BASE } from '../../lib/api';
 import { SessionEditModal } from './SessionEditModal';
+import { ActionReceiptCard, type ActionReceipt } from '../../components/kip/ActionReceiptCard';
 
 type AgentBoardTab = 'dialogue' | 'drafts' | 'cockpit' | 'sessions';
 type DialogueMode = 'domain' | 'debug';
+
+/**
+ * Normalize action result from API format to standardized receipt format
+ */
+function normalizeActionReceipt(actionResult: {
+  type: string;
+  ok?: boolean;
+  status?: 'success' | 'error' | 'skipped';
+  message?: string;
+  errorCode?: string;
+  result?: {
+    draft?: { id: string; title: string; kind: string; key: string };
+    links?: { open: string };
+    entityIds?: string[];
+    message?: string;
+    [key: string]: unknown;
+  };
+  error?: { code?: string; message: string; details?: any };
+  data?: {
+    entityIds?: string[];
+    draft?: { id: string; title: string; kind: string; key: string };
+    links?: { open?: string; edit?: string };
+    [key: string]: unknown;
+  };
+}): ActionReceipt {
+  // If it's already in the standardized format (status field exists), return as-is
+  if (typeof actionResult.status === 'string') {
+    return {
+      type: actionResult.type,
+      status: actionResult.status,
+      message: actionResult.message || 'Action completed',
+      errorCode: actionResult.errorCode,
+      data: actionResult.data,
+    };
+  }
+
+  // Otherwise, normalize from the legacy format (ok/result/error)
+  if (actionResult.ok) {
+    return {
+      type: actionResult.type,
+      status: 'success',
+      message: actionResult.result?.message || 'Action completed successfully',
+      data: {
+        entityIds: actionResult.result?.entityIds,
+        draft: actionResult.result?.draft,
+        links: actionResult.result?.links,
+        ...(actionResult.result || {}),
+      },
+    };
+  } else {
+    return {
+      type: actionResult.type,
+      status: 'error',
+      message: actionResult.error?.message || 'Action failed',
+      errorCode: actionResult.error?.code,
+      data: actionResult.error?.details,
+    };
+  }
+}
 
 type DebugEntry = {
   id: string;
@@ -78,7 +138,18 @@ interface AgentDialogueMessage {
   content: string;
   createdAt: string;
   linkedCard?: LinkedCardProps;
+  actionResults?: Array<{
+    type: string;
+    ok: boolean;
+    result?: {
+      draft?: { id: string; title: string; kind: string; key: string };
+      links?: { open: string };
+      [key: string]: unknown;
+    };
+    error?: { code?: string; message: string; details?: any };
+  }>;
 }
+
 
 export interface KipAgentBoardProps {
   agentSlug?: string;
@@ -158,6 +229,19 @@ const DEFAULT_VEHICLE_KEEPER_TEMPLATE = {
     boards: [],
   },
 };
+
+/**
+ * Generate a unique draft key from a title
+ * Creates a URL-safe slug with a random suffix to ensure uniqueness
+ */
+function makeDraftKey(title: string): string {
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+  const suffix = Math.random().toString(36).slice(2, 8);
+  return `${slug || 'draft'}-${suffix}`;
+}
 
 type DomainBasics = { domainId: string | null; domainSlug: string | null };
 
@@ -395,6 +479,8 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const [draftSpecText, setDraftSpecText] = useState<string>('');
   const [draftJsonError, setDraftJsonError] = useState<string | null>(null);
   const [activeDraftSummary, setActiveDraftSummary] = useState<KipDraftSummary | null>(null);
+  const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
+  const [confirmDeleteDraftId, setConfirmDeleteDraftId] = useState<string | null>(null);
 
   const activeTab = (searchParams.get('view') as AgentBoardTab) ?? 'dialogue';
   const debugEnabled = dialogueMode === 'debug';
@@ -608,6 +694,16 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   }, [domainId, activeSessionId]);
 
   useEffect(() => {
+    // If draftId is in URL, activate drafts tab
+    const urlDraftId = searchParams.get('draftId');
+    if (urlDraftId && searchParams.get('view') !== 'drafts') {
+      const next = new URLSearchParams(searchParams);
+      next.set('view', 'drafts');
+      setSearchParams(next, { replace: true });
+      return;
+    }
+    
+    // Otherwise, default to dialogue if no view is set
     if (!searchParams.get('view')) {
       const next = new URLSearchParams(searchParams);
       next.set('view', 'dialogue');
@@ -622,10 +718,14 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
 
   useEffect(() => {
     if (activeTab !== 'drafts') return;
-    if (!selectedDraftId && drafts.length) {
+    // Check for draftId in URL params (deep link support)
+    const urlDraftId = searchParams.get('draftId');
+    if (urlDraftId) {
+      setSelectedDraftId(urlDraftId);
+    } else if (!selectedDraftId && drafts.length) {
       setSelectedDraftId(drafts[0].id);
     }
-  }, [activeTab, drafts, selectedDraftId]);
+  }, [activeTab, drafts, selectedDraftId, searchParams]);
 
   useEffect(() => {
     if (activeTab !== 'drafts' || !selectedDraftId) return;
@@ -645,13 +745,16 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     setIsCreatingDraft(true);
     setDraftsError(null);
     try {
-      const draft = await KipApi.createDraft(domainId, {
-        kind: 'keeper_template',
-        key: 'vehicle_keeper_template',
-        title: 'Vehicle Keeper Template',
-        summary: 'Vehicle template draft',
-        spec: DEFAULT_VEHICLE_KEEPER_TEMPLATE,
-      });
+      const title = 'Untitled Draft';
+      const payload = {
+        kind: 'development_journey',
+        key: makeDraftKey(title),
+        title,
+        summary: null,
+        spec: {},
+      };
+      
+      const draft = await KipApi.createDraft(domainId, payload);
       await refreshDrafts();
       setSelectedDraftId(draft.id);
       setDraftDetail(draft);
@@ -726,6 +829,39 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     } catch (err) {
       const message = formatApiError(err, 'Unable to clear active draft');
       setDraftsError(message);
+    }
+  };
+
+  const handleDeleteDraft = async (draftId: string) => {
+    if (!domainId) {
+      setDraftsError('Select a domain before deleting drafts.');
+      return;
+    }
+    setDeletingDraftId(draftId);
+    setDraftsError(null);
+    try {
+      await KipApi.deleteDraft(domainId, draftId);
+      
+      // If the deleted draft was selected, clear selection
+      if (selectedDraftId === draftId) {
+        setSelectedDraftId(null);
+        setDraftDetail(null);
+        setDraftSpecText('');
+      }
+      
+      // If the deleted draft was active, clear active draft
+      if (sessionActiveDraftId === draftId) {
+        setActiveDraftSummary(null);
+      }
+      
+      // Refresh the list
+      await refreshDrafts();
+    } catch (err) {
+      const message = formatApiError(err, 'Unable to delete draft');
+      setDraftsError(message);
+    } finally {
+      setDeletingDraftId(null);
+      setConfirmDeleteDraftId(null);
     }
   };
 
@@ -1112,12 +1248,49 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       const sessionIdFromResponse =
         (result as any)?.data?.data?.session_id || (result as any)?.session_id || null;
 
+      // Extract actionResults from response
+      const actionResults = (result as any)?.data?.data?.actions || (result as any)?.actionResults || undefined;
+
       if (!activeSessionId && sessionIdFromResponse) {
         const next = new URLSearchParams(searchParams);
         next.set('sessionId', sessionIdFromResponse);
         setSearchParams(next, { replace: true });
       } else {
         await fetchMessages(activeSessionId, { silent: true });
+        // If we have actionResults, attach them to the last agent message
+        if (actionResults && Array.isArray(actionResults) && actionResults.length > 0) {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const lastAgentMessageIndex = updated.findLastIndex((msg) => msg.role === 'agent');
+            if (lastAgentMessageIndex >= 0) {
+              updated[lastAgentMessageIndex] = {
+                ...updated[lastAgentMessageIndex],
+                actionResults,
+              };
+            }
+            return updated;
+          });
+
+          // Auto-refresh after successful draft mutations
+          const hasSuccessfulDraftMutation = actionResults.some((ar: any) => {
+            const normalized = normalizeActionReceipt(ar);
+            return (
+              normalized.status === 'success' &&
+              ['draft.create', 'draft.update', 'draft.delete', 'draft.setActive'].includes(normalized.type)
+            );
+          });
+
+          if (hasSuccessfulDraftMutation) {
+            // Refresh drafts and active draft state after mutations
+            try {
+              await refreshDrafts();
+              await refreshActiveDraft();
+            } catch (refreshErr) {
+              // Non-blocking: refresh failures shouldn't break the message flow
+              console.warn('[Kip] Failed to refresh drafts after mutation', refreshErr);
+            }
+          }
+        }
       }
       refreshSessions();
     } catch (err) {
@@ -1232,6 +1405,12 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                   messages={messages}
                   isSending={isSending}
                   error={messagesError}
+                  onOpenDraft={(draftId) => {
+                    const next = new URLSearchParams(searchParams);
+                    next.set('view', 'drafts');
+                    next.set('draftId', draftId);
+                    setSearchParams(next, { replace: false });
+                  }}
                 />
                 <form onSubmit={handleSendMessage} className="flex gap-3 pt-2">
                   <input
@@ -1340,6 +1519,15 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                             className="text-xs font-semibold text-gray-600 hover:underline disabled:text-gray-400"
                           >
                             Set Active
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteDraftId(draft.id)}
+                            disabled={deletingDraftId === draft.id}
+                            className="text-xs font-semibold text-red-600 hover:underline disabled:text-gray-400 flex items-center gap-1"
+                          >
+                            <TrashIcon className="h-3 w-3" />
+                            Delete
                           </button>
                         </div>
                       </div>
@@ -1463,6 +1651,115 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
               <p className="text-sm text-gray-500">Loading draft…</p>
             )}
           </FrameCard>
+          
+          {/* Debug: Last POST /kip/drafts request */}
+          {(() => {
+            const lastDraftPost = debugEntries
+              .filter((e) => e.method === 'POST' && e.url?.includes('/kip/drafts') && !e.url.includes('/kip/drafts/'))
+              .slice(-1)[0];
+            
+            if (!lastDraftPost && dialogueMode !== 'debug') return null;
+            
+            return (
+              <FrameCard
+                title="Debug: Last POST /kip/drafts"
+                subtitle="Request/response details for troubleshooting"
+              >
+                {lastDraftPost ? (
+                  <div className="space-y-3 text-xs">
+                    <div className="grid gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                      <div className="font-semibold text-gray-700">Request</div>
+                      <div className="space-y-1">
+                        <div>
+                          <span className="font-medium">Method:</span> {lastDraftPost.method}
+                        </div>
+                        <div>
+                          <span className="font-medium">URL:</span> {lastDraftPost.url}
+                        </div>
+                        <div>
+                          <span className="font-medium">Status:</span>{' '}
+                          <span className={lastDraftPost.status && lastDraftPost.status >= 400 ? 'text-red-600' : 'text-green-600'}>
+                            {lastDraftPost.status ?? 'pending'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-medium">Request ID:</span>{' '}
+                          {lastDraftPost.response?.headers?.['x-request-id'] ||
+                            lastDraftPost.response?.headers?.['x-railway-request-id'] ||
+                            'N/A'}
+                        </div>
+                        <div>
+                          <span className="font-medium">Duration:</span> {lastDraftPost.durationMs ?? 'N/A'}ms
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {lastDraftPost.request?.body && (
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                        <div className="mb-1 font-semibold text-gray-700">Request Payload</div>
+                        <pre className="max-h-32 overflow-auto rounded bg-white p-2 text-[10px]">
+                          {JSON.stringify(lastDraftPost.request.body, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                    
+                    {lastDraftPost.response?.body && (
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                        <div className="mb-1 font-semibold text-gray-700">Response Body</div>
+                        <pre className="max-h-32 overflow-auto rounded bg-white p-2 text-[10px]">
+                          {typeof lastDraftPost.response.body === 'string'
+                            ? lastDraftPost.response.body
+                            : JSON.stringify(lastDraftPost.response.body, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                    
+                    {lastDraftPost.error && (
+                      <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                        <div className="mb-1 font-semibold text-red-700">Error</div>
+                        <div className="text-red-600">{lastDraftPost.error.message}</div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No POST requests to /kip/drafts yet.</p>
+                )}
+              </FrameCard>
+            );
+          })()}
+          
+          {/* Delete Confirmation Dialog */}
+          {confirmDeleteDraftId && (() => {
+            const draftToDelete = drafts.find((d) => d.id === confirmDeleteDraftId);
+            return (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl max-w-md w-full mx-4">
+                  <h3 className="mb-2 text-lg font-semibold text-gray-900">Delete Draft</h3>
+                  <p className="mb-6 text-sm text-gray-600">
+                    Delete draft &quot;{draftToDelete?.title || 'Untitled'}&quot;? This can&apos;t be undone.
+                  </p>
+                  <div className="flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteDraftId(null)}
+                      disabled={deletingDraftId === confirmDeleteDraftId}
+                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => confirmDeleteDraftId && handleDeleteDraft(confirmDeleteDraftId)}
+                      disabled={deletingDraftId === confirmDeleteDraftId}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {deletingDraftId === confirmDeleteDraftId ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -1689,12 +1986,61 @@ const DialogueMetaInline: React.FC<{
   </div>
 );
 
+const DraftActionCard: React.FC<{
+  draft: { id: string; title: string; kind: string; key: string };
+  openUrl: string;
+  onOpen: () => void;
+}> = ({ draft, openUrl, onOpen }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(openUrl.startsWith('http') ? openUrl : `${window.location.origin}${openUrl}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy link', err);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-[#E6DED5] bg-[#FAF6F2] p-3">
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className="flex-1">
+          <p className="text-xs font-semibold text-gray-700">Draft saved</p>
+          <p className="mt-1 text-sm font-medium text-gray-900">{draft.title}</p>
+          <p className="mt-0.5 text-xs text-gray-500">{draft.kind} • {draft.key}</p>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex-1 rounded-lg bg-[#C96E59] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#B85D4A] transition-colors"
+        >
+          Open Draft
+        </button>
+        <button
+          type="button"
+          onClick={handleCopyLink}
+          className="flex items-center gap-1 rounded-lg border border-[#E6DED5] bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+          title="Copy link"
+        >
+          <LinkIcon className="h-3 w-3" />
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const DialogueMessageList: React.FC<{
   isLoading: boolean;
   messages: AgentDialogueMessage[];
   isSending: boolean;
   error: string | null;
-}> = ({ isLoading, messages, isSending, error }) => (
+  onOpenDraft?: (draftId: string) => void;
+}> = ({ isLoading, messages, isSending, error, onOpenDraft }) => (
   <div className="min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl bg-[#FAF6F2] px-4 py-4">
     {isLoading ? (
       <>
@@ -1726,6 +2072,20 @@ const DialogueMessageList: React.FC<{
             {message.linkedCard && (
               <div className="mt-3">
                 <LinkedCard {...message.linkedCard} variant="inline" />
+              </div>
+            )}
+            {message.actionResults && message.actionResults.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {message.actionResults.map((actionResult, idx) => {
+                  const receipt = normalizeActionReceipt(actionResult);
+                  return (
+                    <ActionReceiptCard
+                      key={idx}
+                      receipt={receipt}
+                      onOpenDraft={receipt.data?.draft?.id ? (draftId) => onOpenDraft?.(draftId) : undefined}
+                    />
+                  );
+                })}
               </div>
             )}
             <span

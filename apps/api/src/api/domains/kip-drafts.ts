@@ -2,9 +2,23 @@ import { Router, type Response } from 'express';
 import { PrismaClient } from '@keeper/database';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { z } from 'zod';
+import { logger } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
+import { normalizeSummary } from '../kip/actions/schema.js';
+
+/**
+ * Build draft open URL
+ */
+function buildDraftOpenUrl(domainSlug: string, draftId: string): string {
+  const webOrigin = process.env.WEB_ORIGIN || process.env.NEXT_PUBLIC_WEB_ORIGIN || 'https://www.ke3p.com';
+  // Use relative URL if we can't determine origin reliably
+  if (!webOrigin || webOrigin.includes('localhost') || webOrigin.includes('127.0.0.1')) {
+    return `/d/${domainSlug}/agent?view=drafts&draftId=${draftId}`;
+  }
+  return `${webOrigin}/d/${domainSlug}/agent?view=drafts&draftId=${draftId}`;
+}
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -15,14 +29,18 @@ const createDraftSchema = z.object({
   kind: z.string().min(1, 'kind is required'),
   key: z.string().min(1, 'key is required'),
   title: z.string().min(1, 'title is required'),
-  summary: z.string().optional(),
+  summary: z.string().nullable().optional(),
   spec: z.record(z.any()).optional(),
   agentId: z.string().uuid().optional(),
-});
+}).transform((data) => ({
+  ...data,
+  // Normalize summary: null/undefined -> empty string (not null)
+  summary: normalizeSummary(data.summary),
+}));
 
 const updateDraftSchema = z.object({
   title: z.string().min(1).optional(),
-  summary: z.string().optional(),
+  summary: z.string().optional().nullable(),
   status: draftStatusEnum.optional(),
   spec: z.record(z.any()).optional(),
 });
@@ -77,11 +95,15 @@ router.get(
         orderBy: { updated_at: 'desc' },
       });
 
-      return res.json({
-        drafts: drafts.map(mapDraftSummary),
+      const mappedDrafts = drafts.map(mapDraftSummary);
+      
+      logger.info({ domainId, count: mappedDrafts.length }, 'kip drafts list ok');
+      
+      return res.status(200).json({
+        drafts: mappedDrafts,
       });
     } catch (error) {
-      console.error('[domains:kip-drafts:list:error]', error);
+      logger.error({ err: error, domainId: req.params.domainId }, 'kip drafts list failed');
       return res.status(500).json({ error: 'FAILED_TO_LIST_DRAFTS' });
     }
   },
@@ -125,44 +147,89 @@ router.post(
   validationMiddleware(createDraftSchema),
   requireDomainWriteCompat,
   async (req: AuthenticatedRequest, res: Response) => {
+    const requestId = (req.headers['x-request-id'] || req.headers['x-railway-request-id'] || 'unknown') as string;
+    const domainId = req.params.domainId;
+    
     try {
       if (!req.user) {
-        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+        logger.error({ requestId, domainId }, 'kip drafts create: unauthenticated');
+        return res.status(401).json({ error: 'UNAUTHENTICATED', code: 'AUTH_REQUIRED', message: 'Authentication required' });
       }
 
-      const { domainId } = req.params;
+      const ownerId = req.user.id;
       const body = createDraftSchema.parse(req.body ?? {});
 
-      const draft = await prisma.kip_drafts.create({
-        data: {
+      if (!body.kind || !body.key || !body.title) {
+        logger.warn({ requestId, domainId, ownerId, body }, 'kip drafts create: invalid payload');
+        return res.status(400).json({ error: 'INVALID_DRAFT_PAYLOAD', code: 'INVALID_DRAFT_PAYLOAD', message: 'kind, key, and title are required' });
+      }
+
+      const now = new Date();
+
+      const updateData: any = {
+        title: body.title,
+        summary: body.summary || null, // Empty string becomes null in DB
+        status: 'draft',
+        spec_json: body.spec ?? {},
+        updated_at: now,
+      };
+
+      // Only update agent_id if provided
+      if (body.agentId !== undefined) {
+        updateData.agent_id = body.agentId ?? null;
+      }
+
+      const draft = await prisma.kip_drafts.upsert({
+        where: {
+          domain_id_owner_id_kind_key: {
+            domain_id: domainId,
+            owner_id: ownerId,
+            kind: body.kind,
+            key: body.key,
+          },
+        },
+        update: updateData,
+        create: {
           domain_id: domainId,
-          owner_id: req.user.id,
+          owner_id: ownerId,
           agent_id: body.agentId ?? null,
           kind: body.kind,
           key: body.key,
           title: body.title,
-          summary: body.summary ?? null,
+          summary: body.summary || null, // Empty string becomes null in DB
           status: 'draft',
           spec_json: body.spec ?? {},
-          updated_at: new Date(),
+          created_at: now,
+          updated_at: now,
         },
       });
 
-      return res.status(201).json({
+      // Get domain slug for link generation
+      const domain = await prisma.domain.findUnique({
+        where: { id: domainId },
+        select: { slug: true },
+      });
+      const domainSlug = domain?.slug || domainId;
+
+      logger.info({ requestId, domainId, ownerId, draftId: draft.id, kind: body.kind, key: body.key }, 'kip drafts create ok');
+
+      return res.status(200).json({
         draft: {
           ...draft,
           spec: draft.spec_json,
         },
+        links: {
+          open: buildDraftOpenUrl(domainSlug, draft.id),
+        },
       });
     } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
-        return res.status(409).json({
-          error: 'DRAFT_EXISTS',
-          message: 'Draft with the same kind/key already exists for this domain and owner.',
-        });
+      if (error instanceof z.ZodError) {
+        logger.warn({ requestId, domainId, err: error.errors }, 'kip drafts create: validation error');
+        return res.status(400).json({ error: 'INVALID_DRAFT_PAYLOAD', code: 'VALIDATION_ERROR', message: error.errors.map(e => e.message).join(', ') });
       }
-      console.error('[domains:kip-drafts:create:error]', error);
-      return res.status(500).json({ error: 'FAILED_TO_CREATE_DRAFT' });
+      
+      logger.error({ requestId, domainId, err: error, userId: req.user?.id }, 'kip drafts create failed');
+      return res.status(500).json({ error: 'FAILED_TO_CREATE_DRAFT', code: 'INTERNAL_ERROR' });
     }
   },
 );
@@ -281,6 +348,51 @@ router.delete(
     } catch (error) {
       console.error('[domains:kip-drafts:clear-active:error]', error);
       return res.status(500).json({ error: 'FAILED_TO_CLEAR_ACTIVE_DRAFT' });
+    }
+  },
+);
+
+router.delete(
+  '/:domainId/kip/drafts/:draftId',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const requestId = (req.headers['x-request-id'] || req.headers['x-railway-request-id'] || 'unknown') as string;
+    const { domainId, draftId } = req.params;
+
+    try {
+      if (!req.user) {
+        logger.error({ requestId, domainId, draftId }, 'kip drafts delete: unauthenticated');
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+
+      const ownerId = req.user.id;
+
+      // Find the draft and verify ownership
+      const draft = await prisma.kip_drafts.findFirst({
+        where: {
+          id: draftId,
+          domain_id: domainId,
+          owner_id: ownerId,
+        },
+      });
+
+      if (!draft) {
+        logger.warn({ requestId, domainId, draftId, ownerId }, 'kip drafts delete: not found');
+        return res.status(404).json({ error: 'DRAFT_NOT_FOUND', message: 'Draft not found in this domain' });
+      }
+
+      // Delete the draft
+      await prisma.kip_drafts.delete({
+        where: { id: draftId },
+      });
+
+      logger.info({ requestId, domainId, draftId, ownerId, title: draft.title }, 'kip drafts delete ok');
+
+      return res.json({ success: true });
+    } catch (error) {
+      logger.error({ requestId, domainId, draftId, err: error, userId: req.user?.id }, 'kip drafts delete failed');
+      return res.status(500).json({ error: 'FAILED_TO_DELETE_DRAFT', code: 'INTERNAL_ERROR' });
     }
   },
 );
