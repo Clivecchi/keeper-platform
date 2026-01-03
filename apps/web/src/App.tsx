@@ -76,6 +76,7 @@ import LibraryPage from './pages/LibraryPage';
 
 // Demo Pages
 import BoardDemoPage from './pages/BoardDemoPage';
+import V0Page from './pages/V0Page';
 
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -204,6 +205,7 @@ const App: React.FC = () => {
       
       {/* Public Routes - No Authentication Required */}
       <Route element={<PublicLayout />}>
+        <Route path="/v0" element={<V0Page />} />
         <Route path="/" element={<LandingPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/debug" element={<DebugPage />} />

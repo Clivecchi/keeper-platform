@@ -66,8 +66,11 @@ export class DomainAuthManager {
     this.prisma = prisma;
     
     let redisInstance: Redis | null = null;
+    const disableRedis = process.env.DISABLE_REDIS === 'true';
     
-    if (redis) {
+    if (disableRedis) {
+      redisInstance = null;
+    } else if (redis) {
       redisInstance = redis;
     } else if (process.env.REDIS_URL) {
       try {

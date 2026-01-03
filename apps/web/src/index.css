@@ -1,25 +1,26 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: 0 0% 100%;  /* Pure white background */
-  --color-foreground: 0 0% 10%;   /* Very dark text */
-  --color-card: 0 0% 98%;
-  --color-card-foreground: 0 0% 15%;
-  --color-popover: 0 0% 100%;
-  --color-popover-foreground: 0 0% 10%;
-  --color-primary: 13 83% 21%;     /* Keep original primary color */
-  --color-primary-foreground: 0 0% 100%;
-  --color-secondary: 35 48% 87%;
-  --color-secondary-foreground: 15 72% 38%;
-  --color-muted: 37 24% 95%;       /* Very light muted background */
-  --color-muted-foreground: 13 100% 18%;
-  --color-accent: 35 63% 69%;
-  --color-accent-foreground: 25 80% 25%;
-  --color-destructive: 15 72% 38%;
-  --color-destructive-foreground: 33 97% 83%;
-  --color-border: 16 11% 80%;      /* Light border */
-  --color-input: 0 0% 98%;         /* Very light input background */
-  --color-ring: 33 97% 83%;
+  /* CSS var aliases to runtime theme engine */
+  --color-background: var(--theme-surface-page);
+  --color-foreground: var(--theme-ink-primary);
+  --color-card: var(--theme-surface-paper);
+  --color-card-foreground: var(--theme-ink-primary);
+  --color-popover: var(--theme-surface-elevated);
+  --color-popover-foreground: var(--theme-ink-primary);
+  --color-primary: var(--theme-border-strong);
+  --color-primary-foreground: var(--theme-surface-page);
+  --color-secondary: var(--theme-surface-panel);
+  --color-secondary-foreground: var(--theme-ink-secondary);
+  --color-muted: var(--theme-surface-panel);
+  --color-muted-foreground: var(--theme-ink-tertiary);
+  --color-accent: var(--theme-ink-secondary);
+  --color-accent-foreground: var(--theme-surface-page);
+  --color-destructive: var(--theme-border-strong);
+  --color-destructive-foreground: var(--theme-surface-page);
+  --color-border: var(--theme-border-soft);
+  --color-input: var(--theme-surface-paper);
+  --color-ring: var(--theme-focus-ring);
   
   /* Alias common theme colors */
   --color-button: var(--color-primary);

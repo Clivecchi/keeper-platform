@@ -21,11 +21,20 @@ export type FrameType =
   | 'preview'         // Compact content summary  
   | 'dialog'          // Guided agent interaction
   | 'config_panel'    // Form-based or tabbed settings
+  | 'config'          // Alias for config_panel
   | 'process_frame'   // Step-based UI flows
   | 'agent_preview'   // Agent identity/config visualization
   | 'code_snippet'    // Code viewer/editor (reserved for CodeBoard)
   | 'topics'          // Topic management for Agent Home Boards
-  | 'draft';          // Draft management for agents
+  | 'draft'           // Draft management for agents
+  | 'drafts'          // Alias used in registry
+  | 'activity'        // Activity feed (registry key)
+  | 'activity_feed'   // Template key for activity feed
+  | 'tasks'           // Tasks list (registry key)
+  | 'memory'          // Memory stream (registry key)
+  | 'directory'       // People directory (template key)
+  | 'collaboration'   // Collaboration hub (template key)
+  | 'dashboard';      // Progress/summary dashboard (template key)
 
 /**
  * Frame engagement modes that control interaction style

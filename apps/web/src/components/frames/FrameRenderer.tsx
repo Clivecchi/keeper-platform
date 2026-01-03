@@ -95,6 +95,27 @@ const DefaultFallbackFrame: React.FC<BaseFrameProps> = ({ frameInstance, classNa
   </div>
 );
 
+// Minimal placeholder for unmapped but declared frame types
+const PlaceholderFrame: React.FC<BaseFrameProps & { title: string; description?: string }> = ({
+  frameInstance,
+  className = '',
+  title,
+  description = 'Coming soon',
+}) => (
+  <div className={`bg-white border border-gray-200 rounded-lg p-6 shadow-sm ${className}`}>
+    <div className="flex items-center justify-between mb-3">
+      <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+      <span className="text-xs text-gray-500">Frame: {frameInstance.FrameConfig?.frameType}</span>
+    </div>
+    <p className="text-sm text-gray-600">{description}</p>
+    {frameInstance.props && (
+      <div className="mt-3 text-xs text-gray-500">
+        Props: {JSON.stringify(frameInstance.props).substring(0, 120)}{JSON.stringify(frameInstance.props).length > 120 ? '…' : ''}
+      </div>
+    )}
+  </div>
+);
+
 // =============================================================================
 // LOADING COMPONENT
 // =============================================================================
@@ -145,7 +166,7 @@ export const FrameRenderer: React.FC<FrameRendererProps> = ({
   animationPreset = 'fade',
 }) => {
   // Determine frame type from config or default to 'preview'
-  const frameType: FrameType = frameInstance.FrameConfig?.frameType || 'preview';
+  const frameType: FrameType = (frameInstance.FrameConfig?.frameType as FrameType) || 'preview';
   
   // Check for domain-specific frames first
   let FrameComponent: any = null;
@@ -219,17 +240,31 @@ export const FrameRenderer: React.FC<FrameRendererProps> = ({
       preview: PreviewFrame,
       dialog: DialogFrame,
       config_panel: ConfigPanelFrame,
+      config: ConfigPanelFrame, // alias
       process_frame: ProcessFrame,
       agent_preview: AgentPreviewFrame,
       code_snippet: CodeSnippetFrame,
       topics: TopicsFrame,
       draft: DraftFrame,
+      drafts: DraftFrame, // alias
+      activity: ActivityFeedFrame,
+      activity_feed: ActivityFeedFrame,
+      directory: PeopleOverviewFrame,
+      collaboration: CollaborationNetworkFrame,
+      dashboard: (props) => <PlaceholderFrame {...props} title="Dashboard" description="A lightweight dashboard placeholder" />,
     } as any;
     FrameComponent = legacyMap[frameType];
   }
 
   // If no component found, use fallback
   if (!FrameComponent) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[FrameRenderer] Unknown frameType encountered', {
+        frameType: frameInstance.FrameConfig?.frameType,
+        frameId: frameInstance.id,
+        entityType: (frameInstance as any)?.entityType
+      });
+    }
     return (
       <FallbackComponent
         frameInstance={frameInstance}

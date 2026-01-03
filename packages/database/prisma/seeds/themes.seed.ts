@@ -94,6 +94,28 @@ async function main() {
       inspired_by: 'Vintage music venues and late-night creativity',
       default_mode: 'dark',
       tags: ['dark', 'vintage', 'creative', 'bold']
+    },
+    {
+      slug: 'diary-paper',
+      label: 'Diary Paper',
+      palette: {
+        primary: '#8B5A3C',
+        secondary: '#E3C5B5',
+        accent: '#A6785A',
+        background: '#FAF7F2',
+        surface: '#FFFDF8',
+        text: '#2E1A12',
+        muted: '#9A8477'
+      },
+      style: {
+        borderRadius: '6px',
+        fontFamily: 'serif',
+        spacing: 'comfortable'
+      },
+      source_image: null,
+      inspired_by: 'Ruled diary paper with warm ink',
+      default_mode: 'light',
+      tags: ['diary', 'paper', 'warm', 'ink']
     }
   ];
 

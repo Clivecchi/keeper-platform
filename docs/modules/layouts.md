@@ -49,3 +49,6 @@ Layout components that provide consistent page shells and navigation structures 
 - Rounded cards with soft shadows
 - Large typography with comfortable spacing
 
+### 2026-01-02 - PublicLayout spacing + V0 moment placement
+- Set public container padding to 7px for compact spacing.
+- Allow `/v0?frame=moment` to render outside the container while keeping the container as a sibling for layout consistency.

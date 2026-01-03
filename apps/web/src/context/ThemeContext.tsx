@@ -18,6 +18,29 @@ const KEEPER_CLASSIC_FALLBACK: Theme = {
 
 type ThemeMode = 'light' | 'dark';
 
+type CanonicalTokenKey =
+  | 'surface-page'
+  | 'surface-paper'
+  | 'surface-panel'
+  | 'surface-elevated'
+  | 'ink-primary'
+  | 'ink-secondary'
+  | 'ink-tertiary'
+  | 'ink-placeholder'
+  | 'line-hairline'
+  | 'line-ruled'
+  | 'border-soft'
+  | 'border-strong'
+  | 'shadow-soft'
+  | 'focus-ring'
+  | 'hover-surface'
+  | 'press-surface'
+  | 'radius-sheet'
+  | 'space-framePadding'
+  | 'space-sheetPadding';
+
+type CanonicalTokens = Record<CanonicalTokenKey, string>;
+
 interface ThemeContextType {
   theme: Theme | null;
   mode: ThemeMode;
@@ -29,6 +52,53 @@ interface ThemeProviderProps {
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+const CANONICAL_DEFAULTS: CanonicalTokens = {
+  'surface-page': '0 0% 100%',
+  'surface-paper': '0 0% 100% / 0.94',
+  'surface-panel': '0 0% 98%',
+  'surface-elevated': '0 0% 100%',
+  'ink-primary': '25 10% 18%',
+  'ink-secondary': '25 8% 35%',
+  'ink-tertiary': '25 6% 45%',
+  'ink-placeholder': '0 0% 50%',
+  'line-hairline': '25 10% 30%',
+  'line-ruled': '0 0% 50% / 0.06',
+  'border-soft': '0 0% 70% / 0.45',
+  'border-strong': '25 20% 30%',
+  'shadow-soft': '0 10px 28px rgba(0,0,0,0.05)',
+  'focus-ring': '33 97% 83%',
+  'hover-surface': '0 0% 0% / 0.03',
+  'press-surface': '0 0% 0% / 0.06',
+  'radius-sheet': '4px',
+  'space-framePadding': '7px',
+  'space-sheetPadding': '24px',
+};
+
+function toCanonical(tokens: ThemeTokens | null | undefined): CanonicalTokens {
+  const t = tokens || ({} as ThemeTokens);
+  return {
+    'surface-page': t.background || CANONICAL_DEFAULTS['surface-page'],
+    'surface-paper': t.card || t.background || CANONICAL_DEFAULTS['surface-paper'],
+    'surface-panel': t.popover || t.card || CANONICAL_DEFAULTS['surface-panel'],
+    'surface-elevated': t.popover || t.card || CANONICAL_DEFAULTS['surface-elevated'],
+    'ink-primary': t.foreground || CANONICAL_DEFAULTS['ink-primary'],
+    'ink-secondary': t.secondaryForeground || t.mutedForeground || CANONICAL_DEFAULTS['ink-secondary'],
+    'ink-tertiary': t.mutedForeground || t.secondaryForeground || CANONICAL_DEFAULTS['ink-tertiary'],
+    'ink-placeholder': t.mutedForeground || CANONICAL_DEFAULTS['ink-placeholder'],
+    'line-hairline': t.border || CANONICAL_DEFAULTS['line-hairline'],
+    'line-ruled': t.muted || CANONICAL_DEFAULTS['line-ruled'],
+    'border-soft': t.border || CANONICAL_DEFAULTS['border-soft'],
+    'border-strong': t.primary || t.foreground || CANONICAL_DEFAULTS['border-strong'],
+    'shadow-soft': CANONICAL_DEFAULTS['shadow-soft'],
+    'focus-ring': t.ring || t.accent || CANONICAL_DEFAULTS['focus-ring'],
+    'hover-surface': CANONICAL_DEFAULTS['hover-surface'],
+    'press-surface': CANONICAL_DEFAULTS['press-surface'],
+    'radius-sheet': CANONICAL_DEFAULTS['radius-sheet'],
+    'space-framePadding': CANONICAL_DEFAULTS['space-framePadding'],
+    'space-sheetPadding': CANONICAL_DEFAULTS['space-sheetPadding'],
+  };
+}
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const { isAuthenticated, token } = useAuth();
@@ -87,14 +157,21 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
     // Apply the correct token set (light or dark)
     const tokensToApply: ThemeTokens = theme[mode];
+    const canonicalTokens = toCanonical(tokensToApply);
 
     // Guard against undefined or null tokensToApply
     if (tokensToApply && typeof tokensToApply === 'object') {
+      // Legacy export (keeps compatibility with existing consumers)
       Object.entries(tokensToApply).forEach(([key, value]) => {
         const cssVarName = `--theme-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
         root.style.setProperty(cssVarName, value);
       });
     }
+
+    // Canonical token export
+    Object.entries(canonicalTokens).forEach(([key, value]) => {
+      root.style.setProperty(`--theme-${key}`, value);
+    });
     
     // Add/remove 'dark' class for any vanilla CSS overrides
     root.classList.remove('light', 'dark');

@@ -62,6 +62,8 @@ import TemplateChooser from '../../components/studio/TemplateChooser';
 import { type TemplateId } from '../../boards/templates';
 import { lazy, Suspense } from 'react';
 
+const HIDDEN_TEMPLATE_NAMES = new Set(['inventory', 'quote', 'story']);
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -815,16 +817,18 @@ const BoardStudioPage: React.FC<BoardStudioPageProps> = ({ domainId }) => {
       const response = await apiFetch(`/api/board-data/templates`);
       
       if (response.success && response.data) {
-        const templateList = response.data.map((tpl: any) => ({
-          id: tpl.id,
-          name: tpl.name,
-          type: 'template',
-          description: tpl.description || 'Design Board Template',
-          lastModified: new Date(tpl.updatedAt),
-          frameCount: tpl._count?.frames || tpl.frameCount || 0,
-          engagementMode: tpl.behavior?.defaultPattern || 'canvas',
-          isTemplate: true
-        }));
+        const templateList = response.data
+          .map((tpl: any) => ({
+            id: tpl.id,
+            name: tpl.name,
+            type: 'template',
+            description: tpl.description || 'Design Board Template',
+            lastModified: new Date(tpl.updatedAt),
+            frameCount: tpl._count?.frames || tpl.frameCount || 0,
+            engagementMode: tpl.behavior?.defaultPattern || 'canvas',
+            isTemplate: true
+          }))
+          .filter((tpl: any) => !HIDDEN_TEMPLATE_NAMES.has((tpl.name || '').toLowerCase()));
         
         setTemplates(templateList);
         console.log('✅ [Design Boards] Loaded templates:', {
