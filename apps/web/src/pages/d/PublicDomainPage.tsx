@@ -41,7 +41,7 @@ export default function PublicDomainPage() {
   const { isAuthenticated, user, logout } = useAuth();
   const { isPresentation } = useWorldMode(); // Ensure we're in Presentation mode
   const [domainData, setDomainData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Start as false for immediate render
   const [error, setError] = useState<string | null>(null);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
 
@@ -54,35 +54,26 @@ export default function PublicDomainPage() {
 
   useEffect(() => {
     if (slug) {
-      loadDomain();
+      // Set fallback data immediately for instant render
+      const fallbackData = getDomainFallback(slug);
+      setDomainData(fallbackData);
+
+      // Optional: Try to load real domain data in background
+      loadDomainFromAPI(slug, fallbackData);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
-  async function loadDomain() {
-    setIsLoading(true);
-    setError(null);
-
+  async function loadDomainFromAPI(slug: string, fallbackData: any) {
     try {
-      // Use seeded fallback data (no API required)
-      const fallbackData = getDomainFallback(slug || 'default');
-      setDomainData(fallbackData);
-
-      // Optional: Try to load real domain data if API is available
-      try {
-        const response = await apiFetch(`/api/domains/by-slug/${slug}`);
-        if (response && response.id) {
-          setDomainData(response);
-        }
-      } catch (apiErr) {
-        // API not available or domain not found - use fallback
-        console.log('[PublicDomainPage] Using fallback data (API not available)');
+      const response = await apiFetch(`/api/domains/by-slug/${slug}`);
+      if (response && response.id) {
+        setDomainData(response);
+        console.log('[PublicDomainPage] Loaded real domain data');
       }
-    } catch (err) {
-      console.error('Error loading domain:', err);
-      setError('Domain not found');
-    } finally {
-      setIsLoading(false);
+    } catch (apiErr) {
+      // API not available or domain not found - keep fallback data
+      console.log('[PublicDomainPage] Using fallback data (API not available or failed)');
     }
   }
 
@@ -93,8 +84,8 @@ export default function PublicDomainPage() {
   };
 
   const handleEditInWorkshop = () => {
-    if (domainId) {
-      navigate(`/studio/domain/${domainId}/board-studio`);
+    if (domainData?.id) {
+      navigate(`/studio/domain/${domainData.id}/board-studio`);
     }
   };
 
@@ -123,18 +114,9 @@ export default function PublicDomainPage() {
     }
   }, [isPresentation]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading domain...</p>
-        </div>
-      </div>
-    );
-  }
+  // No loading screen - render immediately with fallback data
 
-  if (error || !domainId) {
+  if (error || !domainData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md p-6">

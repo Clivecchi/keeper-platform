@@ -7,12 +7,15 @@ import './lib/diagnostics';
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import { AppProviders } from './providers/AppProviders'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import './index.css'
 import './worlds/shared/world-mode.css'
 
 // AppProviders wraps all global providers (AuthGate, Router, Auth, Theme, etc.)
 createRoot(document.getElementById('root')!).render(
-  <AppProviders>
-    <App />
-  </AppProviders>
+  <ErrorBoundary>
+    <AppProviders>
+      <App />
+    </AppProviders>
+  </ErrorBoundary>
 );
