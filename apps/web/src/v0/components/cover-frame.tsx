@@ -33,39 +33,47 @@ export function CoverFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
     <StyleScope styleId={styleId}>
       <main
         className="min-h-screen text-foreground"
-        style={{ backgroundColor: "var(--v0-surface-page)", color: "var(--v0-ink-primary)" }}
+        style={{ backgroundColor: "var(--theme-surface-page)", color: "var(--theme-ink-primary)" }}
       >
-      <div className="mx-auto w-full max-w-5xl space-y-10" style={{ padding: COVER_CONSTANTS.pad }}>
+      <div className="mx-auto w-full max-w-5xl space-y-14" style={{ padding: COVER_CONSTANTS.pad }}>
         {/* Cover Frame header */}
         <header className="space-y-4" aria-label="Cover Frame">
           <p
             className="uppercase tracking-[0.42em] text-center"
-            style={{ fontSize: COVER_CONSTANTS.imprintSize, color: "var(--v0-ink-tertiary)" }}
+            style={{ fontSize: COVER_CONSTANTS.imprintSize, color: "var(--theme-ink-tertiary)" }}
           >
             {COVER_IMPRINT}
           </p>
           <div className="flex justify-center">
             <div
               className="h-px"
-              style={{ width: COVER_CONSTANTS.ruleWidth, backgroundColor: "var(--v0-line-hairline)" }}
+              style={{ width: COVER_CONSTANTS.ruleWidth, backgroundColor: "var(--theme-line-hairline)" }}
               aria-hidden
             />
           </div>
           <div className="space-y-3 text-center" style={{ gap: COVER_CONSTANTS.headerGap }}>
             <h1
               className="font-serif"
-              style={{ fontSize: COVER_CONSTANTS.titleSize, letterSpacing: "0.01em", color: "var(--v0-ink-primary)" }}
+              style={{ fontSize: COVER_CONSTANTS.titleSize, letterSpacing: "0.01em", color: "var(--theme-ink-primary)" }}
             >
               {COVER_TITLE}
             </h1>
             <p
               className="leading-relaxed max-w-2xl mx-auto"
-              style={{ fontSize: COVER_CONSTANTS.linerSize, color: "var(--v0-ink-secondary)" }}
+              style={{ fontSize: COVER_CONSTANTS.linerSize, color: "var(--theme-ink-secondary)" }}
             >
               {COVER_LINER}
             </p>
           </div>
         </header>
+
+        {/* Subtle decorative fold separator */}
+        <div className="flex justify-center" aria-hidden>
+          <div
+            className="w-16 h-px opacity-30"
+            style={{ backgroundColor: "var(--theme-line-hairline)" }}
+          />
+        </div>
 
         {/* Cover Lens sits beneath header, single-column */}
         <section aria-label="Cover Lens">

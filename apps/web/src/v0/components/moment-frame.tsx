@@ -24,17 +24,17 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
     <StyleScope styleId={styleId}>
       <main
         className="relative min-h-screen text-foreground flex flex-col"
-        style={{ backgroundColor: "var(--v0-surface-page)", color: "var(--v0-ink-primary)", borderWidth: "1px", borderColor: "rgba(214, 214, 214, 1)" }}
+        style={{ backgroundColor: "var(--theme-surface-page)", color: "var(--theme-ink-primary)", borderWidth: "1px", borderColor: "rgba(214, 214, 214, 1)" }}
       >
       {/* Content wrapper with constrained width */}
       <div className="max-w-[860px] w-full mx-auto px-4 pt-3 pb-4 flex-1 flex flex-col">
         {/* Header with Moment Diary and Close button */}
         <div className="flex items-start justify-between mb-3">
           <div className="space-y-1">
-          <span className="block text-[11px] tracking-[0.22em] uppercase" style={{ color: "var(--v0-ink-tertiary)" }}>
+          <span className="block text-[11px] tracking-[0.22em] uppercase" style={{ color: "var(--theme-ink-tertiary)" }}>
             Moment Diary
           </span>
-          <span className="block text-[12px]" style={{ color: "var(--v0-ink-secondary)" }}>
+          <span className="block text-[12px]" style={{ color: "var(--theme-ink-secondary)" }}>
               {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
             </span>
           </div>
@@ -58,10 +58,10 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
             <div
               className="relative rounded-sm border bg-white/92 overflow-hidden flex flex-col"
               style={{
-                backgroundColor: "var(--v0-surface-paper)",
-                borderColor: "var(--v0-border-soft)",
-                boxShadow: "var(--v0-shadow-soft)",
-                color: "var(--v0-ink-primary)",
+                backgroundColor: "var(--theme-surface-paper)",
+                borderColor: "var(--theme-border-soft)",
+                boxShadow: "var(--theme-shadow-soft)",
+                color: "var(--theme-ink-primary)",
                 backgroundImage:
                   "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.6) 0, transparent 45%), radial-gradient(circle at 80% 10%, rgba(255,255,255,0.35) 0, transparent 40%)",
               }}
@@ -71,7 +71,7 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
               style={
                 {
                   "--moment-line-step": `${lineHeight}px`,
-                  "--moment-rule-color": "var(--v0-line-ruled)",
+                  "--moment-rule-color": "var(--theme-line-ruled)",
                   backgroundImage: styleId === 'diary-paper'
                     ? `repeating-linear-gradient(0deg, transparent, transparent calc(var(--moment-line-step) - 1px), var(--moment-rule-color) calc(var(--moment-line-step) - 1px), var(--moment-rule-color) var(--moment-line-step))`
                     : undefined,
@@ -83,7 +83,7 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Begin writing…"
-                className="w-full h-full min-h-[520px] bg-transparent outline-none resize-none px-6 md:px-8 pb-10 text-[15.5px] text-[var(--v0-ink-primary)] placeholder:text-[var(--v0-ink-placeholder)] border border-white"
+                className="w-full h-full min-h-[520px] bg-transparent outline-none resize-none px-6 md:px-8 pb-10 text-[15.5px] text-[var(--theme-ink-primary)] placeholder:text-[var(--theme-ink-placeholder)] border border-white"
                 style={{
                   lineHeight: "var(--moment-line-step)",
                   paddingTop: "calc(var(--moment-line-step) / 2)",
@@ -102,7 +102,7 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
               }}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--v0-ink-tertiary)" }}>
+                <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--theme-ink-tertiary)" }}>
                   <span>kept</span>
                   <span className="text-[9px] opacity-60">(0)</span>
                 </div>
@@ -111,10 +111,10 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
                     type="button"
                     className="inline-flex items-center justify-center rounded-full border px-2 py-1 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80"
                     style={{
-                      borderColor: "var(--v0-border-soft)",
-                      color: "var(--v0-ink-tertiary)",
-                      backgroundColor: "var(--v0-surface-paper)",
-                      boxShadow: "var(--v0-shadow-soft)",
+                      borderColor: "var(--theme-border-soft)",
+                      color: "var(--theme-ink-tertiary)",
+                      backgroundColor: "var(--theme-surface-paper)",
+                      boxShadow: "var(--theme-shadow-soft)",
                     }}
                     aria-label="Access Keeper platform"
                   >
@@ -124,10 +124,10 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
                     type="button"
                     className="inline-flex items-center justify-center rounded-full border p-1 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80"
                     style={{
-                      borderColor: "var(--v0-border-soft)",
-                      color: "var(--v0-ink-tertiary)",
-                      backgroundColor: "var(--v0-surface-paper)",
-                      boxShadow: "var(--v0-shadow-soft)",
+                      borderColor: "var(--theme-border-soft)",
+                      color: "var(--theme-ink-tertiary)",
+                      backgroundColor: "var(--theme-surface-paper)",
+                      boxShadow: "var(--theme-shadow-soft)",
                     }}
                     aria-label="Upload media"
                   >
@@ -139,14 +139,14 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
 
             <div
               className="flex flex-col items-end gap-2 px-6 md:px-8 py-4 text-[11px]"
-              style={{ color: "var(--v0-ink-tertiary)", borderTop: `1px solid rgba(210, 174, 162, 1)`, backgroundColor: "rgba(240, 240, 240, 1)" }}
+              style={{ color: "var(--theme-ink-tertiary)", borderTop: `1px solid rgba(210, 174, 162, 1)`, backgroundColor: "rgba(240, 240, 240, 1)" }}
             >
               <span
                 className="rounded-full px-4 py-2"
                 style={{
-                  backgroundColor: "var(--v0-surface-paper)",
-                  color: "var(--v0-ink-secondary)",
-                  boxShadow: "var(--v0-shadow-soft)",
+                  backgroundColor: "var(--theme-surface-paper)",
+                  color: "var(--theme-ink-secondary)",
+                  boxShadow: "var(--theme-shadow-soft)",
                 }}
               >
                 {content.trim().length ? `${content.trim().split(/\s+/).filter(Boolean).length} words kept` : "0 words kept"}
@@ -154,9 +154,9 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
               <span
                 className="rounded-full px-4 py-2"
                 style={{
-                  backgroundColor: "var(--v0-surface-paper)",
-                  color: "var(--v0-ink-tertiary)",
-                  boxShadow: "var(--v0-shadow-soft)",
+                  backgroundColor: "var(--theme-surface-paper)",
+                  color: "var(--theme-ink-tertiary)",
+                  boxShadow: "var(--theme-shadow-soft)",
                 }}
               >
                 {momentCopy.preserved}
@@ -166,10 +166,10 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
                 onClick={() => setIsKipOpen(!isKipOpen)}
                 className="inline-flex items-center justify-center rounded-full border p-1 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80"
                 style={{
-                  borderColor: "var(--v0-border-soft)",
-                  color: "var(--v0-ink-tertiary)",
-                  backgroundColor: "var(--v0-surface-paper)",
-                  boxShadow: "var(--v0-shadow-soft)",
+                  borderColor: "var(--theme-border-soft)",
+                  color: "var(--theme-ink-tertiary)",
+                  backgroundColor: "var(--theme-surface-paper)",
+                  boxShadow: "var(--theme-shadow-soft)",
                 }}
                 aria-label="Kip companion"
               >
@@ -195,14 +195,14 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
           <div
             className="absolute bottom-20 right-6 z-50 w-64 p-4 rounded-md border shadow-lg"
             style={{
-              backgroundColor: "var(--v0-surface-paper)",
-              borderColor: "var(--v0-border-soft)",
-              boxShadow: "var(--v0-shadow-soft)",
-              color: "var(--v0-ink-primary)",
+              backgroundColor: "var(--theme-surface-paper)",
+              borderColor: "var(--theme-border-soft)",
+              boxShadow: "var(--theme-shadow-soft)",
+              color: "var(--theme-ink-primary)",
             }}
           >
             <div className="flex items-start justify-between mb-2">
-              <span className="text-sm font-medium" style={{ color: "var(--v0-ink-secondary)" }}>
+              <span className="text-sm font-medium" style={{ color: "var(--theme-ink-secondary)" }}>
                 Kip Companion
               </span>
               <button
@@ -214,7 +214,7 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
                 <X className="w-3 h-3" strokeWidth={1.5} />
               </button>
             </div>
-            <p className="text-xs" style={{ color: "var(--v0-ink-tertiary)" }}>
+            <p className="text-xs" style={{ color: "var(--theme-ink-tertiary)" }}>
               {momentCopy.kipPlaceholder}
             </p>
           </div>

@@ -29,6 +29,13 @@ export const Navbar: React.FC = () => {
               {/* Dropdown menu */}
               <div className="absolute right-0 mt-2 w-48 bg-background rounded-md shadow-lg border border-border py-1 z-50">
                 <NavLink
+                  to="/v0/style"
+                  className="block px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Style Editor
+                </NavLink>
+                <NavLink
                   to="/login"
                   className="block px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
                   onClick={() => setIsMenuOpen(false)}

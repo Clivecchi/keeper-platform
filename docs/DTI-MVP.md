@@ -48,7 +48,7 @@ DTI is complete when **all** of the following are true:
    * sacred writing space is preserved
    * close/return paths are consistent and functional
 3. Platform navbar is present and consistent, including **Login** under the menu/dropdown
-4. A single **Visual Skin engine** exists and applies predictably (even if visually basic)
+4. A single **Visual Style engine** exists and applies predictably (even if visually basic)
 5. Agent presence is:
 
    * small
@@ -68,7 +68,7 @@ Work may transition from DTI to MVP when:
 2. First-time users can orient without explanation
 3. Visual presentation is calm, ordered, and cohesive (not final, but trustworthy)
 4. Frame templates and props can be modified without page redesign
-5. Visual Skins are clearly scoped and understood (platform vs surface)
+5. Visual Styles are clearly scoped and understood (platform vs surface)
 
 ---
 
@@ -80,14 +80,14 @@ Kip and Cursor must enforce this distinction.
 
 ---
 
-## Visual Skins (DTI Scope)
+## Visual Styles (DTI Scope)
 
-* Visual Skins are **surface-level presentation layers**
-* Skins are driven by **Lens-backed tokens**, but wiring may follow later
+* Visual Styles are **surface-level presentation layers**
+* Styles are driven by **Lens-backed tokens**, but wiring may follow later
 * Initial focus: Moment + Cover surfaces only
-* One starter skin is sufficient (e.g., "Diary Paper")
+* One starter style is sufficient (e.g., "Diary Paper")
 
-Skins must not alter structure during DTI.
+Styles must not alter structure during DTI.
 
 ---
 
