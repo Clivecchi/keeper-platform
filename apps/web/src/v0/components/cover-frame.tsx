@@ -2,6 +2,8 @@
 
 import type React from "react"
 import { CoverLens, type CoverLensItem } from "./cover-lens"
+import type { StyleId } from "../styles/styles"
+import { StyleScope } from "../styles/StyleScope"
 
 // Board Lens selects items; Cover Lens presents them; Cover Frame contains both.
 
@@ -26,38 +28,39 @@ const COVER_ITEMS: CoverLensItem[] = [
   { title: "Keeper", subtitle: "The vessel that holds it all", affordance: "→" },
 ]
 
-export function CoverFrame() {
+export function CoverFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
   return (
-    <main
-      className="min-h-screen text-foreground"
-      style={{ backgroundColor: "hsl(var(--theme-surface-page))", color: "hsl(var(--theme-ink-primary))" }}
-    >
+    <StyleScope styleId={styleId}>
+      <main
+        className="min-h-screen text-foreground"
+        style={{ backgroundColor: "var(--v0-surface-page)", color: "var(--v0-ink-primary)" }}
+      >
       <div className="mx-auto w-full max-w-5xl space-y-10" style={{ padding: COVER_CONSTANTS.pad }}>
         {/* Cover Frame header */}
         <header className="space-y-4" aria-label="Cover Frame">
           <p
             className="uppercase tracking-[0.42em] text-center"
-            style={{ fontSize: COVER_CONSTANTS.imprintSize, color: "hsl(var(--theme-ink-tertiary))" }}
+            style={{ fontSize: COVER_CONSTANTS.imprintSize, color: "var(--v0-ink-tertiary)" }}
           >
             {COVER_IMPRINT}
           </p>
           <div className="flex justify-center">
             <div
               className="h-px"
-              style={{ width: COVER_CONSTANTS.ruleWidth, backgroundColor: "hsl(var(--theme-line-hairline))" }}
+              style={{ width: COVER_CONSTANTS.ruleWidth, backgroundColor: "var(--v0-line-hairline)" }}
               aria-hidden
             />
           </div>
           <div className="space-y-3 text-center" style={{ gap: COVER_CONSTANTS.headerGap }}>
             <h1
               className="font-serif"
-              style={{ fontSize: COVER_CONSTANTS.titleSize, letterSpacing: "0.01em", color: "hsl(var(--theme-ink-primary))" }}
+              style={{ fontSize: COVER_CONSTANTS.titleSize, letterSpacing: "0.01em", color: "var(--v0-ink-primary)" }}
             >
               {COVER_TITLE}
             </h1>
             <p
               className="leading-relaxed max-w-2xl mx-auto"
-              style={{ fontSize: COVER_CONSTANTS.linerSize, color: "hsl(var(--theme-ink-secondary))" }}
+              style={{ fontSize: COVER_CONSTANTS.linerSize, color: "var(--v0-ink-secondary)" }}
             >
               {COVER_LINER}
             </p>
@@ -70,6 +73,7 @@ export function CoverFrame() {
         </section>
       </div>
     </main>
+    </StyleScope>
   )
 }
 

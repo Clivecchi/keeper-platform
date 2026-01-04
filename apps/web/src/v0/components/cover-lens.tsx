@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useNavigate } from "react-router-dom"
 
 // Board Lens selects items; Cover Lens presents them; Cover Frame contains both.
 export interface CoverLensItem {
@@ -17,6 +18,15 @@ interface CoverLensProps {
 }
 
 export function CoverLens({ items, showLabel = false, labelText }: CoverLensProps) {
+  const navigate = useNavigate()
+
+  const handleItemClick = (title: string) => {
+    if (title.toLowerCase() === "moments") {
+      navigate({ pathname: "/v0", search: "?frame=moment" })
+    }
+    // Other items don't have navigation yet - this is DTI scope
+  }
+
   return (
     <div className="space-y-3">
       {showLabel && (
@@ -34,10 +44,11 @@ export function CoverLens({ items, showLabel = false, labelText }: CoverLensProp
         }}
       >
         {items.map((item, idx) => (
-          <button
+            <button
             key={item.title + idx}
             type="button"
-            className="group w-full text-left px-4 md:px-5 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--theme-focus-ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--theme-surface-page))] transition-colors"
+            onClick={() => handleItemClick(item.title)}
+            className="group w-full text-left px-4 md:px-5 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--theme-focus-ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--theme-surface-page))] transition-colors hover:bg-[hsl(var(--theme-hover-surface))]"
             style={{
               color: "hsl(var(--theme-ink-primary))",
               borderColor: "hsl(var(--theme-border-soft))",
