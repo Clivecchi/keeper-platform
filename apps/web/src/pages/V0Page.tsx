@@ -8,13 +8,18 @@ export default function V0Page() {
   const [searchParams] = useSearchParams()
   const frame = (searchParams.get("frame") || "cover").toLowerCase()
   const styleId = (searchParams.get("style") || "neutral") as StyleId
+  const themeSlug = searchParams.get("theme")
+
+  // If theme parameter is provided, don't load any initial style overrides
+  // Theme takes precedence over style overrides
+  const initialStyleId = themeSlug ? undefined : styleId
 
   return (
-    <StyleOverrideProvider initialStyleId={styleId}>
+    <StyleOverrideProvider initialStyleId={initialStyleId}>
       {frame === "moment" ? (
-        <MomentFrame styleId={styleId} />
+        <MomentFrame styleId={styleId} themeSlug={themeSlug} />
       ) : (
-        <CoverFrame styleId={styleId} />
+        <CoverFrame styleId={styleId} themeSlug={themeSlug} />
       )}
     </StyleOverrideProvider>
   )

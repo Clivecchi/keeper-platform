@@ -1,0 +1,104 @@
+/**
+ * Static Theme Registry for V0 Development
+ *
+ * Provides theme tokens without requiring API server.
+ * Matches exactly the seeded database themes.
+ */
+
+export interface ThemeTokens {
+  [key: string]: string;
+}
+
+export interface ThemeData {
+  id: string;
+  slug: string;
+  label: string;
+  tokens: ThemeTokens;
+}
+
+/**
+ * Static theme registry - bundled with apps/web for dev independence
+ */
+const staticThemeRegistry: Record<string, ThemeData> = {
+  'diary-paper': {
+    id: 'diary-paper-id',
+    slug: 'diary-paper',
+    label: 'Diary Paper',
+    tokens: {
+      "surface.page": "hsl(35, 25%, 97%)",
+      "surface.paper": "hsl(35, 15%, 96%)",
+      "surface.panel": "hsl(35, 20%, 94%)",
+      "surface.elevated": "hsl(35, 15%, 98%)",
+      "ink.primary": "hsl(25, 30%, 25%)",
+      "ink.secondary": "hsl(25, 20%, 45%)",
+      "ink.tertiary": "hsl(25, 15%, 60%)",
+      "ink.placeholder": "hsl(25, 10%, 70%)",
+      "line.hairline": "hsl(25, 8%, 75%)",
+      "line.ruled": "hsl(25, 8%, 75%)",
+      "border.soft": "hsl(35, 10%, 85%)",
+      "border.strong": "hsl(35, 15%, 80%)",
+      "shadow.soft": "0 1px 3px hsl(35, 10%, 85%, 0.3), 0 1px 2px hsl(35, 10%, 85%, 0.2)",
+      "focus.ring": "hsl(25, 40%, 50%)",
+      "hover.surface": "hsl(35, 15%, 92%)",
+      "press.surface": "hsl(35, 20%, 88%)",
+      "radius.sheet": "6px",
+      "space.framePadding": "1.5rem",
+      "space.sheetPadding": "1rem"
+    }
+  },
+  'neutral': {
+    id: 'neutral-id',
+    slug: 'neutral',
+    label: 'Neutral',
+    tokens: {
+      "surface.page": "hsl(0, 0%, 100%)",
+      "surface.paper": "hsl(0, 0%, 98%)",
+      "surface.panel": "hsl(0, 0%, 96%)",
+      "surface.elevated": "hsl(0, 0%, 100%)",
+      "ink.primary": "hsl(0, 0%, 9%)",
+      "ink.secondary": "hsl(0, 0%, 45%)",
+      "ink.tertiary": "hsl(0, 0%, 60%)",
+      "ink.placeholder": "hsl(0, 0%, 65%)",
+      "line.hairline": "hsl(0, 0%, 85%)",
+      "line.ruled": "hsl(0, 0%, 85%)",
+      "border.soft": "hsl(0, 0%, 90%)",
+      "border.strong": "hsl(0, 0%, 80%)",
+      "shadow.soft": "0 1px 3px hsl(0, 0%, 0%, 0.1), 0 1px 2px hsl(0, 0%, 0%, 0.06)",
+      "focus.ring": "hsl(221, 83%, 53%)",
+      "hover.surface": "hsl(0, 0%, 94%)",
+      "press.surface": "hsl(0, 0%, 92%)",
+      "radius.sheet": "6px",
+      "space.framePadding": "1.5rem",
+      "space.sheetPadding": "1rem"
+    }
+  }
+};
+
+/**
+ * Get theme tokens by slug from static registry
+ */
+export function getThemeTokensBySlug(slug: string): ThemeTokens | null {
+  const theme = staticThemeRegistry[slug];
+  return theme ? theme.tokens : null;
+}
+
+/**
+ * Get full theme data by slug from static registry
+ */
+export function getThemeBySlug(slug: string): ThemeData | null {
+  return staticThemeRegistry[slug] || null;
+}
+
+/**
+ * List all available themes in static registry
+ */
+export function listAvailableThemes(): ThemeData[] {
+  return Object.values(staticThemeRegistry);
+}
+
+/**
+ * Check if a theme slug exists in static registry
+ */
+export function hasTheme(slug: string): boolean {
+  return slug in staticThemeRegistry;
+}

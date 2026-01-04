@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useNavigate } from "react-router-dom"
 import { CoverLens, type CoverLensItem } from "./cover-lens"
 import type { StyleId } from "../styles/styles"
 import { StyleScope } from "../styles/StyleScope"
@@ -8,9 +9,6 @@ import { StyleScope } from "../styles/StyleScope"
 // Board Lens selects items; Cover Lens presents them; Cover Frame contains both.
 
 const COVER_IMPRINT = "KE3P"
-const COVER_TITLE = "Life Keeper"
-const COVER_LINER =
-  "A quiet cover for the keeper’s story—turn the page to the routes below to continue the journey."
 
 const COVER_CONSTANTS = {
   pad: "clamp(1.5rem, 5vw, 3.25rem)",
@@ -21,16 +19,56 @@ const COVER_CONSTANTS = {
   ruleWidth: "3.25rem",
 }
 
-const COVER_ITEMS: CoverLensItem[] = [
-  { title: "Moments", subtitle: "Captured pages, diary-first", affordance: "→" },
-  { title: "Journeys", subtitle: "Connected arcs and threads", affordance: "→" },
-  { title: "Paths", subtitle: "Waypoints with intent", affordance: "→" },
-  { title: "Keeper", subtitle: "The vessel that holds it all", affordance: "→" },
-]
+interface DomainData {
+  name: string;
+  slug: string;
+  description?: string;
+}
 
-export function CoverFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
+export function CoverFrame({
+  styleId = 'neutral',
+  themeSlug,
+  domainData
+}: {
+  styleId?: StyleId,
+  themeSlug?: string | null,
+  domainData?: DomainData
+}) {
+  const navigate = useNavigate();
+
+  // Dynamic cover content based on domain
+  const coverTitle = domainData?.name || "Welcome to Keeper";
+  const coverLiner = domainData?.description || "A quiet space for your thoughts and memories";
+
+  // Create navigation items for this domain
+  const coverItems: CoverLensItem[] = [
+    {
+      title: "Write a Moment",
+      subtitle: "Capture your thoughts in a beautiful diary entry",
+      affordance: "→",
+      onClick: () => navigate(`?frame=moment&theme=${themeSlug || 'diary-paper'}`)
+    },
+    {
+      title: "Explore Journeys",
+      subtitle: "Follow connected stories and experiences",
+      affordance: "→",
+      onClick: () => navigate(`/d/${domainData?.slug || 'default'}/journeys`)
+    },
+    {
+      title: "View Keepers",
+      subtitle: "Discover memory vessels and collections",
+      affordance: "→",
+      onClick: () => navigate(`/d/${domainData?.slug || 'default'}/keepers`)
+    },
+    {
+      title: "Browse Domain",
+      subtitle: "See all content in this space",
+      affordance: "→",
+      onClick: () => navigate(`/d/${domainData?.slug || 'default'}/feed`)
+    },
+  ];
   return (
-    <StyleScope styleId={styleId}>
+    <StyleScope styleId={styleId} themeSlug={themeSlug}>
       <main
         className="min-h-screen text-foreground"
         style={{ backgroundColor: "var(--theme-surface-page)", color: "var(--theme-ink-primary)" }}
@@ -56,13 +94,13 @@ export function CoverFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
               className="font-serif"
               style={{ fontSize: COVER_CONSTANTS.titleSize, letterSpacing: "0.01em", color: "var(--theme-ink-primary)" }}
             >
-              {COVER_TITLE}
+              {coverTitle}
             </h1>
             <p
               className="leading-relaxed max-w-2xl mx-auto"
               style={{ fontSize: COVER_CONSTANTS.linerSize, color: "var(--theme-ink-secondary)" }}
             >
-              {COVER_LINER}
+              {coverLiner}
             </p>
           </div>
         </header>
@@ -77,7 +115,7 @@ export function CoverFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
 
         {/* Cover Lens sits beneath header, single-column */}
         <section aria-label="Cover Lens">
-          <CoverLens items={COVER_ITEMS} />
+          <CoverLens items={coverItems} />
         </section>
       </div>
     </main>

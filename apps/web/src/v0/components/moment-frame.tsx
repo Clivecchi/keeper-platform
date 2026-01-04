@@ -13,7 +13,9 @@ const momentCopy = {
   kipPlaceholder: "Kip will assist here.",
 }
 
-export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
+export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug }: { styleId?: StyleId, themeSlug?: string | null, domainSlug?: string }) {
+  // Determine if we should show ruled lines (diary-paper theme or style)
+  const shouldShowRuledLines = themeSlug === 'diary-paper' || styleId === 'diary-paper'
   const navigate = useNavigate()
   const [content, setContent] = useState("")
   const [isKipOpen, setIsKipOpen] = useState(false)
@@ -21,7 +23,7 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
   const lineHeight = 32 // px, keep in sync with ruled lines via --moment-line-step
 
   return (
-    <StyleScope styleId={styleId}>
+    <StyleScope styleId={styleId} themeSlug={themeSlug}>
       <main
         className="relative min-h-screen text-foreground flex flex-col"
         style={{ backgroundColor: "var(--theme-surface-page)", color: "var(--theme-ink-primary)", borderWidth: "1px", borderColor: "rgba(214, 214, 214, 1)" }}
@@ -42,7 +44,7 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
             <button
               type="button"
               aria-label="Close moment"
-              onClick={() => navigate({ pathname: "/v0", search: "?frame=cover" })}
+              onClick={() => navigate(`/d/${domainSlug || 'default'}`)}
               className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/60 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm"
             >
               <X className="w-4 h-4" strokeWidth={1.25} />
@@ -71,9 +73,8 @@ export function MomentFrame({ styleId = 'neutral' }: { styleId?: StyleId }) {
               style={
                 {
                   "--moment-line-step": `${lineHeight}px`,
-                  "--moment-rule-color": "var(--theme-line-ruled)",
-                  backgroundImage: styleId === 'diary-paper'
-                    ? `repeating-linear-gradient(0deg, transparent, transparent calc(var(--moment-line-step) - 1px), var(--moment-rule-color) calc(var(--moment-line-step) - 1px), var(--moment-rule-color) var(--moment-line-step))`
+                  backgroundImage: shouldShowRuledLines
+                    ? `repeating-linear-gradient(0deg, transparent, transparent calc(var(--moment-line-step) - 1px), var(--theme-line-ruled) calc(var(--moment-line-step) - 1px), var(--theme-line-ruled) var(--moment-line-step))`
                     : undefined,
                   backgroundAttachment: "local",
                 } as CSSProperties

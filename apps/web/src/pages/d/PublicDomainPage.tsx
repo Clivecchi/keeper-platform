@@ -15,24 +15,40 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Navigate, useLocation } from 'react-router-dom';
-import { DomainBoardRenderer } from '../../components/domain/DomainBoardRenderer';
+import { useParams, useNavigate, Navigate, useLocation, useSearchParams } from 'react-router-dom';
+import { CoverFrame } from '../../v0/components/cover-frame';
+import { MomentFrame } from '../../v0/components/moment-frame';
+import { StyleOverrideProvider } from '../../v0/styles/StyleOverrideProvider';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useWorldMode } from '../../context/WorldModeContext';
 
+// Simple seeded fallback data for domains (no API required)
+const getDomainFallback = (slug: string) => ({
+  id: `fallback-${slug}`,
+  name: slug === 'default' ? 'Welcome to Keeper' : slug.charAt(0).toUpperCase() + slug.slice(1),
+  slug: slug,
+  description: slug === 'default'
+    ? 'A quiet space for your thoughts and memories'
+    : `Exploring ${slug.charAt(0).toUpperCase() + slug.slice(1)}`
+});
+
 export default function PublicDomainPage() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, user, logout } = useAuth();
   const { isPresentation } = useWorldMode(); // Ensure we're in Presentation mode
-  const [domainId, setDomainId] = useState<string | null>(null);
+  const [domainData, setDomainData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
-  const [isDomainAdmin, setIsDomainAdmin] = useState(false);
-  
+
+  // Check frame parameter for V0 routing
+  const frame = searchParams.get("frame") || "cover";
+  const themeSlug = searchParams.get("theme") || "diary-paper";
+
   // Check if this is the /board route (always show board, even when authenticated)
   const isBoardRoute = location.pathname.includes('/board');
 
@@ -41,44 +57,26 @@ export default function PublicDomainPage() {
       loadDomain();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug, isAuthenticated, user]);
+  }, [slug]);
 
   async function loadDomain() {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Try to load domain by slug
-      const response = await apiFetch(`/api/domains/by-slug/${slug}`);
-      
-      if (response.error || !response.id) {
-        throw new Error('Domain not found');
-      }
+      // Use seeded fallback data (no API required)
+      const fallbackData = getDomainFallback(slug || 'default');
+      setDomainData(fallbackData);
 
-      setDomainId(response.id);
-
-      // If authenticated, fetch user permissions for this domain
-      if (isAuthenticated && user) {
-        try {
-          const boardDataResponse = await apiFetch(`/api/domains/${response.id}/board-data`);
-          if (boardDataResponse && boardDataResponse.userPermissions) {
-            const { canEdit, role } = boardDataResponse.userPermissions;
-            const isAdmin = canEdit || role === 'owner' || role === 'admin';
-            setIsDomainAdmin(isAdmin);
-            console.log('[PublicDomainPage] User permissions:', { 
-              user: user.email, 
-              role, 
-              canEdit, 
-              isDomainAdmin: isAdmin,
-              totalFrames: boardDataResponse.board?.frames?.length || 0
-            });
-          }
-        } catch (permErr) {
-          console.warn('Could not fetch user permissions:', permErr);
-          // Non-fatal: continue without admin status
+      // Optional: Try to load real domain data if API is available
+      try {
+        const response = await apiFetch(`/api/domains/by-slug/${slug}`);
+        if (response && response.id) {
+          setDomainData(response);
         }
-      } else {
-        console.log('[PublicDomainPage] Not authenticated or no user:', { isAuthenticated, hasUser: !!user });
+      } catch (apiErr) {
+        // API not available or domain not found - use fallback
+        console.log('[PublicDomainPage] Using fallback data (API not available)');
       }
     } catch (err) {
       console.error('Error loading domain:', err);
@@ -157,107 +155,95 @@ export default function PublicDomainPage() {
 
 
   // Debug logging for render
-  console.log('[PublicDomainPage] Rendering with state:', {
-    isAuthenticated,
-    isDomainAdmin,
-    isPresentation,
-    hasUser: !!user,
-    userEmail: user?.email,
-    domainId,
-    slug,
-    isBoardRoute
+  console.log('[PublicDomainPage] Rendering V0 with:', {
+    frame,
+    themeSlug,
+    domainData: domainData?.name,
+    isAuthenticated
   });
 
   // When authenticated and NOT on /board route, redirect to Feed (domain dashboard)
-  // The Feed page will be rendered by DomainFeedPage component
-  // If on /board route, always show the board (for "View Domain Board" link)
   if (isAuthenticated && slug && !isBoardRoute) {
     return <Navigate to={`/d/${slug}/feed`} replace />;
   }
 
-  // When on /board route (authenticated or not), or when not authenticated, render public board view
-  // This shows the full viewport board without dashboard shell
+  // Render V0 Cover or Moment based on frame parameter
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 presentation-mode">
-      {/* Full viewport board render with overlay header */}
-      <main className="min-h-screen relative">
-        {/* Overlay header - inside board container */}
-        <div className="absolute top-4 right-4 left-4 z-50 flex justify-between items-center gap-3 pointer-events-none">
-          {/* Left side - Back to Dashboard (when authenticated) */}
-          {isAuthenticated && slug && (
-            <div className="pointer-events-auto">
+    <div className="min-h-screen presentation-mode">
+      {/* Overlay header for auth controls */}
+      <div className="absolute top-4 right-4 z-50 pointer-events-auto">
+        <div className="flex gap-2">
+          {isAuthenticated ? (
+            <div className="relative">
               <button
-                onClick={() => navigate(`/d/${slug}/feed`)}
+                onClick={() => setShowAccountMenu(!showAccountMenu)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+              >
+                {user?.name || user?.email || 'Account'}
+                {user?.name && (
+                  <span className="w-6 h-6 bg-[#C96E59] text-white rounded-full flex items-center justify-center text-xs font-medium">
+                    {user.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </button>
+              {showAccountMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                  <button
+                    onClick={handleDashboard}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={handleLogin}
                 className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
               >
-                ← Back to Dashboard
+                Sign In
               </button>
-            </div>
+              <button
+                onClick={() => navigate('/register')}
+                className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+              >
+                Get Started
+              </button>
+            </>
           )}
-          
-          {/* Right side - Auth controls */}
-          <div className="flex gap-2 pointer-events-auto ml-auto">
-            {isAuthenticated ? (
-              <>
-                <div className="relative">
-                  <button
-                    onClick={() => setShowAccountMenu(!showAccountMenu)}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                  >
-                    {user?.name || user?.email || 'Account'}
-                    {user?.name && (
-                      <span className="w-6 h-6 bg-[#C96E59] text-white rounded-full flex items-center justify-center text-xs font-medium">
-                        {user.name.charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                  </button>
-                  {showAccountMenu && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                      <button
-                        onClick={handleDashboard}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        Dashboard
-                      </button>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        Sign Out
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={handleLogin}
-                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white/90 hover:bg-white/95 border border-gray-300 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => navigate('/register')}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                >
-                  Get Started
-                </button>
-              </>
-            )}
-          </div>
         </div>
-        
-        {/* Presentation mode - read-only rendering */}
-        <DomainBoardRenderer
-          domainId={domainId}
-          domainSlug={slug}
-          isEditMode={false}
-          onEngagementAction={handleEngagementAction}
-        />
-      </main>
+      </div>
 
-      {/* Minimal footer - reduced opacity */}
+      {/* Render V0 components */}
+      <StyleOverrideProvider initialStyleId={undefined}>
+        {frame === "moment" ? (
+          <MomentFrame
+            styleId="neutral"
+            themeSlug={themeSlug}
+            domainSlug={slug}
+          />
+        ) : (
+          <CoverFrame
+            styleId="neutral"
+            themeSlug={themeSlug}
+            domainData={domainData ? {
+              name: domainData.name,
+              slug: domainData.slug,
+              description: domainData.description
+            } : undefined}
+          />
+        )}
+      </StyleOverrideProvider>
+
+      {/* Minimal footer */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/60 backdrop-blur-sm border-t border-gray-200/50 py-2">
         <div className="max-w-7xl mx-auto px-6 text-center text-gray-400 text-xs">
           Powered by Keeper Platform

@@ -1177,6 +1177,7 @@ router.get('/board-studio-snapshot', optionalAuthMiddleware as any, async (req, 
       { path: '/api/keeper/keepers?userId=…', requiresAuth: true },
       { path: '/api/board-data', requiresAuth: true },
       { path: '/api/themes/:id', requiresAuth: false },
+      { path: '/api/themes/slug/:slug', requiresAuth: false },
     ];
 
     return res.json({
@@ -1267,6 +1268,7 @@ router.get('/all', optionalAuthMiddleware as any, async (req, res) => {
       { path: '/api/keeper/keepers?userId=…', requiresAuth: true },
       { path: '/api/board-data', requiresAuth: true },
       { path: '/api/themes/:id', requiresAuth: false },
+      { path: '/api/themes/slug/:slug', requiresAuth: false },
       { path: '/api/debug/*', requiresAuth: false },
     ];
 

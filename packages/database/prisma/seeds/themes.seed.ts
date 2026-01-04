@@ -108,14 +108,68 @@ async function main() {
         muted: '#9A8477'
       },
       style: {
-        borderRadius: '6px',
-        fontFamily: 'serif',
-        spacing: 'comfortable'
+        "surface.page": "hsl(35, 25%, 97%)",
+        "surface.paper": "hsl(35, 15%, 96%)",
+        "surface.panel": "hsl(35, 20%, 94%)",
+        "surface.elevated": "hsl(35, 15%, 98%)",
+        "ink.primary": "hsl(25, 30%, 25%)",
+        "ink.secondary": "hsl(25, 20%, 45%)",
+        "ink.tertiary": "hsl(25, 15%, 60%)",
+        "ink.placeholder": "hsl(25, 10%, 70%)",
+        "line.hairline": "hsl(25, 8%, 75%)",
+        "line.ruled": "hsl(25, 8%, 75%)",
+        "border.soft": "hsl(35, 10%, 85%)",
+        "border.strong": "hsl(35, 15%, 80%)",
+        "shadow.soft": "0 1px 3px hsl(35, 10%, 85%, 0.3), 0 1px 2px hsl(35, 10%, 85%, 0.2)",
+        "focus.ring": "hsl(25, 40%, 50%)",
+        "hover.surface": "hsl(35, 15%, 92%)",
+        "press.surface": "hsl(35, 20%, 88%)",
+        "radius.sheet": "6px",
+        "space.framePadding": "1.5rem",
+        "space.sheetPadding": "1rem"
       },
       source_image: null,
       inspired_by: 'Ruled diary paper with warm ink',
       default_mode: 'light',
-      tags: ['diary', 'paper', 'warm', 'ink']
+      tags: ['diary', 'paper', 'warm', 'ink', 'v0-style']
+    },
+    {
+      slug: 'neutral',
+      label: 'Neutral',
+      palette: {
+        primary: '#000000',
+        secondary: '#666666',
+        accent: '#999999',
+        background: '#FFFFFF',
+        surface: '#F8F8F8',
+        text: '#000000',
+        muted: '#666666'
+      },
+      style: {
+        "surface.page": "hsl(0, 0%, 100%)",
+        "surface.paper": "hsl(0, 0%, 98%)",
+        "surface.panel": "hsl(0, 0%, 96%)",
+        "surface.elevated": "hsl(0, 0%, 100%)",
+        "ink.primary": "hsl(0, 0%, 9%)",
+        "ink.secondary": "hsl(0, 0%, 45%)",
+        "ink.tertiary": "hsl(0, 0%, 60%)",
+        "ink.placeholder": "hsl(0, 0%, 65%)",
+        "line.hairline": "hsl(0, 0%, 85%)",
+        "line.ruled": "hsl(0, 0%, 85%)",
+        "border.soft": "hsl(0, 0%, 90%)",
+        "border.strong": "hsl(0, 0%, 80%)",
+        "shadow.soft": "0 1px 3px hsl(0, 0%, 0%, 0.1), 0 1px 2px hsl(0, 0%, 0%, 0.06)",
+        "focus.ring": "hsl(221, 83%, 53%)",
+        "hover.surface": "hsl(0, 0%, 94%)",
+        "press.surface": "hsl(0, 0%, 92%)",
+        "radius.sheet": "6px",
+        "space.framePadding": "1.5rem",
+        "space.sheetPadding": "1rem"
+      },
+      source_image: null,
+      inspired_by: 'Clean, neutral design for focused work',
+      default_mode: 'light',
+      tags: ['neutral', 'clean', 'minimal', 'v0-style']
     }
   ];
 

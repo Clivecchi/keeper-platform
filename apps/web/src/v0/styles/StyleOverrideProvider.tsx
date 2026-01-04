@@ -23,10 +23,13 @@ interface StyleOverrideProviderProps {
   initialStyleId?: string
 }
 
-export function StyleOverrideProvider({ children, initialStyleId = 'neutral' }: StyleOverrideProviderProps) {
-  const [currentStyleId, setCurrentStyleId] = useState<string>(initialStyleId)
+export function StyleOverrideProvider({ children, initialStyleId }: StyleOverrideProviderProps) {
+  const [currentStyleId, setCurrentStyleId] = useState<string>(initialStyleId || 'neutral')
   const [overrides, setOverrides] = useState<Partial<StyleTokens>>(() => {
-    // Load from localStorage on mount for the initial style
+    // Load from localStorage on mount for the initial style (if provided)
+    if (!initialStyleId) {
+      return {} // No overrides when using themes
+    }
     try {
       const stored = localStorage.getItem(getStorageKey(initialStyleId))
       return stored ? JSON.parse(stored) : {}

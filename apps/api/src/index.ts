@@ -18,6 +18,8 @@ import domainBoardDataRouter from './api/domains/board-data.js';
 import adminDomainRoutes from './api/admin/domains.js';
 // Import engagement routes
 import engagementExecuteRouter from './api/engagement/execute.js';
+// Import core actions for assertion
+import { CORE_ACTIONS } from './api/kip/actions/schema.js';
 import engagementTemplatesRouter from './api/engagement/templates.js';
 import adminRolesRoutes from './api/admin/roles.js';
 import adminUsersRoutes from './api/admin/users.js';
@@ -1084,7 +1086,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.get('/api/themes/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     const theme = await prisma.themes.findUnique({
       where: { id },
       select: {
@@ -1101,21 +1103,61 @@ app.get('/api/themes/:id', async (req: Request, res: Response) => {
     });
 
     if (!theme) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Theme not found' 
+      return res.status(404).json({
+        success: false,
+        error: 'Theme not found'
       });
     }
 
-    return res.json({ 
-      success: true, 
-      data: theme 
+    return res.json({
+      success: true,
+      data: theme
     });
   } catch (error) {
     console.error('Theme fetch error:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch theme' 
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch theme'
+    });
+  }
+});
+
+// Themes by slug route (for V0)
+app.get('/api/themes/slug/:slug', async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+
+    const theme = await prisma.themes.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        label: true,
+        slug: true,
+        palette: true,
+        style: true,
+        default_mode: true,
+        tags: true,
+        created_at: true,
+        updated_at: true
+      }
+    });
+
+    if (!theme) {
+      return res.status(404).json({
+        success: false,
+        error: 'Theme not found'
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: theme
+    });
+  } catch (error) {
+    console.error('Theme fetch by slug error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch theme'
     });
   }
 });
@@ -1267,7 +1309,7 @@ app.use('*', (req: Request, res: Response) => {
 
 // Assert core action handlers are available at startup
 function assertCoreActionHandlers() {
-  const { CORE_ACTIONS } = require('./api/kip/actions/schema.js');
+  // CORE_ACTIONS is now imported at the top of the file
   const supportedActions = new Set([
     'draft.create',
     'draft.update',

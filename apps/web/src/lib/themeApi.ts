@@ -133,4 +133,40 @@ export const fetchThemeById = async (themeId: string, token?: string): Promise<T
     console.error('An error occurred while fetching the theme:', error);
     return null;
   }
+};
+
+/**
+ * Fetches a theme by its slug for V0 usage. Returns V0-style tokens from the theme's style field.
+ * @param themeSlug The slug of the theme to fetch.
+ * @param token The JWT for authenticating the request (optional).
+ * @returns A Promise that resolves with V0-style tokens or null if an error occurs.
+ */
+export const fetchThemeTokensBySlug = async (themeSlug: string, token?: string): Promise<Record<string, string> | null> => {
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  try {
+    // Fetch theme by slug - assuming the API supports this
+    const data = await apiFetch(`/api/themes/slug/${themeSlug}`, { headers });
+
+    if (!data || !data.data) {
+      console.error(`API response for theme ${themeSlug} is missing the 'data' field.`);
+      return null;
+    }
+
+    const theme = data.data;
+
+    // Return the style field which contains V0 tokens
+    if (theme.style && typeof theme.style === 'object') {
+      return theme.style as Record<string, string>;
+    }
+
+    console.error(`Theme ${themeSlug} does not have V0-style tokens in style field.`);
+    return null;
+  } catch (error) {
+    console.error('An error occurred while fetching theme tokens:', error);
+    return null;
+  }
 }; 
