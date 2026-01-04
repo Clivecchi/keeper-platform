@@ -3,15 +3,13 @@
   "buildCommand": "cd apps/web && pnpm build",
   "outputDirectory": "apps/web/dist",
 
-  "routes": [
-    { "handle": "filesystem" },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://keeper-platform-production.up.railway.app/api/$1" },
 
-    { "src": "/api/(.*)", "dest": "https://keeper-platform-production.up.railway.app/api/$1" },
+    { "source": "/mcp", "destination": "https://keeper-platform-production.up.railway.app/mcp" },
+    { "source": "/mcp/(.*)", "destination": "https://keeper-platform-production.up.railway.app/mcp/$1" },
 
-    { "src": "/mcp$", "dest": "https://keeper-platform-production.up.railway.app/mcp" },
-    { "src": "/mcp/(.*)", "dest": "https://keeper-platform-production.up.railway.app/mcp/$1" },
-
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
 
   "redirects": [
