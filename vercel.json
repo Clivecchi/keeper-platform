@@ -2,11 +2,18 @@
   "installCommand": "pnpm install --frozen-lockfile --prod=false",
   "buildCommand": "cd apps/web && pnpm build",
   "outputDirectory": "apps/web/dist",
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://keeper-platform-production.up.railway.app/api/$1" },
-    { "source": "/mcp", "destination": "https://keeper-platform-production.up.railway.app/mcp" },
-    { "source": "/mcp/(.*)", "destination": "https://keeper-platform-production.up.railway.app/mcp/$1" }
+
+  "routes": [
+    { "handle": "filesystem" },
+
+    { "src": "/api/(.*)", "dest": "https://keeper-platform-production.up.railway.app/api/$1" },
+
+    { "src": "/mcp$", "dest": "https://keeper-platform-production.up.railway.app/mcp" },
+    { "src": "/mcp/(.*)", "dest": "https://keeper-platform-production.up.railway.app/mcp/$1" },
+
+    { "src": "/(.*)", "dest": "/index.html" }
   ],
+
   "redirects": [
     {
       "source": "/(.*)",
