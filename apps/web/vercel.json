@@ -1,4 +1,8 @@
 {
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "https://keeper-platform-production.up.railway.app/api/$1" },
     { "source": "/mcp/(.*)", "destination": "https://keeper-platform-production.up.railway.app/mcp/$1" }
