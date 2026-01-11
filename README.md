@@ -168,6 +168,9 @@ Production endpoints:
 - Web: `https://www.ke3p.com`
 - API: `https://api.ke3p.com` (sole production API entrypoint; `api.keeper.domains` disabled)
 
+Vercel Configuration:
+- See `docs/vercel-config.md` for deployment and SPA routing details
+
 Health & CORS checks:
 - Health:   `GET https://api.ke3p.com/api/health` (expect 200)
 - CORS OK:  `GET https://api.ke3p.com/api/test` with `Origin: https://www.ke3p.com` (expect 200)
