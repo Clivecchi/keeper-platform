@@ -48,6 +48,9 @@ router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response)
 
     const { themeSlug, title, body } = createDraftSchema.parse(req.body);
 
+    // Ensure themeSlug is never null/undefined - default to 'neutral'
+    const themeSlugSafe = themeSlug || 'neutral';
+
     // Get domain from middleware
     const domainId = (req as any).domain?.id;
 
@@ -90,7 +93,7 @@ router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response)
         title: moment.title,
         body: moment.narrative,
         status: 'draft', // Default status from schema
-        themeSlug: themeSlug,
+        themeSlug: themeSlugSafe,
         createdAt: moment.createdAt,
         updatedAt: moment.updatedAt,
       },
@@ -118,6 +121,10 @@ router.patch('/drafts/:id', authMiddlewareCompat, async (req: Request, res: Resp
   try {
     const { id } = req.params;
     const { title, body, themeSlug } = updateDraftSchema.parse(req.body);
+
+    // For update, we allow themeSlug to remain as is (can be undefined to not change it)
+    // Only apply 'neutral' default if explicitly setting to null
+    const themeSlugSafe = themeSlug === null ? 'neutral' : themeSlug;
 
     // First check if the moment exists and is a draft
     const existingMoment = await prisma.moment.findUnique({

@@ -28,13 +28,16 @@ export async function createDraftMoment(options: {
   title?: string;
   body?: string;
 }): Promise<DraftMoment> {
+  // Ensure themeSlug is never null - default to 'neutral'
+  const themeSlugSafe = options.themeSlug || 'neutral'
+
   const response = await fetch(`${API_BASE_URL}/api/v0/moments/drafts`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      themeSlug: options.themeSlug,
+      themeSlug: themeSlugSafe,
       title: options.title,
       body: options.body,
     }),

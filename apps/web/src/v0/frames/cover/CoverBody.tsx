@@ -23,20 +23,23 @@ export function CoverBody({ domainData, themeSlug, onNavigate }: CoverBodyProps)
   const handleWriteMoment = async () => {
     if (isCreatingDraft) return // Prevent double clicks
 
-    console.log('handleWriteMoment called, themeSlug:', themeSlug)
+    // Ensure themeSlug is never null - default to 'neutral'
+    const themeSlugSafe = themeSlug || 'neutral'
+
+    console.log('handleWriteMoment called, themeSlug:', themeSlug, 'themeSlugSafe:', themeSlugSafe)
     try {
       setIsCreatingDraft(true)
       console.log('Creating draft moment...')
-      const draft = await createDraftMoment({ themeSlug })
+      const draft = await createDraftMoment({ themeSlug: themeSlugSafe })
       console.log('Draft created:', draft)
       // Navigate to moment with the draft ID
-      const navUrl = `/v0?frame=moment&draftId=${draft.id}&theme=${themeSlug || 'neutral'}`
+      const navUrl = `/v0?frame=moment&draftId=${draft.id}&theme=${themeSlugSafe}`
       console.log('Navigating to:', navUrl)
       onNavigate?.(navUrl)
     } catch (error) {
       console.error('Failed to create draft moment:', error)
       // For now, just navigate without draft ID if API fails
-      const navUrl = `/v0?frame=moment&theme=${themeSlug || 'neutral'}`
+      const navUrl = `/v0?frame=moment&theme=${themeSlugSafe}`
       console.log('Fallback navigation to:', navUrl)
       onNavigate?.(navUrl)
     } finally {
