@@ -10,10 +10,33 @@ import { requireSuperAdmin } from '../../middleware/platformRoleMiddleware.js';
 const router: Router = Router();
 
 const prisma = new PrismaClient();
-const redis: RedisClientOrNoOp = getRedis();
-const cacheService = new DomainCacheService(redis);
-const domainService = new DomainService(prisma, cacheService);
-const permissionService = new DomainPermissionService(prisma, cacheService);
+
+// Lazy initialization - services will be created only when needed during request processing
+let cacheService: DomainCacheService | null = null;
+let domainService: DomainService | null = null;
+let permissionService: DomainPermissionService | null = null;
+
+function getDomainService(): DomainService {
+  if (!domainService) {
+    if (!cacheService) {
+      const redis = getRedis(); // This will now work since dotenv is loaded at startup
+      cacheService = new DomainCacheService(redis);
+    }
+    domainService = new DomainService(prisma, cacheService);
+  }
+  return domainService;
+}
+
+function getPermissionService(): DomainPermissionService {
+  if (!permissionService) {
+    if (!cacheService) {
+      const redis = getRedis(); // This will now work since dotenv is loaded at startup
+      cacheService = new DomainCacheService(redis);
+    }
+    permissionService = new DomainPermissionService(prisma, cacheService);
+  }
+  return permissionService;
+}
 
 // Validation schema for creating a domain (mirrors createDomainSchema in public routes)
 const createDomainSchema = z.object({
@@ -38,7 +61,7 @@ const createDomainSchema = z.object({
 router.get('/', authMiddlewareCompat, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { limit = 50, offset = 0, search } = req.query as Record<string, any>;
-    const { domains, total } = await domainService.searchDomains({ search: search as string | undefined }, Number(limit), Number(offset));
+    const { domains, total } = await getDomainService().searchDomains({ search: search as string | undefined }, Number(limit), Number(offset));
 
     // Fetch owner names in a single query for efficiency
     const ownerIds = Array.from(new Set(domains.map((d: any) => d.ownerId)));
@@ -102,7 +125,7 @@ router.get('/:id/members', authMiddlewareCompat, requireSuperAdmin, async (req: 
 router.post('/', authMiddlewareCompat, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const parsed = createDomainSchema.parse(req.body);
-    const domain = await domainService.createDomain({
+    const domain = await getDomainService().createDomain({
       ownerId: parsed.ownerId,
       name: parsed.name,
       slug: parsed.slug,
@@ -134,7 +157,7 @@ export default router;
  */
 router.put('/:id', authMiddlewareCompat, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
-    const domain = await domainService.updateDomain(req.params.id, req.body);
+    const domain = await getDomainService().updateDomain(req.params.id, req.body);
     return res.json({ domain });
   } catch (error: any) {
     console.error('[AdminDomains] update error', error);
@@ -148,11 +171,11 @@ router.put('/:id', authMiddlewareCompat, requireSuperAdmin, async (req: Request,
  */
 router.patch('/:id/suspend', authMiddlewareCompat, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
-    const current = await domainService.getDomainById(req.params.id);
+    const current = await getDomainService().getDomainById(req.params.id);
     if (!current) return res.status(404).json({ error: 'Domain not found' });
 
     const status = current.status === 'suspended' ? 'active' : 'suspended';
-    const domain = await domainService.updateDomain(req.params.id, { status });
+    const domain = await getDomainService().updateDomain(req.params.id, { status });
     return res.json({ domain });
   } catch (error: any) {
     console.error('[AdminDomains] suspend error', error);
@@ -166,7 +189,7 @@ router.patch('/:id/suspend', authMiddlewareCompat, requireSuperAdmin, async (req
  */
 router.delete('/:id', authMiddlewareCompat, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
-    await domainService.deleteDomain(req.params.id, (req as any).user.id);
+    await getDomainService().deleteDomain(req.params.id, (req as any).user.id);
     return res.json({ success: true });
   } catch (error: any) {
     console.error('[AdminDomains] delete error', error);
@@ -185,7 +208,7 @@ router.post('/:id/members', authMiddlewareCompat, requireSuperAdmin, async (req:
   try {
     const { userId, role, permissions, expiresAt } = req.body;
     if (!userId || !role) return res.status(400).json({ error: 'userId and role required' });
-    const permission = await permissionService.grantPermission({
+    const permission = await getPermissionService().grantPermission({
       domainId: req.params.id,
       userId,
       role,
@@ -206,7 +229,7 @@ router.post('/:id/members', authMiddlewareCompat, requireSuperAdmin, async (req:
  */
 router.delete('/:id/members/:userId', authMiddlewareCompat, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
-    await permissionService.revokePermission(req.params.id, req.params.userId, (req as any).user.id);
+    await getPermissionService().revokePermission(req.params.id, req.params.userId, (req as any).user.id);
     return res.json({ success: true });
   } catch (error: any) {
     console.error('[AdminDomains] revoke member error', error);
@@ -221,7 +244,7 @@ router.delete('/:id/members/:userId', authMiddlewareCompat, requireSuperAdmin, a
 router.patch('/:id/members/:userId', authMiddlewareCompat, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { role, permissions, expiresAt } = req.body;
-    const permission = await permissionService.updatePermission(req.params.id, req.params.userId, {
+    const permission = await getPermissionService().updatePermission(req.params.id, req.params.userId, {
       role,
       permissions,
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,

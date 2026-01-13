@@ -1,8 +1,10 @@
 "use client"
 
 import type { CSSProperties } from "react"
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { X } from "lucide-react"
+import { updateDraftMoment, keepMoment, getDraftMoment } from "../../api/v0Moments"
+import type { DraftMoment } from "../../api/v0Moments"
 
 // Config for footer messages - ready for styling later
 const momentCopy = {
@@ -15,15 +17,108 @@ interface MomentBodyProps {
   themeSlug?: string | null
   /** Domain slug for navigation */
   domainSlug?: string
+  /** Draft ID to load/edit */
+  draftId?: string
+  /** Callback when moment is kept */
+  onMomentKept?: () => void
 }
 
-export function MomentBody({ themeSlug, domainSlug }: MomentBodyProps) {
+export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: MomentBodyProps) {
   // Determine if we should show ruled lines (diary-paper theme or style)
   const shouldShowRuledLines = themeSlug === 'diary-paper'
   const [content, setContent] = useState("")
+  const [title, setTitle] = useState("")
   const [isKipOpen, setIsKipOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isKeeping, setIsKeeping] = useState(false)
+  const [isKept, setIsKept] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const lineHeight = 32 // px, keep in sync with ruled lines via --moment-line-step
+
+  // Debounce utility
+  function debounce<T extends (...args: any[]) => any>(
+    func: T,
+    wait: number
+  ): (...args: Parameters<T>) => void {
+    let timeout: NodeJS.Timeout
+    return (...args: Parameters<T>) => {
+      clearTimeout(timeout)
+      timeout = setTimeout(() => func(...args), wait)
+    }
+  }
+
+  // Load draft on mount if draftId is provided
+  useEffect(() => {
+    if (draftId) {
+      loadDraft(draftId)
+    }
+  }, [draftId])
+
+  const loadDraft = async (id: string) => {
+    try {
+      const draft = await getDraftMoment(id)
+      setContent(draft.body || "")
+      setTitle(draft.title || "")
+    } catch (error) {
+      console.error('Failed to load draft:', error)
+      // Continue with empty state if loading fails
+    }
+  }
+
+  // Debounced autosave
+  const debouncedSave = useCallback(
+    debounce(async (id: string, updates: { title?: string; body?: string }) => {
+      if (!id || isKept) return
+
+      try {
+        setIsSaving(true)
+        setSaveError(null)
+        await updateDraftMoment(id, updates)
+        setLastSaved(new Date())
+      } catch (error) {
+        console.error('Failed to save draft:', error)
+        setSaveError('Failed to save. Changes may be lost.')
+      } finally {
+        setIsSaving(false)
+      }
+    }, 800),
+    [isKept]
+  )
+
+  // Handle content changes with autosave
+  const handleContentChange = (newContent: string) => {
+    setContent(newContent)
+    if (draftId) {
+      debouncedSave(draftId, { body: newContent })
+    }
+  }
+
+  const handleTitleChange = (newTitle: string) => {
+    setTitle(newTitle)
+    if (draftId) {
+      debouncedSave(draftId, { title: newTitle })
+    }
+  }
+
+  // Handle keeping the moment
+  const handleKeep = async () => {
+    if (!draftId || isKeeping) return
+
+    try {
+      setIsKeeping(true)
+      await keepMoment(draftId)
+      setIsKept(true)
+      setLastSaved(new Date())
+      onMomentKept?.()
+    } catch (error) {
+      console.error('Failed to keep moment:', error)
+      setSaveError('Failed to keep moment.')
+    } finally {
+      setIsKeeping(false)
+    }
+  }
 
   return (
     <>
@@ -56,9 +151,10 @@ export function MomentBody({ themeSlug, domainSlug }: MomentBodyProps) {
             >
               <textarea
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={(e) => handleContentChange(e.target.value)}
                 placeholder="Begin writing…"
-                className="w-full h-full min-h-[520px] bg-transparent outline-none resize-none px-6 md:px-8 pb-10 text-[15.5px] text-[var(--theme-ink-primary)] placeholder:text-[var(--theme-ink-placeholder)] border border-white"
+                disabled={isKept}
+                className="w-full h-full min-h-[520px] bg-transparent outline-none resize-none px-6 md:px-8 pb-10 text-[15.5px] text-[var(--theme-ink-primary)] placeholder:text-[var(--theme-ink-placeholder)] border border-white disabled:opacity-75"
                 style={{
                   lineHeight: "var(--moment-line-step)",
                   paddingTop: "calc(var(--moment-line-step) / 2)",
@@ -84,16 +180,18 @@ export function MomentBody({ themeSlug, domainSlug }: MomentBodyProps) {
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    className="inline-flex items-center justify-center rounded-full border px-2 py-1 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80"
+                    onClick={handleKeep}
+                    disabled={isKeeping || isKept || !draftId}
+                    className="inline-flex items-center justify-center rounded-full border px-2 py-1 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed"
                     style={{
                       borderColor: "var(--theme-border-soft)",
                       color: "var(--theme-ink-tertiary)",
                       backgroundColor: "var(--theme-surface-paper)",
                       boxShadow: "var(--theme-shadow-soft)",
                     }}
-                    aria-label="Access Keeper platform"
+                    aria-label="Keep this moment"
                   >
-                    <span>Keep</span>
+                    <span>{isKeeping ? 'Keeping...' : isKept ? 'Kept ✓' : 'Keep'}</span>
                   </button>
                   <button
                     type="button"
@@ -124,17 +222,17 @@ export function MomentBody({ themeSlug, domainSlug }: MomentBodyProps) {
                   boxShadow: "var(--theme-shadow-soft)",
                 }}
               >
-                {content.trim().length ? `${content.trim().split(/\s+/).filter(Boolean).length} words kept` : "0 words kept"}
+                {content.trim().length ? `${content.trim().split(/\s+/).filter(Boolean).length} words ${isKept ? 'kept' : 'written'}` : `0 words ${isKept ? 'kept' : 'written'}`}
               </span>
               <span
                 className="rounded-full px-4 py-2"
                 style={{
                   backgroundColor: "var(--theme-surface-paper)",
-                  color: "var(--theme-ink-tertiary)",
+                  color: isKept ? "var(--theme-ink-secondary)" : saveError ? "var(--theme-ink-error, #ef4444)" : "var(--theme-ink-tertiary)",
                   boxShadow: "var(--theme-shadow-soft)",
                 }}
               >
-                {momentCopy.preserved}
+                {isKept ? 'Moment kept forever' : saveError || (isSaving ? 'Saving...' : lastSaved ? `Saved ${lastSaved.toLocaleTimeString()}` : momentCopy.preserved)}
               </span>
               <button
                 type="button"

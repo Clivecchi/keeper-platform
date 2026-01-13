@@ -35,7 +35,7 @@ function displayUrls() {
   console.log('\n🎉 Keeper Platform Development Environment');
   console.log('═══════════════════════════════════════════════════════════════');
   console.log('🌐 Frontend: http://localhost:5173');
-  console.log('🔧 API:      http://localhost:3001');
+  console.log('🔧 API:      http://localhost:3002');
   console.log('📊 Database: http://localhost:5555 (Prisma Studio)');
   console.log('═══════════════════════════════════════════════════════════════\n');
 }

@@ -13,9 +13,21 @@ import {
 } from '@keeper/database';
 
 const prisma = new PrismaClient();
-const redis: RedisClientOrNoOp = getRedis();
-const cacheService = new DomainCacheService(redis);
-const domainService = new DomainService(prisma, cacheService);
+
+// Lazy initialization - Redis will be initialized only when needed during request processing
+let cacheService: DomainCacheService | null = null;
+let domainService: DomainService | null = null;
+
+function getDomainService(): DomainService {
+  if (!domainService) {
+    if (!cacheService) {
+      const redis = getRedis(); // This will now work since dotenv is loaded at startup
+      cacheService = new DomainCacheService(redis);
+    }
+    domainService = new DomainService(prisma, cacheService);
+  }
+  return domainService;
+}
 const featureFlagService = new FeatureFlagService();
 
 // Basic feature flag service implementation
@@ -655,11 +667,11 @@ export function createDomainResolutionMiddleware(
 ): (req: Request, res: Response, next: NextFunction) => Promise<void> {
   const middleware = new DomainResolutionMiddleware(
     prisma,
-    domainService,
-    cacheService,
+    getDomainService(),
+    cacheService!, // cacheService is guaranteed to be initialized by getDomainService()
     config
   );
-  
+
   return middleware.createMiddleware();
 }
 

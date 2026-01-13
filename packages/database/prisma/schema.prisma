@@ -271,12 +271,16 @@ model Moment {
   updatedAt DateTime
   theme_id  String?  @db.Uuid
   domainId  String?
+  status    String   @default("draft") // draft, kept
+  keptAt    DateTime?
   domain    Domain?  @relation(fields: [domainId], references: [id])
   Journey   Journey? @relation(fields: [journeyId], references: [id])
   Path      Path?    @relation(fields: [pathId], references: [id])
   themes    themes?  @relation(fields: [theme_id], references: [id])
 
   @@index([domainId])
+  @@index([status])
+  @@index([ownerId, status])
 }
 
 model Path {

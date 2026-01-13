@@ -28,11 +28,45 @@ import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION } from '../../policy/pol
 
 const router: Router = Router();
 const prisma = new PrismaClient();
-const redis: RedisClientOrNoOp = getRedis();
-const cacheService = new DomainCacheService(redis);
-const domainService = new DomainService(prisma, cacheService);
-const permissionService = new DomainPermissionService(prisma, cacheService);
-const verificationService = new DomainVerificationService(prisma, cacheService);
+
+// Lazy initialization - services will be created only when needed during request processing
+let cacheService: DomainCacheService | null = null;
+let domainService: DomainService | null = null;
+let permissionService: DomainPermissionService | null = null;
+let verificationService: DomainVerificationService | null = null;
+
+function getDomainService(): DomainService {
+  if (!domainService) {
+    if (!cacheService) {
+      const redis = getRedis(); // This will now work since dotenv is loaded at startup
+      cacheService = new DomainCacheService(redis);
+    }
+    domainService = new DomainService(prisma, cacheService);
+  }
+  return domainService;
+}
+
+function getPermissionService(): DomainPermissionService {
+  if (!permissionService) {
+    if (!cacheService) {
+      const redis = getRedis(); // This will now work since dotenv is loaded at startup
+      cacheService = new DomainCacheService(redis);
+    }
+    permissionService = new DomainPermissionService(prisma, cacheService);
+  }
+  return permissionService;
+}
+
+function getVerificationService(): DomainVerificationService {
+  if (!verificationService) {
+    if (!cacheService) {
+      const redis = getRedis(); // This will now work since dotenv is loaded at startup
+      cacheService = new DomainCacheService(redis);
+    }
+    verificationService = new DomainVerificationService(prisma, cacheService);
+  }
+  return verificationService;
+}
 const featureFlags = getFeatureFlagService();
 const domainPolicySchema = z.object({
   policy: z.record(z.any()).default(DEFAULT_POLICY_PACK_V1 as Record<string, unknown>),
@@ -75,7 +109,11 @@ router.get('/by-slug/:slug', async (req: Request, res: Response) => {
 // ============================================================================
 // Apply domain resolution middleware (affects routes below)
 // ============================================================================
-router.use(createDomainResolutionMiddleware());
+// Lazy middleware creation to avoid Redis initialization at import time
+router.use((req, res, next) => {
+  const middleware = createDomainResolutionMiddleware();
+  return middleware(req, res, next);
+});
 
 // Mount custom domain routes to support both legacy and new paths
 router.use(customDomainRoutes); // legacy: /api/domains/:domainId/custom-domain
@@ -96,13 +134,13 @@ router.get('/:domainId/kip/agents', authMiddlewareCompat, requireDomainReadCompa
     }
 
     const { domainId } = req.params;
-    const domain = await domainService.getDomainById(domainId);
+    const domain = await getDomainService().getDomainById(domainId);
 
     if (!domain) {
       return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
     }
 
-    const permission = await permissionService.checkPermission({
+    const permission = await getPermissionService().checkPermission({
       userId: req.user.id,
       domainId,
       permission: 'read',
@@ -196,7 +234,7 @@ router.get('/:domainId/management-board', authMiddlewareCompat, async (req: Auth
     if (!req.user) return res.status(401).json({ error: 'Authentication required' });
 
     const domainId = req.params.domainId;
-    const perm = await permissionService.checkPermission({ userId: req.user.id, domainId, permission: 'admin' });
+    const perm = await getPermissionService().checkPermission({ userId: req.user.id, domainId, permission: 'admin' });
     if (!perm.hasPermission) return res.status(403).json({ error: 'Access denied' });
 
     // A: Return a real Prisma UUID for the domain's management/agent board
@@ -258,7 +296,7 @@ router.get('/my', authMiddlewareCompat, async (req: Request, res: Response) => {
     const userId = req.user.id;
 
     // First, attempt standard lookup (active domains + permissions logic)
-    let domains = await domainService.getUserDomains(userId);
+    let domains = await getDomainService().getUserDomains(userId);
 
     // Fallback: if nothing found, broaden the query to include inactive domains the user owns
     if (domains.length === 0) {
@@ -379,7 +417,7 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
       offset: Number(offset) 
     };
 
-    const { domains, total } = await domainService.searchDomains(filters);
+    const { domains, total } = await getDomainService().searchDomains(filters);
 
     return res.json({
       domains,
@@ -408,7 +446,7 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Feature not enabled' });
     }
 
-    const domain = await domainService.createDomain({
+    const domain = await getDomainService().createDomain({
       ...req.body,
       ownerId: req.user.id,
     });
@@ -428,7 +466,7 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
 // GET /api/domains/:id - Get domain by ID
 router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
-    const domain = await domainService.getDomainById(req.params.id);
+    const domain = await getDomainService().getDomainById(req.params.id);
     
     if (!domain) {
       return res.status(404).json({ error: 'Domain not found' });
@@ -439,7 +477,7 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     }
 
     // Check permission
-    const permission = await permissionService.checkPermission({
+    const permission = await getPermissionService().checkPermission({
       userId: req.user.id,
       domainId: domain.id,
       permission: 'read',
@@ -464,7 +502,7 @@ router.put('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
     }
 
     // Check permission
-    const permission = await permissionService.checkPermission({
+    const permission = await getPermissionService().checkPermission({
       userId: req.user.id,
       domainId: req.params.id,
       permission: 'admin',
@@ -474,7 +512,7 @@ router.put('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const domain = await domainService.updateDomain(req.params.id, req.body);
+    const domain = await getDomainService().updateDomain(req.params.id, req.body);
 
     return res.json({ domain });
   } catch (error) {
@@ -499,7 +537,7 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
     }
 
     // Check permission
-    const permission = await permissionService.checkPermission({
+    const permission = await getPermissionService().checkPermission({
       userId: req.user.id,
       domainId: req.params.id,
       permission: 'admin',
@@ -509,7 +547,7 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const domain = await domainService.updateDomain(req.params.id, req.body);
+    const domain = await getDomainService().updateDomain(req.params.id, req.body);
 
     return res.json({ domain });
   } catch (error) {
@@ -534,7 +572,7 @@ router.delete('/:id', authMiddlewareCompat, async (req: Request, res: Response) 
     }
 
     // Check permission
-    const permission = await permissionService.checkPermission({
+    const permission = await getPermissionService().checkPermission({
       userId: req.user.id,
       domainId: req.params.id,
       permission: 'admin',
@@ -544,7 +582,7 @@ router.delete('/:id', authMiddlewareCompat, async (req: Request, res: Response) 
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    await domainService.deleteDomain(req.params.id, req.user.id);
+    await getDomainService().deleteDomain(req.params.id, req.user.id);
 
     return res.status(204).send();
   } catch (error) {
@@ -568,7 +606,7 @@ router.get('/:id/permissions', authMiddlewareCompat, async (req: Request, res: R
     }
 
     // Check permission
-    const permission = await permissionService.checkPermission({
+    const permission = await getPermissionService().checkPermission({
       userId: req.user.id,
       domainId: req.params.id,
       permission: 'admin',
@@ -578,7 +616,7 @@ router.get('/:id/permissions', authMiddlewareCompat, async (req: Request, res: R
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const users = await permissionService.getDomainUsers(req.params.id);
+    const users = await getPermissionService().getDomainUsers(req.params.id);
 
     return res.json({ users });
   } catch (error) {
@@ -596,7 +634,7 @@ router.post('/:id/permissions', authMiddlewareCompat, async (req: Request, res: 
 
     const expiresAt = req.body.expiresAt ? new Date(req.body.expiresAt) : undefined;
 
-    const permission = await permissionService.grantPermission({
+    const permission = await getPermissionService().grantPermission({
       domainId: req.params.id,
       userId: req.body.userId,
       role: req.body.role,
@@ -627,7 +665,7 @@ router.delete('/:id/permissions/:userId', authMiddlewareCompat, async (req: Requ
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    await permissionService.revokePermission(req.params.id, req.params.userId, req.user.id);
+    await getPermissionService().revokePermission(req.params.id, req.params.userId, req.user.id);
 
     return res.status(204).send();
   } catch (error) {
@@ -651,13 +689,13 @@ router.get('/:domainId/kip/environment', authMiddlewareCompat, async (req: Authe
     }
 
     const { domainId } = req.params;
-    const domain = await domainService.getDomainById(domainId);
+    const domain = await getDomainService().getDomainById(domainId);
 
     if (!domain) {
       return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
     }
 
-    const permission = await permissionService.checkPermission({
+    const permission = await getPermissionService().checkPermission({
       userId: req.user.id,
       domainId,
       permission: 'read',
@@ -699,7 +737,7 @@ router.get(
       }
 
       const { domainId } = req.params;
-      const domain = await domainService.getDomainById(domainId);
+      const domain = await getDomainService().getDomainById(domainId);
       if (!domain) {
         return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
       }
@@ -725,7 +763,7 @@ router.patch(
       }
 
       const { domainId } = req.params;
-      const domain = await domainService.getDomainById(domainId);
+      const domain = await getDomainService().getDomainById(domainId);
       if (!domain) {
         return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
       }
@@ -749,13 +787,13 @@ router.post('/:domainId/agent/execute', authMiddlewareCompat, async (req: Authen
 
     const { domainId } = req.params;
     const payload = domainAgentExecutionSchema.parse(req.body ?? {});
-    const domain = await domainService.getDomainById(domainId);
+    const domain = await getDomainService().getDomainById(domainId);
 
     if (!domain) {
       return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
     }
 
-    const permission = await permissionService.checkPermission({
+    const permission = await getPermissionService().checkPermission({
       userId: req.user.id,
       domainId,
       permission: 'read',
@@ -1068,7 +1106,7 @@ function mapAgentExecutionFailure(agentResult: AgentResponse) {
 router.get('/resolve/:hostname', async (req: Request, res: Response) => {
   try {
     const hostname = req.params.hostname;
-    const domain = await domainService.getDomainByHostname(hostname);
+    const domain = await getDomainService().getDomainByHostname(hostname);
 
     return res.json({ domain });
   } catch (error) {
@@ -1089,7 +1127,7 @@ router.post('/:id/verify', authMiddlewareCompat, async (req: Request, res: Respo
     }
 
     // Check permission
-    const permission = await permissionService.checkPermission({
+    const permission = await getPermissionService().checkPermission({
       userId: req.user.id,
       domainId: req.params.id,
       permission: 'admin',
@@ -1099,7 +1137,7 @@ router.post('/:id/verify', authMiddlewareCompat, async (req: Request, res: Respo
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const domain = await domainService.getDomainById(req.params.id);
+    const domain = await getDomainService().getDomainById(req.params.id);
     if (!domain) {
       return res.status(404).json({ error: 'Domain not found' });
     }
@@ -1112,7 +1150,7 @@ router.post('/:id/verify', authMiddlewareCompat, async (req: Request, res: Respo
     const verified = await simulateCustomDomainVerification(domain.customDomain);
 
     if (verified) {
-      await domainService.updateDomain(req.params.id, {
+      await getDomainService().updateDomain(req.params.id, {
         customDomainVerified: true,
       });
 
@@ -1144,7 +1182,7 @@ router.get('/:id/stats', authMiddlewareCompat, async (req: Request, res: Respons
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const stats = await domainService.getDomainStats(req.params.id);
+    const stats = await getDomainService().getDomainStats(req.params.id);
 
     return res.json({ stats });
   } catch (error) {
@@ -1160,7 +1198,7 @@ router.get('/:id/health', authMiddlewareCompat, async (req: Request, res: Respon
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const health = await domainService.checkDomainHealth(req.params.id);
+    const health = await getDomainService().checkDomainHealth(req.params.id);
 
     return res.json({ health });
   } catch (error) {
@@ -1220,7 +1258,7 @@ router.post('/:id/members', authMiddlewareCompat, requireDomainAdminCompat, asyn
     const { userId, role, permissions, expiresAt } = req.body;
     if (!userId || !role) return res.status(400).json({ error: 'userId and role required' });
 
-    const permission = await permissionService.grantPermission({
+    const permission = await getPermissionService().grantPermission({
       domainId: req.params.id,
       userId,
       role,
@@ -1240,7 +1278,7 @@ router.post('/:id/members', authMiddlewareCompat, requireDomainAdminCompat, asyn
 router.patch('/:id/members/:userId', authMiddlewareCompat, requireDomainAdminCompat, async (req: Request, res: Response) => {
   try {
     const { role, permissions, expiresAt } = req.body;
-    const permission = await permissionService.updatePermission(req.params.id, req.params.userId, {
+    const permission = await getPermissionService().updatePermission(req.params.id, req.params.userId, {
       role,
       permissions,
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
@@ -1256,7 +1294,7 @@ router.patch('/:id/members/:userId', authMiddlewareCompat, requireDomainAdminCom
 // DELETE /api/domains/:id/members/:userId - revoke
 router.delete('/:id/members/:userId', authMiddlewareCompat, requireDomainAdminCompat, async (req: Request, res: Response) => {
   try {
-    await permissionService.revokePermission(req.params.id, req.params.userId, (req as any).user.id);
+    await getPermissionService().revokePermission(req.params.id, req.params.userId, (req as any).user.id);
     return res.json({ success: true });
   } catch (error: any) {
     console.error('[DomainRoutes] revoke member error', error);

@@ -12,9 +12,21 @@ import { getRedis } from '../../lib/redis.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
-const redis = getRedis();
-const cacheService = new DomainCacheService(redis);
-const permissionService = new DomainPermissionService(prisma, cacheService);
+
+// Lazy initialization - services will be created only when needed during request processing
+let cacheService: DomainCacheService | null = null;
+let permissionService: DomainPermissionService | null = null;
+
+function getPermissionService(): DomainPermissionService {
+  if (!permissionService) {
+    if (!cacheService) {
+      const redis = getRedis(); // This will now work since dotenv is loaded at startup
+      cacheService = new DomainCacheService(redis);
+    }
+    permissionService = new DomainPermissionService(prisma, cacheService);
+  }
+  return permissionService;
+}
 
 /**
  * GET /api/domains/:domainId/board-data
@@ -67,7 +79,7 @@ router.get('/:domainId/board-data', attachUser, async (req: AuthenticatedRequest
         userPermissions.role = 'owner';
       } else {
         // PRIORITY 2: Check DomainPermission table for member permissions
-        const perm = await permissionService.checkPermission({
+        const perm = await getPermissionService().checkPermission({
           userId,
           domainId,
           permission: 'read'
@@ -311,7 +323,7 @@ router.put('/:domainId/board-data', attachUser, async (req: AuthenticatedRequest
     }
 
     // Check if user has edit permission
-    const perm = await permissionService.checkPermission({
+    const perm = await getPermissionService().checkPermission({
       userId,
       domainId,
       permission: 'write'

@@ -13,9 +13,6 @@ import {
 } from '@keeper/database';
 
 const prisma = new PrismaClient();
-const redis: RedisClientOrNoOp = getRedis();
-const cacheService = new DomainCacheService(redis);
-const soleMemoryService = new SoleMemoryIsolationService(prisma, cacheService);
 const featureFlagService = new FeatureFlagService();
 
 // Basic feature flag service implementation
@@ -682,12 +679,31 @@ export function createMemoryAccessMiddleware(
   config?: MemoryAccessConfig
 ): (req: MemoryAccessRequest, res: Response, next: NextFunction) => Promise<void> {
   const prisma = new PrismaClient();
-  const redis: RedisClientOrNoOp = getRedis();
-  const cacheService = new DomainCacheService(redis);
-  const memoryService = new SoleMemoryIsolationService(prisma, cacheService);
-  
-  const manager = new MemoryAccessManager(prisma, memoryService, cacheService);
-  return manager.createMiddleware(config) as (req: MemoryAccessRequest, res: Response, next: NextFunction) => Promise<void>;
+
+  // Lazy initialization - create services only when middleware is called
+  let cacheService: DomainCacheService | null = null;
+  let memoryService: SoleMemoryIsolationService | null = null;
+  let manager: MemoryAccessManager | null = null;
+
+  const getManager = () => {
+    if (!manager) {
+      if (!cacheService) {
+        const redis = getRedis(); // This will now work since dotenv is loaded at startup
+        cacheService = new DomainCacheService(redis);
+      }
+      if (!memoryService) {
+        memoryService = new SoleMemoryIsolationService(prisma, cacheService);
+      }
+      manager = new MemoryAccessManager(prisma, memoryService, cacheService);
+    }
+    return manager;
+  };
+
+  return async (req: MemoryAccessRequest, res: Response, next: NextFunction) => {
+    const managerInstance = getManager();
+    const middleware = managerInstance.createMiddleware(config);
+    return middleware(req, res, next);
+  };
 }
 
 /**
@@ -699,12 +715,31 @@ export function createCrossDomainMemoryMiddleware(): (
   next: NextFunction
 ) => Promise<void> {
   const prisma = new PrismaClient();
-  const redis: RedisClientOrNoOp = getRedis();
-  const cacheService = new DomainCacheService(redis);
-  const memoryService = new SoleMemoryIsolationService(prisma, cacheService);
-  
-  const manager = new MemoryAccessManager(prisma, memoryService, cacheService);
-  return manager.createCrossDomainMiddleware() as (req: MemoryAccessRequest, res: Response, next: NextFunction) => Promise<void>;
+
+  // Lazy initialization - create services only when middleware is called
+  let cacheService: DomainCacheService | null = null;
+  let memoryService: SoleMemoryIsolationService | null = null;
+  let manager: MemoryAccessManager | null = null;
+
+  const getManager = () => {
+    if (!manager) {
+      if (!cacheService) {
+        const redis = getRedis(); // This will now work since dotenv is loaded at startup
+        cacheService = new DomainCacheService(redis);
+      }
+      if (!memoryService) {
+        memoryService = new SoleMemoryIsolationService(prisma, cacheService);
+      }
+      manager = new MemoryAccessManager(prisma, memoryService, cacheService);
+    }
+    return manager;
+  };
+
+  return async (req: MemoryAccessRequest, res: Response, next: NextFunction) => {
+    const managerInstance = getManager();
+    const middleware = managerInstance.createCrossDomainMiddleware();
+    return middleware(req, res, next);
+  };
 }
 
 export default MemoryAccessManager; 

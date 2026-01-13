@@ -7,7 +7,8 @@ import { DesignFrame } from "../frames/DesignFrame"
 import { MomentBody } from "../frames/moment/MomentBody"
 import { ThemeSwitcher } from "../frames/ThemeSwitcher"
 
-export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug }: { styleId?: StyleId, themeSlug?: string | null, domainSlug?: string }) {
+export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftId }: { styleId?: StyleId, themeSlug?: string | null, domainSlug?: string, draftId?: string | null }) {
+  console.log('MomentFrame rendered with:', { styleId, themeSlug, domainSlug, draftId })
   const navigate = useNavigate()
 
   const handleClose = () => {
@@ -33,7 +34,7 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug }: { st
       }
       onClose={handleClose}
     >
-      <MomentBody themeSlug={themeSlug} domainSlug={domainSlug} />
+      <MomentBody themeSlug={themeSlug} domainSlug={domainSlug} draftId={draftId} />
     </DesignFrame>
   )
 }

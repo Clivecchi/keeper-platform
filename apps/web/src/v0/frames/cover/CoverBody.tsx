@@ -1,6 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import { CoverLens, type CoverLensItem } from "../../components/cover-lens"
+import { createDraftMoment } from "../../api/v0Moments"
 
 interface CoverBodyProps {
   /** Domain data for navigation */
@@ -16,20 +18,38 @@ interface CoverBodyProps {
 }
 
 export function CoverBody({ domainData, themeSlug, onNavigate }: CoverBodyProps) {
+  const [isCreatingDraft, setIsCreatingDraft] = useState(false)
+
+  const handleWriteMoment = async () => {
+    if (isCreatingDraft) return // Prevent double clicks
+
+    console.log('handleWriteMoment called, themeSlug:', themeSlug)
+    try {
+      setIsCreatingDraft(true)
+      console.log('Creating draft moment...')
+      const draft = await createDraftMoment({ themeSlug })
+      console.log('Draft created:', draft)
+      // Navigate to moment with the draft ID
+      const navUrl = `/v0?frame=moment&draftId=${draft.id}&theme=${themeSlug || 'neutral'}`
+      console.log('Navigating to:', navUrl)
+      onNavigate?.(navUrl)
+    } catch (error) {
+      console.error('Failed to create draft moment:', error)
+      // For now, just navigate without draft ID if API fails
+      const navUrl = `/v0?frame=moment&theme=${themeSlug || 'neutral'}`
+      console.log('Fallback navigation to:', navUrl)
+      onNavigate?.(navUrl)
+    } finally {
+      setIsCreatingDraft(false)
+    }
+  }
   // Create navigation items for this domain
   const coverItems: CoverLensItem[] = [
     {
       title: "Write a Moment",
       subtitle: "Capture your thoughts in a beautiful diary entry",
-      affordance: "→",
-      onClick: () => {
-        const params = new URLSearchParams()
-        params.set('frame', 'moment')
-        if (themeSlug && themeSlug !== 'neutral') {
-          params.set('theme', themeSlug)
-        }
-        onNavigate?.(`?${params.toString()}`)
-      }
+      affordance: isCreatingDraft ? "..." : "→",
+      onClick: handleWriteMoment
     },
     {
       title: "Explore Journeys",

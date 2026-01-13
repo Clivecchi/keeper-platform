@@ -13,9 +13,21 @@ import { PrismaClient } from '@keeper/database';
 import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 
 const prisma = new PrismaClient();
-const redis: RedisClientOrNoOp | null = getRedis();
-const cacheService = new DomainCacheService(redis);
-const domainService = new DomainService(prisma, cacheService);
+
+// Lazy initialization - services will be created only when needed during request processing
+let cacheService: DomainCacheService | null = null;
+let domainService: DomainService | null = null;
+
+function getDomainService(): DomainService {
+  if (!domainService) {
+    if (!cacheService) {
+      const redis = getRedis(); // This will now work since dotenv is loaded at startup
+      cacheService = new DomainCacheService(redis);
+    }
+    domainService = new DomainService(prisma, cacheService);
+  }
+  return domainService;
+}
 
 export interface DomainPipelineConfig {
   requireDomainContext?: boolean;
@@ -135,7 +147,7 @@ export function createDomainMemoryGuard(
       }
 
       // Get memory scope
-      const memoryScope = await domainService.getMemoryScope(domainId);
+      const memoryScope = await getDomainService().getMemoryScope(domainId);
       
       if (!memoryScope) {
         return res.status(404).json({
@@ -206,7 +218,7 @@ export function createCrossDomainGuard(
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         // Check share agreement
-        const shareAgreement = await domainService.getShareAgreement(sourceDomainId, targetDomainId);
+        const shareAgreement = await getDomainService().getShareAgreement(sourceDomainId, targetDomainId);
         
         if (!shareAgreement) {
           return res.status(403).json({

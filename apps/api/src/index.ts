@@ -1,7 +1,24 @@
 // Force Railway rebuild - clear build cache - 2025-10-15 20:42
+
+// CRITICAL: Load environment variables BEFORE any other imports to ensure Redis config is available
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env file from the API directory (same level as src/)
+import 'dotenv/config';
+
+console.log('[ENV CHECK]', {
+  DISABLE_REDIS: process.env.DISABLE_REDIS,
+  DATABASE_URL: process.env.DATABASE_URL,
+});
+
+
 import express from 'express';
 import type { Request, Response, Express, NextFunction } from 'express';
-import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { attachUser } from './middleware/auth.js';
@@ -44,6 +61,8 @@ import { kamAuth, kamScope } from './kam/middleware.js';
 import { kamOrUserAuth, roBoardsGuard } from './middleware/auth-combined.js';
 import entitiesRoutes from './api/entities/routes.js';
 import uploadsRoutes from './api/uploads/routes.js';
+// Import v0 routes
+import v0MomentsRouter from './routes/v0/moments.js';
 import agentsRoutes from './api/agents.js';
 import journeysRoutes from './api/journeys.js';
 import keeperTypesRoutes from './api/keeper-types.js';
@@ -67,15 +86,20 @@ import authRouter from './kam/auth-routes.js';
 // MCP routes (OpenAI Agent integration)
 import mcpRouter from './mcp/index.js';
 
-// Load environment variables
-dotenv.config();
-
 // Defer database migrations until after the server starts to avoid blocking healthchecks
 
 // Log level configuration
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 const isDebug = LOG_LEVEL === 'debug';
 const isVerbose = LOG_LEVEL === 'verbose';
+
+// Debug: Verify environment loading (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  console.log(`[API Bootstrap] DISABLE_REDIS="${process.env.DISABLE_REDIS}"`);
+  console.log(`[API Bootstrap] REDIS_URL="${process.env.REDIS_URL}"`);
+  console.log(`[API Bootstrap] DATABASE_URL="${process.env.DATABASE_URL ? 'set' : 'undefined'}"`);
+  console.log(`[API Bootstrap] NODE_ENV="${process.env.NODE_ENV}"`);
+}
 
 // Redis status logging
 import { isRedisDisabled, isRedisAvailable } from './lib/redis.js';
@@ -100,8 +124,8 @@ const AuthRegisterSchema = z.object({
   password: z.string().min(6)
 });
 
-// Railway assigns PORT dynamically, respect that first, then fallback to 8080 for production, 3001 for dev
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : (process.env.NODE_ENV === 'production' ? 8080 : 3001);
+// Railway assigns PORT dynamically, respect that first, then fallback to 8080 for production, 3002 for dev
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : (process.env.NODE_ENV === 'production' ? 8080 : 3002);
 
 console.log(`🔧 Server initializing on port ${PORT} (NODE_ENV: ${process.env.NODE_ENV})`);
 
@@ -167,13 +191,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Domain resolution MUST run before CORS, auth, and route guards
-const domainResolution = createDomainResolutionMiddleware({
-  fallbackDomain: process.env.FALLBACK_DOMAIN ?? 'www.ke3p.com',
-});
-app.use(domainResolution);
-
-// CORS setup - debug logging + wildcard support with 403 on failures (no 500)
+// CORS setup - MUST run BEFORE domain resolution and auth middleware
 console.log('⚙️ Setting up CORS...');
 
 function getCsv(name: string): string[] {
@@ -211,6 +229,12 @@ const ALLOWLIST_ARRAY = [
   process.env.PUBLIC_WEB_ORIGIN || '',
   process.env.APP_ORIGIN || '',
 ].filter(Boolean);
+
+// Add development origins
+if (process.env.NODE_ENV !== 'production') {
+  ALLOWLIST_ARRAY.push('http://localhost:5173', 'http://localhost:3000', 'http://localhost:5174');
+}
+
 const CORS_ALLOWLIST = new Set(ALLOWLIST_ARRAY.filter(o => !o.includes('*')));
 const CORS_WILDCARDS = ALLOWLIST_ARRAY.filter(o => o.includes('*')).map(patternToRegex);
 
@@ -219,7 +243,7 @@ function isOriginAllowed(origin: string | undefined): boolean {
   if (CORS_ALLOWLIST.size === 0 && CORS_WILDCARDS.length === 0) return true; // no restriction configured
   if (CORS_ALLOWLIST.has(origin)) return true;
   if (CORS_WILDCARDS.some(rx => rx.test(origin))) return true;
-  
+
   // Check for preview origins (if enabled)
   if (process.env.WEB_PREVIEW_ALLOW === '1') {
     try {
@@ -234,69 +258,85 @@ function isOriginAllowed(origin: string | undefined): boolean {
       }
     } catch {}
   }
-  
+
   return false;
 }
 
-// Guard middleware to short-circuit disallowed origins with 403
-app.use((req, res, next) => {
-  const origin = req.get('origin') || undefined;
-  if (process.env.ENABLE_REQUEST_LOGGING === 'true' || process.env.NODE_ENV !== 'production') {
-    console.log('CORS Guard Check:', {
-      origin,
-      env_allowlist: process.env.CORS_ALLOWLIST,
-      env_origins: process.env.CORS_ORIGINS
-    });
-  }
-  if (!isOriginAllowed(origin)) {
-    res.status(403).json({ error: 'CORS: origin not allowed' });
-    return;
-  }
-
-  // Handle preflight for allowed origins
-  if (req.method === 'OPTIONS' && origin) {
-    res.header('Vary', 'Origin');
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-user-id, x-debug-token, If-Match, ETag');
-    res.header('Access-Control-Expose-Headers', 'ETag, X-Total-Count, X-Page-Count');
-    res.header('Access-Control-Max-Age', '86400');
-    res.status(200).end();
-    return;
-  }
-
-  next();
-});
-
-// Apply cors after guard so allowed origins receive ACA headers
+// Configure CORS options for development and production
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    const envSplit = (process.env.CORS_ORIGINS || '')
-      .split(',')
-      .map(o => o.trim())
-      .filter(Boolean);
-    const matchFromEnv = envSplit.some(o =>
-      o === origin || (o.includes('*') && (origin ? new RegExp(o.replace('*', '.*')).test(origin) : false))
-    );
-    const allow = !origin ? true : isOriginAllowed(origin);
-    console.log('CORS Debug:', {
-      origin,
-      envSplit,
-      match: matchFromEnv,
-      allow
-    });
-    callback(allow ? null : new Error('CORS: origin not allowed'), allow);
+    // For credentialed requests, we MUST return the specific origin (not '*')
+    // This is required by the CORS spec when credentials: true
+    if (!origin) {
+      // Server-to-server requests (no origin header)
+      callback(null, true);
+      return;
+    }
+
+    const allow = isOriginAllowed(origin);
+    console.log('[CORS] Origin check:', { origin, allow, allowlistSize: CORS_ALLOWLIST.size });
+
+    if (allow) {
+      // Return the specific origin for credentialed requests
+      callback(null, origin);
+    } else {
+      callback(new Error('CORS: origin not allowed'), false);
+    }
   },
+  // Enable credentials for development (localhost origins) and production
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'x-debug-token', 'If-Match', 'ETag'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'x-user-id',
+    'x-debug-token',
+    'If-Match',
+    'ETag',
+    'X-Domain',
+    'X-Domain-Slug'
+  ],
   exposedHeaders: ['x-debug-info', 'ETag', 'X-Total-Count', 'X-Page-Count'],
   preflightContinue: false,
   maxAge: 86400,
 };
+
+// Apply CORS middleware FIRST - before any other middleware
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+
+// Explicit OPTIONS handler for all routes - this ensures preflight requests are handled
+app.options('*', (req, res) => {
+  const origin = req.get('origin');
+
+  // For credentialed requests, we MUST set the specific origin (not '*')
+  if (origin && isOriginAllowed(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Allow-Credentials', 'true');
+  } else if (!origin) {
+    // Server-to-server requests - no origin header needed
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+
+  res.header('Access-Control-Allow-Methods', corsOptions.methods.join(','));
+  res.header('Access-Control-Allow-Headers', corsOptions.allowedHeaders.join(','));
+  res.header('Access-Control-Max-Age', corsOptions.maxAge.toString());
+  res.sendStatus(204); // 204 No Content for preflight
+});
+
+// Domain resolution middleware - runs AFTER CORS but short-circuits OPTIONS
+app.use((req, res, next) => {
+  // Short-circuit OPTIONS requests to prevent domain resolution middleware from interfering
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  const domainResolution = createDomainResolutionMiddleware({
+    fallbackDomain: process.env.FALLBACK_DOMAIN ?? 'www.ke3p.com',
+  });
+  return domainResolution(req, res, next);
+});
 
 // CORS preflight requests are handled by the cors middleware above
 
@@ -943,6 +983,8 @@ app.use('/api/board-templates', boardTemplatesRouter);
 app.use('/api/board-data', boardStudioAliasRouter);
 app.use('/api/entities', entitiesRoutes);
 app.use('/api/uploads', uploadsRoutes);
+// Mount v0 routes
+app.use('/api/v0/moments', v0MomentsRouter);
 app.use('/api/agents', agentsRoutes);
 app.use('/api/journeys', journeysRoutes);
 app.use('/api/keeper-types', keeperTypesRoutes);

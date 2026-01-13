@@ -18,9 +18,6 @@ import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
-const redis: RedisClientOrNoOp = getRedis();
-const cacheService = new DomainCacheService(redis);
-const domainService = new DomainService(prisma, cacheService);
 const featureFlags = getFeatureFlagService();
 
 // Validation schemas

@@ -56,10 +56,33 @@ export type KipEnvironmentContext = {
 };
 
 const prisma = new PrismaClient();
-const redis: RedisClientOrNoOp = getRedis();
-const cacheService = new DomainCacheService(redis);
-const domainService = new DomainService(prisma, cacheService);
-const permissionService = new DomainPermissionService(prisma, cacheService);
+
+// Lazy initialization - services will be created only when needed
+let cacheService: DomainCacheService | null = null;
+let domainService: DomainService | null = null;
+let permissionService: DomainPermissionService | null = null;
+
+function getDomainService(): DomainService {
+  if (!domainService) {
+    if (!cacheService) {
+      const redis = getRedis(); // This will now work since dotenv is loaded at startup
+      cacheService = new DomainCacheService(redis);
+    }
+    domainService = new DomainService(prisma, cacheService);
+  }
+  return domainService;
+}
+
+function getPermissionService(): DomainPermissionService {
+  if (!permissionService) {
+    if (!cacheService) {
+      const redis = getRedis(); // This will now work since dotenv is loaded at startup
+      cacheService = new DomainCacheService(redis);
+    }
+    permissionService = new DomainPermissionService(prisma, cacheService);
+  }
+  return permissionService;
+}
 const DRAFT_DIRECTORY_LIMIT = 25;
 
 const FRAME_TYPE_REGISTRY: KipEnvironmentContext['registry']['frameTypes'] = [
@@ -126,7 +149,7 @@ export async function buildKipEnvironmentContext(args: {
   };
 
   try {
-    const domain = await domainService.getDomainById(domainId);
+    const domain = await getDomainService().getDomainById(domainId);
     if (domain) {
       environment.domain.slug = domain.slug ?? null;
       environment.domain.name = domain.name ?? null;
@@ -159,7 +182,7 @@ export async function buildKipEnvironmentContext(args: {
   }
 
   try {
-    const permission = await permissionService.checkPermission({
+    const permission = await getPermissionService().checkPermission({
       userId,
       domainId,
       permission: 'read',

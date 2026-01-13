@@ -32,6 +32,8 @@ export function CoverFrame({
 }) {
   const navigate = useNavigate();
 
+  console.log('CoverFrame rendered, navigate function:', typeof navigate);
+
   // Dynamic cover content based on domain
   const coverTitle = domainData?.name || "Welcome to Keeper";
   const coverLiner = domainData?.description || "A quiet space for your thoughts and memories";

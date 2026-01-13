@@ -59,14 +59,53 @@ export type AgentEnvironmentContext = {
   };
 };
 
-const redisClient: RedisClientOrNoOp = getRedis();
-const cacheService = new DomainCacheService(redisClient);
-const domainService = new DomainService(prisma, cacheService);
-const permissionService = new DomainPermissionService(prisma, cacheService);
-const domainAuthManager = new DomainAuthManager(
-  prisma,
-  isNoOpRedis(redisClient) ? undefined : (redisClient as any)
-);
+// Lazy initialization - services will be created only when needed
+let cacheService: DomainCacheService | null = null;
+let domainService: DomainService | null = null;
+let permissionService: DomainPermissionService | null = null;
+let domainAuthManager: DomainAuthManager | null = null;
+
+function getDomainAuthManager(): DomainAuthManager {
+  if (!domainAuthManager) {
+    if (!cacheService) {
+      const redisClient = getRedis(); // This will now work since dotenv is loaded at startup
+      cacheService = new DomainCacheService(redisClient);
+    }
+    if (!domainService) {
+      domainService = new DomainService(prisma, cacheService);
+    }
+    if (!permissionService) {
+      permissionService = new DomainPermissionService(prisma, cacheService);
+    }
+    domainAuthManager = new DomainAuthManager(
+      prisma,
+      isNoOpRedis(getRedis()) ? undefined : (getRedis() as any)
+    );
+  }
+  return domainAuthManager;
+}
+
+function getDomainService(): DomainService {
+  if (!domainService) {
+    if (!cacheService) {
+      const redisClient = getRedis(); // This will now work since dotenv is loaded at startup
+      cacheService = new DomainCacheService(redisClient);
+    }
+    domainService = new DomainService(prisma, cacheService);
+  }
+  return domainService;
+}
+
+function getPermissionService(): DomainPermissionService {
+  if (!permissionService) {
+    if (!cacheService) {
+      const redisClient = getRedis(); // This will now work since dotenv is loaded at startup
+      cacheService = new DomainCacheService(redisClient);
+    }
+    permissionService = new DomainPermissionService(prisma, cacheService);
+  }
+  return permissionService;
+}
 const DRAFT_DIRECTORY_LIMIT = 25;
 
 async function loadRegistry(domainId: string): Promise<AgentEnvironmentContext['domains'][number]['registry']> {
@@ -173,7 +212,7 @@ export async function resolveAgentEnvironment(args: {
 
   if (userId) {
     try {
-      accessibleDomains = await domainAuthManager.getAccessibleDomains(userId);
+      accessibleDomains = await getDomainAuthManager().getAccessibleDomains(userId);
     } catch (error) {
       console.warn('[resolveAgentEnvironment] getAccessibleDomains failed', { userId, error });
     }
@@ -188,9 +227,9 @@ export async function resolveAgentEnvironment(args: {
 
   if (primaryDomainId) {
     try {
-      const domain = await domainService.getDomainById(primaryDomainId);
+      const domain = await getDomainService().getDomainById(primaryDomainId);
       const hasReadAccess = userId
-        ? (await permissionService.checkPermission({
+        ? (await getPermissionService().checkPermission({
             userId,
             domainId: primaryDomainId,
             permission: 'read',

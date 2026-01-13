@@ -66,18 +66,39 @@ router.use(authMiddlewareCompat);
 router.use('/:domainId', loadDomainPermissionsCompat);
 
 const prisma = new PrismaClient();
-const redis: RedisClientOrNoOp = getRedis();
-const cacheService = new DomainCacheService(redis);
-const domainService = new DomainService(prisma, cacheService);
-const verificationService = new DomainVerificationService(prisma, cacheService);
-const sslService = new SslCertificateService(prisma, cacheService);
-const healthService = new DomainHealthMonitoringService(
-  prisma,
-  domainService,
-  verificationService,
-  sslService,
-  cacheService
-);
+
+// Lazy initialization - services will be created only when needed during request processing
+let cacheService: DomainCacheService | null = null;
+let domainService: DomainService | null = null;
+let verificationService: DomainVerificationService | null = null;
+let sslService: SslCertificateService | null = null;
+let healthService: DomainHealthMonitoringService | null = null;
+
+function getHealthService(): DomainHealthMonitoringService {
+  if (!healthService) {
+    if (!cacheService) {
+      const redis = getRedis(); // This will now work since dotenv is loaded at startup
+      cacheService = new DomainCacheService(redis);
+    }
+    if (!domainService) {
+      domainService = new DomainService(prisma, cacheService);
+    }
+    if (!verificationService) {
+      verificationService = new DomainVerificationService(prisma, cacheService);
+    }
+    if (!sslService) {
+      sslService = new SslCertificateService(prisma, cacheService);
+    }
+    healthService = new DomainHealthMonitoringService(
+      prisma,
+      domainService,
+      verificationService,
+      sslService,
+      cacheService
+    );
+  }
+  return healthService;
+}
 
 // Create a mock CORS manager for now
 const corsManager = {
@@ -392,7 +413,7 @@ router.get(
         return res.status(403).json({ error: 'Admin access required' });
       }
 
-      const health = await healthService.checkDomainHealth(domainId);
+      const health = await getHealthService().checkDomainHealth(domainId);
       
       return res.json(health);
     } catch (error) {
@@ -417,7 +438,7 @@ router.get(
       const { days = 7 } = req.query;
       
       // Use checkDomainHealth for now until health history is implemented
-      const health = await healthService.checkDomainHealth(domainId);
+      const health = await getHealthService().checkDomainHealth(domainId);
       const history = [{ timestamp: new Date(), ...health }];
       
       return res.json(history);
@@ -436,7 +457,7 @@ router.get(
       const { domainId } = req.params;
       
       // Use the health check to determine alerts
-      const health = await healthService.checkDomainHealth(domainId);
+      const health = await getHealthService().checkDomainHealth(domainId);
       const alerts: unknown[] = []; // Placeholder until alerts system is implemented
       
       return res.json(alerts);
@@ -466,7 +487,7 @@ router.get(
 
       // Get basic domain info and health
       const domain = await domainService.getDomainById(domainId);
-      const health = await healthService.checkDomainHealth(domainId);
+      const health = await getHealthService().checkDomainHealth(domainId);
       const corsStats = await corsManager.getCorsStats(domainId, days);
 
       return res.json({
