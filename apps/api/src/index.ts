@@ -277,8 +277,8 @@ const corsOptions = {
     console.log('[CORS] Origin check:', { origin, allow, allowlistSize: CORS_ALLOWLIST.size });
 
     if (allow) {
-      // Return the specific origin for credentialed requests
-      callback(null, origin);
+      // For credentialed requests, we return true and let cors middleware handle origin
+      callback(null, true);
     } else {
       callback(new Error('CORS: origin not allowed'), false);
     }

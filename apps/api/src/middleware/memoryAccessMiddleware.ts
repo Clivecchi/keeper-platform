@@ -702,7 +702,7 @@ export function createMemoryAccessMiddleware(
   return async (req: MemoryAccessRequest, res: Response, next: NextFunction) => {
     const managerInstance = getManager();
     const middleware = managerInstance.createMiddleware(config);
-    return middleware(req, res, next);
+    await middleware(req, res, next);
   };
 }
 
@@ -738,7 +738,7 @@ export function createCrossDomainMemoryMiddleware(): (
   return async (req: MemoryAccessRequest, res: Response, next: NextFunction) => {
     const managerInstance = getManager();
     const middleware = managerInstance.createCrossDomainMiddleware();
-    return middleware(req, res, next);
+    await middleware(req, res, next);
   };
 }
 

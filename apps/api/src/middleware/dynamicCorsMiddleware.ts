@@ -5,8 +5,13 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@keeper/database';
+import { getRedis, type RedisClientOrNoOp } from '../lib/redis.js';
+import { DomainCacheService } from '@keeper/database';
 import cors from 'cors';
+
 const prisma = new PrismaClient();
+const redis = getRedis();
+const cacheService = new DomainCacheService(redis);
 
 export interface DomainCorsConfig {
   allowedOrigins?: string[];
