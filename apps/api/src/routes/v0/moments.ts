@@ -52,7 +52,7 @@ router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response)
     const themeSlugSafe = themeSlug || 'neutral';
 
     // Get domain from middleware
-    const domainId = (req as any).domain?.id;
+    const domainId = (req as any).domain?.id as string | null | undefined;
 
     // Use authenticated user's ID as owner
     const ownerId = req.user.id;
@@ -69,15 +69,20 @@ router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response)
       themeSlugSafe
     });
 
-    // Create the draft moment
+    // Create the draft moment - build data object conditionally
+    const createData: any = {
+      title: safeTitle,
+      narrative: safeNarrative,
+      ownerId,
+    };
+
+    // Only add domainId if it exists
+    if (domainId) {
+      createData.domainId = domainId;
+    }
+
     const moment = await prisma.moment.create({
-      data: {
-        title: safeTitle,
-        narrative: safeNarrative,
-        ownerId,
-        domainId,
-        // theme_id: themeSlug ? await getThemeIdBySlug(themeSlug) : null, // TODO: Fix theme_id assignment
-      },
+      data: createData,
       select: {
         id: true,
         title: true,
