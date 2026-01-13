@@ -553,7 +553,12 @@ app.get('/debug', (req, res) => {
         'DELETE /api/kip/user-keys/:keyId (delete user key)',
         'GET /api/kip/user-keys/providers (get providers)',
         '📱 USER PROFILE ENDPOINTS:',
-        'PUT /api/users/:id (update profile - FIXED!)'
+        'PUT /api/users/:id (update profile - FIXED!)',
+        '📝 V0 MOMENTS API (Write a Moment):',
+        'POST /api/v0/moments/drafts (create draft)',
+        'PATCH /api/v0/moments/drafts/:id (update draft)',
+        'GET /api/v0/moments/drafts/:id (get draft)',
+        'POST /api/v0/moments/:id/keep (publish moment)'
       ],
       recently_accessed: [], // TODO: Track recent endpoint access
     },
@@ -735,10 +740,10 @@ app.post('/api/kam/auth/login', async (req, res) => {
       `Domain=${COOKIE_DOMAIN}`,
       'Path=/',
       'HttpOnly',
-      'Secure',
-      'SameSite=None',
+      process.env.NODE_ENV === 'production' ? 'Secure' : '', // Only set Secure in production
+      'SameSite=Lax', // Changed from None to Lax for better subdomain compatibility
       `Max-Age=${maxAge}`
-    ].join('; ');
+    ].filter(Boolean).join('; ');
     res.setHeader('Set-Cookie', cookieValue);
     console.log('[auth] Cookie set for login:', { domain: COOKIE_DOMAIN, user: user.email });
 
@@ -847,7 +852,22 @@ app.post('/api/kam/auth/register', async (req, res) => {
 
 app.post('/api/kam/auth/logout', (req, res) => {
   console.log('📍 /api/kam/auth/logout endpoint hit');
-  
+
+  // 🍪 CLEAR COOKIE - Set expired cookie to clear session
+  const COOKIE_NAME = 'keeper_session';
+  const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '.ke3p.com';
+  const expiredCookieValue = [
+    `${COOKIE_NAME}=`,
+    `Domain=${COOKIE_DOMAIN}`,
+    'Path=/',
+    'HttpOnly',
+    process.env.NODE_ENV === 'production' ? 'Secure' : '', // Only set Secure in production
+    'SameSite=Lax',
+    'Max-Age=0' // Expire immediately
+  ].filter(Boolean).join('; ');
+  res.setHeader('Set-Cookie', expiredCookieValue);
+  console.log('[auth] Cookie cleared for logout:', { domain: COOKIE_DOMAIN });
+
   // Return simple success response for logout
   res.json({
     success: true,
@@ -985,6 +1005,7 @@ app.use('/api/entities', entitiesRoutes);
 app.use('/api/uploads', uploadsRoutes);
 // Mount v0 routes
 app.use('/api/v0/moments', v0MomentsRouter);
+console.log('[boot] ✅ mounted /api/v0/moments router');
 app.use('/api/agents', agentsRoutes);
 app.use('/api/journeys', journeysRoutes);
 app.use('/api/keeper-types', keeperTypesRoutes);
@@ -1343,7 +1364,12 @@ app.use('*', (req: Request, res: Response) => {
       '🎨 THEME API:',
       'GET /api/themes/:id (get theme by ID)',
       '🔧 KAM SETTINGS:',
-      'GET /api/kam/settings (user settings)'
+      'GET /api/kam/settings (user settings)',
+      '📝 V0 MOMENTS API (Write a Moment):',
+      'POST /api/v0/moments/drafts (create draft)',
+      'PATCH /api/v0/moments/drafts/:id (update draft)',
+      'GET /api/v0/moments/drafts/:id (get draft)',
+      'POST /api/v0/moments/:id/keep (publish moment)'
     ],
     timestamp: new Date().toISOString()
   });
