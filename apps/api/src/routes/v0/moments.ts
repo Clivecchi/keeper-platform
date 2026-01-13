@@ -57,28 +57,34 @@ router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response)
     // Use authenticated user's ID as owner
     const ownerId = req.user.id;
 
+    // Ensure required fields are not empty
+    const safeTitle = (title || '').trim() || 'Untitled Moment';
+    const safeNarrative = (body || '').trim() || '';
+
+    console.log('[v0:moments] Creating draft:', {
+      ownerId,
+      domainId,
+      safeTitle,
+      safeNarrativeLength: safeNarrative.length,
+      themeSlugSafe
+    });
+
     // Create the draft moment
     const moment = await prisma.moment.create({
       data: {
-        title: title || '',
-        narrative: body || '',
+        title: safeTitle,
+        narrative: safeNarrative,
         ownerId,
         domainId,
         // theme_id: themeSlug ? await getThemeIdBySlug(themeSlug) : null, // TODO: Fix theme_id assignment
-      } as any, // TODO: Fix Prisma types
+      },
       select: {
         id: true,
         title: true,
         narrative: true,
         createdAt: true,
         updatedAt: true,
-        domain: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
+        domain: true, // Include domain relation if it exists
       },
     });
 
@@ -229,13 +235,7 @@ router.post('/:id/keep', authMiddlewareCompat, async (req: Request, res: Respons
         createdAt: true,
         updatedAt: true,
         keptAt: true,
-        domain: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
+        domain: true, // Include domain relation if it exists
       },
     });
 
