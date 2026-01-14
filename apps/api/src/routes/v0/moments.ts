@@ -67,13 +67,13 @@ router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response)
       domainId: null // Explicitly domain-agnostic
     });
 
-    // Create the draft moment - domainId is always null for drafts
+    // Create the draft moment - domainId is always null for drafts (omitted since it's optional)
     const moment = await prisma.moment.create({
       data: {
         title: safeTitle,
         narrative: safeNarrative,
         ownerId,
-        domainId: null, // Drafts are domain-agnostic
+        // domainId omitted - drafts are domain-agnostic
       },
       select: {
         id: true,

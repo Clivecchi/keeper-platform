@@ -1,28 +1,6 @@
 # @keeper/database - Database Package
 
 ## 📌 Purpose
-The Database package provides centralized database access and management for the Keeper Platform using Prisma ORM. This package includes the Prisma client, database schema, common query helpers, and type definitions that are shared across all applications.
-
-## 🧱 Key Files
-- `src/index.ts`
-- `src/queries/index.ts`
-- `src/types.ts`
-- `prisma/schema.prisma`
-
-## 🔄 Data & Behavior
-Centralizes Prisma client, schema, and helpers. Exposes stateless helpers and types for API and services.
-
-## ⚠️ Notes & ToDo
-- [ ] Pending issues or improvements
-- [ ] Behavior to confirm with Kip
-
-## 📆 Update Log
-- 2025-06-23 – Package created during monorepo migration
-- 2025-06-25 – Added @keeper/shared dependency and adjusted build order
-- 2025-09-03 – Removed TS path alias to shared/src to fix builds; rely on compiled shared output
-# @keeper/database - Database Package
-
-## 📌 Purpose
 
 The Database package provides centralized database access and management for the Keeper Platform using Prisma ORM. This package includes the Prisma client, database schema, common query helpers, and type definitions that are shared across all applications.
 
@@ -273,6 +251,116 @@ export async function registerUser(data: RegisterInput) {
 }
 ```
 
+## 🚨 Error Handling
+
+### Common Patterns
+```typescript
+import type { DatabaseResult } from '@keeper/database/types'
+
+// Wrapper for safe database operations
+async function safeQuery<T>(operation: () => Promise<T>): Promise<DatabaseResult<T>> {
+  try {
+    const data = await operation()
+    return { success: true, data }
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    }
+  }
+}
+```
+
+### Prisma Error Handling
+```typescript
+import { Prisma } from '@prisma/client'
+
+try {
+  await prisma.users.create({ data: userData })
+} catch (error) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === 'P2002') {
+      // Unique constraint violation
+      throw new Error('Email already exists')
+    }
+  }
+  throw error
+}
+```
+
+## ⚠️ Notes & ToDo
+
+- [ ] Add database seeding functionality
+- [ ] Implement soft delete patterns
+- [ ] Add pagination helpers for large datasets
+- [ ] Consider read replicas for performance
+- [ ] Add database backup utilities
+- [ ] Implement audit logging for sensitive operations
+
+## 🔄 Migration Notes
+
+This package was created during the monorepo migration to centralize all database logic. The Prisma schema and related files were moved from the root `prisma/` directory to provide better organization and reusability.
+
+**Key Changes:**
+- Prisma client now uses singleton pattern for better development experience
+- Query helpers extracted for common operations
+- Types extended beyond Prisma generated types
+- Database utilities added for health checks and connection management
+
 ## 📆 Update Log
-- 2025-06-25 – Added @keeper/shared as a dependency and updated build process to ensure correct build order for Railway.
-- 2025-09-21 – Added BoardAlias and RequestLog models; created migration 20250921_board_alias_request_log.
+
+- **2025-06-23**: Created @keeper/database package during monorepo migration
+- **2025-06-23**: Moved Prisma schema and configuration
+- **2025-06-23**: Added query helpers for user and theme operations
+- **2025-06-23**: Implemented Prisma client singleton pattern
+- **2025-06-23**: Added comprehensive TypeScript type definitions
+- **2025-06-23**: Added KIP agents table and queries
+- **2025-06-23**: Implemented fallback mock data for development
+- **2025-06-23**: Added development setup documentation
+- **2025-06-25**: Added @keeper/shared as a dependency and updated build process to ensure correct build order for Railway.
+- **2025-09-03**: Removed TS path alias to `@keeper/shared/src` to fix Vercel/Railway builds. Now `@keeper/database` depends on compiled `@keeper/shared` output.
+- **2025-01-13**: Fixed Moment model schema - added @default(cuid()) to id field and @updatedAt to updatedAt field to fix Railway build TypeScript errors.
+
+---
+
+**Authored by**: Platform Engineering Team  
+**Architecture Partner**: Kip  
+**Package Version**: 0.1.0 
+
+## 🛠️ Development Setup
+
+### Environment Variables
+The database requires a `DATABASE_URL` environment variable. Create a `.env` file in the project root:
+
+```env
+# For local development with PostgreSQL
+DATABASE_URL="postgresql://username:password@localhost:5432/keeper_dev"
+
+# For Railway deployment (provided automatically)
+DATABASE_URL="postgresql://..."
+
+# Other required variables
+JWT_SECRET="your-jwt-secret-here"
+```
+
+### Local Development Commands
+```bash
+# Generate Prisma client
+pnpm run generate
+
+# Push schema to database (for development)
+pnpm run db:push
+
+# Run migrations (for production)
+pnpm run migrate
+
+# Seed the database
+pnpm run seed
+```
+
+### Database Schema
+The schema includes:
+- User management (users, UserSettings, themes)
+- Content management (MemoryCard, ThreadBlob, notes)
+- KIP agents (kip_agents table)
+- Platform configuration (themes, StudioModule, etc.)

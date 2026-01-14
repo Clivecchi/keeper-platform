@@ -261,14 +261,14 @@ model MemoryCard {
 }
 
 model Moment {
-  id        String   @id
+  id        String   @id @default(cuid())
   title     String
   narrative String
   pathId    String?  @unique
   journeyId String?  @unique
   ownerId   String
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt DateTime @updatedAt
   theme_id  String?  @db.Uuid
   domainId  String?
   status    String   @default("draft") // draft, kept
