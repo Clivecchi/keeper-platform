@@ -26,20 +26,29 @@ export function CoverBody({ domainData, themeSlug, onNavigate }: CoverBodyProps)
     // Ensure themeSlug is never null - default to 'neutral'
     const themeSlugSafe = themeSlug || 'neutral'
 
-    console.log('handleWriteMoment called, themeSlug:', themeSlug, 'themeSlugSafe:', themeSlugSafe)
+    // Get domain slug for API call - use domainData.slug if available, otherwise 'default'
+    const domainSlug = domainData?.slug || 'default'
+
+    console.log('handleWriteMoment called, themeSlug:', themeSlug, 'themeSlugSafe:', themeSlugSafe, 'domainSlug:', domainSlug)
     try {
       setIsCreatingDraft(true)
       console.log('Creating draft moment...')
-      const draft = await createDraftMoment({ themeSlug: themeSlugSafe })
+      const draft = await createDraftMoment({
+        themeSlug: themeSlugSafe,
+        domainSlug
+      })
       console.log('Draft created:', draft)
-      // Navigate to moment with the draft ID
-      const navUrl = `/v0?frame=moment&draftId=${draft.id}&theme=${themeSlugSafe}`
+
+      // If we're in a domain context, navigate within domain, otherwise use /v0
+      const baseUrl = domainData ? `/d/${domainData.slug}` : '/v0'
+      const navUrl = `${baseUrl}?frame=moment&draftId=${draft.id}&theme=${themeSlugSafe}`
       console.log('Navigating to:', navUrl)
       onNavigate?.(navUrl)
     } catch (error) {
       console.error('Failed to create draft moment:', error)
       // For now, just navigate without draft ID if API fails
-      const navUrl = `/v0?frame=moment&theme=${themeSlugSafe}`
+      const baseUrl = domainData ? `/d/${domainData.slug}` : '/v0'
+      const navUrl = `${baseUrl}?frame=moment&theme=${themeSlugSafe}`
       console.log('Fallback navigation to:', navUrl)
       onNavigate?.(navUrl)
     } finally {

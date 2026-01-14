@@ -1408,8 +1408,43 @@ function assertCoreActionHandlers() {
   }
 }
 
+// Schema verification before starting server
+async function verifyDatabaseSchema() {
+  try {
+    console.log('🔍 Verifying database schema...');
+
+    // Check Prisma client version
+    const prismaVersion = require('@prisma/client/package.json').version;
+    console.log(`📦 Prisma Client Version: ${prismaVersion}`);
+
+    // Redact database URL for logging
+    const dbUrl = process.env.DATABASE_URL;
+    const redactedUrl = dbUrl ? dbUrl.replace(/:\/\/[^:]+:[^@]+@/, '://***:***@') : 'Not set';
+    console.log(`🗄️  Database Host: ${redactedUrl}`);
+
+    // Test basic connectivity and Moment.status column existence
+    const testQuery = await prisma.$queryRaw`SELECT column_name FROM information_schema.columns WHERE table_name = 'Moment' AND column_name = 'status' LIMIT 1;`;
+    const hasStatusColumn = Array.isArray(testQuery) && testQuery.length > 0;
+
+    if (hasStatusColumn) {
+      console.log('✅ Moment.status column exists in database');
+    } else {
+      console.log('❌ Moment.status column MISSING from database - migrations needed');
+      console.log('   Run: pnpm --filter @keeper/database migrate deploy');
+    }
+
+    console.log('🔍 Schema verification complete\n');
+  } catch (error) {
+    console.error('❌ Schema verification failed:', error);
+    // Don't exit - let the server start anyway for debugging
+  }
+}
+
 // Start server
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
+  // Run schema verification
+  await verifyDatabaseSchema();
+
   console.log('\n🚀 Keeper API Server (Domain-Enabled Version)');
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 Server running on port ${PORT}`);

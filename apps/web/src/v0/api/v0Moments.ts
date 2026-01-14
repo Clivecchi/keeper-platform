@@ -27,15 +27,23 @@ export async function createDraftMoment(options: {
   themeSlug?: string;
   title?: string;
   body?: string;
+  domainSlug?: string;
 }): Promise<DraftMoment> {
   // Ensure themeSlug is never null - default to 'neutral'
   const themeSlugSafe = options.themeSlug || 'neutral'
 
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  // Add domain slug header if provided
+  if (options.domainSlug) {
+    headers['x-domain-slug'] = options.domainSlug;
+  }
+
   const response = await fetch(`${API_BASE_URL}/api/v0/moments/drafts`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify({
       themeSlug: themeSlugSafe,
       title: options.title,

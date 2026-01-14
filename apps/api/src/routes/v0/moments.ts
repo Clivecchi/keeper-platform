@@ -34,9 +34,9 @@ const updateDraftSchema = z.object({
 
 /**
  * POST /v0/moments/drafts - Create a new draft moment
- * Drafts are user-scoped and domain-agnostic (domain binding happens at Keep time)
+ * Drafts require domain context for proper scoping and organization
  */
-router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response) => {
+router.post('/drafts', authMiddlewareCompat, domainResolutionMiddleware, async (req: Request, res: Response) => {
   try {
     // Check authentication - required for draft creation
     if (!req.user?.id) {
@@ -47,33 +47,88 @@ router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response)
       });
     }
 
+    // Get domain from resolved context - required for drafts
+    let domainId = (req as any).domain?.id;
+
+    // If domain not resolved via middleware, try x-domain-slug header
+    if (!domainId) {
+      const domainSlug = req.headers['x-domain-slug'] as string;
+      if (domainSlug) {
+        try {
+          // Look up domain by slug
+          const domain = await prisma.domain.findUnique({
+            where: { slug: domainSlug },
+            select: { id: true, slug: true, name: true }
+          });
+          if (domain) {
+            domainId = domain.id;
+            // Set domain context for consistency
+            (req as any).domain = domain;
+          }
+        } catch (error) {
+          console.error('[v0:moments] Error looking up domain by slug:', domainSlug, error);
+        }
+      }
+    }
+
+    // If still no domain and host is www.ke3p.com or ke3p.com, use "default" domain
+    if (!domainId) {
+      const host = req.headers.host;
+      if (host === 'www.ke3p.com' || host === 'ke3p.com') {
+        try {
+          const defaultDomain = await prisma.domain.findUnique({
+            where: { slug: 'default' },
+            select: { id: true, slug: true, name: true }
+          });
+          if (defaultDomain) {
+            domainId = defaultDomain.id;
+            (req as any).domain = defaultDomain;
+          }
+        } catch (error) {
+          console.error('[v0:moments] Error looking up default domain:', error);
+        }
+      }
+    }
+
+    if (!domainId) {
+      console.log('[v0:moments] Draft creation failed: domain required but not resolved', {
+        host: req.headers.host,
+        domainSlug: req.headers['x-domain-slug'],
+        middlewareDomain: (req as any).domain
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'DOMAIN_REQUIRED',
+        message: 'Domain context is required to create draft moments. Please ensure you are accessing this from a valid domain.',
+      });
+    }
+
     const { themeSlug, title, body } = createDraftSchema.parse(req.body);
 
     // Ensure themeSlug is never null/undefined - default to 'neutral'
     const themeSlugSafe = themeSlug || 'neutral';
 
-    // Drafts are user-scoped only - domain binding happens at Keep time
     const ownerId = req.user.id;
 
     // Ensure required fields are not empty
     const safeTitle = (title || '').trim() || 'Untitled Moment';
     const safeNarrative = (body || '').trim() || '';
 
-    console.log('[v0:moments] Creating user-scoped draft:', {
+    console.log('[v0:moments] Creating domain-scoped draft:', {
       ownerId,
+      domainId,
       safeTitle,
       safeNarrativeLength: safeNarrative.length,
       themeSlugSafe,
-      domainId: null // Explicitly domain-agnostic
     });
 
-    // Create the draft moment - domainId is always null for drafts (omitted since it's optional)
+    // Create the draft moment with domain binding
     const moment = await prisma.moment.create({
       data: {
         title: safeTitle,
         narrative: safeNarrative,
         ownerId,
-        // domainId omitted - drafts are domain-agnostic
+        domainId, // Bind to domain at draft creation time
       },
       select: {
         id: true,
@@ -81,11 +136,17 @@ router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response)
         narrative: true,
         createdAt: true,
         updatedAt: true,
-        domain: true, // Will be null for drafts
+        domain: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
       },
     });
 
-    console.log(`[v0:moments] Created draft moment: ${moment.id} for user: ${ownerId}`);
+    console.log(`[v0:moments] Created draft moment: ${moment.id} for user: ${ownerId} in domain: ${domainId}`);
 
     return res.status(201).json({
       success: true,
@@ -97,10 +158,27 @@ router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response)
         themeSlug: themeSlugSafe,
         createdAt: moment.createdAt,
         updatedAt: moment.updatedAt,
+        domain: moment.domain,
       },
     });
   } catch (error) {
     console.error('[v0:moments] Error creating draft:', error);
+
+    // Handle Prisma schema mismatch errors specifically
+    if ((error as any).code === 'P2022') {
+      console.error('[v0:moments] DB Schema mismatch - status column missing:', {
+        prismaCode: 'P2022',
+        userId: req.user?.id,
+        domainId: (req as any).domain?.id,
+        themeSlug: req.body?.themeSlug,
+      });
+      return res.status(500).json({
+        success: false,
+        error: 'DB_SCHEMA_MISMATCH',
+        message: 'Database missing column \'status\'. Run migrations.',
+        prismaCode: 'P2022',
+      });
+    }
 
     // Structured error handling - never return 500 for domain issues
     if (error instanceof z.ZodError) {
