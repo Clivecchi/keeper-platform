@@ -1422,15 +1422,14 @@ async function verifyDatabaseSchema() {
     const redactedUrl = dbUrl ? dbUrl.replace(/:\/\/[^:]+:[^@]+@/, '://***:***@') : 'Not set';
     console.log(`🗄️  Database Host: ${redactedUrl}`);
 
-    // Test basic connectivity and Moment.status column existence
-    const testQuery = await prisma.$queryRaw`SELECT column_name FROM information_schema.columns WHERE table_name = 'Moment' AND column_name = 'status' LIMIT 1;`;
-    const hasStatusColumn = Array.isArray(testQuery) && testQuery.length > 0;
+    // Test basic connectivity and Moment table existence
+    const testQuery = await prisma.$queryRaw`SELECT table_name FROM information_schema.tables WHERE table_name = 'Moment' LIMIT 1;`;
+    const hasMomentTable = Array.isArray(testQuery) && testQuery.length > 0;
 
-    if (hasStatusColumn) {
-      console.log('✅ Moment.status column exists in database');
+    if (hasMomentTable) {
+      console.log('✅ Moment table exists in database');
     } else {
-      console.log('❌ Moment.status column MISSING from database - migrations needed');
-      console.log('   Run: pnpm --filter @keeper/database migrate deploy');
+      console.log('❌ Moment table MISSING from database - schema may need sync');
     }
 
     console.log('🔍 Schema verification complete\n');

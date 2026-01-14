@@ -154,7 +154,7 @@ router.post('/drafts', authMiddlewareCompat, domainResolutionMiddleware, async (
         id: moment.id,
         title: moment.title,
         body: moment.narrative,
-        status: 'draft',
+        status: 'draft', // All newly created moments are drafts
         themeSlug: themeSlugSafe,
         createdAt: moment.createdAt,
         updatedAt: moment.updatedAt,
@@ -163,22 +163,6 @@ router.post('/drafts', authMiddlewareCompat, domainResolutionMiddleware, async (
     });
   } catch (error) {
     console.error('[v0:moments] Error creating draft:', error);
-
-    // Handle Prisma schema mismatch errors specifically
-    if ((error as any).code === 'P2022') {
-      console.error('[v0:moments] DB Schema mismatch - status column missing:', {
-        prismaCode: 'P2022',
-        userId: req.user?.id,
-        domainId: (req as any).domain?.id,
-        themeSlug: req.body?.themeSlug,
-      });
-      return res.status(500).json({
-        success: false,
-        error: 'DB_SCHEMA_MISMATCH',
-        message: 'Database missing column \'status\'. Run migrations.',
-        prismaCode: 'P2022',
-      });
-    }
 
     // Structured error handling - never return 500 for domain issues
     if (error instanceof z.ZodError) {
@@ -238,6 +222,7 @@ router.patch('/drafts/:id', authMiddlewareCompat, async (req: Request, res: Resp
         narrative: true,
         createdAt: true,
         updatedAt: true,
+        keptAt: true,
       },
     });
 
@@ -251,7 +236,7 @@ router.patch('/drafts/:id', authMiddlewareCompat, async (req: Request, res: Resp
         id: moment.id,
         title: moment.title,
         body: moment.narrative,
-        status: 'draft', // Assuming we're only updating drafts
+        status: moment.keptAt ? 'kept' : 'draft', // Derive status from keptAt
         themeSlug: themeSlug,
         createdAt: moment.createdAt,
         updatedAt: moment.updatedAt,
@@ -352,7 +337,7 @@ router.post('/:id/keep', authMiddlewareCompat, domainResolutionMiddleware, async
         id: moment.id,
         title: moment.title,
         body: moment.narrative,
-        status: 'kept',
+        status: 'kept', // Moments with keptAt are "kept"
         keptAt: moment.keptAt,
         createdAt: moment.createdAt,
         updatedAt: moment.updatedAt,
@@ -389,6 +374,7 @@ router.get('/drafts/:id', authMiddlewareCompat, async (req: Request, res: Respon
         narrative: true,
         createdAt: true,
         updatedAt: true,
+        keptAt: true,
       },
     });
 
@@ -409,7 +395,7 @@ router.get('/drafts/:id', authMiddlewareCompat, async (req: Request, res: Respon
         id: moment.id,
         title: moment.title,
         body: moment.narrative,
-        status: 'draft', // Assuming we're only retrieving drafts via this endpoint
+        status: moment.keptAt ? 'kept' : 'draft', // Derive status from keptAt
         themeSlug: undefined, // Not available in current select
         createdAt: moment.createdAt,
         updatedAt: moment.updatedAt,
