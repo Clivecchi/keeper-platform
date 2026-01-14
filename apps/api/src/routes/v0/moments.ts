@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
 import { createDomainResolutionMiddleware } from '../../middleware/domainResolutionMiddleware.js';
@@ -7,9 +7,8 @@ import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 const router: Router = Router();
 const prisma = new PrismaClient();
 
-// Apply domain resolution to all routes (lazy to avoid Redis init at import time)
-// Short-circuit OPTIONS requests to prevent domain resolution from interfering
-router.use((req, res, next) => {
+// Domain resolution middleware - applied only to routes that need it
+const domainResolutionMiddleware = (req: Request, res: Response, next: NextFunction) => {
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
   }
@@ -18,7 +17,7 @@ router.use((req, res, next) => {
     fallbackDomain: process.env.FALLBACK_DOMAIN ?? 'www.ke3p.com',
   });
   return domainResolution(req, res, next);
-});
+};
 
 // Validation schemas
 const createDraftSchema = z.object({
@@ -35,11 +34,13 @@ const updateDraftSchema = z.object({
 
 /**
  * POST /v0/moments/drafts - Create a new draft moment
+ * Drafts are user-scoped and domain-agnostic (domain binding happens at Keep time)
  */
 router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
-    // Check authentication
+    // Check authentication - required for draft creation
     if (!req.user?.id) {
+      console.log('[v0:moments] Draft creation failed: no authenticated user');
       return res.status(401).json({
         success: false,
         error: 'Authentication required to create draft moments',
@@ -51,51 +52,40 @@ router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response)
     // Ensure themeSlug is never null/undefined - default to 'neutral'
     const themeSlugSafe = themeSlug || 'neutral';
 
-    // Get domain from middleware
-    const domainId = (req as any).domain?.id as string | null | undefined;
-
-    // Use authenticated user's ID as owner
+    // Drafts are user-scoped only - domain binding happens at Keep time
     const ownerId = req.user.id;
 
     // Ensure required fields are not empty
     const safeTitle = (title || '').trim() || 'Untitled Moment';
     const safeNarrative = (body || '').trim() || '';
 
-    console.log('[v0:moments] Creating draft:', {
+    console.log('[v0:moments] Creating user-scoped draft:', {
       ownerId,
-      domainId,
       safeTitle,
       safeNarrativeLength: safeNarrative.length,
-      themeSlugSafe
+      themeSlugSafe,
+      domainId: null // Explicitly domain-agnostic
     });
 
-    // Create the draft moment - build data object conditionally
-    const createData: any = {
-      title: safeTitle,
-      narrative: safeNarrative,
-      ownerId,
-    };
-
-    // Only add domainId if it exists
-    if (domainId) {
-      createData.domainId = domainId;
-    }
-
+    // Create the draft moment - domainId is always null for drafts
     const moment = await prisma.moment.create({
-      data: createData,
+      data: {
+        title: safeTitle,
+        narrative: safeNarrative,
+        ownerId,
+        domainId: null, // Drafts are domain-agnostic
+      },
       select: {
         id: true,
         title: true,
         narrative: true,
         createdAt: true,
         updatedAt: true,
-        domain: true, // Include domain relation if it exists
+        domain: true, // Will be null for drafts
       },
     });
 
-    if (process.env.LOG_LEVEL === 'debug') {
-      console.log(`[v0:moments] Created draft moment: ${moment.id} for user: ${ownerId}`);
-    }
+    console.log(`[v0:moments] Created draft moment: ${moment.id} for user: ${ownerId}`);
 
     return res.status(201).json({
       success: true,
@@ -103,7 +93,7 @@ router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response)
         id: moment.id,
         title: moment.title,
         body: moment.narrative,
-        status: 'draft', // Default status from schema
+        status: 'draft',
         themeSlug: themeSlugSafe,
         createdAt: moment.createdAt,
         updatedAt: moment.updatedAt,
@@ -111,6 +101,8 @@ router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response)
     });
   } catch (error) {
     console.error('[v0:moments] Error creating draft:', error);
+
+    // Structured error handling - never return 500 for domain issues
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
@@ -118,6 +110,9 @@ router.post('/drafts', authMiddlewareCompat, async (req: Request, res: Response)
         details: error.errors,
       });
     }
+
+    // Log unexpected errors but don't expose internal details
+    console.error('[v0:moments] Unexpected error creating draft:', error);
     return res.status(500).json({
       success: false,
       error: 'Failed to create draft moment',
@@ -208,15 +203,27 @@ router.patch('/drafts/:id', authMiddlewareCompat, async (req: Request, res: Resp
 
 /**
  * POST /v0/moments/:id/keep - Mark a moment as kept (published)
+ * Domain binding happens here - requires domain context
  */
-router.post('/:id/keep', authMiddlewareCompat, async (req: Request, res: Response) => {
+router.post('/:id/keep', authMiddlewareCompat, domainResolutionMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    // First check if the moment exists
+    // Get domain from resolved context - required for keeping
+    const domainId = (req as any).domain?.id;
+    if (!domainId) {
+      console.log('[v0:moments] Keep failed: domain required but not resolved');
+      return res.status(400).json({
+        success: false,
+        error: 'DOMAIN_REQUIRED_TO_KEEP',
+        message: 'Domain context is required to keep moments. Please ensure you are accessing this from a valid domain.',
+      });
+    }
+
+    // First check if the moment exists and belongs to the authenticated user
     const existingMoment = await prisma.moment.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, ownerId: true },
     });
 
     if (!existingMoment) {
@@ -226,10 +233,19 @@ router.post('/:id/keep', authMiddlewareCompat, async (req: Request, res: Respons
       });
     }
 
-    // Update the moment status to 'kept' and set keptAt timestamp
+    // Ensure user owns this moment
+    if (existingMoment.ownerId !== req.user?.id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied',
+      });
+    }
+
+    // Update the moment: set domainId, status to 'kept', and keptAt timestamp
     const moment = await prisma.moment.update({
       where: { id },
       data: {
+        domainId, // Bind to domain at keep time
         keptAt: new Date(),
         updatedAt: new Date(),
       },
@@ -240,13 +256,17 @@ router.post('/:id/keep', authMiddlewareCompat, async (req: Request, res: Respons
         createdAt: true,
         updatedAt: true,
         keptAt: true,
-        domain: true, // Include domain relation if it exists
+        domain: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
       },
     });
 
-    if (process.env.LOG_LEVEL === 'debug') {
-      console.log(`[v0:moments] Kept moment: ${moment.id}`);
-    }
+    console.log(`[v0:moments] Kept moment: ${moment.id} in domain: ${domainId}`);
 
     return res.json({
       success: true,
@@ -258,6 +278,7 @@ router.post('/:id/keep', authMiddlewareCompat, async (req: Request, res: Respons
         keptAt: moment.keptAt,
         createdAt: moment.createdAt,
         updatedAt: moment.updatedAt,
+        domain: moment.domain,
       },
     });
   } catch (error) {
