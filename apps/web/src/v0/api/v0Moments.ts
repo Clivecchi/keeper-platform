@@ -20,6 +20,37 @@ export interface KeptMoment {
   updatedAt: string;
 }
 
+interface DomainScopedOptions {
+  domainSlug?: string;
+}
+
+function buildDomainHeaders(domainSlug?: string) {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (domainSlug) {
+    headers['x-domain-slug'] = domainSlug;
+  }
+
+  return headers;
+}
+
+function logDraftRequest(
+  label: string,
+  url: string,
+  headers: Record<string, string>
+) {
+  if (import.meta.env.DEV) {
+    console.log('[v0Moments] Draft request', {
+      label,
+      url,
+      headers,
+      hasDomainSlug: Boolean(headers['x-domain-slug']),
+    });
+  }
+}
+
 /**
  * Create a new draft moment
  */
@@ -32,16 +63,11 @@ export async function createDraftMoment(options: {
   // Ensure themeSlug is never null - default to 'neutral'
   const themeSlugSafe = options.themeSlug || 'neutral'
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  const headers = buildDomainHeaders(options.domainSlug);
+  const url = `${API_BASE_URL}/api/v0/moments/drafts`;
+  logDraftRequest('createDraft', url, headers);
 
-  // Add domain slug header if provided
-  if (options.domainSlug) {
-    headers['x-domain-slug'] = options.domainSlug;
-  }
-
-  const response = await fetch(`${API_BASE_URL}/api/v0/moments/drafts`, {
+  const response = await fetch(url, {
     method: 'POST',
     headers,
     body: JSON.stringify({
@@ -72,13 +98,16 @@ export async function updateDraftMoment(
     title?: string;
     body?: string;
     themeSlug?: string;
-  }
+  },
+  options?: DomainScopedOptions
 ): Promise<DraftMoment> {
-  const response = await fetch(`${API_BASE_URL}/api/v0/moments/drafts/${id}`, {
+  const headers = buildDomainHeaders(options?.domainSlug);
+  const url = `${API_BASE_URL}/api/v0/moments/drafts/${id}`;
+  logDraftRequest('updateDraft', url, headers);
+
+  const response = await fetch(url, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify(updates),
   });
 
@@ -97,8 +126,15 @@ export async function updateDraftMoment(
 /**
  * Get a draft moment (for loading on page refresh)
  */
-export async function getDraftMoment(id: string): Promise<DraftMoment> {
-  const response = await fetch(`${API_BASE_URL}/api/v0/moments/drafts/${id}`);
+export async function getDraftMoment(
+  id: string,
+  options?: DomainScopedOptions
+): Promise<DraftMoment> {
+  const headers = buildDomainHeaders(options?.domainSlug);
+  const url = `${API_BASE_URL}/api/v0/moments/drafts/${id}`;
+  logDraftRequest('getDraft', url, headers);
+
+  const response = await fetch(url, { headers });
 
   if (!response.ok) {
     throw new Error(`Failed to get draft moment: ${response.statusText}`);
@@ -115,12 +151,17 @@ export async function getDraftMoment(id: string): Promise<DraftMoment> {
 /**
  * Mark a moment as kept (published)
  */
-export async function keepMoment(id: string): Promise<KeptMoment> {
-  const response = await fetch(`${API_BASE_URL}/api/v0/moments/${id}/keep`, {
+export async function keepMoment(
+  id: string,
+  options?: DomainScopedOptions
+): Promise<KeptMoment> {
+  const headers = buildDomainHeaders(options?.domainSlug);
+  const url = `${API_BASE_URL}/api/v0/moments/${id}/keep`;
+  logDraftRequest('keepDraft', url, headers);
+
+  const response = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
   });
 
   if (!response.ok) {

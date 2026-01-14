@@ -58,7 +58,7 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
 
   const loadDraft = async (id: string) => {
     try {
-      const draft = await getDraftMoment(id)
+      const draft = await getDraftMoment(id, { domainSlug })
       setContent(draft.body || "")
       setTitle(draft.title || "")
     } catch (error) {
@@ -75,7 +75,7 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
       try {
         setIsSaving(true)
         setSaveError(null)
-        await updateDraftMoment(id, updates)
+        await updateDraftMoment(id, updates, { domainSlug })
         setLastSaved(new Date())
       } catch (error) {
         console.error('Failed to save draft:', error)
@@ -84,7 +84,7 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
         setIsSaving(false)
       }
     }, 800),
-    [isKept]
+    [isKept, domainSlug]
   )
 
   // Handle content changes with autosave
@@ -108,7 +108,7 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
 
     try {
       setIsKeeping(true)
-      await keepMoment(draftId)
+      await keepMoment(draftId, { domainSlug })
       setIsKept(true)
       setLastSaved(new Date())
       onMomentKept?.()

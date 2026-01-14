@@ -10,8 +10,9 @@ export default function V0Page() {
   const styleId = (searchParams.get("style") || "neutral") as StyleId
   const themeSlug = searchParams.get("theme")
   const draftId = searchParams.get("draftId")
+  const domainSlug = searchParams.get("domain") || searchParams.get("domainSlug") || "default"
 
-  console.log('V0Page render:', { frame, styleId, themeSlug, draftId })
+  console.log('V0Page render:', { frame, styleId, themeSlug, draftId, domainSlug })
 
   // If theme parameter is provided, don't load any initial style overrides
   // Theme takes precedence over style overrides
@@ -22,7 +23,7 @@ export default function V0Page() {
   return (
     <StyleOverrideProvider initialStyleId={initialStyleId}>
       {frame === "moment" ? (
-        <MomentFrame styleId={styleId} themeSlug={themeSlug} draftId={draftId} />
+        <MomentFrame styleId={styleId} themeSlug={themeSlug} draftId={draftId} domainSlug={domainSlug} />
       ) : (
         <CoverFrame styleId={styleId} themeSlug={themeSlug} />
       )}

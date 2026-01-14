@@ -273,9 +273,52 @@ router.post('/:id/keep', authMiddlewareCompat, domainResolutionMiddleware, async
     const { id } = req.params;
 
     // Get domain from resolved context - required for keeping
-    const domainId = (req as any).domain?.id;
+    let domainId = (req as any).domain?.id;
+
+    // If domain not resolved via middleware, try x-domain-slug header
     if (!domainId) {
-      console.log('[v0:moments] Keep failed: domain required but not resolved');
+      const domainSlug = req.headers['x-domain-slug'] as string;
+      if (domainSlug) {
+        try {
+          const domain = await prisma.domain.findUnique({
+            where: { slug: domainSlug },
+            select: { id: true, slug: true, name: true }
+          });
+          if (domain) {
+            domainId = domain.id;
+            (req as any).domain = domain;
+          }
+        } catch (error) {
+          console.error('[v0:moments] Error looking up domain by slug (keep):', domainSlug, error);
+        }
+      }
+    }
+
+    // If still no domain and host is www.ke3p.com or ke3p.com, use "default" domain
+    if (!domainId) {
+      const host = req.headers.host;
+      if (host === 'www.ke3p.com' || host === 'ke3p.com') {
+        try {
+          const defaultDomain = await prisma.domain.findUnique({
+            where: { slug: 'default' },
+            select: { id: true, slug: true, name: true }
+          });
+          if (defaultDomain) {
+            domainId = defaultDomain.id;
+            (req as any).domain = defaultDomain;
+          }
+        } catch (error) {
+          console.error('[v0:moments] Error looking up default domain (keep):', error);
+        }
+      }
+    }
+
+    if (!domainId) {
+      console.log('[v0:moments] Keep failed: domain required but not resolved', {
+        host: req.headers.host,
+        domainSlug: req.headers['x-domain-slug'],
+        middlewareDomain: (req as any).domain
+      });
       return res.status(400).json({
         success: false,
         error: 'DOMAIN_REQUIRED_TO_KEEP',
