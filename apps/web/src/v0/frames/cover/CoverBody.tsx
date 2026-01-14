@@ -28,6 +28,8 @@ export function CoverBody({ domainData, themeSlug, onNavigate }: CoverBodyProps)
 
     // Get domain slug for API call - use domainData.slug if available, otherwise 'default'
     const domainSlug = domainData?.slug || 'default'
+    console.log('[V0_COVERBODY_WRITE_MOMENT_FINGERPRINT]', { domainSlug, themeSlug, themeSlugSafe })
+
 
     console.log('handleWriteMoment called, themeSlug:', themeSlug, 'themeSlugSafe:', themeSlugSafe, 'domainSlug:', domainSlug)
     try {

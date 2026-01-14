@@ -48,6 +48,7 @@ export default function PublicDomainPage() {
   // Check frame parameter for V0 routing
   const frame = searchParams.get("frame") || "cover";
   const themeSlug = searchParams.get("theme") || "diary-paper";
+  const isMomentFrame = frame === "moment";
 
   // Check if this is the /board route (always show board, even when authenticated)
   const isBoardRoute = location.pathname.includes('/board');
@@ -145,7 +146,8 @@ export default function PublicDomainPage() {
   });
 
   // When authenticated and NOT on /board route, redirect to Feed (domain dashboard)
-  if (isAuthenticated && slug && !isBoardRoute) {
+  // Allow explicit V0 moment routing to stay on the board surface.
+  if (isAuthenticated && slug && !isBoardRoute && !isMomentFrame) {
     return <Navigate to={`/d/${slug}/feed`} replace />;
   }
 

@@ -17,7 +17,7 @@ Pages for domain-related functionality, including public domain boards, domain d
 ### PublicDomainPage
 - **Route**: `/d/:slug` (public board) or `/d/:slug/board` (always shows board)
 - **Logged out**: Shows public domain board (cover, manifesto frames)
-- **Logged in on `/d/:slug`**: Redirects to `/d/:slug/feed`
+- **Logged in on `/d/:slug`**: Redirects to `/d/:slug/feed` unless `?frame=moment`
 - **Logged in on `/d/:slug/board`**: Shows public board with "Back to Dashboard" link
 
 ### Domain Dashboard Pages (V0 Layout)
@@ -51,6 +51,9 @@ All domain dashboard pages use `KeeperDashboardLayout` with left nav (Feed, Kip,
 - [ ] Wire Kip context cards (Journeys/Keepers) to domain-aware sources
 
 ## 📆 Update Log
+
+### 2026-01-14 - Preserve moment frame on domain routes
+- Allowed `?frame=moment` to render the V0 Moment frame on `/d/:slug` instead of redirecting to `/d/:slug/feed`, ensuring the "Write a Moment" CTA stays on the authoring surface.
 
 ### 2025-12-17 - Domain policy editor
 - Added a JSON editor on `DomainAdminPage` that loads/saves domain policy via `/api/domains/:domainId/policy`, showing source/version and refresh controls.
