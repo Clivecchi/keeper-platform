@@ -25,6 +25,7 @@ Tracks Prisma schema and SQL migrations for the Keeper Platform database.
 - [ ] Add lint to ensure `IF NOT EXISTS` on additive DDL
 
 ## 📆 Update Log
+- 2026-01-14: Added `Moment.keptAt` column via migration `20260114_add_moment_keptAt` to align draft keep tracking with Prisma schema.
 - 2025-12-17: Added `DomainPolicy` model with domain-scoped policy JSON, migration `20251217_domain_policy` (seeding default policy pack for existing domains), and TS seed hook to upsert policy-v1 for all domains.
 - 2025-12-16: Added `kip_drafts` table plus `active_draft_id` pointer on `kip_sessions` (domain+owner scoped with unique kind/key) to persist user-editable drafts across sessions.
 - 2025-12-14: Added `kip_lenses` model with composite unique `(domainId, name)` plus seed to create default Domain/Debug lenses and wired seed runner to execute it.
