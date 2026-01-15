@@ -1,8 +1,10 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
+  "rootDirectory": ".",
   "build": {
     "builder": "dockerfile",
-    "dockerfilePath": "Dockerfile.proxy"
+    "dockerfilePath": "Dockerfile.proxy",
+    "context": "."
   },
   "deploy": {
     "startCommand": "node dist/index.js",
