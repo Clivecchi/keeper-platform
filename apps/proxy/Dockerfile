@@ -4,34 +4,31 @@ FROM node:20-alpine
 # Install pnpm
 RUN npm install -g pnpm@10.11.0
 
-# Set working directory to repo root
+# Set working directory to app root (this is the proxy folder context)
 WORKDIR /app
 
-# Copy monorepo root files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Copy only proxy package manifests first (better cache)
+COPY package.json pnpm-lock.yaml* ./
 
-# Copy proxy package.json
-COPY apps/proxy/package.json ./apps/proxy/
+# Install dependencies (production build needs dev deps for TypeScript build)
+RUN pnpm install --frozen-lockfile
 
-# Install dependencies for proxy only
-RUN pnpm install --frozen-lockfile --filter proxy
-
-# Copy proxy source
-COPY apps/proxy ./apps/proxy
+# Copy the rest of the proxy source
+COPY . .
 
 # Build proxy
-RUN pnpm --filter proxy build
+RUN pnpm build
 
-# Verify build
-RUN test -f apps/proxy/dist/index.js && echo "✓ Proxy build successful!" || (echo "✗ Proxy build failed!" && exit 1)
+# Verify build output exists (adjust if your build outputs a different file)
+RUN test -f dist/index.js && echo "✓ Proxy build successful!" || (echo "✗ Proxy build failed!" && exit 1)
 
 # Set environment
 ENV NODE_ENV=production
 
-# Expose port
+# Expose port (keep consistent with your service)
 EXPOSE 8080
 
 # Start the proxy
-WORKDIR /app/apps/proxy
 CMD ["node", "dist/index.js"]
+
 
