@@ -48,6 +48,7 @@ export default function PublicDomainPage() {
   // Check frame parameter for V0 routing
   const frame = searchParams.get("frame") || "cover";
   const themeSlug = searchParams.get("theme") || "diary-paper";
+  const draftId = searchParams.get("draftId");
   const isMomentFrame = frame === "moment";
 
   // Check if this is the /board route (always show board, even when authenticated)
@@ -141,6 +142,7 @@ export default function PublicDomainPage() {
   console.log('[PublicDomainPage] Rendering V0 with:', {
     frame,
     themeSlug,
+    draftId,
     domainData: domainData?.name,
     isAuthenticated
   });
@@ -152,6 +154,9 @@ export default function PublicDomainPage() {
   }
 
   // Render V0 Cover or Moment based on frame parameter
+  if (import.meta.env.DEV) {
+    console.log('[PublicDomainPage] Rendering frame params', { frame, themeSlug, draftId });
+  }
   return (
     <div className="min-h-screen presentation-mode">
       {/* Overlay header for auth controls */}
@@ -213,6 +218,7 @@ export default function PublicDomainPage() {
             styleId="neutral"
             themeSlug={themeSlug}
             domainSlug={slug}
+            draftId={draftId}
           />
         ) : (
           <CoverFrame

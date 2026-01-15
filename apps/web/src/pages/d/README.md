@@ -52,6 +52,9 @@ All domain dashboard pages use `KeeperDashboardLayout` with left nav (Feed, Kip,
 
 ## 📆 Update Log
 
+### 2026-01-14 - Preserve draftId on Moment frame
+- Passed `draftId` query param through `PublicDomainPage` to `MomentFrame` and added dev logging for frame params.
+
 ### 2026-01-14 - Preserve moment frame on domain routes
 - Allowed `?frame=moment` to render the V0 Moment frame on `/d/:slug` instead of redirecting to `/d/:slug/feed`, ensuring the "Write a Moment" CTA stays on the authoring surface.
 
