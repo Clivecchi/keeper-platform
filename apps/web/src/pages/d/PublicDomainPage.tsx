@@ -18,6 +18,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { CoverFrame } from '../../v0/components/cover-frame';
 import { MomentFrame } from '../../v0/components/moment-frame';
+import { KeptMomentsFrame } from '../../v0/components/kept-moments-frame';
 import { StyleOverrideProvider } from '../../v0/styles/StyleOverrideProvider';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
@@ -219,6 +220,12 @@ export default function PublicDomainPage() {
             themeSlug={themeSlug}
             domainSlug={slug}
             draftId={draftId}
+          />
+        ) : frame === "moments" ? (
+          <KeptMomentsFrame
+            styleId="neutral"
+            themeSlug={themeSlug}
+            domainSlug={slug}
           />
         ) : (
           <CoverFrame

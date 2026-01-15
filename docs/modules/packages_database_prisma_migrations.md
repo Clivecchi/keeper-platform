@@ -17,3 +17,5 @@ Each timestamped folder contains SQL migrations that align the database with `sc
 
 ### 2026-01-14 - Add Moment keptAt column
 - Added migration to create `Moment.keptAt` for draft keep tracking.
+### 2026-01-14 - Add anonymous moment claim fields
+- Added nullable `ownerId` plus claim token fields for anonymous moment capture.

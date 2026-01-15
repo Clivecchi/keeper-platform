@@ -52,6 +52,9 @@ All domain dashboard pages use `KeeperDashboardLayout` with left nav (Feed, Kip,
 
 ## 📆 Update Log
 
+### 2026-01-14 - Add kept moments frame
+- Added `frame=moments` support to render a minimal kept-moments list for domain verification.
+
 ### 2026-01-14 - Preserve draftId on Moment frame
 - Passed `draftId` query param through `PublicDomainPage` to `MomentFrame` and added dev logging for frame params.
 

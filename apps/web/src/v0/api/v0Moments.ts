@@ -20,17 +20,58 @@ export interface KeptMoment {
   updatedAt: string;
 }
 
+export interface MomentClaim {
+  token: string;
+  expiresAt?: string;
+}
+
+export interface KeptMomentResult {
+  data: KeptMoment;
+  claim?: MomentClaim;
+}
+
 interface DomainScopedOptions {
   domainSlug?: string;
 }
 
-function buildDomainHeaders(domainSlug?: string) {
+interface DraftRequestOptions extends DomainScopedOptions {
+  includeAnonymousKey?: boolean;
+}
+
+function generateAnonKey() {
+  if (typeof window === 'undefined') return undefined;
+  const cryptoObj = window.crypto;
+  if (cryptoObj?.randomUUID) {
+    return cryptoObj.randomUUID();
+  }
+  return `anon_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+}
+
+function getOrCreateAnonKey(domainSlug?: string) {
+  if (typeof window === 'undefined' || !domainSlug) return undefined;
+  const storageKey = `keeper_anon_moment_key:${domainSlug}`;
+  const existing = window.localStorage.getItem(storageKey);
+  if (existing) return existing;
+  const next = generateAnonKey();
+  if (!next) return undefined;
+  window.localStorage.setItem(storageKey, next);
+  return next;
+}
+
+function buildDomainHeaders(options?: DraftRequestOptions) {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
-  if (domainSlug) {
-    headers['x-domain-slug'] = domainSlug;
+  if (options?.domainSlug) {
+    headers['x-domain-slug'] = options.domainSlug;
+  }
+
+  if (options?.includeAnonymousKey !== false && options?.domainSlug) {
+    const anonKey = getOrCreateAnonKey(options.domainSlug);
+    if (anonKey) {
+      headers['x-anon-key'] = anonKey;
+    }
   }
 
   return headers;
@@ -63,7 +104,7 @@ export async function createDraftMoment(options: {
   // Ensure themeSlug is never null - default to 'neutral'
   const themeSlugSafe = options.themeSlug || 'neutral'
 
-  const headers = buildDomainHeaders(options.domainSlug);
+  const headers = buildDomainHeaders({ domainSlug: options.domainSlug });
   const url = `${API_BASE_URL}/api/v0/moments/drafts`;
   logDraftRequest('createDraft', url, headers);
 
@@ -75,6 +116,7 @@ export async function createDraftMoment(options: {
       title: options.title,
       body: options.body,
     }),
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -101,7 +143,7 @@ export async function updateDraftMoment(
   },
   options?: DomainScopedOptions
 ): Promise<DraftMoment> {
-  const headers = buildDomainHeaders(options?.domainSlug);
+  const headers = buildDomainHeaders({ domainSlug: options?.domainSlug });
   const url = `${API_BASE_URL}/api/v0/moments/drafts/${id}`;
   logDraftRequest('updateDraft', url, headers);
 
@@ -109,6 +151,7 @@ export async function updateDraftMoment(
     method: 'PATCH',
     headers,
     body: JSON.stringify(updates),
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -130,11 +173,11 @@ export async function getDraftMoment(
   id: string,
   options?: DomainScopedOptions
 ): Promise<DraftMoment> {
-  const headers = buildDomainHeaders(options?.domainSlug);
+  const headers = buildDomainHeaders({ domainSlug: options?.domainSlug });
   const url = `${API_BASE_URL}/api/v0/moments/drafts/${id}`;
   logDraftRequest('getDraft', url, headers);
 
-  const response = await fetch(url, { headers });
+  const response = await fetch(url, { headers, credentials: 'include' });
 
   if (!response.ok) {
     throw new Error(`Failed to get draft moment: ${response.statusText}`);
@@ -154,14 +197,15 @@ export async function getDraftMoment(
 export async function keepMoment(
   id: string,
   options?: DomainScopedOptions
-): Promise<KeptMoment> {
-  const headers = buildDomainHeaders(options?.domainSlug);
+): Promise<KeptMomentResult> {
+  const headers = buildDomainHeaders({ domainSlug: options?.domainSlug });
   const url = `${API_BASE_URL}/api/v0/moments/${id}/keep`;
   logDraftRequest('keepDraft', url, headers);
 
   const response = await fetch(url, {
     method: 'POST',
     headers,
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -171,6 +215,72 @@ export async function keepMoment(
   const result = await response.json();
   if (!result.success) {
     throw new Error(result.error || 'Failed to keep moment');
+  }
+
+  return {
+    data: result.data,
+    claim: result.claim,
+  };
+}
+
+export async function claimMoment(token: string): Promise<KeptMoment> {
+  const response = await fetch(`${API_BASE_URL}/api/v0/moments/claim`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ token }),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to claim moment: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to claim moment');
+  }
+
+  return result.data;
+}
+
+export interface KeptMomentSummary {
+  id: string;
+  title: string;
+  body: string;
+  keptAt: string | null;
+  createdAt: string;
+  domain?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+}
+
+export async function getKeptMoments(options: {
+  domainSlug: string;
+  limit?: number;
+}): Promise<KeptMomentSummary[]> {
+  const url = new URL(`${API_BASE_URL}/api/v0/moments`);
+  url.searchParams.set('domainSlug', options.domainSlug);
+  url.searchParams.set('status', 'kept');
+  if (options.limit) {
+    url.searchParams.set('limit', String(options.limit));
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: buildDomainHeaders({ domainSlug: options.domainSlug }),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get kept moments: ${response.statusText}`);
+  }
+
+  const result = await response.json();
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to get kept moments');
   }
 
   return result.data;

@@ -6,6 +6,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 ## 🧱 Key Files
 - `cover-frame.tsx` – Album/storybook-inspired cover with imprint, title, liner notes, and setlist routes.
 - `moment-frame.tsx` – Moment diary preview frame with close loop back to the cover.
+- `kept-moments-frame.tsx` – Minimal list view for recently kept moments.
 
 ## 🔄 Data & Behavior
 - Cover uses local mock routes and constants for spacing/type scale; mobile-first with a two-column desktop “spread.”
@@ -29,4 +30,5 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - 2026-01-02: Pinned the close button to the absolute top-right (above the header), added top margin to the header stack, and added a persistent bottom-right Agent bubble entrypoint.
 - 2026-01-02: V0 Cover and Moment now consume canonical `--theme-*` CSS vars for surfaces/ink/borders/ruled lines; Diary Paper theme seed added for warm defaults.
 - 2026-01-02: Refined Moment paper structure: split writing/footer regions to prevent overlap, aligned textarea to ruled lines via `--moment-line-step`, and replaced the large Agent bubble with a calm Kip footer control.
+- 2026-01-14: Added kept moments frame for domain verification.
 

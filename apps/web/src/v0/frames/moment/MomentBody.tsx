@@ -2,9 +2,12 @@
 
 import type { CSSProperties } from "react"
 import { useState, useEffect, useCallback } from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { X } from "lucide-react"
-import { updateDraftMoment, keepMoment, getDraftMoment } from "../../api/v0Moments"
+import { updateDraftMoment, keepMoment, getDraftMoment, createDraftMoment, claimMoment } from "../../api/v0Moments"
 import type { DraftMoment } from "../../api/v0Moments"
+import type { MomentClaim } from "../../api/v0Moments"
+import { useAuth } from "../../../context/AuthContext"
 
 // Config for footer messages - ready for styling later
 const momentCopy = {
@@ -24,10 +27,17 @@ interface MomentBodyProps {
 }
 
 export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: MomentBodyProps) {
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { isAuthenticated } = useAuth()
   // Determine if we should show ruled lines (diary-paper theme or style)
   const shouldShowRuledLines = themeSlug === 'diary-paper'
   const [content, setContent] = useState("")
   const [title, setTitle] = useState("")
+  const [activeDraftId, setActiveDraftId] = useState<string | undefined>(draftId || undefined)
+  const [isCreatingDraft, setIsCreatingDraft] = useState(false)
+  const [claimInfo, setClaimInfo] = useState<MomentClaim | null>(null)
+  const [claimError, setClaimError] = useState<string | null>(null)
   const [isKipOpen, setIsKipOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isKeeping, setIsKeeping] = useState(false)
@@ -49,23 +59,71 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
     }
   }
 
-  // Load draft on mount if draftId is provided
   useEffect(() => {
     if (draftId) {
-      loadDraft(draftId)
+      setActiveDraftId(draftId)
     }
   }, [draftId])
+
+  // Load draft on mount if draftId is provided
+  useEffect(() => {
+    if (activeDraftId) {
+      loadDraft(activeDraftId)
+    }
+  }, [activeDraftId])
 
   const loadDraft = async (id: string) => {
     try {
       const draft = await getDraftMoment(id, { domainSlug })
       setContent(draft.body || "")
       setTitle(draft.title || "")
+      setIsKept(draft.status === 'kept')
     } catch (error) {
       console.error('Failed to load draft:', error)
       // Continue with empty state if loading fails
     }
   }
+
+  const ensureDraft = useCallback(async () => {
+    if (activeDraftId || isCreatingDraft) return
+    if (!domainSlug) {
+      setSaveError('Domain is required to create a draft.')
+      return
+    }
+
+    try {
+      setIsCreatingDraft(true)
+      setSaveError(null)
+      const draft = await createDraftMoment({
+        themeSlug: themeSlug || undefined,
+        title,
+        body: content,
+        domainSlug
+      })
+      setActiveDraftId(draft.id)
+      setContent(draft.body || "")
+      setTitle(draft.title || "")
+
+      const next = new URLSearchParams(searchParams)
+      next.set('draftId', draft.id)
+      setSearchParams(next, { replace: true })
+
+      if ((content || title) && draft.id) {
+        debouncedSave(draft.id, { title, body: content })
+      }
+    } catch (error) {
+      console.error('Failed to create draft:', error)
+      setSaveError('Failed to create draft. Please try again.')
+    } finally {
+      setIsCreatingDraft(false)
+    }
+  }, [activeDraftId, isCreatingDraft, domainSlug, themeSlug, title, content, searchParams, setSearchParams, debouncedSave])
+
+  useEffect(() => {
+    if (!activeDraftId) {
+      ensureDraft()
+    }
+  }, [activeDraftId, ensureDraft])
 
   // Debounced autosave
   const debouncedSave = useCallback(
@@ -90,27 +148,30 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
   // Handle content changes with autosave
   const handleContentChange = (newContent: string) => {
     setContent(newContent)
-    if (draftId) {
-      debouncedSave(draftId, { body: newContent })
+    if (activeDraftId) {
+      debouncedSave(activeDraftId, { body: newContent })
     }
   }
 
   const handleTitleChange = (newTitle: string) => {
     setTitle(newTitle)
-    if (draftId) {
-      debouncedSave(draftId, { title: newTitle })
+    if (activeDraftId) {
+      debouncedSave(activeDraftId, { title: newTitle })
     }
   }
 
   // Handle keeping the moment
   const handleKeep = async () => {
-    if (!draftId || isKeeping) return
+    if (!activeDraftId || isKeeping) return
 
     try {
       setIsKeeping(true)
-      await keepMoment(draftId, { domainSlug })
+      const result = await keepMoment(activeDraftId, { domainSlug })
       setIsKept(true)
       setLastSaved(new Date())
+      if (result.claim) {
+        setClaimInfo(result.claim)
+      }
       onMomentKept?.()
     } catch (error) {
       console.error('Failed to keep moment:', error)
@@ -118,6 +179,27 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
     } finally {
       setIsKeeping(false)
     }
+  }
+
+  const handleClaim = async () => {
+    if (!claimInfo?.token) return
+    if (!isAuthenticated) {
+      setClaimError('Sign in to claim your moment.')
+      return
+    }
+    try {
+      setClaimError(null)
+      await claimMoment(claimInfo.token)
+      setClaimInfo(null)
+    } catch (error) {
+      console.error('Failed to claim moment:', error)
+      setClaimError('Failed to claim moment.')
+    }
+  }
+
+  const handleViewDomain = () => {
+    if (!domainSlug) return
+    navigate(`/d/${domainSlug}?frame=moments`)
   }
 
   return (
@@ -181,7 +263,7 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
                   <button
                     type="button"
                     onClick={handleKeep}
-                    disabled={isKeeping || isKept || !draftId}
+                    disabled={isKeeping || isKept || !activeDraftId}
                     className="inline-flex items-center justify-center rounded-full border px-2 py-1 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed"
                     style={{
                       borderColor: "var(--theme-border-soft)",
@@ -232,8 +314,34 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
                   boxShadow: "var(--theme-shadow-soft)",
                 }}
               >
-                {isKept ? 'Moment kept forever' : saveError || (isSaving ? 'Saving...' : lastSaved ? `Saved ${lastSaved.toLocaleTimeString()}` : momentCopy.preserved)}
+                {isKept
+                  ? 'Moment kept forever'
+                  : saveError
+                    ? saveError
+                    : isCreatingDraft
+                      ? 'Creating draft...'
+                      : isSaving
+                        ? 'Saving...'
+                        : lastSaved
+                          ? `Saved ${lastSaved.toLocaleTimeString()}`
+                          : momentCopy.preserved}
               </span>
+              {isKept && (
+                <button
+                  type="button"
+                  onClick={handleViewDomain}
+                  className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80"
+                  style={{
+                    borderColor: "var(--theme-border-soft)",
+                    color: "var(--theme-ink-tertiary)",
+                    backgroundColor: "var(--theme-surface-paper)",
+                    boxShadow: "var(--theme-shadow-soft)",
+                  }}
+                  aria-label="View in domain"
+                >
+                  <span>View in Domain</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setIsKipOpen(!isKipOpen)}
@@ -253,6 +361,92 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
           </div>
         </div>
       </div>
+
+      {isKept && claimInfo && (
+        <div className="mt-6 flex justify-center">
+          <div className="w-full max-w-xl rounded-md border p-4 text-xs" style={{ borderColor: "var(--theme-border-soft)", backgroundColor: "var(--theme-surface-paper)" }}>
+            <div className="font-medium mb-2">Create your Ke3p Key</div>
+            <div className="mb-3">Save this claim token to attach your moment to an account later.</div>
+            <div className="flex items-center gap-2 mb-3">
+              <code className="px-2 py-1 rounded bg-white/60 border" style={{ borderColor: "var(--theme-border-soft)" }}>
+                {claimInfo.token}
+              </code>
+              <button
+                type="button"
+                onClick={() => navigator.clipboard?.writeText(claimInfo.token)}
+                className="inline-flex items-center justify-center rounded-full border px-2 py-1 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80"
+                style={{
+                  borderColor: "var(--theme-border-soft)",
+                  color: "var(--theme-ink-tertiary)",
+                  backgroundColor: "var(--theme-surface-paper)",
+                  boxShadow: "var(--theme-shadow-soft)",
+                }}
+              >
+                Copy
+              </button>
+              <button
+                type="button"
+                onClick={() => window.location.assign(`mailto:?subject=Your Ke3p Key&body=${encodeURIComponent(claimInfo.token)}`)}
+                className="inline-flex items-center justify-center rounded-full border px-2 py-1 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80"
+                style={{
+                  borderColor: "var(--theme-border-soft)",
+                  color: "var(--theme-ink-tertiary)",
+                  backgroundColor: "var(--theme-surface-paper)",
+                  boxShadow: "var(--theme-shadow-soft)",
+                }}
+              >
+                Email to self
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleClaim}
+                className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80"
+                style={{
+                  borderColor: "var(--theme-border-soft)",
+                  color: "var(--theme-ink-tertiary)",
+                  backgroundColor: "var(--theme-surface-paper)",
+                  boxShadow: "var(--theme-shadow-soft)",
+                }}
+              >
+                Claim now
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(`/login?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
+                className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80"
+                style={{
+                  borderColor: "var(--theme-border-soft)",
+                  color: "var(--theme-ink-tertiary)",
+                  backgroundColor: "var(--theme-surface-paper)",
+                  boxShadow: "var(--theme-shadow-soft)",
+                }}
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(`/register?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`)}
+                className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80"
+                style={{
+                  borderColor: "var(--theme-border-soft)",
+                  color: "var(--theme-ink-tertiary)",
+                  backgroundColor: "var(--theme-surface-paper)",
+                  boxShadow: "var(--theme-shadow-soft)",
+                }}
+              >
+                Sign up
+              </button>
+            </div>
+            {claimError && (
+              <div className="mt-2 text-[11px]" style={{ color: "var(--theme-ink-error, #ef4444)" }}>
+                {claimError}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Kip Companion Panel */}
       {isKipOpen && (

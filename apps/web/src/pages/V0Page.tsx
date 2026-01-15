@@ -1,6 +1,7 @@
 import { useSearchParams } from "react-router-dom"
 import { CoverFrame } from "../v0/components/cover-frame"
 import { MomentFrame } from "../v0/components/moment-frame"
+import { KeptMomentsFrame } from "../v0/components/kept-moments-frame"
 import { StyleOverrideProvider } from "../v0/styles/StyleOverrideProvider"
 import type { StyleId } from "../v0/styles/styles"
 
@@ -24,6 +25,8 @@ export default function V0Page() {
     <StyleOverrideProvider initialStyleId={initialStyleId}>
       {frame === "moment" ? (
         <MomentFrame styleId={styleId} themeSlug={themeSlug} draftId={draftId} domainSlug={domainSlug} />
+      ) : frame === "moments" ? (
+        <KeptMomentsFrame styleId={styleId} themeSlug={themeSlug} domainSlug={domainSlug} />
       ) : (
         <CoverFrame styleId={styleId} themeSlug={themeSlug} />
       )}

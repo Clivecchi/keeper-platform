@@ -266,12 +266,15 @@ model Moment {
   narrative String
   pathId    String?  @unique
   journeyId String?  @unique
-  ownerId   String
+  ownerId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   theme_id  String?  @db.Uuid
   domainId  String?
   keptAt    DateTime?
+  anonKey   String?
+  claimToken String?
+  claimTokenExpiresAt DateTime?
   domain    Domain?  @relation(fields: [domainId], references: [id])
   Journey   Journey? @relation(fields: [journeyId], references: [id])
   Path      Path?    @relation(fields: [pathId], references: [id])

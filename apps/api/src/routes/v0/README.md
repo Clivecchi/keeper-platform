@@ -7,7 +7,7 @@ Express routes for v0 surfaces, including draft Moment creation and publishing.
 - `moments.ts`
 
 ## 🔄 Data & Behavior
-Draft routes require authentication and use domain context from middleware or `x-domain-slug`.
+Draft routes accept authenticated or anonymous requests with `x-domain-slug` and `x-anon-key`, and emit claim tokens when kept anonymously.
 
 ## ⚠️ Notes & ToDo
 - [ ] Align draft error responses with client UX messaging
@@ -16,3 +16,5 @@ Draft routes require authentication and use domain context from middleware or `x
 
 ### 2026-01-14 - Header-based domain resolution for keep
 - Resolved `x-domain-slug` for keep actions to avoid missing-domain 500s.
+### 2026-01-14 - Add anonymous draft and claim flows
+- Allowed anonymous draft create/update/keep via `x-anon-key`, added claim endpoint, and added kept-moment list endpoint.
