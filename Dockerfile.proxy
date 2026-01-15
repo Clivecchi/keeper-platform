@@ -1,3 +1,21 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/proxy/package.json apps/proxy/package.json
+
+RUN pnpm install --frozen-lockfile --filter proxy
+
+COPY apps/proxy apps/proxy
+
+RUN pnpm --filter proxy build
+
+WORKDIR /app/apps/proxy
+
+CMD ["node", "dist/index.js"]
 # Use Node.js 20 (Keeper rule)
 FROM node:20-alpine
 
