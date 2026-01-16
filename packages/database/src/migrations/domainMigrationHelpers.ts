@@ -423,7 +423,7 @@ export class DomainMigrationHelper {
       // Update Moments - use ownerId instead of userId
       const momentsNeedingDomains = await this.prisma.moment.findMany({
         where: {
-          ownerId: { not: undefined }
+          ownerId: { not: null }
         },
         select: {
           id: true,
@@ -433,6 +433,11 @@ export class DomainMigrationHelper {
 
       for (const moment of momentsNeedingDomains) {
         try {
+          if (!moment.ownerId) {
+            result.warnings.push(`Moment ${moment.id} has no ownerId, skipping domain migration`);
+            continue;
+          }
+
           const domain = await this.prisma.domain.findFirst({
             where: { ownerId: moment.ownerId },
           });
