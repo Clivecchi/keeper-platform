@@ -264,8 +264,8 @@ model Moment {
   id        String   @id @default(cuid())
   title     String
   narrative String
-  pathId    String?  @unique
-  journeyId String?  @unique
+  pathId    String?  
+  journeyId String? 
   ownerId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -280,6 +280,9 @@ model Moment {
   Path      Path?    @relation(fields: [pathId], references: [id])
   themes    themes?  @relation(fields: [theme_id], references: [id])
 
+
+  @@index([pathId])
+  @@index([journeyId])
   @@index([domainId])
 }
 
