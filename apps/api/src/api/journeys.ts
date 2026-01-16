@@ -96,7 +96,7 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
           moment: journey.Moment,
           theme: journey.themes,
           pathCount: journey.Path.length,
-          momentCount: journey.Moment ? 1 : 0,
+          momentCount: journey.Moment.length,
         })),
         total,
         page: Math.floor(offset / limit) + 1,
@@ -167,7 +167,7 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       theme: journey.themes,
       stats: {
         totalPaths: journey.Path.length,
-        totalMoments: journey.Path.filter(path => path.Moment).length + (journey.Moment ? 1 : 0),
+        totalMoments: journey.Path.reduce((total, path) => total + (path.Moment?.length || 0), 0) + journey.Moment.length,
         completedPaths: Math.floor(journey.Path.length * 0.6), // Mock completion rate
         progressPercentage: Math.floor(Math.random() * 40 + 40), // Mock progress 40-80%
       },

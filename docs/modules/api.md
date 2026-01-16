@@ -124,6 +124,7 @@ All endpoints include:
 
 ## 📆 Update Log
 
+- 2026-01-15: Adjusted Journey/Path moment relations to support multi-moment arrays in API responses.
 - 2025-10-17: Added `GET /api/debug/opai-mcp-probe` - Read-only connectivity probe for OpenAI Agent Builder "Opai" MCP integration. Tests reachability, auth, and tool discovery. No secrets exposed, fully observational. Uses `OPAI_AGENT_MCP_URL` and `OPAI_AGENT_MCP_KEY` environment variables.
 - 2025-09-02: Added UUID validation on board-data, raw inspector endpoint, reqId propagation, and safer defaults to prevent 500s when data/behavior are malformed.
 - 2025-09-04: Agent Home Board ensure made idempotent (agentId-first, slug fallback, P2002-safe). Added `GET /api/admin/inspect/agent-home/:agentId`.

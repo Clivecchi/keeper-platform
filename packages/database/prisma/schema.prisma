@@ -44,7 +44,7 @@ model Journey {
   domain    Domain?  @relation(fields: [domainId], references: [id])
   Keeper    Keeper   @relation(fields: [keeperId], references: [id])
   themes    themes?  @relation(fields: [theme_id], references: [id])
-  Moment    Moment?
+  Moment    Moment[]
   Path      Path[]
 
   @@index([domainId])
@@ -294,7 +294,7 @@ model Path {
   journeyId String
   keeperId  String
   theme_id  String? @db.Uuid
-  Moment    Moment?
+  Moment    Moment[]
   Journey   Journey @relation(fields: [journeyId], references: [id])
   Keeper    Keeper  @relation(fields: [keeperId], references: [id])
   themes    themes? @relation(fields: [theme_id], references: [id])
