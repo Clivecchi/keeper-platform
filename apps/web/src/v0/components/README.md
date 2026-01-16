@@ -31,4 +31,5 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - 2026-01-02: V0 Cover and Moment now consume canonical `--theme-*` CSS vars for surfaces/ink/borders/ruled lines; Diary Paper theme seed added for warm defaults.
 - 2026-01-02: Refined Moment paper structure: split writing/footer regions to prevent overlap, aligned textarea to ruled lines via `--moment-line-step`, and replaced the large Agent bubble with a calm Kip footer control.
 - 2026-01-14: Added kept moments frame for domain verification.
+- 2026-01-15: Added DiagnosticsFrame for unified diagnostics access in V0 surfaces.
 

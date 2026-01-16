@@ -83,6 +83,9 @@ System Administration
 
 ## 📆 Update Log
 
+### 2026-01-15 - Diagnostics consolidation
+- Removed the legacy sidebar Debug button to keep diagnostics frame-first.
+
 ### 2024-01-XX - ViewMode Implementation
 - **Added**: ViewMode enum with three main modes (Architect, My Keeper, Admin)
 - **Added**: ViewModeContext for global state management

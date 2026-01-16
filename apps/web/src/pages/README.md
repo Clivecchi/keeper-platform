@@ -17,6 +17,9 @@ Pages parse route params and query string state to decide which surface to rende
 
 ## 📆 Update Log
 
+### 2026-01-15 - Add diagnostics frame entry
+- Enabled `/v0?frame=diagnostics` to render the unified Diagnostics frame.
+
 ### 2026-01-14 - Domain slug support on /v0
 - Added `domain`/`domainSlug` query parsing so `/v0` Moment drafts include explicit domain context.
 ### 2026-01-14 - Add kept moments frame entry

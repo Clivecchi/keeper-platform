@@ -38,6 +38,10 @@ Layout components that provide consistent page shells and navigation structures 
 
 ## 📆 Update Log
 
+### 2026-01-15 - Diagnostics entrypoint in domain shell
+- Added a Diagnostics nav item that routes to `/d/:slug?frame=diagnostics`.
+- Removed the legacy global debug modal from `AppLayout` to keep diagnostics frame-first.
+
 ### 2025-12-10 - KeeperDashboardLayout nav safety
 - Updated sidebar links to prefer `/d/:slug/...` routes and fall back to existing routes (`/root`, `/kip`, `/keeper`, `/root/profile`) to avoid broken navigation when slug is absent.
 

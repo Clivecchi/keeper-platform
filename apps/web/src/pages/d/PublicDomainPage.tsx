@@ -19,6 +19,7 @@ import { useParams, useNavigate, Navigate, useLocation, useSearchParams } from '
 import { CoverFrame } from '../../v0/components/cover-frame';
 import { MomentFrame } from '../../v0/components/moment-frame';
 import { KeptMomentsFrame } from '../../v0/components/kept-moments-frame';
+import { DiagnosticsFrame } from '../../v0/components/diagnostics-frame';
 import { StyleOverrideProvider } from '../../v0/styles/StyleOverrideProvider';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
@@ -51,6 +52,8 @@ export default function PublicDomainPage() {
   const themeSlug = searchParams.get("theme") || "diary-paper";
   const draftId = searchParams.get("draftId");
   const isMomentFrame = frame === "moment";
+  const isMomentsFrame = frame === "moments";
+  const isDiagnosticsFrame = frame === "diagnostics";
 
   // Check if this is the /board route (always show board, even when authenticated)
   const isBoardRoute = location.pathname.includes('/board');
@@ -150,7 +153,7 @@ export default function PublicDomainPage() {
 
   // When authenticated and NOT on /board route, redirect to Feed (domain dashboard)
   // Allow explicit V0 moment routing to stay on the board surface.
-  if (isAuthenticated && slug && !isBoardRoute && !isMomentFrame) {
+  if (isAuthenticated && slug && !isBoardRoute && !isMomentFrame && !isMomentsFrame && !isDiagnosticsFrame) {
     return <Navigate to={`/d/${slug}/feed`} replace />;
   }
 
@@ -226,6 +229,13 @@ export default function PublicDomainPage() {
             styleId="neutral"
             themeSlug={themeSlug}
             domainSlug={slug}
+          />
+        ) : frame === "diagnostics" ? (
+          <DiagnosticsFrame
+            styleId="neutral"
+            themeSlug={themeSlug}
+            domainSlug={slug}
+            returnPath={`/d/${slug}`}
           />
         ) : (
           <CoverFrame

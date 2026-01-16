@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useViewMode } from '../../context/ViewModeContext';
 import { ViewMode } from '../../types/viewMode';
-import DebugButton from '../DebugButton';
 import { logout as logoutWithCookie } from '../../auth/logout';
 import { 
   ChevronLeftIcon, 
@@ -389,13 +388,6 @@ export const Sidebar: React.FC = () => {
       {isCollapsed && (
         <div className="px-2 py-2 border-t border-border">
           <ViewModeToggle isCollapsed={isCollapsed} />
-        </div>
-      )}
-
-      {/* Debug Button */}
-      {!isCollapsed && (
-        <div className="px-4 py-2 border-t border-border">
-          <DebugButton variant="sidebar" />
         </div>
       )}
 

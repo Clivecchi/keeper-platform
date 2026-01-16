@@ -17,7 +17,7 @@ Pages for domain-related functionality, including public domain boards, domain d
 ### PublicDomainPage
 - **Route**: `/d/:slug` (public board) or `/d/:slug/board` (always shows board)
 - **Logged out**: Shows public domain board (cover, manifesto frames)
-- **Logged in on `/d/:slug`**: Redirects to `/d/:slug/feed` unless `?frame=moment`
+- **Logged in on `/d/:slug`**: Redirects to `/d/:slug/feed` unless `?frame=moment`, `?frame=moments`, or `?frame=diagnostics`
 - **Logged in on `/d/:slug/board`**: Shows public board with "Back to Dashboard" link
 
 ### Domain Dashboard Pages (V0 Layout)
@@ -51,6 +51,9 @@ All domain dashboard pages use `KeeperDashboardLayout` with left nav (Feed, Kip,
 - [ ] Wire Kip context cards (Journeys/Keepers) to domain-aware sources
 
 ## 📆 Update Log
+
+### 2026-01-15 - Diagnostics frame routing
+- Added `frame=diagnostics` support on `/d/:slug` to render the unified Diagnostics frame without redirecting to Feed.
 
 ### 2026-01-14 - Add kept moments frame
 - Added `frame=moments` support to render a minimal kept-moments list for domain verification.

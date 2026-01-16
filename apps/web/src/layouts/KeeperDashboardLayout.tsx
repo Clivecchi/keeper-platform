@@ -26,7 +26,8 @@ import {
   UserIcon,
   PlusIcon,
   ChevronDownIcon,
-  EyeIcon
+  EyeIcon,
+  BeakerIcon
 } from '@heroicons/react/24/outline';
 import { UserIdentityDropdown } from '../components/layout/UserIdentityDropdown';
 
@@ -77,12 +78,19 @@ export const KeeperDashboardLayout: React.FC<KeeperDashboardLayoutProps> = ({
       label: 'Profile',
       icon: <UserIcon className="w-5 h-5" />,
       path: slug ? `/d/${slug}/profile` : '/root/profile'
+    },
+    {
+      label: 'Diagnostics',
+      icon: <BeakerIcon className="w-5 h-5" />,
+      path: slug ? `/d/${slug}?frame=diagnostics` : '/debug'
     }
   ];
 
   // Determine active nav item based on current path
   const getActiveNavLabel = (): string | null => {
     const path = location.pathname;
+    const frame = new URLSearchParams(location.search).get('frame');
+    if (frame === 'diagnostics') return 'diagnostics';
     
     // Check each nav item to see if current path matches
     for (const item of navItems) {
