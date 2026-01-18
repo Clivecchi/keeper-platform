@@ -19,7 +19,7 @@ import { useParams, useNavigate, Navigate, useLocation, useSearchParams } from '
 import { CoverFrame } from '../../v0/components/cover-frame';
 import { MomentFrame } from '../../v0/components/moment-frame';
 import { KeptMomentsFrame } from '../../v0/components/kept-moments-frame';
-import { DiagnosticsFrame } from '../../v0/components/diagnostics-frame';
+import { DiagnosticsFrame } from '../../v0/frames/diagnostics/DiagnosticsFrame';
 import { StyleOverrideProvider } from '../../v0/styles/StyleOverrideProvider';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';

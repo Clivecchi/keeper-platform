@@ -2,7 +2,7 @@ import { useSearchParams } from "react-router-dom"
 import { CoverFrame } from "../v0/components/cover-frame"
 import { MomentFrame } from "../v0/components/moment-frame"
 import { KeptMomentsFrame } from "../v0/components/kept-moments-frame"
-import { DiagnosticsFrame } from "../v0/components/diagnostics-frame"
+import { DiagnosticsFrame } from "../v0/frames/diagnostics/DiagnosticsFrame"
 import { StyleOverrideProvider } from "../v0/styles/StyleOverrideProvider"
 import type { StyleId } from "../v0/styles/styles"
 

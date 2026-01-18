@@ -132,6 +132,35 @@ export interface DiagnosticsSummary {
   overallStatus: "ALL_PASS" | "PARTIAL_PASS" | "ALL_FAIL"
 }
 
+export interface DomainHomeBoardFrameSummary {
+  id: string | null
+  name: string | null
+  role: string | null
+  pattern: string | null
+  frameType: string | null
+  orderIndex: number | null
+}
+
+export interface DomainHomeBoardCallResult {
+  status: number
+  ok: boolean
+  boardId: string | null
+  boardType: string | null
+  domainId: string | null
+  frames: DomainHomeBoardFrameSummary[]
+  frameCount: number
+  error?: string
+}
+
+export interface DomainHomeBoardCheck {
+  slug: string | null
+  endpoint: string | null
+  first: DomainHomeBoardCallResult | null
+  second: DomainHomeBoardCallResult | null
+  stable: boolean | null
+  error?: string
+}
+
 export interface AgentDiagnosticsSnapshot {
   authStatus: "authenticated" | "guest"
   userId: string | null
@@ -154,6 +183,7 @@ export interface DiagnosticsData {
   summary?: DiagnosticsSummary
   logs?: string[]
   domainContext?: DomainContextInfo
+  domainHomeBoardCheck?: DomainHomeBoardCheck
   agentDiagnostics?: AgentDiagnosticsSnapshot
 }
 
@@ -373,12 +403,15 @@ export function DiagnosticsFrame({
         "=== DETAILED TEST RESULTS ===": "",
         tests: diagnosticsData.tests,
         "_spacer5": "",
+        "=== DOMAIN HOME BOARD (CANONICAL) ===": "",
+        domainHomeBoardCheck: diagnosticsData.domainHomeBoardCheck ?? null,
+        "_spacer6": "",
         "=== AGENT DIAGNOSTICS (KIP) ===": "",
         agentDiagnostics,
-        "_spacer6": "",
+        "_spacer7": "",
         "=== DIAGNOSTIC LOGS ===": "",
         logs: diagnosticsData.logs,
-        "_spacer7": "",
+        "_spacer8": "",
         "=== END REPORT ===": `Generated at ${new Date().toISOString()}`,
       }
     },
@@ -571,6 +604,68 @@ export function DiagnosticsFrame({
         }
       }
 
+      const toFrameSummary = (frames: unknown) => {
+        if (!Array.isArray(frames)) return []
+        return frames.map((frame) => ({
+          id: typeof frame?.id === "string" ? frame.id : null,
+          name: typeof frame?.name === "string" ? frame.name : null,
+          role: typeof frame?.role === "string" ? frame.role : null,
+          pattern: typeof frame?.pattern === "string" ? frame.pattern : null,
+          frameType: typeof frame?.frameType === "string" ? frame.frameType : null,
+          orderIndex: typeof frame?.orderIndex === "number" ? frame.orderIndex : null,
+        }))
+      }
+
+      const runDomainHomeBoardRequest = async (slug: string, endpoint: string): Promise<DomainHomeBoardCallResult> => {
+        try {
+          const response = await fetch(endpoint, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+          })
+          let responseJson: any
+          let responseText: string | undefined
+          try {
+            responseJson = await response.clone().json()
+          } catch {
+            try {
+              responseText = await response.text()
+            } catch {
+              responseText = undefined
+            }
+          }
+          const board = responseJson?.data ?? null
+          const frames = toFrameSummary(board?.frames)
+          const errorMessage =
+            response.ok
+              ? undefined
+              : responseJson?.error || responseJson?.message || responseText || response.statusText || "Request failed"
+
+          return {
+            status: response.status,
+            ok: response.ok,
+            boardId: typeof board?.id === "string" ? board.id : null,
+            boardType: typeof board?.boardType === "string" ? board.boardType : null,
+            domainId: typeof board?.domainId === "string" ? board.domainId : null,
+            frames,
+            frameCount: frames.length,
+            error: errorMessage,
+          }
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : String(err)
+          return {
+            status: 0,
+            ok: false,
+            boardId: null,
+            boardType: null,
+            domainId: null,
+            frames: [],
+            frameCount: 0,
+            error: errorMessage || "Request failed",
+          }
+        }
+      }
+
       try {
         addLog("Testing basic Railway domain connectivity...")
         const urlTest = new URL(baseUrl)
@@ -730,6 +825,55 @@ export function DiagnosticsFrame({
       }
 
       detailedNetworkDiagnostics.corsTests = corsTests
+
+      const domainHomeBoardCheck: DomainHomeBoardCheck = {
+        slug: domainContext.domainSlug ?? domainSlug ?? null,
+        endpoint: null,
+        first: null,
+        second: null,
+        stable: null,
+      }
+
+      const homeBoardSlug = domainHomeBoardCheck.slug
+      if (!homeBoardSlug) {
+        domainHomeBoardCheck.error = "Missing domain slug for domain home board diagnostics."
+        diagnostics.tests.domainHomeBoard = {
+          status: "ERROR",
+          error: domainHomeBoardCheck.error,
+        }
+      } else {
+        const endpoint = `${baseUrl}/api/domains/by-slug/${homeBoardSlug}/home-board`
+        domainHomeBoardCheck.endpoint = endpoint
+        addLog("🏠 Checking canonical domain home board...")
+        const first = await runDomainHomeBoardRequest(homeBoardSlug, endpoint)
+        const second = await runDomainHomeBoardRequest(homeBoardSlug, endpoint)
+        const stable = !!(first.boardId && second.boardId && first.boardId === second.boardId)
+        domainHomeBoardCheck.first = first
+        domainHomeBoardCheck.second = second
+        domainHomeBoardCheck.stable = stable
+
+        const authBlocked = [401, 403].includes(first.status) || [401, 403].includes(second.status)
+        if (authBlocked) {
+          diagnostics.tests.domainHomeBoard = {
+            status: "ERROR",
+            error: "Not signed in",
+            data: domainHomeBoardCheck,
+          }
+        } else if (first.ok && second.ok && first.boardType === "domain-home" && stable) {
+          diagnostics.tests.domainHomeBoard = {
+            status: "SUCCESS",
+            data: domainHomeBoardCheck,
+          }
+        } else {
+          diagnostics.tests.domainHomeBoard = {
+            status: "FAILED",
+            data: domainHomeBoardCheck,
+            error: first.error || second.error || "Domain home board check failed",
+          }
+        }
+      }
+
+      diagnostics.domainHomeBoardCheck = domainHomeBoardCheck
 
       addLog("🧭 Running Moment Pipeline diagnostics...")
       const momentPipelineSteps: PipelineStepResult[] = []
@@ -1508,6 +1652,12 @@ export function DiagnosticsFrame({
   const momentPipelineData = results?.tests?.momentPipeline?.data as MomentPipelineReport | undefined
   const momentPipelineStatus = results?.tests?.momentPipeline?.status
   const keptMomentsFeedData = results?.tests?.keptMomentsFeed?.data as KeptMomentsFeedReport | undefined
+  const domainHomeBoardCheck = results?.domainHomeBoardCheck
+  const homeBoardFirst = domainHomeBoardCheck?.first
+  const homeBoardSecond = domainHomeBoardCheck?.second
+  const homeBoardFrames = homeBoardFirst?.frames ?? []
+  const homeBoardAuthBlocked =
+    [homeBoardFirst?.status, homeBoardSecond?.status].some((status) => status === 401 || status === 403) || false
 
   return (
     <DesignFrame
@@ -1579,6 +1729,95 @@ export function DiagnosticsFrame({
               <div className="font-medium">{domainContext.headerExpectation.value || "not set"}</div>
             </div>
           </div>
+        </section>
+
+        <section className="rounded-2xl border border-black/10 bg-white/80 p-6 shadow-sm">
+          <h3 className="text-base font-semibold text-gray-900">Domain Home Board (canonical)</h3>
+          <p className="mt-1 text-sm text-gray-600">
+            Verifies the per-domain canonical board is stable and resolvable via the home-board endpoint.
+          </p>
+          <div className="mt-4 grid gap-4 text-sm text-gray-700 sm:grid-cols-3">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">Domain Slug</div>
+              <div className="font-medium">{domainHomeBoardCheck?.slug || domainContext.domainSlug || "—"}</div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">Endpoint</div>
+              <div className="font-medium">{domainHomeBoardCheck?.endpoint || "—"}</div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">Stability</div>
+              <div className="font-medium">
+                {domainHomeBoardCheck?.stable == null
+                  ? "—"
+                  : domainHomeBoardCheck.stable
+                  ? "✅ Unchanged"
+                  : "❌ Changed"}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 text-sm text-gray-700 sm:grid-cols-2">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">HTTP Status (1st)</div>
+              <div className="font-medium">{homeBoardFirst?.status ?? "—"}</div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">HTTP Status (2nd)</div>
+              <div className="font-medium">{homeBoardSecond?.status ?? "—"}</div>
+            </div>
+          </div>
+
+          {homeBoardAuthBlocked && (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Not signed in. The endpoint returned 401/403 with the current session.
+            </div>
+          )}
+
+          {homeBoardFirst ? (
+            <>
+              <div className="mt-4 grid gap-4 text-sm text-gray-700 sm:grid-cols-4">
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Board Id</div>
+                  <div className="font-medium">{homeBoardFirst.boardId || "—"}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Board Type</div>
+                  <div className="font-medium">{homeBoardFirst.boardType || "—"}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Domain Id</div>
+                  <div className="font-medium">{homeBoardFirst.domainId || "—"}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Frames</div>
+                  <div className="font-medium">{homeBoardFirst.frameCount}</div>
+                </div>
+              </div>
+              <div className="mt-4">
+                <div className="text-xs uppercase tracking-wide text-gray-500">Frames (keys/names)</div>
+                {homeBoardFrames.length === 0 ? (
+                  <div className="text-sm text-gray-600">No frames returned.</div>
+                ) : (
+                  <ul className="mt-2 space-y-1 text-sm text-gray-700">
+                    {homeBoardFrames.map((frame, index) => (
+                      <li key={frame.id ?? `${frame.name}-${index}`}>
+                        {frame.role ? `${frame.role} • ` : ""}
+                        {frame.name || frame.id || "Untitled"}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              {homeBoardFirst.error && (
+                <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700">
+                  {homeBoardFirst.error}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="mt-4 text-sm text-gray-600">Run diagnostics to populate the canonical board check.</div>
+          )}
         </section>
 
         {logs.length > 0 && (

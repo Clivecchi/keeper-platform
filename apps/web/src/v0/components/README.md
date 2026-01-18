@@ -20,6 +20,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-01-18: Added domain home board diagnostics and snapshot details.
 - 2026-01-18: Added `FooterTrail` to render recent navigation/actions with quick frame links.
 - 2026-01-01: Added cover and moment frames for V0 surface polishing.
 - 2026-01-02: Tightened moment frame padding (7px top/bottom), header spacing, and aligned the close button positioning with navbar icon spacing.
