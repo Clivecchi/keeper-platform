@@ -12,6 +12,8 @@ type FrameKey =
   | 'domain.activity';
 
 const BOARD_TYPE = 'domain-home';
+const DOMAIN_MANAGEMENT_SLUG = 'domain-management';
+const DOMAIN_MANAGEMENT_NAME_SNIPPET = 'Domain Management';
 
 function uuidV5Like(namespace: string, name: string): string {
   // Deterministic UUID v4-shaped from sha1 hash (not standard v5, but stable)
@@ -49,6 +51,12 @@ function defaultPropsFor(frameKey: FrameKey, domainId: string, boardId: string) 
   }
 }
 
+async function ensureFrameConfig(client: PrismaClient, name: string, description: string) {
+  const existing = await client.frameConfig.findFirst({ where: { name } });
+  if (existing) return existing;
+  return client.frameConfig.create({ data: { id: randomUUID(), name, description, theme: {} } });
+}
+
 const FRAME_SPECS: Array<{ key: FrameKey; name: string; pattern: string; frameType: string; orderIndex: number }>
   = [
     { key: 'domain.summary', name: 'Summary', pattern: 'focus', frameType: 'preview', orderIndex: 0 },
@@ -60,6 +68,143 @@ const FRAME_SPECS: Array<{ key: FrameKey; name: string; pattern: string; frameTy
     // Optional
     { key: 'domain.activity', name: 'Activity', pattern: 'canvas', frameType: 'media_card', orderIndex: 6 },
   ];
+
+export async function ensureDomainHomeBoard(client: PrismaClient, domainId: string, opts?: { reqId?: string }) {
+  const includeBoard = {
+    frames: {
+      orderBy: { orderIndex: 'asc' },
+      include: { FrameConfig: true },
+    },
+  } as const;
+
+  let board = await client.board.findFirst({ where: { domainId, boardType: BOARD_TYPE }, include: includeBoard });
+  if (board) {
+    await logReq(opts?.reqId, 'DOMAIN_HOME_BOARD_FOUND', { domainId, boardId: board.id }, 'debug');
+    return board;
+  }
+
+  const adoptCandidate = await client.board.findFirst({
+    where: {
+      domainId,
+      isTemplate: false,
+      OR: [
+        { slug: DOMAIN_MANAGEMENT_SLUG },
+        { name: { contains: DOMAIN_MANAGEMENT_NAME_SNIPPET, mode: 'insensitive' } },
+      ],
+    },
+    include: includeBoard,
+  });
+
+  if (adoptCandidate && (!adoptCandidate.boardType || adoptCandidate.boardType === '')) {
+    board = await client.board.update({
+      where: { id: adoptCandidate.id },
+      data: { boardType: BOARD_TYPE, updatedAt: new Date() },
+      include: includeBoard,
+    });
+    await logReq(opts?.reqId, 'DOMAIN_HOME_BOARD_ADOPTED', {
+      domainId,
+      boardId: board.id,
+      previousBoardType: adoptCandidate.boardType ?? null,
+    });
+    return board;
+  }
+
+  const safeSlugBase = `domain-${domainId.slice(0, 8)}-home`;
+  let safeSlug = safeSlugBase;
+
+  try {
+    board = await client.board.create({
+      data: {
+        id: randomUUID(),
+        keeperId: domainId,
+        name: 'Domain Home',
+        slug: safeSlug,
+        description: 'Canonical domain home board',
+        behavior: { defaultPattern: 'focus', startFrameId: null },
+        data: { scope: 'domain', entityId: domainId, frames: [], layoutPrefs: {} },
+        access: { visibility: 'private' },
+        domainId,
+        boardType: BOARD_TYPE,
+        isTemplate: false,
+        updatedAt: new Date(),
+      },
+      include: includeBoard,
+    });
+    await logReq(opts?.reqId, 'DOMAIN_HOME_BOARD_CREATED', { domainId, boardId: board.id });
+  } catch (e: any) {
+    if (e?.code === 'P2002') {
+      safeSlug = `${safeSlugBase}-${randomUUID().slice(0, 6)}`;
+      board = await client.board.create({
+        data: {
+          id: randomUUID(),
+          keeperId: domainId,
+          name: 'Domain Home',
+          slug: safeSlug,
+          description: 'Canonical domain home board',
+          behavior: { defaultPattern: 'focus', startFrameId: null },
+          data: { scope: 'domain', entityId: domainId, frames: [], layoutPrefs: {} },
+          access: { visibility: 'private' },
+          domainId,
+          boardType: BOARD_TYPE,
+          isTemplate: false,
+          updatedAt: new Date(),
+        },
+        include: includeBoard,
+      });
+      await logReq(opts?.reqId, 'DOMAIN_HOME_BOARD_CREATED', { domainId, boardId: board.id, slug: safeSlug });
+    } else {
+      throw e;
+    }
+  }
+
+  if (!board) throw new Error('Failed to resolve domain home board');
+
+  if (!board.frames?.length) {
+    const coverCfg = await ensureFrameConfig(client, 'cover-default', 'Default cover');
+    const overviewCfg = await ensureFrameConfig(client, 'domain-home-overview', 'Domain home overview');
+
+    await client.frameInstance.createMany({
+      data: [
+        {
+          id: randomUUID(),
+          boardId: board.id,
+          role: 'cover',
+          name: 'Cover',
+          pattern: 'focus',
+          frameType: 'media_card',
+          orderIndex: 0,
+          layoutKind: 'focus',
+          layoutData: {},
+          props: { title: board.name, subtitle: 'Domain home', media: null, alignment: 'center' },
+          entityType: 'domain',
+          entityId: domainId,
+          configId: coverCfg.id,
+          updatedAt: new Date(),
+        },
+        {
+          id: randomUUID(),
+          boardId: board.id,
+          role: null,
+          name: 'Domain Overview',
+          pattern: 'canvas',
+          frameType: 'preview',
+          orderIndex: 1,
+          layoutKind: 'canvas',
+          layoutData: {},
+          props: { title: 'Domain Overview', domainId },
+          entityType: 'domain',
+          entityId: domainId,
+          configId: overviewCfg.id,
+          updatedAt: new Date(),
+        },
+      ],
+    });
+  }
+
+  const full = await client.board.findUnique({ where: { id: board.id }, include: includeBoard });
+  if (!full) throw new Error('Failed to load domain home board');
+  return full;
+}
 
 export async function ensureDomainManagementBoard(client: PrismaClient, domainId: string, opts?: { reqId?: string }) {
   const includeBoard = {

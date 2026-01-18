@@ -19,7 +19,7 @@ import kipDraftRoutes from './kip-drafts.js';
 import { createDomainResolutionMiddleware } from '../../middleware/domainResolutionMiddleware.js';
 import { ensureDomainTableShape } from '../../lib/db-guards.js';
 import { DomainService } from '@keeper/database';
-import { ensureDomainManagementBoard } from '../../services/boards/domainManagement.js';
+import { ensureDomainHomeBoard, ensureDomainManagementBoard } from '../../services/boards/domainManagement.js';
 import { KipAgentService } from '../kip/agents.js';
 import type { AgentResponse, KipCommandIntent } from '@keeper/database';
 import { buildKipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
@@ -243,6 +243,97 @@ router.get('/:domainId/management-board', authMiddlewareCompat, async (req: Auth
   } catch (err) {
     console.error('[domains:management-board:error]', err);
     return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/domains/:domainId/home-board
+router.get(
+  '/:domainId/home-board',
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const reqId = (req as any).reqId || req.get('x-request-id') || '';
+    try {
+      try { await ensureDomainTableShape(); } catch (e: any) {
+        console.warn('[domains:home-board] guard warning', { message: e?.message });
+      }
+      if (!req.user) return res.status(401).json({ error: 'Authentication required', reqId });
+
+      const domainId = req.params.domainId;
+      const domain = await getDomainService().getDomainById(domainId);
+      if (!domain) return res.status(404).json({ error: 'Domain not found', reqId });
+
+      const board = await ensureDomainHomeBoard(prisma as any, domainId, { reqId });
+      const frames = (board.frames || []).map((frame) => ({
+        id: frame.id,
+        name: frame.name,
+        role: frame.role,
+        pattern: frame.pattern,
+        frameType: frame.frameType,
+        orderIndex: frame.orderIndex,
+      }));
+
+      return res.json({
+        success: true,
+        data: {
+          id: board.id,
+          name: board.name,
+          slug: board.slug,
+          boardType: board.boardType,
+          domainId: board.domainId,
+          frames,
+        },
+        reqId,
+      });
+    } catch (err) {
+      console.error('[domains:home-board:error]', err);
+      return res.status(500).json({ error: 'Internal server error', reqId });
+    }
+  },
+);
+
+// GET /api/domains/by-slug/:slug/home-board
+router.get('/by-slug/:slug/home-board', authMiddlewareCompat, async (req: AuthenticatedRequest, res: Response) => {
+  const reqId = (req as any).reqId || req.get('x-request-id') || '';
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Authentication required', reqId });
+
+    const { slug } = req.params;
+    const domain = await prisma.domain.findUnique({ where: { slug } });
+    if (!domain) return res.status(404).json({ error: 'Domain not found', reqId });
+
+    const permission = await getPermissionService().checkPermission({
+      userId: req.user.id,
+      domainId: domain.id,
+      permission: 'read',
+    });
+    if (!permission.hasPermission) return res.status(403).json({ error: 'Access denied', reqId });
+
+    const board = await ensureDomainHomeBoard(prisma as any, domain.id, { reqId });
+    const frames = (board.frames || []).map((frame) => ({
+      id: frame.id,
+      name: frame.name,
+      role: frame.role,
+      pattern: frame.pattern,
+      frameType: frame.frameType,
+      orderIndex: frame.orderIndex,
+    }));
+
+    return res.json({
+      success: true,
+      data: {
+        id: board.id,
+        name: board.name,
+        slug: board.slug,
+        boardType: board.boardType,
+        domainId: board.domainId,
+        frames,
+      },
+      reqId,
+    });
+  } catch (err) {
+    console.error('[domains:home-board-by-slug:error]', err);
+    return res.status(500).json({ error: 'Internal server error', reqId });
   }
 });
 
