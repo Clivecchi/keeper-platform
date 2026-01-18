@@ -112,6 +112,7 @@ export async function createDraftMoment(options: {
     method: 'POST',
     headers,
     body: JSON.stringify({
+      domainSlug: options.domainSlug,
       themeSlug: themeSlugSafe,
       title: options.title,
       body: options.body,

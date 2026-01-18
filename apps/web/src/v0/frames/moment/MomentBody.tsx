@@ -2,10 +2,9 @@
 
 import type { CSSProperties } from "react"
 import { useState, useEffect, useCallback } from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { X } from "lucide-react"
-import { updateDraftMoment, keepMoment, getDraftMoment, createDraftMoment, claimMoment } from "../../api/v0Moments"
-import type { DraftMoment } from "../../api/v0Moments"
+import { updateDraftMoment, keepMoment, getDraftMoment, claimMoment } from "../../api/v0Moments"
 import type { MomentClaim } from "../../api/v0Moments"
 import { useAuth } from "../../../context/AuthContext"
 
@@ -28,14 +27,12 @@ interface MomentBodyProps {
 
 export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: MomentBodyProps) {
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
   const { isAuthenticated } = useAuth()
   // Determine if we should show ruled lines (diary-paper theme or style)
   const shouldShowRuledLines = themeSlug === 'diary-paper'
   const [content, setContent] = useState("")
   const [title, setTitle] = useState("")
   const [activeDraftId, setActiveDraftId] = useState<string | undefined>(draftId || undefined)
-  const [isCreatingDraft, setIsCreatingDraft] = useState(false)
   const [claimInfo, setClaimInfo] = useState<MomentClaim | null>(null)
   const [claimError, setClaimError] = useState<string | null>(null)
   const [isKipOpen, setIsKipOpen] = useState(false)
@@ -83,47 +80,6 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
       // Continue with empty state if loading fails
     }
   }
-
-  const ensureDraft = useCallback(async () => {
-    if (activeDraftId || isCreatingDraft) return
-    if (!domainSlug) {
-      setSaveError('Domain is required to create a draft.')
-      return
-    }
-
-    try {
-      setIsCreatingDraft(true)
-      setSaveError(null)
-      const draft = await createDraftMoment({
-        themeSlug: themeSlug || undefined,
-        title,
-        body: content,
-        domainSlug
-      })
-      setActiveDraftId(draft.id)
-      setContent(draft.body || "")
-      setTitle(draft.title || "")
-
-      const next = new URLSearchParams(searchParams)
-      next.set('draftId', draft.id)
-      setSearchParams(next, { replace: true })
-
-      if ((content || title) && draft.id) {
-        debouncedSave(draft.id, { title, body: content })
-      }
-    } catch (error) {
-      console.error('Failed to create draft:', error)
-      setSaveError('Failed to create draft. Please try again.')
-    } finally {
-      setIsCreatingDraft(false)
-    }
-  }, [activeDraftId, isCreatingDraft, domainSlug, themeSlug, title, content, searchParams, setSearchParams, debouncedSave])
-
-  useEffect(() => {
-    if (!activeDraftId) {
-      ensureDraft()
-    }
-  }, [activeDraftId, ensureDraft])
 
   // Debounced autosave
   const debouncedSave = useCallback(
@@ -318,13 +274,11 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
                   ? 'Moment kept forever'
                   : saveError
                     ? saveError
-                    : isCreatingDraft
-                      ? 'Creating draft...'
-                      : isSaving
-                        ? 'Saving...'
-                        : lastSaved
-                          ? `Saved ${lastSaved.toLocaleTimeString()}`
-                          : momentCopy.preserved}
+                    : isSaving
+                      ? 'Saving...'
+                      : lastSaved
+                        ? `Saved ${lastSaved.toLocaleTimeString()}`
+                        : momentCopy.preserved}
               </span>
               {isKept && (
                 <button

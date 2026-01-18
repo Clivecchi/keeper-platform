@@ -25,6 +25,7 @@ const createDraftSchema = z.object({
   themeSlug: z.string().optional(),
   title: z.string().optional(),
   body: z.string().optional(),
+  domainSlug: z.string().optional(),
 });
 
 const updateDraftSchema = z.object({
@@ -51,7 +52,11 @@ function getAnonKey(req: Request) {
 async function resolveDomainId(req: Request) {
   let domainId = (req as any).domain?.id;
   if (!domainId) {
-    const domainSlug = req.headers['x-domain-slug'] as string;
+    const bodyDomainSlug =
+      typeof (req.body as { domainSlug?: unknown } | undefined)?.domainSlug === 'string'
+        ? (req.body as { domainSlug?: string }).domainSlug
+        : undefined;
+    const domainSlug = (req.headers['x-domain-slug'] as string) || bodyDomainSlug;
     if (domainSlug) {
       try {
         const domain = await prisma.domain.findUnique({
@@ -178,6 +183,14 @@ router.get('/', optionalAuthMiddleware, async (req: Request, res: Response) => {
  * POST /v0/moments/drafts - Create a new draft moment
  * Drafts require domain context for proper scoping and organization
  */
+router.get('/drafts', (_req: Request, res: Response) => {
+  return res.status(405).json({
+    success: false,
+    error: 'METHOD_NOT_ALLOWED',
+    message: 'Use POST /api/v0/moments/drafts to create a draft moment.',
+  });
+});
+
 router.post('/drafts', optionalAuthMiddleware, domainResolutionMiddleware, async (req: Request, res: Response) => {
   try {
     const anonKey = getAnonKey(req);

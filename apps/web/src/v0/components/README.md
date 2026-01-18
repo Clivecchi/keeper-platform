@@ -32,4 +32,5 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - 2026-01-02: Refined Moment paper structure: split writing/footer regions to prevent overlap, aligned textarea to ruled lines via `--moment-line-step`, and replaced the large Agent bubble with a calm Kip footer control.
 - 2026-01-14: Added kept moments frame for domain verification.
 - 2026-01-15: Added DiagnosticsFrame for unified diagnostics access in V0 surfaces.
+- 2026-01-17: Bootstrapped moment drafts in `moment-frame` before rendering the editor and added a calm error state.
 

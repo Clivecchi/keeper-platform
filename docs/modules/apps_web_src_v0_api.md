@@ -7,7 +7,7 @@ Client-side helpers for calling v0 endpoints, with domain-aware request headers.
 - `v0Moments.ts`
 
 ## 🔄 Data & Behavior
-Draft requests include `x-domain-slug` and an anonymous key when needed, and log request headers in dev for auditing.
+Draft requests include `x-domain-slug`, optionally send `domainSlug` in the body, and add an anonymous key when needed, with dev logging for auditing.
 
 ## ⚠️ Notes & ToDo
 - [ ] Confirm error handling UX for draft failures
@@ -18,3 +18,5 @@ Draft requests include `x-domain-slug` and an anonymous key when needed, and log
 - Included `x-domain-slug` for all draft requests and added dev logging for request headers.
 ### 2026-01-14 - Add anonymous draft + claim helpers
 - Added anonymous key support, claim calls, and kept-moment listing helpers.
+### 2026-01-17 - Send domain slug in draft creation
+- Included `domainSlug` in the draft creation payload to mirror domain-scoped headers.
