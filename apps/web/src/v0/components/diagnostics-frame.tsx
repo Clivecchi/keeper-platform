@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom"
 import type { StyleId } from "../styles/styles"
 import { DesignFrame } from "../frames/DesignFrame"
 import { ThemeSwitcher } from "../frames/ThemeSwitcher"
-import { apiFetch } from "../../lib/api"
+import { API_BASE, apiFetch } from "../../lib/api"
 import { useAuth } from "../../context/AuthContext"
 import { getLastBoardDataError } from "../../lib/debug"
 
@@ -14,6 +14,7 @@ export interface EnvironmentInfo {
   isDev: boolean
   isProd: boolean
   apiBaseUrl: string
+  webBaseUrl: string
   currentUrl: string
   origin: string
   userAgent: string
@@ -57,6 +58,36 @@ export interface NetworkRequest {
   duration: number
   timestamp: string
   error?: string
+}
+
+export interface DiagnosticsRequestDetails {
+  url: string
+  method: string
+  status: number
+  duration: number
+  requestId: string | null
+  ok: boolean
+  responseJson?: unknown
+  responseText?: string
+}
+
+export interface PipelineStepResult {
+  label: string
+  status: "SUCCESS" | "FAILED"
+  request?: DiagnosticsRequestDetails
+  error?: string
+}
+
+export interface MomentPipelineReport {
+  steps: PipelineStepResult[]
+  anonKeyUsed?: string
+  claimTokenExpiresAt?: string | null
+}
+
+export interface KeptMomentsFeedReport {
+  count: number
+  sample: Array<{ id: string; keptAt: string | null; createdAt?: string }>
+  response?: unknown
 }
 
 export interface DomainContextInfo {
@@ -172,6 +203,21 @@ export function DiagnosticsFrame({
   })
   const [consoleLogs, setConsoleLogs] = React.useState<ConsoleLogEntry[]>([])
   const [networkLogs, setNetworkLogs] = React.useState<NetworkRequest[]>([])
+  const resolvedApiBaseUrl = React.useMemo(() => {
+    const rawBase = API_BASE || (import.meta as any)?.env?.VITE_API_URL || "https://api.ke3p.com"
+    return rawBase.replace(/\/$/, "")
+  }, [])
+  const webBaseUrl = typeof window !== "undefined" ? window.location.origin : ""
+
+  const formatResponsePreview = React.useCallback((responseJson?: unknown, responseText?: string) => {
+    if (responseJson != null) {
+      return JSON.stringify(responseJson, null, 2)
+    }
+    if (responseText) {
+      return responseText
+    }
+    return ""
+  }, [])
 
   React.useEffect(() => {
     if (!domainSlug) return
@@ -372,7 +418,8 @@ export function DiagnosticsFrame({
         mode: import.meta.env.MODE,
         isDev: import.meta.env.DEV,
         isProd: import.meta.env.PROD,
-        apiBaseUrl: window.location.origin,
+        apiBaseUrl: resolvedApiBaseUrl,
+        webBaseUrl,
         currentUrl: window.location.href,
         origin: window.location.origin,
         userAgent: navigator.userAgent,
@@ -465,6 +512,64 @@ export function DiagnosticsFrame({
       const baseUrl = diagnostics.environment.apiBaseUrl
       const detailedNetworkDiagnostics: DetailedNetworkDiagnostics = {}
       diagnostics.detailedNetworkDiagnostics = detailedNetworkDiagnostics
+
+      const runDiagnosticsRequest = async (options: {
+        label: string
+        url: string
+        method: string
+        headers?: Record<string, string>
+        body?: string
+        credentials?: RequestCredentials
+      }) => {
+        const startTime = Date.now()
+        try {
+          const response = await fetch(options.url, {
+            method: options.method,
+            headers: options.headers,
+            body: options.body,
+            credentials: options.credentials ?? "include",
+          })
+          const duration = Date.now() - startTime
+          const requestId = response.headers.get("x-request-id")
+          let responseJson: unknown
+          let responseText: string | undefined
+          try {
+            responseJson = await response.clone().json()
+          } catch {
+            try {
+              responseText = await response.text()
+            } catch {
+              responseText = undefined
+            }
+          }
+
+          const details: DiagnosticsRequestDetails = {
+            url: options.url,
+            method: options.method,
+            status: response.status,
+            duration,
+            requestId,
+            ok: response.ok,
+            responseJson,
+            responseText,
+          }
+
+          return { ok: response.ok, details }
+        } catch (err) {
+          const duration = Date.now() - startTime
+          const message = err instanceof Error ? err.message : String(err)
+          const details: DiagnosticsRequestDetails = {
+            url: options.url,
+            method: options.method,
+            status: 0,
+            duration,
+            requestId: null,
+            ok: false,
+            responseText: message,
+          }
+          return { ok: false, details, error: message }
+        }
+      }
 
       try {
         addLog("Testing basic Railway domain connectivity...")
@@ -625,6 +730,339 @@ export function DiagnosticsFrame({
       }
 
       detailedNetworkDiagnostics.corsTests = corsTests
+
+      addLog("🧭 Running Moment Pipeline diagnostics...")
+      const momentPipelineSteps: PipelineStepResult[] = []
+      const domainSlugValue = domainContext.domainSlug
+      const describeFailure = (details: DiagnosticsRequestDetails, fallback: string) => {
+        if (details.responseJson != null) return JSON.stringify(details.responseJson)
+        if (details.responseText) return details.responseText
+        if (details.status) return `HTTP ${details.status}`
+        return fallback
+      }
+      const extractData = (payload: unknown) => {
+        if (payload && typeof payload === "object" && "data" in payload) {
+          return (payload as { data?: unknown }).data
+        }
+        return payload
+      }
+      const extractStringField = (payload: unknown, field: string) => {
+        if (!payload || typeof payload !== "object" || !(field in payload)) return null
+        const value = (payload as Record<string, unknown>)[field]
+        return typeof value === "string" ? value : null
+      }
+
+      if (!domainSlugValue) {
+        const errorMessage = "Missing domain slug for domain-scoped moment diagnostics."
+        diagnostics.tests.momentPipeline = {
+          status: "FAILED",
+          error: errorMessage,
+          data: { steps: momentPipelineSteps },
+        }
+        addLog(`❌ Moment pipeline skipped: ${errorMessage}`, "error")
+      } else {
+        const timestampLabel = new Date().toISOString()
+
+        const authCreate = await runDiagnosticsRequest({
+          label: "A1 Create Draft (Authenticated)",
+          url: `${baseUrl}/api/v0/moments/drafts`,
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-domain-slug": domainSlugValue,
+          },
+          body: JSON.stringify({
+            themeSlug: "neutral",
+            title: "Diagnostics draft",
+            body: "",
+          }),
+        })
+        const authCreateData = extractData(authCreate.details.responseJson)
+        const authDraftId = extractStringField(authCreateData, "id")
+        const authCreateStatus = authCreate.ok && authDraftId ? "SUCCESS" : "FAILED"
+        momentPipelineSteps.push({
+          label: "A1 Create Draft (Authenticated)",
+          status: authCreateStatus,
+          request: authCreate.details,
+          error:
+            authCreateStatus === "FAILED"
+              ? authCreate.ok
+                ? "Draft id missing from response."
+                : describeFailure(authCreate.details, "Failed to create draft.")
+              : undefined,
+        })
+        if (authCreateStatus === "FAILED") {
+          addLog("❌ Authenticated draft creation failed", "error")
+        } else {
+          addLog(`✅ Authenticated draft created (${authDraftId})`, "success")
+        }
+
+        let authUpdatedAt: string | null = null
+        if (authCreateStatus === "SUCCESS" && authDraftId) {
+          const authUpdate = await runDiagnosticsRequest({
+            label: "A2 Update Draft (Authenticated)",
+            url: `${baseUrl}/api/v0/moments/drafts/${authDraftId}`,
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "x-domain-slug": domainSlugValue,
+            },
+            body: JSON.stringify({
+              body: `diagnostics test ${timestampLabel}`,
+            }),
+          })
+          const authUpdateData = extractData(authUpdate.details.responseJson)
+          authUpdatedAt = extractStringField(authUpdateData, "updatedAt")
+          const authUpdateStatus = authUpdate.ok && authUpdatedAt ? "SUCCESS" : "FAILED"
+          momentPipelineSteps.push({
+            label: "A2 Update Draft (Authenticated)",
+            status: authUpdateStatus,
+            request: authUpdate.details,
+            error:
+              authUpdateStatus === "FAILED"
+                ? authUpdate.ok
+                  ? "updatedAt missing from response."
+                  : describeFailure(authUpdate.details, "Failed to update draft.")
+                : undefined,
+          })
+          if (authUpdateStatus === "FAILED") {
+            addLog("❌ Authenticated draft update failed", "error")
+          } else {
+            addLog("✅ Authenticated draft updated", "success")
+          }
+        } else {
+          momentPipelineSteps.push({
+            label: "A2 Update Draft (Authenticated)",
+            status: "FAILED",
+            error: "Skipped because draft creation failed.",
+          })
+        }
+
+        let authKeptAt: string | null = null
+        if (authCreateStatus === "SUCCESS" && authDraftId) {
+          const authKeep = await runDiagnosticsRequest({
+            label: "A3 Keep Draft (Authenticated)",
+            url: `${baseUrl}/api/v0/moments/${authDraftId}/keep`,
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-domain-slug": domainSlugValue,
+            },
+          })
+          const authKeepData = extractData(authKeep.details.responseJson)
+          authKeptAt = extractStringField(authKeepData, "keptAt")
+          const authKeepStatus = authKeep.ok && authKeptAt ? "SUCCESS" : "FAILED"
+          momentPipelineSteps.push({
+            label: "A3 Keep Draft (Authenticated)",
+            status: authKeepStatus,
+            request: authKeep.details,
+            error:
+              authKeepStatus === "FAILED"
+                ? authKeep.ok
+                  ? "keptAt missing from response."
+                  : describeFailure(authKeep.details, "Failed to keep draft.")
+                : undefined,
+          })
+          if (authKeepStatus === "FAILED") {
+            addLog("❌ Authenticated keep failed", "error")
+          } else {
+            addLog("✅ Authenticated draft kept", "success")
+          }
+        } else {
+          momentPipelineSteps.push({
+            label: "A3 Keep Draft (Authenticated)",
+            status: "FAILED",
+            error: "Skipped because draft creation failed.",
+          })
+        }
+
+        const anonKey =
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `anon_${Math.random().toString(36).slice(2)}_${Date.now()}`
+        const anonCreate = await runDiagnosticsRequest({
+          label: "B1 Create Draft (Anonymous)",
+          url: `${baseUrl}/api/v0/moments/drafts`,
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-domain-slug": domainSlugValue,
+            "x-anon-key": anonKey,
+          },
+          body: JSON.stringify({
+            themeSlug: "neutral",
+            title: "Diagnostics anonymous draft",
+            body: "",
+          }),
+          credentials: "omit",
+        })
+        const anonCreateData = extractData(anonCreate.details.responseJson)
+        const anonDraftId = extractStringField(anonCreateData, "id")
+        const anonCreateStatus = anonCreate.ok && anonDraftId ? "SUCCESS" : "FAILED"
+        momentPipelineSteps.push({
+          label: "B1 Create Draft (Anonymous)",
+          status: anonCreateStatus,
+          request: anonCreate.details,
+          error:
+            anonCreateStatus === "FAILED"
+              ? anonCreate.ok
+                ? "Draft id missing from response."
+                : describeFailure(anonCreate.details, "Failed to create anonymous draft.")
+              : undefined,
+        })
+        if (anonCreateStatus === "FAILED") {
+          addLog("❌ Anonymous draft creation failed", "error")
+        } else {
+          addLog(`✅ Anonymous draft created (${anonDraftId})`, "success")
+        }
+
+        let claimToken: string | null = null
+        let claimExpiresAt: string | null = null
+        if (anonCreateStatus === "SUCCESS" && anonDraftId) {
+          const anonKeep = await runDiagnosticsRequest({
+            label: "B2 Keep Draft (Anonymous)",
+            url: `${baseUrl}/api/v0/moments/${anonDraftId}/keep`,
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-domain-slug": domainSlugValue,
+              "x-anon-key": anonKey,
+            },
+            credentials: "omit",
+          })
+          const anonKeepPayload = anonKeep.details.responseJson as Record<string, unknown> | undefined
+          const claimFromResponse = anonKeepPayload?.claim as Record<string, unknown> | undefined
+          claimToken =
+            (claimFromResponse && typeof claimFromResponse.token === "string" ? claimFromResponse.token : null) ||
+            (typeof anonKeepPayload?.claimToken === "string" ? (anonKeepPayload.claimToken as string) : null)
+          claimExpiresAt =
+            (claimFromResponse && typeof claimFromResponse.expiresAt === "string" ? claimFromResponse.expiresAt : null) ||
+            (typeof anonKeepPayload?.claimTokenExpiresAt === "string"
+              ? (anonKeepPayload.claimTokenExpiresAt as string)
+              : null)
+          const anonKeepStatus = anonKeep.ok && claimToken ? "SUCCESS" : "FAILED"
+          momentPipelineSteps.push({
+            label: "B2 Keep Draft (Anonymous)",
+            status: anonKeepStatus,
+            request: anonKeep.details,
+            error:
+              anonKeepStatus === "FAILED"
+                ? anonKeep.ok
+                  ? "claimToken missing from response."
+                  : describeFailure(anonKeep.details, "Failed to keep anonymous draft.")
+                : undefined,
+          })
+          if (anonKeepStatus === "FAILED") {
+            addLog("❌ Anonymous keep failed", "error")
+          } else {
+            addLog("✅ Anonymous draft kept with claim token", "success")
+          }
+        } else {
+          momentPipelineSteps.push({
+            label: "B2 Keep Draft (Anonymous)",
+            status: "FAILED",
+            error: "Skipped because anonymous draft creation failed.",
+          })
+        }
+
+        if (claimToken) {
+          const claimResult = await runDiagnosticsRequest({
+            label: "C1 Claim Anonymous Draft",
+            url: `${baseUrl}/api/v0/moments/claim`,
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-domain-slug": domainSlugValue,
+            },
+            body: JSON.stringify({ token: claimToken }),
+          })
+          const claimData = extractData(claimResult.details.responseJson)
+          const ownerId = extractStringField(claimData, "ownerId")
+          const claimStatus = claimResult.ok && ownerId ? "SUCCESS" : "FAILED"
+          momentPipelineSteps.push({
+            label: "C1 Claim Anonymous Draft",
+            status: claimStatus,
+            request: claimResult.details,
+            error:
+              claimStatus === "FAILED"
+                ? claimResult.ok
+                  ? "ownerId missing from response."
+                  : describeFailure(claimResult.details, "Failed to claim anonymous draft.")
+                : undefined,
+          })
+          if (claimStatus === "FAILED") {
+            addLog("❌ Claim draft failed", "error")
+          } else {
+            addLog("✅ Anonymous draft claimed", "success")
+          }
+        } else {
+          momentPipelineSteps.push({
+            label: "C1 Claim Anonymous Draft",
+            status: "FAILED",
+            error: "Skipped because claim token was missing.",
+          })
+        }
+
+        const pipelineFailed = momentPipelineSteps.some((step) => step.status === "FAILED")
+        diagnostics.tests.momentPipeline = {
+          status: pipelineFailed ? "FAILED" : "SUCCESS",
+          data: {
+            steps: momentPipelineSteps,
+            claimTokenExpiresAt: claimExpiresAt,
+            anonKeyUsed: anonKey,
+          },
+        }
+      }
+
+      addLog("📰 Testing kept moments feed...")
+      if (!domainSlugValue) {
+        const errorMessage = "Missing domain slug for kept moments feed test."
+        diagnostics.tests.keptMomentsFeed = {
+          status: "FAILED",
+          error: errorMessage,
+        }
+        addLog(`❌ Kept moments feed skipped: ${errorMessage}`, "error")
+      } else {
+        const feedUrl = new URL(`${baseUrl}/api/v0/moments`)
+        feedUrl.searchParams.set("status", "kept")
+        feedUrl.searchParams.set("limit", "10")
+        feedUrl.searchParams.set("domainSlug", domainSlugValue)
+        const feedResult = await runDiagnosticsRequest({
+          label: "Kept Moments Feed",
+          url: feedUrl.toString(),
+          method: "GET",
+          headers: {
+            "x-domain-slug": domainSlugValue,
+          },
+        })
+        const feedData = extractData(feedResult.details.responseJson)
+        const feedList = Array.isArray(feedData) ? feedData : []
+        const sample = feedList.slice(0, 3).map((item) => ({
+          id: typeof item?.id === "string" ? item.id : "unknown",
+          keptAt: typeof item?.keptAt === "string" ? item.keptAt : null,
+          createdAt: typeof item?.createdAt === "string" ? item.createdAt : undefined,
+        }))
+        const feedStatus = feedResult.ok && Array.isArray(feedData) ? "SUCCESS" : "FAILED"
+        diagnostics.tests.keptMomentsFeed = {
+          status: feedStatus,
+          data: {
+            count: feedList.length,
+            sample,
+            response: feedResult.details.responseJson,
+          } satisfies KeptMomentsFeedReport,
+          error:
+            feedStatus === "FAILED"
+              ? feedResult.ok
+                ? "Feed response was not an array."
+                : describeFailure(feedResult.details, "Failed to fetch kept moments feed.")
+              : undefined,
+        }
+        if (feedStatus === "FAILED") {
+          addLog("❌ Kept moments feed check failed", "error")
+        } else {
+          addLog(`✅ Kept moments feed returned ${feedList.length} items`, "success")
+        }
+      }
 
       addLog("📡 Testing basic API connectivity...")
       try {
@@ -845,8 +1283,9 @@ export function DiagnosticsFrame({
         const networkTest = {
           fetchAvailable: typeof fetch !== "undefined",
           xhrAvailable: typeof XMLHttpRequest !== "undefined",
-          baseUrl: window.location.origin,
-          currentOrigin: window.location.origin,
+          baseUrl: baseUrl,
+          currentOrigin: webBaseUrl,
+          apiBaseUrl: baseUrl,
           corsEnabled: true,
           lastRequestTime: new Date().toISOString(),
         }
@@ -894,7 +1333,7 @@ export function DiagnosticsFrame({
       addLog("🔧 Testing database auto-repair and Kip provider fix...")
       try {
         const fixResponse = await fetch(
-          new URL("api/debug/fix-kip-provider", (import.meta as any).env.VITE_API_URL).toString(),
+          new URL("api/debug/fix-kip-provider", `${baseUrl}/`).toString(),
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1066,6 +1505,9 @@ export function DiagnosticsFrame({
   }, [domainSlug, navigate, returnPath])
 
   const lastBoardDataError = getLastBoardDataError()
+  const momentPipelineData = results?.tests?.momentPipeline?.data as MomentPipelineReport | undefined
+  const momentPipelineStatus = results?.tests?.momentPipeline?.status
+  const keptMomentsFeedData = results?.tests?.keptMomentsFeed?.data as KeptMomentsFeedReport | undefined
 
   return (
     <DesignFrame
