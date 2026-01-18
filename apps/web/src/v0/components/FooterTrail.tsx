@@ -1,0 +1,98 @@
+import { useMemo } from "react"
+import { useNavigate } from "react-router-dom"
+import { recordTrailEvent, useTrailEntries } from "../stores/trailStore"
+
+interface TrailAction {
+  id: string
+  label: string
+  href: string
+}
+
+interface FooterTrailProps {
+  domainSlug?: string
+}
+
+export function FooterTrail({ domainSlug }: FooterTrailProps) {
+  const navigate = useNavigate()
+  const entries = useTrailEntries(domainSlug)
+
+  const actions = useMemo<TrailAction[]>(() => {
+    if (!domainSlug) return []
+    return [
+      { id: "view-drafts", label: "View Drafts", href: `/d/${domainSlug}?frame=moment` },
+      { id: "view-kept", label: "View Kept", href: `/d/${domainSlug}?frame=moments` },
+      { id: "back-domain", label: "Back to Domain", href: `/d/${domainSlug}` },
+    ]
+  }, [domainSlug])
+
+  const handleAction = (action: TrailAction) => {
+    recordTrailEvent(domainSlug, {
+      label: action.label,
+      type: "navigation",
+      href: action.href,
+    })
+    navigate(action.href)
+  }
+
+  const handleEntryClick = (label: string, href?: string) => {
+    if (!href) return
+    recordTrailEvent(domainSlug, {
+      label,
+      type: "navigation",
+      href,
+    })
+    navigate(href)
+  }
+
+  return (
+    <div
+      className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[11px]"
+      style={{ color: "var(--theme-ink-tertiary)" }}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[10px] uppercase tracking-wide opacity-60">Trail</span>
+        {entries.length === 0 ? (
+          <span className="text-[10px] opacity-50">No recent activity</span>
+        ) : (
+          entries.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              onClick={() => handleEntryClick(entry.label, entry.href)}
+              disabled={!entry.href}
+              className="rounded-full border px-2 py-1 text-[10px] font-medium transition-colors opacity-70 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                borderColor: "var(--theme-border-soft)",
+                backgroundColor: "var(--theme-surface-paper)",
+                boxShadow: "var(--theme-shadow-soft)",
+              }}
+              aria-label={entry.href ? `Go to ${entry.label}` : entry.label}
+            >
+              {entry.label}
+            </button>
+          ))
+        )}
+      </div>
+      {actions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {actions.map((action) => (
+            <button
+              key={action.id}
+              type="button"
+              onClick={() => handleAction(action)}
+              className="rounded-full border px-3 py-1 text-[10px] font-medium transition-colors opacity-70 hover:opacity-90"
+              style={{
+                borderColor: "var(--theme-border-soft)",
+                backgroundColor: "var(--theme-surface-paper)",
+                boxShadow: "var(--theme-shadow-soft)",
+              }}
+              aria-label={action.label}
+            >
+              {action.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

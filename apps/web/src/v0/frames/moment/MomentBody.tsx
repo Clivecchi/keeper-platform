@@ -7,6 +7,8 @@ import { X } from "lucide-react"
 import { updateDraftMoment, keepMoment, getDraftMoment, claimMoment } from "../../api/v0Moments"
 import type { MomentClaim } from "../../api/v0Moments"
 import { useAuth } from "../../../context/AuthContext"
+import { recordTrailEvent } from "../../stores/trailStore"
+import { MomentFeedbackRail } from "./MomentFeedbackRail"
 
 // Config for footer messages - ready for styling later
 const momentCopy = {
@@ -196,6 +198,11 @@ export function MomentBody({
       const result = await keepMoment(activeDraftId, { domainSlug })
       setIsKept(true)
       setLastSaved(new Date())
+      recordTrailEvent(domainSlug, {
+        label: "Moment kept",
+        type: "action",
+        href: domainSlug ? `/d/${domainSlug}?frame=moments` : undefined,
+      })
       if (result.claim) {
         setClaimInfo(result.claim)
       }
@@ -226,6 +233,11 @@ export function MomentBody({
 
   const handleViewDomain = () => {
     if (!domainSlug) return
+    recordTrailEvent(domainSlug, {
+      label: "View in Domain",
+      type: "navigation",
+      href: `/d/${domainSlug}?frame=moments`,
+    })
     navigate(`/d/${domainSlug}?frame=moments`)
   }
 
@@ -243,6 +255,18 @@ export function MomentBody({
       saveNow(activeDraftId, { title, body: content })
     }
   }, [activeDraftId, content, saveNow, saveRetryToken, title])
+
+  const trimmedContent = content.trim()
+  const wordCount = trimmedContent ? trimmedContent.split(/\s+/).filter(Boolean).length : 0
+  const saveStatusLabel = isKept
+    ? "Moment kept forever"
+    : saveError
+      ? saveError
+      : isSaving
+        ? "Saving..."
+        : lastSaved
+          ? `Saved ${lastSaved.toLocaleTimeString()}`
+          : momentCopy.preserved
 
   return (
     <>
@@ -334,69 +358,46 @@ export function MomentBody({
               </div>
             </div>
 
-            <div
-              className="flex flex-col items-end gap-2 px-6 md:px-8 py-4 text-[11px]"
-              style={{ color: "var(--theme-ink-tertiary)", borderTop: `1px solid rgba(210, 174, 162, 1)`, backgroundColor: "rgba(240, 240, 240, 1)" }}
-            >
-              <span
-                className="rounded-full px-4 py-2"
-                style={{
-                  backgroundColor: "var(--theme-surface-paper)",
-                  color: "var(--theme-ink-secondary)",
-                  boxShadow: "var(--theme-shadow-soft)",
-                }}
-              >
-                {content.trim().length ? `${content.trim().split(/\s+/).filter(Boolean).length} words ${isKept ? 'kept' : 'written'}` : `0 words ${isKept ? 'kept' : 'written'}`}
-              </span>
-              <span
-                className="rounded-full px-4 py-2"
-                style={{
-                  backgroundColor: "var(--theme-surface-paper)",
-                  color: isKept ? "var(--theme-ink-secondary)" : saveError ? "var(--theme-ink-error, #ef4444)" : "var(--theme-ink-tertiary)",
-                  boxShadow: "var(--theme-shadow-soft)",
-                }}
-              >
-                {isKept
-                  ? 'Moment kept forever'
-                  : saveError
-                    ? saveError
-                    : isSaving
-                      ? 'Saving...'
-                      : lastSaved
-                        ? `Saved ${lastSaved.toLocaleTimeString()}`
-                        : momentCopy.preserved}
-              </span>
-              {isKept && (
-                <button
-                  type="button"
-                  onClick={handleViewDomain}
-                  className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80"
-                  style={{
-                    borderColor: "var(--theme-border-soft)",
-                    color: "var(--theme-ink-tertiary)",
-                    backgroundColor: "var(--theme-surface-paper)",
-                    boxShadow: "var(--theme-shadow-soft)",
-                  }}
-                  aria-label="View in domain"
-                >
-                  <span>View in Domain</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setIsKipOpen(!isKipOpen)}
-                className="inline-flex items-center justify-center rounded-full border p-1 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80"
-                style={{
-                  borderColor: "var(--theme-border-soft)",
+            <MomentFeedbackRail
+              statusItems={[
+                {
+                  id: "word-count",
+                  label: `${wordCount} words ${isKept ? "kept" : "written"}`,
+                  tone: "muted",
+                },
+                {
+                  id: "save-status",
+                  label: saveStatusLabel,
+                  tone: isKept ? "muted" : saveError ? "error" : "default",
+                },
+              ]}
+              primaryAction={
+                isKept
+                  ? {
+                      id: "view-domain",
+                      label: "View in Domain",
+                      onClick: handleViewDomain,
+                    }
+                  : null
+              }
+              secondaryActions={[
+                {
+                  id: "kip-toggle",
+                  label: "Kip",
+                  onClick: () => setIsKipOpen((prev) => !prev),
+                  variant: "compact",
+                  ariaLabel: "Kip companion",
+                },
+              ]}
+              context={{
+                containerClassName: "px-6 md:px-8 py-4",
+                containerStyle: {
                   color: "var(--theme-ink-tertiary)",
-                  backgroundColor: "var(--theme-surface-paper)",
-                  boxShadow: "var(--theme-shadow-soft)",
-                }}
-                aria-label="Kip companion"
-              >
-                <span>Kip</span>
-              </button>
-            </div>
+                  borderTop: "1px solid rgba(210, 174, 162, 1)",
+                  backgroundColor: "rgba(240, 240, 240, 1)",
+                },
+              }}
+            />
             </div>
           </div>
         </div>

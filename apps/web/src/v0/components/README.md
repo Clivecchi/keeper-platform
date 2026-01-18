@@ -7,6 +7,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - `cover-frame.tsx` – Album/storybook-inspired cover with imprint, title, liner notes, and setlist routes.
 - `moment-frame.tsx` – Moment diary preview frame with close loop back to the cover.
 - `kept-moments-frame.tsx` – Minimal list view for recently kept moments.
+- `FooterTrail.tsx` – Frame footer trail showing recent actions and navigation.
 
 ## 🔄 Data & Behavior
 - Cover uses local mock routes and constants for spacing/type scale; mobile-first with a two-column desktop “spread.”
@@ -19,6 +20,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-01-18: Added `FooterTrail` to render recent navigation/actions with quick frame links.
 - 2026-01-01: Added cover and moment frames for V0 surface polishing.
 - 2026-01-02: Tightened moment frame padding (7px top/bottom), header spacing, and aligned the close button positioning with navbar icon spacing.
 - 2026-01-02: Set moment frame textarea text color to rgba(128, 128, 128, 1), added 1px border in rgba(138, 114, 106, 1), and reduced header-to-body gap.

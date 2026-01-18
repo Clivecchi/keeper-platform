@@ -15,6 +15,9 @@ Loads draft content by ID, debounces autosave updates, keeps drafts, and lists k
 
 ## 📆 Update Log
 
+### 2026-01-18 - Extract moment feedback rail
+- Introduced a reusable feedback rail component and wired moment actions into a domain trail.
+
 ### 2026-01-14 - Pass domain context to draft actions
 - Added domain-scoped headers for load, autosave, and keep requests.
 ### 2026-01-14 - Add draft creation and kept moments list

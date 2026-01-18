@@ -1,19 +1,22 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 import { X } from "lucide-react"
 import type { StyleId } from "../styles/styles"
 import { DesignFrame } from "../frames/DesignFrame"
 import { MomentBody } from "../frames/moment/MomentBody"
 import { ThemeSwitcher } from "../frames/ThemeSwitcher"
 import { createDraftMoment } from "../api/v0Moments"
+import { FooterTrail } from "./FooterTrail"
+import { recordTrailEvent } from "../stores/trailStore"
 
 type SaveStatus = "idle" | "saving" | "saved" | "error"
 
 export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftId }: { styleId?: StyleId, themeSlug?: string | null, domainSlug?: string, draftId?: string | null }) {
   console.log('MomentFrame rendered with:', { styleId, themeSlug, domainSlug, draftId })
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [resolvedDraftId, setResolvedDraftId] = useState<string | null>(draftId ?? null)
   const [isBootstrapping, setIsBootstrapping] = useState(false)
@@ -34,6 +37,15 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
       setResolvedDraftId(draftId)
     }
   }, [draftId])
+
+  useEffect(() => {
+    if (!domainSlug) return
+    recordTrailEvent(domainSlug, {
+      label: "Opened Moment",
+      type: "navigation",
+      href: `${location.pathname}${location.search}`,
+    })
+  }, [domainSlug, location.pathname, location.search])
 
   useEffect(() => {
     if (resolvedDraftId || isBootstrapping) return
@@ -187,6 +199,8 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
         onSaveStatusChange={setSaveStatus}
         saveRetryToken={saveRetryToken}
       />
+
+      <FooterTrail domainSlug={domainSlug} />
 
       <div className="mt-3 flex justify-end">
         <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] ${statusConfig.tone}`}>
