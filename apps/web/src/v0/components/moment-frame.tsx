@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { X } from "lucide-react"
 import type { StyleId } from "../styles/styles"
@@ -9,6 +9,8 @@ import { MomentBody } from "../frames/moment/MomentBody"
 import { ThemeSwitcher } from "../frames/ThemeSwitcher"
 import { createDraftMoment } from "../api/v0Moments"
 
+type SaveStatus = "idle" | "saving" | "saved" | "error"
+
 export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftId }: { styleId?: StyleId, themeSlug?: string | null, domainSlug?: string, draftId?: string | null }) {
   console.log('MomentFrame rendered with:', { styleId, themeSlug, domainSlug, draftId })
   const navigate = useNavigate()
@@ -16,6 +18,12 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
   const [resolvedDraftId, setResolvedDraftId] = useState<string | null>(draftId ?? null)
   const [isBootstrapping, setIsBootstrapping] = useState(false)
   const [bootstrapError, setBootstrapError] = useState<string | null>(null)
+  const [bootstrapTimedOut, setBootstrapTimedOut] = useState(false)
+  const [bootstrapAttempt, setBootstrapAttempt] = useState(0)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle")
+  const [saveRetryToken, setSaveRetryToken] = useState(0)
+  const [bodyBuffer, setBodyBuffer] = useState("")
+  const [titleBuffer, setTitleBuffer] = useState("")
 
   const handleClose = () => {
     navigate(`/d/${domainSlug || 'default'}`)
@@ -35,15 +43,23 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
     }
 
     let isActive = true
+    let timeoutId: number | null = null
     ;(async () => {
       try {
         setIsBootstrapping(true)
         setBootstrapError(null)
+        setBootstrapTimedOut(false)
+        timeoutId = window.setTimeout(() => {
+          if (isActive) {
+            setBootstrapTimedOut(true)
+          }
+        }, 2500)
         const draft = await createDraftMoment({
           themeSlug: themeSlug || undefined,
           domainSlug,
         })
         if (!isActive) return
+        setBootstrapTimedOut(false)
         setResolvedDraftId(draft.id)
 
         const next = new URLSearchParams(searchParams)
@@ -54,6 +70,9 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
         console.error('Failed to create draft:', error)
         setBootstrapError('We could not start a draft right now. Please try again.')
       } finally {
+        if (timeoutId) {
+          window.clearTimeout(timeoutId)
+        }
         if (isActive) {
           setIsBootstrapping(false)
         }
@@ -62,12 +81,55 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
 
     return () => {
       isActive = false
+      if (timeoutId) {
+        window.clearTimeout(timeoutId)
+      }
     }
-  }, [domainSlug, isBootstrapping, resolvedDraftId, searchParams, setSearchParams, themeSlug])
+  }, [bootstrapAttempt, domainSlug, isBootstrapping, resolvedDraftId, searchParams, setSearchParams, themeSlug])
 
   const handleRetry = () => {
     setBootstrapError(null)
+    setBootstrapTimedOut(false)
+    setIsBootstrapping(false)
     setResolvedDraftId(null)
+    setBootstrapAttempt((attempt) => attempt + 1)
+  }
+
+  const handleStartNew = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('draftId')
+    setSearchParams(next, { replace: true })
+    handleRetry()
+  }
+
+  const showBootstrapBanner = useMemo(() => {
+    return Boolean(bootstrapError || bootstrapTimedOut)
+  }, [bootstrapError, bootstrapTimedOut])
+
+  const statusConfig = useMemo(() => {
+    if (bootstrapError || bootstrapTimedOut || saveStatus === "error") {
+      return { label: "Trouble connecting", tone: "text-amber-700 border-amber-200 bg-amber-50" }
+    }
+    if (isBootstrapping) {
+      return { label: "Preparing...", tone: "text-slate-600 border-slate-200 bg-white/80" }
+    }
+    if (saveStatus === "saving") {
+      return { label: "Saving...", tone: "text-slate-600 border-slate-200 bg-white/80" }
+    }
+    if (saveStatus === "saved") {
+      return { label: "Saved", tone: "text-emerald-700 border-emerald-200 bg-emerald-50" }
+    }
+    return { label: "Saved", tone: "text-slate-600 border-slate-200 bg-white/80" }
+  }, [bootstrapError, bootstrapTimedOut, isBootstrapping, saveStatus])
+
+  const showRetry = Boolean(bootstrapError || bootstrapTimedOut || saveStatus === "error")
+
+  const handleStatusRetry = () => {
+    if (bootstrapError || bootstrapTimedOut) {
+      handleRetry()
+      return
+    }
+    setSaveRetryToken((value) => value + 1)
   }
 
   return (
@@ -89,27 +151,57 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
       }
       onClose={handleClose}
     >
-      {bootstrapError ? (
-        <div className="flex min-h-[420px] items-center justify-center">
-          <div className="max-w-md rounded-lg border border-muted bg-white/80 p-6 text-center text-sm text-muted-foreground shadow-sm">
-            <div className="text-base font-medium text-foreground">Moment draft unavailable</div>
-            <p className="mt-2">{bootstrapError}</p>
+      {showBootstrapBanner && (
+        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50/80 px-4 py-3 text-xs text-amber-800">
+          <div className="font-medium">Draft is taking longer than usual.</div>
+          <div className="mt-1 text-[11px] text-amber-700">
+            Keep writing. We will sync as soon as the draft is ready.
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={handleRetry}
-              className="mt-4 inline-flex items-center justify-center rounded-full border border-muted px-4 py-2 text-xs font-medium text-foreground/80 hover:text-foreground"
+              className="rounded-full border border-amber-200 bg-white/80 px-3 py-1 text-[11px] font-medium text-amber-800 hover:bg-white"
             >
-              Try again
+              Retry
+            </button>
+            <button
+              type="button"
+              onClick={handleStartNew}
+              className="rounded-full border border-amber-200 bg-white/80 px-3 py-1 text-[11px] font-medium text-amber-800 hover:bg-white"
+            >
+              Start New
             </button>
           </div>
         </div>
-      ) : resolvedDraftId ? (
-        <MomentBody themeSlug={themeSlug} domainSlug={domainSlug} draftId={resolvedDraftId} />
-      ) : (
-        <div className="flex min-h-[420px] items-center justify-center text-sm text-muted-foreground">
-          {isBootstrapping ? 'Preparing your draft...' : 'Loading moment editor...'}
-        </div>
       )}
+
+      <MomentBody
+        themeSlug={themeSlug}
+        domainSlug={domainSlug}
+        draftId={resolvedDraftId ?? undefined}
+        bodyBuffer={bodyBuffer}
+        titleBuffer={titleBuffer}
+        onBodyBufferChange={setBodyBuffer}
+        onTitleBufferChange={setTitleBuffer}
+        onSaveStatusChange={setSaveStatus}
+        saveRetryToken={saveRetryToken}
+      />
+
+      <div className="mt-3 flex justify-end">
+        <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] ${statusConfig.tone}`}>
+          <span>{statusConfig.label}</span>
+          {showRetry && (
+            <button
+              type="button"
+              onClick={handleStatusRetry}
+              className="rounded-full border border-transparent px-2 py-0.5 text-[11px] font-medium text-inherit hover:underline"
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      </div>
     </DesignFrame>
   )
 }

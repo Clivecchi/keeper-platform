@@ -1,7 +1,7 @@
 "use client"
 
 import type { CSSProperties } from "react"
-import { useState, useEffect, useCallback } from "react"
+import { useEffect, useCallback, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { X } from "lucide-react"
 import { updateDraftMoment, keepMoment, getDraftMoment, claimMoment } from "../../api/v0Moments"
@@ -21,17 +21,44 @@ interface MomentBodyProps {
   domainSlug?: string
   /** Draft ID to load/edit */
   draftId?: string
+  /** Buffered draft body before server sync */
+  bodyBuffer?: string
+  /** Buffered draft title before server sync */
+  titleBuffer?: string
+  /** Update buffered body */
+  onBodyBufferChange?: (next: string) => void
+  /** Update buffered title */
+  onTitleBufferChange?: (next: string) => void
+  /** Report save status */
+  onSaveStatusChange?: (status: "idle" | "saving" | "saved" | "error") => void
+  /** Trigger an immediate save retry */
+  saveRetryToken?: number
   /** Callback when moment is kept */
   onMomentKept?: () => void
 }
 
-export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: MomentBodyProps) {
+export function MomentBody({
+  themeSlug,
+  domainSlug,
+  draftId,
+  bodyBuffer,
+  titleBuffer,
+  onBodyBufferChange,
+  onTitleBufferChange,
+  onSaveStatusChange,
+  saveRetryToken,
+  onMomentKept,
+}: MomentBodyProps) {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
   // Determine if we should show ruled lines (diary-paper theme or style)
   const shouldShowRuledLines = themeSlug === 'diary-paper'
-  const [content, setContent] = useState("")
-  const [title, setTitle] = useState("")
+  const [internalContent, setInternalContent] = useState("")
+  const [internalTitle, setInternalTitle] = useState("")
+  const content = bodyBuffer ?? internalContent
+  const title = titleBuffer ?? internalTitle
+  const setContent = onBodyBufferChange ?? setInternalContent
+  const setTitle = onTitleBufferChange ?? setInternalTitle
   const [activeDraftId, setActiveDraftId] = useState<string | undefined>(draftId || undefined)
   const [claimInfo, setClaimInfo] = useState<MomentClaim | null>(null)
   const [claimError, setClaimError] = useState<string | null>(null)
@@ -41,6 +68,19 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
   const [isKept, setIsKept] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const hasUserEditedRef = useRef(false)
+  const lastSyncedDraftIdRef = useRef<string | null>(null)
+  const lastRetryTokenRef = useRef<number | undefined>(saveRetryToken)
+  const contentRef = useRef(content)
+  const titleRef = useRef(title)
+
+  useEffect(() => {
+    contentRef.current = content
+  }, [content])
+
+  useEffect(() => {
+    titleRef.current = title
+  }, [title])
 
   const lineHeight = 32 // px, keep in sync with ruled lines via --moment-line-step
 
@@ -72,14 +112,43 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
   const loadDraft = async (id: string) => {
     try {
       const draft = await getDraftMoment(id, { domainSlug })
-      setContent(draft.body || "")
-      setTitle(draft.title || "")
+      if (!hasUserEditedRef.current && !contentRef.current.trim() && !titleRef.current.trim()) {
+        setContent(draft.body || "")
+        setTitle(draft.title || "")
+      }
       setIsKept(draft.status === 'kept')
     } catch (error) {
       console.error('Failed to load draft:', error)
       // Continue with empty state if loading fails
     }
   }
+
+  const saveNow = useCallback(
+    async (id: string, updates: { title?: string; body?: string }) => {
+      if (!id || isKept) return
+      try {
+        setIsSaving(true)
+        setSaveError(null)
+        await updateDraftMoment(id, updates, { domainSlug })
+        setLastSaved(new Date())
+      } catch (error) {
+        console.error('Failed to save draft:', error)
+        setSaveError('Failed to save. Changes may be lost.')
+      } finally {
+        setIsSaving(false)
+      }
+    },
+    [domainSlug, isKept]
+  )
+
+  useEffect(() => {
+    if (!activeDraftId) return
+    if (lastSyncedDraftIdRef.current === activeDraftId) return
+    lastSyncedDraftIdRef.current = activeDraftId
+    if (content.trim() || title.trim()) {
+      saveNow(activeDraftId, { title, body: content })
+    }
+  }, [activeDraftId, content, saveNow, title])
 
   // Debounced autosave
   const debouncedSave = useCallback(
@@ -103,6 +172,7 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
 
   // Handle content changes with autosave
   const handleContentChange = (newContent: string) => {
+    hasUserEditedRef.current = true
     setContent(newContent)
     if (activeDraftId) {
       debouncedSave(activeDraftId, { body: newContent })
@@ -110,6 +180,7 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
   }
 
   const handleTitleChange = (newTitle: string) => {
+    hasUserEditedRef.current = true
     setTitle(newTitle)
     if (activeDraftId) {
       debouncedSave(activeDraftId, { title: newTitle })
@@ -157,6 +228,21 @@ export function MomentBody({ themeSlug, domainSlug, draftId, onMomentKept }: Mom
     if (!domainSlug) return
     navigate(`/d/${domainSlug}?frame=moments`)
   }
+
+  useEffect(() => {
+    if (!onSaveStatusChange) return
+    const status = saveError ? "error" : isSaving ? "saving" : lastSaved ? "saved" : "idle"
+    onSaveStatusChange(status)
+  }, [isSaving, lastSaved, onSaveStatusChange, saveError])
+
+  useEffect(() => {
+    if (saveRetryToken === undefined) return
+    if (saveRetryToken === lastRetryTokenRef.current) return
+    lastRetryTokenRef.current = saveRetryToken
+    if (activeDraftId) {
+      saveNow(activeDraftId, { title, body: content })
+    }
+  }, [activeDraftId, content, saveNow, saveRetryToken, title])
 
   return (
     <>
