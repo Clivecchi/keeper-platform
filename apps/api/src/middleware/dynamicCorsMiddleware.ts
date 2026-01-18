@@ -73,7 +73,17 @@ export class DynamicCorsMiddleware {
         ...envAllowedOrigins,
       ],
       allowedMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'If-Match', 'ETag'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'Accept',
+        'Origin',
+        'If-Match',
+        'ETag',
+        'x-domain-slug',
+        'x-anon-key',
+      ],
       exposedHeaders: ['X-Total-Count', 'X-Page-Count', 'ETag'],
       credentials: true,
       maxAge: 86400, // 24 hours

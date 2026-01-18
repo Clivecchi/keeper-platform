@@ -38,6 +38,11 @@ interface DraftRequestOptions extends DomainScopedOptions {
   includeAnonymousKey?: boolean;
 }
 
+function hasSessionCookie() {
+  if (typeof document === 'undefined') return false;
+  return document.cookie.split(';').some((cookie) => cookie.trim().startsWith('keeper_session='));
+}
+
 function generateAnonKey() {
   if (typeof window === 'undefined') return undefined;
   const cryptoObj = window.crypto;
@@ -67,7 +72,12 @@ function buildDomainHeaders(options?: DraftRequestOptions) {
     headers['x-domain-slug'] = options.domainSlug;
   }
 
-  if (options?.includeAnonymousKey !== false && options?.domainSlug) {
+  const shouldIncludeAnon =
+    options?.includeAnonymousKey !== false &&
+    options?.domainSlug &&
+    !hasSessionCookie();
+
+  if (shouldIncludeAnon) {
     const anonKey = getOrCreateAnonKey(options.domainSlug);
     if (anonKey) {
       headers['x-anon-key'] = anonKey;

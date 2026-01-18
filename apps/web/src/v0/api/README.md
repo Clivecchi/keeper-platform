@@ -20,3 +20,5 @@ Draft requests include `x-domain-slug`, optionally send `domainSlug` in the body
 - Added anonymous key support, claim calls, and kept-moment listing helpers.
 ### 2026-01-17 - Send domain slug in draft creation
 - Included `domainSlug` in the draft creation payload to mirror domain-scoped headers.
+### 2026-01-17 - Skip anon headers for authenticated sessions
+- Avoided sending `x-anon-key` when a session cookie is present.

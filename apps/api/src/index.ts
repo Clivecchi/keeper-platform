@@ -292,6 +292,8 @@ const corsOptions = {
     'X-Requested-With',
     'x-user-id',
     'x-debug-token',
+    'x-domain-slug',
+    'x-anon-key',
     'If-Match',
     'ETag',
     'X-Domain',
