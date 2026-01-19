@@ -1,7 +1,7 @@
 # V0 Surface
 
 ## 📌 Purpose
-Lightweight V0 surface for the cover frame and moment diary preview; used as a design playground without backend wiring.
+V0 is Keeper’s Design Build Language: a shared grammar for frames, navigation, and theming that anchors domain board experiences in a single shell.
 
 ## 🧱 Key Files
 - `pages/V0Page.tsx` – Switches between cover frame (default) and moment diary via `frame` query param.
@@ -9,9 +9,9 @@ Lightweight V0 surface for the cover frame and moment diary preview; used as a d
 - `components/moment-frame.tsx` – Moment diary preview frame with close affordance back to cover.
 
 ## 🔄 Data & Behavior
-- Cover frame is mock-only, rendering imprint/title/liner notes plus a setlist of routes; mobile-first with a two-column desktop spread.
-- Moment frame is a local textarea surface with existing close loop to `?frame=cover`; no persistence or API calls.
-- No backend dependencies; routes remain `/v0` (cover) and `/v0?frame=moment`.
+- The v0 shell owns routing, theme application, and navigation helpers for `/d/:slug/board`.
+- Frames render through `DesignFrame` and resolve navigation through the shell.
+- `/v0` remains a lightweight playground for cover/moment previews when no domain slug is present.
 
 ## ⚠️ Notes & ToDo
 - [ ] Wire real record/route data when backend is available.
@@ -19,5 +19,6 @@ Lightweight V0 surface for the cover frame and moment diary preview; used as a d
 - [ ] Align moment textarea texture with cover palette once shared tokens exist.
 
 ## 📆 Update Log
+- 2026-01-18: Defined v0 as the Design Build Language and anchored domain board routing in the v0 shell.
 - 2026-01-01: Reintroduced V0 cover/moment surface and documented scope.
 

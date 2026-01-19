@@ -1,0 +1,16 @@
+# Journeys Frame
+
+## 📌 Purpose
+Placeholder v0 frame for the domain journeys surface inside the v0 shell.
+
+## 🧱 Key Files
+- `JourneysFrame.tsx`
+
+## 🔄 Data & Behavior
+Renders a v0 `DesignFrame` with a placeholder message and a close action back to `/d/:slug/board`.
+
+## ⚠️ Notes & ToDo
+- [ ] Replace placeholder with domain journey data once board wiring is complete.
+
+## 📆 Update Log
+- 2026-01-18: Added journeys frame placeholder for v0 shell routing.

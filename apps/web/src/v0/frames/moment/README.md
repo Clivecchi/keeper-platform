@@ -15,6 +15,9 @@ Loads draft content by ID, debounces autosave updates, keeps drafts, and lists k
 
 ## 📆 Update Log
 
+### 2026-01-18 - Route moment navigation through v0 shell
+- Updated in-frame navigation to return to `/d/:slug/board` via shell helpers.
+
 ### 2026-01-18 - Extract moment feedback rail
 - Introduced a reusable feedback rail component and wired moment actions into a domain trail.
 

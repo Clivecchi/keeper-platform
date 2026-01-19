@@ -50,13 +50,8 @@ import EngagementTemplatesPage from './pages/keeper/EngagementTemplatesPage';
 import DomainDashboardPage from './pages/keeper/DomainDashboardPage';
 
 // Domain Public Pages
-import PublicDomainPage from './pages/d/PublicDomainPage';
-import DomainAdminPage from './pages/d/DomainAdminPage';
-import DomainAgentPage from './pages/d/DomainAgentPage';
-import DomainFeedPage from './pages/d/DomainFeedPage';
-import DomainKeepersPage from './pages/d/DomainKeepersPage';
-import DomainJourneysPage from './pages/d/DomainJourneysPage';
-import DomainProfilePage from './pages/d/DomainProfilePage';
+import V0ShellPage from './pages/d/V0ShellPage';
+import LegacyDomainRedirect from './pages/d/LegacyDomainRedirect';
 
 // Domain Workshop Pages
 import DomainWorkshopPage from './pages/studio/domain/DomainWorkshopPage';
@@ -197,12 +192,12 @@ const App: React.FC = () => {
       {/* Domain Dashboard Routes - V0 Dashboard Layout (Outside AppLayout/Studio) */}
       <Route element={<ProtectedRoute />}>
         <Route path="/kip" element={<KipAgentBoardPage />} />
-        <Route path="/d/:slug/feed" element={<DomainFeedPage />} />
-        <Route path="/d/:slug/keepers" element={<DomainKeepersPage />} />
-        <Route path="/d/:slug/journeys" element={<DomainJourneysPage />} />
-        <Route path="/d/:slug/profile" element={<DomainProfilePage />} />
-        <Route path="/d/:slug/admin" element={<DomainAdminPage />} />
-        <Route path="/d/:slug/agent" element={<DomainAgentPage />} />
+        <Route path="/d/:slug/feed" element={<LegacyDomainRedirect />} />
+        <Route path="/d/:slug/keepers" element={<LegacyDomainRedirect />} />
+        <Route path="/d/:slug/journeys" element={<LegacyDomainRedirect />} />
+        <Route path="/d/:slug/profile" element={<LegacyDomainRedirect />} />
+        <Route path="/d/:slug/admin" element={<LegacyDomainRedirect />} />
+        <Route path="/d/:slug/agent" element={<LegacyDomainRedirect />} />
       </Route>
       
       {/* Public Routes - No Authentication Required */}
@@ -220,9 +215,9 @@ const App: React.FC = () => {
         {/* Login - Minimal layout for board-first experience */}
         <Route path="/login" element={<LoginPage />} />
         {/* Public Domain Board - Shows board for logged out, redirects logged in to Feed */}
-        <Route path="/d/:slug" element={<PublicDomainPage />} />
+        <Route path="/d/:slug" element={<V0ShellPage />} />
         {/* Public Domain Board View - Always shows board, even when logged in */}
-        <Route path="/d/:slug/board" element={<PublicDomainPage />} />
+        <Route path="/d/:slug/board" element={<V0ShellPage />} />
         {/* Manifesto Pages - Clean, distraction-free reading */}
         <Route path="/manifestos/clean-surface-doctrine" element={<CleanSurfaceDoctrinePage />} />
       </Route>

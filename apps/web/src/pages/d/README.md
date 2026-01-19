@@ -4,7 +4,9 @@
 Pages for domain-related functionality, including public domain boards, domain dashboard (Feed/Keepers/Journeys/Profile/Kip), and domain management.
 
 ## 🧱 Key Files
-- `PublicDomainPage.tsx` - Public domain board (logged out) or redirects to Feed (logged in)
+- `PublicDomainPage.tsx` - Legacy public domain board (superseded by `V0ShellPage`)
+- `V0ShellPage.tsx` - v0 shell entrypoint for `/d/:slug` and `/d/:slug/board`
+- `LegacyDomainRedirect.tsx` - Redirects legacy domain routes into the v0 shell
 - `DomainFeedPage.tsx` - Domain workspace home - Feed view (V0 dashboard)
 - `DomainKeepersPage.tsx` - Domain keepers listing (V0 dashboard)
 - `DomainJourneysPage.tsx` - Domain journeys listing (V0 dashboard)
@@ -14,11 +16,9 @@ Pages for domain-related functionality, including public domain boards, domain d
 
 ## 🔄 Data & Behavior
 
-### PublicDomainPage
-- **Route**: `/d/:slug` (public board) or `/d/:slug/board` (always shows board)
-- **Logged out**: Shows public domain board (cover, manifesto frames)
-- **Logged in on `/d/:slug`**: Redirects to `/d/:slug/feed` unless `?frame=moment`, `?frame=moments`, or `?frame=diagnostics`
-- **Logged in on `/d/:slug/board`**: Shows public board with "Back to Dashboard" link
+### V0ShellPage
+- **Route**: `/d/:slug` and `/d/:slug/board`
+- **Behavior**: Renders the v0 shell and routes frames via `?frame=...` while preserving theme and close/back behavior.
 
 ### Domain Dashboard Pages (V0 Layout)
 All domain dashboard pages use `KeeperDashboardLayout` with left nav (Feed, Kip, Keepers, Journeys, Profile):
@@ -38,7 +38,7 @@ All domain dashboard pages use `KeeperDashboardLayout` with left nav (Feed, Kip,
 
 ### Routing
 - Domain dashboard routes are **outside** `AppLayout` (no Studio sidebar)
-- All domain dashboard routes use `KeeperDashboardLayout` (V0-style)
+- Legacy `/d/:slug/*` routes redirect into the v0 shell (`/d/:slug/board?frame=...`)
 - Public board routes use `BoardPublicLayout` (full viewport, no shell)
 
 ## ⚠️ Notes & ToDo
@@ -51,6 +51,10 @@ All domain dashboard pages use `KeeperDashboardLayout` with left nav (Feed, Kip,
 - [ ] Wire Kip context cards (Journeys/Keepers) to domain-aware sources
 
 ## 📆 Update Log
+
+### 2026-01-18 - v0 shell routing
+- `/d/:slug` and `/d/:slug/board` now render the v0 shell entrypoint.
+- Legacy `/d/:slug/*` routes redirect into `/d/:slug/board?frame=<mapped>`.
 
 ### 2026-01-18 - Diagnostics frame wrapper
 - Routed domain diagnostics through the v0 diagnostics frame wrapper component.

@@ -10,12 +10,14 @@ import { ThemeSwitcher } from "../frames/ThemeSwitcher"
 import { createDraftMoment } from "../api/v0Moments"
 import { FooterTrail } from "./FooterTrail"
 import { recordTrailEvent } from "../stores/trailStore"
+import { useV0ShellOptional } from "../shell/V0ShellContext"
 
 type SaveStatus = "idle" | "saving" | "saved" | "error"
 
 export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftId }: { styleId?: StyleId, themeSlug?: string | null, domainSlug?: string, draftId?: string | null }) {
   console.log('MomentFrame rendered with:', { styleId, themeSlug, domainSlug, draftId })
   const navigate = useNavigate()
+  const v0Shell = useV0ShellOptional()
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [resolvedDraftId, setResolvedDraftId] = useState<string | null>(draftId ?? null)
@@ -29,7 +31,15 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
   const [titleBuffer, setTitleBuffer] = useState("")
 
   const handleClose = () => {
-    navigate(`/d/${domainSlug || 'default'}`)
+    if (v0Shell) {
+      v0Shell.closeToBoard()
+      return
+    }
+    if (domainSlug) {
+      navigate(`/d/${domainSlug}/board`)
+      return
+    }
+    navigate("/v0")
   }
 
   useEffect(() => {

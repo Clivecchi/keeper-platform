@@ -8,6 +8,7 @@ import { ThemeSwitcher } from "../frames/ThemeSwitcher"
 import { API_BASE, apiFetch } from "../../lib/api"
 import { useAuth } from "../../context/AuthContext"
 import { getLastBoardDataError } from "../../lib/debug"
+import { useV0ShellOptional } from "../shell/V0ShellContext"
 
 export interface EnvironmentInfo {
   mode: string
@@ -216,6 +217,7 @@ export function DiagnosticsFrame({
   returnPath,
 }: DiagnosticsFrameProps) {
   const navigate = useNavigate()
+  const v0Shell = useV0ShellOptional()
   const { user, isAuthenticated } = useAuth()
   const [results, setResults] = React.useState<DiagnosticsData | null>(null)
   const [loading, setLoading] = React.useState(false)
@@ -1639,14 +1641,20 @@ export function DiagnosticsFrame({
   ])
 
   const handleClose = React.useCallback(() => {
+    if (v0Shell) {
+      v0Shell.closeToBoard()
+      return
+    }
     if (returnPath) {
       navigate(returnPath)
-    } else if (domainSlug) {
-      navigate(`/d/${domainSlug}`)
-    } else {
-      navigate("/")
+      return
     }
-  }, [domainSlug, navigate, returnPath])
+    if (domainSlug) {
+      navigate(`/d/${domainSlug}/board`)
+      return
+    }
+    navigate("/")
+  }, [domainSlug, navigate, returnPath, v0Shell])
 
   const lastBoardDataError = getLastBoardDataError()
   const momentPipelineData = results?.tests?.momentPipeline?.data as MomentPipelineReport | undefined

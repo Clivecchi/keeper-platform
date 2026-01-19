@@ -13,4 +13,5 @@ Creates a draft moment on "Write a Moment" and navigates to the Moment frame. Fa
 - [ ] Confirm draft bootstrap error handling for unauthenticated visitors.
 
 ## 📆 Update Log
+- 2026-01-18: Routed cover navigation through v0 shell frame helpers.
 - 2026-01-17: Documented cover lens behavior and draft launch flow.

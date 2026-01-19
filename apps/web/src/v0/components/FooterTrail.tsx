@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { recordTrailEvent, useTrailEntries } from "../stores/trailStore"
+import { useV0ShellOptional } from "../shell/V0ShellContext"
 
 interface TrailAction {
   id: string
@@ -14,16 +15,29 @@ interface FooterTrailProps {
 
 export function FooterTrail({ domainSlug }: FooterTrailProps) {
   const navigate = useNavigate()
+  const v0Shell = useV0ShellOptional()
   const entries = useTrailEntries(domainSlug)
 
   const actions = useMemo<TrailAction[]>(() => {
     if (!domainSlug) return []
     return [
-      { id: "view-drafts", label: "View Drafts", href: `/d/${domainSlug}?frame=moment` },
-      { id: "view-kept", label: "View Kept", href: `/d/${domainSlug}?frame=moments` },
-      { id: "back-domain", label: "Back to Domain", href: `/d/${domainSlug}` },
+      {
+        id: "view-drafts",
+        label: "View Drafts",
+        href: v0Shell ? v0Shell.buildFrameUrl("moment") : `/d/${domainSlug}/board?frame=moment`,
+      },
+      {
+        id: "view-kept",
+        label: "View Kept",
+        href: v0Shell ? v0Shell.buildFrameUrl("moments") : `/d/${domainSlug}/board?frame=moments`,
+      },
+      {
+        id: "back-domain",
+        label: "Back to Domain",
+        href: v0Shell ? v0Shell.buildFrameUrl("cover") : `/d/${domainSlug}/board?frame=cover`,
+      },
     ]
-  }, [domainSlug])
+  }, [domainSlug, v0Shell])
 
   const handleAction = (action: TrailAction) => {
     recordTrailEvent(domainSlug, {

@@ -6,6 +6,7 @@ import type { StyleId } from "../styles/styles"
 import { DesignFrame } from "../frames/DesignFrame"
 import { KeptMomentsBody } from "../frames/moment/KeptMomentsBody"
 import { ThemeSwitcher } from "../frames/ThemeSwitcher"
+import { useV0ShellOptional } from "../shell/V0ShellContext"
 
 export function KeptMomentsFrame({
   styleId = "neutral",
@@ -17,13 +18,18 @@ export function KeptMomentsFrame({
   domainSlug?: string
 }) {
   const navigate = useNavigate()
+  const v0Shell = useV0ShellOptional()
 
   const handleClose = () => {
-    if (domainSlug) {
-      navigate(`/d/${domainSlug}`)
-    } else {
-      navigate("/v0")
+    if (v0Shell) {
+      v0Shell.closeToBoard()
+      return
     }
+    if (domainSlug) {
+      navigate(`/d/${domainSlug}/board`)
+      return
+    }
+    navigate("/v0")
   }
 
   return (
