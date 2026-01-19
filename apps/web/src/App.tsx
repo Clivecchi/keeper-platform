@@ -192,12 +192,6 @@ const App: React.FC = () => {
       {/* Domain Dashboard Routes - V0 Dashboard Layout (Outside AppLayout/Studio) */}
       <Route element={<ProtectedRoute />}>
         <Route path="/kip" element={<KipAgentBoardPage />} />
-        <Route path="/d/:slug/feed" element={<LegacyDomainRedirect />} />
-        <Route path="/d/:slug/keepers" element={<LegacyDomainRedirect />} />
-        <Route path="/d/:slug/journeys" element={<LegacyDomainRedirect />} />
-        <Route path="/d/:slug/profile" element={<LegacyDomainRedirect />} />
-        <Route path="/d/:slug/admin" element={<LegacyDomainRedirect />} />
-        <Route path="/d/:slug/agent" element={<LegacyDomainRedirect />} />
       </Route>
       
       {/* Public Routes - No Authentication Required */}
@@ -214,6 +208,13 @@ const App: React.FC = () => {
       <Route element={<BoardPublicLayout />}>
         {/* Login - Minimal layout for board-first experience */}
         <Route path="/login" element={<LoginPage />} />
+        {/* Legacy domain routes - redirect into v0 shell (no auth required) */}
+        <Route path="/d/:slug/feed" element={<LegacyDomainRedirect />} />
+        <Route path="/d/:slug/keepers" element={<LegacyDomainRedirect />} />
+        <Route path="/d/:slug/journeys" element={<LegacyDomainRedirect />} />
+        <Route path="/d/:slug/profile" element={<LegacyDomainRedirect />} />
+        <Route path="/d/:slug/admin" element={<LegacyDomainRedirect />} />
+        <Route path="/d/:slug/agent" element={<LegacyDomainRedirect />} />
         {/* Public Domain Board - Shows board for logged out, redirects logged in to Feed */}
         <Route path="/d/:slug" element={<V0ShellPage />} />
         {/* Public Domain Board View - Always shows board, even when logged in */}
