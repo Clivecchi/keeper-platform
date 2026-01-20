@@ -22,6 +22,11 @@ export function FooterTrail({ domainSlug }: FooterTrailProps) {
     if (!domainSlug) return []
     return [
       {
+        id: "view-index",
+        label: "Index",
+        href: v0Shell ? v0Shell.buildFrameUrl("index") : `/d/${domainSlug}/board?frame=index`,
+      },
+      {
         id: "view-drafts",
         label: "View Drafts",
         href: v0Shell ? v0Shell.buildFrameUrl("moment") : `/d/${domainSlug}/board?frame=moment`,

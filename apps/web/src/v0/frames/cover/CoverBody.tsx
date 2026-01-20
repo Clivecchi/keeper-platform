@@ -25,6 +25,14 @@ export function CoverBody({ domainData, themeSlug, onNavigate }: CoverBodyProps)
     onNavigate?.(path)
   }
 
+  const handleOpenIndex = () => {
+    if (v0Shell) {
+      v0Shell.navigateToFrame("index")
+    } else {
+      navigateTo(`/d/${domainData?.slug || 'default'}/board?frame=index`)
+    }
+  }
+
   const handleWriteMoment = async () => {
     if (isCreatingDraft) return // Prevent double clicks
 
@@ -118,6 +126,36 @@ export function CoverBody({ domainData, themeSlug, onNavigate }: CoverBodyProps)
 
   return (
     <>
+      <section aria-label="Domain index entrypoint" className="mb-5">
+        <button
+          type="button"
+          onClick={handleOpenIndex}
+          className="group w-full rounded-xl border px-4 py-4 text-left transition-colors"
+          style={{
+            borderColor: "var(--theme-border-soft)",
+            backgroundColor: "var(--theme-surface-panel)",
+            boxShadow: "var(--theme-shadow-soft)",
+          }}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--theme-ink-tertiary)" }}>
+                Table of Contents
+              </p>
+              <p className="text-base md:text-lg" style={{ color: "var(--theme-ink-primary)" }}>
+                Open Index
+              </p>
+              <p className="text-xs leading-snug" style={{ color: "var(--theme-ink-secondary)" }}>
+                Explore the structured map of this domain board.
+              </p>
+            </div>
+            <span className="transition-transform duration-150 translate-x-0 group-hover:translate-x-0.5" style={{ color: "var(--theme-ink-tertiary)" }}>
+              →
+            </span>
+          </div>
+        </button>
+      </section>
+
       {/* Subtle decorative fold separator */}
       <div className="flex justify-center" aria-hidden>
         <div

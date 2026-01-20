@@ -14,6 +14,7 @@ import { JourneysFrame } from "../frames/journeys/JourneysFrame"
 import { ProfileFrame } from "../frames/profile/ProfileFrame"
 import { AgentFrame } from "../frames/agent/AgentFrame"
 import { AdminFrame } from "../frames/admin/AdminFrame"
+import { IndexFrame } from "../frames/index/IndexFrame"
 import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
 
@@ -27,6 +28,7 @@ const getDomainFallback = (slug: string) => ({
 
 const FRAME_REGISTRY: Record<V0FrameKey, React.ComponentType<any>> = {
   cover: CoverFrame,
+  index: IndexFrame,
   moment: MomentFrame,
   moments: KeptMomentsFrame,
   diagnostics: DiagnosticsFrame,
