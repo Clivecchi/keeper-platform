@@ -4,10 +4,10 @@
 Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cockpit, Sessions) inside the Keeper dashboard shell.
 
 ## 🧱 Key Files
-- `KipAgentBoardPage.tsx` – Routed at `/kip`, renders the Agent Board layout (header, tabs, context column, and right-side frames) on top of `KeeperDashboardLayout`.
+- `KipAgentBoardPage.tsx` – Routed at `/kip`, redirects into `/d/:slug/board?frame=agent` while exporting `KipAgentBoard` for reuse inside the v0 agent frame.
 
 ## 🔄 Data & Behavior
-- `KipAgentBoard` (exported from this page) encapsulates the header, tabs, session column, and dialogue frame so other routes (e.g., `/d/:slug/agent`) can reuse the exact layout.
+- `KipAgentBoard` (exported from this page) encapsulates the header, tabs, session column, and dialogue frame so other routes (e.g., v0 AgentFrame) can reuse the exact layout.
 - Relies on `useAgentSessions` to load, normalize, and create `kip_sessions` via `/api/kip/agents?sessions=true&agentId=...` and `action="createSession"`.
 - Dialogue tab fetches `kip_messages` with `/api/kip/agents?messages=true&sessionId=...`, renders metadata cards, and posts user input through `action="run"` when sending messages.
 - Cockpit and context cards share the latest session metadata plus placeholder journey/keeper links until those APIs are wired.
@@ -17,6 +17,8 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - [ ] Replace Cockpit diagnostics placeholders with backend stats once exposed.
 
 ## 📆 Update Log
+### 2026-01-19 - Redirect /kip into v0 agent frame
+- `/kip` now redirects to `/d/default/board?frame=agent` to keep v0 shell canonical while reusing `KipAgentBoard` inside the agent frame.
 ### 2025-12-16 - Drafts tab + session active draft linkage
 - Added Drafts tab with domain-scoped directory, JSON editor, and Save flow plus set/clear active draft actions tied to the current session and KAM environment summary.
 ### 2025-12-15 - Session edit modal + PATCH summary/tags

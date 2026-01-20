@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import { PaperAirplaneIcon, PlusIcon, Cog6ToothIcon, TrashIcon, LinkIcon } from '@heroicons/react/24/outline';
-import { KeeperDashboardLayout } from '../../layouts/KeeperDashboardLayout';
 import {
   AgentModeState,
   KipApi,
@@ -1829,11 +1828,19 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   );
 };
 
-const KipAgentBoardPage: React.FC = () => (
-  <KeeperDashboardLayout title="Kip Agent Board" subtitle="Lead Agent of the KE3P Domain">
-    <KipAgentBoard />
-  </KeeperDashboardLayout>
-);
+const KipAgentBoardPage: React.FC = () => {
+  const location = useLocation();
+  const search = new URLSearchParams(location.search);
+  const theme = search.get('theme');
+  const style = search.get('style');
+  const nextParams = new URLSearchParams();
+  nextParams.set('frame', 'agent');
+  if (theme) nextParams.set('theme', theme);
+  if (style) nextParams.set('style', style);
+
+  // Default domain resolution matches v0 fallbacks (uses "default" slug).
+  return <Navigate to={`/d/default/board?${nextParams.toString()}`} replace />;
+};
 
 export default KipAgentBoardPage;
 

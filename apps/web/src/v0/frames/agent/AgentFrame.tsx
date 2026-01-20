@@ -5,6 +5,7 @@ import type { StyleId } from "../../styles/styles"
 import { DesignFrame } from "../DesignFrame"
 import { ThemeSwitcher } from "../ThemeSwitcher"
 import { useV0Shell } from "../../shell/V0ShellContext"
+import { KipAgentBoard } from "../../../pages/kip/KipAgentBoardPage"
 
 export function AgentFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
   const { closeToBoard } = useV0Shell()
@@ -28,8 +29,9 @@ export function AgentFrame({ styleId = "neutral", themeSlug }: { styleId?: Style
       }
       onClose={closeToBoard}
     >
-      <div className="rounded-2xl border border-black/10 bg-white/80 p-6 text-sm text-gray-700 shadow-sm">
-        Kip surfaces will render here once the v0 domain board data is connected.
+      {/* MVP: v0 frame mounts legacy Kip agent surface (not FrameRenderer yet). */}
+      <div className="rounded-2xl border border-black/5 bg-white/80 shadow-sm">
+        <KipAgentBoard />
       </div>
     </DesignFrame>
   )

@@ -49,6 +49,11 @@ export function V0Shell() {
   const draftId = searchParams.get("draftId")
   const initialStyleId = themeSlug ? undefined : styleId
   const [domainData, setDomainData] = React.useState<any | null>(null)
+  const commitSha =
+    (import.meta as any).env?.VERCEL_GIT_COMMIT_SHA ??
+    (import.meta as any).env?.VITE_COMMIT_SHA ??
+    "unknown"
+  const buildTime = (import.meta as any).env?.VITE_BUILD_TIME ?? "unknown"
 
   React.useEffect(() => {
     if (!slug) return
@@ -127,6 +132,9 @@ export function V0Shell() {
         ) : (
           <FrameComponent styleId={styleId} themeSlug={themeSlug} domainSlug={slug} />
         )}
+        <div className="fixed bottom-3 right-3 z-50 rounded-md border border-black/10 bg-white/80 px-2 py-1 text-[10px] font-mono text-gray-700 shadow-sm backdrop-blur">
+          {commitSha} | {buildTime}
+        </div>
       </V0ShellProvider>
     </StyleOverrideProvider>
   )

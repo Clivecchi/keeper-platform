@@ -14,4 +14,5 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - [ ] Replace fallback domain data once domain home board wiring is live.
 
 ## 📆 Update Log
+- 2026-01-19: Added visible build stamp (commit + build time) for v0 shell frames.
 - 2026-01-18: Added canonical v0 shell routing + navigation helpers.

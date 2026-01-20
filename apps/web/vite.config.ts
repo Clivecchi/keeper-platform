@@ -24,11 +24,16 @@ const devServerUrlPlugin = () => {
   };
 };
 
+const buildTime = process.env.VITE_BUILD_TIME ?? new Date().toISOString();
+
 export default defineConfig({
   plugins: [
     react(),
     devServerUrlPlugin(),
   ],
+  define: {
+    'import.meta.env.VITE_BUILD_TIME': JSON.stringify(buildTime),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
