@@ -13,4 +13,5 @@ Renders a v0 `DesignFrame` with a placeholder message and a close action back to
 - [ ] Replace placeholder with domain admin UI once v0 routing is complete.
 
 ## 📆 Update Log
+- 2026-01-19: Added board context display for domain home board admin entrypoint.
 - 2026-01-18: Added admin frame placeholder for v0 shell routing.

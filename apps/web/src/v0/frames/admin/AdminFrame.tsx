@@ -1,6 +1,7 @@
 "use client"
 
 import { X } from "lucide-react"
+import { useSearchParams } from "react-router-dom"
 import type { StyleId } from "../../styles/styles"
 import { DesignFrame } from "../DesignFrame"
 import { ThemeSwitcher } from "../ThemeSwitcher"
@@ -8,6 +9,8 @@ import { useV0Shell } from "../../shell/V0ShellContext"
 
 export function AdminFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
   const { closeToBoard } = useV0Shell()
+  const [searchParams] = useSearchParams()
+  const boardId = searchParams.get("boardId")
 
   return (
     <DesignFrame
@@ -29,7 +32,13 @@ export function AdminFrame({ styleId = "neutral", themeSlug }: { styleId?: Style
       onClose={closeToBoard}
     >
       <div className="rounded-2xl border border-black/10 bg-white/80 p-6 text-sm text-gray-700 shadow-sm">
-        Domain admin tooling will render here once the v0 domain board data is connected.
+        <div className="text-xs uppercase tracking-wide text-gray-500">Board Context</div>
+        <div className="mt-2 text-sm text-gray-700">
+          {boardId ? `Domain home board: ${boardId}` : "Domain home board: unresolved"}
+        </div>
+        <div className="mt-4 text-sm text-gray-700">
+          Domain admin tooling will render here once the v0 domain board data is connected.
+        </div>
       </div>
     </DesignFrame>
   )

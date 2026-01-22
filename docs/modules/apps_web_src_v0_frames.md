@@ -14,4 +14,5 @@ Frames rely on `DesignFrame` to apply theme styles, enforce layout padding, and 
 - [ ] Confirm margin height across mobile breakpoints.
 
 ## 📆 Update Log
+- 2026-01-19: Added top gear navigation to domain home board admin.
 - 2026-01-19: Added persistent bottom margin support to the shared frame layout.

@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { X } from "lucide-react"
+import { useLocation, useNavigate } from "react-router-dom"
+import { Settings, X } from "lucide-react"
 import type { StyleId } from "../../styles/styles"
 import { StyleScope } from "../../styles/StyleScope"
 import { ThemeSwitcher } from "../ThemeSwitcher"
@@ -53,7 +54,10 @@ const FRAME_PADDING = "clamp(1.75rem, 5vw, 3.5rem)"
 export function IndexFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
   const { domainSlug, navigateToFrame, closeToBoard } = useV0Shell()
   const { isAuthenticated, user } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [isDomainAdmin, setIsDomainAdmin] = React.useState(false)
+  const [isOpeningAdmin, setIsOpeningAdmin] = React.useState(false)
 
   React.useEffect(() => {
     let active = true
@@ -179,6 +183,34 @@ export function IndexFrame({ styleId = "neutral", themeSlug }: { styleId?: Style
     return baseSections
   }, [isDomainAdmin])
 
+  const handleOpenAdmin = async () => {
+    if (!domainSlug || !isAuthenticated || isOpeningAdmin) return
+    setIsOpeningAdmin(true)
+    let boardId: string | null = null
+
+    try {
+      const response = await apiFetch(`/api/domains/by-slug/${domainSlug}/home-board`)
+      const payload = response?.data ?? response?.board ?? response
+      if (typeof payload?.id === "string") {
+        boardId = payload.id
+      }
+    } catch (error) {
+      console.warn("[IndexFrame] Failed to resolve domain home board id", error)
+    }
+
+    const params = new URLSearchParams()
+    const existing = new URLSearchParams(location.search)
+    const theme = existing.get("theme")
+    const style = existing.get("style")
+    if (theme) params.set("theme", theme)
+    if (style) params.set("style", style)
+    params.set("frame", "admin")
+    if (boardId) params.set("boardId", boardId)
+
+    navigate(`/d/${domainSlug}/board?${params.toString()}`)
+    setIsOpeningAdmin(false)
+  }
+
   return (
     <StyleScope styleId={styleId} themeSlug={themeSlug}>
       <main
@@ -208,6 +240,17 @@ export function IndexFrame({ styleId = "neutral", themeSlug }: { styleId?: Style
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {isAuthenticated && (
+                <button
+                  type="button"
+                  aria-label="Open board admin"
+                  onClick={handleOpenAdmin}
+                  disabled={isOpeningAdmin}
+                  className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/70 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm disabled:opacity-60"
+                >
+                  <Settings className="w-4 h-4" strokeWidth={1.25} />
+                </button>
+              )}
               <ThemeSwitcher />
               <button
                 type="button"
