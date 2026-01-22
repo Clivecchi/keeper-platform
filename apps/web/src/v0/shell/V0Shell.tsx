@@ -37,6 +37,7 @@ const FRAME_REGISTRY: Record<V0FrameKey, React.ComponentType<any>> = {
   journeys: JourneysFrame,
   profile: ProfileFrame,
   agent: AgentFrame,
+  kip: AgentFrame,
   admin: AdminFrame,
 }
 

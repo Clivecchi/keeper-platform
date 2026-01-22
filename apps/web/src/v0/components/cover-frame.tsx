@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import type { StyleId } from "../styles/styles"
 import { DesignFrame } from "../frames/DesignFrame"
 import { CoverBody } from "../frames/cover/CoverBody"
@@ -31,12 +31,16 @@ export function CoverFrame({
   domainData?: DomainData
 }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   console.log('CoverFrame rendered, navigate function:', typeof navigate);
 
   // Dynamic cover content based on domain
   const coverTitle = domainData?.name || "Welcome to Keeper";
   const coverLiner = domainData?.description || "A quiet space for your thoughts and memories";
+
+  const coverStateParam = searchParams.get("coverState") || searchParams.get("cover")
+  const coverState = coverStateParam === "open" ? "open" : "closed"
 
   return (
     <div style={{ padding: COVER_CONSTANTS.pad }}>
@@ -64,7 +68,7 @@ export function CoverFrame({
         subtitle={coverLiner}
         themeSwitcherSlot={<ThemeSwitcher />}
       >
-        <CoverBody domainData={domainData} themeSlug={themeSlug} onNavigate={navigate} />
+        <CoverBody domainData={domainData} themeSlug={themeSlug} onNavigate={navigate} coverState={coverState} />
       </DesignFrame>
     </div>
   )

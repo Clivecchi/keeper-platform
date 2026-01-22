@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { CoverLens, type CoverLensItem } from "../../components/cover-lens"
 import { createDraftMoment } from "../../api/v0Moments"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
@@ -16,11 +17,14 @@ interface CoverBodyProps {
   themeSlug?: string | null
   /** Navigation callback */
   onNavigate?: (path: string) => void
+  /** Cover surface state */
+  coverState?: "open" | "closed"
 }
 
-export function CoverBody({ domainData, themeSlug, onNavigate }: CoverBodyProps) {
+export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "closed" }: CoverBodyProps) {
   const [isCreatingDraft, setIsCreatingDraft] = useState(false)
   const v0Shell = useV0ShellOptional()
+  const [searchParams] = useSearchParams()
   const navigateTo = (path: string) => {
     onNavigate?.(path)
   }
@@ -78,14 +82,30 @@ export function CoverBody({ domainData, themeSlug, onNavigate }: CoverBodyProps)
       setIsCreatingDraft(false)
     }
   }
+
+  const buildCoverOpenPath = () => {
+    const params = new URLSearchParams()
+    const theme = searchParams.get("theme")
+    const style = searchParams.get("style")
+    if (theme) params.set("theme", theme)
+    if (style) params.set("style", style)
+    params.set("coverState", "open")
+    if (searchParams.has("frame")) {
+      params.set("frame", "cover")
+    }
+    return `/d/${domainData?.slug || 'default'}/board?${params.toString()}`
+  }
+
+  const handleOpenCover = () => {
+    const path = buildCoverOpenPath()
+    if (v0Shell) {
+      navigateTo(path)
+      return
+    }
+    navigateTo(path)
+  }
   // Create navigation items for this domain
   const coverItems: CoverLensItem[] = [
-    {
-      title: "Write a Moment",
-      subtitle: "Capture your thoughts in a beautiful diary entry",
-      affordance: isCreatingDraft ? "..." : "→",
-      onClick: handleWriteMoment
-    },
     {
       title: "Explore Journeys",
       subtitle: "Follow connected stories and experiences",
@@ -124,9 +144,51 @@ export function CoverBody({ domainData, themeSlug, onNavigate }: CoverBodyProps)
     },
   ]
 
+  if (coverState === "closed") {
+    return (
+      <section aria-label="Cover closed state" className="space-y-4">
+        <div className="rounded-xl border px-5 py-4" style={{ borderColor: "var(--theme-border-soft)", backgroundColor: "var(--theme-surface-panel)" }}>
+          <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--theme-ink-tertiary)" }}>
+            Closed Cover
+          </p>
+          <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--theme-ink-secondary)" }}>
+            The domain is ready when you are. Step through the first page to continue.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleOpenCover}
+          className="w-full rounded-xl border px-4 py-4 text-left transition-colors"
+          style={{
+            borderColor: "var(--theme-border-soft)",
+            backgroundColor: "var(--theme-surface-paper)",
+            boxShadow: "var(--theme-shadow-soft)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-base font-medium" style={{ color: "var(--theme-ink-primary)" }}>
+              Continue
+            </span>
+            <span className="text-sm" style={{ color: "var(--theme-ink-tertiary)" }}>
+              →
+            </span>
+          </div>
+        </button>
+      </section>
+    )
+  }
+
   return (
     <>
-      <section aria-label="Domain index entrypoint" className="mb-5">
+      <section aria-label="Opened threshold" className="mb-5 space-y-3">
+        <div className="rounded-xl border px-5 py-4" style={{ borderColor: "var(--theme-border-soft)", backgroundColor: "var(--theme-surface-panel)" }}>
+          <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--theme-ink-tertiary)" }}>
+            First Page
+          </p>
+          <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--theme-ink-secondary)" }}>
+            Choose where to begin. The Index is the calm map; Moments are the daily pulse.
+          </p>
+        </div>
         <button
           type="button"
           onClick={handleOpenIndex}
@@ -151,6 +213,33 @@ export function CoverBody({ domainData, themeSlug, onNavigate }: CoverBodyProps)
             </div>
             <span className="transition-transform duration-150 translate-x-0 group-hover:translate-x-0.5" style={{ color: "var(--theme-ink-tertiary)" }}>
               →
+            </span>
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={handleWriteMoment}
+          className="group w-full rounded-xl border px-4 py-4 text-left transition-colors"
+          style={{
+            borderColor: "var(--theme-border-soft)",
+            backgroundColor: "var(--theme-surface-paper)",
+            boxShadow: "var(--theme-shadow-soft)",
+          }}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--theme-ink-tertiary)" }}>
+                Moment
+              </p>
+              <p className="text-base md:text-lg" style={{ color: "var(--theme-ink-primary)" }}>
+                Write a Moment
+              </p>
+              <p className="text-xs leading-snug" style={{ color: "var(--theme-ink-secondary)" }}>
+                Capture your thoughts in a beautiful diary entry.
+              </p>
+            </div>
+            <span className="transition-transform duration-150 translate-x-0 group-hover:translate-x-0.5" style={{ color: "var(--theme-ink-tertiary)" }}>
+              {isCreatingDraft ? "..." : "→"}
             </span>
           </div>
         </button>

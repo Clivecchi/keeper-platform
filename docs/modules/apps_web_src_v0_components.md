@@ -8,6 +8,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - `moment-frame.tsx` – Moment diary preview frame with close loop back to the cover.
 - `kept-moments-frame.tsx` – Minimal list view for recently kept moments.
 - `FooterTrail.tsx` – Frame footer trail showing recent actions and navigation.
+- `Margin.tsx` – Persistent bottom margin with Explore + Kip anchors.
 
 ## 🔄 Data & Behavior
 - Cover uses local mock routes and constants for spacing/type scale; mobile-first with a two-column desktop “spread.”
@@ -20,6 +21,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-01-19: Added Margin component for persistent bottom actions.
 - 2026-01-19: Added Index shortcut action to the v0 footer trail navigation.
 - 2026-01-18: Routed v0 frame close/back actions through the v0 shell.
 - 2026-01-18: Added domain home board diagnostics and snapshot details.

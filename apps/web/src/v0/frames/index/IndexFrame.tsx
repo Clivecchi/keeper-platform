@@ -8,6 +8,7 @@ import { ThemeSwitcher } from "../ThemeSwitcher"
 import { useV0Shell, type V0FrameKey } from "../../shell/V0ShellContext"
 import { useAuth } from "../../../context/AuthContext"
 import { apiFetch } from "../../../lib/api"
+import { Margin, V0_MARGIN_HEIGHT } from "../../components/Margin"
 
 export type IndexIntent = "human" | "mixed" | "platform"
 
@@ -187,9 +188,13 @@ export function IndexFrame({ styleId = "neutral", themeSlug }: { styleId?: Style
           backgroundImage: `linear-gradient(${INDEX_SURFACE.gridLine} 1px, transparent 1px), linear-gradient(90deg, ${INDEX_SURFACE.gridLine} 1px, transparent 1px)`,
           backgroundSize: "28px 28px",
           color: "var(--theme-ink-primary)",
+          ["--v0-margin-height" as any]: V0_MARGIN_HEIGHT,
         }}
       >
-        <div className="mx-auto w-full max-w-5xl" style={{ padding: FRAME_PADDING }}>
+        <div
+          className="mx-auto w-full max-w-5xl"
+          style={{ padding: FRAME_PADDING, paddingBottom: `calc(${FRAME_PADDING} + var(--v0-margin-height))` }}
+        >
           <header className="flex flex-wrap items-start justify-between gap-6 mb-8">
             <div className="space-y-3 max-w-xl">
               <p className="text-[11px] uppercase tracking-[0.28em]" style={{ color: "var(--theme-ink-tertiary)" }}>
@@ -284,6 +289,7 @@ export function IndexFrame({ styleId = "neutral", themeSlug }: { styleId?: Style
             })}
           </div>
         </div>
+        <Margin />
       </main>
     </StyleScope>
   )

@@ -3,6 +3,7 @@
 import type React from "react"
 import type { StyleId } from "../styles/styles"
 import { StyleScope } from "../styles/StyleScope"
+import { Margin, V0_MARGIN_HEIGHT } from "../components/Margin"
 
 interface DesignFrameProps {
   /** Frame style identifier */
@@ -47,9 +48,19 @@ export function DesignFrame({
     <StyleScope styleId={styleId} themeSlug={themeSlug}>
       <main
         className="min-h-screen text-foreground"
-        style={{ backgroundColor: "var(--theme-surface-page)", color: "var(--theme-ink-primary)" }}
+        style={{
+          backgroundColor: "var(--theme-surface-page)",
+          color: "var(--theme-ink-primary)",
+          ["--v0-margin-height" as any]: V0_MARGIN_HEIGHT,
+        }}
       >
-        <div className="mx-auto w-full max-w-5xl" style={{ padding: FRAME_CONSTANTS.pad }}>
+        <div
+          className="mx-auto w-full max-w-5xl"
+          style={{
+            padding: FRAME_CONSTANTS.pad,
+            paddingBottom: `calc(${FRAME_CONSTANTS.pad} + var(--v0-margin-height))`,
+          }}
+        >
           {/* Header area */}
           {(title || subtitle || rightSlot) && (
             <header className="flex items-start justify-between mb-6">
@@ -104,6 +115,7 @@ export function DesignFrame({
             </footer>
           )}
         </div>
+        <Margin />
       </main>
     </StyleScope>
   )

@@ -14,6 +14,7 @@ export type V0FrameKey =
   | "journeys"
   | "profile"
   | "agent"
+  | "kip"
   | "admin"
 
 export interface BuildFrameUrlOptions {
