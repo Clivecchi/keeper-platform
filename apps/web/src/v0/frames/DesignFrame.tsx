@@ -103,55 +103,66 @@ export function DesignFrame({
         >
           {/* Header area */}
           {(title || subtitle || rightSlot) && (
-            <header className="flex items-start justify-between mb-6">
-              {/* Title and subtitle */}
-              {(title || subtitle) && (
-                <div className="space-y-2">
-                  {title && (
-                    <h1
-                      className="font-serif"
-                      style={{
-                        fontSize: FRAME_CONSTANTS.titleSize,
-                        letterSpacing: "0.01em",
-                        color: "var(--theme-ink-primary)"
-                      }}
-                    >
-                      {title}
-                    </h1>
-                  )}
-                  {subtitle && (
-                    <p
-                      className="leading-relaxed"
-                      style={{
-                        fontSize: FRAME_CONSTANTS.subtitleSize,
-                        color: "var(--theme-ink-secondary)"
-                      }}
-                    >
-                      {subtitle}
-                    </p>
-                  )}
-                </div>
-              )}
+            <div
+              className="sticky top-0 z-40 mb-6"
+              style={{
+                backgroundColor: "hsl(var(--theme-surface-page) / 0.82)",
+                borderBottom: "1px solid var(--theme-border-soft)",
+                backdropFilter: "blur(8px)",
+                paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
+                paddingBottom: "0.75rem",
+              }}
+            >
+              <header className="flex items-start justify-between">
+                {/* Title and subtitle */}
+                {(title || subtitle) && (
+                  <div className="space-y-2">
+                    {title && (
+                      <h1
+                        className="font-serif"
+                        style={{
+                          fontSize: FRAME_CONSTANTS.titleSize,
+                          letterSpacing: "0.01em",
+                          color: "var(--theme-ink-primary)"
+                        }}
+                      >
+                        {title}
+                      </h1>
+                    )}
+                    {subtitle && (
+                      <p
+                        className="leading-relaxed"
+                        style={{
+                          fontSize: FRAME_CONSTANTS.subtitleSize,
+                          color: "var(--theme-ink-secondary)"
+                        }}
+                      >
+                        {subtitle}
+                      </p>
+                    )}
+                  </div>
+                )}
 
-              {/* Top-right controls */}
-              {(rightSlot || themeSwitcherSlot || (isAuthenticated && v0Shell?.domainSlug)) && (
-                <div className="flex items-center gap-2">
-                  {isAuthenticated && v0Shell?.domainSlug && (
-                    <button
-                      type="button"
-                      aria-label="Open board admin"
-                      onClick={handleOpenAdmin}
-                      disabled={isOpeningAdmin}
-                      className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/70 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm disabled:opacity-60"
-                    >
-                      <Settings className="w-4 h-4" strokeWidth={1.25} />
-                    </button>
-                  )}
-                  {themeSwitcherSlot}
-                  {rightSlot}
-                </div>
-              )}
-            </header>
+                {/* Top-right controls */}
+                {(rightSlot || themeSwitcherSlot || (isAuthenticated && v0Shell?.domainSlug)) && (
+                  <div className="flex items-center gap-2">
+                    {isAuthenticated && v0Shell?.domainSlug && (
+                      <button
+                        type="button"
+                        aria-label="Open board admin"
+                        onClick={handleOpenAdmin}
+                        disabled={isOpeningAdmin}
+                        className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/70 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm disabled:opacity-60"
+                      >
+                        <Settings className="w-4 h-4" strokeWidth={1.25} />
+                      </button>
+                    )}
+                    {themeSwitcherSlot}
+                    {rightSlot}
+                  </div>
+                )}
+              </header>
+            </div>
           )}
 
           {/* Main content area */}

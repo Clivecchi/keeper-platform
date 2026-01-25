@@ -20,6 +20,9 @@ Pages parse route params and query string state to decide which surface to rende
 ### 2026-01-18 - Diagnostics frame wrapper
 - Routed diagnostics through the v0 diagnostics frame wrapper to align with frame navigation.
 
+### 2026-01-25 - Login layout refresh
+- Refreshed `/login` to use a single headline, v0-aligned card styling, and `next` return params.
+
 ### 2026-01-15 - Add diagnostics frame entry
 - Enabled `/v0?frame=diagnostics` to render the unified Diagnostics frame.
 

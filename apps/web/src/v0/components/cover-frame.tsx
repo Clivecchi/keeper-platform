@@ -35,6 +35,8 @@ export function CoverFrame({
   const [searchParams] = useSearchParams();
   const { isAuthenticated, user, isAdmin, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const legacyDashboardRoute = "/root";
+  const canAccessLegacyUi = isAuthenticated && isAdmin;
 
   console.log('CoverFrame rendered, navigate function:', typeof navigate);
 
@@ -101,28 +103,17 @@ export function CoverFrame({
                         borderColor: "var(--theme-border-soft)",
                       }}
                     >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsMenuOpen(false);
-                          navigate('/legacy');
-                        }}
-                        className="block w-full text-left px-4 py-2 text-xs hover:opacity-80"
-                        style={{ color: "var(--theme-ink-primary)" }}
-                      >
-                        Legacy UI
-                      </button>
-                      {isAdmin && (
+                      {canAccessLegacyUi && (
                         <button
                           type="button"
                           onClick={() => {
                             setIsMenuOpen(false);
-                            navigate('/root');
+                            navigate(legacyDashboardRoute);
                           }}
                           className="block w-full text-left px-4 py-2 text-xs hover:opacity-80"
                           style={{ color: "var(--theme-ink-primary)" }}
                         >
-                          Root Dashboard
+                          Legacy UI
                         </button>
                       )}
                       <button

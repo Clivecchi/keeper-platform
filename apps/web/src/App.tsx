@@ -150,6 +150,7 @@ const App: React.FC = () => {
           <Route path="/root/domain" element={<RootDashboardPage />} />
           <Route path="/root/api-keys" element={<UserApiKeyManagerPage />} />
           <Route path="/root/settings/api-keys" element={<UserApiKeyManagerPage />} />
+          <Route path="/legacy" element={<Navigate to="/root" replace />} />
         </Route>
       </Route>
 
@@ -235,7 +236,6 @@ const App: React.FC = () => {
         <Route path="/v0" element={<V0Page />} />
         <Route path="/v0/style" element={<StyleEditorPage />} />
         <Route path="/" element={<RootRedirect />} />
-        <Route path="/legacy" element={<LandingPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/debug" element={<DebugPage />} />
         <Route path="/board-demo" element={<BoardDemoPage />} />

@@ -20,3 +20,5 @@ Defines the root application shell, routing, and shared providers for the Keeper
 ## 📆 Update Log
 ### 2026-01-24 - Admin Guard + Root Redirect
 - Added admin-only routing for `/root*` and redirected `/` to the default domain cover.
+### 2026-01-25 - Legacy routing guard
+- Routed `/legacy` to the authenticated `/root` dashboard so legacy UI is no longer public.

@@ -6,9 +6,10 @@ import { apiFetch } from '@/lib/api';
 interface AuthFormProps {
   isRegister?: boolean;
   returnTo?: string;
+  showHeading?: boolean;
 }
 
-export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo }) => {
+export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo, showHeading = true }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -68,9 +69,11 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo
 
   return (
     <div className="mx-auto max-w-sm">
-      <h2 className="font-display text-4xl font-bold text-center mb-8 text-foreground">
-        {isRegister ? 'Begin Your Journey' : 'Welcome Back'}
-      </h2>
+      {showHeading && (
+        <h2 className="font-display text-4xl font-bold text-center mb-8 text-foreground">
+          {isRegister ? 'Begin Your Journey' : 'Welcome Back'}
+        </h2>
+      )}
       <form onSubmit={handleSubmit} className="space-y-6">
         {isRegister && (
           <div>

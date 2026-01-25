@@ -11,31 +11,29 @@ import { AuthForm } from '../components/AuthForm';
 
 const LoginPage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const returnTo = searchParams.get('returnTo') || undefined;
+  const returnTo = searchParams.get('next') || searchParams.get('returnTo') || undefined;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="font-display text-4xl font-bold text-stone-900 mb-2">
-            Welcome Back
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center space-y-2">
+          <h1 className="font-display text-4xl font-semibold text-slate-900">
+            Welcome back
           </h1>
-          <p className="text-stone-600">
-            Sign in to continue to Keeper
+          <p className="text-slate-600">
+            Sign in to continue
           </p>
         </div>
 
-        {/* Login Form Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
-          <AuthForm returnTo={returnTo} />
-          
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-center text-sm text-stone-600">
+        <div className="bg-white/90 rounded-2xl shadow-lg border border-slate-200/70 px-8 py-7 backdrop-blur">
+          <AuthForm returnTo={returnTo} showHeading={false} />
+
+          <div className="mt-6 pt-5 border-t border-slate-200/70">
+            <p className="text-center text-sm text-slate-600">
               Don't have a keeper yet?{' '}
-              <Link 
-                to="/register" 
-                className="font-medium text-blue-600 hover:text-blue-700 transition-colors"
+              <Link
+                to="/register"
+                className="font-medium text-slate-900 hover:text-slate-700 transition-colors"
               >
                 Begin here
               </Link>
@@ -43,13 +41,12 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="mt-8 text-center">
+        <div className="text-center">
           <Link
             to="/"
-            className="text-sm text-stone-500 hover:text-stone-700 transition-colors"
+            className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
           >
-            ← Back to Home
+            Back to Home
           </Link>
         </div>
       </div>
