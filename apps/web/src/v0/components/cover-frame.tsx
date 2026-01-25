@@ -61,13 +61,13 @@ export function CoverFrame({
         </div>
       </header>
 
-      <DesignFrame
-        styleId={styleId}
-        themeSlug={themeSlug}
-        title={coverTitle}
-        subtitle={coverLiner}
-        themeSwitcherSlot={<ThemeSwitcher />}
-      >
+  <DesignFrame
+    styleId={styleId}
+    themeSlug={themeSlug}
+    title={coverState === "open" ? coverTitle : undefined}
+    subtitle={coverState === "open" ? coverLiner : undefined}
+    themeSwitcherSlot={<ThemeSwitcher />}
+  >
         <CoverBody domainData={domainData} themeSlug={themeSlug} onNavigate={navigate} coverState={coverState} />
       </DesignFrame>
     </div>

@@ -96,13 +96,109 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
     return `/d/${domainData?.slug || 'default'}/board?${params.toString()}`
   }
 
-  const handleOpenCover = () => {
-    const path = buildCoverOpenPath()
-    if (v0Shell) {
-      navigateTo(path)
-      return
-    }
-    navigateTo(path)
+  const renderClosedCover = () => {
+    const title = domainData?.name || "KE3P"
+    const tagline = domainData?.description
+
+    return (
+      <section
+        aria-label="Cover identity"
+        className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-center"
+      >
+        <h2 className="text-3xl md:text-4xl font-serif" style={{ color: "var(--theme-ink-primary)" }}>
+          {title}
+        </h2>
+        {tagline && (
+          <p className="text-sm leading-relaxed max-w-md" style={{ color: "var(--theme-ink-secondary)" }}>
+            {tagline}
+          </p>
+        )}
+      </section>
+    )
+  }
+
+  const renderOpenCover = () => {
+    return (
+      <>
+        <section aria-label="Opened threshold" className="mb-5 space-y-3">
+          <div className="rounded-xl border px-5 py-4" style={{ borderColor: "var(--theme-border-soft)", backgroundColor: "var(--theme-surface-panel)" }}>
+            <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--theme-ink-tertiary)" }}>
+              First Page
+            </p>
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--theme-ink-secondary)" }}>
+              Choose where to begin. The Index is the calm map; Moments are the daily pulse.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleOpenIndex}
+            className="group w-full rounded-xl border px-4 py-4 text-left transition-colors"
+            style={{
+              borderColor: "var(--theme-border-soft)",
+              backgroundColor: "var(--theme-surface-panel)",
+              boxShadow: "var(--theme-shadow-soft)",
+            }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--theme-ink-tertiary)" }}>
+                  Table of Contents
+                </p>
+                <p className="text-base md:text-lg" style={{ color: "var(--theme-ink-primary)" }}>
+                  Open Index
+                </p>
+                <p className="text-xs leading-snug" style={{ color: "var(--theme-ink-secondary)" }}>
+                  Explore the structured map of this domain board.
+                </p>
+              </div>
+              <span className="transition-transform duration-150 translate-x-0 group-hover:translate-x-0.5" style={{ color: "var(--theme-ink-tertiary)" }}>
+                →
+              </span>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={handleWriteMoment}
+            className="group w-full rounded-xl border px-4 py-4 text-left transition-colors"
+            style={{
+              borderColor: "var(--theme-border-soft)",
+              backgroundColor: "var(--theme-surface-paper)",
+              boxShadow: "var(--theme-shadow-soft)",
+            }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--theme-ink-tertiary)" }}>
+                  Moment
+                </p>
+                <p className="text-base md:text-lg" style={{ color: "var(--theme-ink-primary)" }}>
+                  Write a Moment
+                </p>
+                <p className="text-xs leading-snug" style={{ color: "var(--theme-ink-secondary)" }}>
+                  Capture your thoughts in a beautiful diary entry.
+                </p>
+              </div>
+              <span className="transition-transform duration-150 translate-x-0 group-hover:translate-x-0.5" style={{ color: "var(--theme-ink-tertiary)" }}>
+                {isCreatingDraft ? "..." : "→"}
+              </span>
+            </div>
+          </button>
+        </section>
+
+        {/* Subtle decorative fold separator */}
+        <div className="flex justify-center" aria-hidden>
+          <div
+            className="w-16 h-px opacity-30"
+            style={{ backgroundColor: "var(--theme-line-hairline)" }}
+          />
+        </div>
+
+        {/* Cover Lens sits beneath header, single-column */}
+        <section aria-label="Cover Lens">
+          <CoverLens items={coverItems} />
+        </section>
+      </>
+    )
   }
   // Create navigation items for this domain
   const coverItems: CoverLensItem[] = [
@@ -144,119 +240,5 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
     },
   ]
 
-  if (coverState === "closed") {
-    return (
-      <section aria-label="Cover closed state" className="space-y-4">
-        <div className="rounded-xl border px-5 py-4" style={{ borderColor: "var(--theme-border-soft)", backgroundColor: "var(--theme-surface-panel)" }}>
-          <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--theme-ink-tertiary)" }}>
-            Closed Cover
-          </p>
-          <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--theme-ink-secondary)" }}>
-            The domain is ready when you are. Step through the first page to continue.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleOpenCover}
-          className="w-full rounded-xl border px-4 py-4 text-left transition-colors"
-          style={{
-            borderColor: "var(--theme-border-soft)",
-            backgroundColor: "var(--theme-surface-paper)",
-            boxShadow: "var(--theme-shadow-soft)",
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-base font-medium" style={{ color: "var(--theme-ink-primary)" }}>
-              Continue
-            </span>
-            <span className="text-sm" style={{ color: "var(--theme-ink-tertiary)" }}>
-              →
-            </span>
-          </div>
-        </button>
-      </section>
-    )
-  }
-
-  return (
-    <>
-      <section aria-label="Opened threshold" className="mb-5 space-y-3">
-        <div className="rounded-xl border px-5 py-4" style={{ borderColor: "var(--theme-border-soft)", backgroundColor: "var(--theme-surface-panel)" }}>
-          <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--theme-ink-tertiary)" }}>
-            First Page
-          </p>
-          <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--theme-ink-secondary)" }}>
-            Choose where to begin. The Index is the calm map; Moments are the daily pulse.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleOpenIndex}
-          className="group w-full rounded-xl border px-4 py-4 text-left transition-colors"
-          style={{
-            borderColor: "var(--theme-border-soft)",
-            backgroundColor: "var(--theme-surface-panel)",
-            boxShadow: "var(--theme-shadow-soft)",
-          }}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-              <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--theme-ink-tertiary)" }}>
-                Table of Contents
-              </p>
-              <p className="text-base md:text-lg" style={{ color: "var(--theme-ink-primary)" }}>
-                Open Index
-              </p>
-              <p className="text-xs leading-snug" style={{ color: "var(--theme-ink-secondary)" }}>
-                Explore the structured map of this domain board.
-              </p>
-            </div>
-            <span className="transition-transform duration-150 translate-x-0 group-hover:translate-x-0.5" style={{ color: "var(--theme-ink-tertiary)" }}>
-              →
-            </span>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={handleWriteMoment}
-          className="group w-full rounded-xl border px-4 py-4 text-left transition-colors"
-          style={{
-            borderColor: "var(--theme-border-soft)",
-            backgroundColor: "var(--theme-surface-paper)",
-            boxShadow: "var(--theme-shadow-soft)",
-          }}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-              <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--theme-ink-tertiary)" }}>
-                Moment
-              </p>
-              <p className="text-base md:text-lg" style={{ color: "var(--theme-ink-primary)" }}>
-                Write a Moment
-              </p>
-              <p className="text-xs leading-snug" style={{ color: "var(--theme-ink-secondary)" }}>
-                Capture your thoughts in a beautiful diary entry.
-              </p>
-            </div>
-            <span className="transition-transform duration-150 translate-x-0 group-hover:translate-x-0.5" style={{ color: "var(--theme-ink-tertiary)" }}>
-              {isCreatingDraft ? "..." : "→"}
-            </span>
-          </div>
-        </button>
-      </section>
-
-      {/* Subtle decorative fold separator */}
-      <div className="flex justify-center" aria-hidden>
-        <div
-          className="w-16 h-px opacity-30"
-          style={{ backgroundColor: "var(--theme-line-hairline)" }}
-        />
-      </div>
-
-      {/* Cover Lens sits beneath header, single-column */}
-      <section aria-label="Cover Lens">
-        <CoverLens items={coverItems} />
-      </section>
-    </>
-  )
+  return coverState === "closed" ? renderClosedCover() : renderOpenCover()
 }

@@ -21,6 +21,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-01-19: Refined margin bar styling to feel embedded and subtle.
 - 2026-01-19: Added Margin component for persistent bottom actions.
 - 2026-01-19: Added Index shortcut action to the v0 footer trail navigation.
 - 2026-01-18: Routed v0 frame close/back actions through the v0 shell.
