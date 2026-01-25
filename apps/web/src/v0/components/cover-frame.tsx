@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import { useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import type { StyleId } from "../styles/styles"
 import { DesignFrame } from "../frames/DesignFrame"
@@ -34,7 +34,7 @@ export function CoverFrame({
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isAuthenticated, user, isAdmin, logout } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   console.log('CoverFrame rendered, navigate function:', typeof navigate);
 
