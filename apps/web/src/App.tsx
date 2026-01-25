@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { AppLayout } from './layouts/AppLayout';
 import { PublicLayout } from './layouts/PublicLayout';
@@ -75,9 +75,9 @@ import V0Page from './pages/V0Page';
 import StyleEditorPage from './pages/StyleEditorPage';
 
 const ProtectedRoute: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, authResolved, isLoading } = useAuth();
 
-  if (isLoading) {
+  if (isLoading || !authResolved) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading...</div>
@@ -86,6 +86,38 @@ const ProtectedRoute: React.FC = () => {
   }
 
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+};
+
+const RequireAdminRoute: React.FC = () => {
+  const { isAuthenticated, isAdmin, authResolved, isLoading } = useAuth();
+  const location = useLocation();
+  const nextTarget = `${location.pathname}${location.search}`;
+
+  if (isLoading || !authResolved) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Checking...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to={`/login?next=${encodeURIComponent(nextTarget)}`} replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/d/default/board?frame=cover" replace />;
+  }
+
+  return <Outlet />;
+};
+
+const RootRedirect: React.FC = () => {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const suffix = params.toString();
+  const target = `/d/default/board?frame=cover${suffix ? `&${suffix}` : ''}`;
+  return <Navigate to={target} replace />;
 };
 
 const App: React.FC = () => {
@@ -110,15 +142,20 @@ const App: React.FC = () => {
   
   return (
     <Routes>
-      {/* Protected Routes - Require Authentication */}
-      <Route element={<ProtectedRoute />}>
+      {/* Admin-only Root Routes */}
+      <Route element={<RequireAdminRoute />}>
         <Route element={<AppLayout />}>
-          {/* Root Section */}
           <Route path="/root" element={<RootDashboardPage />} />
           <Route path="/root/profile" element={<RootDashboardPage />} />
           <Route path="/root/domain" element={<RootDashboardPage />} />
           <Route path="/root/api-keys" element={<UserApiKeyManagerPage />} />
-          
+          <Route path="/root/settings/api-keys" element={<UserApiKeyManagerPage />} />
+        </Route>
+      </Route>
+
+      {/* Protected Routes - Require Authentication */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppLayout />}>
           {/* Studio Section */}
           <Route path="/studio" element={<BoardStudioPage />} />
           <Route path="/studio/agents" element={<AgentsPage />} />
@@ -185,7 +222,6 @@ const App: React.FC = () => {
           <Route path="/keeper/selected/memory-tools" element={<SelectedKeeperMetadataPage />} />
           
           {/* Legacy Routes - maintain compatibility */}
-          <Route path="/root/settings/api-keys" element={<UserApiKeyManagerPage />} />
         </Route>
       </Route>
       
@@ -198,7 +234,8 @@ const App: React.FC = () => {
       <Route element={<PublicLayout />}>
         <Route path="/v0" element={<V0Page />} />
         <Route path="/v0/style" element={<StyleEditorPage />} />
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/legacy" element={<LandingPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/debug" element={<DebugPage />} />
         <Route path="/board-demo" element={<BoardDemoPage />} />

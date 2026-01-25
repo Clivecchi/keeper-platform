@@ -86,7 +86,14 @@ const DomainDetailForm: React.FC<DomainDetailFormProps> = ({ domain, onClose, on
 
   // Load DNS status
   const loadDnsStatus = async () => {
-    if (!domain || !domain.customDomain) return;
+    if (!domain || !domain.customDomain || !domain.customDomain.trim()) {
+      setDnsStatus(null);
+      setVercelConfigured(false);
+      setDnsRecords([]);
+      setNameServers([]);
+      setError(null);
+      return;
+    }
     setLoadingDns(true);
     try {
       const status = await apiFetch(`/api/domains/custom/${domain.id}/custom-domain/status`);

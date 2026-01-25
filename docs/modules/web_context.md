@@ -24,3 +24,5 @@ Encapsulate shared React context providers (auth, theme, boards, worlds, etc.) u
 ## 📆 Update Log
 ### 2025-12-08 - ThemeContext Cookie-Aware Guard
 - Skip `/api/kam/settings` calls when only cookie auth is present to prevent noisy 401s and rely on the Keeper Classic fallback until cookie-aware endpoints land.
+### 2026-01-24 - Auth Resolution + Admin Allowlist
+- Added resolved auth state and admin allowlist fallback to support stricter route guards.

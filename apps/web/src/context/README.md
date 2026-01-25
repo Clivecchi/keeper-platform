@@ -26,3 +26,5 @@ Encapsulate shared React context providers (auth, theme, boards, worlds, etc.) u
 - Skip `/api/kam/settings` calls when only cookie auth is present to prevent noisy 401s and rely on the Keeper Classic fallback until cookie-aware endpoints land.
 ### 2026-01-02 - Canonical Theme Vars
 - Added canonical theme token mapping and emission as `--theme-*` CSS variables (surface/ink/border/shadow/focus), keeping legacy vars for compatibility.
+### 2026-01-24 - Auth Resolution + Admin Allowlist
+- Added resolved auth state and admin allowlist fallback to support stricter route guards.

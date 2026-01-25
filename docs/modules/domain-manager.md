@@ -110,3 +110,5 @@ Unified domain management interface for both user and admin scopes, providing co
 - Improved user experience by showing DNS records immediately after adding to Vercel
 - Fixed duplicate DNS messages and improved error handling
 - Added "Setup Process" tab with visual workflow tracking 
+### 2026-01-24 - Skip DNS Status Without Custom Domain
+- Avoid DNS status calls when custom domains are unset to prevent 400 noise.

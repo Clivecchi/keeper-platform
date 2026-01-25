@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
+import { useAuth } from "../../context/AuthContext"
 import type { StyleId } from "../styles/styles"
 import { StyleOverrideProvider } from "../styles/StyleOverrideProvider"
 import { CoverFrame } from "../components/cover-frame"
@@ -44,9 +45,16 @@ const FRAME_REGISTRY: Record<V0FrameKey, React.ComponentType<any>> = {
 export function V0Shell() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const [searchParams] = useSearchParams()
   const frameParam = (searchParams.get("frame") || "cover").toLowerCase() as V0FrameKey
-  const frame = FRAME_REGISTRY[frameParam] ? frameParam : "cover"
+  const privateFrames = new Set<V0FrameKey>(["profile", "agent", "kip", "admin"])
+  const requestedFrame = FRAME_REGISTRY[frameParam] ? frameParam : "cover"
+  const isPrivateRequest = privateFrames.has(requestedFrame)
+  const frame =
+    !isAuthenticated && isPrivateRequest
+      ? "cover"
+      : requestedFrame
   const themeSlug = searchParams.get("theme")
   const styleId = (searchParams.get("style") || "neutral") as StyleId
   const draftId = searchParams.get("draftId")
@@ -84,7 +92,7 @@ export function V0Shell() {
     return null
   }
 
-  const buildFrameUrl = (nextFrame: V0FrameKey, options?: { draftId?: string | null; themeSlug?: string | null; styleId?: StyleId | null }) => {
+  const buildFrameUrl = React.useCallback((nextFrame: V0FrameKey, options?: { draftId?: string | null; themeSlug?: string | null; styleId?: StyleId | null }) => {
     const params = new URLSearchParams()
     params.set("frame", nextFrame)
     const resolvedTheme = options?.themeSlug ?? themeSlug
@@ -94,7 +102,13 @@ export function V0Shell() {
     if (resolvedStyle) params.set("style", resolvedStyle)
     if (resolvedDraft) params.set("draftId", resolvedDraft)
     return `/d/${slug}/board?${params.toString()}`
-  }
+  }, [draftId, slug, styleId, themeSlug])
+
+  React.useEffect(() => {
+    if (!isAuthenticated && isPrivateRequest && slug) {
+      navigate(buildFrameUrl("cover"))
+    }
+  }, [isAuthenticated, isPrivateRequest, slug, navigate, buildFrameUrl])
 
   const closeToBoard = () => {
     const params = new URLSearchParams()

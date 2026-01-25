@@ -18,3 +18,4 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - 2026-01-19: Registered the Index frame in the v0 shell frame registry and frame key union.
 - 2026-01-19: Added visible build stamp (commit + build time) for v0 shell frames.
 - 2026-01-18: Added canonical v0 shell routing + navigation helpers.
+- 2026-01-24: Redirected unauthenticated requests away from private frames (kip/agent/admin/profile).

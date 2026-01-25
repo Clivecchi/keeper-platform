@@ -1,0 +1,22 @@
+# Web App Source
+
+## 📌 Purpose
+Defines the root application shell, routing, and shared providers for the Keeper web app.
+
+## 🧱 Key Files
+- `App.tsx` – Top-level routes and auth guards.
+- `main.tsx` – App bootstrap (providers + render).
+- `index.css` – Global styles.
+
+## 🔄 Data & Behavior
+- Uses `AuthGate` and context providers to resolve session state before rendering protected routes.
+- Routes split between authenticated, admin-only, and public surfaces.
+- Public entry routes redirect into domain board shells as needed.
+
+## ⚠️ Notes & ToDo
+- [ ] Replace admin allowlist fallback once `/api/kam/auth/me` exposes roles.
+- [ ] Consolidate legacy and public routes once domain routing is stabilized.
+
+## 📆 Update Log
+### 2026-01-24 - Admin Guard + Root Redirect
+- Added admin-only routing for `/root*` and redirected `/` to the default domain cover.

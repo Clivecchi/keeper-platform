@@ -104,3 +104,5 @@ Switched to shared `apiFetch` utility and consolidated list endpoint to `/api/do
 - Enhanced DomainManager to automatically load DNS status for custom domains
 - Added DNS information refresh functionality in DomainDetailForm
 - Improved user experience by showing DNS records immediately after adding to Vercel 
+### 2026-01-24 - Skip DNS Status Without Custom Domain
+- Avoid DNS status calls when custom domains are unset to prevent 400 noise.

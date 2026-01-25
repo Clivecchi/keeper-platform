@@ -17,6 +17,8 @@ interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
+  isAdmin: boolean;
+  authResolved: boolean;
   login: (data: AuthSuccessData) => void;
   logout: () => void;
   updateUser: (userData: Partial<AuthUser>) => void;
@@ -30,6 +32,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastFetch, setLastFetch] = useState<number>(0);
+  const [authResolved, setAuthResolved] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const resolveIsAdmin = React.useCallback((nextUser: AuthUser | null) => {
+    if (!nextUser?.email) return false;
+    const rawAllowlist = String((import.meta as any)?.env?.VITE_ADMIN_EMAIL_ALLOWLIST || '');
+    const allowlist = rawAllowlist
+      .split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean);
+    // TODO: Replace allowlist fallback once /api/kam/auth/me returns role info.
+    return allowlist.includes(nextUser.email.toLowerCase());
+  }, []);
 
   // Fetch user session from server
   const fetchUserSession = React.useCallback(async () => {
@@ -52,6 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.log('[AuthContext] ✅ User authenticated:', data.user.email);
             setUser(data.user);
             setToken('cookie-based');
+            setIsAdmin(resolveIsAdmin(data.user));
             setLastFetch(Date.now());
             return true;
           }
@@ -59,11 +75,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.log('[AuthContext] ❌ No valid session (401)');
           setUser(null);
           setToken(null);
+          setIsAdmin(false);
         }
       } catch (error) {
         console.error('[AuthContext] Failed to fetch user session:', error);
         setUser(null);
         setToken(null);
+        setIsAdmin(false);
       }
       return false;
     }
@@ -74,8 +92,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const storedUser = localStorage.getItem('keeper_user');
       if (storedToken && storedUser) {
         console.log('[AuthContext] Dev mode: loaded auth from localStorage');
+        const parsedUser = JSON.parse(storedUser) as AuthUser;
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        setUser(parsedUser);
+        setIsAdmin(resolveIsAdmin(parsedUser));
         return true;
       }
     } catch (error) {
@@ -84,12 +104,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem('keeper_user');
     }
     return false;
-  }, []);
+  }, [resolveIsAdmin]);
 
   // Initial load
   useEffect(() => {
     (async () => {
       await fetchUserSession();
+      setAuthResolved(true);
       setIsLoading(false);
     })();
   }, [fetchUserSession]);
@@ -112,12 +133,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setToken('cookie-based');
         if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthContext] Production mode: auth via cookie only');
       }
+      setIsAdmin(resolveIsAdmin(data.user));
+      setAuthResolved(true);
+      setIsLoading(false);
     }
   };
 
   const logout = () => {
     setUser(null);
     setToken(null);
+    setIsAdmin(false);
+    setAuthResolved(true);
+    setIsLoading(false);
     localStorage.removeItem('keeper_user');
     localStorage.removeItem('keeper_token');
   };
@@ -131,7 +158,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, login, logout, updateUser, isLoading }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated: !!user, isAdmin, authResolved, login, logout, updateUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
