@@ -43,4 +43,5 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - 2026-01-17: Bootstrapped moment drafts in `moment-frame` before rendering the editor and added a calm error state.
 - 2026-01-17: Rendered the moment editor immediately with background draft bootstrap and status pill updates.
 - 2026-01-24: Swapped the margin action to show Login for guests and Kip for authenticated users.
+- 2026-01-24: Added an authenticated cover-top profile menu for legacy/logout/root access.
 
