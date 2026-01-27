@@ -97,18 +97,18 @@ export const UserIdentityDropdown: React.FC = () => {
             <div className="border-t border-gray-200 my-1"></div>
             {/* Quick Actions */}
             <NavLink 
-              to={`/d/${domainSlug}/board`} 
+              to={`/d/${domainSlug}/board?frame=commons`} 
               className="block px-4 py-2 text-sm hover:bg-gray-50"
               onClick={() => setIsOpen(false)}
             >
               View Domain Board
             </NavLink>
             <NavLink 
-              to="/root" 
+              to="/settings" 
               className="block px-4 py-2 text-sm hover:bg-gray-50"
               onClick={() => setIsOpen(false)}
             >
-              Dashboard
+              Settings
             </NavLink>
             <div className="border-t border-gray-200 my-1"></div>
             <button

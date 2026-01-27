@@ -10,6 +10,7 @@ import RegisterPage from './pages/RegisterPage';
 
 // Root Pages
 import RootDashboardPage from './pages/root/RootDashboardPage';
+import SettingsPage from './pages/settings/SettingsPage';
 
 // Studio Pages (existing)
 import KipStudioPage from './pages/studio/KipStudioPage';
@@ -52,6 +53,7 @@ import DomainDashboardPage from './pages/keeper/DomainDashboardPage';
 // Domain Public Pages
 import V0ShellPage from './pages/d/V0ShellPage';
 import LegacyDomainRedirect from './pages/d/LegacyDomainRedirect';
+import DomainAdminPage from './pages/d/DomainAdminPage';
 
 // Domain Workshop Pages
 import DomainWorkshopPage from './pages/studio/domain/DomainWorkshopPage';
@@ -106,7 +108,7 @@ const RequireAdminRoute: React.FC = () => {
   }
 
   if (!isAdmin) {
-    return <Navigate to="/d/default/board?frame=cover" replace />;
+    return <Navigate to="/d/default/board?frame=commons" replace />;
   }
 
   return <Outlet />;
@@ -116,7 +118,7 @@ const RootRedirect: React.FC = () => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const suffix = params.toString();
-  const target = `/d/default/board?frame=cover${suffix ? `&${suffix}` : ''}`;
+  const target = `/d/default/board?frame=commons${suffix ? `&${suffix}` : ''}`;
   return <Navigate to={target} replace />;
 };
 
@@ -142,21 +144,23 @@ const App: React.FC = () => {
   
   return (
     <Routes>
-      {/* Admin-only Root Routes */}
+      {/* Admin-only Routes */}
       <Route element={<RequireAdminRoute />}>
         <Route element={<AppLayout />}>
-          <Route path="/root" element={<RootDashboardPage />} />
-          <Route path="/root/profile" element={<RootDashboardPage />} />
-          <Route path="/root/domain" element={<RootDashboardPage />} />
-          <Route path="/root/api-keys" element={<UserApiKeyManagerPage />} />
-          <Route path="/root/settings/api-keys" element={<UserApiKeyManagerPage />} />
-          <Route path="/legacy" element={<Navigate to="/root" replace />} />
+          <Route path="/legacy" element={<Navigate to="/settings" replace />} />
         </Route>
       </Route>
 
       {/* Protected Routes - Require Authentication */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings/api-keys" element={<UserApiKeyManagerPage />} />
+          <Route path="/root" element={<RootDashboardPage />} />
+          <Route path="/root/profile" element={<Navigate to="/settings" replace />} />
+          <Route path="/root/domain" element={<Navigate to="/settings" replace />} />
+          <Route path="/root/api-keys" element={<Navigate to="/settings/api-keys" replace />} />
+          <Route path="/root/settings/api-keys" element={<Navigate to="/settings/api-keys" replace />} />
           {/* Studio Section */}
           <Route path="/studio" element={<BoardStudioPage />} />
           <Route path="/studio/agents" element={<AgentsPage />} />
@@ -229,6 +233,7 @@ const App: React.FC = () => {
       {/* Domain Dashboard Routes - V0 Dashboard Layout (Outside AppLayout/Studio) */}
       <Route element={<ProtectedRoute />}>
         <Route path="/kip" element={<KipAgentBoardPage />} />
+        <Route path="/d/:slug/admin" element={<DomainAdminPage />} />
       </Route>
       
       {/* Public Routes - No Authentication Required */}
@@ -250,7 +255,6 @@ const App: React.FC = () => {
         <Route path="/d/:slug/keepers" element={<LegacyDomainRedirect />} />
         <Route path="/d/:slug/journeys" element={<LegacyDomainRedirect />} />
         <Route path="/d/:slug/profile" element={<LegacyDomainRedirect />} />
-        <Route path="/d/:slug/admin" element={<LegacyDomainRedirect />} />
         <Route path="/d/:slug/agent" element={<LegacyDomainRedirect />} />
         {/* Public Domain Board - Shows board for logged out, redirects logged in to Feed */}
         <Route path="/d/:slug" element={<V0ShellPage />} />

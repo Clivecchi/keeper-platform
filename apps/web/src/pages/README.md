@@ -23,6 +23,9 @@ Pages parse route params and query string state to decide which surface to rende
 ### 2026-01-25 - Login layout refresh
 - Refreshed `/login` to use a single headline, v0-aligned card styling, and `next` return params.
 
+### 2026-01-25 - Settings and commons routing
+- Added `/settings` for profile editing + API key access and redirected legacy root routes.
+
 ### 2026-01-15 - Add diagnostics frame entry
 - Enabled `/v0?frame=diagnostics` to render the unified Diagnostics frame.
 

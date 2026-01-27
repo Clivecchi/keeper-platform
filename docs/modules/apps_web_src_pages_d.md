@@ -52,6 +52,10 @@ All domain dashboard pages use `KeeperDashboardLayout` with left nav (Feed, Kip,
 
 ## 📆 Update Log
 
+### 2026-01-25 - Domain admin migration
+- `DomainAdminPage` now embeds `DomainManager` for domain CRUD + DNS management.
+- Updated PublicDomainPage to route authenticated users to Commons and settings.
+
 ### 2026-01-18 - v0 shell routing
 - `/d/:slug` and `/d/:slug/board` now render the v0 shell entrypoint.
 - Legacy `/d/:slug/*` routes redirect into `/d/:slug/board?frame=<mapped>`.

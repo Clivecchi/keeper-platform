@@ -57,7 +57,7 @@ export const KeeperDashboardLayout: React.FC<KeeperDashboardLayoutProps> = ({
     {
       label: 'Feed',
       icon: <HomeIcon className="w-5 h-5" />,
-      path: slug ? `/d/${slug}/feed` : '/root'
+      path: slug ? `/d/${slug}/feed` : '/settings'
     },
     {
       label: 'Kip',
@@ -77,7 +77,7 @@ export const KeeperDashboardLayout: React.FC<KeeperDashboardLayoutProps> = ({
     {
       label: 'Profile',
       icon: <UserIcon className="w-5 h-5" />,
-      path: slug ? `/d/${slug}/profile` : '/root/profile'
+      path: slug ? `/d/${slug}/profile` : '/settings'
     },
     {
       label: 'Diagnostics',
@@ -119,7 +119,7 @@ export const KeeperDashboardLayout: React.FC<KeeperDashboardLayoutProps> = ({
         {/* Logo - Clickable */}
         <div className="px-6 py-8">
           <Link 
-            to="/root" 
+            to="/settings" 
             className="text-2xl font-bold text-gray-900 hover:text-[#C96E59] transition-colors cursor-pointer inline-block"
           >
             Keeper
@@ -176,7 +176,7 @@ export const KeeperDashboardLayout: React.FC<KeeperDashboardLayoutProps> = ({
                 {/* View Domain Board Link */}
                 {slug && (
                   <Link
-                    to={`/d/${slug}/board`}
+                    to={`/d/${slug}/board?frame=commons`}
                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <EyeIcon className="w-4 h-4" />

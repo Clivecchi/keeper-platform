@@ -8,6 +8,7 @@ import { StyleOverrideProvider } from "../styles/StyleOverrideProvider"
 import { CoverFrame } from "../components/cover-frame"
 import { MomentFrame } from "../components/moment-frame"
 import { KeptMomentsFrame } from "../components/kept-moments-frame"
+import { CommonsFrame } from "../frames/commons/CommonsFrame"
 import { DiagnosticsFrame } from "../frames/diagnostics/DiagnosticsFrame"
 import { FeedFrame } from "../frames/feed/FeedFrame"
 import { KeepersFrame } from "../frames/keepers/KeepersFrame"
@@ -29,6 +30,7 @@ const getDomainFallback = (slug: string) => ({
 
 const FRAME_REGISTRY: Record<V0FrameKey, React.ComponentType<any>> = {
   cover: CoverFrame,
+  commons: CommonsFrame,
   index: IndexFrame,
   moment: MomentFrame,
   moments: KeptMomentsFrame,
@@ -47,8 +49,9 @@ export function V0Shell() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
   const [searchParams] = useSearchParams()
-  const frameParam = (searchParams.get("frame") || "cover").toLowerCase() as V0FrameKey
-  const privateFrames = new Set<V0FrameKey>(["profile", "agent", "kip", "admin"])
+  const defaultFrame = isAuthenticated ? "commons" : "cover"
+  const frameParam = (searchParams.get("frame") || defaultFrame).toLowerCase() as V0FrameKey
+  const privateFrames = new Set<V0FrameKey>(["commons", "profile", "agent", "kip", "admin"])
   const requestedFrame = FRAME_REGISTRY[frameParam] ? frameParam : "cover"
   const isPrivateRequest = privateFrames.has(requestedFrame)
   const frame =

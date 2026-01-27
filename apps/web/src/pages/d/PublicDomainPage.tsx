@@ -107,10 +107,10 @@ export default function PublicDomainPage() {
   };
 
   const handleDashboard = () => {
-    console.log('[PublicDomainPage] Dashboard clicked, navigating to /root');
+    console.log('[PublicDomainPage] Dashboard clicked, navigating to /settings');
     console.log('[PublicDomainPage] Current auth state:', { isAuthenticated, user: user?.email, token: !!user });
     // Use window.location for full page navigation to ensure auth state is fresh
-    window.location.href = '/root';
+    window.location.href = '/settings';
   };
 
   // Ensure we're in Presentation mode (this route should always be Presentation)
@@ -151,10 +151,10 @@ export default function PublicDomainPage() {
     isAuthenticated
   });
 
-  // When authenticated and NOT on /board route, redirect to Feed (domain dashboard)
+  // When authenticated and NOT on /board route, redirect to Commons (domain board)
   // Allow explicit V0 moment routing to stay on the board surface.
   if (isAuthenticated && slug && !isBoardRoute && !isMomentFrame && !isMomentsFrame && !isDiagnosticsFrame) {
-    return <Navigate to={`/d/${slug}/feed`} replace />;
+    return <Navigate to={`/d/${slug}/board?frame=commons`} replace />;
   }
 
   // Render V0 Cover or Moment based on frame parameter

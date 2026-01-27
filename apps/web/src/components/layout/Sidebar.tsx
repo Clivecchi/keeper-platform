@@ -293,8 +293,8 @@ export const Sidebar: React.FC = () => {
         isExpanded={expandedSections.myKeeper}
         onToggle={() => toggleSection('myKeeper')}
       >
-        <SidebarItem to="/root" icon={<HomeIcon />} isCollapsed={isCollapsed}>
-          Root Dashboard
+        <SidebarItem to="/settings" icon={<HomeIcon />} isCollapsed={isCollapsed}>
+          Settings
         </SidebarItem>
         <SidebarItem to="/keeper/1/dashboard" icon={<HomeIcon />} isCollapsed={isCollapsed}>
           Dashboard
@@ -327,7 +327,7 @@ export const Sidebar: React.FC = () => {
         isExpanded={expandedSections.admin}
         onToggle={() => toggleSection('admin')}
       >
-        <SidebarItem to="/root/profile" icon={<UserGroupIcon />} isCollapsed={isCollapsed}>
+        <SidebarItem to="/admin/users" icon={<UserGroupIcon />} isCollapsed={isCollapsed}>
           User Management
         </SidebarItem>
         <SidebarItem to="/studio/kip/api-keys" icon={<KeyIcon />} isCollapsed={isCollapsed}>

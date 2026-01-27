@@ -40,7 +40,7 @@ Architect
 #### My Keeper Mode Navigation:
 ```
 My Keeper
-├── Root Dashboard
+├── Settings
 ├── Dashboard
 ├── Memory (SOLE)
 ├── Journeys
@@ -85,6 +85,9 @@ System Administration
 
 ### 2026-01-15 - Diagnostics consolidation
 - Removed the legacy sidebar Debug button to keep diagnostics frame-first.
+
+### 2026-01-25 - Settings routing
+- Updated My Keeper navigation to point at `/settings` and admin links to `/admin/users`.
 
 ### 2024-01-XX - ViewMode Implementation
 - **Added**: ViewMode enum with three main modes (Architect, My Keeper, Admin)

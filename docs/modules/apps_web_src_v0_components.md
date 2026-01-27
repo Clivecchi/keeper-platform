@@ -46,4 +46,5 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - 2026-01-24: Swapped the margin action to show Login for guests and Kip for authenticated users.
 - 2026-01-24: Added an authenticated cover-top profile menu for legacy/logout/root access.
 - 2026-01-25: Routed Legacy UI to the authenticated `/root` dashboard and gated it to admin users.
+- 2026-01-25: Replaced legacy menu links with Settings and Domain Admin destinations.
 

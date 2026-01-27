@@ -16,3 +16,4 @@ Components here focus on reusable UI state, composition, and cross-feature inter
 
 ## 📆 Update Log
 - 2026-01-25: Added component-level README and made auth form headings optional for login layout refresh.
+- 2026-01-25: Updated auth form default redirect to the Commons board.

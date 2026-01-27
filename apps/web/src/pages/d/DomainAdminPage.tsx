@@ -18,14 +18,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { KeeperDashboardLayout } from '../../layouts/KeeperDashboardLayout';
 import { apiFetch } from '../../lib/api';
-import { 
-  KeyIcon,
-  UserGroupIcon,
-  CogIcon,
-  CpuChipIcon,
-  ArrowPathIcon
-} from '@heroicons/react/24/outline';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import { KipApi } from '../../lib/kipApi';
+import DomainManager from '../../components/domain-manager/DomainManager';
 
 interface DomainData {
   id: string;
@@ -144,61 +139,21 @@ export default function DomainAdminPage() {
     );
   }
 
-  // Admin function cards matching V0 design
-  const adminCards = [
-    {
-      title: 'API Keys',
-      description: 'Manage domain API keys and access tokens',
-      icon: <KeyIcon className="w-8 h-8" />,
-      onClick: () => console.log('API Keys clicked')
-    },
-    {
-      title: 'Membership',
-      description: 'Manage domain members and permissions',
-      icon: <UserGroupIcon className="w-8 h-8" />,
-      onClick: () => console.log('Membership clicked')
-    },
-    {
-      title: 'Settings',
-      description: 'Configure domain settings and preferences',
-      icon: <CogIcon className="w-8 h-8" />,
-      onClick: () => console.log('Settings clicked')
-    },
-    {
-      title: 'Agent Configuration',
-      description: 'Configure and manage domain agents',
-      icon: <CpuChipIcon className="w-8 h-8" />,
-      onClick: () => console.log('Agent Configuration clicked')
-    }
-  ];
-
   return (
     <KeeperDashboardLayout 
       title="Domain Admin" 
       subtitle={`Manage ${domain.name}`}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {adminCards.map((card) => (
-          <button
-            key={card.title}
-            onClick={card.onClick}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow text-left group"
-          >
-            <div className="flex items-start gap-4">
-              <div className="text-[#C96E59] group-hover:text-[#B85D4A] transition-colors">
-                {card.icon}
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  {card.title}
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  {card.description}
-                </p>
-              </div>
-            </div>
-          </button>
-        ))}
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Domains</h3>
+          <p className="text-sm text-gray-600">
+            Manage domain configuration, metadata, and custom domain settings.
+          </p>
+        </div>
+        <div className="h-[640px] overflow-hidden rounded-lg border border-gray-200">
+          <DomainManager scope="admin" allowCreate={true} />
+        </div>
       </div>
 
       <div className="mt-10 space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">

@@ -35,8 +35,6 @@ export function CoverFrame({
   const [searchParams] = useSearchParams();
   const { isAuthenticated, user, isAdmin, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const legacyDashboardRoute = "/root";
-  const canAccessLegacyUi = isAuthenticated && isAdmin;
 
   console.log('CoverFrame rendered, navigate function:', typeof navigate);
 
@@ -44,6 +42,7 @@ export function CoverFrame({
   const coverTitle = domainData?.name || "Welcome to Keeper";
   const coverLiner = domainData?.description || "A quiet space for your thoughts and memories";
   const domainLabel = domainData?.slug || domainData?.name || "domain";
+  const domainSlug = domainData?.slug || "default";
   const userLabel = user?.name || user?.email || "Account";
   const menuLabel = `${domainLabel} · ${userLabel}`;
 
@@ -103,17 +102,28 @@ export function CoverFrame({
                         borderColor: "var(--theme-border-soft)",
                       }}
                     >
-                      {canAccessLegacyUi && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          navigate('/settings');
+                        }}
+                        className="block w-full text-left px-4 py-2 text-xs hover:opacity-80"
+                        style={{ color: "var(--theme-ink-primary)" }}
+                      >
+                        Settings
+                      </button>
+                      {isAdmin && (
                         <button
                           type="button"
                           onClick={() => {
                             setIsMenuOpen(false);
-                            navigate(legacyDashboardRoute);
+                            navigate(`/d/${domainSlug}/admin`);
                           }}
                           className="block w-full text-left px-4 py-2 text-xs hover:opacity-80"
                           style={{ color: "var(--theme-ink-primary)" }}
                         >
-                          Legacy UI
+                          Domain Admin
                         </button>
                       )}
                       <button

@@ -54,7 +54,7 @@ const RootKeeperPage: React.FC = () => {
             <li className="py-3 flex justify-between items-center">
               <span className="text-sm text-muted-foreground">API Keys</span>
               <Link 
-                to="/root/settings/api-keys"
+                to="/settings/api-keys"
                 className="text-sm font-medium text-primary hover:underline"
               >
                 Manage

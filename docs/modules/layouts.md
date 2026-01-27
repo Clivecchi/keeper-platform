@@ -43,7 +43,7 @@ Layout components that provide consistent page shells and navigation structures 
 - Removed the legacy global debug modal from `AppLayout` to keep diagnostics frame-first.
 
 ### 2025-12-10 - KeeperDashboardLayout nav safety
-- Updated sidebar links to prefer `/d/:slug/...` routes and fall back to existing routes (`/root`, `/kip`, `/keeper`, `/root/profile`) to avoid broken navigation when slug is absent.
+- Updated sidebar links to prefer `/d/:slug/...` routes and fall back to existing routes (`/settings`, `/kip`, `/keeper`) to avoid broken navigation when slug is absent.
 
 ### 2025-01-21 - V0 Dashboard Layout Implementation
 - Added `KeeperDashboardLayout.tsx` with V0-aligned design
@@ -56,3 +56,5 @@ Layout components that provide consistent page shells and navigation structures 
 ### 2026-01-02 - PublicLayout spacing + V0 moment placement
 - Set public container padding to 7px for compact spacing.
 - Allow `/v0?frame=moment` to render outside the container while keeping the container as a sibling for layout consistency.
+### 2026-01-25 - Settings fallback
+- Swapped legacy `/root` fallbacks to `/settings` in KeeperDashboardLayout.

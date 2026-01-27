@@ -5,6 +5,7 @@ import type { StyleId } from "../styles/styles"
 
 export type V0FrameKey =
   | "cover"
+  | "commons"
   | "index"
   | "moment"
   | "moments"
