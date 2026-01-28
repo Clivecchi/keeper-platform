@@ -1,44 +1,18 @@
-import { useSearchParams } from "react-router-dom"
-import { CoverFrame } from "../v0/components/cover-frame"
-import { MomentFrame } from "../v0/components/moment-frame"
-import { KeptMomentsFrame } from "../v0/components/kept-moments-frame"
-import { DiagnosticsFrame } from "../v0/frames/diagnostics/DiagnosticsFrame"
-import { StyleOverrideProvider } from "../v0/styles/StyleOverrideProvider"
-import type { StyleId } from "../v0/styles/styles"
+import { Navigate, useSearchParams } from "react-router-dom"
 
 export default function V0Page() {
   const [searchParams] = useSearchParams()
   const frame = (searchParams.get("frame") || "cover").toLowerCase()
-  const styleId = (searchParams.get("style") || "neutral") as StyleId
-  const themeSlug = searchParams.get("theme")
+  const theme = searchParams.get("theme")
+  const style = searchParams.get("style")
   const draftId = searchParams.get("draftId")
   const domainSlug = searchParams.get("domain") || searchParams.get("domainSlug") || "default"
+  const nextParams = new URLSearchParams()
+  nextParams.set("frame", frame)
+  if (theme) nextParams.set("theme", theme)
+  if (style) nextParams.set("style", style)
+  if (draftId) nextParams.set("draftId", draftId)
 
-  console.log('V0Page render:', { frame, styleId, themeSlug, draftId, domainSlug })
-
-  // If theme parameter is provided, don't load any initial style overrides
-  // Theme takes precedence over style overrides
-  const initialStyleId = themeSlug ? undefined : styleId
-
-  console.log('Rendering component:', frame === "moment" ? "MomentFrame" : "CoverFrame")
-
-  return (
-    <StyleOverrideProvider initialStyleId={initialStyleId}>
-      {frame === "moment" ? (
-        <MomentFrame styleId={styleId} themeSlug={themeSlug} draftId={draftId} domainSlug={domainSlug} />
-      ) : frame === "moments" ? (
-        <KeptMomentsFrame styleId={styleId} themeSlug={themeSlug} domainSlug={domainSlug} />
-      ) : frame === "diagnostics" ? (
-        <DiagnosticsFrame
-          styleId={styleId}
-          themeSlug={themeSlug}
-          domainSlug={domainSlug}
-          returnPath="/v0?frame=cover"
-        />
-      ) : (
-        <CoverFrame styleId={styleId} themeSlug={themeSlug} />
-      )}
-    </StyleOverrideProvider>
-  )
+  return <Navigate to={`/d/${domainSlug}/board?${nextParams.toString()}`} replace />
 }
 

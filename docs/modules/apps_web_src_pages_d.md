@@ -52,6 +52,10 @@ All domain dashboard pages use `KeeperDashboardLayout` with left nav (Feed, Kip,
 
 ## 📆 Update Log
 
+### 2026-01-27 - V0 admin surface
+- Rebuilt `DomainAdminPage` with the v0 shell frame, DomainManager, and an embedded profile editor.
+- Non-admin access now redirects back to the domain Commons surface.
+
 ### 2026-01-25 - Domain admin migration
 - `DomainAdminPage` now embeds `DomainManager` for domain CRUD + DNS management.
 - Updated PublicDomainPage to route authenticated users to Commons and settings.

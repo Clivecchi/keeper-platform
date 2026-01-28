@@ -74,32 +74,31 @@ export function Margin() {
                 backgroundColor: "hsl(var(--theme-surface-paper) / 0.65)",
                 color: "var(--theme-ink-primary)",
               }}
-              aria-label="Explore the domain"
+              aria-label="Enter the Act threshold"
             >
-              Explore
+              Act
             </button>
           </div>
           <div
             className="ml-auto flex items-center gap-2 border-l pl-4"
             style={{ borderColor: "var(--theme-border-soft)" }}
           >
-            {isAuthenticated ? (
-              <button
-                type="button"
-                onClick={handleNavigateToKip}
-                className="flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
-                style={{
-                  borderColor: "var(--theme-border-soft)",
-                  backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
-                  color: "var(--theme-ink-primary)",
-                  boxShadow: "0 0 0 1px rgba(60, 111, 165, 0.25)",
-                }}
-                aria-label="Open Kip"
-              >
-                <span className="inline-flex h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "#3C6FA5" }} aria-hidden />
-                Kip
-              </button>
-            ) : (
+            <button
+              type="button"
+              onClick={handleNavigateToKip}
+              className="flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
+              style={{
+                borderColor: "var(--theme-border-soft)",
+                backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
+                color: "var(--theme-ink-primary)",
+                boxShadow: "0 0 0 1px rgba(60, 111, 165, 0.25)",
+              }}
+              aria-label={isAuthenticated ? "Open Kip" : "Open Kip (public scope)"}
+            >
+              <span className="inline-flex h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "#3C6FA5" }} aria-hidden />
+              Kip
+            </button>
+            {!isAuthenticated && (
               <button
                 type="button"
                 onClick={handleLogin}
@@ -109,9 +108,9 @@ export function Margin() {
                   backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
                   color: "var(--theme-ink-primary)",
                 }}
-                aria-label="Login to access Kip"
+                aria-label="Login to access domain scope"
               >
-                Login
+                Sign in
               </button>
             )}
           </div>

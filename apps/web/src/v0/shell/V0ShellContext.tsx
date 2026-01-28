@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import type { StyleId } from "../styles/styles"
+import type { ExperienceActions, ExperienceMode } from "./useExperienceMode"
 
 export type V0FrameKey =
   | "cover"
@@ -29,6 +30,8 @@ export interface BuildFrameUrlOptions {
 export interface V0ShellContextValue {
   domainSlug: string
   frame: V0FrameKey
+  experienceMode: ExperienceMode
+  experienceActions: ExperienceActions
   themeSlug: string | null
   styleId: StyleId
   draftId: string | null

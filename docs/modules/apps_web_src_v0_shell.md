@@ -14,6 +14,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - [ ] Replace fallback domain data once domain home board wiring is live.
 
 ## 📆 Update Log
+- 2026-01-27: Added Experience Mode controller + actions and allowed public Kip frame access.
 - 2026-01-19: Added kip frame alias to point at the agent surface.
 - 2026-01-19: Registered the Index frame in the v0 shell frame registry and frame key union.
 - 2026-01-19: Added visible build stamp (commit + build time) for v0 shell frames.

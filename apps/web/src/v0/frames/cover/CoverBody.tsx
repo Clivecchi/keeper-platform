@@ -148,7 +148,7 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
                   Open Index
                 </p>
                 <p className="text-xs leading-snug" style={{ color: "var(--theme-ink-secondary)" }}>
-                  Explore the structured map of this domain board.
+                  Open the structured map of this domain board.
                 </p>
               </div>
               <span className="transition-transform duration-150 translate-x-0 group-hover:translate-x-0.5" style={{ color: "var(--theme-ink-tertiary)" }}>
@@ -203,7 +203,7 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
   // Create navigation items for this domain
   const coverItems: CoverLensItem[] = [
     {
-      title: "Explore Journeys",
+      title: "Act: Journeys",
       subtitle: "Follow connected stories and experiences",
       affordance: "→",
       onClick: () => {

@@ -17,6 +17,9 @@ Pages parse route params and query string state to decide which surface to rende
 
 ## 📆 Update Log
 
+### 2026-01-27 - Deprecate /v0 entrypoint
+- Redirected `/v0` to `/d/:slug/board` while preserving frame/style/theme params.
+
 ### 2026-01-18 - Diagnostics frame wrapper
 - Routed diagnostics through the v0 diagnostics frame wrapper to align with frame navigation.
 

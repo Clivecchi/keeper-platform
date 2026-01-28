@@ -17,6 +17,8 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - [ ] Replace Cockpit diagnostics placeholders with backend stats once exposed.
 
 ## 📆 Update Log
+### 2026-01-27 - Public Kip scope
+- Added a public-scope banner, limited tabs/tools for guests, and clarified scope labeling in the header.
 ### 2026-01-19 - Redirect /kip into v0 agent frame
 - `/kip` now redirects to `/d/default/board?frame=agent` to keep v0 shell canonical while reusing `KipAgentBoard` inside the agent frame.
 ### 2025-12-16 - Drafts tab + session active draft linkage

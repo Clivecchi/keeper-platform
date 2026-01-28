@@ -94,6 +94,8 @@ const RequireAdminRoute: React.FC = () => {
   const { isAuthenticated, isAdmin, authResolved, isLoading } = useAuth();
   const location = useLocation();
   const nextTarget = `${location.pathname}${location.search}`;
+  const slugMatch = location.pathname.match(/^\/d\/([^/]+)/);
+  const domainSlug = slugMatch?.[1] || 'default';
 
   if (isLoading || !authResolved) {
     return (
@@ -108,7 +110,7 @@ const RequireAdminRoute: React.FC = () => {
   }
 
   if (!isAdmin) {
-    return <Navigate to="/d/default/board?frame=commons" replace />;
+    return <Navigate to={`/d/${domainSlug}/board?frame=commons`} replace />;
   }
 
   return <Outlet />;
@@ -233,6 +235,9 @@ const App: React.FC = () => {
       {/* Domain Dashboard Routes - V0 Dashboard Layout (Outside AppLayout/Studio) */}
       <Route element={<ProtectedRoute />}>
         <Route path="/kip" element={<KipAgentBoardPage />} />
+      </Route>
+      
+      <Route element={<RequireAdminRoute />}>
         <Route path="/d/:slug/admin" element={<DomainAdminPage />} />
       </Route>
       

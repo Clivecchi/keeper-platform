@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useNavigate, useParams, useSearchParams } from "react-router-dom"
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import type { StyleId } from "../styles/styles"
 import { StyleOverrideProvider } from "../styles/StyleOverrideProvider"
@@ -19,6 +19,7 @@ import { AdminFrame } from "../frames/admin/AdminFrame"
 import { IndexFrame } from "../frames/index/IndexFrame"
 import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
+import { useExperienceMode } from "./useExperienceMode"
 
 const getDomainFallback = (slug: string) => ({
   id: `fallback-${slug}`,
@@ -46,18 +47,16 @@ const FRAME_REGISTRY: Record<V0FrameKey, React.ComponentType<any>> = {
 
 export function V0Shell() {
   const { slug } = useParams<{ slug: string }>()
+  const resolvedSlug = slug ?? ""
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuth()
+  const location = useLocation()
+  const { isAuthenticated, isAdmin } = useAuth()
   const [searchParams] = useSearchParams()
   const defaultFrame = isAuthenticated ? "commons" : "cover"
   const frameParam = (searchParams.get("frame") || defaultFrame).toLowerCase() as V0FrameKey
-  const privateFrames = new Set<V0FrameKey>(["commons", "profile", "agent", "kip", "admin"])
+  const privateFrames = new Set<V0FrameKey>(["commons", "profile", "admin"])
   const requestedFrame = FRAME_REGISTRY[frameParam] ? frameParam : "cover"
   const isPrivateRequest = privateFrames.has(requestedFrame)
-  const frame =
-    !isAuthenticated && isPrivateRequest
-      ? "cover"
-      : requestedFrame
   const themeSlug = searchParams.get("theme")
   const styleId = (searchParams.get("style") || "neutral") as StyleId
   const draftId = searchParams.get("draftId")
@@ -127,6 +126,16 @@ export function V0Shell() {
     navigate(buildFrameUrl(nextFrame, options))
   }
 
+  const experience = useExperienceMode({
+    domainSlug: resolvedSlug,
+    pathname: location.pathname,
+    isAuthenticated,
+    isAdmin,
+    requestedFrame,
+    buildFrameUrl,
+    navigate
+  })
+  const frame = experience.state.frame
   const FrameComponent = FRAME_REGISTRY[frame]
 
   return (
@@ -135,6 +144,8 @@ export function V0Shell() {
         value={{
           domainSlug: slug,
           frame,
+          experienceMode: experience.state.mode,
+          experienceActions: experience.actions,
           themeSlug,
           styleId,
           draftId,

@@ -20,6 +20,7 @@ import type { LinkedCardProps } from '../../types/props';
 import { apiFetch, API_BASE } from '../../lib/api';
 import { SessionEditModal } from './SessionEditModal';
 import { ActionReceiptCard, type ActionReceipt } from '../../components/kip/ActionReceiptCard';
+import { useAuth } from '../../context/AuthContext';
 
 type AgentBoardTab = 'dialogue' | 'drafts' | 'cockpit' | 'sessions';
 type DialogueMode = 'domain' | 'debug';
@@ -440,6 +441,8 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   journeys = MOCK_JOURNEYS,
   keepers = MOCK_KEEPERS,
 }) => {
+  const { isAuthenticated } = useAuth();
+  const isPublicScope = !isAuthenticated;
   const [searchParams, setSearchParams] = useSearchParams();
   const { domainId, domainSlug, isLoading: isDomainLoading } = useDomainIdentifier();
   const [agent, setAgent] = useState<KipAgent | null>(null);
@@ -481,7 +484,11 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
   const [confirmDeleteDraftId, setConfirmDeleteDraftId] = useState<string | null>(null);
 
-  const activeTab = (searchParams.get('view') as AgentBoardTab) ?? 'dialogue';
+  const requestedTab = (searchParams.get('view') as AgentBoardTab) ?? 'dialogue';
+  const availableTabs = isPublicScope
+    ? BOARD_TABS.filter((tab) => tab.id === 'dialogue')
+    : BOARD_TABS;
+  const activeTab = availableTabs.some((tab) => tab.id === requestedTab) ? requestedTab : 'dialogue';
   const debugEnabled = dialogueMode === 'debug';
 
   const {
@@ -575,6 +582,15 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       setSearchParams(next, { replace: true });
     }
   }, [sessions, querySessionId, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (!isPublicScope) return;
+    if (requestedTab === 'dialogue') return;
+    const next = new URLSearchParams(searchParams);
+    next.set('view', 'dialogue');
+    next.delete('draftId');
+    setSearchParams(next, { replace: true });
+  }, [isPublicScope, requestedTab, searchParams, setSearchParams]);
 
   useEffect(() => {
     let isMounted = true;
@@ -898,6 +914,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   }, [activeSessionId, fetchMessages]);
 
   const handleTabChange = (tab: AgentBoardTab) => {
+    if (!availableTabs.some((entry) => entry.id === tab)) return;
     if (tab === activeTab) return;
     const next = new URLSearchParams(searchParams);
     next.set('view', tab);
@@ -1045,13 +1062,20 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     }
   }, [editingLensId, editingLensText]);
 
+  const resolvedScopeLabel = isAuthenticated
+    ? domainSlug
+      ? `Domain scope · ${domainSlug}`
+      : scopeLabel
+    : 'Public scope';
+  const resolvedContextLabel = isAuthenticated ? contextLabel : 'Public guide for this domain.';
+
   const dialogueMeta = useMemo<DialogueMetaItem[]>(
     () => [
       { label: 'Model', value: agent?.model_settings?.model || agent?.model || 'gpt-4o' },
       { label: 'Memory', value: agent?.memory_enabled ? 'SOLE' : 'Off' },
-      { label: 'Scope', value: scopeLabel },
+      { label: 'Scope', value: resolvedScopeLabel },
     ],
-    [agent, scopeLabel],
+    [agent, resolvedScopeLabel],
   );
 
   const debugSummary = useMemo<DebugSummary>(
@@ -1314,28 +1338,30 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
 
   return (
     <div className="space-y-6">
-      <ModeConfigDrawer
-        open={isModeConfigOpen && Boolean(modeConfigDraft)}
-        mode={dialogueMode}
-        drafts={modeConfigDraft || { domain: {}, debug: {} } as Record<DialogueMode, ModeConfig>}
-        lenses={lenses}
-        onClose={() => setIsModeConfigOpen(false)}
-        onChange={handleModeConfigChange}
-        onSave={handleSaveModeConfig}
-        isSaving={isSavingModeConfig}
-        error={modeConfigError}
-        onEditLens={handleEditLens}
-        editingLensId={editingLensId}
-        editingLensText={editingLensText}
-        onLensTextChange={setEditingLensText}
-        onSaveLens={handleSaveLens}
-        isSavingLens={isSavingLens}
-      />
+      {!isPublicScope && (
+        <ModeConfigDrawer
+          open={isModeConfigOpen && Boolean(modeConfigDraft)}
+          mode={dialogueMode}
+          drafts={modeConfigDraft || { domain: {}, debug: {} } as Record<DialogueMode, ModeConfig>}
+          lenses={lenses}
+          onClose={() => setIsModeConfigOpen(false)}
+          onChange={handleModeConfigChange}
+          onSave={handleSaveModeConfig}
+          isSaving={isSavingModeConfig}
+          error={modeConfigError}
+          onEditLens={handleEditLens}
+          editingLensId={editingLensId}
+          editingLensText={editingLensText}
+          onLensTextChange={setEditingLensText}
+          onSaveLens={handleSaveLens}
+          isSavingLens={isSavingLens}
+        />
+      )}
       <AgentHeader
         agent={agent}
         domainSlug={domainSlug || agentDomainSlug || undefined}
-        contextLabel={contextLabel}
-        scopeLabel={scopeLabel}
+        contextLabel={resolvedContextLabel}
+        scopeLabel={resolvedScopeLabel}
         sessionId={activeSessionId}
         dialogueMeta={dialogueMeta}
         dialogueMode={dialogueMode}
@@ -1343,9 +1369,14 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
         onOpenModeConfig={() => setIsModeConfigOpen(true)}
         modeConfigError={modeConfigError}
         modeConfigLoading={modeConfigLoading}
+        isPublicScope={isPublicScope}
       />
 
-      <AgentBoardTabs activeTab={activeTab} onChange={handleTabChange} />
+      {isPublicScope && (
+        <PublicScopeNotice domainSlug={domainSlug || agentDomainSlug || null} />
+      )}
+
+      <AgentBoardTabs activeTab={activeTab} onChange={handleTabChange} tabs={availableTabs} />
 
       {activeTab === 'dialogue' && (
         <div className="grid gap-6 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)]">
@@ -1360,9 +1391,11 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                 ) : relatedJourneys.length === 0 ? (
                   <div className="space-y-2 text-sm text-gray-500">
                     <p>No journeys yet for this domain.</p>
-                    <ActionLink href={agentDomainSlug ? `/d/${agentDomainSlug}/journeys` : '/journeys'}>
-                      Add a journey
-                    </ActionLink>
+                    {!isPublicScope && (
+                      <ActionLink href={agentDomainSlug ? `/d/${agentDomainSlug}/journeys` : '/journeys'}>
+                        Add a journey
+                      </ActionLink>
+                    )}
                   </div>
                 ) : (
                   relatedJourneys.map((journey) => (
@@ -1382,9 +1415,11 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                 ) : activeKeepers.length === 0 ? (
                   <div className="space-y-2 text-sm text-gray-500">
                     <p>No keepers for this domain yet.</p>
-                    <ActionLink href={agentDomainSlug ? `/d/${agentDomainSlug}/keepers` : '/keeper'}>
-                      Add a keeper
-                    </ActionLink>
+                    {!isPublicScope && (
+                      <ActionLink href={agentDomainSlug ? `/d/${agentDomainSlug}/keepers` : '/keeper'}>
+                        Add a keeper
+                      </ActionLink>
+                    )}
                   </div>
                 ) : (
                   activeKeepers.map((keeper) => (
@@ -1405,6 +1440,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                   isSending={isSending}
                   error={messagesError}
                   onOpenDraft={(draftId) => {
+                    if (!isAuthenticated) return;
                     const next = new URLSearchParams(searchParams);
                     next.set('view', 'drafts');
                     next.set('draftId', draftId);
@@ -1417,16 +1453,18 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                     value={inputValue}
                     onChange={(event) => setInputValue(event.target.value)}
                     placeholder={
-                      activeSessionId
-                        ? 'Share your thoughts...'
-                        : 'Create a session to start chatting'
+                      isPublicScope
+                        ? 'Public scope: sign in for a domain session'
+                        : activeSessionId
+                          ? 'Share your thoughts...'
+                          : 'Create a session to start chatting'
                     }
-                    disabled={!activeSessionId || isSending}
+                    disabled={!activeSessionId || isSending || isPublicScope}
                     className="flex-1 rounded-xl border border-[#E6DED5] px-4 py-3 text-sm focus:border-[#C96E59] focus:ring-2 focus:ring-[#C96E59]/30 disabled:bg-gray-50"
                   />
                   <button
                     type="submit"
-                    disabled={!inputValue.trim() || !activeSessionId || isSending}
+                    disabled={!inputValue.trim() || !activeSessionId || isSending || isPublicScope}
                     className="inline-flex items-center justify-center rounded-xl bg-[#C96E59] px-4 py-3 text-white hover:bg-[#B85D4A] disabled:opacity-50"
                   >
                     {isSending ? (
@@ -1874,10 +1912,11 @@ const AgentBoardHeader: React.FC<{
 
 const AgentBoardTabs: React.FC<{
   activeTab: AgentBoardTab;
+  tabs: { id: AgentBoardTab; label: string }[];
   onChange: (tab: AgentBoardTab) => void;
-}> = ({ activeTab, onChange }) => (
+}> = ({ activeTab, tabs, onChange }) => (
   <div className="flex gap-4 border-b border-[#E6DED5]">
-    {BOARD_TABS.map((tab) => (
+    {tabs.map((tab) => (
       <button
         key={tab.id}
         type="button"
@@ -2818,6 +2857,7 @@ const AgentHeader: React.FC<{
   domainSlug?: string;
   contextLabel: string;
   scopeLabel: string;
+  isPublicScope: boolean;
   sessionId: string | null;
   dialogueMeta: DialogueMetaItem[];
   dialogueMode: DialogueMode;
@@ -2830,6 +2870,7 @@ const AgentHeader: React.FC<{
   domainSlug,
   contextLabel,
   scopeLabel,
+  isPublicScope,
   sessionId,
   dialogueMeta,
   dialogueMode,
@@ -2851,69 +2892,110 @@ const AgentHeader: React.FC<{
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
             Online
           </span>
+          <span className="rounded-full border border-[#E6DED5] px-3 py-1 text-xs font-semibold text-gray-600">
+            {scopeLabel}
+          </span>
         </div>
         <p className="text-sm text-gray-600">{roleText}</p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <DialogueModeToggle
-          mode={dialogueMode}
-          onChange={onDialogueModeChange}
-          onOpenConfig={onOpenModeConfig}
-          isLoading={modeConfigLoading}
-          error={modeConfigError}
-        />
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setIsOpen((prev) => !prev)}
-            className="inline-flex items-center gap-2 rounded-full border border-[#E6DED5] bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:border-[#C96E59] hover:text-[#C96E59]"
-            title="Agent mechanics"
-          >
-            <Cog6ToothIcon className="h-4 w-4" />
-            Config
-          </button>
-          {isOpen && (
-            <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-[#E6DED5] bg-white p-4 shadow-lg z-20">
-              <h3 className="text-sm font-semibold text-gray-900 mb-2">Agent configuration</h3>
-              <dl className="space-y-2 text-sm text-gray-700">
-                <div className="flex justify-between gap-2">
-                  <dt className="text-gray-500">Model</dt>
-                  <dd className="font-semibold">
-                    {agent?.model_settings?.model || agent?.model || '—'}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <dt className="text-gray-500">Memory</dt>
-                  <dd className="font-semibold">{agent?.memory_enabled ? 'SOLE' : 'Off'}</dd>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <dt className="text-gray-500">Scope</dt>
-                  <dd className="font-semibold">{scopeLabel}</dd>
-                </div>
-                {sessionId && (
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-gray-500">Session</dt>
-                    <dd className="font-semibold">{shortId(sessionId)}</dd>
+        {!isPublicScope && (
+          <>
+            <DialogueModeToggle
+              mode={dialogueMode}
+              onChange={onDialogueModeChange}
+              onOpenConfig={onOpenModeConfig}
+              isLoading={modeConfigLoading}
+              error={modeConfigError}
+            />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsOpen((prev) => !prev)}
+                className="inline-flex items-center gap-2 rounded-full border border-[#E6DED5] bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:border-[#C96E59] hover:text-[#C96E59]"
+                title="Agent mechanics"
+              >
+                <Cog6ToothIcon className="h-4 w-4" />
+                Config
+              </button>
+              {isOpen && (
+                <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-[#E6DED5] bg-white p-4 shadow-lg z-20">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Agent configuration</h3>
+                  <dl className="space-y-2 text-sm text-gray-700">
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-gray-500">Model</dt>
+                      <dd className="font-semibold">
+                        {agent?.model_settings?.model || agent?.model || '—'}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-gray-500">Memory</dt>
+                      <dd className="font-semibold">{agent?.memory_enabled ? 'SOLE' : 'Off'}</dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-gray-500">Scope</dt>
+                      <dd className="font-semibold">{scopeLabel}</dd>
+                    </div>
+                    {sessionId && (
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-gray-500">Session</dt>
+                        <dd className="font-semibold">{shortId(sessionId)}</dd>
+                      </div>
+                    )}
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-gray-500">Agent ID</dt>
+                      <dd className="font-mono text-xs text-gray-600 truncate max-w-[10rem]">
+                        {agent?.id || '—'}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-gray-500">Slug</dt>
+                      <dd className="font-semibold">{agent?.slug || '—'}</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500 space-y-1">
+                    {dialogueMeta.map((item) => (
+                      <div key={item.label}>{item.label}: {item.value}</div>
+                    ))}
                   </div>
-                )}
-                <div className="flex justify-between gap-2">
-                  <dt className="text-gray-500">Agent ID</dt>
-                  <dd className="font-mono text-xs text-gray-600 truncate max-w-[10rem]">
-                    {agent?.id || '—'}
-                  </dd>
                 </div>
-                <div className="flex justify-between gap-2">
-                  <dt className="text-gray-500">Slug</dt>
-                  <dd className="font-semibold">{agent?.slug || '—'}</dd>
-                </div>
-              </dl>
-              <div className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500 space-y-1">
-                {dialogueMeta.map((item) => (
-                  <div key={item.label}>{item.label}: {item.value}</div>
-                ))}
-              </div>
+              )}
             </div>
-          )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const PublicScopeNotice: React.FC<{ domainSlug: string | null }> = ({ domainSlug }) => {
+  const location = useLocation();
+  const nextTarget = `${location.pathname}${location.search}`;
+  const loginHref = `/login?next=${encodeURIComponent(nextTarget)}`;
+  const returnHref = domainSlug ? `/d/${domainSlug}/board?frame=cover&coverState=open` : '/';
+
+  return (
+    <div className="rounded-2xl border border-[#E6DED5] bg-[#FDF9F4] px-5 py-4 text-sm text-gray-700 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Public scope</p>
+          <p>
+            Kip is available in a public-only scope. Sign in to unlock domain scope and private tools.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <a
+            href={loginHref}
+            className="inline-flex items-center rounded-full border border-[#C96E59]/50 bg-white px-4 py-2 text-xs font-semibold text-[#C96E59] hover:border-[#C96E59]"
+          >
+            Sign in
+          </a>
+          <a
+            href={returnHref}
+            className="text-xs font-semibold text-gray-500 hover:text-gray-700"
+          >
+            Back to story
+          </a>
         </div>
       </div>
     </div>

@@ -14,4 +14,5 @@ Renders a place-oriented layout with placeholder modules (feed, journeys, relati
 - [ ] Confirm action frame activation triggers once the first domain action is defined.
 
 ## 📆 Update Log
+- 2026-01-27: Rebuilt Commons layout with a dominant feed, anchor cards, Kip guide, and subtle admin access.
 - 2026-01-25: Added the Commons frame as the default authenticated domain surface.

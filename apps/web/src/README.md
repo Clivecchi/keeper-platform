@@ -18,6 +18,8 @@ Defines the root application shell, routing, and shared providers for the Keeper
 - [ ] Consolidate legacy and public routes once domain routing is stabilized.
 
 ## 📆 Update Log
+### 2026-01-27 - Admin route guard alignment
+- Routed `/d/:slug/admin` through the admin guard and redirected non-admin users back to the domain Commons.
 ### 2026-01-24 - Admin Guard + Root Redirect
 - Added admin-only routing for `/root*` and redirected `/` to the default domain cover.
 ### 2026-01-25 - Legacy routing guard
