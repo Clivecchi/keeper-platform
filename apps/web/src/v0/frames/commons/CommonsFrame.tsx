@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useSearchParams } from "react-router-dom"
 import type { StyleId } from "../../styles/styles"
 import { DesignFrame } from "../DesignFrame"
 import { ThemeSwitcher } from "../ThemeSwitcher"
@@ -16,6 +17,10 @@ const COMMONS_SURFACE = {
   inkPrimary: "var(--theme-ink-primary)",
   inkSecondary: "var(--theme-ink-secondary)",
 }
+
+const COMMONS_EXPERIENCES = ["observe", "focus", "build", "reflect"] as const
+
+export type CommonsExperience = (typeof COMMONS_EXPERIENCES)[number]
 
 type CommonsCard = {
   title: string
@@ -65,9 +70,17 @@ const emptyFeed: FeedItem[] = [
   {
     title: "No moments yet",
     detail: "New moments will appear here as the commons grows.",
-    time: "Just now"
+    time: "Just now",
   }
 ]
+
+function resolveCommonsExperience(value?: string | null): CommonsExperience {
+  const normalized = value?.toLowerCase() ?? ""
+  if ((COMMONS_EXPERIENCES as readonly string[]).includes(normalized)) {
+    return normalized as CommonsExperience
+  }
+  return "observe"
+}
 
 function formatRelativeTime(value?: string | null) {
   if (!value) return "Recently"
@@ -87,13 +100,25 @@ function formatRelativeTime(value?: string | null) {
 export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
   const { domainSlug, experienceActions, navigateToFrame } = useV0Shell()
   const { isAdmin } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const experience = resolveCommonsExperience(searchParams.get("experience"))
   const [domainId, setDomainId] = React.useState<string | null>(null)
   const [domainName, setDomainName] = React.useState<string | null>(null)
   const [domainDescription, setDomainDescription] = React.useState<string | null>(null)
   const [feedItems, setFeedItems] = React.useState<FeedItem[]>(emptyFeed)
+  const [moments, setMoments] = React.useState<MomentSummary[]>([])
+  const [journeys, setJourneys] = React.useState<JourneySummary[]>([])
+  const [keepers, setKeepers] = React.useState<KeeperSummary[]>([])
+  const [membersCount, setMembersCount] = React.useState<number | null>(null)
   const [anchorCards, setAnchorCards] = React.useState<CommonsCard[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [loadError, setLoadError] = React.useState<string | null>(null)
+
+  const setExperience = React.useCallback((next: CommonsExperience) => {
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.set("experience", next)
+    setSearchParams(nextParams, { replace: true })
+  }, [searchParams, setSearchParams])
 
   React.useEffect(() => {
     if (!domainSlug) return
@@ -125,6 +150,11 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         const keepers = (keepersResponse as any)?.data?.keepers ?? (keepersResponse as any)?.keepers ?? []
         const moments = (momentsResponse as any)?.moments ?? (momentsResponse as any)?.data?.moments ?? []
         const members = (membersResponse as any)?.members ?? []
+
+        setJourneys(journeys as JourneySummary[])
+        setKeepers(keepers as KeeperSummary[])
+        setMoments(moments as MomentSummary[])
+        setMembersCount(typeof members?.length === "number" ? members.length : null)
 
         const journeyItems = (journeys as JourneySummary[]).slice(0, 2).map((journey) => {
           const count = journey.momentCount ?? 0
@@ -175,6 +205,10 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         if (!active) return
         setLoadError("Unable to load commons data.")
         setFeedItems(emptyFeed)
+        setJourneys([])
+        setKeepers([])
+        setMoments([])
+        setMembersCount(null)
         setAnchorCards([
           {
             title: "Journeys",
@@ -247,6 +281,171 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     </div>
   )
 
+  const renderWorkspaceHeader = (eyebrow: string, title: string, description: string) => (
+    <div className="space-y-2">
+      <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+        {eyebrow}
+      </p>
+      <h3 className="text-xl font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
+        {title}
+      </h3>
+      <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+        {description}
+      </p>
+      <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
+    </div>
+  )
+
+  const focusMoment = moments[0] ?? null
+
+  const renderObserveWorkspace = () => (
+    <div className="space-y-6">
+      {renderWorkspaceHeader("Observe", "Commons activity", "A continuous view of what is alive in the commons.")}
+      <div className="space-y-6">
+        {isLoading && (
+          <div className="space-y-2">
+            <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+              Loading commons activity...
+            </p>
+            <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
+          </div>
+        )}
+        {!isLoading && loadError && (
+          <div className="space-y-2">
+            <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+              {loadError}
+            </p>
+            <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
+          </div>
+        )}
+        {!isLoading &&
+          !loadError &&
+          feedItems.map((item, index) => (
+            <div key={`${item.title}-${item.time}`} className="space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <h4 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
+                    {item.title}
+                  </h4>
+                  <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                    {item.detail}
+                  </p>
+                </div>
+                <span className="text-xs uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                  {item.time}
+                </span>
+              </div>
+              {index < feedItems.length - 1 && <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />}
+            </div>
+          ))}
+      </div>
+    </div>
+  )
+
+  const renderFocusWorkspace = () => (
+    <div className="space-y-6">
+      {renderWorkspaceHeader("Focus", "Centered moment", "Stay with one thread without leaving the commons.")}
+      {focusMoment ? (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <h4 className="text-lg font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
+              {focusMoment.title || "Untitled moment"}
+            </h4>
+            <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+              {focusMoment.narrative || focusMoment.content || "This moment is still forming."}
+            </p>
+          </div>
+          <div className="text-xs uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+            {formatRelativeTime(focusMoment.updatedAt || focusMoment.createdAt || null)}
+          </div>
+          <button
+            type="button"
+            onClick={() => setExperience("observe")}
+            className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
+            style={{
+              borderColor: COMMONS_SURFACE.border,
+              backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
+              color: COMMONS_SURFACE.inkPrimary,
+            }}
+          >
+            Return to observe
+          </button>
+        </div>
+      ) : (
+        <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+          There are no moments to focus on yet.
+        </p>
+      )}
+    </div>
+  )
+
+  const renderBuildWorkspace = () => (
+    <div className="space-y-6">
+      {renderWorkspaceHeader("Build", "Make something in commons", "Start a journey or capture a moment without leaving the commons.")}
+      {domainId ? (
+        <div className="flex flex-wrap gap-3">
+          <EngagementButton
+            templateSlug="journey.create"
+            context={{ entityType: "domain", entityId: domainId, domainId }}
+            label="Start journey"
+            variant="secondary"
+          />
+          <EngagementButton
+            templateSlug="moment.create"
+            context={{ entityType: "domain", entityId: domainId, domainId }}
+            label="Capture moment"
+            variant="secondary"
+          />
+        </div>
+      ) : (
+        <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+          Builder actions are unavailable while the domain is loading.
+        </p>
+      )}
+    </div>
+  )
+
+  const renderReflectWorkspace = () => (
+    <div className="space-y-6">
+      {renderWorkspaceHeader("Reflect", "Commons summary", "A quick synthesis of what the commons is holding.")}
+      <div className="grid gap-4 md:grid-cols-2">
+        {[
+          { label: "Journeys", value: journeys.length },
+          { label: "Keepers", value: keepers.length },
+          { label: "Moments", value: moments.length },
+          { label: "Members", value: membersCount ?? "Private" },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="rounded-2xl border px-4 py-3"
+            style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
+          >
+            <p className="text-xs uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+              {item.label}
+            </p>
+            <p className="mt-2 text-lg font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
+              {item.value}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  const renderWorkspace = () => {
+    switch (experience) {
+      case "focus":
+        return renderFocusWorkspace()
+      case "build":
+        return renderBuildWorkspace()
+      case "reflect":
+        return renderReflectWorkspace()
+      case "observe":
+      default:
+        return renderObserveWorkspace()
+    }
+  }
+
   return (
     <DesignFrame
       styleId={styleId}
@@ -255,151 +454,73 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       subtitle={`A shared place for ${domainSlug || "this domain"}.`}
       themeSwitcherSlot={<ThemeSwitcher />}
     >
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-        <section aria-label="Domain feed" className="space-y-6">
-          <div className="space-y-3">
-            <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-              Commons
-            </p>
-            <h2 className="text-2xl font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-              {domainName || domainSlug || "This domain"}
-            </h2>
-            <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-              {domainDescription || "A shared place for what is worth keeping."}
-            </p>
-            <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
-          </div>
-
-          <div className="space-y-6">
-            {isLoading && (
-              <div className="space-y-2">
-                <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                  Loading commons activity...
-                </p>
-                <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
-              </div>
-            )}
-            {!isLoading && loadError && (
-              <div className="space-y-2">
-                <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                  {loadError}
-                </p>
-                <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
-              </div>
-            )}
-            {!isLoading &&
-              !loadError &&
-              feedItems.map((item, index) => (
-                <div key={`${item.title}-${item.time}`} className="space-y-3">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-                        {item.title}
-                      </h3>
-                      <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                        {item.detail}
-                      </p>
-                    </div>
-                    <span className="text-xs uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                      {item.time}
-                    </span>
-                  </div>
-                  {index < feedItems.length - 1 && <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />}
-                </div>
-              ))}
-          </div>
+      <div className="space-y-8">
+        <section aria-label="Commons banner" className="space-y-3">
+          <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+            Commons
+          </p>
+          <h2 className="text-2xl font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
+            {domainName || domainSlug || "This domain"}
+          </h2>
+          <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+            {domainDescription || "A shared place for what is worth keeping."}
+          </p>
+          <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
         </section>
 
-        <aside aria-label="Commons anchors" className="space-y-5">
-          {anchorCards.map((card) => (
-            <div key={card.title}>{renderCard(card)}</div>
-          ))}
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)]">
+          <aside aria-label="Commons context" className="space-y-5">
+            {anchorCards.map((card) => (
+              <div key={card.title}>{renderCard(card)}</div>
+            ))}
 
-          <div
-            className="rounded-2xl border px-5 py-5"
-            style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
-          >
-            <div className="space-y-2">
-              <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-                Kip, present guide
-              </h3>
-              <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                Kip stays nearby to answer questions and open a deeper session when needed.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={experienceActions.openKip}
-              className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
-              style={{
-                borderColor: COMMONS_SURFACE.border,
-                backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-                color: COMMONS_SURFACE.inkPrimary,
-              }}
-            >
-              Open Kip
-            </button>
-          </div>
-
-          <div
-            className="rounded-2xl border px-5 py-5"
-            style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
-          >
-            <div className="space-y-2">
-              <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-                Action Frame
-              </h3>
-              <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                Launch a new journey or capture a moment for the commons.
-              </p>
-            </div>
-            {domainId ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                <EngagementButton
-                  templateSlug="journey.create"
-                  context={{ entityType: "domain", entityId: domainId, domainId }}
-                  label="Start journey"
-                  variant="secondary"
-                />
-                <EngagementButton
-                  templateSlug="moment.create"
-                  context={{ entityType: "domain", entityId: domainId, domainId }}
-                  label="Capture moment"
-                  variant="secondary"
-                />
-              </div>
-            ) : (
-              <button
-                type="button"
-                disabled
-                className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium opacity-60"
-                style={{
-                  borderColor: COMMONS_SURFACE.border,
-                  backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
-                  color: COMMONS_SURFACE.inkSecondary,
-                }}
-              >
-                Action pending
-              </button>
-            )}
-          </div>
-
-          {isAdmin && (
             <div
               className="rounded-2xl border px-5 py-5"
               style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
             >
               <div className="space-y-2">
                 <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-                  Admin tools
+                  Workspace modes
                 </h3>
                 <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                  Quiet access to domain management and policy.
+                  Shift how the commons workspace is experienced.
+                </p>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {COMMONS_EXPERIENCES.map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setExperience(mode)}
+                    className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-90"
+                    style={{
+                      borderColor: COMMONS_SURFACE.border,
+                      backgroundColor:
+                        experience === mode ? "hsl(var(--theme-surface-paper) / 0.95)" : "hsl(var(--theme-surface-paper) / 0.7)",
+                      color: COMMONS_SURFACE.inkPrimary,
+                    }}
+                  >
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div
+              className="rounded-2xl border px-5 py-5"
+              style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
+            >
+              <div className="space-y-2">
+                <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
+                  Kip, present guide
+                </h3>
+                <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                  Kip stays nearby to answer questions and open a deeper session when needed.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={experienceActions.goAdmin}
+                onClick={experienceActions.openKip}
                 className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
                 style={{
                   borderColor: COMMONS_SURFACE.border,
@@ -407,11 +528,86 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                   color: COMMONS_SURFACE.inkPrimary,
                 }}
               >
-                Open admin
+                Open Kip
               </button>
             </div>
-          )}
-        </aside>
+
+            <div
+              className="rounded-2xl border px-5 py-5"
+              style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
+            >
+              <div className="space-y-2">
+                <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
+                  Ways to contribute
+                </h3>
+                <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                  Launch a new journey or capture a moment for the commons.
+                </p>
+              </div>
+              {domainId ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <EngagementButton
+                    templateSlug="journey.create"
+                    context={{ entityType: "domain", entityId: domainId, domainId }}
+                    label="Start journey"
+                    variant="secondary"
+                  />
+                  <EngagementButton
+                    templateSlug="moment.create"
+                    context={{ entityType: "domain", entityId: domainId, domainId }}
+                    label="Capture moment"
+                    variant="secondary"
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium opacity-60"
+                  style={{
+                    borderColor: COMMONS_SURFACE.border,
+                    backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
+                    color: COMMONS_SURFACE.inkSecondary,
+                  }}
+                >
+                  Action pending
+                </button>
+              )}
+            </div>
+
+            {isAdmin && (
+              <div
+                className="rounded-2xl border px-5 py-5"
+                style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
+              >
+                <div className="space-y-2">
+                  <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
+                    Admin tools
+                  </h3>
+                  <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                    Quiet access to domain management and policy.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={experienceActions.goAdmin}
+                  className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
+                  style={{
+                    borderColor: COMMONS_SURFACE.border,
+                    backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
+                    color: COMMONS_SURFACE.inkPrimary,
+                  }}
+                >
+                  Open admin
+                </button>
+              </div>
+            )}
+          </aside>
+
+          <section aria-label="Commons workspace" className="space-y-6">
+            {renderWorkspace()}
+          </section>
+        </div>
       </div>
     </DesignFrame>
   )
