@@ -85,7 +85,7 @@ router.get(
       const [paths, total] = await Promise.all([
         prisma.path.findMany({
           where,
-          orderBy: { createdAt: 'desc' },
+          orderBy: { name: 'asc' },
           take: Number(limit),
           skip: Number(offset),
           include: {
