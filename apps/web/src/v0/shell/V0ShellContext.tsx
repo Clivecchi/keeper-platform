@@ -10,6 +10,7 @@ export type V0FrameKey =
   | "index"
   | "moment"
   | "moments"
+  | "present"
   | "diagnostics"
   | "feed"
   | "keepers"

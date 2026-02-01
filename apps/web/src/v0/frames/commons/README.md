@@ -7,12 +7,14 @@ Provides the primary logged-in domain board experience, presenting a shared Comm
 - `CommonsFrame.tsx`
 
 ## 🔄 Data & Behavior
-Renders a place-oriented layout with placeholder modules (feed, journeys, relationships, action) and a Kip panel that can open a dedicated Kip frame.
+Fetches live domain data (journeys, keepers, moments, members when permitted) to populate the Commons feed and anchor cards, and uses v0 shell navigation to open related frames. The Action Frame now exposes engagement buttons for creating journeys and moments.
 
 ## ⚠️ Notes & ToDo
-- [ ] Replace placeholder Commons modules with live domain data feeds.
 - [ ] Confirm action frame activation triggers once the first domain action is defined.
+- [ ] Refine feed source once domain-scoped moment endpoints stabilize.
 
 ## 📆 Update Log
+- 2026-01-31: Added engagement action buttons to the Commons Action Frame.
+- 2026-01-31: Wired Commons feed and anchors to live domain data and navigation.
 - 2026-01-27: Rebuilt Commons layout with a dominant feed, anchor cards, Kip guide, and subtle admin access.
 - 2026-01-25: Added the Commons frame as the default authenticated domain surface.

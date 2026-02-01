@@ -25,6 +25,7 @@ Tracks Prisma schema and SQL migrations for the Keeper Platform database.
 - [ ] Add lint to ensure `IF NOT EXISTS` on additive DDL
 
 ## 📆 Update Log
+- 2026-01-31: Added journey/path/moment engagement templates to the Prisma seed runner.
 - 2026-01-15: Switched `Journey.Moment` and `Path.Moment` relations to lists to reflect many-to-one Moments and fix Prisma validation.
 - 2026-01-14: Added anonymous Moment claim fields and made `ownerId` nullable for onboarding drafts.
 - 2026-01-14: Added `Moment.keptAt` column via migration `20260114_add_moment_keptAt` to align draft keep tracking with Prisma schema.

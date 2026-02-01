@@ -9,6 +9,7 @@ import { CoverFrame } from "../components/cover-frame"
 import { MomentFrame } from "../components/moment-frame"
 import { KeptMomentsFrame } from "../components/kept-moments-frame"
 import { CommonsFrame } from "../frames/commons/CommonsFrame"
+import { PresentFrame } from "../frames/present/PresentFrame"
 import { DiagnosticsFrame } from "../frames/diagnostics/DiagnosticsFrame"
 import { FeedFrame } from "../frames/feed/FeedFrame"
 import { KeepersFrame } from "../frames/keepers/KeepersFrame"
@@ -35,6 +36,7 @@ const FRAME_REGISTRY: Record<V0FrameKey, React.ComponentType<any>> = {
   index: IndexFrame,
   moment: MomentFrame,
   moments: KeptMomentsFrame,
+  present: PresentFrame,
   diagnostics: DiagnosticsFrame,
   feed: FeedFrame,
   keepers: KeepersFrame,

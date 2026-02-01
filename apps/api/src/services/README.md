@@ -18,6 +18,7 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2026-01-31: Expanded Engagement template permission handling to cover journey/path/moment contexts.
 - 2025-12-08: Refactored `ModelProviderService` model catalogs/default settings into shared constants so Railway builds can safely clone and reuse retry scaffolding without TS parse errors.
 - 2025-12-08: ModelProviderService now emits typed error codes (`MISSING_API_KEY`, `INVALID_MODEL`, `PROVIDER_UNAVAILABLE`) instead of mock responses.
 - 2025-09-11: Added `boards/domainManagement.ts` ensure service for Domain Management Board.

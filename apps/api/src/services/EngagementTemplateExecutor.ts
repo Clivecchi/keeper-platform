@@ -18,7 +18,7 @@ const prisma = new PrismaClient();
 export interface ExecutionContext {
   userId: string;
   domainId?: string;
-  entityType: 'domain' | 'keeper' | 'journey' | 'agent' | 'board';
+  entityType: 'domain' | 'keeper' | 'journey' | 'path' | 'moment' | 'agent' | 'board';
   entityId: string;
 }
 
@@ -182,8 +182,8 @@ export class EngagementTemplateExecutor {
       return true;
     }
 
-    // Admin/Member templates - check domain permissions
-    if (template.targetType === 'domain' && context.domainId) {
+    // Admin/Member templates - check domain permissions when domain context exists
+    if (context.domainId) {
       const permission = await prisma.domainPermission.findUnique({
         where: {
           domainId_userId: {

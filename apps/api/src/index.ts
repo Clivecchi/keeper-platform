@@ -65,6 +65,8 @@ import uploadsRoutes from './api/uploads/routes.js';
 import v0MomentsRouter from './routes/v0/moments.js';
 import agentsRoutes from './api/agents.js';
 import journeysRoutes from './api/journeys.js';
+import domainKeepersRoutes from './api/keeper/domain-integrated-routes.js';
+import pathsRoutes from './api/path/domain-integrated-routes.js';
 import keeperTypesRoutes from './api/keeper-types.js';
 import peopleRoutes from './api/people.js';
 // Import database client
@@ -1010,6 +1012,8 @@ app.use('/api/v0/moments', v0MomentsRouter);
 console.log('[boot] ✅ mounted /api/v0/moments router');
 app.use('/api/agents', agentsRoutes);
 app.use('/api/journeys', journeysRoutes);
+app.use('/api/keepers', domainKeepersRoutes);
+app.use('/api/paths', pathsRoutes);
 app.use('/api/keeper-types', keeperTypesRoutes);
 app.use('/api/people', peopleRoutes);
 // Mount KAM read-only API

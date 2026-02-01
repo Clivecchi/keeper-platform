@@ -7,7 +7,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
-import { validationMiddleware } from '../../middleware/validationMiddleware.js';
+import { queryValidationMiddleware, validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { 
   requireDomainReadCompat, 
   requireDomainWriteCompat, 
@@ -54,20 +54,36 @@ const updateMomentSchema = z.object({
   })).optional(),
 });
 
+const momentQuerySchema = z.object({
+  search: z.string().optional(),
+  domainId: z.string().uuid().optional(),
+  journeyId: z.string().uuid().optional(),
+  pathId: z.string().uuid().optional(),
+  limit: z.coerce.number().min(1).max(100).default(20),
+  offset: z.coerce.number().min(0).default(0),
+});
+
 /**
  * GET /api/moments - Get moments with basic filtering
  */
 router.get('/', 
   authMiddlewareCompat,
   requireDomainReadCompat,
+  queryValidationMiddleware(momentQuerySchema),
   async (req: Request, res: Response) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
       }
 
-      const { search, limit = 20, offset = 0 } = req.query;
-      const userId = req.user.id;
+      const { search, limit = 20, offset = 0, domainId, journeyId, pathId } = req.query as {
+        search?: string
+        limit?: number
+        offset?: number
+        domainId?: string
+        journeyId?: string
+        pathId?: string
+      };
 
       // Build basic query
       const where: Record<string, unknown> = {};
@@ -78,6 +94,27 @@ router.get('/',
           { title: { contains: search, mode: 'insensitive' } },
           { content: { contains: search, mode: 'insensitive' } },
         ];
+      }
+
+      if (journeyId) {
+        where.journeyId = journeyId;
+      }
+
+      if (pathId) {
+        where.pathId = pathId;
+      }
+
+      if (domainId) {
+        const hasPermission = await (req as any).domainScope?.canAccessDomain(domainId);
+        if (!hasPermission) {
+          return res.status(403).json({ error: 'Access denied to domain' });
+        }
+        where.domainId = domainId;
+      } else {
+        const domains = (req as any).domainScope?.userDomains;
+        if (Array.isArray(domains) && domains.length > 0) {
+          where.domainId = { in: domains };
+        }
       }
 
       // Execute query

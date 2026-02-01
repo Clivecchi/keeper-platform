@@ -5,6 +5,8 @@ import type { StyleId } from "../../styles/styles"
 import { DesignFrame } from "../DesignFrame"
 import { ThemeSwitcher } from "../ThemeSwitcher"
 import { useAuth } from "../../../context/AuthContext"
+import { apiFetch } from "../../../lib/api"
+import { EngagementButton } from "../../../components/engagement/EngagementButton"
 import { useV0Shell } from "../../shell/V0ShellContext"
 
 const COMMONS_SURFACE = {
@@ -18,6 +20,8 @@ type CommonsCard = {
   title: string
   description: string
   items: string[]
+  actionLabel?: string
+  onAction?: () => void
 }
 
 type FeedItem = {
@@ -26,57 +30,178 @@ type FeedItem = {
   time: string
 }
 
-const FEED_ITEMS: FeedItem[] = [
+type DomainSummary = {
+  id: string
+  name: string
+  slug: string
+}
+
+type JourneySummary = {
+  id: string
+  name: string
+  forward?: string | null
+  momentCount?: number
+  pathCount?: number
+}
+
+type KeeperSummary = {
+  id: string
+  title: string
+  purpose?: string | null
+}
+
+type MomentSummary = {
+  id: string
+  title?: string | null
+  narrative?: string | null
+  content?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
+const emptyFeed: FeedItem[] = [
   {
-    title: "Morning reflection logged",
-    detail: "A quiet note about the shift from winter to early spring.",
-    time: "2 hours ago"
-  },
-  {
-    title: "Memory shared to Journeys",
-    detail: "Added a new moment to the Family Archive thread.",
-    time: "Yesterday"
-  },
-  {
-    title: "Domain update",
-    detail: "Three new keepers added to Relationships.",
-    time: "3 days ago"
+    title: "No moments yet",
+    detail: "New moments will appear here as the commons grows.",
+    time: "Just now"
   }
 ]
 
-const ANCHOR_CARDS: CommonsCard[] = [
-  {
-    title: "Journeys",
-    description: "Active paths and suggested threads to follow.",
-    items: [
-      "Active: Family archive · 6 open moments",
-      "Suggested: Winter rituals and rituals log",
-      "Suggested: Keeper notes to revisit"
-    ]
-  },
-  {
-    title: "Relationships",
-    description: "People, keepers, and trusted circles nearby.",
-    items: [
-      "Keepers: 3 active · 2 archived",
-      "People: 14 contacts with recent activity",
-      "Recent: 2 new introductions this week"
-    ]
-  },
-  {
-    title: "Keepers",
-    description: "Spaces that hold memory for the domain.",
-    items: [
-      "Primary: Home archive",
-      "Secondary: Rituals and travel",
-      "New: 1 keeper awaiting its first moment"
-    ]
-  }
-]
+function formatRelativeTime(value?: string | null) {
+  if (!value) return "Recently"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "Recently"
+  const diffMs = Date.now() - date.getTime()
+  const diffMinutes = Math.floor(diffMs / (1000 * 60))
+  if (diffMinutes < 2) return "Just now"
+  if (diffMinutes < 60) return `${diffMinutes} minutes ago`
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours} hours ago`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `${diffDays} days ago`
+  return date.toLocaleDateString()
+}
 
 export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
-  const { domainSlug, experienceActions } = useV0Shell()
+  const { domainSlug, experienceActions, navigateToFrame } = useV0Shell()
   const { isAdmin } = useAuth()
+  const [domainId, setDomainId] = React.useState<string | null>(null)
+  const [feedItems, setFeedItems] = React.useState<FeedItem[]>(emptyFeed)
+  const [anchorCards, setAnchorCards] = React.useState<CommonsCard[]>([])
+  const [isLoading, setIsLoading] = React.useState(true)
+  const [loadError, setLoadError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (!domainSlug) return
+    let active = true
+
+    async function loadCommonsData() {
+      setIsLoading(true)
+      setLoadError(null)
+
+      try {
+        const domain = (await apiFetch(`/api/domains/by-slug/${domainSlug}`)) as DomainSummary
+        if (!active) return
+
+        const domainId = domain.id
+        setDomainId(domainId)
+
+        const [journeysResponse, keepersResponse, momentsResponse, membersResponse] = await Promise.all([
+          apiFetch(`/api/journeys?domainId=${domainId}`).catch(() => null),
+          apiFetch(`/api/keepers?domainId=${domainId}`).catch(() => null),
+          apiFetch(`/api/moments?domainId=${domainId}&limit=5`).catch(() => null),
+          isAdmin ? apiFetch(`/api/domains/${domainId}/members`).catch(() => null) : Promise.resolve(null),
+        ])
+
+        if (!active) return
+
+        const journeys = (journeysResponse as any)?.data?.journeys ?? (journeysResponse as any)?.journeys ?? []
+        const keepers = (keepersResponse as any)?.data?.keepers ?? (keepersResponse as any)?.keepers ?? []
+        const moments = (momentsResponse as any)?.moments ?? (momentsResponse as any)?.data?.moments ?? []
+        const members = (membersResponse as any)?.members ?? []
+
+        const journeyItems = (journeys as JourneySummary[]).slice(0, 2).map((journey) => {
+          const count = journey.momentCount ?? 0
+          return `${journey.name} · ${count} moments`
+        })
+
+        const keeperItems = (keepers as KeeperSummary[]).slice(0, 2).map((keeper) => keeper.title)
+
+        const relationshipsItems = [
+          `Members: ${members.length || "Private"}`,
+          `Keepers: ${(keepers as KeeperSummary[]).length || 0}`,
+          `Journeys: ${(journeys as JourneySummary[]).length || 0}`
+        ]
+
+        setAnchorCards([
+          {
+            title: "Journeys",
+            description: "Active paths and suggested threads to follow.",
+            items: journeyItems.length ? journeyItems : ["No journeys yet", "Start a new journey to begin"],
+            actionLabel: "Open journeys",
+            onAction: () => navigateToFrame("journeys")
+          },
+          {
+            title: "Relationships",
+            description: "People, keepers, and trusted circles nearby.",
+            items: relationshipsItems,
+            actionLabel: "View profile",
+            onAction: () => navigateToFrame("profile")
+          },
+          {
+            title: "Keepers",
+            description: "Spaces that hold memory for the domain.",
+            items: keeperItems.length ? keeperItems : ["No keepers yet", "Create a keeper to organize memory"],
+            actionLabel: "Open keepers",
+            onAction: () => navigateToFrame("keepers")
+          }
+        ])
+
+        const nextFeedItems = (moments as MomentSummary[]).map((moment) => ({
+          title: moment.title || "Moment captured",
+          detail: moment.narrative || moment.content || "A new moment has been captured.",
+          time: formatRelativeTime(moment.updatedAt || moment.createdAt || null)
+        }))
+
+        setFeedItems(nextFeedItems.length ? nextFeedItems : emptyFeed)
+      } catch (error) {
+        console.error("Failed to load commons data:", error)
+        if (!active) return
+        setLoadError("Unable to load commons data.")
+        setFeedItems(emptyFeed)
+        setAnchorCards([
+          {
+            title: "Journeys",
+            description: "Active paths and suggested threads to follow.",
+            items: ["Journeys are unavailable right now."],
+            actionLabel: "Open journeys",
+            onAction: () => navigateToFrame("journeys")
+          },
+          {
+            title: "Relationships",
+            description: "People, keepers, and trusted circles nearby.",
+            items: ["Relationships are unavailable right now."],
+            actionLabel: "View profile",
+            onAction: () => navigateToFrame("profile")
+          },
+          {
+            title: "Keepers",
+            description: "Spaces that hold memory for the domain.",
+            items: ["Keepers are unavailable right now."],
+            actionLabel: "Open keepers",
+            onAction: () => navigateToFrame("keepers")
+          }
+        ])
+      } finally {
+        if (active) setIsLoading(false)
+      }
+    }
+
+    loadCommonsData()
+    return () => {
+      active = false
+    }
+  }, [domainSlug, isAdmin, navigateToFrame])
 
   const renderCard = (card: CommonsCard) => (
     <div
@@ -99,6 +224,20 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
           </li>
         ))}
       </ul>
+      {card.onAction && (
+        <button
+          type="button"
+          onClick={card.onAction}
+          className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
+          style={{
+            borderColor: COMMONS_SURFACE.border,
+            backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
+            color: COMMONS_SURFACE.inkPrimary,
+          }}
+        >
+          {card.actionLabel ?? "Open"}
+        </button>
+      )}
     </div>
   )
 
@@ -129,32 +268,48 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
             </div>
           </div>
           <div className="space-y-4">
-            {FEED_ITEMS.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-2xl border px-6 py-5 shadow-sm"
-                style={{ backgroundColor: COMMONS_SURFACE.card, borderColor: COMMONS_SURFACE.border }}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-2">
-                    <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-                      {item.title}
-                    </h3>
-                    <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                      {item.detail}
-                    </p>
-                  </div>
-                  <span className="text-xs uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                    {item.time}
-                  </span>
-                </div>
+            {isLoading && (
+              <div className="rounded-2xl border px-6 py-5 shadow-sm" style={{ backgroundColor: COMMONS_SURFACE.card, borderColor: COMMONS_SURFACE.border }}>
+                <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                  Loading commons activity...
+                </p>
               </div>
-            ))}
+            )}
+            {!isLoading && loadError && (
+              <div className="rounded-2xl border px-6 py-5 shadow-sm" style={{ backgroundColor: COMMONS_SURFACE.card, borderColor: COMMONS_SURFACE.border }}>
+                <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                  {loadError}
+                </p>
+              </div>
+            )}
+            {!isLoading &&
+              !loadError &&
+              feedItems.map((item) => (
+                <div
+                  key={`${item.title}-${item.time}`}
+                  className="rounded-2xl border px-6 py-5 shadow-sm"
+                  style={{ backgroundColor: COMMONS_SURFACE.card, borderColor: COMMONS_SURFACE.border }}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-2">
+                      <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
+                        {item.title}
+                      </h3>
+                      <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                        {item.detail}
+                      </p>
+                    </div>
+                    <span className="text-xs uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                      {item.time}
+                    </span>
+                  </div>
+                </div>
+              ))}
           </div>
         </section>
 
         <aside aria-label="Commons anchors" className="space-y-5">
-          {ANCHOR_CARDS.map((card) => (
+          {anchorCards.map((card) => (
             <div key={card.title}>{renderCard(card)}</div>
           ))}
 
@@ -193,21 +348,38 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                 Action Frame
               </h3>
               <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                Awaiting the first meaningful action. Kip will activate this space when needed.
+                Launch a new journey or capture a moment for the commons.
               </p>
             </div>
-            <button
-              type="button"
-              disabled
-              className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium opacity-60"
-              style={{
-                borderColor: COMMONS_SURFACE.border,
-                backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
-                color: COMMONS_SURFACE.inkSecondary,
-              }}
-            >
-              Action pending
-            </button>
+            {domainId ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <EngagementButton
+                  templateSlug="journey.create"
+                  context={{ entityType: "domain", entityId: domainId, domainId }}
+                  label="Start journey"
+                  variant="secondary"
+                />
+                <EngagementButton
+                  templateSlug="moment.create"
+                  context={{ entityType: "domain", entityId: domainId, domainId }}
+                  label="Capture moment"
+                  variant="secondary"
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium opacity-60"
+                style={{
+                  borderColor: COMMONS_SURFACE.border,
+                  backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
+                  color: COMMONS_SURFACE.inkSecondary,
+                }}
+              >
+                Action pending
+              </button>
+            )}
           </div>
 
           {isAdmin && (

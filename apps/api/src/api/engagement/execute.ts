@@ -15,7 +15,7 @@ const router = Router();
 const ExecuteTemplateSchema = z.object({
   templateSlug: z.string().min(1),
   context: z.object({
-    entityType: z.enum(['domain', 'keeper', 'journey', 'agent', 'board']),
+    entityType: z.enum(['domain', 'keeper', 'journey', 'path', 'moment', 'agent', 'board']),
     entityId: z.string().uuid(),
     domainId: z.string().uuid().optional(),
   }),
