@@ -12,6 +12,7 @@ Seed files and scripts for initializing the Keeper Platform database with essent
 - `lenses.seed.ts`
 - `policy.seed.ts`
 - `journey-path-moment-engagement-templates.seed.ts`
+- `default-domain-journeys.seed.ts`
 
 ## 🔄 Data & Behavior
 - SQL seeds hydrate core Keeper types, engagement templates, and agent/session fixtures.
@@ -22,6 +23,7 @@ Seed files and scripts for initializing the Keeper Platform database with essent
 - [ ] Add coverage for future agent mode configs if stored outside `kip_agents.config`.
 
 ## 📆 Update Log
+- 2026-01-31: Added default domain journeys seed for Commons data.
 - 2026-01-31: Added Journey/Path/Moment engagement templates to the seed runner.
 - 2025-12-17: Added `policy.seed.ts` to upsert default policy-v1 for all domains (kept in sync with Kip policy pack) and wired it into the TypeScript seed runner after domain creation.
 - 2025-12-14: Added `lenses.seed.ts` to create default Domain Lens and Debug Investigator Lens for the `default` domain via the TS seed runner.

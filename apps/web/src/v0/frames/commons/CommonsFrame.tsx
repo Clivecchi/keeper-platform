@@ -11,6 +11,7 @@ import { useV0Shell } from "../../shell/V0ShellContext"
 
 const COMMONS_SURFACE = {
   card: "hsl(var(--theme-surface-paper) / 0.82)",
+  sideCard: "hsl(var(--theme-surface-paper) / 0.6)",
   border: "var(--theme-border-soft)",
   inkPrimary: "var(--theme-ink-primary)",
   inkSecondary: "var(--theme-ink-secondary)",
@@ -34,6 +35,7 @@ type DomainSummary = {
   id: string
   name: string
   slug: string
+  description?: string | null
 }
 
 type JourneySummary = {
@@ -86,6 +88,8 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
   const { domainSlug, experienceActions, navigateToFrame } = useV0Shell()
   const { isAdmin } = useAuth()
   const [domainId, setDomainId] = React.useState<string | null>(null)
+  const [domainName, setDomainName] = React.useState<string | null>(null)
+  const [domainDescription, setDomainDescription] = React.useState<string | null>(null)
   const [feedItems, setFeedItems] = React.useState<FeedItem[]>(emptyFeed)
   const [anchorCards, setAnchorCards] = React.useState<CommonsCard[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
@@ -105,6 +109,8 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
 
         const domainId = domain.id
         setDomainId(domainId)
+        setDomainName(domain.name)
+        setDomainDescription(domain.description ?? null)
 
         const [journeysResponse, keepersResponse, momentsResponse, membersResponse] = await Promise.all([
           apiFetch(`/api/journeys?domainId=${domainId}`).catch(() => null),
@@ -205,8 +211,8 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
 
   const renderCard = (card: CommonsCard) => (
     <div
-      className="rounded-2xl border px-5 py-4 shadow-sm"
-      style={{ backgroundColor: COMMONS_SURFACE.card, borderColor: COMMONS_SURFACE.border }}
+      className="rounded-2xl border px-5 py-4"
+      style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
     >
       <div className="space-y-1">
         <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
@@ -250,48 +256,43 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       themeSwitcherSlot={<ThemeSwitcher />}
     >
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-        <section aria-label="Domain feed" className="space-y-5">
-          <div
-            className="rounded-2xl border px-6 py-5 shadow-sm"
-            style={{ backgroundColor: COMMONS_SURFACE.card, borderColor: COMMONS_SURFACE.border }}
-          >
-            <div className="space-y-1">
-              <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                Domain Feed
-              </p>
-              <h2 className="text-lg font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-                Moments and updates
-              </h2>
-              <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                A living stream of what is changing across the commons.
-              </p>
-            </div>
+        <section aria-label="Domain feed" className="space-y-6">
+          <div className="space-y-3">
+            <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+              Commons
+            </p>
+            <h2 className="text-2xl font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
+              {domainName || domainSlug || "This domain"}
+            </h2>
+            <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+              {domainDescription || "A shared place for what is worth keeping."}
+            </p>
+            <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
           </div>
-          <div className="space-y-4">
+
+          <div className="space-y-6">
             {isLoading && (
-              <div className="rounded-2xl border px-6 py-5 shadow-sm" style={{ backgroundColor: COMMONS_SURFACE.card, borderColor: COMMONS_SURFACE.border }}>
+              <div className="space-y-2">
                 <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
                   Loading commons activity...
                 </p>
+                <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
               </div>
             )}
             {!isLoading && loadError && (
-              <div className="rounded-2xl border px-6 py-5 shadow-sm" style={{ backgroundColor: COMMONS_SURFACE.card, borderColor: COMMONS_SURFACE.border }}>
+              <div className="space-y-2">
                 <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
                   {loadError}
                 </p>
+                <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
               </div>
             )}
             {!isLoading &&
               !loadError &&
-              feedItems.map((item) => (
-                <div
-                  key={`${item.title}-${item.time}`}
-                  className="rounded-2xl border px-6 py-5 shadow-sm"
-                  style={{ backgroundColor: COMMONS_SURFACE.card, borderColor: COMMONS_SURFACE.border }}
-                >
+              feedItems.map((item, index) => (
+                <div key={`${item.title}-${item.time}`} className="space-y-3">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
                         {item.title}
                       </h3>
@@ -303,6 +304,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                       {item.time}
                     </span>
                   </div>
+                  {index < feedItems.length - 1 && <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />}
                 </div>
               ))}
           </div>
@@ -314,8 +316,8 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
           ))}
 
           <div
-            className="rounded-2xl border px-5 py-5 shadow-sm"
-            style={{ backgroundColor: COMMONS_SURFACE.card, borderColor: COMMONS_SURFACE.border }}
+            className="rounded-2xl border px-5 py-5"
+            style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
           >
             <div className="space-y-2">
               <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
@@ -340,8 +342,8 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
           </div>
 
           <div
-            className="rounded-2xl border px-5 py-5 shadow-sm"
-            style={{ backgroundColor: COMMONS_SURFACE.card, borderColor: COMMONS_SURFACE.border }}
+            className="rounded-2xl border px-5 py-5"
+            style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
           >
             <div className="space-y-2">
               <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
@@ -384,8 +386,8 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
 
           {isAdmin && (
             <div
-              className="rounded-2xl border px-5 py-5 shadow-sm"
-              style={{ backgroundColor: COMMONS_SURFACE.card, borderColor: COMMONS_SURFACE.border }}
+              className="rounded-2xl border px-5 py-5"
+              style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
             >
               <div className="space-y-2">
                 <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>

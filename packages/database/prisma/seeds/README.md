@@ -20,6 +20,7 @@ Seeds the first full KeeperType implementation for AI memory:
 - `lead-agents.sql` - Lead agent configurations
 - `coordinator-agent.sql` - Coordinator agent setup
 - `journey-path-moment-engagement-templates.seed.ts` - Engagement templates for Journey/Path/Moment actions
+- `default-domain-journeys.seed.ts` - Default domain journeys/paths/moments seed
 
 ## Running Seeds
 
@@ -71,6 +72,7 @@ Once seeded, the platform will have:
 - ✅ Foundation for Reflections UI and Kip assistant behavior development 
 
 ## 📆 Update Log
+- 2026-01-31: Added default domain journeys seed for Commons data.
 - 2026-01-31: Added seed for Journey/Path/Moment engagement templates to align narrative actions.
 - 2025-12-17: Added `policy.seed.ts` to upsert default policy-v1 for all domains (kept in sync with Kip policy pack) and wired it into the TypeScript seed runner after domain creation.
 - 2025-12-14: Added `lenses.seed.ts` to create default Domain Lens and Debug Investigator Lens for the `default` domain via the TS seed runner.

@@ -33,6 +33,10 @@ async function main() {
     const seedDesignBoards = await import('./seeds/design-boards.seed.ts');
     await seedDesignBoards.default();
 
+    console.log('🧭 Seeding default domain journeys...');
+    const seedDefaultJourneys = await import('./seeds/default-domain-journeys.seed.ts');
+    await seedDefaultJourneys.default();
+
     console.log('🎭 Seeding Domain Engagement Templates...');
     const seedDomainEngagement = await import('./seeds/domain-engagement-templates.seed.ts');
     await seedDomainEngagement.default();
