@@ -8,6 +8,7 @@ import { ThemeSwitcher } from "../ThemeSwitcher"
 import { useAuth } from "../../../context/AuthContext"
 import { apiFetch } from "../../../lib/api"
 import { EngagementButton } from "../../../components/engagement/EngagementButton"
+import MediaUploader from "../../../components/studio/MediaUploader"
 import { useV0Shell } from "../../shell/V0ShellContext"
 
 const COMMONS_SURFACE = {
@@ -43,6 +44,19 @@ type DomainSummary = {
   description?: string | null
 }
 
+type DomainTheme = {
+  coverImage?: string | null
+  coverImageKey?: string | null
+}
+
+type DomainDetails = {
+  id: string
+  name: string
+  slug: string
+  description?: string | null
+  theme?: DomainTheme | null
+}
+
 type JourneySummary = {
   id: string
   name: string
@@ -64,6 +78,12 @@ type MomentSummary = {
   content?: string | null
   createdAt?: string | null
   updatedAt?: string | null
+}
+
+type CoverMedia = {
+  type: "image"
+  url: string
+  key?: string
 }
 
 const emptyFeed: FeedItem[] = [
@@ -105,6 +125,10 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
   const [domainId, setDomainId] = React.useState<string | null>(null)
   const [domainName, setDomainName] = React.useState<string | null>(null)
   const [domainDescription, setDomainDescription] = React.useState<string | null>(null)
+  const [domainTheme, setDomainTheme] = React.useState<DomainTheme | null>(null)
+  const [coverMedia, setCoverMedia] = React.useState<CoverMedia | null>(null)
+  const [coverSaveStatus, setCoverSaveStatus] = React.useState<"idle" | "saving" | "success" | "error">("idle")
+  const [coverSaveError, setCoverSaveError] = React.useState<string | null>(null)
   const [feedItems, setFeedItems] = React.useState<FeedItem[]>(emptyFeed)
   const [moments, setMoments] = React.useState<MomentSummary[]>([])
   const [journeys, setJourneys] = React.useState<JourneySummary[]>([])
@@ -137,11 +161,12 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         setDomainName(domain.name)
         setDomainDescription(domain.description ?? null)
 
-        const [journeysResponse, keepersResponse, momentsResponse, membersResponse] = await Promise.all([
+        const [journeysResponse, keepersResponse, momentsResponse, membersResponse, domainDetailResponse] = await Promise.all([
           apiFetch(`/api/journeys?domainId=${domainId}`).catch(() => null),
           apiFetch(`/api/keepers?domainId=${domainId}`).catch(() => null),
           apiFetch(`/api/moments?domainId=${domainId}&limit=5`).catch(() => null),
           isAdmin ? apiFetch(`/api/domains/${domainId}/members`).catch(() => null) : Promise.resolve(null),
+          apiFetch(`/api/domains/${domainId}`).catch(() => null),
         ])
 
         if (!active) return
@@ -150,11 +175,17 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         const keepers = (keepersResponse as any)?.data?.keepers ?? (keepersResponse as any)?.keepers ?? []
         const moments = (momentsResponse as any)?.moments ?? (momentsResponse as any)?.data?.moments ?? []
         const members = (membersResponse as any)?.members ?? []
+        const domainDetails = (domainDetailResponse as any)?.domain as DomainDetails | undefined
+        const theme = domainDetails?.theme ?? null
+        const coverImage = theme?.coverImage ?? null
+        const coverImageKey = theme?.coverImageKey ?? null
 
         setJourneys(journeys as JourneySummary[])
         setKeepers(keepers as KeeperSummary[])
         setMoments(moments as MomentSummary[])
         setMembersCount(typeof members?.length === "number" ? members.length : null)
+        setDomainTheme(theme)
+        setCoverMedia(coverImage ? { type: "image", url: coverImage, key: coverImageKey ?? undefined } : null)
 
         const journeyItems = (journeys as JourneySummary[]).slice(0, 2).map((journey) => {
           const count = journey.momentCount ?? 0
@@ -232,6 +263,8 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
             onAction: () => navigateToFrame("keepers")
           }
         ])
+        setDomainTheme(null)
+        setCoverMedia(null)
       } finally {
         if (active) setIsLoading(false)
       }
@@ -446,6 +479,53 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     }
   }
 
+  const handleCoverChange = async (nextCover: { type: string; url: string; key?: string } | null) => {
+    if (!domainId) return
+    if (nextCover && nextCover.type !== "image") {
+      setCoverSaveError("Cover images must be PNG, JPG, or WEBP.")
+      setCoverSaveStatus("error")
+      return
+    }
+
+    setCoverSaveStatus("saving")
+    setCoverSaveError(null)
+
+    const nextTheme: DomainTheme = {
+      ...(domainTheme ?? {}),
+      coverImage: nextCover?.url ?? null,
+      coverImageKey: nextCover?.key ?? null,
+    }
+
+    try {
+      await apiFetch(`/api/domains/${domainId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ theme: nextTheme }),
+      })
+      if (nextCover) {
+        setCoverMedia({ type: "image", url: nextCover.url, key: nextCover.key })
+      } else {
+        setCoverMedia(null)
+      }
+      setDomainTheme(nextTheme)
+      setCoverSaveStatus("success")
+      setTimeout(() => setCoverSaveStatus("idle"), 2000)
+    } catch (error) {
+      console.error("Failed to save cover image:", error)
+      setCoverSaveStatus("error")
+      setCoverSaveError("Cover image could not be saved. Please try again.")
+    }
+  }
+
+  const bannerBackground = coverMedia?.url
+    ? {
+        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-paper) / 0.1), hsl(var(--theme-surface-paper) / 0.78)), url(${coverMedia.url})`,
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+      }
+    : {
+        backgroundColor: "hsl(var(--theme-surface-paper) / 0.75)",
+      }
+
   return (
     <DesignFrame
       styleId={styleId}
@@ -455,21 +535,65 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       themeSwitcherSlot={<ThemeSwitcher />}
     >
       <div className="space-y-8">
-        <section aria-label="Commons banner" className="space-y-3">
-          <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-            Commons
-          </p>
-          <h2 className="text-2xl font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-            {domainName || domainSlug || "This domain"}
-          </h2>
-          <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-            {domainDescription || "A shared place for what is worth keeping."}
-          </p>
-          <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
+        <section
+          aria-label="Commons banner"
+          className="rounded-3xl border px-6 py-6 md:px-8 md:py-8"
+          style={{ borderColor: COMMONS_SURFACE.border, ...bannerBackground }}
+        >
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-3">
+              <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                Commons
+              </p>
+              <h2 className="text-2xl font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
+                {domainName || domainSlug || "This domain"}
+              </h2>
+              <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                {domainDescription || "A shared place for what is worth keeping."}
+              </p>
+            </div>
+            {isAdmin && (
+              <div
+                className="rounded-2xl border px-4 py-4 md:px-5 md:py-5"
+                style={{ borderColor: COMMONS_SURFACE.border, backgroundColor: "hsl(var(--theme-surface-paper) / 0.85)" }}
+              >
+                <div className="space-y-1">
+                  <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                    Cover image
+                  </p>
+                  <p className="text-xs" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                    Upload a background image for the commons banner.
+                  </p>
+                </div>
+                <div className="mt-3">
+                  <MediaUploader value={coverMedia} onChange={handleCoverChange} />
+                </div>
+                {coverSaveStatus === "saving" && (
+                  <p className="mt-3 text-xs" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                    Saving cover image...
+                  </p>
+                )}
+                {coverSaveStatus === "success" && (
+                  <p className="mt-3 text-xs" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                    Cover image saved.
+                  </p>
+                )}
+                {coverSaveStatus === "error" && coverSaveError && (
+                  <p className="mt-3 text-xs text-red-600">
+                    {coverSaveError}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </section>
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)]">
-          <aside aria-label="Commons context" className="space-y-5">
+        <div
+          className="rounded-3xl border px-4 py-6 md:px-6"
+          style={{ borderColor: COMMONS_SURFACE.border, backgroundColor: "hsl(var(--theme-surface-paper) / 0.65)" }}
+        >
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)]">
+            <aside aria-label="Commons context" className="space-y-5">
             {anchorCards.map((card) => (
               <div key={card.title}>{renderCard(card)}</div>
             ))}
@@ -602,11 +726,12 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                 </button>
               </div>
             )}
-          </aside>
+            </aside>
 
-          <section aria-label="Commons workspace" className="space-y-6">
-            {renderWorkspace()}
-          </section>
+            <section aria-label="Commons workspace" className="space-y-6">
+              {renderWorkspace()}
+            </section>
+          </div>
         </div>
       </div>
     </DesignFrame>
