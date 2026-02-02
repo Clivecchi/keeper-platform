@@ -14,6 +14,7 @@ Fetches live domain data (journeys, keepers, moments, members when permitted) to
 - [ ] Refine feed source once domain-scoped moment endpoints stabilize.
 
 ## 📆 Update Log
+- 2026-02-01: Removed commons banner body copy in favor of a soft tagline overlay.
 - 2026-02-01: Added commons cover image support and banner settings area for admins.
 - 2026-02-01: Reframed Commons into Banner/Context/Workspace regions with experience-driven Workspace modes.
 - 2026-01-31: Reworked Commons feed into a single cohesive surface with a domain hero.

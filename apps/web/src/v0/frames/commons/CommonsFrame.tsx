@@ -542,14 +542,11 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         >
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-3">
-              <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                Commons
-              </p>
               <h2 className="text-2xl font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
                 {domainName || domainSlug || "This domain"}
               </h2>
-              <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                {domainDescription || "A shared place for what is worth keeping."}
+              <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                KE3P · cryptically designed, wonderfully underfolded
               </p>
             </div>
             {isAdmin && (
