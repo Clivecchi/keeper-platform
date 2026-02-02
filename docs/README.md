@@ -5,6 +5,7 @@ Primary documentation hub for Keeper architecture, deployment notes, and operati
 
 ## 🧱 Key Files
 - `keeper-heart-mind.md`
+- `keeper-ui-experience.md`
 - `DOMAIN_DEVELOPMENT_PLAN.md`
 - `AUTHENTICATION_HARDENING.md`
 
@@ -15,6 +16,7 @@ Docs are maintained as canonical references for architecture, flows, and playboo
 - [ ] TODO: Verify and describe assumptions.
 
 ## 📆 Update Log
+- 2026-02-01: Added canonical UI experience doc `keeper-ui-experience.md`.
 - 2026-01-31: Added canonical architecture doc `keeper-heart-mind.md`.
 - 2026-01-31: Revised `keeper-heart-mind.md` with narrative journeys and mapping.
 - 2026-01-31: Clarified conceptual vs v0 experience terminology in `keeper-heart-mind.md`.

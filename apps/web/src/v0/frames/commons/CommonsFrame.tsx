@@ -533,6 +533,43 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     <DesignFrame
       styleId={styleId}
       themeSlug={themeSlug}
+      title={domainName || domainSlug || "This domain"}
+      subtitle="KE3P · cryptically designed, wonderfully underfolded"
+      rightSlot={
+        <div className="flex items-center gap-2">
+          <UserIdentityDropdown />
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsConfigOpen((open) => !open)}
+              className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/60 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm"
+              aria-label="Open commons settings"
+            >
+              <Settings className="h-4 w-4" strokeWidth={1.25} />
+            </button>
+            {isConfigOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsConfigOpen(false)} />
+                <div
+                  className="absolute right-0 mt-2 w-56 rounded-md border p-3 shadow-lg z-50"
+                  style={{
+                    backgroundColor: "var(--theme-surface-paper)",
+                    borderColor: "var(--theme-border-soft)",
+                    boxShadow: "var(--theme-shadow-soft)",
+                  }}
+                >
+                  <div className="space-y-2">
+                    <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                      Theme
+                    </p>
+                    <ThemeSwitcher />
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      }
     >
       <div className="space-y-8">
         <section
@@ -549,74 +586,39 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                 KE3P · cryptically designed, wonderfully underfolded
               </p>
             </div>
-            <div className="flex flex-col gap-3 lg:items-end">
-              <div className="flex items-center justify-end gap-2">
-                <UserIdentityDropdown />
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setIsConfigOpen((open) => !open)}
-                    className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/60 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm"
-                    aria-label="Open commons settings"
-                  >
-                    <Settings className="h-4 w-4" strokeWidth={1.25} />
-                  </button>
-                  {isConfigOpen && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setIsConfigOpen(false)} />
-                      <div
-                        className="absolute right-0 mt-2 w-56 rounded-md border p-3 shadow-lg z-50"
-                        style={{
-                          backgroundColor: "var(--theme-surface-paper)",
-                          borderColor: "var(--theme-border-soft)",
-                          boxShadow: "var(--theme-shadow-soft)",
-                        }}
-                      >
-                        <div className="space-y-2">
-                          <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                            Theme
-                          </p>
-                          <ThemeSwitcher />
-                        </div>
-                      </div>
-                    </>
-                  )}
+            {isAdmin && (
+              <div
+                className="rounded-2xl border px-4 py-4 md:px-5 md:py-5"
+                style={{ borderColor: COMMONS_SURFACE.border, backgroundColor: "hsl(var(--theme-surface-paper) / 0.85)" }}
+              >
+                <div className="space-y-1">
+                  <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                    Cover image
+                  </p>
+                  <p className="text-xs" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                    Upload a background image for the commons banner.
+                  </p>
                 </div>
+                <div className="mt-3">
+                  <MediaUploader value={coverMedia} onChange={handleCoverChange} />
+                </div>
+                {coverSaveStatus === "saving" && (
+                  <p className="mt-3 text-xs" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                    Saving cover image...
+                  </p>
+                )}
+                {coverSaveStatus === "success" && (
+                  <p className="mt-3 text-xs" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                    Cover image saved.
+                  </p>
+                )}
+                {coverSaveStatus === "error" && coverSaveError && (
+                  <p className="mt-3 text-xs text-red-600">
+                    {coverSaveError}
+                  </p>
+                )}
               </div>
-              {isAdmin && (
-                <div
-                  className="rounded-2xl border px-4 py-4 md:px-5 md:py-5"
-                  style={{ borderColor: COMMONS_SURFACE.border, backgroundColor: "hsl(var(--theme-surface-paper) / 0.85)" }}
-                >
-                  <div className="space-y-1">
-                    <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                      Cover image
-                    </p>
-                    <p className="text-xs" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                      Upload a background image for the commons banner.
-                    </p>
-                  </div>
-                  <div className="mt-3">
-                    <MediaUploader value={coverMedia} onChange={handleCoverChange} />
-                  </div>
-                  {coverSaveStatus === "saving" && (
-                    <p className="mt-3 text-xs" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                      Saving cover image...
-                    </p>
-                  )}
-                  {coverSaveStatus === "success" && (
-                    <p className="mt-3 text-xs" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                      Cover image saved.
-                    </p>
-                  )}
-                  {coverSaveStatus === "error" && coverSaveError && (
-                    <p className="mt-3 text-xs text-red-600">
-                      {coverSaveError}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </section>
 
