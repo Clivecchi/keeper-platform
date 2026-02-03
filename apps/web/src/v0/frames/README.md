@@ -14,6 +14,8 @@ Frames rely on `DesignFrame` to apply theme styles, enforce layout padding, and 
 - [ ] Confirm margin height across mobile breakpoints.
 
 ## 📆 Update Log
+- 2026-02-01: Added header background override for sticky frames.
+- 2026-02-01: Added header options for sticky offset and hiding admin gear.
 - 2026-01-31: Added the Present frame surface to the v0 frames set.
 - 2026-01-19: Added top gear navigation to domain home board admin.
 - 2026-01-19: Added persistent bottom margin support to the shared frame layout.

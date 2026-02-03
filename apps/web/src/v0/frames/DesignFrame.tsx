@@ -24,6 +24,12 @@ interface DesignFrameProps {
   rightSlot?: React.ReactNode
   /** Theme switcher component */
   themeSwitcherSlot?: React.ReactNode
+  /** Disable default admin control button */
+  hideAdminControl?: boolean
+  /** Sticky header top offset */
+  headerStickyTop?: string
+  /** Override header background color */
+  headerBackgroundColor?: string
   /** Main content area */
   children: React.ReactNode
   /** Optional footer content */
@@ -46,6 +52,9 @@ export function DesignFrame({
   subtitle,
   rightSlot,
   themeSwitcherSlot,
+  hideAdminControl = false,
+  headerStickyTop,
+  headerBackgroundColor,
   children,
   footerSlot,
   onClose
@@ -106,11 +115,13 @@ export function DesignFrame({
             <div
               className="sticky top-0 z-40 mb-6"
               style={{
-                backgroundColor: "hsl(var(--theme-surface-page) / 0.82)",
+                backgroundColor: headerBackgroundColor ?? "hsl(var(--theme-surface-page) / 0.82)",
                 borderBottom: "1px solid var(--theme-border-soft)",
                 backdropFilter: "blur(8px)",
                 paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
                 paddingBottom: "0.75rem",
+                top: headerStickyTop ?? "0",
+                transition: "background-color 200ms ease",
               }}
             >
               <header className="flex items-start justify-between">
@@ -146,7 +157,7 @@ export function DesignFrame({
                 {/* Top-right controls */}
                 {(rightSlot || themeSwitcherSlot || (isAuthenticated && v0Shell?.domainSlug)) && (
                   <div className="flex items-center gap-2">
-                    {isAuthenticated && v0Shell?.domainSlug && (
+                    {isAuthenticated && v0Shell?.domainSlug && !hideAdminControl && (
                       <button
                         type="button"
                         aria-label="Open board admin"

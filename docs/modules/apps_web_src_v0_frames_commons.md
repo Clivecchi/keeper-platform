@@ -7,13 +7,15 @@ Provides the primary logged-in domain board experience with a stable Commons lay
 - `CommonsFrame.tsx`
 
 ## 🔄 Data & Behavior
-Fetches live domain data (journeys, keepers, moments, members when permitted) to populate Commons Banner (scrolling user card), Commons Context, and Workspace content. The Workspace is an experience container driven by the `experience` query param and renders Observe, Focus, Build, or Reflect modes. The sticky Commons Cover shows identity only and inherits menu/config controls when the Commons Banner scrolls out of view.
+Fetches live domain data (journeys, keepers, moments, members when permitted) to populate Commons Banner (scrolling user card), Commons Context, and Workspace content. The Workspace is an experience container driven by the `experience` query param and renders Observe, Focus, Build, or Reflect modes. The sticky Commons Cover shows identity only and inherits menu/config controls when the Commons Banner scrolls fully out of view.
 
 ## ⚠️ Notes & ToDo
 - [ ] Confirm action frame activation triggers once the first domain action is defined.
 - [ ] Refine feed source once domain-scoped moment endpoints stabilize.
 
 ## 📆 Update Log
+- 2026-02-01: Added a subtle Commons Cover background shift on inheritance.
+- 2026-02-01: Moved the domain config gear into the Commons Banner and inherit it on scroll.
 - 2026-02-01: Split Commons Cover (sticky identity) from Commons Banner (user card) with control inheritance on scroll.
 - 2026-02-01: Restored the sticky header with domain title and menu controls.
 - 2026-02-01: Added user menu and moved theme under a banner gear menu.

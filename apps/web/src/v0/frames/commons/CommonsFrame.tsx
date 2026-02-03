@@ -166,12 +166,13 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         const domainId = domain.id
         setDomainId(domainId)
         setDomainName(domain.name)
-        const [journeysResponse, keepersResponse, momentsResponse, membersResponse, domainDetailResponse] = await Promise.all([
+        const [journeysResponse, keepersResponse, momentsResponse, membersResponse, domainDetailResponse, boardDataResponse] = await Promise.all([
           apiFetch(`/api/journeys?domainId=${domainId}`).catch(() => null),
           apiFetch(`/api/keepers?domainId=${domainId}`).catch(() => null),
           apiFetch(`/api/moments?domainId=${domainId}&limit=5`).catch(() => null),
           isAdmin ? apiFetch(`/api/domains/${domainId}/members`).catch(() => null) : Promise.resolve(null),
           apiFetch(`/api/domains/${domainId}`).catch(() => null),
+          apiFetch(`/api/domains/${domainId}/board-data`).catch(() => null),
         ])
 
         if (!active) return
@@ -185,12 +186,16 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         const coverImage = theme?.coverImage ?? null
         const coverImageKey = theme?.coverImageKey ?? null
         const currentMember = user?.id ? members.find((member: any) => member.userId === user.id) : null
+        const permissionsRole =
+          (boardDataResponse as any)?.userPermissions?.role ??
+          (boardDataResponse as any)?.data?.userPermissions?.role ??
+          null
 
         setJourneys(journeys as JourneySummary[])
         setKeepers(keepers as KeeperSummary[])
         setMoments(moments as MomentSummary[])
         setMembersCount(typeof members?.length === "number" ? members.length : null)
-        setUserRole(currentMember?.role ?? null)
+        setUserRole(currentMember?.role ?? permissionsRole ?? null)
         setDomainTheme(theme)
         setCoverMedia(coverImage ? { type: "image", url: coverImage, key: coverImageKey ?? undefined } : null)
 
@@ -524,41 +529,61 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     ? `You are ${userRole.toLowerCase()} in this commons.`
     : "You belong to this commons."
 
-  const renderCommonsControls = (className?: string) => (
-    <div className={className ?? "flex items-center gap-2"}>
-      <UserIdentityDropdown />
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setIsConfigOpen((open) => !open)}
-          className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/60 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm"
-          aria-label="Open commons settings"
-        >
-          <Settings className="h-4 w-4" strokeWidth={1.25} />
-        </button>
-        {isConfigOpen && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setIsConfigOpen(false)} />
-            <div
-              className="absolute right-0 mt-2 w-56 rounded-md border p-3 shadow-lg z-50"
-              style={{
-                backgroundColor: "var(--theme-surface-paper)",
-                borderColor: "var(--theme-border-soft)",
-                boxShadow: "var(--theme-shadow-soft)",
-              }}
-            >
-              <div className="space-y-2">
-                <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                  Theme
-                </p>
-                <ThemeSwitcher />
+  const renderCommonsControls = (className?: string) => {
+    if (!isAuthenticated) return null
+    return (
+      <div className={className ?? "flex items-center gap-2"}>
+        <UserIdentityDropdown />
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsConfigOpen((open) => !open)}
+            className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/60 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm"
+            aria-label="Open commons settings"
+          >
+            <Settings className="h-4 w-4" strokeWidth={1.25} />
+          </button>
+          {isConfigOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setIsConfigOpen(false)} />
+              <div
+                className="absolute right-0 mt-2 w-56 rounded-md border p-3 shadow-lg z-50"
+                style={{
+                  backgroundColor: "var(--theme-surface-paper)",
+                  borderColor: "var(--theme-border-soft)",
+                  boxShadow: "var(--theme-shadow-soft)",
+                }}
+              >
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsConfigOpen(false)
+                      experienceActions.goAdmin()
+                    }}
+                    className="w-full rounded-md border px-3 py-2 text-left text-xs font-medium transition-colors hover:opacity-80"
+                    style={{
+                      borderColor: COMMONS_SURFACE.border,
+                      color: COMMONS_SURFACE.inkPrimary,
+                      backgroundColor: "hsl(var(--theme-surface-paper) / 0.95)",
+                    }}
+                  >
+                    Open domain settings
+                  </button>
+                  <div className="space-y-2">
+                    <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                      Theme
+                    </p>
+                    <ThemeSwitcher />
+                  </div>
+                </div>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   const coverControlsSlot = showCoverControls ? (
     <div
@@ -570,6 +595,10 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       {renderCommonsControls()}
     </div>
   ) : null
+
+  const coverHeaderBackground = showCoverControls
+    ? "hsl(var(--theme-surface-paper) / 0.92)"
+    : "hsl(var(--theme-surface-page) / 0.82)"
 
   const handleCoverChange = async (nextCover: { type: string; url: string; key?: string } | null) => {
     if (!domainId) return
@@ -624,6 +653,9 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       themeSlug={themeSlug}
       title={domainName || domainSlug || "This domain"}
       subtitle="KE3P · cryptically designed, wonderfully underfolded"
+      hideAdminControl
+      headerStickyTop="clamp(1.5rem, 5vw, 3.25rem)"
+      headerBackgroundColor={coverHeaderBackground}
       rightSlot={coverControlsSlot}
     >
       <div className="space-y-8">
