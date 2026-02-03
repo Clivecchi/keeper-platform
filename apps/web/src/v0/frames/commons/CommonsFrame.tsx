@@ -121,12 +121,11 @@ function formatRelativeTime(value?: string | null) {
 
 export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
   const { domainSlug, experienceActions, navigateToFrame } = useV0Shell()
-  const { isAdmin } = useAuth()
+  const { isAdmin, user, isAuthenticated } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const experience = resolveCommonsExperience(searchParams.get("experience"))
   const [domainId, setDomainId] = React.useState<string | null>(null)
   const [domainName, setDomainName] = React.useState<string | null>(null)
-  const [domainDescription, setDomainDescription] = React.useState<string | null>(null)
   const [domainTheme, setDomainTheme] = React.useState<DomainTheme | null>(null)
   const [coverMedia, setCoverMedia] = React.useState<CoverMedia | null>(null)
   const [coverSaveStatus, setCoverSaveStatus] = React.useState<"idle" | "saving" | "success" | "error">("idle")
@@ -136,10 +135,15 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
   const [journeys, setJourneys] = React.useState<JourneySummary[]>([])
   const [keepers, setKeepers] = React.useState<KeeperSummary[]>([])
   const [membersCount, setMembersCount] = React.useState<number | null>(null)
+  const [userRole, setUserRole] = React.useState<string | null>(null)
   const [anchorCards, setAnchorCards] = React.useState<CommonsCard[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [isConfigOpen, setIsConfigOpen] = React.useState(false)
+  const bannerRef = React.useRef<HTMLElement | null>(null)
+  const [isBannerInView, setIsBannerInView] = React.useState(true)
+  const [showCoverControls, setShowCoverControls] = React.useState(false)
+  const [coverControlsVisible, setCoverControlsVisible] = React.useState(false)
 
   const setExperience = React.useCallback((next: CommonsExperience) => {
     const nextParams = new URLSearchParams(searchParams)
@@ -162,8 +166,6 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         const domainId = domain.id
         setDomainId(domainId)
         setDomainName(domain.name)
-        setDomainDescription(domain.description ?? null)
-
         const [journeysResponse, keepersResponse, momentsResponse, membersResponse, domainDetailResponse] = await Promise.all([
           apiFetch(`/api/journeys?domainId=${domainId}`).catch(() => null),
           apiFetch(`/api/keepers?domainId=${domainId}`).catch(() => null),
@@ -182,11 +184,13 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         const theme = domainDetails?.theme ?? null
         const coverImage = theme?.coverImage ?? null
         const coverImageKey = theme?.coverImageKey ?? null
+        const currentMember = user?.id ? members.find((member: any) => member.userId === user.id) : null
 
         setJourneys(journeys as JourneySummary[])
         setKeepers(keepers as KeeperSummary[])
         setMoments(moments as MomentSummary[])
         setMembersCount(typeof members?.length === "number" ? members.length : null)
+        setUserRole(currentMember?.role ?? null)
         setDomainTheme(theme)
         setCoverMedia(coverImage ? { type: "image", url: coverImage, key: coverImageKey ?? undefined } : null)
 
@@ -243,6 +247,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         setKeepers([])
         setMoments([])
         setMembersCount(null)
+        setUserRole(null)
         setAnchorCards([
           {
             title: "Journeys",
@@ -277,7 +282,39 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     return () => {
       active = false
     }
-  }, [domainSlug, isAdmin, navigateToFrame])
+  }, [domainSlug, isAdmin, navigateToFrame, user?.id])
+
+  React.useEffect(() => {
+    const bannerNode = bannerRef.current
+    if (!bannerNode) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsBannerInView(entry.isIntersecting)
+      },
+      { threshold: 0 }
+    )
+
+    observer.observe(bannerNode)
+    return () => observer.disconnect()
+  }, [])
+
+  React.useEffect(() => {
+    if (!isBannerInView) {
+      setShowCoverControls(true)
+      const raf = requestAnimationFrame(() => setCoverControlsVisible(true))
+      return () => cancelAnimationFrame(raf)
+    }
+    setCoverControlsVisible(false)
+    const timeout = setTimeout(() => setShowCoverControls(false), 200)
+    return () => clearTimeout(timeout)
+  }, [isBannerInView])
+
+  React.useEffect(() => {
+    if (isBannerInView) {
+      setIsConfigOpen(false)
+    }
+  }, [isBannerInView])
 
   const renderCard = (card: CommonsCard) => (
     <div
@@ -482,6 +519,58 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     }
   }
 
+  const roleLabel = userRole ? `${userRole.charAt(0).toUpperCase()}${userRole.slice(1)}` : "Member"
+  const roleSummary = userRole
+    ? `You are ${userRole.toLowerCase()} in this commons.`
+    : "You belong to this commons."
+
+  const renderCommonsControls = (className?: string) => (
+    <div className={className ?? "flex items-center gap-2"}>
+      <UserIdentityDropdown />
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsConfigOpen((open) => !open)}
+          className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/60 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm"
+          aria-label="Open commons settings"
+        >
+          <Settings className="h-4 w-4" strokeWidth={1.25} />
+        </button>
+        {isConfigOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setIsConfigOpen(false)} />
+            <div
+              className="absolute right-0 mt-2 w-56 rounded-md border p-3 shadow-lg z-50"
+              style={{
+                backgroundColor: "var(--theme-surface-paper)",
+                borderColor: "var(--theme-border-soft)",
+                boxShadow: "var(--theme-shadow-soft)",
+              }}
+            >
+              <div className="space-y-2">
+                <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                  Theme
+                </p>
+                <ThemeSwitcher />
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+
+  const coverControlsSlot = showCoverControls ? (
+    <div
+      className={`flex items-center gap-2 transition-opacity duration-200 ${
+        coverControlsVisible ? "opacity-100" : "opacity-0"
+      }`}
+      style={{ pointerEvents: coverControlsVisible ? "auto" : "none" }}
+    >
+      {renderCommonsControls()}
+    </div>
+  ) : null
+
   const handleCoverChange = async (nextCover: { type: string; url: string; key?: string } | null) => {
     if (!domainId) return
     if (nextCover && nextCover.type !== "image") {
@@ -535,56 +624,77 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       themeSlug={themeSlug}
       title={domainName || domainSlug || "This domain"}
       subtitle="KE3P · cryptically designed, wonderfully underfolded"
-      rightSlot={
-        <div className="flex items-center gap-2">
-          <UserIdentityDropdown />
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsConfigOpen((open) => !open)}
-              className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/60 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm"
-              aria-label="Open commons settings"
-            >
-              <Settings className="h-4 w-4" strokeWidth={1.25} />
-            </button>
-            {isConfigOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsConfigOpen(false)} />
-                <div
-                  className="absolute right-0 mt-2 w-56 rounded-md border p-3 shadow-lg z-50"
-                  style={{
-                    backgroundColor: "var(--theme-surface-paper)",
-                    borderColor: "var(--theme-border-soft)",
-                    boxShadow: "var(--theme-shadow-soft)",
-                  }}
-                >
-                  <div className="space-y-2">
-                    <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                      Theme
-                    </p>
-                    <ThemeSwitcher />
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      }
+      rightSlot={coverControlsSlot}
     >
       <div className="space-y-8">
         <section
           aria-label="Commons banner"
           className="rounded-3xl border px-6 py-6 md:px-8 md:py-8"
           style={{ borderColor: COMMONS_SURFACE.border, ...bannerBackground }}
+          ref={bannerRef}
         >
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-3">
-              <h2 className="text-2xl font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-                {domainName || domainSlug || "This domain"}
-              </h2>
-              <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                KE3P · cryptically designed, wonderfully underfolded
-              </p>
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                {user?.avatar_url ? (
+                  <img
+                    src={user.avatar_url}
+                    alt={user?.name || "User avatar"}
+                    className="h-12 w-12 rounded-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold"
+                    style={{
+                      backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
+                      color: COMMONS_SURFACE.inkPrimary,
+                    }}
+                  >
+                    {user?.name?.[0] || user?.email?.[0] || "U"}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
+                      {user?.name || user?.email || "Member"}
+                    </p>
+                    <span
+                      className="rounded-full border px-2 py-0.5 text-[11px] uppercase tracking-[0.2em]"
+                      style={{ borderColor: COMMONS_SURFACE.border, color: COMMONS_SURFACE.inkSecondary }}
+                    >
+                      {roleLabel}
+                    </span>
+                  </div>
+                  <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                    {roleSummary}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {isAuthenticated && renderCommonsControls("flex items-center gap-2")}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {domainId ? (
+                <>
+                  <EngagementButton
+                    templateSlug="journey.create"
+                    context={{ entityType: "domain", entityId: domainId, domainId }}
+                    label="Start journey"
+                    variant="secondary"
+                  />
+                  <EngagementButton
+                    templateSlug="moment.create"
+                    context={{ entityType: "domain", entityId: domainId, domainId }}
+                    label="Capture moment"
+                    variant="secondary"
+                  />
+                </>
+              ) : (
+                <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                  Builder actions are unavailable while the domain is loading.
+                </p>
+              )}
             </div>
             {isAdmin && (
               <div
