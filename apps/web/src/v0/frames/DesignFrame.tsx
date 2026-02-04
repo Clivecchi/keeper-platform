@@ -30,6 +30,12 @@ interface DesignFrameProps {
   headerStickyTop?: string
   /** Override header background color */
   headerBackgroundColor?: string
+  /** Optional header footer content */
+  headerFooterSlot?: React.ReactNode
+  /** Header margin bottom override */
+  headerMarginBottom?: string
+  /** Frame padding top override */
+  framePaddingTop?: string
   /** Main content area */
   children: React.ReactNode
   /** Optional footer content */
@@ -55,6 +61,9 @@ export function DesignFrame({
   hideAdminControl = false,
   headerStickyTop,
   headerBackgroundColor,
+  headerFooterSlot,
+  headerMarginBottom,
+  framePaddingTop,
   children,
   footerSlot,
   onClose
@@ -107,13 +116,14 @@ export function DesignFrame({
           className="mx-auto w-full max-w-5xl"
           style={{
             padding: FRAME_CONSTANTS.pad,
+            paddingTop: framePaddingTop ?? FRAME_CONSTANTS.pad,
             paddingBottom: `calc(${FRAME_CONSTANTS.pad} + var(--v0-margin-height))`,
           }}
         >
           {/* Header area */}
           {(title || subtitle || rightSlot) && (
             <div
-              className="sticky top-0 z-40 mb-6"
+              className="sticky top-0 z-40"
               style={{
                 backgroundColor: headerBackgroundColor ?? "hsl(var(--theme-surface-page) / 0.82)",
                 borderBottom: "1px solid var(--theme-border-soft)",
@@ -122,6 +132,7 @@ export function DesignFrame({
                 paddingBottom: "0.75rem",
                 top: headerStickyTop ?? "0",
                 transition: "background-color 200ms ease",
+                marginBottom: headerMarginBottom ?? "1.5rem",
               }}
             >
               <header className="flex items-start justify-between">
@@ -173,6 +184,7 @@ export function DesignFrame({
                   </div>
                 )}
               </header>
+              {headerFooterSlot && <div className="mt-3">{headerFooterSlot}</div>}
             </div>
           )}
 

@@ -655,9 +655,9 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       subtitle="KE3P · cryptically designed, wonderfully underfolded"
       hideAdminControl
       headerBackgroundColor={coverHeaderBackground}
-      rightSlot={coverControlsSlot}
-    >
-      <div className="space-y-8">
+      framePaddingTop="0"
+      headerMarginBottom="0.75rem"
+      headerFooterSlot={
         <button
           type="button"
           onClick={() => {
@@ -668,7 +668,12 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         >
           <div className="h-px w-full" style={{ backgroundColor: "var(--theme-line-hairline)" }} />
           <div className="mt-0.5 h-px w-full" style={{ backgroundColor: "var(--theme-border-soft)" }} />
+          <div className="h-3" />
         </button>
+      }
+      rightSlot={coverControlsSlot}
+    >
+      <div className="space-y-8">
         <section
           aria-label="Commons banner"
           className="rounded-3xl border px-6 py-6 md:px-8 md:py-8"
