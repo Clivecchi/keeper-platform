@@ -14,6 +14,7 @@ Fetches live domain data (journeys, keepers, moments, members when permitted) to
 - [ ] Refine feed source once domain-scoped moment endpoints stabilize.
 
 ## 📆 Update Log
+- 2026-02-01: Added clickable cut line and made the cover flush to the top.
 - 2026-02-01: Added a subtle Commons Cover background shift on inheritance.
 - 2026-02-01: Moved the domain config gear into the Commons Banner and inherit it on scroll.
 - 2026-02-01: Split Commons Cover (sticky identity) from Commons Banner (user card) with control inheritance on scroll.

@@ -597,8 +597,8 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
   ) : null
 
   const coverHeaderBackground = showCoverControls
-    ? "hsl(var(--theme-surface-paper) / 0.92)"
-    : "hsl(var(--theme-surface-page) / 0.82)"
+    ? "hsl(var(--theme-surface-paper) / 0.96)"
+    : "hsl(var(--theme-surface-page) / 0.92)"
 
   const handleCoverChange = async (nextCover: { type: string; url: string; key?: string } | null) => {
     if (!domainId) return
@@ -654,11 +654,21 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       title={domainName || domainSlug || "This domain"}
       subtitle="KE3P · cryptically designed, wonderfully underfolded"
       hideAdminControl
-      headerStickyTop="clamp(1.5rem, 5vw, 3.25rem)"
       headerBackgroundColor={coverHeaderBackground}
       rightSlot={coverControlsSlot}
     >
       <div className="space-y-8">
+        <button
+          type="button"
+          onClick={() => {
+            bannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+          }}
+          className="w-full"
+          aria-label="Back to commons banner"
+        >
+          <div className="h-px w-full" style={{ backgroundColor: "var(--theme-line-hairline)" }} />
+          <div className="mt-0.5 h-px w-full" style={{ backgroundColor: "var(--theme-border-soft)" }} />
+        </button>
         <section
           aria-label="Commons banner"
           className="rounded-3xl border px-6 py-6 md:px-8 md:py-8"
