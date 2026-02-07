@@ -29,3 +29,4 @@ Fetches live domain data (journeys, keepers, moments, members when permitted) to
 - 2026-01-31: Wired Commons feed and anchors to live domain data and navigation.
 - 2026-01-27: Rebuilt Commons layout with a dominant feed, anchor cards, Kip guide, and subtle admin access.
 - 2026-01-25: Added the Commons frame as the default authenticated domain surface.
+- 2026-02-05: Adopted `useFrameContext()` for authoritative domain and active journey. Added journey breadcrumb label derived from shell context.

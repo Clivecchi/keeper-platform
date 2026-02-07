@@ -7,14 +7,14 @@ import { ThemeSwitcher } from "../ThemeSwitcher"
 import { useV0Shell } from "../../shell/V0ShellContext"
 
 export function ProfileFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
-  const { closeToBoard } = useV0Shell()
+  const { closeToBoard, experienceActions } = useV0Shell()
 
   return (
     <DesignFrame
       styleId={styleId}
       themeSlug={themeSlug}
       title="Profile"
-      subtitle="This frame will host domain profile context inside the v0 shell."
+      subtitle="Your presence in this domain"
       themeSwitcherSlot={<ThemeSwitcher />}
       rightSlot={
         <button
@@ -28,8 +28,12 @@ export function ProfileFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       }
       onClose={closeToBoard}
     >
-      <div className="rounded-2xl border border-black/10 bg-white/80 p-6 text-sm text-gray-700 shadow-sm">
-        Domain profile content will render here once the v0 domain board data is connected.
+      <div className="rounded-2xl border p-6 text-sm shadow-sm" style={{ borderColor: "var(--theme-border-soft)", backgroundColor: "hsl(var(--theme-surface-paper) / 0.8)", color: "var(--theme-ink-secondary)" }}>
+        <p className="font-medium mb-2" style={{ color: "var(--theme-ink-primary)" }}>Coming soon</p>
+        <p>Your profile and relationships view is being prepared. Return to the commons to explore what is available now.</p>
+        <button type="button" onClick={experienceActions.goCommons} className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90" style={{ borderColor: "var(--theme-border-soft)", backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)", color: "var(--theme-ink-primary)" }}>
+          Back to Commons
+        </button>
       </div>
     </DesignFrame>
   )

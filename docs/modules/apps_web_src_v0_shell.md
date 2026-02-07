@@ -6,12 +6,18 @@ Centralize frame routing, theme application, and navigation helpers for domain b
 ## 🧱 Key Files
 - `V0Shell.tsx`
 - `V0ShellContext.tsx`
+- `FrameContext.tsx`
+- `useExperienceMode.ts`
 
 ## 🔄 Data & Behavior
 The shell resolves the domain slug, applies the active theme/style, and routes frames by query param. It exposes navigation helpers so frames can build URLs and return to `/d/:slug/board` with theme preserved.
 
+`FrameContext` implements the **Context Contract**: a single provider that derives auth, domain, active keeper/journey, theme, and frame metadata. Frames consume this via `useFrameContext()` instead of ad-hoc prop/query-param parsing. Keeper and journey selection is persisted per-domain in localStorage.
+
 ## ⚠️ Notes & ToDo
 - [ ] Replace fallback domain data once domain home board wiring is live.
+- [ ] Add theme resolution from Journey/Keeper/Domain hierarchy (MVP uses URL param only).
+- [ ] Default keeper/journey creation when none exist for a domain.
 
 ## 📆 Update Log
 - 2026-01-31: Registered the Present frame in the v0 shell frame registry and frame key union.
@@ -23,3 +29,4 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - 2026-01-24: Redirected unauthenticated requests away from private frames (kip/agent/admin/profile).
 - 2026-01-25: Gated the build timestamp HUD behind `VITE_SHOW_DEBUG_HUD` and moved it away from the bottom margin.
 - 2026-01-25: Defaulted authenticated domain board routing to the Commons frame.
+- 2026-02-05: Added `FrameContext.tsx` implementing the Context Contract (auth, domain, keeper/journey selection, theme, frame metadata). Injected `FrameContextProvider` inside V0Shell wrapping all frame components.

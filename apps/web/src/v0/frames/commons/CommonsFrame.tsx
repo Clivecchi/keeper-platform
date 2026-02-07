@@ -216,6 +216,14 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         setDomainTheme(theme)
         setCoverMedia(coverImage ? { type: "image", url: coverImage, key: coverImageKey ?? undefined } : null)
 
+        // Track active journey name for breadcrumb display
+        if (activeJourneyId) {
+          const activeJ = (journeys as JourneySummary[]).find((j) => j.id === activeJourneyId)
+          setActiveJourneyName(activeJ?.name ?? null)
+        } else if ((journeys as JourneySummary[]).length > 0) {
+          setActiveJourneyName((journeys as JourneySummary[])[0].name)
+        }
+
         const journeyItems = (journeys as JourneySummary[]).slice(0, 2).map((journey) => {
           const count = journey.momentCount ?? 0
           return `${journey.name} · ${count} moments`
@@ -304,7 +312,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     return () => {
       active = false
     }
-  }, [domainSlug, isAdmin, navigateToFrame, user?.id])
+  }, [domainSlug, isAdmin, navigateToFrame, user?.id, activeJourneyId])
 
   React.useEffect(() => {
     const bannerNode = bannerRef.current
@@ -691,6 +699,13 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       rightSlot={coverControlsSlot}
     >
       <div className="space-y-8">
+        {/* Journey breadcrumb — derived from FrameContext */}
+        {activeJourneyName && (
+          <div className="flex items-center gap-2 text-xs" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+            <span className="uppercase tracking-[0.2em] text-[10px]">Journey</span>
+            <span style={{ color: COMMONS_SURFACE.inkPrimary }} className="font-medium">{activeJourneyName}</span>
+          </div>
+        )}
         <section
           aria-label="Commons banner"
           className="rounded-3xl border px-6 py-6 md:px-8 md:py-8"
