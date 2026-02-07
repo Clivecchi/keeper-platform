@@ -21,6 +21,7 @@ import { IndexFrame } from "../frames/index/IndexFrame"
 import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
 import { useExperienceMode } from "./useExperienceMode"
+import { FrameContextProvider } from "./FrameContext"
 
 const getDomainFallback = (slug: string) => ({
   id: `fallback-${slug}`,
@@ -156,6 +157,13 @@ export function V0Shell() {
           closeToBoard,
         }}
       >
+        <FrameContextProvider
+          domainSlug={slug}
+          frame={frame}
+          experienceMode={experience.state.mode}
+          themeSlug={themeSlug}
+          draftId={draftId}
+        >
         {frame === "cover" ? (
           <FrameComponent styleId={styleId} themeSlug={themeSlug} domainData={domainData} />
         ) : frame === "moment" ? (
@@ -175,6 +183,7 @@ export function V0Shell() {
             {commitSha} | {buildTime}
           </div>
         )}
+        </FrameContextProvider>
       </V0ShellProvider>
     </StyleOverrideProvider>
   )

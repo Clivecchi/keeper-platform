@@ -410,6 +410,10 @@ router.post('/:id/keep', optionalAuthMiddleware, domainResolutionMiddleware, asy
   try {
     const { id } = req.params;
 
+    // Optional journey/keeper context from request body (Context Contract)
+    const journeyId = typeof req.body?.journeyId === 'string' ? req.body.journeyId : undefined;
+    const keeperId = typeof req.body?.keeperId === 'string' ? req.body.keeperId : undefined;
+
     // Get domain from resolved context - required for keeping
     const domainId = await resolveDomainId(req);
 
@@ -468,12 +472,15 @@ router.post('/:id/keep', optionalAuthMiddleware, domainResolutionMiddleware, asy
       : null;
 
     // Update the moment: set domainId, status to 'kept', and keptAt timestamp
+    // Optionally bind to journey from Context Contract
+    // Note: keeperId is available for logging but Moment model links to Keeper via Path
     const moment = await prisma.moment.update({
       where: { id },
       data: {
         domainId, // Bind to domain at keep time
         keptAt: new Date(),
         updatedAt: new Date(),
+        ...(journeyId ? { journeyId } : {}),
         ...(claimToken ? { claimToken, claimTokenExpiresAt } : {}),
       },
       select: {

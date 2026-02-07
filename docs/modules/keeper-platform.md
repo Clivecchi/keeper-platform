@@ -83,6 +83,9 @@ Routing is managed by `react-router-dom` in `App.tsx`. Public and protected rout
 ---
 
 ## 📆 Update Log
+### 2026-02-05
+- **DOCS**: Added `KEEPER-AUDIT.md` with a comprehensive platform audit snapshot.
+- **DOCS**: Added `KEEPER-FUNCTIONAL-AUDIT.md` with a functional handoff review.
 ### 2024-05-22
 - **INIT**: Scaffolding of the initial Keeper UI shell.
 - **ADD**: `AppLayout`, `Navbar`, `ThemeProvider`, and pages for Landing, Login, Register, and Root Keeper.

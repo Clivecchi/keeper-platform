@@ -12,6 +12,7 @@ import { EngagementButton } from "../../../components/engagement/EngagementButto
 import { UserIdentityDropdown } from "../../../components/layout/UserIdentityDropdown"
 import MediaUploader from "../../../components/studio/MediaUploader"
 import { useV0Shell } from "../../shell/V0ShellContext"
+import { useFrameContextOptional } from "../../shell/FrameContext"
 
 const COMMONS_SURFACE = {
   card: "hsl(var(--theme-surface-paper) / 0.82)",
@@ -121,11 +122,27 @@ function formatRelativeTime(value?: string | null) {
 
 export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
   const { domainSlug, experienceActions, navigateToFrame } = useV0Shell()
+  const frameCtx = useFrameContextOptional()
   const { isAdmin, user, isAuthenticated } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const experience = resolveCommonsExperience(searchParams.get("experience"))
-  const [domainId, setDomainId] = React.useState<string | null>(null)
-  const [domainName, setDomainName] = React.useState<string | null>(null)
+
+  // Prefer FrameContext domain (authoritative) over ad-hoc fetched values
+  const [domainId, setDomainId] = React.useState<string | null>(frameCtx?.domain?.id ?? null)
+  const [domainName, setDomainName] = React.useState<string | null>(frameCtx?.domain?.name ?? null)
+
+  // Active journey label from shell context
+  const activeJourneyId = frameCtx?.selection.activeJourneyId ?? null
+  const [activeJourneyName, setActiveJourneyName] = React.useState<string | null>(null)
+
+  // Sync domain from FrameContext when it resolves
+  React.useEffect(() => {
+    if (frameCtx?.domain?.id && !frameCtx.domain.id.startsWith("fallback-")) {
+      setDomainId(frameCtx.domain.id)
+      setDomainName(frameCtx.domain.name)
+    }
+  }, [frameCtx?.domain?.id, frameCtx?.domain?.name])
+
   const [domainTheme, setDomainTheme] = React.useState<DomainTheme | null>(null)
   const [coverMedia, setCoverMedia] = React.useState<CoverMedia | null>(null)
   const [coverSaveStatus, setCoverSaveStatus] = React.useState<"idle" | "saving" | "success" | "error">("idle")

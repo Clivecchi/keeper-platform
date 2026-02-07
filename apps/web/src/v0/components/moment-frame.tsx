@@ -11,16 +11,22 @@ import { createDraftMoment } from "../api/v0Moments"
 import { FooterTrail } from "./FooterTrail"
 import { recordTrailEvent } from "../stores/trailStore"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
+import { useFrameContextOptional } from "../shell/FrameContext"
 
 type SaveStatus = "idle" | "saving" | "saved" | "error"
 
 export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftId }: { styleId?: StyleId, themeSlug?: string | null, domainSlug?: string, draftId?: string | null }) {
-  console.log('MomentFrame rendered with:', { styleId, themeSlug, domainSlug, draftId })
   const navigate = useNavigate()
   const v0Shell = useV0ShellOptional()
+  const frameCtx = useFrameContextOptional()
+
+  // Prefer FrameContext values (shell-derived, authoritative) over ad-hoc props
+  const resolvedDomainSlug = frameCtx?.domain?.slug ?? domainSlug
+  const resolvedThemeSlug = frameCtx?.theme.themeSlug ?? themeSlug
+  const resolvedDraftIdProp = frameCtx?.frame.draftId ?? draftId
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [resolvedDraftId, setResolvedDraftId] = useState<string | null>(draftId ?? null)
+  const [resolvedDraftId, setResolvedDraftId] = useState<string | null>(resolvedDraftIdProp ?? null)
   const [isBootstrapping, setIsBootstrapping] = useState(false)
   const [bootstrapError, setBootstrapError] = useState<string | null>(null)
   const [bootstrapTimedOut, setBootstrapTimedOut] = useState(false)
@@ -35,31 +41,31 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
       v0Shell.closeToBoard()
       return
     }
-    if (domainSlug) {
-      navigate(`/d/${domainSlug}/board`)
+    if (resolvedDomainSlug) {
+      navigate(`/d/${resolvedDomainSlug}/board`)
       return
     }
     navigate("/v0")
   }
 
   useEffect(() => {
-    if (draftId) {
-      setResolvedDraftId(draftId)
+    if (resolvedDraftIdProp) {
+      setResolvedDraftId(resolvedDraftIdProp)
     }
-  }, [draftId])
+  }, [resolvedDraftIdProp])
 
   useEffect(() => {
-    if (!domainSlug) return
-    recordTrailEvent(domainSlug, {
+    if (!resolvedDomainSlug) return
+    recordTrailEvent(resolvedDomainSlug, {
       label: "Opened Moment",
       type: "navigation",
       href: `${location.pathname}${location.search}`,
     })
-  }, [domainSlug, location.pathname, location.search])
+  }, [resolvedDomainSlug, location.pathname, location.search])
 
   useEffect(() => {
     if (resolvedDraftId || isBootstrapping) return
-    if (!domainSlug) {
+    if (!resolvedDomainSlug) {
       setBootstrapError('Domain is required to start a draft.')
       return
     }
@@ -77,8 +83,8 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
           }
         }, 2500)
         const draft = await createDraftMoment({
-          themeSlug: themeSlug || undefined,
-          domainSlug,
+          themeSlug: resolvedThemeSlug || undefined,
+          domainSlug: resolvedDomainSlug,
         })
         if (!isActive) return
         setBootstrapTimedOut(false)
@@ -107,7 +113,7 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
         window.clearTimeout(timeoutId)
       }
     }
-  }, [bootstrapAttempt, domainSlug, isBootstrapping, resolvedDraftId, searchParams, setSearchParams, themeSlug])
+  }, [bootstrapAttempt, resolvedDomainSlug, isBootstrapping, resolvedDraftId, searchParams, setSearchParams, resolvedThemeSlug])
 
   const handleRetry = () => {
     setBootstrapError(null)
@@ -157,7 +163,7 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
   return (
     <DesignFrame
       styleId={styleId}
-      themeSlug={themeSlug}
+      themeSlug={resolvedThemeSlug}
       title="Moment Diary"
       subtitle={new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
       themeSwitcherSlot={<ThemeSwitcher />}
@@ -199,8 +205,8 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
       )}
 
       <MomentBody
-        themeSlug={themeSlug}
-        domainSlug={domainSlug}
+        themeSlug={resolvedThemeSlug}
+        domainSlug={resolvedDomainSlug}
         draftId={resolvedDraftId ?? undefined}
         bodyBuffer={bodyBuffer}
         titleBuffer={titleBuffer}
@@ -210,7 +216,7 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
         saveRetryToken={saveRetryToken}
       />
 
-      <FooterTrail domainSlug={domainSlug} />
+      <FooterTrail domainSlug={resolvedDomainSlug} />
 
       <div className="mt-3 flex justify-end">
         <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] ${statusConfig.tone}`}>

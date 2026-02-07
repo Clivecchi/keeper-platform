@@ -32,6 +32,10 @@ export interface KeptMomentResult {
 
 interface DomainScopedOptions {
   domainSlug?: string;
+  /** Active journey to bind the moment to */
+  journeyId?: string;
+  /** Active keeper to bind the moment to */
+  keeperId?: string;
 }
 
 interface DraftRequestOptions extends DomainScopedOptions {
@@ -213,9 +217,15 @@ export async function keepMoment(
   const url = `${API_BASE_URL}/api/v0/moments/${id}/keep`;
   logDraftRequest('keepDraft', url, headers);
 
+  // Include journey/keeper context in the keep request
+  const body: Record<string, string> = {};
+  if (options?.journeyId) body.journeyId = options.journeyId;
+  if (options?.keeperId) body.keeperId = options.keeperId;
+
   const response = await fetch(url, {
     method: 'POST',
     headers,
+    body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
     credentials: 'include',
   });
 

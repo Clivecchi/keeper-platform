@@ -10,6 +10,7 @@ import { useAuth } from "../../../context/AuthContext"
 import { recordTrailEvent } from "../../stores/trailStore"
 import { MomentFeedbackRail } from "./MomentFeedbackRail"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
+import { useFrameContextOptional } from "../../shell/FrameContext"
 
 // Config for footer messages - ready for styling later
 const momentCopy = {
@@ -54,7 +55,13 @@ export function MomentBody({
 }: MomentBodyProps) {
   const navigate = useNavigate()
   const v0Shell = useV0ShellOptional()
+  const frameCtx = useFrameContextOptional()
   const { isAuthenticated } = useAuth()
+
+  // Context-derived values (authoritative from shell)
+  const ctxDomainSlug = frameCtx?.domain?.slug ?? domainSlug
+  const ctxJourneyId = frameCtx?.selection.activeJourneyId ?? null
+  const ctxKeeperId = frameCtx?.selection.activeKeeperId ?? null
   // Determine if we should show ruled lines (diary-paper theme or style)
   const shouldShowRuledLines = themeSlug === 'diary-paper'
   const [internalContent, setInternalContent] = useState("")
@@ -197,13 +204,17 @@ export function MomentBody({
 
     try {
       setIsKeeping(true)
-      const result = await keepMoment(activeDraftId, { domainSlug })
+      const result = await keepMoment(activeDraftId, {
+        domainSlug: ctxDomainSlug,
+        journeyId: ctxJourneyId ?? undefined,
+        keeperId: ctxKeeperId ?? undefined,
+      })
       setIsKept(true)
       setLastSaved(new Date())
-      recordTrailEvent(domainSlug, {
+      recordTrailEvent(ctxDomainSlug, {
         label: "Moment kept",
         type: "action",
-        href: domainSlug ? (v0Shell ? v0Shell.buildFrameUrl("moments") : `/d/${domainSlug}/board?frame=moments`) : undefined,
+        href: ctxDomainSlug ? (v0Shell ? v0Shell.buildFrameUrl("moments") : `/d/${ctxDomainSlug}/board?frame=moments`) : undefined,
       })
       if (result.claim) {
         setClaimInfo(result.claim)
@@ -234,17 +245,17 @@ export function MomentBody({
   }
 
   const handleViewDomain = () => {
-    if (!domainSlug) return
-    recordTrailEvent(domainSlug, {
+    if (!ctxDomainSlug) return
+    recordTrailEvent(ctxDomainSlug, {
       label: "View in Domain",
       type: "navigation",
-      href: v0Shell ? v0Shell.buildFrameUrl("moments") : `/d/${domainSlug}/board?frame=moments`,
+      href: v0Shell ? v0Shell.buildFrameUrl("moments") : `/d/${ctxDomainSlug}/board?frame=moments`,
     })
     if (v0Shell) {
       v0Shell.navigateToFrame("moments")
       return
     }
-    navigate(`/d/${domainSlug}/board?frame=moments`)
+    navigate(`/d/${ctxDomainSlug}/board?frame=moments`)
   }
 
   useEffect(() => {
