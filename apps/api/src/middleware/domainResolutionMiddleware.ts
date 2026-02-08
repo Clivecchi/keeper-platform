@@ -215,20 +215,23 @@ export class DomainResolutionMiddleware {
       };
     }
 
-    // Check if hostname is reserved
-    if (this.isReservedHostname(hostname)) {
+    // Treat platform base domains (e.g., localhost:3001 in dev, api.ke3p.com) as no-domain context.
+    // Check this BEFORE reserved hostname check so that API server hostnames like
+    // api.ke3p.com don't get blocked by the reserved 'api' prefix rule.
+    if (this.isPlatformBaseDomain(hostname)) {
       return {
         domain: null,
         isCustomDomain: false,
         originalHostname: hostname,
         resolvedSlug: '',
-        errorType: 'NOT_FOUND',
-        errorMessage: 'Reserved hostname',
       };
     }
 
-    // Treat platform base domains (e.g., localhost:3001 in dev) as no-domain context
-    if (this.isPlatformBaseDomain(hostname)) {
+    // Check if hostname is reserved (e.g., 'cdn.example.com', 'mail.example.com').
+    // This runs AFTER isPlatformBaseDomain so that known API/web hostnames aren't blocked.
+    if (this.isReservedHostname(hostname)) {
+      // Instead of returning a hard error that blocks the request, treat reserved
+      // hostnames like platform base domains — no domain context, just continue.
       return {
         domain: null,
         isCustomDomain: false,
@@ -570,6 +573,12 @@ export class DomainResolutionMiddleware {
       // TODO(domains): enable *.keeper.domains after MVP
       // Use env-driven public web origin host if available; keep localhost variants
       (process.env.PUBLIC_WEB_ORIGIN ? new URL(process.env.PUBLIC_WEB_ORIGIN).host : ''),
+      // API server hostname — must be recognized as platform so domain-scoped routes work
+      (process.env.API_BASE_URL ? (() => { try { return new URL(process.env.API_BASE_URL).host; } catch { return ''; } })() : ''),
+      // Hardcoded fallback for ke3p.com platform (web + API origins)
+      'ke3p.com',
+      'www.ke3p.com',
+      'api.ke3p.com',
     ].filter(Boolean) as string[];
 
     // Always treat localhost/127.0.0.1/0.0.0.0 as platform, any port

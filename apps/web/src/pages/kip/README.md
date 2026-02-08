@@ -62,3 +62,7 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - Introduced `KipAgentBoardPage` with tabbed layout, context column, and dialogue wiring backed by `kip_sessions` + `kip_messages`.
 - Added `useAgentSessions` consumption plus create-session + run-agent flows for the `/kip` route.
 
+### 2026-02-08 - Agent loading fix after authentication
+- Added `isAuthenticated` to the dependency array of the agent-loading useEffect in `KipAgentBoardPage.tsx`, ensuring the agent data is re-fetched after the user logs in.
+- Clears `agentError` on retry to provide a clean error state.
+

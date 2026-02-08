@@ -464,23 +464,112 @@ export const loadDomainPermissions = domainPermissionMiddleware.loadPermissions(
 
 /**
  * Express-compatible middleware wrappers
- * These work with standard Express Request type and handle internal type conversion
+ * These work with standard Express Request type and handle internal type conversion.
+ *
+ * When domainContext is NOT set (e.g., API routes where domain resolution from
+ * hostname is skipped), these helpers fall back to resolving the domain from
+ * req.params.domainId and checking ownership / DomainPermission table directly.
  */
 
+/**
+ * Ensure domainContext exists and user permissions are loaded.
+ * If domainContext is missing (hostname resolution skipped), resolves domain
+ * from req.params.domainId and populates context + permissions.
+ */
+async function ensureDomainContext(req: Request, _res: Response): Promise<DomainPermissionRequest> {
+  const typed = req as DomainPermissionRequest;
+
+  // If domainContext already has permissions loaded, nothing to do
+  if (typed.domainContext?.permissions) {
+    return typed;
+  }
+
+  // Try to resolve domain from URL params when domainContext is missing or incomplete
+  const domainId = req.params?.domainId;
+  if (!domainId) {
+    return typed; // No domain ID available — downstream middleware will handle the error
+  }
+
+  try {
+    const domain = await prisma.domain.findUnique({
+      where: { id: domainId },
+      select: { id: true, name: true, slug: true, ownerId: true, settings: true },
+    });
+
+    if (!domain) {
+      return typed; // Domain not found — downstream middleware will handle
+    }
+
+    const userId = typed.user?.id;
+    const isOwner = Boolean(userId && domain.ownerId === userId);
+
+    // Build permissions based on ownership or DomainPermission record
+    let permissions: DomainPermissionType[] = [];
+    let role = 'guest';
+
+    if (isOwner) {
+      permissions = ['read', 'write', 'share', 'admin', 'invite', 'delete'];
+      role = 'owner';
+    } else if (userId) {
+      // Check DomainPermission table
+      const perm = await prisma.domainPermission.findFirst({
+        where: { domainId: domain.id, userId },
+      });
+      if (perm) {
+        permissions = (perm.permissions ?? []) as DomainPermissionType[];
+        role = perm.role ?? 'member';
+      } else {
+        // Fallback: allow read for authenticated users who own entities in this domain
+        const hasRelationship = await prisma.keeper.findFirst({
+          where: { domainId: domain.id, ownerId: userId },
+          select: { id: true },
+        }).then(Boolean).catch(() => false);
+
+        if (hasRelationship) {
+          permissions = ['read', 'write'];
+          role = 'member';
+        } else {
+          // Default read for any authenticated user (single-domain MVP)
+          permissions = ['read'];
+          role = 'viewer';
+        }
+      }
+    }
+
+    typed.domainContext = {
+      domain: domain as unknown as DomainData,
+      isCustomDomain: false,
+      originalHostname: req.get('host') || '',
+      resolvedSlug: domain.slug,
+      permissions,
+      role,
+      isOwner,
+    };
+  } catch (error) {
+    console.error('[domainPermission] Failed to resolve domain from params:', error);
+  }
+
+  return typed;
+}
+
 export const requireDomainReadCompat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  return requireDomainRead(req as DomainPermissionRequest, res, next);
+  const typed = await ensureDomainContext(req, res);
+  return requireDomainRead(typed, res, next);
 };
 
 export const requireDomainWriteCompat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  return requireDomainWrite(req as DomainPermissionRequest, res, next);
+  const typed = await ensureDomainContext(req, res);
+  return requireDomainWrite(typed, res, next);
 };
 
 export const requireDomainAdminCompat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  return requireDomainAdmin(req as DomainPermissionRequest, res, next);
+  const typed = await ensureDomainContext(req, res);
+  return requireDomainAdmin(typed, res, next);
 };
 
 export const requireDomainOwnershipCompat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  return requireDomainOwnership(req as DomainPermissionRequest, res, next);
+  const typed = await ensureDomainContext(req, res);
+  return requireDomainOwnership(typed, res, next);
 };
 
 export const loadDomainPermissionsCompat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -489,7 +578,10 @@ export const loadDomainPermissionsCompat = async (req: Request, res: Response, n
     addLog('perm-probe-enter', { domainContextExists: !!(req as any).domainContext, params: req.params });
   } catch {}
 
-  // If no domain context (e.g., routes like /my), skip permission loading.
+  // Ensure domainContext is populated from params if not from hostname resolution
+  await ensureDomainContext(req, res);
+
+  // If still no domain context (e.g., routes like /my), skip permission loading.
   if (!(req as any).domainContext) {
     return next();
   }

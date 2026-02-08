@@ -594,9 +594,11 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     setSearchParams(next, { replace: true });
   }, [isPublicScope, requestedTab, searchParams, setSearchParams]);
 
+  // Retry agent load when auth state changes (e.g., after login)
   useEffect(() => {
     let isMounted = true;
     setIsAgentLoading(true);
+    setAgentError(null);
     KipApi.getLeadAgent(agentSlug)
       .then((data) => {
         if (!isMounted) return;
@@ -616,7 +618,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [agentSlug]);
+  }, [agentSlug, isAuthenticated]);
 
   useEffect(() => {
     if (!agent?.id) return;
