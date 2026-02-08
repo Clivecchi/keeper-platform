@@ -26,5 +26,10 @@ Encapsulate shared React context providers (auth, theme, boards, worlds, etc.) u
 - Skip `/api/kam/settings` calls when only cookie auth is present to prevent noisy 401s and rely on the Keeper Classic fallback until cookie-aware endpoints land.
 ### 2026-01-02 - Canonical Theme Vars
 - Added canonical theme token mapping and emission as `--theme-*` CSS variables (surface/ink/border/shadow/focus), keeping legacy vars for compatibility.
+### 2026-02-08 - Reliable Token-Based Auth
+- `AuthContext.tsx` now stores the real JWT token from login responses even in production (via `authTokenStore`). Previously, the token was discarded in production with the assumption cookies would handle everything.
+- `fetchUserSession` sends the stored JWT as `Authorization: Bearer` header alongside cookies, so the `/api/kam/auth/me` session check succeeds even when cookies are unavailable.
+- `logout` now clears the auth token store.
+
 ### 2026-01-24 - Auth Resolution + Admin Allowlist
 - Added resolved auth state and admin allowlist fallback to support stricter route guards.

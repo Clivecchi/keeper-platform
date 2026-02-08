@@ -79,6 +79,11 @@ Core utility functions and API clients for the Keeper web application, including
 - Added kipApi.ts with database-backed KIP agent operations
 - Established core API client functionality 
 
+### 2026-02-08 - Auth Token Store + Reliable Auth
+- Added `authTokenStore.ts` — in-memory + sessionStorage store for the JWT auth token, providing a reliable fallback when HttpOnly cookies are unavailable.
+- Rewrote `apiFetch.ts` — removed production-only Authorization header stripping. Now injects JWT from `authTokenStore` as `Authorization: Bearer` header on every API request. Cookies still sent via `credentials: 'include'` as secondary fallback.
+- **Root cause fixed**: The previous cookie-only auth approach in production had zero fallback. If cookies were blocked by browser settings, SameSite restrictions, or cross-subdomain issues, every API call returned 401 and the entire app was non-functional (Kip wouldn't respond, sessions failed, etc.).
+
 ### Single-Domain MVP URLs
 
 - All API calls resolve base from `VITE_API_URL` first, falling back to same-origin.

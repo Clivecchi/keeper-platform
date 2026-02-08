@@ -1,3 +1,5 @@
+import { getAuthToken } from '../../lib/authTokenStore';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 
 export interface DraftMoment {
@@ -72,6 +74,12 @@ function buildDomainHeaders(options?: DraftRequestOptions) {
     'Content-Type': 'application/json',
   };
 
+  // Inject JWT auth token if available (primary auth mechanism)
+  const token = getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   if (options?.domainSlug) {
     headers['x-domain-slug'] = options.domainSlug;
   }
@@ -79,7 +87,8 @@ function buildDomainHeaders(options?: DraftRequestOptions) {
   const shouldIncludeAnon =
     options?.includeAnonymousKey !== false &&
     options?.domainSlug &&
-    !hasSessionCookie();
+    !hasSessionCookie() &&
+    !token; // Skip anon key if we have a real auth token
 
   if (shouldIncludeAnon) {
     const anonKey = getOrCreateAnonKey(options.domainSlug);

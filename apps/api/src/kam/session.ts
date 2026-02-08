@@ -76,20 +76,20 @@ function readCookieToken(req: Request): string | undefined {
   return undefined;
 }
 
-// Auth middleware: prefer cookie, fallback to Authorization header for tools/CLI
+// Auth middleware: prefer cookie, then Authorization header as fallback.
+// Both mechanisms are accepted from all clients (browsers, CLI, server-to-server).
 export function authWeb(req: Request, _res: Response, next: NextFunction) {
-  const origin = req.headers.origin; // present for browser CORS/XHR/fetch
-  const cliHeader = (req.headers['x-client'] || '').toString().toLowerCase() === 'cli';
-
   // Legacy V0 sessions still ship `keeper_token`, so treat it as an alias to
   // avoid noisy /api/kam/auth/me 401s without changing the cookie contract.
   const cookieToken = readCookieToken(req);
   const headerToken = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
 
-  // Accept header token only when NOT a browser fetch (no Origin) or explicitly marked CLI
-  const allowHeader = !origin || cliHeader;
-
-  const token = cookieToken || (allowHeader ? headerToken : '');
+  // Prefer cookie auth, but always accept Authorization header as fallback.
+  // The previous restriction that blocked header auth from browsers
+  // caused a dead end when cookies were unavailable (SameSite issues, browser
+  // settings, cross-subdomain problems). The frontend now sends the JWT as
+  // both a cookie AND a Bearer token for reliability.
+  const token = cookieToken || headerToken || '';
   if (!token) return next();
 
   try {

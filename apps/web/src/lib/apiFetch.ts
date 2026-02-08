@@ -1,10 +1,13 @@
 // apps/web/src/lib/apiFetch.ts
 // Unified API fetch wrapper that:
 // - Resolves API URLs to correct base
-// - Includes credentials for CORS
-// - Strips Authorization header in production (cookie-only)
+// - Includes credentials for CORS (cookie fallback)
+// - Injects JWT Authorization header from authTokenStore (primary auth)
 // - Returns parsed JSON on success
 // - Throws Error on failure (with parsed error message if available)
+
+import { getAuthToken } from './authTokenStore';
+
 type FetchOptions = RequestInit & { headers?: Record<string, string> };
 
 const RAW_BASE = ((import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com').replace(/\/$/, '');
@@ -20,24 +23,26 @@ function toApiUrl(input: string | URL): string {
 
 export async function apiFetch(input: string | URL, opts: FetchOptions = {}) {
   const url = toApiUrl(input);
-  const nextInit: RequestInit = {
-    ...opts,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(opts.headers || {}),
-    },
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(opts.headers || {}),
   };
 
-  // Strip Authorization for API host in production (cookie-only)
-  if ((import.meta as any)?.env?.PROD) {
-    try {
-      const h = new Headers(nextInit.headers as any);
-      const isApiHost = new URL(url).host === API_HOST;
-      if (isApiHost && h.has('Authorization')) h.delete('Authorization');
-      nextInit.headers = h as any;
-    } catch {}
+  // Inject JWT Authorization header if we have a stored token and
+  // the caller hasn't already set one. This is the primary auth mechanism.
+  // Cookies (via credentials: 'include') serve as a secondary fallback.
+  if (!headers['Authorization']) {
+    const token = getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
   }
+
+  const nextInit: RequestInit = {
+    ...opts,
+    credentials: 'include', // Also send cookies when available
+    headers,
+  };
 
   const response = await fetch(url, nextInit);
   
@@ -76,9 +81,7 @@ export async function apiFetch(input: string | URL, opts: FetchOptions = {}) {
   return response.json();
 }
 
-// Optional dev log of API base
+// Log API base in development
 if ((import.meta as any)?.env?.DEV) {
   try { console.log('[Keeper] API base =', (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com'); } catch {}
 }
-
-
