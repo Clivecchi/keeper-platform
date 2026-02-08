@@ -703,6 +703,8 @@ if (process.env.ENABLE_INTROSPECTION === '1') {
 // See apps/api/README.md and apps/api/src/kam/README.md for details.
 
 // 🍪 Shared cookie helper — used by login AND register to ensure parity
+// CRITICAL: Must use SameSite=None + Secure for cross-subdomain cookies
+// between api.ke3p.com and www.ke3p.com / ke3p.com (see session.ts parity)
 function setSessionCookie(res: Response, token: string) {
   const COOKIE_NAME = 'keeper_session';
   const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '.ke3p.com';
@@ -712,8 +714,8 @@ function setSessionCookie(res: Response, token: string) {
     `Domain=${COOKIE_DOMAIN}`,
     'Path=/',
     'HttpOnly',
-    process.env.NODE_ENV === 'production' ? 'Secure' : '',
-    'SameSite=Lax',
+    'Secure',
+    'SameSite=None',
     `Max-Age=${maxAge}`,
   ].filter(Boolean).join('; ');
   res.setHeader('Set-Cookie', cookieValue);
@@ -888,6 +890,7 @@ app.post('/api/kam/auth/logout', (req, res) => {
   console.log('📍 /api/kam/auth/logout endpoint hit');
 
   // 🍪 CLEAR COOKIE - Set expired cookie to clear session
+  // Must match the same attributes used when setting (SameSite=None, Secure)
   const COOKIE_NAME = 'keeper_session';
   const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '.ke3p.com';
   const expiredCookieValue = [
@@ -895,8 +898,8 @@ app.post('/api/kam/auth/logout', (req, res) => {
     `Domain=${COOKIE_DOMAIN}`,
     'Path=/',
     'HttpOnly',
-    process.env.NODE_ENV === 'production' ? 'Secure' : '', // Only set Secure in production
-    'SameSite=Lax',
+    'Secure',
+    'SameSite=None',
     'Max-Age=0' // Expire immediately
   ].filter(Boolean).join('; ');
   res.setHeader('Set-Cookie', expiredCookieValue);

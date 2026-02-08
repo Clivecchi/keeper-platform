@@ -40,3 +40,4 @@ Express middleware for authentication, domain resolution, permissions, CORS, and
 - CORS locked down to exact allowlist from `CORS_ALLOWLIST`. Dev allows `http://localhost:5173` and `http://localhost:3000` when not in production.
 - TODO(domains): enable subdomain and custom domain handling after MVP.
 - 2026-01-17: Added `x-anon-key` and `x-domain-slug` to default CORS allowed headers for dynamic CORS.
+- 2026-02-08: Fixed `authMiddleware.ts` — all three auth middleware functions (`authMiddleware`, `authMiddlewareCompat`, `optionalAuthMiddleware`) now check all legacy cookie names (`keeper_session`, `keeper_token`, `token`, `auth_token`) for backwards compatibility, matching `authWeb` in `session.ts`. Previously only `keeper_session` was checked, causing 401 errors for users with cookies set under legacy names.

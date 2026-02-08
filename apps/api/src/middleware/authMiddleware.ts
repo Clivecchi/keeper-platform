@@ -60,8 +60,14 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
     let token = req.header('Authorization')?.replace('Bearer ', '');
     
     // If no header token, check for cookie (cookie-based auth for browsers)
+    // Check all known cookie names for backwards compatibility
     if (!token) {
-      const cookieToken = (req as any).cookies?.keeper_session;
+      const cookies = (req as any).cookies || {};
+      const cookieToken =
+        cookies.keeper_session ||
+        cookies.keeper_token ||
+        cookies.token ||
+        cookies.auth_token;
       if (cookieToken) {
         token = cookieToken;
       }
@@ -131,8 +137,14 @@ export const authMiddlewareCompat = async (req: Request, res: Response, next: Ne
     let token = req.header('Authorization')?.replace('Bearer ', '');
     
     // If no header token, check for cookie (cookie-based auth for browsers)
+    // Check all known cookie names for backwards compatibility (matches authWeb in session.ts)
     if (!token) {
-      const cookieToken = (req as any).cookies?.keeper_session;
+      const cookies = (req as any).cookies || {};
+      const cookieToken =
+        cookies.keeper_session ||
+        cookies.keeper_token ||
+        cookies.token ||
+        cookies.auth_token;
       if (cookieToken) {
         token = cookieToken;
       }
@@ -142,7 +154,7 @@ export const authMiddlewareCompat = async (req: Request, res: Response, next: Ne
     console.log('[AuthMiddleware] Token check:', {
       path: req.path,
       hasAuthHeader: !!req.header('Authorization'),
-      hasCookie: !!(req as any).cookies?.keeper_session,
+      hasCookie: !!((req as any).cookies?.keeper_session || (req as any).cookies?.keeper_token),
       hasToken: !!token,
       tokenLength: token?.length || 0,
       origin: req.get('origin'),
@@ -208,8 +220,14 @@ export const optionalAuthMiddleware = async (
     let token = req.headers.authorization?.replace('Bearer ', '');
     
     // If no header token, check for cookie (cookie-based auth for browsers)
+    // Check all known cookie names for backwards compatibility
     if (!token) {
-      const cookieToken = (req as any).cookies?.keeper_session;
+      const cookies = (req as any).cookies || {};
+      const cookieToken =
+        cookies.keeper_session ||
+        cookies.keeper_token ||
+        cookies.token ||
+        cookies.auth_token;
       if (cookieToken) {
         token = cookieToken;
       }

@@ -54,11 +54,13 @@ export function setSessionCookie(req: Request, res: Response, token: string) {
 }
 
 // Clear session cookie on logout
+// CRITICAL: sameSite must match the value used when setting the cookie (SameSite=None)
+// otherwise the browser won't clear it correctly
 export function clearSessionCookie(res: Response) {
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
     secure: true,
-    sameSite: 'lax',
+    sameSite: 'none',
     domain: DOMAIN,
     path: '/',
   });
