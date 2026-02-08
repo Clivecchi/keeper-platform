@@ -569,7 +569,7 @@ export class KipApi {
     input: string,
     userId?: string,
     sessionId?: string,
-    options?: { domainId?: string | null; domainSlug?: string | null; mode?: AgentModeKey; debugBundle?: unknown },
+    options?: { domainId?: string | null; domainSlug?: string | null; mode?: AgentModeKey; debugBundle?: unknown; activeJourneyId?: string | null; activeKeeperId?: string | null },
   ): Promise<AgentResponse> {
     try {
       const response = await apiFetch('/api/kip/agents', {
@@ -584,6 +584,8 @@ export class KipApi {
           domainSlug: options?.domainSlug ?? undefined,
           mode: options?.mode,
           debugBundle: options?.debugBundle,
+          activeJourneyId: options?.activeJourneyId ?? undefined,
+          activeKeeperId: options?.activeKeeperId ?? undefined,
         })
       });
       

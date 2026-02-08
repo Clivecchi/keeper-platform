@@ -50,6 +50,7 @@ interface EngagementModalProps {
     domainId: string;
     entityType: string;
     entityId: string;
+    [key: string]: string | undefined;
   };
   onSubmit: (inputs: Record<string, any>) => Promise<void>;
   onClose: () => void;
@@ -68,7 +69,7 @@ export function EngagementModal({
   const [inputs, setInputs] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Initialize inputs with prefilled data
+  // Initialize inputs with prefilled data and context values
   useEffect(() => {
     const initialInputs: Record<string, any> = {};
     
@@ -84,10 +85,16 @@ export function EngagementModal({
           initialInputs[field.name] = value;
         }
       }
+
+      // Fall back: prefill from context if the field name matches a context key
+      // (e.g. keeperId, domainId) and no value was set from dataSource
+      if (initialInputs[field.name] === undefined && context[field.name] !== undefined) {
+        initialInputs[field.name] = context[field.name];
+      }
     });
 
     setInputs(initialInputs);
-  }, [template, prefillData]);
+  }, [template, prefillData, context]);
 
   const handleInputChange = (fieldName: string, value: any) => {
     setInputs(prev => ({

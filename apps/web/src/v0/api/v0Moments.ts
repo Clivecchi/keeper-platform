@@ -272,6 +272,8 @@ export interface KeptMomentSummary {
   body: string;
   keptAt: string | null;
   createdAt: string;
+  journeyId?: string | null;
+  journeyName?: string | null;
   domain?: {
     id: string;
     name: string;
@@ -282,12 +284,16 @@ export interface KeptMomentSummary {
 export async function getKeptMoments(options: {
   domainSlug: string;
   limit?: number;
+  journeyId?: string;
 }): Promise<KeptMomentSummary[]> {
   const url = new URL(`${API_BASE_URL}/api/v0/moments`);
   url.searchParams.set('domainSlug', options.domainSlug);
   url.searchParams.set('status', 'kept');
   if (options.limit) {
     url.searchParams.set('limit', String(options.limit));
+  }
+  if (options.journeyId) {
+    url.searchParams.set('journeyId', options.journeyId);
   }
 
   const response = await fetch(url.toString(), {

@@ -42,6 +42,7 @@ const listMomentsSchema = z.object({
   domainSlug: z.string().optional(),
   status: z.enum(['kept', 'draft']).optional(),
   limit: z.string().optional(),
+  journeyId: z.string().optional(),
 });
 
 function getAnonKey(req: Request) {
@@ -146,6 +147,11 @@ router.get('/', optionalAuthMiddleware, async (req: Request, res: Response) => {
       where.keptAt = null;
     }
 
+    // Optional journey filter
+    if (parsed.data.journeyId) {
+      where.journeyId = parsed.data.journeyId;
+    }
+
     const moments = await prisma.moment.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -156,6 +162,13 @@ router.get('/', optionalAuthMiddleware, async (req: Request, res: Response) => {
         narrative: true,
         keptAt: true,
         createdAt: true,
+        journeyId: true,
+        Journey: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -167,6 +180,8 @@ router.get('/', optionalAuthMiddleware, async (req: Request, res: Response) => {
         body: moment.narrative,
         keptAt: moment.keptAt,
         createdAt: moment.createdAt,
+        journeyId: moment.journeyId,
+        journeyName: moment.Journey?.name ?? null,
         domain,
       })),
     });
@@ -345,11 +360,14 @@ router.patch('/drafts/:id', optionalAuthMiddleware, async (req: Request, res: Re
       }
     }
 
-    // Update the draft moment
+    // Update the draft moment — apply title fallback if empty
+    const safeUpdateTitle = title !== undefined
+      ? (title.trim() || (body ? body.trim().slice(0, 60) + (body.trim().length > 60 ? '...' : '') : 'Untitled Moment'))
+      : undefined;
     const moment = await prisma.moment.update({
       where: { id },
       data: {
-        ...(title !== undefined && { title }),
+        ...(safeUpdateTitle !== undefined && { title: safeUpdateTitle }),
         ...(body !== undefined && { narrative: body }),
         // ...(themeSlug !== undefined && { theme_id: await getThemeIdBySlug(themeSlug) }), // TODO: Fix theme_id assignment
         updatedAt: new Date(),

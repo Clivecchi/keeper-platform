@@ -21,6 +21,7 @@ import { apiFetch, API_BASE } from '../../lib/api';
 import { SessionEditModal } from './SessionEditModal';
 import { ActionReceiptCard, type ActionReceipt } from '../../components/kip/ActionReceiptCard';
 import { useAuth } from '../../context/AuthContext';
+import { useFrameContextOptional } from '../../v0/shell/FrameContext';
 
 type AgentBoardTab = 'dialogue' | 'drafts' | 'cockpit' | 'sessions';
 type DialogueMode = 'domain' | 'debug';
@@ -442,6 +443,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   keepers = MOCK_KEEPERS,
 }) => {
   const { isAuthenticated } = useAuth();
+  const frameCtx = useFrameContextOptional();
   const isPublicScope = !isAuthenticated;
   const [searchParams, setSearchParams] = useSearchParams();
   const { domainId, domainSlug, isLoading: isDomainLoading } = useDomainIdentifier();
@@ -1267,6 +1269,8 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
         domainSlug: domainSlug || agentDomainSlug || undefined,
         mode: dialogueMode,
         debugBundle,
+        activeJourneyId: frameCtx?.selection.activeJourneyId,
+        activeKeeperId: frameCtx?.selection.activeKeeperId,
       });
       const sessionIdFromResponse =
         (result as any)?.data?.data?.session_id || (result as any)?.session_id || null;
@@ -1475,7 +1479,19 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                   </button>
                 </form>
                 {messagesError && (
-                  <p className="text-sm text-red-600">Message error: {messagesError}</p>
+                  <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <span className="flex-1">{messagesError}</span>
+                    <button
+                      type="button"
+                      onClick={() => setMessagesError(null)}
+                      className="ml-2 text-xs font-medium text-red-600 underline hover:text-red-800"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
                 )}
               </div>
             </FrameCard>
@@ -2149,7 +2165,14 @@ const DialogueMessageList: React.FC<{
     {isSending && (
       <p className="text-xs text-gray-500">Kip is thinking…</p>
     )}
-    {error && <p className="text-xs text-red-600">Messages error: {error}</p>}
+    {error && (
+      <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <svg xmlns="http://www.w3.org/2000/svg" className="mt-0.5 h-4 w-4 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+        </svg>
+        <span>{error}</span>
+      </div>
+    )}
   </div>
 );
 
@@ -2559,8 +2582,23 @@ const CockpitPanel: React.FC<{
   activeSessionId: string | null;
 }> = ({ agent, sessions, activeSessionId }) => {
   const activeSession = sessions.find((session) => session.id === activeSessionId);
+  const frameCtx = useFrameContextOptional();
 
   const latestUpdate = sessions[0]?.updatedAt;
+
+  // Derive real capability indicators from agent state
+  const hasKeeper = Boolean(frameCtx?.selection.activeKeeperId);
+  const hasJourney = Boolean(frameCtx?.selection.activeJourneyId);
+  const modelMaxTokens = agent?.model_settings?.max_tokens ?? 4000;
+
+  // Build dynamic tools list from actual agent capabilities
+  const activeCapabilities: { name: string; active: boolean }[] = [
+    { name: 'Keeper context', active: hasKeeper },
+    { name: 'Journey tracking', active: hasJourney },
+    { name: 'Moment creation', active: true }, // moment.create action is always available
+    { name: 'SOLE memory', active: hasKeeper }, // SOLE requires a keeper
+    { name: 'Draft management', active: true }, // draft.* actions are always available
+  ];
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -2573,11 +2611,13 @@ const CockpitPanel: React.FC<{
             </span>
           </li>
           <li className="flex items-center justify-between">
-            <span>Context tokens</span>
-            <span className="font-semibold">2,847 / 4,000</span>
+            <span>Max output tokens</span>
+            <span className="font-semibold">{modelMaxTokens.toLocaleString()}</span>
           </li>
           <li className="text-xs text-gray-500">
-            SOLE memory system active — tracking key life events and journey progress.
+            {hasKeeper
+              ? 'SOLE memory system active — tracking key life events and journey progress.'
+              : 'No keeper set — SOLE memory is inactive until a keeper is selected.'}
           </li>
         </ul>
       </FrameCard>
@@ -2609,10 +2649,21 @@ const CockpitPanel: React.FC<{
 
       <FrameCard title="Tools & Integrations">
         <ul className="space-y-2 text-sm">
-          {['Keeper context', 'Journey tracking', 'Moment creation'].map((tool) => (
-            <li key={tool} className="flex items-center gap-2 text-emerald-600">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              {tool} enabled
+          {activeCapabilities.map((cap) => (
+            <li
+              key={cap.name}
+              className={clsx(
+                'flex items-center gap-2',
+                cap.active ? 'text-emerald-600' : 'text-gray-400',
+              )}
+            >
+              <span
+                className={clsx(
+                  'h-2 w-2 rounded-full',
+                  cap.active ? 'bg-emerald-500' : 'bg-gray-300',
+                )}
+              />
+              {cap.name} {cap.active ? 'enabled' : 'unavailable'}
             </li>
           ))}
           {agent?.tools?.length ? (

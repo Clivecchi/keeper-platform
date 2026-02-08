@@ -78,6 +78,23 @@ const draftSetActivePayloadSchema = z.object({
 );
 
 /**
+ * Moment create action payload schema
+ */
+const momentCreatePayloadSchema = z.object({
+  title: z.string().min(1, 'title is required'),
+  narrative: z.string().min(1, 'narrative is required'),
+  journeyId: z.string().optional(),
+});
+
+/**
+ * SOLE save action payload schema
+ */
+const soleSavePayloadSchema = z.object({
+  content: z.string().min(1, 'content is required'),
+  topic: z.string().optional(),
+});
+
+/**
  * Action payload schemas by type
  */
 const actionPayloadSchemas: Record<string, z.ZodSchema> = {
@@ -88,6 +105,8 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'draft.get': draftGetPayloadSchema,
   'draft.read': draftGetPayloadSchema,
   'draft.setActive': draftSetActivePayloadSchema,
+  'moment.create': momentCreatePayloadSchema,
+  'sole.save': soleSavePayloadSchema,
 };
 
 /**

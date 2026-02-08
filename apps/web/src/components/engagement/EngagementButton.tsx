@@ -20,6 +20,8 @@ interface EngagementButtonProps {
     domainId: string;
     entityType: string;
     entityId: string;
+    keeperId?: string;
+    [key: string]: string | undefined;
   };
   label?: string;
   variant?: 'primary' | 'secondary' | 'danger';

@@ -28,6 +28,7 @@ import type {
   ModelSettings
 } from '@keeper/database';
 import { ModelProviderService, ModelMessage, ModelProviderErrorCode } from '../../services/ModelProviderService.js';
+import { SoleMemoryService } from '../../services/SoleMemoryService.js';
 import { loadModeState } from '../../services/kip/modeConfig.js';
 import type { AgentModeKey, AgentModeState, ModeConfig, OutputStyle } from '../../services/kip/modeConfig.js';
 import type { DomainResolvedRequest } from '../../middleware/domainResolutionMiddleware.js';
@@ -94,6 +95,8 @@ type RunAgentOptions = {
   forceSkipActions?: boolean;
   actionPack?: ActionPack;
   draftIntentResult?: DraftIntentResult | null;
+  activeJourneyId?: string | null;
+  activeKeeperId?: string | null;
 };
 
 class AgentExecutionError extends Error {
@@ -463,6 +466,9 @@ function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironm
   const allow = new Set(Array.isArray(pack?.actions?.allow) ? pack.actions.allow : DEFAULT_POLICY_PACK_V1.actions.allow);
   // Server-controlled drafts can always set active when context is present
   allow.add('draft.setActive');
+  // Golden Path actions — always allowed
+  allow.add('moment.create');
+  allow.add('sole.save');
   return allow;
 }
 
@@ -1132,6 +1138,165 @@ export async function executeAgentActions(
             });
             break;
           }
+          case 'moment.create': {
+            const payload = action.payload ?? {};
+            const title = typeof payload.title === 'string' && payload.title.trim()
+              ? payload.title.trim()
+              : 'Untitled Moment';
+            const narrative = typeof payload.narrative === 'string'
+              ? payload.narrative.trim()
+              : '';
+            const journeyId = typeof payload.journeyId === 'string'
+              ? payload.journeyId
+              : undefined;
+
+            try {
+              const moment = await tx.moment.create({
+                data: {
+                  title,
+                  narrative,
+                  ownerId: ctx.userId ?? null,
+                  domainId: ctx.domainId ?? null,
+                  journeyId: journeyId ?? null,
+                  keptAt: new Date(), // auto-keep
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                },
+              });
+
+              const durationMs = Date.now() - actionStartTime;
+              logger.info({
+                requestId,
+                actionType: action.type,
+                durationMs,
+                momentId: moment.id,
+                journeyId: journeyId ?? null,
+              }, '[kip.actions] executed');
+
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: `Moment "${title}" created and kept`,
+                data: {
+                  entityIds: [moment.id],
+                  moment: {
+                    id: moment.id,
+                    title: moment.title,
+                    journeyId: moment.journeyId,
+                  },
+                },
+              });
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'Failed to create moment';
+              logger.error({
+                requestId,
+                actionType: action.type,
+                error: errorMessage,
+              }, '[kip.actions] rejected');
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: errorMessage,
+                errorCode: 'EXECUTION_ERROR',
+              });
+            }
+            break;
+          }
+
+          case 'sole.save': {
+            const payload = action.payload ?? {};
+            const content = typeof payload.content === 'string' ? payload.content.trim() : '';
+            const topic = typeof payload.topic === 'string' ? payload.topic.trim() : null;
+
+            if (!content) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Content is required for sole.save',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+
+            try {
+              // Find the keeper for this domain to link the SOLE record
+              let keeperId: string | null = null;
+              if (ctx.domainId) {
+                const keeper = await tx.keeper.findFirst({
+                  where: { domainId: ctx.domainId },
+                  select: { id: true },
+                });
+                keeperId = keeper?.id ?? null;
+              }
+
+              if (!keeperId) {
+                results.push({
+                  type: action.type,
+                  status: 'error',
+                  message: 'No Keeper found for SOLE memory save',
+                  errorCode: 'MISSING_CONTEXT',
+                });
+                break;
+              }
+
+              // Create a SoleReflection
+              const reflection = await tx.soleReflection.create({
+                data: {
+                  keeperId,
+                  agentId: ctx.agentId ?? 'system',
+                  content,
+                  topic,
+                  promotedToMemoryCard: true,
+                  promotedAt: new Date(),
+                },
+              });
+
+              // Auto-promote to SoleMemoryCard
+              const memoryCard = await tx.soleMemoryCard.create({
+                data: {
+                  keeperId,
+                  reflectionId: reflection.id,
+                  content,
+                  topic,
+                },
+              });
+
+              const durationMs = Date.now() - actionStartTime;
+              logger.info({
+                requestId,
+                actionType: action.type,
+                durationMs,
+                reflectionId: reflection.id,
+                memoryCardId: memoryCard.id,
+              }, '[kip.actions] executed');
+
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: `Memory saved: "${topic || 'reflection'}"`,
+                data: {
+                  entityIds: [reflection.id, memoryCard.id],
+                  reflection: { id: reflection.id },
+                  memoryCard: { id: memoryCard.id },
+                },
+              });
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'Failed to save SOLE memory';
+              logger.error({
+                requestId,
+                actionType: action.type,
+                error: errorMessage,
+              }, '[kip.actions] rejected');
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: errorMessage,
+                errorCode: 'EXECUTION_ERROR',
+              });
+            }
+            break;
+          }
+
           default:
             // Fail loud: if action is in allowlist/CORE_ACTIONS but no handler exists, return error
             // If action is not allowed, return skipped (policy rejection)
@@ -1922,6 +2087,8 @@ export class KipAgentService {
       includeFixPlan?: boolean;
       autoBrief?: boolean;
       environment?: AgentEnvironmentContext | KipEnvironmentContext | null;
+      activeJourneyId?: string | null;
+      activeKeeperId?: string | null;
     },
   ): Promise<string> {
     try {
@@ -2003,6 +2170,75 @@ export class KipAgentService {
         });
       }
       
+      // --- Journey + Moments context injection ---
+      if (promptOptions?.activeJourneyId) {
+        try {
+          const journey = await prisma.journey.findUnique({
+            where: { id: promptOptions.activeJourneyId },
+            select: {
+              id: true,
+              name: true,
+              forward: true,
+              Moment: {
+                orderBy: { createdAt: 'desc' },
+                take: 5,
+                select: { id: true, title: true, narrative: true },
+              },
+            },
+          });
+          if (journey) {
+            const momentSummaries = journey.Moment.map(
+              (m) => `- "${m.title}": ${(m.narrative || '').slice(0, 80)}`,
+            ).join('\n');
+            messages.push({
+              role: 'system',
+              content: [
+                `Active Journey: "${journey.name}" — ${journey.forward}`,
+                journey.Moment.length > 0
+                  ? `Recent moments in this journey:\n${momentSummaries}`
+                  : 'No moments in this journey yet.',
+                'When the user asks you to create a moment, use the moment.create action with the active journey context.',
+              ].join('\n'),
+            });
+          }
+        } catch (err) {
+          console.warn('[kip/agents] Failed to inject journey context:', err);
+        }
+      }
+
+      // --- SOLE memory context injection ---
+      if (promptOptions?.activeKeeperId) {
+        try {
+          const soleInstruction = await SoleMemoryService.getSystemPromptExtension(promptOptions.activeKeeperId);
+          if (soleInstruction) {
+            messages.push({
+              role: 'system',
+              content: soleInstruction,
+            });
+          }
+
+          // Fetch recent memory cards for context
+          const memoryCards = await prisma.soleMemoryCard.findMany({
+            where: { keeperId: promptOptions.activeKeeperId },
+            orderBy: { createdAt: 'desc' },
+            take: 10,
+            select: { id: true, content: true, topic: true },
+          });
+
+          if (memoryCards.length > 0) {
+            const memorySummary = memoryCards
+              .map((c) => `- ${c.topic ? `[${c.topic}] ` : ''}${c.content.slice(0, 100)}`)
+              .join('\n');
+            messages.push({
+              role: 'system',
+              content: `Relevant SOLE memories:\n${memorySummary}\n\nUse these memories to inform your responses. When the user asks you to "remember" something, use the sole.save action.`,
+            });
+          }
+        } catch (err) {
+          console.warn('[kip/agents] Failed to inject SOLE context:', err);
+        }
+      }
+
       // Add conversation history (last 10 messages to avoid token limits)
       const recentMessages = previousMessages.slice(-10);
       for (const msg of recentMessages) {
@@ -2161,6 +2397,8 @@ export class KipAgentService {
           includeFixPlan: activeModeConfig.includeFixPlan,
           autoBrief: activeModeConfig.autoBrief,
           environment: options?.environment ?? null,
+          activeJourneyId: options?.activeJourneyId ?? null,
+          activeKeeperId: options?.activeKeeperId ?? null,
         });
 
         const requestId = randomUUID();
@@ -2857,6 +3095,8 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             forceSkipActions: Boolean(draftIntentPayload),
             actionPack,
             draftIntentResult,
+            activeJourneyId: (req.body as any)?.activeJourneyId ?? null,
+            activeKeeperId: (req.body as any)?.activeKeeperId ?? null,
           });
 
           if (draftIntentResult && (result as AgentResponse)?.data && typeof (result as AgentResponse).data === 'object') {

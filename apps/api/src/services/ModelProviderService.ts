@@ -31,7 +31,7 @@ export interface ModelResponse {
   errorCode?: ModelProviderErrorCode;
 }
 
-export type ModelProviderErrorCode = 'MISSING_API_KEY' | 'INVALID_MODEL' | 'PROVIDER_UNAVAILABLE';
+export type ModelProviderErrorCode = 'MISSING_API_KEY' | 'INVALID_MODEL' | 'PROVIDER_UNAVAILABLE' | 'TIMEOUT';
 
 class ModelProviderException extends Error {
   code: ModelProviderErrorCode;
@@ -146,20 +146,33 @@ class OpenAIProvider {
       // Dynamic import to avoid bundling issues if not installed
       const { OpenAI } = await import('openai');
       
+      // 30-second timeout to prevent indefinite hangs
+      const MODEL_TIMEOUT_MS = 30_000;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+
       const openai = new OpenAI({ apiKey: finalApiKey });
 
-      const response = await openai.chat.completions.create({
-        model: settings.model,
-        messages: messages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        })),
-        temperature: settings.temperature,
-        max_tokens: settings.max_tokens,
-        top_p: settings.top_p,
-        frequency_penalty: settings.frequency_penalty,
-        presence_penalty: settings.presence_penalty,
-      });
+      let response;
+      try {
+        response = await openai.chat.completions.create(
+          {
+            model: settings.model,
+            messages: messages.map(msg => ({
+              role: msg.role,
+              content: msg.content
+            })),
+            temperature: settings.temperature,
+            max_tokens: settings.max_tokens,
+            top_p: settings.top_p,
+            frequency_penalty: settings.frequency_penalty,
+            presence_penalty: settings.presence_penalty,
+          },
+          { signal: controller.signal },
+        );
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       const choice = response.choices[0];
       if (!choice?.message?.content) {
@@ -177,6 +190,11 @@ class OpenAIProvider {
         model: response.model
       };
     } catch (error) {
+      // Detect AbortController timeout
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('OpenAI API timeout after 30s');
+        throw new ModelProviderException('TIMEOUT', 'AI model request timed out after 30 seconds', { retryable: false });
+      }
       console.error('OpenAI API error:', error);
       throw normalizeProviderError('openai', error);
     }

@@ -702,6 +702,24 @@ if (process.env.ENABLE_INTROSPECTION === '1') {
 // Any changes to authentication (including cookie setting) MUST be done here.
 // See apps/api/README.md and apps/api/src/kam/README.md for details.
 
+// 🍪 Shared cookie helper — used by login AND register to ensure parity
+function setSessionCookie(res: Response, token: string) {
+  const COOKIE_NAME = 'keeper_session';
+  const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '.ke3p.com';
+  const maxAge = 7 * 24 * 3600; // 7 days in seconds
+  const cookieValue = [
+    `${COOKIE_NAME}=${token}`,
+    `Domain=${COOKIE_DOMAIN}`,
+    'Path=/',
+    'HttpOnly',
+    process.env.NODE_ENV === 'production' ? 'Secure' : '',
+    'SameSite=Lax',
+    `Max-Age=${maxAge}`,
+  ].filter(Boolean).join('; ');
+  res.setHeader('Set-Cookie', cookieValue);
+  return { cookieDomain: COOKIE_DOMAIN };
+}
+
 // KAM Auth endpoints that the frontend is trying to access
 app.post('/api/kam/auth/login', async (req, res) => {
   try {
@@ -735,21 +753,9 @@ app.post('/api/kam/auth/login', async (req, res) => {
       expiresIn: '7d',
     });
 
-    // 🍪 SET COOKIE - This was missing!
-    const COOKIE_NAME = 'keeper_session';
-    const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '.ke3p.com';
-    const maxAge = 7 * 24 * 3600; // 7 days in seconds
-    const cookieValue = [
-      `${COOKIE_NAME}=${token}`,
-      `Domain=${COOKIE_DOMAIN}`,
-      'Path=/',
-      'HttpOnly',
-      process.env.NODE_ENV === 'production' ? 'Secure' : '', // Only set Secure in production
-      'SameSite=Lax', // Changed from None to Lax for better subdomain compatibility
-      `Max-Age=${maxAge}`
-    ].filter(Boolean).join('; ');
-    res.setHeader('Set-Cookie', cookieValue);
-    console.log('[auth] Cookie set for login:', { domain: COOKIE_DOMAIN, user: user.email });
+    // 🍪 Set session cookie (shared helper)
+    const { cookieDomain } = setSessionCookie(res, token);
+    console.log('[auth] Cookie set for login:', { domain: cookieDomain, user: user.email });
 
     return res.json({
       success: true,
@@ -809,9 +815,10 @@ app.post('/api/kam/auth/register', async (req, res) => {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^(-)+|(-)+$/g, '');
 
+      const newDomainId = randomUUID();
       await prisma.domain.create({
         data: {
-          id: randomUUID(),
+          id: newDomainId,
           name: name, // Use the user’s name verbatim – includes spaces for cleaner display
           slug,
           ownerId: newUser.id,
@@ -823,6 +830,25 @@ app.post('/api/kam/auth/register', async (req, res) => {
           settings: {},
         },
       });
+
+      // Auto-create a default Keeper so Journey creation works immediately
+      try {
+        await prisma.keeper.create({
+          data: {
+            id: `keeper-default-${newUser.id}`,
+            title: `${name}'s Keeper`,
+            purpose: 'Default keeper for organizing journeys and moments.',
+            ownerId: newUser.id,
+            domainId: newDomainId,
+            keeperType: 'PersonalKeeper',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
+        console.log('[auth] Default keeper created for new user:', newUser.email);
+      } catch (keeperError) {
+        console.error('Failed to create default keeper on signup:', keeperError);
+      }
     } catch (domainError) {
       console.error('❗ Failed to create personal domain on signup:', domainError);
       // We don’t fail the signup if domain creation fails, but we surface a log for debugging.
@@ -832,6 +858,10 @@ app.post('/api/kam/auth/register', async (req, res) => {
     const token = jwt.sign({ userId: newUser.id }, process.env.JWT_SECRET || 'fallback-secret', {
       expiresIn: '7d',
     });
+
+    // 🍪 Set session cookie so the user is immediately authenticated after registration
+    const { cookieDomain } = setSessionCookie(res, token);
+    console.log('[auth] Cookie set for register:', { domain: cookieDomain, user: newUser.email });
 
     return res.status(201).json({
       success: true,

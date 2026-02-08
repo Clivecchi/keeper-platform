@@ -131,8 +131,9 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
   const [domainId, setDomainId] = React.useState<string | null>(frameCtx?.domain?.id ?? null)
   const [domainName, setDomainName] = React.useState<string | null>(frameCtx?.domain?.name ?? null)
 
-  // Active journey label from shell context
+  // Active journey + keeper from shell context
   const activeJourneyId = frameCtx?.selection.activeJourneyId ?? null
+  const activeKeeperId = frameCtx?.selection.activeKeeperId ?? null
   const [activeJourneyName, setActiveJourneyName] = React.useState<string | null>(null)
 
   // Sync domain from FrameContext when it resolves
@@ -489,7 +490,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         <div className="flex flex-wrap gap-3">
           <EngagementButton
             templateSlug="journey.create"
-            context={{ entityType: "domain", entityId: domainId, domainId }}
+            context={{ entityType: "domain", entityId: domainId, domainId, keeperId: activeKeeperId ?? undefined }}
             label="Start journey"
             variant="secondary"
           />
