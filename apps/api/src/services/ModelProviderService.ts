@@ -31,7 +31,7 @@ export interface ModelResponse {
   errorCode?: ModelProviderErrorCode;
 }
 
-export type ModelProviderErrorCode = 'MISSING_API_KEY' | 'INVALID_MODEL' | 'PROVIDER_UNAVAILABLE' | 'TIMEOUT';
+export type ModelProviderErrorCode = 'MISSING_API_KEY' | 'INVALID_MODEL' | 'PROVIDER_UNAVAILABLE' | 'TIMEOUT' | 'QUOTA_EXCEEDED';
 
 class ModelProviderException extends Error {
   code: ModelProviderErrorCode;
@@ -478,6 +478,23 @@ function normalizeProviderError(provider: ModelProvider, error: unknown): ModelP
   const providerCode = err?.error?.code || err?.code;
   const status = err?.status || err?.response?.status;
   const lowerMessage = typeof message === 'string' ? message.toLowerCase() : '';
+
+  // Detect quota / rate-limit errors (HTTP 429 or message containing quota keywords)
+  if (
+    status === 429 ||
+    lowerMessage.includes('quota') ||
+    lowerMessage.includes('exceeded your current') ||
+    lowerMessage.includes('rate limit') ||
+    lowerMessage.includes('billing') ||
+    providerCode === 'insufficient_quota'
+  ) {
+    const friendlyMessage =
+      'The AI model provider has run out of credits. ' +
+      'Please check the API key billing at https://platform.openai.com/account/billing ' +
+      'or contact your administrator.';
+    console.error(`[ModelProvider] ${provider} quota exceeded:`, message);
+    return new ModelProviderException('QUOTA_EXCEEDED', friendlyMessage, { retryable: false });
+  }
 
   if (status === 401 || lowerMessage.includes('api key')) {
     return new ModelProviderException('MISSING_API_KEY', message, { retryable: false });

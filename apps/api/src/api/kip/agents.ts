@@ -53,6 +53,7 @@ type AgentErrorCode =
   | 'MISSING_API_KEY'
   | 'INVALID_MODEL'
   | 'PROVIDER_UNAVAILABLE'
+  | 'QUOTA_EXCEEDED'
   | 'AGENT_MISCONFIGURED'
   | 'UNKNOWN';
 
@@ -2683,6 +2684,8 @@ function mapProviderCodeToAgentCode(code?: ModelProviderErrorCode): AgentErrorCo
       return 'MISSING_API_KEY';
     case 'INVALID_MODEL':
       return 'INVALID_MODEL';
+    case 'QUOTA_EXCEEDED':
+      return 'QUOTA_EXCEEDED';
     case 'PROVIDER_UNAVAILABLE':
     default:
       return 'PROVIDER_UNAVAILABLE';

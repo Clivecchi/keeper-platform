@@ -79,6 +79,10 @@ Core utility functions and API clients for the Keeper web application, including
 - Added kipApi.ts with database-backed KIP agent operations
 - Established core API client functionality 
 
+### 2026-02-08 - KipApi runAgent error surfacing
+- **kipApi.ts**: Removed mock fallback from `runAgent()` — API errors (429 quota, 401 auth, etc.) were being silently caught and replaced with mock responses, hiding all failures from the user. Now, real errors propagate to the UI.
+- **kipApi.ts**: Added inner `AgentResponse.success` check — the API returns HTTP 200 even when the agent execution fails internally (`success: false`). The method now detects this and throws with the real error message, including user-friendly messages for `QUOTA_EXCEEDED` and `MISSING_API_KEY` error codes.
+
 ### 2026-02-08 - Auth Token Store + Reliable Auth
 - Added `authTokenStore.ts` — in-memory + sessionStorage store for the JWT auth token, providing a reliable fallback when HttpOnly cookies are unavailable.
 - Rewrote `apiFetch.ts` — removed production-only Authorization header stripping. Now injects JWT from `authTokenStore` as `Authorization: Bearer` header on every API request. Cookies still sent via `credentials: 'include'` as secondary fallback.

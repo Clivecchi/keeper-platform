@@ -571,62 +571,59 @@ export class KipApi {
     sessionId?: string,
     options?: { domainId?: string | null; domainSlug?: string | null; mode?: AgentModeKey; debugBundle?: unknown; activeJourneyId?: string | null; activeKeeperId?: string | null },
   ): Promise<AgentResponse> {
-    try {
-      const response = await apiFetch('/api/kip/agents', {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'run',
-          agentId,
-          input,
-          userId,
-          sessionId,
-          domainId: options?.domainId ?? undefined,
-          domainSlug: options?.domainSlug ?? undefined,
-          mode: options?.mode,
-          debugBundle: options?.debugBundle,
-          activeJourneyId: options?.activeJourneyId ?? undefined,
-          activeKeeperId: options?.activeKeeperId ?? undefined,
-        })
-      });
-      
-      if (response.success) {
-        return response.data;
-      }
+    const response = await apiFetch('/api/kip/agents', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'run',
+        agentId,
+        input,
+        userId,
+        sessionId,
+        domainId: options?.domainId ?? undefined,
+        domainSlug: options?.domainSlug ?? undefined,
+        mode: options?.mode,
+        debugBundle: options?.debugBundle,
+        activeJourneyId: options?.activeJourneyId ?? undefined,
+        activeKeeperId: options?.activeKeeperId ?? undefined,
+      })
+    });
+
+    if (!response.success) {
       throw new Error(response.error || 'Failed to run agent');
-    } catch (error) {
-      console.warn('API connection failed, using mock execution:', error);
-      
-      // Find the agent (with fallback to mock)
-      const agent = mockAgents.find(a => a.id === agentId) || mockAgents.find(a => a.slug === 'type-agent');
-      
-      if (!agent) {
-        throw new Error('Agent not found');
+    }
+
+    // The API returns 200 even when the agent execution fails internally.
+    // Check the inner AgentResponse for success: false and surface the real error.
+    const agentResult = response.data as AgentResponse;
+
+    if (agentResult && agentResult.success === false) {
+      const innerError =
+        agentResult.data?.error ||
+        (agentResult.data as any)?.data?.error ||
+        'The agent was unable to process your request';
+      const errorCode =
+        agentResult.data?.errorCode ||
+        (agentResult.data as any)?.data?.errorCode ||
+        '';
+
+      // Provide user-friendly messages for known error codes
+      if (errorCode === 'QUOTA_EXCEEDED') {
+        throw new Error(
+          'Kip is temporarily unavailable — the AI model has run out of credits. ' +
+          'Please add credits to the API key or contact your administrator.'
+        );
+      }
+      if (errorCode === 'MISSING_API_KEY') {
+        throw new Error(
+          'Kip cannot respond — the AI model API key is missing or invalid. ' +
+          'Please check your configuration.'
+        );
       }
 
-      // Return mock execution result
-      const mockResult: AgentResponse = {
-        id: agentId,
-        success: true,
-        data: {
-          action: 'capture_thought',
-          keeper_id: userId || 'user_mock',
-          type: 'reflection',
-          data: {
-            content: input,
-            extracted_entities: ['thought', 'reflection', 'organization'],
-            sentiment: 'positive',
-            category: 'personal_development',
-            confidence: 0.87,
-            agent_used: agent.name,
-            model: agent.model,
-            mock_mode: true
-          }
-        },
-        processing_time_ms: 250
-      };
-      
-      return mockResult;
+      throw new Error(innerError);
     }
+
+    return agentResult;
   }
 
   /**

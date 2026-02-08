@@ -45,6 +45,10 @@ Services are stateless classes instantiated on demand by route handlers or other
 - [ ] Ensure all external requests include proper timeouts.
 
 ## 📆 Update Log
+### 2026-02-08 - Quota exceeded (429) error handling
+- **ModelProviderService.ts**: Added `QUOTA_EXCEEDED` error code to `ModelProviderErrorCode` union type.
+- **ModelProviderService.ts**: Updated `normalizeProviderError()` to explicitly detect HTTP 429, `insufficient_quota`, and quota-related error messages. These are now mapped to `QUOTA_EXCEEDED` with `retryable: false` and a user-friendly message directing admins to check API key billing. Previously, 429 errors were silently classified as `PROVIDER_UNAVAILABLE` and retried 3 times (ineffective for quota issues).
+
 ### 2025-12-08
 - **ModelProviderService.ts**: Extracted provider catalog data and default-setting factories into typed maps to eliminate the duplicated array literals that were confusing the TypeScript parser on Railway.
 - **ModelProviderService.ts**: Replaced mock responses with structured `ModelProviderException` handling so agent callers receive concrete error codes such as `MISSING_API_KEY`, `INVALID_MODEL`, and `PROVIDER_UNAVAILABLE`. Updated retry logic to honor non-retryable errors and propagate the failing code to callers.

@@ -62,6 +62,9 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - Introduced `KipAgentBoardPage` with tabbed layout, context column, and dialogue wiring backed by `kip_sessions` + `kip_messages`.
 - Added `useAgentSessions` consumption plus create-session + run-agent flows for the `/kip` route.
 
+### 2026-02-08 - Quota/credit error messaging in dialogue UI
+- **KipAgentBoardPage.tsx**: Enhanced the error display in `DialogueMessageList` to visually distinguish quota/credit errors (amber warning style with triangle icon) from other errors (red error style). Quota errors show an "AI Model Needs Credits" heading with the detailed message below.
+
 ### 2026-02-08 - Agent loading fix after authentication
 - Added `isAuthenticated` to the dependency array of the agent-loading useEffect in `KipAgentBoardPage.tsx`, ensuring the agent data is re-fetched after the user logs in.
 - Clears `agentError` on retry to provide a clean error state.
