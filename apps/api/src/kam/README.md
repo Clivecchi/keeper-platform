@@ -28,20 +28,15 @@ Expose read-only endpoints for Agent → Board → Frame → Config with scoped 
 - [ ] Persist audit to DB table `kam_audit` (future).
 - [ ] Add automated tests.
 
-## 🚨 CRITICAL: Duplicate Login Handlers
+## Auth Architecture (Consolidated 2026-02-08)
 
-**WARNING**: The login/register handlers in `auth.ts` are **NOT USED** in production!
-
-The actual handlers being used are **inline in `apps/api/src/index.ts`** (lines 628-750+).
-
-**Why this matters:**
-- Changes to `auth.ts` login handler will NOT affect production
-- Cookie setting MUST be done in the `index.ts` handler
-- This caused a critical auth bug (2025-10-15) where cookies weren't being set
-
-**TODO**: Consolidate to use a single source of truth for auth handlers.
+- **Login/Register/Logout**: Handled by inline handlers in `apps/api/src/index.ts`. These are the canonical production endpoints.
+- **Identity (`GET /me`)**: Handled by `auth.ts` via `auth-routes.ts`, mounted at `/api/kam/auth`.
+- **Cookie helper**: All auth handlers delegate to `setSessionCookie` / `clearSessionCookie` from `session.ts`, ensuring consistent `SameSite=None` + `Secure` + `HttpOnly` cookie attributes.
+- Dead `login()` and `logout()` functions were removed from `auth.ts` on 2026-02-08. The `auth-routes.ts` router only mounts `GET /me`.
 
 ## 📆 Update Log
+- 2026-02-08: **Auth consolidation** — Removed dead `login()`/`logout()` from `auth.ts`; `auth-routes.ts` now only mounts `GET /me`. Inline handlers in `index.ts` now delegate cookie ops to `session.ts` via `setSessionCookieShared`/`clearSessionCookie`, eliminating SameSite mismatch risk.
 - 2025-12-09: Fixed `/api/kam/auth/me` 401 noise by allowing legacy `keeper_token` cookies in `authWeb`, and taught `/api/kam/settings` to reuse cookie auth (with Bearer fallback) so the V0 UI stops hitting it unauthenticated.
 - 2025-10-15 (CRITICAL BUG FIX): Discovered and fixed missing cookie setting in login handler. The inline handler in `index.ts` (line 628) was being used instead of `auth.ts`, and it wasn't setting cookies at all. Added cookie setting directly to the `index.ts` handler. This explains why authenticated requests returned 401 despite successful login - no session cookie was ever being set!
 - 2025-10-15 (Critical Fix): Fixed `session.ts` - changed `sameSite` from `'lax'` to `'none'` to enable cross-subdomain cookies between `api.ke3p.com` and `www.ke3p.com`. The `sameSite: 'lax'` setting was preventing the browser from storing the cookie when set from the API subdomain.

@@ -23,7 +23,7 @@ const featureFlags = getFeatureFlagService();
 // Validation schemas
 const createMomentSchema = z.object({
   title: z.string().min(1).max(200),
-  content: z.string().min(1),
+  narrative: z.string().min(1),
   type: z.enum(['text', 'image', 'video', 'audio', 'link', 'file']).default('text'),
   journeyId: z.string().uuid(),
   keeperId: z.string().uuid(),
@@ -41,7 +41,7 @@ const createMomentSchema = z.object({
 
 const updateMomentSchema = z.object({
   title: z.string().min(1).max(200).optional(),
-  content: z.string().min(1).optional(),
+  narrative: z.string().min(1).optional(),
   type: z.enum(['text', 'image', 'video', 'audio', 'link', 'file']).optional(),
   isPublic: z.boolean().optional(),
   tags: z.array(z.string()).optional(),
@@ -92,7 +92,7 @@ router.get('/',
       if (search && typeof search === 'string') {
         where.OR = [
           { title: { contains: search, mode: 'insensitive' } },
-          { content: { contains: search, mode: 'insensitive' } },
+          { narrative: { contains: search, mode: 'insensitive' } },
         ];
       }
 

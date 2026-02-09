@@ -85,6 +85,7 @@ import { runMigrationsOnce } from './startup/migrate.js';
 // KAM routes
 import kamRouter from './kam/routes.js';
 import authRouter from './kam/auth-routes.js';
+import { setSessionCookie as setSessionCookieShared, clearSessionCookie } from './kam/session.js';
 // MCP routes (OpenAI Agent integration)
 import mcpRouter from './mcp/index.js';
 
@@ -702,24 +703,11 @@ if (process.env.ENABLE_INTROSPECTION === '1') {
 // Any changes to authentication (including cookie setting) MUST be done here.
 // See apps/api/README.md and apps/api/src/kam/README.md for details.
 
-// 🍪 Shared cookie helper — used by login AND register to ensure parity
-// CRITICAL: Must use SameSite=None + Secure for cross-subdomain cookies
-// between api.ke3p.com and www.ke3p.com / ke3p.com (see session.ts parity)
-function setSessionCookie(res: Response, token: string) {
-  const COOKIE_NAME = 'keeper_session';
-  const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '.ke3p.com';
-  const maxAge = 7 * 24 * 3600; // 7 days in seconds
-  const cookieValue = [
-    `${COOKIE_NAME}=${token}`,
-    `Domain=${COOKIE_DOMAIN}`,
-    'Path=/',
-    'HttpOnly',
-    'Secure',
-    'SameSite=None',
-    `Max-Age=${maxAge}`,
-  ].filter(Boolean).join('; ');
-  res.setHeader('Set-Cookie', cookieValue);
-  return { cookieDomain: COOKIE_DOMAIN };
+// 🍪 Shared cookie helper — delegates to the canonical setSessionCookie in session.ts
+// Ensures SameSite=None + Secure for cross-subdomain cookies (api.ke3p.com ↔ www.ke3p.com)
+function setSessionCookie(req: Request, res: Response, token: string) {
+  setSessionCookieShared(req, res, token);
+  return { cookieDomain: process.env.COOKIE_DOMAIN || '.ke3p.com' };
 }
 
 // KAM Auth endpoints that the frontend is trying to access
@@ -755,8 +743,8 @@ app.post('/api/kam/auth/login', async (req, res) => {
       expiresIn: '7d',
     });
 
-    // 🍪 Set session cookie (shared helper)
-    const { cookieDomain } = setSessionCookie(res, token);
+    // 🍪 Set session cookie (shared helper — delegates to session.ts)
+    const { cookieDomain } = setSessionCookie(req, res, token);
     console.log('[auth] Cookie set for login:', { domain: cookieDomain, user: user.email });
 
     return res.json({
@@ -862,7 +850,7 @@ app.post('/api/kam/auth/register', async (req, res) => {
     });
 
     // 🍪 Set session cookie so the user is immediately authenticated after registration
-    const { cookieDomain } = setSessionCookie(res, token);
+    const { cookieDomain } = setSessionCookie(req, res, token);
     console.log('[auth] Cookie set for register:', { domain: cookieDomain, user: newUser.email });
 
     return res.status(201).json({
@@ -889,21 +877,9 @@ app.post('/api/kam/auth/register', async (req, res) => {
 app.post('/api/kam/auth/logout', (req, res) => {
   console.log('📍 /api/kam/auth/logout endpoint hit');
 
-  // 🍪 CLEAR COOKIE - Set expired cookie to clear session
-  // Must match the same attributes used when setting (SameSite=None, Secure)
-  const COOKIE_NAME = 'keeper_session';
-  const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || '.ke3p.com';
-  const expiredCookieValue = [
-    `${COOKIE_NAME}=`,
-    `Domain=${COOKIE_DOMAIN}`,
-    'Path=/',
-    'HttpOnly',
-    'Secure',
-    'SameSite=None',
-    'Max-Age=0' // Expire immediately
-  ].filter(Boolean).join('; ');
-  res.setHeader('Set-Cookie', expiredCookieValue);
-  console.log('[auth] Cookie cleared for logout:', { domain: COOKIE_DOMAIN });
+  // 🍪 Clear session cookie using the canonical helper from session.ts
+  clearSessionCookie(res);
+  console.log('[auth] Cookie cleared for logout');
 
   // Return simple success response for logout
   res.json({

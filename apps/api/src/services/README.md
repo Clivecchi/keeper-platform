@@ -45,6 +45,10 @@ Services are stateless classes instantiated on demand by route handlers or other
 - [ ] Ensure all external requests include proper timeouts.
 
 ## 📆 Update Log
+### 2026-02-08 - Kip session journey/keeper context persistence
+- **KipAgentService (agents.ts)**: `createSession` now accepts optional `context` parameter with `primaryJourneyId` and `primaryKeeperId`, persisting them to `kip_sessions.primary_journey_id` / `primary_keeper_id`.
+- **KipAgentService (agents.ts)**: `runAgent` now updates existing session context when `activeJourneyId`/`activeKeeperId` change, and passes context when creating new sessions.
+
 ### 2026-02-08 - Quota exceeded (429) error handling
 - **ModelProviderService.ts**: Added `QUOTA_EXCEEDED` error code to `ModelProviderErrorCode` union type.
 - **ModelProviderService.ts**: Updated `normalizeProviderError()` to explicitly detect HTTP 429, `insufficient_quota`, and quota-related error messages. These are now mapped to `QUOTA_EXCEEDED` with `retryable: false` and a user-friendly message directing admins to check API key billing. Previously, 429 errors were silently classified as `PROVIDER_UNAVAILABLE` and retried 3 times (ineffective for quota issues).

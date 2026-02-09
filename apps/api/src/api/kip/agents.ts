@@ -1919,7 +1919,12 @@ export class KipAgentService {
   /**
    * Create a new session with validation
    */
-  static async createSession(agentId: string, userId?: string, sessionName?: string): Promise<KipSessionWithRelations> {
+  static async createSession(
+    agentId: string,
+    userId?: string,
+    sessionName?: string,
+    context?: { primaryJourneyId?: string | null; primaryKeeperId?: string | null },
+  ): Promise<KipSessionWithRelations> {
     try {
       if (!userId) {
         throw new Error('User ID is required to create a session');
@@ -1931,6 +1936,8 @@ export class KipAgentService {
         agent_id: agent.id,
         user_id: userId,
         session_name: sessionName || `Session with ${agent.name}`,
+        ...(context?.primaryJourneyId ? { primary_journey_id: context.primaryJourneyId } : {}),
+        ...(context?.primaryKeeperId ? { primary_keeper_id: context.primaryKeeperId } : {}),
       };
 
       return await createKipSession(sessionData);
@@ -2363,10 +2370,30 @@ export class KipAgentService {
               console.warn('Failed to load session memory:', error);
               // Continue without memory if loading fails
             }
+            // Update session's journey/keeper context if provided
+            const newJourneyId = options?.activeJourneyId ?? null;
+            const newKeeperId = options?.activeKeeperId ?? null;
+            if (newJourneyId || newKeeperId) {
+              try {
+                await prisma.kip_sessions.update({
+                  where: { id: sessionId },
+                  data: {
+                    ...(newJourneyId ? { primary_journey_id: newJourneyId } : {}),
+                    ...(newKeeperId ? { primary_keeper_id: newKeeperId } : {}),
+                    updated_at: new Date(),
+                  },
+                });
+              } catch (error) {
+                console.warn('Failed to update session context:', error);
+              }
+            }
           } else {
             // Create new session for memory-enabled agents
             try {
-              const newSession = await this.createSession(agentId, userId);
+              const newSession = await this.createSession(agentId, userId, undefined, {
+                primaryJourneyId: options?.activeJourneyId ?? null,
+                primaryKeeperId: options?.activeKeeperId ?? null,
+              });
               currentSessionId = newSession.id;
             } catch (error) {
               console.warn('Failed to create session:', error);

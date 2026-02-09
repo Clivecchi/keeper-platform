@@ -1,6 +1,11 @@
 /**
  * Domain-Integrated Journey API Routes
  * Updated Journey endpoints that respect domain permissions and boundaries
+ *
+ * NOTE: This router is NOT currently mounted in index.ts.
+ * The active journey routes are in ../journeys.ts (mounted at /api/journeys).
+ * This file exists as a future upgrade path with domain permission checks.
+ * Field names have been aligned with the Prisma schema (name/forward/ownerId).
  */
 
 import { Router, Request, Response } from 'express';
@@ -31,8 +36,8 @@ const journeySearchSchema = z.object({
 });
 
 const createJourneySchema = z.object({
-  title: z.string().min(1).max(200),
-  description: z.string().max(1000).optional(),
+  name: z.string().min(1).max(200),
+  forward: z.string().max(1000).optional().default(''),
   domainId: z.string().uuid(),
   keeperId: z.string().uuid(),
   tags: z.array(z.string()).default([]),
@@ -41,8 +46,8 @@ const createJourneySchema = z.object({
 });
 
 const updateJourneySchema = z.object({
-  title: z.string().min(1).max(200).optional(),
-  description: z.string().max(1000).optional(),
+  name: z.string().min(1).max(200).optional(),
+  forward: z.string().max(1000).optional(),
   tags: z.array(z.string()).optional(),
   isPublic: z.boolean().optional(),
   metadata: z.record(z.any()).optional(),
@@ -68,8 +73,8 @@ router.get('/',
       // Search filtering
       if (filters.search && typeof filters.search === 'string') {
         where.OR = [
-          { title: { contains: filters.search, mode: 'insensitive' } },
-          { description: { contains: filters.search, mode: 'insensitive' } },
+          { name: { contains: filters.search, mode: 'insensitive' } },
+          { forward: { contains: filters.search, mode: 'insensitive' } },
         ];
       }
 
@@ -226,7 +231,7 @@ router.post('/',
           ...journeyData,
           domainId,
           keeperId,
-          userId: (req as any).user?.id,
+          ownerId: (req as any).user?.id,
         },
         include: {
           domain: {

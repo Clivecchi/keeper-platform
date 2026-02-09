@@ -22,3 +22,5 @@ Draft requests include `x-domain-slug`, optionally send `domainSlug` in the body
 - Included `domainSlug` in the draft creation payload to mirror domain-scoped headers.
 ### 2026-01-17 - Skip anon headers for authenticated sessions
 - Avoided sending `x-anon-key` when a session cookie is present.
+### 2026-02-08 - Fix dev fallback port
+- Changed `v0Moments.ts` default API port from `3002` to `3001` to match the standard dev server port.

@@ -190,7 +190,7 @@ router.post('/',
         data: {
           ...keeperData,
           domainId,
-          userId: (req as any).user?.id,
+          ownerId: (req as any).user?.id,
         },
         include: {
           domain: {
