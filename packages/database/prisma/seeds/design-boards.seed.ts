@@ -504,7 +504,23 @@ export default async function seed() {
   console.log('  🤖 Creating Agent Cockpit template...');
   
   const agentTypeId = await ensureKeeperType('Agent');
-  const agentBoardId = randomUUID();
+  let agentBoardId: string;
+  
+  const existingAgentBoard = await prisma.board.findFirst({
+    where: { keeperId: systemKeeperId, slug: 'agent-cockpit-template' },
+    include: { frames: true },
+  });
+
+  if (existingAgentBoard) {
+    console.log('    ℹ️  Agent Cockpit template already exists, skipping...');
+    agentBoardId = existingAgentBoard.id;
+    await prisma.keeperType.update({
+      where: { id: agentTypeId },
+      data: { defaultBoardTemplateId: agentBoardId }
+    });
+    console.log('    ✅ Agent Cockpit template verified');
+  } else {
+  agentBoardId = randomUUID();
   
   const agentBoard = await prisma.board.create({
     data: {
@@ -589,6 +605,7 @@ export default async function seed() {
   });
 
   console.log('    ✅ Agent Cockpit template created');
+  } // end else (agent cockpit)
 
   // ==========================================================================
   // 3. JOURNEY PROGRESS BOARD TEMPLATE
@@ -596,7 +613,22 @@ export default async function seed() {
   console.log('  🚀 Creating Journey Progress template...');
   
   const journeyTypeId = await ensureKeeperType('Journey');
-  const journeyBoardId = randomUUID();
+  let journeyBoardId: string;
+
+  const existingJourneyBoard = await prisma.board.findFirst({
+    where: { keeperId: systemKeeperId, slug: 'journey-progress-template' },
+  });
+
+  if (existingJourneyBoard) {
+    console.log('    ℹ️  Journey Progress template already exists, skipping...');
+    journeyBoardId = existingJourneyBoard.id;
+    await prisma.keeperType.update({
+      where: { id: journeyTypeId },
+      data: { defaultBoardTemplateId: journeyBoardId }
+    });
+    console.log('    ✅ Journey Progress template verified');
+  } else {
+  journeyBoardId = randomUUID();
   
   const journeyBoard = await prisma.board.create({
     data: {
@@ -681,6 +713,7 @@ export default async function seed() {
   });
 
   console.log('    ✅ Journey Progress template created');
+  } // end else (journey progress)
 
   // ==========================================================================
   // 4. QUOTE BOARD TEMPLATE
@@ -688,7 +721,22 @@ export default async function seed() {
   console.log('  💰 Creating Quote template...');
   
   const quoteTypeId = await ensureKeeperType('Quote');
-  const quoteBoardId = randomUUID();
+  let quoteBoardId: string;
+
+  const existingQuoteBoard = await prisma.board.findFirst({
+    where: { keeperId: systemKeeperId, slug: 'quote-template' },
+  });
+
+  if (existingQuoteBoard) {
+    console.log('    ℹ️  Quote template already exists, skipping...');
+    quoteBoardId = existingQuoteBoard.id;
+    await prisma.keeperType.update({
+      where: { id: quoteTypeId },
+      data: { defaultBoardTemplateId: quoteBoardId }
+    });
+    console.log('    ✅ Quote template verified');
+  } else {
+  quoteBoardId = randomUUID();
   
   const quoteBoard = await prisma.board.create({
     data: {
@@ -776,6 +824,7 @@ export default async function seed() {
   });
 
   console.log('    ✅ Quote template created');
+  } // end else (quote)
 
   // ==========================================================================
   // 5. STORY BOARD TEMPLATE
@@ -783,7 +832,22 @@ export default async function seed() {
   console.log('  📖 Creating Story template...');
   
   const storyTypeId = await ensureKeeperType('Story');
-  const storyBoardId = randomUUID();
+  let storyBoardId: string;
+
+  const existingStoryBoard = await prisma.board.findFirst({
+    where: { keeperId: systemKeeperId, slug: 'story-template' },
+  });
+
+  if (existingStoryBoard) {
+    console.log('    ℹ️  Story template already exists, skipping...');
+    storyBoardId = existingStoryBoard.id;
+    await prisma.keeperType.update({
+      where: { id: storyTypeId },
+      data: { defaultBoardTemplateId: storyBoardId }
+    });
+    console.log('    ✅ Story template verified');
+  } else {
+  storyBoardId = randomUUID();
   
   const storyBoard = await prisma.board.create({
     data: {
@@ -860,6 +924,7 @@ export default async function seed() {
   });
 
   console.log('    ✅ Story template created');
+  } // end else (story)
 
   // ==========================================================================
   // 6. INVENTORY BOARD TEMPLATE
@@ -867,7 +932,22 @@ export default async function seed() {
   console.log('  📦 Creating Inventory template...');
   
   const inventoryTypeId = await ensureKeeperType('InventoryItem');
-  const inventoryBoardId = randomUUID();
+  let inventoryBoardId: string;
+
+  const existingInventoryBoard = await prisma.board.findFirst({
+    where: { keeperId: systemKeeperId, slug: 'inventory-template' },
+  });
+
+  if (existingInventoryBoard) {
+    console.log('    ℹ️  Inventory template already exists, skipping...');
+    inventoryBoardId = existingInventoryBoard.id;
+    await prisma.keeperType.update({
+      where: { id: inventoryTypeId },
+      data: { defaultBoardTemplateId: inventoryBoardId }
+    });
+    console.log('    ✅ Inventory template verified');
+  } else {
+  inventoryBoardId = randomUUID();
   
   const inventoryBoard = await prisma.board.create({
     data: {
@@ -949,6 +1029,7 @@ export default async function seed() {
   });
 
   console.log('    ✅ Inventory template created');
+  } // end else (inventory)
 
   console.log('✅ Design Board Templates seeded successfully!');
 }
