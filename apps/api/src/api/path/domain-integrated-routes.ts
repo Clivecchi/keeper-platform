@@ -70,15 +70,38 @@ router.get(
       }
 
       if (domainId) {
-        const hasPermission = await (req as any).domainScope?.canAccessDomain(domainId);
-        if (!hasPermission) {
-          return res.status(403).json({ error: 'Access denied to domain' });
+        const userId = (req as any).user?.id;
+        if (userId) {
+          const domain = await prisma.domain.findUnique({
+            where: { id: domainId },
+            select: { ownerId: true },
+          });
+          const isOwner = domain?.ownerId === userId;
+          if (!isOwner) {
+            const perm = await prisma.domainPermission.findFirst({
+              where: { domainId, userId },
+            });
+            if (!perm) {
+              return res.status(403).json({ error: 'Access denied to domain' });
+            }
+          }
         }
         where.Journey = { domainId };
       } else {
-        const domains = (req as any).domainScope?.userDomains;
-        if (Array.isArray(domains) && domains.length > 0) {
-          where.Journey = { domainId: { in: domains } };
+        // Fallback: list paths for domains the user owns or has permission to
+        const userId = (req as any).user?.id;
+        if (userId) {
+          const [ownedDomains, permDomains] = await Promise.all([
+            prisma.domain.findMany({ where: { ownerId: userId }, select: { id: true } }),
+            prisma.domainPermission.findMany({ where: { userId }, select: { domainId: true } }),
+          ]);
+          const domainIds = [
+            ...ownedDomains.map(d => d.id),
+            ...permDomains.map(d => d.domainId),
+          ];
+          if (domainIds.length > 0) {
+            where.Journey = { domainId: { in: [...new Set(domainIds)] } };
+          }
         }
       }
 
@@ -161,9 +184,22 @@ router.post(
         prelude?: string;
       };
 
-      const hasPermission = await (req as any).domainScope?.canAccessDomain(domainId);
-      if (!hasPermission) {
-        return res.status(403).json({ error: 'Access denied to domain' });
+      // Check domain permission via ownership or DomainPermission table
+      const userId = (req as any).user?.id;
+      if (userId && domainId) {
+        const domain = await prisma.domain.findUnique({
+          where: { id: domainId },
+          select: { ownerId: true },
+        });
+        const isOwner = domain?.ownerId === userId;
+        if (!isOwner) {
+          const perm = await prisma.domainPermission.findFirst({
+            where: { domainId, userId },
+          });
+          if (!perm) {
+            return res.status(403).json({ error: 'Access denied to domain' });
+          }
+        }
       }
 
       const journey = await prisma.journey.findUnique({
