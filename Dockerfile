@@ -22,7 +22,7 @@ COPY packages ./packages
 COPY apps/api ./apps/api
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile --no-optional --prefer-offline
+RUN pnpm install --frozen-lockfile --prefer-offline
 
 # Generate Prisma client first, then build packages in dependency order
 RUN echo "=== Generating Prisma client ===" && \
