@@ -96,7 +96,10 @@ export class EngagementTemplateExecutor {
         };
       }
 
-      // 3. Validate inputs
+      // 3. Auto-resolve missing keeperId from domain when possible
+      inputs = await this.autoResolveKeeperId(inputs, context);
+
+      // 4. Validate inputs
       const validation = this.validateInputs(template.fields, inputs);
       
       if (!validation.valid) {
@@ -108,13 +111,13 @@ export class EngagementTemplateExecutor {
         };
       }
 
-      // 4. Build API request
+      // 5. Build API request
       const apiRequest = this.buildRequest(template, context, inputs);
 
-      // 5. Execute API call
+      // 6. Execute API call
       const response = await this.callEndpoint(apiRequest, req);
 
-      // 6. Handle response
+      // 7. Handle response
       return this.handleResponse(response, template);
     } catch (error) {
       console.error('Engagement template execution error:', error);
@@ -269,6 +272,46 @@ export class EngagementTemplateExecutor {
   }
 
   /**
+   * Auto-resolve keeperId from the domain when it is missing from inputs.
+   *
+   * If the inputs already contain a non-empty keeperId, this is a no-op.
+   * Otherwise, if a domainId is available (from inputs or context), the first
+   * Keeper belonging to that domain is used. This removes the burden of
+   * knowing/entering a raw UUID from the end user.
+   */
+  private async autoResolveKeeperId(
+    inputs: ExecutionInputs,
+    context: ExecutionContext
+  ): Promise<ExecutionInputs> {
+    // Skip if keeperId is already provided
+    if (inputs.keeperId) {
+      return inputs;
+    }
+
+    const domainId = inputs.domainId || context.domainId;
+    if (!domainId) {
+      return inputs;
+    }
+
+    try {
+      const keeper = await prisma.keeper.findFirst({
+        where: { domainId },
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      if (keeper) {
+        console.log(`Engagement: Auto-resolved keeperId=${keeper.id} from domainId=${domainId}`);
+        return { ...inputs, keeperId: keeper.id };
+      }
+    } catch (error) {
+      console.warn('Engagement: Failed to auto-resolve keeperId:', error);
+    }
+
+    return inputs;
+  }
+
+  /**
    * Build API request from template and inputs
    */
   private buildRequest(
@@ -342,7 +385,7 @@ export class EngagementTemplateExecutor {
     request: { url: string; method: string; body?: any },
     req: Request
   ): Promise<{ ok: boolean; status: number; data: any }> {
-    const baseUrl = process.env.INTERNAL_API_URL || 'http://localhost:3001';
+    const baseUrl = process.env.INTERNAL_API_URL || `http://localhost:${process.env.PORT || 3001}`;
     const fullUrl = `${baseUrl}${request.url}`;
 
     console.log('Engagement Template: Calling endpoint', {

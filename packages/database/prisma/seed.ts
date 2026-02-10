@@ -49,6 +49,10 @@ async function main() {
     const seedDomainBoardEngagement = await import('./seeds/domain-board-engagement-templates.seed.ts');
     await seedDomainBoardEngagement.default();
 
+    console.log('🤖 Seeding Kip agents (Lead + supporting)...');
+    const seedKipAgents = await import('./seeds/kip-agents.seed.ts');
+    await seedKipAgents.default();
+
     console.log('🔭 Seeding Kip lenses...');
     const seedLenses = await import('./seeds/lenses.seed.ts');
     await seedLenses.default();

@@ -18,6 +18,7 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2026-01-31: Expanded Engagement template permission handling to cover journey/path/moment contexts.
 - 2025-12-08: Refactored `ModelProviderService` model catalogs/default settings into shared constants so Railway builds can safely clone and reuse retry scaffolding without TS parse errors.
 - 2025-12-08: ModelProviderService now emits typed error codes (`MISSING_API_KEY`, `INVALID_MODEL`, `PROVIDER_UNAVAILABLE`) instead of mock responses.
 - 2025-09-11: Added `boards/domainManagement.ts` ensure service for Domain Management Board.
@@ -44,6 +45,18 @@ Services are stateless classes instantiated on demand by route handlers or other
 - [ ] Ensure all external requests include proper timeouts.
 
 ## 📆 Update Log
+### 2026-02-10 - EngagementTemplateExecutor production fixes
+- **EngagementTemplateExecutor.ts**: Fixed `INTERNAL_API_URL` fallback to use dynamic `process.env.PORT` instead of hardcoded `3001`. On Railway, the server port is assigned dynamically, so the old default caused internal API calls to fail with connection refused.
+- **EngagementTemplateExecutor.ts**: Added `autoResolveKeeperId()` method that automatically finds the domain's first Keeper when `keeperId` is missing from inputs but `domainId` is available. This removes the requirement for users to manually enter a Keeper UUID when creating a Journey.
+
+### 2026-02-08 - Kip session journey/keeper context persistence
+- **KipAgentService (agents.ts)**: `createSession` now accepts optional `context` parameter with `primaryJourneyId` and `primaryKeeperId`, persisting them to `kip_sessions.primary_journey_id` / `primary_keeper_id`.
+- **KipAgentService (agents.ts)**: `runAgent` now updates existing session context when `activeJourneyId`/`activeKeeperId` change, and passes context when creating new sessions.
+
+### 2026-02-08 - Quota exceeded (429) error handling
+- **ModelProviderService.ts**: Added `QUOTA_EXCEEDED` error code to `ModelProviderErrorCode` union type.
+- **ModelProviderService.ts**: Updated `normalizeProviderError()` to explicitly detect HTTP 429, `insufficient_quota`, and quota-related error messages. These are now mapped to `QUOTA_EXCEEDED` with `retryable: false` and a user-friendly message directing admins to check API key billing. Previously, 429 errors were silently classified as `PROVIDER_UNAVAILABLE` and retried 3 times (ineffective for quota issues).
+
 ### 2025-12-08
 - **ModelProviderService.ts**: Extracted provider catalog data and default-setting factories into typed maps to eliminate the duplicated array literals that were confusing the TypeScript parser on Railway.
 - **ModelProviderService.ts**: Replaced mock responses with structured `ModelProviderException` handling so agent callers receive concrete error codes such as `MISSING_API_KEY`, `INVALID_MODEL`, and `PROVIDER_UNAVAILABLE`. Updated retry logic to honor non-retryable errors and propagate the failing code to callers.

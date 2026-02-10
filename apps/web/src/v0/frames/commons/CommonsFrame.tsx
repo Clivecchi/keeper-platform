@@ -759,7 +759,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                 <>
                   <EngagementButton
                     templateSlug="journey.create"
-                    context={{ entityType: "domain", entityId: domainId, domainId }}
+                    context={{ entityType: "domain", entityId: domainId, domainId, keeperId: activeKeeperId ?? undefined }}
                     label="Start journey"
                     variant="secondary"
                   />
@@ -896,7 +896,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                 <div className="mt-4 flex flex-wrap gap-2">
                   <EngagementButton
                     templateSlug="journey.create"
-                    context={{ entityType: "domain", entityId: domainId, domainId }}
+                    context={{ entityType: "domain", entityId: domainId, domainId, keeperId: activeKeeperId ?? undefined }}
                     label="Start journey"
                     variant="secondary"
                   />

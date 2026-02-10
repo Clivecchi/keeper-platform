@@ -45,6 +45,10 @@ Services are stateless classes instantiated on demand by route handlers or other
 - [ ] Ensure all external requests include proper timeouts.
 
 ## 📆 Update Log
+### 2026-02-10 - EngagementTemplateExecutor production fixes
+- **EngagementTemplateExecutor.ts**: Fixed `INTERNAL_API_URL` fallback to use dynamic `process.env.PORT` instead of hardcoded `3001`. On Railway, the server port is assigned dynamically, so the old default caused internal API calls to fail with connection refused.
+- **EngagementTemplateExecutor.ts**: Added `autoResolveKeeperId()` method that automatically finds the domain's first Keeper when `keeperId` is missing from inputs but `domainId` is available. This removes the requirement for users to manually enter a Keeper UUID when creating a Journey.
+
 ### 2026-02-08 - Kip session journey/keeper context persistence
 - **KipAgentService (agents.ts)**: `createSession` now accepts optional `context` parameter with `primaryJourneyId` and `primaryKeeperId`, persisting them to `kip_sessions.primary_journey_id` / `primary_keeper_id`.
 - **KipAgentService (agents.ts)**: `runAgent` now updates existing session context when `activeJourneyId`/`activeKeeperId` change, and passes context when creating new sessions.
