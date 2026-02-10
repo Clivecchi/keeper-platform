@@ -9,6 +9,8 @@ import { ThemeSwitcher } from "../ThemeSwitcher"
 import { useAuth } from "../../../context/AuthContext"
 import { apiFetch } from "../../../lib/api"
 import { EngagementButton } from "../../../components/engagement/EngagementButton"
+import { EngagementForm } from "../../../components/engagement/EngagementForm"
+import type { EngagementTemplateDefinition, EngagementContext } from "../../../components/engagement/EngagementForm"
 import { UserIdentityDropdown } from "../../../components/layout/UserIdentityDropdown"
 import MediaUploader from "../../../components/studio/MediaUploader"
 import { useV0Shell } from "../../shell/V0ShellContext"
@@ -163,11 +165,72 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
   const [showCoverControls, setShowCoverControls] = React.useState(false)
   const [coverControlsVisible, setCoverControlsVisible] = React.useState(false)
 
+  // Build-intent: when set, the Build workspace renders the form inline
+  type BuildIntent = {
+    template: EngagementTemplateDefinition
+    context: EngagementContext
+  }
+  const [buildIntent, setBuildIntent] = React.useState<BuildIntent | null>(null)
+  const [buildSubmitting, setBuildSubmitting] = React.useState(false)
+
   const setExperience = React.useCallback((next: CommonsExperience) => {
     const nextParams = new URLSearchParams(searchParams)
     nextParams.set("experience", next)
     setSearchParams(nextParams, { replace: true })
   }, [searchParams, setSearchParams])
+
+  /** Intercept EngagementButton clicks to render the form inline in Build */
+  const handleBuildActivate = React.useCallback(
+    (template: EngagementTemplateDefinition, ctx: EngagementContext) => {
+      setBuildIntent({ template, context: ctx })
+      setExperience("build")
+    },
+    [setExperience],
+  )
+
+  /** Execute the inline Build form submission, then return to Observe */
+  const handleBuildSubmit = React.useCallback(
+    async (inputs: Record<string, any>) => {
+      if (!buildIntent) return
+      setBuildSubmitting(true)
+      try {
+        const response = await apiFetch("/api/engagement/execute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            templateSlug: buildIntent.template.slug,
+            context: buildIntent.context,
+            inputs,
+          }),
+        })
+
+        if (response.success) {
+          const message =
+            response.message ||
+            buildIntent.template.config.action.successMessage ||
+            "Action completed successfully"
+          alert(message) // TODO: Replace with toast notification
+          setBuildIntent(null)
+          setExperience("observe")
+        } else {
+          throw new Error(response.message || response.error || "Action failed")
+        }
+      } catch (error) {
+        console.error("Error executing build action:", error)
+        const errorMessage =
+          error instanceof Error ? error.message : "Action failed. Please try again."
+        alert(errorMessage) // TODO: Replace with toast notification
+      } finally {
+        setBuildSubmitting(false)
+      }
+    },
+    [buildIntent, setExperience],
+  )
+
+  /** Cancel the inline Build form, returning to the Build selection view */
+  const handleBuildCancel = React.useCallback(() => {
+    setBuildIntent(null)
+  }, [])
 
   React.useEffect(() => {
     if (!domainSlug) return
@@ -483,31 +546,53 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     </div>
   )
 
-  const renderBuildWorkspace = () => (
-    <div className="space-y-6">
-      {renderWorkspaceHeader("Build", "Make something in commons", "Start a journey or capture a moment without leaving the commons.")}
-      {domainId ? (
-        <div className="flex flex-wrap gap-3">
-          <EngagementButton
-            templateSlug="journey.create"
-            context={{ entityType: "domain", entityId: domainId, domainId, keeperId: activeKeeperId ?? undefined }}
-            label="Start journey"
-            variant="secondary"
-          />
-          <EngagementButton
-            templateSlug="moment.create"
-            context={{ entityType: "domain", entityId: domainId, domainId }}
-            label="Capture moment"
-            variant="secondary"
+  const renderBuildWorkspace = () => {
+    // When a build intent is active, render the form inline
+    if (buildIntent) {
+      return (
+        <div className="space-y-6">
+          {renderWorkspaceHeader("Build", buildIntent.template.label, "Complete the form below to contribute to the commons.")}
+          <EngagementForm
+            template={buildIntent.template}
+            context={buildIntent.context}
+            onSubmit={handleBuildSubmit}
+            onCancel={handleBuildCancel}
+            isLoading={buildSubmitting}
+            title=""
           />
         </div>
-      ) : (
-        <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-          Builder actions are unavailable while the domain is loading.
-        </p>
-      )}
-    </div>
-  )
+      )
+    }
+
+    // Default: show action selection buttons
+    return (
+      <div className="space-y-6">
+        {renderWorkspaceHeader("Build", "Make something in commons", "Start a journey or capture a moment without leaving the commons.")}
+        {domainId ? (
+          <div className="flex flex-wrap gap-3">
+            <EngagementButton
+              templateSlug="journey.create"
+              context={{ entityType: "domain", entityId: domainId, domainId, keeperId: activeKeeperId ?? undefined }}
+              label="Start journey"
+              variant="secondary"
+              onActivate={handleBuildActivate}
+            />
+            <EngagementButton
+              templateSlug="moment.create"
+              context={{ entityType: "domain", entityId: domainId, domainId }}
+              label="Capture moment"
+              variant="secondary"
+              onActivate={handleBuildActivate}
+            />
+          </div>
+        ) : (
+          <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+            Builder actions are unavailable while the domain is loading.
+          </p>
+        )}
+      </div>
+    )
+  }
 
   const renderReflectWorkspace = () => (
     <div className="space-y-6">
@@ -762,12 +847,14 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                     context={{ entityType: "domain", entityId: domainId, domainId, keeperId: activeKeeperId ?? undefined }}
                     label="Start journey"
                     variant="secondary"
+                    onActivate={handleBuildActivate}
                   />
                   <EngagementButton
                     templateSlug="moment.create"
                     context={{ entityType: "domain", entityId: domainId, domainId }}
                     label="Capture moment"
                     variant="secondary"
+                    onActivate={handleBuildActivate}
                   />
                 </>
               ) : (
@@ -899,12 +986,14 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                     context={{ entityType: "domain", entityId: domainId, domainId, keeperId: activeKeeperId ?? undefined }}
                     label="Start journey"
                     variant="secondary"
+                    onActivate={handleBuildActivate}
                   />
                   <EngagementButton
                     templateSlug="moment.create"
                     context={{ entityType: "domain", entityId: domainId, domainId }}
                     label="Capture moment"
                     variant="secondary"
+                    onActivate={handleBuildActivate}
                   />
                 </div>
               ) : (

@@ -12,6 +12,7 @@ Fetches live domain data (journeys, keepers, moments, members when permitted) to
 ## ⚠️ Notes & ToDo
 - [ ] Confirm action frame activation triggers once the first domain action is defined.
 - [ ] Refine feed source once domain-scoped moment endpoints stabilize.
+- [ ] Replace `alert()` in build submit flow with toast notifications.
 
 ## 📆 Update Log
 - 2026-02-01: Added clickable cut line and made the cover flush to the top.
@@ -30,3 +31,4 @@ Fetches live domain data (journeys, keepers, moments, members when permitted) to
 - 2026-01-27: Rebuilt Commons layout with a dominant feed, anchor cards, Kip guide, and subtle admin access.
 - 2026-01-25: Added the Commons frame as the default authenticated domain surface.
 - 2026-02-05: Adopted `useFrameContext()` for authoritative domain and active journey. Added journey breadcrumb label derived from shell context.
+- 2026-02-09: Inline Build workspace forms — clicking "Start journey" or "Capture moment" now renders the engagement form inline in the Build workspace instead of opening a modal overlay. Added `buildIntent` state, `handleBuildActivate`/`handleBuildSubmit`/`handleBuildCancel` handlers, and passed `onActivate` to all `EngagementButton` instances.

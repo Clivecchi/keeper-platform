@@ -4,7 +4,8 @@
  * 
  * Features:
  * - Fetches template definition
- * - Opens modal if template has fields
+ * - Opens modal if template has fields (default behavior)
+ * - Calls onActivate instead of modal when provided (inline Build workspace)
  * - Executes immediately if no fields (with optional confirmation)
  * - Handles success/error states
  * - Refreshes board data after successful execution
@@ -13,44 +14,23 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../../lib/api';
 import { EngagementModal } from './EngagementModal';
+import type { EngagementTemplateDefinition, EngagementContext } from './EngagementForm';
 
 interface EngagementButtonProps {
   templateSlug: string;
-  context: {
-    domainId: string;
-    entityType: string;
-    entityId: string;
-    keeperId?: string;
-    [key: string]: string | undefined;
-  };
+  context: EngagementContext;
   label?: string;
   variant?: 'primary' | 'secondary' | 'danger';
   icon?: string;
   className?: string;
   onSuccess?: (result: any) => void;
   onError?: (error: any) => void;
-}
-
-interface TemplateDefinition {
-  id: string;
-  slug: string;
-  label: string;
-  type: string;
-  config: {
-    visibility: string;
-    requiresConfirmation?: boolean;
-    action: {
-      successMessage: string;
-      errorMessages?: Record<string, string>;
-    };
-  };
-  fields: Array<{
-    name: string;
-    type: string;
-    label: string;
-    required: boolean;
-    config?: any;
-  }>;
+  /**
+   * When provided, called instead of opening the modal for templates with
+   * fields. This allows the parent (e.g. CommonsFrame) to render the form
+   * inline in the Build workspace rather than as a dialog overlay.
+   */
+  onActivate?: (template: EngagementTemplateDefinition, context: EngagementContext) => void;
 }
 
 export function EngagementButton({
@@ -61,10 +41,11 @@ export function EngagementButton({
   className = '',
   onSuccess,
   onError,
+  onActivate,
 }: EngagementButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [template, setTemplate] = useState<TemplateDefinition | null>(null);
+  const [template, setTemplate] = useState<EngagementTemplateDefinition | null>(null);
 
   const variantClasses = {
     primary: 'bg-blue-600 hover:bg-blue-700 text-white',
@@ -83,11 +64,19 @@ export function EngagementButton({
         throw new Error('Template not found');
       }
 
-      const templateData: TemplateDefinition = response.data;
+      const templateData: EngagementTemplateDefinition = response.data;
       setTemplate(templateData);
 
-      // If template has fields, show modal
+      // If template has fields...
       if (templateData.fields && templateData.fields.length > 0) {
+        // When onActivate is provided, delegate to the parent instead of modal
+        if (onActivate) {
+          onActivate(templateData, context);
+          setIsLoading(false);
+          return;
+        }
+
+        // Default: open modal overlay
         setShowModal(true);
         setIsLoading(false);
         return;
