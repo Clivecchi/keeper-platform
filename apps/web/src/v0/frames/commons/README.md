@@ -1,13 +1,13 @@
 # Commons Frame
 
 ## 📌 Purpose
-Provides the primary logged-in domain board experience with a stable Commons layout (Banner, Context, Workspace) and experience-driven workspace modes.
+Provides the primary logged-in domain board experience with a stable Commons layout (Banner, Context, Workspace) and an open-ended view model for workspace content. Sidebar items are clickable, loading entity details directly in the workspace.
 
 ## 🧱 Key Files
 - `CommonsFrame.tsx`
 
 ## 🔄 Data & Behavior
-Fetches live domain data (journeys, keepers, moments, members when permitted) to populate Commons Banner (scrolling user card), Commons Context, and Workspace content. The Workspace is an experience container driven by the `experience` query param and renders Observe, Focus, Build, or Reflect modes. The sticky Commons Cover shows identity only and inherits menu/config controls when the Commons Banner scrolls fully out of view.
+Fetches live domain data (journeys, keepers, moments, members when permitted) to populate Commons Banner (scrolling user card), Commons Context, and Workspace content. The Workspace uses `useWorkspaceView` to manage a `WorkspaceView` discriminated union (`feed | entity | create | summary`) serialized to URL search params. Sidebar items are clickable — clicking a journey or keeper loads its detail view in the workspace. A "+" affordance on Journeys and Keepers cards triggers inline creation forms. Feed moments are clickable to open entity detail. The sticky Commons Cover shows identity only and inherits menu/config controls when the Commons Banner scrolls fully out of view.
 
 ## ⚠️ Notes & ToDo
 - [ ] Confirm action frame activation triggers once the first domain action is defined.
@@ -35,3 +35,4 @@ Fetches live domain data (journeys, keepers, moments, members when permitted) to
 - 2026-02-09: Refactored to use extracted primitives: `SidebarCard`, `WorkspaceHeader`, `SidebarWorkspaceLayout`, and `useWorkspaceMode`. Removed inline `renderCard()`, `renderWorkspaceHeader()`, and manual `useSearchParams` mode management. CommonsFrame is now composed from shared building blocks reusable by other frames.
 - 2026-02-09: Removed redundant sidebar cards (Workspace modes, Kip, Ways to contribute, Admin tools). Sidebar now contains only data-driven context cards (Journeys, Relationships, Keepers) plus a `PromptedActionCard` with mock state-driven nudges. Workspace modes remain as platform infrastructure via `useWorkspaceMode` but are no longer user-facing UI — mode transitions are driven by user actions.
 - 2026-02-09: Removed Start journey and Capture moment buttons from the Banner. Sidebar card actions now open in the workspace (switch to Reflect mode) instead of navigating to separate frames. "Capture a moment" is now a subtle inline affordance at the bottom of the Observe feed, triggering the Build workspace inline form.
+- 2026-02-09: **Workspace View Model Refactor** — Replaced fixed `useWorkspaceMode` (observe/focus/build/reflect) with `useWorkspaceView` discriminated union (`feed | entity | create | summary`). Sidebar journey/keeper items are now clickable, loading entity detail views directly in the workspace. "+" affordances on Journeys and Keepers cards trigger inline creation forms. Feed moments are clickable to open entity detail. Renamed renderers: `renderObserveWorkspace` → `renderFeedWorkspace`, `renderFocusWorkspace` → `renderEntityView`, `renderBuildWorkspace` → `renderCreateWorkspace`, `renderReflectWorkspace` → `renderSummaryWorkspace`. Removed `COMMONS_EXPERIENCES` constant and `CommonsExperience` type.

@@ -3,27 +3,32 @@
  * Reusable data-driven context card for sidebar panels in frame layouts.
  *
  * Renders a themed card with:
- * - Title and description
- * - Optional bulleted item list
- * - Optional action button
+ * - Title (with optional "+" affordance via onAdd)
+ * - Description
+ * - Optional list of items — each item can be static or clickable
+ *
+ * Items are modelled as `SidebarCardItem[]`:
+ *   - Static items: `{ label: "Members: 5" }` — rendered as a bullet
+ *   - Clickable items: `{ label: "My Journey", id: "abc", onClick: () => ... }`
+ *     — rendered as a clickable link with subtle hover state
  *
  * This is a pure data card — no custom children. For interactive panels
  * or prompted actions, use a purpose-built component instead.
- *
- * Used by CommonsFrame anchor cards and available for any frame that
- * needs a sidebar with contextual navigation or summary cards.
  *
  * @example
  * <SidebarCard
  *   title="Journeys"
  *   description="Active paths and suggested threads to follow."
- *   items={["Keeper Heart & Mind · 0 moments", "Platform Evolution · 2 moments"]}
- *   actionLabel="Open journeys"
- *   onAction={() => navigateToFrame("journeys")}
+ *   items={[
+ *     { label: "Keeper Heart & Mind · 0 moments", id: "j1", onClick: () => selectJourney("j1") },
+ *     { label: "Platform Evolution · 2 moments", id: "j2", onClick: () => selectJourney("j2") },
+ *   ]}
+ *   onAdd={() => createJourney()}
  * />
  */
 
 import * as React from "react"
+import { Plus } from "lucide-react"
 
 const SURFACE = {
   sideCard: "hsl(var(--theme-surface-paper) / 0.6)",
@@ -32,17 +37,28 @@ const SURFACE = {
   inkSecondary: "var(--theme-ink-secondary)",
 }
 
+// =============================================================================
+// Types
+// =============================================================================
+
+export interface SidebarCardItem {
+  /** Display text for the item */
+  label: string
+  /** Optional entity ID (helpful for keying) */
+  id?: string
+  /** When provided, the item becomes a clickable link */
+  onClick?: () => void
+}
+
 export interface SidebarCardProps {
   /** Card heading */
   title: string
   /** Brief description shown below the title */
   description: string
-  /** Optional bulleted list items */
-  items?: string[]
-  /** Label for the action button (only shown when onAction is provided) */
-  actionLabel?: string
-  /** Callback fired when the action button is clicked */
-  onAction?: () => void
+  /** Optional list items — static bullets or clickable links */
+  items?: SidebarCardItem[]
+  /** When provided, renders a "+" button inline with the title */
+  onAdd?: () => void
   /** Override the default background color */
   backgroundColor?: string
   /** Override the default border color */
@@ -51,12 +67,15 @@ export interface SidebarCardProps {
   className?: string
 }
 
+// =============================================================================
+// Component
+// =============================================================================
+
 export function SidebarCard({
   title,
   description,
   items,
-  actionLabel,
-  onAction,
+  onAdd,
   backgroundColor = SURFACE.sideCard,
   borderColor = SURFACE.border,
   className = "",
@@ -67,9 +86,26 @@ export function SidebarCard({
       style={{ backgroundColor, borderColor }}
     >
       <div className="space-y-1">
-        <h3 className="text-base font-semibold" style={{ color: SURFACE.inkPrimary }}>
-          {title}
-        </h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-base font-semibold" style={{ color: SURFACE.inkPrimary }}>
+            {title}
+          </h3>
+          {onAdd && (
+            <button
+              type="button"
+              onClick={onAdd}
+              className="inline-flex items-center justify-center rounded-full border p-1 transition-colors hover:opacity-80"
+              style={{
+                borderColor: SURFACE.border,
+                color: SURFACE.inkSecondary,
+                backgroundColor: "hsl(var(--theme-surface-paper) / 0.8)",
+              }}
+              aria-label={`Add ${title.toLowerCase()}`}
+            >
+              <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+            </button>
+          )}
+        </div>
         <p className="text-sm" style={{ color: SURFACE.inkSecondary }}>
           {description}
         </p>
@@ -78,30 +114,26 @@ export function SidebarCard({
       {items && items.length > 0 && (
         <ul className="mt-4 space-y-2 text-sm" style={{ color: SURFACE.inkSecondary }}>
           {items.map((item) => (
-            <li key={item} className="flex items-center gap-2">
+            <li key={item.id ?? item.label} className="flex items-center gap-2">
               <span
-                className="h-1.5 w-1.5 rounded-full"
+                className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
                 style={{ backgroundColor: "var(--theme-line-hairline)" }}
               />
-              <span>{item}</span>
+              {item.onClick ? (
+                <button
+                  type="button"
+                  onClick={item.onClick}
+                  className="text-left underline-offset-2 decoration-dotted hover:underline transition-colors hover:opacity-80"
+                  style={{ color: SURFACE.inkPrimary }}
+                >
+                  {item.label}
+                </button>
+              ) : (
+                <span>{item.label}</span>
+              )}
             </li>
           ))}
         </ul>
-      )}
-
-      {onAction && (
-        <button
-          type="button"
-          onClick={onAction}
-          className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
-          style={{
-            borderColor: SURFACE.border,
-            backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-            color: SURFACE.inkPrimary,
-          }}
-        >
-          {actionLabel ?? "Open"}
-        </button>
       )}
     </div>
   )

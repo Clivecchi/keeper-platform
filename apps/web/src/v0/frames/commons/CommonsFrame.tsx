@@ -14,8 +14,9 @@ import { UserIdentityDropdown } from "../../../components/layout/UserIdentityDro
 import MediaUploader from "../../../components/studio/MediaUploader"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { useFrameContextOptional } from "../../shell/FrameContext"
-import { useWorkspaceMode } from "../../shell/useWorkspaceMode"
+import { useWorkspaceView } from "../../shell/useWorkspaceView"
 import { SidebarCard } from "../../components/SidebarCard"
+import type { SidebarCardItem } from "../../components/SidebarCard"
 import { WorkspaceHeader } from "../../components/WorkspaceHeader"
 import { SidebarWorkspaceLayout } from "../../components/SidebarWorkspaceLayout"
 import { PromptedActionCard } from "../../components/PromptedActionCard"
@@ -29,16 +30,12 @@ const COMMONS_SURFACE = {
   inkSecondary: "var(--theme-ink-secondary)",
 }
 
-const COMMONS_EXPERIENCES = ["observe", "focus", "build", "reflect"] as const
-
-export type CommonsExperience = (typeof COMMONS_EXPERIENCES)[number]
-
-type CommonsCard = {
+/** Sidebar anchor card data (used during loading & data assembly) */
+type AnchorCardData = {
   title: string
   description: string
-  items: string[]
-  actionLabel?: string
-  onAction?: () => void
+  items: SidebarCardItem[]
+  onAdd?: () => void
 }
 
 type FeedItem = {
@@ -123,7 +120,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
   const { domainSlug, experienceActions } = useV0Shell()
   const frameCtx = useFrameContextOptional()
   const { isAdmin, user, isAuthenticated } = useAuth()
-  const [experience, setExperience] = useWorkspaceMode(COMMONS_EXPERIENCES, "observe")
+  const [view, setView] = useWorkspaceView()
 
   // Prefer FrameContext domain (authoritative) over ad-hoc fetched values
   const [domainId, setDomainId] = React.useState<string | null>(frameCtx?.domain?.id ?? null)
@@ -152,7 +149,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
   const [keepers, setKeepers] = React.useState<KeeperSummary[]>([])
   const [membersCount, setMembersCount] = React.useState<number | null>(null)
   const [userRole, setUserRole] = React.useState<string | null>(null)
-  const [anchorCards, setAnchorCards] = React.useState<CommonsCard[]>([])
+  const [anchorCards, setAnchorCards] = React.useState<AnchorCardData[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [isConfigOpen, setIsConfigOpen] = React.useState(false)
@@ -169,16 +166,16 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
   const [buildIntent, setBuildIntent] = React.useState<BuildIntent | null>(null)
   const [buildSubmitting, setBuildSubmitting] = React.useState(false)
 
-  /** Intercept EngagementButton clicks to render the form inline in Build */
+  /** Intercept EngagementButton clicks to render the form inline in the create view */
   const handleBuildActivate = React.useCallback(
     (template: EngagementTemplateDefinition, ctx: EngagementContext) => {
       setBuildIntent({ template, context: ctx })
-      setExperience("build")
+      setView({ kind: "create", templateSlug: template.slug })
     },
-    [setExperience],
+    [setView],
   )
 
-  /** Execute the inline Build form submission, then return to Observe */
+  /** Execute the inline creation form submission, then return to feed */
   const handleBuildSubmit = React.useCallback(
     async (inputs: Record<string, any>) => {
       if (!buildIntent) return
@@ -201,7 +198,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
             "Action completed successfully"
           alert(message) // TODO: Replace with toast notification
           setBuildIntent(null)
-          setExperience("observe")
+          setView({ kind: "feed" })
         } else {
           throw new Error(response.message || response.error || "Action failed")
         }
@@ -214,13 +211,14 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         setBuildSubmitting(false)
       }
     },
-    [buildIntent, setExperience],
+    [buildIntent, setView],
   )
 
-  /** Cancel the inline Build form, returning to the Build selection view */
+  /** Cancel the inline creation form, returning to the feed */
   const handleBuildCancel = React.useCallback(() => {
     setBuildIntent(null)
-  }, [])
+    setView({ kind: "feed" })
+  }, [setView])
 
   React.useEffect(() => {
     if (!domainSlug) return
@@ -278,41 +276,45 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
           setActiveJourneyName((journeys as JourneySummary[])[0].name)
         }
 
-        const journeyItems = (journeys as JourneySummary[]).slice(0, 2).map((journey) => {
+        const journeyItems: SidebarCardItem[] = (journeys as JourneySummary[]).slice(0, 4).map((journey) => {
           const count = journey.momentCount ?? 0
-          return `${journey.name} · ${count} moments`
+          return {
+            label: `${journey.name} · ${count} moments`,
+            id: journey.id,
+            onClick: () => setView({ kind: "entity", entityType: "journey", entityId: journey.id }),
+          }
         })
 
-        const keeperItems = (keepers as KeeperSummary[]).slice(0, 2).map((keeper) => keeper.title)
+        const keeperItems: SidebarCardItem[] = (keepers as KeeperSummary[]).slice(0, 4).map((keeper) => ({
+          label: keeper.title,
+          id: keeper.id,
+          onClick: () => setView({ kind: "entity", entityType: "keeper", entityId: keeper.id }),
+        }))
 
-        const relationshipsItems = [
-          `Members: ${members.length || "Private"}`,
-          `Keepers: ${(keepers as KeeperSummary[]).length || 0}`,
-          `Journeys: ${(journeys as JourneySummary[]).length || 0}`
+        const relationshipsItems: SidebarCardItem[] = [
+          { label: `Members: ${members.length || "Private"}` },
+          { label: `Keepers: ${(keepers as KeeperSummary[]).length || 0}` },
+          { label: `Journeys: ${(journeys as JourneySummary[]).length || 0}` },
         ]
 
         setAnchorCards([
           {
             title: "Journeys",
             description: "Active paths and suggested threads to follow.",
-            items: journeyItems.length ? journeyItems : ["No journeys yet", "Start a new journey to begin"],
-            actionLabel: "View in commons",
-            onAction: () => setExperience("reflect")
+            items: journeyItems.length ? journeyItems : [{ label: "No journeys yet" }, { label: "Start a new journey to begin" }],
+            onAdd: () => setView({ kind: "create", templateSlug: "journey.create" }),
           },
           {
             title: "Relationships",
             description: "People, keepers, and trusted circles nearby.",
             items: relationshipsItems,
-            actionLabel: "View in commons",
-            onAction: () => setExperience("reflect")
           },
           {
             title: "Keepers",
             description: "Spaces that hold memory for the domain.",
-            items: keeperItems.length ? keeperItems : ["No keepers yet", "Create a keeper to organize memory"],
-            actionLabel: "View in commons",
-            onAction: () => setExperience("reflect")
-          }
+            items: keeperItems.length ? keeperItems : [{ label: "No keepers yet" }, { label: "Create a keeper to organize memory" }],
+            onAdd: () => setView({ kind: "create", templateSlug: "keeper.create" }),
+          },
         ])
 
         const nextFeedItems = (moments as MomentSummary[]).map((moment) => ({
@@ -336,24 +338,18 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
           {
             title: "Journeys",
             description: "Active paths and suggested threads to follow.",
-            items: ["Journeys are unavailable right now."],
-            actionLabel: "View in commons",
-            onAction: () => setExperience("reflect")
+            items: [{ label: "Journeys are unavailable right now." }],
           },
           {
             title: "Relationships",
             description: "People, keepers, and trusted circles nearby.",
-            items: ["Relationships are unavailable right now."],
-            actionLabel: "View in commons",
-            onAction: () => setExperience("reflect")
+            items: [{ label: "Relationships are unavailable right now." }],
           },
           {
             title: "Keepers",
             description: "Spaces that hold memory for the domain.",
-            items: ["Keepers are unavailable right now."],
-            actionLabel: "View in commons",
-            onAction: () => setExperience("reflect")
-          }
+            items: [{ label: "Keepers are unavailable right now." }],
+          },
         ])
         setDomainTheme(null)
         setCoverMedia(null)
@@ -366,7 +362,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     return () => {
       active = false
     }
-  }, [domainSlug, isAdmin, setExperience, user?.id, activeJourneyId])
+  }, [domainSlug, isAdmin, setView, user?.id, activeJourneyId])
 
   React.useEffect(() => {
     const bannerNode = bannerRef.current
@@ -406,12 +402,12 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       label: "You have a draft in progress",
       detail: "Keeper Heart & Mind journey",
       actionLabel: "Resume",
-      onAction: () => setExperience("build"),
+      onAction: () => setView({ kind: "create", templateSlug: "journey.create" }),
     },
     {
       label: "2 moments awaiting review",
       actionLabel: "Review",
-      onAction: () => setExperience("observe"),
+      onAction: () => setView({ kind: "feed" }),
     },
     {
       label: "Kip noticed a pattern",
@@ -419,13 +415,11 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       actionLabel: "See insight",
       onAction: () => experienceActions.openKip(),
     },
-  ], [setExperience, experienceActions])
+  ], [setView, experienceActions])
 
-  const focusMoment = moments[0] ?? null
-
-  const renderObserveWorkspace = () => (
+  const renderFeedWorkspace = () => (
     <div className="space-y-6">
-      <WorkspaceHeader eyebrow="Observe" title="Commons activity" description="A continuous view of what is alive in the commons." />
+      <WorkspaceHeader eyebrow="Feed" title="Commons activity" description="A continuous view of what is alive in the commons." />
       <div className="space-y-6">
         {isLoading && (
           <div className="space-y-2">
@@ -445,38 +439,58 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         )}
         {!isLoading &&
           !loadError &&
-          feedItems.map((item, index) => (
-            <div key={`${item.title}-${item.time}`} className="space-y-3">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <h4 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-                    {item.title}
-                  </h4>
-                  <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                    {item.detail}
-                  </p>
-                </div>
-                <span className="text-xs uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                  {item.time}
-                </span>
+          feedItems.map((item, index) => {
+            // Match this feed item back to the moment for clickable navigation
+            const matchedMoment = moments.find(
+              (m) => (m.title || "Moment captured") === item.title
+            )
+            return (
+              <div key={`${item.title}-${item.time}`} className="space-y-3">
+                <button
+                  type="button"
+                  className="w-full text-left group"
+                  onClick={() => {
+                    if (matchedMoment) {
+                      setView({ kind: "entity", entityType: "moment", entityId: matchedMoment.id })
+                    }
+                  }}
+                  disabled={!matchedMoment}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <h4
+                        className={`text-base font-semibold ${matchedMoment ? "group-hover:underline underline-offset-2 decoration-dotted" : ""}`}
+                        style={{ color: COMMONS_SURFACE.inkPrimary }}
+                      >
+                        {item.title}
+                      </h4>
+                      <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                        {item.detail}
+                      </p>
+                    </div>
+                    <span className="text-xs uppercase tracking-[0.2em] flex-shrink-0" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                      {item.time}
+                    </span>
+                  </div>
+                </button>
+                {index < feedItems.length - 1 && <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />}
               </div>
-              {index < feedItems.length - 1 && <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />}
-            </div>
-          ))}
+            )
+          })}
 
         {/* Subtle capture affordance at the feed tail */}
         {!isLoading && !loadError && domainId && (
           <div className="pt-2">
             <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
             <div className="pt-3">
-              <EngagementButton
-                templateSlug="moment.create"
-                context={{ entityType: "domain", entityId: domainId, domainId }}
-                label="Capture a moment"
-                variant="primary"
-                onActivate={handleBuildActivate}
-                className="!bg-transparent !text-inherit !px-0 !py-0 !font-normal !rounded-none text-xs underline underline-offset-2 decoration-dotted opacity-60 hover:opacity-100 transition-opacity"
-              />
+              <button
+                type="button"
+                onClick={() => setView({ kind: "create", templateSlug: "moment.create" })}
+                className="text-xs underline underline-offset-2 decoration-dotted opacity-60 hover:opacity-100 transition-opacity"
+                style={{ color: COMMONS_SURFACE.inkSecondary }}
+              >
+                Capture a moment
+              </button>
             </div>
           </div>
         )}
@@ -484,49 +498,89 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     </div>
   )
 
-  const renderFocusWorkspace = () => (
-    <div className="space-y-6">
-      <WorkspaceHeader eyebrow="Focus" title="Centered moment" description="Stay with one thread without leaving the commons." />
-      {focusMoment ? (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <h4 className="text-lg font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-              {focusMoment.title || "Untitled moment"}
-            </h4>
-            <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-              {focusMoment.narrative || focusMoment.content || "This moment is still forming."}
-            </p>
-          </div>
-          <div className="text-xs uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-            {formatRelativeTime(focusMoment.updatedAt || focusMoment.createdAt || null)}
-          </div>
-          <button
-            type="button"
-            onClick={() => setExperience("observe")}
-            className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
-            style={{
-              borderColor: COMMONS_SURFACE.border,
-              backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-              color: COMMONS_SURFACE.inkPrimary,
-            }}
-          >
-            Return to observe
-          </button>
-        </div>
-      ) : (
-        <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-          There are no moments to focus on yet.
-        </p>
-      )}
-    </div>
-  )
+  /** Render a detail view for any entity type (journey, keeper, moment) */
+  const renderEntityView = (entityType: string, entityId: string) => {
+    let eyebrow = entityType.charAt(0).toUpperCase() + entityType.slice(1)
+    let title = "Not found"
+    let body: React.ReactNode = null
 
-  const renderBuildWorkspace = () => {
+    if (entityType === "journey") {
+      const journey = journeys.find((j) => j.id === entityId)
+      if (journey) {
+        title = journey.name
+        body = (
+          <div className="space-y-4">
+            {journey.forward && (
+              <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+                {journey.forward}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-4 text-xs uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+              <span>{journey.momentCount ?? 0} moments</span>
+              {journey.pathCount != null && <span>{journey.pathCount} paths</span>}
+            </div>
+          </div>
+        )
+      }
+    } else if (entityType === "keeper") {
+      const keeper = keepers.find((k) => k.id === entityId)
+      if (keeper) {
+        title = keeper.title
+        body = keeper.purpose ? (
+          <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+            {keeper.purpose}
+          </p>
+        ) : null
+      }
+    } else if (entityType === "moment") {
+      const moment = moments.find((m) => m.id === entityId)
+      if (moment) {
+        title = moment.title || "Untitled moment"
+        body = (
+          <div className="space-y-4">
+            <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+              {moment.narrative || moment.content || "This moment is still forming."}
+            </p>
+            <div className="text-xs uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
+              {formatRelativeTime(moment.updatedAt || moment.createdAt || null)}
+            </div>
+          </div>
+        )
+      }
+    }
+
+    const notFound = title === "Not found"
+
+    return (
+      <div className="space-y-6">
+        <WorkspaceHeader
+          eyebrow={eyebrow}
+          title={notFound ? "This item could not be found" : title}
+          description={notFound ? "It may have been removed or is not available." : ""}
+        />
+        {!notFound && body}
+        <button
+          type="button"
+          onClick={() => setView({ kind: "feed" })}
+          className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
+          style={{
+            borderColor: COMMONS_SURFACE.border,
+            backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
+            color: COMMONS_SURFACE.inkPrimary,
+          }}
+        >
+          Back to feed
+        </button>
+      </div>
+    )
+  }
+
+  const renderCreateWorkspace = () => {
     // When a build intent is active, render the form inline
     if (buildIntent) {
       return (
         <div className="space-y-6">
-          <WorkspaceHeader eyebrow="Build" title={buildIntent.template.label} description="Complete the form below to contribute to the commons." />
+          <WorkspaceHeader eyebrow="Create" title={buildIntent.template.label} description="Complete the form below to contribute to the commons." />
           <EngagementForm
             template={buildIntent.template}
             context={buildIntent.context}
@@ -539,10 +593,11 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       )
     }
 
-    // Default: show action selection buttons
+    // Fallback: if we navigated to create via URL but no buildIntent is set yet,
+    // show action selection buttons (the EngagementButton's onActivate will set buildIntent)
     return (
       <div className="space-y-6">
-        <WorkspaceHeader eyebrow="Build" title="Make something in commons" description="Start a journey or capture a moment without leaving the commons." />
+        <WorkspaceHeader eyebrow="Create" title="Make something in commons" description="Start a journey or capture a moment without leaving the commons." />
         {domainId ? (
           <div className="flex flex-wrap gap-3">
             <EngagementButton
@@ -562,16 +617,16 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
           </div>
         ) : (
           <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-            Builder actions are unavailable while the domain is loading.
+            Creation actions are unavailable while the domain is loading.
           </p>
         )}
       </div>
     )
   }
 
-  const renderReflectWorkspace = () => (
+  const renderSummaryWorkspace = () => (
     <div className="space-y-6">
-      <WorkspaceHeader eyebrow="Reflect" title="Commons summary" description="A quick synthesis of what the commons is holding." />
+      <WorkspaceHeader eyebrow="Summary" title="Commons overview" description="A quick synthesis of what the commons is holding." />
       <div className="grid gap-4 md:grid-cols-2">
         {[
           { label: "Journeys", value: journeys.length },
@@ -597,16 +652,16 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
   )
 
   const renderWorkspace = () => {
-    switch (experience) {
-      case "focus":
-        return renderFocusWorkspace()
-      case "build":
-        return renderBuildWorkspace()
-      case "reflect":
-        return renderReflectWorkspace()
-      case "observe":
+    switch (view.kind) {
+      case "entity":
+        return renderEntityView(view.entityType, view.entityId)
+      case "create":
+        return renderCreateWorkspace()
+      case "summary":
+        return renderSummaryWorkspace()
+      case "feed":
       default:
-        return renderObserveWorkspace()
+        return renderFeedWorkspace()
     }
   }
 
@@ -861,8 +916,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                   title={card.title}
                   description={card.description}
                   items={card.items}
-                  actionLabel={card.actionLabel}
-                  onAction={card.onAction}
+                  onAdd={card.onAdd}
                 />
               ))}
 

@@ -9,11 +9,14 @@ Centralize frame routing, theme application, and navigation helpers for domain b
 - `FrameContext.tsx`
 - `useExperienceMode.ts`
 - `useWorkspaceMode.ts`
+- `useWorkspaceView.ts`
 
 ## 🔄 Data & Behavior
 The shell resolves the domain slug, applies the active theme/style, and routes frames by query param. It exposes navigation helpers so frames can build URLs and return to `/d/:slug/board` with theme preserved.
 
 `FrameContext` implements the **Context Contract**: a single provider that derives auth, domain, active keeper/journey, theme, and frame metadata. Frames consume this via `useFrameContext()` instead of ad-hoc prop/query-param parsing. Keeper and journey selection is persisted per-domain in localStorage.
+
+`useWorkspaceView` manages an open-ended `WorkspaceView` discriminated union serialized to URL search params. It replaces `useWorkspaceMode` for workspaces that need entity-level navigation (e.g. clicking a journey in the sidebar loads its detail view). View kinds: `feed` (activity stream), `entity` (journey/keeper/moment detail), `create` (inline engagement form), `summary` (commons overview). `useWorkspaceMode` remains available for simpler fixed-mode use cases.
 
 ## ⚠️ Notes & ToDo
 - [ ] Replace fallback domain data once domain home board wiring is live.
@@ -32,3 +35,4 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - 2026-01-25: Defaulted authenticated domain board routing to the Commons frame.
 - 2026-02-05: Added `FrameContext.tsx` implementing the Context Contract (auth, domain, keeper/journey selection, theme, frame metadata). Injected `FrameContextProvider` inside V0Shell wrapping all frame components.
 - 2026-02-09: Extracted `useWorkspaceMode` — generic hook for URL-driven workspace mode state. Reads/writes a search param, validates against an allowed mode list, and falls back to a default. Used by CommonsFrame and available for any frame with switchable workspace modes.
+- 2026-02-09: Added `useWorkspaceView` — URL-driven workspace view state hook using a `WorkspaceView` discriminated union (`feed | entity | create | summary`). Replaces fixed mode enums for workspaces that need entity-level navigation. Serializes view state to `?view=`, `?entityType=`, `?entityId=`, `?template=` search params. `useWorkspaceMode` remains for simpler fixed-mode cases.
