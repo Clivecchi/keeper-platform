@@ -22,6 +22,9 @@ import { SessionEditModal } from './SessionEditModal';
 import { ActionReceiptCard, type ActionReceipt } from '../../components/kip/ActionReceiptCard';
 import { useAuth } from '../../context/AuthContext';
 import { useFrameContextOptional } from '../../v0/shell/FrameContext';
+// NOTE: Core presentational components (DialogueMessageList, SessionCard, CockpitPanel)
+// have been extracted to ../../components/agent/ for reuse by the new AgentBoardFrame.
+// This legacy file retains its own inline copies for backward compatibility.
 
 type AgentBoardTab = 'dialogue' | 'drafts' | 'cockpit' | 'sessions';
 type DialogueMode = 'domain' | 'debug';

@@ -16,6 +16,7 @@ import { KeepersFrame } from "../frames/keepers/KeepersFrame"
 import { JourneysFrame } from "../frames/journeys/JourneysFrame"
 import { ProfileFrame } from "../frames/profile/ProfileFrame"
 import { AgentFrame } from "../frames/agent/AgentFrame"
+import { AgentBoardFrame } from "../frames/agent/AgentBoardFrame"
 import { AdminFrame } from "../frames/admin/AdminFrame"
 import { IndexFrame } from "../frames/index/IndexFrame"
 import { apiFetch } from "../../lib/api"
@@ -43,7 +44,7 @@ const FRAME_REGISTRY: Record<V0FrameKey, React.ComponentType<any>> = {
   keepers: KeepersFrame,
   journeys: JourneysFrame,
   profile: ProfileFrame,
-  agent: AgentFrame,
+  agent: AgentBoardFrame,
   kip: AgentFrame,
   admin: AdminFrame,
 }

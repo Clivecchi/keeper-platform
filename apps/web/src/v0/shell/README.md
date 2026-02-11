@@ -10,6 +10,7 @@ Centralize frame routing, theme application, and navigation helpers for domain b
 - `useExperienceMode.ts`
 - `useWorkspaceMode.ts`
 - `useWorkspaceView.ts`
+- `useAgentWorkspaceView.ts`
 
 ## 🔄 Data & Behavior
 The shell resolves the domain slug, applies the active theme/style, and routes frames by query param. It exposes navigation helpers so frames can build URLs and return to `/d/:slug/board` with theme preserved.
@@ -36,3 +37,4 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - 2026-02-05: Added `FrameContext.tsx` implementing the Context Contract (auth, domain, keeper/journey selection, theme, frame metadata). Injected `FrameContextProvider` inside V0Shell wrapping all frame components.
 - 2026-02-09: Extracted `useWorkspaceMode` — generic hook for URL-driven workspace mode state. Reads/writes a search param, validates against an allowed mode list, and falls back to a default. Used by CommonsFrame and available for any frame with switchable workspace modes.
 - 2026-02-09: Added `useWorkspaceView` — URL-driven workspace view state hook using a `WorkspaceView` discriminated union (`feed | entity | create | summary`). Replaces fixed mode enums for workspaces that need entity-level navigation. Serializes view state to `?view=`, `?entityType=`, `?entityId=`, `?template=` search params. `useWorkspaceMode` remains for simpler fixed-mode cases.
+- 2026-02-09: Added `useAgentWorkspaceView` — Agent-specific workspace view hook with `dialogue | draft | cockpit` view kinds. Serializes to `?view=dialogue&sessionId=xxx`, `?view=draft&draftId=yyy`, `?view=cockpit`. Used by the new `AgentBoardFrame`. Split `"agent"` frame key to point at `AgentBoardFrame`; `"kip"` retains the legacy `AgentFrame`.
