@@ -120,7 +120,7 @@ function formatRelativeTime(value?: string | null) {
 }
 
 export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
-  const { domainSlug, experienceActions, navigateToFrame } = useV0Shell()
+  const { domainSlug, experienceActions } = useV0Shell()
   const frameCtx = useFrameContextOptional()
   const { isAdmin, user, isAuthenticated } = useAuth()
   const [experience, setExperience] = useWorkspaceMode(COMMONS_EXPERIENCES, "observe")
@@ -296,22 +296,22 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
             title: "Journeys",
             description: "Active paths and suggested threads to follow.",
             items: journeyItems.length ? journeyItems : ["No journeys yet", "Start a new journey to begin"],
-            actionLabel: "Open journeys",
-            onAction: () => navigateToFrame("journeys")
+            actionLabel: "View in commons",
+            onAction: () => setExperience("reflect")
           },
           {
             title: "Relationships",
             description: "People, keepers, and trusted circles nearby.",
             items: relationshipsItems,
-            actionLabel: "View profile",
-            onAction: () => navigateToFrame("profile")
+            actionLabel: "View in commons",
+            onAction: () => setExperience("reflect")
           },
           {
             title: "Keepers",
             description: "Spaces that hold memory for the domain.",
             items: keeperItems.length ? keeperItems : ["No keepers yet", "Create a keeper to organize memory"],
-            actionLabel: "Open keepers",
-            onAction: () => navigateToFrame("keepers")
+            actionLabel: "View in commons",
+            onAction: () => setExperience("reflect")
           }
         ])
 
@@ -337,22 +337,22 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
             title: "Journeys",
             description: "Active paths and suggested threads to follow.",
             items: ["Journeys are unavailable right now."],
-            actionLabel: "Open journeys",
-            onAction: () => navigateToFrame("journeys")
+            actionLabel: "View in commons",
+            onAction: () => setExperience("reflect")
           },
           {
             title: "Relationships",
             description: "People, keepers, and trusted circles nearby.",
             items: ["Relationships are unavailable right now."],
-            actionLabel: "View profile",
-            onAction: () => navigateToFrame("profile")
+            actionLabel: "View in commons",
+            onAction: () => setExperience("reflect")
           },
           {
             title: "Keepers",
             description: "Spaces that hold memory for the domain.",
             items: ["Keepers are unavailable right now."],
-            actionLabel: "Open keepers",
-            onAction: () => navigateToFrame("keepers")
+            actionLabel: "View in commons",
+            onAction: () => setExperience("reflect")
           }
         ])
         setDomainTheme(null)
@@ -366,7 +366,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     return () => {
       active = false
     }
-  }, [domainSlug, isAdmin, navigateToFrame, user?.id, activeJourneyId])
+  }, [domainSlug, isAdmin, setExperience, user?.id, activeJourneyId])
 
   React.useEffect(() => {
     const bannerNode = bannerRef.current
@@ -463,6 +463,23 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
               {index < feedItems.length - 1 && <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />}
             </div>
           ))}
+
+        {/* Subtle capture affordance at the feed tail */}
+        {!isLoading && !loadError && domainId && (
+          <div className="pt-2">
+            <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
+            <div className="pt-3">
+              <EngagementButton
+                templateSlug="moment.create"
+                context={{ entityType: "domain", entityId: domainId, domainId }}
+                label="Capture a moment"
+                variant="primary"
+                onActivate={handleBuildActivate}
+                className="!bg-transparent !text-inherit !px-0 !py-0 !font-normal !rounded-none text-xs underline underline-offset-2 decoration-dotted opacity-60 hover:opacity-100 transition-opacity"
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -796,30 +813,6 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
               <div className="flex items-center gap-2">
                 {isAuthenticated && renderCommonsControls("flex items-center gap-2")}
               </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {domainId ? (
-                <>
-                  <EngagementButton
-                    templateSlug="journey.create"
-                    context={{ entityType: "domain", entityId: domainId, domainId, keeperId: activeKeeperId ?? undefined }}
-                    label="Start journey"
-                    variant="secondary"
-                    onActivate={handleBuildActivate}
-                  />
-                  <EngagementButton
-                    templateSlug="moment.create"
-                    context={{ entityType: "domain", entityId: domainId, domainId }}
-                    label="Capture moment"
-                    variant="secondary"
-                    onActivate={handleBuildActivate}
-                  />
-                </>
-              ) : (
-                <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                  Builder actions are unavailable while the domain is loading.
-                </p>
-              )}
             </div>
             {isAdmin && (
               <div
