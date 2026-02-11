@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useSearchParams } from "react-router-dom"
 import { Settings } from "lucide-react"
 import type { StyleId } from "../../styles/styles"
 import { DesignFrame } from "../DesignFrame"
@@ -15,6 +14,12 @@ import { UserIdentityDropdown } from "../../../components/layout/UserIdentityDro
 import MediaUploader from "../../../components/studio/MediaUploader"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { useFrameContextOptional } from "../../shell/FrameContext"
+import { useWorkspaceMode } from "../../shell/useWorkspaceMode"
+import { SidebarCard } from "../../components/SidebarCard"
+import { WorkspaceHeader } from "../../components/WorkspaceHeader"
+import { SidebarWorkspaceLayout } from "../../components/SidebarWorkspaceLayout"
+import { PromptedActionCard } from "../../components/PromptedActionCard"
+import type { PromptedAction } from "../../components/PromptedActionCard"
 
 const COMMONS_SURFACE = {
   card: "hsl(var(--theme-surface-paper) / 0.82)",
@@ -99,14 +104,6 @@ const emptyFeed: FeedItem[] = [
   }
 ]
 
-function resolveCommonsExperience(value?: string | null): CommonsExperience {
-  const normalized = value?.toLowerCase() ?? ""
-  if ((COMMONS_EXPERIENCES as readonly string[]).includes(normalized)) {
-    return normalized as CommonsExperience
-  }
-  return "observe"
-}
-
 function formatRelativeTime(value?: string | null) {
   if (!value) return "Recently"
   const date = new Date(value)
@@ -126,8 +123,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
   const { domainSlug, experienceActions, navigateToFrame } = useV0Shell()
   const frameCtx = useFrameContextOptional()
   const { isAdmin, user, isAuthenticated } = useAuth()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const experience = resolveCommonsExperience(searchParams.get("experience"))
+  const [experience, setExperience] = useWorkspaceMode(COMMONS_EXPERIENCES, "observe")
 
   // Prefer FrameContext domain (authoritative) over ad-hoc fetched values
   const [domainId, setDomainId] = React.useState<string | null>(frameCtx?.domain?.id ?? null)
@@ -172,12 +168,6 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
   }
   const [buildIntent, setBuildIntent] = React.useState<BuildIntent | null>(null)
   const [buildSubmitting, setBuildSubmitting] = React.useState(false)
-
-  const setExperience = React.useCallback((next: CommonsExperience) => {
-    const nextParams = new URLSearchParams(searchParams)
-    nextParams.set("experience", next)
-    setSearchParams(nextParams, { replace: true })
-  }, [searchParams, setSearchParams])
 
   /** Intercept EngagementButton clicks to render the form inline in Build */
   const handleBuildActivate = React.useCallback(
@@ -410,64 +400,32 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     }
   }, [isBannerInView])
 
-  const renderCard = (card: CommonsCard) => (
-    <div
-      className="rounded-2xl border px-5 py-4"
-      style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
-    >
-      <div className="space-y-1">
-        <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-          {card.title}
-        </h3>
-        <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-          {card.description}
-        </p>
-      </div>
-      <ul className="mt-4 space-y-2 text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-        {card.items.map((item) => (
-          <li key={item} className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "var(--theme-line-hairline)" }} />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-      {card.onAction && (
-        <button
-          type="button"
-          onClick={card.onAction}
-          className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
-          style={{
-            borderColor: COMMONS_SURFACE.border,
-            backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-            color: COMMONS_SURFACE.inkPrimary,
-          }}
-        >
-          {card.actionLabel ?? "Open"}
-        </button>
-      )}
-    </div>
-  )
-
-  const renderWorkspaceHeader = (eyebrow: string, title: string, description: string) => (
-    <div className="space-y-2">
-      <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-        {eyebrow}
-      </p>
-      <h3 className="text-xl font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-        {title}
-      </h3>
-      <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-        {description}
-      </p>
-      <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
-    </div>
-  )
+  // ── Prompted actions (mock data — replace with real state-driven logic) ──
+  const promptedActions = React.useMemo<PromptedAction[]>(() => [
+    {
+      label: "You have a draft in progress",
+      detail: "Keeper Heart & Mind journey",
+      actionLabel: "Resume",
+      onAction: () => setExperience("build"),
+    },
+    {
+      label: "2 moments awaiting review",
+      actionLabel: "Review",
+      onAction: () => setExperience("observe"),
+    },
+    {
+      label: "Kip noticed a pattern",
+      detail: "Related to your last 3 sessions",
+      actionLabel: "See insight",
+      onAction: () => experienceActions.openKip(),
+    },
+  ], [setExperience, experienceActions])
 
   const focusMoment = moments[0] ?? null
 
   const renderObserveWorkspace = () => (
     <div className="space-y-6">
-      {renderWorkspaceHeader("Observe", "Commons activity", "A continuous view of what is alive in the commons.")}
+      <WorkspaceHeader eyebrow="Observe" title="Commons activity" description="A continuous view of what is alive in the commons." />
       <div className="space-y-6">
         {isLoading && (
           <div className="space-y-2">
@@ -511,7 +469,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
 
   const renderFocusWorkspace = () => (
     <div className="space-y-6">
-      {renderWorkspaceHeader("Focus", "Centered moment", "Stay with one thread without leaving the commons.")}
+      <WorkspaceHeader eyebrow="Focus" title="Centered moment" description="Stay with one thread without leaving the commons." />
       {focusMoment ? (
         <div className="space-y-4">
           <div className="space-y-2">
@@ -551,7 +509,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     if (buildIntent) {
       return (
         <div className="space-y-6">
-          {renderWorkspaceHeader("Build", buildIntent.template.label, "Complete the form below to contribute to the commons.")}
+          <WorkspaceHeader eyebrow="Build" title={buildIntent.template.label} description="Complete the form below to contribute to the commons." />
           <EngagementForm
             template={buildIntent.template}
             context={buildIntent.context}
@@ -567,7 +525,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     // Default: show action selection buttons
     return (
       <div className="space-y-6">
-        {renderWorkspaceHeader("Build", "Make something in commons", "Start a journey or capture a moment without leaving the commons.")}
+        <WorkspaceHeader eyebrow="Build" title="Make something in commons" description="Start a journey or capture a moment without leaving the commons." />
         {domainId ? (
           <div className="flex flex-wrap gap-3">
             <EngagementButton
@@ -596,7 +554,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
 
   const renderReflectWorkspace = () => (
     <div className="space-y-6">
-      {renderWorkspaceHeader("Reflect", "Commons summary", "A quick synthesis of what the commons is holding.")}
+      <WorkspaceHeader eyebrow="Reflect" title="Commons summary" description="A quick synthesis of what the commons is holding." />
       <div className="grid gap-4 md:grid-cols-2">
         {[
           { label: "Journeys", value: journeys.length },
@@ -899,153 +857,28 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
           </div>
         </section>
 
-        <div
-          className="rounded-3xl border px-4 py-6 md:px-6"
-          style={{ borderColor: COMMONS_SURFACE.border, backgroundColor: "hsl(var(--theme-surface-paper) / 0.65)" }}
+        <SidebarWorkspaceLayout
+          sidebarLabel="Commons context"
+          workspaceLabel="Commons workspace"
+          sidebar={
+            <>
+              {anchorCards.map((card) => (
+                <SidebarCard
+                  key={card.title}
+                  title={card.title}
+                  description={card.description}
+                  items={card.items}
+                  actionLabel={card.actionLabel}
+                  onAction={card.onAction}
+                />
+              ))}
+
+              <PromptedActionCard items={promptedActions} />
+            </>
+          }
         >
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)]">
-            <aside aria-label="Commons context" className="space-y-5">
-            {anchorCards.map((card) => (
-              <div key={card.title}>{renderCard(card)}</div>
-            ))}
-
-            <div
-              className="rounded-2xl border px-5 py-5"
-              style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
-            >
-              <div className="space-y-2">
-                <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-                  Workspace modes
-                </h3>
-                <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                  Shift how the commons workspace is experienced.
-                </p>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {COMMONS_EXPERIENCES.map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setExperience(mode)}
-                    className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-90"
-                    style={{
-                      borderColor: COMMONS_SURFACE.border,
-                      backgroundColor:
-                        experience === mode ? "hsl(var(--theme-surface-paper) / 0.95)" : "hsl(var(--theme-surface-paper) / 0.7)",
-                      color: COMMONS_SURFACE.inkPrimary,
-                    }}
-                  >
-                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div
-              className="rounded-2xl border px-5 py-5"
-              style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
-            >
-              <div className="space-y-2">
-                <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-                  Kip, present guide
-                </h3>
-                <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                  Kip stays nearby to answer questions and open a deeper session when needed.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={experienceActions.openKip}
-                className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
-                style={{
-                  borderColor: COMMONS_SURFACE.border,
-                  backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-                  color: COMMONS_SURFACE.inkPrimary,
-                }}
-              >
-                Open Kip
-              </button>
-            </div>
-
-            <div
-              className="rounded-2xl border px-5 py-5"
-              style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
-            >
-              <div className="space-y-2">
-                <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-                  Ways to contribute
-                </h3>
-                <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                  Launch a new journey or capture a moment for the commons.
-                </p>
-              </div>
-              {domainId ? (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <EngagementButton
-                    templateSlug="journey.create"
-                    context={{ entityType: "domain", entityId: domainId, domainId, keeperId: activeKeeperId ?? undefined }}
-                    label="Start journey"
-                    variant="secondary"
-                    onActivate={handleBuildActivate}
-                  />
-                  <EngagementButton
-                    templateSlug="moment.create"
-                    context={{ entityType: "domain", entityId: domainId, domainId }}
-                    label="Capture moment"
-                    variant="secondary"
-                    onActivate={handleBuildActivate}
-                  />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  disabled
-                  className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium opacity-60"
-                  style={{
-                    borderColor: COMMONS_SURFACE.border,
-                    backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
-                    color: COMMONS_SURFACE.inkSecondary,
-                  }}
-                >
-                  Action pending
-                </button>
-              )}
-            </div>
-
-            {isAdmin && (
-              <div
-                className="rounded-2xl border px-5 py-5"
-                style={{ backgroundColor: COMMONS_SURFACE.sideCard, borderColor: COMMONS_SURFACE.border }}
-              >
-                <div className="space-y-2">
-                  <h3 className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-                    Admin tools
-                  </h3>
-                  <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                    Quiet access to domain management and policy.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={experienceActions.goAdmin}
-                  className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
-                  style={{
-                    borderColor: COMMONS_SURFACE.border,
-                    backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-                    color: COMMONS_SURFACE.inkPrimary,
-                  }}
-                >
-                  Open admin
-                </button>
-              </div>
-            )}
-            </aside>
-
-            <section aria-label="Commons workspace" className="space-y-6">
-              {renderWorkspace()}
-            </section>
-          </div>
-        </div>
+          {renderWorkspace()}
+        </SidebarWorkspaceLayout>
       </div>
     </DesignFrame>
   )

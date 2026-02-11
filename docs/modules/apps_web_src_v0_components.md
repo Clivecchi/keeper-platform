@@ -9,6 +9,10 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - `kept-moments-frame.tsx` – Minimal list view for recently kept moments.
 - `FooterTrail.tsx` – Frame footer trail showing recent actions and navigation.
 - `Margin.tsx` – Persistent bottom margin with Explore + Kip anchors.
+- `SidebarCard.tsx` – Pure data-driven context card for sidebar panels (title, description, items, action). No custom children.
+- `WorkspaceHeader.tsx` – Consistent header for workspace mode panels (eyebrow, title, description, divider).
+- `SidebarWorkspaceLayout.tsx` – Responsive two-column layout shell: sidebar + workspace grid.
+- `PromptedActionCard.tsx` – State-driven action nudge card for sidebar panels. Distinct visual treatment (left accent border, compact layout, inline action links, "?" help affordance). Surfaces unfinished work, pending reviews, and agent insights.
 
 ## 🔄 Data & Behavior
 - Cover uses local mock routes and constants for spacing/type scale; mobile-first with a two-column desktop “spread.”
@@ -48,4 +52,5 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - 2026-01-24: Added an authenticated cover-top profile menu for legacy/logout/root access.
 - 2026-01-25: Routed Legacy UI to the authenticated `/root` dashboard and gated it to admin users.
 - 2026-01-25: Replaced legacy menu links with Settings and Domain Admin destinations.
-
+- 2026-02-09: Extracted `SidebarCard`, `WorkspaceHeader`, and `SidebarWorkspaceLayout` as reusable frame primitives from CommonsFrame. These are composable building blocks for any frame that needs a sidebar + workspace layout.
+- 2026-02-09: Removed `children` from `SidebarCard` (pure data card only). Added `PromptedActionCard` for state-driven contextual action nudges with distinct visual treatment (left accent border, inline action links, help affordance).
