@@ -26,7 +26,7 @@ import { ThemeSwitcher } from "../ThemeSwitcher"
 import { useAuth } from "../../../context/AuthContext"
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
-import type { KipAgent, KipDraftSummary, KipDraft, KipDraftStatus, KipMessage } from "../../../lib/kipApi"
+import type { KipAgent, KipDraftSummary, KipDraft, KipDraftStatus, KipMessage, ActionPack } from "../../../lib/kipApi"
 import { useAgentSessions } from "../../../hooks/useAgentSessions"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { useFrameContextOptional } from "../../shell/FrameContext"
@@ -117,6 +117,9 @@ export function AgentBoardFrame({
   const [isSending, setIsSending] = React.useState(false)
   const [inputValue, setInputValue] = React.useState("")
 
+  // ── Action pack (tools the agent can use) ──
+  const [allowedActions, setAllowedActions] = React.useState<string[]>([])
+
   // ── Draft state ──
   const [drafts, setDrafts] = React.useState<KipDraftSummary[]>([])
   const [draftDetail, setDraftDetail] = React.useState<KipDraft | null>(null)
@@ -167,6 +170,19 @@ export function AgentBoardFrame({
       })
     return () => { active = false }
   }, [isAuthenticated])
+
+  // ── Load action pack (tools the agent can use) ──
+  React.useEffect(() => {
+    if (!agent?.id || !domainId) return
+    let active = true
+    KipApi.getActionPack(agent.id, domainId)
+      .then(({ allowedActions: actions }) => {
+        if (!active) return
+        setAllowedActions(actions)
+      })
+      .catch(() => { /* ignore */ })
+    return () => { active = false }
+  }, [agent?.id, domainId])
 
   // ── Load domain data (journeys, keepers) ──
   React.useEffect(() => {
@@ -256,13 +272,12 @@ export function AgentBoardFrame({
   }, [domainId, refreshDrafts])
 
   // ── Load draft detail when viewing a draft ──
+  const draftViewId = view.kind === "draft" ? view.draftId : null
   React.useEffect(() => {
-    if (view.kind !== "draft") return
-    if (!domainId) return
-    const draftId = view.draftId
+    if (!draftViewId || !domainId) return
     setIsLoadingDrafts(true)
     setDraftJsonError(null)
-    KipApi.getDraft(domainId, draftId)
+    KipApi.getDraft(domainId, draftViewId)
       .then((draft) => {
         setDraftDetail(draft)
         setDraftSpecText(JSON.stringify(draft.spec ?? {}, null, 2))
@@ -273,7 +288,7 @@ export function AgentBoardFrame({
         setDraftsError("Unable to load draft")
       })
       .finally(() => setIsLoadingDrafts(false))
-  }, [view, domainId])
+  }, [draftViewId, domainId])
 
   // ── Handlers ──
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -309,8 +324,18 @@ export function AgentBoardFrame({
       } else {
         await fetchMessages(activeSessionId, { silent: true })
 
+        // Update action pack from response if present
+        const respData = (result as any)?.data
+        if (respData?.actionPack) {
+          const pack = respData.actionPack as ActionPack
+          const flat = Object.entries(pack).flatMap(([entity, caps]) =>
+            (Array.isArray(caps) ? caps : []).map((cap) => `${entity}.${cap}`)
+          )
+          setAllowedActions(flat)
+        }
+
         // Handle action results (draft mutations, etc.)
-        const actionResults = (result as any)?.data?.data?.actions || (result as any)?.actionResults || undefined
+        const actionResults = respData?.actions || (result as any)?.actionResults || undefined
         if (actionResults && Array.isArray(actionResults) && actionResults.length > 0) {
           setMessages((prev) => {
             const updated = [...prev]
@@ -663,7 +688,7 @@ export function AgentBoardFrame({
         title={`${agentName} configuration`}
         description="Agent capabilities, model settings, and diagnostics."
       />
-      <CockpitPanel agent={agent} sessions={sessions} activeSessionId={activeSessionId} />
+      <CockpitPanel agent={agent} sessions={sessions} activeSessionId={activeSessionId} allowedActions={allowedActions} />
       <button
         type="button"
         onClick={() => setView({ kind: "dialogue" })}

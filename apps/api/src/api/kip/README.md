@@ -12,6 +12,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 
 ## 🔄 Data & Behavior
 - GET `/api/kip/agents` reads from DB normally.
+- GET `/api/kip/agents?actionPack=true&agentId=...&domainId=...` returns the action pack (tools/actions the agent can use) for the given agent and domain. Resolves environment via KAM and returns `{ actionPack, allowedActions }`.
 - When `DISABLE_DB=true` or `DATABASE_URL` is unset, it returns a static mock list instead of touching the DB.
 - POST `/api/kip/agents` (action=run) now resolves env-v1 context via KAM and injects it (with debug canary) into Kip model input without changing response shapes.
   - Env now includes domain slug/name, agent identity, and per-run debug.canary UUID.
@@ -22,6 +23,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2026-02-09: Added GET actionPack query param to return agent tools/actions. Expanded structured response prompt with draft.create payload schema, JSON example, and stronger instruction for draft creation.
 - 2025-12-19: Added DraftIntent pipeline with server-owned draft create/populate/setActive, enforced action envelopes (no fenced or non-agent_output JSON), runtime actionPack exposure, and a repairDraft utility for backfilling empty drafts.
 - 2025-12-17: Added structured-response enforcement for Kip runs plus server-side execution of policy-allowed draft actions (create/update/list/get) with guardrails when persistence fails.
 - 2025-12-16: Kip run now forwards `sessionId` into KAM env resolution so env-v1 bundles can carry the session’s activeDraft summary when present.

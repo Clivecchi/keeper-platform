@@ -15,12 +15,15 @@ export interface CockpitPanelProps {
   agent: KipAgent | null
   sessions: AgentConversationSession[]
   activeSessionId: string | null
+  /** Tools/actions the agent can use (e.g. draft.create, moment.create, sole.save) */
+  allowedActions?: string[]
 }
 
 export const CockpitPanel: React.FC<CockpitPanelProps> = ({
   agent,
   sessions,
   activeSessionId,
+  allowedActions = [],
 }) => {
   const activeSession = sessions.find(
     (session) => session.id === activeSessionId,
@@ -96,30 +99,43 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
         </dl>
       </FrameCard>
 
-      <FrameCard title="Tools & Integrations">
+      <FrameCard title="Tools & Integrations" subtitle="Actions the agent can use">
         <ul className="space-y-2 text-sm">
-          {activeCapabilities.map((cap) => (
-            <li
-              key={cap.name}
-              className={clsx(
-                "flex items-center gap-2",
-                cap.active ? "text-emerald-600" : "text-gray-400",
-              )}
-            >
-              <span
-                className={clsx(
-                  "h-2 w-2 rounded-full",
-                  cap.active ? "bg-emerald-500" : "bg-gray-300",
-                )}
-              />
-              {cap.name} {cap.active ? "enabled" : "unavailable"}
-            </li>
-          ))}
-          {agent?.tools?.length ? (
-            <li className="text-xs text-gray-500">
-              {agent.tools.join(", ")}
-            </li>
-          ) : null}
+          {allowedActions.length > 0 ? (
+            <>
+              {allowedActions.map((action) => (
+                <li key={action} className="flex items-center gap-2 text-emerald-600">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                  <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">{action}</code>
+                </li>
+              ))}
+            </>
+          ) : (
+            <>
+              {activeCapabilities.map((cap) => (
+                <li
+                  key={cap.name}
+                  className={clsx(
+                    "flex items-center gap-2",
+                    cap.active ? "text-emerald-600" : "text-gray-400",
+                  )}
+                >
+                  <span
+                    className={clsx(
+                      "h-2 w-2 rounded-full",
+                      cap.active ? "bg-emerald-500" : "bg-gray-300",
+                    )}
+                  />
+                  {cap.name} {cap.active ? "enabled" : "unavailable"}
+                </li>
+              ))}
+              {agent?.tools?.length ? (
+                <li className="text-xs text-gray-500">
+                  {agent.tools.join(", ")}
+                </li>
+              ) : null}
+            </>
+          )}
         </ul>
       </FrameCard>
 

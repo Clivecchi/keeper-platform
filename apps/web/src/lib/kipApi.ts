@@ -102,6 +102,15 @@ export interface AgentResponse {
 export type AgentModeKey = 'domain' | 'debug';
 export type ModeOutputStyle = 'concise' | 'normal' | 'expanded';
 
+/** Action pack: entity.capability grouped by entity (e.g. draft.create, moment.create) */
+export type ActionPack = {
+  draft: string[];
+  keeper: string[];
+  journey: string[];
+  moment: string[];
+  [key: string]: string[];
+};
+
 export type ModeConfig = {
   lensId?: string | null;
   outputStyle?: ModeOutputStyle;
@@ -624,6 +633,28 @@ export class KipApi {
     }
 
     return agentResult;
+  }
+
+  /**
+   * Get action pack (tools/actions the agent can use) for a given agent and domain
+   */
+  static async getActionPack(
+    agentId: string,
+    domainId?: string | null
+  ): Promise<{ actionPack: ActionPack; allowedActions: string[] }> {
+    const params = new URLSearchParams();
+    params.set('actionPack', 'true');
+    params.set('agentId', agentId);
+    if (domainId) params.set('domainId', domainId);
+    const response = await apiFetch(`/api/kip/agents?${params.toString()}`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to load action pack');
+    }
+    const data = response.data as { actionPack?: ActionPack; allowedActions?: string[] };
+    if (!data?.actionPack || !Array.isArray(data.allowedActions)) {
+      throw new Error('Invalid action pack response');
+    }
+    return { actionPack: data.actionPack, allowedActions: data.allowedActions };
   }
 
   /**

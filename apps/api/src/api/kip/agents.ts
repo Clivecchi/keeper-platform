@@ -2162,13 +2162,17 @@ export class KipAgentService {
             : DEFAULT_POLICY_PACK_V1.actions.allow;
 
         const draftRules = (environmentContext as any)?.policy?.policy?.drafts ?? {};
+        const draftKinds = (draftRules?.autoDraft?.kinds as string[] | undefined) ?? ['vehicle_template', 'journey_spec', 'keeper_type_proposal', 'checklist_spec'];
         messages.push({
           role: 'system',
           content: [
-            'Structured response required: reply with JSON containing "response" (string) and optional "actions" (array).',
+            'Structured response required: reply with raw JSON only (no markdown or code fences). Include "response" (string) and optional "actions" (array).',
             `Allowed actions: ${allowList.join(', ')}.`,
             'Each action must include a "type" and optional "payload".',
             'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
+            'When the user asks for a draft, you MUST respond with valid JSON containing a draft.create action. Do not reply with draft content in "response" only; include the action.',
+            `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
+            'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{}}}]}',
             draftRules?.autoDraft?.enabled
               ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a draft, include draft.create (or draft.update) with a short confirmation message.`
               : 'If the user explicitly asks for a draft, include draft.create (or draft.update) with a short confirmation message.',
@@ -2842,7 +2846,35 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
           return respond(200, { success: true, agents: MOCK_AGENTS });
         }
         // Handle different GET routes
-        const { id, slug, logs, agentId: queryAgentId, userId: queryUserId, page, pageSize, stats, sessions, sessionId: querySessionId, messages } = req.query;
+        const { id, slug, logs, agentId: queryAgentId, userId: queryUserId, page, pageSize, stats, sessions, sessionId: querySessionId, messages, actionPack: actionPackQuery } = req.query;
+        
+        // Get action pack for agent/domain (tools the agent can use)
+        if (actionPackQuery === 'true') {
+          const apAgentId = typeof queryAgentId === 'string' ? queryAgentId : (req.query as any)?.agentId;
+          const domainId = typeof (req.query as any)?.domainId === 'string' ? (req.query as any).domainId : resolvedDomain.domainId ?? undefined;
+          if (!apAgentId) {
+            return respond(400, { success: false, error: 'agentId required for actionPack' });
+          }
+          try {
+            let environment: AgentEnvironmentContext | null = null;
+            try {
+              environment = await resolveAgentEnvironment({
+                agentId: apAgentId,
+                userId: resolvedUser.userId ?? undefined,
+                domainId,
+                intent: 'interactive',
+              });
+            } catch (err) {
+              console.warn('[kip/agents] actionPack env resolution failed', { agentId: apAgentId, domainId, error: err });
+            }
+            const actionPack = buildActionPackFromEnvironment(environment);
+            const allowedActions = Array.from(buildAllowedActions(environment));
+            return respond(200, { success: true, data: { actionPack, allowedActions } });
+          } catch (error) {
+            console.error('[kip/agents] actionPack error', { agentId: apAgentId, error });
+            return respond(500, { success: false, error: 'Failed to load action pack' });
+          }
+        }
         
         // Get session messages
         if (messages === 'true') {
