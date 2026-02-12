@@ -21,6 +21,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-02-09: Composed system prompt always visible (from action pack preview); soleStatus prop for Memory section; keeper sharpening indicator.
 - 2026-02-09: Added composedSystemPrompt, activeKeeperId props; SOLE records fetch and display; theme tokens for dialogue colors; actionResults from message metadata.
 - 2026-02-09: Added allowedActions prop to CockpitPanel to display agent tools/actions. Falls back to hardcoded capabilities when not provided.
 - 2026-02-09: Initial extraction from KipAgentBoardPage. Created DialogueMessageList, SessionCard, CockpitPanel, AgentContextBar, types, and helpers.

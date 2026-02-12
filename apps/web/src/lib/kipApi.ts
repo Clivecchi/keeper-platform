@@ -641,18 +641,31 @@ export class KipApi {
   static async getActionPack(
     agentId: string,
     domainId?: string | null,
-    keeperId?: string | null
-  ): Promise<{ actionPack: ActionPack; allowedActions: string[]; soleStatus?: { soleActive: boolean; memoryCount?: number } }> {
+    keeperId?: string | null,
+    options?: { journeyId?: string | null; composePrompt?: boolean }
+  ): Promise<{
+    actionPack: ActionPack;
+    allowedActions: string[];
+    soleStatus?: { soleActive: boolean; keeperSharpening?: boolean; memoryCount?: number };
+    composedSystemPrompt?: string | null;
+  }> {
     const params = new URLSearchParams();
     params.set('actionPack', 'true');
     params.set('agentId', agentId);
     if (domainId) params.set('domainId', domainId);
     if (keeperId) params.set('keeperId', keeperId);
+    if (options?.journeyId) params.set('journeyId', options.journeyId);
+    if (options?.composePrompt) params.set('composePrompt', 'true');
     const response = await apiFetch(`/api/kip/agents?${params.toString()}`);
     if (!response.success) {
       throw new Error(response.error || 'Failed to load action pack');
     }
-    const data = response.data as { actionPack?: ActionPack; allowedActions?: string[]; soleStatus?: { soleActive: boolean; memoryCount?: number } };
+    const data = response.data as {
+      actionPack?: ActionPack;
+      allowedActions?: string[];
+      soleStatus?: { soleActive: boolean; keeperSharpening?: boolean; memoryCount?: number };
+      composedSystemPrompt?: string | null;
+    };
     if (!data?.actionPack || !Array.isArray(data.allowedActions)) {
       throw new Error('Invalid action pack response');
     }
@@ -660,6 +673,7 @@ export class KipApi {
       actionPack: data.actionPack,
       allowedActions: data.allowedActions,
       soleStatus: data.soleStatus,
+      composedSystemPrompt: data.composedSystemPrompt ?? null,
     };
   }
 

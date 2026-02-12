@@ -122,7 +122,11 @@ export function AgentBoardFrame({
 
   // ── Action pack (tools the agent can use) ──
   const [allowedActions, setAllowedActions] = React.useState<string[]>([])
-  const [soleStatus, setSoleStatus] = React.useState<{ soleActive: boolean; memoryCount?: number } | null>(null)
+  const [soleStatus, setSoleStatus] = React.useState<{
+    soleActive: boolean
+    keeperSharpening?: boolean
+    memoryCount?: number
+  } | null>(null)
   const [composedSystemPrompt, setComposedSystemPrompt] = React.useState<string | null>(null)
 
   // ── Draft state ──
@@ -176,20 +180,25 @@ export function AgentBoardFrame({
     return () => { active = false }
   }, [isAuthenticated])
 
-  // ── Load action pack (tools the agent can use) ──
+  // ── Load action pack (tools the agent can use) + composed system prompt ──
   React.useEffect(() => {
     if (!agent?.id || !domainId) return
     let active = true
     const keeperId = frameCtx?.selection.activeKeeperId ?? null
-    KipApi.getActionPack(agent.id, domainId, keeperId)
-      .then(({ allowedActions: actions, soleStatus: ss }) => {
+    const journeyId = frameCtx?.selection.activeJourneyId ?? null
+    KipApi.getActionPack(agent.id, domainId, keeperId, {
+      journeyId,
+      composePrompt: true,
+    })
+      .then(({ allowedActions: actions, soleStatus: ss, composedSystemPrompt: prompt }) => {
         if (!active) return
         setAllowedActions(actions)
         setSoleStatus(ss ?? null)
+        if (typeof prompt === "string") setComposedSystemPrompt(prompt)
       })
       .catch(() => { /* ignore */ })
     return () => { active = false }
-  }, [agent?.id, domainId, frameCtx?.selection.activeKeeperId])
+  }, [agent?.id, domainId, frameCtx?.selection.activeKeeperId, frameCtx?.selection.activeJourneyId])
 
   // ── Load domain data (journeys, keepers) ──
   React.useEffect(() => {
@@ -510,7 +519,7 @@ export function AgentBoardFrame({
       <AgentContextBar
         activeJourneyName={activeJourneyName}
         activeKeeperName={activeKeeperName}
-        soleActive={soleStatus ? soleStatus.soleActive : hasKeeper}
+        soleActive={soleStatus?.soleActive ?? (domainId ? true : hasKeeper)}
         sessionId={activeSessionId}
       />
       <DialogueMessageList
@@ -704,6 +713,7 @@ export function AgentBoardFrame({
         allowedActions={allowedActions}
         composedSystemPrompt={composedSystemPrompt}
         activeKeeperId={frameCtx?.selection.activeKeeperId}
+        soleStatus={soleStatus}
       />
       <button
         type="button"

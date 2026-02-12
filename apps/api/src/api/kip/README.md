@@ -12,7 +12,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 
 ## 🔄 Data & Behavior
 - GET `/api/kip/agents` reads from DB normally.
-- GET `/api/kip/agents?actionPack=true&agentId=...&domainId=...` returns the action pack (tools/actions the agent can use) for the given agent and domain. Resolves environment via KAM and returns `{ actionPack, allowedActions }`.
+- GET `/api/kip/agents?actionPack=true&agentId=...&domainId=...` returns the action pack (tools/actions the agent can use) for the given agent and domain. Resolves environment via KAM and returns `{ actionPack, allowedActions, soleStatus, composedSystemPrompt? }`. `soleStatus.soleActive` is true when in domain (SOLE always accessible); `keeperSharpening` when keeper uses SOLE. Add `composePrompt=true` and optionally `journeyId`/`keeperId` to get `composedSystemPrompt`.
 - When `DISABLE_DB=true` or `DATABASE_URL` is unset, it returns a static mock list instead of touching the DB.
 - POST `/api/kip/agents` (action=run) now resolves env-v1 context via KAM and injects it (with debug canary) into Kip model input without changing response shapes.
   - Env now includes domain slug/name, agent identity, and per-run debug.canary UUID.
@@ -23,6 +23,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2026-02-09: SOLE domain-wide (always active in domain); keeper association sharpens. buildComposedSystemPrompt + composePrompt query param for full system prompt in Cockpit.
 - 2026-02-09: Added JSON extraction from mixed response text, draft.create payload normalizer, composeSystemPrompt in run response, soleStatus, actionResults persistence in message metadata, JSON mode for OpenAI, repetition instruction, spec.sections requirement for draft quality.
 - 2026-02-09: Added GET actionPack query param to return agent tools/actions. Expanded structured response prompt with draft.create payload schema, JSON example, and stronger instruction for draft creation.
 - 2025-12-19: Added DraftIntent pipeline with server-owned draft create/populate/setActive, enforced action envelopes (no fenced or non-agent_output JSON), runtime actionPack exposure, and a repairDraft utility for backfilling empty drafts.

@@ -23,6 +23,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2026-02-09: SOLE domain-wide (always active in domain); keeper association sharpens. buildComposedSystemPrompt + composePrompt query param for full system prompt in Cockpit.
 - 2026-02-09: Added JSON extraction from mixed response text, draft.create payload normalizer, composeSystemPrompt in run response, soleStatus, actionResults persistence in message metadata, JSON mode for OpenAI, repetition instruction, spec.sections requirement for draft quality.
 - 2026-02-09: Added GET actionPack query param to return agent tools/actions. Expanded structured response prompt with draft.create payload schema, JSON example, and stronger instruction for draft creation.
 - 2025-12-19: Added DraftIntent pipeline with server-owned draft create/populate/setActive, enforced action envelopes (no fenced or non-agent_output JSON), runtime actionPack exposure, and a repairDraft utility for backfilling empty drafts.

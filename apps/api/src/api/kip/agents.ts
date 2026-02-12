@@ -2168,6 +2168,169 @@ export class KipAgentService {
   }
 
   /**
+   * Build the composed system prompt for a given context (without running the model).
+   * Used to expose the full prompt in the Cockpit.
+   */
+  static async buildComposedSystemPrompt(
+    agentId: string,
+    options: {
+      domainId?: string | null;
+      keeperId?: string | null;
+      journeyId?: string | null;
+      userId?: string | null;
+    },
+  ): Promise<string> {
+    const agent = await this.getAgentSafely(agentId);
+    let environment: AgentEnvironmentContext | null = null;
+    try {
+      environment = await resolveAgentEnvironment({
+        agentId,
+        userId: options.userId ?? undefined,
+        domainId: options.domainId ?? undefined,
+        intent: 'interactive',
+      });
+    } catch {
+      /* continue without env */
+    }
+
+    const modeState = isDbDisabled() ? null : await loadModeState(agent.id, options.domainId ?? undefined);
+    const activeMode: AgentModeKey = modeState?.state.activeMode || 'domain';
+    const fallbackModeConfig: ModeConfig = {
+      outputStyle: 'normal',
+      limits: { maxChars: activeMode === 'debug' ? 2000 : 0 },
+      captureN: 20,
+      autoBrief: true,
+      includeFixPlan: true,
+    };
+    const activeModeConfig = (modeState?.state.modeConfigs[activeMode] as ModeConfig) || fallbackModeConfig;
+    const lensId =
+      activeModeConfig.lensId ||
+      (activeMode === 'debug' ? modeState?.lenses?.debugLensId : modeState?.lenses?.domainLensId) ||
+      null;
+    const lens =
+      !isDbDisabled() && lensId ? await prisma.kip_lenses.findUnique({ where: { id: lensId } }) : null;
+    const maxChars = typeof activeModeConfig.limits?.maxChars === 'number' ? activeModeConfig.limits.maxChars : null;
+
+    const config = agent.config || {};
+    const styleHelper: Record<OutputStyle, string> = {
+      concise: 'Keep replies compact and bullet-first where possible.',
+      normal: 'Balance clarity with brevity; surface key evidence first.',
+      expanded: 'Provide fuller reasoning and details while staying structured.',
+    };
+    const outputStyle = (activeModeConfig.outputStyle as OutputStyle) || 'normal';
+    const systemParts: string[] = [];
+
+    systemParts.push(
+      [
+        lens?.systemPrompt || '',
+        `You are ${agent.name}, ${agent.purpose}. ${config.tagline || ''}`.trim(),
+        `Mode: ${activeMode.toUpperCase()}. Output style: ${styleHelper[outputStyle]}`,
+        maxChars && maxChars > 0
+          ? `Hard limit: keep the Debug Brief under ${maxChars} characters; prefer concise evidence.`
+          : 'No hard character limit configured for this mode.',
+        activeMode === 'debug'
+          ? `When in Debug mode, start with a "Debug Brief" that fits within the limit, including sections: Summary (bullets), Evidence (requestId/action/id/auth context), Error (code/constraint/message), Probable cause, Next actions (3-6 bullets). Cite evidence and ask for at most one missing fact. Avoid dumping raw bundles unless explicitly requested.`
+          : null,
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+    );
+
+    if (environment) {
+      systemParts.push(`Environment context (resolved via KAM):\n${JSON.stringify(environment, null, 2)}`);
+      const policyPack = buildPolicyPackFromEnvironment(environment as any);
+      const allowList =
+        Array.isArray(policyPack?.actions?.allow) && policyPack.actions.allow.length
+          ? policyPack.actions.allow
+          : DEFAULT_POLICY_PACK_V1.actions.allow;
+      const draftRules = (environment as any)?.policy?.policy?.drafts ?? {};
+      const draftKinds =
+        (draftRules?.autoDraft?.kinds as string[] | undefined) ?? ['vehicle_template', 'journey_spec', 'keeper_type_proposal', 'checklist_spec'];
+      systemParts.push(
+        [
+          'Structured response required: reply with raw JSON only (no markdown or code fences). Include "response" (string) and optional "actions" (array).',
+          `Allowed actions: ${allowList.join(', ')}.`,
+          'Each action must include a "type" and optional "payload".',
+          'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
+          'When the user asks for a draft, you MUST respond with valid JSON containing a draft.create action. Do not reply with draft content in "response" only; include the action.',
+          'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
+          `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
+          'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',
+          'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"sections":[{"title":"Section 1","content":"Specific content here"},{"title":"Section 2","content":"More details"}]}}}]}',
+          draftRules?.autoDraft?.enabled
+            ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a draft, include draft.create (or draft.update) with a short confirmation message.`
+            : 'If the user explicitly asks for a draft, include draft.create (or draft.update) with a short confirmation message.',
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      );
+    }
+
+    if (environment) {
+      systemParts.push(SoleMemoryService.getSoleMemoryLoopInstruction());
+      if (options.keeperId) {
+        try {
+          const keeperUsesSole = await SoleMemoryService.isKeeperUsingSOLE(options.keeperId);
+          if (keeperUsesSole) {
+            const memoryCards = await prisma.soleMemoryCard.findMany({
+              where: { keeperId: options.keeperId },
+              orderBy: { createdAt: 'desc' },
+              take: 10,
+              select: { id: true, content: true, topic: true },
+            });
+            if (memoryCards.length > 0) {
+              const memorySummary = memoryCards
+                .map((c) => `- ${c.topic ? `[${c.topic}] ` : ''}${c.content.slice(0, 100)}`)
+                .join('\n');
+              systemParts.push(
+                `Relevant SOLE memories (keeper-sharpened):\n${memorySummary}\n\nUse these memories to inform your responses. When the user asks you to "remember" something, use the sole.save action.`,
+              );
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
+    if (options.journeyId) {
+      try {
+        const journey = await prisma.journey.findUnique({
+          where: { id: options.journeyId },
+          select: {
+            id: true,
+            name: true,
+            forward: true,
+            Moment: {
+              orderBy: { createdAt: 'desc' },
+              take: 5,
+              select: { id: true, title: true, narrative: true },
+            },
+          },
+        });
+        if (journey) {
+          const momentSummaries = journey.Moment.map(
+            (m) => `- "${m.title}": ${(m.narrative || '').slice(0, 80)}`,
+          ).join('\n');
+          systemParts.push(
+            [
+              `Active Journey: "${journey.name}" — ${journey.forward}`,
+              journey.Moment.length > 0
+                ? `Recent moments in this journey:\n${momentSummaries}`
+                : 'No moments in this journey yet.',
+              'When the user asks you to create a moment, use the moment.create action with the active journey context.',
+            ].join('\n'),
+          );
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return systemParts.join('\n\n');
+  }
+
+  /**
    * Call real AI model with conversation context
    */
   static async callAIModel(
@@ -2311,32 +2474,35 @@ export class KipAgentService {
       }
 
       // --- SOLE memory context injection ---
-      if (promptOptions?.activeKeeperId) {
+      // SOLE exists at domain level and is always accessible. Keeper association sharpens for that keeper.
+      if (environmentContext) {
         try {
-          const soleInstruction = await SoleMemoryService.getSystemPromptExtension(promptOptions.activeKeeperId);
-          if (soleInstruction) {
-            messages.push({
-              role: 'system',
-              content: soleInstruction,
-            });
-          }
-
-          // Fetch recent memory cards for context
-          const memoryCards = await prisma.soleMemoryCard.findMany({
-            where: { keeperId: promptOptions.activeKeeperId },
-            orderBy: { createdAt: 'desc' },
-            take: 10,
-            select: { id: true, content: true, topic: true },
+          // Base SOLE instruction: always injected when in domain context
+          messages.push({
+            role: 'system',
+            content: SoleMemoryService.getSoleMemoryLoopInstruction(),
           });
 
-          if (memoryCards.length > 0) {
-            const memorySummary = memoryCards
-              .map((c) => `- ${c.topic ? `[${c.topic}] ` : ''}${c.content.slice(0, 100)}`)
-              .join('\n');
-            messages.push({
-              role: 'system',
-              content: `Relevant SOLE memories:\n${memorySummary}\n\nUse these memories to inform your responses. When the user asks you to "remember" something, use the sole.save action.`,
-            });
+          // Keeper sharpening: when a keeper is selected and uses SOLE, add memory cards
+          if (promptOptions?.activeKeeperId) {
+            const keeperUsesSole = await SoleMemoryService.isKeeperUsingSOLE(promptOptions.activeKeeperId);
+            if (keeperUsesSole) {
+              const memoryCards = await prisma.soleMemoryCard.findMany({
+                where: { keeperId: promptOptions.activeKeeperId },
+                orderBy: { createdAt: 'desc' },
+                take: 10,
+                select: { id: true, content: true, topic: true },
+              });
+              if (memoryCards.length > 0) {
+                const memorySummary = memoryCards
+                  .map((c) => `- ${c.topic ? `[${c.topic}] ` : ''}${c.content.slice(0, 100)}`)
+                  .join('\n');
+                messages.push({
+                  role: 'system',
+                  content: `Relevant SOLE memories (keeper-sharpened):\n${memorySummary}\n\nUse these memories to inform your responses. When the user asks you to "remember" something, use the sole.save action.`,
+                });
+              }
+            }
           }
         } catch (err) {
           console.warn('[kip/agents] Failed to inject SOLE context:', err);
@@ -2588,17 +2754,20 @@ export class KipAgentService {
           }
         }
         
-        // Resolve soleStatus for response when keeper is active
-        let soleStatus: { soleActive: boolean; memoryCount?: number } | undefined;
-        if (options?.activeKeeperId) {
-          try {
-            const soleActive = await SoleMemoryService.isKeeperUsingSOLE(options.activeKeeperId);
-            soleStatus = {
-              soleActive,
-              memoryCount: soleActive ? await prisma.soleMemoryCard.count({ where: { keeperId: options.activeKeeperId } }) : 0,
-            };
-          } catch {
-            /* ignore */
+        // SOLE exists at domain level and is always accessible. Keeper sharpens.
+        let soleStatus: { soleActive: boolean; keeperSharpening?: boolean; memoryCount?: number } | undefined;
+        if (options?.domainId) {
+          soleStatus = { soleActive: true }; // SOLE always on in domain
+          if (options?.activeKeeperId) {
+            try {
+              const keeperSharpening = await SoleMemoryService.isKeeperUsingSOLE(options.activeKeeperId);
+              soleStatus.keeperSharpening = keeperSharpening;
+              if (keeperSharpening) {
+                soleStatus.memoryCount = await prisma.soleMemoryCard.count({ where: { keeperId: options.activeKeeperId } });
+              }
+            } catch {
+              /* ignore */
+            }
           }
         }
 
@@ -2989,19 +3158,41 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             const actionPack = buildActionPackFromEnvironment(environment);
             const allowedActions = Array.from(buildAllowedActions(environment));
             const keeperId = typeof (req.query as any)?.keeperId === 'string' ? (req.query as any).keeperId : undefined;
-            let soleStatus: { soleActive: boolean; memoryCount?: number } | undefined;
-            if (keeperId) {
-              try {
-                const soleActive = await SoleMemoryService.isKeeperUsingSOLE(keeperId);
-                const memoryCount = soleActive
-                  ? await prisma.soleMemoryCard.count({ where: { keeperId } })
-                  : 0;
-                soleStatus = { soleActive, memoryCount };
-              } catch (err) {
-                console.warn('[kip/agents] soleStatus lookup failed', { keeperId, err });
+            const journeyId = typeof (req.query as any)?.journeyId === 'string' ? (req.query as any).journeyId : undefined;
+            const composePrompt = (req.query as any)?.composePrompt === 'true';
+
+            // SOLE exists at domain level and is always accessible. Keeper sharpens.
+            let soleStatus: { soleActive: boolean; keeperSharpening?: boolean; memoryCount?: number } | undefined;
+            if (domainId) {
+              soleStatus = { soleActive: true };
+              if (keeperId) {
+                try {
+                  const keeperSharpening = await SoleMemoryService.isKeeperUsingSOLE(keeperId);
+                  soleStatus.keeperSharpening = keeperSharpening;
+                  if (keeperSharpening) {
+                    soleStatus.memoryCount = await prisma.soleMemoryCard.count({ where: { keeperId } });
+                  }
+                } catch (err) {
+                  console.warn('[kip/agents] soleStatus lookup failed', { keeperId, err });
+                }
               }
             }
-            return respond(200, { success: true, data: { actionPack, allowedActions, soleStatus } });
+
+            let composedSystemPrompt: string | undefined;
+            if (composePrompt && apAgentId) {
+              try {
+                composedSystemPrompt = await KipAgentService.buildComposedSystemPrompt(apAgentId, {
+                  domainId,
+                  keeperId: keeperId ?? undefined,
+                  journeyId: journeyId ?? undefined,
+                  userId: resolvedUser.userId ?? undefined,
+                });
+              } catch (err) {
+                console.warn('[kip/agents] composePrompt failed', { agentId: apAgentId, err });
+              }
+            }
+
+            return respond(200, { success: true, data: { actionPack, allowedActions, soleStatus, composedSystemPrompt } });
           } catch (error) {
             console.error('[kip/agents] actionPack error', { agentId: apAgentId, error });
             return respond(500, { success: false, error: 'Failed to load action pack' });

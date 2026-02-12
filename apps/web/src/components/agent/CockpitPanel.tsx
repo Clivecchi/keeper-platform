@@ -21,10 +21,12 @@ export interface CockpitPanelProps {
   activeSessionId: string | null
   /** Tools/actions the agent can use (e.g. draft.create, moment.create, sole.save) */
   allowedActions?: string[]
-  /** Composed system prompt from last run (read-only) */
+  /** Composed system prompt (from action pack preview or last run) */
   composedSystemPrompt?: string | null
   /** Active keeper ID for SOLE records lookup */
   activeKeeperId?: string | null
+  /** SOLE status: soleActive (domain-wide), keeperSharpening (keeper-specific) */
+  soleStatus?: { soleActive: boolean; keeperSharpening?: boolean; memoryCount?: number } | null
 }
 
 export const CockpitPanel: React.FC<CockpitPanelProps> = ({
@@ -34,6 +36,7 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
   allowedActions = [],
   composedSystemPrompt = null,
   activeKeeperId = null,
+  soleStatus = null,
 }) => {
   const { user } = useAuth()
   const [soleCards, setSoleCards] = React.useState<SoleMemoryCard[]>([])
@@ -47,6 +50,8 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
   const hasKeeper = Boolean(frameCtx?.selection.activeKeeperId)
   const hasJourney = Boolean(frameCtx?.selection.activeJourneyId)
   const modelMaxTokens = agent?.model_settings?.max_tokens ?? 4000
+  const soleActive = soleStatus?.soleActive ?? hasKeeper
+  const keeperSharpening = soleStatus?.keeperSharpening ?? false
 
   React.useEffect(() => {
     if (!activeKeeperId || !user?.id) {
@@ -68,7 +73,7 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
     { name: "Keeper context", active: hasKeeper },
     { name: "Journey tracking", active: hasJourney },
     { name: "Moment creation", active: true },
-    { name: "SOLE memory", active: hasKeeper },
+    { name: "SOLE memory", active: soleActive },
     { name: "Draft management", active: true },
   ]
 
@@ -89,9 +94,11 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
             </span>
           </li>
           <li className="text-xs text-gray-500">
-            {hasKeeper
-              ? "SOLE memory system active — tracking key life events and journey progress."
-              : "No keeper set — SOLE memory is inactive until a keeper is selected."}
+            {soleActive
+              ? keeperSharpening
+                ? "SOLE memory system active (keeper-sharpened) — tracking key life events and journey progress."
+                : "SOLE memory system active — tracking key life events and journey progress."
+              : "No domain context — SOLE is inactive."}
           </li>
         </ul>
       </FrameCard>
@@ -128,8 +135,8 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
       </FrameCard>
 
       {composedSystemPrompt && (
-        <FrameCard title="Composed System Prompt" subtitle="Read-only view of what the model receives">
-          <pre className="max-h-48 overflow-y-auto rounded bg-gray-50 p-3 text-xs text-gray-700 whitespace-pre-wrap break-words">
+        <FrameCard title="Composed System Prompt" subtitle="Full system prompt the model receives (read-only)">
+          <pre className="max-h-96 overflow-y-auto rounded bg-gray-50 p-3 text-xs text-gray-700 whitespace-pre-wrap break-words font-mono">
             {composedSystemPrompt}
           </pre>
         </FrameCard>
