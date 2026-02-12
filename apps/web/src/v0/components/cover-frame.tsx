@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import type { StyleId } from "../styles/styles"
+import { StyleScope } from "../styles/StyleScope"
 import { DesignFrame } from "../frames/DesignFrame"
 import { CoverBody } from "../frames/cover/CoverBody"
 import { ThemeSwitcher } from "../frames/ThemeSwitcher"
@@ -65,9 +66,17 @@ export function CoverFrame({
   };
 
   return (
-    <div style={{ padding: COVER_CONSTANTS.pad }}>
-      {/* Cover Frame imprint header */}
-      <header className="space-y-4 mb-8" aria-label="Cover Frame">
+    <StyleScope styleId={styleId} themeSlug={themeSlug}>
+      <div
+        className="min-h-screen"
+        style={{
+          padding: COVER_CONSTANTS.pad,
+          backgroundColor: "var(--theme-surface-page)",
+          color: "var(--theme-ink-primary)",
+        }}
+      >
+        {/* Cover Frame imprint header */}
+        <header className="space-y-4 mb-8" aria-label="Cover Frame">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center">
           <div />
           <p
@@ -153,16 +162,17 @@ export function CoverFrame({
         </div>
       </header>
 
-  <DesignFrame
-    styleId={styleId}
-    themeSlug={themeSlug}
-    title={coverState === "open" ? coverTitle : undefined}
-    subtitle={coverState === "open" ? coverLiner : undefined}
-    themeSwitcherSlot={<ThemeSwitcher />}
-  >
-        <CoverBody domainData={domainData} themeSlug={themeSlug} onNavigate={navigate} coverState={coverState} />
-      </DesignFrame>
-    </div>
+        <DesignFrame
+          styleId={styleId}
+          themeSlug={themeSlug}
+          title={coverState === "open" ? coverTitle : undefined}
+          subtitle={coverState === "open" ? coverLiner : undefined}
+          themeSwitcherSlot={<ThemeSwitcher />}
+        >
+          <CoverBody domainData={domainData} themeSlug={themeSlug} onNavigate={navigate} coverState={coverState} />
+        </DesignFrame>
+      </div>
+    </StyleScope>
   )
 }
 

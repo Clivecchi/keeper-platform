@@ -30,13 +30,19 @@ export function Margin() {
 
   const handleNavigateToKip = () => {
     const params = buildPreservedParams(searchParams)
+    params.set("frame", "agent")
+    navigate(`/d/${v0Shell.domainSlug}/board?${params.toString()}`)
+  }
+
+  const handleNavigateToKipOld = () => {
+    const params = buildPreservedParams(searchParams)
     params.set("frame", "kip")
     navigate(`/d/${v0Shell.domainSlug}/board?${params.toString()}`)
   }
 
   const handleLogin = () => {
     const params = buildPreservedParams(searchParams)
-    params.set("frame", "kip")
+    params.set("frame", "agent")
     const nextPath = `/d/${v0Shell.domainSlug}/board?${params.toString()}`
     navigate(`/login?next=${encodeURIComponent(nextPath)}`)
   }
@@ -97,6 +103,19 @@ export function Margin() {
             >
               <span className="inline-flex h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "#3C6FA5" }} aria-hidden />
               Kip
+            </button>
+            <button
+              type="button"
+              onClick={handleNavigateToKipOld}
+              className="flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
+              style={{
+                borderColor: "var(--theme-border-soft)",
+                backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
+                color: "var(--theme-ink-primary)",
+              }}
+              aria-label="Open Kip (legacy)"
+            >
+              kip - old
             </button>
             {!isAuthenticated && (
               <button

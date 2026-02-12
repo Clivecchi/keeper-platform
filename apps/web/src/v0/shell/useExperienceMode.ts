@@ -68,7 +68,7 @@ export function useExperienceMode({
   const actions = useMemo<ExperienceActions>(() => {
     const adminPath = domainSlug ? `/d/${domainSlug}/admin` : buildFrameUrl("admin")
     return {
-      openKip: () => navigate(buildFrameUrl("kip")),
+      openKip: () => navigate(buildFrameUrl("agent")),
       closeKip: () => navigate(buildFrameUrl(isAuthenticated ? "commons" : "cover")),
       goCommons: () => navigate(buildFrameUrl("commons")),
       goAdmin: () => navigate(adminPath),
