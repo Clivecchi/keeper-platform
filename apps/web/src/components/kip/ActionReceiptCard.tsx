@@ -52,7 +52,13 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
     const actionLabel = getActionLabel(type);
     
     return (
-      <div className="rounded-lg border border-[#E6DED5] bg-[#FAF6F2] p-3">
+      <div
+        className="rounded-lg border p-3"
+        style={{
+          borderColor: 'var(--theme-dialogue-border, hsl(35, 20%, 88%))',
+          backgroundColor: 'var(--theme-dialogue-area-bg, hsl(35, 33%, 97%))',
+        }}
+      >
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
             <p className="text-xs font-semibold text-gray-700">
@@ -77,7 +83,8 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
             <button
               type="button"
               onClick={() => onOpenDraft(draft.id)}
-              className="rounded-lg bg-[#C96E59] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#B85D4A] transition-colors"
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:opacity-90"
+              style={{ backgroundColor: 'var(--theme-dialogue-user-bg, hsl(14, 60%, 56%))' }}
             >
               View Draft →
             </button>

@@ -492,6 +492,43 @@ function slugifyKey(input: string) {
   );
 }
 
+/**
+ * Extract JSON object from mixed response (prose + JSON).
+ * Tries: 1) direct parse, 2) find first { ... } containing "response" or "actions".
+ */
+function extractJsonFromResponse(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  try {
+    JSON.parse(trimmed);
+    return trimmed;
+  } catch {
+    /* not valid JSON, try extraction */
+  }
+  const jsonMatch = trimmed.match(/\{[\s\S]*"(?:response|actions)"[\s\S]*\}/);
+  if (jsonMatch) {
+    const candidate = jsonMatch[0];
+    try {
+      const obj = JSON.parse(candidate);
+      if (typeof obj === 'object' && obj !== null && (typeof obj.response === 'string' || Array.isArray(obj.actions))) {
+        return candidate;
+      }
+    } catch {
+      /* try to find balanced braces */
+    }
+  }
+  const fromNewline = trimmed.match(/\n\s*(\{[\s\S]*\})\s*$/);
+  if (fromNewline) {
+    try {
+      JSON.parse(fromNewline[1]);
+      return fromNewline[1];
+    } catch {
+      /* ignore */
+    }
+  }
+  return null;
+}
+
 function parseStructuredAgentResponse(
   raw: string,
   requestId?: string,
@@ -499,16 +536,28 @@ function parseStructuredAgentResponse(
   const trimmed = raw.trim();
 
   if (trimmed.startsWith('```')) {
-    return {
-      responseText: trimmed.replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim(),
-      actions: [],
-      raw,
-      ignoredReason: 'fenced_response',
-    };
+    const stripped = trimmed.replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();
+    try {
+      const parsed = JSON.parse(stripped);
+      const responseText = typeof parsed?.response === 'string' ? parsed.response : stripped;
+      const actionsResult = safeParseActions(parsed);
+      if (isActionParseSuccess(actionsResult)) {
+        return { responseText, actions: actionsResult.actions, raw };
+      }
+      const legacyActions = Array.isArray(parsed?.actions)
+        ? parsed.actions
+            .filter((action: any) => action && typeof action.type === 'string')
+            .map((action: any) => ({ type: action.type, payload: action.payload ?? null }))
+        : [];
+      return { responseText, actions: legacyActions, raw };
+    } catch {
+      return { responseText: stripped, actions: [], raw, ignoredReason: 'fenced_response' };
+    }
   }
 
+  const jsonStr = extractJsonFromResponse(trimmed) ?? trimmed;
   try {
-    const parsed = JSON.parse(trimmed);
+    const parsed = JSON.parse(jsonStr);
     const responseText = typeof parsed?.response === 'string' ? parsed.response : raw;
 
     // Try to parse actions using canonical schema
@@ -542,6 +591,25 @@ function parseStructuredAgentResponse(
 
     return { responseText, actions: actionsResult.actions, raw };
   } catch (error) {
+    const fallbackJson = extractJsonFromResponse(raw);
+    if (fallbackJson) {
+      try {
+        const parsed = JSON.parse(fallbackJson);
+        const responseText = typeof parsed?.response === 'string' ? parsed.response : raw;
+        const actionsResult = safeParseActions(parsed);
+        if (isActionParseSuccess(actionsResult)) {
+          return { responseText, actions: actionsResult.actions, raw };
+        }
+        const legacyActions = Array.isArray(parsed?.actions)
+          ? parsed.actions
+              .filter((action: any) => action && typeof action.type === 'string')
+              .map((action: any) => ({ type: action.type, payload: action.payload ?? null }))
+          : [];
+        return { responseText, actions: legacyActions, raw };
+      } catch {
+        /* fall through */
+      }
+    }
     return { responseText: raw, actions: [], raw, ignoredReason: 'invalid_json' };
   }
 }
@@ -613,10 +681,32 @@ export async function executeAgentActions(
     types: actionTypes,
   }, '[kip.actions] received');
 
+  // Normalize draft.create payloads (map common model mistakes to schema)
+  const VALID_KINDS = ['journey_spec', 'keeper_type_proposal', 'vehicle_template', 'checklist_spec', 'development_journey', 'conversation_review'];
+  const normalizedActions = actions.map((action) => {
+    if (action.type !== 'draft.create' || !action.payload || typeof action.payload !== 'object') return action;
+    const p = action.payload as Record<string, unknown>;
+    const out: Record<string, unknown> = { ...p };
+    if (!out.kind && typeof p.type === 'string') {
+      const t = (p.type as string).toLowerCase().replace(/\s+/g, '_');
+      out.kind = VALID_KINDS.includes(t) ? t : 'journey_spec';
+    }
+    if (!out.kind && typeof p.kind !== 'string') out.kind = 'journey_spec';
+    if (!out.title && typeof p.view === 'string') out.title = p.view;
+    if (!out.title && typeof p.title !== 'string') out.title = 'Draft';
+    if (!out.key || typeof out.key !== 'string') {
+      const title = (out.title as string) || 'draft';
+      out.key = slugifyKey(title) + '-' + Math.random().toString(36).slice(2, 8);
+    }
+    if (!out.spec || typeof out.spec !== 'object') out.spec = out.spec ? { ...(out.spec as object) } : {};
+    if (out.type && !VALID_KINDS.includes(out.type as string)) delete out.type;
+    return { type: action.type, payload: out };
+  });
+
   // Validate actions using canonical schema - FAIL FAST on validation errors
   let validatedActions: StructuredAgentAction[] = [];
   try {
-    const validationResult = safeParseActions({ type: ACTION_ENVELOPE_TYPE, actions });
+    const validationResult = safeParseActions({ type: ACTION_ENVELOPE_TYPE, actions: normalizedActions });
     if (isActionParseSuccess(validationResult)) {
       validatedActions = validationResult.actions;
       logger.info({
@@ -2098,7 +2188,7 @@ export class KipAgentService {
       activeJourneyId?: string | null;
       activeKeeperId?: string | null;
     },
-  ): Promise<string> {
+  ): Promise<{ content: string; composedSystemPrompt: string }> {
     try {
       const modelProvider = agent.model_provider || 'openai';
       const modelSettings = agent.model_settings || ModelProviderService.getDefaultSettings(modelProvider);
@@ -2171,8 +2261,10 @@ export class KipAgentService {
             'Each action must include a "type" and optional "payload".',
             'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
             'When the user asks for a draft, you MUST respond with valid JSON containing a draft.create action. Do not reply with draft content in "response" only; include the action.',
+            'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
-            'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{}}}]}',
+            'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',
+            'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"sections":[{"title":"Section 1","content":"Specific content here"},{"title":"Section 2","content":"More details"}]}}}]}',
             draftRules?.autoDraft?.enabled
               ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a draft, include draft.create (or draft.update) with a short confirmation message.`
               : 'If the user explicitly asks for a draft, include draft.create (or draft.update) with a short confirmation message.',
@@ -2267,17 +2359,24 @@ export class KipAgentService {
         content: userContent
       });
       
-      // Call the model provider
+      // Build composed system prompt (all system messages concatenated)
+      const composedSystemPrompt = messages
+        .filter((m) => m.role === 'system')
+        .map((m) => m.content)
+        .join('\n\n');
+
+      // Call the model provider (jsonMode when structured response required)
       const response = await ModelProviderService.callModel({
         messages,
         settings: modelSettings,
         provider: modelProvider,
         userId,
         environment: promptOptions?.environment ?? undefined,
+        jsonMode: !!promptOptions?.environment,
       });
       
       if (response.success) {
-        return response.content;
+        return { content: response.content, composedSystemPrompt };
       }
 
       const mappedCode = mapProviderCodeToAgentCode(response.errorCode);
@@ -2419,7 +2518,7 @@ export class KipAgentService {
         }
         
         // Generate response using real AI model with memory context
-        const response = await this.callAIModel(agent, input, previousMessages, userId, {
+        const aiResult = await this.callAIModel(agent, input, previousMessages, userId, {
           mode: activeMode,
           modeConfig: activeModeConfig,
           lens: { systemPrompt: lens?.systemPrompt || null },
@@ -2432,6 +2531,9 @@ export class KipAgentService {
           activeJourneyId: options?.activeJourneyId ?? null,
           activeKeeperId: options?.activeKeeperId ?? null,
         });
+
+        const response = aiResult.content;
+        const composedSystemPrompt = aiResult.composedSystemPrompt;
 
         const requestId = randomUUID();
         const structured = parseStructuredAgentResponse(response, requestId);
@@ -2486,13 +2588,28 @@ export class KipAgentService {
           }
         }
         
-        // Save agent response to memory if we have a session
+        // Resolve soleStatus for response when keeper is active
+        let soleStatus: { soleActive: boolean; memoryCount?: number } | undefined;
+        if (options?.activeKeeperId) {
+          try {
+            const soleActive = await SoleMemoryService.isKeeperUsingSOLE(options.activeKeeperId);
+            soleStatus = {
+              soleActive,
+              memoryCount: soleActive ? await prisma.soleMemoryCard.count({ where: { keeperId: options.activeKeeperId } }) : 0,
+            };
+          } catch {
+            /* ignore */
+          }
+        }
+
+        // Save agent response to memory if we have a session (include actionResults in metadata for persistence)
         if (agent.memory_enabled && currentSessionId) {
           try {
             await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
               timestamp: new Date().toISOString(),
               agent_id: agentId,
-              model: agent.model
+              model: agent.model,
+              actionResults: actionResults.length ? actionResults : undefined,
             });
           } catch (error) {
             console.warn('Failed to save agent response:', error);
@@ -2518,6 +2635,8 @@ export class KipAgentService {
             model: agent.model,
             actions: actionResults,
             actionPack,
+            composedSystemPrompt,
+            soleStatus,
             model_response_raw: response,
             draftIntent: options?.draftIntentResult ?? null,
             timestamp: new Date().toISOString()
@@ -2869,7 +2988,20 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             }
             const actionPack = buildActionPackFromEnvironment(environment);
             const allowedActions = Array.from(buildAllowedActions(environment));
-            return respond(200, { success: true, data: { actionPack, allowedActions } });
+            const keeperId = typeof (req.query as any)?.keeperId === 'string' ? (req.query as any).keeperId : undefined;
+            let soleStatus: { soleActive: boolean; memoryCount?: number } | undefined;
+            if (keeperId) {
+              try {
+                const soleActive = await SoleMemoryService.isKeeperUsingSOLE(keeperId);
+                const memoryCount = soleActive
+                  ? await prisma.soleMemoryCard.count({ where: { keeperId } })
+                  : 0;
+                soleStatus = { soleActive, memoryCount };
+              } catch (err) {
+                console.warn('[kip/agents] soleStatus lookup failed', { keeperId, err });
+              }
+            }
+            return respond(200, { success: true, data: { actionPack, allowedActions, soleStatus } });
           } catch (error) {
             console.error('[kip/agents] actionPack error', { agentId: apAgentId, error });
             return respond(500, { success: false, error: 'Failed to load action pack' });

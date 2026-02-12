@@ -51,6 +51,8 @@ export interface ModelCallOptions {
   provider: ModelProvider;
   userId?: string; // Optional user ID for user-scoped API keys
   environment?: Record<string, unknown> | null;
+  /** When true, request JSON object output (OpenAI response_format) for structured responses */
+  jsonMode?: boolean;
 }
 
 const RETRY_TEMPLATE = Object.freeze({
@@ -134,7 +136,8 @@ class OpenAIProvider {
   static async callModel(
     messages: ModelMessage[], 
     settings: ModelSettings, 
-    apiKey?: string
+    apiKey?: string,
+    jsonMode?: boolean
   ): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
     // Use provided API key or fall back to system key
     const finalApiKey = apiKey || process.env.OPENAI_API_KEY;
@@ -155,19 +158,23 @@ class OpenAIProvider {
 
       let response;
       try {
+        const createParams: Record<string, unknown> = {
+          model: settings.model,
+          messages: messages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+          })),
+          temperature: settings.temperature,
+          max_tokens: settings.max_tokens,
+          top_p: settings.top_p,
+          frequency_penalty: settings.frequency_penalty,
+          presence_penalty: settings.presence_penalty,
+        };
+        if (jsonMode) {
+          (createParams as any).response_format = { type: 'json_object' };
+        }
         response = await openai.chat.completions.create(
-          {
-            model: settings.model,
-            messages: messages.map(msg => ({
-              role: msg.role,
-              content: msg.content
-            })),
-            temperature: settings.temperature,
-            max_tokens: settings.max_tokens,
-            top_p: settings.top_p,
-            frequency_penalty: settings.frequency_penalty,
-            presence_penalty: settings.presence_penalty,
-          },
+          createParams as any,
           { signal: controller.signal },
         );
       } finally {
@@ -377,7 +384,7 @@ export class ModelProviderService {
     for (let attempt = 0; attempt <= retryConfig.max_retries; attempt++) {
       attemptsUsed = attempt;
       try {
-        const response = await this.callProviderModel(provider, messages, settings, apiKey);
+        const response = await this.callProviderModel(provider, messages, settings, apiKey, options.jsonMode);
         
         return {
           ...response,
@@ -428,11 +435,12 @@ export class ModelProviderService {
     provider: ModelProvider, 
     messages: ModelMessage[], 
     settings: ModelSettings,
-    apiKey?: string | null
+    apiKey?: string | null,
+    jsonMode?: boolean
   ): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
     switch (provider) {
       case 'openai':
-        return OpenAIProvider.callModel(messages, settings, apiKey || undefined);
+        return OpenAIProvider.callModel(messages, settings, apiKey || undefined, jsonMode);
       case 'anthropic':
         return AnthropicProvider.callModel(messages, settings);
       case 'together':

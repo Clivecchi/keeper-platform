@@ -19,8 +19,8 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 
 ## Notes and ToDo
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
-- [ ] Replace hardcoded `#C96E59` colors in SessionCard/DialogueMessageList with theme variables
 
 ## Update Log
+- 2026-02-09: Added composedSystemPrompt, activeKeeperId props; SOLE records fetch and display; theme tokens for dialogue colors; actionResults from message metadata.
 - 2026-02-09: Added allowedActions prop to CockpitPanel to display agent tools/actions. Falls back to hardcoded capabilities when not provided.
 - 2026-02-09: Initial extraction from KipAgentBoardPage. Created DialogueMessageList, SessionCard, CockpitPanel, AgentContextBar, types, and helpers.

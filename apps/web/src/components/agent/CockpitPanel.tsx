@@ -9,7 +9,11 @@ import clsx from "clsx"
 import type { KipAgent } from "../../lib/kipApi"
 import type { AgentConversationSession } from "../../hooks/useAgentSessions"
 import { useFrameContextOptional } from "../../v0/shell/FrameContext"
+import { useAuth } from "../../context/AuthContext"
+import { apiFetch } from "../../lib/api"
 import { formatRelative, shortId } from "./helpers"
+
+type SoleMemoryCard = { id: string; content: string; topic?: string | null; createdAt: string }
 
 export interface CockpitPanelProps {
   agent: KipAgent | null
@@ -17,6 +21,10 @@ export interface CockpitPanelProps {
   activeSessionId: string | null
   /** Tools/actions the agent can use (e.g. draft.create, moment.create, sole.save) */
   allowedActions?: string[]
+  /** Composed system prompt from last run (read-only) */
+  composedSystemPrompt?: string | null
+  /** Active keeper ID for SOLE records lookup */
+  activeKeeperId?: string | null
 }
 
 export const CockpitPanel: React.FC<CockpitPanelProps> = ({
@@ -24,7 +32,11 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
   sessions,
   activeSessionId,
   allowedActions = [],
+  composedSystemPrompt = null,
+  activeKeeperId = null,
 }) => {
+  const { user } = useAuth()
+  const [soleCards, setSoleCards] = React.useState<SoleMemoryCard[]>([])
   const activeSession = sessions.find(
     (session) => session.id === activeSessionId,
   )
@@ -35,6 +47,22 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
   const hasKeeper = Boolean(frameCtx?.selection.activeKeeperId)
   const hasJourney = Boolean(frameCtx?.selection.activeJourneyId)
   const modelMaxTokens = agent?.model_settings?.max_tokens ?? 4000
+
+  React.useEffect(() => {
+    if (!activeKeeperId || !user?.id) {
+      setSoleCards([])
+      return
+    }
+    let active = true
+    apiFetch(`/api/keeper/keepers/${activeKeeperId}/memory-cards?userId=${user.id}`)
+      .then((res: any) => {
+        if (!active) return
+        const data = res?.data ?? (Array.isArray(res) ? res : [])
+        setSoleCards(Array.isArray(data) ? data.slice(0, 5) : [])
+      })
+      .catch(() => setSoleCards([]))
+    return () => { active = false }
+  }, [activeKeeperId, user?.id])
 
   const activeCapabilities: { name: string; active: boolean }[] = [
     { name: "Keeper context", active: hasKeeper },
@@ -98,6 +126,31 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
           </div>
         </dl>
       </FrameCard>
+
+      {composedSystemPrompt && (
+        <FrameCard title="Composed System Prompt" subtitle="Read-only view of what the model receives">
+          <pre className="max-h-48 overflow-y-auto rounded bg-gray-50 p-3 text-xs text-gray-700 whitespace-pre-wrap break-words">
+            {composedSystemPrompt}
+          </pre>
+        </FrameCard>
+      )}
+
+      {activeKeeperId && (
+        <FrameCard title="SOLE Records" subtitle={soleCards.length ? `${soleCards.length} recent memory cards` : "No memory cards yet"}>
+          {soleCards.length > 0 ? (
+            <ul className="space-y-2 text-sm text-gray-700">
+              {soleCards.map((c) => (
+                <li key={c.id} className="rounded border border-gray-200 bg-gray-50 p-2">
+                  {c.topic && <span className="text-xs font-medium text-gray-500">[{c.topic}] </span>}
+                  <span className="text-gray-800">{(c.content || "").slice(0, 80)}{(c.content || "").length > 80 ? "…" : ""}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-gray-500">Select a SOLE-enabled keeper and send messages to build memory.</p>
+          )}
+        </FrameCard>
+      )}
 
       <FrameCard title="Tools & Integrations" subtitle="Actions the agent can use">
         <ul className="space-y-2 text-sm">

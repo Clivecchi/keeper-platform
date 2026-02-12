@@ -34,6 +34,12 @@ export interface StyleTokens {
   'hover.surface': string
   'press.surface': string
 
+  // Dialogue (agent conversation)
+  'dialogue.userBg': string
+  'dialogue.agentBg': string
+  'dialogue.areaBg': string
+  'dialogue.border': string
+
   // Border radius
   'radius.sheet': string
 
@@ -85,6 +91,12 @@ export const styleRegistry: StyleDefinition[] = [
       'hover.surface': 'hsl(0, 0%, 94%)',
       'press.surface': 'hsl(0, 0%, 92%)',
 
+      // Dialogue
+      'dialogue.userBg': 'hsl(14, 60%, 56%)',
+      'dialogue.agentBg': 'hsl(0, 0%, 100%)',
+      'dialogue.areaBg': 'hsl(35, 33%, 97%)',
+      'dialogue.border': 'hsl(35, 20%, 88%)',
+
       // Border radius
       'radius.sheet': '6px',
 
@@ -126,6 +138,12 @@ export const styleRegistry: StyleDefinition[] = [
       'hover.surface': 'hsl(35, 15%, 92%)',
       'press.surface': 'hsl(35, 20%, 88%)',
 
+      // Dialogue
+      'dialogue.userBg': 'hsl(14, 60%, 56%)',
+      'dialogue.agentBg': 'hsl(35, 15%, 99%)',
+      'dialogue.areaBg': 'hsl(35, 25%, 96%)',
+      'dialogue.border': 'hsl(35, 12%, 85%)',
+
       // Border radius
       'radius.sheet': '6px',
 
@@ -163,6 +181,10 @@ export function tokensToCSSVars(tokens: StyleTokens): Record<string, string> {
     '--theme-focus-ring': tokens['focus.ring'],
     '--theme-hover-surface': tokens['hover.surface'],
     '--theme-press-surface': tokens['press.surface'],
+    '--theme-dialogue-user-bg': tokens['dialogue.userBg'],
+    '--theme-dialogue-agent-bg': tokens['dialogue.agentBg'],
+    '--theme-dialogue-area-bg': tokens['dialogue.areaBg'],
+    '--theme-dialogue-border': tokens['dialogue.border'],
     '--theme-radius-sheet': tokens['radius.sheet'],
     '--theme-space-framePadding': tokens['space.framePadding'],
     '--theme-space-sheetPadding': tokens['space.sheetPadding'],

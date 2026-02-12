@@ -35,14 +35,20 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onOpenDraft,
   agentName = "Agent",
 }) => (
-  <div className="min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl bg-[#FAF6F2] px-4 py-4">
+  <div
+    className="min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl px-4 py-4"
+    style={{ backgroundColor: 'var(--theme-dialogue-area-bg, hsl(35, 33%, 97%))' }}
+  >
     {isLoading ? (
       <>
         <SkeletonBubble alignment="left" />
         <SkeletonBubble alignment="right" />
       </>
     ) : messages.length === 0 ? (
-      <div className="rounded-xl border border-dashed border-[#E6DED5] bg-white/70 p-6 text-center text-sm text-gray-500">
+      <div
+        className="rounded-xl border border-dashed bg-white/70 p-6 text-center text-sm text-gray-500"
+        style={{ borderColor: 'var(--theme-dialogue-border, hsl(35, 20%, 88%))' }}
+      >
         Say hello to {agentName} to start the conversation.
       </div>
     ) : (
@@ -57,10 +63,14 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
           <div
             className={clsx(
               "max-w-xl rounded-2xl px-4 py-3 text-sm shadow-sm",
-              message.role === "user"
-                ? "bg-[#C96E59] text-white"
-                : "bg-white text-gray-900",
+              message.role === "user" ? "text-white" : "text-gray-900",
             )}
+            style={{
+              backgroundColor:
+                message.role === "user"
+                  ? "var(--theme-dialogue-user-bg, hsl(14, 60%, 56%))"
+                  : "var(--theme-dialogue-agent-bg, white)",
+            }}
           >
             <p className="whitespace-pre-line">{message.content}</p>
             {message.linkedCard && (

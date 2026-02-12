@@ -640,21 +640,27 @@ export class KipApi {
    */
   static async getActionPack(
     agentId: string,
-    domainId?: string | null
-  ): Promise<{ actionPack: ActionPack; allowedActions: string[] }> {
+    domainId?: string | null,
+    keeperId?: string | null
+  ): Promise<{ actionPack: ActionPack; allowedActions: string[]; soleStatus?: { soleActive: boolean; memoryCount?: number } }> {
     const params = new URLSearchParams();
     params.set('actionPack', 'true');
     params.set('agentId', agentId);
     if (domainId) params.set('domainId', domainId);
+    if (keeperId) params.set('keeperId', keeperId);
     const response = await apiFetch(`/api/kip/agents?${params.toString()}`);
     if (!response.success) {
       throw new Error(response.error || 'Failed to load action pack');
     }
-    const data = response.data as { actionPack?: ActionPack; allowedActions?: string[] };
+    const data = response.data as { actionPack?: ActionPack; allowedActions?: string[]; soleStatus?: { soleActive: boolean; memoryCount?: number } };
     if (!data?.actionPack || !Array.isArray(data.allowedActions)) {
       throw new Error('Invalid action pack response');
     }
-    return { actionPack: data.actionPack, allowedActions: data.allowedActions };
+    return {
+      actionPack: data.actionPack,
+      allowedActions: data.allowedActions,
+      soleStatus: data.soleStatus,
+    };
   }
 
   /**

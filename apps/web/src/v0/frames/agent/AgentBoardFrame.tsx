@@ -67,11 +67,14 @@ type KeeperSummary = {
 
 function normalizeMessage(message: KipMessage): AgentDialogueMessage {
   const role = (message.sender || message.role) === "user" ? "user" : "agent"
+  const meta = message.metadata as Record<string, unknown> | null | undefined
+  const actionResults = Array.isArray(meta?.actionResults) ? meta.actionResults : undefined
   return {
     id: message.id,
     role,
     content: message.content,
     createdAt: new Date(message.created_at || Date.now()).toISOString(),
+    ...(actionResults?.length ? { actionResults } : {}),
   }
 }
 
@@ -119,6 +122,8 @@ export function AgentBoardFrame({
 
   // ── Action pack (tools the agent can use) ──
   const [allowedActions, setAllowedActions] = React.useState<string[]>([])
+  const [soleStatus, setSoleStatus] = React.useState<{ soleActive: boolean; memoryCount?: number } | null>(null)
+  const [composedSystemPrompt, setComposedSystemPrompt] = React.useState<string | null>(null)
 
   // ── Draft state ──
   const [drafts, setDrafts] = React.useState<KipDraftSummary[]>([])
@@ -175,14 +180,16 @@ export function AgentBoardFrame({
   React.useEffect(() => {
     if (!agent?.id || !domainId) return
     let active = true
-    KipApi.getActionPack(agent.id, domainId)
-      .then(({ allowedActions: actions }) => {
+    const keeperId = frameCtx?.selection.activeKeeperId ?? null
+    KipApi.getActionPack(agent.id, domainId, keeperId)
+      .then(({ allowedActions: actions, soleStatus: ss }) => {
         if (!active) return
         setAllowedActions(actions)
+        setSoleStatus(ss ?? null)
       })
       .catch(() => { /* ignore */ })
     return () => { active = false }
-  }, [agent?.id, domainId])
+  }, [agent?.id, domainId, frameCtx?.selection.activeKeeperId])
 
   // ── Load domain data (journeys, keepers) ──
   React.useEffect(() => {
@@ -324,7 +331,7 @@ export function AgentBoardFrame({
       } else {
         await fetchMessages(activeSessionId, { silent: true })
 
-        // Update action pack from response if present
+        // Update action pack, sole status, and system prompt from response
         const respData = (result as any)?.data
         if (respData?.actionPack) {
           const pack = respData.actionPack as ActionPack
@@ -333,6 +340,8 @@ export function AgentBoardFrame({
           )
           setAllowedActions(flat)
         }
+        if (respData?.soleStatus) setSoleStatus(respData.soleStatus)
+        if (typeof respData?.composedSystemPrompt === "string") setComposedSystemPrompt(respData.composedSystemPrompt)
 
         // Handle action results (draft mutations, etc.)
         const actionResults = respData?.actions || (result as any)?.actionResults || undefined
@@ -501,7 +510,7 @@ export function AgentBoardFrame({
       <AgentContextBar
         activeJourneyName={activeJourneyName}
         activeKeeperName={activeKeeperName}
-        soleActive={hasKeeper}
+        soleActive={soleStatus ? soleStatus.soleActive : hasKeeper}
         sessionId={activeSessionId}
       />
       <DialogueMessageList
@@ -688,7 +697,14 @@ export function AgentBoardFrame({
         title={`${agentName} configuration`}
         description="Agent capabilities, model settings, and diagnostics."
       />
-      <CockpitPanel agent={agent} sessions={sessions} activeSessionId={activeSessionId} allowedActions={allowedActions} />
+      <CockpitPanel
+        agent={agent}
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        allowedActions={allowedActions}
+        composedSystemPrompt={composedSystemPrompt}
+        activeKeeperId={frameCtx?.selection.activeKeeperId}
+      />
       <button
         type="button"
         onClick={() => setView({ kind: "dialogue" })}
