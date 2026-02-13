@@ -8,6 +8,7 @@ import React from "react"
 import clsx from "clsx"
 import { LinkedCard } from "../props/LinkedCard"
 import { ActionReceiptCard } from "../kip/ActionReceiptCard"
+import { DraftUpdateProposeCard } from "../kip/DraftUpdateProposeCard"
 import type { AgentDialogueMessage } from "./types"
 import { normalizeActionReceipt } from "./types"
 import { formatTime } from "./helpers"
@@ -23,6 +24,8 @@ export interface DialogueMessageListProps {
   error: string | null
   /** Callback when a draft link is clicked */
   onOpenDraft?: (draftId: string) => void
+  /** Callback when user confirms a proposed draft update */
+  onConfirmDraftUpdate?: (draftId: string, payload: { title?: string; summary?: string; status?: string; spec?: unknown }) => void
   /** Agent name for empty state and thinking indicator (dynamic, not hardcoded) */
   agentName?: string
 }
@@ -33,6 +36,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   isSending,
   error,
   onOpenDraft,
+  onConfirmDraftUpdate,
   agentName = "Agent",
 }) => (
   <div
@@ -82,6 +86,27 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
               <div className="mt-3 space-y-2">
                 {message.actionResults.map((actionResult, idx) => {
                   const receipt = normalizeActionReceipt(actionResult)
+                  const isPropose = receipt.type === "draft.update.propose" && receipt.status === "success"
+                  const proposeData = receipt.data as {
+                    draftId?: string
+                    draftTitle?: string
+                    summary?: string
+                    proposedPayload?: { id: string; title?: string; summary?: string; status?: string; spec?: unknown }
+                  } | undefined
+                  if (isPropose && proposeData?.draftId && proposeData?.proposedPayload && onConfirmDraftUpdate) {
+                    return (
+                      <DraftUpdateProposeCard
+                        key={idx}
+                        draftId={proposeData.draftId}
+                        draftTitle={proposeData.draftTitle ?? "Draft"}
+                        summary={proposeData.summary ?? "Update draft"}
+                        proposedPayload={proposeData.proposedPayload}
+                        onConfirm={onConfirmDraftUpdate}
+                        onReject={() => {}}
+                        onOpenDraft={onOpenDraft}
+                      />
+                    )
+                  }
                   return (
                     <ActionReceiptCard
                       key={idx}

@@ -144,6 +144,8 @@ export interface KipDraftSummary {
   status: KipDraftStatus;
   summary?: string | null;
   updatedAt?: string | Date | null;
+  /** When set, draft is scoped to this keeper */
+  keeperId?: string | null;
 }
 
 export interface KipDraft extends KipDraftSummary {
@@ -740,10 +742,11 @@ export class KipApi {
   }
 
   /**
-   * Drafts (domain-scoped)
+   * Drafts (domain-scoped, optionally filtered by keeper)
    */
-  static async listDrafts(domainId: string): Promise<KipDraftSummary[]> {
-    const response = await apiFetch(`/api/domains/${domainId}/kip/drafts`);
+  static async listDrafts(domainId: string, keeperId?: string | null): Promise<KipDraftSummary[]> {
+    const query = keeperId ? `?keeperId=${encodeURIComponent(keeperId)}` : '';
+    const response = await apiFetch(`/api/domains/${domainId}/kip/drafts${query}`);
     if (response?.drafts) {
       return response.drafts as KipDraftSummary[];
     }
@@ -763,7 +766,7 @@ export class KipApi {
 
   static async createDraft(
     domainId: string,
-    payload: { kind: string; key: string; title: string; summary?: string; spec?: unknown; agentId?: string | null },
+    payload: { kind: string; key: string; title: string; summary?: string; spec?: unknown; agentId?: string | null; keeperId?: string | null },
   ): Promise<KipDraft> {
     const response = await apiFetch(`/api/domains/${domainId}/kip/drafts`, {
       method: 'POST',

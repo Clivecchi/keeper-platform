@@ -1,13 +1,15 @@
 /**
  * Guard Test: End-to-End Draft.Create Action Execution
- * 
+ *
  * This test ensures that draft.create actions from agent responses are:
  * 1. Parsed correctly
  * 2. Validated against canonical schema
  * 3. Executed successfully
  * 4. Persisted to the database
- * 
+ *
  * This test MUST fail if actions are silently ignored.
+ *
+ * Requires DATABASE_URL. Skips when not set (e.g. in CI without DB).
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -16,13 +18,16 @@ import { prisma } from '@keeper/database';
 import { parseActionsOrThrow, safeParseActions, CORE_ACTIONS } from '../api/kip/actions/schema.js';
 import { executeAgentActions } from '../api/kip/agents.js';
 
-describe('KIP Action Execution Guard: draft.create', () => {
+const hasDatabase = Boolean(process.env.DATABASE_URL);
+
+describe.skipIf(!hasDatabase)('KIP Action Execution Guard: draft.create', () => {
   let testUserId: string;
   let testDomainId: string;
   let testAgentId: string;
   let testSessionId: string;
 
   beforeEach(async () => {
+    if (!hasDatabase) return;
     // Setup test IDs
     testUserId = randomUUID();
     testDomainId = randomUUID();
@@ -102,6 +107,7 @@ describe('KIP Action Execution Guard: draft.create', () => {
   });
 
   afterEach(async () => {
+    if (!hasDatabase) return;
     // Clean up test data
     await prisma.kip_drafts.deleteMany({
       where: {
@@ -216,13 +222,14 @@ describe('KIP Action Execution Guard: draft.create', () => {
   });
 });
 
-describe('KIP Action Execution Guard: draft.delete and receipt contract', () => {
+describe.skipIf(!hasDatabase)('KIP Action Execution Guard: draft.delete and receipt contract', () => {
   let testUserId: string;
   let testDomainId: string;
   let testAgentId: string;
   let testSessionId: string;
 
   beforeEach(async () => {
+    if (!hasDatabase) return;
     testUserId = randomUUID();
     testDomainId = randomUUID();
     testAgentId = randomUUID();

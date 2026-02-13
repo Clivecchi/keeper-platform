@@ -24,12 +24,21 @@ const draftCreatePayloadSchema = z.object({
   summary: z.string().nullable().optional().default(''),
   spec: z.record(z.any()).optional().default({}),
   agentId: z.string().uuid().optional(),
+  keeperId: z.string().min(1).optional(),
 });
 
 /**
  * Draft update action payload schema
  */
 const draftUpdatePayloadSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(1).optional(),
+  summary: z.string().nullable().optional(),
+  status: z.enum(['draft', 'reviewed', 'approved', 'promoted', 'archived']).optional(),
+  spec: z.record(z.any()).optional(),
+});
+
+const draftUpdateProposePayloadSchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1).optional(),
   summary: z.string().nullable().optional(),
@@ -100,6 +109,7 @@ const soleSavePayloadSchema = z.object({
 const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'draft.create': draftCreatePayloadSchema,
   'draft.update': draftUpdatePayloadSchema,
+  'draft.update.propose': draftUpdateProposePayloadSchema,
   'draft.delete': draftDeletePayloadSchema,
   'draft.list': draftListPayloadSchema,
   'draft.get': draftGetPayloadSchema,

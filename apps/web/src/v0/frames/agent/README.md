@@ -28,3 +28,5 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 - 2026-01-19: Rehydrated AgentFrame with the legacy Kip agent surface and preserved v0 close navigation.
 - 2026-01-18: Added agent frame placeholder for v0 shell routing.
 - 2026-02-09: Added `AgentBoardFrame` -- new composable agent workspace. Registered at `?frame=agent` in V0Shell; legacy `AgentFrame` remains at `?frame=kip`. Sidebar with Dialogues, Drafts, Journeys, Keepers, Prompted Actions. Workspace views: dialogue (conversation), draft (editor), cockpit (diagnostics). Agent name is dynamic. Uses `useAgentWorkspaceView` hook and extracted agent components.
+- 2026-02-09: Wired `onConfirmDraftUpdate` in `AgentBoardFrame` — on Confirm for `draft.update.propose`, calls `KipApi.updateDraft` and `refreshDrafts()`.
+- 2026-02-09: Keeper scope UI: draft list filtered by active keeper; sidebar items show keeper name; create defaults to active keeper; draft detail shows keeper in header.

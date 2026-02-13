@@ -269,19 +269,20 @@ export function AgentBoardFrame({
   }, [sessions, view, setView])
 
   // ── Load drafts ──
+  const activeKeeperId = frameCtx?.selection.activeKeeperId ?? null
   const refreshDrafts = React.useCallback(async () => {
     if (!domainId) { setDrafts([]); return }
     setIsLoadingDrafts(true)
     setDraftsError(null)
     try {
-      const list = await KipApi.listDrafts(domainId)
+      const list = await KipApi.listDrafts(domainId, activeKeeperId)
       setDrafts(list)
     } catch (err) {
       setDraftsError(err instanceof Error ? err.message : "Unable to load drafts")
     } finally {
       setIsLoadingDrafts(false)
     }
-  }, [domainId])
+  }, [domainId, activeKeeperId])
 
   React.useEffect(() => {
     if (domainId) refreshDrafts()
@@ -401,12 +402,14 @@ export function AgentBoardFrame({
     setDraftsError(null)
     try {
       const title = "Untitled Draft"
+      const keeperId = frameCtx?.selection.activeKeeperId ?? undefined
       const draft = await KipApi.createDraft(domainId, {
         kind: "development_journey",
         key: makeDraftKey(title),
         title,
         summary: null,
         spec: {},
+        keeperId,
       })
       await refreshDrafts()
       setView({ kind: "draft", draftId: draft.id })
@@ -459,11 +462,15 @@ export function AgentBoardFrame({
     onClick: () => setView({ kind: "dialogue", sessionId: s.id }),
   }))
 
-  const draftItems: SidebarCardItem[] = drafts.slice(0, 5).map((d) => ({
-    label: d.title,
-    id: d.id,
-    onClick: () => setView({ kind: "draft", draftId: d.id }),
-  }))
+  const draftItems: SidebarCardItem[] = drafts.slice(0, 5).map((d) => {
+    const keeperName = d.keeperId ? keepers.find((k) => k.id === d.keeperId)?.title : null
+    const label = keeperName ? `${d.title} · ${keeperName}` : d.title
+    return {
+      label,
+      id: d.id,
+      onClick: () => setView({ kind: "draft", draftId: d.id }),
+    }
+  })
 
   const journeyItems: SidebarCardItem[] = journeys.slice(0, 4).map((j) => ({
     label: `${j.name}${j.momentCount != null ? ` · ${j.momentCount} moments` : ""}`,
@@ -529,6 +536,13 @@ export function AgentBoardFrame({
         error={messagesError}
         agentName={agentName}
         onOpenDraft={(draftId) => setView({ kind: "draft", draftId })}
+        onConfirmDraftUpdate={
+          domainId
+            ? (draftId, payload) => {
+                KipApi.updateDraft(domainId, draftId, payload).then(() => refreshDrafts())
+              }
+            : undefined
+        }
       />
       <form onSubmit={handleSendMessage} className="flex gap-3 pt-2">
         <input
@@ -604,7 +618,11 @@ export function AgentBoardFrame({
         <WorkspaceHeader
           eyebrow="Draft"
           title={draftDetail?.title || "Loading draft…"}
-          description="Edit title, summary, status, and JSON spec"
+          description={
+            draftDetail?.keeperId
+              ? `Keeper: ${keepers.find((k) => k.id === draftDetail.keeperId)?.title ?? "—"} · Edit title, summary, status, and JSON spec`
+              : "Edit title, summary, status, and JSON spec"
+          }
         />
         {isLoadingDrafts ? (
           <p className="text-sm" style={{ color: "var(--theme-ink-secondary)" }}>

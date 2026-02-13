@@ -76,6 +76,7 @@ model Keeper {
   SoleReflection       SoleReflection[]
   SoleVoiceEntry       SoleVoiceEntry[]
   engagement_templates engagement_templates[]
+  kip_drafts           kip_drafts[]
 
   @@index([domainId])
 }
@@ -642,9 +643,10 @@ model kip_drafts {
   id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   domain_id        String
   owner_id         String
+  keeper_id        String?
   agent_id         String?        @db.Uuid
   kind             String
-  key              String
+  key             String
   title            String
   summary          String?
   status           String         @default("draft")
@@ -653,11 +655,29 @@ model kip_drafts {
   updated_at       DateTime       @default(now())
   domain           Domain         @relation(fields: [domain_id], references: [id], onDelete: Cascade)
   owner            users          @relation(fields: [owner_id], references: [id])
+  keeper           Keeper?        @relation(fields: [keeper_id], references: [id], onDelete: SetNull)
   agent            kip_agents?    @relation(fields: [agent_id], references: [id], onDelete: SetNull)
   active_sessions  kip_sessions[] @relation("KipDraftActiveSessions")
+  versions         kip_draft_versions[]
 
   @@index([domain_id, owner_id, kind, status])
-  @@unique([domain_id, owner_id, kind, key])
+  @@index([keeper_id, owner_id])
+}
+
+model kip_draft_versions {
+  id                    String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  draft_id              String     @db.Uuid
+  version               Int
+  spec_json             Json
+  title                 String
+  summary               String?
+  status                String
+  created_at            DateTime   @default(now())
+  created_by_session_id String?    @db.Uuid
+  kip_drafts            kip_drafts @relation(fields: [draft_id], references: [id], onDelete: Cascade)
+
+  @@unique([draft_id, version])
+  @@index([draft_id])
 }
 
 model kip_sessions {

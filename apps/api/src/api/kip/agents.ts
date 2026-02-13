@@ -652,7 +652,7 @@ function getRequestId(ctx: { requestId?: string }): string {
 
 export async function executeAgentActions(
   actions: StructuredAgentAction[],
-  ctx: { domainId?: string | null; domainSlug?: string | null; userId?: string; agentId?: string | null; allowlist: Set<string>; sessionId?: string | null; requestId?: string },
+  ctx: { domainId?: string | null; domainSlug?: string | null; userId?: string; agentId?: string | null; allowlist: Set<string>; sessionId?: string | null; keeperId?: string | null; requestId?: string },
 ): Promise<{ results: ActionExecutionResult[]; failedMessage: string | null }> {
   const requestId = getRequestId(ctx);
   const results: ActionExecutionResult[] = [];
@@ -700,6 +700,7 @@ export async function executeAgentActions(
     }
     if (!out.spec || typeof out.spec !== 'object') out.spec = out.spec ? { ...(out.spec as object) } : {};
     if (out.type && !VALID_KINDS.includes(out.type as string)) delete out.type;
+    if (typeof p.keeperId === 'string' && p.keeperId.trim()) out.keeperId = p.keeperId.trim();
     return { type: action.type, payload: out };
   });
 
@@ -757,6 +758,7 @@ export async function executeAgentActions(
   const supportedActions = new Set([
     'draft.create',
     'draft.update',
+    'draft.update.propose',
     'draft.delete',
     'draft.list',
     'draft.get',
@@ -859,51 +861,49 @@ export async function executeAgentActions(
             const title = typeof payload.title === 'string' && payload.title.trim() ? payload.title.trim() : 'Draft';
             const kind = typeof payload.kind === 'string' && payload.kind.trim() ? payload.kind.trim() : 'draft';
             const status = typeof payload.status === 'string' && payload.status.trim() ? payload.status.trim() : 'draft';
-            // Normalize summary: null/undefined -> empty string, empty string stays empty string (per requirement)
             const summary = normalizeSummary(payload.summary);
             const spec = payload.spec ?? {};
+            const keeperId = typeof payload.keeperId === 'string' && payload.keeperId.trim() ? payload.keeperId.trim() : (ctx.keeperId ?? null);
 
             const key = slugifyKey(payload.key || title || `draft-${Date.now()}`);
             const now = new Date();
 
             try {
-              const updateData: any = {
+              const existing = await tx.kip_drafts.findFirst({
+                where: {
+                  domain_id: ctx.domainId,
+                  owner_id: ctx.userId,
+                  kind,
+                  key,
+                  keeper_id: keeperId,
+                },
+              });
+
+              const baseData = {
                 title,
                 summary,
                 status,
                 spec_json: spec,
                 updated_at: now,
+                agent_id: ctx.agentId ?? null,
+                keeper_id: keeperId,
               };
 
-              // Only update agent_id if provided
-              if (ctx.agentId !== undefined) {
-                updateData.agent_id = ctx.agentId ?? null;
-              }
-
-              const draft = await tx.kip_drafts.upsert({
-                where: {
-                  domain_id_owner_id_kind_key: {
-                    domain_id: ctx.domainId,
-                    owner_id: ctx.userId,
-                    kind,
-                    key,
-                  },
-                },
-                update: updateData,
-                create: {
-                  domain_id: ctx.domainId,
-                  owner_id: ctx.userId,
-                  agent_id: ctx.agentId ?? null,
-                  kind,
-                  key,
-                  title,
-                  summary,
-                  status,
-                  spec_json: spec,
-                  created_at: now,
-                  updated_at: now,
-                },
-              });
+              const draft = existing
+                ? await tx.kip_drafts.update({
+                    where: { id: existing.id },
+                    data: baseData,
+                  })
+                : await tx.kip_drafts.create({
+                    data: {
+                      domain_id: ctx.domainId,
+                      owner_id: ctx.userId,
+                      kind,
+                      key,
+                      created_at: now,
+                      ...baseData,
+                    },
+                  });
 
               // Get domain slug for link generation if not provided
               let domainSlug = ctx.domainSlug;
@@ -961,6 +961,41 @@ export async function executeAgentActions(
             }
             break;
           }
+          case 'draft.update.propose': {
+            const payload = action.payload ?? {};
+            const draftId = payload.draftId || payload.id;
+            if (!draftId) {
+              results.push({ type: action.type, status: 'error', message: 'Draft id required for propose', errorCode: 'DRAFT_NOT_FOUND' });
+              break;
+            }
+            const draft = await tx.kip_drafts.findFirst({
+              where: { id: draftId, domain_id: ctx.domainId, owner_id: ctx.userId },
+            });
+            if (!draft) {
+              results.push({ type: action.type, status: 'error', message: 'Draft not found', errorCode: 'DRAFT_NOT_FOUND' });
+              break;
+            }
+            const proposed = {
+              title: typeof payload.title === 'string' ? payload.title : draft.title,
+              summary: payload.summary !== undefined ? (payload.summary ?? '') : draft.summary ?? '',
+              status: typeof payload.status === 'string' ? payload.status : draft.status,
+              spec: payload.spec ?? draft.spec_json ?? {},
+            };
+            const summary = `Update "${draft.title}": ${proposed.title !== draft.title ? `title → "${proposed.title}"` : ''} ${JSON.stringify(proposed.spec) !== JSON.stringify(draft.spec_json) ? 'spec changed' : ''}`.trim();
+            results.push({
+              type: action.type,
+              status: 'success',
+              message: 'Proposed update — confirm to apply',
+              data: {
+                draftId: draft.id,
+                draftTitle: draft.title,
+                summary: summary || 'Update draft',
+                proposedPayload: { id: draft.id, ...proposed },
+                links: ctx.domainSlug ? { open: buildDraftOpenUrl(ctx.domainSlug, draft.id) } : undefined,
+              },
+            });
+            break;
+          }
           case 'draft.update': {
             const payload = action.payload ?? {};
             const draftId = payload.draftId || payload.id;
@@ -989,18 +1024,31 @@ export async function executeAgentActions(
               break;
             }
 
-            const updated = await tx.kip_drafts.update({
-              where: { id: draft.id },
+            const updateData = {
+              title: typeof payload.title === 'string' ? payload.title : draft.title,
+              summary: typeof payload.summary === 'string' ? payload.summary : draft.summary,
+              status: typeof payload.status === 'string' ? payload.status : draft.status,
+              spec_json: payload.spec ?? draft.spec_json ?? {},
+              updated_at: new Date(),
+            };
+
+            await tx.kip_draft_versions.create({
               data: {
-                title: typeof payload.title === 'string' ? payload.title : draft.title,
-                summary: typeof payload.summary === 'string' ? payload.summary : draft.summary,
-                status: typeof payload.status === 'string' ? payload.status : draft.status,
-                spec_json: payload.spec ?? draft.spec_json ?? {},
-                updated_at: new Date(),
+                draft_id: draft.id,
+                version: await tx.kip_draft_versions.count({ where: { draft_id: draft.id } }).then((n) => n + 1),
+                spec_json: draft.spec_json ?? {},
+                title: draft.title,
+                summary: draft.summary ?? null,
+                status: draft.status,
+                created_by_session_id: ctx.sessionId ?? null,
               },
             });
 
-            // Get domain slug for link generation
+            const updated = await tx.kip_drafts.update({
+              where: { id: draft.id },
+              data: updateData,
+            });
+
             let domainSlug = ctx.domainSlug;
             if (!domainSlug && ctx.domainId) {
               const domain = await tx.domain.findUnique({
@@ -2252,14 +2300,23 @@ export class KipAgentService {
           `Allowed actions: ${allowList.join(', ')}.`,
           'Each action must include a "type" and optional "payload".',
           'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
-          'When the user asks for a draft, you MUST respond with valid JSON containing a draft.create action. Do not reply with draft content in "response" only; include the action.',
           'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
+          '',
+          'DRAFT BEHAVIOR — understand when to act vs respond:',
+          '- Only use draft.create when the user EXPLICITLY asks to create a new draft (e.g. "create a draft", "start a new draft", "make a draft for X").',
+          '- When the user asks "what can you do?", "tell me your capabilities", "assist with a specific draft", or "how can you help" — respond with "response" only. Do NOT emit draft.create or any action.',
+          '- When the user wants to work on an EXISTING draft, use draft.update or draft.setActive. Never create a duplicate.',
+          '- Check draftsDirectory in the environment. If a draft with the same or similar title already exists, use draft.update (with id) or draft.setActive — do NOT create another.',
+          '- When UPDATING a draft, use draft.update.propose first. Summarize the change in one sentence and ask for permission. Do not use draft.update directly — wait for user confirmation.',
+          '- Drafts are scoped by keeper (primary) or domain (secondary). When the user has a keeper selected, prefer keeper-scoped drafts. Include keeperId in draft.create when the draft is relevant to the active keeper.',
+          '- Never create multiple drafts for the same purpose. One draft per distinct topic. If unsure, respond with text and ask the user to clarify.',
+          '',
           `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
           'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',
           'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"sections":[{"title":"Section 1","content":"Specific content here"},{"title":"Section 2","content":"More details"}]}}}]}',
           draftRules?.autoDraft?.enabled
-            ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a draft, include draft.create (or draft.update) with a short confirmation message.`
-            : 'If the user explicitly asks for a draft, include draft.create (or draft.update) with a short confirmation message.',
+            ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.`
+            : 'If the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.',
         ]
           .filter(Boolean)
           .join('\n'),
@@ -2423,14 +2480,23 @@ export class KipAgentService {
             `Allowed actions: ${allowList.join(', ')}.`,
             'Each action must include a "type" and optional "payload".',
             'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
-            'When the user asks for a draft, you MUST respond with valid JSON containing a draft.create action. Do not reply with draft content in "response" only; include the action.',
             'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
+            '',
+            'DRAFT BEHAVIOR — understand when to act vs respond:',
+            '- Only use draft.create when the user EXPLICITLY asks to create a new draft (e.g. "create a draft", "start a new draft", "make a draft for X").',
+            '- When the user asks "what can you do?", "tell me your capabilities", "assist with a specific draft", or "how can you help" — respond with "response" only. Do NOT emit draft.create or any action.',
+            '- When the user wants to work on an EXISTING draft, use draft.update or draft.setActive. Never create a duplicate.',
+            '- Check draftsDirectory in the environment. If a draft with the same or similar title already exists, use draft.update (with id) or draft.setActive — do NOT create another.',
+            '- When UPDATING a draft, use draft.update.propose first. Summarize the change in one sentence and ask for permission. Do not use draft.update directly — wait for user confirmation.',
+            '- Drafts are scoped by keeper (primary) or domain (secondary). When the user has a keeper selected, prefer keeper-scoped drafts. Include keeperId in draft.create when the draft is relevant to the active keeper.',
+            '- Never create multiple drafts for the same purpose. One draft per distinct topic. If unsure, respond with text and ask the user to clarify.',
+            '',
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
             'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"sections":[{"title":"Section 1","content":"Specific content here"},{"title":"Section 2","content":"More details"}]}}}]}',
             draftRules?.autoDraft?.enabled
-              ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a draft, include draft.create (or draft.update) with a short confirmation message.`
-              : 'If the user explicitly asks for a draft, include draft.create (or draft.update) with a short confirmation message.',
+              ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.`
+              : 'If the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.',
           ]
             .filter(Boolean)
             .join('\n'),
@@ -2742,6 +2808,7 @@ export class KipAgentService {
               agentId: agent.id,
               allowlist: allowActions,
               sessionId: currentSessionId,
+              keeperId: options?.activeKeeperId ?? null,
               requestId,
             });
             actionResults = execution.results;

@@ -32,6 +32,7 @@ const createDraftSchema = z.object({
   summary: z.string().nullable().optional(),
   spec: z.record(z.any()).optional(),
   agentId: z.string().uuid().optional(),
+  keeperId: z.string().min(1).optional(),
 }).transform((data) => ({
   ...data,
   // Normalize summary: null/undefined -> empty string (not null)
@@ -57,6 +58,7 @@ const mapDraftSummary = (draft: any) => ({
   status: draft.status,
   summary: draft.summary ?? null,
   updatedAt: draft.updated_at,
+  keeperId: draft.keeper_id ?? null,
 });
 
 async function ensureSessionForUser(sessionId: string, userId: string) {
@@ -81,8 +83,13 @@ router.get(
       }
 
       const { domainId } = req.params;
+      const keeperId = typeof req.query.keeperId === 'string' ? req.query.keeperId : undefined;
       const drafts = await prisma.kip_drafts.findMany({
-        where: { domain_id: domainId, owner_id: req.user.id },
+        where: {
+          domain_id: domainId,
+          owner_id: req.user.id,
+          ...(keeperId ? { keeper_id: keeperId } : {}),
+        },
         select: {
           id: true,
           kind: true,
@@ -91,8 +98,12 @@ router.get(
           status: true,
           summary: true,
           updated_at: true,
+          keeper_id: true,
         },
-        orderBy: { updated_at: 'desc' },
+        orderBy: [
+          { keeper_id: 'desc' },
+          { updated_at: 'desc' },
+        ],
       });
 
       const mappedDrafts = drafts.map(mapDraftSummary);
@@ -132,11 +143,51 @@ router.get(
         draft: {
           ...draft,
           spec: draft.spec_json,
+          keeperId: draft.keeper_id ?? null,
         },
       });
     } catch (error) {
       console.error('[domains:kip-drafts:read:error]', error);
       return res.status(500).json({ error: 'FAILED_TO_READ_DRAFT' });
+    }
+  },
+);
+
+router.get(
+  '/:domainId/kip/drafts/:draftId/versions',
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+      const { domainId, draftId } = req.params;
+      const draft = await prisma.kip_drafts.findFirst({
+        where: { id: draftId, domain_id: domainId, owner_id: req.user.id },
+      });
+      if (!draft) {
+        return res.status(404).json({ error: 'DRAFT_NOT_FOUND' });
+      }
+      const versions = await prisma.kip_draft_versions.findMany({
+        where: { draft_id: draftId },
+        orderBy: { version: 'desc' },
+        take: 50,
+      });
+      return res.json({
+        versions: versions.map((v) => ({
+          id: v.id,
+          version: v.version,
+          title: v.title,
+          summary: v.summary,
+          status: v.status,
+          spec: v.spec_json,
+          createdAt: v.created_at,
+        })),
+      });
+    } catch (error) {
+      console.error('[domains:kip-drafts:versions:error]', error);
+      return res.status(500).json({ error: 'FAILED_TO_LOAD_VERSIONS' });
     }
   },
 );
@@ -166,43 +217,42 @@ router.post(
 
       const now = new Date();
 
-      const updateData: any = {
+      const keeperId = body.keeperId ?? null;
+      const existing = await prisma.kip_drafts.findFirst({
+        where: {
+          domain_id: domainId,
+          owner_id: ownerId,
+          kind: body.kind,
+          key: body.key,
+          keeper_id: keeperId,
+        },
+      });
+
+      const baseData = {
         title: body.title,
-        summary: body.summary || null, // Empty string becomes null in DB
+        summary: body.summary || null,
         status: 'draft',
         spec_json: body.spec ?? {},
         updated_at: now,
+        agent_id: body.agentId ?? null,
+        keeper_id: keeperId,
       };
 
-      // Only update agent_id if provided
-      if (body.agentId !== undefined) {
-        updateData.agent_id = body.agentId ?? null;
-      }
-
-      const draft = await prisma.kip_drafts.upsert({
-        where: {
-          domain_id_owner_id_kind_key: {
-            domain_id: domainId,
-            owner_id: ownerId,
-            kind: body.kind,
-            key: body.key,
-          },
-        },
-        update: updateData,
-        create: {
-          domain_id: domainId,
-          owner_id: ownerId,
-          agent_id: body.agentId ?? null,
-          kind: body.kind,
-          key: body.key,
-          title: body.title,
-          summary: body.summary || null, // Empty string becomes null in DB
-          status: 'draft',
-          spec_json: body.spec ?? {},
-          created_at: now,
-          updated_at: now,
-        },
-      });
+      const draft = existing
+        ? await prisma.kip_drafts.update({
+            where: { id: existing.id },
+            data: baseData,
+          })
+        : await prisma.kip_drafts.create({
+            data: {
+              domain_id: domainId,
+              owner_id: ownerId,
+              kind: body.kind,
+              key: body.key,
+              created_at: now,
+              ...baseData,
+            },
+          });
 
       // Get domain slug for link generation
       const domain = await prisma.domain.findUnique({
@@ -259,11 +309,22 @@ router.patch(
       const updatePayload: any = {
         updated_at: new Date(),
       };
-
       if (body.title !== undefined) updatePayload.title = body.title;
       if (body.summary !== undefined) updatePayload.summary = body.summary ?? null;
       if (body.status !== undefined) updatePayload.status = body.status;
       if (body.spec !== undefined) updatePayload.spec_json = body.spec ?? {};
+
+      const nextVersion = await prisma.kip_draft_versions.count({ where: { draft_id: existing.id } }).then((n) => n + 1);
+      await prisma.kip_draft_versions.create({
+        data: {
+          draft_id: existing.id,
+          version: nextVersion,
+          spec_json: existing.spec_json ?? {},
+          title: existing.title,
+          summary: existing.summary ?? null,
+          status: existing.status,
+        },
+      });
 
       const updated = await prisma.kip_drafts.update({
         where: { id: existing.id },

@@ -294,8 +294,9 @@ export async function resolveAgentEnvironment(args: {
               title: true,
               status: true,
               updated_at: true,
+              keeper_id: true,
             },
-            orderBy: { updated_at: 'desc' },
+            orderBy: [{ keeper_id: 'desc' }, { updated_at: 'desc' }],
             take: DRAFT_DIRECTORY_LIMIT,
           });
 
@@ -306,6 +307,7 @@ export async function resolveAgentEnvironment(args: {
             title: draft.title,
             status: draft.status,
             updatedAt: draft.updated_at,
+            keeperId: draft.keeper_id ?? undefined,
           }));
         } catch (error) {
           console.warn('[resolveAgentEnvironment] drafts directory load failed', {
