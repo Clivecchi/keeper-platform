@@ -13,7 +13,16 @@ export const DEFAULT_POLICY_PACK_V1 = {
     },
   },
   actions: {
-    allow: ['draft.create', 'draft.update', 'draft.update.propose', 'draft.list', 'draft.get', 'draft.read'],
+    allow: [
+      'draft.create',
+      'draft.update',
+      'draft.update.propose',
+      'draft.list',
+      'draft.get',
+      'draft.read',
+      'moment.create',
+      'sole.save',
+    ],
   },
 } as const;
 

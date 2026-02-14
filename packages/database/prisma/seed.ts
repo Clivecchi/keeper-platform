@@ -57,6 +57,10 @@ async function main() {
     const seedLenses = await import('./seeds/lenses.seed.ts');
     await seedLenses.default();
 
+    console.log('🧠 Seeding SOLE bootstrap cards...');
+    const seedSoleBootstrap = await import('./seeds/sole-bootstrap.seed.ts');
+    await seedSoleBootstrap.default();
+
     console.log('🎉 Database seed completed successfully!');
   } catch (error) {
     console.error('❌ Error during seeding:', error);

@@ -2287,11 +2287,7 @@ export class KipAgentService {
 
     if (environment) {
       systemParts.push(`Environment context (resolved via KAM):\n${JSON.stringify(environment, null, 2)}`);
-      const policyPack = buildPolicyPackFromEnvironment(environment as any);
-      const allowList =
-        Array.isArray(policyPack?.actions?.allow) && policyPack.actions.allow.length
-          ? policyPack.actions.allow
-          : DEFAULT_POLICY_PACK_V1.actions.allow;
+      const allowList = Array.from(buildAllowedActions(environment as any));
       const draftRules = (environment as any)?.policy?.policy?.drafts ?? {};
       const draftKinds =
         (draftRules?.autoDraft?.kinds as string[] | undefined) ?? ['vehicle_template', 'journey_spec', 'keeper_type_proposal', 'checklist_spec'];
@@ -2302,6 +2298,10 @@ export class KipAgentService {
           'Each action must include a "type" and optional "payload".',
           'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
           'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
+          '',
+          'SOLE vs DRAFTS — use the right tool:',
+          '- sole.save: for insights, learnings, corrections, capability clarifications. Use when the user corrects you or you learn something important.',
+          '- draft.create/update: for documents, specs, proposals. Only when the user EXPLICITLY asks for a draft.',
           '',
           'DRAFT BEHAVIOR — understand when to act vs respond:',
           '- Only use draft.create when the user EXPLICITLY asks to create a new draft (e.g. "create a draft", "start a new draft", "make a draft for X").',
@@ -2408,6 +2408,7 @@ export class KipAgentService {
       environment?: AgentEnvironmentContext | KipEnvironmentContext | null;
       activeJourneyId?: string | null;
       activeKeeperId?: string | null;
+      domainId?: string | null;
     },
   ): Promise<{ content: string; composedSystemPrompt: string }> {
     try {
@@ -2466,11 +2467,7 @@ export class KipAgentService {
           content: `Environment context (resolved via KAM):\n${JSON.stringify(environmentContext, null, 2)}`,
         });
 
-        const policyPack = buildPolicyPackFromEnvironment(environmentContext as any);
-        const allowList =
-          Array.isArray(policyPack?.actions?.allow) && policyPack.actions.allow.length
-            ? policyPack.actions.allow
-            : DEFAULT_POLICY_PACK_V1.actions.allow;
+        const allowList = Array.from(buildAllowedActions(environmentContext));
 
         const draftRules = (environmentContext as any)?.policy?.policy?.drafts ?? {};
         const draftKinds = (draftRules?.autoDraft?.kinds as string[] | undefined) ?? ['vehicle_template', 'journey_spec', 'keeper_type_proposal', 'checklist_spec'];
@@ -2482,6 +2479,10 @@ export class KipAgentService {
             'Each action must include a "type" and optional "payload".',
             'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
             'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
+            '',
+            'SOLE vs DRAFTS — use the right tool:',
+            '- sole.save: for insights, learnings, corrections, capability clarifications, anything you want to remember. Use it when the user corrects you or you learn something important.',
+            '- draft.create/update: for documents, specs, proposals (journey specs, keeper proposals, checklists). Only when the user EXPLICITLY asks for a draft.',
             '',
             'DRAFT BEHAVIOR — understand when to act vs respond:',
             '- Only use draft.create when the user EXPLICITLY asks to create a new draft (e.g. "create a draft", "start a new draft", "make a draft for X").',
@@ -2569,6 +2570,23 @@ export class KipAgentService {
                   content: `Relevant SOLE memories (keeper-sharpened):\n${memorySummary}\n\nUse these memories to inform your responses. When the user asks you to "remember" something, use the sole.save action.`,
                 });
               }
+            }
+          } else if (promptOptions?.domainId) {
+            // Domain anchor: when no keeper selected, inject domain-scoped SOLE (Option B)
+            const domainCards = await prisma.soleMemoryCard.findMany({
+              where: { domainId: promptOptions.domainId, keeperId: null },
+              orderBy: { createdAt: 'desc' },
+              take: 10,
+              select: { id: true, content: true, topic: true },
+            });
+            if (domainCards.length > 0) {
+              const memorySummary = domainCards
+                .map((c) => `- ${c.topic ? `[${c.topic}] ` : ''}${c.content.slice(0, 100)}`)
+                .join('\n');
+              messages.push({
+                role: 'system',
+                content: `Relevant SOLE memories (domain anchor):\n${memorySummary}\n\nUse these memories to inform your responses. When the user asks you to "remember" something or you learn something important, use the sole.save action.`,
+              });
             }
           }
         } catch (err) {
@@ -2763,6 +2781,7 @@ export class KipAgentService {
           environment: options?.environment ?? null,
           activeJourneyId: options?.activeJourneyId ?? null,
           activeKeeperId: options?.activeKeeperId ?? null,
+          domainId: options?.domainId ?? null,
         });
 
         const response = aiResult.content;
