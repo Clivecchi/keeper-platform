@@ -42,7 +42,7 @@ import { CockpitPanel } from "../../../components/agent/CockpitPanel"
 import { AgentContextBar } from "../../../components/agent/AgentContextBar"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { normalizeActionReceipt } from "../../../components/agent/types"
-import { shortId } from "../../../components/agent/helpers"
+import { shortId, extractLinkedCard } from "../../../components/agent/helpers"
 
 // =============================================================================
 // Types
@@ -69,11 +69,13 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
   const role = (message.sender || message.role) === "user" ? "user" : "agent"
   const meta = message.metadata as Record<string, unknown> | null | undefined
   const actionResults = Array.isArray(meta?.actionResults) ? meta.actionResults : undefined
+  const linkedCard = extractLinkedCard(meta)
   return {
     id: message.id,
     role,
     content: message.content,
     createdAt: new Date(message.created_at || Date.now()).toISOString(),
+    ...(linkedCard ? { linkedCard } : {}),
     ...(actionResults?.length ? { actionResults } : {}),
   }
 }
@@ -731,6 +733,7 @@ export function AgentBoardFrame({
         allowedActions={allowedActions}
         composedSystemPrompt={composedSystemPrompt}
         activeKeeperId={frameCtx?.selection.activeKeeperId}
+        domainId={domainId}
         soleStatus={soleStatus}
       />
       <button

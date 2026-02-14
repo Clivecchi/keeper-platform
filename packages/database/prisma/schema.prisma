@@ -851,7 +851,8 @@ model keeper_type_engagement_templates {
 
 model SoleReflection {
   id                   String           @id @default(cuid())
-  keeperId             String
+  keeperId             String?
+  domainId             String?
   agentId              String
   content              String
   topic                String?
@@ -859,9 +860,11 @@ model SoleReflection {
   promotedToMemoryCard Boolean          @default(false)
   promotedAt           DateTime?
   SoleMemoryCard       SoleMemoryCard[]
-  Keeper               Keeper           @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+  Keeper               Keeper?         @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+  Domain               Domain?         @relation(fields: [domainId], references: [id], onDelete: Cascade)
 
   @@index([keeperId])
+  @@index([domainId])
   @@index([agentId])
   @@index([createdAt])
   @@index([promotedToMemoryCard])
@@ -869,17 +872,20 @@ model SoleReflection {
 
 model SoleMemoryCard {
   id             String         @id @default(cuid())
-  keeperId       String
+  keeperId       String?
+  domainId       String?
   reflectionId   String
   content        String
   topic          String?
   embedding      String?
   embedded       Boolean        @default(false)
   createdAt      DateTime       @default(now())
-  Keeper         Keeper         @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+  Keeper         Keeper?        @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+  Domain         Domain?        @relation(fields: [domainId], references: [id], onDelete: Cascade)
   SoleReflection SoleReflection @relation(fields: [reflectionId], references: [id], onDelete: Cascade)
 
   @@index([keeperId])
+  @@index([domainId])
   @@index([reflectionId])
   @@index([embedded])
   @@index([topic])
@@ -984,6 +990,8 @@ model Domain {
   ShareTemplate                                            ShareTemplate[]
   ShareWorkflow                                            ShareWorkflow[]
   SoleMemoryScope                                          SoleMemoryScope?
+  SoleReflection                                           SoleReflection[]
+  SoleMemoryCard                                           SoleMemoryCard[]
   SslCertificate                                           SslCertificate[]
 
   @@index([slug])

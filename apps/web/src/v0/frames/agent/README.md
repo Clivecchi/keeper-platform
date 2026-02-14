@@ -20,6 +20,7 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 
 ## ⚠️ Notes & ToDo
 - [ ] Deprecate `AgentFrame` once `AgentBoardFrame` is feature-complete
+- **Theme/coloring:** Use the theme dropdown (e.g. "Neutral" → "Diary Paper") or `?theme=diary-paper` in the URL for a warmer look. "Kip" (bottom bar) = new Agent Board; "kip - old" = legacy KipAgentBoardPage.
 - [ ] Add debug mode support to AgentBoardFrame
 - [ ] Add session editing/management within the new board
 - [ ] Wire draft-to-dialogue flow (discuss draft with agent)

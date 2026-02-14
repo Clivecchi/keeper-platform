@@ -3,6 +3,46 @@
  * Extracted from KipAgentBoardPage for reuse across legacy and new Agent Board.
  */
 
+import type { LinkedCardProps } from "../../types/props"
+
+export function extractLinkedCard(metadata: unknown): LinkedCardProps | undefined {
+  if (!metadata) return undefined
+  let payload: Record<string, unknown> | null = null
+  if (typeof metadata === "string") {
+    try {
+      payload = JSON.parse(metadata) as Record<string, unknown>
+    } catch {
+      return undefined
+    }
+  } else if (metadata && typeof metadata === "object") {
+    payload = metadata as Record<string, unknown>
+  }
+  if (!payload) return undefined
+  const linked = (payload.linkedCard ?? payload.linked_card) as Record<string, unknown> | undefined
+  if (!linked || typeof linked !== "object") return undefined
+  if (!linked.title || !linked.entityType || !linked.href) return undefined
+  const previewCandidate = linked.preview
+  const preview =
+    previewCandidate && typeof previewCandidate === "object"
+      ? {
+          image: (previewCandidate as Record<string, unknown>).image,
+          date: (previewCandidate as Record<string, unknown>).date,
+          snippet: (previewCandidate as Record<string, unknown>).snippet,
+        }
+      : undefined
+  return {
+    entityType: linked.entityType as LinkedCardProps["entityType"],
+    entityId: (linked.entityId ?? linked.id ?? linked.href) as string,
+    title: linked.title as string,
+    subtitle: linked.subtitle as string | undefined,
+    description: linked.description as string | undefined,
+    href: linked.href as string,
+    icon: linked.icon as string | undefined,
+    color: linked.color as string | undefined,
+    preview,
+  }
+}
+
 export const formatDate = (value: string): string => {
   const date = new Date(value)
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })

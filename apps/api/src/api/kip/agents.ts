@@ -1358,46 +1358,47 @@ export async function executeAgentActions(
             }
 
             try {
-              // Find the keeper for this domain to link the SOLE record
-              let keeperId: string | null = null;
-              if (ctx.domainId) {
-                const keeper = await tx.keeper.findFirst({
-                  where: { domainId: ctx.domainId },
-                  select: { id: true },
-                });
-                keeperId = keeper?.id ?? null;
-              }
+              // Option B: keeper-scoped when ctx.keeperId set; otherwise domain anchor (no keeper)
+              const keeperId: string | null = ctx.keeperId ?? null;
+              const domainId: string | null = ctx.domainId ?? null;
 
-              if (!keeperId) {
+              if (!keeperId && !domainId) {
                 results.push({
                   type: action.type,
                   status: 'error',
-                  message: 'No Keeper found for SOLE memory save',
+                  message: 'No Keeper or Domain context for SOLE memory save',
                   errorCode: 'MISSING_CONTEXT',
                 });
                 break;
               }
 
+              // Keeper-specific: keeperId set. Domain anchor: keeperId null, domainId set.
+              const reflectionData = {
+                keeperId: keeperId,
+                domainId: keeperId ? null : domainId,
+                agentId: ctx.agentId ?? 'system',
+                content,
+                topic,
+                promotedToMemoryCard: true,
+                promotedAt: new Date(),
+              };
+
               // Create a SoleReflection
               const reflection = await tx.soleReflection.create({
-                data: {
-                  keeperId,
-                  agentId: ctx.agentId ?? 'system',
-                  content,
-                  topic,
-                  promotedToMemoryCard: true,
-                  promotedAt: new Date(),
-                },
+                data: reflectionData,
               });
+
+              const memoryCardData = {
+                keeperId: keeperId,
+                domainId: keeperId ? null : domainId,
+                reflectionId: reflection.id,
+                content,
+                topic,
+              };
 
               // Auto-promote to SoleMemoryCard
               const memoryCard = await tx.soleMemoryCard.create({
-                data: {
-                  keeperId,
-                  reflectionId: reflection.id,
-                  content,
-                  topic,
-                },
+                data: memoryCardData,
               });
 
               const durationMs = Date.now() - actionStartTime;
@@ -2821,10 +2822,10 @@ export class KipAgentService {
           }
         }
         
-        // SOLE exists at domain level and is always accessible. Keeper sharpens.
+        // SOLE exists at domain level (anchor) and keeper level (specific). Option B.
         let soleStatus: { soleActive: boolean; keeperSharpening?: boolean; memoryCount?: number } | undefined;
         if (options?.domainId) {
-          soleStatus = { soleActive: true }; // SOLE always on in domain
+          soleStatus = { soleActive: true };
           if (options?.activeKeeperId) {
             try {
               const keeperSharpening = await SoleMemoryService.isKeeperUsingSOLE(options.activeKeeperId);
@@ -2832,6 +2833,12 @@ export class KipAgentService {
               if (keeperSharpening) {
                 soleStatus.memoryCount = await prisma.soleMemoryCard.count({ where: { keeperId: options.activeKeeperId } });
               }
+            } catch {
+              /* ignore */
+            }
+          } else {
+            try {
+              soleStatus.memoryCount = await prisma.soleMemoryCard.count({ where: { domainId: options.domainId, keeperId: null } });
             } catch {
               /* ignore */
             }

@@ -19,6 +19,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - Board data routes guard frame IDs via the Domain keeper type template, updating JSON props and flushing cache.
 - Custom domain routes share logic between legacy and `/custom` prefixed paths for compatibility.
 - `/:domainId/kip/environment` returns a stable, read-only Kip environment bundle (now with `policy` + `draftsDirectory`); the agent execute route builds the same bundle and injects it into the model payload without changing response shapes.
+- `/:domainId/kip/sole-memory-cards` (Option B) returns domain anchor SOLE memory cards (keeperId null, domainId set) for Cockpit when no keeper is selected.
 - `/:domainId/policy` (GET/PATCH) exposes the resolved domain policy JSON (policy-v1 default) for viewing and editing.
 
 ## Error Taxonomy
@@ -32,6 +33,8 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+### 2026-02-09 - SOLE domain anchor (Option B)
+- Added `GET /api/domains/:domainId/kip/sole-memory-cards` for domain anchor SOLE records (keeperId null). Requires domain read permission.
 ### 2026-01-18 - Domain home board endpoint
 - Added endpoints to ensure and fetch the canonical domain home board by id or slug.
 - Documented manual verification checklist for domain home board behavior.

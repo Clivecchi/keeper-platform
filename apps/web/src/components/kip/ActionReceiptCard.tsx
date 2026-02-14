@@ -38,6 +38,8 @@ function getActionLabel(actionType: string): string {
     'draft.list': 'Listed',
     'draft.get': 'Retrieved',
     'draft.read': 'Retrieved',
+    'draft.update.propose': 'Proposed update',
+    'sole.save': 'Memory saved',
   };
   return labels[actionType] || 'Completed';
 }
@@ -46,6 +48,9 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
   const { type, status, message, errorCode, data } = receipt;
   const draft = data?.draft;
   const openUrl = data?.links?.open;
+  const memoryCard = data?.memoryCard as { id?: string } | undefined;
+  const reflection = data?.reflection as { id?: string } | undefined;
+  const isSoleSave = type === 'sole.save';
 
   // Success state
   if (status === 'success') {
@@ -65,11 +70,16 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
               ✓ {actionLabel}
               {draft?.title && `: ${draft.title}`}
             </p>
-            {message && draft?.title && message !== `Draft ${actionLabel.toLowerCase()} successfully` && (
+            {message && (draft?.title || isSoleSave) && message !== `Draft ${actionLabel.toLowerCase()} successfully` && (
               <p className="mt-1 text-xs text-gray-600">{message}</p>
             )}
-            {!draft?.title && message && (
+            {!draft?.title && !isSoleSave && message && (
               <p className="mt-1 text-xs text-gray-600">{message}</p>
+            )}
+            {isSoleSave && (memoryCard || reflection) && (
+              <p className="mt-0.5 text-xs text-gray-500">
+                SOLE memory card recorded
+              </p>
             )}
             {draft && (
               <p className="mt-0.5 text-xs text-gray-500">

@@ -23,8 +23,10 @@ export interface CockpitPanelProps {
   allowedActions?: string[]
   /** Composed system prompt (from action pack preview or last run) */
   composedSystemPrompt?: string | null
-  /** Active keeper ID for SOLE records lookup */
+  /** Active keeper ID for keeper-scoped SOLE records */
   activeKeeperId?: string | null
+  /** Domain ID for domain anchor SOLE when no keeper selected (Option B) */
+  domainId?: string | null
   /** SOLE status: soleActive (domain-wide), keeperSharpening (keeper-specific) */
   soleStatus?: { soleActive: boolean; keeperSharpening?: boolean; memoryCount?: number } | null
 }
@@ -36,6 +38,7 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
   allowedActions = [],
   composedSystemPrompt = null,
   activeKeeperId = null,
+  domainId = null,
   soleStatus = null,
 }) => {
   const { user } = useAuth()
@@ -54,12 +57,22 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
   const keeperSharpening = soleStatus?.keeperSharpening ?? false
 
   React.useEffect(() => {
-    if (!activeKeeperId || !user?.id) {
+    if (!user?.id) {
+      setSoleCards([])
+      return
+    }
+    // Option B: keeper-scoped when activeKeeperId; domain anchor when domainId only
+    const url = activeKeeperId
+      ? `/api/keeper/keepers/${activeKeeperId}/memory-cards?userId=${user.id}`
+      : domainId
+        ? `/api/domains/${domainId}/kip/sole-memory-cards`
+        : null
+    if (!url) {
       setSoleCards([])
       return
     }
     let active = true
-    apiFetch(`/api/keeper/keepers/${activeKeeperId}/memory-cards?userId=${user.id}`)
+    apiFetch(url)
       .then((res: any) => {
         if (!active) return
         const data = res?.data ?? (Array.isArray(res) ? res : [])
@@ -67,7 +80,7 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
       })
       .catch(() => setSoleCards([]))
     return () => { active = false }
-  }, [activeKeeperId, user?.id])
+  }, [activeKeeperId, domainId, user?.id])
 
   const activeCapabilities: { name: string; active: boolean }[] = [
     { name: "Keeper context", active: hasKeeper },
@@ -142,8 +155,15 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
         </FrameCard>
       )}
 
-      {activeKeeperId && (
-        <FrameCard title="SOLE Records" subtitle={soleCards.length ? `${soleCards.length} recent memory cards` : "No memory cards yet"}>
+      {(activeKeeperId || domainId) && (
+        <FrameCard
+          title="SOLE Records"
+          subtitle={
+            soleCards.length
+              ? `${soleCards.length} recent memory cards${activeKeeperId ? " (keeper)" : " (domain anchor)"}`
+              : "No memory cards yet"
+          }
+        >
           {soleCards.length > 0 ? (
             <ul className="space-y-2 text-sm text-gray-700">
               {soleCards.map((c) => (
@@ -154,7 +174,11 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
               ))}
             </ul>
           ) : (
-            <p className="text-xs text-gray-500">Select a SOLE-enabled keeper and send messages to build memory.</p>
+            <p className="text-xs text-gray-500">
+              {domainId
+                ? "Send messages to build domain anchor memory, or select a keeper for keeper-specific SOLE."
+                : "Select a SOLE-enabled keeper and send messages to build memory."}
+            </p>
           )}
         </FrameCard>
       )}
