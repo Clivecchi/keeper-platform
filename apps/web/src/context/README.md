@@ -33,6 +33,8 @@ Encapsulate shared React context providers (auth, theme, boards, worlds, etc.) u
 
 ### 2026-01-24 - Auth Resolution + Admin Allowlist
 - Added resolved auth state and admin allowlist fallback to support stricter route guards.
+### 2026-02-15 - refreshSession for Auth Retry
+- Exposed `refreshSession` (alias for `fetchUserSession`) so AgentBoardFrame can trigger session refresh on 401 before retrying Kip runAgent.
 ### 2026-02-15 - Platform Super Admin from DB Roles
 - `resolveIsAdmin()` now uses `platformRoles` from `/api/kam/auth/me` and login/register responses as source of truth.
 - `VITE_ADMIN_EMAIL_ALLOWLIST` kept as fallback during migration; can be removed once DB roles verified.

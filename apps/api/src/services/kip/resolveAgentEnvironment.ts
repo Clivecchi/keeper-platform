@@ -60,6 +60,10 @@ export type AgentEnvironmentContext = {
     canary?: string;
   };
   governance?: AgentPolicyView | null;
+  domainIndex?: {
+    keepers: Array<{ id: string; title: string; purpose?: string | null }>;
+    journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>;
+  };
 };
 
 // Lazy initialization - services will be created only when needed
@@ -293,6 +297,29 @@ export async function resolveAgentEnvironment(args: {
           domainId: primaryDomainId,
           error,
         });
+      }
+
+      if (hasReadAccess) {
+        try {
+          const [keepers, journeys] = await Promise.all([
+            prisma.keeper.findMany({
+              where: { domainId: primaryDomainId },
+              take: 20,
+              select: { id: true, title: true, purpose: true },
+            }),
+            prisma.journey.findMany({
+              where: { domainId: primaryDomainId },
+              take: 20,
+              select: { id: true, name: true, forward: true, keeperId: true },
+            }),
+          ]);
+          environment.domainIndex = {
+            keepers: keepers.map((k) => ({ id: k.id, title: k.title, purpose: k.purpose ?? null })),
+            journeys: journeys.map((j) => ({ id: j.id, name: j.name, forward: j.forward, keeperId: j.keeperId })),
+          };
+        } catch (error) {
+          console.warn('[resolveAgentEnvironment] domain index lookup failed', { domainId: primaryDomainId, error });
+        }
       }
 
       if (hasReadAccess && userId) {

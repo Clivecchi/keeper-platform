@@ -14,7 +14,15 @@ import { apiFetch } from "../../lib/api"
 import { getDomainCompliance, type ComplianceMetrics } from "../../lib/governanceApi"
 import { formatRelative, shortId } from "./helpers"
 
-type SoleMemoryCard = { id: string; content: string; topic?: string | null; createdAt?: string }
+type SoleMemoryCard = {
+  id: string
+  content: string
+  topic?: string | null
+  createdAt?: string
+  journeyId?: string | null
+  momentId?: string | null
+  engagementTemplateId?: string | null
+}
 
 /** SOLE Records card with expand-to-view and inline edit */
 function SoleRecordsCard({
@@ -118,6 +126,13 @@ function SoleRecordsCard({
                 </div>
               ) : (
                 <>
+                  {(c.journeyId || c.momentId || c.engagementTemplateId) && (
+                    <div className="mb-1 flex flex-wrap gap-1 text-xs text-gray-500">
+                      {c.journeyId && <span title={c.journeyId}>Journey</span>}
+                      {c.momentId && <span title={c.momentId}>Moment</span>}
+                      {c.engagementTemplateId && <span title={c.engagementTemplateId}>Template</span>}
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}

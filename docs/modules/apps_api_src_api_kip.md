@@ -23,6 +23,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2026-02-15: SOLE memory links: sole.save payload extended with journeyId, momentId, engagementTemplateId; validation in agents.ts. SOLE architecture prompt + domain index injected into agent. Auth retry on 401 in AgentBoardFrame.
 - 2026-02-15: Wired Domain Contract to Kip: contract text now injected into system prompt when domainId present. Aligned draft rules with contract (plan/outline/spec/design/architecture → MUST call draft.create). SOLE high bar added to prompt.
 - 2026-02-09: SOLE domain-wide (always active in domain); keeper association sharpens. buildComposedSystemPrompt + composePrompt query param for full system prompt in Cockpit.
 - 2026-02-09: Added JSON extraction from mixed response text, draft.create payload normalizer, composeSystemPrompt in run response, soleStatus, actionResults persistence in message metadata, JSON mode for OpenAI, repetition instruction, spec.sections requirement for draft quality.

@@ -32,20 +32,22 @@ model InteractionContentConfig {
 }
 
 model Journey {
-  id        String   @id
-  name      String
-  forward   String
-  ownerId   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime
-  keeperId  String
-  theme_id  String?  @db.Uuid
-  domainId  String?
-  domain    Domain?  @relation(fields: [domainId], references: [id])
-  Keeper    Keeper   @relation(fields: [keeperId], references: [id])
-  themes    themes?  @relation(fields: [theme_id], references: [id])
-  Moment    Moment[]
-  Path      Path[]
+  id             String           @id
+  name           String
+  forward        String
+  ownerId        String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime
+  keeperId       String
+  theme_id       String?          @db.Uuid
+  domainId       String?
+  domain         Domain?          @relation(fields: [domainId], references: [id])
+  Keeper         Keeper           @relation(fields: [keeperId], references: [id])
+  themes         themes?          @relation(fields: [theme_id], references: [id])
+  Moment         Moment[]
+  Path           Path[]
+  SoleReflection SoleReflection[]
+  SoleMemoryCard SoleMemoryCard[]
 
   @@index([domainId])
 }
@@ -262,25 +264,26 @@ model MemoryCard {
 }
 
 model Moment {
-  id        String   @id @default(cuid())
-  title     String
-  narrative String
-  pathId    String?  
-  journeyId String? 
-  ownerId   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  theme_id  String?  @db.Uuid
-  domainId  String?
-  keptAt    DateTime?
-  anonKey   String?
-  claimToken String?
+  id                  String           @id @default(cuid())
+  title               String
+  narrative           String
+  pathId              String?
+  journeyId           String?
+  ownerId             String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  theme_id            String?          @db.Uuid
+  domainId            String?
+  keptAt              DateTime?
+  anonKey             String?
+  claimToken          String?
   claimTokenExpiresAt DateTime?
-  domain    Domain?  @relation(fields: [domainId], references: [id])
-  Journey   Journey? @relation(fields: [journeyId], references: [id])
-  Path      Path?    @relation(fields: [pathId], references: [id])
-  themes    themes?  @relation(fields: [theme_id], references: [id])
-
+  domain              Domain?          @relation(fields: [domainId], references: [id])
+  Journey             Journey?         @relation(fields: [journeyId], references: [id])
+  Path                Path?            @relation(fields: [pathId], references: [id])
+  themes              themes?          @relation(fields: [theme_id], references: [id])
+  SoleReflection      SoleReflection[]
+  SoleMemoryCard      SoleMemoryCard[]
 
   @@index([pathId])
   @@index([journeyId])
@@ -428,6 +431,8 @@ model engagement_templates {
   engagement_styles                engagement_styles[]
   Keeper                           Keeper?                            @relation(fields: [keeperId], references: [id])
   keeper_type_engagement_templates keeper_type_engagement_templates[]
+  SoleReflection                   SoleReflection[]
+  SoleMemoryCard                   SoleMemoryCard[]
 }
 
 model engagements {
@@ -851,42 +856,60 @@ model keeper_type_engagement_templates {
 }
 
 model SoleReflection {
-  id                   String           @id @default(cuid())
-  keeperId             String?
-  domainId             String?
-  agentId              String
-  content              String
-  topic                String?
-  createdAt            DateTime         @default(now())
-  promotedToMemoryCard Boolean          @default(false)
-  promotedAt           DateTime?
-  SoleMemoryCard       SoleMemoryCard[]
-  Keeper               Keeper?         @relation(fields: [keeperId], references: [id], onDelete: Cascade)
-  Domain               Domain?         @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  id                    String               @id @default(cuid())
+  keeperId              String?
+  domainId              String?
+  journeyId             String?
+  momentId              String?
+  engagementTemplateId  String?              @db.Uuid
+  agentId               String
+  content               String
+  topic                 String?
+  createdAt             DateTime             @default(now())
+  promotedToMemoryCard  Boolean              @default(false)
+  promotedAt            DateTime?
+  SoleMemoryCard        SoleMemoryCard[]
+  Keeper                Keeper?              @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+  Domain                Domain?              @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  Journey               Journey?             @relation(fields: [journeyId], references: [id], onDelete: SetNull)
+  Moment                Moment?              @relation(fields: [momentId], references: [id], onDelete: SetNull)
+  engagement_templates  engagement_templates? @relation(fields: [engagementTemplateId], references: [id], onDelete: SetNull)
 
   @@index([keeperId])
   @@index([domainId])
+  @@index([journeyId])
+  @@index([momentId])
+  @@index([engagementTemplateId])
   @@index([agentId])
   @@index([createdAt])
   @@index([promotedToMemoryCard])
 }
 
 model SoleMemoryCard {
-  id             String         @id @default(cuid())
-  keeperId       String?
-  domainId       String?
-  reflectionId   String
-  content        String
-  topic          String?
-  embedding      String?
-  embedded       Boolean        @default(false)
-  createdAt      DateTime       @default(now())
-  Keeper         Keeper?        @relation(fields: [keeperId], references: [id], onDelete: Cascade)
-  Domain         Domain?        @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  SoleReflection SoleReflection @relation(fields: [reflectionId], references: [id], onDelete: Cascade)
+  id                    String               @id @default(cuid())
+  keeperId              String?
+  domainId              String?
+  journeyId             String?
+  momentId              String?
+  engagementTemplateId  String?              @db.Uuid
+  reflectionId          String
+  content               String
+  topic                 String?
+  embedding             String?
+  embedded              Boolean              @default(false)
+  createdAt             DateTime             @default(now())
+  Keeper                Keeper?              @relation(fields: [keeperId], references: [id], onDelete: Cascade)
+  Domain                Domain?              @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  Journey               Journey?             @relation(fields: [journeyId], references: [id], onDelete: SetNull)
+  Moment                Moment?              @relation(fields: [momentId], references: [id], onDelete: SetNull)
+  engagement_templates  engagement_templates? @relation(fields: [engagementTemplateId], references: [id], onDelete: SetNull)
+  SoleReflection       SoleReflection        @relation(fields: [reflectionId], references: [id], onDelete: Cascade)
 
   @@index([keeperId])
   @@index([domainId])
+  @@index([journeyId])
+  @@index([momentId])
+  @@index([engagementTemplateId])
   @@index([reflectionId])
   @@index([embedded])
   @@index([topic])

@@ -56,6 +56,10 @@ export type KipEnvironmentContext = {
     updatedAt: Date;
   };
   governance?: AgentPolicyView | null;
+  domainIndex?: {
+    keepers: Array<{ id: string; title: string; purpose?: string | null }>;
+    journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>;
+  };
 };
 
 const prisma = new PrismaClient();
@@ -163,6 +167,27 @@ export async function buildKipEnvironmentContext(args: {
     }
   } catch (error) {
     console.warn('[kip:environment] domain lookup failed', { domainId, error });
+  }
+
+  try {
+    const [keepers, journeys] = await Promise.all([
+      prisma.keeper.findMany({
+        where: { domainId },
+        take: 20,
+        select: { id: true, title: true, purpose: true },
+      }),
+      prisma.journey.findMany({
+        where: { domainId },
+        take: 20,
+        select: { id: true, name: true, forward: true, keeperId: true },
+      }),
+    ]);
+    environment.domainIndex = {
+      keepers: keepers.map((k) => ({ id: k.id, title: k.title, purpose: k.purpose ?? null })),
+      journeys: journeys.map((j) => ({ id: j.id, name: j.name, forward: j.forward, keeperId: j.keeperId })),
+    };
+  } catch (error) {
+    console.warn('[kip:environment] domain index lookup failed', { domainId, error });
   }
 
   try {

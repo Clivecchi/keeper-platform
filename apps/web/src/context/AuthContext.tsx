@@ -25,6 +25,8 @@ interface AuthContextType {
   login: (data: AuthSuccessData) => void;
   logout: () => void;
   updateUser: (userData: Partial<AuthUser>) => void;
+  /** Refresh session from server (e.g. after 401). Returns true if session is valid. */
+  refreshSession: () => Promise<boolean>;
   isLoading: boolean;
 }
 
@@ -179,7 +181,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!user, isAdmin, authResolved, login, logout, updateUser, isLoading }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated: !!user, isAdmin, authResolved, login, logout, updateUser, refreshSession: fetchUserSession, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -101,6 +101,9 @@ const momentCreatePayloadSchema = z.object({
 const soleSavePayloadSchema = z.object({
   content: z.string().min(1, 'content is required'),
   topic: z.string().optional(),
+  journeyId: z.string().optional(),
+  momentId: z.string().optional(),
+  engagementTemplateId: z.string().uuid().optional(),
 });
 
 /**

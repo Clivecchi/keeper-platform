@@ -1353,6 +1353,9 @@ export async function executeAgentActions(
             const payload = action.payload ?? {};
             const content = typeof payload.content === 'string' ? payload.content.trim() : '';
             const topic = typeof payload.topic === 'string' ? payload.topic.trim() : null;
+            const rawJourneyId = typeof payload.journeyId === 'string' ? payload.journeyId.trim() || null : null;
+            const rawMomentId = typeof payload.momentId === 'string' ? payload.momentId.trim() || null : null;
+            const rawEngagementTemplateId = typeof payload.engagementTemplateId === 'string' ? payload.engagementTemplateId.trim() || null : null;
 
             if (!content) {
               results.push({
@@ -1379,10 +1382,74 @@ export async function executeAgentActions(
                 break;
               }
 
+              // Validate optional links belong to domain/keeper context
+              let journeyId: string | null = null;
+              let momentId: string | null = null;
+              let engagementTemplateId: string | null = null;
+
+              if (rawJourneyId) {
+                const journey = await tx.journey.findFirst({
+                  where: keeperId
+                    ? { id: rawJourneyId, keeperId }
+                    : { id: rawJourneyId, domainId: domainId ?? undefined },
+                });
+                if (!journey) {
+                  results.push({
+                    type: action.type,
+                    status: 'error',
+                    message: `Journey ${rawJourneyId} not found or not in context`,
+                    errorCode: 'VALIDATION_ERROR',
+                  });
+                  break;
+                }
+                journeyId = rawJourneyId;
+              }
+
+              if (rawMomentId) {
+                const moment = await tx.moment.findFirst({
+                  where: journeyId
+                    ? { id: rawMomentId, journeyId }
+                    : domainId
+                      ? { id: rawMomentId, domainId }
+                      : { id: rawMomentId },
+                });
+                if (!moment) {
+                  results.push({
+                    type: action.type,
+                    status: 'error',
+                    message: `Moment ${rawMomentId} not found or not in context`,
+                    errorCode: 'VALIDATION_ERROR',
+                  });
+                  break;
+                }
+                momentId = rawMomentId;
+              }
+
+              if (rawEngagementTemplateId) {
+                const template = await tx.engagement_templates.findFirst({
+                  where: keeperId
+                    ? { id: rawEngagementTemplateId, keeperId }
+                    : { id: rawEngagementTemplateId, keeperId: null },
+                });
+                if (!template) {
+                  results.push({
+                    type: action.type,
+                    status: 'error',
+                    message: `Engagement template ${rawEngagementTemplateId} not found or not in context`,
+                    errorCode: 'VALIDATION_ERROR',
+                  });
+                  break;
+                }
+                engagementTemplateId = rawEngagementTemplateId;
+              }
+
               // Keeper-specific: keeperId set. Domain anchor: keeperId null, domainId set.
               const reflectionData = {
                 keeperId: keeperId,
                 domainId: keeperId ? null : domainId,
+                journeyId,
+                momentId,
+                engagementTemplateId,
                 agentId: ctx.agentId ?? 'system',
                 content,
                 topic,
@@ -1398,6 +1465,9 @@ export async function executeAgentActions(
               const memoryCardData = {
                 keeperId: keeperId,
                 domainId: keeperId ? null : domainId,
+                journeyId,
+                momentId,
+                engagementTemplateId,
                 reflectionId: reflection.id,
                 content,
                 topic,
@@ -2346,6 +2416,14 @@ export class KipAgentService {
 
     if (environment) {
       systemParts.push(SoleMemoryService.getSoleMemoryLoopInstruction());
+      systemParts.push(SoleMemoryService.getSoleArchitecturePrompt());
+      const envWithIndex = environment as { domainIndex?: { keepers: Array<{ id: string; title: string; purpose?: string | null }>; journeys: Array<{ id: string; name: string; forward: string; keeperId: string }> } } | undefined;
+      if (envWithIndex?.domainIndex) {
+        const { keepers, journeys } = envWithIndex.domainIndex;
+        const keeperList = keepers.map((k) => `${k.title} (${k.id})`).join('; ');
+        const journeyList = journeys.map((j) => `${j.name} (${j.id}, keeper ${j.keeperId})`).join('; ');
+        systemParts.push(`Domain context: Keepers: ${keeperList || 'none'}. Journeys: ${journeyList || 'none'}. Use these to understand scope and reference correctly.`);
+      }
       if (options.keeperId) {
         try {
           const keeperUsesSole = await SoleMemoryService.isKeeperUsingSOLE(options.keeperId);
@@ -2585,6 +2663,21 @@ export class KipAgentService {
             role: 'system',
             content: SoleMemoryService.getSoleMemoryLoopInstruction(),
           });
+          messages.push({
+            role: 'system',
+            content: SoleMemoryService.getSoleArchitecturePrompt(),
+          });
+
+          const envWithIndex = environmentContext as { domainIndex?: { keepers: Array<{ id: string; title: string; purpose?: string | null }>; journeys: Array<{ id: string; name: string; forward: string; keeperId: string }> } } | undefined;
+          if (envWithIndex?.domainIndex) {
+            const { keepers, journeys } = envWithIndex.domainIndex;
+            const keeperList = keepers.map((k) => `${k.title} (${k.id})`).join('; ');
+            const journeyList = journeys.map((j) => `${j.name} (${j.id}, keeper ${j.keeperId})`).join('; ');
+            messages.push({
+              role: 'system',
+              content: `Domain context: Keepers: ${keeperList || 'none'}. Journeys: ${journeyList || 'none'}. Use these to understand scope and reference correctly.`,
+            });
+          }
 
           // Keeper sharpening: when a keeper is selected and uses SOLE, add memory cards
           if (promptOptions?.activeKeeperId) {

@@ -102,7 +102,7 @@ export function AgentBoardFrame({
 }) {
   const { domainSlug, navigateToFrame } = useV0Shell()
   const frameCtx = useFrameContextOptional()
-  const { isAuthenticated, isAdmin } = useAuth()
+  const { isAuthenticated, isAdmin, refreshSession } = useAuth()
   const [view, setView] = useAgentWorkspaceView()
 
   // ── Agent state ──
@@ -327,13 +327,36 @@ export function AgentBoardFrame({
     setMessagesError(null)
 
     try {
-      const result = await KipApi.runAgent(agent.id, content, undefined, activeSessionId, {
-        domainId: domainId || undefined,
-        domainSlug: domainSlug || undefined,
-        mode: "domain",
-        activeJourneyId: frameCtx?.selection.activeJourneyId,
-        activeKeeperId: frameCtx?.selection.activeKeeperId,
-      })
+      let result: Awaited<ReturnType<typeof KipApi.runAgent>>
+      try {
+        result = await KipApi.runAgent(agent.id, content, undefined, activeSessionId, {
+          domainId: domainId || undefined,
+          domainSlug: domainSlug || undefined,
+          mode: "domain",
+          activeJourneyId: frameCtx?.selection.activeJourneyId,
+          activeKeeperId: frameCtx?.selection.activeKeeperId,
+        })
+      } catch (firstErr: unknown) {
+        const status = (firstErr as { status?: number })?.status
+        if (status === 401 && refreshSession) {
+          const refreshed = await refreshSession()
+          if (refreshed) {
+            result = await KipApi.runAgent(agent.id, content, undefined, activeSessionId, {
+              domainId: domainId || undefined,
+              domainSlug: domainSlug || undefined,
+              mode: "domain",
+              activeJourneyId: frameCtx?.selection.activeJourneyId,
+              activeKeeperId: frameCtx?.selection.activeKeeperId,
+            })
+          } else {
+            setMessagesError("Session expired. Please log in again.")
+            setMessages((prev) => prev.filter((m) => m.id !== optimistic.id))
+            return
+          }
+        } else {
+          throw firstErr
+        }
+      }
 
       const sessionIdFromResponse =
         (result as any)?.data?.data?.session_id || (result as any)?.session_id || null
@@ -379,7 +402,10 @@ export function AgentBoardFrame({
       refreshSessions()
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id))
-      setMessagesError(err instanceof Error ? err.message : "Unable to send message")
+      const status = (err as { status?: number })?.status
+      setMessagesError(
+        status === 401 ? "Session expired. Please log in again." : "Failed to send. Please try again."
+      )
     } finally {
       setIsSending(false)
     }
