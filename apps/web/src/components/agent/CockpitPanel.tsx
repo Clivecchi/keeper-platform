@@ -14,7 +14,147 @@ import { apiFetch } from "../../lib/api"
 import { getDomainCompliance, type ComplianceMetrics } from "../../lib/governanceApi"
 import { formatRelative, shortId } from "./helpers"
 
-type SoleMemoryCard = { id: string; content: string; topic?: string | null; createdAt: string }
+type SoleMemoryCard = { id: string; content: string; topic?: string | null; createdAt?: string }
+
+/** SOLE Records card with expand-to-view and inline edit */
+function SoleRecordsCard({
+  soleCards,
+  activeKeeperId,
+  domainId,
+  userId,
+  onRefresh,
+}: {
+  soleCards: SoleMemoryCard[]
+  activeKeeperId: string | null
+  domainId: string | null
+  userId: string | null
+  onRefresh: () => void
+}) {
+  const [expandedId, setExpandedId] = React.useState<string | null>(null)
+  const [editingId, setEditingId] = React.useState<string | null>(null)
+  const [editContent, setEditContent] = React.useState("")
+  const [editTopic, setEditTopic] = React.useState("")
+  const [isSaving, setIsSaving] = React.useState(false)
+
+  const handleEdit = (c: SoleMemoryCard) => {
+    setEditingId(c.id)
+    setEditContent(c.content || "")
+    setEditTopic(c.topic || "")
+  }
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setEditContent("")
+    setEditTopic("")
+  }
+  const handleSave = async () => {
+    if (!editingId || !editContent.trim()) return
+    setIsSaving(true)
+    try {
+      const url = activeKeeperId
+        ? `/api/keeper/memory-cards/${editingId}?userId=${userId}`
+        : domainId
+          ? `/api/domains/${domainId}/kip/sole-memory-cards/${editingId}`
+          : null
+      if (!url) return
+      await apiFetch(url, {
+        method: "PUT",
+        body: JSON.stringify({ content: editContent.trim(), topic: editTopic.trim() || undefined }),
+      })
+      setEditingId(null)
+      onRefresh()
+    } catch {
+      /* ignore */
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <FrameCard
+      title="SOLE Records"
+      subtitle={
+        soleCards.length
+          ? `${soleCards.length} recent memory cards${activeKeeperId ? " (keeper)" : " (domain anchor)"} — click to expand, edit inline`
+          : "No memory cards yet"
+      }
+    >
+      {soleCards.length > 0 ? (
+        <ul className="space-y-2 text-sm text-gray-700">
+          {soleCards.map((c) => (
+            <li key={c.id} className="rounded border border-gray-200 bg-gray-50 p-2">
+              {editingId === c.id ? (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    placeholder="Topic (optional)"
+                    value={editTopic}
+                    onChange={(e) => setEditTopic(e.target.value)}
+                    className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                  />
+                  <textarea
+                    placeholder="Content"
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    rows={4}
+                    className="w-full rounded border border-gray-300 px-2 py-1 text-xs"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSave}
+                      disabled={isSaving || !editContent.trim()}
+                      className="rounded bg-emerald-600 px-2 py-1 text-xs text-white disabled:opacity-50"
+                    >
+                      {isSaving ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className="rounded border border-gray-300 px-2 py-1 text-xs"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                    className="w-full text-left"
+                  >
+                    {c.topic && <span className="text-xs font-medium text-gray-500">[{c.topic}] </span>}
+                    <span className="text-gray-800">
+                      {expandedId === c.id ? (c.content || "") : (c.content || "").slice(0, 80)}
+                      {(c.content || "").length > 80 && expandedId !== c.id ? "…" : ""}
+                    </span>
+                  </button>
+                  {expandedId === c.id && (
+                    <div className="mt-2 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(c)}
+                        className="text-xs underline text-gray-500 hover:text-gray-700"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-gray-500">
+          {domainId
+            ? "Send messages to build domain anchor memory, or select a keeper for keeper-specific SOLE."
+            : "Select a SOLE-enabled keeper and send messages to build memory."}
+        </p>
+      )}
+    </FrameCard>
+  )
+}
 
 export interface CockpitPanelProps {
   agent: KipAgent | null
@@ -80,10 +220,9 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
     apiFetch(url)
       .then((res: any) => {
         if (!active) return
-        // Handle { success, data: [...] } (domains/keeper APIs) or raw array
         const raw = res?.data ?? res
         const arr = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : [])
-        setSoleCards(arr.slice(0, 5))
+        setSoleCards(arr.slice(0, 10))
       })
       .catch(() => setSoleCards([]))
     return () => { active = false }
@@ -173,31 +312,27 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
       )}
 
       {(activeKeeperId || domainId) && (
-        <FrameCard
-          title="SOLE Records"
-          subtitle={
-            soleCards.length
-              ? `${soleCards.length} recent memory cards${activeKeeperId ? " (keeper)" : " (domain anchor)"}`
-              : "No memory cards yet"
-          }
-        >
-          {soleCards.length > 0 ? (
-            <ul className="space-y-2 text-sm text-gray-700">
-              {soleCards.map((c) => (
-                <li key={c.id} className="rounded border border-gray-200 bg-gray-50 p-2">
-                  {c.topic && <span className="text-xs font-medium text-gray-500">[{c.topic}] </span>}
-                  <span className="text-gray-800">{(c.content || "").slice(0, 80)}{(c.content || "").length > 80 ? "…" : ""}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-xs text-gray-500">
-              {domainId
-                ? "Send messages to build domain anchor memory, or select a keeper for keeper-specific SOLE."
-                : "Select a SOLE-enabled keeper and send messages to build memory."}
-            </p>
-          )}
-        </FrameCard>
+        <SoleRecordsCard
+          soleCards={soleCards}
+          activeKeeperId={activeKeeperId}
+          domainId={domainId}
+          userId={user?.id ?? null}
+          onRefresh={() => {
+            const url = activeKeeperId
+              ? `/api/keeper/keepers/${activeKeeperId}/memory-cards?userId=${user?.id}`
+              : domainId
+                ? `/api/domains/${domainId}/kip/sole-memory-cards`
+                : null
+            if (url)
+              apiFetch(url)
+                .then((res: any) => {
+                  const raw = res?.data ?? res
+                  const arr = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : [])
+                  setSoleCards(arr.slice(0, 10))
+                })
+                .catch(() => {})
+          }}
+        />
       )}
 
       <FrameCard title="Tools & Integrations" subtitle="Actions the agent can use">

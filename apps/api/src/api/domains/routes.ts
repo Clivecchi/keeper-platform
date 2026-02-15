@@ -182,6 +182,58 @@ router.get('/:domainId/kip/sole-memory-cards', authMiddlewareCompat, requireDoma
   }
 });
 
+// PUT /api/domains/:domainId/kip/sole-memory-cards/:id - Update domain anchor SOLE card
+const updateDomainSoleCardSchema = z.object({
+  content: z.string().min(1).optional(),
+  topic: z.string().optional(),
+});
+router.put('/:domainId/kip/sole-memory-cards/:id', authMiddlewareCompat, requireDomainWriteCompat, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+    }
+    const { domainId, id } = req.params;
+    const parsed = updateDomainSoleCardSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const domain = await getDomainService().getDomainById(domainId);
+    if (!domain) {
+      return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
+    }
+    const permission = await getPermissionService().checkPermission({
+      userId: req.user.id,
+      domainId,
+      permission: 'write',
+    });
+    if (!permission.hasPermission) {
+      return res.status(403).json({ error: 'ACCESS_DENIED', message: 'You do not have write access to this domain' });
+    }
+    const card = await prisma.soleMemoryCard.findFirst({
+      where: { id, domainId, keeperId: null },
+    });
+    if (!card) {
+      return res.status(404).json({ error: 'CARD_NOT_FOUND', message: 'SOLE memory card not found' });
+    }
+    const updateData: { content?: string; topic?: string; embedded?: boolean; embedding?: string | null } = { ...parsed.data };
+    if (parsed.data.content && parsed.data.content !== card.content) {
+      updateData.embedded = false;
+      updateData.embedding = null;
+    }
+    const updated = await prisma.soleMemoryCard.update({
+      where: { id },
+      data: updateData,
+    });
+    return res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('[domains:sole-memory-cards:put:error]', error);
+    return res.status(500).json({
+      error: 'FAILED_TO_UPDATE_SOLE',
+      message: 'Failed to update domain SOLE memory card',
+    });
+  }
+});
+
 // GET /api/domains/:domainId/kip/agents - Domain-scoped agents list
 router.get('/:domainId/kip/agents', authMiddlewareCompat, requireDomainReadCompat, async (req: AuthenticatedRequest, res: Response) => {
   try {
