@@ -235,9 +235,7 @@ const App: React.FC = () => {
       {/* Domain Dashboard Routes - V0 Dashboard Layout (Outside AppLayout/Studio) */}
       <Route element={<ProtectedRoute />}>
         <Route path="/kip" element={<KipAgentBoardPage />} />
-      </Route>
-      
-      <Route element={<RequireAdminRoute />}>
+        {/* Domain admin: any authenticated user can access; API enforces domain ownership for edits */}
         <Route path="/d/:slug/admin" element={<DomainAdminPage />} />
       </Route>
       
