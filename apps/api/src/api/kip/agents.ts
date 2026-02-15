@@ -34,6 +34,7 @@ import {
   postExecGovernanceCheck,
   checkRegenerateLimit,
   logComplianceEvent,
+  getContractTextForDomain,
 } from '../../governance/index.js';
 import { loadModeState } from '../../services/kip/modeConfig.js';
 import type { AgentModeKey, AgentModeState, ModeConfig, OutputStyle } from '../../services/kip/modeConfig.js';
@@ -2293,6 +2294,19 @@ export class KipAgentService {
 
     if (environment) {
       systemParts.push(`Environment context (resolved via KAM):\n${JSON.stringify(environment, null, 2)}`);
+
+      // Domain contract (matches callAIModel injection)
+      if (options.domainId) {
+        try {
+          const contractText = await getContractTextForDomain(options.domainId);
+          if (contractText) {
+            systemParts.push(`DOMAIN CONTRACT (non-negotiable behavioral rules):\n\n${contractText}`);
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
       const allowList = Array.from(buildAllowedActions(environment as any));
       const draftRules = (environment as any)?.policy?.policy?.drafts ?? {};
       const draftKinds =
@@ -2306,11 +2320,11 @@ export class KipAgentService {
           'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
           '',
           'SOLE vs DRAFTS — use the right tool:',
-          '- sole.save: for insights, learnings, corrections, capability clarifications. Use when the user corrects you or you learn something important.',
-          '- draft.create/update: for documents, specs, proposals. Only when the user EXPLICITLY asks for a draft.',
+          '- sole.save: for insights, learnings, corrections, capability clarifications. High bar: "Will this matter in 30 days?"',
+          '- draft.create/update: for documents, specs, proposals. Use when user explicitly asks OR uses planning phrases (plan, outline, spec, design, architecture, "let\'s think this through").',
           '',
-          'DRAFT BEHAVIOR — understand when to act vs respond:',
-          '- Only use draft.create when the user EXPLICITLY asks to create a new draft (e.g. "create a draft", "start a new draft", "make a draft for X").',
+          'DRAFT BEHAVIOR — when to act vs respond (per Domain Contract):',
+          '- MUST call draft.create when user requests planning, outlining, designing, spec creation, architecture, or says: plan, outline, spec, design, architecture, "let\'s think this through". Work iteratively inside the draft; finalize only when user signals completion.',
           '- When the user asks "what can you do?", "tell me your capabilities", "assist with a specific draft", or "how can you help" — respond with "response" only. Do NOT emit draft.create or any action.',
           '- When the user wants to work on an EXISTING draft, use draft.update or draft.setActive. Never create a duplicate.',
           '- Check draftsDirectory in the environment. If a draft with the same or similar title already exists, use draft.update (with id) or draft.setActive — do NOT create another.',
@@ -2473,6 +2487,21 @@ export class KipAgentService {
           content: `Environment context (resolved via KAM):\n${JSON.stringify(environmentContext, null, 2)}`,
         });
 
+        // --- Domain contract injection (wires contract rules to Kip) ---
+        if (promptOptions?.domainId) {
+          try {
+            const contractText = await getContractTextForDomain(promptOptions.domainId);
+            if (contractText) {
+              messages.push({
+                role: 'system',
+                content: `DOMAIN CONTRACT (non-negotiable behavioral rules):\n\n${contractText}`,
+              });
+            }
+          } catch (err) {
+            console.warn('[kip/agents] Failed to load contract for prompt:', err);
+          }
+        }
+
         const allowList = Array.from(buildAllowedActions(environmentContext));
 
         const draftRules = (environmentContext as any)?.policy?.policy?.drafts ?? {};
@@ -2487,11 +2516,11 @@ export class KipAgentService {
             'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
             '',
             'SOLE vs DRAFTS — use the right tool:',
-            '- sole.save: for insights, learnings, corrections, capability clarifications, anything you want to remember. Use it when the user corrects you or you learn something important.',
-            '- draft.create/update: for documents, specs, proposals (journey specs, keeper proposals, checklists). Only when the user EXPLICITLY asks for a draft.',
+            '- sole.save: for insights, learnings, corrections, capability clarifications, anything you want to remember. Use it when the user corrects you or you learn something important. High bar: "Will this matter in 30 days?"',
+            '- draft.create/update: for documents, specs, proposals (journey specs, keeper proposals, checklists). Use when the user explicitly asks OR when they use planning phrases (plan, outline, spec, design, architecture, "let\'s think this through").',
             '',
-            'DRAFT BEHAVIOR — understand when to act vs respond:',
-            '- Only use draft.create when the user EXPLICITLY asks to create a new draft (e.g. "create a draft", "start a new draft", "make a draft for X").',
+            'DRAFT BEHAVIOR — when to act vs respond (per Domain Contract):',
+            '- MUST call draft.create when the user requests planning, outlining, designing, spec creation, architecture, or says: plan, outline, spec, design, architecture, "let\'s think this through". Work iteratively inside the draft; finalize only when user signals completion.',
             '- When the user asks "what can you do?", "tell me your capabilities", "assist with a specific draft", or "how can you help" — respond with "response" only. Do NOT emit draft.create or any action.',
             '- When the user wants to work on an EXISTING draft, use draft.update or draft.setActive. Never create a duplicate.',
             '- Check draftsDirectory in the environment. If a draft with the same or similar title already exists, use draft.update (with id) or draft.setActive — do NOT create another.',

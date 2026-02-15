@@ -14,7 +14,7 @@ Defines the root application shell, routing, and shared providers for the Keeper
 - Public entry routes redirect into domain board shells as needed.
 
 ## ⚠️ Notes & ToDo
-- [ ] Replace admin allowlist fallback once `/api/kam/auth/me` exposes roles.
+- [x] Replace admin allowlist fallback — done 2026-02-15: `/api/kam/auth/me` now returns `platformRoles`; frontend uses DB roles as source of truth.
 - [ ] Consolidate legacy and public routes once domain routing is stabilized.
 
 ## 📆 Update Log

@@ -21,6 +21,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-02-15: CockpitPanel SOLE Records: robust parsing for API response shapes ({ success, data } or raw array).
 - 2026-02-09: Option B SOLE: CockpitPanel accepts domainId; fetches domain anchor SOLE when no keeper selected via GET /api/domains/:domainId/kip/sole-memory-cards; shows SOLE Records card for both keeper and domain anchor.
 - 2026-02-09: Composed system prompt always visible (from action pack preview); soleStatus prop for Memory section; keeper sharpening indicator.
 - 2026-02-09: Added composedSystemPrompt, activeKeeperId props; SOLE records fetch and display; theme tokens for dialogue colors; actionResults from message metadata.

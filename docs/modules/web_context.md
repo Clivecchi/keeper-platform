@@ -26,3 +26,6 @@ Encapsulate shared React context providers (auth, theme, boards, worlds, etc.) u
 - Skip `/api/kam/settings` calls when only cookie auth is present to prevent noisy 401s and rely on the Keeper Classic fallback until cookie-aware endpoints land.
 ### 2026-01-24 - Auth Resolution + Admin Allowlist
 - Added resolved auth state and admin allowlist fallback to support stricter route guards.
+### 2026-02-15 - Platform Super Admin from DB Roles
+- `resolveIsAdmin()` now uses `platformRoles` from `/api/kam/auth/me` and login/register responses as source of truth.
+- `VITE_ADMIN_EMAIL_ALLOWLIST` kept as fallback during migration; can be removed once DB roles verified.

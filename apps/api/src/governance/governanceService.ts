@@ -143,6 +143,21 @@ export async function getAgentPolicyView(domainId: string) {
   };
 }
 
+/**
+ * Load the full contract text for a domain. Used to inject contract rules into Kip's system prompt.
+ * Returns null if no policy or contract exists.
+ */
+export async function getContractTextForDomain(domainId: string): Promise<string | null> {
+  const policy = await loadDomainAgentPolicy(domainId);
+  if (!policy) return null;
+
+  const contract = await prisma.agentContract.findUnique({
+    where: { id: policy.contractId },
+    select: { contractText: true },
+  });
+  return contract?.contractText ?? null;
+}
+
 export async function logComplianceEvent(event: ComplianceEventInput): Promise<void> {
   try {
     await prisma.governanceComplianceLog.create({

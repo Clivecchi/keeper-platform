@@ -3,6 +3,7 @@ export {
   loadDomainAgentPolicy,
   loadAgentContract,
   getAgentPolicyView,
+  getContractTextForDomain,
   logComplianceEvent,
   ensureDomainAgentPolicy,
   ensureAllDomainsHaveAgentPolicy,

@@ -26,6 +26,10 @@ Domain governance service layer for agent policy enforcement. Loads AgentContrac
 
 ## 📆 Update Log
 
+### 2026-02-15 - Wire contract to Kip
+- Added `getContractTextForDomain(domainId)` to load full contract text for prompt injection
+- Contract text is now injected into Kip's system prompt when domainId is present (callAIModel + buildComposedSystemPrompt)
+
 ### 2026-02-14 - Initial Domain Governance implementation
 - Added governanceService, draftTriggerDetector, governanceMiddleware, types
 - Pre-exec: Draft Trigger + Tool-First checks; strict mode triggers regenerate (max 2 retries), circuit breaker 3/hour

@@ -80,8 +80,10 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
     apiFetch(url)
       .then((res: any) => {
         if (!active) return
-        const data = res?.data ?? (Array.isArray(res) ? res : [])
-        setSoleCards(Array.isArray(data) ? data.slice(0, 5) : [])
+        // Handle { success, data: [...] } (domains/keeper APIs) or raw array
+        const raw = res?.data ?? res
+        const arr = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : [])
+        setSoleCards(arr.slice(0, 5))
       })
       .catch(() => setSoleCards([]))
     return () => { active = false }

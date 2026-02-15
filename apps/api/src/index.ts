@@ -88,6 +88,7 @@ import { runMigrationsOnce } from './startup/migrate.js';
 // KAM routes
 import kamRouter from './kam/routes.js';
 import authRouter from './kam/auth-routes.js';
+import { getPlatformRolesForUser } from './kam/auth.js';
 import { setSessionCookie as setSessionCookieShared, clearSessionCookie } from './kam/session.js';
 // MCP routes (OpenAI Agent integration)
 import mcpRouter from './mcp/index.js';
@@ -750,6 +751,8 @@ app.post('/api/kam/auth/login', async (req, res) => {
     const { cookieDomain } = setSessionCookie(req, res, token);
     console.log('[auth] Cookie set for login:', { domain: cookieDomain, user: user.email });
 
+    const platformRoles = await getPlatformRolesForUser(user.id);
+
     return res.json({
       success: true,
       data: {
@@ -758,6 +761,7 @@ app.post('/api/kam/auth/login', async (req, res) => {
           email: user.email,
           name: user.name,
           avatar_url: user.avatar_url,
+          platformRoles,
         },
         token,
       },
@@ -860,6 +864,8 @@ app.post('/api/kam/auth/register', async (req, res) => {
     const { cookieDomain } = setSessionCookie(req, res, token);
     console.log('[auth] Cookie set for register:', { domain: cookieDomain, user: newUser.email });
 
+    const platformRoles = await getPlatformRolesForUser(newUser.id);
+
     return res.status(201).json({
       success: true,
       data: {
@@ -868,6 +874,7 @@ app.post('/api/kam/auth/register', async (req, res) => {
           email: newUser.email,
           name: newUser.name,
           avatar_url: newUser.avatar_url,
+          platformRoles,
         },
         token,
       },

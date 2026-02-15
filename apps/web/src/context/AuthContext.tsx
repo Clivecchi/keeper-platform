@@ -7,6 +7,8 @@ interface AuthUser {
   email: string | null;
   name: string | null;
   avatar_url: string | null;
+  /** Platform roles from DB (e.g. super-admin). Source of truth for isAdmin. */
+  platformRoles?: string[];
 }
 
 interface AuthSuccessData {
@@ -37,14 +39,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   const resolveIsAdmin = React.useCallback((nextUser: AuthUser | null) => {
-    if (!nextUser?.email) return false;
+    if (!nextUser) return false;
+    // Source of truth: DB roles from /api/kam/auth/me and login/register responses
+    if (nextUser.platformRoles?.includes('super-admin')) return true;
+    // Fallback during migration: env allowlist (deprecated, remove once DB roles verified)
     const rawAllowlist = String((import.meta as any)?.env?.VITE_ADMIN_EMAIL_ALLOWLIST || '');
     const allowlist = rawAllowlist
       .split(',')
       .map((email) => email.trim().toLowerCase())
       .filter(Boolean);
-    // TODO: Replace allowlist fallback once /api/kam/auth/me returns role info.
-    return allowlist.includes(nextUser.email.toLowerCase());
+    return !!nextUser.email && allowlist.includes(nextUser.email.toLowerCase());
   }, []);
 
   // Fetch user session from server

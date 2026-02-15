@@ -45,6 +45,7 @@ Expose read-only endpoints for Agent → Board → Frame → Config with scoped 
 - 2026-02-08: Fixed `session.ts` `clearSessionCookie` — changed `sameSite` from `'lax'` to `'none'` to match the cookie attributes used in `setSessionCookie`. Mismatched SameSite values prevented the browser from properly clearing cookies on logout.
 - 2026-02-08: Fixed inline `setSessionCookie` in `index.ts` — changed `SameSite=Lax` to `SameSite=None` and made `Secure` unconditional.
 - 2026-02-08: Fixed `authWeb` in `session.ts` — removed the restriction that blocked Authorization headers from browser requests (detected via Origin header). This caused a dead end where cookies were unavailable AND header auth was blocked, making `/api/kam/auth/me` always return 401 for browser users without working cookies. Now accepts both cookie and Bearer token from all clients.
+- 2026-02-15: `/api/kam/auth/me` now returns `platformRoles` (from user_roles → roles). Login/register responses also include `platformRoles`. Frontend uses this for Platform Super Admin checks instead of `VITE_ADMIN_EMAIL_ALLOWLIST`.
 - 2025-09-06: Allow domainless agents on ID/list routes (no domain header required if agent.domainId is null).
 - 2025-09-06: Updated `/kam/agents/:agentId/home` to support domain discovery (no X-Domain-Id required).
 - 2025-09-06: Added `lib/kamKeyLoader.ts`, normalized env key loading (CSV + single),
