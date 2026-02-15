@@ -93,6 +93,7 @@ router.get('/by-slug/:slug', async (req: Request, res: Response) => {
         isPublic: true,
         customDomain: true,
         customDomainVerified: true,
+        ownerId: true,
       }
     });
 

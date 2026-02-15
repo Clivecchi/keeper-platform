@@ -20,6 +20,7 @@ interface DomainData {
   name: string
   slug: string
   description?: string
+  ownerId?: string
 }
 
 export interface DomainAdminContentProps {
@@ -27,7 +28,7 @@ export interface DomainAdminContentProps {
 }
 
 export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
-  const { user, updateUser, isAdmin, authResolved, isLoading: authLoading } = useAuth()
+  const { user, updateUser, authResolved, isLoading: authLoading } = useAuth()
   const [domain, setDomain] = React.useState<DomainData | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
@@ -65,6 +66,7 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
         name: response.name || response.slug,
         slug: response.slug,
         description: response.description,
+        ownerId: response.ownerId,
       })
     } catch (err) {
       console.error("Error loading domain:", err)
@@ -141,15 +143,6 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
     )
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="rounded-2xl border px-6 py-6 shadow-sm" style={{ backgroundColor: ADMIN_SURFACE.card, borderColor: ADMIN_SURFACE.border }}>
-        <h2 className="text-lg font-semibold" style={{ color: ADMIN_SURFACE.inkPrimary }}>Admin access required</h2>
-        <p className="mt-2 text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>Your account does not have admin access for this domain.</p>
-      </div>
-    )
-  }
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -166,6 +159,16 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
       <div className="rounded-2xl border px-6 py-6 shadow-sm" style={{ backgroundColor: ADMIN_SURFACE.card, borderColor: ADMIN_SURFACE.border }}>
         <h2 className="text-lg font-semibold" style={{ color: ADMIN_SURFACE.inkPrimary }}>Domain not found</h2>
         <p className="mt-2 text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>The domain &quot;{domainSlug}&quot; could not be found.</p>
+      </div>
+    )
+  }
+
+  const isDomainOwner = Boolean(user?.id && domain.ownerId && domain.ownerId === user.id)
+  if (!isDomainOwner) {
+    return (
+      <div className="rounded-2xl border px-6 py-6 shadow-sm" style={{ backgroundColor: ADMIN_SURFACE.card, borderColor: ADMIN_SURFACE.border }}>
+        <h2 className="text-lg font-semibold" style={{ color: ADMIN_SURFACE.inkPrimary }}>Admin access required</h2>
+        <p className="mt-2 text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>You must be the domain owner to manage this domain.</p>
       </div>
     )
   }
