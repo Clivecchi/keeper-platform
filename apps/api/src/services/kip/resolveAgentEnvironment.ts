@@ -3,6 +3,8 @@ import { DomainAuthManager } from '@keeper/kam';
 import { getRedis, isNoOpRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 import { loadDomainPolicy, resolvePolicyPackV1 } from '../../policy/domainPolicyService.js';
 import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, type PolicyPackV1, type ActionPack, buildActionPack } from '../../policy/policyPack.js';
+import { getAgentPolicyView } from '../../governance/index.js';
+import type { AgentPolicyView } from '../../governance/types.js';
 
 export type AgentEnvironmentContext = {
   version: 'env-v1';
@@ -57,6 +59,7 @@ export type AgentEnvironmentContext = {
     injectedAt?: string;
     canary?: string;
   };
+  governance?: AgentPolicyView | null;
 };
 
 // Lazy initialization - services will be created only when needed
@@ -275,9 +278,18 @@ export async function resolveAgentEnvironment(args: {
 
       try {
         environment.policyPack = await resolvePolicyPackV1({ domainId: primaryDomainId, userId, agentId });
-      environment.actionPack = buildActionPack(environment.policyPack.actions.allow ?? []);
+        environment.actionPack = buildActionPack(environment.policyPack.actions.allow ?? []);
       } catch (error) {
         console.warn('[resolveAgentEnvironment] policyPack resolution failed, using default', {
+          domainId: primaryDomainId,
+          error,
+        });
+      }
+
+      try {
+        environment.governance = await getAgentPolicyView(primaryDomainId);
+      } catch (error) {
+        console.warn('[resolveAgentEnvironment] governance resolution failed', {
           domainId: primaryDomainId,
           error,
         });

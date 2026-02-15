@@ -20,6 +20,7 @@ import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import DomainManager from '../../components/domain-manager/DomainManager';
+import { DomainGovernanceCard } from '../../components/domain-manager/DomainGovernanceCard';
 import { KipApi } from '../../lib/kipApi';
 import { DesignFrame } from '../../v0/frames/DesignFrame';
 import { ThemeSwitcher } from '../../v0/frames/ThemeSwitcher';
@@ -441,6 +442,10 @@ export default function DomainAdminPage() {
             {isLoadingPolicy && <p className="text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>Loading policy…</p>}
           </div>
         </div>
+
+        {domain?.id && (
+          <DomainGovernanceCard domainId={domain.id} />
+        )}
       </div>
     </DesignFrame>
   );

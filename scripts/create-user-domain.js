@@ -75,6 +75,21 @@ async function createUserDomain() {
     console.log(`   ID: ${domain.id}`);
     console.log(`   Owner: ${user.name}`);
 
+    // Ensure domain has agent policy (governance)
+    try {
+      const contract = await prisma.agentContract.findFirst({ where: { version: '1.1' }, select: { id: true } });
+      if (contract) {
+        await prisma.domainAgentPolicy.upsert({
+          where: { domainId: domain.id },
+          create: { domainId: domain.id, contractId: contract.id, enforcementMode: 'warn' },
+          update: {},
+        });
+        console.log('✅ Domain agent policy assigned (Contract v1.1, warn mode)');
+      }
+    } catch (e) {
+      console.warn('⚠️ Could not assign agent policy (run API backfill if needed):', e?.message || e);
+    }
+
     // Create domain permission for the owner
     const permission = await prisma.domainPermission.create({
       data: {

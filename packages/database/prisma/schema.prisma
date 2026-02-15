@@ -619,6 +619,7 @@ model kip_agents {
   kip_sessions           kip_sessions[]
   kip_drafts             kip_drafts[]
   Board                  Board[]
+  AgentLens              AgentLens[]
 }
 
 model kip_agent_logs {
@@ -985,6 +986,8 @@ model Domain {
   moments                                                  Moment[]
   kip_drafts                                               kip_drafts[]
   policy                                                   DomainPolicy?
+  agentPolicy                                              DomainAgentPolicy?
+  AgentLens                                                AgentLens[]
   ShareRequest_ShareRequest_sourceDomainIdToDomain         ShareRequest[]             @relation("ShareRequest_sourceDomainIdToDomain")
   ShareRequest_ShareRequest_targetDomainIdToDomain         ShareRequest[]             @relation("ShareRequest_targetDomainIdToDomain")
   ShareTemplate                                            ShareTemplate[]
@@ -1011,6 +1014,78 @@ model DomainPolicy {
   updatedAt DateTime @updatedAt
 
   domain Domain @relation(fields: [domainId], references: [id], onDelete: Cascade)
+}
+
+model AgentContract {
+  id                    String              @id @default(cuid())
+  name                  String
+  version               String
+  contractText          String              @map("contract_text") @db.Text
+  enforceDraft          Boolean             @default(true) @map("enforce_draft")
+  enforceAction         Boolean             @default(false) @map("enforce_action")
+  enforceToolFirst      Boolean             @default(true) @map("enforce_tool_first")
+  enforceErrorRecovery  Boolean             @default(true) @map("enforce_error_recovery")
+  immutableAfterPublish Boolean             @default(false) @map("immutable_after_publish")
+  publishedAt           DateTime?
+  supersedesId          String?             @map("supersedes_id")
+  supersedes            AgentContract?      @relation("ContractVersioning", fields: [supersedesId], references: [id])
+  supersededBy          AgentContract[]     @relation("ContractVersioning")
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  DomainAgentPolicy     DomainAgentPolicy[]
+
+  @@index([version])
+  @@index([publishedAt])
+}
+
+model DomainAgentPolicy {
+  id              String         @id @default(cuid())
+  domainId        String         @unique @map("domain_id")
+  contractId      String         @map("contract_id")
+  enforcementMode String         @default("warn") @map("enforcement_mode")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  domain          Domain         @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  contract        AgentContract  @relation(fields: [contractId], references: [id], onDelete: Restrict)
+
+  @@index([domainId])
+  @@index([contractId])
+}
+
+model AgentLens {
+  id                    String     @id @default(cuid())
+  agentId               String     @map("agent_id") @db.Uuid
+  domainId              String     @map("domain_id")
+  toneProfile           Json?      @map("tone_profile")
+  verbosityPreference   String?    @map("verbosity_preference")
+  specialization        String?
+  behavioralBias        Json?      @map("behavioral_bias")
+  adaptiveMemoryEnabled Boolean    @default(false) @map("adaptive_memory_enabled")
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  agent                 kip_agents @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  domain                Domain     @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, domainId])
+  @@index([domainId])
+}
+
+model GovernanceComplianceLog {
+  id              String   @id @default(cuid())
+  domainId        String   @map("domain_id")
+  agentId         String?  @map("agent_id") @db.Uuid
+  sessionId       String?  @map("session_id") @db.Uuid
+  runId           String?  @map("run_id")
+  ruleKey         String   @map("rule_key")
+  required        Boolean
+  present         Boolean
+  passed          Boolean
+  enforcementMode String   @map("enforcement_mode")
+  metadata        Json?    @default("{}")
+  createdAt       DateTime @default(now())
+
+  @@index([domainId, createdAt])
+  @@index([sessionId, createdAt])
 }
 
 model DomainAudit {

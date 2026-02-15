@@ -6,6 +6,7 @@ import { DomainService, DomainCacheService } from '@keeper/database';
 import { DomainPermissionService } from '@keeper/database';
 import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 import { requireSuperAdmin } from '../../middleware/platformRoleMiddleware.js';
+import { ensureDomainAgentPolicy } from '../../governance/index.js';
 
 const router: Router = Router();
 
@@ -139,6 +140,11 @@ router.post('/', authMiddlewareCompat, requireSuperAdmin, async (req: Request, r
       theme: parsed.theme,
       settings: parsed.settings,
     });
+
+    await ensureDomainAgentPolicy(domain.id).catch((err) =>
+      console.warn('[admin/domains] Failed to ensure domain agent policy:', err)
+    );
+
     return res.status(201).json({ domain });
   } catch (error: any) {
     console.error('[AdminDomains] create error', error);

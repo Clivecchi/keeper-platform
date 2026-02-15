@@ -6,6 +6,7 @@ Unified domain management interface for both user and admin scopes, providing co
 ## 🧱 Key Files
 - `DomainManager.tsx` - Main unified domain management component
 - `DomainDetailForm.tsx` - Comprehensive domain editing and creation form
+- `DomainGovernanceCard.tsx` - Domain governance: contract, enforcement mode, View Contract modal
 - `DnsInfoPanel.tsx` - Enhanced DNS information display with copy functionality
 - `DnsStatusBadge.tsx` - Compact DNS status indicators for domain lists
 - `types.ts` - Shared type definitions
@@ -106,3 +107,7 @@ Switched to shared `apiFetch` utility and consolidated list endpoint to `/api/do
 - Improved user experience by showing DNS records immediately after adding to Vercel 
 ### 2026-01-24 - Skip DNS Status Without Custom Domain
 - Avoid DNS status calls when custom domains are unset to prevent 400 noise.
+
+### 2026-02-14 - Domain Governance Card
+- Added DomainGovernanceCard: active contract name/version, enforcement mode dropdown (strict | warn | off), View Contract modal, Manage Lenses placeholder.
+- Rendered in DomainAdminPage when domain?.id exists. Uses GET/PATCH /api/domains/:domainId/governance.

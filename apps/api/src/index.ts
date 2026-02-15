@@ -30,6 +30,8 @@ import { randomUUID } from 'crypto';
 
 // Import domain routes
 import domainRoutes from './api/domains/routes.js';
+import governanceRouter from './api/governance/routes.js';
+import { ensureDomainAgentPolicy, ensureAllDomainsHaveAgentPolicy } from './governance/index.js';
 import flatDomainsRouter from './api/domains.js';
 import domainBoardDataRouter from './api/domains/board-data.js';
 import adminDomainRoutes from './api/admin/domains.js';
@@ -822,6 +824,10 @@ app.post('/api/kam/auth/register', async (req, res) => {
         },
       });
 
+      await ensureDomainAgentPolicy(newDomainId).catch((err) =>
+        console.warn('[auth] Failed to ensure domain agent policy for new user:', err)
+      );
+
       // Auto-create a default Keeper so Journey creation works immediately
       try {
         await prisma.keeper.create({
@@ -977,6 +983,7 @@ app.get('/api/users/search', authMiddlewareCompat, async (req: Request, res: Res
 // Mount domain routes in order: specific routes first, then generic patterns
 app.use('/api/domains', domainBoardDataRouter); // Specific: /:domainId/board-data (public with optional auth)
 app.use('/api/domains', domainRoutes);          // Has /by-slug (public) and /:id (auth required)
+app.use('/api/governance', governanceRouter);   // Contracts list and detail
 app.use('/api/domains', flatDomainsRouter);     // Authenticated admin list
 
 // Admin domain management (super-admin only)
@@ -1501,13 +1508,21 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log('  - GET  /api/kam/settings (user settings)');
   console.log('\n✅ Domain Layer + KIP API + User Profile Updates + Theme API fully functional!\n');
 
-  // Kick off migrations in the background (non-blocking)
+  // Kick off migrations and governance backfill in the background (non-blocking)
   try {
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
         runMigrationsOnce();
       } catch (e) {
         console.error('[migrate:post-start:error]', (e as Error)?.message || e);
+      }
+      try {
+        const backfilled = await ensureAllDomainsHaveAgentPolicy();
+        if (backfilled > 0) {
+          console.log(`[governance] Backfilled ${backfilled} domain(s) with agent policy`);
+        }
+      } catch (e) {
+        console.warn('[governance:backfill:startup]', (e as Error)?.message || e);
       }
     }, 0);
   } catch {}

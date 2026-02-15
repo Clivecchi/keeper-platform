@@ -102,7 +102,7 @@ export function AgentBoardFrame({
 }) {
   const { domainSlug, navigateToFrame } = useV0Shell()
   const frameCtx = useFrameContextOptional()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isAdmin } = useAuth()
   const [view, setView] = useAgentWorkspaceView()
 
   // ── Agent state ──
@@ -735,6 +735,7 @@ export function AgentBoardFrame({
         activeKeeperId={frameCtx?.selection.activeKeeperId}
         domainId={domainId}
         soleStatus={soleStatus}
+        showCompliance={isAdmin}
       />
       <button
         type="button"

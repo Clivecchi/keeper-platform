@@ -2,6 +2,8 @@ import { PrismaClient, DomainPermissionService, DomainCacheService, DomainServic
 import { getRedis, type RedisClientOrNoOp } from '../../lib/redis.js';
 import { loadDomainPolicy, resolvePolicyPackV1 } from '../../policy/domainPolicyService.js';
 import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION, type PolicyPackV1, type ActionPack, buildActionPack } from '../../policy/policyPack.js';
+import { getAgentPolicyView } from '../../governance/index.js';
+import type { AgentPolicyView } from '../../governance/types.js';
 
 export type KipEnvironmentContext = {
   version: 'kip-env-v1';
@@ -53,6 +55,7 @@ export type KipEnvironmentContext = {
     status: string;
     updatedAt: Date;
   };
+  governance?: AgentPolicyView | null;
 };
 
 const prisma = new PrismaClient();
@@ -340,6 +343,12 @@ export async function buildKipEnvironmentContext(args: {
       .map((key) => ({ id: key, key, label: key }));
   } catch (error) {
     console.warn('[kip:environment] board types lookup failed', { domainId, error });
+  }
+
+  try {
+    environment.governance = await getAgentPolicyView(domainId);
+  } catch (error) {
+    console.warn('[kip:environment] governance lookup failed', { domainId, error });
   }
 
   // Moment types and prop types are not yet modeled; keep stable empty arrays.

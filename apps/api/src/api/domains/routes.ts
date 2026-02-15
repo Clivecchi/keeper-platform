@@ -25,6 +25,7 @@ import type { AgentResponse, KipCommandIntent } from '@keeper/database';
 import { buildKipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
 import { loadDomainPolicy, upsertDomainPolicy } from '../../policy/domainPolicyService.js';
 import { DEFAULT_POLICY_PACK_V1, DEFAULT_POLICY_VERSION } from '../../policy/policyPack.js';
+import { loadDomainAgentPolicy, ensureDomainAgentPolicy } from '../../governance/index.js';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -596,6 +597,10 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
       ownerId: req.user.id,
     });
 
+    await ensureDomainAgentPolicy(domain.id).catch((err) =>
+      console.warn('[domains] Failed to ensure domain agent policy:', err)
+    );
+
     return res.status(201).json({ domain });
   } catch (error) {
     console.error('Error creating domain:', error);
@@ -894,6 +899,116 @@ router.get(
       return res.status(500).json({ error: 'FAILED_TO_LOAD_POLICY' });
     }
   },
+);
+
+// GET /api/domains/:domainId/governance - Domain agent policy + contract summary
+router.get(
+  '/:domainId/governance',
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { domainId } = req.params;
+      const policy = await loadDomainAgentPolicy(domainId);
+      if (!policy) {
+        return res.status(404).json({ error: 'GOVERNANCE_NOT_FOUND', message: 'No agent policy for this domain' });
+      }
+      return res.json({
+        policyId: policy.id,
+        domainId: policy.domainId,
+        contractId: policy.contractId,
+        contractName: policy.contract.name,
+        contractVersion: policy.contract.version,
+        enforcementMode: policy.enforcementMode,
+      });
+    } catch (error) {
+      console.error('[domains:governance:get:error]', error);
+      return res.status(500).json({ error: 'FAILED_TO_LOAD_GOVERNANCE' });
+    }
+  }
+);
+
+// PATCH /api/domains/:domainId/governance - Update enforcement mode
+router.patch(
+  '/:domainId/governance',
+  authMiddlewareCompat,
+  requireDomainAdminCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { domainId } = req.params;
+      const { enforcementMode, contractId } = req.body ?? {};
+      const validModes = ['strict', 'warn', 'off'];
+      if (enforcementMode && !validModes.includes(enforcementMode)) {
+        return res.status(400).json({ error: 'INVALID_MODE', message: 'enforcementMode must be strict, warn, or off' });
+      }
+      const existing = await prisma.domainAgentPolicy.findUnique({ where: { domainId } });
+      if (!existing) {
+        return res.status(404).json({ error: 'GOVERNANCE_NOT_FOUND', message: 'No agent policy for this domain' });
+      }
+      const updated = await prisma.domainAgentPolicy.update({
+        where: { domainId },
+        data: {
+          ...(enforcementMode ? { enforcementMode } : {}),
+          ...(contractId ? { contractId } : {}),
+          updatedAt: new Date(),
+        },
+        include: { contract: { select: { id: true, name: true, version: true } } },
+      });
+      return res.json({
+        policyId: updated.id,
+        domainId: updated.domainId,
+        contractId: updated.contractId,
+        contractName: updated.contract.name,
+        contractVersion: updated.contract.version,
+        enforcementMode: updated.enforcementMode,
+      });
+    } catch (error) {
+      console.error('[domains:governance:patch:error]', error);
+      return res.status(500).json({ error: 'FAILED_TO_UPDATE_GOVERNANCE' });
+    }
+  }
+);
+
+// GET /api/domains/:domainId/governance/compliance - Compliance metrics (admin only)
+router.get(
+  '/:domainId/governance/compliance',
+  authMiddlewareCompat,
+  requireDomainAdminCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { domainId } = req.params;
+      const limit = Math.min(parseInt(String(req.query.limit || '100'), 10) || 100, 500);
+      const logs = await prisma.governanceComplianceLog.findMany({
+        where: { domainId },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        select: {
+          id: true,
+          ruleKey: true,
+          required: true,
+          present: true,
+          passed: true,
+          enforcementMode: true,
+          createdAt: true,
+          metadata: true,
+        },
+      });
+      const draftTriggerTotal = logs.filter((l) => l.ruleKey === 'draft_trigger').length;
+      const draftTriggerPassed = logs.filter((l) => l.ruleKey === 'draft_trigger' && l.passed).length;
+      const toolFirstViolations = logs.filter((l) => l.ruleKey === 'tool_first' && !l.passed).length;
+      return res.json({
+        logs,
+        metrics: {
+          draftTriggerSuccessPct: draftTriggerTotal > 0 ? (draftTriggerPassed / draftTriggerTotal) * 100 : null,
+          toolFirstViolations: toolFirstViolations,
+          totalChecks: logs.length,
+        },
+      });
+    } catch (error) {
+      console.error('[domains:governance:compliance:error]', error);
+      return res.status(500).json({ error: 'FAILED_TO_LOAD_COMPLIANCE' });
+    }
+  }
 );
 
 router.patch(

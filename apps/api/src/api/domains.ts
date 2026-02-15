@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { writeDomainAudit } from '../lib/audit/domainAudit.js';
+import { ensureDomainAgentPolicy } from '../governance/index.js';
 import { domainsManagementRouter } from './domains.management.js';
 import { ensureDomainTableShape } from '../lib/db-guards.js';
 
@@ -162,6 +163,11 @@ domainsRouter.post('/', async (req, res) => {
       .slice(0, 48);
     const slug = baseSlug || `domain-${Date.now()}`;
     const created = await prisma.domain.create({ data: { name, slug, ownerId: user.id, customDomain } });
+
+    await ensureDomainAgentPolicy(created.id).catch((err) =>
+      console.warn('[domains] Failed to ensure domain agent policy:', err)
+    );
+
     await writeDomainAudit({
       action: 'create',
       domainId: created.id,

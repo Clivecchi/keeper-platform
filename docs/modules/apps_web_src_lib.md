@@ -8,6 +8,7 @@ Core utility functions and API clients for the Keeper web application, including
 - `themeApi.ts` - Theme fetching and management
 - `kipApi.ts` - KIP (Keeper Intelligence Platform) API client
 - `agentRegistry.ts` - Agent registration and discovery
+- `governanceApi.ts` - Domain governance, contracts, compliance metrics
 
 ## 🔄 Data & Behavior
 - **API Client**: Centralized fetch wrapper with proper error handling
@@ -78,6 +79,9 @@ Core utility functions and API clients for the Keeper web application, including
 - Added agentRegistry.ts with mock agents and TypeAgent simulation
 - Added kipApi.ts with database-backed KIP agent operations
 - Established core API client functionality 
+
+### 2026-02-14 - Governance API client
+- Added `governanceApi.ts`: getDomainGovernance, updateDomainGovernance, getContractDetail, getDomainCompliance. Used by DomainGovernanceCard and CockpitPanel compliance panel.
 
 ### Single-Domain MVP URLs
 

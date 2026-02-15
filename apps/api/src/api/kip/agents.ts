@@ -29,6 +29,12 @@ import type {
 } from '@keeper/database';
 import { ModelProviderService, ModelMessage, ModelProviderErrorCode } from '../../services/ModelProviderService.js';
 import { SoleMemoryService } from '../../services/SoleMemoryService.js';
+import {
+  preExecGovernanceCheck,
+  postExecGovernanceCheck,
+  checkRegenerateLimit,
+  logComplianceEvent,
+} from '../../governance/index.js';
 import { loadModeState } from '../../services/kip/modeConfig.js';
 import type { AgentModeKey, AgentModeState, ModeConfig, OutputStyle } from '../../services/kip/modeConfig.js';
 import type { DomainResolvedRequest } from '../../middleware/domainResolutionMiddleware.js';
@@ -2788,12 +2794,105 @@ export class KipAgentService {
         const composedSystemPrompt = aiResult.composedSystemPrompt;
 
         const requestId = randomUUID();
-        const structured = parseStructuredAgentResponse(response, requestId);
+        let structured = parseStructuredAgentResponse(response, requestId);
         const allowActions = buildAllowedActions(options?.environment ?? null);
         const actionPack = options?.actionPack ?? buildActionPackFromAllowlist(allowActions);
 
         let finalResponseText = structured.responseText;
         let actionResults: ActionExecutionResult[] = [];
+
+        // Pre-exec governance check (Draft Trigger + Tool-First)
+        let governanceRetryCount = 0;
+        const governanceMaxRetries = 2;
+        let lastResponse = response;
+        let lastStructured = structured;
+
+        while (governanceRetryCount <= governanceMaxRetries) {
+          const governanceResult = await preExecGovernanceCheck({
+            userInput: input,
+            parsedResponse: lastStructured,
+            agentPolicyView: options?.environment?.governance ?? null,
+            domainId: options?.domainId ?? null,
+            agentId: agent.id,
+            sessionId: currentSessionId,
+            runId: requestId,
+          });
+
+          if (governanceResult.pass || governanceResult.enforcementMode !== 'strict') {
+            structured = lastStructured;
+            finalResponseText = structured.responseText;
+            break;
+          }
+
+          if (governanceRetryCount >= governanceMaxRetries) {
+            finalResponseText = `${lastStructured.responseText}\n\n[Policy enforcement degraded (tool compliance).]`;
+            structured = lastStructured;
+            break;
+          }
+
+          const regenLimit = await checkRegenerateLimit(currentSessionId);
+          if (!regenLimit.withinLimit) {
+            finalResponseText = `${lastStructured.responseText}\n\n[Policy enforcement degraded (tool compliance).]`;
+            structured = lastStructured;
+            break;
+          }
+
+          // Log regenerate attempt for circuit breaker
+          if (options?.domainId) {
+            await logComplianceEvent({
+              domainId: options.domainId,
+              agentId: agent.id,
+              sessionId: currentSessionId,
+              runId: requestId,
+              ruleKey: 'regenerate_attempt',
+              required: true,
+              present: false,
+              passed: false,
+              enforcementMode: 'strict',
+              metadata: { attempt: governanceRetryCount + 1 },
+            });
+          }
+
+          // Retry: call model with violation message as follow-up
+          const retryPrevMessages: KipMessageWithRelations[] = [
+            ...previousMessages,
+            {
+              id: `retry-user-${requestId}`,
+              session_id: currentSessionId || '',
+              sender: 'user',
+              content: input,
+              role: 'user',
+              metadata: {},
+              created_at: new Date(),
+            },
+            {
+              id: `retry-agent-${requestId}`,
+              session_id: currentSessionId || '',
+              sender: 'agent',
+              content: lastResponse,
+              role: 'assistant',
+              metadata: {},
+              created_at: new Date(),
+            },
+          ];
+          const retryResult = await this.callAIModel(agent, governanceResult.regeneratePayload!, retryPrevMessages, userId, {
+            mode: activeMode,
+            modeConfig: activeModeConfig,
+            lens: { systemPrompt: lens?.systemPrompt || null },
+            debugSummary,
+            maxChars,
+            outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
+            includeFixPlan: activeModeConfig.includeFixPlan,
+            autoBrief: activeModeConfig.autoBrief,
+            environment: options?.environment ?? null,
+            activeJourneyId: options?.activeJourneyId ?? null,
+            activeKeeperId: options?.activeKeeperId ?? null,
+            domainId: options?.domainId ?? null,
+          });
+          lastResponse = retryResult.content;
+          lastStructured = parseStructuredAgentResponse(lastResponse, requestId);
+          governanceRetryCount++;
+        }
 
         if (structured.ignoredReason) {
           logger.info({
@@ -2837,6 +2936,21 @@ export class KipAgentService {
               finalResponseText = structured.responseText
                 ? `${structured.responseText} I attempted to create a draft but saving failed: ${execution.failedMessage}`
                 : `I attempted to create a draft but saving failed: ${execution.failedMessage}`;
+            }
+
+            // Post-exec governance: append failure template if required action failed
+            const postResult = await postExecGovernanceCheck({
+              userInput: input,
+              parsedResponse: structured,
+              actionResults: execution.results,
+              agentPolicyView: options?.environment?.governance ?? null,
+              domainId: options?.domainId ?? null,
+              agentId: agent.id,
+              sessionId: currentSessionId,
+              runId: requestId,
+            });
+            if (postResult.appendText) {
+              finalResponseText = (finalResponseText || '') + postResult.appendText;
             }
           }
         }

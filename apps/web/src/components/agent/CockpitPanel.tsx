@@ -11,6 +11,7 @@ import type { AgentConversationSession } from "../../hooks/useAgentSessions"
 import { useFrameContextOptional } from "../../v0/shell/FrameContext"
 import { useAuth } from "../../context/AuthContext"
 import { apiFetch } from "../../lib/api"
+import { getDomainCompliance, type ComplianceMetrics } from "../../lib/governanceApi"
 import { formatRelative, shortId } from "./helpers"
 
 type SoleMemoryCard = { id: string; content: string; topic?: string | null; createdAt: string }
@@ -29,6 +30,8 @@ export interface CockpitPanelProps {
   domainId?: string | null
   /** SOLE status: soleActive (domain-wide), keeperSharpening (keeper-specific) */
   soleStatus?: { soleActive: boolean; keeperSharpening?: boolean; memoryCount?: number } | null
+  /** Show governance compliance panel (admin view) */
+  showCompliance?: boolean
 }
 
 export const CockpitPanel: React.FC<CockpitPanelProps> = ({
@@ -40,9 +43,11 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
   activeKeeperId = null,
   domainId = null,
   soleStatus = null,
+  showCompliance = false,
 }) => {
   const { user } = useAuth()
   const [soleCards, setSoleCards] = React.useState<SoleMemoryCard[]>([])
+  const [complianceMetrics, setComplianceMetrics] = React.useState<ComplianceMetrics | null>(null)
   const activeSession = sessions.find(
     (session) => session.id === activeSessionId,
   )
@@ -81,6 +86,16 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
       .catch(() => setSoleCards([]))
     return () => { active = false }
   }, [activeKeeperId, domainId, user?.id])
+
+  React.useEffect(() => {
+    if (!showCompliance || !domainId) {
+      setComplianceMetrics(null)
+      return
+    }
+    getDomainCompliance(domainId, 50)
+      .then(setComplianceMetrics)
+      .catch(() => setComplianceMetrics(null))
+  }, [showCompliance, domainId])
 
   const activeCapabilities: { name: string; active: boolean }[] = [
     { name: "Keeper context", active: hasKeeper },
@@ -241,6 +256,33 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
           </li>
         </ul>
       </FrameCard>
+
+      {showCompliance && domainId && (
+        <FrameCard title="Governance Compliance" subtitle="Admin view — Draft Trigger and Tool-First metrics">
+          {complianceMetrics ? (
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-center justify-between">
+                <span>Draft Trigger Success</span>
+                <span className="font-semibold">
+                  {complianceMetrics.metrics.draftTriggerSuccessPct != null
+                    ? `${complianceMetrics.metrics.draftTriggerSuccessPct.toFixed(1)}%`
+                    : "—"}
+                </span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span>Tool-First Violations</span>
+                <span className="font-semibold">{complianceMetrics.metrics.toolFirstViolations}</span>
+              </li>
+              <li className="flex items-center justify-between">
+                <span>Total checks</span>
+                <span className="font-semibold">{complianceMetrics.metrics.totalChecks}</span>
+              </li>
+            </ul>
+          ) : (
+            <p className="text-xs text-gray-500">Loading compliance data…</p>
+          )}
+        </FrameCard>
+      )}
     </div>
   )
 }

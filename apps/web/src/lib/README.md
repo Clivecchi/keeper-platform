@@ -8,6 +8,7 @@ Core utility functions and API clients for the Keeper web application, including
 - `themeApi.ts` - Theme fetching and management
 - `kipApi.ts` - KIP (Keeper Intelligence Platform) API client
 - `agentRegistry.ts` - Agent registration and discovery
+- `governanceApi.ts` - Domain governance, contracts, compliance metrics
 
 ## 🔄 Data & Behavior
 - **API Client**: Centralized fetch wrapper with proper error handling
@@ -87,6 +88,9 @@ Core utility functions and API clients for the Keeper web application, including
 - Added `authTokenStore.ts` — in-memory + sessionStorage store for the JWT auth token, providing a reliable fallback when HttpOnly cookies are unavailable.
 - Rewrote `apiFetch.ts` — removed production-only Authorization header stripping. Now injects JWT from `authTokenStore` as `Authorization: Bearer` header on every API request. Cookies still sent via `credentials: 'include'` as secondary fallback.
 - **Root cause fixed**: The previous cookie-only auth approach in production had zero fallback. If cookies were blocked by browser settings, SameSite restrictions, or cross-subdomain issues, every API call returned 401 and the entire app was non-functional (Kip wouldn't respond, sessions failed, etc.).
+
+### 2026-02-14 - Governance API client
+- Added `governanceApi.ts`: getDomainGovernance, updateDomainGovernance, getContractDetail, getDomainCompliance. Used by DomainGovernanceCard and CockpitPanel compliance panel.
 
 ### Single-Domain MVP URLs
 
