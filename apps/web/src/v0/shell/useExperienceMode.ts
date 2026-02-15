@@ -41,7 +41,7 @@ function resolveFrame(requestedFrame: V0FrameKey, isAuthenticated: boolean): V0F
 }
 
 function deriveMode(pathname: string, frame: V0FrameKey, isAuthenticated: boolean): ExperienceMode {
-  if (pathname.endsWith("/admin")) {
+  if (pathname.endsWith("/admin") || frame === "admin") {
     return "admin"
   }
   if (KIP_FRAMES.has(frame)) {
@@ -66,12 +66,11 @@ export function useExperienceMode({
   const mode = useMemo(() => deriveMode(pathname, frame, isAuthenticated), [pathname, frame, isAuthenticated])
 
   const actions = useMemo<ExperienceActions>(() => {
-    const adminPath = domainSlug ? `/d/${domainSlug}/admin` : buildFrameUrl("admin")
     return {
       openKip: () => navigate(buildFrameUrl("agent")),
       closeKip: () => navigate(buildFrameUrl(isAuthenticated ? "commons" : "cover")),
       goCommons: () => navigate(buildFrameUrl("commons")),
-      goAdmin: () => navigate(adminPath),
+      goAdmin: () => navigate(buildFrameUrl("admin")),
       goCover: () => navigate(buildFrameUrl("cover")),
       goIndex: () => navigate(buildFrameUrl("index"))
     }

@@ -1,52 +1,46 @@
 "use client"
 
-import { X } from "lucide-react"
-import { useNavigate, useSearchParams } from "react-router-dom"
 import * as React from "react"
 import type { StyleId } from "../../styles/styles"
 import { DesignFrame } from "../DesignFrame"
 import { ThemeSwitcher } from "../ThemeSwitcher"
 import { useV0Shell } from "../../shell/V0ShellContext"
+import { DomainAdminContent } from "./DomainAdminContent"
 
-export function AdminFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
-  const { closeToBoard, domainSlug } = useV0Shell()
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const boardId = searchParams.get("boardId")
+const ADMIN_SURFACE = {
+  border: "var(--theme-border-soft)",
+  inkPrimary: "var(--theme-ink-primary)",
+}
 
-  React.useEffect(() => {
-    if (!domainSlug) return
-    navigate(`/d/${domainSlug}/admin`, { replace: true })
-  }, [domainSlug, navigate])
+export function AdminFrame({ styleId = "neutral", themeSlug, domainSlug }: { styleId?: StyleId; themeSlug?: string | null; domainSlug?: string }) {
+  const { closeToBoard, domainSlug: ctxSlug } = useV0Shell()
+  const slug = domainSlug ?? ctxSlug ?? ""
 
   return (
     <DesignFrame
       styleId={styleId}
       themeSlug={themeSlug}
       title="Domain Admin"
-      subtitle="Redirecting to the domain admin surface."
+      subtitle={slug ? `Manage ${slug}` : "Domain settings"}
       themeSwitcherSlot={<ThemeSwitcher />}
       rightSlot={
         <button
           type="button"
-          aria-label="Close admin"
+          aria-label="Back to Commons"
           onClick={closeToBoard}
-          className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/60 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm"
+          className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors hover:opacity-80"
+          style={{ borderColor: ADMIN_SURFACE.border, color: ADMIN_SURFACE.inkPrimary }}
         >
-          <X className="w-4 h-4" strokeWidth={1.25} />
+          Back to Commons
         </button>
       }
       onClose={closeToBoard}
     >
-      <div className="rounded-2xl border border-black/10 bg-white/80 p-6 text-sm text-gray-700 shadow-sm">
-        <div className="text-xs uppercase tracking-wide text-gray-500">Redirecting</div>
-        <div className="mt-2 text-sm text-gray-700">
-          Opening domain admin for {domainSlug || "this domain"}.
+      {slug ? <DomainAdminContent domainSlug={slug} /> : (
+        <div className="rounded-2xl border px-6 py-6 shadow-sm" style={{ borderColor: ADMIN_SURFACE.border }}>
+          <p className="text-sm" style={{ color: ADMIN_SURFACE.inkPrimary }}>No domain selected.</p>
         </div>
-        <div className="mt-4 text-sm text-gray-700">
-          {boardId ? `Domain home board: ${boardId}` : "Domain home board: unresolved"}
-        </div>
-      </div>
+      )}
     </DesignFrame>
   )
 }
