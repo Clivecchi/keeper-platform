@@ -25,6 +25,7 @@ Tracks Prisma schema and SQL migrations for the Keeper Platform database.
 - [ ] Add lint to ensure `IF NOT EXISTS` on additive DDL
 
 ## 📆 Update Log
+- 2026-02-15: AgentLens deprecated. Removal planned after audit. Use Lens (kip_lenses) + Voice (UserVoicePreferences) instead.
 - 2026-02-15: SoleReflection and SoleMemoryCard: added journeyId, momentId, engagementTemplateId (optional FKs to Journey, Moment, engagement_templates). Migration 20260215_sole_memory_links.
 - 2026-01-31: Added default domain journeys seed to the Prisma seed runner.
 - 2026-01-31: Added journey/path/moment engagement templates to the Prisma seed runner.

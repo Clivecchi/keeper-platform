@@ -284,6 +284,7 @@ model Moment {
   themes              themes?          @relation(fields: [theme_id], references: [id])
   SoleReflection      SoleReflection[]
   SoleMemoryCard      SoleMemoryCard[]
+  MomentEmotif        MomentEmotif[]
 
   @@index([pathId])
   @@index([journeyId])
@@ -770,9 +771,71 @@ model users {
   UserApiCredential                                    UserApiCredential[]
   UserSettings                                         UserSettings?
   UserStorageConfig                                    UserStorageConfig?
+  UserVoicePreferences                                 UserVoicePreferences?
+  UserEmotif                                           UserEmotif[]
   kip_agent_logs                                       kip_agent_logs[]
   kip_sessions                                         kip_sessions[]
   kip_drafts                                           kip_drafts[]
+}
+
+model UserVoicePreferences {
+  id          String   @id @default(cuid())
+  userId      String   @unique @map("user_id")
+  directness  String?  // "direct" | "diplomatic" | "default"
+  conciseness String?  // "concise" | "normal" | "expanded"
+  preamble    String?  // "minimal" | "normal" | "contextual"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PlatformEmotif {
+  id        String   @id @default(cuid())
+  symbol    String   @unique // e.g. "keeper_mark"
+  label     String
+  createdAt DateTime @default(now())
+}
+
+model DomainEmotif {
+  id        String   @id @default(cuid())
+  domainId  String   @map("domain_id")
+  slot      Int      // 1, 2, 3
+  symbol    String
+  label     String
+  createdAt DateTime @default(now())
+  domain    Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@unique([domainId, slot])
+  @@index([domainId])
+}
+
+model UserEmotif {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  slot      Int      // 1, 2, 3
+  symbol    String
+  label     String
+  createdAt DateTime @default(now())
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, slot])
+  @@index([userId])
+}
+
+model MomentEmotif {
+  id         String   @id @default(cuid())
+  momentId   String   @map("moment_id")
+  emotifId   String   @map("emotif_id") // PlatformEmotif.id or DomainEmotif.id or UserEmotif.id
+  emotifType String   @map("emotif_type") // "platform" | "domain" | "user"
+  userId     String   @map("user_id")
+  createdAt  DateTime @default(now())
+  moment     Moment   @relation(fields: [momentId], references: [id], onDelete: Cascade)
+
+  @@unique([momentId, emotifId, userId])
+  @@index([momentId])
+  @@index([userId])
 }
 
 model kip_user_keys {
@@ -1011,6 +1074,7 @@ model Domain {
   policy                                                   DomainPolicy?
   agentPolicy                                              DomainAgentPolicy?
   AgentLens                                                AgentLens[]
+  DomainEmotif                                             DomainEmotif[]
   ShareRequest_ShareRequest_sourceDomainIdToDomain         ShareRequest[]             @relation("ShareRequest_sourceDomainIdToDomain")
   ShareRequest_ShareRequest_targetDomainIdToDomain         ShareRequest[]             @relation("ShareRequest_targetDomainIdToDomain")
   ShareTemplate                                            ShareTemplate[]
@@ -1075,6 +1139,7 @@ model DomainAgentPolicy {
   @@index([contractId])
 }
 
+/// @deprecated Removal planned after audit. Use Lens (kip_lenses) + Voice (UserVoicePreferences) instead.
 model AgentLens {
   id                    String     @id @default(cuid())
   agentId               String     @map("agent_id") @db.Uuid

@@ -1,5 +1,6 @@
 import express, { Router } from 'express';
 import { z } from 'zod';
+import { prisma } from '@keeper/database';
 import { loadModeState, updateModeState } from '../../services/kip/modeConfig.js';
 
 const router: Router = express.Router({ mergeParams: true });
@@ -38,12 +39,37 @@ router.get('/:agentId/mode-config', async (req, res) => {
     const { agentId } = req.params;
     const domainId = typeof req.query.domainId === 'string' ? req.query.domainId : undefined;
     const result = await loadModeState(agentId, domainId);
+    const activeMode = result.state.activeMode;
+    const modeConfig = result.state.modeConfigs[activeMode];
+    const lensId =
+      modeConfig?.lensId ??
+      (activeMode === 'debug' ? result.lenses.debugLensId : result.lenses.domainLensId) ??
+      null;
+
+    let resolvedLens: { id: string; name: string } | null = null;
+    if (lensId) {
+      const lens = await prisma.kip_lenses.findUnique({
+        where: { id: lensId },
+        select: { id: true, name: true },
+      });
+      if (lens) {
+        resolvedLens = { id: lens.id, name: lens.name };
+      }
+    }
+    if (!resolvedLens) {
+      resolvedLens = {
+        id: '',
+        name: activeMode === 'debug' ? 'Debug Investigator Lens' : 'Domain Lens',
+      };
+    }
+
     return res.json({
       success: true,
       data: {
         ...result.state,
         domainKey: result.domainKey,
         lenses: result.lenses,
+        resolvedLens,
       },
     });
   } catch (error) {

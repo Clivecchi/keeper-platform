@@ -15,8 +15,11 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 ## ⚠️ Notes & ToDo
 - [ ] Wire Related Journeys / Active Keeper cards to real data sources.
 - [ ] Replace Cockpit diagnostics placeholders with backend stats once exposed.
+- **Deprecation**: KipAgentBoardPage uses AgentPostureHeader; deprecation planned. Prefer v0 AgentBoardFrame at `?frame=agent`.
 
 ## 📆 Update Log
+### 2026-02-15 - AgentPostureHeader integration
+- Replaced AgentHeader with AgentPostureHeader (governance stack: agent, domain, lens, mode, governance, voice). Added DialogueModeToggle for mode switching. Deprecation planned; prefer v0 AgentBoardFrame.
 ### 2026-01-27 - Public Kip scope
 - Added a public-scope banner, limited tabs/tools for guests, and clarified scope labeling in the header.
 ### 2026-01-19 - Redirect /kip into v0 agent frame

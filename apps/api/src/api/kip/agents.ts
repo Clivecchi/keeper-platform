@@ -2580,6 +2580,50 @@ export class KipAgentService {
           }
         }
 
+        // --- User Voice Preferences (tone, conciseness, preamble) ---
+        if (userId) {
+          try {
+            const prefs = await prisma.userVoicePreferences.findUnique({
+              where: { userId },
+            });
+            if (prefs && (prefs.directness || prefs.conciseness || prefs.preamble)) {
+              const directnessMap: Record<string, string> = {
+                direct: 'direct and straightforward',
+                diplomatic: 'diplomatic and considerate',
+                default: 'balanced in tone',
+              };
+              const concisenessMap: Record<string, string> = {
+                concise: 'concise',
+                normal: 'moderately detailed',
+                expanded: 'expansive',
+              };
+              const preambleMap: Record<string, string> = {
+                minimal: 'minimal preamble',
+                normal: 'standard preamble',
+                contextual: 'contextual preamble',
+              };
+              const parts: string[] = [];
+              if (prefs.directness && prefs.directness !== 'default') {
+                parts.push(`Be ${directnessMap[prefs.directness] ?? prefs.directness}`);
+              }
+              if (prefs.conciseness && prefs.conciseness !== 'normal') {
+                parts.push(`Be ${concisenessMap[prefs.conciseness] ?? prefs.conciseness}`);
+              }
+              if (prefs.preamble && prefs.preamble !== 'normal') {
+                parts.push(`Use ${preambleMap[prefs.preamble] ?? prefs.preamble}`);
+              }
+              if (parts.length > 0) {
+                messages.push({
+                  role: 'system',
+                  content: `User Voice Preferences: ${parts.join('. ')}.`,
+                });
+              }
+            }
+          } catch (err) {
+            console.warn('[kip/agents] Failed to load voice preferences for prompt:', err);
+          }
+        }
+
         const allowList = Array.from(buildAllowedActions(environmentContext));
 
         const draftRules = (environmentContext as any)?.policy?.policy?.drafts ?? {};

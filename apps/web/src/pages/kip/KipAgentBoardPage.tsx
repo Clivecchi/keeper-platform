@@ -18,6 +18,8 @@ import { AgentConversationSession, useAgentSessions } from '../../hooks/useAgent
 import { LinkedCard } from '../../components/props/LinkedCard';
 import type { LinkedCardProps } from '../../types/props';
 import { apiFetch, API_BASE } from '../../lib/api';
+import { getDomainGovernance } from '../../lib/governanceApi';
+import { AgentPostureHeader } from '../../components/agent/AgentPostureHeader';
 import { SessionEditModal } from './SessionEditModal';
 import { ActionReceiptCard, type ActionReceipt } from '../../components/kip/ActionReceiptCard';
 import { useAuth } from '../../context/AuthContext';
@@ -476,6 +478,7 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
   const [editingLensId, setEditingLensId] = useState<string | null>(null);
   const [editingLensText, setEditingLensText] = useState<string>('');
   const [isSavingLens, setIsSavingLens] = useState<boolean>(false);
+  const [governanceMode, setGovernanceMode] = useState<'strict' | 'warn' | 'off'>('warn');
   const [drafts, setDrafts] = useState<KipDraftSummary[]>([]);
   const [draftsError, setDraftsError] = useState<string | null>(null);
   const [isLoadingDrafts, setIsLoadingDrafts] = useState<boolean>(false);
@@ -644,6 +647,16 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
       })
       .finally(() => setModeConfigLoading(false));
   }, [agent?.id, agentDomainId, domainId]);
+
+  useEffect(() => {
+    const effectiveDomainId = domainId || agentDomainId;
+    if (!effectiveDomainId) return;
+    getDomainGovernance(effectiveDomainId)
+      .then((gov) => {
+        if (gov?.enforcementMode) setGovernanceMode(gov.enforcementMode);
+      })
+      .catch(() => {});
+  }, [domainId, agentDomainId]);
 
   const formatApiError = useCallback((err: any, fallback: string) => {
     const status = err?.status;
@@ -1366,20 +1379,37 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
           isSavingLens={isSavingLens}
         />
       )}
-      <AgentHeader
-        agent={agent}
-        domainSlug={domainSlug || agentDomainSlug || undefined}
-        contextLabel={resolvedContextLabel}
-        scopeLabel={resolvedScopeLabel}
-        sessionId={activeSessionId}
-        dialogueMeta={dialogueMeta}
-        dialogueMode={dialogueMode}
-        onDialogueModeChange={handleModeChange}
-        onOpenModeConfig={() => setIsModeConfigOpen(true)}
-        modeConfigError={modeConfigError}
-        modeConfigLoading={modeConfigLoading}
-        isPublicScope={isPublicScope}
-      />
+      <div className="space-y-3">
+        <AgentPostureHeader
+          agentName={agent?.name || 'Kip'}
+          domainName={domainSlug || agentDomainSlug || null}
+          lensName={
+            lenses.find((l) => l.id === modeConfig?.modeConfigs?.[dialogueMode]?.lensId)?.name ??
+            (dialogueMode === 'debug' ? 'Debug Investigator Lens' : 'Domain Lens')
+          }
+          dialogueMode={dialogueMode}
+          governanceMode={governanceMode}
+          voiceLabel="Default"
+          isLive
+          showVoice={isAuthenticated}
+          onOpenCockpit={() => setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.set('view', 'cockpit');
+            return next;
+          })}
+        />
+        {!isPublicScope && (
+          <div className="flex flex-wrap items-center gap-3">
+            <DialogueModeToggle
+              mode={dialogueMode}
+              onChange={handleModeChange}
+              onOpenConfig={() => setIsModeConfigOpen(true)}
+              isLoading={modeConfigLoading}
+              error={modeConfigError}
+            />
+          </div>
+        )}
+      </div>
 
       {isPublicScope && (
         <PublicScopeNotice domainSlug={domainSlug || agentDomainSlug || null} />
@@ -2921,122 +2951,6 @@ const buildDebugBrief = ({
   const brief = briefSections.join('\n\n');
   const limit = maxChars && maxChars > 0 ? maxChars : 2000;
   return brief.length > limit ? `${brief.slice(0, Math.max(0, limit - 5))}…` : brief;
-};
-
-const AgentHeader: React.FC<{
-  agent: KipAgent | null;
-  domainSlug?: string;
-  contextLabel: string;
-  scopeLabel: string;
-  isPublicScope: boolean;
-  sessionId: string | null;
-  dialogueMeta: DialogueMetaItem[];
-  dialogueMode: DialogueMode;
-  onDialogueModeChange: (mode: DialogueMode) => void;
-  onOpenModeConfig: () => void;
-  modeConfigError?: string | null;
-  modeConfigLoading?: boolean;
-}> = ({
-  agent,
-  domainSlug,
-  contextLabel,
-  scopeLabel,
-  isPublicScope,
-  sessionId,
-  dialogueMeta,
-  dialogueMode,
-  onDialogueModeChange,
-  onOpenModeConfig,
-  modeConfigError,
-  modeConfigLoading,
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const agentName = agent?.name || 'Kip';
-  const roleText = domainSlug ? `Lead Agent for ${domainSlug}` : contextLabel;
-
-  return (
-    <div className="relative flex items-center justify-between rounded-2xl border border-[#E6DED5] bg-white px-4 py-3 shadow-sm">
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold text-gray-900">{agentName}</h1>
-          <span className="inline-flex items-center gap-2 text-sm text-emerald-600">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-            Online
-          </span>
-          <span className="rounded-full border border-[#E6DED5] px-3 py-1 text-xs font-semibold text-gray-600">
-            {scopeLabel}
-          </span>
-        </div>
-        <p className="text-sm text-gray-600">{roleText}</p>
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        {!isPublicScope && (
-          <>
-            <DialogueModeToggle
-              mode={dialogueMode}
-              onChange={onDialogueModeChange}
-              onOpenConfig={onOpenModeConfig}
-              isLoading={modeConfigLoading}
-              error={modeConfigError}
-            />
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsOpen((prev) => !prev)}
-                className="inline-flex items-center gap-2 rounded-full border border-[#E6DED5] bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:border-[#C96E59] hover:text-[#C96E59]"
-                title="Agent mechanics"
-              >
-                <Cog6ToothIcon className="h-4 w-4" />
-                Config
-              </button>
-              {isOpen && (
-                <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-[#E6DED5] bg-white p-4 shadow-lg z-20">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Agent configuration</h3>
-                  <dl className="space-y-2 text-sm text-gray-700">
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-gray-500">Model</dt>
-                      <dd className="font-semibold">
-                        {agent?.model_settings?.model || agent?.model || '—'}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-gray-500">Memory</dt>
-                      <dd className="font-semibold">{agent?.memory_enabled ? 'SOLE' : 'Off'}</dd>
-                    </div>
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-gray-500">Scope</dt>
-                      <dd className="font-semibold">{scopeLabel}</dd>
-                    </div>
-                    {sessionId && (
-                      <div className="flex justify-between gap-2">
-                        <dt className="text-gray-500">Session</dt>
-                        <dd className="font-semibold">{shortId(sessionId)}</dd>
-                      </div>
-                    )}
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-gray-500">Agent ID</dt>
-                      <dd className="font-mono text-xs text-gray-600 truncate max-w-[10rem]">
-                        {agent?.id || '—'}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-gray-500">Slug</dt>
-                      <dd className="font-semibold">{agent?.slug || '—'}</dd>
-                    </div>
-                  </dl>
-                  <div className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500 space-y-1">
-                    {dialogueMeta.map((item) => (
-                      <div key={item.label}>{item.label}: {item.value}</div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
 };
 
 const PublicScopeNotice: React.FC<{ domainSlug: string | null }> = ({ domainSlug }) => {

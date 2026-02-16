@@ -40,7 +40,9 @@ import type { PromptedAction } from "../../components/PromptedActionCard"
 import { DialogueMessageList } from "../../../components/agent/DialogueMessageList"
 import { CockpitPanel } from "../../../components/agent/CockpitPanel"
 import { AgentContextBar } from "../../../components/agent/AgentContextBar"
+import { AgentPostureHeader } from "../../../components/agent/AgentPostureHeader"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
+import { useAgentPostureData } from "../../../hooks/useAgentPostureData"
 import { normalizeActionReceipt } from "../../../components/agent/types"
 import { shortId, extractLinkedCard } from "../../../components/agent/helpers"
 
@@ -478,6 +480,16 @@ export function AgentBoardFrame({
     }
   }
 
+  // ── Posture data for banner ──
+  const posture = useAgentPostureData({
+    agentId: agent?.id ?? null,
+    agentName: agent?.name ?? null,
+    domainId,
+    domainName: frameCtx?.domain?.name ?? null,
+    domainSlug: domainSlug ?? null,
+    isAuthenticated: isAuthenticated ?? false,
+  })
+
   // ── Derived data for sidebar ──
   const agentName = agent?.name ?? "Agent"
   const hasKeeper = Boolean(frameCtx?.selection.activeKeeperId)
@@ -816,6 +828,21 @@ export function AgentBoardFrame({
       title={isAgentLoading ? "Agent Board" : `${agentName} · Agent Board`}
       subtitle="Domain agent workspace"
       themeSwitcherSlot={<ThemeSwitcher />}
+      headerFooterSlot={
+        !posture.isLoading && !posture.error ? (
+          <AgentPostureHeader
+            agentName={posture.agentName}
+            domainName={posture.domainName}
+            lensName={posture.lensName}
+            dialogueMode={posture.dialogueMode}
+            governanceMode={posture.governanceMode}
+            voiceLabel={posture.voiceLabel}
+            isLive={posture.isLive}
+            showVoice={isAuthenticated ?? false}
+            onOpenCockpit={() => setView({ kind: "cockpit" })}
+          />
+        ) : null
+      }
       rightSlot={
         <button
           type="button"

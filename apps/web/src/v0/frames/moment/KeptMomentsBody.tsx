@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { getKeptMoments, type KeptMomentSummary } from "../../api/v0Moments"
+import { MomentEmotifBar } from "./MomentEmotifBar"
 
 interface KeptMomentsBodyProps {
   domainSlug?: string
@@ -117,6 +118,10 @@ export function KeptMomentsBody({ domainSlug }: KeptMomentsBodyProps) {
             {moment.body && (
               <div className="mt-2 text-xs opacity-80">{moment.body.slice(0, 140)}</div>
             )}
+            <MomentEmotifBar
+              momentId={moment.id}
+              domainId={moment.domain?.id ?? null}
+            />
           </div>
         ))
       )}

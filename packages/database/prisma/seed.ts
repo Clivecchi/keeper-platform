@@ -57,6 +57,10 @@ async function main() {
     const seedLenses = await import('./seeds/lenses.seed.ts');
     await seedLenses.default();
 
+    console.log('🎭 Seeding platform emotifs...');
+    const seedPlatformEmotif = await import('./seeds/platform-emotif.seed.ts');
+    await seedPlatformEmotif.default();
+
     console.log('🧠 Seeding SOLE bootstrap cards...');
     const seedSoleBootstrap = await import('./seeds/sole-bootstrap.seed.ts');
     await seedSoleBootstrap.default();

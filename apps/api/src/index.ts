@@ -42,6 +42,8 @@ import { CORE_ACTIONS } from './api/kip/actions/schema.js';
 import engagementTemplatesRouter from './api/engagement/templates.js';
 import adminRolesRoutes from './api/admin/roles.js';
 import adminUsersRoutes from './api/admin/users.js';
+import voicePreferencesRouter from './api/users/voice-preferences.js';
+import emotifsRouter from './api/emotifs/routes.js';
 import adminRouter from './api/admin.js';
 import { adminQueryRouter } from './api/admin/query.js';
 // Import KIP routes
@@ -986,6 +988,12 @@ app.get('/api/users/search', authMiddlewareCompat, async (req: Request, res: Res
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// User voice preferences (must be before /api/users/:id to avoid :id matching "me")
+app.use('/api/users', voicePreferencesRouter);
+
+// Emotifs (must be before /api/domains so /api/domains/:domainId/emotifs is handled)
+app.use('/api', emotifsRouter);
 
 // Mount domain routes in order: specific routes first, then generic patterns
 app.use('/api/domains', domainBoardDataRouter); // Specific: /:domainId/board-data (public with optional auth)
