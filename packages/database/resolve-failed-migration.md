@@ -1,60 +1,35 @@
 # Resolve Failed Migration - Railway Database
 
-## Problem
-Migration `20250110_add_board_domain_fkey` failed because of type mismatch:
-- Board.domainId was TEXT
-- Domain.id is UUID
-- Cannot create FK constraint between different types
+## Problem (P3009)
+Prisma reports: "migrate found failed migrations in the target database, new migrations will not be applied."
 
-## Solution
+## Solution for `20260215_sole_memory_links`
 
-### Option 1: Via Railway CLI (Recommended)
+### Automatic (No manual steps)
 
+The Railway build uses `migrate:deploy:railway`, which runs `prisma migrate resolve --rolled-back` before `migrate deploy`. **Just push and redeploy** — the failed migration will be cleared and the idempotent migration will run successfully.
+
+### Manual options (if needed)
+
+**Prisma resolve** (requires DATABASE_URL):
 ```bash
-# Connect to Railway PostgreSQL
-railway run psql $DATABASE_URL
-
-# Mark the failed migration as resolved
-DELETE FROM "_prisma_migrations" 
-WHERE migration_name = '20250110_add_board_domain_fkey';
-
-# Exit
-\q
+DATABASE_URL="postgresql://..." pnpm db:migrate:resolve -- --rolled-back "20260215_sole_memory_links"
 ```
 
-### Option 2: Via Railway Dashboard
+**Node script** (deletes failed record via Prisma):
+```bash
+DATABASE_URL="postgresql://..." node packages/database/scripts/resolve-failed-migration.js 20260215_sole_memory_links
+```
 
-1. Go to Railway Dashboard → Your Project → Database
-2. Open "Query" tab
-3. Run this SQL:
+**External SQL client**: Connect to Railway PostgreSQL via TCP Proxy (DATABASE_PUBLIC_URL) using pgAdmin, DBeaver, or `psql`, then run:
+```sql
+DELETE FROM "_prisma_migrations" WHERE migration_name = '20260215_sole_memory_links';
+```
+
+## Legacy: `20250110_add_board_domain_fkey`
 
 ```sql
 DELETE FROM "_prisma_migrations" 
-WHERE migration_name = '20250110_add_board_domain_fkey';
+WHERE migration_name IN ('20250110_add_board_domain_fkey', '20250110_add_board_domain_fkey_fixed');
 ```
-
-4. Deploy again - the new fixed migration will run
-
-### Option 3: Prisma Resolve Command (if available locally)
-
-```bash
-cd packages/database
-npx prisma migrate resolve --rolled-back 20250110_add_board_domain_fkey
-```
-
-## What the New Migration Does
-
-The new migration (`20250110_add_board_domain_fkey_fixed`):
-
-1. Drops the constraint if it exists (cleanup)
-2. Converts Board.domainId from TEXT to UUID
-3. Sets invalid domainIds to NULL
-4. Adds the FK constraint properly
-
-## After Resolution
-
-1. Commit and push the changes
-2. Railway will deploy
-3. The new migration will run successfully
-4. Board.domainId will be UUID type with FK constraint
 

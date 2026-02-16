@@ -17,6 +17,7 @@
     "generate": "prisma generate",
     "build": "prisma generate && tsc",
     "migrate:deploy": "prisma migrate deploy",
+    "migrate:deploy:railway": "prisma migrate resolve --rolled-back 20260215_sole_memory_links 2>/dev/null || true && prisma migrate deploy",
     "migrate:resolve": "node scripts/resolve-failed-migration.js",
     "check:boards": "node scripts/check-board-data.js",
     "check:migrations": "node scripts/check-migrations.js",
