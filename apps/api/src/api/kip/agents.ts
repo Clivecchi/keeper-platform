@@ -472,9 +472,12 @@ const ACTION_ENVELOPE_TYPE = 'agent_output';
 function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironmentContext | null): Set<string> {
   const pack = buildPolicyPackFromEnvironment(environment);
   const allow = new Set(Array.isArray(pack?.actions?.allow) ? pack.actions.allow : DEFAULT_POLICY_PACK_V1.actions.allow);
-  // Server-controlled drafts can always set active when context is present
+  // Golden Path actions — always allowed (domain policy cannot block core capabilities)
   allow.add('draft.setActive');
-  // Golden Path actions — always allowed
+  allow.add('draft.create');
+  allow.add('draft.update');
+  allow.add('draft.update.propose');
+  allow.add('draft.delete');
   allow.add('moment.create');
   allow.add('sole.save');
   return allow;
@@ -2401,6 +2404,9 @@ export class KipAgentService {
           '- When UPDATING a draft, use draft.update.propose first. Summarize the change in one sentence and ask for permission. Do not use draft.update directly — wait for user confirmation.',
           '- Drafts are scoped by keeper (primary) or domain (secondary). When the user has a keeper selected, prefer keeper-scoped drafts. Include keeperId in draft.create when the draft is relevant to the active keeper.',
           '- Never create multiple drafts for the same purpose. One draft per distinct topic. If unsure, respond with text and ask the user to clarify.',
+          '- When listing or discussing drafts, ALWAYS include each draft\'s title and updated date. A response that only gives a count (e.g. "You have 3 drafts") is not useful. Use draftsDirectory from the environment — format each as: [title] (updated [date]).',
+          '',
+          'SESSION NAMING (closing ritual): When the user signals the conversation is complete (e.g. "thanks that\'s all", "we\'re done", "goodbye", "that\'s it for now"), suggest naming the session: "Would you like to give this session a name? You can do that in the Sessions sidebar." This helps users find conversations later.',
           '',
           `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
           'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',
@@ -2649,6 +2655,9 @@ export class KipAgentService {
             '- When UPDATING a draft, use draft.update.propose first. Summarize the change in one sentence and ask for permission. Do not use draft.update directly — wait for user confirmation.',
             '- Drafts are scoped by keeper (primary) or domain (secondary). When the user has a keeper selected, prefer keeper-scoped drafts. Include keeperId in draft.create when the draft is relevant to the active keeper.',
             '- Never create multiple drafts for the same purpose. One draft per distinct topic. If unsure, respond with text and ask the user to clarify.',
+            '- When listing or discussing drafts, ALWAYS include each draft\'s title and updated date. A response that only gives a count (e.g. "You have 3 drafts") is not useful. Use draftsDirectory from the environment — format each as: [title] (updated [date]).',
+            '',
+            'SESSION NAMING (closing ritual): When the user signals the conversation is complete (e.g. "thanks that\'s all", "we\'re done", "goodbye", "that\'s it for now"), suggest naming the session: "Would you like to give this session a name? You can do that in the Sessions sidebar." This helps users find conversations later.',
             '',
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
             'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',

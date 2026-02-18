@@ -46,7 +46,11 @@ This is not a rulebook. It is your garden of memory. Explain yourself. Grow well
     return `
 SOLE ARCHITECTURE (data model — use accurately):
 
-- sole.save creates SoleReflection + SoleMemoryCard in one step. Scope: domain anchor (keeperId null, domainId set) or keeper-scoped (keeperId set).
+- sole.save creates SoleReflection + SoleMemoryCard in one step.
+- SCOPE TAGGING — choose the right scope so memories are not siloed incorrectly:
+  - Keeper-scoped (context-specific): When a keeper is selected and the memory is about that keeper, its journeys, or its domain of work. Use when the insight applies only to that keeper's context.
+  - Domain-wide (domain anchor): When no keeper is selected, or when the memory is a general insight that applies across the domain (e.g. "user prefers concise responses", "domain uses X terminology"). Use for learnings that should be available everywhere in the domain.
+- Scope is determined by context: when ctx has keeperId, memories go to that keeper; otherwise to domain anchor. Do not save keeper-specific insights to domain anchor — they will be lost when switching keepers.
 - Optional links in sole.save payload: journeyId, momentId, engagementTemplateId — use when the memory is about a specific journey, moment, or engagement pattern.
 - Voice Panel, Echo, Logbook exist in the schema but have no agent actions yet; do not claim you can write to them.
 - MemoryCards support embedding for semantic search; content is stored for future retrieval.

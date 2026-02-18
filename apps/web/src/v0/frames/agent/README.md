@@ -27,6 +27,7 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 - [ ] Wire draft-to-dialogue flow (discuss draft with agent)
 
 ## 📆 Update Log
+- 2026-02-17: Chat UX: Shift+Enter for new line (Enter sends), textarea input, upload button (paperclip) for text files. Agent reliability: draft listing instruction, NOT_ALLOWED fix for draft actions, SOLE scope tagging, session naming closing ritual.
 - 2026-02-17: Sidebar reorder (Drafts, Journeys, Keepers, Sessions, For you). Renamed Dialogues → Sessions. Replaced draft form with DraftCard (inline editing, sections, JSON toggle, bottom toolbar). Banner redesign: AgentContextBanner (context-first), DesignFrame title/subtitle updated.
 - 2026-01-19: Rehydrated AgentFrame with the legacy Kip agent surface and preserved v0 close navigation.
 - 2026-01-18: Added agent frame placeholder for v0 shell routing.

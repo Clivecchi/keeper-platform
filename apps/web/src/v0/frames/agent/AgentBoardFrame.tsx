@@ -18,7 +18,7 @@
  */
 
 import * as React from "react"
-import { PaperAirplaneIcon } from "@heroicons/react/24/outline"
+import { PaperAirplaneIcon, PaperClipIcon } from "@heroicons/react/24/outline"
 import type { StyleId } from "../../styles/styles"
 import { DesignFrame } from "../DesignFrame"
 import { ThemeSwitcher } from "../ThemeSwitcher"
@@ -578,28 +578,63 @@ export function AgentBoardFrame({
             : undefined
         }
       />
-      <form onSubmit={handleSendMessage} className="flex gap-3 pt-2">
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder={
-            activeSessionId
-              ? "Share your thoughts..."
-              : "Create a session to start chatting"
-          }
-          disabled={!activeSessionId || isSending}
-          className="flex-1 rounded-xl border px-4 py-3 text-sm transition-colors focus:ring-2 focus:ring-offset-1"
-          style={{
-            borderColor: "var(--theme-border-soft)",
-            backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-            color: "var(--theme-ink-primary)",
-          }}
-        />
+      <form onSubmit={handleSendMessage} className="flex gap-2 pt-2">
+        <div className="flex flex-1 items-end gap-2 rounded-xl border px-3 py-2" style={{ borderColor: "var(--theme-border-soft)", backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)" }}>
+          <textarea
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault()
+                const form = (e.target as HTMLTextAreaElement).form
+                if (form && inputValue.trim() && activeSessionId && !isSending) {
+                  form.requestSubmit()
+                }
+              }
+            }}
+            placeholder={
+              activeSessionId
+                ? "Share your thoughts... (Shift+Enter for new line)"
+                : "Create a session to start chatting"
+            }
+            disabled={!activeSessionId || isSending}
+            rows={1}
+            className="min-h-[44px] max-h-32 flex-1 resize-y bg-transparent px-1 py-2 text-sm focus:outline-none focus:ring-0"
+            style={{ color: "var(--theme-ink-primary)" }}
+          />
+          <input
+            type="file"
+            id="chat-file-upload"
+            className="hidden"
+            accept=".txt,.md,.json,.csv,text/plain,text/markdown,application/json"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              const reader = new FileReader()
+              reader.onload = () => {
+                const text = reader.result as string
+                if (text) setInputValue((prev) => (prev ? `${prev}\n\n${text}` : text))
+              }
+              reader.readAsText(file)
+              e.target.value = ""
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => document.getElementById("chat-file-upload")?.click()}
+            disabled={!activeSessionId || isSending}
+            className="flex cursor-pointer items-center justify-center rounded-lg p-2 transition-opacity hover:opacity-70 disabled:pointer-events-none disabled:opacity-50"
+            style={{ color: "var(--theme-ink-secondary)" }}
+            title="Attach file (text files)"
+            aria-label="Attach file"
+          >
+            <PaperClipIcon className="h-5 w-5" />
+          </button>
+        </div>
         <button
           type="submit"
           disabled={!inputValue.trim() || !activeSessionId || isSending}
-          className="inline-flex items-center justify-center rounded-xl px-4 py-3 text-white transition-colors disabled:opacity-50"
+          className="inline-flex shrink-0 items-center justify-center rounded-xl px-4 py-3 text-white transition-colors disabled:opacity-50"
           style={{ backgroundColor: "var(--theme-ink-primary)" }}
         >
           {isSending ? (
