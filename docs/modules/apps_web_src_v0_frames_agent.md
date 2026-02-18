@@ -12,11 +12,12 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 
 **AgentBoardFrame (new):** Composable agent workspace using the same architecture as Commons Frame:
 - Agent name loaded dynamically from `KipApi.getLeadAgent()` -- never hardcoded
-- Sidebar: Dialogues (sessions), Drafts, Journeys, Keepers, Prompted Actions
-- Workspace views via `useAgentWorkspaceView`: `dialogue` (conversation), `draft` (editor), `cockpit` (diagnostics)
+- Sidebar order: Drafts, Journeys, Keepers, Sessions, For you (renamed from Dialogues)
+- Workspace views via `useAgentWorkspaceView`: `dialogue` (conversation), `draft` (DraftCard with inline editing), `cockpit` (diagnostics)
+- Context-first banner (AgentContextBanner): domain · keeper/journey, with agent · Live
 - Selecting a Journey/Keeper in the sidebar scopes the agent context via `FrameContext.setActiveJourneyId/setActiveKeeperId`
 - Context bar above workspace shows active scope (journey, keeper, SOLE, session)
-- Uses extracted components from `../../components/agent/`: `DialogueMessageList`, `CockpitPanel`, `AgentContextBar`
+- Uses extracted components: `DialogueMessageList`, `CockpitPanel`, `AgentContextBar`, `DraftCard`, `AgentContextBanner`
 - `onConfirmDraftUpdate` wired: when user confirms `draft.update.propose`, calls `KipApi.updateDraft` and `refreshDrafts()`
 
 ## ⚠️ Notes & ToDo
@@ -26,6 +27,7 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 - [ ] Wire draft-to-dialogue flow (discuss draft with agent)
 
 ## 📆 Update Log
+- 2026-02-17: Sidebar reorder (Drafts, Journeys, Keepers, Sessions, For you). Renamed Dialogues → Sessions. Replaced draft form with DraftCard (inline editing, sections, JSON toggle, bottom toolbar). Banner redesign: AgentContextBanner (context-first), DesignFrame title/subtitle updated.
 - 2026-01-19: Rehydrated AgentFrame with the legacy Kip agent surface and preserved v0 close navigation.
 - 2026-01-18: Added agent frame placeholder for v0 shell routing.
 - 2026-02-09: Added `AgentBoardFrame` -- new composable agent workspace. Registered at `?frame=agent` in V0Shell; legacy `AgentFrame` remains at `?frame=kip`. Sidebar with Dialogues, Drafts, Journeys, Keepers, Prompted Actions. Workspace views: dialogue (conversation), draft (editor), cockpit (diagnostics). Agent name is dynamic. Uses `useAgentWorkspaceView` hook and extracted agent components.

@@ -7,8 +7,7 @@
  * refactored Commons Frame (SidebarWorkspaceLayout, SidebarCard, WorkspaceHeader,
  * useAgentWorkspaceView).
  *
- * Sidebar: Dialogues (sessions), Drafts, Recent Journeys, Recent Keepers,
- * Prompted Actions.
+ * Sidebar: Drafts, Journeys, Keepers, Sessions, For you.
  *
  * Workspace views:
  *   - dialogue: Live conversation with the domain agent
@@ -40,7 +39,9 @@ import type { PromptedAction } from "../../components/PromptedActionCard"
 import { DialogueMessageList } from "../../../components/agent/DialogueMessageList"
 import { CockpitPanel } from "../../../components/agent/CockpitPanel"
 import { AgentContextBar } from "../../../components/agent/AgentContextBar"
-import { AgentPostureHeader } from "../../../components/agent/AgentPostureHeader"
+import { AgentContextBanner } from "../../../components/agent/AgentContextBanner"
+import { DraftCard } from "../../../components/agent/DraftCard"
+import type { DraftSpec } from "../../../components/agent/DraftCard"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { useAgentPostureData } from "../../../hooks/useAgentPostureData"
 import { normalizeActionReceipt } from "../../../components/agent/types"
@@ -136,8 +137,6 @@ export function AgentBoardFrame({
   // ── Draft state ──
   const [drafts, setDrafts] = React.useState<KipDraftSummary[]>([])
   const [draftDetail, setDraftDetail] = React.useState<KipDraft | null>(null)
-  const [draftSpecText, setDraftSpecText] = React.useState("")
-  const [draftJsonError, setDraftJsonError] = React.useState<string | null>(null)
   const [isLoadingDrafts, setIsLoadingDrafts] = React.useState(false)
   const [isSavingDraft, setIsSavingDraft] = React.useState(false)
   const [isCreatingDraft, setIsCreatingDraft] = React.useState(false)
@@ -297,15 +296,12 @@ export function AgentBoardFrame({
   React.useEffect(() => {
     if (!draftViewId || !domainId) return
     setIsLoadingDrafts(true)
-    setDraftJsonError(null)
     KipApi.getDraft(domainId, draftViewId)
       .then((draft) => {
         setDraftDetail(draft)
-        setDraftSpecText(JSON.stringify(draft.spec ?? {}, null, 2))
       })
       .catch(() => {
         setDraftDetail(null)
-        setDraftSpecText("")
         setDraftsError("Unable to load draft")
       })
       .finally(() => setIsLoadingDrafts(false))
@@ -437,7 +433,7 @@ export function AgentBoardFrame({
         kind: "development_journey",
         key: makeDraftKey(title),
         title,
-        summary: null,
+        summary: undefined,
         spec: {},
         keeperId,
       })
@@ -450,28 +446,23 @@ export function AgentBoardFrame({
     }
   }
 
-  const handleSaveDraft = async () => {
+  const handleSaveDraftFromCard = async (payload: {
+    title: string
+    summary: string | null
+    status: KipDraftStatus
+    spec: DraftSpec
+  }) => {
     if (!domainId || !draftDetail) return
-    let parsedSpec: unknown = {}
-    try {
-      parsedSpec = draftSpecText.trim() ? JSON.parse(draftSpecText) : {}
-      setDraftJsonError(null)
-    } catch {
-      setDraftJsonError("Spec JSON is invalid. Please fix and try again.")
-      return
-    }
-
     setIsSavingDraft(true)
     setDraftsError(null)
     try {
       const updated = await KipApi.updateDraft(domainId, draftDetail.id, {
-        title: draftDetail.title,
-        summary: draftDetail.summary ?? undefined,
-        status: (draftDetail.status as KipDraftStatus) || "draft",
-        spec: parsedSpec,
+        title: payload.title,
+        summary: payload.summary ?? undefined,
+        status: payload.status,
+        spec: payload.spec,
       })
       setDraftDetail(updated)
-      setDraftSpecText(JSON.stringify(updated.spec ?? {}, null, 2))
       await refreshDrafts()
     } catch (err) {
       setDraftsError(err instanceof Error ? err.message : "Unable to save draft")
@@ -496,7 +487,7 @@ export function AgentBoardFrame({
   const activeJourneyName = journeys.find((j) => j.id === frameCtx?.selection.activeJourneyId)?.name ?? null
   const activeKeeperName = keepers.find((k) => k.id === frameCtx?.selection.activeKeeperId)?.title ?? null
 
-  const dialogueItems: SidebarCardItem[] = sessions.slice(0, 5).map((s) => ({
+  const sessionItems: SidebarCardItem[] = sessions.slice(0, 5).map((s) => ({
     label: s.title || `Session ${shortId(s.id)}`,
     id: s.id,
     onClick: () => setView({ kind: "dialogue", sessionId: s.id }),
@@ -539,9 +530,9 @@ export function AgentBoardFrame({
     }
     if (!activeSessionId && sessions.length === 0) {
       actions.push({
-        label: "No active dialogue",
+        label: "No active session",
         detail: "Start a conversation to begin",
-        actionLabel: "New dialogue",
+        actionLabel: "New session",
         onAction: handleCreateSession,
       })
     }
@@ -559,7 +550,7 @@ export function AgentBoardFrame({
   const renderDialogueWorkspace = () => (
     <div className="space-y-4">
       <WorkspaceHeader
-        eyebrow="Dialogue"
+        eyebrow="Session"
         title={`Conversation with ${agentName}`}
         description={activeSessionId ? `Session ${shortId(activeSessionId)}` : "No active session"}
       />
@@ -579,7 +570,10 @@ export function AgentBoardFrame({
         onConfirmDraftUpdate={
           domainId
             ? (draftId, payload) => {
-                KipApi.updateDraft(domainId, draftId, payload).then(() => refreshDrafts())
+                KipApi.updateDraft(domainId, draftId, {
+                  ...payload,
+                  status: payload.status as KipDraftStatus | undefined,
+                }).then(() => refreshDrafts())
               }
             : undefined
         }
@@ -592,7 +586,7 @@ export function AgentBoardFrame({
           placeholder={
             activeSessionId
               ? "Share your thoughts..."
-              : "Create a dialogue to start chatting"
+              : "Create a session to start chatting"
           }
           disabled={!activeSessionId || isSending}
           className="flex-1 rounded-xl border px-4 py-3 text-sm transition-colors focus:ring-2 focus:ring-offset-1"
@@ -653,107 +647,22 @@ export function AgentBoardFrame({
       )
     }
 
+    if (isLoadingDrafts || !draftDetail) {
+      return (
+        <p className="text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+          Loading draft…
+        </p>
+      )
+    }
+
     return (
-      <div className="space-y-4">
-        <WorkspaceHeader
-          eyebrow="Draft"
-          title={draftDetail?.title || "Loading draft…"}
-          description={
-            draftDetail?.keeperId
-              ? `Keeper: ${keepers.find((k) => k.id === draftDetail.keeperId)?.title ?? "—"} · Edit title, summary, status, and JSON spec`
-              : "Edit title, summary, status, and JSON spec"
-          }
-        />
-        {isLoadingDrafts ? (
-          <p className="text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
-            Loading draft…
-          </p>
-        ) : draftDetail ? (
-          <div className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className="space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--theme-ink-secondary)" }}>
-                  Title
-                </span>
-                <input
-                  type="text"
-                  value={draftDetail.title}
-                  onChange={(e) => setDraftDetail({ ...draftDetail, title: e.target.value })}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
-                  style={{ borderColor: "var(--theme-border-soft)", color: "var(--theme-ink-primary)" }}
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--theme-ink-secondary)" }}>
-                  Status
-                </span>
-                <select
-                  value={draftDetail.status || "draft"}
-                  onChange={(e) => setDraftDetail({ ...draftDetail, status: e.target.value as KipDraftStatus })}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
-                  style={{ borderColor: "var(--theme-border-soft)", color: "var(--theme-ink-primary)" }}
-                >
-                  {(["draft", "reviewed", "approved", "promoted", "archived"] as KipDraftStatus[]).map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--theme-ink-secondary)" }}>
-                Summary
-              </span>
-              <textarea
-                value={draftDetail.summary ?? ""}
-                onChange={(e) => setDraftDetail({ ...draftDetail, summary: e.target.value })}
-                rows={3}
-                className="w-full rounded-lg border px-3 py-2 text-sm"
-                style={{ borderColor: "var(--theme-border-soft)", color: "var(--theme-ink-primary)" }}
-              />
-            </label>
-            <label className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--theme-ink-secondary)" }}>
-                  Spec JSON
-                </span>
-                <span className="text-[11px]" style={{ color: "var(--theme-ink-secondary)" }}>Direct edits allowed</span>
-              </div>
-              <textarea
-                value={draftSpecText}
-                onChange={(e) => { setDraftSpecText(e.target.value); setDraftJsonError(null) }}
-                rows={14}
-                className="w-full rounded-lg border px-3 py-2 font-mono text-sm"
-                style={{ borderColor: "var(--theme-border-soft)", color: "var(--theme-ink-primary)" }}
-              />
-            </label>
-            {draftJsonError && <p className="text-sm text-red-600">{draftJsonError}</p>}
-            {draftsError && <p className="text-sm text-red-600">{draftsError}</p>}
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={handleSaveDraft}
-                disabled={isSavingDraft}
-                className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90 disabled:opacity-50"
-                style={{
-                  borderColor: "var(--theme-border-soft)",
-                  backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-                  color: "var(--theme-ink-primary)",
-                }}
-              >
-                {isSavingDraft ? "Saving…" : "Save draft"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setView({ kind: "dialogue" })}
-                className="text-xs underline underline-offset-2"
-                style={{ color: "var(--theme-ink-secondary)" }}
-              >
-                Back to dialogue
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </div>
+      <DraftCard
+        draft={draftDetail}
+        isSaving={isSavingDraft}
+        error={draftsError}
+        onSave={handleSaveDraftFromCard}
+        onBackToDialogue={() => setView({ kind: "dialogue" })}
+      />
     )
   }
 
@@ -825,20 +734,23 @@ export function AgentBoardFrame({
     <DesignFrame
       styleId={styleId}
       themeSlug={themeSlug}
-      title={isAgentLoading ? "Agent Board" : `${agentName} · Agent Board`}
-      subtitle="Domain agent workspace"
+      title={
+        isAgentLoading
+          ? "Agent Board"
+          : `${posture.domainName || "Domain"} · Agent studio`
+      }
+      subtitle={
+        isAgentLoading ? undefined : `with ${agentName}`
+      }
       themeSwitcherSlot={<ThemeSwitcher />}
       headerFooterSlot={
         !posture.isLoading && !posture.error ? (
-          <AgentPostureHeader
-            agentName={posture.agentName}
+          <AgentContextBanner
             domainName={posture.domainName}
-            lensName={posture.lensName}
-            dialogueMode={posture.dialogueMode}
-            governanceMode={posture.governanceMode}
-            voiceLabel={posture.voiceLabel}
+            keeperName={activeKeeperName}
+            journeyName={activeJourneyName}
+            agentName={posture.agentName}
             isLive={posture.isLive}
-            showVoice={isAuthenticated ?? false}
             onOpenCockpit={() => setView({ kind: "cockpit" })}
           />
         ) : null
@@ -860,13 +772,6 @@ export function AgentBoardFrame({
         sidebar={
           <>
             <SidebarCard
-              title="Dialogues"
-              description={isSessionsLoading ? "Loading sessions…" : `${sessions.length} conversation${sessions.length !== 1 ? "s" : ""}`}
-              items={dialogueItems.length ? dialogueItems : [{ label: "No dialogues yet" }]}
-              onAdd={handleCreateSession}
-            />
-
-            <SidebarCard
               title="Drafts"
               description={isLoadingDrafts ? "Loading drafts…" : `${drafts.length} draft${drafts.length !== 1 ? "s" : ""}`}
               items={draftItems.length ? draftItems : [{ label: "No drafts yet" }]}
@@ -883,6 +788,13 @@ export function AgentBoardFrame({
               title="Keepers"
               description="Scope the conversation to a keeper"
               items={keeperItems.length ? keeperItems : [{ label: "No keepers available" }]}
+            />
+
+            <SidebarCard
+              title="Sessions"
+              description={isSessionsLoading ? "Loading sessions…" : `${sessions.length} session${sessions.length !== 1 ? "s" : ""}`}
+              items={sessionItems.length ? sessionItems : [{ label: "No sessions yet" }]}
+              onAdd={handleCreateSession}
             />
 
             <PromptedActionCard items={promptedActions} />
