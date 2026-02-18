@@ -7,6 +7,8 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - `AgentContextBanner.tsx` -- Context-first banner for Agent Board: domain · keeper/journey/studio, with agent · Live, Open Cockpit. Used by AgentBoardFrame.
 - `AgentPostureHeader.tsx` -- Legacy governance stack banner (agent, domain, lens, mode, governance, voice). Used by KipAgentBoardPage.
 - `DraftCard.tsx` -- Inline-editing draft card: title, summary, status pill, sections (add/delete), JSON toggle, bottom toolbar (Save, JSON/Edit, ← Dialogue).
+- `JourneyCard.tsx` -- Detail view for a Journey (Draft UI style): title, forward, paths, moments, Set as Active, ← Dialogue.
+- `KeeperCard.tsx` -- Detail view for a Keeper (Draft UI style): title, purpose, domain, Set as Active, ← Dialogue.
 - `DialogueMessageList.tsx` -- Scrollable conversation message list with action receipts, skeleton loading, and error states. Agent name is dynamic (passed as prop, never hardcoded).
 - `SessionCard.tsx` -- Clickable session card for conversation session lists. Compact and full variants.
 - `CockpitPanel.tsx` -- Agent configuration and diagnostics overview: SOLE memory, model config, tools/actions (allowedActions prop), session stats, governance compliance (when showCompliance). Also exports `FrameCard` utility component.
@@ -24,6 +26,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-02-17: Added JourneyCard and KeeperCard for workspace detail views (Draft UI style). Used by AgentBoardFrame when sidebar journey/keeper items are clicked.
 - 2026-02-17: Added AgentContextBanner (context-first: domain, keeper/journey, agent). Added DraftCard for inline-editing draft UI with sections and JSON toggle. AgentBoardFrame now uses AgentContextBanner; AgentPostureHeader remains for legacy KipAgentBoardPage.
 - 2026-02-15: Added AgentPostureHeader for governance stack banner (agent, domain, lens, mode, governance, voice).
 - 2026-02-15: CockpitPanel SOLE Records: robust parsing for API response shapes ({ success, data } or raw array).

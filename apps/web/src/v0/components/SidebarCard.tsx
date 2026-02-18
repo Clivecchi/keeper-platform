@@ -59,6 +59,8 @@ export interface SidebarCardProps {
   items?: SidebarCardItem[]
   /** When provided, renders a "+" button inline with the title */
   onAdd?: () => void
+  /** When provided, the title becomes clickable to show the full list in workspace */
+  onTitleClick?: () => void
   /** Override the default background color */
   backgroundColor?: string
   /** Override the default border color */
@@ -76,6 +78,7 @@ export function SidebarCard({
   description,
   items,
   onAdd,
+  onTitleClick,
   backgroundColor = SURFACE.sideCard,
   borderColor = SURFACE.border,
   className = "",
@@ -87,9 +90,20 @@ export function SidebarCard({
     >
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-base font-semibold" style={{ color: SURFACE.inkPrimary }}>
-            {title}
-          </h3>
+          {onTitleClick ? (
+            <button
+              type="button"
+              onClick={onTitleClick}
+              className="text-base font-semibold text-left underline-offset-2 decoration-dotted hover:underline transition-colors"
+              style={{ color: SURFACE.inkPrimary }}
+            >
+              {title}
+            </button>
+          ) : (
+            <h3 className="text-base font-semibold" style={{ color: SURFACE.inkPrimary }}>
+              {title}
+            </h3>
+          )}
           {onAdd && (
             <button
               type="button"

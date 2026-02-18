@@ -42,6 +42,10 @@ import { AgentContextBar } from "../../../components/agent/AgentContextBar"
 import { AgentContextBanner } from "../../../components/agent/AgentContextBanner"
 import { DraftCard } from "../../../components/agent/DraftCard"
 import type { DraftSpec } from "../../../components/agent/DraftCard"
+import { JourneyCard } from "../../../components/agent/JourneyCard"
+import type { JourneyDetail } from "../../../components/agent/JourneyCard"
+import { KeeperCard } from "../../../components/agent/KeeperCard"
+import type { KeeperDetail } from "../../../components/agent/KeeperCard"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { useAgentPostureData } from "../../../hooks/useAgentPostureData"
 import { normalizeActionReceipt } from "../../../components/agent/types"
@@ -141,6 +145,12 @@ export function AgentBoardFrame({
   const [isSavingDraft, setIsSavingDraft] = React.useState(false)
   const [isCreatingDraft, setIsCreatingDraft] = React.useState(false)
   const [draftsError, setDraftsError] = React.useState<string | null>(null)
+
+  // ── Journey/Keeper detail (for workspace view) ──
+  const [journeyDetail, setJourneyDetail] = React.useState<JourneyDetail | null>(null)
+  const [keeperDetail, setKeeperDetail] = React.useState<KeeperDetail | null>(null)
+  const [isLoadingJourneyDetail, setIsLoadingJourneyDetail] = React.useState(false)
+  const [isLoadingKeeperDetail, setIsLoadingKeeperDetail] = React.useState(false)
 
   // ── Sessions ──
   const {
@@ -306,6 +316,67 @@ export function AgentBoardFrame({
       })
       .finally(() => setIsLoadingDrafts(false))
   }, [draftViewId, domainId])
+
+  // ── Load journey detail when viewing a journey ──
+  const journeyViewId = view.kind === "journey" ? view.journeyId : null
+  React.useEffect(() => {
+    if (!journeyViewId) {
+      setJourneyDetail(null)
+      return
+    }
+    setIsLoadingJourneyDetail(true)
+    setJourneyDetail(null)
+    apiFetch(`/api/journeys/${journeyViewId}`)
+      .then((res: any) => {
+        const j = res?.journey ?? res?.data ?? res
+        setJourneyDetail({
+          id: j.id,
+          name: j.name,
+          forward: j.forward ?? "",
+          createdAt: j.createdAt ?? "",
+          updatedAt: j.updatedAt ?? "",
+          keeper: j.keeper ?? null,
+          moment: (j.moment ?? j.Moment ?? []).map((m: any) => ({
+            id: m.id,
+            title: m.title ?? "",
+            narrative: m.narrative ?? "",
+            keptAt: m.keptAt,
+            createdAt: m.createdAt,
+          })),
+          paths: (j.paths ?? j.Path ?? []).map((p: any) => ({
+            id: p.id ?? p,
+            name: typeof p === "object" ? p.name ?? "" : String(p),
+          })),
+          stats: j.stats ?? { totalPaths: 0, totalMoments: 0 },
+        })
+      })
+      .catch(() => setJourneyDetail(null))
+      .finally(() => setIsLoadingJourneyDetail(false))
+  }, [journeyViewId])
+
+  // ── Load keeper detail when viewing a keeper ──
+  const keeperViewId = view.kind === "keeper" ? view.keeperId : null
+  React.useEffect(() => {
+    if (!keeperViewId) {
+      setKeeperDetail(null)
+      return
+    }
+    setIsLoadingKeeperDetail(true)
+    setKeeperDetail(null)
+    apiFetch(`/api/keepers/${keeperViewId}`)
+      .then((res: any) => {
+        const k = res?.keeper ?? res?.data ?? res
+        if (!k) return
+        setKeeperDetail({
+          id: k.id,
+          title: k.title ?? k.name ?? "",
+          purpose: k.purpose ?? null,
+          domain: k.domain ?? null,
+        })
+      })
+      .catch(() => setKeeperDetail(null))
+      .finally(() => setIsLoadingKeeperDetail(false))
+  }, [keeperViewId])
 
   // ── Handlers ──
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -508,6 +579,7 @@ export function AgentBoardFrame({
     id: j.id,
     onClick: () => {
       frameCtx?.setActiveJourneyId(j.id)
+      setView({ kind: "journey", journeyId: j.id })
     },
   }))
 
@@ -516,6 +588,7 @@ export function AgentBoardFrame({
     id: k.id,
     onClick: () => {
       frameCtx?.setActiveKeeperId(k.id)
+      setView({ kind: "keeper", keeperId: k.id })
     },
   }))
 
@@ -701,6 +774,246 @@ export function AgentBoardFrame({
     )
   }
 
+  const renderListWorkspace = (type: "drafts" | "journeys" | "keepers" | "sessions") => {
+    const titles = { drafts: "Drafts", journeys: "Journeys", keepers: "Keepers", sessions: "Sessions" }
+    const items =
+      type === "drafts"
+        ? drafts
+        : type === "journeys"
+          ? journeys
+          : type === "keepers"
+            ? keepers
+            : sessions
+    const isLoading =
+      type === "drafts"
+        ? isLoadingDrafts
+        : type === "sessions"
+          ? isSessionsLoading
+          : false
+
+    return (
+      <div className="space-y-6">
+        <WorkspaceHeader
+          eyebrow={titles[type]}
+          title={`All ${titles[type]}`}
+          description={
+            isLoading
+              ? "Loading…"
+              : `${Array.isArray(items) ? items.length : 0} ${titles[type].toLowerCase()}`
+          }
+        />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {type === "drafts" &&
+            (items as KipDraftSummary[]).map((d) => {
+              const keeperName = d.keeperId ? keepers.find((k) => k.id === d.keeperId)?.title : null
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => setView({ kind: "draft", draftId: d.id })}
+                  className="rounded-2xl border p-4 text-left transition-all hover:shadow-md"
+                  style={{
+                    borderColor: "var(--theme-border-soft)",
+                    backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
+                  }}
+                >
+                  <h4 className="font-semibold" style={{ color: "var(--theme-ink-primary)" }}>
+                    {d.title}
+                  </h4>
+                  {keeperName && (
+                    <p className="mt-1 text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+                      {keeperName}
+                    </p>
+                  )}
+                  <span
+                    className="mt-2 inline-block rounded-full px-2 py-0.5 text-xs capitalize"
+                    style={{
+                      backgroundColor: "hsl(var(--theme-surface-paper) / 0.8)",
+                      color: "var(--theme-ink-secondary)",
+                    }}
+                  >
+                    {d.status}
+                  </span>
+                </button>
+              )
+            })}
+          {type === "journeys" &&
+            (items as JourneySummary[]).map((j) => (
+              <button
+                key={j.id}
+                type="button"
+                onClick={() => {
+                  frameCtx?.setActiveJourneyId(j.id)
+                  setView({ kind: "journey", journeyId: j.id })
+                }}
+                className="rounded-2xl border p-4 text-left transition-all hover:shadow-md"
+                style={{
+                  borderColor: "var(--theme-border-soft)",
+                  backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
+                }}
+              >
+                <h4 className="font-semibold" style={{ color: "var(--theme-ink-primary)" }}>
+                  {j.name}
+                </h4>
+                {j.forward && (
+                  <p className="mt-1 line-clamp-2 text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+                    {j.forward}
+                  </p>
+                )}
+                <p className="mt-2 text-xs" style={{ color: "var(--theme-ink-secondary)" }}>
+                  {j.momentCount ?? 0} moments
+                </p>
+              </button>
+            ))}
+          {type === "keepers" &&
+            (items as KeeperSummary[]).map((k) => (
+              <button
+                key={k.id}
+                type="button"
+                onClick={() => {
+                  frameCtx?.setActiveKeeperId(k.id)
+                  setView({ kind: "keeper", keeperId: k.id })
+                }}
+                className="rounded-2xl border p-4 text-left transition-all hover:shadow-md"
+                style={{
+                  borderColor: "var(--theme-border-soft)",
+                  backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
+                }}
+              >
+                <h4 className="font-semibold" style={{ color: "var(--theme-ink-primary)" }}>
+                  {k.title}
+                </h4>
+                {k.purpose && (
+                  <p className="mt-1 line-clamp-2 text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+                    {k.purpose}
+                  </p>
+                )}
+              </button>
+            ))}
+          {type === "sessions" &&
+            (items as { id: string; title?: string | null }[]).map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setView({ kind: "dialogue", sessionId: s.id })}
+                className="rounded-2xl border p-4 text-left transition-all hover:shadow-md"
+                style={{
+                  borderColor: "var(--theme-border-soft)",
+                  backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
+                }}
+              >
+                <h4 className="font-semibold" style={{ color: "var(--theme-ink-primary)" }}>
+                  {s.title || `Session ${shortId(s.id)}`}
+                </h4>
+              </button>
+            ))}
+        </div>
+        {Array.isArray(items) && items.length === 0 && !isLoading && (
+          <p className="text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+            No {titles[type].toLowerCase()} yet.
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => setView({ kind: "dialogue" })}
+          className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
+          style={{
+            borderColor: "var(--theme-border-soft)",
+            backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
+            color: "var(--theme-ink-primary)",
+          }}
+        >
+          ← Dialogue
+        </button>
+      </div>
+    )
+  }
+
+  const renderJourneyDetailWorkspace = () => {
+    if (!journeyViewId) return null
+    if (isLoadingJourneyDetail) {
+      return (
+        <p className="text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+          Loading journey…
+        </p>
+      )
+    }
+    if (!journeyDetail) {
+      return (
+        <div className="space-y-4">
+          <WorkspaceHeader
+            eyebrow="Journey"
+            title="Journey not found"
+            description="This journey may have been removed."
+          />
+          <button
+            type="button"
+            onClick={() => setView({ kind: "dialogue" })}
+            className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium"
+            style={{
+              borderColor: "var(--theme-border-soft)",
+              backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
+              color: "var(--theme-ink-primary)",
+            }}
+          >
+            Back to dialogue
+          </button>
+        </div>
+      )
+    }
+    return (
+      <JourneyCard
+        journey={journeyDetail}
+        isActive={frameCtx?.selection.activeJourneyId === journeyDetail.id}
+        onSetActive={() => frameCtx?.setActiveJourneyId(journeyDetail.id)}
+        onBackToDialogue={() => setView({ kind: "dialogue" })}
+        onOpenMoment={(momentId) => navigateToFrame("moment", { draftId: momentId })}
+      />
+    )
+  }
+
+  const renderKeeperDetailWorkspace = () => {
+    if (!keeperViewId) return null
+    if (isLoadingKeeperDetail) {
+      return (
+        <p className="text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+          Loading keeper…
+        </p>
+      )
+    }
+    if (!keeperDetail) {
+      return (
+        <div className="space-y-4">
+          <WorkspaceHeader
+            eyebrow="Keeper"
+            title="Keeper not found"
+            description="This keeper may have been removed."
+          />
+          <button
+            type="button"
+            onClick={() => setView({ kind: "dialogue" })}
+            className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium"
+            style={{
+              borderColor: "var(--theme-border-soft)",
+              backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
+              color: "var(--theme-ink-primary)",
+            }}
+          >
+            Back to dialogue
+          </button>
+        </div>
+      )
+    }
+    return (
+      <KeeperCard
+        keeper={keeperDetail}
+        isActive={frameCtx?.selection.activeKeeperId === keeperDetail.id}
+        onSetActive={() => frameCtx?.setActiveKeeperId(keeperDetail.id)}
+        onBackToDialogue={() => setView({ kind: "dialogue" })}
+      />
+    )
+  }
+
   const renderCockpitWorkspace = () => (
     <div className="space-y-6">
       <WorkspaceHeader
@@ -740,6 +1053,12 @@ export function AgentBoardFrame({
         return renderDraftWorkspace()
       case "cockpit":
         return renderCockpitWorkspace()
+      case "list":
+        return renderListWorkspace(view.type)
+      case "journey":
+        return renderJourneyDetailWorkspace()
+      case "keeper":
+        return renderKeeperDetailWorkspace()
       case "dialogue":
       default:
         return renderDialogueWorkspace()
@@ -811,18 +1130,21 @@ export function AgentBoardFrame({
               description={isLoadingDrafts ? "Loading drafts…" : `${drafts.length} draft${drafts.length !== 1 ? "s" : ""}`}
               items={draftItems.length ? draftItems : [{ label: "No drafts yet" }]}
               onAdd={handleCreateDraft}
+              onTitleClick={() => setView({ kind: "list", type: "drafts" })}
             />
 
             <SidebarCard
               title="Journeys"
               description="Scope the conversation to a journey"
               items={journeyItems.length ? journeyItems : [{ label: "No journeys available" }]}
+              onTitleClick={() => setView({ kind: "list", type: "journeys" })}
             />
 
             <SidebarCard
               title="Keepers"
               description="Scope the conversation to a keeper"
               items={keeperItems.length ? keeperItems : [{ label: "No keepers available" }]}
+              onTitleClick={() => setView({ kind: "list", type: "keepers" })}
             />
 
             <SidebarCard
@@ -830,6 +1152,7 @@ export function AgentBoardFrame({
               description={isSessionsLoading ? "Loading sessions…" : `${sessions.length} session${sessions.length !== 1 ? "s" : ""}`}
               items={sessionItems.length ? sessionItems : [{ label: "No sessions yet" }]}
               onAdd={handleCreateSession}
+              onTitleClick={() => setView({ kind: "list", type: "sessions" })}
             />
 
             <PromptedActionCard items={promptedActions} />

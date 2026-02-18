@@ -29,10 +29,15 @@ import { useSearchParams } from "react-router-dom"
 // Types
 // =============================================================================
 
+export type AgentListType = "drafts" | "journeys" | "keepers" | "sessions"
+
 export type AgentWorkspaceView =
   | { kind: "dialogue"; sessionId?: string }
   | { kind: "draft"; draftId: string }
   | { kind: "cockpit" }
+  | { kind: "list"; type: AgentListType }
+  | { kind: "journey"; journeyId: string }
+  | { kind: "keeper"; keeperId: string }
 
 // =============================================================================
 // Hook
@@ -59,6 +64,33 @@ export function useAgentWorkspaceView(): [AgentWorkspaceView, (next: AgentWorksp
     case "cockpit":
       currentView = { kind: "cockpit" }
       break
+    case "list": {
+      const type = searchParams.get("type")?.toLowerCase() as AgentListType | undefined
+      if (type && ["drafts", "journeys", "keepers", "sessions"].includes(type)) {
+        currentView = { kind: "list", type }
+      } else {
+        currentView = { kind: "dialogue" }
+      }
+      break
+    }
+    case "journey": {
+      const journeyId = searchParams.get("journeyId")
+      if (journeyId) {
+        currentView = { kind: "journey", journeyId }
+      } else {
+        currentView = { kind: "dialogue" }
+      }
+      break
+    }
+    case "keeper": {
+      const keeperId = searchParams.get("keeperId")
+      if (keeperId) {
+        currentView = { kind: "keeper", keeperId }
+      } else {
+        currentView = { kind: "dialogue" }
+      }
+      break
+    }
     case "dialogue":
     default: {
       const sessionId = searchParams.get("sessionId") || undefined
@@ -76,6 +108,9 @@ export function useAgentWorkspaceView(): [AgentWorkspaceView, (next: AgentWorksp
       nextParams.delete("view")
       nextParams.delete("sessionId")
       nextParams.delete("draftId")
+      nextParams.delete("type")
+      nextParams.delete("journeyId")
+      nextParams.delete("keeperId")
 
       switch (next.kind) {
         case "dialogue":
@@ -90,6 +125,18 @@ export function useAgentWorkspaceView(): [AgentWorkspaceView, (next: AgentWorksp
           break
         case "cockpit":
           nextParams.set("view", "cockpit")
+          break
+        case "list":
+          nextParams.set("view", "list")
+          nextParams.set("type", next.type)
+          break
+        case "journey":
+          nextParams.set("view", "journey")
+          nextParams.set("journeyId", next.journeyId)
+          break
+        case "keeper":
+          nextParams.set("view", "keeper")
+          nextParams.set("keeperId", next.keeperId)
           break
       }
 

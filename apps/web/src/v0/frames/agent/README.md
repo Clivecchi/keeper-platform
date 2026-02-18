@@ -13,11 +13,11 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 **AgentBoardFrame (new):** Composable agent workspace using the same architecture as Commons Frame:
 - Agent name loaded dynamically from `KipApi.getLeadAgent()` -- never hardcoded
 - Sidebar order: Drafts, Journeys, Keepers, Sessions, For you (renamed from Dialogues)
-- Workspace views via `useAgentWorkspaceView`: `dialogue` (conversation), `draft` (DraftCard with inline editing), `cockpit` (diagnostics)
+- Workspace views via `useAgentWorkspaceView`: `dialogue` (conversation), `draft` (DraftCard), `cockpit` (diagnostics), `list` (all drafts/journeys/keepers/sessions), `journey` (JourneyCard detail), `keeper` (KeeperCard detail)
 - Context-first banner (AgentContextBanner): domain · keeper/journey, with agent · Live
-- Selecting a Journey/Keeper in the sidebar scopes the agent context via `FrameContext.setActiveJourneyId/setActiveKeeperId`
+- Clicking sidebar **headers** (Drafts, Journeys, Keepers, Sessions) opens the full list in the workspace. Clicking **individual items** opens their detail (draft → DraftCard, journey → JourneyCard, keeper → KeeperCard, session → dialogue). Journey/Keeper selection also scopes agent context via `FrameContext.setActiveJourneyId/setActiveKeeperId`
 - Context bar above workspace shows active scope (journey, keeper, SOLE, session)
-- Uses extracted components: `DialogueMessageList`, `CockpitPanel`, `AgentContextBar`, `DraftCard`, `AgentContextBanner`
+- Uses extracted components: `DialogueMessageList`, `CockpitPanel`, `AgentContextBar`, `DraftCard`, `JourneyCard`, `KeeperCard`, `AgentContextBanner`
 
 ## ⚠️ Notes & ToDo
 - [ ] Deprecate `AgentFrame` once `AgentBoardFrame` is feature-complete
@@ -27,6 +27,7 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 - [ ] Wire draft-to-dialogue flow (discuss draft with agent)
 
 ## 📆 Update Log
+- 2026-02-17: Sidebar items now load content in workspace: header clicks show list view (all drafts/journeys/keepers/sessions); item clicks open detail (JourneyCard, KeeperCard, DraftCard). Extended useAgentWorkspaceView with list, journey, keeper views. Added JourneyCard and KeeperCard (Draft UI style). SidebarCard supports onTitleClick.
 - 2026-02-17: Chat UX: Shift+Enter for new line (Enter sends), textarea input, upload button (paperclip) for text files. Agent reliability: draft listing instruction, NOT_ALLOWED fix for draft actions, SOLE scope tagging, session naming closing ritual.
 - 2026-02-17: Sidebar reorder (Drafts, Journeys, Keepers, Sessions, For you). Renamed Dialogues → Sessions. Replaced draft form with DraftCard (inline editing, sections, JSON toggle, bottom toolbar). Banner redesign: AgentContextBanner (context-first), DesignFrame title/subtitle updated.
 - 2026-01-19: Rehydrated AgentFrame with the legacy Kip agent surface and preserved v0 close navigation.
