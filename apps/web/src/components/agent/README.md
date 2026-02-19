@@ -28,6 +28,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-02-18: AgentComposer: compact toolbar (send inside), sticky above Margin when Kip active, expanded uploads (images, video, docs via Vercel Blob; text files inlined; URLs referenced as [Attached: name](url)).
 - 2026-02-18: Added AgentComposer (Cursor-style chat tool kit: agent/mode dropdown, config dropdown, attach, submit, feedback area). Simplified AgentContextBanner: removed agent name (moved to composer), kept domain · keeper/journey, Live, Open Cockpit. useAgentPostureData extended with setDialogueMode for mode switching.
 - 2026-02-17: Added JourneyCard and KeeperCard for workspace detail views (Draft UI style). Used by AgentBoardFrame when sidebar journey/keeper items are clicked.
 - 2026-02-17: Added AgentContextBanner (context-first: domain, keeper/journey, agent). Added DraftCard for inline-editing draft UI with sections and JSON toggle. AgentBoardFrame now uses AgentContextBanner; AgentPostureHeader remains for legacy KipAgentBoardPage.

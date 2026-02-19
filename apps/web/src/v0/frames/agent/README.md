@@ -27,6 +27,7 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 - [ ] Wire draft-to-dialogue flow (discuss draft with agent)
 
 ## 📆 Update Log
+- 2026-02-18: Agent Composer: compact toolbar (send inside), sticky above bottom Margin, expanded uploads (images, video, docs stored in blob, referenced as markdown links).
 - 2026-02-18: Agent Composer: replaced inline chat form with AgentComposer (agent/mode dropdown, config dropdown, attach, submit, feedback area). Simplified banner: removed agent from DesignFrame subtitle and AgentContextBanner; agent name and mode now in composer. Wired posture.dialogueMode to runAgent; useAgentPostureData.setDialogueMode for mode switching.
 - 2026-02-18: Chat file upload: validate file type before reading; reject images/binary to prevent garbled characters (IEND, etc.) in chat. Show alert for unsupported file types.
 - 2026-02-17: Sidebar items now load content in workspace: header clicks show list view (all drafts/journeys/keepers/sessions); item clicks open detail (JourneyCard, KeeperCard, DraftCard). Extended useAgentWorkspaceView with list, journey, keeper views. Added JourneyCard and KeeperCard (Draft UI style). SidebarCard supports onTitleClick.

@@ -651,7 +651,14 @@ export function AgentBoardFrame({
             : undefined
         }
       />
-      <AgentComposer
+      <div
+        className="sticky z-30 pt-2 -mx-2 -mb-2 px-2 pb-2"
+        style={{
+          bottom: "var(--v0-margin-height, 72px)",
+          backgroundColor: "hsl(var(--theme-surface-page))",
+        }}
+      >
+        <AgentComposer
         agentName={agentName}
         agentId={agent?.id ?? null}
         domainId={domainId}
@@ -678,7 +685,8 @@ export function AgentBoardFrame({
             </button>
           ) : undefined
         }
-      />
+        />
+      </div>
     </div>
   )
 
