@@ -18,7 +18,6 @@
  */
 
 import * as React from "react"
-import { PaperAirplaneIcon, PaperClipIcon } from "@heroicons/react/24/outline"
 import type { StyleId } from "../../styles/styles"
 import { DesignFrame } from "../DesignFrame"
 import { ThemeSwitcher } from "../ThemeSwitcher"
@@ -40,6 +39,7 @@ import { DialogueMessageList } from "../../../components/agent/DialogueMessageLi
 import { CockpitPanel } from "../../../components/agent/CockpitPanel"
 import { AgentContextBar } from "../../../components/agent/AgentContextBar"
 import { AgentContextBanner } from "../../../components/agent/AgentContextBanner"
+import { AgentComposer } from "../../../components/agent/AgentComposer"
 import { DraftCard } from "../../../components/agent/DraftCard"
 import type { DraftSpec } from "../../../components/agent/DraftCard"
 import { JourneyCard } from "../../../components/agent/JourneyCard"
@@ -401,7 +401,7 @@ export function AgentBoardFrame({
         result = await KipApi.runAgent(agent.id, content, undefined, activeSessionId, {
           domainId: domainId || undefined,
           domainSlug: domainSlug || undefined,
-          mode: "domain",
+          mode: posture.dialogueMode,
           activeJourneyId: frameCtx?.selection.activeJourneyId,
           activeKeeperId: frameCtx?.selection.activeKeeperId,
         })
@@ -413,7 +413,7 @@ export function AgentBoardFrame({
             result = await KipApi.runAgent(agent.id, content, undefined, activeSessionId, {
               domainId: domainId || undefined,
               domainSlug: domainSlug || undefined,
-              mode: "domain",
+              mode: posture.dialogueMode,
               activeJourneyId: frameCtx?.selection.activeJourneyId,
               activeKeeperId: frameCtx?.selection.activeKeeperId,
             })
@@ -651,82 +651,34 @@ export function AgentBoardFrame({
             : undefined
         }
       />
-      <form onSubmit={handleSendMessage} className="flex gap-2 pt-2">
-        <div className="flex flex-1 items-end gap-2 rounded-xl border px-3 py-2" style={{ borderColor: "var(--theme-border-soft)", backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)" }}>
-          <textarea
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault()
-                const form = (e.target as HTMLTextAreaElement).form
-                if (form && inputValue.trim() && activeSessionId && !isSending) {
-                  form.requestSubmit()
-                }
-              }
-            }}
-            placeholder={
-              activeSessionId
-                ? "Share your thoughts... (Shift+Enter for new line)"
-                : "Create a session to start chatting"
-            }
-            disabled={!activeSessionId || isSending}
-            rows={1}
-            className="min-h-[44px] max-h-32 flex-1 resize-y bg-transparent px-1 py-2 text-sm focus:outline-none focus:ring-0"
-            style={{ color: "var(--theme-ink-primary)" }}
-          />
-          <input
-            type="file"
-            id="chat-file-upload"
-            className="hidden"
-            accept=".txt,.md,.json,.csv,text/plain,text/markdown,application/json"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (!file) return
-              const reader = new FileReader()
-              reader.onload = () => {
-                const text = reader.result as string
-                if (text) setInputValue((prev) => (prev ? `${prev}\n\n${text}` : text))
-              }
-              reader.readAsText(file)
-              e.target.value = ""
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => document.getElementById("chat-file-upload")?.click()}
-            disabled={!activeSessionId || isSending}
-            className="flex cursor-pointer items-center justify-center rounded-lg p-2 transition-opacity hover:opacity-70 disabled:pointer-events-none disabled:opacity-50"
-            style={{ color: "var(--theme-ink-secondary)" }}
-            title="Attach file (text files)"
-            aria-label="Attach file"
-          >
-            <PaperClipIcon className="h-5 w-5" />
-          </button>
-        </div>
-        <button
-          type="submit"
-          disabled={!inputValue.trim() || !activeSessionId || isSending}
-          className="inline-flex shrink-0 items-center justify-center rounded-xl px-4 py-3 text-white transition-colors disabled:opacity-50"
-          style={{ backgroundColor: "var(--theme-ink-primary)" }}
-        >
-          {isSending ? (
-            <span className="text-sm font-semibold">Sending…</span>
-          ) : (
-            <PaperAirplaneIcon className="h-5 w-5" />
-          )}
-        </button>
-      </form>
-      {messagesError && (
-        <button
-          type="button"
-          onClick={() => setMessagesError(null)}
-          className="text-xs underline"
-          style={{ color: "var(--theme-ink-secondary)" }}
-        >
-          Dismiss error
-        </button>
-      )}
+      <AgentComposer
+        agentName={agentName}
+        agentId={agent?.id ?? null}
+        domainId={domainId}
+        dialogueMode={posture.dialogueMode}
+        onModeChange={posture.setDialogueMode}
+        lensName={posture.lensName}
+        modelName={agent?.model_settings?.model || agent?.model}
+        onOpenCockpit={() => setView({ kind: "cockpit" })}
+        inputValue={inputValue}
+        onInputChange={setInputValue}
+        onSubmit={handleSendMessage}
+        onFileAttach={(text) => setInputValue((prev) => (prev ? `${prev}\n\n${text}` : text))}
+        isSending={isSending}
+        activeSessionId={activeSessionId}
+        feedbackSlot={
+          messagesError ? (
+            <button
+              type="button"
+              onClick={() => setMessagesError(null)}
+              className="text-xs underline"
+              style={{ color: "var(--theme-ink-secondary)" }}
+            >
+              Dismiss error
+            </button>
+          ) : undefined
+        }
+      />
     </div>
   )
 
@@ -1093,9 +1045,7 @@ export function AgentBoardFrame({
           ? "Agent Board"
           : `${posture.domainName || "Domain"} · Agent studio`
       }
-      subtitle={
-        isAgentLoading ? undefined : `with ${agentName}`
-      }
+      subtitle={undefined}
       themeSwitcherSlot={<ThemeSwitcher />}
       headerFooterSlot={
         !posture.isLoading && !posture.error ? (

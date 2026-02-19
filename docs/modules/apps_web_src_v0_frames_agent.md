@@ -14,10 +14,10 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 - Agent name loaded dynamically from `KipApi.getLeadAgent()` -- never hardcoded
 - Sidebar order: Drafts, Journeys, Keepers, Sessions, For you (renamed from Dialogues)
 - Workspace views via `useAgentWorkspaceView`: `dialogue` (conversation), `draft` (DraftCard with inline editing), `cockpit` (diagnostics)
-- Context-first banner (AgentContextBanner): domain · keeper/journey, with agent · Live
+- Context-first banner (AgentContextBanner): domain · keeper/journey, Live, Open Cockpit. Agent name and mode live in AgentComposer.
 - Selecting a Journey/Keeper in the sidebar scopes the agent context via `FrameContext.setActiveJourneyId/setActiveKeeperId`
 - Context bar above workspace shows active scope (journey, keeper, SOLE, session)
-- Uses extracted components: `DialogueMessageList`, `CockpitPanel`, `AgentContextBar`, `DraftCard`, `AgentContextBanner`
+- Uses extracted components: `DialogueMessageList`, `AgentComposer`, `CockpitPanel`, `AgentContextBar`, `DraftCard`, `AgentContextBanner`
 - `onConfirmDraftUpdate` wired: when user confirms `draft.update.propose`, calls `KipApi.updateDraft` and `refreshDrafts()`
 
 ## ⚠️ Notes & ToDo
@@ -27,6 +27,8 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 - [ ] Wire draft-to-dialogue flow (discuss draft with agent)
 
 ## 📆 Update Log
+- 2026-02-18: Agent Composer: replaced inline chat form with AgentComposer (agent/mode dropdown, config dropdown, attach, submit, feedback area). Simplified banner: removed agent from DesignFrame subtitle and AgentContextBanner; agent name and mode now in composer. Wired posture.dialogueMode to runAgent; useAgentPostureData.setDialogueMode for mode switching.
+- 2026-02-18: Chat file upload: validate file type before reading; reject images/binary to prevent garbled characters (IEND, etc.) in chat. Show alert for unsupported file types.
 - 2026-02-17: Chat UX: Shift+Enter for new line (Enter sends), textarea input, upload button (paperclip) for text files. Agent reliability: draft listing instruction, NOT_ALLOWED fix for draft actions, SOLE scope tagging, session naming closing ritual.
 - 2026-02-17: Sidebar reorder (Drafts, Journeys, Keepers, Sessions, For you). Renamed Dialogues → Sessions. Replaced draft form with DraftCard (inline editing, sections, JSON toggle, bottom toolbar). Banner redesign: AgentContextBanner (context-first), DesignFrame title/subtitle updated.
 - 2026-01-19: Rehydrated AgentFrame with the legacy Kip agent surface and preserved v0 close navigation.

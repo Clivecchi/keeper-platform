@@ -7,7 +7,7 @@
  * Used by AgentBoardFrame and KipAgentBoardPage.
  */
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { apiFetch } from "../lib/api"
 import { KipApi, type AgentModeState } from "../lib/kipApi"
 import { getDomainGovernance } from "../lib/governanceApi"
@@ -27,6 +27,8 @@ export interface AgentPostureData {
   isLive: boolean
   isLoading: boolean
   error: string | null
+  /** Update dialogue mode (domain/debug) and persist via API */
+  setDialogueMode: (mode: "domain" | "debug") => Promise<void>
 }
 
 interface ModeConfigResponse extends AgentModeState {
@@ -50,6 +52,8 @@ export function useAgentPostureData(args: {
   } = args
 
   const [modeState, setModeState] = useState<ModeConfigResponse | null>(null)
+  const modeStateRef = useRef(modeState)
+  modeStateRef.current = modeState
   const [governanceMode, setGovernanceMode] = useState<"strict" | "warn" | "off">("warn")
   const [domainName, setDomainName] = useState<string | null>(domainNameProp ?? null)
   const [voicePrefs, setVoicePrefs] = useState<VoicePreferences | null>(null)
@@ -120,6 +124,26 @@ export function useAgentPostureData(args: {
       : "Domain Lens")
   const dialogueMode = modeState?.activeMode ?? "domain"
 
+  const setDialogueMode = useCallback(
+    async (mode: "domain" | "debug") => {
+      if (!agentId) return
+      const prev = modeStateRef.current
+      setModeState((s) =>
+        s ? { ...s, activeMode: mode } : { activeMode: mode, modeConfigs: { domain: {}, debug: {} } }
+      )
+      try {
+        await KipApi.updateModeConfig(agentId, {
+          activeMode: mode,
+          domainId: domainId ?? undefined,
+        })
+      } catch (err) {
+        setModeState(prev)
+        throw err
+      }
+    },
+    [agentId, domainId]
+  )
+
   return {
     agentName: agentNameProp ?? "Agent",
     domainName: domainName ?? domainNameProp ?? null,
@@ -130,5 +154,6 @@ export function useAgentPostureData(args: {
     isLive: true,
     isLoading,
     error,
+    setDialogueMode,
   }
 }

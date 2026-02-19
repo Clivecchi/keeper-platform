@@ -1,12 +1,11 @@
 /**
  * AgentContextBanner
  *
- * Context-first banner for the Agent Board. Emphasizes domain and keeper/journey
- * in view; agent is secondary. Config (lens, mode, governance, voice) lives in
- * Cockpit only.
+ * Context-first banner for the Agent Board. Emphasizes domain and keeper/journey.
+ * Agent name and mode live in the AgentComposer. Config lives in Cockpit.
  *
  * Line 1: Domain · Keeper or Journey or "Agent studio"
- * Line 2: with {agentName} · Live + [Open Cockpit]
+ * Line 2: Live indicator (optional) + [Open Cockpit]
  */
 
 import * as React from "react"
@@ -22,7 +21,8 @@ export interface AgentContextBannerProps {
   domainName?: string | null
   keeperName?: string | null
   journeyName?: string | null
-  agentName: string
+  /** Kept for backward compatibility; no longer displayed (agent lives in composer) */
+  agentName?: string | null
   isLive?: boolean
   onOpenCockpit?: () => void
   className?: string
@@ -32,7 +32,6 @@ export const AgentContextBanner: React.FC<AgentContextBannerProps> = ({
   domainName,
   keeperName,
   journeyName,
-  agentName,
   isLive = true,
   onOpenCockpit,
   className = "",
@@ -42,7 +41,6 @@ export const AgentContextBanner: React.FC<AgentContextBannerProps> = ({
   const primaryLine = domainName
     ? `${domainName} · ${contextLabel}`
     : contextLabel
-  const secondaryLine = `with ${agentName}${isLive ? " · Live" : ""}`
 
   return (
     <div
@@ -59,12 +57,19 @@ export const AgentContextBanner: React.FC<AgentContextBannerProps> = ({
         >
           {primaryLine}
         </h2>
-        <span
-          className="text-sm"
-          style={{ color: SURFACE.inkSecondary }}
-        >
-          {secondaryLine}
-        </span>
+        {isLive && (
+          <span
+            className="flex items-center gap-1.5 text-sm"
+            style={{ color: SURFACE.inkSecondary }}
+          >
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: "rgb(16 185 129)" }}
+              aria-hidden
+            />
+            Live
+          </span>
+        )}
       </div>
       {onOpenCockpit && (
         <button

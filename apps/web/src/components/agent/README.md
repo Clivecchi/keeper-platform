@@ -4,7 +4,8 @@
 Shared presentational components for the agent/Kip interface. Extracted from the legacy `KipAgentBoardPage` monolith for reuse by the new `AgentBoardFrame` and any future agent surfaces.
 
 ## Key Files
-- `AgentContextBanner.tsx` -- Context-first banner for Agent Board: domain · keeper/journey/studio, with agent · Live, Open Cockpit. Used by AgentBoardFrame.
+- `AgentComposer.tsx` -- Cursor-style chat input with tool kit: agent/mode dropdown, config dropdown (model/lens, Open Cockpit), textarea, attach, submit, feedback area. Used by AgentBoardFrame.
+- `AgentContextBanner.tsx` -- Context-first banner for Agent Board: domain · keeper/journey/studio, Live indicator, Open Cockpit. Agent name lives in AgentComposer.
 - `AgentPostureHeader.tsx` -- Legacy governance stack banner (agent, domain, lens, mode, governance, voice). Used by KipAgentBoardPage.
 - `DraftCard.tsx` -- Inline-editing draft card: title, summary, status pill, sections (add/delete), JSON toggle, bottom toolbar (Save, JSON/Edit, ← Dialogue).
 - `JourneyCard.tsx` -- Detail view for a Journey (Draft UI style): title, forward, paths, moments, Set as Active, ← Dialogue.
@@ -17,6 +18,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - `helpers.ts` -- Shared formatting utilities: `formatDate`, `formatTime`, `formatRelative`, `shortId`.
 
 ## Data and Behavior
+- `AgentComposer` owns the dialogue input: agent name + mode selector (Domain/Debug), config dropdown (model/lens + Open Cockpit link), textarea, file attach (text files), submit. Receives `onFileAttach`, `onModeChange` (via `useAgentPostureData.setDialogueMode`), `feedbackSlot` for errors/hints.
 - `DialogueMessageList` renders `AgentDialogueMessage[]` with role-based styling (user messages right-aligned, agent messages left-aligned). Supports `LinkedCard` inline rendering and `ActionReceiptCard` for draft/entity creation receipts.
 - `SessionCard` displays `AgentConversationSession` from the `useAgentSessions` hook. Supports edit callbacks and active highlighting.
 - `CockpitPanel` reads `FrameContext` for keeper/journey selection to determine capability indicators (SOLE, journey tracking, etc.). When `allowedActions` is provided (e.g. from AgentBoardFrame), it displays the actual action list (draft.create, moment.create, sole.save, etc.); otherwise falls back to hardcoded capability labels. Option B: fetches keeper-scoped SOLE when `activeKeeperId` is set, domain anchor SOLE when only `domainId` is set.
@@ -26,6 +28,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-02-18: Added AgentComposer (Cursor-style chat tool kit: agent/mode dropdown, config dropdown, attach, submit, feedback area). Simplified AgentContextBanner: removed agent name (moved to composer), kept domain · keeper/journey, Live, Open Cockpit. useAgentPostureData extended with setDialogueMode for mode switching.
 - 2026-02-17: Added JourneyCard and KeeperCard for workspace detail views (Draft UI style). Used by AgentBoardFrame when sidebar journey/keeper items are clicked.
 - 2026-02-17: Added AgentContextBanner (context-first: domain, keeper/journey, agent). Added DraftCard for inline-editing draft UI with sections and JSON toggle. AgentBoardFrame now uses AgentContextBanner; AgentPostureHeader remains for legacy KipAgentBoardPage.
 - 2026-02-15: Added AgentPostureHeader for governance stack banner (agent, domain, lens, mode, governance, voice).
