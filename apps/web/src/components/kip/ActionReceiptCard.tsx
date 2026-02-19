@@ -16,6 +16,7 @@ export interface ActionReceipt {
   data?: {
     entityIds?: string[];
     draft?: { id: string; title: string; kind: string; key: string };
+    moment?: { id: string; title: string; journeyId?: string | null };
     links?: { open?: string; edit?: string };
     [key: string]: unknown;
   };
@@ -24,6 +25,7 @@ export interface ActionReceipt {
 export interface ActionReceiptCardProps {
   receipt: ActionReceipt;
   onOpenDraft?: (draftId: string) => void;
+  onOpenMoment?: (momentId: string) => void;
 }
 
 /**
@@ -39,14 +41,39 @@ function getActionLabel(actionType: string): string {
     'draft.get': 'Retrieved',
     'draft.read': 'Retrieved',
     'draft.update.propose': 'Proposed update',
+    'moment.create': 'Created',
     'sole.save': 'Memory saved',
   };
   return labels[actionType] || 'Completed';
 }
 
-export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, onOpenDraft }) => {
+/** Renders entity name as link when we have an open handler */
+function EntityLink({
+  children,
+  onClick,
+  className,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  className?: string;
+}) {
+  if (!onClick) return <>{children}</>;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`underline underline-offset-2 hover:opacity-80 focus:outline-none focus:ring-1 focus:ring-offset-1 rounded ${className ?? ''}`}
+      style={{ color: 'var(--theme-dialogue-user-bg, hsl(14, 60%, 56%))' }}
+    >
+      {children}
+    </button>
+  );
+}
+
+export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, onOpenDraft, onOpenMoment }) => {
   const { type, status, message, errorCode, data } = receipt;
   const draft = data?.draft;
+  const moment = data?.moment as { id: string; title: string; journeyId?: string | null } | undefined;
   const openUrl = data?.links?.open;
   const memoryCard = data?.memoryCard as { id?: string } | undefined;
   const reflection = data?.reflection as { id?: string } | undefined;
@@ -68,12 +95,28 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
           <div className="flex-1">
             <p className="text-xs font-semibold text-gray-700">
               ✓ {actionLabel}
-              {draft?.title && `: ${draft.title}`}
+              {draft?.title && (
+                <>
+                  :{' '}
+                  <EntityLink onClick={onOpenDraft && draft?.id ? () => onOpenDraft(draft.id) : undefined}>
+                    {draft.title}
+                  </EntityLink>
+                </>
+              )}
             </p>
-            {message && (draft?.title || isSoleSave) && message !== `Draft ${actionLabel.toLowerCase()} successfully` && (
+            {moment && (
+              <p className="mt-1 text-xs text-gray-600">
+                Moment{' '}
+                <EntityLink onClick={onOpenMoment ? () => onOpenMoment(moment.id) : undefined}>
+                  {moment.title}
+                </EntityLink>{' '}
+                created and kept
+              </p>
+            )}
+            {message && !moment && (draft?.title || isSoleSave) && message !== `Draft ${actionLabel.toLowerCase()} successfully` && (
               <p className="mt-1 text-xs text-gray-600">{message}</p>
             )}
-            {!draft?.title && !isSoleSave && message && (
+            {message && !moment && !draft?.title && !isSoleSave && (
               <p className="mt-1 text-xs text-gray-600">{message}</p>
             )}
             {isSoleSave && (memoryCard || reflection) && (

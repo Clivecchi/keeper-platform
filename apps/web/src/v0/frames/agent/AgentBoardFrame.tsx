@@ -640,6 +640,7 @@ export function AgentBoardFrame({
         error={messagesError}
         agentName={agentName}
         onOpenDraft={(draftId) => setView({ kind: "draft", draftId })}
+        onOpenMoment={(momentId) => navigateToFrame("moment", { draftId: momentId })}
         onConfirmDraftUpdate={
           domainId
             ? (draftId, payload) => {

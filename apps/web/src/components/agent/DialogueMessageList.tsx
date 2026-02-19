@@ -24,6 +24,8 @@ export interface DialogueMessageListProps {
   error: string | null
   /** Callback when a draft link is clicked */
   onOpenDraft?: (draftId: string) => void
+  /** Callback when a moment link is clicked (e.g. in action receipts) */
+  onOpenMoment?: (momentId: string) => void
   /** Callback when user confirms a proposed draft update */
   onConfirmDraftUpdate?: (draftId: string, payload: { title?: string; summary?: string; status?: string; spec?: unknown }) => void
   /** Agent name for empty state and thinking indicator (dynamic, not hardcoded) */
@@ -36,6 +38,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   isSending,
   error,
   onOpenDraft,
+  onOpenMoment,
   onConfirmDraftUpdate,
   agentName = "Agent",
 }) => (
@@ -114,6 +117,11 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                       onOpenDraft={
                         receipt.data?.draft?.id
                           ? (draftId) => onOpenDraft?.(draftId)
+                          : undefined
+                      }
+                      onOpenMoment={
+                        receipt.data?.moment?.id
+                          ? (momentId) => onOpenMoment?.(momentId)
                           : undefined
                       }
                     />
