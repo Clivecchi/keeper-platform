@@ -25,6 +25,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-02-19: Margin: integrated AgentComposer when Agent frame is active. Composer rendered in center of bar (Act left, Kip buttons right). Bar height expands to 140px when composer shown. AgentComposerContext provides composer state from AgentBoardFrame.
 - 2026-01-27: Renamed the Explore margin action to Act and kept Kip accessible for public users.
 - 2026-01-24: Replaced type-only React import in cover frame to avoid runtime `React` reference.
 - 2026-01-19: Refined margin bar styling to feel embedded and subtle.

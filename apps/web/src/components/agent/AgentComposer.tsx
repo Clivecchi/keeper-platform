@@ -3,14 +3,12 @@
 /**
  * AgentComposer
  *
- * Cursor-style chat input with integrated tool kit:
- * - Agent/mode dropdown (left)
- * - Config dropdown (model, lens, Open Cockpit)
- * - Text input + attach + submit (right)
- * - Feedback area below (errors, hints)
+ * Cursor-style chat input: input-first, tools neat on the right, grows with text.
+ * - Compact agent pill (left)
+ * - Flexible textarea (center, grows with content)
+ * - Attach + Send (right)
  *
- * Attachments: text files are inlined; images, video, docs are uploaded to
- * blob storage and referenced by URL (keeper-library style).
+ * Attachments: text files inlined; images, video, docs uploaded to blob storage.
  */
 
 import * as React from "react"
@@ -21,8 +19,9 @@ import { apiFetch } from "../../lib/api"
 const SURFACE = {
   inkPrimary: "var(--theme-ink-primary)",
   inkSecondary: "var(--theme-ink-secondary)",
+  inkTertiary: "var(--theme-ink-tertiary)",
   border: "var(--theme-border-soft)",
-  surfacePaper: "hsl(var(--theme-surface-paper) / 0.9)",
+  surfacePaper: "hsl(var(--theme-surface-paper) / 0.95)",
 }
 
 export interface AgentComposerProps {
@@ -44,6 +43,9 @@ export interface AgentComposerProps {
   feedbackSlot?: React.ReactNode
 }
 
+const MIN_ROWS = 1
+const MAX_ROWS = 6
+
 export const AgentComposer: React.FC<AgentComposerProps> = ({
   agentName,
   dialogueMode,
@@ -62,6 +64,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 }) => {
   const fileInputId = React.useId()
   const formRef = React.useRef<HTMLFormElement>(null)
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
   const { user } = useAuth()
   const [isUploading, setIsUploading] = React.useState(false)
 
@@ -114,7 +117,6 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         reader.readAsDataURL(file)
       })
 
-      const ext = file.name.split(".").pop() || "bin"
       const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_").slice(0, 80)
       const key = `uploads/${user.id}/agent/${activeSessionId || "temp"}/${Date.now()}-${safeName}`
 
@@ -150,139 +152,119 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     }
   }
 
-  const configLabel = modelName || lensName || "Config"
-  const [configSelectValue, setConfigSelectValue] = React.useState(configLabel)
-
+  // Auto-resize textarea to fit content
   React.useEffect(() => {
-    setConfigSelectValue(configLabel)
-  }, [configLabel])
+    const ta = textareaRef.current
+    if (!ta) return
+    ta.style.height = "auto"
+    const lineHeight = 20
+    const newHeight = Math.min(MAX_ROWS * lineHeight, Math.max(MIN_ROWS * lineHeight, ta.scrollHeight))
+    ta.style.height = `${newHeight}px`
+  }, [inputValue])
 
-  const handleConfigSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const v = e.target.value
-    if (v === "cockpit" && onOpenCockpit) {
-      onOpenCockpit()
-      setConfigSelectValue(configLabel)
-    }
-  }
+  const placeholder = activeSessionId
+    ? "Share your thoughts… (Shift+Enter for new line)"
+    : "Create a session to start chatting"
 
   return (
-    <div className="space-y-1.5">
+    <div className="flex flex-col gap-1">
       <form
         ref={formRef}
         onSubmit={onSubmit}
-        className="flex items-end gap-0 rounded-xl border px-2 py-1.5"
-        style={{ borderColor: SURFACE.border, backgroundColor: SURFACE.surfacePaper }}
+        className="flex min-h-[44px] items-end gap-2 rounded-xl border px-3 py-2 transition-colors focus-within:ring-2 focus-within:ring-offset-1"
+        style={{
+          borderColor: SURFACE.border,
+          backgroundColor: SURFACE.surfacePaper,
+          ["--tw-ring-color" as string]: "hsl(var(--theme-ink-primary) / 0.2)",
+        }}
       >
-        {/* Agent / mode dropdown */}
-        <div className="flex shrink-0 items-center gap-1">
-          <span className="text-sm" aria-hidden style={{ color: SURFACE.inkSecondary }}>
-            ∞
-          </span>
-          <span className="text-xs font-medium" style={{ color: SURFACE.inkPrimary }}>
-            {agentName}
-          </span>
-          <select
-            value={dialogueMode}
-            onChange={(e) => onModeChange?.(e.target.value as "domain" | "debug")}
-            disabled={disabled || !onModeChange}
-            className="rounded border-0 bg-transparent px-1.5 py-0.5 text-xs font-medium focus:outline-none focus:ring-0 disabled:opacity-50"
-            style={{ color: SURFACE.inkPrimary }}
-            aria-label="Agent mode"
-          >
-            <option value="domain">Domain</option>
-            <option value="debug">Debug</option>
-          </select>
-        </div>
-
-        {/* Config dropdown or label */}
+        {/* Agent pill - compact left */}
         <div className="flex shrink-0 items-center">
-          {onOpenCockpit ? (
-            <select
-              value={configSelectValue}
-              onChange={handleConfigSelectChange}
-              className="rounded border-0 bg-transparent px-1.5 py-0.5 text-xs focus:outline-none focus:ring-0 disabled:opacity-50"
-              style={{ color: SURFACE.inkSecondary }}
-              aria-label="Model and config"
-            >
-              <option value={configLabel}>{configLabel}</option>
-              <option value="cockpit">Open Cockpit</option>
-            </select>
-          ) : (
-            <span className="px-1.5 py-0.5 text-xs" style={{ color: SURFACE.inkSecondary }}>
-              {configLabel}
+          <div className="flex items-center gap-1 rounded-lg px-2 py-1" style={{ backgroundColor: "hsl(var(--theme-surface-page) / 0.5)" }}>
+            <span className="text-xs" aria-hidden style={{ color: SURFACE.inkSecondary }}>
+              ∞
             </span>
-          )}
+            <span className="text-xs font-medium" style={{ color: SURFACE.inkPrimary }}>
+              {agentName}
+            </span>
+            {onModeChange && (
+              <select
+                value={dialogueMode}
+                onChange={(e) => onModeChange(e.target.value as "domain" | "debug")}
+                disabled={disabled}
+                className="ml-0.5 cursor-pointer border-0 bg-transparent p-0 text-xs font-medium focus:outline-none focus:ring-0 disabled:opacity-50"
+                style={{ color: SURFACE.inkSecondary }}
+                aria-label="Agent mode"
+              >
+                <option value="domain">Domain</option>
+                <option value="debug">Debug</option>
+              </select>
+            )}
+          </div>
         </div>
 
-        {/* Divider */}
-        <div
-          className="mx-1 h-4 w-px shrink-0 self-center"
-          style={{ backgroundColor: SURFACE.border }}
-          aria-hidden
-        />
-
-        {/* Text input */}
+        {/* Text input - primary, grows */}
         <textarea
+          ref={textareaRef}
           value={inputValue}
           onChange={(e) => onInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={
-            activeSessionId
-              ? "Share your thoughts... (Shift+Enter for new line)"
-              : "Create a session to start chatting"
-          }
+          placeholder={placeholder}
           disabled={!activeSessionId || isSending || disabled}
-          rows={1}
-          className="min-h-[36px] max-h-24 flex-1 resize-y bg-transparent px-2 py-1.5 text-sm focus:outline-none focus:ring-0"
+          rows={MIN_ROWS}
+          className="min-h-[28px] max-h-[120px] flex-1 resize-none overflow-y-auto bg-transparent px-2 py-1.5 text-sm leading-5 focus:outline-none focus:ring-0"
           style={{ color: SURFACE.inkPrimary }}
         />
 
-        {/* Attach */}
-        {onFileAttach && (
-          <>
-            <input
-              type="file"
-              id={fileInputId}
-              className="hidden"
-              accept=".txt,.md,.json,.csv,text/plain,text/markdown,application/json,image/*,video/*,.pdf,.doc,.docx,application/pdf"
-              onChange={handleFileChange}
-            />
-            <button
-              type="button"
-              onClick={() => document.getElementById(fileInputId)?.click()}
-              disabled={!activeSessionId || isSending || disabled || isUploading}
-              className="flex shrink-0 cursor-pointer items-center justify-center rounded p-1.5 transition-opacity hover:opacity-70 disabled:pointer-events-none disabled:opacity-50"
-              style={{ color: SURFACE.inkSecondary }}
-              title="Attach file (text, images, video, docs)"
-              aria-label="Attach file"
-            >
-              {isUploading ? (
-                <span className="text-[10px] font-medium">…</span>
-              ) : (
-                <PaperClipIcon className="h-4 w-4" />
-              )}
-            </button>
-          </>
-        )}
-
-        {/* Submit - inside toolbar */}
-        <button
-          type="submit"
-          disabled={!inputValue.trim() || !activeSessionId || isSending || disabled}
-          className="flex shrink-0 items-center justify-center rounded-lg p-2 transition-opacity disabled:opacity-50"
-          style={{ backgroundColor: SURFACE.inkPrimary, color: "white" }}
-          aria-label="Send message"
-        >
-          {isSending ? (
-            <span className="text-xs font-medium">Sending…</span>
-          ) : (
-            <PaperAirplaneIcon className="h-4 w-4" />
+        {/* Tools - neat on the right */}
+        <div className="flex shrink-0 items-center gap-0.5">
+          {onFileAttach && (
+            <>
+              <input
+                type="file"
+                id={fileInputId}
+                className="hidden"
+                accept=".txt,.md,.json,.csv,text/plain,text/markdown,application/json,image/*,video/*,.pdf,.doc,.docx,application/pdf"
+                onChange={handleFileChange}
+              />
+              <button
+                type="button"
+                onClick={() => document.getElementById(fileInputId)?.click()}
+                disabled={!activeSessionId || isSending || disabled || isUploading}
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-black/5 disabled:pointer-events-none disabled:opacity-40"
+                style={{ color: SURFACE.inkSecondary }}
+                title="Attach file"
+                aria-label="Attach file"
+              >
+                {isUploading ? (
+                  <span className="text-[10px]">…</span>
+                ) : (
+                  <PaperClipIcon className="h-4 w-4" />
+                )}
+              </button>
+            </>
           )}
-        </button>
+          <button
+            type="submit"
+            disabled={!inputValue.trim() || !activeSessionId || isSending || disabled}
+            className="flex h-8 w-8 items-center justify-center rounded-md transition-opacity disabled:opacity-40"
+            style={{ backgroundColor: SURFACE.inkPrimary, color: "white" }}
+            aria-label="Send"
+          >
+            {isSending ? (
+              <span className="text-[10px] font-medium">…</span>
+            ) : (
+              <PaperAirplaneIcon className="h-4 w-4" strokeWidth={2} />
+            )}
+          </button>
+        </div>
       </form>
 
-      {/* Feedback area */}
-      {feedbackSlot && <div className="flex items-center gap-2 px-1">{feedbackSlot}</div>}
+      {feedbackSlot && (
+        <div className="flex items-center gap-2 px-1 text-xs" style={{ color: SURFACE.inkSecondary }}>
+          {feedbackSlot}
+        </div>
+      )}
     </div>
   )
 }

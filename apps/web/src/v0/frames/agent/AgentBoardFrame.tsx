@@ -39,7 +39,7 @@ import { DialogueMessageList } from "../../../components/agent/DialogueMessageLi
 import { CockpitPanel } from "../../../components/agent/CockpitPanel"
 import { AgentContextBar } from "../../../components/agent/AgentContextBar"
 import { AgentContextBanner } from "../../../components/agent/AgentContextBanner"
-import { AgentComposer } from "../../../components/agent/AgentComposer"
+import { AgentComposerProvider } from "../../shell/AgentComposerContext"
 import { DraftCard } from "../../../components/agent/DraftCard"
 import type { DraftSpec } from "../../../components/agent/DraftCard"
 import { JourneyCard } from "../../../components/agent/JourneyCard"
@@ -652,42 +652,6 @@ export function AgentBoardFrame({
             : undefined
         }
       />
-      <div
-        className="sticky z-30 pt-2 -mx-2 -mb-2 px-2 pb-2"
-        style={{
-          bottom: "var(--v0-margin-height, 72px)",
-          backgroundColor: "hsl(var(--theme-surface-page))",
-        }}
-      >
-        <AgentComposer
-        agentName={agentName}
-        agentId={agent?.id ?? null}
-        domainId={domainId}
-        dialogueMode={posture.dialogueMode}
-        onModeChange={posture.setDialogueMode}
-        lensName={posture.lensName}
-        modelName={agent?.model_settings?.model || agent?.model}
-        onOpenCockpit={() => setView({ kind: "cockpit" })}
-        inputValue={inputValue}
-        onInputChange={setInputValue}
-        onSubmit={handleSendMessage}
-        onFileAttach={(text) => setInputValue((prev) => (prev ? `${prev}\n\n${text}` : text))}
-        isSending={isSending}
-        activeSessionId={activeSessionId}
-        feedbackSlot={
-          messagesError ? (
-            <button
-              type="button"
-              onClick={() => setMessagesError(null)}
-              className="text-xs underline"
-              style={{ color: "var(--theme-ink-secondary)" }}
-            >
-              Dismiss error
-            </button>
-          ) : undefined
-        }
-        />
-      </div>
     </div>
   )
 
@@ -1045,7 +1009,35 @@ export function AgentBoardFrame({
     )
   }
 
+  const composerProps = {
+    agentName,
+    agentId: agent?.id ?? null,
+    domainId,
+    dialogueMode: posture.dialogueMode,
+    onModeChange: posture.setDialogueMode,
+    lensName: posture.lensName,
+    modelName: (agent?.model_settings?.model || agent?.model) ?? null,
+    onOpenCockpit: () => setView({ kind: "cockpit" }),
+    inputValue,
+    onInputChange: setInputValue,
+    onSubmit: handleSendMessage,
+    onFileAttach: (text: string) => setInputValue((prev) => (prev ? `${prev}\n\n${text}` : text)),
+    isSending,
+    activeSessionId,
+    feedbackSlot: messagesError ? (
+      <button
+        type="button"
+        onClick={() => setMessagesError(null)}
+        className="text-xs underline"
+        style={{ color: "var(--theme-ink-secondary)" }}
+      >
+        Dismiss error
+      </button>
+    ) : undefined,
+  }
+
   return (
+    <AgentComposerProvider value={composerProps}>
     <DesignFrame
       styleId={styleId}
       themeSlug={themeSlug}
@@ -1121,6 +1113,7 @@ export function AgentBoardFrame({
         {renderWorkspace()}
       </SidebarWorkspaceLayout>
     </DesignFrame>
+    </AgentComposerProvider>
   )
 }
 

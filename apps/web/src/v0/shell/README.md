@@ -7,6 +7,7 @@ Centralize frame routing, theme application, and navigation helpers for domain b
 - `V0Shell.tsx`
 - `V0ShellContext.tsx`
 - `FrameContext.tsx`
+- `AgentComposerContext.tsx` — Provides composer state from AgentBoardFrame to Margin (bottom bar)
 - `useExperienceMode.ts`
 - `useWorkspaceMode.ts`
 - `useWorkspaceView.ts`
@@ -25,6 +26,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - [ ] Default keeper/journey creation when none exist for a domain.
 
 ## 📆 Update Log
+- 2026-02-19: Added AgentComposerContext — AgentBoardFrame provides composer props; Margin consumes when frame is agent/kip to render composer in bottom bar.
 - 2026-01-31: Registered the Present frame in the v0 shell frame registry and frame key union.
 - 2026-01-27: Added Experience Mode controller + actions and allowed public Kip frame access.
 - 2026-01-19: Added kip frame alias to point at the agent surface.

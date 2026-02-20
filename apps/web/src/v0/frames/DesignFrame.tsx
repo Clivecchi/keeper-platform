@@ -6,7 +6,8 @@ import { useLocation, useNavigate } from "react-router-dom"
 import { Settings } from "lucide-react"
 import type { StyleId } from "../styles/styles"
 import { StyleScope } from "../styles/StyleScope"
-import { Margin, V0_MARGIN_HEIGHT } from "../components/Margin"
+import { Margin, V0_MARGIN_HEIGHT, V0_MARGIN_HEIGHT_WITH_COMPOSER } from "../components/Margin"
+import { useAgentComposerContext } from "../shell/AgentComposerContext"
 import { useAuth } from "../../context/AuthContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { apiFetch } from "../../lib/api"
@@ -70,9 +71,13 @@ export function DesignFrame({
 }: DesignFrameProps) {
   const { isAuthenticated } = useAuth()
   const v0Shell = useV0ShellOptional()
+  const composerProps = useAgentComposerContext()
   const navigate = useNavigate()
   const location = useLocation()
   const [isOpeningAdmin, setIsOpeningAdmin] = useState(false)
+
+  const isAgentFrame = v0Shell?.frame === "agent" || v0Shell?.frame === "kip"
+  const marginHeight = isAgentFrame && composerProps ? V0_MARGIN_HEIGHT_WITH_COMPOSER : V0_MARGIN_HEIGHT
 
   const handleOpenAdmin = async () => {
     if (!v0Shell?.domainSlug || isOpeningAdmin) return
@@ -109,7 +114,7 @@ export function DesignFrame({
         style={{
           backgroundColor: "var(--theme-surface-page)",
           color: "var(--theme-ink-primary)",
-          ["--v0-margin-height" as any]: V0_MARGIN_HEIGHT,
+          ["--v0-margin-height" as any]: marginHeight,
         }}
       >
         <div

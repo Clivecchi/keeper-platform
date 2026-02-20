@@ -2,9 +2,12 @@
 
 import { useLocation, useNavigate } from "react-router-dom"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
+import { useAgentComposerContext } from "../shell/AgentComposerContext"
 import { useAuth } from "../../context/AuthContext"
+import { AgentComposer } from "../../components/agent/AgentComposer"
 
 export const V0_MARGIN_HEIGHT = "72px"
+export const V0_MARGIN_HEIGHT_WITH_COMPOSER = "140px"
 
 function buildPreservedParams(search: URLSearchParams) {
   const params = new URLSearchParams()
@@ -20,6 +23,7 @@ export function Margin() {
   const navigate = useNavigate()
   const location = useLocation()
   const { isAuthenticated } = useAuth()
+  const composerProps = useAgentComposerContext()
 
   if (!v0Shell?.domainSlug) {
     return null
@@ -27,6 +31,9 @@ export function Margin() {
 
   const searchParams = new URLSearchParams(location.search)
   const hasFrame = searchParams.has("frame")
+  const frame = v0Shell.frame
+  const isAgentFrame = frame === "agent" || frame === "kip"
+  const showComposer = isAgentFrame && composerProps
 
   const handleNavigateToKip = () => {
     const params = buildPreservedParams(searchParams)
@@ -58,19 +65,22 @@ export function Margin() {
     navigate(`/d/${v0Shell.domainSlug}/board?${params.toString()}`)
   }
 
+  const marginHeight = showComposer ? V0_MARGIN_HEIGHT_WITH_COMPOSER : V0_MARGIN_HEIGHT
+
   return (
     <div
       className="fixed inset-x-0 bottom-0 z-40"
       style={{
-        height: V0_MARGIN_HEIGHT,
+        minHeight: marginHeight,
         borderTop: "1px solid var(--theme-border-soft)",
         backgroundColor: "hsl(var(--theme-surface-page) / 0.7)",
         backdropFilter: "blur(6px)",
       }}
     >
-      <div className="mx-auto flex h-full w-full max-w-5xl items-center px-6">
-        <div className="flex w-full items-center gap-4">
-          <div className="flex items-center gap-2">
+      <div className="mx-auto flex h-full min-h-[72px] w-full max-w-5xl flex-col justify-center gap-3 px-6 py-3">
+        <div className="flex w-full flex-1 items-center gap-4">
+          {/* Left: Act */}
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={handleExplore}
@@ -85,8 +95,19 @@ export function Margin() {
               Act
             </button>
           </div>
+
+          {/* Center: Composer when in Agent frame */}
+          {showComposer && composerProps ? (
+            <div className="flex min-w-0 flex-1 items-center">
+              <AgentComposer {...composerProps} />
+            </div>
+          ) : (
+            <div className="flex-1" />
+          )}
+
+          {/* Right: Kip, kip-old, Sign in */}
           <div
-            className="ml-auto flex items-center gap-2 border-l pl-4"
+            className="flex shrink-0 items-center gap-2 border-l pl-4"
             style={{ borderColor: "var(--theme-border-soft)" }}
           >
             <button
@@ -95,9 +116,9 @@ export function Margin() {
               className="flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
               style={{
                 borderColor: "var(--theme-border-soft)",
-                backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
+                backgroundColor: isAgentFrame ? "hsl(var(--theme-surface-paper) / 0.9)" : "hsl(var(--theme-surface-paper) / 0.7)",
                 color: "var(--theme-ink-primary)",
-                boxShadow: "0 0 0 1px rgba(60, 111, 165, 0.25)",
+                boxShadow: isAgentFrame ? "0 0 0 1px rgba(60, 111, 165, 0.25)" : undefined,
               }}
               aria-label={isAuthenticated ? "Open Kip" : "Open Kip (public scope)"}
             >
