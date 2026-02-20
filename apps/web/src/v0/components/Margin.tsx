@@ -7,7 +7,7 @@ import { useAuth } from "../../context/AuthContext"
 import { AgentComposer } from "../../components/agent/AgentComposer"
 
 export const V0_MARGIN_HEIGHT = "72px"
-export const V0_MARGIN_HEIGHT_WITH_COMPOSER = "140px"
+export const V0_MARGIN_HEIGHT_WITH_COMPOSER = "180px"
 
 function buildPreservedParams(search: URLSearchParams) {
   const params = new URLSearchParams()
@@ -16,6 +16,83 @@ function buildPreservedParams(search: URLSearchParams) {
   if (theme) params.set("theme", theme)
   if (style) params.set("style", style)
   return params
+}
+
+function ActionButtons({
+  onExplore,
+  onKip,
+  onKipOld,
+  onLogin,
+  isAuthenticated,
+  isAgentFrame,
+}: {
+  onExplore: () => void
+  onKip: () => void
+  onKipOld: () => void
+  onLogin: () => void
+  isAuthenticated: boolean
+  isAgentFrame: boolean
+}) {
+  return (
+    <div className="flex items-center justify-center gap-2">
+      <button
+        type="button"
+        onClick={onExplore}
+        className="rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
+        style={{
+          borderColor: "var(--theme-border-soft)",
+          backgroundColor: "hsl(var(--theme-surface-paper) / 0.65)",
+          color: "var(--theme-ink-primary)",
+        }}
+        aria-label="Enter the Act threshold"
+      >
+        Act
+      </button>
+      <button
+        type="button"
+        onClick={onKip}
+        className="flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
+        style={{
+          borderColor: "var(--theme-border-soft)",
+          backgroundColor: isAgentFrame ? "hsl(var(--theme-surface-paper) / 0.9)" : "hsl(var(--theme-surface-paper) / 0.7)",
+          color: "var(--theme-ink-primary)",
+          boxShadow: isAgentFrame ? "0 0 0 1px rgba(60, 111, 165, 0.25)" : undefined,
+        }}
+        aria-label={isAuthenticated ? "Open Kip" : "Open Kip (public scope)"}
+      >
+        <span className="inline-flex h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "#3C6FA5" }} aria-hidden />
+        Kip
+      </button>
+      <button
+        type="button"
+        onClick={onKipOld}
+        className="flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
+        style={{
+          borderColor: "var(--theme-border-soft)",
+          backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
+          color: "var(--theme-ink-primary)",
+        }}
+        aria-label="Open Kip (legacy)"
+      >
+        kip - old
+      </button>
+      {!isAuthenticated && (
+        <button
+          type="button"
+          onClick={onLogin}
+          className="flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
+          style={{
+            borderColor: "var(--theme-border-soft)",
+            backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
+            color: "var(--theme-ink-primary)",
+          }}
+          aria-label="Login to access domain scope"
+        >
+          Sign in
+        </button>
+      )}
+    </div>
+  )
 }
 
 export function Margin() {
@@ -77,84 +154,35 @@ export function Margin() {
         backdropFilter: "blur(6px)",
       }}
     >
-      <div className="mx-auto flex h-full min-h-[72px] w-full max-w-5xl flex-col justify-center gap-3 px-6 py-3">
-        <div className="flex w-full flex-1 items-center gap-4">
-          {/* Left: Act */}
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={handleExplore}
-              className="rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
-              style={{
-                borderColor: "var(--theme-border-soft)",
-                backgroundColor: "hsl(var(--theme-surface-paper) / 0.65)",
-                color: "var(--theme-ink-primary)",
-              }}
-              aria-label="Enter the Act threshold"
-            >
-              Act
-            </button>
-          </div>
-
-          {/* Center: Composer when in Agent frame */}
-          {showComposer && composerProps ? (
-            <div className="flex min-w-0 flex-1 items-center">
+      <div className="mx-auto flex h-full min-h-[72px] w-full max-w-5xl flex-col gap-3 px-6 py-3">
+        {showComposer && composerProps ? (
+          <>
+            {/* Composer full width on top */}
+            <div className="w-full flex-1 min-w-0">
               <AgentComposer {...composerProps} />
             </div>
-          ) : (
-            <div className="flex-1" />
-          )}
-
-          {/* Right: Kip, kip-old, Sign in */}
-          <div
-            className="flex shrink-0 items-center gap-2 border-l pl-4"
-            style={{ borderColor: "var(--theme-border-soft)" }}
-          >
-            <button
-              type="button"
-              onClick={handleNavigateToKip}
-              className="flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
-              style={{
-                borderColor: "var(--theme-border-soft)",
-                backgroundColor: isAgentFrame ? "hsl(var(--theme-surface-paper) / 0.9)" : "hsl(var(--theme-surface-paper) / 0.7)",
-                color: "var(--theme-ink-primary)",
-                boxShadow: isAgentFrame ? "0 0 0 1px rgba(60, 111, 165, 0.25)" : undefined,
-              }}
-              aria-label={isAuthenticated ? "Open Kip" : "Open Kip (public scope)"}
-            >
-              <span className="inline-flex h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "#3C6FA5" }} aria-hidden />
-              Kip
-            </button>
-            <button
-              type="button"
-              onClick={handleNavigateToKipOld}
-              className="flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
-              style={{
-                borderColor: "var(--theme-border-soft)",
-                backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
-                color: "var(--theme-ink-primary)",
-              }}
-              aria-label="Open Kip (legacy)"
-            >
-              kip - old
-            </button>
-            {!isAuthenticated && (
-              <button
-                type="button"
-                onClick={handleLogin}
-                className="flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
-                style={{
-                  borderColor: "var(--theme-border-soft)",
-                  backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
-                  color: "var(--theme-ink-primary)",
-                }}
-                aria-label="Login to access domain scope"
-              >
-                Sign in
-              </button>
-            )}
+            {/* Act, Kip, kip-old below */}
+            <ActionButtons
+              onExplore={handleExplore}
+              onKip={handleNavigateToKip}
+              onKipOld={handleNavigateToKipOld}
+              onLogin={handleLogin}
+              isAuthenticated={isAuthenticated}
+              isAgentFrame={isAgentFrame}
+            />
+          </>
+        ) : (
+          <div className="flex flex-1 items-center">
+            <ActionButtons
+              onExplore={handleExplore}
+              onKip={handleNavigateToKip}
+              onKipOld={handleNavigateToKipOld}
+              onLogin={handleLogin}
+              isAuthenticated={isAuthenticated}
+              isAgentFrame={isAgentFrame}
+            />
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

@@ -3,16 +3,16 @@
 /**
  * AgentComposer
  *
- * Cursor-style chat input: input-first, tools neat on the right, grows with text.
- * - Compact agent pill (left)
- * - Flexible textarea (center, grows with content)
- * - Attach + Send (right)
+ * Cursor-style layout:
+ * - Toolbar (top): ∞ Kip Domain | attach | send — all in one row, within container
+ * - Attachment bar (below toolbar): shows attached files when present
+ * - Text input (full width): the chat box, no elements splitting it
  *
- * Attachments: text files inlined; images, video, docs uploaded to blob storage.
+ * Act, Kip, kip-old are rendered below the composer by the Margin.
  */
 
 import * as React from "react"
-import { PaperAirplaneIcon, PaperClipIcon } from "@heroicons/react/24/outline"
+import { PaperAirplaneIcon, PaperClipIcon, XMarkIcon } from "@heroicons/react/24/outline"
 import { useAuth } from "../../context/AuthContext"
 import { apiFetch } from "../../lib/api"
 
@@ -22,6 +22,13 @@ const SURFACE = {
   inkTertiary: "var(--theme-ink-tertiary)",
   border: "var(--theme-border-soft)",
   surfacePaper: "hsl(var(--theme-surface-paper) / 0.95)",
+}
+
+export type PendingAttachment = {
+  id: string
+  name: string
+  url: string
+  type: "text" | "file"
 }
 
 export interface AgentComposerProps {
@@ -35,7 +42,7 @@ export interface AgentComposerProps {
   onOpenCockpit?: () => void
   inputValue: string
   onInputChange: (value: string) => void
-  onSubmit: (e: React.FormEvent) => void
+  onSubmit: (e: React.FormEvent, content: string) => void
   onFileAttach?: (text: string) => void
   isSending: boolean
   activeSessionId: string | null
@@ -43,20 +50,17 @@ export interface AgentComposerProps {
   feedbackSlot?: React.ReactNode
 }
 
-const MIN_ROWS = 1
+const MIN_ROWS = 2
 const MAX_ROWS = 6
 
 export const AgentComposer: React.FC<AgentComposerProps> = ({
   agentName,
   dialogueMode,
   onModeChange,
-  lensName,
-  modelName,
-  onOpenCockpit,
+  onFileAttach,
   inputValue,
   onInputChange,
   onSubmit,
-  onFileAttach,
   isSending,
   activeSessionId,
   disabled = false,
@@ -67,6 +71,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
   const { user } = useAuth()
   const [isUploading, setIsUploading] = React.useState(false)
+  const [attachments, setAttachments] = React.useState<PendingAttachment[]>([])
 
   const TEXT_TYPES = ["text/plain", "text/markdown", "text/csv", "application/json"]
   const TEXT_EXT = /\.(txt|md|json|csv)$/i
@@ -75,7 +80,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !onFileAttach) {
+    if (!file) {
       e.target.value = ""
       return
     }
@@ -84,7 +89,9 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       const reader = new FileReader()
       reader.onload = () => {
         const text = reader.result as string
-        if (text) onFileAttach(text)
+        if (text && onFileAttach) {
+          onFileAttach(text)
+        }
       }
       reader.readAsText(file)
       e.target.value = ""
@@ -133,8 +140,10 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         throw new Error(res?.error || "Upload failed")
       }
 
-      const ref = `\n\n[Attached: ${file.name}](${res.data.url})\n\n`
-      onFileAttach(ref)
+      setAttachments((prev) => [
+        ...prev,
+        { id: `${Date.now()}-${file.name}`, name: file.name, url: res.data!.url!, type: "file" },
+      ])
     } catch (err) {
       alert(err instanceof Error ? err.message : "Upload failed. Sign in and try again.")
     } finally {
@@ -143,16 +152,31 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     }
   }
 
+  const removeAttachment = (id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id))
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const attachmentMarkdown = attachments
+      .map((a) => `\n\n[Attached: ${a.name}](${a.url})\n\n`)
+      .join("")
+    const content = (inputValue.trim() + attachmentMarkdown).trim()
+    if (!content || !activeSessionId || isSending) return
+    setAttachments([])
+    onSubmit(e, content)
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      if (formRef.current && inputValue.trim() && activeSessionId && !isSending) {
+      if (formRef.current && (inputValue.trim() || attachments.length > 0) && activeSessionId && !isSending) {
         formRef.current.requestSubmit()
       }
     }
   }
 
-  // Auto-resize textarea to fit content
+  // Auto-resize textarea
   React.useEffect(() => {
     const ta = textareaRef.current
     if (!ta) return
@@ -166,97 +190,131 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     ? "Share your thoughts… (Shift+Enter for new line)"
     : "Create a session to start chatting"
 
+  const canSend = (inputValue.trim() || attachments.length > 0) && activeSessionId && !isSending && !disabled
+
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex w-full flex-col gap-1">
       <form
         ref={formRef}
-        onSubmit={onSubmit}
-        className="flex min-h-[44px] items-end gap-2 rounded-xl border px-3 py-2 transition-colors focus-within:ring-2 focus-within:ring-offset-1"
+        onSubmit={handleSubmit}
+        className="flex w-full flex-col rounded-xl border transition-colors focus-within:ring-2 focus-within:ring-offset-1"
         style={{
           borderColor: SURFACE.border,
           backgroundColor: SURFACE.surfacePaper,
           ["--tw-ring-color" as string]: "hsl(var(--theme-ink-primary) / 0.2)",
         }}
       >
-        {/* Agent pill - compact left */}
-        <div className="flex shrink-0 items-center">
-          <div className="flex items-center gap-1 rounded-lg px-2 py-1" style={{ backgroundColor: "hsl(var(--theme-surface-page) / 0.5)" }}>
-            <span className="text-xs" aria-hidden style={{ color: SURFACE.inkSecondary }}>
-              ∞
-            </span>
-            <span className="text-xs font-medium" style={{ color: SURFACE.inkPrimary }}>
-              {agentName}
-            </span>
-            {onModeChange && (
-              <select
-                value={dialogueMode}
-                onChange={(e) => onModeChange(e.target.value as "domain" | "debug")}
-                disabled={disabled}
-                className="ml-0.5 cursor-pointer border-0 bg-transparent p-0 text-xs font-medium focus:outline-none focus:ring-0 disabled:opacity-50"
-                style={{ color: SURFACE.inkSecondary }}
-                aria-label="Agent mode"
-              >
-                <option value="domain">Domain</option>
-                <option value="debug">Debug</option>
-              </select>
+        {/* Toolbar: Kip Domain (left) | attach | send (right) */}
+        <div className="flex items-center justify-between gap-2 border-b px-3 py-2" style={{ borderColor: SURFACE.border }}>
+          <div className="flex shrink-0 items-center">
+            <div
+              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1"
+              style={{ backgroundColor: "hsl(var(--theme-surface-page) / 0.5)" }}
+            >
+              <span className="text-xs" aria-hidden style={{ color: SURFACE.inkSecondary }}>
+                ∞
+              </span>
+              <span className="text-xs font-medium" style={{ color: SURFACE.inkPrimary }}>
+                {agentName}
+              </span>
+              {onModeChange && (
+                <select
+                  value={dialogueMode}
+                  onChange={(e) => onModeChange(e.target.value as "domain" | "debug")}
+                  disabled={disabled}
+                  className="ml-1 cursor-pointer border-0 bg-transparent p-0 text-xs font-medium focus:outline-none focus:ring-0 disabled:opacity-50"
+                  style={{ color: SURFACE.inkSecondary }}
+                  aria-label="Agent mode"
+                >
+                  <option value="domain">Domain</option>
+                  <option value="debug">Debug</option>
+                </select>
+              )}
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {onFileAttach && (
+              <>
+                <input
+                  type="file"
+                  id={fileInputId}
+                  className="hidden"
+                  accept=".txt,.md,.json,.csv,text/plain,text/markdown,application/json,image/*,video/*,.pdf,.doc,.docx,application/pdf"
+                  onChange={handleFileChange}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById(fileInputId)?.click()}
+                  disabled={!activeSessionId || isSending || disabled || isUploading}
+                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-black/5 disabled:pointer-events-none disabled:opacity-40"
+                  style={{ color: SURFACE.inkSecondary }}
+                  title="Attach file"
+                  aria-label="Attach file"
+                >
+                  {isUploading ? (
+                    <span className="text-[10px]">…</span>
+                  ) : (
+                    <PaperClipIcon className="h-4 w-4" />
+                  )}
+                </button>
+              </>
             )}
+            <button
+              type="submit"
+              disabled={!canSend}
+              className="flex h-8 w-8 items-center justify-center rounded-md transition-opacity disabled:opacity-40"
+              style={{ backgroundColor: SURFACE.inkPrimary, color: "white" }}
+              aria-label="Send"
+            >
+              {isSending ? (
+                <span className="text-[10px] font-medium">…</span>
+              ) : (
+                <PaperAirplaneIcon className="h-4 w-4" strokeWidth={2} />
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Text input - primary, grows */}
-        <textarea
-          ref={textareaRef}
-          value={inputValue}
-          onChange={(e) => onInputChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={!activeSessionId || isSending || disabled}
-          rows={MIN_ROWS}
-          className="min-h-[28px] max-h-[120px] flex-1 resize-none overflow-y-auto bg-transparent px-2 py-1.5 text-sm leading-5 focus:outline-none focus:ring-0"
-          style={{ color: SURFACE.inkPrimary }}
-        />
-
-        {/* Tools - neat on the right */}
-        <div className="flex shrink-0 items-center gap-0.5">
-          {onFileAttach && (
-            <>
-              <input
-                type="file"
-                id={fileInputId}
-                className="hidden"
-                accept=".txt,.md,.json,.csv,text/plain,text/markdown,application/json,image/*,video/*,.pdf,.doc,.docx,application/pdf"
-                onChange={handleFileChange}
-              />
-              <button
-                type="button"
-                onClick={() => document.getElementById(fileInputId)?.click()}
-                disabled={!activeSessionId || isSending || disabled || isUploading}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-black/5 disabled:pointer-events-none disabled:opacity-40"
-                style={{ color: SURFACE.inkSecondary }}
-                title="Attach file"
-                aria-label="Attach file"
-              >
-                {isUploading ? (
-                  <span className="text-[10px]">…</span>
-                ) : (
-                  <PaperClipIcon className="h-4 w-4" />
-                )}
-              </button>
-            </>
-          )}
-          <button
-            type="submit"
-            disabled={!inputValue.trim() || !activeSessionId || isSending || disabled}
-            className="flex h-8 w-8 items-center justify-center rounded-md transition-opacity disabled:opacity-40"
-            style={{ backgroundColor: SURFACE.inkPrimary, color: "white" }}
-            aria-label="Send"
+        {/* Attachment bar: shows attached files above the input */}
+        {attachments.length > 0 && (
+          <div
+            className="flex flex-wrap gap-2 px-3 py-2"
+            style={{ borderBottom: `1px solid ${SURFACE.border}`, backgroundColor: "hsl(var(--theme-surface-page) / 0.3)" }}
           >
-            {isSending ? (
-              <span className="text-[10px] font-medium">…</span>
-            ) : (
-              <PaperAirplaneIcon className="h-4 w-4" strokeWidth={2} />
-            )}
-          </button>
+            {attachments.map((a) => (
+              <div
+                key={a.id}
+                className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs"
+                style={{ borderColor: SURFACE.border, color: SURFACE.inkPrimary }}
+              >
+                <PaperClipIcon className="h-3.5 w-3.5 shrink-0" style={{ color: SURFACE.inkSecondary }} />
+                <span className="max-w-[120px] truncate">{a.name}</span>
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(a.id)}
+                  className="rounded p-0.5 transition-colors hover:bg-black/10"
+                  aria-label={`Remove ${a.name}`}
+                >
+                  <XMarkIcon className="h-3.5 w-3.5" style={{ color: SURFACE.inkSecondary }} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Full-width text input — no elements splitting it */}
+        <div className="w-full px-3 py-2">
+          <textarea
+            ref={textareaRef}
+            value={inputValue}
+            onChange={(e) => onInputChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            disabled={!activeSessionId || isSending || disabled}
+            rows={MIN_ROWS}
+            className="w-full min-h-[44px] max-h-[120px] resize-none overflow-y-auto bg-transparent text-sm leading-5 focus:outline-none focus:ring-0"
+            style={{ color: SURFACE.inkPrimary }}
+          />
         </div>
       </form>
 

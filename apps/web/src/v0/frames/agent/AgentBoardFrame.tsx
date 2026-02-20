@@ -379,9 +379,9 @@ export function AgentBoardFrame({
   }, [keeperViewId])
 
   // ── Handlers ──
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent, submittedContent?: string) => {
     e.preventDefault()
-    const content = inputValue.trim()
+    const content = (submittedContent ?? inputValue.trim()).trim()
     if (!content || !agent || !activeSessionId) return
 
     const optimistic: AgentDialogueMessage = {
