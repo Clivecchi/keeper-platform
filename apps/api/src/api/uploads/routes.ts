@@ -117,8 +117,12 @@ router.post('/direct', authMiddlewareCompat, async (req: Request, res: Response)
       return res.status(400).json({ success: false, error: 'Missing key or file data' });
     }
 
-    // Validate user owns this key
+    // Validate user owns this key (allows contextual paths: uploads/{userId}/agent/.../domain/.../keeper/.../journey/...)
     if (!key.startsWith(`uploads/${userId}/`)) {
+      return res.status(403).json({ success: false, error: 'Invalid upload key' });
+    }
+    // Reject path traversal
+    if (key.includes('..')) {
       return res.status(403).json({ success: false, error: 'Invalid upload key' });
     }
 

@@ -22,19 +22,34 @@ const SURFACE = {
   inkTertiary: "var(--theme-ink-tertiary)",
   border: "var(--theme-border-soft)",
   surfacePaper: "hsl(var(--theme-surface-paper) / 0.95)",
+  /** Toolbar: distinct but subtle, sits above the input */
+  toolbarBg: "hsl(var(--theme-surface-paper) / 0.82)",
+  /** Message area: clearly a typing surface — more opaque than toolbar */
+  inputBg: "hsl(var(--theme-surface-paper) / 0.98)",
+  /** Container: slightly elevated from the bar */
+  containerBorder: "hsl(var(--theme-ink-primary) / 0.12)",
 }
 
 export type PendingAttachment = {
   id: string
   name: string
   url: string
-  type: "text" | "file"
+  type: "text" | "image" | "file"
+}
+
+/** Attachment sent to the agent API (for vision and context) */
+export type AgentAttachment = {
+  url: string
+  name: string
+  type: "image" | "file"
 }
 
 export interface AgentComposerProps {
   agentName: string
   agentId: string | null
   domainId: string | null
+  keeperId?: string | null
+  journeyId?: string | null
   dialogueMode: "domain" | "debug"
   onModeChange?: (mode: "domain" | "debug") => void
   lensName?: string | null
@@ -42,7 +57,7 @@ export interface AgentComposerProps {
   onOpenCockpit?: () => void
   inputValue: string
   onInputChange: (value: string) => void
-  onSubmit: (e: React.FormEvent, content: string) => void
+  onSubmit: (e: React.FormEvent, options: { content: string; attachments?: AgentAttachment[] }) => void
   onFileAttach?: (text: string) => void
   isSending: boolean
   activeSessionId: string | null
@@ -53,8 +68,13 @@ export interface AgentComposerProps {
 const MIN_ROWS = 2
 const MAX_ROWS = 6
 
+const IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"]
+
 export const AgentComposer: React.FC<AgentComposerProps> = ({
   agentName,
+  domainId,
+  keeperId,
+  journeyId,
   dialogueMode,
   onModeChange,
   onFileAttach,
@@ -125,7 +145,12 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       })
 
       const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_").slice(0, 80)
-      const key = `uploads/${user.id}/agent/${activeSessionId || "temp"}/${Date.now()}-${safeName}`
+      const parts = ["uploads", user.id, "agent", activeSessionId || "temp"]
+      if (domainId) parts.push("domain", domainId)
+      if (keeperId) parts.push("keeper", keeperId)
+      if (journeyId) parts.push("journey", journeyId)
+      parts.push(`${Date.now()}-${safeName}`)
+      const key = parts.join("/")
 
       const res = (await apiFetch("/api/uploads/direct", {
         method: "POST",
@@ -140,9 +165,10 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         throw new Error(res?.error || "Upload failed")
       }
 
+      const attachmentType = IMAGE_TYPES.includes(file.type) ? "image" : "file"
       setAttachments((prev) => [
         ...prev,
-        { id: `${Date.now()}-${file.name}`, name: file.name, url: res.data!.url!, type: "file" },
+        { id: `${Date.now()}-${file.name}`, name: file.name, url: res.data!.url!, type: attachmentType },
       ])
     } catch (err) {
       alert(err instanceof Error ? err.message : "Upload failed. Sign in and try again.")
@@ -158,13 +184,14 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const attachmentMarkdown = attachments
-      .map((a) => `\n\n[Attached: ${a.name}](${a.url})\n\n`)
-      .join("")
-    const content = (inputValue.trim() + attachmentMarkdown).trim()
-    if (!content || !activeSessionId || isSending) return
+    const agentAttachments: AgentAttachment[] = attachments
+      .filter((a) => a.type !== "text")
+      .map((a) => ({ url: a.url, name: a.name, type: a.type as "image" | "file" }))
+    const content = inputValue.trim()
+    const hasContent = content.length > 0 || agentAttachments.length > 0
+    if (!hasContent || !activeSessionId || isSending) return
     setAttachments([])
-    onSubmit(e, content)
+    onSubmit(e, { content, attachments: agentAttachments })
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -197,19 +224,23 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="flex w-full flex-col rounded-xl border transition-colors focus-within:ring-2 focus-within:ring-offset-1"
+        className="flex w-full flex-col rounded-xl border-2 transition-colors focus-within:ring-2 focus-within:ring-offset-1"
         style={{
-          borderColor: SURFACE.border,
+          borderColor: SURFACE.containerBorder,
           backgroundColor: SURFACE.surfacePaper,
+          boxShadow: "0 1px 3px hsl(var(--theme-ink-primary) / 0.06)",
           ["--tw-ring-color" as string]: "hsl(var(--theme-ink-primary) / 0.2)",
         }}
       >
         {/* Toolbar: Kip Domain (left) | attach | send (right) */}
-        <div className="flex items-center justify-between gap-2 border-b px-3 py-2" style={{ borderColor: SURFACE.border }}>
+        <div
+          className="flex items-center justify-between gap-2 rounded-t-[10px] border-b px-3 py-2"
+          style={{ borderColor: SURFACE.border, backgroundColor: SURFACE.toolbarBg }}
+        >
           <div className="flex shrink-0 items-center">
             <div
               className="flex items-center gap-1.5 rounded-lg px-2.5 py-1"
-              style={{ backgroundColor: "hsl(var(--theme-surface-page) / 0.5)" }}
+              style={{ backgroundColor: "hsl(var(--theme-surface-page) / 0.6)" }}
             >
               <span className="text-xs" aria-hidden style={{ color: SURFACE.inkSecondary }}>
                 ∞
@@ -279,7 +310,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         {attachments.length > 0 && (
           <div
             className="flex flex-wrap gap-2 px-3 py-2"
-            style={{ borderBottom: `1px solid ${SURFACE.border}`, backgroundColor: "hsl(var(--theme-surface-page) / 0.3)" }}
+            style={{ borderBottom: `1px solid ${SURFACE.border}`, backgroundColor: SURFACE.toolbarBg }}
           >
             {attachments.map((a) => (
               <div
@@ -302,8 +333,11 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
           </div>
         )}
 
-        {/* Full-width text input — no elements splitting it */}
-        <div className="w-full px-3 py-2">
+        {/* Full-width text input — clearly a place to type */}
+        <div
+          className="w-full rounded-b-[10px] px-3 py-2"
+          style={{ backgroundColor: SURFACE.inputBg }}
+        >
           <textarea
             ref={textareaRef}
             value={inputValue}
@@ -312,8 +346,13 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             placeholder={placeholder}
             disabled={!activeSessionId || isSending || disabled}
             rows={MIN_ROWS}
-            className="w-full min-h-[44px] max-h-[120px] resize-none overflow-y-auto bg-transparent text-sm leading-5 focus:outline-none focus:ring-0"
-            style={{ color: SURFACE.inkPrimary }}
+            className="w-full min-h-[44px] max-h-[120px] resize-none overflow-y-auto rounded-md border text-sm leading-5 focus:outline-none focus:ring-2 focus:ring-offset-1"
+            style={{
+              color: SURFACE.inkPrimary,
+              backgroundColor: "hsl(var(--theme-surface-paper))",
+              borderColor: SURFACE.border,
+              ["--tw-ring-color" as string]: "hsl(var(--theme-ink-primary) / 0.25)",
+            }}
           />
         </div>
       </form>

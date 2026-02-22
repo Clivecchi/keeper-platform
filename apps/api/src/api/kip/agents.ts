@@ -27,7 +27,7 @@ import type {
   ModelProvider,
   ModelSettings
 } from '@keeper/database';
-import { ModelProviderService, ModelMessage, ModelProviderErrorCode } from '../../services/ModelProviderService.js';
+import { ModelProviderService, ModelMessage, ModelContentPart, ModelProviderErrorCode } from '../../services/ModelProviderService.js';
 import { SoleMemoryService } from '../../services/SoleMemoryService.js';
 import {
   preExecGovernanceCheck,
@@ -94,6 +94,8 @@ type DebugBundleInput = {
   symptom?: string | null;
 };
 
+type AgentAttachmentInput = { url: string; name: string; type: 'image' | 'file' };
+
 type RunAgentOptions = {
   domainId?: string | null;
   domainSlug?: string | null;
@@ -105,6 +107,7 @@ type RunAgentOptions = {
   draftIntentResult?: DraftIntentResult | null;
   activeJourneyId?: string | null;
   activeKeeperId?: string | null;
+  attachments?: AgentAttachmentInput[];
 };
 
 class AgentExecutionError extends Error {
@@ -1861,16 +1864,28 @@ const DebugBundleSchema = z.object({
   symptom: z.string().nullable().optional(),
 }).optional();
 
+const AgentAttachmentSchema = z.object({
+  url: z.string().url(),
+  name: z.string(),
+  type: z.enum(['image', 'file']),
+});
+
 const AgentRunSchema = z.object({
   agentId: z.string().min(1, 'Agent ID is required'),
-  input: z.string().min(1, 'Input is required'),
+  input: z.string().optional(),
   userId: z.string().optional(),
   sessionId: z.string().optional(),
   domainId: z.string().optional(),
   domainSlug: z.string().optional(),
   mode: z.enum(['domain', 'debug']).optional(),
   debugBundle: DebugBundleSchema,
-});
+  attachments: z.array(AgentAttachmentSchema).optional(),
+  activeJourneyId: z.string().nullable().optional(),
+  activeKeeperId: z.string().nullable().optional(),
+}).refine(
+  (data) => (typeof data.input === 'string' && data.input.trim().length > 0) || (Array.isArray(data.attachments) && data.attachments.length > 0),
+  { message: 'Either input text or at least one attachment is required', path: ['input'] }
+);
 
 const CreateSessionSchema = z.object({
   agentId: z.string().min(1, 'Agent ID is required'),
@@ -2500,7 +2515,7 @@ export class KipAgentService {
     input: string,
     previousMessages: KipMessageWithRelations[],
     userId?: string,
-    promptOptions?: {
+      promptOptions?: {
       mode: AgentModeKey;
       modeConfig: ModeConfig;
       lens?: { systemPrompt?: string | null };
@@ -2513,6 +2528,7 @@ export class KipAgentService {
       activeJourneyId?: string | null;
       activeKeeperId?: string | null;
       domainId?: string | null;
+      attachments?: { url: string; name: string; type: 'image' | 'file' }[];
     },
   ): Promise<{ content: string; composedSystemPrompt: string }> {
     try {
@@ -2784,12 +2800,27 @@ export class KipAgentService {
         });
       }
       
-      // Add current user message
-      const userContent = typeof modelInput.input === 'string' ? modelInput.input : JSON.stringify(modelInput.input);
-      messages.push({
-        role: 'user',
-        content: userContent
-      });
+      // Add current user message (multimodal when images are attached)
+      const attachments = promptOptions?.attachments ?? [];
+      const imageAttachments = attachments.filter((a) => a.type === 'image');
+      const textContent = typeof modelInput.input === 'string' ? modelInput.input : JSON.stringify(modelInput.input);
+
+      if (imageAttachments.length > 0) {
+        const parts: ModelContentPart[] = [];
+        if (textContent.trim()) {
+          parts.push({ type: 'text', text: textContent });
+        }
+        for (const img of imageAttachments) {
+          parts.push({ type: 'image_url', image_url: { url: img.url } });
+        }
+        if (parts.length === 0) {
+          parts.push({ type: 'text', text: '[Image(s) attached for analysis]' });
+        }
+        messages.push({ role: 'user', content: parts });
+      } else {
+        const userContent = textContent || '[No text provided]';
+        messages.push({ role: 'user', content: userContent });
+      }
       
       // Build composed system prompt (all system messages concatenated)
       const composedSystemPrompt = messages
@@ -2849,9 +2880,11 @@ export class KipAgentService {
     };
     
     try {
-      // Validate input
-      if (!agentId || !input) {
-        throw new Error('Agent ID and input are required');
+      // Validate input: need agentId and either input text or attachments
+      const hasInput = typeof input === 'string' && input.trim().length > 0;
+      const hasAttachments = Array.isArray(options?.attachments) && options.attachments.length > 0;
+      if (!agentId || (!hasInput && !hasAttachments)) {
+        throw new Error('Agent ID and either input text or attachments are required');
       }
 
       // Get agent safely using our helper method
@@ -2939,7 +2972,8 @@ export class KipAgentService {
           // Save user message to memory if we have a session
           if (currentSessionId) {
             try {
-              await this.saveMessage(currentSessionId, 'user', input, 'user', {
+              const textToSave = input?.trim() || (options?.attachments?.length ? `[${options.attachments.length} attachment(s)]` : '');
+              await this.saveMessage(currentSessionId, 'user', textToSave, 'user', {
                 timestamp: new Date().toISOString(),
                 agent_id: agentId
               });
@@ -2950,7 +2984,7 @@ export class KipAgentService {
         }
         
         // Generate response using real AI model with memory context
-        const aiResult = await this.callAIModel(agent, input, previousMessages, userId, {
+        const aiResult = await this.callAIModel(agent, input || '', previousMessages, userId, {
           mode: activeMode,
           modeConfig: activeModeConfig,
           lens: { systemPrompt: lens?.systemPrompt || null },
@@ -2963,6 +2997,7 @@ export class KipAgentService {
           activeJourneyId: options?.activeJourneyId ?? null,
           activeKeeperId: options?.activeKeeperId ?? null,
           domainId: options?.domainId ?? null,
+          attachments: options?.attachments ?? undefined,
         });
 
         const response = aiResult.content;
@@ -3760,13 +3795,16 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
           // Validate using Zod schema
           const validation = AgentRunSchema.safeParse({
             agentId,
-            input,
+            input: input ?? '',
             userId: requestUserId,
             sessionId,
             domainId: resolvedDomain.domainId,
             domainSlug: resolvedDomain.domainSlug,
             mode: (req.body as any)?.mode,
             debugBundle: (req.body as any)?.debugBundle,
+            attachments: (req.body as any)?.attachments,
+            activeJourneyId: (req.body as any)?.activeJourneyId ?? null,
+            activeKeeperId: (req.body as any)?.activeKeeperId ?? null,
           });
           if (!validation.success) {
             return respond(400, { 
@@ -3853,18 +3891,29 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             }
           }
 
-          const result = await KipAgentService.runAgent(agentId, input, requestUserId, sessionId, {
-            domainId: validation.data.domainId ?? resolvedDomain.domainId,
-            domainSlug: validation.data.domainSlug ?? resolvedDomain.domainSlug,
-            mode: validation.data.mode as AgentModeKey | undefined,
-            debugBundle: validation.data.debugBundle || null,
-            environment,
-            forceSkipActions: Boolean(draftIntentPayload),
-            actionPack,
-            draftIntentResult,
-            activeJourneyId: (req.body as any)?.activeJourneyId ?? null,
-            activeKeeperId: (req.body as any)?.activeKeeperId ?? null,
-          });
+          const result = await KipAgentService.runAgent(
+            agentId,
+            validation.data.input ?? '',
+            requestUserId,
+            sessionId,
+            {
+              domainId: validation.data.domainId ?? resolvedDomain.domainId,
+              domainSlug: validation.data.domainSlug ?? resolvedDomain.domainSlug,
+              mode: validation.data.mode as AgentModeKey | undefined,
+              debugBundle: validation.data.debugBundle || null,
+              environment,
+              forceSkipActions: Boolean(draftIntentPayload),
+              actionPack,
+              draftIntentResult,
+              activeJourneyId: validation.data.activeJourneyId ?? null,
+              activeKeeperId: validation.data.activeKeeperId ?? null,
+              attachments: validation.data.attachments?.map((a) => ({
+                url: a.url,
+                name: a.name,
+                type: a.type,
+              })) ?? undefined,
+            }
+          );
 
           if (draftIntentResult && (result as AgentResponse)?.data && typeof (result as AgentResponse).data === 'object') {
             (result as AgentResponse).data = {

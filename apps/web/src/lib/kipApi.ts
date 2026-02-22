@@ -580,7 +580,15 @@ export class KipApi {
     input: string,
     userId?: string,
     sessionId?: string,
-    options?: { domainId?: string | null; domainSlug?: string | null; mode?: AgentModeKey; debugBundle?: unknown; activeJourneyId?: string | null; activeKeeperId?: string | null },
+    options?: {
+      domainId?: string | null
+      domainSlug?: string | null
+      mode?: AgentModeKey
+      debugBundle?: unknown
+      activeJourneyId?: string | null
+      activeKeeperId?: string | null
+      attachments?: Array<{ url: string; name: string; type: "image" | "file" }>
+    },
   ): Promise<AgentResponse> {
     const response = await apiFetch('/api/kip/agents', {
       method: 'POST',
@@ -596,6 +604,7 @@ export class KipApi {
         debugBundle: options?.debugBundle,
         activeJourneyId: options?.activeJourneyId ?? undefined,
         activeKeeperId: options?.activeKeeperId ?? undefined,
+        attachments: options?.attachments ?? undefined,
       })
     });
 

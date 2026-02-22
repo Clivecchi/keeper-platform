@@ -10,9 +10,15 @@ import { ModelProvider, ModelSettings } from '@keeper/database';
 import { KipUserKeyService } from './KipUserKeyService.js';
 import { PlatformApiKeyService } from './PlatformApiKeyService.js';
 
+/** OpenAI-style content part for multimodal messages (text + images) */
+export type ModelContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
+
 export interface ModelMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  /** String for text-only; array for multimodal (text + image_url) */
+  content: string | ModelContentPart[];
 }
 
 export interface ModelResponse {
@@ -162,7 +168,7 @@ class OpenAIProvider {
           model: settings.model,
           messages: messages.map(msg => ({
             role: msg.role,
-            content: msg.content
+            content: msg.content,
           })),
           temperature: settings.temperature,
           max_tokens: settings.max_tokens,
@@ -208,7 +214,8 @@ class OpenAIProvider {
   }
 
   static getMockResponse(messages: ModelMessage[], settings: ModelSettings): Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'> {
-    const userMessage = messages.find(m => m.role === 'user')?.content || 'Hello';
+    const raw = messages.find(m => m.role === 'user')?.content;
+    const userMessage = typeof raw === 'string' ? raw : (Array.isArray(raw) ? raw.find(p => p.type === 'text')?.text ?? '[image(s) attached]' : 'Hello');
     
     return {
       success: true,
@@ -231,7 +238,8 @@ class AnthropicProvider {
     console.log(`[ANTHROPIC STUB] Would call ${settings.model} with ${messages.length} messages`);
     
     // TODO: Implement Anthropic SDK integration
-    const userMessage = messages.find(m => m.role === 'user')?.content || 'Hello';
+    const raw = messages.find(m => m.role === 'user')?.content;
+    const userMessage = typeof raw === 'string' ? raw : (Array.isArray(raw) ? raw.find(p => p.type === 'text')?.text ?? '[image(s) attached]' : 'Hello');
     
     return {
       success: true,
@@ -254,7 +262,8 @@ class TogetherProvider {
     console.log(`[TOGETHER STUB] Would call ${settings.model} with ${messages.length} messages`);
     
     // TODO: Implement Together AI SDK integration
-    const userMessage = messages.find(m => m.role === 'user')?.content || 'Hello';
+    const raw = messages.find(m => m.role === 'user')?.content;
+    const userMessage = typeof raw === 'string' ? raw : (Array.isArray(raw) ? raw.find(p => p.type === 'text')?.text ?? '[image(s) attached]' : 'Hello');
     
     return {
       success: true,
@@ -277,7 +286,8 @@ class ElevenLabsProvider {
     console.log(`[ELEVENLABS STUB] Would call ${settings.model} with ${messages.length} messages`);
     
     // TODO: Implement ElevenLabs SDK integration for voice synthesis
-    const userMessage = messages.find(m => m.role === 'user')?.content || 'Hello';
+    const raw = messages.find(m => m.role === 'user')?.content;
+    const userMessage = typeof raw === 'string' ? raw : (Array.isArray(raw) ? raw.find(p => p.type === 'text')?.text ?? '[image(s) attached]' : 'Hello');
     
     return {
       success: true,

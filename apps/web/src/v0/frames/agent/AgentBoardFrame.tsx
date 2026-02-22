@@ -379,10 +379,15 @@ export function AgentBoardFrame({
   }, [keeperViewId])
 
   // ── Handlers ──
-  const handleSendMessage = async (e: React.FormEvent, submittedContent?: string) => {
+  const handleSendMessage = async (
+    e: React.FormEvent,
+    options?: { content: string; attachments?: Array<{ url: string; name: string; type: "image" | "file" }> }
+  ) => {
     e.preventDefault()
-    const content = (submittedContent ?? inputValue.trim()).trim()
-    if (!content || !agent || !activeSessionId) return
+    const content = (options?.content ?? inputValue.trim()).trim()
+    const attachments = options?.attachments ?? []
+    const hasContent = content.length > 0 || attachments.length > 0
+    if (!hasContent || !agent || !activeSessionId) return
 
     const optimistic: AgentDialogueMessage = {
       id: `local-${Date.now()}`,
@@ -404,6 +409,7 @@ export function AgentBoardFrame({
           mode: posture.dialogueMode,
           activeJourneyId: frameCtx?.selection.activeJourneyId,
           activeKeeperId: frameCtx?.selection.activeKeeperId,
+          attachments: attachments.length > 0 ? attachments : undefined,
         })
       } catch (firstErr: unknown) {
         const status = (firstErr as { status?: number })?.status
@@ -416,6 +422,7 @@ export function AgentBoardFrame({
               mode: posture.dialogueMode,
               activeJourneyId: frameCtx?.selection.activeJourneyId,
               activeKeeperId: frameCtx?.selection.activeKeeperId,
+              attachments: attachments.length > 0 ? attachments : undefined,
             })
           } else {
             setMessagesError("Session expired. Please log in again.")
@@ -1013,6 +1020,8 @@ export function AgentBoardFrame({
     agentName,
     agentId: agent?.id ?? null,
     domainId,
+    keeperId: frameCtx?.selection.activeKeeperId ?? null,
+    journeyId: frameCtx?.selection.activeJourneyId ?? null,
     dialogueMode: posture.dialogueMode,
     onModeChange: posture.setDialogueMode,
     lensName: posture.lensName,
