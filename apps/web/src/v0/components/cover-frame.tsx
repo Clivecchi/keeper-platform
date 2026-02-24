@@ -9,6 +9,7 @@ import { CoverBody } from "../frames/cover/CoverBody"
 import { ThemeSwitcher } from "../frames/ThemeSwitcher"
 import { useAuth } from "../../context/AuthContext"
 import { apiFetch } from "../../lib/api"
+import { getBlobProxyUrl } from "../../lib/blobProxy"
 
 const COVER_IMPRINT = "KE3P"
 
@@ -75,9 +76,10 @@ export function CoverFrame({
   const coverState = coverStateParam === "open" ? "open" : "closed"
 
   const coverImageUrl = domainData?.theme?.coverImage ?? fetchedCoverUrl ?? null
-  const pageBackground = coverImageUrl
+  const displayUrl = coverImageUrl ? getBlobProxyUrl(coverImageUrl) : null
+  const pageBackground = displayUrl
     ? {
-        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${coverImageUrl})`,
+        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${displayUrl})`,
         backgroundPosition: "center",
         backgroundSize: "cover",
       }

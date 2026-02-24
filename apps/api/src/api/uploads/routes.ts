@@ -10,6 +10,66 @@ import { authMiddlewareCompat } from '../../middleware/authMiddleware.js';
 
 const router: Router = Router();
 
+/** Allowed blob hostnames - only proxy URLs from our Vercel Blob store */
+const BLOB_HOST_PATTERN = /\.(public|private)\.blob\.vercel-storage\.com$/;
+
+// =============================================================================
+// PUBLIC ROUTES (no auth)
+// =============================================================================
+
+/**
+ * GET /api/uploads/proxy?url=... - Proxy blob images for public display
+ * Fixes 401 when blob store is private or has access restrictions.
+ * Only allows URLs from *.blob.vercel-storage.com.
+ */
+router.get('/proxy', async (req: Request, res: Response) => {
+  try {
+    const rawUrl = req.query.url;
+    if (typeof rawUrl !== 'string' || !rawUrl) {
+      return res.status(400).json({ error: 'Missing url query parameter' });
+    }
+
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(rawUrl);
+    } catch {
+      return res.status(400).json({ error: 'Invalid url' });
+    }
+
+    if (!BLOB_HOST_PATTERN.test(parsedUrl.hostname)) {
+      return res.status(403).json({ error: 'URL must be from Vercel Blob storage' });
+    }
+
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!token) {
+      return res.status(503).json({ error: 'Blob storage not configured' });
+    }
+
+    const isPrivate = parsedUrl.hostname.includes('.private.');
+    let blobRes = await fetch(parsedUrl.href, {
+      headers: isPrivate ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    // Some "public" URLs may 401 if store is private - retry with token
+    if (blobRes.status === 401 && !isPrivate) {
+      blobRes = await fetch(parsedUrl.href, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
+    if (!blobRes.ok) {
+      return res.status(blobRes.status).json({ error: 'Failed to fetch image' });
+    }
+
+    const contentType = blobRes.headers.get('content-type') || 'image/jpeg';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // 24h cache
+    const buffer = Buffer.from(await blobRes.arrayBuffer());
+    res.send(buffer);
+  } catch (error) {
+    console.error('[Upload Proxy] Error:', error);
+    res.status(500).json({ error: 'Failed to proxy image' });
+  }
+});
+
 // =============================================================================
 // ZOD VALIDATION SCHEMAS
 // =============================================================================

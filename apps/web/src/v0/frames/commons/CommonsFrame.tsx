@@ -7,6 +7,7 @@ import { DesignFrame } from "../DesignFrame"
 import { ThemeSwitcher } from "../ThemeSwitcher"
 import { useAuth } from "../../../context/AuthContext"
 import { apiFetch } from "../../../lib/api"
+import { getBlobProxyUrl } from "../../../lib/blobProxy"
 import { EngagementButton } from "../../../components/engagement/EngagementButton"
 import { EngagementForm } from "../../../components/engagement/EngagementForm"
 import type { EngagementTemplateDefinition, EngagementContext } from "../../../components/engagement/EngagementForm"
@@ -780,7 +781,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
 
   const bannerBackground = coverMedia?.url
     ? {
-        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-paper) / 0.1), hsl(var(--theme-surface-paper) / 0.78)), url(${coverMedia.url})`,
+        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-paper) / 0.1), hsl(var(--theme-surface-paper) / 0.78)), url(${getBlobProxyUrl(coverMedia.url)})`,
         backgroundPosition: "center",
         backgroundSize: "cover",
       }
