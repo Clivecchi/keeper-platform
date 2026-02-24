@@ -21,6 +21,7 @@ interface DomainData {
   name: string;
   slug: string;
   description?: string;
+  theme?: { coverImage?: string | null } | null;
 }
 
 export function CoverFrame({
@@ -50,6 +51,15 @@ export function CoverFrame({
   const coverStateParam = searchParams.get("coverState") || searchParams.get("cover")
   const coverState = coverStateParam === "open" ? "open" : "closed"
 
+  const coverImageUrl = domainData?.theme?.coverImage ?? null
+  const pageBackground = coverImageUrl
+    ? {
+        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.15), hsl(var(--theme-surface-page) / 0.92)), url(${coverImageUrl})`,
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+      }
+    : { backgroundColor: "var(--theme-surface-page)" }
+
   const handleLogout = async () => {
     try {
       await fetch(`${(import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com'}/api/kam/auth/logout`, {
@@ -71,8 +81,8 @@ export function CoverFrame({
         className="min-h-screen"
         style={{
           padding: COVER_CONSTANTS.pad,
-          backgroundColor: "var(--theme-surface-page)",
           color: "var(--theme-ink-primary)",
+          ...pageBackground,
         }}
       >
         {/* Cover Frame imprint header */}

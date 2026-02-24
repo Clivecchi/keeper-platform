@@ -1088,46 +1088,41 @@ export class KipApi {
   }
 
   /**
-   * Get available models for a provider
+   * Fetch model catalog from API (providers, models, defaults).
+   * Use for model selection UI. Falls back to getAvailableModels/getDefaultSettings if API fails.
    */
-  static getAvailableModels(provider: ModelProvider): string[] {
-    switch (provider) {
-      case 'openai':
-        return [
-          'gpt-4o',
-          'gpt-4o-mini',
-          'gpt-4-turbo',
-          'gpt-4',
-          'gpt-3.5-turbo'
-        ];
-      case 'anthropic':
-        return [
-          'claude-3-5-sonnet-20241022',
-          'claude-3-5-haiku-20241022',
-          'claude-3-opus-20240229',
-          'claude-3-sonnet-20240229',
-          'claude-3-haiku-20240307'
-        ];
-      case 'together':
-        return [
-          'meta-llama/Llama-2-70b-chat-hf',
-          'meta-llama/Llama-2-13b-chat-hf',
-          'meta-llama/Llama-2-7b-chat-hf',
-          'mistralai/Mixtral-8x7B-Instruct-v0.1'
-        ];
-      case 'elevenlabs':
-        return [
-          'eleven_monolingual_v1',
-          'eleven_multilingual_v2',
-          'eleven_turbo_v2'
-        ];
-      default:
-        return [];
+  static async getModelCatalog(provider?: ModelProvider): Promise<{
+    providers: string[];
+    models: Array<{ id: string; label: string; provider: string; defaultSettings?: Partial<ModelSettings>; capabilities?: string[] }>;
+    defaults: Record<string, string>;
+  } | null> {
+    try {
+      const url = provider ? `/api/kip/models?provider=${provider}` : '/api/kip/models';
+      const res = await apiFetch(url) as { success?: boolean; data?: { providers: string[]; models: Array<{ id: string; label: string; provider: string; defaultSettings?: Partial<ModelSettings>; capabilities?: string[] }>; defaults: Record<string, string> } };
+      if (res?.success && res?.data) {
+        return res.data;
+      }
+      return null;
+    } catch {
+      return null;
     }
   }
 
   /**
-   * Get default settings for a provider
+   * Get available models for a provider (fallback when catalog API unavailable)
+   */
+  static getAvailableModels(provider: ModelProvider): string[] {
+    const FALLBACK: Record<ModelProvider, string[]> = {
+      openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
+      anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
+      together: ['meta-llama/Llama-2-70b-chat-hf', 'meta-llama/Llama-2-13b-chat-hf', 'meta-llama/Llama-2-7b-chat-hf', 'mistralai/Mixtral-8x7B-Instruct-v0.1'],
+      elevenlabs: ['eleven_monolingual_v1', 'eleven_multilingual_v2', 'eleven_turbo_v2'],
+    };
+    return FALLBACK[provider] ?? [];
+  }
+
+  /**
+   * Get default settings for a provider (fallback when catalog API unavailable)
    */
   static getDefaultSettings(provider: ModelProvider): ModelSettings {
     const baseSettings = {

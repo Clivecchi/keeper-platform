@@ -5,6 +5,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 
 ## 🧱 Key Files
 - `agents.ts`
+- `models.ts` — GET /api/kip/models (model catalog for frontend)
 - `lenses.ts`
 - `mode-config.ts`
 - `../../lib/env.ts`
@@ -23,6 +24,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2026-02-19: Added GET /api/kip/models. Returns model catalog (providers, models with id/label, defaults). ModelProviderService now reads from config/modelCatalog.ts.
 - 2026-02-15: SOLE memory links: sole.save payload extended with journeyId, momentId, engagementTemplateId; validation in agents.ts. SOLE architecture prompt + domain index injected into agent. Auth retry on 401 in AgentBoardFrame.
 - 2026-02-15: Wired Domain Contract to Kip: contract text now injected into system prompt when domainId present. Aligned draft rules with contract (plan/outline/spec/design/architecture → MUST call draft.create). SOLE high bar added to prompt.
 - 2026-02-17: Agent reliability: draft listing must include titles and dates (not just count); draft.create/update/delete always allowed (golden path); SOLE scope tagging (keeper vs domain-wide); session naming closing ritual.

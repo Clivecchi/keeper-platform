@@ -6,13 +6,15 @@
 
 import React from "react"
 import clsx from "clsx"
-import type { KipAgent } from "../../lib/kipApi"
+import type { KipAgent, ModelProvider, ModelSettings } from "../../lib/kipApi"
+import { KipApi } from "../../lib/kipApi"
 import type { AgentConversationSession } from "../../hooks/useAgentSessions"
 import { useFrameContextOptional } from "../../v0/shell/FrameContext"
 import { useAuth } from "../../context/AuthContext"
 import { apiFetch } from "../../lib/api"
 import { getDomainCompliance, type ComplianceMetrics } from "../../lib/governanceApi"
 import { formatRelative, shortId } from "./helpers"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../../features/board-studio/v0/components/ui/dialog"
 
 type SoleMemoryCard = {
   id: string
@@ -187,6 +189,8 @@ export interface CockpitPanelProps {
   soleStatus?: { soleActive: boolean; keeperSharpening?: boolean; memoryCount?: number } | null
   /** Show governance compliance panel (admin view) */
   showCompliance?: boolean
+  /** Called when agent config is updated (e.g. model change) so parent can refresh */
+  onAgentUpdated?: (updated: KipAgent) => void
 }
 
 export const CockpitPanel: React.FC<CockpitPanelProps> = ({
@@ -199,10 +203,25 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
   domainId = null,
   soleStatus = null,
   showCompliance = false,
+  onAgentUpdated,
 }) => {
   const { user } = useAuth()
   const [soleCards, setSoleCards] = React.useState<SoleMemoryCard[]>([])
   const [complianceMetrics, setComplianceMetrics] = React.useState<ComplianceMetrics | null>(null)
+  const [modelModalOpen, setModelModalOpen] = React.useState(false)
+  const [modelCatalog, setModelCatalog] = React.useState<{
+    providers: string[]
+    models: Array<{ id: string; label: string; provider: string }>
+    defaults: Record<string, string>
+  } | null>(null)
+  const [modelForm, setModelForm] = React.useState<{ provider: ModelProvider; model: string; temperature?: number; max_tokens?: number }>({
+    provider: "openai",
+    model: "gpt-4o",
+    temperature: 0.7,
+    max_tokens: 2000,
+  })
+  const [isSavingModel, setIsSavingModel] = React.useState(false)
+  const [modelSaveError, setModelSaveError] = React.useState<string | null>(null)
   const activeSession = sessions.find(
     (session) => session.id === activeSessionId,
   )
@@ -242,6 +261,51 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
       .catch(() => setSoleCards([]))
     return () => { active = false }
   }, [activeKeeperId, domainId, user?.id])
+
+  React.useEffect(() => {
+    if (modelModalOpen) {
+      KipApi.getModelCatalog()
+        .then((c) => c && setModelCatalog(c))
+        .catch(() => {})
+      if (agent) {
+        const provider = (agent.model_provider || "openai") as ModelProvider
+        const model = agent.model_settings?.model || agent.model || "gpt-4o"
+        setModelForm({
+          provider,
+          model,
+          temperature: agent.model_settings?.temperature ?? 0.7,
+          max_tokens: agent.model_settings?.max_tokens ?? 2000,
+        })
+      }
+      setModelSaveError(null)
+    }
+  }, [modelModalOpen, agent])
+
+  const handleSaveModel = async () => {
+    if (!agent?.id || !onAgentUpdated) return
+    setIsSavingModel(true)
+    setModelSaveError(null)
+    try {
+      const model_settings: ModelSettings = {
+        model: modelForm.model,
+        temperature: modelForm.temperature ?? 0.7,
+        max_tokens: modelForm.max_tokens ?? 2000,
+        retry: { max_retries: 3, retry_delay_ms: 1000 },
+      }
+      const updated = await KipApi.updateAgent(agent.id, {
+        model_provider: modelForm.provider,
+        model_settings,
+      })
+      onAgentUpdated(updated)
+      setModelModalOpen(false)
+    } catch (err) {
+      setModelSaveError(err instanceof Error ? err.message : "Failed to update model")
+    } finally {
+      setIsSavingModel(false)
+    }
+  }
+
+  const providerModels = modelCatalog?.models?.filter((m) => m.provider === modelForm.provider) ?? []
 
   React.useEffect(() => {
     if (!showCompliance || !domainId) {
@@ -287,7 +351,20 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
         </ul>
       </FrameCard>
 
-      <FrameCard title="Agent Configuration">
+      <FrameCard
+        title="Agent Configuration"
+        action={
+          onAgentUpdated && agent ? (
+            <button
+              type="button"
+              onClick={() => setModelModalOpen(true)}
+              className="text-xs font-medium text-emerald-600 hover:text-emerald-700 underline"
+            >
+              Change model
+            </button>
+          ) : null
+        }
+      >
         <dl className="space-y-3 text-sm text-gray-700">
           <div className="flex items-center justify-between">
             <dt>Provider</dt>
@@ -317,6 +394,104 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
           </div>
         </dl>
       </FrameCard>
+
+      <Dialog open={modelModalOpen} onOpenChange={setModelModalOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Change model</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {modelSaveError && (
+              <p className="text-sm text-red-600">{modelSaveError}</p>
+            )}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Provider</label>
+              <select
+                value={modelForm.provider}
+                onChange={(e) => {
+                  const p = e.target.value as ModelProvider
+                  const defaults = modelCatalog?.defaults
+                  const defaultModel = defaults?.[p] ?? KipApi.getDefaultSettings(p).model
+                  setModelForm((prev) => ({ ...prev, provider: p, model: defaultModel }))
+                }}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+              >
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="together">Together AI</option>
+                <option value="elevenlabs">ElevenLabs</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Model</label>
+              <select
+                value={modelForm.model}
+                onChange={(e) => setModelForm((prev) => ({ ...prev, model: e.target.value }))}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+              >
+                {providerModels.length > 0
+                  ? providerModels.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))
+                  : (KipApi.getAvailableModels(modelForm.provider).map((id) => (
+                      <option key={id} value={id}>
+                        {id}
+                      </option>
+                    )))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">Temperature</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={2}
+                  step={0.1}
+                  value={modelForm.temperature ?? 0.7}
+                  onChange={(e) =>
+                    setModelForm((prev) => ({ ...prev, temperature: parseFloat(e.target.value) || 0.7 }))
+                  }
+                  className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">Max tokens</label>
+                <input
+                  type="number"
+                  min={100}
+                  max={16000}
+                  step={100}
+                  value={modelForm.max_tokens ?? 2000}
+                  onChange={(e) =>
+                    setModelForm((prev) => ({ ...prev, max_tokens: parseInt(e.target.value, 10) || 2000 }))
+                  }
+                  className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setModelModalOpen(false)}
+              className="rounded border border-gray-300 px-3 py-1.5 text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveModel}
+              disabled={isSavingModel}
+              className="rounded bg-emerald-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+            >
+              {isSavingModel ? "Saving…" : "Save"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {composedSystemPrompt && (
         <FrameCard title="Composed System Prompt" subtitle="Full system prompt the model receives (read-only)">

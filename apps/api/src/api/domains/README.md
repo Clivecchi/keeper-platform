@@ -33,6 +33,8 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+### 2026-02-23 - Cover image in by-slug response
+- Added `theme` to `GET /api/domains/by-slug/:slug` select so domain cover image (`theme.coverImage`) is available for the public cover frame.
 ### 2026-02-09 - SOLE domain anchor (Option B)
 - Added `GET /api/domains/:domainId/kip/sole-memory-cards` for domain anchor SOLE records (keeperId null). Requires domain read permission.
 ### 2026-01-18 - Domain home board endpoint

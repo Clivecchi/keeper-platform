@@ -963,6 +963,7 @@ export function AgentBoardFrame({
         domainId={domainId}
         soleStatus={soleStatus}
         showCompliance={isAdmin}
+        onAgentUpdated={(updated) => setAgent(updated)}
       />
       <button
         type="button"

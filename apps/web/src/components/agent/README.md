@@ -28,6 +28,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-02-19: CockpitPanel: Added "Change model" button and modal. Fetches model catalog from GET /api/kip/models. onAgentUpdated callback refreshes parent agent state.
 - 2026-02-19: AgentComposer: Cursor-style layout. Toolbar (∞ Kip Domain | attach | send) above full-width input. Attachment bar shows file previews above input; files upload to blob, no longer inlined as text. Act/Kip/kip-old moved below composer by Margin.
 - 2026-02-18: ActionReceiptCard: entity names (draft title, moment title) now clickable links when onOpenDraft/onOpenMoment provided. DialogueMessageList passes onOpenMoment; AgentBoardFrame wires to navigateToFrame("moment", { draftId }).
 - 2026-02-18: AgentComposer: compact toolbar (send inside), sticky above Margin when Kip active, expanded uploads (images, video, docs via Vercel Blob; text files inlined; URLs referenced as [Attached: name](url)).

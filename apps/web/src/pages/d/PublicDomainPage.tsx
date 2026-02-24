@@ -244,7 +244,8 @@ export default function PublicDomainPage() {
             domainData={domainData ? {
               name: domainData.name,
               slug: domainData.slug,
-              description: domainData.description
+              description: domainData.description,
+              theme: domainData.theme,
             } : undefined}
           />
         )}

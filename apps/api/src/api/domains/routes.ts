@@ -94,6 +94,7 @@ router.get('/by-slug/:slug', async (req: Request, res: Response) => {
         customDomain: true,
         customDomainVerified: true,
         ownerId: true,
+        theme: true,
       }
     });
 

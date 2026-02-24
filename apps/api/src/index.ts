@@ -51,6 +51,7 @@ import kipAgentsHandler from './api/kip/agents.js';
 import kipPlatformKeysRouter from './api/kip/platform-keys.js';
 import kipLensesRouter from './api/kip/lenses.js';
 import kipModeConfigRouter from './api/kip/mode-config.js';
+import kipModelsRouter from './api/kip/models.js';
 import { getUserKeys, setUserKey, deleteUserKey, getUserProviders } from './api/kip/user-keys.js';
 // Import KAM settings handler
 import kamSettingsHandler from './api/kam/settings.js';
@@ -1146,6 +1147,7 @@ const kipChain = [
   },
 ];
 app.use('/api/kip/lenses', ...kipChain, kipLensesRouter);
+app.use('/api/kip/models', ...kipChain, kipModelsRouter);
 app.use('/api/kip/agents', ...kipChain, kipModeConfigRouter);
 app.use('/api/kip/agents', ...kipChain, kipAgentsHandler);
 app.use('/api/kip/platform-keys', ...kipChain, kipPlatformKeysRouter);

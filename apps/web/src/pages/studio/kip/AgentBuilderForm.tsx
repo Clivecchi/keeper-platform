@@ -40,6 +40,11 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
   const [permissionsInput, setPermissionsInput] = useState('');
   const [availableAgents, setAvailableAgents] = useState<KipAgent[]>([]);
   const [selectedBundleAgents, setSelectedBundleAgents] = useState<string[]>([]);
+  const [modelCatalog, setModelCatalog] = useState<{
+    providers: string[];
+    models: Array<{ id: string; label: string; provider: string }>;
+    defaults: Record<string, string>;
+  } | null>(null);
 
   const providerOptions = [
     { value: 'openai' as ModelProvider, label: 'OpenAI', description: 'GPT models (GPT-4o, GPT-4 Turbo, etc.)' },
@@ -48,11 +53,15 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
     { value: 'elevenlabs' as ModelProvider, label: 'ElevenLabs', description: 'Voice synthesis models' }
   ];
 
-  // Get available models for the selected provider
+  // Get available models for the selected provider (from catalog or fallback)
   const getAvailableModels = (provider: ModelProvider) => {
-    return KipApi.getAvailableModels(provider).map(model => ({
+    if (modelCatalog?.models) {
+      const providerModels = modelCatalog.models.filter((m) => m.provider === provider);
+      return providerModels.map((m) => ({ value: m.id, label: m.label }));
+    }
+    return KipApi.getAvailableModels(provider).map((model) => ({
       value: model,
-      label: model.replace(/^(gpt-|claude-|meta-llama\/|mistralai\/|eleven_)/, '').replace(/-|_/g, ' ').toUpperCase()
+      label: model.replace(/^(gpt-|claude-|meta-llama\/|mistralai\/|eleven_)/, '').replace(/-|_/g, ' ').toUpperCase(),
     }));
   };
 
@@ -82,6 +91,19 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
       }
     };
     loadAgents();
+  }, []);
+
+  // Load model catalog from API
+  useEffect(() => {
+    const loadCatalog = async () => {
+      try {
+        const catalog = await KipApi.getModelCatalog();
+        if (catalog) setModelCatalog(catalog);
+      } catch {
+        // Fallback to getAvailableModels when catalog unavailable
+      }
+    };
+    loadCatalog();
   }, []);
 
   // Populate form data when editing an existing agent

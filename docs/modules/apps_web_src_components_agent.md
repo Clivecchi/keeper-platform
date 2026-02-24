@@ -26,6 +26,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-02-19: CockpitPanel: Added "Change model" button and modal. Fetches model catalog from GET /api/kip/models. onAgentUpdated callback refreshes parent agent state.
 - 2026-02-18: ActionReceiptCard: entity names (draft title, moment title) now clickable links when onOpenDraft/onOpenMoment provided. DialogueMessageList passes onOpenMoment; AgentBoardFrame wires to navigateToFrame("moment", { draftId }).
 - 2026-02-18: Added AgentComposer (Cursor-style chat tool kit: agent/mode dropdown, config dropdown, attach, submit, feedback area). Simplified AgentContextBanner: removed agent name (moved to composer), kept domain · keeper/journey, Live, Open Cockpit. useAgentPostureData extended with setDialogueMode for mode switching.
 - 2026-02-17: Added AgentContextBanner (context-first: domain, keeper/journey, agent). Added DraftCard for inline-editing draft UI with sections and JSON toggle. AgentBoardFrame now uses AgentContextBanner; AgentPostureHeader remains for legacy KipAgentBoardPage.

@@ -25,6 +25,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-02-23: CoverFrame now renders domain cover image as full-page background when `domainData.theme.coverImage` is present. DomainData interface extended with optional `theme`.
 - 2026-02-19: Margin: Composer full-width on top; Act, Kip, kip-old below. Bar height 180px when composer shown. AgentComposerContext provides state from AgentBoardFrame.
 - 2026-01-27: Renamed the Explore margin action to Act and kept Kip accessible for public users.
 - 2026-01-24: Replaced type-only React import in cover frame to avoid runtime `React` reference.
