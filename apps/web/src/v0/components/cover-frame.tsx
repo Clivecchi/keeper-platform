@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import type { StyleId } from "../styles/styles"
 import { StyleScope } from "../styles/StyleScope"
@@ -8,6 +8,7 @@ import { DesignFrame } from "../frames/DesignFrame"
 import { CoverBody } from "../frames/cover/CoverBody"
 import { ThemeSwitcher } from "../frames/ThemeSwitcher"
 import { useAuth } from "../../context/AuthContext"
+import { apiFetch } from "../../lib/api"
 
 const COVER_IMPRINT = "KE3P"
 
@@ -18,6 +19,7 @@ const COVER_CONSTANTS = {
 }
 
 interface DomainData {
+  id?: string;
   name: string;
   slug: string;
   description?: string;
@@ -37,8 +39,29 @@ export function CoverFrame({
   const [searchParams] = useSearchParams();
   const { isAuthenticated, user, isAdmin, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [fetchedCoverUrl, setFetchedCoverUrl] = useState<string | null>(null);
 
-  console.log('CoverFrame rendered, navigate function:', typeof navigate);
+  // Fallback: when domainData has id but no theme.coverImage (e.g. old API or by-slug omits theme),
+  // fetch domain by ID to get full theme. Only when authenticated (endpoint requires auth).
+  useEffect(() => {
+    const domainId = domainData?.id
+    const hasCoverFromProps = !!domainData?.theme?.coverImage
+    const isRealId = domainId && !domainId.startsWith("fallback-")
+    if (!isAuthenticated || !isRealId || hasCoverFromProps) return
+
+    let ignore = false
+    ;(async () => {
+      try {
+        const res = await apiFetch(`/api/domains/${domainId}`) as { domain?: { theme?: { coverImage?: string | null } } }
+        if (ignore) return
+        const url = res?.domain?.theme?.coverImage ?? null
+        if (url) setFetchedCoverUrl(url)
+      } catch {
+        // Ignore; by-slug response is the source of truth when available
+      }
+    })()
+    return () => { ignore = true }
+  }, [domainData?.id, domainData?.theme?.coverImage, isAuthenticated])
 
   // Dynamic cover content based on domain
   const coverTitle = domainData?.name || "Welcome to Keeper";
@@ -51,10 +74,10 @@ export function CoverFrame({
   const coverStateParam = searchParams.get("coverState") || searchParams.get("cover")
   const coverState = coverStateParam === "open" ? "open" : "closed"
 
-  const coverImageUrl = domainData?.theme?.coverImage ?? null
+  const coverImageUrl = domainData?.theme?.coverImage ?? fetchedCoverUrl ?? null
   const pageBackground = coverImageUrl
     ? {
-        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.15), hsl(var(--theme-surface-page) / 0.92)), url(${coverImageUrl})`,
+        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${coverImageUrl})`,
         backgroundPosition: "center",
         backgroundSize: "cover",
       }
