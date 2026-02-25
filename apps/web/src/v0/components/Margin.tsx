@@ -3,6 +3,7 @@
 import { useLocation, useNavigate } from "react-router-dom"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { useAgentComposerContext } from "../shell/AgentComposerContext"
+import { useKipChatDrawer, KipChatDrawer } from "./KipChatDrawer"
 import { useAuth } from "../../context/AuthContext"
 import { AgentComposer } from "../../components/agent/AgentComposer"
 
@@ -101,6 +102,7 @@ export function Margin() {
   const location = useLocation()
   const { isAuthenticated } = useAuth()
   const composerProps = useAgentComposerContext()
+  const kipChat = useKipChatDrawer()
 
   if (!v0Shell?.domainSlug) {
     return null
@@ -113,9 +115,14 @@ export function Margin() {
   const showComposer = isAgentFrame && composerProps
 
   const handleNavigateToKip = () => {
-    const params = buildPreservedParams(searchParams)
-    params.set("frame", "agent")
-    navigate(`/d/${v0Shell.domainSlug}/board?${params.toString()}`)
+    if (isAgentFrame) {
+      kipChat?.toggle()
+    } else {
+      const params = buildPreservedParams(searchParams)
+      params.set("frame", "agent")
+      navigate(`/d/${v0Shell.domainSlug}/board?${params.toString()}`)
+      kipChat?.open()
+    }
   }
 
   const handleNavigateToKipOld = () => {
@@ -145,6 +152,7 @@ export function Margin() {
   const marginHeight = showComposer ? V0_MARGIN_HEIGHT_WITH_COMPOSER : V0_MARGIN_HEIGHT
 
   return (
+    <>
     <div
       className="fixed inset-x-0 bottom-0 z-40"
       style={{
@@ -185,5 +193,7 @@ export function Margin() {
         )}
       </div>
     </div>
+    <KipChatDrawer />
+    </>
   )
 }
