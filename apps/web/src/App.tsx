@@ -120,7 +120,9 @@ const RootRedirect: React.FC = () => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const suffix = params.toString();
-  const target = `/d/default/board?frame=commons${suffix ? `&${suffix}` : ''}`;
+  // No frame param: V0Shell uses defaultFrame (cover for anon, commons for auth)
+  // Avoids double redirect: / -> ?frame=commons -> ?frame=cover for public visitors
+  const target = `/d/default/board${suffix ? `?${suffix}` : ''}`;
   return <Navigate to={target} replace />;
 };
 

@@ -28,6 +28,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-02-24 - blobProxy: direct URL for public blobs
+- Public blobs (*.public.blob.vercel-storage.com) now use direct URL; proxy returns 500 for these. Fixes domain cover image not showing on www.ke3p.com.
+
 ### 2025-12-17 - Domain policy client
 - Added `getDomainPolicy`/`updateDomainPolicy` helpers to edit domain-scoped Kip policy JSON via `/api/domains/:domainId/policy`.
 ### 2025-12-16 - Kip drafts client + environment helper
