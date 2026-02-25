@@ -79,7 +79,7 @@ export function CoverFrame({
   const displayUrl = coverImageUrl ? getBlobProxyUrl(coverImageUrl) : null
   const pageBackground = displayUrl
     ? {
-        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${imageUrl})`,
+        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${displayUrl})`,
         backgroundPosition: "center",
         backgroundSize: "cover",
       }
