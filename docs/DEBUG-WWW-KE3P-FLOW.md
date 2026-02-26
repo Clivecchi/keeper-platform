@@ -58,11 +58,11 @@ Public visitors never get to see commons (it's private), so they are always redi
 
 **Root cause:** The upload proxy (`/api/uploads/proxy`) returns **500 Internal Server Error** when fetching the cover image from Vercel Blob. The blobProxy always routes blob URLs through the proxy; for public blobs the proxy is unnecessary and is failing.
 
-**Fix:** Use the direct blob URL for public blobs (`*.public.blob.vercel-storage.com`). They are publicly readable and do not require the proxy.
+**Fix:** Use the direct blob URL for public blobs (`*.public.blob.vercel-storage.com`). They are publicly readable and do not require the proxy. (NOT YET VERIFIED - run enhanced Debug to confirm which URL works.)
 
 ---
 
 ## Summary of fixes
 
 1. **Double load:** Change `RootRedirect` to target `/d/default/board` without `frame=commons`, so `defaultFrame` applies (cover for anon, commons for auth). Avoids the second redirect.
-2. **Domain image:** In `blobProxy.ts`, return the raw URL for public blobs instead of proxying them.
+2. **Domain image:** Run Debug to verify: does proxy URL or direct blob URL work as `<img src>`? Then implement the one that works.

@@ -87,7 +87,7 @@ async function runDebugDiagnostics(): Promise<string> {
     lines.push(`Auth check error: ${e}`)
   }
 
-  // Domain / cover image
+  // Domain / cover image - VERIFY both URLs and DOM state
   try {
     const slug = window.location.pathname.match(/\/d\/([^/]+)/)?.[1] || "default"
     const res = await apiFetch(`/api/domains/by-slug/${slug}`) as { id?: string; theme?: { coverImage?: string } }
@@ -101,12 +101,49 @@ async function runDebugDiagnostics(): Promise<string> {
     lines.push(`  getBlobProxyUrl result: ${displayUrl ?? "null"}`)
 
     if (coverUrl) {
+      const proxyTestUrl = (displayUrl?.startsWith("/") ? window.location.origin + displayUrl : displayUrl) || coverUrl
+      const directTestUrl = coverUrl
+
+      // 1. Proxy URL - HEAD and GET
       try {
-        const testUrl = (displayUrl?.startsWith("/") ? window.location.origin + displayUrl : displayUrl) || coverUrl
-        const imgTest = await fetch(testUrl, { method: "HEAD" })
-        lines.push(`  image fetch status: ${imgTest.status}`)
+        const headRes = await fetch(proxyTestUrl, { method: "HEAD" })
+        lines.push(`  proxy HEAD status: ${headRes.status}`)
+        const getRes = await fetch(proxyTestUrl, { method: "GET" })
+        lines.push(`  proxy GET status: ${getRes.status}, contentType: ${getRes.headers.get("content-type") ?? "none"}`)
       } catch (e) {
-        lines.push(`  image fetch error: ${e}`)
+        lines.push(`  proxy fetch error: ${e}`)
+      }
+
+      // 2. Direct blob URL - does it work from this origin?
+      try {
+        const directRes = await fetch(directTestUrl, { method: "GET" })
+        lines.push(`  direct blob GET status: ${directRes.status}`)
+      } catch (e) {
+        lines.push(`  direct blob fetch error: ${String(e)}`)
+      }
+
+      // 3. IMG element test - simulates exactly what background-image does
+      const imgLoadTest = (url: string): Promise<{ ok: boolean; error?: string }> =>
+        new Promise((resolve) => {
+          const img = new Image()
+          img.onload = () => resolve({ ok: true })
+          img.onerror = (e) => resolve({ ok: false, error: "onerror fired" })
+          img.src = url
+        })
+      const proxyImg = await imgLoadTest(proxyTestUrl)
+      lines.push(`  proxy as <img src>: ${proxyImg.ok ? "LOADED" : "FAILED"}`)
+      const directImg = await imgLoadTest(directTestUrl)
+      lines.push(`  direct as <img src>: ${directImg.ok ? "LOADED" : "FAILED"}`)
+
+      // 4. DOM - does the cover element have background-image applied?
+      const coverDiv = document.querySelector('[style*="background-image"]') ?? document.querySelector('[style*="url("]') ?? document.querySelector("main")
+      if (coverDiv) {
+        const style = window.getComputedStyle(coverDiv)
+        const bgImg = style.backgroundImage
+        lines.push(`  DOM element: ${coverDiv.tagName}.${(coverDiv as Element).className || "no-class"}`)
+        lines.push(`  computed backgroundImage: ${bgImg === "none" ? "none" : bgImg.slice(0, 80) + "..."}`)
+      } else {
+        lines.push(`  DOM: no cover element found`)
       }
     }
   } catch (e) {
