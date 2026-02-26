@@ -28,6 +28,10 @@ export interface BuildFrameUrlOptions {
   preserveTheme?: boolean
 }
 
+export interface DomainDataTheme {
+  coverImage?: string | null
+}
+
 export interface V0ShellContextValue {
   domainSlug: string
   frame: V0FrameKey
@@ -36,6 +40,8 @@ export interface V0ShellContextValue {
   themeSlug: string | null
   styleId: StyleId
   draftId: string | null
+  /** Domain data including theme.coverImage for cover background on all frames */
+  domainData?: { theme?: DomainDataTheme } | null
   buildFrameUrl: (frame: V0FrameKey, options?: BuildFrameUrlOptions) => string
   navigateToFrame: (frame: V0FrameKey, options?: BuildFrameUrlOptions) => void
   closeToBoard: () => void

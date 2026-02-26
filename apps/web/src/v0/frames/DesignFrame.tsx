@@ -11,6 +11,7 @@ import { useAgentComposerContext } from "../shell/AgentComposerContext"
 import { useAuth } from "../../context/AuthContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { apiFetch } from "../../lib/api"
+import { getBlobProxyUrl } from "../../lib/blobProxy"
 
 interface DesignFrameProps {
   /** Frame style identifier */
@@ -79,6 +80,17 @@ export function DesignFrame({
   const isAgentFrame = v0Shell?.frame === "agent" || v0Shell?.frame === "kip"
   const marginHeight = isAgentFrame && composerProps ? V0_MARGIN_HEIGHT_WITH_COMPOSER : V0_MARGIN_HEIGHT
 
+  // Cover background: debug confirmed proxy URL works as img src; apply to all frames
+  const coverImageUrl = v0Shell?.domainData?.theme?.coverImage ?? null
+  const displayCoverUrl = coverImageUrl ? getBlobProxyUrl(coverImageUrl) : null
+  const pageBackground = displayCoverUrl
+    ? {
+        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.12), hsl(var(--theme-surface-page) / 0.82)), url(${displayCoverUrl})`,
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+      }
+    : { backgroundColor: "var(--theme-surface-page)" }
+
   const handleOpenAdmin = async () => {
     if (!v0Shell?.domainSlug || isOpeningAdmin) return
     setIsOpeningAdmin(true)
@@ -112,9 +124,9 @@ export function DesignFrame({
       <main
         className="min-h-screen text-foreground"
         style={{
-          backgroundColor: "var(--theme-surface-page)",
           color: "var(--theme-ink-primary)",
           ["--v0-margin-height" as any]: marginHeight,
+          ...pageBackground,
         }}
       >
         <div

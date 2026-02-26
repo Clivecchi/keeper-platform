@@ -153,6 +153,7 @@ export function V0Shell() {
           themeSlug,
           styleId,
           draftId,
+          domainData,
           buildFrameUrl,
           navigateToFrame,
           closeToBoard,
