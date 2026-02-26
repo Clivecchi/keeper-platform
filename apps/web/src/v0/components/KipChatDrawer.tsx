@@ -135,7 +135,11 @@ async function runDebugDiagnostics(): Promise<string> {
       const directImg = await imgLoadTest(directTestUrl)
       lines.push(`  direct as <img src>: ${directImg.ok ? "LOADED" : "FAILED"}`)
 
-      // 4. DOM - does the cover element have background-image applied?
+      // 4. What does V0Shell's domainData actually have? (set by V0Shell useEffect)
+      const v0DomainData = (window as any).__keeper_domainData
+      lines.push(`  V0Shell domainData.theme?.coverImage: ${v0DomainData?.theme?.coverImage ?? "null"}`)
+
+      // 5. DOM - does the cover element have background-image applied?
       const coverDiv = document.querySelector('[style*="background-image"]') ?? document.querySelector('[style*="url("]') ?? document.querySelector("main")
       if (coverDiv) {
         const style = window.getComputedStyle(coverDiv)

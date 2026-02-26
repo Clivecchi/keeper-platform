@@ -52,7 +52,7 @@ export function SidebarWorkspaceLayout({
   sidebarLabel = "Context sidebar",
   workspaceLabel = "Workspace",
   borderColor = SURFACE.border,
-  backgroundColor = "hsl(var(--theme-surface-paper) / 0.65)",
+  backgroundColor = "hsl(var(--theme-surface-paper) / 0.88)",
   className = "",
 }: SidebarWorkspaceLayoutProps) {
   return (

@@ -31,7 +31,7 @@ import * as React from "react"
 import { Plus } from "lucide-react"
 
 const SURFACE = {
-  sideCard: "hsl(var(--theme-surface-paper) / 0.6)",
+  sideCard: "hsl(var(--theme-surface-paper) / 0.9)",
   border: "var(--theme-border-soft)",
   inkPrimary: "var(--theme-ink-primary)",
   inkSecondary: "var(--theme-ink-secondary)",

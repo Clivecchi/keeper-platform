@@ -86,15 +86,21 @@ export function V0Shell() {
         if (response?.id) {
           setDomainData(response)
         }
-      } catch {
+      } catch (err) {
         if (ignore) return
         setDomainData(fallback)
+        console.warn("[V0Shell] Domain fetch failed:", err)
       }
     })()
     return () => {
       ignore = true
     }
   }, [slug])
+
+  // Debug: expose domainData so Kip Debug can verify what context receives
+  React.useEffect(() => {
+    ;(window as any).__keeper_domainData = domainData
+  }, [domainData])
 
   if (!slug) {
     return null

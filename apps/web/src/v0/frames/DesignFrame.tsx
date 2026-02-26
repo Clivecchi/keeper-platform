@@ -80,16 +80,18 @@ export function DesignFrame({
   const isAgentFrame = v0Shell?.frame === "agent" || v0Shell?.frame === "kip"
   const marginHeight = isAgentFrame && composerProps ? V0_MARGIN_HEIGHT_WITH_COMPOSER : V0_MARGIN_HEIGHT
 
-  // Cover background: debug confirmed proxy URL works as img src; apply to all frames
+  // Cover background: match CoverFrame gradient (0.08, 0.75) so image shows through
   const coverImageUrl = v0Shell?.domainData?.theme?.coverImage ?? null
   const displayCoverUrl = coverImageUrl ? getBlobProxyUrl(coverImageUrl) : null
   const pageBackground = displayCoverUrl
     ? {
-        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.12), hsl(var(--theme-surface-page) / 0.82)), url(${displayCoverUrl})`,
+        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${displayCoverUrl})`,
         backgroundPosition: "center",
         backgroundSize: "cover",
       }
-    : { backgroundColor: "var(--theme-surface-page)" }
+    : {
+        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page)), hsl(var(--theme-surface-paper) / 0.25))`,
+      }
 
   const handleOpenAdmin = async () => {
     if (!v0Shell?.domainSlug || isOpeningAdmin) return
@@ -142,9 +144,10 @@ export function DesignFrame({
             <div
               className="sticky top-0 z-40"
               style={{
-                backgroundColor: headerBackgroundColor ?? "hsl(var(--theme-surface-page) / 0.82)",
+                backgroundColor: headerBackgroundColor ?? "hsl(var(--theme-surface-paper) / 0.96)",
                 borderBottom: "1px solid var(--theme-border-soft)",
                 backdropFilter: "blur(8px)",
+                boxShadow: "0 1px 0 0 hsl(var(--theme-border-soft) / 0.5)",
                 paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
                 paddingBottom: "0.75rem",
                 top: headerStickyTop ?? "0",
