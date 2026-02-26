@@ -13,6 +13,8 @@
   ],
 
   "redirects": [
+    { "source": "/v1/:slug", "destination": "/d/:slug", "permanent": true },
+    { "source": "/v1/:slug/board", "destination": "/d/:slug/board", "permanent": true },
     {
       "source": "/(.*)",
       "has": [{ "type": "host", "value": "ke3p.com" }],

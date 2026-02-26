@@ -126,6 +126,17 @@ const RootRedirect: React.FC = () => {
   return <Navigate to={target} replace />;
 };
 
+/** Redirect /v1/:slug and /v1/:slug/board to /d/:slug (typo: v1 vs d) */
+const V1ToDRedirect: React.FC = () => {
+  const location = useLocation();
+  const match = location.pathname.match(/^\/v1\/([^/]+)(\/board)?/);
+  if (!match) return null;
+  const [, slug, boardPart] = match;
+  const path = `/d/${slug}${boardPart || ''}`;
+  const search = location.search || '';
+  return <Navigate to={`${path}${search}`} replace />;
+};
+
 const App: React.FC = () => {
   console.log('[App] Component rendered in environment:', import.meta.env.MODE);
   // Temporary SystemStatus health ping - remove after validation
@@ -250,6 +261,10 @@ const App: React.FC = () => {
         <Route path="/debug" element={<DebugPage />} />
         <Route path="/board-demo" element={<BoardDemoPage />} />
       </Route>
+      
+      {/* Redirect /v1/* to /d/* (common typo: v1 vs d) */}
+      <Route path="/v1/:slug" element={<V1ToDRedirect />} />
+      <Route path="/v1/:slug/board" element={<V1ToDRedirect />} />
       
       {/* Board Routes - Full Viewport, No Shell UI */}
       <Route element={<BoardPublicLayout />}>
