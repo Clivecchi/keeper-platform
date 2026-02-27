@@ -85,7 +85,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return true;
         }
       } else {
-        console.log('[AuthContext] ❌ No valid session (status:', response.status, ')');
+        // 401 is expected for logged-out visitors; only log when debugging
+        if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') {
+          console.log('[AuthContext] No valid session (status:', response.status, ')');
+        }
         // If both cookie and stored token failed, clear stale token
         clearAuthToken();
         setUser(null);
