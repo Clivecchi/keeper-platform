@@ -13,9 +13,9 @@ This folder contains the global provider wrapper that extracts all application-l
 ### Provider Hierarchy (in order)
 
 1. **React.StrictMode** - React development mode checks
-2. **AuthGate** - Validates session before rendering app
-3. **BrowserRouter** - React Router for navigation
-4. **AuthProvider** - Authentication state and user context
+2. **BrowserRouter** - React Router for navigation
+3. **AuthProvider** - Authentication state and user context (single /api/kam/auth/me on load)
+4. **AuthGate** - Waits for authResolved before rendering app (no duplicate fetch)
 5. **ThemeProvider** - Theme switching (light/dark)
 6. **ViewModeProvider** - View mode state
 7. **KeeperProvider** - Keeper-specific context
@@ -84,6 +84,10 @@ createRoot(document.getElementById('root')!).render(
 - No breaking changes
 
 ## 📆 Update Log
+
+### 2026-02-28 - Auth consolidation
+- Reordered providers: AuthProvider now wraps AuthGate so AuthGate uses AuthContext (single auth fetch)
+- Eliminates duplicate /api/kam/auth/me calls on load
 
 ### 2025-11-06 - Initial Creation
 - Created `AppProviders.tsx` component

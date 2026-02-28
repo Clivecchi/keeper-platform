@@ -24,12 +24,12 @@ import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
 import { useExperienceMode } from "./useExperienceMode"
 import { FrameContextProvider } from "./FrameContext"
 
+/** Placeholder used while domain is loading or when API fails. Never shows hardcoded marketing copy. */
 const getDomainFallback = (slug: string) => ({
   id: `fallback-${slug}`,
-  name: slug === "default" ? "Welcome to Keeper" : slug.charAt(0).toUpperCase() + slug.slice(1),
+  name: "",
   slug,
-  description:
-    slug === "default" ? "A quiet space for your thoughts and memories" : `Exploring ${slug.charAt(0).toUpperCase() + slug.slice(1)}`,
+  description: null as string | null,
 })
 
 const FRAME_REGISTRY: Record<V0FrameKey, React.ComponentType<any>> = {

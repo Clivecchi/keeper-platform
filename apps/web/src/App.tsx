@@ -252,11 +252,13 @@ const App: React.FC = () => {
         <Route path="/d/:slug/admin" element={<DomainAdminPage />} />
       </Route>
       
+      {/* Root redirect: single clean navigation without mounting PublicLayout */}
+      <Route path="/" element={<RootRedirect />} />
+      
       {/* Public Routes - No Authentication Required */}
       <Route element={<PublicLayout />}>
         <Route path="/v0" element={<V0Page />} />
         <Route path="/v0/style" element={<StyleEditorPage />} />
-        <Route path="/" element={<RootRedirect />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/debug" element={<DebugPage />} />
         <Route path="/board-demo" element={<BoardDemoPage />} />

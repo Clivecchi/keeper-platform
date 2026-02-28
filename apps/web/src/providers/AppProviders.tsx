@@ -37,9 +37,9 @@ interface AppProvidersProps {
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   return (
     <React.StrictMode>
-      <AuthGate>
-        <BrowserRouter>
-          <AuthProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <AuthGate>
             <ThemeProvider>
               <ViewModeProvider>
                 <WorldModeProvider>
@@ -53,9 +53,9 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
                 </WorldModeProvider>
               </ViewModeProvider>
             </ThemeProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </AuthGate>
+          </AuthGate>
+        </AuthProvider>
+      </BrowserRouter>
     </React.StrictMode>
   );
 };

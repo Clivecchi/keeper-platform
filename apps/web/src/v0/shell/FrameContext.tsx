@@ -140,10 +140,7 @@ export function FrameContextProvider({
     const fallback: FrameContextDomain = {
       id: `fallback-${domainSlug}`,
       slug: domainSlug,
-      name:
-        domainSlug === "default"
-          ? "Welcome to Keeper"
-          : domainSlug.charAt(0).toUpperCase() + domainSlug.slice(1),
+      name: "",
       description: null,
     }
 

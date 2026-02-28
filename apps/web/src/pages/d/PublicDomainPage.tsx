@@ -25,14 +25,12 @@ import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { useWorldMode } from '../../context/WorldModeContext';
 
-// Simple seeded fallback data for domains (no API required)
+/** Placeholder used while domain is loading or when API fails. Never shows hardcoded marketing copy. */
 const getDomainFallback = (slug: string) => ({
   id: `fallback-${slug}`,
-  name: slug === 'default' ? 'Welcome to Keeper' : slug.charAt(0).toUpperCase() + slug.slice(1),
-  slug: slug,
-  description: slug === 'default'
-    ? 'A quiet space for your thoughts and memories'
-    : `Exploring ${slug.charAt(0).toUpperCase() + slug.slice(1)}`
+  name: '',
+  slug,
+  description: null as string | null,
 });
 
 export default function PublicDomainPage() {

@@ -64,9 +64,11 @@ export function CoverFrame({
     return () => { ignore = true }
   }, [domainData?.id, domainData?.theme?.coverImage, isAuthenticated])
 
-  // Dynamic cover content based on domain
-  const coverTitle = domainData?.name || "Welcome to Keeper";
-  const coverLiner = domainData?.description || "A quiet space for your thoughts and memories";
+  // Dynamic cover content based on domain — never show hardcoded fallback to visitors.
+  // When domainData is loading (fallback id) or missing, show nothing until real data loads.
+  const isPlaceholder = !domainData?.id || domainData.id.startsWith("fallback-");
+  const coverTitle = isPlaceholder ? undefined : (domainData?.name ?? undefined);
+  const coverLiner = isPlaceholder ? undefined : (domainData?.description ?? undefined);
   const domainLabel = domainData?.slug || domainData?.name || "domain";
   const domainSlug = domainData?.slug || "default";
   const userLabel = user?.name || user?.email || "Account";

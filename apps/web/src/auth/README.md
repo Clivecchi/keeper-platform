@@ -11,10 +11,9 @@ Authentication utilities for session validation, error handling, token managemen
 ## 🔄 Data & Behavior
 
 **AuthGate** (PRIMARY AUTH CONTROL):
-- Wraps entire React app in main.tsx
-- Shows "Loading..." until auth status is verified with server
-- Makes blocking GET /api/domains/my request to validate token
-- THREE STATES:
+- Wraps app content inside AuthProvider; waits for authResolved from AuthContext
+- Shows "Loading..." until AuthProvider has resolved session (single /api/kam/auth/me call)
+- THREE STATES (via AuthContext):
   - `checking`: Validating with server (shows loading screen)
   - `authed`: Valid token confirmed by server (renders app)
   - `guest`: No token or invalid token (renders app in guest mode)
@@ -45,4 +44,5 @@ Authentication utilities for session validation, error handling, token managemen
 ## 📆 Update Log
 **2025-10-06**: Created AuthGate.tsx for strict auth validation before render
 **2025-10-06**: Created ensureSession.ts and handleAuthError.ts for hardened authentication flow
+**2026-02-28**: AuthGate refactored to use AuthContext as single source of truth — no duplicate /api/kam/auth/me calls. AuthGate now waits for authResolved from AuthProvider instead of making its own fetch.
 

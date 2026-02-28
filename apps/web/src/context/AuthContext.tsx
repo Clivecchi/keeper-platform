@@ -55,7 +55,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Fetch user session from server
   const fetchUserSession = React.useCallback(async () => {
-    console.log('[AuthContext] Fetching user session from server...');
+    if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') {
+      console.log('[AuthContext] Fetching user session from server...');
+    }
 
     try {
       const apiUrl = (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com';
@@ -77,7 +79,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (response.ok) {
         const data = await response.json();
         if (data.user) {
-          console.log('[AuthContext] ✅ User authenticated:', data.user.email);
+          if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') {
+            console.log('[AuthContext] ✅ User authenticated:', data.user.email);
+          }
           setUser(data.user);
           setToken(storedJwt || 'cookie-based');
           setIsAdmin(resolveIsAdmin(data.user));
@@ -96,7 +100,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAdmin(false);
       }
     } catch (error) {
-      console.error('[AuthContext] Failed to fetch user session:', error);
+      // 401 is expected for guests; only log actual failures (network, etc.)
+      const status = (error as any)?.response?.status ?? (error as any)?.status;
+      if (status !== 401) {
+        console.error('[AuthContext] Failed to fetch user session:', error);
+      }
       setUser(null);
       setToken(null);
       setIsAdmin(false);
