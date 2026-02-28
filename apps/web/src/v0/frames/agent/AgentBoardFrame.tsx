@@ -189,6 +189,10 @@ export function AgentBoardFrame({
         if (status === 401) {
           setAgentError(null)
           setAgent(null)
+        } else if (status === 404) {
+          // 404 = agent not found or not public — guests see sign-in prompt; auth users see error
+          setAgent(null)
+          setAgentError(isAuthenticated ? "Agent not found. The Kip agent may not be configured for this domain." : null)
         } else {
           setAgentError(err instanceof Error ? err.message : "Unable to load agent")
         }
@@ -1040,7 +1044,7 @@ export function AgentBoardFrame({
     )
   }
 
-  // ── Error state ──
+  // ── Error state (404 for auth users, or other failures) ──
   if (agentError && !isAgentLoading) {
     return (
       <DesignFrame styleId={styleId} themeSlug={themeSlug} title="Agent Board" subtitle="Unable to load agent">

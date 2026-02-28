@@ -249,10 +249,6 @@ export function KipChatDrawer() {
           >
             {debugLog}
           </pre>
-        ) : composerProps && isAgentFrame ? (
-          <div className="max-w-2xl">
-            <AgentComposer {...composerProps} />
-          </div>
         ) : !isAuthenticated ? (
           <div className="space-y-3 text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
             <p>Sign in to chat with Kip, the Keeper Platform Lead Agent.</p>
@@ -271,6 +267,10 @@ export function KipChatDrawer() {
             >
               Sign in
             </button>
+          </div>
+        ) : composerProps && isAgentFrame ? (
+          <div className="max-w-2xl">
+            <AgentComposer {...composerProps} />
           </div>
         ) : (
           <div className="space-y-3 text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
