@@ -168,5 +168,12 @@ export default async function seed() {
   `);
   console.log('  ✅ CodeCoordinator agent seeded');
 
+  // ── 5. Ensure Kip is public (for logged-out visitors on cover) ─────────────────
+  await prisma.kip_agents.updateMany({
+    where: { slug: 'kip', agent_class: 'Lead' },
+    data: { visibility: 'public' },
+  });
+  console.log('  ✅ Kip visibility ensured (public for cover)');
+
   console.log('\n✅ All Kip agents seeded successfully!');
 }

@@ -1138,6 +1138,26 @@ app.options('/api/mcp/*', (_req, res) => {
 app.use('/mcp', mcpRouter);
 app.use('/api/mcp', mcpRouter);
 
+// Public route: GET /api/kip/agents?slug=kip — agent metadata only for public Lead agents (no auth)
+app.get('/api/kip/agents', async (req: Request, res: Response, next: NextFunction) => {
+  const slug = req.query.slug;
+  if (typeof slug !== 'string' || !slug.trim()) {
+    return next();
+  }
+  try {
+    const agent = await prisma.kip_agents.findUnique({
+      where: { slug: slug.trim() },
+    });
+    if (!agent || agent.visibility !== 'public' || agent.agent_class !== 'Lead') {
+      return res.status(404).json({ success: false, error: 'Agent not found' });
+    }
+    return res.json({ success: true, data: agent });
+  } catch (err) {
+    console.error('[kip/agents] public slug error', err);
+    return res.status(500).json({ success: false, error: 'Failed to load agent' });
+  }
+});
+
 // Connect KIP routes (auth required; include service marker)
 const kipChain = [
   authMiddlewareCompat,

@@ -1114,7 +1114,7 @@ export class KipApi {
   static getAvailableModels(provider: ModelProvider): string[] {
     const FALLBACK: Record<ModelProvider, string[]> = {
       openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
-      anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
+      anthropic: ['claude-sonnet-4-6', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
       together: ['meta-llama/Llama-2-70b-chat-hf', 'meta-llama/Llama-2-13b-chat-hf', 'meta-llama/Llama-2-7b-chat-hf', 'mistralai/Mixtral-8x7B-Instruct-v0.1'],
       elevenlabs: ['eleven_monolingual_v1', 'eleven_multilingual_v2', 'eleven_turbo_v2'],
     };
@@ -1146,7 +1146,7 @@ export class KipApi {
       case 'anthropic':
         return {
           ...baseSettings,
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-6',
           temperature: 0.7,
           max_tokens: 4000
         };

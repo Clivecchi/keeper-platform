@@ -33,7 +33,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         
         if ((import.meta as any)?.env?.VITE_STUDIO_DEBUG === '1') console.log('[AuthGate] No valid session, setting guest status');
       } catch (e) {
-        console.error('[AuthGate] Session validation failed:', e);
+        // 401 is expected for guests; only log actual failures (network, etc.)
+        const status = (e as any)?.response?.status;
+        if (status !== 401) {
+          console.error('[AuthGate] Session validation failed:', e);
+        }
       }
 
       // If server rejects or no session cookie, go guest

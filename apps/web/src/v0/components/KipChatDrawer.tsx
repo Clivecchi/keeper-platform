@@ -7,6 +7,7 @@
 
 import * as React from "react"
 import { XMarkIcon, BugAntIcon } from "@heroicons/react/24/outline"
+import { useAuth } from "../../context/AuthContext"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { useAgentComposerContext } from "../shell/AgentComposerContext"
 import { AgentComposer } from "../../components/agent/AgentComposer"
@@ -167,6 +168,7 @@ async function runDebugDiagnostics(): Promise<string> {
 export function KipChatDrawer() {
   const ctx = useKipChatDrawer()
   const v0Shell = useV0ShellOptional()
+  const { isAuthenticated } = useAuth()
   const composerProps = useAgentComposerContext()
   const [debugLog, setDebugLog] = React.useState<string | null>(null)
   const [isRunningDebug, setIsRunningDebug] = React.useState(false)
@@ -250,6 +252,25 @@ export function KipChatDrawer() {
         ) : composerProps && isAgentFrame ? (
           <div className="max-w-2xl">
             <AgentComposer {...composerProps} />
+          </div>
+        ) : !isAuthenticated ? (
+          <div className="space-y-3 text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+            <p>Sign in to chat with Kip, the Keeper Platform Lead Agent.</p>
+            <button
+              type="button"
+              onClick={() => {
+                const next = window.location.pathname + window.location.search
+                window.location.href = `/login?next=${encodeURIComponent(next)}`
+              }}
+              className="rounded-md border px-4 py-2 text-sm font-medium"
+              style={{
+                borderColor: "var(--theme-border-soft)",
+                backgroundColor: "var(--theme-surface-panel)",
+                color: "var(--theme-ink-primary)",
+              }}
+            >
+              Sign in
+            </button>
           </div>
         ) : (
           <div className="space-y-3 text-sm" style={{ color: "var(--theme-ink-secondary)" }}>

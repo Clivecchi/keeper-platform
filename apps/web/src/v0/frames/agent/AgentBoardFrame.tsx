@@ -185,7 +185,13 @@ export function AgentBoardFrame({
       })
       .catch((err) => {
         if (!active) return
-        setAgentError(err instanceof Error ? err.message : "Unable to load agent")
+        const status = (err as { status?: number })?.status
+        if (status === 401) {
+          setAgentError(null)
+          setAgent(null)
+        } else {
+          setAgentError(err instanceof Error ? err.message : "Unable to load agent")
+        }
       })
       .finally(() => {
         if (active) setIsAgentLoading(false)
@@ -996,6 +1002,42 @@ export function AgentBoardFrame({
       default:
         return renderDialogueWorkspace()
     }
+  }
+
+  // ── Sign in to chat (logged-out, agent not loaded) ──
+  if (!agent && !isAgentLoading && !isAuthenticated) {
+    return (
+      <DesignFrame styleId={styleId} themeSlug={themeSlug} title="Kip" subtitle="Sign in to chat with Kip">
+        <div className="rounded-2xl border p-6 text-center" style={{ borderColor: "var(--theme-border-soft)" }}>
+          <p className="text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+            Sign in to chat with Kip, the Keeper Platform Lead Agent.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              const next = window.location.pathname + window.location.search
+              window.location.href = `/login?next=${encodeURIComponent(next)}`
+            }}
+            className="mt-4 rounded-md border px-4 py-2 text-sm font-medium"
+            style={{
+              borderColor: "var(--theme-border-soft)",
+              backgroundColor: "var(--theme-surface-panel)",
+              color: "var(--theme-ink-primary)",
+            }}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            onClick={() => navigateToFrame("commons")}
+            className="mt-4 ml-3 text-xs underline"
+            style={{ color: "var(--theme-ink-secondary)" }}
+          >
+            Back to Commons
+          </button>
+        </div>
+      </DesignFrame>
+    )
   }
 
   // ── Error state ──

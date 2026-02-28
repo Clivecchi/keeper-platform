@@ -214,6 +214,7 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
     models: Array<{ id: string; label: string; provider: string }>
     defaults: Record<string, string>
   } | null>(null)
+  const [modelsLoading, setModelsLoading] = React.useState(false)
   const [modelForm, setModelForm] = React.useState<{ provider: ModelProvider; model: string; temperature?: number; max_tokens?: number }>({
     provider: "openai",
     model: "gpt-4o",
@@ -262,11 +263,16 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
     return () => { active = false }
   }, [activeKeeperId, domainId, user?.id])
 
+  const loadModelsForProvider = React.useCallback((provider: ModelProvider) => {
+    setModelsLoading(true)
+    KipApi.getModelCatalog(provider)
+      .then((c) => c && setModelCatalog(c))
+      .catch(() => setModelCatalog(null))
+      .finally(() => setModelsLoading(false))
+  }, [])
+
   React.useEffect(() => {
     if (modelModalOpen) {
-      KipApi.getModelCatalog()
-        .then((c) => c && setModelCatalog(c))
-        .catch(() => {})
       if (agent) {
         const provider = (agent.model_provider || "openai") as ModelProvider
         const model = agent.model_settings?.model || agent.model || "gpt-4o"
@@ -276,10 +282,13 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
           temperature: agent.model_settings?.temperature ?? 0.7,
           max_tokens: agent.model_settings?.max_tokens ?? 2000,
         })
+        loadModelsForProvider(provider)
+      } else {
+        loadModelsForProvider("openai")
       }
       setModelSaveError(null)
     }
-  }, [modelModalOpen, agent])
+  }, [modelModalOpen, agent, loadModelsForProvider])
 
   const handleSaveModel = async () => {
     if (!agent?.id || !onAgentUpdated) return
@@ -305,7 +314,17 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
     }
   }
 
-  const providerModels = modelCatalog?.models?.filter((m) => m.provider === modelForm.provider) ?? []
+  const providerModelsRaw = modelCatalog?.models?.filter((m) => m.provider === modelForm.provider) ?? []
+  const fallbackModels = KipApi.getAvailableModels(modelForm.provider).map((id) => ({ id, label: id }))
+  const providerModels =
+    providerModelsRaw.length > 0
+      ? providerModelsRaw
+      : fallbackModels
+  const hasCurrentModel = providerModels.some((m) => m.id === modelForm.model)
+  const modelsToShow =
+    hasCurrentModel || !modelForm.model
+      ? providerModels
+      : [{ id: modelForm.model, label: `${modelForm.model} (current)` }, ...providerModels]
 
   React.useEffect(() => {
     if (!showCompliance || !domainId) {
@@ -413,6 +432,7 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
                   const defaults = modelCatalog?.defaults
                   const defaultModel = defaults?.[p] ?? KipApi.getDefaultSettings(p).model
                   setModelForm((prev) => ({ ...prev, provider: p, model: defaultModel }))
+                  loadModelsForProvider(p)
                 }}
                 className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
               >
@@ -427,19 +447,18 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
               <select
                 value={modelForm.model}
                 onChange={(e) => setModelForm((prev) => ({ ...prev, model: e.target.value }))}
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                disabled={modelsLoading}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm disabled:opacity-50"
               >
-                {providerModels.length > 0
-                  ? providerModels.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.label}
-                      </option>
-                    ))
-                  : (KipApi.getAvailableModels(modelForm.provider).map((id) => (
-                      <option key={id} value={id}>
-                        {id}
-                      </option>
-                    )))}
+                {modelsLoading ? (
+                  <option value={modelForm.model}>{modelForm.model} (loading…)</option>
+                ) : (
+                  modelsToShow.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
