@@ -162,29 +162,81 @@ export function listStyles(): StyleDefinition[] {
   return [...styleRegistry]
 }
 
+/**
+ * Normalize color tokens to HSL components (e.g. "0 0% 100%").
+ * Components use hsl(var(--theme-*) / 0.5) for alpha; that requires
+ * the variable to hold HSL components, not full hsl() strings.
+ */
+function toHSLComponents(value: string): string {
+  const hslMatch = value.match(/hsl\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)%\s*,\s*(\d+(?:\.\d+)?)%\s*(?:\/\s*[\d.]+)?\s*\)/)
+  if (hslMatch) {
+    return `${hslMatch[1]} ${hslMatch[2]}% ${hslMatch[3]}%`
+  }
+  // Already in "H S% L%" format
+  if (/^\d+(?:\.\d+)?\s+\d+(?:\.\d+)?%\s+\d+(?:\.\d+)?%(\s+\/\s+[\d.]+)?$/.test(value.trim())) {
+    return value.trim()
+  }
+  // Hex fallback (e.g. #ffffff, #000000 from StyleScope defaults)
+  const hexMatch = value.match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/)
+  if (hexMatch) {
+    const hex = hexMatch[1]
+    const r = hex.length === 3
+      ? parseInt(hex[0] + hex[0], 16) / 255
+      : parseInt(hex.slice(0, 2), 16) / 255
+    const g = hex.length === 3
+      ? parseInt(hex[1] + hex[1], 16) / 255
+      : parseInt(hex.slice(2, 4), 16) / 255
+    const b = hex.length === 3
+      ? parseInt(hex[2] + hex[2], 16) / 255
+      : parseInt(hex.slice(4, 6), 16) / 255
+    const max = Math.max(r, g, b), min = Math.min(r, g, b)
+    let h = 0, s = 0, l = (max + min) / 2
+    if (max !== min) {
+      const d = max - min
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+      h = max === r ? (g - b) / d + (g < b ? 6 : 0)
+        : max === g ? (b - r) / d + 2
+        : (r - g) / d + 4
+      h /= 6
+    }
+    return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`
+  }
+  return value
+}
+
 // Convert tokens to CSS custom properties using platform --theme-* variables
 export function tokensToCSSVars(tokens: StyleTokens): Record<string, string> {
+  const colorKeys = [
+    'surface.page', 'surface.paper', 'surface.panel', 'surface.elevated',
+    'ink.primary', 'ink.secondary', 'ink.tertiary', 'ink.placeholder',
+    'line.hairline', 'line.ruled', 'border.soft', 'border.strong',
+    'focus.ring', 'hover.surface', 'press.surface',
+    'dialogue.userBg', 'dialogue.agentBg', 'dialogue.areaBg', 'dialogue.border',
+  ] as const
+  const toVar = (key: keyof StyleTokens, raw: string) =>
+    colorKeys.includes(key as typeof colorKeys[number]) ? toHSLComponents(raw) : raw
+
   return {
-    '--theme-surface-page': tokens['surface.page'],
-    '--theme-surface-paper': tokens['surface.paper'],
-    '--theme-surface-panel': tokens['surface.panel'],
-    '--theme-surface-elevated': tokens['surface.elevated'],
-    '--theme-ink-primary': tokens['ink.primary'],
-    '--theme-ink-secondary': tokens['ink.secondary'],
-    '--theme-ink-tertiary': tokens['ink.tertiary'],
-    '--theme-ink-placeholder': tokens['ink.placeholder'],
-    '--theme-line-hairline': tokens['line.hairline'],
-    '--theme-line-ruled': tokens['line.ruled'],
-    '--theme-border-soft': tokens['border.soft'],
-    '--theme-border-strong': tokens['border.strong'],
+    '--theme-surface-page': toVar('surface.page', tokens['surface.page']),
+    '--theme-surface-paper': toVar('surface.paper', tokens['surface.paper']),
+    '--theme-surface-panel': toVar('surface.panel', tokens['surface.panel']),
+    '--theme-surface-elevated': toVar('surface.elevated', tokens['surface.elevated']),
+    '--theme-ink-primary': toVar('ink.primary', tokens['ink.primary']),
+    '--theme-ink-secondary': toVar('ink.secondary', tokens['ink.secondary']),
+    '--theme-ink-tertiary': toVar('ink.tertiary', tokens['ink.tertiary']),
+    '--theme-ink-placeholder': toVar('ink.placeholder', tokens['ink.placeholder']),
+    '--theme-line-hairline': toVar('line.hairline', tokens['line.hairline']),
+    '--theme-line-ruled': toVar('line.ruled', tokens['line.ruled']),
+    '--theme-border-soft': toVar('border.soft', tokens['border.soft']),
+    '--theme-border-strong': toVar('border.strong', tokens['border.strong']),
     '--theme-shadow-soft': tokens['shadow.soft'],
-    '--theme-focus-ring': tokens['focus.ring'],
-    '--theme-hover-surface': tokens['hover.surface'],
-    '--theme-press-surface': tokens['press.surface'],
-    '--theme-dialogue-user-bg': tokens['dialogue.userBg'],
-    '--theme-dialogue-agent-bg': tokens['dialogue.agentBg'],
-    '--theme-dialogue-area-bg': tokens['dialogue.areaBg'],
-    '--theme-dialogue-border': tokens['dialogue.border'],
+    '--theme-focus-ring': toVar('focus.ring', tokens['focus.ring']),
+    '--theme-hover-surface': toVar('hover.surface', tokens['hover.surface']),
+    '--theme-press-surface': toVar('press.surface', tokens['press.surface']),
+    '--theme-dialogue-user-bg': toVar('dialogue.userBg', tokens['dialogue.userBg']),
+    '--theme-dialogue-agent-bg': toVar('dialogue.agentBg', tokens['dialogue.agentBg']),
+    '--theme-dialogue-area-bg': toVar('dialogue.areaBg', tokens['dialogue.areaBg']),
+    '--theme-dialogue-border': toVar('dialogue.border', tokens['dialogue.border']),
     '--theme-radius-sheet': tokens['radius.sheet'],
     '--theme-space-framePadding': tokens['space.framePadding'],
     '--theme-space-sheetPadding': tokens['space.sheetPadding'],

@@ -83,7 +83,7 @@ export function CoverFrame({
         backgroundPosition: "center",
         backgroundSize: "cover",
       }
-    : { backgroundColor: "var(--theme-surface-page)" }
+    : { backgroundColor: "hsl(var(--theme-surface-page))" }
 
   const handleLogout = async () => {
     try {
