@@ -24,7 +24,7 @@ interface DomainData {
   name: string;
   slug: string;
   description?: string;
-  theme?: { coverImage?: string | null } | null;
+  theme?: { coverImage?: string | null; coverImageMode?: "cover" | "tile" } | null;
 }
 
 export function CoverFrame({
@@ -78,12 +78,14 @@ export function CoverFrame({
   const coverState = coverStateParam === "open" ? "open" : "closed"
 
   const coverImageUrl = domainData?.theme?.coverImage ?? fetchedCoverUrl ?? null
+  const coverImageMode = domainData?.theme?.coverImageMode ?? "cover"
   const displayUrl = coverImageUrl ? getBlobProxyUrl(coverImageUrl) : null
   const pageBackground = displayUrl
     ? {
         backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${displayUrl})`,
-        backgroundPosition: "center",
-        backgroundSize: "cover",
+        backgroundPosition: coverImageMode === "tile" ? "0 0" : "center",
+        backgroundSize: coverImageMode === "tile" ? "auto" : "cover",
+        backgroundRepeat: coverImageMode === "tile" ? "repeat" : "no-repeat",
       }
     : { backgroundColor: "hsl(var(--theme-surface-page))" }
 

@@ -93,7 +93,7 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
-            <p className="text-xs font-semibold text-gray-700">
+            <p className="text-xs font-semibold" style={{ color: 'var(--theme-ink-primary)' }}>
               ✓ {actionLabel}
               {draft?.title && (
                 <>
@@ -105,7 +105,7 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
               )}
             </p>
             {moment && (
-              <p className="mt-1 text-xs text-gray-600">
+              <p className="mt-1 text-xs" style={{ color: 'var(--theme-ink-secondary)' }}>
                 Moment{' '}
                 <EntityLink onClick={onOpenMoment ? () => onOpenMoment(moment.id) : undefined}>
                   {moment.title}
@@ -114,18 +114,18 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
               </p>
             )}
             {message && !moment && (draft?.title || isSoleSave) && message !== `Draft ${actionLabel.toLowerCase()} successfully` && (
-              <p className="mt-1 text-xs text-gray-600">{message}</p>
+              <p className="mt-1 text-xs" style={{ color: 'var(--theme-ink-secondary)' }}>{message}</p>
             )}
             {message && !moment && !draft?.title && !isSoleSave && (
-              <p className="mt-1 text-xs text-gray-600">{message}</p>
+              <p className="mt-1 text-xs" style={{ color: 'var(--theme-ink-secondary)' }}>{message}</p>
             )}
             {isSoleSave && (memoryCard || reflection) && (
-              <p className="mt-0.5 text-xs text-gray-500">
+              <p className="mt-0.5 text-xs" style={{ color: 'var(--theme-ink-tertiary)' }}>
                 SOLE memory card recorded
               </p>
             )}
             {draft && (
-              <p className="mt-0.5 text-xs text-gray-500">
+              <p className="mt-0.5 text-xs" style={{ color: 'var(--theme-ink-tertiary)' }}>
                 {draft.kind} • {draft.key}
               </p>
             )}
@@ -162,9 +162,15 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
 
   // Skipped state
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-      <p className="text-xs font-semibold text-gray-600">⊘ Skipped</p>
-      <p className="mt-1 text-sm text-gray-600">{message}</p>
+    <div
+      className="rounded-lg border p-3"
+      style={{
+        borderColor: 'var(--theme-border-soft)',
+        backgroundColor: 'hsl(var(--theme-surface-panel) / 0.8)',
+      }}
+    >
+      <p className="text-xs font-semibold" style={{ color: 'var(--theme-ink-secondary)' }}>⊘ Skipped</p>
+      <p className="mt-1 text-sm" style={{ color: 'var(--theme-ink-secondary)' }}>{message}</p>
     </div>
   );
 };

@@ -82,12 +82,14 @@ export function DesignFrame({
 
   // Cover background: match CoverFrame gradient (0.08, 0.75) so image shows through
   const coverImageUrl = v0Shell?.domainData?.theme?.coverImage ?? null
+  const coverImageMode = v0Shell?.domainData?.theme?.coverImageMode ?? "cover"
   const displayCoverUrl = coverImageUrl ? getBlobProxyUrl(coverImageUrl) : null
   const pageBackground = displayCoverUrl
     ? {
         backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${displayCoverUrl})`,
-        backgroundPosition: "center",
-        backgroundSize: "cover",
+        backgroundPosition: coverImageMode === "tile" ? "0 0" : "center",
+        backgroundSize: coverImageMode === "tile" ? "auto" : "cover",
+        backgroundRepeat: coverImageMode === "tile" ? "repeat" : "no-repeat",
       }
     : {
         backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page)), hsl(var(--theme-surface-paper) / 0.25))`,

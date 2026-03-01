@@ -27,6 +27,7 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 - [ ] Wire draft-to-dialogue flow (discuss draft with agent)
 
 ## 📆 Update Log
+- 2026-02-28: Theme/dialogue fixes: StyleScope merges theme + style tokens so dialogue tokens always present; themeRegistry adds dialogue.* to themes; DialogueMessageList uses theme vars for text, agent bubbles have distinct background (surface-paper + border + shadow); ActionReceiptCard, DraftUpdateProposeCard use theme vars; DesignFrame/CoverFrame support coverImageMode: "tile" for texture backgrounds.
 - 2026-02-18: Agent Composer: replaced inline chat form with AgentComposer (agent/mode dropdown, config dropdown, attach, submit, feedback area). Simplified banner: removed agent from DesignFrame subtitle and AgentContextBanner; agent name and mode now in composer. Wired posture.dialogueMode to runAgent; useAgentPostureData.setDialogueMode for mode switching.
 - 2026-02-18: Chat file upload: validate file type before reading; reject images/binary to prevent garbled characters (IEND, etc.) in chat. Show alert for unsupported file types.
 - 2026-02-17: Chat UX: Shift+Enter for new line (Enter sends), textarea input, upload button (paperclip) for text files. Agent reliability: draft listing instruction, NOT_ALLOWED fix for draft actions, SOLE scope tagging, session naming closing ritual.

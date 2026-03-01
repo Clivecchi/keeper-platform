@@ -41,6 +41,10 @@ const staticThemeRegistry: Record<string, ThemeData> = {
       "focus.ring": "hsl(25, 40%, 50%)",
       "hover.surface": "hsl(35, 15%, 92%)",
       "press.surface": "hsl(35, 20%, 88%)",
+      "dialogue.userBg": "hsl(14, 60%, 56%)",
+      "dialogue.agentBg": "hsl(35, 15%, 99%)",
+      "dialogue.areaBg": "hsl(35, 25%, 96%)",
+      "dialogue.border": "hsl(35, 12%, 85%)",
       "radius.sheet": "6px",
       "space.framePadding": "1.5rem",
       "space.sheetPadding": "1rem"
@@ -67,6 +71,10 @@ const staticThemeRegistry: Record<string, ThemeData> = {
       "focus.ring": "hsl(221, 83%, 53%)",
       "hover.surface": "hsl(0, 0%, 94%)",
       "press.surface": "hsl(0, 0%, 92%)",
+      "dialogue.userBg": "hsl(14, 60%, 56%)",
+      "dialogue.agentBg": "hsl(0, 0%, 100%)",
+      "dialogue.areaBg": "hsl(35, 33%, 97%)",
+      "dialogue.border": "hsl(35, 20%, 88%)",
       "radius.sheet": "6px",
       "space.framePadding": "1.5rem",
       "space.sheetPadding": "1rem"

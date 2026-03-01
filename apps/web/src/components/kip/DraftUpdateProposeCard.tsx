@@ -38,7 +38,14 @@ export const DraftUpdateProposeCard: React.FC<DraftUpdateProposeCardProps> = ({
 
   if (rejected) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-2 text-xs text-gray-500">
+      <div
+        className="rounded-lg border p-2 text-xs"
+        style={{
+          borderColor: "var(--theme-border-soft)",
+          backgroundColor: "hsl(var(--theme-surface-panel) / 0.8)",
+          color: "var(--theme-ink-tertiary)",
+        }}
+      >
         Update rejected
       </div>
     )
@@ -52,19 +59,23 @@ export const DraftUpdateProposeCard: React.FC<DraftUpdateProposeCardProps> = ({
         backgroundColor: "var(--theme-dialogue-area-bg, hsl(35, 33%, 97%))",
       }}
     >
-      <p className="text-xs font-semibold text-gray-700">
+      <p className="text-xs font-semibold" style={{ color: "var(--theme-ink-primary)" }}>
         Proposed update: {draftTitle}
       </p>
-      <p className="mt-1 text-xs text-gray-600">{summary}</p>
+      <p className="mt-1 text-xs" style={{ color: "var(--theme-ink-secondary)" }}>{summary}</p>
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
-        className="mt-2 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
+        className="mt-2 flex items-center gap-1 text-xs transition-colors hover:opacity-80"
+        style={{ color: "var(--theme-ink-tertiary)" }}
       >
         {expanded ? "▲" : "▼"} {expanded ? "Hide" : "See all"} changes
       </button>
       {expanded && (
-        <pre className="mt-2 max-h-40 overflow-y-auto rounded bg-gray-100 p-2 text-xs text-gray-700">
+        <pre
+          className="mt-2 max-h-40 overflow-y-auto rounded p-2 text-xs"
+          style={{ backgroundColor: "hsl(var(--theme-surface-panel) / 0.8)", color: "var(--theme-ink-primary)" }}
+        >
           {JSON.stringify(payload, null, 2)}
         </pre>
       )}
@@ -82,7 +93,12 @@ export const DraftUpdateProposeCard: React.FC<DraftUpdateProposeCardProps> = ({
           type="button"
           onClick={() => { setRejected(true); onReject() }}
           disabled={isApplying}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+          className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:opacity-80 disabled:opacity-50"
+          style={{
+            borderColor: "var(--theme-border-soft)",
+            backgroundColor: "hsl(var(--theme-surface-paper))",
+            color: "var(--theme-ink-primary)",
+          }}
         >
           Reject
         </button>
@@ -90,7 +106,8 @@ export const DraftUpdateProposeCard: React.FC<DraftUpdateProposeCardProps> = ({
           <button
             type="button"
             onClick={() => onOpenDraft(draftId)}
-            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-600 underline hover:text-gray-800"
+            className="rounded-lg px-3 py-1.5 text-xs font-semibold underline transition-colors hover:opacity-80"
+            style={{ color: "var(--theme-ink-secondary)" }}
           >
             View Draft →
           </button>

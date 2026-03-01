@@ -30,6 +30,8 @@ export interface BuildFrameUrlOptions {
 
 export interface DomainDataTheme {
   coverImage?: string | null
+  /** "tile" = repeat at natural size (for textures); "cover" = scale to fill (default) */
+  coverImageMode?: "cover" | "tile"
 }
 
 export interface V0ShellContextValue {
