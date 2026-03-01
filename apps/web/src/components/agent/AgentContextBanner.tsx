@@ -12,9 +12,9 @@ import * as React from "react"
 import { Cog6ToothIcon } from "@heroicons/react/24/outline"
 
 const SURFACE = {
-  inkPrimary: "var(--theme-ink-primary)",
-  inkSecondary: "var(--theme-ink-secondary)",
-  border: "var(--theme-border-soft)",
+  inkPrimary: "var(--theme-ink-primary-color)",
+  inkSecondary: "var(--theme-ink-secondary-color)",
+  border: "hsl(var(--theme-border-soft))",
 }
 
 export interface AgentContextBannerProps {

@@ -12,9 +12,9 @@ import { shortId } from "./helpers"
 
 const SURFACE = {
   bg: "hsl(var(--theme-surface-paper) / 0.5)",
-  border: "var(--theme-border-soft)",
-  inkPrimary: "var(--theme-ink-primary)",
-  inkSecondary: "var(--theme-ink-secondary)",
+  border: "hsl(var(--theme-border-soft))",
+  inkPrimary: "var(--theme-ink-primary-color)",
+  inkSecondary: "var(--theme-ink-secondary-color)",
 }
 
 export interface AgentContextBarProps {

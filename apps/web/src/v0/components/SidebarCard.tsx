@@ -32,9 +32,9 @@ import { Plus } from "lucide-react"
 
 const SURFACE = {
   sideCard: "hsl(var(--theme-surface-paper) / 0.9)",
-  border: "var(--theme-border-soft)",
-  inkPrimary: "var(--theme-ink-primary)",
-  inkSecondary: "var(--theme-ink-secondary)",
+  border: "hsl(var(--theme-border-soft))",
+  inkPrimary: "var(--theme-ink-primary-color)",
+  inkSecondary: "var(--theme-ink-secondary-color)",
 }
 
 // =============================================================================
@@ -131,7 +131,7 @@ export function SidebarCard({
             <li key={item.id ?? item.label} className="flex items-center gap-2">
               <span
                 className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                style={{ backgroundColor: "var(--theme-line-hairline)" }}
+                style={{ backgroundColor: "hsl(var(--theme-line-hairline))" }}
               />
               {item.onClick ? (
                 <button

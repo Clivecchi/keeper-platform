@@ -686,9 +686,9 @@ export function AgentBoardFrame({
             onClick={() => setView({ kind: "dialogue" })}
             className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
             style={{
-              borderColor: "var(--theme-border-soft)",
+              borderColor: "hsl(var(--theme-border-soft))",
               backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-              color: "var(--theme-ink-primary)",
+              color: "var(--theme-ink-primary-color)",
             }}
           >
             Back to dialogue
@@ -699,7 +699,7 @@ export function AgentBoardFrame({
 
     if (isLoadingDrafts || !draftDetail) {
       return (
-        <p className="text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+        <p className="text-sm" style={{ color: "var(--theme-ink-secondary-color)" }}>
           Loading draft…
         </p>
       )
@@ -755,15 +755,15 @@ export function AgentBoardFrame({
                   onClick={() => setView({ kind: "draft", draftId: d.id })}
                   className="rounded-2xl border p-4 text-left transition-all hover:shadow-md"
                   style={{
-                    borderColor: "var(--theme-border-soft)",
+                    borderColor: "hsl(var(--theme-border-soft))",
                     backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
                   }}
                 >
-                  <h4 className="font-semibold" style={{ color: "var(--theme-ink-primary)" }}>
+                  <h4 className="font-semibold" style={{ color: "var(--theme-ink-primary-color)" }}>
                     {d.title}
                   </h4>
                   {keeperName && (
-                    <p className="mt-1 text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+                    <p className="mt-1 text-sm" style={{ color: "var(--theme-ink-secondary-color)" }}>
                       {keeperName}
                     </p>
                   )}
@@ -771,7 +771,7 @@ export function AgentBoardFrame({
                     className="mt-2 inline-block rounded-full px-2 py-0.5 text-xs capitalize"
                     style={{
                       backgroundColor: "hsl(var(--theme-surface-paper) / 0.8)",
-                      color: "var(--theme-ink-secondary)",
+                      color: "var(--theme-ink-secondary-color)",
                     }}
                   >
                     {d.status}
@@ -790,19 +790,19 @@ export function AgentBoardFrame({
                 }}
                 className="rounded-2xl border p-4 text-left transition-all hover:shadow-md"
                 style={{
-                  borderColor: "var(--theme-border-soft)",
+                  borderColor: "hsl(var(--theme-border-soft))",
                   backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
                 }}
               >
-                <h4 className="font-semibold" style={{ color: "var(--theme-ink-primary)" }}>
+                <h4 className="font-semibold" style={{ color: "var(--theme-ink-primary-color)" }}>
                   {j.name}
                 </h4>
                 {j.forward && (
-                  <p className="mt-1 line-clamp-2 text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+                  <p className="mt-1 line-clamp-2 text-sm" style={{ color: "var(--theme-ink-secondary-color)" }}>
                     {j.forward}
                   </p>
                 )}
-                <p className="mt-2 text-xs" style={{ color: "var(--theme-ink-secondary)" }}>
+                <p className="mt-2 text-xs" style={{ color: "var(--theme-ink-secondary-color)" }}>
                   {j.momentCount ?? 0} moments
                 </p>
               </button>
@@ -818,15 +818,15 @@ export function AgentBoardFrame({
                 }}
                 className="rounded-2xl border p-4 text-left transition-all hover:shadow-md"
                 style={{
-                  borderColor: "var(--theme-border-soft)",
+                  borderColor: "hsl(var(--theme-border-soft))",
                   backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
                 }}
               >
-                <h4 className="font-semibold" style={{ color: "var(--theme-ink-primary)" }}>
+                <h4 className="font-semibold" style={{ color: "var(--theme-ink-primary-color)" }}>
                   {k.title}
                 </h4>
                 {k.purpose && (
-                  <p className="mt-1 line-clamp-2 text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+                  <p className="mt-1 line-clamp-2 text-sm" style={{ color: "var(--theme-ink-secondary-color)" }}>
                     {k.purpose}
                   </p>
                 )}
@@ -840,18 +840,18 @@ export function AgentBoardFrame({
                 onClick={() => setView({ kind: "dialogue", sessionId: s.id })}
                 className="rounded-2xl border p-4 text-left transition-all hover:shadow-md"
                 style={{
-                  borderColor: "var(--theme-border-soft)",
+                  borderColor: "hsl(var(--theme-border-soft))",
                   backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
                 }}
               >
-                <h4 className="font-semibold" style={{ color: "var(--theme-ink-primary)" }}>
+                <h4 className="font-semibold" style={{ color: "var(--theme-ink-primary-color)" }}>
                   {s.title || `Session ${shortId(s.id)}`}
                 </h4>
               </button>
             ))}
         </div>
         {Array.isArray(items) && items.length === 0 && !isLoading && (
-          <p className="text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+          <p className="text-sm" style={{ color: "var(--theme-ink-secondary-color)" }}>
             No {titles[type].toLowerCase()} yet.
           </p>
         )}
@@ -860,9 +860,9 @@ export function AgentBoardFrame({
           onClick={() => setView({ kind: "dialogue" })}
           className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
           style={{
-            borderColor: "var(--theme-border-soft)",
+            borderColor: "hsl(var(--theme-border-soft))",
             backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-            color: "var(--theme-ink-primary)",
+            color: "var(--theme-ink-primary-color)",
           }}
         >
           ← Dialogue
@@ -875,7 +875,7 @@ export function AgentBoardFrame({
     if (!journeyViewId) return null
     if (isLoadingJourneyDetail) {
       return (
-        <p className="text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+        <p className="text-sm" style={{ color: "var(--theme-ink-secondary-color)" }}>
           Loading journey…
         </p>
       )
@@ -893,9 +893,9 @@ export function AgentBoardFrame({
             onClick={() => setView({ kind: "dialogue" })}
             className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium"
             style={{
-              borderColor: "var(--theme-border-soft)",
+              borderColor: "hsl(var(--theme-border-soft))",
               backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-              color: "var(--theme-ink-primary)",
+              color: "var(--theme-ink-primary-color)",
             }}
           >
             Back to dialogue
@@ -918,7 +918,7 @@ export function AgentBoardFrame({
     if (!keeperViewId) return null
     if (isLoadingKeeperDetail) {
       return (
-        <p className="text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+        <p className="text-sm" style={{ color: "var(--theme-ink-secondary-color)" }}>
           Loading keeper…
         </p>
       )
@@ -936,9 +936,9 @@ export function AgentBoardFrame({
             onClick={() => setView({ kind: "dialogue" })}
             className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium"
             style={{
-              borderColor: "var(--theme-border-soft)",
+              borderColor: "hsl(var(--theme-border-soft))",
               backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-              color: "var(--theme-ink-primary)",
+              color: "var(--theme-ink-primary-color)",
             }}
           >
             Back to dialogue
@@ -980,9 +980,9 @@ export function AgentBoardFrame({
         onClick={() => setView({ kind: "dialogue" })}
         className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
         style={{
-          borderColor: "var(--theme-border-soft)",
+          borderColor: "hsl(var(--theme-border-soft))",
           backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-          color: "var(--theme-ink-primary)",
+          color: "var(--theme-ink-primary-color)",
         }}
       >
         Back to dialogue
@@ -1012,8 +1012,8 @@ export function AgentBoardFrame({
   if (!agent && !isAgentLoading && !isAuthenticated) {
     return (
       <DesignFrame styleId={styleId} themeSlug={themeSlug} title="Kip" subtitle="Sign in to chat with Kip">
-        <div className="rounded-2xl border p-6 text-center" style={{ borderColor: "var(--theme-border-soft)" }}>
-          <p className="text-sm" style={{ color: "var(--theme-ink-secondary)" }}>
+        <div className="rounded-2xl border p-6 text-center" style={{ borderColor: "hsl(var(--theme-border-soft))" }}>
+          <p className="text-sm" style={{ color: "var(--theme-ink-secondary-color)" }}>
             Sign in to chat with Kip, the Keeper Platform Lead Agent.
           </p>
           <button
@@ -1024,9 +1024,9 @@ export function AgentBoardFrame({
             }}
             className="mt-4 rounded-md border px-4 py-2 text-sm font-medium"
             style={{
-              borderColor: "var(--theme-border-soft)",
+              borderColor: "hsl(var(--theme-border-soft))",
               backgroundColor: "var(--theme-surface-panel)",
-              color: "var(--theme-ink-primary)",
+              color: "var(--theme-ink-primary-color)",
             }}
           >
             Sign in
@@ -1035,7 +1035,7 @@ export function AgentBoardFrame({
             type="button"
             onClick={() => navigateToFrame("commons")}
             className="mt-4 ml-3 text-xs underline"
-            style={{ color: "var(--theme-ink-secondary)" }}
+            style={{ color: "var(--theme-ink-secondary-color)" }}
           >
             Back to Commons
           </button>
@@ -1048,13 +1048,13 @@ export function AgentBoardFrame({
   if (agentError && !isAgentLoading) {
     return (
       <DesignFrame styleId={styleId} themeSlug={themeSlug} title="Agent Board" subtitle="Unable to load agent">
-        <div className="rounded-2xl border p-6 text-center" style={{ borderColor: "var(--theme-border-soft)" }}>
-          <p className="text-sm" style={{ color: "var(--theme-ink-secondary)" }}>{agentError}</p>
+        <div className="rounded-2xl border p-6 text-center" style={{ borderColor: "hsl(var(--theme-border-soft))" }}>
+          <p className="text-sm" style={{ color: "var(--theme-ink-secondary-color)" }}>{agentError}</p>
           <button
             type="button"
             onClick={() => navigateToFrame("commons")}
             className="mt-4 text-xs underline"
-            style={{ color: "var(--theme-ink-secondary)" }}
+            style={{ color: "var(--theme-ink-secondary-color)" }}
           >
             Back to Commons
           </button>
@@ -1085,7 +1085,7 @@ export function AgentBoardFrame({
         type="button"
         onClick={() => setMessagesError(null)}
         className="text-xs underline"
-        style={{ color: "var(--theme-ink-secondary)" }}
+        style={{ color: "var(--theme-ink-secondary-color)" }}
       >
         Dismiss error
       </button>
@@ -1121,7 +1121,7 @@ export function AgentBoardFrame({
           type="button"
           onClick={() => navigateToFrame("commons")}
           className="text-xs font-medium underline underline-offset-2 opacity-60 hover:opacity-100 transition-opacity"
-          style={{ color: "var(--theme-ink-secondary)" }}
+          style={{ color: "var(--theme-ink-secondary-color)" }}
         >
           Back to Commons
         </button>

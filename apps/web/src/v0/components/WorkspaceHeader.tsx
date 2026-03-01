@@ -25,9 +25,9 @@
 import * as React from "react"
 
 const SURFACE = {
-  border: "var(--theme-border-soft)",
-  inkPrimary: "var(--theme-ink-primary)",
-  inkSecondary: "var(--theme-ink-secondary)",
+  border: "hsl(var(--theme-border-soft))",
+  inkPrimary: "var(--theme-ink-primary-color)",
+  inkSecondary: "var(--theme-ink-secondary-color)",
 }
 
 export interface WorkspaceHeaderProps {

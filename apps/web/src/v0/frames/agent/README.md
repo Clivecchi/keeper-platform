@@ -27,6 +27,7 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 - [ ] Wire draft-to-dialogue flow (discuss draft with agent)
 
 ## 📆 Update Log
+- 2026-02-28: Theme variable fix: ink vars hold HSL components; using var(--theme-ink-primary) for color produced invalid CSS. Added --theme-ink-*-color vars (full colors) to styleRegistry; updated SidebarCard, DialogueMessageList, ActionReceiptCard, DraftUpdateProposeCard, WorkspaceHeader, AgentContextBar, AgentContextBanner, AgentBoardFrame to use -color vars; fixed index.css @theme and dialogue hsl() usage.
 - 2026-02-28: Theme/dialogue fixes: StyleScope merges theme + style tokens so dialogue tokens always present; themeRegistry adds dialogue.* to themes; DialogueMessageList uses theme vars for text, agent bubbles have distinct background (surface-paper + border + shadow); ActionReceiptCard, DraftUpdateProposeCard use theme vars; DesignFrame/CoverFrame support coverImageMode: "tile" for texture backgrounds.
 - 2026-02-19: AgentComposer moved into bottom bar (Margin). AgentBoardFrame provides AgentComposerProvider; composer no longer in workspace. Agent always available in same place when in Agent frame.
 - 2026-02-18: Agent Composer: compact toolbar (send inside), sticky above bottom Margin, expanded uploads (images, video, docs stored in blob, referenced as markdown links).

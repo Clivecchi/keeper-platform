@@ -216,15 +216,27 @@ export function tokensToCSSVars(tokens: StyleTokens): Record<string, string> {
   const toVar = (key: keyof StyleTokens, raw: string) =>
     colorKeys.includes(key as typeof colorKeys[number]) ? toHSLComponents(raw) : raw
 
+  // Ink variables hold HSL components for alpha usage (hsl(var(--theme-ink-primary) / 0.5)).
+  // For direct color use, components must use hsl(var(--theme-ink-primary)) - raw var() is invalid.
+  // We also emit -color suffixed vars for convenience: full color values for color/background properties.
+  const inkPrimary = toVar('ink.primary', tokens['ink.primary'])
+  const inkSecondary = toVar('ink.secondary', tokens['ink.secondary'])
+  const inkTertiary = toVar('ink.tertiary', tokens['ink.tertiary'])
+  const inkPlaceholder = toVar('ink.placeholder', tokens['ink.placeholder'])
+
   return {
     '--theme-surface-page': toVar('surface.page', tokens['surface.page']),
     '--theme-surface-paper': toVar('surface.paper', tokens['surface.paper']),
     '--theme-surface-panel': toVar('surface.panel', tokens['surface.panel']),
     '--theme-surface-elevated': toVar('surface.elevated', tokens['surface.elevated']),
-    '--theme-ink-primary': toVar('ink.primary', tokens['ink.primary']),
-    '--theme-ink-secondary': toVar('ink.secondary', tokens['ink.secondary']),
-    '--theme-ink-tertiary': toVar('ink.tertiary', tokens['ink.tertiary']),
-    '--theme-ink-placeholder': toVar('ink.placeholder', tokens['ink.placeholder']),
+    '--theme-ink-primary': inkPrimary,
+    '--theme-ink-secondary': inkSecondary,
+    '--theme-ink-tertiary': inkTertiary,
+    '--theme-ink-placeholder': inkPlaceholder,
+    '--theme-ink-primary-color': `hsl(${inkPrimary})`,
+    '--theme-ink-secondary-color': `hsl(${inkSecondary})`,
+    '--theme-ink-tertiary-color': `hsl(${inkTertiary})`,
+    '--theme-ink-placeholder-color': `hsl(${inkPlaceholder})`,
     '--theme-line-hairline': toVar('line.hairline', tokens['line.hairline']),
     '--theme-line-ruled': toVar('line.ruled', tokens['line.ruled']),
     '--theme-border-soft': toVar('border.soft', tokens['border.soft']),

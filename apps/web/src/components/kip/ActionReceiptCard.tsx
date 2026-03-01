@@ -63,7 +63,7 @@ function EntityLink({
       type="button"
       onClick={onClick}
       className={`underline underline-offset-2 hover:opacity-80 focus:outline-none focus:ring-1 focus:ring-offset-1 rounded ${className ?? ''}`}
-      style={{ color: 'var(--theme-dialogue-user-bg, hsl(14, 60%, 56%))' }}
+      style={{ color: 'hsl(var(--theme-dialogue-user-bg, 14 60% 56%))' }}
     >
       {children}
     </button>
@@ -87,13 +87,13 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
       <div
         className="rounded-lg border p-3"
         style={{
-          borderColor: 'var(--theme-dialogue-border, hsl(35, 20%, 88%))',
-          backgroundColor: 'var(--theme-dialogue-area-bg, hsl(35, 33%, 97%))',
+          borderColor: 'hsl(var(--theme-dialogue-border, 35 20% 88%))',
+          backgroundColor: 'hsl(var(--theme-dialogue-area-bg, 35 33% 97%))',
         }}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
-            <p className="text-xs font-semibold" style={{ color: 'var(--theme-ink-primary)' }}>
+            <p className="text-xs font-semibold" style={{ color: 'var(--theme-ink-primary-color)' }}>
               ✓ {actionLabel}
               {draft?.title && (
                 <>
@@ -105,7 +105,7 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
               )}
             </p>
             {moment && (
-              <p className="mt-1 text-xs" style={{ color: 'var(--theme-ink-secondary)' }}>
+              <p className="mt-1 text-xs" style={{ color: 'var(--theme-ink-secondary-color)' }}>
                 Moment{' '}
                 <EntityLink onClick={onOpenMoment ? () => onOpenMoment(moment.id) : undefined}>
                   {moment.title}
@@ -114,18 +114,18 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
               </p>
             )}
             {message && !moment && (draft?.title || isSoleSave) && message !== `Draft ${actionLabel.toLowerCase()} successfully` && (
-              <p className="mt-1 text-xs" style={{ color: 'var(--theme-ink-secondary)' }}>{message}</p>
+              <p className="mt-1 text-xs" style={{ color: 'var(--theme-ink-secondary-color)' }}>{message}</p>
             )}
             {message && !moment && !draft?.title && !isSoleSave && (
-              <p className="mt-1 text-xs" style={{ color: 'var(--theme-ink-secondary)' }}>{message}</p>
+              <p className="mt-1 text-xs" style={{ color: 'var(--theme-ink-secondary-color)' }}>{message}</p>
             )}
             {isSoleSave && (memoryCard || reflection) && (
-              <p className="mt-0.5 text-xs" style={{ color: 'var(--theme-ink-tertiary)' }}>
+              <p className="mt-0.5 text-xs" style={{ color: 'var(--theme-ink-tertiary-color)' }}>
                 SOLE memory card recorded
               </p>
             )}
             {draft && (
-              <p className="mt-0.5 text-xs" style={{ color: 'var(--theme-ink-tertiary)' }}>
+              <p className="mt-0.5 text-xs" style={{ color: 'var(--theme-ink-tertiary-color)' }}>
                 {draft.kind} • {draft.key}
               </p>
             )}
@@ -137,7 +137,7 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
               type="button"
               onClick={() => onOpenDraft(draft.id)}
               className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:opacity-90"
-              style={{ backgroundColor: 'var(--theme-dialogue-user-bg, hsl(14, 60%, 56%))' }}
+              style={{ backgroundColor: 'hsl(var(--theme-dialogue-user-bg, 14 60% 56%))' }}
             >
               View Draft →
             </button>
@@ -165,12 +165,12 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
     <div
       className="rounded-lg border p-3"
       style={{
-        borderColor: 'var(--theme-border-soft)',
+        borderColor: 'hsl(var(--theme-border-soft))',
         backgroundColor: 'hsl(var(--theme-surface-panel) / 0.8)',
       }}
     >
-      <p className="text-xs font-semibold" style={{ color: 'var(--theme-ink-secondary)' }}>⊘ Skipped</p>
-      <p className="mt-1 text-sm" style={{ color: 'var(--theme-ink-secondary)' }}>{message}</p>
+      <p className="text-xs font-semibold" style={{ color: 'var(--theme-ink-secondary-color)' }}>⊘ Skipped</p>
+      <p className="mt-1 text-sm" style={{ color: 'var(--theme-ink-secondary-color)' }}>{message}</p>
     </div>
   );
 };

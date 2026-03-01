@@ -44,7 +44,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
 }) => (
   <div
     className="min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl px-4 py-4"
-    style={{ backgroundColor: 'var(--theme-dialogue-area-bg, hsl(35, 33%, 97%))' }}
+    style={{ backgroundColor: 'hsl(var(--theme-dialogue-area-bg, 35 33% 97%))' }}
   >
     {isLoading ? (
       <>
@@ -55,9 +55,9 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
       <div
         className="rounded-xl border border-dashed p-6 text-center text-sm"
         style={{
-          borderColor: 'var(--theme-dialogue-border, hsl(35, 20%, 88%))',
+          borderColor: 'hsl(var(--theme-dialogue-border, 35 20% 88%))',
           backgroundColor: 'hsl(var(--theme-surface-paper) / 0.7)',
-          color: 'var(--theme-ink-secondary)',
+          color: 'var(--theme-ink-secondary-color)',
         }}
       >
         Say hello to {agentName} to start the conversation.
@@ -79,10 +79,10 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
             style={{
               backgroundColor:
                 message.role === "user"
-                  ? "var(--theme-dialogue-user-bg, hsl(14, 60%, 56%))"
+                  ? "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))"
                   : "hsl(var(--theme-surface-paper))",
-              color: message.role === "user" ? undefined : "var(--theme-ink-primary)",
-              border: message.role === "agent" ? "1px solid var(--theme-border-soft)" : undefined,
+              color: message.role === "user" ? undefined : "var(--theme-ink-primary-color)",
+              border: message.role === "agent" ? "1px solid hsl(var(--theme-border-soft))" : undefined,
               boxShadow: message.role === "agent" ? "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)" : undefined,
             }}
           >
@@ -139,7 +139,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
             <span
               className="mt-2 block text-xs"
               style={{
-                color: message.role === "user" ? "rgba(255,255,255,0.8)" : "var(--theme-ink-tertiary)",
+                color: message.role === "user" ? "rgba(255,255,255,0.8)" : "var(--theme-ink-tertiary-color)",
               }}
             >
               {formatTime(message.createdAt)}
@@ -149,7 +149,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
       ))
     )}
     {isSending && (
-      <p className="text-xs" style={{ color: "var(--theme-ink-tertiary)" }}>{agentName} is thinking…</p>
+      <p className="text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>{agentName} is thinking…</p>
     )}
     {error && (
       <div

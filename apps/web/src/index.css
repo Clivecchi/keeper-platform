@@ -1,26 +1,28 @@
 @import "tailwindcss";
 
 @theme {
-  /* CSS var aliases to runtime theme engine */
-  --color-background: var(--theme-surface-page);
-  --color-foreground: var(--theme-ink-primary);
-  --color-card: var(--theme-surface-paper);
-  --color-card-foreground: var(--theme-ink-primary);
-  --color-popover: var(--theme-surface-elevated);
-  --color-popover-foreground: var(--theme-ink-primary);
-  --color-primary: var(--theme-border-strong);
-  --color-primary-foreground: var(--theme-surface-page);
-  --color-secondary: var(--theme-surface-panel);
-  --color-secondary-foreground: var(--theme-ink-secondary);
-  --color-muted: var(--theme-surface-panel);
-  --color-muted-foreground: var(--theme-ink-tertiary);
-  --color-accent: var(--theme-ink-secondary);
-  --color-accent-foreground: var(--theme-surface-page);
-  --color-destructive: var(--theme-border-strong);
-  --color-destructive-foreground: var(--theme-surface-page);
-  --color-border: var(--theme-border-soft);
-  --color-input: var(--theme-surface-paper);
-  --color-ring: var(--theme-focus-ring);
+  /* CSS var aliases to runtime theme engine.
+   * Ink vars hold HSL components; use -color suffix for full color values (color/background).
+   * Fallbacks for when theme vars are not yet in scope (e.g. body before StyleScope). */
+  --color-background: hsl(var(--theme-surface-page, 0 0% 100%));
+  --color-foreground: var(--theme-ink-primary-color, hsl(0 0% 9%));
+  --color-card: hsl(var(--theme-surface-paper, 0 0% 98%));
+  --color-card-foreground: var(--theme-ink-primary-color, hsl(0 0% 9%));
+  --color-popover: hsl(var(--theme-surface-elevated, 0 0% 100%));
+  --color-popover-foreground: var(--theme-ink-primary-color, hsl(0 0% 9%));
+  --color-primary: hsl(var(--theme-border-strong, 0 0% 80%));
+  --color-primary-foreground: hsl(var(--theme-surface-page, 0 0% 100%));
+  --color-secondary: hsl(var(--theme-surface-panel, 0 0% 96%));
+  --color-secondary-foreground: var(--theme-ink-secondary-color, hsl(0 0% 45%));
+  --color-muted: hsl(var(--theme-surface-panel, 0 0% 96%));
+  --color-muted-foreground: var(--theme-ink-tertiary-color, hsl(0 0% 60%));
+  --color-accent: var(--theme-ink-secondary-color, hsl(0 0% 45%));
+  --color-accent-foreground: hsl(var(--theme-surface-page, 0 0% 100%));
+  --color-destructive: hsl(var(--theme-border-strong, 0 0% 80%));
+  --color-destructive-foreground: hsl(var(--theme-surface-page, 0 0% 100%));
+  --color-border: hsl(var(--theme-border-soft, 0 0% 90%));
+  --color-input: hsl(var(--theme-surface-paper, 0 0% 98%));
+  --color-ring: hsl(var(--theme-focus-ring, 221 83% 53%));
   
   /* Alias common theme colors */
   --color-button: var(--color-primary);
@@ -33,8 +35,8 @@
 }
 
 body {
-  background-color: hsl(var(--color-background));
-  color: hsl(var(--color-foreground));
+  background-color: var(--color-background);
+  color: var(--color-foreground);
   font-family: var(--font-family-sans);
   font-feature-settings: "rlig" 1, "calt" 1;
 }

@@ -131,6 +131,14 @@ When `themeSlug` is null, `StyleScope` uses `getStyleDefinition(styleId)`, which
 
 ---
 
+## Root Cause: Invalid CSS Variable Usage (2026-02-28)
+
+**The theme variables hold HSL components** (e.g. `"0 0% 9%"`), not full color values. Using `color: var(--theme-ink-primary)` produces invalid CSS (`color: 0 0% 9%`). Valid usage requires `hsl(var(--theme-ink-primary))` or a pre-wrapped variable.
+
+**Fix applied:** Added `--theme-ink-primary-color`, `--theme-ink-secondary-color`, `--theme-ink-tertiary-color` to `tokensToCSSVars` (full color values). Updated all components to use these `-color` variables for `color` and `backgroundColor` properties. Updated `index.css` @theme to use the correct format with fallbacks.
+
+---
+
 ## Implementation Status (2026-02-28)
 
 All fixes have been implemented:
