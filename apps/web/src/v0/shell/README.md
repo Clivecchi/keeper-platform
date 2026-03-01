@@ -26,6 +26,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - [ ] Default keeper/journey creation when none exist for a domain.
 
 ## 📆 Update Log
+- 2026-02-28: FrameContext now derives domain from V0Shell domainData when inside V0Shell — single /api/domains/by-slug fetch, eliminates duplicate domain requests and staged load flicker.
 - 2026-02-19: Added AgentComposerContext — AgentBoardFrame provides composer props; Margin consumes when frame is agent/kip to render composer in bottom bar.
 - 2026-01-31: Registered the Present frame in the v0 shell frame registry and frame key union.
 - 2026-01-27: Added Experience Mode controller + actions and allowed public Kip frame access.

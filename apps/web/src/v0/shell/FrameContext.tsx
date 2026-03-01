@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext"
 import { apiFetch } from "../../lib/api"
 import type { V0FrameKey } from "./V0ShellContext"
 import type { ExperienceMode } from "./useExperienceMode"
+import { useV0ShellOptional } from "./V0ShellContext"
 
 // =============================================================================
 // Types — the Context Contract
@@ -114,6 +115,7 @@ export function FrameContextProvider({
   children,
 }: FrameContextProviderProps) {
   const { user, isAuthenticated, isAdmin } = useAuth()
+  const v0Shell = useV0ShellOptional()
 
   // --- Domain state ---
   const [domain, setDomain] = React.useState<FrameContextDomain | null>(null)
@@ -125,17 +127,17 @@ export function FrameContextProvider({
 
   // =========================================================================
   // 1. Domain resolution
-  //    Order: route-param slug → API lookup → fallback
+  //    Single source: V0Shell domainData when available (avoids duplicate fetch).
+  //    Only fetch when outside V0Shell (e.g. standalone FrameContext).
   // =========================================================================
+  const shellDomainData = v0Shell?.domainData as { id?: string; slug?: string; name?: string; description?: string | null } | null | undefined
+
   React.useEffect(() => {
     if (!domainSlug) {
       setDomain(null)
       setIsResolving(false)
       return
     }
-
-    let ignore = false
-    setIsResolving(true)
 
     const fallback: FrameContextDomain = {
       id: `fallback-${domainSlug}`,
@@ -144,8 +146,27 @@ export function FrameContextProvider({
       description: null,
     }
 
-    // Optimistic: set fallback immediately so UI is never blank
+    // When inside V0Shell: always derive from shell domainData — single fetch, no duplicate /api/domains/by-slug
+    if (v0Shell) {
+      if (shellDomainData?.id && !String(shellDomainData.id).startsWith("fallback-")) {
+        setDomain({
+          id: shellDomainData.id,
+          slug: shellDomainData.slug ?? domainSlug,
+          name: shellDomainData.name ?? domainSlug,
+          description: shellDomainData.description ?? null,
+        })
+        setIsResolving(false)
+      } else {
+        setDomain(fallback)
+        setIsResolving(true)
+      }
+      return
+    }
+
+    // Outside V0Shell: fetch ourselves
     setDomain(fallback)
+    setIsResolving(true)
+    let ignore = false
     ;(async () => {
       try {
         const res = await apiFetch(`/api/domains/by-slug/${domainSlug}`)
@@ -167,7 +188,7 @@ export function FrameContextProvider({
     return () => {
       ignore = true
     }
-  }, [domainSlug])
+  }, [domainSlug, v0Shell, shellDomainData?.id, shellDomainData?.slug, shellDomainData?.name, shellDomainData?.description])
 
   // =========================================================================
   // 2. Keeper + Journey resolution (after domain resolves)

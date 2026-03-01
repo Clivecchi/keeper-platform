@@ -22,6 +22,8 @@ Encapsulate shared React context providers (auth, theme, boards, worlds, etc.) u
 - [ ] Revisit KAM settings fetch once a cookie-auth endpoint is available.
 
 ## 📆 Update Log
+### 2026-02-28 - Single auth/me Call
+- Added `initialAuthFetchPromise` to dedupe `/api/kam/auth/me` calls from React StrictMode double-mount. 401 for guests remains silent (no console error).
 ### 2025-12-08 - ThemeContext Cookie-Aware Guard
 - Skip `/api/kam/settings` calls when only cookie auth is present to prevent noisy 401s and rely on the Keeper Classic fallback until cookie-aware endpoints land.
 ### 2026-01-24 - Auth Resolution + Admin Allowlist

@@ -32,6 +32,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/** Shared promise for initial auth fetch — dedupes duplicate calls from React StrictMode double-mount */
+let initialAuthFetchPromise: Promise<boolean> | null = null;
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -134,13 +137,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return false;
   }, [resolveIsAdmin]);
 
-  // Initial load
+  // Initial load — single /api/kam/auth/me call (deduped for StrictMode double-mount)
   useEffect(() => {
-    (async () => {
-      await fetchUserSession();
+    if (!initialAuthFetchPromise) {
+      initialAuthFetchPromise = fetchUserSession();
+    }
+    initialAuthFetchPromise.finally(() => {
       setAuthResolved(true);
       setIsLoading(false);
-    })();
+    });
   }, [fetchUserSession]);
 
   // Removed periodic refresh - was causing page loops and annoying refreshes

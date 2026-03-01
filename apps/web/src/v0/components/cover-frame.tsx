@@ -112,16 +112,21 @@ export function CoverFrame({
           ...pageBackground,
         }}
       >
-        {/* Cover Frame imprint header */}
+        {/* Cover Frame header — no imprint when it would duplicate cover body (domain name) */}
         <header className="space-y-4 mb-8" aria-label="Cover Frame">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center">
           <div />
-          <p
-            className="uppercase tracking-[0.42em] text-center"
-            style={{ fontSize: COVER_CONSTANTS.imprintSize, color: "var(--theme-ink-tertiary)" }}
-          >
-            {COVER_IMPRINT}
-          </p>
+          {/* Only show imprint when domain name differs from platform brand (avoids duplicate KE3P) */}
+          {coverTitle && coverTitle !== COVER_IMPRINT ? (
+            <p
+              className="uppercase tracking-[0.42em] text-center"
+              style={{ fontSize: COVER_CONSTANTS.imprintSize, color: "var(--theme-ink-tertiary)" }}
+            >
+              {COVER_IMPRINT}
+            </p>
+          ) : (
+            <div />
+          )}
           <div className="justify-self-end">
             {isAuthenticated && (
               <div className="relative">
@@ -206,7 +211,15 @@ export function CoverFrame({
           subtitle={coverState === "open" ? coverLiner : undefined}
           themeSwitcherSlot={<ThemeSwitcher />}
         >
-          <CoverBody domainData={domainData} themeSlug={themeSlug} onNavigate={navigate} coverState={coverState} />
+          <div
+            className="rounded-xl"
+            style={{
+              backgroundColor: "hsl(var(--theme-surface-paper) / 0.92)",
+              padding: "clamp(1.5rem, 4vw, 2.5rem)",
+            }}
+          >
+            <CoverBody domainData={domainData} themeSlug={themeSlug} onNavigate={navigate} coverState={coverState} />
+          </div>
         </DesignFrame>
       </div>
     </StyleScope>

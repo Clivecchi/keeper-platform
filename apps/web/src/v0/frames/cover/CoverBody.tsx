@@ -97,21 +97,32 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
   }
 
   const renderClosedCover = () => {
-    const title = domainData?.name || "KE3P"
-    const tagline = domainData?.description
+    const isPlaceholder = !domainData?.id || String(domainData.id).startsWith("fallback-")
+    const title = isPlaceholder ? undefined : (domainData?.name ?? undefined)
+    const tagline = isPlaceholder ? undefined : (domainData?.description ?? undefined)
 
     return (
       <section
         aria-label="Cover identity"
         className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-center"
       >
-        <h2 className="text-3xl md:text-4xl font-serif" style={{ color: "var(--theme-ink-primary)" }}>
-          {title}
-        </h2>
-        {tagline && (
-          <p className="text-sm leading-relaxed max-w-md" style={{ color: "var(--theme-ink-secondary)" }}>
-            {tagline}
-          </p>
+        {title ? (
+          <>
+            <h2 className="text-3xl md:text-4xl font-serif" style={{ color: "var(--theme-ink-primary)" }}>
+              {title}
+            </h2>
+            {tagline && (
+              <p className="text-sm leading-relaxed max-w-md" style={{ color: "var(--theme-ink-secondary)" }}>
+                {tagline}
+              </p>
+            )}
+          </>
+        ) : (
+          <div
+            className="h-8 w-24 animate-pulse rounded"
+            style={{ backgroundColor: "var(--theme-ink-tertiary)" }}
+            aria-hidden
+          />
         )}
       </section>
     )
