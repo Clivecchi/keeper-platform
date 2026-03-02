@@ -17,6 +17,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@keeper/database": "workspace:*",
     "@keeper/kam": "workspace:*",
     "@keeper/shared": "workspace:*",

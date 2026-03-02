@@ -45,6 +45,12 @@ Services are stateless classes instantiated on demand by route handlers or other
 - [ ] Ensure all external requests include proper timeouts.
 
 ## 📆 Update Log
+### 2026-02-28 - ModelProviderService Anthropic integration
+- **ModelProviderService.ts**: Replaced mock Anthropic response with real `@anthropic-ai/sdk` integration. Anthropic provider now calls `client.messages.create()` using `ANTHROPIC_API_KEY` from env (or user/platform keys as fallback).
+- **ModelProviderService.ts**: Added `ANTHROPIC_API_KEY` to key resolution hierarchy (env → user → platform). Both OpenAI and Anthropic now support env-first key resolution.
+- **ModelProviderService.ts**: Added `requiresExplicitKey` for anthropic so `MISSING_API_KEY` is surfaced before hitting the SDK.
+- **AgentBoardFrame.tsx**: Improved error display to show actual API error messages (e.g. "Kip cannot respond — the AI model API key is missing") instead of generic "Failed to send" when the message is short enough.
+
 ### 2026-02-10 - EngagementTemplateExecutor production fixes
 - **EngagementTemplateExecutor.ts**: Fixed `INTERNAL_API_URL` fallback to use dynamic `process.env.PORT` instead of hardcoded `3001`. On Railway, the server port is assigned dynamically, so the old default caused internal API calls to fail with connection refused.
 - **EngagementTemplateExecutor.ts**: Added `autoResolveKeeperId()` method that automatically finds the domain's first Keeper when `keeperId` is missing from inputs but `domainId` is available. This removes the requirement for users to manually enter a Keeper UUID when creating a Journey.

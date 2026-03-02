@@ -164,27 +164,113 @@ class OpenAIProvider {
 }
 
 /**
- * Anthropic Provider Implementation (Stubbed)
+ * Anthropic Provider Implementation
  */
 class AnthropicProvider {
-  static async callModel(messages: ModelMessage[], settings: ModelSettings): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
-    console.log(`[ANTHROPIC STUB] Would call ${settings.model} with ${messages.length} messages`);
-    
-    // TODO: Implement Anthropic SDK integration
-    const raw = messages.find(m => m.role === 'user')?.content;
-    const userMessage = typeof raw === 'string' ? raw : (Array.isArray(raw) ? raw.find(p => p.type === 'text')?.text ?? '[image(s) attached]' : 'Hello');
-    
-    return {
-      success: true,
-      content: `[MOCK Anthropic Response] I understand you said: "${userMessage}". This is a simulated response from ${settings.model}. The Anthropic integration is planned for future implementation.`,
-      usage: {
-        prompt_tokens: 45,
-        completion_tokens: 95,
-        total_tokens: 140
-      },
-      model: settings.model
-    };
+  static async callModel(
+    messages: ModelMessage[],
+    settings: ModelSettings,
+    apiKey?: string,
+    jsonMode?: boolean
+  ): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
+    const finalApiKey = apiKey || process.env.ANTHROPIC_API_KEY;
+    if (!finalApiKey) {
+      throw new ModelProviderException('MISSING_API_KEY', 'Anthropic API key is not configured', { retryable: false });
+    }
+
+    try {
+      const { default: Anthropic } = await import('@anthropic-ai/sdk');
+
+      const { anthropicMessages, systemPrompt } = convertToAnthropicFormat(messages);
+
+      const MODEL_TIMEOUT_MS = 60_000;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+
+      const client = new Anthropic({ apiKey: finalApiKey });
+
+      const createParams: Record<string, unknown> = {
+        model: settings.model,
+        max_tokens: settings.max_tokens ?? 4000,
+        temperature: settings.temperature ?? 0.7,
+        messages: anthropicMessages,
+        ...(systemPrompt ? { system: systemPrompt } : {}),
+      };
+      if (jsonMode) {
+        (createParams as any).output_config = { format: { type: 'json_object' } };
+      }
+
+      const response = await client.messages.create(createParams as any, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const contentBlocks = (response as any).content ?? [];
+      const textContent = contentBlocks
+        .filter((b: { type?: string }) => b.type === 'text')
+        .map((b: { text?: string }) => b.text ?? '')
+        .join('');
+
+      const usage = (response as any).usage;
+
+      return {
+        success: true,
+        content: textContent || '[No response content]',
+        usage: usage
+          ? {
+              prompt_tokens: usage.input_tokens ?? 0,
+              completion_tokens: usage.output_tokens ?? 0,
+              total_tokens: (usage.input_tokens ?? 0) + (usage.output_tokens ?? 0),
+            }
+          : undefined,
+        model: (response as any).model ?? settings.model,
+      };
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('Anthropic API timeout');
+        throw new ModelProviderException('TIMEOUT', 'Anthropic model request timed out', { retryable: false });
+      }
+      console.error('Anthropic API error:', error);
+      throw normalizeProviderError('anthropic', error);
+    }
   }
+}
+
+function convertToAnthropicFormat(messages: ModelMessage[]): {
+  anthropicMessages: Array<{ role: 'user' | 'assistant'; content: string | Array<{ type: 'text'; text: string }> }>;
+  systemPrompt: string | null;
+} {
+  const systemParts: string[] = [];
+  const anthropicMessages: Array<{
+    role: 'user' | 'assistant';
+    content: string | Array<{ type: 'text'; text: string }>;
+  }> = [];
+
+  for (const msg of messages) {
+    if (msg.role === 'system') {
+      const text = typeof msg.content === 'string' ? msg.content : extractTextFromContent(msg.content);
+      if (text) systemParts.push(text);
+      continue;
+    }
+    if (msg.role !== 'user' && msg.role !== 'assistant') continue;
+
+    const text = typeof msg.content === 'string' ? msg.content : extractTextFromContent(msg.content);
+    anthropicMessages.push({ role: msg.role, content: text || '[Empty]' });
+  }
+
+  return {
+    anthropicMessages,
+    systemPrompt: systemParts.length > 0 ? systemParts.join('\n\n') : null,
+  };
+}
+
+function extractTextFromContent(content: ModelContentPart[]): string {
+  const parts: string[] = [];
+  for (const p of content) {
+    if (p.type === 'text') parts.push(p.text);
+    else if (p.type === 'image_url') parts.push('[Image attached]');
+  }
+  return parts.join('\n');
 }
 
 /**
@@ -267,11 +353,20 @@ export class ModelProviderService {
       if (provider === 'openai') {
         apiKey = process.env.OPENAI_API_KEY || null;
         keySource = apiKey ? 'env' : 'none';
+      } else if (provider === 'anthropic') {
+        apiKey = process.env.ANTHROPIC_API_KEY || null;
+        keySource = apiKey ? 'env' : 'none';
       }
     } else {
       // 1. Try environment key first (highest priority, recommended long-term)
       if (provider === 'openai') {
         apiKey = process.env.OPENAI_API_KEY || null;
+        if (apiKey) {
+          keySource = 'env';
+        }
+      }
+      if (provider === 'anthropic') {
+        apiKey = process.env.ANTHROPIC_API_KEY || null;
         if (apiKey) {
           keySource = 'env';
         }
@@ -304,7 +399,7 @@ export class ModelProviderService {
     console.log(`[ModelProvider] Using ${keySource} key for ${provider} (user: ${userId || 'none'})`);
 
     // Error taxonomy representative: surface MISSING_API_KEY before we ever hit the SDK.
-    const requiresExplicitKey = provider === 'openai'; // extend as additional providers go live
+    const requiresExplicitKey = provider === 'openai' || provider === 'anthropic';
     if (requiresExplicitKey && !apiKey) {
       const message = userId
         ? `No ${provider} API key is configured for user ${userId}, platform storage, or env`
@@ -385,7 +480,7 @@ export class ModelProviderService {
       case 'openai':
         return OpenAIProvider.callModel(messages, settings, apiKey || undefined, jsonMode);
       case 'anthropic':
-        return AnthropicProvider.callModel(messages, settings);
+        return AnthropicProvider.callModel(messages, settings, apiKey || undefined, jsonMode);
       case 'together':
         return TogetherProvider.callModel(messages, settings);
       case 'elevenlabs':

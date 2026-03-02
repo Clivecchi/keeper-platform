@@ -489,8 +489,13 @@ export function AgentBoardFrame({
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id))
       const status = (err as { status?: number })?.status
+      const message = err instanceof Error ? err.message : undefined
       setMessagesError(
-        status === 401 ? "Session expired. Please log in again." : "Failed to send. Please try again."
+        status === 401
+          ? "Session expired. Please log in again."
+          : message && message.length > 0 && message.length < 200
+            ? message
+            : "Failed to send. Please try again."
       )
     } finally {
       setIsSending(false)
