@@ -84,6 +84,12 @@ async function runDebugDiagnostics(): Promise<string> {
       lines.push(`  hasToken: ${auth.hasToken}`)
       lines.push(`  tokenLocation: ${auth.tokenLocation}`)
     }
+    // Call GET /api/kam/auth/me to capture actual response
+    if (keeper?.checkAuthMe) {
+      const authMe = await keeper.checkAuthMe()
+      lines.push(`  auth/me: status=${authMe.status} ok=${authMe.ok} hasUser=${authMe.hasUser}`)
+      if (authMe.error) lines.push(`  auth/me error: ${authMe.error}`)
+    }
   } catch (e) {
     lines.push(`Auth check error: ${e}`)
   }
@@ -158,7 +164,10 @@ async function runDebugDiagnostics(): Promise<string> {
   // API base
   lines.push("")
   lines.push("--- Config ---")
-  lines.push(`  VITE_API_URL: ${(import.meta as any)?.env?.VITE_API_URL ?? "undefined"}`)
+  const viteApiUrl = (import.meta as any)?.env?.VITE_API_URL
+  const effectiveBase = viteApiUrl || "https://api.ke3p.com"
+  lines.push(`  VITE_API_URL: ${viteApiUrl ?? "undefined"}`)
+  lines.push(`  effective API base: ${effectiveBase}`)
 
   lines.push("")
   lines.push("=== End Debug Log ===")

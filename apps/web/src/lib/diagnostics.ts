@@ -24,6 +24,15 @@ interface KeeperDiagnostics {
     healthOk: boolean;
     error?: string;
   }>;
+
+  /** Call GET /api/kam/auth/me and return status + summary. Use: window.__keeper.checkAuthMe() */
+  checkAuthMe: () => Promise<{
+    url: string;
+    status: number;
+    ok: boolean;
+    hasUser: boolean;
+    error?: string;
+  }>;
   
   getBoardInfo: () => {
     lastError: any;
@@ -74,6 +83,33 @@ if (typeof window !== 'undefined') {
       };
     }
   };
+
+  keeper.checkAuthMe = async () => {
+    const apiUrl = (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com';
+    const url = `${apiUrl}/api/kam/auth/me`;
+    const headers: Record<string, string> = {};
+    const storedToken = localStorage.getItem('keeper_token') || sessionStorage.getItem('keeper_token');
+    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    try {
+      const res = await fetch(url, { method: 'GET', credentials: 'include', headers });
+      const body = await res.json().catch(() => ({}));
+      return {
+        url,
+        status: res.status,
+        ok: res.ok,
+        hasUser: !!(body && body.user),
+        error: res.ok ? undefined : res.statusText || `HTTP ${res.status}`
+      };
+    } catch (err) {
+      return {
+        url,
+        status: 0,
+        ok: false,
+        hasUser: false,
+        error: String(err)
+      };
+    }
+  };
   
   keeper.getBoardInfo = () => {
     const boardLayouts: string[] = [];
@@ -96,11 +132,10 @@ if (typeof window !== 'undefined') {
   (window as any).__keeper = keeper;
   
   console.log('[Keeper] Diagnostics loaded. Try:\n' +
-    '  window.__keeper.checkAuth()\n' +
-    '  window.__keeper.checkApiConnection()\n' +
-    '  window.__keeper.getBoardInfo()\n' +
-    '  window.__keeper.fetchShimInstalled (boolean)\n' +
-    '  window.__keeper.fetchShimDebug (boolean)'
+    '  window.__keeper.checkAuth()           — token presence\n' +
+    '  window.__keeper.checkAuthMe()         — GET /api/kam/auth/me (returns {status, ok, hasUser})\n' +
+    '  window.__keeper.checkApiConnection()  — health check\n' +
+    '  window.__keeper.getBoardInfo()       — board storage'
   );
   try { console.log('[Keeper] API base =', (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com'); } catch {}
 }
