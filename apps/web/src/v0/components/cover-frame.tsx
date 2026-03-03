@@ -9,6 +9,7 @@ import { CoverBody } from "../frames/cover/CoverBody"
 import { ThemeSwitcher } from "../frames/ThemeSwitcher"
 import { useAuth } from "../../context/AuthContext"
 import { apiFetch } from "../../lib/api"
+import { getApiBase } from "../../lib/apiFetch"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
 
 const COVER_IMPRINT = "KE3P"
@@ -91,7 +92,9 @@ export function CoverFrame({
 
   const handleLogout = async () => {
     try {
-      await fetch(`${(import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com'}/api/kam/auth/logout`, {
+      const base = getApiBase();
+      const logoutUrl = base ? `${base}/api/kam/auth/logout` : '/api/kam/auth/logout';
+      await fetch(logoutUrl, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

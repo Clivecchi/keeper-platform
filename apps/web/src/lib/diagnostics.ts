@@ -1,6 +1,8 @@
 // src/lib/diagnostics.ts
 // Diagnostic utilities exposed on window.__keeper for debugging
 
+import { getApiBase } from './apiFetch';
+
 interface KeeperDiagnostics {
   fetchShimInstalled?: boolean;
   fetchShimDebug?: boolean;
@@ -62,7 +64,8 @@ if (typeof window !== 'undefined') {
   };
   
   keeper.checkApiConnection = async () => {
-    const apiUrl = (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com';
+    const apiBase = getApiBase();
+    const apiUrl = apiBase || 'https://api.ke3p.com';
     const healthEndpoint = `${apiUrl}/api/health`;
     
     try {
@@ -85,8 +88,9 @@ if (typeof window !== 'undefined') {
   };
 
   keeper.checkAuthMe = async () => {
-    const apiUrl = (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com';
-    const url = `${apiUrl}/api/kam/auth/me`;
+    const apiBase = getApiBase();
+    const apiUrl = apiBase || 'https://api.ke3p.com';
+    const url = apiBase ? `${apiBase}/api/kam/auth/me` : '/api/kam/auth/me';
     const headers: Record<string, string> = {};
     const storedToken = localStorage.getItem('keeper_token') || sessionStorage.getItem('keeper_token');
     if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
@@ -137,7 +141,7 @@ if (typeof window !== 'undefined') {
     '  window.__keeper.checkApiConnection()  — health check\n' +
     '  window.__keeper.getBoardInfo()       — board storage'
   );
-  try { console.log('[Keeper] API base =', (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com'); } catch {}
+  try { console.log('[Keeper] API base =', getApiBase() || '(relative /api on ke3p.com)'); } catch {}
 }
 
 export {};

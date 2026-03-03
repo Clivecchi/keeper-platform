@@ -4,7 +4,10 @@
 
 export async function logout() {
   try {
-    await fetch(`${import.meta.env.VITE_API_URL}/api/kam/auth/logout`, {
+    const { getApiBase } = await import('../lib/apiFetch');
+    const base = getApiBase();
+    const url = base ? `${base}/api/kam/auth/logout` : '/api/kam/auth/logout';
+    await fetch(url, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },

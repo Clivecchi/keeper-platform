@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { setAuthToken, getAuthToken, clearAuthToken } from '../lib/authTokenStore';
+import { getApiBase } from '../lib/apiFetch';
 
 // Frontend types (no need to import backend types)
 interface AuthUser {
@@ -63,7 +64,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const apiUrl = (import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com';
+      const apiBase = getApiBase();
+      const authMeUrl = apiBase ? `${apiBase}/api/kam/auth/me` : '/api/kam/auth/me';
 
       // Build headers: always send stored JWT as Authorization if available.
       // This is the primary auth mechanism; cookies are a bonus when they work.
@@ -73,7 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         headers['Authorization'] = `Bearer ${storedJwt}`;
       }
 
-      const response = await fetch(`${apiUrl}/api/kam/auth/me`, {
+      const response = await fetch(authMeUrl, {
         method: 'GET',
         credentials: 'include', // Also send HttpOnly cookie if present
         headers,

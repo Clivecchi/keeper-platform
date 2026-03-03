@@ -165,9 +165,10 @@ async function runDebugDiagnostics(): Promise<string> {
   lines.push("")
   lines.push("--- Config ---")
   const viteApiUrl = (import.meta as any)?.env?.VITE_API_URL
-  const effectiveBase = viteApiUrl || "https://api.ke3p.com"
+  const { getApiBase } = await import("../../lib/apiFetch")
+  const effectiveBase = getApiBase()
   lines.push(`  VITE_API_URL: ${viteApiUrl ?? "undefined"}`)
-  lines.push(`  effective API base: ${effectiveBase}`)
+  lines.push(`  effective API base: ${effectiveBase || '(relative /api on ke3p.com)'}`)
 
   lines.push("")
   lines.push("=== End Debug Log ===")

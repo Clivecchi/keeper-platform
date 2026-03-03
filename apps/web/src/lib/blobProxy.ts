@@ -8,15 +8,12 @@
  * On ke3p.com uses relative /api/uploads/proxy (Vercel rewrites to API).
  */
 
+import { getApiBase } from './apiFetch';
+
 const BLOB_HOST_PATTERN = /\.(public|private)\.blob\.vercel-storage\.com/;
 
-const API_BASE = ((import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com').replace(/\/$/, '');
-
 function getProxyBase(): string {
-  if (typeof window === 'undefined') return API_BASE;
-  const host = window.location.hostname;
-  if (host === 'www.ke3p.com' || host === 'ke3p.com') return '';
-  return API_BASE;
+  return getApiBase(); // '' on ke3p.com (relative /api), else env or api.ke3p.com
 }
 
 export function getBlobProxyUrl(url: string): string {

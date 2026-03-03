@@ -10,15 +10,24 @@ import { getAuthToken } from './authTokenStore';
 
 type FetchOptions = RequestInit & { headers?: Record<string, string> };
 
-const RAW_BASE = ((import.meta as any)?.env?.VITE_API_URL || 'https://api.ke3p.com').replace(/\/$/, '');
-const API_HOST = (() => { try { return new URL(RAW_BASE).host; } catch { return 'api.ke3p.com'; } })();
+/** Resolve API base: use relative /api when on ke3p.com (Vercel rewrites to Railway); else env or fallback. Exported for api.ts. */
+export function getApiBase(): string {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host === 'www.ke3p.com' || host === 'ke3p.com') return ''; // Same-origin: /api → Vercel rewrite
+  }
+  const env = (import.meta as any)?.env?.VITE_API_URL;
+  return (env || 'https://api.ke3p.com').replace(/\/$/, '');
+}
+
+const RAW_BASE = getApiBase();
+const API_HOST = RAW_BASE ? (() => { try { return new URL(RAW_BASE).host; } catch { return 'api.ke3p.com'; } })() : window?.location?.host || 'api.ke3p.com';
 
 function toApiUrl(input: string | URL): string {
   const u = typeof input === 'string' ? input : input.toString();
-  if (u.startsWith(RAW_BASE)) return u;
-  if (u.startsWith('/api/')) return `${RAW_BASE}${u}`;
-  if (u.startsWith('https://www.ke3p.com/api/')) return u.replace('https://www.ke3p.com', RAW_BASE);
-  return u;
+  if (u.startsWith('http')) return u; // Already absolute
+  if (u.startsWith('/api/')) return RAW_BASE ? `${RAW_BASE}${u}` : u; // Relative when on ke3p.com
+  return RAW_BASE ? `${RAW_BASE}${u}` : u;
 }
 
 export async function apiFetch(input: string | URL, opts: FetchOptions = {}) {
