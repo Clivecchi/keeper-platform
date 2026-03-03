@@ -79,9 +79,14 @@ class OpenAIProvider {
     jsonMode?: boolean
   ): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
     // Use provided API key or fall back to system key
-    const finalApiKey = apiKey || process.env.OPENAI_API_KEY;
+    const rawKey = apiKey || process.env.OPENAI_API_KEY;
+    const finalApiKey = typeof rawKey === 'string' && rawKey.trim().length > 0 ? rawKey.trim() : null;
     if (!finalApiKey) {
-      throw new ModelProviderException('MISSING_API_KEY', 'OpenAI API key is not configured', { retryable: false });
+      throw new ModelProviderException(
+        'MISSING_API_KEY',
+        'OpenAI API key is not configured. Add OPENAI_API_KEY to your Railway environment variables.',
+        { retryable: false }
+      );
     }
 
     try {
@@ -173,9 +178,14 @@ class AnthropicProvider {
     apiKey?: string,
     jsonMode?: boolean
   ): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
-    const finalApiKey = apiKey || process.env.ANTHROPIC_API_KEY;
+    const rawKey = apiKey || process.env.ANTHROPIC_API_KEY;
+    const finalApiKey = typeof rawKey === 'string' && rawKey.trim().length > 0 ? rawKey.trim() : null;
     if (!finalApiKey) {
-      throw new ModelProviderException('MISSING_API_KEY', 'Anthropic API key is not configured', { retryable: false });
+      throw new ModelProviderException(
+        'MISSING_API_KEY',
+        'Anthropic API key is not configured. Add ANTHROPIC_API_KEY to your Railway environment variables.',
+        { retryable: false }
+      );
     }
 
     try {
@@ -343,49 +353,45 @@ export class ModelProviderService {
     const { messages, settings, provider, userId } = options;
     const retryConfig = settings.retry || { max_retries: 3, retry_delay_ms: 1000 };
     
+    // Helper: treat empty/whitespace keys as invalid
+    const validKey = (k: string | null | undefined): string | null =>
+      typeof k === 'string' && k.trim().length > 0 ? k.trim() : null;
+
     // Implement key resolution hierarchy: environment key → platform key → user key
     // NEW ORDER: Prefer ENV over DB for long-term reliability
     let apiKey: string | null = null;
     let keySource = 'none';
-    
+
     // When stabilization mode is enabled, force env-only keys for runtime
     if (process.env.STABILIZE_MODE === '1') {
       if (provider === 'openai') {
-        apiKey = process.env.OPENAI_API_KEY || null;
+        apiKey = validKey(process.env.OPENAI_API_KEY);
         keySource = apiKey ? 'env' : 'none';
       } else if (provider === 'anthropic') {
-        apiKey = process.env.ANTHROPIC_API_KEY || null;
+        apiKey = validKey(process.env.ANTHROPIC_API_KEY);
         keySource = apiKey ? 'env' : 'none';
       }
     } else {
       // 1. Try environment key first (highest priority, recommended long-term)
       if (provider === 'openai') {
-        apiKey = process.env.OPENAI_API_KEY || null;
-        if (apiKey) {
-          keySource = 'env';
-        }
+        apiKey = validKey(process.env.OPENAI_API_KEY);
+        if (apiKey) keySource = 'env';
       }
       if (provider === 'anthropic') {
-        apiKey = process.env.ANTHROPIC_API_KEY || null;
-        if (apiKey) {
-          keySource = 'env';
-        }
+        apiKey = validKey(process.env.ANTHROPIC_API_KEY);
+        if (apiKey) keySource = 'env';
       }
-      
+
       // 2. Fall back to user's personal API key if env not set
       if (!apiKey && userId) {
-        apiKey = await KipUserKeyService.getUserKey(provider, userId);
-        if (apiKey) {
-          keySource = 'user';
-        }
+        apiKey = validKey(await KipUserKeyService.getUserKey(provider, userId));
+        if (apiKey) keySource = 'user';
       }
-      
+
       // 3. Fall back to platform key from DB as last resort
       if (!apiKey) {
-        apiKey = await PlatformApiKeyService.getKeyForProvider(provider);
-        if (apiKey) {
-          keySource = 'platform';
-        }
+        apiKey = validKey(await PlatformApiKeyService.getKeyForProvider(provider));
+        if (apiKey) keySource = 'platform';
       }
     }
     
@@ -401,9 +407,8 @@ export class ModelProviderService {
     // Error taxonomy representative: surface MISSING_API_KEY before we ever hit the SDK.
     const requiresExplicitKey = provider === 'openai' || provider === 'anthropic';
     if (requiresExplicitKey && !apiKey) {
-      const message = userId
-        ? `No ${provider} API key is configured for user ${userId}, platform storage, or env`
-        : `No ${provider} API key is configured for the platform or environment`;
+      const envVar = provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'OPENAI_API_KEY';
+      const message = `Add ${envVar} to your Railway environment variables, or configure a platform/user key.`;
       return {
         success: false,
         content: '',

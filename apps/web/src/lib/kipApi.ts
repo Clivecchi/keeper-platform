@@ -635,8 +635,11 @@ export class KipApi {
       }
       if (errorCode === 'MISSING_API_KEY') {
         throw new Error(
-          'Kip cannot respond — the AI model API key is missing or invalid. ' +
-          'Please check your configuration.'
+          innerError && typeof innerError === 'string' && innerError.includes('ANTHROPIC_API_KEY')
+            ? innerError
+            : innerError && typeof innerError === 'string' && innerError.includes('OPENAI_API_KEY')
+              ? innerError
+              : 'Kip cannot respond — the AI model API key is missing or invalid. Add OPENAI_API_KEY or ANTHROPIC_API_KEY to your Railway environment variables.'
         );
       }
 

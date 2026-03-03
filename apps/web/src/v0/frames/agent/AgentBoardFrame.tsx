@@ -37,7 +37,7 @@ import { PromptedActionCard } from "../../components/PromptedActionCard"
 import type { PromptedAction } from "../../components/PromptedActionCard"
 import { DialogueMessageList } from "../../../components/agent/DialogueMessageList"
 import { CockpitPanel } from "../../../components/agent/CockpitPanel"
-import { AgentContextBar } from "../../../components/agent/AgentContextBar"
+import { SessionBannerCard } from "../../../components/agent/SessionBannerCard"
 import { AgentContextBanner } from "../../../components/agent/AgentContextBanner"
 import { AgentComposerProvider } from "../../shell/AgentComposerContext"
 import { DraftCard } from "../../../components/agent/DraftCard"
@@ -159,6 +159,8 @@ export function AgentBoardFrame({
     error: sessionsError,
     refresh: refreshSessions,
     createSession,
+    updateSessionMetadata,
+    updatingSessionId,
   } = useAgentSessions(agent?.id)
 
   // Active session: from URL view or first session
@@ -642,18 +644,25 @@ export function AgentBoardFrame({
 
   // ── Workspace renderers ──
 
+  const activeSession = activeSessionId ? sessions.find((s) => s.id === activeSessionId) : null
+  const sessionTitle = activeSession?.title ?? `Conversation with ${agentName}`
+
   const renderDialogueWorkspace = () => (
     <div className="space-y-4">
-      <WorkspaceHeader
-        eyebrow="Session"
-        title={`Conversation with ${agentName}`}
-        description={activeSessionId ? `Session ${shortId(activeSessionId)}` : "No active session"}
-      />
-      <AgentContextBar
-        activeJourneyName={activeJourneyName}
-        activeKeeperName={activeKeeperName}
-        soleActive={soleStatus?.soleActive ?? (domainId ? true : hasKeeper)}
+      <SessionBannerCard
+        sessionTitle={sessionTitle}
         sessionId={activeSessionId}
+        onSaveTitle={
+          activeSessionId && updateSessionMetadata
+            ? (name) => updateSessionMetadata(activeSessionId, { session_name: name })
+            : undefined
+        }
+        isSavingTitle={activeSessionId === updatingSessionId}
+        journeyName={activeJourneyName}
+        keeperName={activeKeeperName}
+        soleActive={soleStatus?.soleActive ?? (domainId ? true : hasKeeper)}
+        modelProvider={agent?.model_provider ?? "openai"}
+        onOpenCockpit={() => setView({ kind: "cockpit" })}
       />
       <DialogueMessageList
         isLoading={isLoadingMessages || isAgentLoading}
