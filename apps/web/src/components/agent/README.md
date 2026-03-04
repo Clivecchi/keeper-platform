@@ -14,6 +14,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - `SessionCard.tsx` -- Clickable session card for conversation session lists. Compact and full variants.
 - `CockpitPanel.tsx` -- Agent configuration and diagnostics overview: SOLE memory, model config, tools/actions (allowedActions prop), session stats, governance compliance (when showCompliance). Also exports `FrameCard` utility component.
 - `AgentContextBar.tsx` -- Thin persistent bar showing active journey scope, keeper scope, SOLE memory status, and session ID. Displayed above the workspace to make agent operating context visible.
+- `SessionBannerCard.tsx` -- Unified dialogue session banner: editable session title, session ID, Journey/Keeper/SOLE/Session/Model context row, Change model button. Replaces WorkspaceHeader + AgentContextBar in dialogue workspace.
 - `types.ts` -- Shared types: `AgentDialogueMessage`, `DialogueMetaItem`, `normalizeActionReceipt()`.
 - `helpers.ts` -- Shared formatting utilities: `formatDate`, `formatTime`, `formatRelative`, `shortId`.
 
@@ -28,6 +29,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-02-28: Added SessionBannerCard — unified session banner for dialogue workspace. Combines session title (editable inline), session ID, Journey/Keeper/SOLE/Session/Model context row, and Change model button. Replaces separate WorkspaceHeader + AgentContextBar in AgentBoardFrame dialogue view.
 - 2026-02-26: CockpitPanel: Dynamic model loading from GET /api/kip/models?provider=X. Fetches from provider API (OpenAI, Anthropic) server-side; loading state; fallback to minimal hardcoded list on fetch failure. Keeps current model selectable when not in fetched list.
 - 2026-02-19: CockpitPanel: Added "Change model" button and modal. Fetches model catalog from GET /api/kip/models. onAgentUpdated callback refreshes parent agent state.
 - 2026-02-19: AgentComposer: Cursor-style layout. Toolbar (∞ Kip Domain | attach | send) above full-width input. Attachment bar shows file previews above input; files upload to blob, no longer inlined as text. Act/Kip/kip-old moved below composer by Margin.

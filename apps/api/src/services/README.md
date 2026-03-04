@@ -45,11 +45,12 @@ Services are stateless classes instantiated on demand by route handlers or other
 - [ ] Ensure all external requests include proper timeouts.
 
 ## 📆 Update Log
-### 2026-02-28 - ModelProviderService Anthropic integration
+### 2026-02-28 - ModelProviderService Anthropic integration + API key validation
 - **ModelProviderService.ts**: Replaced mock Anthropic response with real `@anthropic-ai/sdk` integration. Anthropic provider now calls `client.messages.create()` using `ANTHROPIC_API_KEY` from env (or user/platform keys as fallback).
 - **ModelProviderService.ts**: Added `ANTHROPIC_API_KEY` to key resolution hierarchy (env → user → platform). Both OpenAI and Anthropic now support env-first key resolution.
 - **ModelProviderService.ts**: Added `requiresExplicitKey` for anthropic so `MISSING_API_KEY` is surfaced before hitting the SDK.
-- **AgentBoardFrame.tsx**: Improved error display to show actual API error messages (e.g. "Kip cannot respond — the AI model API key is missing") instead of generic "Failed to send" when the message is short enough.
+- **ModelProviderService.ts**: Added `validKey()` helper to treat empty/whitespace keys as invalid. Clearer error messages instruct users to add `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` to Railway environment variables.
+- **AgentBoardFrame.tsx**: Improved error display to show actual API error messages instead of generic "Failed to send" when available.
 
 ### 2026-02-10 - EngagementTemplateExecutor production fixes
 - **EngagementTemplateExecutor.ts**: Fixed `INTERNAL_API_URL` fallback to use dynamic `process.env.PORT` instead of hardcoded `3001`. On Railway, the server port is assigned dynamically, so the old default caused internal API calls to fail with connection refused.

@@ -16,8 +16,8 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 - Workspace views via `useAgentWorkspaceView`: `dialogue` (conversation), `draft` (DraftCard), `cockpit` (diagnostics), `list` (all drafts/journeys/keepers/sessions), `journey` (JourneyCard detail), `keeper` (KeeperCard detail)
 - Context-first banner (AgentContextBanner): domain · keeper/journey, Live, Open Cockpit. Agent name and mode live in AgentComposer.
 - Clicking sidebar **headers** (Drafts, Journeys, Keepers, Sessions) opens the full list in the workspace. Clicking **individual items** opens their detail (draft → DraftCard, journey → JourneyCard, keeper → KeeperCard, session → dialogue). Journey/Keeper selection also scopes agent context via `FrameContext.setActiveJourneyId/setActiveKeeperId`
-- Context bar above workspace shows active scope (journey, keeper, SOLE, session)
-- Uses extracted components: `DialogueMessageList`, `AgentComposer`, `CockpitPanel`, `AgentContextBar`, `DraftCard`, `JourneyCard`, `KeeperCard`, `AgentContextBanner`
+- Session banner (SessionBannerCard) in dialogue view: editable session title, session ID, Journey/Keeper/SOLE/Session/Model context, Change model button
+- Uses extracted components: `DialogueMessageList`, `AgentComposer`, `CockpitPanel`, `SessionBannerCard`, `DraftCard`, `JourneyCard`, `KeeperCard`, `AgentContextBanner`
 
 ## ⚠️ Notes & ToDo
 - [ ] Deprecate `AgentFrame` once `AgentBoardFrame` is feature-complete
@@ -27,6 +27,7 @@ v0 frames for the domain agent surface. Contains both the legacy Kip agent wrapp
 - [ ] Wire draft-to-dialogue flow (discuss draft with agent)
 
 ## 📆 Update Log
+- 2026-02-28: Session banner redesign: Replaced WorkspaceHeader + AgentContextBar with unified SessionBannerCard in dialogue workspace. Session title is editable inline; banner includes Journey, Keeper, SOLE, Session ID, and Model; Change model button opens cockpit.
 - 2026-02-28: Theme variable fix: ink vars hold HSL components; using var(--theme-ink-primary) for color produced invalid CSS. Added --theme-ink-*-color vars (full colors) to styleRegistry; updated SidebarCard, DialogueMessageList, ActionReceiptCard, DraftUpdateProposeCard, WorkspaceHeader, AgentContextBar, AgentContextBanner, AgentBoardFrame to use -color vars; fixed index.css @theme and dialogue hsl() usage.
 - 2026-02-28: Theme/dialogue fixes: StyleScope merges theme + style tokens so dialogue tokens always present; themeRegistry adds dialogue.* to themes; DialogueMessageList uses theme vars for text, agent bubbles have distinct background (surface-paper + border + shadow); ActionReceiptCard, DraftUpdateProposeCard use theme vars; DesignFrame/CoverFrame support coverImageMode: "tile" for texture backgrounds.
 - 2026-02-19: AgentComposer moved into bottom bar (Margin). AgentBoardFrame provides AgentComposerProvider; composer no longer in workspace. Agent always available in same place when in Agent frame.
