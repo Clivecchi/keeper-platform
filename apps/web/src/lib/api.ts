@@ -8,7 +8,8 @@
  * - JSON body/header defaults
  * - Error handling
  */
-export { apiFetch, getApiBase } from './apiFetch';
+import { apiFetch, getApiBase } from './apiFetch';
+export { apiFetch, getApiBase };
 
 export function SystemStatus(): Promise<any> {
   return apiFetch('/api/health', { method: 'GET' });
@@ -19,10 +20,10 @@ export const API_BASE: string = getApiBase();
 
 // Back-compat: expose simple api.{get,post} wrapper used by older pages
 export const api = {
-  get: (path: string, init?: RequestInit) => apiFetch(path, { ...(init || {}), method: 'GET' }),
+  get: (path: string, init?: RequestInit) => apiFetch(path, { ...(init as any || {}), method: 'GET' }),
   post: (path: string, body?: unknown, init?: RequestInit) =>
     apiFetch(path, {
-      ...(init || {}),
+      ...(init as any || {}),
       method: 'POST',
       body: typeof body === 'string' ? body : body != null ? JSON.stringify(body) : undefined,
     }),

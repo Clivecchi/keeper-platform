@@ -21,7 +21,6 @@ export function getApiBase(): string {
 }
 
 const RAW_BASE = getApiBase();
-const API_HOST = RAW_BASE ? (() => { try { return new URL(RAW_BASE).host; } catch { return 'api.ke3p.com'; } })() : window?.location?.host || 'api.ke3p.com';
 
 function toApiUrl(input: string | URL): string {
   const u = typeof input === 'string' ? input : input.toString();
@@ -34,7 +33,7 @@ export async function apiFetch(input: string | URL, opts: FetchOptions = {}) {
   const url = toApiUrl(input);
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(opts.headers || {}),
+    ...(opts.headers as Record<string, string> | undefined || {}),
   };
 
   // Inject JWT Authorization header if we have a stored token and

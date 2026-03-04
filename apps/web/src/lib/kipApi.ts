@@ -617,13 +617,14 @@ export class KipApi {
     const agentResult = response.data as AgentResponse;
 
     if (agentResult && agentResult.success === false) {
+      const dataAny = agentResult.data as any;
       const innerError =
-        agentResult.data?.error ||
-        (agentResult.data as any)?.data?.error ||
+        dataAny?.error ||
+        dataAny?.data?.error ||
         'The agent was unable to process your request';
       const errorCode =
-        agentResult.data?.errorCode ||
-        (agentResult.data as any)?.data?.errorCode ||
+        dataAny?.errorCode ||
+        dataAny?.data?.errorCode ||
         '';
 
       // Provide user-friendly messages for known error codes

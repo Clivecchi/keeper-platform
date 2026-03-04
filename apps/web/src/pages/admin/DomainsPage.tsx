@@ -1,5 +1,4 @@
 import React from 'react';
-import { __internal as apiInternal } from '../../lib/apiFetch';
 import DomainManager from '../../components/domain-manager/DomainManager';
 
 const DomainsPage: React.FC = () => {
