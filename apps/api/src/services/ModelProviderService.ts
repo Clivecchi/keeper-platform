@@ -206,9 +206,9 @@ class AnthropicProvider {
         messages: anthropicMessages,
         ...(systemPrompt ? { system: systemPrompt } : {}),
       };
-      if (jsonMode) {
-        (createParams as any).output_config = { format: { type: 'json_object' } };
-      }
+      // Anthropic does not support a json_object output_config shorthand.
+      // JSON output is enforced via system prompt instructions in the agent layer.
+      // Do NOT add output_config here — it causes a 400 invalid_request_error.
 
       const response = await client.messages.create(createParams as any, {
         signal: controller.signal,
