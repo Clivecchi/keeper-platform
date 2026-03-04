@@ -21,6 +21,8 @@ import { AdminFrame } from "../frames/admin/AdminFrame"
 import { IndexFrame } from "../frames/index/IndexFrame"
 import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
+import { loadDomainFrame } from "../data/loadDomainFrame"
+import type { DomainFrameJson } from "../data/domain-frame.types"
 import { useExperienceMode } from "./useExperienceMode"
 import { FrameContextProvider } from "./FrameContext"
 
@@ -66,6 +68,7 @@ export function V0Shell() {
   const draftId = searchParams.get("draftId")
   const initialStyleId = themeSlug ? undefined : styleId
   const [domainData, setDomainData] = React.useState<any | null>(null)
+  const [domainFrame, setDomainFrame] = React.useState<DomainFrameJson | null>(null)
   const commitSha =
     (import.meta as any).env?.VERCEL_GIT_COMMIT_SHA ??
     (import.meta as any).env?.VITE_COMMIT_SHA ??
@@ -101,6 +104,26 @@ export function V0Shell() {
   React.useEffect(() => {
     ;(window as any).__keeper_domainData = domainData
   }, [domainData])
+
+  // Debug: expose domainFrame for Kip Debug / incognito console verification
+  React.useEffect(() => {
+    ;(window as any).__keeper_domainFrame = domainFrame
+  }, [domainFrame])
+
+  // ── Load domain frame JSON ──
+  React.useEffect(() => {
+    if (!slug) return
+    let ignore = false
+    loadDomainFrame(slug).then((frame) => {
+      if (ignore) return
+      setDomainFrame(frame)
+      console.log("[DomainFrame] Loaded for domain:", slug, frame)
+    }).catch((err) => {
+      if (ignore) return
+      console.warn("[DomainFrame] Failed to load:", err)
+    })
+    return () => { ignore = true }
+  }, [slug])
 
   if (!slug) {
     return null
