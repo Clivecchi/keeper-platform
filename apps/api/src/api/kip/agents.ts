@@ -1394,10 +1394,10 @@ export async function executeAgentActions(
               let engagementTemplateId: string | null = null;
 
               if (rawJourneyId) {
+                // Journeys are domain-level resources — validate by domain, not active keeper.
+                // A keeper-scoped SOLE memory can reference any journey in the same domain.
                 const journey = await tx.journey.findFirst({
-                  where: keeperId
-                    ? { id: rawJourneyId, keeperId }
-                    : { id: rawJourneyId, domainId: domainId ?? undefined },
+                  where: { id: rawJourneyId, domainId: domainId ?? undefined },
                 });
                 if (!journey) {
                   results.push({

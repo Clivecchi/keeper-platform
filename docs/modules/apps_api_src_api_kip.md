@@ -43,3 +43,4 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - 2025-12-11: Added session topic/summary/tag surface area and PATCH endpoint for updating session metadata.
 - 2025-12-08: Added structured agent error propagation (provider error codes bubble up to `/api/domains/:id/agent/execute`).
 - 2025-08-31: Added mock fallback wiring and env helpers.
+- 2026-03-04: Fixed VALIDATION_ERROR in `sole.save`: journey validation was scoped to active `keeperId`, blocking cross-keeper journey references. Changed to domain-scoped lookup — any journey in the domain is now a valid SOLE memory link regardless of which keeper is active.
