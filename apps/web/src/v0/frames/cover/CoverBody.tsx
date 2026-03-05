@@ -5,6 +5,7 @@ import { useSearchParams } from "react-router-dom"
 import { CoverLens, type CoverLensItem } from "../../components/cover-lens"
 import { createDraftMoment } from "../../api/v0Moments"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
+import { JourneyInvitationSlide } from "../../slides/JourneyInvitationSlide"
 
 interface CoverBodyProps {
   /** Domain data for navigation */
@@ -97,6 +98,32 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
   }
 
   const renderClosedCover = () => {
+    const domainFrame = v0Shell?.domainFrame
+    const cardType = domainFrame?.cover.card.type
+
+    // journey_invitation SlideType — render from domain frame JSON
+    if (cardType === "journey_invitation" && domainFrame) {
+      const handleForward = () => {
+        // Destination from JSON: "journey/default" → journeys frame
+        if (v0Shell) {
+          v0Shell.navigateToFrame("journeys")
+        } else {
+          navigateTo(`/d/${domainData?.slug || 'default'}/board?frame=journeys`)
+        }
+      }
+
+      return (
+        <JourneyInvitationSlide
+          wordmark={domainFrame.theme.wordmark}
+          tagline={domainFrame.theme.tagline}
+          forwardLabel={domainFrame.forward.label}
+          onForward={handleForward}
+        />
+      )
+    }
+
+    // Fallback: render from domain API data (used while domainFrame is loading
+    // or for domains without a frame JSON record)
     const isPlaceholder = !domainData?.id || String(domainData.id).startsWith("fallback-")
     const title = isPlaceholder ? undefined : (domainData?.name ?? undefined)
     const tagline = isPlaceholder ? undefined : (domainData?.description ?? undefined)
