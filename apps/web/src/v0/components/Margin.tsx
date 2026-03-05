@@ -1,10 +1,12 @@
 "use client"
 
+import * as React from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 import { useAgentComposerContext } from "../shell/AgentComposerContext"
 import { useKipChatDrawer, KipChatDrawer } from "./KipChatDrawer"
 import { AgentComposer } from "../../components/agent/AgentComposer"
+import { CompanionSlide } from "../slides/CompanionSlide"
 import type { DomainFrameJson } from "../data/domain-frame.types"
 import type { AudienceRole } from "../data/domain-frame.types"
 
@@ -171,6 +173,7 @@ export function Margin() {
   const location = useLocation()
   const composerProps = useAgentComposerContext()
   const kipChat = useKipChatDrawer()
+  const [isCompanionOpen, setIsCompanionOpen] = React.useState(false)
 
   if (!v0Shell?.domainSlug) {
     return null
@@ -198,6 +201,12 @@ export function Margin() {
   }
 
   const handleKip = () => {
+    if (audience === "guest") {
+      // Guests get the Companion SlideType — not the Agent Studio
+      setIsCompanionOpen(true)
+      return
+    }
+    // Authenticated keepers and admins use the existing agent frame + drawer
     if (isAgentFrame) {
       kipChat?.toggle()
     } else {
@@ -217,8 +226,24 @@ export function Margin() {
 
   const marginHeight = showComposer ? V0_MARGIN_HEIGHT_WITH_COMPOSER : V0_MARGIN_HEIGHT
 
+  const companionGreeting = domainFrame?.kip.greeting ?? "Hello. What would you like to keep today?"
+  const companionAgentId = domainFrame?.kip.agent_id ?? "kip"
+
   return (
     <>
+      {/* Companion SlideType — renders for guests instead of the Agent Studio */}
+      <CompanionSlide
+        isOpen={isCompanionOpen}
+        onClose={() => setIsCompanionOpen(false)}
+        greeting={companionGreeting}
+        audience={audience}
+        domainSlug={v0Shell.domainSlug}
+        agentId={companionAgentId}
+        onSignIn={() => {
+          setIsCompanionOpen(false)
+          handleSignIn()
+        }}
+      />
       <div
         className="fixed inset-x-0 bottom-0 z-40"
         style={{
