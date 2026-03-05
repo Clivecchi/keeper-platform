@@ -152,10 +152,10 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('🚨 Unhandled Rejection:', reason);
-  console.error('🚨 Promise:', promise);
-  process.exit(1);
+process.on('unhandledRejection', (reason, _promise) => {
+  // Log but do NOT exit — process.exit here would crash Railway and cause 502s for all in-flight requests.
+  // Unhandled rejections inside request handlers are caught by Express's global error handler.
+  console.error('🚨 Unhandled Rejection (non-fatal):', reason);
 });
 
 // Optional concise HTTP trace (one-line) when DEBUG_HTTP=1
