@@ -3,6 +3,7 @@
 import * as React from "react"
 import type { StyleId } from "../styles/styles"
 import type { ExperienceActions, ExperienceMode } from "./useExperienceMode"
+import type { AudienceRole, DomainFrameJson } from "../data/domain-frame.types"
 
 export type V0FrameKey =
   | "cover"
@@ -44,6 +45,10 @@ export interface V0ShellContextValue {
   draftId: string | null
   /** Domain data including theme.coverImage for cover background on all frames */
   domainData?: { theme?: DomainDataTheme } | null
+  /** Domain frame JSON — the single object every Frame renders from */
+  domainFrame: DomainFrameJson | null
+  /** Resolved audience role — set once at Frame level, flows to all children and Kip */
+  resolvedAudience: AudienceRole | null
   buildFrameUrl: (frame: V0FrameKey, options?: BuildFrameUrlOptions) => string
   navigateToFrame: (frame: V0FrameKey, options?: BuildFrameUrlOptions) => void
   closeToBoard: () => void

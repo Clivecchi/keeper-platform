@@ -23,6 +23,7 @@ import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
 import { loadDomainFrame } from "../data/loadDomainFrame"
 import type { DomainFrameJson } from "../data/domain-frame.types"
+import { resolveAudience } from "../data/resolveAudience"
 import { useExperienceMode } from "./useExperienceMode"
 import { FrameContextProvider } from "./FrameContext"
 
@@ -69,6 +70,9 @@ export function V0Shell() {
   const initialStyleId = themeSlug ? undefined : styleId
   const [domainData, setDomainData] = React.useState<any | null>(null)
   const [domainFrame, setDomainFrame] = React.useState<DomainFrameJson | null>(null)
+
+  // Resolved once at the Frame level — no child resolves audience independently
+  const resolvedAudience = resolveAudience({ isAuthenticated: isAuthenticated ?? false, isAdmin: isAdmin ?? false })
   const commitSha =
     (import.meta as any).env?.VERCEL_GIT_COMMIT_SHA ??
     (import.meta as any).env?.VITE_COMMIT_SHA ??
@@ -109,6 +113,12 @@ export function V0Shell() {
   React.useEffect(() => {
     ;(window as any).__keeper_domainFrame = domainFrame
   }, [domainFrame])
+
+  // ── Audience resolution — log and expose on window ──
+  React.useEffect(() => {
+    console.log("[AudienceResolution] Resolved role:", resolvedAudience)
+    ;(window as any).__keeper_resolvedAudience = resolvedAudience
+  }, [resolvedAudience])
 
   // ── Load domain frame JSON ──
   React.useEffect(() => {
@@ -183,6 +193,8 @@ export function V0Shell() {
           styleId,
           draftId,
           domainData,
+          domainFrame,
+          resolvedAudience,
           buildFrameUrl,
           navigateToFrame,
           closeToBoard,
