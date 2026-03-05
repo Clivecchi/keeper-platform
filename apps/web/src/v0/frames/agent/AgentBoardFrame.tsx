@@ -107,7 +107,7 @@ export function AgentBoardFrame({
   styleId?: StyleId
   themeSlug?: string | null
 }) {
-  const { domainSlug, navigateToFrame } = useV0Shell()
+  const { domainSlug, navigateToFrame, domainFrame, resolvedAudience } = useV0Shell()
   const frameCtx = useFrameContextOptional()
   const { isAuthenticated, isAdmin, refreshSession } = useAuth()
   const [view, setView] = useAgentWorkspaceView()
@@ -412,6 +412,18 @@ export function AgentBoardFrame({
     setIsSending(true)
     setMessagesError(null)
 
+    // Spec Step 6: build experienceContext from domain frame JSON + resolved audience
+    const audience = resolvedAudience ?? "keeper"
+    const experienceContext: Record<string, unknown> | undefined = domainFrame
+      ? {
+          audience,
+          model: domainFrame.kip.model,
+          forward: domainFrame.forward,
+          directions: domainFrame.directions.filter((d) => d.available_to.includes(audience)),
+          kip_context: domainFrame.kip_context[audience] ?? "",
+        }
+      : undefined
+
     try {
       let result: Awaited<ReturnType<typeof KipApi.runAgent>>
       try {
@@ -422,6 +434,7 @@ export function AgentBoardFrame({
           activeJourneyId: frameCtx?.selection.activeJourneyId,
           activeKeeperId: frameCtx?.selection.activeKeeperId,
           attachments: attachments.length > 0 ? attachments : undefined,
+          experienceContext,
         })
       } catch (firstErr: unknown) {
         const status = (firstErr as { status?: number })?.status
@@ -435,6 +448,7 @@ export function AgentBoardFrame({
               activeJourneyId: frameCtx?.selection.activeJourneyId,
               activeKeeperId: frameCtx?.selection.activeKeeperId,
               attachments: attachments.length > 0 ? attachments : undefined,
+              experienceContext,
             })
           } else {
             setMessagesError("Session expired. Please log in again.")

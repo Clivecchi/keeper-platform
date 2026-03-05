@@ -3806,6 +3806,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             attachments: (req.body as any)?.attachments,
             activeJourneyId: (req.body as any)?.activeJourneyId ?? null,
             activeKeeperId: (req.body as any)?.activeKeeperId ?? null,
+            experienceContext: (req.body as any)?.experienceContext ?? undefined,
           });
           if (!validation.success) {
             return respond(400, { 
