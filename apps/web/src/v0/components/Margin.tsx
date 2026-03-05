@@ -20,36 +20,70 @@ function buildPreservedParams(search: URLSearchParams) {
   return params
 }
 
+/** Subtle scroll-up chevron decoration resting just above the bottom bar */
+function ScrollUpHint() {
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 flex justify-center"
+      style={{ top: "-18px" }}
+      aria-hidden
+    >
+      <div
+        className="flex flex-col items-center gap-0.5 opacity-30"
+        style={{ color: "var(--theme-ink-muted, var(--theme-ink-primary))" }}
+      >
+        {/* Two stacked chevrons give a subtle "scroll up" feel */}
+        <svg
+          width="14"
+          height="8"
+          viewBox="0 0 14 8"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ opacity: 0.5 }}
+        >
+          <path
+            d="M1 7L7 1L13 7"
+            stroke="currentColor"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <svg
+          width="14"
+          height="8"
+          viewBox="0 0 14 8"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ marginTop: "-3px" }}
+        >
+          <path
+            d="M1 7L7 1L13 7"
+            stroke="currentColor"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+    </div>
+  )
+}
+
 /**
- * InteractionBar buttons — rendered entirely from the domain JSON interaction_bar
- * object and the resolved audience role. No label, order, or visibility rule is
- * hardcoded in this component.
- *
- * Button order: primary (Forward) · secondary (Kip) · auth (Sign In for guest)
+ * BottomBarLeft — Forward button, left-justified
  */
-function ActionButtons({
+function BottomBarLeft({
   domainFrame,
-  audience,
   onForward,
-  onKip,
-  onSignIn,
-  isAgentFrame,
 }: {
   domainFrame: DomainFrameJson | null
-  audience: AudienceRole
   onForward: () => void
-  onKip: () => void
-  onSignIn: () => void
-  isAgentFrame: boolean
 }) {
   const forwardLabel = domainFrame?.forward.label ?? "Forward"
-  const authButtonIds = domainFrame?.interaction_bar.auth[audience] ?? []
-  const showSignIn = authButtonIds.includes("sign_in")
 
   return (
-    <div className="flex items-center justify-center gap-2">
-
-      {/* Primary: Forward — label from JSON forward.label */}
+    <div className="flex items-center">
       <button
         type="button"
         onClick={onForward}
@@ -63,12 +97,53 @@ function ActionButtons({
       >
         {forwardLabel}
       </button>
+    </div>
+  )
+}
 
-      {/* Secondary: Kip — from interaction_bar.secondary */}
+/**
+ * BottomBarRight — Sign In then Kip, right-justified
+ */
+function BottomBarRight({
+  domainFrame,
+  audience,
+  onKip,
+  onSignIn,
+  isAgentFrame,
+}: {
+  domainFrame: DomainFrameJson | null
+  audience: AudienceRole
+  onKip: () => void
+  onSignIn: () => void
+  isAgentFrame: boolean
+}) {
+  const authButtonIds = domainFrame?.interaction_bar.auth[audience] ?? []
+  const showSignIn = authButtonIds.includes("sign_in")
+
+  return (
+    <div className="flex items-center gap-2">
+      {/* Auth: Sign In — visible to guest only */}
+      {showSignIn && (
+        <button
+          type="button"
+          onClick={onSignIn}
+          className="rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
+          style={{
+            borderColor: "var(--theme-border-soft)",
+            backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
+            color: "var(--theme-ink-primary)",
+          }}
+          aria-label="Sign in to your account"
+        >
+          Sign In
+        </button>
+      )}
+
+      {/* Secondary: Kip — furthest right */}
       <button
         type="button"
         onClick={onKip}
-        className="flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
+        className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
         style={{
           borderColor: "var(--theme-border-soft)",
           backgroundColor: isAgentFrame
@@ -86,23 +161,6 @@ function ActionButtons({
         />
         Kip
       </button>
-
-      {/* Auth: Sign In — visible to guest only, from interaction_bar.auth.guest */}
-      {showSignIn && (
-        <button
-          type="button"
-          onClick={onSignIn}
-          className="flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors hover:opacity-90"
-          style={{
-            borderColor: "var(--theme-border-soft)",
-            backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
-            color: "var(--theme-ink-primary)",
-          }}
-          aria-label="Sign in to your account"
-        >
-          Sign In
-        </button>
-      )}
     </div>
   )
 }
@@ -170,27 +228,32 @@ export function Margin() {
           backdropFilter: "blur(6px)",
         }}
       >
+        {/* Scroll-up hint decoration sits just above the bar border */}
+        <ScrollUpHint />
+
         <div className="mx-auto flex h-full min-h-[72px] w-full max-w-5xl flex-col gap-3 px-6 py-3">
           {showComposer && composerProps ? (
             <>
               <div className="w-full flex-1 min-w-0">
                 <AgentComposer {...composerProps} />
               </div>
-              <ActionButtons
-                domainFrame={domainFrame}
-                audience={audience}
-                onForward={handleForward}
-                onKip={handleKip}
-                onSignIn={handleSignIn}
-                isAgentFrame={isAgentFrame}
-              />
+              <div className="flex items-center justify-between">
+                <BottomBarLeft domainFrame={domainFrame} onForward={handleForward} />
+                <BottomBarRight
+                  domainFrame={domainFrame}
+                  audience={audience}
+                  onKip={handleKip}
+                  onSignIn={handleSignIn}
+                  isAgentFrame={isAgentFrame}
+                />
+              </div>
             </>
           ) : (
-            <div className="flex flex-1 items-center">
-              <ActionButtons
+            <div className="flex flex-1 items-center justify-between">
+              <BottomBarLeft domainFrame={domainFrame} onForward={handleForward} />
+              <BottomBarRight
                 domainFrame={domainFrame}
                 audience={audience}
-                onForward={handleForward}
                 onKip={handleKip}
                 onSignIn={handleSignIn}
                 isAgentFrame={isAgentFrame}
