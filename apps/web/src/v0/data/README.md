@@ -24,6 +24,14 @@ Static data sources and loaders for the JSON UI Frame system. This folder holds 
 
 ## 📆 Update Log
 
+### 2026-03-03 — Step 6: Kip reads the JSON
+- `experienceContext` is now computed in `Margin.tsx` from `domainFrame` + `resolvedAudience`
+- Shape: `{ audience, model, forward, directions (filtered by role), kip_context }`
+- Passed to `CompanionSlide` → `KipApi.runAgent()` → API → `AgentEnvironmentContext.experienceContext`
+- API receives it via the `AgentRunSchema` and injects it into the environment after `resolveAgentEnvironment`
+- Makes Kip aware of: who the visitor is, which model, what Forward means, available directions, domain instruction
+- See also: `resolveAgentEnvironment.ts` (type), `agents.ts` (injection), `CompanionSlide.tsx` (prop)
+
 ### 2026-03-03 — Step 2: Audience resolution
 - Created `resolveAudience.ts` — pure function, `AuthState → AudienceRole`
 - Added `resolvedAudience` and `domainFrame` to `V0ShellContextValue`

@@ -1882,6 +1882,7 @@ const AgentRunSchema = z.object({
   attachments: z.array(AgentAttachmentSchema).optional(),
   activeJourneyId: z.string().nullable().optional(),
   activeKeeperId: z.string().nullable().optional(),
+  experienceContext: z.record(z.unknown()).optional(),
 }).refine(
   (data) => (typeof data.input === 'string' && data.input.trim().length > 0) || (Array.isArray(data.attachments) && data.attachments.length > 0),
   { message: 'Either input text or at least one attachment is required', path: ['input'] }
@@ -3843,6 +3844,10 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
           if (environment) {
             environment.debug = environmentDebug;
             environment.actionPack = environment.actionPack ?? buildActionPackFromEnvironment(environment);
+            // Inject experienceContext from the domain frame JSON (sent by the frontend)
+            if (validation.data.experienceContext) {
+              (environment as any).experienceContext = validation.data.experienceContext;
+            }
           } else {
             environment = {
               version: 'env-v1',

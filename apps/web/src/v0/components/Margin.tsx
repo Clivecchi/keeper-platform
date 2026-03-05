@@ -229,6 +229,18 @@ export function Margin() {
   const companionGreeting = domainFrame?.kip.greeting ?? "Hello. What would you like to keep today?"
   const companionAgentId = domainFrame?.kip.agent_id ?? "kip"
 
+  // experienceContext — Spec Step 6: pass the resolved domain frame context into Kip's environment.
+  // Computed here from domainFrame + resolvedAudience so the API can inject it into the system prompt.
+  const experienceContext: Record<string, unknown> | undefined = domainFrame
+    ? {
+        audience,
+        model: domainFrame.kip.model,
+        forward: domainFrame.forward,
+        directions: domainFrame.directions.filter((d) => d.available_to.includes(audience)),
+        kip_context: domainFrame.kip_context[audience] ?? "",
+      }
+    : undefined
+
   return (
     <>
       {/* Companion SlideType — renders for guests instead of the Agent Studio */}
@@ -239,6 +251,7 @@ export function Margin() {
         audience={audience}
         domainSlug={v0Shell.domainSlug}
         agentId={companionAgentId}
+        experienceContext={experienceContext}
         onSignIn={() => {
           setIsCompanionOpen(false)
           handleSignIn()

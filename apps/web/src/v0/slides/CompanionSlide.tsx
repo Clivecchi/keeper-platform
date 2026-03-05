@@ -37,6 +37,13 @@ export interface CompanionSlideProps {
   /** From domainFrame.kip.agent_id */
   agentId: string
   onSignIn: () => void
+  /**
+   * experienceContext — computed from domainFrame + resolvedAudience.
+   * Injected into Kip's environment so it knows who the visitor is,
+   * what model is in use, what Forward means, and what the domain instructs.
+   * Spec: Keeper JsonFrame Spec v0.1 · Step 6
+   */
+  experienceContext?: Record<string, unknown>
 }
 
 export function CompanionSlide({
@@ -47,6 +54,7 @@ export function CompanionSlide({
   domainSlug,
   agentId,
   onSignIn,
+  experienceContext,
 }: CompanionSlideProps) {
   const [messages, setMessages] = React.useState<CompanionMessage[]>(() => [
     { id: "kip-greeting", role: "kip", content: greeting },
@@ -132,7 +140,7 @@ export function CompanionSlide({
         content,
         undefined,
         sessionId ?? undefined,
-        { domainSlug },
+        { domainSlug, experienceContext },
       )
 
       const returnedSessionId =

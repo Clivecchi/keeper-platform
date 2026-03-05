@@ -64,6 +64,21 @@ export type AgentEnvironmentContext = {
     keepers: Array<{ id: string; title: string; purpose?: string | null }>;
     journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>;
   };
+  /**
+   * experienceContext — injected by the frontend from the domain frame JSON.
+   * Carries: audience role, model, forward destination, available directions,
+   * and the kip_context instruction for this specific visitor.
+   *
+   * This is the field that makes Kip aware of everything the UI already knows.
+   * Spec: Keeper JsonFrame Spec v0.1 · Step 6
+   */
+  experienceContext?: {
+    audience: string;
+    model: string;
+    forward: { label: string; destination: string; available_to: string[] };
+    directions: Array<{ label: string; frame?: string; action?: string; available_to: string[] }>;
+    kip_context: string;
+  };
 };
 
 // Lazy initialization - services will be created only when needed
