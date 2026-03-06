@@ -441,7 +441,11 @@ export function CompanionSlide({
         style={{
           position:        "fixed",
           bottom:          "88px",
-          right:           "16px",
+          // Align to the right edge of the max-w-5xl (64rem) container shared by
+          // the InteractionBar and the cover card — not the viewport edge.
+          // On viewports narrower than 64rem the container fills the viewport
+          // and the fallback 16px margin applies naturally.
+          right:           "max(16px, calc((100vw - 64rem) / 2 + 16px))",
           width:           "360px",
           maxHeight:       "480px",
           backgroundColor: B.cream,
