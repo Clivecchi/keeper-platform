@@ -1057,6 +1057,7 @@ model Domain {
   deletedAt                                                DateTime?
   theme                                                    Json?                      @default("{}")
   settings                                                 Json?                      @default("{}")
+  frame_json                                               Json?                      @default("{}")
   CollaborationActivity                                    CollaborationActivity[]
   CrossDomainCollaboration                                 CrossDomainCollaboration[]
   CrossDomainShare_CrossDomainShare_sourceDomainIdToDomain CrossDomainShare[]         @relation("CrossDomainShare_sourceDomainIdToDomain")

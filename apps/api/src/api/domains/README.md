@@ -33,6 +33,12 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+### 2026-03-05 - Domain frame JSON endpoint
+- Added `GET /api/domains/:slug/frame` (public, no auth required) that returns `domain.frame_json` from the database.
+- Placed in the public routes section, before the domain resolution middleware.
+- Falls back to `DEFAULT_FRAME_FALLBACK` (inline const) if `frame_json` is null or empty `{}`.
+- Returns 404 with `DOMAIN_NOT_FOUND` if the slug does not match any domain.
+- Pairs with the `frame_json Json? @default("{}")` field added to the Domain model (migration `20260305_add_domain_frame_json`) and the `loadDomainFrame` update in the web app.
 ### 2026-02-23 - Cover image in by-slug response
 - Added `theme` to `GET /api/domains/by-slug/:slug` select so domain cover image (`theme.coverImage`) is available for the public cover frame.
 ### 2026-02-09 - SOLE domain anchor (Option B)

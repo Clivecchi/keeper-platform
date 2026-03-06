@@ -3,6 +3,73 @@ import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
 
+// Inlined from apps/web/src/v0/data/domain-frame.default.ts
+// Shape: DomainFrameJson · Keeper JsonFrame Spec v0.1 · March 2026
+// Do not modify the shape here — change domain-frame.default.ts first, then sync.
+const DEFAULT_DOMAIN_FRAME_JSON = {
+  domain: 'default',
+  keeper_type: 'platform',
+  theme: {
+    wordmark: 'KE3P',
+    tagline: 'cryptically designed, wonderfully underfolded',
+    background: '/images/keeper-dawn.jpg',
+    colors: {
+      primary: '#2d6a7f',
+      accent: '#b8963e',
+      surface: '#fdfaf4',
+    },
+    fonts: {
+      display: 'Cormorant Garamond',
+      ui: 'Outfit',
+    },
+  },
+  kip: {
+    agent_id: 'kip-default',
+    model: 'claude-sonnet-4-6',
+    visibility: 'public',
+    greeting: 'Hello. What would you like to keep today?',
+  },
+  audience_roles: ['guest', 'keeper', 'admin'],
+  cover: {
+    slide_type: 'domain_cover',
+    card: {
+      type: 'journey_invitation',
+      available_to: ['guest', 'keeper', 'admin'],
+    },
+  },
+  forward: {
+    label: 'Forward',
+    destination: 'journey/default',
+    available_to: ['guest', 'keeper', 'admin'],
+  },
+  directions: [
+    {
+      label: 'Journeys',
+      frame: 'journeys',
+      available_to: ['keeper', 'admin'],
+    },
+    {
+      label: 'Sign In',
+      action: 'auth.signin',
+      available_to: ['guest'],
+    },
+  ],
+  kip_context: {
+    guest: 'A visitor exploring Keeper for the first time. Warm welcome. Offer Forward.',
+    keeper: 'An authenticated keeper. Orient to their journeys and moments.',
+    admin: 'Platform admin. Full context available.',
+  },
+  interaction_bar: {
+    primary: 'forward',
+    secondary: ['kip'],
+    auth: {
+      guest: ['sign_in'],
+      keeper: [],
+      admin: ['settings'],
+    },
+  },
+};
+
 export default async function seedDomain() {
   const hostname = process.env.FALLBACK_DOMAIN ?? 'www.ke3p.com';
   const ownerEmail = process.env.SEED_OWNER_EMAIL || 'seed@ke3p.com';
@@ -52,6 +119,31 @@ export default async function seedDomain() {
     // Also set as primaryDomain if missing
     await prisma.users.update({ where: { id: owner.id }, data: { primaryDomainId: undefined } }).catch(() => {});
   }
+
+  // Ensure the 'default' domain exists and has the correct frame_json.
+  // This is the public-facing domain that drives the cover card, InteractionBar,
+  // and companion for ke3p.com/d/default/board.
+  await prisma.domain.upsert({
+    where: { slug: 'default' },
+    update: {
+      frame_json: DEFAULT_DOMAIN_FRAME_JSON,
+      updatedAt: new Date(),
+    },
+    create: {
+      id: randomUUID(),
+      name: 'Default',
+      slug: 'default',
+      status: 'active',
+      isActive: true,
+      isPublic: true,
+      ownerId: owner.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      features: {},
+      settings: {},
+      frame_json: DEFAULT_DOMAIN_FRAME_JSON,
+    },
+  });
 }
 
 

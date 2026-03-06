@@ -17,12 +17,19 @@ Static data sources and loaders for the JSON UI Frame system. This folder holds 
 - Passed down to child Frames and Kip in Steps 2–6
 
 ## ⚠️ Notes & ToDo
-- [ ] After Step 6 confirmed: add `frame_json Json?` field to `Domain` model via Prisma migration
-- [ ] After migration: replace static return in `loadDomainFrame` with `apiFetch(/api/domains/:slug/frame)`
-- [ ] Per-domain frame JSON objects will live in the database, keyed by domain slug
-- [ ] `DEFAULT_DOMAIN_FRAME` covers all slugs until per-domain records exist
+- [x] `frame_json Json? @default("{}")` added to `Domain` model — migration `20260305_add_domain_frame_json` applied
+- [x] `loadDomainFrame` now fetches from `GET /api/domains/:slug/frame` (database-driven)
+- [x] `domain-frame.default.ts` remains as a static fallback — do not delete
+- [ ] Per-domain frame JSON can now be customised per domain via a DB update to `frame_json`
+- [ ] `DEFAULT_DOMAIN_FRAME` is the fallback if the API is unavailable or returns non-ok
 
 ## 📆 Update Log
+
+### 2026-03-05 — Domain JSON Database Migration
+- `loadDomainFrame` updated to fetch from `GET /api/domains/${slug}/frame` via `getApiBase()` (handles dev/prod URL resolution).
+- Falls back to importing `DEFAULT_DOMAIN_FRAME` dynamically on any fetch failure (non-ok status or network error).
+- `domain-frame.default.ts` retained as static fallback — not deleted.
+- Console log `[DomainFrame] Loaded for domain: <slug>` now emits on successful API fetch.
 
 ### 2026-03-03 — Step 6: Kip reads the JSON
 - `experienceContext` is now computed in `Margin.tsx` from `domainFrame` + `resolvedAudience`
