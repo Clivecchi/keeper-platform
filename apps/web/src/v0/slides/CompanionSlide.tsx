@@ -3,325 +3,649 @@
 /**
  * CompanionSlide — SlideType: companion
  *
- * The public Kip surface. Triggered when a guest taps Kip in the InteractionBar.
- * Renders as a slide-up overlay. Not a frame navigation. Not the Agent Studio.
+ * Corner-anchored floating panel (bottom-right, ~360×480px). The public Kip
+ * surface for guest visitors. Replaces the full-width bottom drawer.
  *
- * Contains:
- *   - Kip's greeting (from domainFrame.kip.greeting)
- *   - Chat message bubbles
- *   - One text input and send button
- *   - Sign In button (guests only)
- *   - Nothing else
+ * Key behaviours:
+ *   - Floats above the InteractionBar — does NOT push or overlay main content
+ *   - Session state is NEVER reset on close — conversation persists
+ *   - Cue Cards arrive open, auto-collapse after 4s if untouched
+ *   - Cue Cards icon appears in the header only after the first card collapses
+ *   - Visual build: static mock content — no Kip API wiring
  *
- * Spec: Keeper JsonFrame Spec v0.1 · March 2026 — Step 4
+ * Spec: Companion Component (Visual Build) · KE3P March 2026
  */
 
 import * as React from "react"
-import { XMarkIcon } from "@heroicons/react/24/outline"
-import { KipApi } from "../../lib/kipApi"
 import type { AudienceRole } from "../data/domain-frame.types"
 
-interface CompanionMessage {
-  id: string
-  role: "kip" | "user"
-  content: string
+// ─── Brand ────────────────────────────────────────────────────────────────────
+
+const B = {
+  primary:   "#2d6a7f",
+  cream:     "#fdfaf4",
+  border:    "#e8e0d4",
+  shadow:    "0 8px 32px rgba(26,26,26,0.12)",
+  kipBubble: "#f0ebe2",
+  inkDark:   "#1a1a1a",
+  inkBody:   "#333333",
+  inkMuted:  "#888888",
+  font:      "Outfit, Inter, sans-serif",
+} as const
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface CueCardAction {
+  label:  string
+  action: string
 }
 
+interface CueCardData {
+  id:      string
+  title:   string
+  content: string
+  actions: CueCardAction[]
+}
+
+type ChatItem =
+  | { kind: "bubble";   id: string; role: "kip" | "user"; content: string }
+  | { kind: "cue_card"; id: string; data: CueCardData }
+
 export interface CompanionSlideProps {
-  isOpen: boolean
-  onClose: () => void
-  /** From domainFrame.kip.greeting */
-  greeting: string
-  audience: AudienceRole
-  domainSlug: string
-  /** From domainFrame.kip.agent_id */
-  agentId: string
-  onSignIn: () => void
-  /**
-   * experienceContext — computed from domainFrame + resolvedAudience.
-   * Injected into Kip's environment so it knows who the visitor is,
-   * what model is in use, what Forward means, and what the domain instructs.
-   * Spec: Keeper JsonFrame Spec v0.1 · Step 6
-   */
+  isOpen:             boolean
+  onClose:            () => void
+  greeting:           string
+  audience:           AudienceRole
+  domainSlug:         string
+  agentId:            string
+  onSignIn:           () => void
   experienceContext?: Record<string, unknown>
 }
+
+// ─── Mock seed content (visual build) ─────────────────────────────────────────
+
+const SEED_CUE_CARD: CueCardData = {
+  id:      "cue-path-forward",
+  title:   "A Path Forward",
+  content: "The journey is yours to discover. I'm here if you need guidance.",
+  actions: [
+    { label: "Sign In to Save", action: "auth.signin" },
+    { label: "Explore First",   action: "companion.dismiss" },
+  ],
+}
+
+function buildSeedItems(greeting: string): ChatItem[] {
+  return [
+    { kind: "bubble",   id: "kip-greeting",  role: "kip",  content: greeting },
+    { kind: "cue_card", id: SEED_CUE_CARD.id, data: SEED_CUE_CARD },
+    { kind: "bubble",   id: "user-seed-1",   role: "user", content: "Hey Kip, what's good?" },
+    { kind: "bubble",   id: "kip-seed-1",    role: "kip",  content: "Everything here is worth keeping. What are you working on?" },
+  ]
+}
+
+// ─── Placeholder style injection ──────────────────────────────────────────────
+
+const COMPANION_CSS = `
+  .kip-companion-input::placeholder {
+    color: #aaaaaa;
+    font-style: italic;
+  }
+`
+
+// ─── SVG Icons ────────────────────────────────────────────────────────────────
+
+function SvgChat({ active }: { active: boolean }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M2 3.5C2 2.67 2.67 2 3.5 2h9C13.33 2 14 2.67 14 3.5v7C14 11.33 13.33 12 12.5 12H5l-3 2V3.5z"
+        stroke={active ? B.primary : B.inkMuted}
+        strokeWidth="1.25"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function SvgCards({ active }: { active: boolean }) {
+  const stroke = active ? B.primary : B.inkMuted
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <rect x="2" y="2.5" width="12" height="4"   rx="1" stroke={stroke} strokeWidth="1.25" />
+      <rect x="2" y="9.5" width="12" height="4"   rx="1" stroke={stroke} strokeWidth="1.25" />
+    </svg>
+  )
+}
+
+function SvgClose() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M4 4L12 12M12 4L4 12" stroke={B.inkMuted} strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function SvgChevron({ down }: { down: boolean }) {
+  return (
+    <svg
+      width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden
+      style={{
+        flexShrink: 0,
+        transition: "transform 0.3s ease",
+        transform: down ? "rotate(0deg)" : "rotate(-90deg)",
+      }}
+    >
+      <path
+        d="M3 5L7 9L11 5"
+        stroke={B.inkMuted}
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function SvgBack() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M10 12L6 8L10 4"
+        stroke={B.inkMuted}
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+// ─── IconBtn ──────────────────────────────────────────────────────────────────
+
+function IconBtn({
+  label, active, onClick, children,
+}: {
+  label: string
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      style={{
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        padding: "4px",
+        borderRadius: "4px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: active ? 1 : 0.65,
+        transition: "opacity 0.15s ease",
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+// ─── BubbleItem ───────────────────────────────────────────────────────────────
+
+function BubbleItem({ role, content }: { role: "kip" | "user"; content: string }) {
+  const isKip = role === "kip"
+  return (
+    <div style={{ display: "flex", justifyContent: isKip ? "flex-start" : "flex-end" }}>
+      <div
+        style={{
+          fontFamily:      B.font,
+          fontSize:        "13px",
+          lineHeight:      1.5,
+          padding:         "8px 12px",
+          maxWidth:        "82%",
+          backgroundColor: isKip ? B.kipBubble : B.primary,
+          color:           isKip ? B.inkDark   : "#ffffff",
+          borderRadius:    isKip ? "4px 12px 12px 4px" : "12px 4px 4px 12px",
+        }}
+      >
+        {content}
+      </div>
+    </div>
+  )
+}
+
+// ─── ActionLink ───────────────────────────────────────────────────────────────
+
+function ActionLink({ label }: { label: string }) {
+  const [hovered, setHovered] = React.useState(false)
+  return (
+    <button
+      type="button"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background:     "none",
+        border:         "none",
+        padding:        0,
+        cursor:         "pointer",
+        fontFamily:     B.font,
+        fontSize:       "11px",
+        fontWeight:     500,
+        textTransform:  "uppercase",
+        letterSpacing:  "0.06em",
+        color:          B.primary,
+        textDecoration: hovered ? "underline" : "none",
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
+// ─── CueCardItem ──────────────────────────────────────────────────────────────
+
+function CueCardItem({
+  data,
+  autoCollapse,
+  onCollapsed,
+  startOpen = true,
+}: {
+  data:          CueCardData
+  autoCollapse:  boolean
+  onCollapsed?:  () => void
+  startOpen?:    boolean
+}) {
+  const [expanded,   setExpanded]   = React.useState(startOpen)
+  const [interacted, setInteracted] = React.useState(false)
+  const [visible,    setVisible]    = React.useState(false)
+
+  // Card entrance: slide up + fade in
+  React.useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  // Stable callback ref so the timeout dep array stays clean
+  const onCollapsedRef = React.useRef(onCollapsed)
+  React.useEffect(() => { onCollapsedRef.current = onCollapsed })
+
+  // Auto-collapse after 4s if visitor hasn't interacted with this card
+  React.useEffect(() => {
+    if (!autoCollapse || interacted) return
+    const t = setTimeout(() => {
+      setExpanded(false)
+      onCollapsedRef.current?.()
+    }, 4000)
+    return () => clearTimeout(t)
+  }, [autoCollapse, interacted])
+
+  return (
+    <div
+      style={{
+        backgroundColor: "#ffffff",
+        border:          `1px solid ${B.border}`,
+        borderRadius:    "4px",
+        overflow:        "hidden",
+        opacity:         visible ? 1 : 0,
+        transform:       visible ? "translateY(0)" : "translateY(6px)",
+        transition:      "opacity 0.3s ease, transform 0.3s ease",
+      }}
+    >
+      {/* Header row — always visible, toggles the card */}
+      <button
+        type="button"
+        onClick={() => { setInteracted(true); setExpanded((v) => !v) }}
+        style={{
+          width:          "100%",
+          display:        "flex",
+          alignItems:     "center",
+          justifyContent: "space-between",
+          padding:        "10px 14px",
+          background:     "none",
+          border:         "none",
+          cursor:         "pointer",
+          fontFamily:     B.font,
+          fontSize:       "11px",
+          fontWeight:     500,
+          textTransform:  "uppercase",
+          letterSpacing:  "0.08em",
+          color:          B.inkMuted,
+          textAlign:      "left",
+        }}
+      >
+        {data.title}
+        <SvgChevron down={expanded} />
+      </button>
+
+      {/* Expandable body — smooth height transition */}
+      <div
+        style={{
+          maxHeight:  expanded ? "200px" : "0px",
+          overflow:   "hidden",
+          transition: "max-height 0.35s ease",
+        }}
+      >
+        <div style={{ padding: "0 14px 10px" }}>
+          <p
+            style={{
+              fontFamily: B.font,
+              fontSize:   "13px",
+              color:      B.inkBody,
+              lineHeight: 1.6,
+              margin:     "0 0 8px",
+            }}
+          >
+            {data.content}
+          </p>
+          {data.actions.length > 0 && (
+            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+              {data.actions.map((a) => (
+                <ActionLink key={a.action} label={a.label} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── CompanionSlide ───────────────────────────────────────────────────────────
 
 export function CompanionSlide({
   isOpen,
   onClose,
   greeting,
-  audience,
-  domainSlug,
-  agentId,
-  onSignIn,
-  experienceContext,
 }: CompanionSlideProps) {
-  const [messages, setMessages] = React.useState<CompanionMessage[]>(() => [
-    { id: "kip-greeting", role: "kip", content: greeting },
-  ])
-  const [inputValue, setInputValue] = React.useState("")
-  const [isSending, setIsSending] = React.useState(false)
-  const [sessionId, setSessionId] = React.useState<string | null>(null)
-  const [resolvedAgentId, setResolvedAgentId] = React.useState<string | null>(null)
-  const [agentAuthRequired, setAgentAuthRequired] = React.useState(false)
+  // State is never reset on close — session persists across open/close
+  const [items,              setItems]              = React.useState<ChatItem[]>(() => buildSeedItems(greeting))
+  const [inputValue,         setInputValue]         = React.useState("")
+  const [view,               setView]               = React.useState<"chat" | "cards">("chat")
+  const [firstCardCollapsed, setFirstCardCollapsed] = React.useState(false)
+  const [panelVisible,       setPanelVisible]       = React.useState(false)
 
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
-  const inputRef = React.useRef<HTMLInputElement>(null)
+  const textareaRef    = React.useRef<HTMLTextAreaElement>(null)
 
-  const isGuest = audience === "guest"
-
-  // Reset to greeting whenever the companion opens or greeting changes
+  // Panel entrance animation — double rAF ensures the browser has painted first
   React.useEffect(() => {
     if (isOpen) {
-      setMessages([{ id: "kip-greeting", role: "kip", content: greeting }])
-      setSessionId(null)
-      setInputValue("")
+      const id = requestAnimationFrame(() =>
+        requestAnimationFrame(() => setPanelVisible(true))
+      )
+      return () => cancelAnimationFrame(id)
+    } else {
+      setPanelVisible(false)
     }
-  }, [isOpen, greeting])
+  }, [isOpen])
 
-  // Focus input on open
+  // Focus input when companion opens
   React.useEffect(() => {
     if (isOpen) {
-      const t = setTimeout(() => inputRef.current?.focus(), 120)
+      const t = setTimeout(() => textareaRef.current?.focus(), 150)
       return () => clearTimeout(t)
     }
   }, [isOpen])
 
-  // Scroll to bottom on new messages
+  // Scroll to bottom when new items arrive in chat view
   React.useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isSending])
+    if (view !== "chat") return
+    const t = setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 60)
+    return () => clearTimeout(t)
+  }, [items.length, view])
 
-  // Try to resolve the agent — kip.visibility = "public" may allow guests
+  // Textarea auto-resize (up to 80px)
   React.useEffect(() => {
-    if (!isOpen) return
-    let cancelled = false
-    KipApi.getLeadAgent(agentId)
-      .then((agent) => {
-        if (cancelled) return
-        setResolvedAgentId(agent.id)
-        setAgentAuthRequired(false)
-      })
-      .catch((err) => {
-        if (cancelled) return
-        const status = (err as { status?: number })?.status
-        setAgentAuthRequired(status === 401)
-      })
-    return () => { cancelled = true }
-  }, [isOpen, agentId])
+    const ta = textareaRef.current
+    if (!ta) return
+    ta.style.height = "auto"
+    ta.style.height = `${Math.min(ta.scrollHeight, 80)}px`
+  }, [inputValue])
 
-  const handleSend = async () => {
-    const content = inputValue.trim()
-    if (!content || isSending) return
-
-    // If auth is required and agent hasn't resolved, soft-block with sign-in prompt
-    if (agentAuthRequired || !resolvedAgentId) {
-      setMessages((prev) => [
-        ...prev,
-        { id: `user-${Date.now()}`, role: "user", content },
-        {
-          id: `kip-auth-${Date.now()}`,
-          role: "kip",
-          content: "Sign in to continue chatting with me.",
-        },
-      ])
-      setInputValue("")
-      return
-    }
-
-    const optimisticId = `user-${Date.now()}`
-    setMessages((prev) => [...prev, { id: optimisticId, role: "user", content }])
+  const handleSend = () => {
+    const text = inputValue.trim()
+    if (!text) return
+    const ts = Date.now()
+    setItems((prev) => [
+      ...prev,
+      { kind: "bubble", id: `user-${ts}`, role: "user", content: text },
+      // Static echo response for visual build — Kip wiring is out of scope here
+      { kind: "bubble", id: `kip-${ts}`,  role: "kip",  content: "Everything here is worth keeping. What are you working on?" },
+    ])
     setInputValue("")
-    setIsSending(true)
+  }
 
-    try {
-      const result = await KipApi.runAgent(
-        resolvedAgentId,
-        content,
-        undefined,
-        sessionId ?? undefined,
-        { domainSlug, experienceContext },
-      )
-
-      const returnedSessionId =
-        (result as any)?.data?.data?.session_id ||
-        (result as any)?.session_id ||
-        null
-
-      const activeSession = returnedSessionId || sessionId
-      if (returnedSessionId && !sessionId) setSessionId(returnedSessionId)
-
-      if (activeSession) {
-        const sessionMessages = await KipApi.getSessionMessages(activeSession)
-        setMessages([
-          { id: "kip-greeting", role: "kip", content: greeting },
-          ...sessionMessages.map((m) => ({
-            id: m.id,
-            role: ((m.sender || m.role) === "user" ? "user" : "kip") as "user" | "kip",
-            content: m.content,
-          })),
-        ])
-      }
-    } catch (err) {
-      const status = (err as { status?: number })?.status
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `kip-err-${Date.now()}`,
-          role: "kip",
-          content:
-            status === 401
-              ? "Sign in to continue chatting with me."
-              : "Something went wrong. Please try again.",
-        },
-      ])
-    } finally {
-      setIsSending(false)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
     }
   }
 
-  if (!isOpen) return null
+  const cueCards = items.filter(
+    (i): i is Extract<ChatItem, { kind: "cue_card" }> => i.kind === "cue_card"
+  )
 
+  // Keep component mounted always — do not unmount on close, state must survive
   return (
-    <div
-      className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl border-t shadow-2xl"
-      style={{
-        maxHeight: "72vh",
-        backgroundColor: "hsl(var(--theme-surface-page) / 0.98)",
-        borderColor: "var(--theme-border-soft)",
-        backdropFilter: "blur(8px)",
-      }}
-      role="dialog"
-      aria-label="Kip companion"
-    >
-      {/* Header — Kip name + close. Nothing else. */}
+    <>
+      <style>{COMPANION_CSS}</style>
+
       <div
-        className="flex items-center justify-between gap-2 px-4 py-3 border-b flex-shrink-0"
-        style={{ borderColor: "var(--theme-border-soft)" }}
+        role="dialog"
+        aria-label="Kip companion"
+        aria-hidden={!isOpen}
+        style={{
+          position:        "fixed",
+          bottom:          "88px",
+          right:           "16px",
+          width:           "360px",
+          maxHeight:       "480px",
+          backgroundColor: B.cream,
+          border:          `1px solid ${B.border}`,
+          boxShadow:       B.shadow,
+          borderRadius:    "6px",
+          display:         "flex",
+          flexDirection:   "column",
+          zIndex:          50,
+          fontFamily:      B.font,
+          overflow:        "hidden",
+          // Visibility — hidden when closed but never unmounted
+          pointerEvents:   isOpen ? "auto" : "none",
+          opacity:         isOpen && panelVisible ? 1 : 0,
+          transform:       isOpen && panelVisible ? "translateY(0)" : "translateY(10px)",
+          transition:      isOpen
+            ? "opacity 0.2s ease, transform 0.2s ease"
+            : "opacity 0.15s ease, transform 0.15s ease",
+        }}
       >
-        <div className="flex items-center gap-2">
+        {/* ── Header ── */}
+        <div
+          style={{
+            display:        "flex",
+            alignItems:     "center",
+            justifyContent: "space-between",
+            padding:        "12px 16px",
+            borderBottom:   `1px solid ${B.border}`,
+            flexShrink:     0,
+          }}
+        >
+          {/* Left: agent name */}
           <span
-            className="inline-flex h-2 w-2 rounded-full flex-shrink-0"
-            style={{ backgroundColor: "#3C6FA5" }}
-            aria-hidden
-          />
-          <span
-            className="text-xs font-medium"
-            style={{ color: "var(--theme-ink-primary)" }}
+            style={{
+              fontFamily: B.font,
+              fontSize:   "13px",
+              fontWeight: 500,
+              color:      B.inkMuted,
+            }}
           >
             Kip
           </span>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded p-1 transition-colors hover:opacity-80"
-          style={{ color: "var(--theme-ink-tertiary)" }}
-          aria-label="Close Kip"
-        >
-          <XMarkIcon className="h-5 w-5" />
-        </button>
-      </div>
 
-      {/* Message thread */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed"
-              style={
-                msg.role === "kip"
-                  ? {
-                      backgroundColor: "hsl(var(--theme-surface-panel) / 0.9)",
-                      color: "var(--theme-ink-primary)",
-                      borderBottomLeftRadius: "4px",
-                    }
-                  : {
-                      backgroundColor: "#2d6a7f",
-                      color: "#fff",
-                      borderBottomRightRadius: "4px",
-                    }
-              }
-            >
-              {msg.content}
-            </div>
+          {/* Right: Chat icon · Cue Cards icon (conditional) · × */}
+          <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+            <IconBtn label="Chat view" active={view === "chat"} onClick={() => setView("chat")}>
+              <SvgChat active={view === "chat"} />
+            </IconBtn>
+
+            {/* Cue Cards icon — appears only after the first card has auto-collapsed */}
+            {firstCardCollapsed && (
+              <IconBtn label="Cue Cards" active={view === "cards"} onClick={() => setView("cards")}>
+                <SvgCards active={view === "cards"} />
+              </IconBtn>
+            )}
+
+            <IconBtn label="Close Kip" active={false} onClick={onClose}>
+              <SvgClose />
+            </IconBtn>
           </div>
-        ))}
+        </div>
 
-        {isSending && (
-          <div className="flex justify-start">
+        {/* ── Chat / Cards body ── */}
+        <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+          {view === "chat" ? (
+            /* Chat view — bubbles + cue cards interleaved */
             <div
-              className="rounded-2xl px-4 py-2.5 text-sm"
               style={{
-                backgroundColor: "hsl(var(--theme-surface-panel) / 0.9)",
-                color: "var(--theme-ink-tertiary)",
-                borderBottomLeftRadius: "4px",
+                padding:       "12px 16px",
+                display:       "flex",
+                flexDirection: "column",
+                gap:           "8px",
               }}
             >
-              …
+              {items.map((item, idx) => {
+                if (item.kind === "bubble") {
+                  return <BubbleItem key={item.id} role={item.role} content={item.content} />
+                }
+
+                const isFirst = items.findIndex((i) => i.kind === "cue_card") === idx
+                return (
+                  <CueCardItem
+                    key={item.id}
+                    data={item.data}
+                    autoCollapse={isFirst && !firstCardCollapsed}
+                    onCollapsed={() => setFirstCardCollapsed(true)}
+                  />
+                )
+              })}
+              <div ref={messagesEndRef} />
             </div>
-          </div>
-        )}
+          ) : (
+            /* Cards view — listed collapsed cards */
+            <div
+              style={{
+                padding:       "12px 16px",
+                display:       "flex",
+                flexDirection: "column",
+                gap:           "8px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setView("chat")}
+                style={{
+                  background: "none",
+                  border:     "none",
+                  cursor:     "pointer",
+                  display:    "flex",
+                  alignItems: "center",
+                  gap:        "4px",
+                  color:      B.inkMuted,
+                  fontFamily: B.font,
+                  fontSize:   "11px",
+                  padding:    "0 0 2px",
+                  marginBottom: "4px",
+                }}
+              >
+                <SvgBack />
+                Back to chat
+              </button>
 
-        <div ref={messagesEndRef} />
-      </div>
+              {cueCards.length === 0 ? (
+                <p
+                  style={{
+                    fontFamily: B.font,
+                    fontSize:   "13px",
+                    color:      B.inkMuted,
+                    textAlign:  "center",
+                    padding:    "24px 0",
+                  }}
+                >
+                  No cards yet.
+                </p>
+              ) : (
+                cueCards.map((item) => (
+                  <CueCardItem
+                    key={item.id}
+                    data={item.data}
+                    autoCollapse={false}
+                    startOpen={false}
+                  />
+                ))
+              )}
+            </div>
+          )}
+        </div>
 
-      {/* Input row + Sign In */}
-      <div
-        className="border-t px-3 pt-3 pb-4 space-y-2 flex-shrink-0"
-        style={{ borderColor: "var(--theme-border-soft)" }}
-      >
-        <form
-          onSubmit={(e) => { e.preventDefault(); void handleSend() }}
-          className="flex gap-2"
+        {/* ── Input area ── */}
+        <div
+          style={{
+            borderTop:   `1px solid ${B.border}`,
+            padding:     "10px 16px",
+            flexShrink:  0,
+            display:     "flex",
+            alignItems:  "flex-end",
+            gap:         "8px",
+          }}
         >
-          <input
-            ref={inputRef}
-            type="text"
+          <textarea
+            ref={textareaRef}
+            className="kip-companion-input"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Message Kip…"
-            className="flex-1 rounded-full border px-4 py-2 text-sm outline-none transition-colors"
+            onKeyDown={handleKeyDown}
+            placeholder="What's on your mind..."
+            rows={1}
             style={{
-              borderColor: "var(--theme-border-soft)",
-              backgroundColor: "hsl(var(--theme-surface-paper) / 0.8)",
-              color: "var(--theme-ink-primary)",
+              flex:       1,
+              resize:     "none",
+              border:     "none",
+              background: "transparent",
+              outline:    "none",
+              fontFamily: B.font,
+              fontSize:   "13px",
+              color:      B.inkDark,
+              lineHeight: 1.5,
+              padding:    "2px 0",
+              overflow:   "hidden",
             }}
-            disabled={isSending}
           />
           <button
-            type="submit"
-            disabled={!inputValue.trim() || isSending}
-            className="rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90 disabled:opacity-40"
+            type="button"
+            onClick={handleSend}
+            disabled={!inputValue.trim()}
             style={{
-              borderColor: "var(--theme-border-soft)",
-              backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-              color: "var(--theme-ink-primary)",
+              background:    "none",
+              border:        "none",
+              cursor:        inputValue.trim() ? "pointer" : "default",
+              fontFamily:    B.font,
+              fontSize:      "11px",
+              fontWeight:    500,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color:         inputValue.trim() ? B.primary : "#aaaaaa",
+              padding:       "2px 0",
+              flexShrink:    0,
+              transition:    "color 0.15s ease",
             }}
           >
             Send
           </button>
-        </form>
-
-        {/* Sign In — guests only */}
-        {isGuest && (
-          <button
-            type="button"
-            onClick={onSignIn}
-            className="w-full rounded-full border py-2 text-xs font-medium transition-colors hover:opacity-90"
-            style={{
-              borderColor: "var(--theme-border-soft)",
-              backgroundColor: "transparent",
-              color: "var(--theme-ink-secondary)",
-            }}
-          >
-            Sign In
-          </button>
-        )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
