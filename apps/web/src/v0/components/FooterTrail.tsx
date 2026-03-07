@@ -9,11 +9,21 @@ interface TrailAction {
   href: string
 }
 
-interface FooterTrailProps {
-  domainSlug?: string
+interface FooterTrailLabels {
+  trail_label: string
+  no_activity: string
+  index: string
+  view_drafts: string
+  view_kept: string
+  back_to_domain: string
 }
 
-export function FooterTrail({ domainSlug }: FooterTrailProps) {
+interface FooterTrailProps {
+  domainSlug?: string
+  labels?: FooterTrailLabels
+}
+
+export function FooterTrail({ domainSlug, labels }: FooterTrailProps) {
   const navigate = useNavigate()
   const v0Shell = useV0ShellOptional()
   const entries = useTrailEntries(domainSlug)
@@ -23,26 +33,26 @@ export function FooterTrail({ domainSlug }: FooterTrailProps) {
     return [
       {
         id: "view-index",
-        label: "Index",
+        label: labels?.index ?? "Index",
         href: v0Shell ? v0Shell.buildFrameUrl("index") : `/d/${domainSlug}/board?frame=index`,
       },
       {
         id: "view-drafts",
-        label: "View Drafts",
+        label: labels?.view_drafts ?? "View Drafts",
         href: v0Shell ? v0Shell.buildFrameUrl("moment") : `/d/${domainSlug}/board?frame=moment`,
       },
       {
         id: "view-kept",
-        label: "View Kept",
+        label: labels?.view_kept ?? "View Kept",
         href: v0Shell ? v0Shell.buildFrameUrl("moments") : `/d/${domainSlug}/board?frame=moments`,
       },
       {
         id: "back-domain",
-        label: "Back to Domain",
+        label: labels?.back_to_domain ?? "Back to Domain",
         href: v0Shell ? v0Shell.buildFrameUrl("cover") : `/d/${domainSlug}/board?frame=cover`,
       },
     ]
-  }, [domainSlug, v0Shell])
+  }, [domainSlug, labels, v0Shell])
 
   const handleAction = (action: TrailAction) => {
     recordTrailEvent(domainSlug, {
@@ -69,9 +79,9 @@ export function FooterTrail({ domainSlug }: FooterTrailProps) {
       style={{ color: "var(--theme-ink-tertiary)" }}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[10px] uppercase tracking-wide opacity-60">Trail</span>
+        <span className="text-[10px] uppercase tracking-wide opacity-60">{labels?.trail_label ?? "Trail"}</span>
         {entries.length === 0 ? (
-          <span className="text-[10px] opacity-50">No recent activity</span>
+          <span className="text-[10px] opacity-50">{labels?.no_activity ?? "No recent activity"}</span>
         ) : (
           entries.map((entry) => (
             <button

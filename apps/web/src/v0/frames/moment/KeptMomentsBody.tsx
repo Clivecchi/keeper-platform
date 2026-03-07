@@ -4,11 +4,24 @@ import { useEffect, useMemo, useState } from "react"
 import { getKeptMoments, type KeptMomentSummary } from "../../api/v0Moments"
 import { MomentEmotifBar } from "./MomentEmotifBar"
 
-interface KeptMomentsBodyProps {
-  domainSlug?: string
+export interface KeptMomentsLabels {
+  loading: string
+  missingDomain: string
+  fetchFailed: string
+  empty: string
+  filterLabel: string
+  filterAll: string
+  emptyFiltered: string
+  untitled: string
+  keptFallback: string
 }
 
-export function KeptMomentsBody({ domainSlug }: KeptMomentsBodyProps) {
+interface KeptMomentsBodyProps {
+  domainSlug?: string
+  labels: KeptMomentsLabels
+}
+
+export function KeptMomentsBody({ domainSlug, labels }: KeptMomentsBodyProps) {
   const [moments, setMoments] = useState<KeptMomentSummary[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -17,7 +30,7 @@ export function KeptMomentsBody({ domainSlug }: KeptMomentsBodyProps) {
   useEffect(() => {
     const load = async () => {
       if (!domainSlug) {
-        setError("Domain is required to load kept moments.")
+        setError(labels.missingDomain)
         return
       }
       try {
@@ -31,7 +44,7 @@ export function KeptMomentsBody({ domainSlug }: KeptMomentsBodyProps) {
         setMoments(data)
       } catch (err) {
         console.error("Failed to load kept moments:", err)
-        setError("Failed to load kept moments.")
+        setError(labels.fetchFailed)
       } finally {
         setIsLoading(false)
       }
@@ -52,7 +65,7 @@ export function KeptMomentsBody({ domainSlug }: KeptMomentsBodyProps) {
   }, [moments])
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground">Loading kept moments...</div>
+    return <div className="text-sm text-muted-foreground">{labels.loading}</div>
   }
 
   if (error) {
@@ -60,7 +73,7 @@ export function KeptMomentsBody({ domainSlug }: KeptMomentsBodyProps) {
   }
 
   if (!moments.length && !filterJourneyId) {
-    return <div className="text-sm text-muted-foreground">No kept moments yet.</div>
+    return <div className="text-sm text-muted-foreground">{labels.empty}</div>
   }
 
   return (
@@ -69,7 +82,7 @@ export function KeptMomentsBody({ domainSlug }: KeptMomentsBodyProps) {
       {(journeyOptions.length > 0 || filterJourneyId) && (
         <div className="flex items-center gap-2">
           <label htmlFor="journey-filter" className="text-xs font-medium" style={{ color: "var(--theme-ink-secondary)" }}>
-            Filter by Journey:
+            {labels.filterLabel}
           </label>
           <select
             id="journey-filter"
@@ -78,7 +91,7 @@ export function KeptMomentsBody({ domainSlug }: KeptMomentsBodyProps) {
             className="rounded border px-2 py-1 text-xs"
             style={{ borderColor: "var(--theme-border-soft)" }}
           >
-            <option value="">All Journeys</option>
+            <option value="">{labels.filterAll}</option>
             {journeyOptions.map((j) => (
               <option key={j.id} value={j.id}>
                 {j.name}
@@ -89,7 +102,7 @@ export function KeptMomentsBody({ domainSlug }: KeptMomentsBodyProps) {
       )}
 
       {moments.length === 0 && filterJourneyId ? (
-        <div className="text-sm text-muted-foreground">No moments in this journey.</div>
+        <div className="text-sm text-muted-foreground">{labels.emptyFiltered}</div>
       ) : (
         moments.map((moment) => (
           <div
@@ -98,7 +111,7 @@ export function KeptMomentsBody({ domainSlug }: KeptMomentsBodyProps) {
             style={{ borderColor: "var(--theme-border-soft)" }}
           >
             <div className="flex items-start justify-between gap-2">
-              <div className="text-sm font-medium">{moment.title || "Untitled moment"}</div>
+              <div className="text-sm font-medium">{moment.title || labels.untitled}</div>
               {moment.journeyName && (
                 <span
                   className="inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
@@ -113,7 +126,7 @@ export function KeptMomentsBody({ domainSlug }: KeptMomentsBodyProps) {
               )}
             </div>
             <div className="text-xs opacity-70">
-              {moment.keptAt ? new Date(moment.keptAt).toLocaleString() : "Kept"}
+              {moment.keptAt ? new Date(moment.keptAt).toLocaleString() : labels.keptFallback}
             </div>
             {moment.body && (
               <div className="mt-2 text-xs opacity-80">{moment.body.slice(0, 140)}</div>

@@ -6,17 +6,12 @@ import { useNavigate } from "react-router-dom"
 import { X } from "lucide-react"
 import { updateDraftMoment, keepMoment, getDraftMoment, claimMoment } from "../../api/v0Moments"
 import type { MomentClaim } from "../../api/v0Moments"
+import type { MomentFrameJson } from "../../data/domain-frame.types"
 import { useAuth } from "../../../context/AuthContext"
 import { recordTrailEvent } from "../../stores/trailStore"
 import { MomentFeedbackRail } from "./MomentFeedbackRail"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
 import { useFrameContextOptional } from "../../shell/FrameContext"
-
-// Config for footer messages - ready for styling later
-const momentCopy = {
-  preserved: "Your words are being preserved",
-  kipPlaceholder: "Kip will assist here.",
-}
 
 interface MomentBodyProps {
   /** Theme slug for ruled lines */
@@ -39,6 +34,8 @@ interface MomentBodyProps {
   saveRetryToken?: number
   /** Callback when moment is kept */
   onMomentKept?: () => void
+  /** Domain frame moment block for labels and messaging */
+  momentFrame?: MomentFrameJson
 }
 
 export function MomentBody({
@@ -52,11 +49,17 @@ export function MomentBody({
   onSaveStatusChange,
   saveRetryToken,
   onMomentKept,
+  momentFrame,
 }: MomentBodyProps) {
   const navigate = useNavigate()
   const v0Shell = useV0ShellOptional()
   const frameCtx = useFrameContextOptional()
   const { isAuthenticated } = useAuth()
+
+  const momentCopy = {
+    preserved: momentFrame?.messaging.writing.preserved ?? "Your words are being preserved",
+    kipPlaceholder: momentFrame?.messaging.kip.panel_placeholder ?? "Kip will assist here.",
+  }
 
   // Context-derived values (authoritative from shell)
   const ctxDomainSlug = frameCtx?.domain?.slug ?? domainSlug
@@ -144,12 +147,12 @@ export function MomentBody({
         setLastSaved(new Date())
       } catch (error) {
         console.error('Failed to save draft:', error)
-        setSaveError('Failed to save. Changes may be lost.')
+        setSaveError(momentFrame?.messaging.save_status.save_failed ?? 'Failed to save. Changes may be lost.')
       } finally {
         setIsSaving(false)
       }
     },
-    [domainSlug, isKept]
+    [domainSlug, isKept, momentFrame]
   )
 
   useEffect(() => {
@@ -173,12 +176,12 @@ export function MomentBody({
         setLastSaved(new Date())
       } catch (error) {
         console.error('Failed to save draft:', error)
-        setSaveError('Failed to save. Changes may be lost.')
+        setSaveError(momentFrame?.messaging.save_status.save_failed ?? 'Failed to save. Changes may be lost.')
       } finally {
         setIsSaving(false)
       }
     }, 800),
-    [isKept, domainSlug]
+    [isKept, domainSlug, momentFrame]
   )
 
   // Handle content changes with autosave
@@ -222,7 +225,7 @@ export function MomentBody({
       onMomentKept?.()
     } catch (error) {
       console.error('Failed to keep moment:', error)
-      setSaveError('Failed to keep moment.')
+      setSaveError(momentFrame?.messaging.save_status.keep_failed ?? 'Failed to keep moment.')
     } finally {
       setIsKeeping(false)
     }
@@ -231,7 +234,7 @@ export function MomentBody({
   const handleClaim = async () => {
     if (!claimInfo?.token) return
     if (!isAuthenticated) {
-      setClaimError('Sign in to claim your moment.')
+      setClaimError(momentFrame?.messaging.claim.unauthenticated ?? 'Sign in to claim your moment.')
       return
     }
     try {
@@ -240,7 +243,7 @@ export function MomentBody({
       setClaimInfo(null)
     } catch (error) {
       console.error('Failed to claim moment:', error)
-      setClaimError('Failed to claim moment.')
+      setClaimError(momentFrame?.messaging.claim.failed ?? 'Failed to claim moment.')
     }
   }
 
@@ -276,11 +279,11 @@ export function MomentBody({
   const trimmedContent = content.trim()
   const wordCount = trimmedContent ? trimmedContent.split(/\s+/).filter(Boolean).length : 0
   const saveStatusLabel = isKept
-    ? "Moment kept forever"
+    ? (momentFrame?.messaging.save_status.kept_forever ?? "Moment kept forever")
     : saveError
       ? saveError
       : isSaving
-        ? "Saving..."
+        ? (momentFrame?.messaging.save_status.saving ?? "Saving...")
         : lastSaved
           ? `Saved ${lastSaved.toLocaleTimeString()}`
           : momentCopy.preserved
@@ -317,7 +320,7 @@ export function MomentBody({
               <textarea
                 value={content}
                 onChange={(e) => handleContentChange(e.target.value)}
-                placeholder="Begin writing…"
+                placeholder={momentFrame?.messaging.writing.placeholder ?? "Begin writing\u2026"}
                 disabled={isKept}
                 className="w-full h-full min-h-[520px] bg-transparent outline-none resize-none px-6 md:px-8 pb-10 text-[15.5px] text-[var(--theme-ink-primary)] placeholder:text-[var(--theme-ink-placeholder)] border border-white disabled:opacity-75"
                 style={{
@@ -339,7 +342,7 @@ export function MomentBody({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--theme-ink-tertiary)" }}>
-                  <span>kept</span>
+                  <span>{momentFrame?.messaging.writing.kept_label ?? "kept"}</span>
                   <span className="text-[9px] opacity-60">(0)</span>
                 </div>
                 <div className="flex items-center gap-1">
@@ -354,9 +357,9 @@ export function MomentBody({
                       backgroundColor: "var(--theme-surface-paper)",
                       boxShadow: "var(--theme-shadow-soft)",
                     }}
-                    aria-label="Keep this moment"
+                    aria-label={momentFrame?.messaging.writing.keep_aria_label ?? "Keep this moment"}
                   >
-                    <span>{isKeeping ? 'Keeping...' : isKept ? 'Kept ✓' : 'Keep'}</span>
+                    <span>{isKeeping ? (momentFrame?.messaging.writing.keeping_button ?? 'Keeping...') : isKept ? (momentFrame?.messaging.writing.kept_button ?? 'Kept \u2713') : (momentFrame?.messaging.writing.keep_button ?? 'Keep')}</span>
                   </button>
                   <button
                     type="button"
@@ -367,7 +370,7 @@ export function MomentBody({
                       backgroundColor: "var(--theme-surface-paper)",
                       boxShadow: "var(--theme-shadow-soft)",
                     }}
-                    aria-label="Upload media"
+                    aria-label={momentFrame?.messaging.writing.upload_aria_label ?? "Upload media"}
                   >
                     <span>+</span>
                   </button>
@@ -392,7 +395,7 @@ export function MomentBody({
                 isKept
                   ? {
                       id: "view-domain",
-                      label: "View in Domain",
+                      label: momentFrame?.messaging.feedback_rail.view_in_domain ?? "View in Domain",
                       onClick: handleViewDomain,
                     }
                   : null
@@ -400,10 +403,10 @@ export function MomentBody({
               secondaryActions={[
                 {
                   id: "kip-toggle",
-                  label: "Kip",
+                  label: momentFrame?.messaging.feedback_rail.kip_button ?? "Kip",
                   onClick: () => setIsKipOpen((prev) => !prev),
                   variant: "compact",
-                  ariaLabel: "Kip companion",
+                  ariaLabel: momentFrame?.messaging.feedback_rail.kip_aria_label ?? "Kip companion",
                 },
               ]}
               context={{
@@ -423,8 +426,8 @@ export function MomentBody({
       {isKept && claimInfo && (
         <div className="mt-6 flex justify-center">
           <div className="w-full max-w-xl rounded-md border p-4 text-xs" style={{ borderColor: "var(--theme-border-soft)", backgroundColor: "var(--theme-surface-paper)" }}>
-            <div className="font-medium mb-2">Create your Ke3p Key</div>
-            <div className="mb-3">Save this claim token to attach your moment to an account later.</div>
+            <div className="font-medium mb-2">{momentFrame?.messaging.claim.heading ?? "Create your Ke3p Key"}</div>
+            <div className="mb-3">{momentFrame?.messaging.claim.body ?? "Save this claim token to attach your moment to an account later."}</div>
             <div className="flex items-center gap-2 mb-3">
               <code className="px-2 py-1 rounded bg-white/60 border" style={{ borderColor: "var(--theme-border-soft)" }}>
                 {claimInfo.token}
@@ -440,11 +443,11 @@ export function MomentBody({
                   boxShadow: "var(--theme-shadow-soft)",
                 }}
               >
-                Copy
+                {momentFrame?.messaging.claim.copy_button ?? "Copy"}
               </button>
               <button
                 type="button"
-                onClick={() => window.location.assign(`mailto:?subject=Your Ke3p Key&body=${encodeURIComponent(claimInfo.token)}`)}
+                onClick={() => window.location.assign(`mailto:?subject=${encodeURIComponent(momentFrame?.messaging.claim.email_subject ?? "Your Ke3p Key")}&body=${encodeURIComponent(claimInfo.token)}`)}
                 className="inline-flex items-center justify-center rounded-full border px-2 py-1 text-[10px] font-medium transition-colors opacity-60 hover:opacity-80"
                 style={{
                   borderColor: "var(--theme-border-soft)",
@@ -453,7 +456,7 @@ export function MomentBody({
                   boxShadow: "var(--theme-shadow-soft)",
                 }}
               >
-                Email to self
+                {momentFrame?.messaging.claim.email_button ?? "Email to self"}
               </button>
             </div>
             <div className="flex items-center gap-2">
@@ -468,7 +471,7 @@ export function MomentBody({
                   boxShadow: "var(--theme-shadow-soft)",
                 }}
               >
-                Claim now
+                {momentFrame?.messaging.claim.claim_button ?? "Claim now"}
               </button>
               <button
                 type="button"
@@ -481,7 +484,7 @@ export function MomentBody({
                   boxShadow: "var(--theme-shadow-soft)",
                 }}
               >
-                Sign in
+                {momentFrame?.messaging.claim.signin_button ?? "Sign in"}
               </button>
               <button
                 type="button"
@@ -494,7 +497,7 @@ export function MomentBody({
                   boxShadow: "var(--theme-shadow-soft)",
                 }}
               >
-                Sign up
+                {momentFrame?.messaging.claim.signup_button ?? "Sign up"}
               </button>
             </div>
             {claimError && (
@@ -527,13 +530,13 @@ export function MomentBody({
           >
             <div className="flex items-start justify-between mb-2">
               <span className="text-sm font-medium" style={{ color: "var(--theme-ink-secondary)" }}>
-                Kip Companion
+                {momentFrame?.messaging.kip.panel_title ?? "Kip Companion"}
               </span>
               <button
                 type="button"
                 onClick={() => setIsKipOpen(false)}
                 className="text-muted-foreground/60 hover:text-foreground p-1"
-                aria-label="Close Kip panel"
+                aria-label={momentFrame?.messaging.kip.panel_close_aria_label ?? "Close Kip panel"}
               >
                 <X className="w-3 h-3" strokeWidth={1.5} />
               </button>

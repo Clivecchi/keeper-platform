@@ -19,6 +19,7 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
   const navigate = useNavigate()
   const v0Shell = useV0ShellOptional()
   const frameCtx = useFrameContextOptional()
+  const mf = v0Shell?.domainFrame?.moment
 
   // Prefer FrameContext values (shell-derived, authoritative) over ad-hoc props
   const resolvedDomainSlug = frameCtx?.domain?.slug ?? domainSlug
@@ -66,7 +67,7 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
   useEffect(() => {
     if (resolvedDraftId || isBootstrapping) return
     if (!resolvedDomainSlug) {
-      setBootstrapError('Domain is required to start a draft.')
+      setBootstrapError(mf?.labels.bootstrap_error_no_domain ?? 'Domain is required to start a draft.')
       return
     }
 
@@ -136,19 +137,19 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
 
   const statusConfig = useMemo(() => {
     if (bootstrapError || bootstrapTimedOut || saveStatus === "error") {
-      return { label: "Trouble connecting", tone: "text-amber-700 border-amber-200 bg-amber-50" }
+      return { label: mf?.labels.status_trouble ?? "Trouble connecting", tone: "text-amber-700 border-amber-200 bg-amber-50" }
     }
     if (isBootstrapping) {
-      return { label: "Preparing...", tone: "text-slate-600 border-slate-200 bg-white/80" }
+      return { label: mf?.labels.status_preparing ?? "Preparing...", tone: "text-slate-600 border-slate-200 bg-white/80" }
     }
     if (saveStatus === "saving") {
-      return { label: "Saving...", tone: "text-slate-600 border-slate-200 bg-white/80" }
+      return { label: mf?.labels.status_saving ?? "Saving...", tone: "text-slate-600 border-slate-200 bg-white/80" }
     }
     if (saveStatus === "saved") {
-      return { label: "Saved", tone: "text-emerald-700 border-emerald-200 bg-emerald-50" }
+      return { label: mf?.labels.status_saved ?? "Saved", tone: "text-emerald-700 border-emerald-200 bg-emerald-50" }
     }
-    return { label: "Saved", tone: "text-slate-600 border-slate-200 bg-white/80" }
-  }, [bootstrapError, bootstrapTimedOut, isBootstrapping, saveStatus])
+    return { label: mf?.labels.status_saved ?? "Saved", tone: "text-slate-600 border-slate-200 bg-white/80" }
+  }, [bootstrapError, bootstrapTimedOut, isBootstrapping, mf, saveStatus])
 
   const showRetry = Boolean(bootstrapError || bootstrapTimedOut || saveStatus === "error")
 
@@ -164,13 +165,13 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
     <DesignFrame
       styleId={styleId}
       themeSlug={resolvedThemeSlug}
-      title="Moment Diary"
+      title={mf?.labels.frame_title ?? "Moment Diary"}
       subtitle={new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
       themeSwitcherSlot={<ThemeSwitcher />}
       rightSlot={
         <button
           type="button"
-          aria-label="Close moment"
+          aria-label={mf?.labels.close_aria_label ?? "Close moment"}
           onClick={handleClose}
           className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/60 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm"
         >
@@ -181,9 +182,9 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
     >
       {showBootstrapBanner && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50/80 px-4 py-3 text-xs text-amber-800">
-          <div className="font-medium">Draft is taking longer than usual.</div>
+          <div className="font-medium">{mf?.labels.bootstrap_banner_heading ?? "Draft is taking longer than usual."}</div>
           <div className="mt-1 text-[11px] text-amber-700">
-            Keep writing. We will sync as soon as the draft is ready.
+            {mf?.labels.bootstrap_banner_body ?? "Keep writing. We will sync as soon as the draft is ready."}
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             <button
@@ -191,14 +192,14 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
               onClick={handleRetry}
               className="rounded-full border border-amber-200 bg-white/80 px-3 py-1 text-[11px] font-medium text-amber-800 hover:bg-white"
             >
-              Retry
+              {mf?.labels.bootstrap_banner_retry ?? "Retry"}
             </button>
             <button
               type="button"
               onClick={handleStartNew}
               className="rounded-full border border-amber-200 bg-white/80 px-3 py-1 text-[11px] font-medium text-amber-800 hover:bg-white"
             >
-              Start New
+              {mf?.labels.bootstrap_banner_start_new ?? "Start New"}
             </button>
           </div>
         </div>
@@ -214,9 +215,20 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
         onTitleBufferChange={setTitleBuffer}
         onSaveStatusChange={setSaveStatus}
         saveRetryToken={saveRetryToken}
+        momentFrame={mf}
       />
 
-      <FooterTrail domainSlug={resolvedDomainSlug} />
+      <FooterTrail
+        domainSlug={resolvedDomainSlug}
+        labels={{
+          trail_label: mf?.messaging.footer.trail_label ?? "Trail",
+          no_activity: mf?.messaging.footer.no_activity ?? "No recent activity",
+          index: mf?.messaging.footer.index ?? "Index",
+          view_drafts: mf?.messaging.footer.view_drafts ?? "View Drafts",
+          view_kept: mf?.messaging.footer.view_kept ?? "View Kept",
+          back_to_domain: mf?.messaging.footer.back_to_domain ?? "Back to Domain",
+        }}
+      />
 
       <div className="mt-3 flex justify-end">
         <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] ${statusConfig.tone}`}>
@@ -227,7 +239,7 @@ export function MomentFrame({ styleId = 'neutral', themeSlug, domainSlug, draftI
               onClick={handleStatusRetry}
               className="rounded-full border border-transparent px-2 py-0.5 text-[11px] font-medium text-inherit hover:underline"
             >
-              Retry
+              {mf?.labels.status_retry ?? "Retry"}
             </button>
           )}
         </div>

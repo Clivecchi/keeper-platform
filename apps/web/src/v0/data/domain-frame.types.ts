@@ -183,6 +183,98 @@ export interface JourneysFrame {
   messaging: JourneysFrameMessaging
 }
 
+export interface KeptMomentsFrameLabels {
+  frame_title: string
+  frame_subtitle: string
+  close_aria_label: string
+  filter_label: string
+  filter_all: string
+}
+
+export interface KeptMomentsFrameMessaging {
+  loading: string
+  missing_domain: string
+  fetch_failed: string
+  empty: string
+  empty_filtered: string
+  untitled: string
+  kept_fallback: string
+}
+
+export interface KeptMomentsFrame {
+  labels: KeptMomentsFrameLabels
+  messaging: KeptMomentsFrameMessaging
+}
+
+export interface MomentFrameLabels {
+  frame_title: string
+  close_aria_label: string
+  bootstrap_error_no_domain: string
+  bootstrap_banner_heading: string
+  bootstrap_banner_body: string
+  bootstrap_banner_retry: string
+  bootstrap_banner_start_new: string
+  status_trouble: string
+  status_preparing: string
+  status_saving: string
+  status_saved: string
+  status_retry: string
+}
+
+export interface MomentFrameMessaging {
+  writing: {
+    placeholder: string
+    preserved: string
+    keep_button: string
+    keeping_button: string
+    kept_button: string
+    keep_aria_label: string
+    upload_aria_label: string
+    kept_label: string
+  }
+  save_status: {
+    kept_forever: string
+    saving: string
+    save_failed: string
+    keep_failed: string
+  }
+  claim: {
+    unauthenticated: string
+    failed: string
+    heading: string
+    body: string
+    copy_button: string
+    email_button: string
+    claim_button: string
+    signin_button: string
+    signup_button: string
+    email_subject: string
+  }
+  kip: {
+    panel_title: string
+    panel_close_aria_label: string
+    panel_placeholder: string
+  }
+  feedback_rail: {
+    view_in_domain: string
+    kip_button: string
+    kip_aria_label: string
+  }
+  footer: {
+    trail_label: string
+    no_activity: string
+    index: string
+    view_drafts: string
+    view_kept: string
+    back_to_domain: string
+  }
+}
+
+export interface MomentFrameJson {
+  labels: MomentFrameLabels
+  messaging: MomentFrameMessaging
+}
+
 export interface DomainFrameJson {
   domain: string
   keeper_type: string
@@ -196,4 +288,6 @@ export interface DomainFrameJson {
   interaction_bar: DomainFrameInteractionBar
   agent_board: AgentBoardFrame
   journeys: JourneysFrame
+  kept_moments: KeptMomentsFrame
+  moment: MomentFrameJson
 }
