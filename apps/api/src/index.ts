@@ -53,6 +53,7 @@ import kipLensesRouter from './api/kip/lenses.js';
 import kipModeConfigRouter from './api/kip/mode-config.js';
 import kipModelsRouter from './api/kip/models.js';
 import { getUserKeys, setUserKey, deleteUserKey, getUserProviders } from './api/kip/user-keys.js';
+import companionRouter from './api/kip/companion.js';
 // Import KAM settings handler
 import kamSettingsHandler from './api/kam/settings.js';
 // Import Board Studio routes
@@ -1137,6 +1138,9 @@ app.options('/api/mcp/*', (_req, res) => {
 // Mount at BOTH /mcp and /api/mcp for compatibility with different clients
 app.use('/mcp', mcpRouter);
 app.use('/api/mcp', mcpRouter);
+
+// Public route: POST /api/kip/companion — guest chat surface (no auth, rate-limited)
+app.use('/api/kip/companion', companionRouter);
 
 // Public route: GET /api/kip/agents?slug=kip — agent metadata only for public Lead agents (no auth)
 app.get('/api/kip/agents', async (req: Request, res: Response, next: NextFunction) => {

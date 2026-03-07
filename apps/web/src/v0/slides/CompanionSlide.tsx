@@ -18,6 +18,7 @@
 
 import * as React from "react"
 import type { AudienceRole } from "../data/domain-frame.types"
+import { getApiBase } from "../../lib/apiFetch"
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 
@@ -359,6 +360,7 @@ export function CompanionSlide({
   isOpen,
   onClose,
   greeting,
+  domainSlug,
 }: CompanionSlideProps) {
   // State is never reset on close — session persists across open/close
   const [items,              setItems]              = React.useState<ChatItem[]>(() => buildSeedItems(greeting))
@@ -366,6 +368,7 @@ export function CompanionSlide({
   const [view,               setView]               = React.useState<"chat" | "cards">("chat")
   const [firstCardCollapsed, setFirstCardCollapsed] = React.useState(false)
   const [panelVisible,       setPanelVisible]       = React.useState(false)
+  const [isSending,          setIsSending]          = React.useState(false)
 
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
   const textareaRef    = React.useRef<HTMLTextAreaElement>(null)
@@ -405,17 +408,62 @@ export function CompanionSlide({
     ta.style.height = `${Math.min(ta.scrollHeight, 80)}px`
   }, [inputValue])
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = inputValue.trim()
-    if (!text) return
-    const ts = Date.now()
-    setItems((prev) => [
+    if (!text || isSending) return
+
+    const ts         = Date.now()
+    const thinkingId = `kip-thinking-${ts}`
+
+    // Build prior conversation from current items before adding new messages
+    const history = items
+      .filter((i): i is Extract<ChatItem, { kind: "bubble" }> => i.kind === "bubble")
+      .slice(-6)
+      .map(b => ({
+        role:    (b.role === "kip" ? "assistant" : "user") as "assistant" | "user",
+        content: b.content,
+      }))
+
+    setItems(prev => [
       ...prev,
       { kind: "bubble", id: `user-${ts}`, role: "user", content: text },
-      // Static echo response for visual build — Kip wiring is out of scope here
-      { kind: "bubble", id: `kip-${ts}`,  role: "kip",  content: "Everything here is worth keeping. What are you working on?" },
+      { kind: "bubble", id: thinkingId,   role: "kip",  content: "Kip is thinking\u2026" },
     ])
     setInputValue("")
+    setIsSending(true)
+
+    try {
+      const response = await fetch(`${getApiBase()}/api/kip/companion`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ message: text, domainSlug, conversationHistory: history }),
+      })
+
+      const data = await response.json().catch(() => null)
+
+      let reply: string
+      if (response.status === 429) {
+        reply = "Kip needs a moment. Try again shortly."
+      } else if (response.ok && data?.success && typeof data.reply === "string") {
+        reply = data.reply
+      } else {
+        reply = "Something went wrong. Try again."
+      }
+
+      setItems(prev => prev.map(item =>
+        item.id === thinkingId && item.kind === "bubble"
+          ? { ...item, content: reply }
+          : item
+      ))
+    } catch {
+      setItems(prev => prev.map(item =>
+        item.id === thinkingId && item.kind === "bubble"
+          ? { ...item, content: "Something went wrong. Try again." }
+          : item
+      ))
+    } finally {
+      setIsSending(false)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -630,23 +678,23 @@ export function CompanionSlide({
           <button
             type="button"
             onClick={handleSend}
-            disabled={!inputValue.trim()}
+            disabled={!inputValue.trim() || isSending}
             style={{
               background:    "none",
               border:        "none",
-              cursor:        inputValue.trim() ? "pointer" : "default",
+              cursor:        inputValue.trim() && !isSending ? "pointer" : "default",
               fontFamily:    B.font,
               fontSize:      "11px",
               fontWeight:    500,
               textTransform: "uppercase",
               letterSpacing: "0.06em",
-              color:         inputValue.trim() ? B.primary : "#aaaaaa",
+              color:         inputValue.trim() && !isSending ? B.primary : "#aaaaaa",
               padding:       "2px 0",
               flexShrink:    0,
               transition:    "color 0.15s ease",
             }}
           >
-            Send
+            {isSending ? "…" : "Send"}
           </button>
         </div>
       </div>

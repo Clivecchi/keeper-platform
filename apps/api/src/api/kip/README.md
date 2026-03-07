@@ -5,6 +5,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 
 ## 🧱 Key Files
 - `agents.ts`
+- `companion.ts` — POST /api/kip/companion (public guest chat — no auth, rate-limited)
 - `models.ts` — GET /api/kip/models (model catalog for frontend)
 - `lenses.ts`
 - `mode-config.ts`
@@ -22,8 +23,11 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 ## ⚠️ Notes & ToDo
 - [ ] Expand mock set as needed
 - [ ] Behavior to confirm with Kip
+- [ ] companion.ts: no HTTP rate limiting on the platform key resolution path — monitor usage in Railway logs
+- [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-03-06: Added `companion.ts` — POST /api/kip/companion. Public guest chat endpoint. Rate-limited (20 req/min/IP via express-rate-limit). Direct Anthropic call using domain frame kip_context.guest as system prompt and kip.model as model. API key resolution: Railway env → domain owner's user key → platform DB key. Registered in index.ts before authMiddlewareCompat. No SOLE, governance, or action packs.
 - 2026-03-04: Fixed VALIDATION_ERROR in `sole.save`: journey validation was scoped to active `keeperId`, blocking cross-keeper journey references. Changed to domain-scoped lookup — any journey in the domain is now a valid SOLE memory link regardless of which keeper is active.
 - 2026-02-26: GET /api/kip/models?provider=X now fetches models dynamically from provider APIs (OpenAI, Anthropic) using stored API keys. 1h cache. Falls back to static catalog on failure. Added ProviderModelsFetcher service.
 - 2026-02-19: Added GET /api/kip/models. Returns model catalog (providers, models with id/label, defaults). ModelProviderService now reads from config/modelCatalog.ts.
