@@ -70,6 +70,86 @@ export interface DomainFrameInteractionBar {
   }
 }
 
+export interface AgentBoardSidebarLabels {
+  drafts: string
+  journeys: string
+  keepers: string
+  sessions: string
+  journeys_description: string
+  keepers_description: string
+}
+
+export interface AgentBoardActionLabels {
+  open_cockpit: string
+  new_session: string
+  back_to_commons: string
+  sign_in: string
+  back_to_dialogue: string
+  view_drafts: string
+  agent_diagnostics: string
+}
+
+export interface AgentBoardLabels {
+  sidebar: AgentBoardSidebarLabels
+  actions: AgentBoardActionLabels
+}
+
+export interface AgentBoardSigninMessaging {
+  title: string
+  subtitle: string
+  body: string
+}
+
+export interface AgentBoardEmptyStateMessaging {
+  no_drafts: string
+  no_journeys: string
+  no_keepers: string
+  no_sessions: string
+  start_conversation: string
+}
+
+export interface AgentBoardDialogueMessaging {
+  start_prompt: string
+  thinking: string
+}
+
+export interface AgentBoardErrorMessaging {
+  unable_to_load: string
+  not_found: string
+  session_expired: string
+  send_failed: string
+}
+
+export interface AgentBoardMessaging {
+  signin: AgentBoardSigninMessaging
+  empty_states: AgentBoardEmptyStateMessaging
+  dialogue: AgentBoardDialogueMessaging
+  errors: AgentBoardErrorMessaging
+}
+
+export interface AgentBoardStructure {
+  model: {
+    provider: string
+    id: string
+  }
+  dialogue: {
+    user_bubble_color: string
+  }
+}
+
+export interface AgentBoardThemeRef {
+  source: string
+  override_allowed: boolean
+}
+
+export interface AgentBoardFrame {
+  frame_title: string
+  labels: AgentBoardLabels
+  messaging: AgentBoardMessaging
+  structure: AgentBoardStructure
+  theme: AgentBoardThemeRef
+}
+
 export interface DomainFrameJson {
   domain: string
   keeper_type: string
@@ -81,4 +161,5 @@ export interface DomainFrameJson {
   directions: DomainFrameDirection[]
   kip_context: DomainFrameKipContext
   interaction_bar: DomainFrameInteractionBar
+  agent_board: AgentBoardFrame
 }

@@ -82,4 +82,68 @@ export const DEFAULT_DOMAIN_FRAME: DomainFrameJson = {
       admin: ["settings"],
     },
   },
+
+  agent_board: {
+    frame_title: "Agent studio",
+
+    labels: {
+      sidebar: {
+        drafts: "Drafts",
+        journeys: "Journeys",
+        keepers: "Keepers",
+        sessions: "Sessions",
+        journeys_description: "Scope the conversation to a journey",
+        keepers_description: "Scope the conversation to a keeper",
+      },
+      actions: {
+        open_cockpit: "Open Cockpit",
+        new_session: "New session",
+        back_to_commons: "Back to Commons",
+        sign_in: "Sign in",
+        back_to_dialogue: "Back to dialogue",
+        view_drafts: "View drafts",
+        agent_diagnostics: "Agent diagnostics",
+      },
+    },
+
+    messaging: {
+      signin: {
+        title: "Kip",
+        subtitle: "Sign in to chat with Kip",
+        body: "Sign in to chat with Kip, the Keeper Platform Lead Agent.",
+      },
+      empty_states: {
+        no_drafts: "No drafts yet",
+        no_journeys: "No journeys available",
+        no_keepers: "No keepers available",
+        no_sessions: "No sessions yet",
+        start_conversation: "Start a conversation to begin",
+      },
+      dialogue: {
+        start_prompt: "Say hello to {agent_name} to start the conversation.",
+        thinking: "{agent_name} is thinking…",
+      },
+      errors: {
+        unable_to_load: "Unable to load agent",
+        not_found: "Agent not found. The Kip agent may not be configured for this domain.",
+        session_expired: "Session expired. Please log in again.",
+        send_failed: "Failed to send. Please try again.",
+      },
+    },
+
+    structure: {
+      model: {
+        provider: "anthropic",
+        id: "claude-sonnet-4-6",
+      },
+      dialogue: {
+        user_bubble_color: "#c17a5a",
+      },
+    },
+
+    theme: {
+      source: "domain",
+      override_allowed: true,
+    },
+  },
 }
