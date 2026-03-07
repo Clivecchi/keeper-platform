@@ -12,6 +12,7 @@ import { DraftUpdateProposeCard } from "../kip/DraftUpdateProposeCard"
 import type { AgentDialogueMessage } from "./types"
 import { normalizeActionReceipt } from "./types"
 import { formatTime } from "./helpers"
+import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
 
 export interface DialogueMessageListProps {
   /** Whether messages are still loading */
@@ -30,6 +31,8 @@ export interface DialogueMessageListProps {
   onConfirmDraftUpdate?: (draftId: string, payload: { title?: string; summary?: string; status?: string; spec?: unknown }) => void
   /** Agent name for empty state and thinking indicator (dynamic, not hardcoded) */
   agentName?: string
+  /** Domain-driven messaging strings for dialogue states */
+  agentBoardMessaging?: AgentBoardMessaging
 }
 
 export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
@@ -41,6 +44,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onOpenMoment,
   onConfirmDraftUpdate,
   agentName = "Agent",
+  agentBoardMessaging,
 }) => (
   <div
     className="min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl px-4 py-4"
@@ -60,7 +64,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
           color: 'var(--theme-ink-secondary-color)',
         }}
       >
-        Say hello to {agentName} to start the conversation.
+        {(agentBoardMessaging?.dialogue.start_prompt ?? "Say hello to {agent_name} to start the conversation.").replace("{agent_name}", agentName)}
       </div>
     ) : (
       messages.map((message) => (
@@ -149,7 +153,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
       ))
     )}
     {isSending && (
-      <p className="text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>{agentName} is thinking…</p>
+      <p className="text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>{(agentBoardMessaging?.dialogue.thinking ?? "{agent_name} is thinking…").replace("{agent_name}", agentName)}</p>
     )}
     {error && (
       <div

@@ -108,6 +108,7 @@ export function AgentBoardFrame({
   themeSlug?: string | null
 }) {
   const { domainSlug, navigateToFrame, domainFrame, resolvedAudience } = useV0Shell()
+  const ab = domainFrame?.agent_board
   const frameCtx = useFrameContextOptional()
   const { isAuthenticated, isAdmin, refreshSession } = useAuth()
   const [view, setView] = useAgentWorkspaceView()
@@ -194,9 +195,9 @@ export function AgentBoardFrame({
         } else if (status === 404) {
           // 404 = agent not found or not public — guests see sign-in prompt; auth users see error
           setAgent(null)
-          setAgentError(isAuthenticated ? "Agent not found. The Kip agent may not be configured for this domain." : null)
+          setAgentError(isAuthenticated ? ab?.messaging.errors.not_found ?? "Agent not found." : null)
         } else {
-          setAgentError(err instanceof Error ? err.message : "Unable to load agent")
+          setAgentError(err instanceof Error ? err.message : ab?.messaging.errors.unable_to_load ?? "Unable to load agent")
         }
       })
       .finally(() => {
@@ -451,7 +452,7 @@ export function AgentBoardFrame({
               experienceContext,
             })
           } else {
-            setMessagesError("Session expired. Please log in again.")
+            setMessagesError(ab?.messaging.errors.session_expired ?? "Session expired. Please log in again.")
             setMessages((prev) => prev.filter((m) => m.id !== optimistic.id))
             return
           }
@@ -508,10 +509,10 @@ export function AgentBoardFrame({
       const message = err instanceof Error ? err.message : undefined
       setMessagesError(
         status === 401
-          ? "Session expired. Please log in again."
+          ? ab?.messaging.errors.session_expired ?? "Session expired. Please log in again."
           : message && message.length > 0 && message.length < 200
             ? message
-            : "Failed to send. Please try again."
+            : ab?.messaging.errors.send_failed ?? "Failed to send. Please try again."
       )
     } finally {
       setIsSending(false)
@@ -635,22 +636,22 @@ export function AgentBoardFrame({
     if (drafts.length > 0) {
       actions.push({
         label: `${drafts.length} draft${drafts.length > 1 ? "s" : ""} in progress`,
-        actionLabel: "View drafts",
+        actionLabel: ab?.labels.actions.view_drafts ?? "View drafts",
         onAction: () => setView({ kind: "draft", draftId: drafts[0].id }),
       })
     }
     if (!activeSessionId && sessions.length === 0) {
       actions.push({
         label: "No active session",
-        detail: "Start a conversation to begin",
-        actionLabel: "New session",
+        detail: ab?.messaging.empty_states.start_conversation ?? "Start a conversation to begin",
+        actionLabel: ab?.labels.actions.new_session ?? "New session",
         onAction: handleCreateSession,
       })
     }
     actions.push({
-      label: "Agent diagnostics",
+      label: ab?.labels.actions.agent_diagnostics ?? "Agent diagnostics",
       detail: "View configuration and capabilities",
-      actionLabel: "Open cockpit",
+      actionLabel: ab?.labels.actions.open_cockpit ?? "Open Cockpit",
       onAction: () => setView({ kind: "cockpit" }),
     })
     return actions
@@ -684,6 +685,7 @@ export function AgentBoardFrame({
         isSending={isSending}
         error={messagesError}
         agentName={agentName}
+        agentBoardMessaging={ab?.messaging}
         onOpenDraft={(draftId) => setView({ kind: "draft", draftId })}
         onOpenMoment={(momentId) => navigateToFrame("moment", { draftId: momentId })}
         onConfirmDraftUpdate={
@@ -719,7 +721,7 @@ export function AgentBoardFrame({
               color: "var(--theme-ink-primary-color)",
             }}
           >
-            Back to dialogue
+            {ab?.labels.actions.back_to_dialogue ?? "Back to dialogue"}
           </button>
         </div>
       )
@@ -893,7 +895,7 @@ export function AgentBoardFrame({
             color: "var(--theme-ink-primary-color)",
           }}
         >
-          ← Dialogue
+          {ab?.labels.actions.back_to_dialogue ?? "Back to dialogue"}
         </button>
       </div>
     )
@@ -926,7 +928,7 @@ export function AgentBoardFrame({
               color: "var(--theme-ink-primary-color)",
             }}
           >
-            Back to dialogue
+            {ab?.labels.actions.back_to_dialogue ?? "Back to dialogue"}
           </button>
         </div>
       )
@@ -969,7 +971,7 @@ export function AgentBoardFrame({
               color: "var(--theme-ink-primary-color)",
             }}
           >
-            Back to dialogue
+            {ab?.labels.actions.back_to_dialogue ?? "Back to dialogue"}
           </button>
         </div>
       )
@@ -1013,7 +1015,7 @@ export function AgentBoardFrame({
           color: "var(--theme-ink-primary-color)",
         }}
       >
-        Back to dialogue
+        {ab?.labels.actions.back_to_dialogue ?? "Back to dialogue"}
       </button>
     </div>
   )
@@ -1039,10 +1041,10 @@ export function AgentBoardFrame({
   // ── Sign in to chat (logged-out, agent not loaded) ──
   if (!agent && !isAgentLoading && !isAuthenticated) {
     return (
-      <DesignFrame styleId={styleId} themeSlug={themeSlug} title="Kip" subtitle="Sign in to chat with Kip">
+      <DesignFrame styleId={styleId} themeSlug={themeSlug} title={ab?.messaging.signin.title ?? "Kip"} subtitle={ab?.messaging.signin.subtitle ?? "Sign in to chat with Kip"}>
         <div className="rounded-2xl border p-6 text-center" style={{ borderColor: "hsl(var(--theme-border-soft))" }}>
           <p className="text-sm" style={{ color: "var(--theme-ink-secondary-color)" }}>
-            Sign in to chat with Kip, the Keeper Platform Lead Agent.
+            {ab?.messaging.signin.body ?? "Sign in to chat with Kip, the Keeper Platform Lead Agent."}
           </p>
           <button
             type="button"
@@ -1057,7 +1059,7 @@ export function AgentBoardFrame({
               color: "var(--theme-ink-primary-color)",
             }}
           >
-            Sign in
+            {ab?.labels.actions.sign_in ?? "Sign in"}
           </button>
           <button
             type="button"
@@ -1065,7 +1067,7 @@ export function AgentBoardFrame({
             className="mt-4 ml-3 text-xs underline"
             style={{ color: "var(--theme-ink-secondary-color)" }}
           >
-            Back to Commons
+            {ab?.labels.actions.back_to_commons ?? "Back to Commons"}
           </button>
         </div>
       </DesignFrame>
@@ -1075,7 +1077,7 @@ export function AgentBoardFrame({
   // ── Error state (404 for auth users, or other failures) ──
   if (agentError && !isAgentLoading) {
     return (
-      <DesignFrame styleId={styleId} themeSlug={themeSlug} title="Agent Board" subtitle="Unable to load agent">
+      <DesignFrame styleId={styleId} themeSlug={themeSlug} title={ab?.frame_title ?? "Agent studio"} subtitle={ab?.messaging.errors.unable_to_load ?? "Unable to load agent"}>
         <div className="rounded-2xl border p-6 text-center" style={{ borderColor: "hsl(var(--theme-border-soft))" }}>
           <p className="text-sm" style={{ color: "var(--theme-ink-secondary-color)" }}>{agentError}</p>
           <button
@@ -1084,7 +1086,7 @@ export function AgentBoardFrame({
             className="mt-4 text-xs underline"
             style={{ color: "var(--theme-ink-secondary-color)" }}
           >
-            Back to Commons
+            {ab?.labels.actions.back_to_commons ?? "Back to Commons"}
           </button>
         </div>
       </DesignFrame>
@@ -1127,8 +1129,8 @@ export function AgentBoardFrame({
       themeSlug={themeSlug}
       title={
         isAgentLoading
-          ? "Agent Board"
-          : `${posture.domainName || "Domain"} · Agent studio`
+          ? ab?.frame_title ?? "Agent studio"
+          : `${posture.domainName || "Domain"} · ${ab?.frame_title ?? "Agent studio"}`
       }
       subtitle={undefined}
       themeSwitcherSlot={<ThemeSwitcher />}
@@ -1151,7 +1153,7 @@ export function AgentBoardFrame({
           className="text-xs font-medium underline underline-offset-2 opacity-60 hover:opacity-100 transition-opacity"
           style={{ color: "var(--theme-ink-secondary-color)" }}
         >
-          Back to Commons
+          {ab?.labels.actions.back_to_commons ?? "Back to Commons"}
         </button>
       }
     >
@@ -1161,31 +1163,31 @@ export function AgentBoardFrame({
         sidebar={
           <>
             <SidebarCard
-              title="Drafts"
+              title={ab?.labels.sidebar.drafts ?? "Drafts"}
               description={isLoadingDrafts ? "Loading drafts…" : `${drafts.length} draft${drafts.length !== 1 ? "s" : ""}`}
-              items={draftItems.length ? draftItems : [{ label: "No drafts yet" }]}
+              items={draftItems.length ? draftItems : [{ label: ab?.messaging.empty_states.no_drafts ?? "No drafts yet" }]}
               onAdd={handleCreateDraft}
               onTitleClick={() => setView({ kind: "list", type: "drafts" })}
             />
 
             <SidebarCard
-              title="Journeys"
-              description="Scope the conversation to a journey"
-              items={journeyItems.length ? journeyItems : [{ label: "No journeys available" }]}
+              title={ab?.labels.sidebar.journeys ?? "Journeys"}
+              description={ab?.labels.sidebar.journeys_description ?? ""}
+              items={journeyItems.length ? journeyItems : [{ label: ab?.messaging.empty_states.no_journeys ?? "No journeys available" }]}
               onTitleClick={() => setView({ kind: "list", type: "journeys" })}
             />
 
             <SidebarCard
-              title="Keepers"
-              description="Scope the conversation to a keeper"
-              items={keeperItems.length ? keeperItems : [{ label: "No keepers available" }]}
+              title={ab?.labels.sidebar.keepers ?? "Keepers"}
+              description={ab?.labels.sidebar.keepers_description ?? ""}
+              items={keeperItems.length ? keeperItems : [{ label: ab?.messaging.empty_states.no_keepers ?? "No keepers available" }]}
               onTitleClick={() => setView({ kind: "list", type: "keepers" })}
             />
 
             <SidebarCard
-              title="Sessions"
+              title={ab?.labels.sidebar.sessions ?? "Sessions"}
               description={isSessionsLoading ? "Loading sessions…" : `${sessions.length} session${sessions.length !== 1 ? "s" : ""}`}
-              items={sessionItems.length ? sessionItems : [{ label: "No sessions yet" }]}
+              items={sessionItems.length ? sessionItems : [{ label: ab?.messaging.empty_states.no_sessions ?? "No sessions yet" }]}
               onAdd={handleCreateSession}
               onTitleClick={() => setView({ kind: "list", type: "sessions" })}
             />
