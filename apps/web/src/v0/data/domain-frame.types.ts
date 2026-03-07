@@ -275,6 +275,102 @@ export interface MomentFrameJson {
   messaging: MomentFrameMessaging
 }
 
+export interface CommonsFrameLabels {
+  close_aria_label: string
+  settings_aria_label: string
+  settings_open_domain: string
+  settings_theme_label: string
+  breadcrumb_journey: string
+  banner_aria_label: string
+  sidebar_label: string
+  workspace_label: string
+  admin_cover_heading: string
+  admin_cover_description: string
+  admin_cover_saving: string
+  admin_cover_saved: string
+  admin_cover_error_type: string
+  admin_cover_error_api: string
+}
+
+export interface CommonsFrameMessaging {
+  errors: {
+    load_failed: string
+  }
+  feed: {
+    eyebrow: string
+    title: string
+    description: string
+    empty_title: string
+    empty_detail: string
+    empty_time: string
+    capture_cta: string
+    default_moment_title: string
+    default_moment_detail: string
+    loading: string
+  }
+  create: {
+    eyebrow: string
+    title: string
+    description: string
+    form_eyebrow: string
+    form_description: string
+    start_journey: string
+    capture_moment: string
+    domain_loading: string
+  }
+  summary: {
+    eyebrow: string
+    title: string
+    description: string
+    stat_journeys: string
+    stat_keepers: string
+    stat_moments: string
+    stat_members: string
+    members_private: string
+  }
+  entity: {
+    not_found_title: string
+    not_found_description: string
+    back_button: string
+    moment_title_fallback: string
+    moment_body_fallback: string
+    title_fallback: string
+  }
+  sidebar: {
+    journeys_title: string
+    journeys_description: string
+    journeys_empty: string
+    journeys_empty_cta: string
+    journeys_error: string
+    relationships_title: string
+    relationships_description: string
+    relationships_error: string
+    keepers_title: string
+    keepers_description: string
+    keepers_empty: string
+    keepers_empty_cta: string
+    keepers_error: string
+  }
+  roles: {
+    default_label: string
+    default_summary: string
+    name_fallback: string
+    avatar_fallback: string
+  }
+  time: {
+    recently: string
+    just_now: string
+    minutes_ago: string
+    hours_ago: string
+    days_ago: string
+  }
+}
+
+export interface CommonsFrameJson {
+  labels: CommonsFrameLabels
+  messaging: CommonsFrameMessaging
+}
+
 export interface DomainFrameJson {
   domain: string
   keeper_type: string
@@ -290,4 +386,5 @@ export interface DomainFrameJson {
   journeys: JourneysFrame
   kept_moments: KeptMomentsFrame
   moment: MomentFrameJson
+  commons: CommonsFrameJson
 }

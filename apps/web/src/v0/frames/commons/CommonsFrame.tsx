@@ -94,31 +94,38 @@ type CoverMedia = {
   key?: string
 }
 
-const emptyFeed: FeedItem[] = [
-  {
-    title: "No moments yet",
-    detail: "New moments will appear here as the commons grows.",
-    time: "Just now",
-  }
-]
-
-function formatRelativeTime(value?: string | null) {
-  if (!value) return "Recently"
+function formatRelativeTime(value: string | null | undefined, time: { recently: string; just_now: string; minutes_ago: string; hours_ago: string; days_ago: string }) {
+  if (!value) return time.recently
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return "Recently"
+  if (Number.isNaN(date.getTime())) return time.recently
   const diffMs = Date.now() - date.getTime()
   const diffMinutes = Math.floor(diffMs / (1000 * 60))
-  if (diffMinutes < 2) return "Just now"
-  if (diffMinutes < 60) return `${diffMinutes} minutes ago`
+  if (diffMinutes < 2) return time.just_now
+  if (diffMinutes < 60) return `${diffMinutes} ${time.minutes_ago}`
   const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) return `${diffHours} hours ago`
+  if (diffHours < 24) return `${diffHours} ${time.hours_ago}`
   const diffDays = Math.floor(diffHours / 24)
-  if (diffDays < 7) return `${diffDays} days ago`
+  if (diffDays < 7) return `${diffDays} ${time.days_ago}`
   return date.toLocaleDateString()
 }
 
 export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
-  const { domainSlug, experienceActions } = useV0Shell()
+  const { domainSlug, experienceActions, domainFrame } = useV0Shell()
+  const cf = domainFrame?.commons
+  const emptyFeed: FeedItem[] = [
+    {
+      title: cf?.messaging.feed.empty_title ?? "No moments yet",
+      detail: cf?.messaging.feed.empty_detail ?? "New moments will appear here as the commons grows.",
+      time: cf?.messaging.feed.empty_time ?? "Just now",
+    },
+  ]
+  const timeLabels = {
+    recently: cf?.messaging.time.recently ?? "Recently",
+    just_now: cf?.messaging.time.just_now ?? "Just now",
+    minutes_ago: cf?.messaging.time.minutes_ago ?? "minutes ago",
+    hours_ago: cf?.messaging.time.hours_ago ?? "hours ago",
+    days_ago: cf?.messaging.time.days_ago ?? "days ago",
+  }
   const frameCtx = useFrameContextOptional()
   const { isAdmin, user, isAuthenticated } = useAuth()
   const [view, setView] = useWorkspaceView()
@@ -300,35 +307,35 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
 
         setAnchorCards([
           {
-            title: "Journeys",
-            description: "Active paths and suggested threads to follow.",
-            items: journeyItems.length ? journeyItems : [{ label: "No journeys yet" }, { label: "Start a new journey to begin" }],
+            title: cf?.messaging.sidebar.journeys_title ?? "Journeys",
+            description: cf?.messaging.sidebar.journeys_description ?? "Active paths and suggested threads to follow.",
+            items: journeyItems.length ? journeyItems : [{ label: cf?.messaging.sidebar.journeys_empty ?? "No journeys yet" }, { label: cf?.messaging.sidebar.journeys_empty_cta ?? "Start a new journey to begin" }],
             onAdd: () => setView({ kind: "create", templateSlug: "journey.create" }),
           },
           {
-            title: "Relationships",
-            description: "People, keepers, and trusted circles nearby.",
+            title: cf?.messaging.sidebar.relationships_title ?? "Relationships",
+            description: cf?.messaging.sidebar.relationships_description ?? "People, keepers, and trusted circles nearby.",
             items: relationshipsItems,
           },
           {
-            title: "Keepers",
-            description: "Spaces that hold memory for the domain.",
-            items: keeperItems.length ? keeperItems : [{ label: "No keepers yet" }, { label: "Create a keeper to organize memory" }],
+            title: cf?.messaging.sidebar.keepers_title ?? "Keepers",
+            description: cf?.messaging.sidebar.keepers_description ?? "Spaces that hold memory for the domain.",
+            items: keeperItems.length ? keeperItems : [{ label: cf?.messaging.sidebar.keepers_empty ?? "No keepers yet" }, { label: cf?.messaging.sidebar.keepers_empty_cta ?? "Create a keeper to organize memory" }],
             onAdd: () => setView({ kind: "create", templateSlug: "keeper.create" }),
           },
         ])
 
         const nextFeedItems = (moments as MomentSummary[]).map((moment) => ({
-          title: moment.title || "Moment captured",
-          detail: moment.narrative || moment.content || "A new moment has been captured.",
-          time: formatRelativeTime(moment.updatedAt || moment.createdAt || null)
+          title: moment.title || (cf?.messaging.feed.default_moment_title ?? "Moment captured"),
+          detail: moment.narrative || moment.content || (cf?.messaging.feed.default_moment_detail ?? "A new moment has been captured."),
+          time: formatRelativeTime(moment.updatedAt || moment.createdAt || null, timeLabels)
         }))
 
         setFeedItems(nextFeedItems.length ? nextFeedItems : emptyFeed)
       } catch (error) {
         console.error("Failed to load commons data:", error)
         if (!active) return
-        setLoadError("Unable to load commons data.")
+        setLoadError(cf?.messaging.errors.load_failed ?? "Unable to load commons data.")
         setFeedItems(emptyFeed)
         setJourneys([])
         setKeepers([])
@@ -337,19 +344,19 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         setUserRole(null)
         setAnchorCards([
           {
-            title: "Journeys",
-            description: "Active paths and suggested threads to follow.",
-            items: [{ label: "Journeys are unavailable right now." }],
+            title: cf?.messaging.sidebar.journeys_title ?? "Journeys",
+            description: cf?.messaging.sidebar.journeys_description ?? "Active paths and suggested threads to follow.",
+            items: [{ label: cf?.messaging.sidebar.journeys_error ?? "Journeys are unavailable right now." }],
           },
           {
-            title: "Relationships",
-            description: "People, keepers, and trusted circles nearby.",
-            items: [{ label: "Relationships are unavailable right now." }],
+            title: cf?.messaging.sidebar.relationships_title ?? "Relationships",
+            description: cf?.messaging.sidebar.relationships_description ?? "People, keepers, and trusted circles nearby.",
+            items: [{ label: cf?.messaging.sidebar.relationships_error ?? "Relationships are unavailable right now." }],
           },
           {
-            title: "Keepers",
-            description: "Spaces that hold memory for the domain.",
-            items: [{ label: "Keepers are unavailable right now." }],
+            title: cf?.messaging.sidebar.keepers_title ?? "Keepers",
+            description: cf?.messaging.sidebar.keepers_description ?? "Spaces that hold memory for the domain.",
+            items: [{ label: cf?.messaging.sidebar.keepers_error ?? "Keepers are unavailable right now." }],
           },
         ])
         setDomainTheme(null)
@@ -420,12 +427,12 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
 
   const renderFeedWorkspace = () => (
     <div className="space-y-6">
-      <WorkspaceHeader eyebrow="Feed" title="Commons activity" description="A continuous view of what is alive in the commons." />
+      <WorkspaceHeader eyebrow={cf?.messaging.feed.eyebrow ?? "Feed"} title={cf?.messaging.feed.title ?? "Commons activity"} description={cf?.messaging.feed.description ?? "A continuous view of what is alive in the commons."} />
       <div className="space-y-6">
         {isLoading && (
           <div className="space-y-2">
             <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-              Loading commons activity...
+              {cf?.messaging.feed.loading ?? "Loading commons activity..."}
             </p>
             <div className="h-px w-full" style={{ backgroundColor: COMMONS_SURFACE.border }} />
           </div>
@@ -443,7 +450,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
           feedItems.map((item, index) => {
             // Match this feed item back to the moment for clickable navigation
             const matchedMoment = moments.find(
-              (m) => (m.title || "Moment captured") === item.title
+              (m) => (m.title || (cf?.messaging.feed.default_moment_title ?? "Moment captured")) === item.title
             )
             return (
               <div key={`${item.title}-${item.time}`} className="space-y-3">
@@ -490,7 +497,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                 className="text-xs underline underline-offset-2 decoration-dotted opacity-60 hover:opacity-100 transition-opacity"
                 style={{ color: COMMONS_SURFACE.inkSecondary }}
               >
-                Capture a moment
+                {cf?.messaging.feed.capture_cta ?? "Capture a moment"}
               </button>
             </div>
           </div>
@@ -502,7 +509,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
   /** Render a detail view for any entity type (journey, keeper, moment) */
   const renderEntityView = (entityType: string, entityId: string) => {
     let eyebrow = entityType.charAt(0).toUpperCase() + entityType.slice(1)
-    let title = "Not found"
+    let title = cf?.messaging.entity.title_fallback ?? "Not found"
     let body: React.ReactNode = null
 
     if (entityType === "journey") {
@@ -536,28 +543,29 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     } else if (entityType === "moment") {
       const moment = moments.find((m) => m.id === entityId)
       if (moment) {
-        title = moment.title || "Untitled moment"
+        title = moment.title || (cf?.messaging.entity.moment_title_fallback ?? "Untitled moment")
         body = (
           <div className="space-y-4">
             <p className="text-sm leading-relaxed" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-              {moment.narrative || moment.content || "This moment is still forming."}
+              {moment.narrative || moment.content || (cf?.messaging.entity.moment_body_fallback ?? "This moment is still forming.")}
             </p>
             <div className="text-xs uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-              {formatRelativeTime(moment.updatedAt || moment.createdAt || null)}
+              {formatRelativeTime(moment.updatedAt || moment.createdAt || null, timeLabels)}
             </div>
           </div>
         )
       }
     }
 
-    const notFound = title === "Not found"
+    const notFoundLabel = cf?.messaging.entity.title_fallback ?? "Not found"
+    const notFound = title === notFoundLabel
 
     return (
       <div className="space-y-6">
         <WorkspaceHeader
           eyebrow={eyebrow}
-          title={notFound ? "This item could not be found" : title}
-          description={notFound ? "It may have been removed or is not available." : ""}
+          title={notFound ? (cf?.messaging.entity.not_found_title ?? "This item could not be found") : title}
+          description={notFound ? (cf?.messaging.entity.not_found_description ?? "It may have been removed or is not available.") : ""}
         />
         {!notFound && body}
         <button
@@ -570,7 +578,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
             color: COMMONS_SURFACE.inkPrimary,
           }}
         >
-          Back to feed
+          {cf?.messaging.entity.back_button ?? "Back to feed"}
         </button>
       </div>
     )
@@ -581,7 +589,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     if (buildIntent) {
       return (
         <div className="space-y-6">
-          <WorkspaceHeader eyebrow="Create" title={buildIntent.template.label} description="Complete the form below to contribute to the commons." />
+          <WorkspaceHeader eyebrow={cf?.messaging.create.form_eyebrow ?? "Create"} title={buildIntent.template.label} description={cf?.messaging.create.form_description ?? "Complete the form below to contribute to the commons."} />
           <EngagementForm
             template={buildIntent.template}
             context={buildIntent.context}
@@ -598,27 +606,27 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     // show action selection buttons (the EngagementButton's onActivate will set buildIntent)
     return (
       <div className="space-y-6">
-        <WorkspaceHeader eyebrow="Create" title="Make something in commons" description="Start a journey or capture a moment without leaving the commons." />
+        <WorkspaceHeader eyebrow={cf?.messaging.create.eyebrow ?? "Create"} title={cf?.messaging.create.title ?? "Make something in commons"} description={cf?.messaging.create.description ?? "Start a journey or capture a moment without leaving the commons."} />
         {domainId ? (
           <div className="flex flex-wrap gap-3">
             <EngagementButton
               templateSlug="journey.create"
               context={{ entityType: "domain", entityId: domainId, domainId, keeperId: activeKeeperId ?? undefined }}
-              label="Start journey"
+              label={cf?.messaging.create.start_journey ?? "Start journey"}
               variant="secondary"
               onActivate={handleBuildActivate}
             />
             <EngagementButton
               templateSlug="moment.create"
               context={{ entityType: "domain", entityId: domainId, domainId }}
-              label="Capture moment"
+              label={cf?.messaging.create.capture_moment ?? "Capture moment"}
               variant="secondary"
               onActivate={handleBuildActivate}
             />
           </div>
         ) : (
           <p className="text-sm" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-            Creation actions are unavailable while the domain is loading.
+            {cf?.messaging.create.domain_loading ?? "Creation actions are unavailable while the domain is loading."}
           </p>
         )}
       </div>
@@ -627,13 +635,13 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
 
   const renderSummaryWorkspace = () => (
     <div className="space-y-6">
-      <WorkspaceHeader eyebrow="Summary" title="Commons overview" description="A quick synthesis of what the commons is holding." />
+      <WorkspaceHeader eyebrow={cf?.messaging.summary.eyebrow ?? "Summary"} title={cf?.messaging.summary.title ?? "Commons overview"} description={cf?.messaging.summary.description ?? "A quick synthesis of what the commons is holding."} />
       <div className="grid gap-4 md:grid-cols-2">
         {[
-          { label: "Journeys", value: journeys.length },
-          { label: "Keepers", value: keepers.length },
-          { label: "Moments", value: moments.length },
-          { label: "Members", value: membersCount ?? "Private" },
+          { label: cf?.messaging.summary.stat_journeys ?? "Journeys", value: journeys.length },
+          { label: cf?.messaging.summary.stat_keepers ?? "Keepers", value: keepers.length },
+          { label: cf?.messaging.summary.stat_moments ?? "Moments", value: moments.length },
+          { label: cf?.messaging.summary.stat_members ?? "Members", value: membersCount ?? (cf?.messaging.summary.members_private ?? "Private") },
         ].map((item) => (
           <div
             key={item.label}
@@ -666,10 +674,10 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     }
   }
 
-  const roleLabel = userRole ? `${userRole.charAt(0).toUpperCase()}${userRole.slice(1)}` : "Member"
+  const roleLabel = userRole ? `${userRole.charAt(0).toUpperCase()}${userRole.slice(1)}` : (cf?.messaging.roles.default_label ?? "Member")
   const roleSummary = userRole
     ? `You are ${userRole.toLowerCase()} in this commons.`
-    : "You belong to this commons."
+    : (cf?.messaging.roles.default_summary ?? "You belong to this commons.")
 
   const renderCommonsControls = (className?: string) => {
     if (!isAuthenticated) return null
@@ -681,7 +689,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
             type="button"
             onClick={() => setIsConfigOpen((open) => !open)}
             className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/60 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm"
-            aria-label="Open commons settings"
+            aria-label={cf?.labels.settings_aria_label ?? "Open commons settings"}
           >
             <Settings className="h-4 w-4" strokeWidth={1.25} />
           </button>
@@ -710,11 +718,11 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                       backgroundColor: "hsl(var(--theme-surface-paper) / 0.95)",
                     }}
                   >
-                    Open domain settings
+                    {cf?.labels.settings_open_domain ?? "Open domain settings"}
                   </button>
                   <div className="space-y-2">
                     <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                      Theme
+                      {cf?.labels.settings_theme_label ?? "Theme"}
                     </p>
                     <ThemeSwitcher />
                   </div>
@@ -745,7 +753,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
   const handleCoverChange = async (nextCover: { type: string; url: string; key?: string } | null) => {
     if (!domainId) return
     if (nextCover && nextCover.type !== "image") {
-      setCoverSaveError("Cover images must be PNG, JPG, or WEBP.")
+      setCoverSaveError(cf?.labels.admin_cover_error_type ?? "Cover images must be PNG, JPG, or WEBP.")
       setCoverSaveStatus("error")
       return
     }
@@ -775,7 +783,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
     } catch (error) {
       console.error("Failed to save cover image:", error)
       setCoverSaveStatus("error")
-      setCoverSaveError("Cover image could not be saved. Please try again.")
+      setCoverSaveError(cf?.labels.admin_cover_error_api ?? "Cover image could not be saved. Please try again.")
     }
   }
 
@@ -794,7 +802,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       styleId={styleId}
       themeSlug={themeSlug}
       title={domainName || domainSlug || "This domain"}
-      subtitle="KE3P · cryptically designed, wonderfully underfolded"
+      subtitle={domainFrame?.theme?.tagline ?? "cryptically designed, wonderfully underfolded"}
       hideAdminControl
       headerBackgroundColor={coverHeaderBackground}
       framePaddingTop="0"
@@ -806,7 +814,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
             bannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
           }}
           className="w-full"
-          aria-label="Back to commons banner"
+          aria-label={cf?.labels.close_aria_label ?? "Close commons"}
         >
           <div className="h-px w-full" style={{ backgroundColor: "var(--theme-line-hairline)" }} />
           <div className="mt-0.5 h-px w-full" style={{ backgroundColor: "var(--theme-border-soft)" }} />
@@ -819,12 +827,12 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         {/* Journey breadcrumb — derived from FrameContext */}
         {activeJourneyName && (
           <div className="flex items-center gap-2 text-xs" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-            <span className="uppercase tracking-[0.2em] text-[10px]">Journey</span>
+            <span className="uppercase tracking-[0.2em] text-[10px]">{cf?.labels.breadcrumb_journey ?? "Journey"}</span>
             <span style={{ color: COMMONS_SURFACE.inkPrimary }} className="font-medium">{activeJourneyName}</span>
           </div>
         )}
         <section
-          aria-label="Commons banner"
+          aria-label={cf?.labels.banner_aria_label ?? "Commons banner"}
           className="rounded-3xl border px-6 py-6 md:px-8 md:py-8"
           style={{ borderColor: COMMONS_SURFACE.border, ...bannerBackground }}
           ref={bannerRef}
@@ -846,13 +854,13 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                       color: COMMONS_SURFACE.inkPrimary,
                     }}
                   >
-                    {user?.name?.[0] || user?.email?.[0] || "U"}
+                    {user?.name?.[0] || user?.email?.[0] || (cf?.messaging.roles.avatar_fallback ?? "U")}
                   </div>
                 )}
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-base font-semibold" style={{ color: COMMONS_SURFACE.inkPrimary }}>
-                      {user?.name || user?.email || "Member"}
+                      {user?.name || user?.email || (cf?.messaging.roles.name_fallback ?? "Member")}
                     </p>
                     <span
                       className="rounded-full border px-2 py-0.5 text-[11px] uppercase tracking-[0.2em]"
@@ -877,10 +885,10 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
               >
                 <div className="space-y-1">
                   <p className="text-[11px] uppercase tracking-[0.25em]" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                    Cover image
+                    {cf?.labels.admin_cover_heading ?? "Cover image"}
                   </p>
                   <p className="text-xs" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                    Upload a background image for the commons banner.
+                    {cf?.labels.admin_cover_description ?? "Upload a background image for the commons banner."}
                   </p>
                 </div>
                 <div className="mt-3">
@@ -888,12 +896,12 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                 </div>
                 {coverSaveStatus === "saving" && (
                   <p className="mt-3 text-xs" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                    Saving cover image...
+                    {cf?.labels.admin_cover_saving ?? "Saving cover image..."}
                   </p>
                 )}
                 {coverSaveStatus === "success" && (
                   <p className="mt-3 text-xs" style={{ color: COMMONS_SURFACE.inkSecondary }}>
-                    Cover image saved.
+                    {cf?.labels.admin_cover_saved ?? "Cover image saved."}
                   </p>
                 )}
                 {coverSaveStatus === "error" && coverSaveError && (
@@ -907,8 +915,8 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         </section>
 
         <SidebarWorkspaceLayout
-          sidebarLabel="Commons context"
-          workspaceLabel="Commons workspace"
+          sidebarLabel={cf?.labels.sidebar_label ?? "Commons context"}
+          workspaceLabel={cf?.labels.workspace_label ?? "Commons workspace"}
           sidebar={
             <>
               {anchorCards.map((card) => (
