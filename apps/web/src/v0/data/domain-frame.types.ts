@@ -150,6 +150,39 @@ export interface AgentBoardFrame {
   theme: AgentBoardThemeRef
 }
 
+export interface JourneysFrameLabels {
+  frame_title: string
+  frame_subtitle: string
+  section_heading: string
+  new_button: string
+  set_active_button: string
+  moments_section_heading: string
+  active_badge: string
+}
+
+export interface JourneysFrameMessaging {
+  empty_states: {
+    no_journeys_heading: string
+    no_journeys_body: string
+    no_selection: string
+    no_moments: string
+  }
+  errors: {
+    failed_to_load: string
+  }
+  meta: {
+    keeper_prefix: string
+    created_prefix: string
+    kept_prefix: string
+    untitled_moment: string
+  }
+}
+
+export interface JourneysFrame {
+  labels: JourneysFrameLabels
+  messaging: JourneysFrameMessaging
+}
+
 export interface DomainFrameJson {
   domain: string
   keeper_type: string
@@ -162,4 +195,5 @@ export interface DomainFrameJson {
   kip_context: DomainFrameKipContext
   interaction_bar: DomainFrameInteractionBar
   agent_board: AgentBoardFrame
+  journeys: JourneysFrame
 }

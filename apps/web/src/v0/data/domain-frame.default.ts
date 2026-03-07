@@ -146,4 +146,33 @@ export const DEFAULT_DOMAIN_FRAME: DomainFrameJson = {
       override_allowed: true,
     },
   },
+
+  journeys: {
+    labels: {
+      frame_title: "Journeys",
+      frame_subtitle: "Active paths and threads in this domain",
+      section_heading: "Your Journeys",
+      new_button: "New",
+      set_active_button: "Set as Active",
+      moments_section_heading: "Moments in this Journey",
+      active_badge: "Active",
+    },
+    messaging: {
+      empty_states: {
+        no_journeys_heading: "No journeys yet",
+        no_journeys_body: "Start a new journey from the Commons to begin organizing your moments.",
+        no_selection: "Select a journey to view its details and moments.",
+        no_moments: "No moments yet. Keep a moment while this journey is active to add it here.",
+      },
+      errors: {
+        failed_to_load: "Failed to load journeys.",
+      },
+      meta: {
+        keeper_prefix: "Keeper: ",
+        created_prefix: "Created ",
+        kept_prefix: "Kept ",
+        untitled_moment: "Untitled moment",
+      },
+    },
+  },
 }

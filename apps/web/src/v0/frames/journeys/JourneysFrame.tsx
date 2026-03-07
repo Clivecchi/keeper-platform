@@ -58,7 +58,8 @@ export function JourneysFrame({
   themeSlug?: string | null
   domainSlug?: string
 }) {
-  const { closeToBoard, navigateToFrame } = useV0Shell()
+  const { closeToBoard, navigateToFrame, domainFrame } = useV0Shell()
+  const jf = domainFrame?.journeys
   const frameCtx = useFrameContextOptional()
   const domain = frameCtx?.domain
   const activeJourneyId = frameCtx?.selection.activeJourneyId ?? null
@@ -90,7 +91,7 @@ export function JourneysFrame({
       )
     } catch (err) {
       console.error("[JourneysFrame] Failed to load journeys:", err)
-      setError("Failed to load journeys.")
+      setError(domainFrame?.journeys?.messaging.errors.failed_to_load ?? "Failed to load journeys.")
     } finally {
       setIsLoadingList(false)
     }
@@ -160,8 +161,8 @@ export function JourneysFrame({
     <DesignFrame
       styleId={styleId}
       themeSlug={themeSlug}
-      title="Journeys"
-      subtitle="Active paths and threads in this domain"
+      title={jf?.labels.frame_title ?? "Journeys"}
+      subtitle={jf?.labels.frame_subtitle ?? "Active paths and threads in this domain"}
       themeSwitcherSlot={<ThemeSwitcher />}
       rightSlot={
         <button
@@ -176,10 +177,7 @@ export function JourneysFrame({
       onClose={closeToBoard}
     >
       {error && (
-        <div
-          className="mb-4 rounded-lg border px-4 py-3 text-sm"
-          style={{ borderColor: "#f5c6cb", backgroundColor: "#f8d7da", color: "#721c24" }}
-        >
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
@@ -192,7 +190,7 @@ export function JourneysFrame({
               className="text-xs font-semibold uppercase tracking-wider"
               style={{ color: themeInkSecondary }}
             >
-              Your Journeys
+              {jf?.labels.section_heading ?? "Your Journeys"}
             </h3>
             <button
               type="button"
@@ -202,7 +200,7 @@ export function JourneysFrame({
               title="Start a new journey from Commons"
             >
               <Plus className="h-3 w-3" />
-              New
+              {jf?.labels.new_button ?? "New"}
             </button>
           </div>
 
@@ -223,10 +221,10 @@ export function JourneysFrame({
             >
               <MapPin className="mx-auto mb-2 h-6 w-6 opacity-40" />
               <p className="font-medium" style={{ color: themeInk }}>
-                No journeys yet
+                {jf?.messaging.empty_states.no_journeys_heading ?? "No journeys yet"}
               </p>
               <p className="mt-1 text-xs">
-                Start a new journey from the Commons to begin organizing your moments.
+                {jf?.messaging.empty_states.no_journeys_body ?? "Start a new journey from the Commons to begin organizing your moments."}
               </p>
             </div>
           ) : (
@@ -264,7 +262,7 @@ export function JourneysFrame({
                               }}
                             >
                               <Check className="h-2.5 w-2.5" />
-                              Active
+                              {jf?.labels.active_badge ?? "Active"}
                             </span>
                           )}
                         </div>
@@ -324,7 +322,7 @@ export function JourneysFrame({
                     className="rounded-full border px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80"
                     style={{ borderColor: themeBorder, color: themeInk }}
                   >
-                    Set as Active
+                    {jf?.labels.set_active_button ?? "Set as Active"}
                   </button>
                 )}
               </div>
@@ -335,10 +333,10 @@ export function JourneysFrame({
                 style={{ color: themeInkSecondary }}
               >
                 {selectedJourney.keeper && (
-                  <span>Keeper: {selectedJourney.keeper.title}</span>
+                  <span>{jf?.messaging.meta.keeper_prefix ?? "Keeper: "}{selectedJourney.keeper.title}</span>
                 )}
                 <span>
-                  Created {new Date(selectedJourney.createdAt).toLocaleDateString()}
+                  {jf?.messaging.meta.created_prefix ?? "Created "}{new Date(selectedJourney.createdAt).toLocaleDateString()}
                 </span>
                 <span>
                   {selectedJourney.stats.totalMoments} moment
@@ -352,12 +350,12 @@ export function JourneysFrame({
                   className="mb-2 text-xs font-semibold uppercase tracking-wider"
                   style={{ color: themeInkSecondary }}
                 >
-                  Moments in this Journey
+                  {jf?.labels.moments_section_heading ?? "Moments in this Journey"}
                 </h3>
 
                 {selectedJourney.moment.length === 0 ? (
                   <p className="text-sm" style={{ color: themeInkSecondary }}>
-                    No moments yet. Keep a moment while this journey is active to add it here.
+                    {jf?.messaging.empty_states.no_moments ?? "No moments yet. Keep a moment while this journey is active to add it here."}
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -370,7 +368,7 @@ export function JourneysFrame({
                         style={{ borderColor: themeBorder }}
                       >
                         <div className="text-sm font-medium" style={{ color: themeInk }}>
-                          {m.title || "Untitled moment"}
+                          {m.title || (jf?.messaging.meta.untitled_moment ?? "Untitled moment")}
                         </div>
                         {m.narrative && (
                           <p
@@ -382,7 +380,7 @@ export function JourneysFrame({
                         )}
                         <div className="mt-1 text-[10px]" style={{ color: themeInkSecondary }}>
                           {m.keptAt
-                            ? `Kept ${new Date(m.keptAt).toLocaleDateString()}`
+                            ? `${jf?.messaging.meta.kept_prefix ?? "Kept "}${new Date(m.keptAt).toLocaleDateString()}`
                             : m.createdAt
                               ? new Date(m.createdAt).toLocaleDateString()
                               : ""}
@@ -398,7 +396,7 @@ export function JourneysFrame({
               className="flex h-64 items-center justify-center rounded-xl border border-dashed text-sm"
               style={{ borderColor: themeBorder, color: themeInkSecondary }}
             >
-              Select a journey to view its details and moments.
+              {jf?.messaging.empty_states.no_selection ?? "Select a journey to view its details and moments."}
             </div>
           )}
         </div>
