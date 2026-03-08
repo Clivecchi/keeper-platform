@@ -10,7 +10,160 @@
  * Spec:  Keeper JsonFrame Spec v0.1 · March 2026
  */
 
-import type { DomainFrameJson } from "./domain-frame.types"
+import type { DiagnosticsFrameJson, DomainAdminFrameJson, DomainFrameJson } from "./domain-frame.types"
+
+export const defaultDomainAdminFrame: DomainAdminFrameJson = {
+  labels: {
+    frameTitle: "Domain Admin",
+    frameSubtitle: "Domain settings",
+    backToCommons: "Back to Commons",
+    noDomainSelected: "No domain selected.",
+  },
+  messaging: {
+    checkingAccess: "Checking your admin access...",
+    loadingDomain: "Loading domain...",
+    domainNotFound: "Domain not found",
+    domainNotFoundDetail: "The domain could not be found.",
+    adminRequired: "Admin access required",
+    adminRequiredDetail: "You must be the domain owner to manage this domain.",
+  },
+  domain_manager: {
+    labels: { heading: "Domain Manager" },
+    messaging: { description: "Manage domain configuration, metadata, and custom domain settings." },
+  },
+  profile: {
+    labels: {
+      heading: "Profile",
+      fullName: "Full name",
+      email: "Email",
+      saveButton: "Save profile",
+      savingButton: "Saving\u2026",
+    },
+    messaging: {
+      description: "Update your name for this admin session.",
+      saveSuccess: "Profile updated successfully.",
+      saveError: "Failed to update profile",
+      saveErrorRetry: "Failed to update profile. Please try again.",
+    },
+  },
+  policy: {
+    labels: {
+      heading: "Policy",
+      refreshButton: "Refresh",
+      saveButton: "Save Policy",
+      savingButton: "Saving\u2026",
+    },
+    messaging: {
+      description: "Resolved policy JSON for this domain (used by Kip to decide drafting actions).",
+      sourceMeta: "Source: {policySource} \u2022 Version: {policyVersion}",
+      loadError: "Unable to load policy",
+      saveError: "Unable to save policy",
+      loading: "Loading policy\u2026",
+    },
+  },
+}
+
+export const defaultDiagnosticsFrame: DiagnosticsFrameJson = {
+  labels: {
+    frameTitle: "Diagnostics",
+    frameSubtitle: "A calm, single-source system check for Keeper",
+    closeAriaLabel: "Close diagnostics",
+    closeButton: "Close",
+  },
+  run_diagnostics: {
+    labels: {
+      heading: "Run Diagnostics",
+      runButton: "Run Diagnostics",
+      runningButton: "Running diagnostics\u2026",
+      copyButton: "Copy Report",
+      viewDetailedJson: "View Detailed JSON Report",
+      clearButton: "Clear Results",
+    },
+    messaging: {
+      description: "Generate a comprehensive system report and keep it ready for sharing.",
+      copySuccess: "Report copied to clipboard.",
+      footerNote: "Diagnostics are local and do not auto-submit to Kip.",
+    },
+  },
+  context: {
+    labels: {
+      heading: "Context",
+      domainSlug: "Domain Slug",
+      domainId: "Domain Id",
+      xDomainSlug: "x-domain-slug",
+      notSet: "not set",
+    },
+  },
+  domain_home_board: {
+    labels: {
+      heading: "Domain Home Board (canonical)",
+      domainSlug: "Domain Slug",
+      endpoint: "Endpoint",
+      stability: "Stability",
+      stabilityPass: "\u2705 Unchanged",
+      stabilityFail: "\u274C Changed",
+      httpStatus1: "HTTP Status (1st)",
+      httpStatus2: "HTTP Status (2nd)",
+      boardId: "Board Id",
+      boardType: "Board Type",
+      domainId: "Domain Id",
+      frames: "Frames",
+      framesDetail: "Frames (keys/names)",
+    },
+    messaging: {
+      description: "Verifies the per-domain canonical board is stable and resolvable via the home-board endpoint.",
+      authBlocked: "Not signed in. The endpoint returned 401/403 with the current session.",
+      noFrames: "No frames returned.",
+      emptyState: "Run diagnostics to populate the canonical board check.",
+    },
+  },
+  live_progress: {
+    labels: {
+      heading: "Live Diagnostics Progress",
+    },
+  },
+  summary: {
+    labels: {
+      heading: "Summary",
+      total: "Total",
+      passed: "Passed",
+      failed: "Failed",
+      success: "Success",
+    },
+  },
+  agent_diagnostics: {
+    labels: {
+      heading: "Agent Diagnostics (Kip)",
+      authStatus: "Auth Status",
+      authAuthenticated: "Authenticated",
+      authGuest: "Guest",
+      userId: "User Id",
+      domainResolution: "Domain Resolution",
+      consoleLogs: "Last 25 Console Logs",
+      networkRequests: "Last 25 Network Requests",
+    },
+    messaging: {
+      description: "This is a readiness seam for Kip-assisted diagnostics. No agent actions are executed yet.",
+      noConsoleLogs: "No console logs captured yet.",
+      noNetworkRequests: "No network requests captured yet.",
+    },
+  },
+  board_error: {
+    labels: {
+      heading: "Latest Board Data Error",
+      reqId: "Req Id",
+      url: "URL",
+      status: "Status",
+      boardId: "Board Id",
+      at: "At",
+    },
+  },
+  critical_error: {
+    labels: {
+      heading: "Critical Error",
+    },
+  },
+}
 
 export const DEFAULT_DOMAIN_FRAME: DomainFrameJson = {
   domain: "default",
@@ -351,4 +504,8 @@ export const DEFAULT_DOMAIN_FRAME: DomainFrameJson = {
       },
     },
   },
+
+  diagnostics: defaultDiagnosticsFrame,
+
+  domain_admin: defaultDomainAdminFrame,
 }

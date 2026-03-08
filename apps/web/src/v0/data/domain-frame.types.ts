@@ -371,6 +371,159 @@ export interface CommonsFrameJson {
   messaging: CommonsFrameMessaging
 }
 
+export interface DomainAdminFrameJson {
+  labels: {
+    frameTitle: string;
+    frameSubtitle: string;
+    backToCommons: string;
+    noDomainSelected: string;
+  };
+  messaging: {
+    checkingAccess: string;
+    loadingDomain: string;
+    domainNotFound: string;
+    domainNotFoundDetail: string;
+    adminRequired: string;
+    adminRequiredDetail: string;
+  };
+  domain_manager: {
+    labels: { heading: string; };
+    messaging: { description: string; };
+  };
+  profile: {
+    labels: {
+      heading: string;
+      fullName: string;
+      email: string;
+      saveButton: string;
+      savingButton: string;
+    };
+    messaging: {
+      description: string;
+      saveSuccess: string;
+      saveError: string;
+      saveErrorRetry: string;
+    };
+  };
+  policy: {
+    labels: {
+      heading: string;
+      refreshButton: string;
+      saveButton: string;
+      savingButton: string;
+    };
+    messaging: {
+      description: string;
+      sourceMeta: string;
+      loadError: string;
+      saveError: string;
+      loading: string;
+    };
+  };
+}
+
+export interface DiagnosticsFrameJson {
+  labels: {
+    frameTitle: string;
+    frameSubtitle: string;
+    closeAriaLabel: string;
+    closeButton: string;
+  };
+  run_diagnostics: {
+    labels: {
+      heading: string;
+      runButton: string;
+      runningButton: string;
+      copyButton: string;
+      viewDetailedJson: string;
+      clearButton: string;
+    };
+    messaging: {
+      description: string;
+      copySuccess: string;
+      footerNote: string;
+    };
+  };
+  context: {
+    labels: {
+      heading: string;
+      domainSlug: string;
+      domainId: string;
+      xDomainSlug: string;
+      notSet: string;
+    };
+  };
+  domain_home_board: {
+    labels: {
+      heading: string;
+      domainSlug: string;
+      endpoint: string;
+      stability: string;
+      stabilityPass: string;
+      stabilityFail: string;
+      httpStatus1: string;
+      httpStatus2: string;
+      boardId: string;
+      boardType: string;
+      domainId: string;
+      frames: string;
+      framesDetail: string;
+    };
+    messaging: {
+      description: string;
+      authBlocked: string;
+      noFrames: string;
+      emptyState: string;
+    };
+  };
+  live_progress: {
+    labels: {
+      heading: string;
+    };
+  };
+  summary: {
+    labels: {
+      heading: string;
+      total: string;
+      passed: string;
+      failed: string;
+      success: string;
+    };
+  };
+  agent_diagnostics: {
+    labels: {
+      heading: string;
+      authStatus: string;
+      authAuthenticated: string;
+      authGuest: string;
+      userId: string;
+      domainResolution: string;
+      consoleLogs: string;
+      networkRequests: string;
+    };
+    messaging: {
+      description: string;
+      noConsoleLogs: string;
+      noNetworkRequests: string;
+    };
+  };
+  board_error: {
+    labels: {
+      heading: string;
+      reqId: string;
+      url: string;
+      status: string;
+      boardId: string;
+      at: string;
+    };
+  };
+  critical_error: {
+    labels: {
+      heading: string;
+    };
+  };
+}
+
 export interface DomainFrameJson {
   domain: string
   keeper_type: string
@@ -387,4 +540,6 @@ export interface DomainFrameJson {
   kept_moments: KeptMomentsFrame
   moment: MomentFrameJson
   commons: CommonsFrameJson
+  diagnostics: DiagnosticsFrameJson
+  domain_admin: DomainAdminFrameJson
 }

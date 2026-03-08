@@ -9,6 +9,8 @@ import { API_BASE, apiFetch } from "../../lib/api"
 import { useAuth } from "../../context/AuthContext"
 import { getLastBoardDataError } from "../../lib/debug"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
+import type { DiagnosticsFrameJson } from "../data/domain-frame.types"
+import { defaultDiagnosticsFrame } from "../data/domain-frame.default"
 
 export interface EnvironmentInfo {
   mode: string
@@ -193,6 +195,7 @@ export interface DiagnosticsFrameProps {
   themeSlug?: string | null
   domainSlug?: string | null
   returnPath?: string
+  diagnosticsLabels?: DiagnosticsFrameJson
 }
 
 const MAX_AGENT_LOGS = 25
@@ -215,6 +218,7 @@ export function DiagnosticsFrame({
   themeSlug,
   domainSlug,
   returnPath,
+  diagnosticsLabels = defaultDiagnosticsFrame,
 }: DiagnosticsFrameProps) {
   const navigate = useNavigate()
   const v0Shell = useV0ShellOptional()
@@ -1671,17 +1675,17 @@ export function DiagnosticsFrame({
     <DesignFrame
       styleId={styleId}
       themeSlug={themeSlug}
-      title="Diagnostics"
-      subtitle="A calm, single-source system check for Keeper"
+      title={diagnosticsLabels.labels.frameTitle}
+      subtitle={diagnosticsLabels.labels.frameSubtitle}
       themeSwitcherSlot={<ThemeSwitcher />}
       rightSlot={
         <button
           type="button"
-          aria-label="Close diagnostics"
+          aria-label={diagnosticsLabels.labels.closeAriaLabel}
           onClick={handleClose}
           className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/60 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background px-2 py-1 text-xs shadow-sm"
         >
-          Close
+          {diagnosticsLabels.labels.closeButton}
         </button>
       }
       onClose={handleClose}
@@ -1690,9 +1694,9 @@ export function DiagnosticsFrame({
         <section className="rounded-2xl border border-black/10 bg-white/80 p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Run Diagnostics</h2>
+              <h2 className="text-xl font-semibold text-gray-900">{diagnosticsLabels.run_diagnostics.labels.heading}</h2>
               <p className="text-sm text-gray-600">
-                Generate a comprehensive system report and keep it ready for sharing.
+                {diagnosticsLabels.run_diagnostics.messaging.description}
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -1702,7 +1706,7 @@ export function DiagnosticsFrame({
                 onClick={runComprehensiveDiagnostics}
                 disabled={loading}
               >
-                {loading ? "Running diagnostics…" : "Run Diagnostics"}
+                {loading ? diagnosticsLabels.run_diagnostics.labels.runningButton : diagnosticsLabels.run_diagnostics.labels.runButton}
               </button>
               <button
                 type="button"
@@ -1710,75 +1714,75 @@ export function DiagnosticsFrame({
                 onClick={() => results && copyDiagnosticsToClipboard(results)}
                 disabled={!results}
               >
-                Copy Report
+                {diagnosticsLabels.run_diagnostics.labels.copyButton}
               </button>
             </div>
           </div>
           {copied && (
             <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-              Report copied to clipboard.
+              {diagnosticsLabels.run_diagnostics.messaging.copySuccess}
             </div>
           )}
         </section>
 
         <section className="rounded-2xl border border-black/10 bg-white/70 p-6 shadow-sm">
-          <h3 className="text-base font-semibold text-gray-900">Context</h3>
+          <h3 className="text-base font-semibold text-gray-900">{diagnosticsLabels.context.labels.heading}</h3>
           <div className="mt-3 grid gap-4 text-sm text-gray-700 sm:grid-cols-3">
             <div>
-              <div className="text-xs uppercase tracking-wide text-gray-500">Domain Slug</div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.context.labels.domainSlug}</div>
               <div className="font-medium">{domainContext.domainSlug || "—"}</div>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-wide text-gray-500">Domain Id</div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.context.labels.domainId}</div>
               <div className="font-medium">{domainContext.domainId || "—"}</div>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-wide text-gray-500">x-domain-slug</div>
-              <div className="font-medium">{domainContext.headerExpectation.value || "not set"}</div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.context.labels.xDomainSlug}</div>
+              <div className="font-medium">{domainContext.headerExpectation.value || diagnosticsLabels.context.labels.notSet}</div>
             </div>
           </div>
         </section>
 
         <section className="rounded-2xl border border-black/10 bg-white/80 p-6 shadow-sm">
-          <h3 className="text-base font-semibold text-gray-900">Domain Home Board (canonical)</h3>
+          <h3 className="text-base font-semibold text-gray-900">{diagnosticsLabels.domain_home_board.labels.heading}</h3>
           <p className="mt-1 text-sm text-gray-600">
-            Verifies the per-domain canonical board is stable and resolvable via the home-board endpoint.
+            {diagnosticsLabels.domain_home_board.messaging.description}
           </p>
           <div className="mt-4 grid gap-4 text-sm text-gray-700 sm:grid-cols-3">
             <div>
-              <div className="text-xs uppercase tracking-wide text-gray-500">Domain Slug</div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.domain_home_board.labels.domainSlug}</div>
               <div className="font-medium">{domainHomeBoardCheck?.slug || domainContext.domainSlug || "—"}</div>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-wide text-gray-500">Endpoint</div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.domain_home_board.labels.endpoint}</div>
               <div className="font-medium">{domainHomeBoardCheck?.endpoint || "—"}</div>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-wide text-gray-500">Stability</div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.domain_home_board.labels.stability}</div>
               <div className="font-medium">
                 {domainHomeBoardCheck?.stable == null
                   ? "—"
                   : domainHomeBoardCheck.stable
-                  ? "✅ Unchanged"
-                  : "❌ Changed"}
+                  ? diagnosticsLabels.domain_home_board.labels.stabilityPass
+                  : diagnosticsLabels.domain_home_board.labels.stabilityFail}
               </div>
             </div>
           </div>
 
           <div className="mt-4 grid gap-4 text-sm text-gray-700 sm:grid-cols-2">
             <div>
-              <div className="text-xs uppercase tracking-wide text-gray-500">HTTP Status (1st)</div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.domain_home_board.labels.httpStatus1}</div>
               <div className="font-medium">{homeBoardFirst?.status ?? "—"}</div>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-wide text-gray-500">HTTP Status (2nd)</div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.domain_home_board.labels.httpStatus2}</div>
               <div className="font-medium">{homeBoardSecond?.status ?? "—"}</div>
             </div>
           </div>
 
           {homeBoardAuthBlocked && (
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Not signed in. The endpoint returned 401/403 with the current session.
+              {diagnosticsLabels.domain_home_board.messaging.authBlocked}
             </div>
           )}
 
@@ -1786,26 +1790,26 @@ export function DiagnosticsFrame({
             <>
               <div className="mt-4 grid gap-4 text-sm text-gray-700 sm:grid-cols-4">
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-gray-500">Board Id</div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.domain_home_board.labels.boardId}</div>
                   <div className="font-medium">{homeBoardFirst.boardId || "—"}</div>
                 </div>
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-gray-500">Board Type</div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.domain_home_board.labels.boardType}</div>
                   <div className="font-medium">{homeBoardFirst.boardType || "—"}</div>
                 </div>
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-gray-500">Domain Id</div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.domain_home_board.labels.domainId}</div>
                   <div className="font-medium">{homeBoardFirst.domainId || "—"}</div>
                 </div>
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-gray-500">Frames</div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.domain_home_board.labels.frames}</div>
                   <div className="font-medium">{homeBoardFirst.frameCount}</div>
                 </div>
               </div>
               <div className="mt-4">
-                <div className="text-xs uppercase tracking-wide text-gray-500">Frames (keys/names)</div>
+                <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.domain_home_board.labels.framesDetail}</div>
                 {homeBoardFrames.length === 0 ? (
-                  <div className="text-sm text-gray-600">No frames returned.</div>
+                  <div className="text-sm text-gray-600">{diagnosticsLabels.domain_home_board.messaging.noFrames}</div>
                 ) : (
                   <ul className="mt-2 space-y-1 text-sm text-gray-700">
                     {homeBoardFrames.map((frame, index) => (
@@ -1824,14 +1828,14 @@ export function DiagnosticsFrame({
               )}
             </>
           ) : (
-            <div className="mt-4 text-sm text-gray-600">Run diagnostics to populate the canonical board check.</div>
+            <div className="mt-4 text-sm text-gray-600">{diagnosticsLabels.domain_home_board.messaging.emptyState}</div>
           )}
         </section>
 
         {logs.length > 0 && (
           <section className="rounded-2xl border border-black/10 bg-black/90 p-4 text-green-200 shadow-sm">
             <div className="mb-3 flex items-center justify-between text-sm">
-              <span className="font-semibold">Live Diagnostics Progress</span>
+              <span className="font-semibold">{diagnosticsLabels.live_progress.labels.heading}</span>
               <span className="text-xs text-green-300">{logs.length} entries</span>
             </div>
             <pre className="max-h-60 overflow-auto whitespace-pre-wrap text-xs">{logs.join("\n")}</pre>
@@ -1841,46 +1845,46 @@ export function DiagnosticsFrame({
         {results?.summary && (
           <section className="rounded-2xl border border-black/10 bg-white/80 p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-gray-900">Summary</h3>
+              <h3 className="text-base font-semibold text-gray-900">{diagnosticsLabels.summary.labels.heading}</h3>
               <span className="text-sm text-gray-500">{results.summary.score} tests</span>
             </div>
             <div className="grid grid-cols-2 gap-4 text-center sm:grid-cols-4">
               <div className="rounded-xl border border-gray-100 bg-white/70 p-4">
                 <div className="text-2xl font-semibold text-gray-900">{results.summary.total}</div>
-                <div className="text-xs text-gray-500">Total</div>
+                <div className="text-xs text-gray-500">{diagnosticsLabels.summary.labels.total}</div>
               </div>
               <div className="rounded-xl border border-green-100 bg-green-50/70 p-4">
                 <div className="text-2xl font-semibold text-green-700">{results.summary.passed}</div>
-                <div className="text-xs text-green-700">Passed</div>
+                <div className="text-xs text-green-700">{diagnosticsLabels.summary.labels.passed}</div>
               </div>
               <div className="rounded-xl border border-red-100 bg-red-50/70 p-4">
                 <div className="text-2xl font-semibold text-red-600">{results.summary.failed}</div>
-                <div className="text-xs text-red-600">Failed</div>
+                <div className="text-xs text-red-600">{diagnosticsLabels.summary.labels.failed}</div>
               </div>
               <div className="rounded-xl border border-[#C96E59]/20 bg-[#C96E59]/10 p-4">
                 <div className="text-2xl font-semibold text-[#C96E59]">{results.summary.percentage}%</div>
-                <div className="text-xs text-[#C96E59]">Success</div>
+                <div className="text-xs text-[#C96E59]">{diagnosticsLabels.summary.labels.success}</div>
               </div>
             </div>
           </section>
         )}
 
         <section className="rounded-2xl border border-black/10 bg-white/80 p-6 shadow-sm">
-          <h3 className="text-base font-semibold text-gray-900">Agent Diagnostics (Kip)</h3>
+          <h3 className="text-base font-semibold text-gray-900">{diagnosticsLabels.agent_diagnostics.labels.heading}</h3>
           <p className="mt-1 text-sm text-gray-600">
-            This is a readiness seam for Kip-assisted diagnostics. No agent actions are executed yet.
+            {diagnosticsLabels.agent_diagnostics.messaging.description}
           </p>
           <div className="mt-4 grid gap-4 text-sm text-gray-700 sm:grid-cols-3">
             <div>
-              <div className="text-xs uppercase tracking-wide text-gray-500">Auth Status</div>
-              <div className="font-medium">{isAuthenticated ? "Authenticated" : "Guest"}</div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.agent_diagnostics.labels.authStatus}</div>
+              <div className="font-medium">{isAuthenticated ? diagnosticsLabels.agent_diagnostics.labels.authAuthenticated : diagnosticsLabels.agent_diagnostics.labels.authGuest}</div>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-wide text-gray-500">User Id</div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.agent_diagnostics.labels.userId}</div>
               <div className="font-medium">{user?.id || "—"}</div>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-wide text-gray-500">Domain Resolution</div>
+              <div className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.agent_diagnostics.labels.domainResolution}</div>
               <div className="font-medium">
                 {domainContext.domainSlug ? `${domainContext.domainSlug} (${domainContext.domainId || "unresolved"})` : "—"}
               </div>
@@ -1888,10 +1892,10 @@ export function DiagnosticsFrame({
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-gray-100 bg-white/70 p-4">
-              <div className="mb-2 text-xs uppercase tracking-wide text-gray-500">Last 25 Console Logs</div>
+              <div className="mb-2 text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.agent_diagnostics.labels.consoleLogs}</div>
               <pre className="max-h-40 overflow-auto whitespace-pre-wrap text-xs text-gray-700">
                 {consoleLogs.length === 0
-                  ? "No console logs captured yet."
+                  ? diagnosticsLabels.agent_diagnostics.messaging.noConsoleLogs
                   : consoleLogs
                       .slice(-MAX_AGENT_LOGS)
                       .map((entry) => `[${entry.timestamp}] ${entry.level.toUpperCase()} ${entry.message}`)
@@ -1899,10 +1903,10 @@ export function DiagnosticsFrame({
               </pre>
             </div>
             <div className="rounded-xl border border-gray-100 bg-white/70 p-4">
-              <div className="mb-2 text-xs uppercase tracking-wide text-gray-500">Last 25 Network Requests</div>
+              <div className="mb-2 text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.agent_diagnostics.labels.networkRequests}</div>
               <pre className="max-h-40 overflow-auto whitespace-pre-wrap text-xs text-gray-700">
                 {networkLogs.length === 0
-                  ? "No network requests captured yet."
+                  ? diagnosticsLabels.agent_diagnostics.messaging.noNetworkRequests
                   : networkLogs
                       .slice(-MAX_AGENT_LOGS)
                       .map((entry) => `${entry.method} ${entry.url} → ${entry.status || "ERR"}`)
@@ -1914,27 +1918,27 @@ export function DiagnosticsFrame({
 
         {lastBoardDataError && (
           <section className="rounded-2xl border border-black/10 bg-white/80 p-6 shadow-sm">
-            <h3 className="text-base font-semibold text-gray-900">Latest Board Data Error</h3>
+            <h3 className="text-base font-semibold text-gray-900">{diagnosticsLabels.board_error.labels.heading}</h3>
             <div className="mt-3 grid gap-2 text-sm text-gray-700">
               <div>
-                <span className="text-xs uppercase tracking-wide text-gray-500">Req Id</span>
+                <span className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.board_error.labels.reqId}</span>
                 <div className="font-medium">{lastBoardDataError.reqId || "—"}</div>
               </div>
               <div>
-                <span className="text-xs uppercase tracking-wide text-gray-500">URL</span>
+                <span className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.board_error.labels.url}</span>
                 <div className="font-medium">{lastBoardDataError.url}</div>
               </div>
               <div className="flex flex-wrap gap-4">
                 <div>
-                  <span className="text-xs uppercase tracking-wide text-gray-500">Status</span>
+                  <span className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.board_error.labels.status}</span>
                   <div className="font-medium">{lastBoardDataError.status ?? "—"}</div>
                 </div>
                 <div>
-                  <span className="text-xs uppercase tracking-wide text-gray-500">Board Id</span>
+                  <span className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.board_error.labels.boardId}</span>
                   <div className="font-medium">{lastBoardDataError.boardId ?? "—"}</div>
                 </div>
                 <div>
-                  <span className="text-xs uppercase tracking-wide text-gray-500">At</span>
+                  <span className="text-xs uppercase tracking-wide text-gray-500">{diagnosticsLabels.board_error.labels.at}</span>
                   <div className="font-medium">{lastBoardDataError.at}</div>
                 </div>
               </div>
@@ -1946,7 +1950,7 @@ export function DiagnosticsFrame({
           <section className="rounded-2xl border border-black/10 bg-white/70 p-6 shadow-sm">
             <details>
               <summary className="cursor-pointer text-sm font-semibold text-gray-800">
-                View Detailed JSON Report
+                {diagnosticsLabels.run_diagnostics.labels.viewDetailedJson}
               </summary>
               <pre className="mt-3 max-h-96 overflow-auto rounded-lg border border-gray-100 bg-white/80 p-4 text-xs text-gray-700">
                 {JSON.stringify(results, null, 2)}
@@ -1957,7 +1961,7 @@ export function DiagnosticsFrame({
 
         {error && (
           <section className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
-            <div className="font-semibold">Critical Error</div>
+            <div className="font-semibold">{diagnosticsLabels.critical_error.labels.heading}</div>
             <div className="mt-2 rounded-md border border-red-200 bg-white/70 p-3 font-mono text-xs text-red-700">
               {error}
             </div>
@@ -1970,9 +1974,9 @@ export function DiagnosticsFrame({
             className="rounded-full border border-gray-200 px-4 py-2 text-gray-600 hover:border-gray-300"
             onClick={clearResults}
           >
-            Clear Results
+            {diagnosticsLabels.run_diagnostics.labels.clearButton}
           </button>
-          <span>Diagnostics are local and do not auto-submit to Kip.</span>
+          <span>{diagnosticsLabels.run_diagnostics.messaging.footerNote}</span>
         </div>
       </div>
     </DesignFrame>

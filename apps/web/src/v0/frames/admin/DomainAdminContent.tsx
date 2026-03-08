@@ -7,6 +7,8 @@ import { useAuth } from "../../../context/AuthContext"
 import DomainManager from "../../../components/domain-manager/DomainManager"
 import { DomainGovernanceCard } from "../../../components/domain-manager/DomainGovernanceCard"
 import { KipApi } from "../../../lib/kipApi"
+import type { DomainAdminFrameJson } from "../../data/domain-frame.types"
+import { defaultDomainAdminFrame } from "../../data/domain-frame.default"
 
 const ADMIN_SURFACE = {
   card: "hsl(var(--theme-surface-paper) / 0.88)",
@@ -25,9 +27,10 @@ interface DomainData {
 
 export interface DomainAdminContentProps {
   domainSlug: string
+  adminLabels?: DomainAdminFrameJson
 }
 
-export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
+export function DomainAdminContent({ domainSlug, adminLabels = defaultDomainAdminFrame }: DomainAdminContentProps) {
   const { user, updateUser, authResolved, isLoading: authLoading } = useAuth()
   const [domain, setDomain] = React.useState<DomainData | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -70,7 +73,7 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
       })
     } catch (err) {
       console.error("Error loading domain:", err)
-      setError("Domain not found")
+      setError(adminLabels.messaging.domainNotFound)
     } finally {
       setIsLoading(false)
     }
@@ -86,7 +89,7 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
       setPolicyText(JSON.stringify((policy as { policy?: object })?.policy ?? {}, null, 2))
     } catch (err) {
       console.error("Error loading domain policy:", err)
-      setPolicyError(err instanceof Error ? err.message : "Unable to load policy")
+      setPolicyError(err instanceof Error ? err.message : adminLabels.policy.messaging.loadError)
       setPolicyText(JSON.stringify({}, null, 2))
     } finally {
       setIsLoadingPolicy(false)
@@ -105,7 +108,7 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
       setPolicyText(JSON.stringify((saved as { policy?: object })?.policy ?? parsedPolicy, null, 2))
     } catch (err) {
       console.error("Error saving domain policy:", err)
-      setPolicyError(err instanceof Error ? err.message : "Unable to save policy")
+      setPolicyError(err instanceof Error ? err.message : adminLabels.policy.messaging.saveError)
     } finally {
       setIsSavingPolicy(false)
     }
@@ -123,13 +126,13 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
       })
       if (data?.success) {
         updateUser(data.data)
-        setProfileSuccess("Profile updated successfully.")
+        setProfileSuccess(adminLabels.profile.messaging.saveSuccess)
         setTimeout(() => setProfileSuccess(null), 3000)
       } else {
-        setProfileError((data as { error?: string })?.error || "Failed to update profile")
+        setProfileError((data as { error?: string })?.error || adminLabels.profile.messaging.saveError)
       }
     } catch {
-      setProfileError("Failed to update profile. Please try again.")
+      setProfileError(adminLabels.profile.messaging.saveErrorRetry)
     } finally {
       setProfileSaving(false)
     }
@@ -138,7 +141,7 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
   if (authLoading || !authResolved) {
     return (
       <div className="rounded-2xl border px-6 py-6 shadow-sm" style={{ backgroundColor: ADMIN_SURFACE.card, borderColor: ADMIN_SURFACE.border }}>
-        <p className="text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>Checking your admin access...</p>
+        <p className="text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>{adminLabels.messaging.checkingAccess}</p>
       </div>
     )
   }
@@ -148,7 +151,7 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C96E59] mx-auto mb-4" />
-          <p className="text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>Loading domain...</p>
+          <p className="text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>{adminLabels.messaging.loadingDomain}</p>
         </div>
       </div>
     )
@@ -157,8 +160,8 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
   if (error || !domain) {
     return (
       <div className="rounded-2xl border px-6 py-6 shadow-sm" style={{ backgroundColor: ADMIN_SURFACE.card, borderColor: ADMIN_SURFACE.border }}>
-        <h2 className="text-lg font-semibold" style={{ color: ADMIN_SURFACE.inkPrimary }}>Domain not found</h2>
-        <p className="mt-2 text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>The domain &quot;{domainSlug}&quot; could not be found.</p>
+        <h2 className="text-lg font-semibold" style={{ color: ADMIN_SURFACE.inkPrimary }}>{adminLabels.messaging.domainNotFound}</h2>
+        <p className="mt-2 text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>{adminLabels.messaging.domainNotFoundDetail}</p>
       </div>
     )
   }
@@ -167,18 +170,22 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
   if (!isDomainOwner) {
     return (
       <div className="rounded-2xl border px-6 py-6 shadow-sm" style={{ backgroundColor: ADMIN_SURFACE.card, borderColor: ADMIN_SURFACE.border }}>
-        <h2 className="text-lg font-semibold" style={{ color: ADMIN_SURFACE.inkPrimary }}>Admin access required</h2>
-        <p className="mt-2 text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>You must be the domain owner to manage this domain.</p>
+        <h2 className="text-lg font-semibold" style={{ color: ADMIN_SURFACE.inkPrimary }}>{adminLabels.messaging.adminRequired}</h2>
+        <p className="mt-2 text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>{adminLabels.messaging.adminRequiredDetail}</p>
       </div>
     )
   }
+
+  const sourceMetaText = adminLabels.policy.messaging.sourceMeta
+    .replace("{policySource}", policySource)
+    .replace("{policyVersion}", policyVersion)
 
   return (
     <div className="space-y-8">
       <div className="rounded-2xl border px-6 py-6 shadow-sm" style={{ backgroundColor: ADMIN_SURFACE.card, borderColor: ADMIN_SURFACE.border }}>
         <div className="mb-4 space-y-1">
-          <h3 className="text-lg font-semibold" style={{ color: ADMIN_SURFACE.inkPrimary }}>Domain Manager</h3>
-          <p className="text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>Manage domain configuration, metadata, and custom domain settings.</p>
+          <h3 className="text-lg font-semibold" style={{ color: ADMIN_SURFACE.inkPrimary }}>{adminLabels.domain_manager.labels.heading}</h3>
+          <p className="text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>{adminLabels.domain_manager.messaging.description}</p>
         </div>
         <div className="h-[640px] overflow-hidden rounded-xl border" style={{ borderColor: ADMIN_SURFACE.border }}>
           <DomainManager scope="admin" allowCreate={true} />
@@ -188,8 +195,8 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
       <div className="rounded-2xl border px-6 py-6 shadow-sm" style={{ backgroundColor: ADMIN_SURFACE.card, borderColor: ADMIN_SURFACE.border }}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1">
-            <h3 className="text-lg font-semibold" style={{ color: ADMIN_SURFACE.inkPrimary }}>Profile</h3>
-            <p className="text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>Update your name for this admin session.</p>
+            <h3 className="text-lg font-semibold" style={{ color: ADMIN_SURFACE.inkPrimary }}>{adminLabels.profile.labels.heading}</h3>
+            <p className="text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>{adminLabels.profile.messaging.description}</p>
           </div>
           <button
             type="button"
@@ -198,12 +205,12 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
             className="inline-flex rounded-full border px-4 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
             style={{ borderColor: ADMIN_SURFACE.border, color: ADMIN_SURFACE.inkPrimary }}
           >
-            {profileSaving ? "Saving…" : "Save profile"}
+            {profileSaving ? adminLabels.profile.labels.savingButton : adminLabels.profile.labels.saveButton}
           </button>
         </div>
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide" style={{ color: ADMIN_SURFACE.inkSecondary }}>Full name</label>
+            <label className="block text-xs font-semibold uppercase tracking-wide" style={{ color: ADMIN_SURFACE.inkSecondary }}>{adminLabels.profile.labels.fullName}</label>
             <input
               type="text"
               value={profileForm.name}
@@ -213,7 +220,7 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide" style={{ color: ADMIN_SURFACE.inkSecondary }}>Email</label>
+            <label className="block text-xs font-semibold uppercase tracking-wide" style={{ color: ADMIN_SURFACE.inkSecondary }}>{adminLabels.profile.labels.email}</label>
             <input
               type="email"
               value={profileForm.email}
@@ -230,9 +237,9 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
       <div className="space-y-4 rounded-2xl border px-6 py-6 shadow-sm" style={{ backgroundColor: ADMIN_SURFACE.card, borderColor: ADMIN_SURFACE.border }}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h3 className="text-lg font-semibold" style={{ color: ADMIN_SURFACE.inkPrimary }}>Policy</h3>
-            <p className="text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>Resolved policy JSON for this domain (used by Kip to decide drafting actions).</p>
-            <p className="mt-1 text-xs" style={{ color: ADMIN_SURFACE.inkSecondary }}>Source: {policySource} • Version: {policyVersion}</p>
+            <h3 className="text-lg font-semibold" style={{ color: ADMIN_SURFACE.inkPrimary }}>{adminLabels.policy.labels.heading}</h3>
+            <p className="text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>{adminLabels.policy.messaging.description}</p>
+            <p className="mt-1 text-xs" style={{ color: ADMIN_SURFACE.inkSecondary }}>{sourceMetaText}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -243,7 +250,7 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
               style={{ borderColor: ADMIN_SURFACE.border, color: ADMIN_SURFACE.inkPrimary }}
             >
               <ArrowPathIcon className="h-4 w-4" />
-              Refresh
+              {adminLabels.policy.labels.refreshButton}
             </button>
             <button
               type="button"
@@ -252,7 +259,7 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
               className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold disabled:opacity-50"
               style={{ borderColor: ADMIN_SURFACE.border, color: ADMIN_SURFACE.inkPrimary }}
             >
-              {isSavingPolicy ? "Saving…" : "Save Policy"}
+              {isSavingPolicy ? adminLabels.policy.labels.savingButton : adminLabels.policy.labels.saveButton}
             </button>
           </div>
         </div>
@@ -266,7 +273,7 @@ export function DomainAdminContent({ domainSlug }: DomainAdminContentProps) {
             style={{ borderColor: ADMIN_SURFACE.border, backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)" }}
             disabled={isLoadingPolicy}
           />
-          {isLoadingPolicy && <p className="text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>Loading policy…</p>}
+          {isLoadingPolicy && <p className="text-sm" style={{ color: ADMIN_SURFACE.inkSecondary }}>{adminLabels.policy.messaging.loading}</p>}
         </div>
       </div>
 
