@@ -16,4 +16,5 @@ Shared configuration used by the API. Model catalog is the single source of trut
 - [ ] Consider DB-backed catalog when non-developers need to add models without deploys
 
 ## Update Log
+- 2026-03-08: Added `'image'` to `ModelCapability` union. Added FLUX image generation models to `TOGETHER_MODELS`: `black-forest-labs/FLUX.1-schnell` (fast, low-latency) and `black-forest-labs/FLUX.1-dev` (higher quality). Both carry `capabilities: ['image']` — no `defaultSettings` (FLUX parameters are image-specific and owned by the Step 3 subagent, not by ModelSettings).
 - 2026-02-19: Added modelCatalog.ts. Single source of truth for model catalog. Used by ModelProviderService and GET /api/kip/models.

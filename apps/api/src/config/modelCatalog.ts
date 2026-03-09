@@ -13,7 +13,7 @@ const RETRY_CONFIG = Object.freeze({
   retry_delay_ms: 1000,
 });
 
-export type ModelCapability = 'text' | 'vision' | 'audio';
+export type ModelCapability = 'text' | 'vision' | 'audio' | 'image';
 
 export type ModelCatalogEntry = {
   id: string;
@@ -45,6 +45,8 @@ const TOGETHER_MODELS: ModelCatalogEntry[] = [
   { id: 'meta-llama/Llama-2-13b-chat-hf', label: 'Llama 2 13B', provider: 'together', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
   { id: 'meta-llama/Llama-2-7b-chat-hf', label: 'Llama 2 7B', provider: 'together', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
   { id: 'mistralai/Mixtral-8x7B-Instruct-v0.1', label: 'Mixtral 8x7B', provider: 'together', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
+  { id: 'black-forest-labs/FLUX.1-schnell', label: 'FLUX Schnell', provider: 'together', capabilities: ['image'] },
+  { id: 'black-forest-labs/FLUX.1-dev', label: 'FLUX Dev', provider: 'together', capabilities: ['image'] },
 ];
 
 const ELEVENLABS_MODELS: ModelCatalogEntry[] = [

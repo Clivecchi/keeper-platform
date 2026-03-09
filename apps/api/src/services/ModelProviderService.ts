@@ -62,6 +62,22 @@ export interface ModelCallOptions {
   jsonMode?: boolean;
 }
 
+export interface ImageGenerationBrief {
+  prompt: string;
+  model?: string;
+  width?: number;
+  height?: number;
+  steps?: number;
+  /** The image_style hint from domain JSON — informational context used when assembling the prompt, not sent to FLUX directly */
+  domain_context?: string;
+}
+
+export interface ImageGenerationResult {
+  url: string;
+  model: string;
+  prompt: string;
+}
+
 const RETRY_TEMPLATE = Object.freeze({
   max_retries: 3,
   retry_delay_ms: 1000
@@ -284,25 +300,60 @@ function extractTextFromContent(content: ModelContentPart[]): string {
 }
 
 /**
- * Together AI Provider Implementation (Stubbed)
+ * Together AI Provider Implementation
+ * Text model calls (Llama, Mixtral) remain stubbed — not yet activated.
+ * Image generation via FLUX is live.
  */
 class TogetherProvider {
+  private apiKey: string;
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
   static async callModel(messages: ModelMessage[], settings: ModelSettings): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
-    console.log(`[TOGETHER STUB] Would call ${settings.model} with ${messages.length} messages`);
-    
-    // TODO: Implement Together AI SDK integration
+    console.log(`[TOGETHER STUB] Text model calls not yet activated. Would call ${settings.model} with ${messages.length} messages`);
+
     const raw = messages.find(m => m.role === 'user')?.content;
     const userMessage = typeof raw === 'string' ? raw : (Array.isArray(raw) ? raw.find(p => p.type === 'text')?.text ?? '[image(s) attached]' : 'Hello');
-    
+
     return {
       success: true,
-      content: `[MOCK Together Response] I understand you said: "${userMessage}". This is a simulated response from ${settings.model}. The Together AI integration is planned for future implementation.`,
+      content: `[MOCK Together Response] I understand you said: "${userMessage}". This is a simulated response from ${settings.model}. Together AI text model routing is not yet activated.`,
       usage: {
         prompt_tokens: 40,
         completion_tokens: 90,
         total_tokens: 130
       },
       model: settings.model
+    };
+  }
+
+  async generateImage(brief: ImageGenerationBrief): Promise<ImageGenerationResult> {
+    const { default: Together } = await import('together-ai');
+    const client = new Together({ apiKey: this.apiKey });
+
+    const model = brief.model ?? 'black-forest-labs/FLUX.1-schnell';
+    const steps = brief.steps ?? (model.includes('schnell') ? 4 : 28);
+
+    const response = await (client.images as any).create({
+      model,
+      prompt: brief.prompt,
+      width: brief.width ?? 1024,
+      height: brief.height ?? 1024,
+      steps,
+      n: 1,
+    });
+
+    const imageUrl = response?.data?.[0]?.url;
+    if (!imageUrl) {
+      throw new Error('Together AI image generation returned no URL');
+    }
+
+    return {
+      url: imageUrl,
+      model,
+      prompt: brief.prompt,
     };
   }
 }
@@ -370,6 +421,9 @@ export class ModelProviderService {
       } else if (provider === 'anthropic') {
         apiKey = validKey(process.env.ANTHROPIC_API_KEY);
         keySource = apiKey ? 'env' : 'none';
+      } else if (provider === 'together') {
+        apiKey = validKey(process.env.TOGETHER_API_KEY);
+        keySource = apiKey ? 'env' : 'none';
       }
     } else {
       // 1. Try environment key first (highest priority, recommended long-term)
@@ -379,6 +433,10 @@ export class ModelProviderService {
       }
       if (provider === 'anthropic') {
         apiKey = validKey(process.env.ANTHROPIC_API_KEY);
+        if (apiKey) keySource = 'env';
+      }
+      if (provider === 'together') {
+        apiKey = validKey(process.env.TOGETHER_API_KEY);
         if (apiKey) keySource = 'env';
       }
 
@@ -405,9 +463,9 @@ export class ModelProviderService {
     console.log(`[ModelProvider] Using ${keySource} key for ${provider} (user: ${userId || 'none'})`);
 
     // Error taxonomy representative: surface MISSING_API_KEY before we ever hit the SDK.
-    const requiresExplicitKey = provider === 'openai' || provider === 'anthropic';
+    const requiresExplicitKey = provider === 'openai' || provider === 'anthropic' || provider === 'together';
     if (requiresExplicitKey && !apiKey) {
-      const envVar = provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'OPENAI_API_KEY';
+      const envVar = provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : provider === 'together' ? 'TOGETHER_API_KEY' : 'OPENAI_API_KEY';
       const message = `Add ${envVar} to your Railway environment variables, or configure a platform/user key.`;
       return {
         success: false,
@@ -515,6 +573,33 @@ export class ModelProviderService {
    */
   static getDefaultSettings(provider: ModelProvider): ModelSettings {
     return getDefaultSettingsForProvider(provider);
+  }
+
+  /**
+   * Generate an image via Together AI FLUX models.
+   * Resolves the Together API key using the same priority chain as callModel:
+   * TOGETHER_API_KEY env var → user key → platform DB key.
+   */
+  static async generateImage(brief: ImageGenerationBrief, userId?: string): Promise<ImageGenerationResult> {
+    const validKey = (k: string | null | undefined): string | null =>
+      typeof k === 'string' && k.trim().length > 0 ? k.trim() : null;
+
+    let apiKey: string | null = validKey(process.env.TOGETHER_API_KEY);
+
+    if (!apiKey && userId) {
+      apiKey = validKey(await KipUserKeyService.getUserKey('together', userId));
+    }
+
+    if (!apiKey) {
+      apiKey = validKey(await PlatformApiKeyService.getKeyForProvider('together'));
+    }
+
+    if (!apiKey) {
+      throw new Error('Together AI API key not configured. Add TOGETHER_API_KEY to your Railway environment variables.');
+    }
+
+    const provider = new TogetherProvider(apiKey);
+    return provider.generateImage(brief);
   }
 } 
 

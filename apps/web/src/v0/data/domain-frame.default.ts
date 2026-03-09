@@ -189,6 +189,8 @@ export const DEFAULT_DOMAIN_FRAME: DomainFrameJson = {
     model: "claude-sonnet-4-6",
     visibility: "public",
     greeting: "Hello. What would you like to keep today?",
+    image_style: "warm, human, memory-like — soft natural light, candid, intimate scale",
+    image_model: "black-forest-labs/FLUX.1-schnell",
   },
 
   audience_roles: ["guest", "keeper", "admin"],

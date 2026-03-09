@@ -67,6 +67,7 @@ import { kamAuth, kamScope } from './kam/middleware.js';
 import { kamOrUserAuth, roBoardsGuard } from './middleware/auth-combined.js';
 import entitiesRoutes from './api/entities/routes.js';
 import uploadsRoutes from './api/uploads/routes.js';
+import imageRouter from './api/image/routes.js';
 // Import v0 routes
 import v0MomentsRouter from './routes/v0/moments.js';
 import agentsRoutes from './api/agents.js';
@@ -1041,6 +1042,7 @@ app.use('/api/board-templates', boardTemplatesRouter);
 app.use('/api/board-data', boardStudioAliasRouter);
 app.use('/api/entities', entitiesRoutes);
 app.use('/api/uploads', uploadsRoutes);
+app.use('/api/image', imageRouter);
 // Mount v0 routes
 app.use('/api/v0/moments', v0MomentsRouter);
 console.log('[boot] ✅ mounted /api/v0/moments router');

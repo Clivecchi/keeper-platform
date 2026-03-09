@@ -99,6 +99,9 @@ importers:
       openai:
         specifier: ^4.75.1
         version: 4.104.0(zod@3.25.45)
+      together-ai:
+        specifier: ^0.37.0
+        version: 0.37.0
       zod:
         specifier: ^3.25.45
         version: 3.25.45
@@ -3997,6 +4000,10 @@ packages:
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
+
+  together-ai@0.37.0:
+    resolution: {integrity: sha512-UiZY8HrDkl86naJcY5Q48WOKdmwNf5X5yzGoZU4G58iZM6v/e7bBLLilEr5OcYVQ0RgyjpiHTkaAA0k4yNZU9Q==}
+    hasBin: true
 
   toidentifier@1.0.1:
     resolution: {integrity: sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA==}
@@ -8410,6 +8417,8 @@ snapshots:
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
+
+  together-ai@0.37.0: {}
 
   toidentifier@1.0.1: {}
 

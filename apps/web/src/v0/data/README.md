@@ -25,6 +25,14 @@ Static data sources and loaders for the JSON UI Frame system. This folder holds 
 
 ## 📆 Update Log
 
+### 2026-03-08 — Image generation fields added to DomainFrameKip (Step 1 of 4)
+- Added `image_style?: string` and `image_model?: string` as optional fields to `DomainFrameKip` interface in `domain-frame.types.ts`
+- Added default values to `DEFAULT_DOMAIN_FRAME.kip` in `domain-frame.default.ts`:
+  - `image_style`: `"warm, human, memory-like — soft natural light, candid, intimate scale"`
+  - `image_model`: `"black-forest-labs/FLUX.1-schnell"`
+- Both fields are optional — existing code reading `DomainFrameKip` is unaffected
+- These are domain-level creative anchors for Kip to use when composing an image generation brief; Kip may use, fold in, or ignore them depending on context
+
 ### 2026-03-05 — Domain JSON Database Migration
 - `loadDomainFrame` updated to fetch from `GET /api/domains/${slug}/frame` via `getApiBase()` (handles dev/prod URL resolution).
 - Falls back to importing `DEFAULT_DOMAIN_FRAME` dynamically on any fetch failure (non-ok status or network error).

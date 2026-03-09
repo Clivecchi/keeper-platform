@@ -34,6 +34,7 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "openai": "^4.75.1",
+    "together-ai": "^0.37.0",
     "zod": "^3.25.45"
   },
   "engines": {

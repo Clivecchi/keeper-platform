@@ -29,6 +29,8 @@ export interface DomainFrameKip {
   model: string
   visibility: "public" | "private"
   greeting: string
+  image_style?: string
+  image_model?: string
 }
 
 export interface DomainFrameCoverCard {
