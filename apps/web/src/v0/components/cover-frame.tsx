@@ -11,6 +11,7 @@ import { useAuth } from "../../context/AuthContext"
 import { apiFetch } from "../../lib/api"
 import { getApiBase } from "../../lib/apiFetch"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
+import { useV0ShellOptional } from "../shell/V0ShellContext"
 
 const COVER_IMPRINT = "KE3P"
 
@@ -40,8 +41,13 @@ export function CoverFrame({
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isAuthenticated, user, isAdmin, logout } = useAuth();
+  const v0Shell = useV0ShellOptional();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [fetchedCoverUrl, setFetchedCoverUrl] = useState<string | null>(null);
+
+  // Domain JSON background: used as fallback when no uploaded cover image is present.
+  // domainFrame.theme.background is a path or URL (e.g. "/images/keeper-dawn.jpg").
+  const domainJsonBackground = v0Shell?.domainFrame?.theme?.background ?? null;
 
   // Fallback: when domainData has id but no theme.coverImage (e.g. old API or by-slug omits theme),
   // fetch domain by ID to get full theme. Only when authenticated (endpoint requires auth).
@@ -78,9 +84,14 @@ export function CoverFrame({
   const coverStateParam = searchParams.get("coverState") || searchParams.get("cover")
   const coverState = coverStateParam === "open" ? "open" : "closed"
 
-  const coverImageUrl = domainData?.theme?.coverImage ?? fetchedCoverUrl ?? null
+  // Priority: uploaded DB cover image > domain JSON background > null
+  const coverImageUrl = domainData?.theme?.coverImage ?? fetchedCoverUrl ?? domainJsonBackground ?? null
   const coverImageMode = domainData?.theme?.coverImageMode ?? "cover"
-  const displayUrl = coverImageUrl ? getBlobProxyUrl(coverImageUrl) : null
+  // Only proxy blob URLs — static paths (e.g. "/images/...") are served directly.
+  const isBlobUrl = coverImageUrl?.includes('blob.vercel-storage.com') ?? false
+  const displayUrl = coverImageUrl
+    ? (isBlobUrl ? getBlobProxyUrl(coverImageUrl) : coverImageUrl)
+    : null
   const pageBackground = displayUrl
     ? {
         backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${displayUrl})`,

@@ -19,17 +19,30 @@ Encapsulate shared React context providers (auth, theme, boards, worlds, etc.) u
 
 ## ⚠️ Notes & ToDo
 - [ ] Add suspense boundaries around expensive context providers.
-- [ ] Revisit KAM settings fetch once a cookie-auth endpoint is available.
+- ~~Revisit KAM settings fetch~~ — ThemeContext no longer fetches settings (resolved in Pass 1).
 
 ## 📆 Update Log
-### 2026-02-28 - Single auth/me Call
-- Added `initialAuthFetchPromise` to dedupe `/api/kam/auth/me` calls from React StrictMode double-mount. 401 for guests remains silent (no console error).
+### 2026-03-08 — Theme System Pass 1: ThemeContext reduced to color scheme signal
+- **ThemeContext.tsx**: Removed all API fetches (`/api/kam/settings`, `/api/themes/:id`). Removed CSS var application to `document.documentElement`. Single responsibility: detect OS light/dark preference via `matchMedia` and expose `colorScheme: 'light' | 'dark'`.
+- Removed imports of `Theme`, `ThemeTokens`, `fetchThemeById`, `apiFetch` from ThemeContext.
+- CSS var output inside the V0 frame tree is now exclusively owned by StyleScope.
+- `useTheme()` now returns `{ colorScheme: ColorScheme }` only. No `theme`, `mode`, or `setMode`.
+- **Consumers**: only `AppProviders.tsx` wraps with `ThemeProvider`. No other files import `useTheme`.
 ### 2025-12-08 - ThemeContext Cookie-Aware Guard
 - Skip `/api/kam/settings` calls when only cookie auth is present to prevent noisy 401s and rely on the Keeper Classic fallback until cookie-aware endpoints land.
+### 2026-01-02 - Canonical Theme Vars
+- Added canonical theme token mapping and emission as `--theme-*` CSS variables (surface/ink/border/shadow/focus), keeping legacy vars for compatibility.
+### 2026-02-08 - Reliable Token-Based Auth
+- `AuthContext.tsx` now stores the real JWT token from login responses even in production (via `authTokenStore`). Previously, the token was discarded in production with the assumption cookies would handle everything.
+- `fetchUserSession` sends the stored JWT as `Authorization: Bearer` header alongside cookies, so the `/api/kam/auth/me` session check succeeds even when cookies are unavailable.
+- `logout` now clears the auth token store.
+
 ### 2026-01-24 - Auth Resolution + Admin Allowlist
 - Added resolved auth state and admin allowlist fallback to support stricter route guards.
 ### 2026-02-15 - refreshSession for Auth Retry
 - Exposed `refreshSession` (alias for `fetchUserSession`) so AgentBoardFrame can trigger session refresh on 401 before retrying Kip runAgent.
+### 2026-02-28 - Single auth/me Call
+- Added `initialAuthFetchPromise` to dedupe `/api/kam/auth/me` calls from React StrictMode double-mount. 401 for guests remains silent (no console error).
 ### 2026-02-15 - Platform Super Admin from DB Roles
 - `resolveIsAdmin()` now uses `platformRoles` from `/api/kam/auth/me` and login/register responses as source of truth.
 - `VITE_ADMIN_EMAIL_ALLOWLIST` kept as fallback during migration; can be removed once DB roles verified.

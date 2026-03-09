@@ -19,9 +19,15 @@ Encapsulate shared React context providers (auth, theme, boards, worlds, etc.) u
 
 ## ⚠️ Notes & ToDo
 - [ ] Add suspense boundaries around expensive context providers.
-- [ ] Revisit KAM settings fetch once a cookie-auth endpoint is available.
+- ~~Revisit KAM settings fetch~~ — ThemeContext no longer fetches settings (resolved in Pass 1).
 
 ## 📆 Update Log
+### 2026-03-08 — Theme System Pass 1: ThemeContext reduced to color scheme signal
+- **ThemeContext.tsx**: Removed all API fetches (`/api/kam/settings`, `/api/themes/:id`). Removed CSS var application to `document.documentElement`. Single responsibility: detect OS light/dark preference via `matchMedia` and expose `colorScheme: 'light' | 'dark'`.
+- Removed imports of `Theme`, `ThemeTokens`, `fetchThemeById`, `apiFetch` from ThemeContext.
+- CSS var output inside the V0 frame tree is now exclusively owned by StyleScope.
+- `useTheme()` now returns `{ colorScheme: ColorScheme }` only. No `theme`, `mode`, or `setMode`.
+- **Consumers**: only `AppProviders.tsx` wraps with `ThemeProvider`. No other files import `useTheme`.
 ### 2025-12-08 - ThemeContext Cookie-Aware Guard
 - Skip `/api/kam/settings` calls when only cookie auth is present to prevent noisy 401s and rely on the Keeper Classic fallback until cookie-aware endpoints land.
 ### 2026-01-02 - Canonical Theme Vars

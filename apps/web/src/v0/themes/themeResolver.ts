@@ -2,6 +2,7 @@
  * Theme Resolver for V0
  *
  * Resolves theme tokens by slug with fallback strategy:
+ * 0. Runtime registry (domain-resolved themes injected at runtime, e.g. 'domain-resolved')
  * 1. Static registry (bundled, always available)
  * 2. API fetch (optional, short timeout, non-blocking)
  * 3. Fallback to style registry behavior
@@ -10,6 +11,27 @@
 import { getThemeTokensBySlug as getStaticTokens } from './themeRegistry';
 import type { ThemeTokens } from './themeRegistry';
 
+// ---------------------------------------------------------------------------
+// Runtime theme registry — populated by domainThemeResolver at runtime
+// ---------------------------------------------------------------------------
+
+const runtimeThemeRegistry = new Map<string, ThemeTokens>()
+
+/**
+ * Register a resolved theme for use by the slug resolver.
+ * Called by V0Shell after domain theme is resolved from domain JSON.
+ */
+export function registerRuntimeTheme(slug: string, tokens: ThemeTokens): void {
+  runtimeThemeRegistry.set(slug, tokens)
+}
+
+/**
+ * Remove a previously registered runtime theme.
+ */
+export function clearRuntimeTheme(slug: string): void {
+  runtimeThemeRegistry.delete(slug)
+}
+
 // API timeout for theme fetching (300ms)
 const API_TIMEOUT_MS = 300;
 
@@ -17,6 +39,10 @@ const API_TIMEOUT_MS = 300;
  * Resolve theme tokens by slug with intelligent fallback
  */
 export async function resolveThemeTokens(slug: string): Promise<ThemeTokens | null> {
+  // 0. Check runtime registry first (domain-resolved themes injected by V0Shell)
+  const runtimeTokens = runtimeThemeRegistry.get(slug)
+  if (runtimeTokens) return runtimeTokens
+
   // 1. Try static registry first (always fast, always available)
   const staticTokens = getStaticTokens(slug);
   if (staticTokens) {

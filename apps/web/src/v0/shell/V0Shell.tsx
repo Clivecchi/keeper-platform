@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
+import { useTheme } from "../../context/ThemeContext"
 import type { StyleId } from "../styles/styles"
 import { StyleOverrideProvider } from "../styles/StyleOverrideProvider"
 import { CoverFrame } from "../components/cover-frame"
@@ -26,6 +27,11 @@ import type { DomainFrameJson } from "../data/domain-frame.types"
 import { resolveAudience } from "../data/resolveAudience"
 import { useExperienceMode } from "./useExperienceMode"
 import { FrameContextProvider } from "./FrameContext"
+import { resolveDomainThemeSync } from "../themes/domainThemeResolver"
+import { registerRuntimeTheme } from "../themes/themeResolver"
+
+/** The slug used when domain JSON is the active theme source. */
+const DOMAIN_THEME_SLUG = 'domain-resolved'
 
 /** Placeholder used while domain is loading or when API fails. Never shows hardcoded marketing copy. */
 const getDomainFallback = (slug: string) => ({
@@ -58,16 +64,27 @@ export function V0Shell() {
   const navigate = useNavigate()
   const location = useLocation()
   const { isAuthenticated, isAdmin } = useAuth()
+  const { colorScheme } = useTheme()
   const [searchParams] = useSearchParams()
   const defaultFrame = isAuthenticated ? "commons" : "cover"
   const frameParam = (searchParams.get("frame") || defaultFrame).toLowerCase() as V0FrameKey
   const privateFrames = new Set<V0FrameKey>(["commons", "profile", "admin"])
   const requestedFrame = FRAME_REGISTRY[frameParam] ? frameParam : "cover"
   const isPrivateRequest = privateFrames.has(requestedFrame)
-  const themeSlug = searchParams.get("theme")
+
+  // urlThemeSlug: the ?theme= URL param — developer preview override only.
+  // When present it takes full precedence over domain-resolved theme.
+  const urlThemeSlug = searchParams.get("theme")
+
   const styleId = (searchParams.get("style") || "neutral") as StyleId
   const draftId = searchParams.get("draftId")
-  const initialStyleId = themeSlug ? undefined : styleId
+
+  // initialStyleId: passed to StyleOverrideProvider.
+  // When any theme slug is active (URL or domain), omit the initial style so
+  // StyleOverrideProvider starts clean and StyleScope handles token merging.
+  const activeThemeSlug = urlThemeSlug ?? DOMAIN_THEME_SLUG
+  const initialStyleId = activeThemeSlug ? undefined : styleId
+
   const [domainData, setDomainData] = React.useState<any | null>(null)
   const [domainFrame, setDomainFrame] = React.useState<DomainFrameJson | null>(null)
 
@@ -135,21 +152,35 @@ export function V0Shell() {
     return () => { ignore = true }
   }, [slug])
 
+  // ── Domain theme resolution ──
+  // Runs whenever domainFrame or colorScheme changes.
+  // Registers resolved tokens into themeResolver's runtime cache under DOMAIN_THEME_SLUG.
+  // StyleScope resolves 'domain-resolved' → finds cached tokens → emits CSS vars.
+  // URL ?theme= override bypasses this entirely — static registry handles that path.
+  React.useEffect(() => {
+    if (!domainFrame) return
+    const tokens = resolveDomainThemeSync(domainFrame.theme, colorScheme)
+    registerRuntimeTheme(DOMAIN_THEME_SLUG, tokens)
+    console.log("[DomainTheme] Resolved and registered:", colorScheme, tokens)
+  }, [domainFrame, colorScheme])
+
   if (!slug) {
     return null
   }
 
+  // buildFrameUrl uses urlThemeSlug (not DOMAIN_THEME_SLUG) so that generated URLs
+  // only carry ?theme= when the developer has explicitly set an override.
   const buildFrameUrl = React.useCallback((nextFrame: V0FrameKey, options?: { draftId?: string | null; themeSlug?: string | null; styleId?: StyleId | null }) => {
     const params = new URLSearchParams()
     params.set("frame", nextFrame)
-    const resolvedTheme = options?.themeSlug ?? themeSlug
+    const resolvedTheme = options?.themeSlug ?? urlThemeSlug
     const resolvedStyle = options?.styleId ?? styleId
     const resolvedDraft = options?.draftId ?? draftId
     if (resolvedTheme) params.set("theme", resolvedTheme)
     if (resolvedStyle) params.set("style", resolvedStyle)
     if (resolvedDraft) params.set("draftId", resolvedDraft)
     return `/d/${slug}/board?${params.toString()}`
-  }, [draftId, slug, styleId, themeSlug])
+  }, [draftId, slug, styleId, urlThemeSlug])
 
   React.useEffect(() => {
     if (!isAuthenticated && isPrivateRequest && slug) {
@@ -159,7 +190,7 @@ export function V0Shell() {
 
   const closeToBoard = () => {
     const params = new URLSearchParams()
-    if (themeSlug) params.set("theme", themeSlug)
+    if (urlThemeSlug) params.set("theme", urlThemeSlug)
     if (styleId) params.set("style", styleId)
     const suffix = params.toString()
     navigate(`/d/${slug}/board${suffix ? `?${suffix}` : ""}`)
@@ -189,7 +220,9 @@ export function V0Shell() {
           frame,
           experienceMode: experience.state.mode,
           experienceActions: experience.actions,
-          themeSlug,
+          // V0ShellContext carries the URL theme for ThemeSwitcher / navigation compatibility.
+          // Frame components receive activeThemeSlug directly as a prop (see below).
+          themeSlug: urlThemeSlug,
           styleId,
           draftId,
           domainData,
@@ -204,19 +237,19 @@ export function V0Shell() {
           domainSlug={slug}
           frame={frame}
           experienceMode={experience.state.mode}
-          themeSlug={themeSlug}
+          themeSlug={activeThemeSlug}
           draftId={draftId}
         >
         {frame === "cover" ? (
-          <FrameComponent styleId={styleId} themeSlug={themeSlug} domainData={domainData} />
+          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainData={domainData} />
         ) : frame === "moment" ? (
-          <FrameComponent styleId={styleId} themeSlug={themeSlug} domainSlug={slug} draftId={draftId} />
+          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} draftId={draftId} />
         ) : frame === "moments" ? (
-          <FrameComponent styleId={styleId} themeSlug={themeSlug} domainSlug={slug} />
+          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} />
         ) : frame === "diagnostics" ? (
-          <FrameComponent styleId={styleId} themeSlug={themeSlug} domainSlug={slug} returnPath={`/d/${slug}/board`} />
+          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} returnPath={`/d/${slug}/board`} />
         ) : (
-          <FrameComponent styleId={styleId} themeSlug={themeSlug} domainSlug={slug} />
+          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} />
         )}
         {showDebugHud && (
           <div
