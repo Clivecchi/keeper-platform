@@ -107,6 +107,20 @@ const soleSavePayloadSchema = z.object({
 });
 
 /**
+ * Image generate action payload schema
+ * domain_context is intentionally absent — it is added server-side from domain JSON
+ */
+export const imageGeneratePayloadSchema = z.object({
+  subject:      z.string().min(1, 'subject is required'),
+  mood:         z.string().optional(),
+  style:        z.string().optional(),
+  aspect_ratio: z.enum(['1:1', '16:9', '9:16', '4:3']).optional(),
+  model:        z.string().optional(),
+});
+
+export type ImageGenerateAction = z.infer<typeof imageGeneratePayloadSchema> & { type: 'image.generate' };
+
+/**
  * Action payload schemas by type
  */
 const actionPayloadSchemas: Record<string, z.ZodSchema> = {
@@ -120,6 +134,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'draft.setActive': draftSetActivePayloadSchema,
   'moment.create': momentCreatePayloadSchema,
   'sole.save': soleSavePayloadSchema,
+  'image.generate': imageGeneratePayloadSchema,
 };
 
 /**

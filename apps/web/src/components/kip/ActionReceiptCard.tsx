@@ -43,6 +43,7 @@ function getActionLabel(actionType: string): string {
     'draft.update.propose': 'Proposed update',
     'moment.create': 'Created',
     'sole.save': 'Memory saved',
+    'image.generate': 'Image generated',
   };
   return labels[actionType] || 'Completed';
 }
@@ -78,6 +79,41 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({ receipt, o
   const memoryCard = data?.memoryCard as { id?: string } | undefined;
   const reflection = data?.reflection as { id?: string } | undefined;
   const isSoleSave = type === 'sole.save';
+  const isImageGenerate = type === 'image.generate';
+
+  // Image generation — render the image directly (success only)
+  if (isImageGenerate && status === 'success') {
+    const imageUrl    = data?.imageUrl as string | undefined;
+    const imagePrompt = data?.imagePrompt as string | undefined;
+    const subject     = data?.subject as string | undefined;
+
+    if (imageUrl) {
+      return (
+        <div
+          className="overflow-hidden rounded-xl border"
+          style={{
+            borderColor: 'hsl(var(--theme-dialogue-border, 35 20% 88%))',
+            backgroundColor: 'hsl(var(--theme-dialogue-area-bg, 35 33% 97%))',
+          }}
+        >
+          <img
+            src={imageUrl}
+            alt={subject ?? 'Generated image'}
+            className="w-full object-cover"
+            loading="lazy"
+          />
+          {imagePrompt && (
+            <p
+              className="px-3 py-2 text-xs leading-relaxed"
+              style={{ color: 'var(--theme-ink-tertiary-color)' }}
+            >
+              {imagePrompt}
+            </p>
+          )}
+        </div>
+      );
+    }
+  }
 
   // Success state
   if (status === 'success') {

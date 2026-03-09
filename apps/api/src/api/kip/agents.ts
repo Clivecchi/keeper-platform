@@ -28,6 +28,7 @@ import type {
   ModelSettings
 } from '@keeper/database';
 import { ModelProviderService, ModelMessage, ModelContentPart, ModelProviderErrorCode } from '../../services/ModelProviderService.js';
+import type { ImageGenerationBrief } from '../../services/ModelProviderService.js';
 import { SoleMemoryService } from '../../services/SoleMemoryService.js';
 import {
   preExecGovernanceCheck,
@@ -54,6 +55,7 @@ import {
   normalizeSummary,
   type ActionValidationError,
   type CoreActionType,
+  type ImageGenerateAction,
 } from './actions/schema.js';
 
 type AgentErrorCode =
@@ -478,6 +480,7 @@ function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironm
   // Golden Path actions — always allowed (domain policy cannot block core capabilities)
   allow.add('draft.setActive');
   allow.add('draft.create');
+  allow.add('image.generate');
   allow.add('draft.update');
   allow.add('draft.update.propose');
   allow.add('draft.delete');
@@ -777,6 +780,7 @@ export async function executeAgentActions(
     'draft.get',
     'draft.read',
     'draft.setActive',
+    'image.generate',
   ]);
 
   for (const coreAction of CORE_ACTIONS) {
@@ -1510,6 +1514,102 @@ export async function executeAgentActions(
                 actionType: action.type,
                 error: errorMessage,
               }, '[kip.actions] rejected');
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: errorMessage,
+                errorCode: 'EXECUTION_ERROR',
+              });
+            }
+            break;
+          }
+
+          case 'image.generate': {
+            const payload = action.payload ?? {};
+            const subject = typeof payload.subject === 'string' ? payload.subject.trim() : '';
+
+            if (!subject) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'subject is required for image.generate',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+
+            try {
+              // Read domain image_style to use as domain_context — folded into the FLUX prompt
+              let domainContext: string | undefined;
+              if (ctx.domainId) {
+                try {
+                  const domainRecord = await tx.domain.findUnique({
+                    where: { id: ctx.domainId },
+                    select: { frame_json: true },
+                  });
+                  const frame = domainRecord?.frame_json as Record<string, any> | null;
+                  const imageStyle = frame?.kip?.image_style;
+                  if (typeof imageStyle === 'string' && imageStyle.trim()) {
+                    domainContext = imageStyle.trim();
+                  }
+                } catch {
+                  // Non-fatal — proceed without domain context
+                }
+              }
+
+              const parts: string[] = [subject];
+              if (typeof payload.mood === 'string' && payload.mood.trim()) parts.push(payload.mood.trim());
+              if (typeof payload.style === 'string' && payload.style.trim()) parts.push(payload.style.trim());
+              if (domainContext) parts.push(domainContext);
+              const prompt = parts.join(', ');
+
+              const ASPECT_RATIO_DIMS: Record<string, { width: number; height: number }> = {
+                '1:1':  { width: 1024, height: 1024 },
+                '16:9': { width: 1344, height: 768  },
+                '9:16': { width: 768,  height: 1344 },
+                '4:3':  { width: 1024, height: 768  },
+              };
+              const aspectRatio = typeof payload.aspect_ratio === 'string' ? payload.aspect_ratio : '1:1';
+              const dims = ASPECT_RATIO_DIMS[aspectRatio] ?? ASPECT_RATIO_DIMS['1:1'];
+
+              const brief: ImageGenerationBrief = {
+                prompt,
+                model:          typeof payload.model === 'string' ? payload.model : undefined,
+                width:          dims.width,
+                height:         dims.height,
+                domain_context: domainContext,
+              };
+
+              logger.info({
+                requestId,
+                subject,
+                aspectRatio,
+                model: brief.model ?? 'default',
+                userId: ctx.userId,
+              }, '[kip.actions] image.generate dispatching');
+
+              const imageResult = await ModelProviderService.generateImage(brief, ctx.userId);
+
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: 'Image generated',
+                data: {
+                  imageUrl:    imageResult.url,
+                  imagePrompt: imageResult.prompt,
+                  imageModel:  imageResult.model,
+                  subject,
+                  aspectRatio,
+                },
+              });
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'Image generation failed';
+              logger.warn({
+                requestId,
+                actionType: action.type,
+                error: errorMessage,
+              }, '[kip.actions] image.generate failed — failing gracefully');
+              // Fail gracefully: Kip's text response still completes
               results.push({
                 type: action.type,
                 status: 'error',
@@ -2400,6 +2500,22 @@ export class KipAgentService {
       const draftRules = (environment as any)?.policy?.policy?.drafts ?? {};
       const draftKinds =
         (draftRules?.autoDraft?.kinds as string[] | undefined) ?? ['vehicle_template', 'journey_spec', 'keeper_type_proposal', 'checklist_spec'];
+
+      // Read domain image generation defaults to surface in Kip's context
+      let domainImageStyle: string | null = null;
+      let domainImageModel: string | null = null;
+      if (options.domainId) {
+        try {
+          const domainRec = await prisma.domain.findUnique({
+            where: { id: options.domainId },
+            select: { frame_json: true },
+          });
+          const frame = domainRec?.frame_json as Record<string, any> | null;
+          if (frame?.kip?.image_style) domainImageStyle = String(frame.kip.image_style);
+          if (frame?.kip?.image_model)  domainImageModel  = String(frame.kip.image_model);
+        } catch { /* non-fatal */ }
+      }
+
       systemParts.push(
         [
           'Structured response required: reply with raw JSON only (no markdown or code fences). Include "response" (string) and optional "actions" (array).',
@@ -2423,6 +2539,15 @@ export class KipAgentService {
           '- When listing or discussing drafts, ALWAYS include each draft\'s title and updated date. A response that only gives a count (e.g. "You have 3 drafts") is not useful. Use draftsDirectory from the environment — format each as: [title] (updated [date]).',
           '',
           'SESSION NAMING (closing ritual): When the user signals the conversation is complete (e.g. "thanks that\'s all", "we\'re done", "goodbye", "that\'s it for now"), suggest naming the session: "Would you like to give this session a name? You can do that in the Sessions sidebar." This helps users find conversations later.',
+          '',
+          'IMAGE GENERATION — image.generate action:',
+          '- Use image.generate when the human explicitly requests an image, when a visual would meaningfully enhance a Moment or Journey, or when creative context calls for it.',
+          '- Payload fields: subject (required — what the image depicts), mood (optional — emotional tone), style (optional — visual aesthetic), aspect_ratio (optional — "1:1", "16:9", "9:16", "4:3").',
+          '- Do not specify model or domain_context — these are handled server-side from domain configuration.',
+          domainImageStyle ? `- This domain\'s visual character: "${domainImageStyle}". You may draw on this when composing subject, mood, and style — or depart from it if the request calls for something different.` : null,
+          domainImageModel ? `- Default image model for this domain: ${domainImageModel}.` : null,
+          '- Generate images purposefully, not reflexively. A well-timed image is memorable. An image on every response is noise.',
+          '- Example: {"type":"image.generate","payload":{"subject":"a keeper\'s desk at dusk, scattered notes and warm light","mood":"quiet, reflective","style":"cinematic photography","aspect_ratio":"16:9"}}',
           '',
           `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
           'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',
