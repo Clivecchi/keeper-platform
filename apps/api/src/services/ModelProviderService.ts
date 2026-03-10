@@ -574,14 +574,20 @@ export class ModelProviderService {
       typeof k === 'string' && k.trim().length > 0 ? k.trim() : null;
 
     let apiKey: string | null = validKey(process.env.TOGETHER_API_KEY);
+    let keySource = 'none';
+    if (apiKey) keySource = 'env';
 
     if (!apiKey && userId) {
       apiKey = validKey(await KipUserKeyService.getUserKey('together', userId));
+      if (apiKey) keySource = 'user';
     }
 
     if (!apiKey) {
       apiKey = validKey(await PlatformApiKeyService.getKeyForProvider('together'));
+      if (apiKey) keySource = 'platform';
     }
+
+    console.log(`[ModelProvider] Using ${keySource} key for together (user: ${userId ?? 'none'})`);
 
     if (!apiKey) {
       throw new Error('Together AI API key not configured. Add TOGETHER_API_KEY to your Railway environment variables.');

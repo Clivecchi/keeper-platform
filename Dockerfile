@@ -34,6 +34,7 @@ RUN echo "=== Generating Prisma client ===" && \
     echo "✅ Built @keeper/database" && \
     pnpm --filter @keeper/kam build && \
     echo "✅ Built @keeper/kam" && \
+    rm -rf apps/api/dist && \
     pnpm --filter keeper-api build && \
     echo "✅ Built keeper-api" && \
     echo "Build completed successfully"
