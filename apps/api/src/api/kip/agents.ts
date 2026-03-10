@@ -2523,7 +2523,7 @@ export class KipAgentService {
 
       systemParts.push(
         [
-          'Structured response required: reply with raw JSON only (no markdown or code fences). Include "response" (string) and optional "actions" (array).',
+          'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","actions":[...]}',
           `Allowed actions: ${allowList.join(', ')}.`,
           'Each action must include a "type" and optional "payload".',
           'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
@@ -2547,12 +2547,12 @@ export class KipAgentService {
           '',
           'IMAGE GENERATION — image.generate action:',
           '- Use image.generate when the human explicitly requests an image, when a visual would meaningfully enhance a Moment or Journey, or when creative context calls for it.',
-          '- Payload fields: subject (required — what the image depicts), mood (optional — emotional tone), style (optional — visual aesthetic), aspect_ratio (optional — "1:1", "16:9", "9:16", "4:3").',
+          '- image.generate — Dispatch to the image generation subagent. Fields: subject (REQUIRED — always populate this with a concrete description of what to generate, e.g. "a midnight blue field with warm amber light"), mood (optional), style (optional), aspect_ratio (optional: "1:1", "16:9", "9:16", "4:3"). You MUST include subject or the action will fail. Do not emit image.generate without subject populated.',
           '- Do not specify model or domain_context — these are handled server-side from domain configuration.',
           domainImageStyle ? `- This domain\'s visual character: "${domainImageStyle}". You may draw on this when composing subject, mood, and style — or depart from it if the request calls for something different.` : null,
           domainImageModel ? `- Default image model for this domain: ${domainImageModel}.` : null,
           '- Generate images purposefully, not reflexively. A well-timed image is memorable. An image on every response is noise.',
-          '- Example: {"type":"image.generate","payload":{"subject":"a keeper\'s desk at dusk, scattered notes and warm light","mood":"quiet, reflective","style":"cinematic photography","aspect_ratio":"16:9"}}',
+          '- Example: {"type":"agent_output","response":"Here\'s your image.","actions":[{"type":"image.generate","payload":{"subject":"a keeper\'s desk at dusk, scattered notes and warm light","mood":"quiet, reflective","style":"cinematic photography","aspect_ratio":"16:9"}}]}',
           '',
           `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
           'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',
@@ -2784,7 +2784,7 @@ export class KipAgentService {
         messages.push({
           role: 'system',
           content: [
-            'Structured response required: reply with raw JSON only (no markdown or code fences). Include "response" (string) and optional "actions" (array).',
+            'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","actions":[...]}',
             `Allowed actions: ${allowList.join(', ')}.`,
             'Each action must include a "type" and optional "payload".',
             'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
@@ -2805,6 +2805,13 @@ export class KipAgentService {
             '- When listing or discussing drafts, ALWAYS include each draft\'s title and updated date. A response that only gives a count (e.g. "You have 3 drafts") is not useful. Use draftsDirectory from the environment — format each as: [title] (updated [date]).',
             '',
             'SESSION NAMING (closing ritual): When the user signals the conversation is complete (e.g. "thanks that\'s all", "we\'re done", "goodbye", "that\'s it for now"), suggest naming the session: "Would you like to give this session a name? You can do that in the Sessions sidebar." This helps users find conversations later.',
+            '',
+            'IMAGE GENERATION — image.generate action:',
+            '- Use image.generate when the human explicitly requests an image, when a visual would meaningfully enhance a Moment or Journey, or when creative context calls for it.',
+            '- image.generate — Dispatch to the image generation subagent. Fields: subject (REQUIRED — always populate this with a concrete description of what to generate, e.g. "a midnight blue field with warm amber light"), mood (optional), style (optional), aspect_ratio (optional: "1:1", "16:9", "9:16", "4:3"). You MUST include subject or the action will fail. Do not emit image.generate without subject populated.',
+            '- Do not specify model or domain_context — these are handled server-side from domain configuration.',
+            '- Generate images purposefully, not reflexively. A well-timed image is memorable. An image on every response is noise.',
+            '- Example: {"type":"agent_output","response":"Here\'s your image.","actions":[{"type":"image.generate","payload":{"subject":"a keeper\'s desk at dusk, scattered notes and warm light","mood":"quiet, reflective","style":"cinematic photography","aspect_ratio":"16:9"}}]}',
             '',
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
             'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',
