@@ -330,36 +330,20 @@ class TogetherProvider {
   }
 
   async generateImage(brief: ImageGenerationBrief): Promise<ImageGenerationResult> {
-    // together-ai is a CJS package. When imported via ESM import(), Node.js wraps
-    // module.exports as the `default` export — so `{ default: Together }` yields the
-    // entire module object, not the class. Mirror the OpenAI pattern: try the named
-    // export (.Together) first, fall back to .default for pure-default builds.
-    const togetherMod = await import('together-ai');
-    const Together = (togetherMod as any).Together ?? (togetherMod as any).default;
-    const client = new Together({ apiKey: this.apiKey });
-
-    const model = brief.model ?? 'black-forest-labs/FLUX.1-schnell';
-    const steps = brief.steps ?? (model.includes('schnell') ? 4 : 28);
-
-    const response = await client.images.create({
-      model,
+    const Together = (await import('together-ai')).default;
+    const together = new Together({ apiKey: this.apiKey });
+    const response = await together.images.create({
+      model: brief.model ?? 'black-forest-labs/FLUX.1-schnell',
       prompt: brief.prompt,
       width: brief.width ?? 1024,
       height: brief.height ?? 1024,
-      steps,
+      steps: brief.steps ?? 4,
       n: 1,
-    });
-
-    const imageUrl = response?.data?.[0]?.url;
-    if (!imageUrl) {
-      throw new Error('Together AI image generation returned no URL');
-    }
-
-    return {
-      url: imageUrl,
-      model,
-      prompt: brief.prompt,
-    };
+      response_format: 'url',
+    } as any);
+    const url = response.data?.[0]?.url;
+    if (!url) throw new Error('No image URL returned from Together AI');
+    return { url, model: brief.model ?? 'black-forest-labs/FLUX.1-schnell', prompt: brief.prompt };
   }
 }
 
