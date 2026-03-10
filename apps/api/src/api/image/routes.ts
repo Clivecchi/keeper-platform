@@ -118,6 +118,10 @@ router.post('/generate', imageLimiter, authMiddlewareCompat, async (req: Request
     });
 
   } catch (error: unknown) {
+    const err = error as any;
+    console.error('[image/generate] FULL ERROR:', err);
+    console.error('[image/generate] ERROR TYPE:', typeof err);
+    console.error('[image/generate] ERROR CONSTRUCTOR:', err?.constructor?.name);
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[image/generate] Error:', message);
 
