@@ -330,20 +330,31 @@ class TogetherProvider {
   }
 
   async generateImage(brief: ImageGenerationBrief): Promise<ImageGenerationResult> {
-    const Together = (await import('together-ai')).default;
-    const together = new Together({ apiKey: this.apiKey });
-    const response = await (together.images as any).create({
-      model: brief.model ?? 'black-forest-labs/FLUX.1-schnell',
-      prompt: brief.prompt,
-      width: brief.width ?? 1024,
-      height: brief.height ?? 1024,
-      steps: brief.steps ?? 4,
-      n: 1,
-      response_format: 'url',
+    const model = brief.model ?? 'black-forest-labs/FLUX.1-schnell';
+    const response = await fetch('https://api.together.xyz/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        prompt: brief.prompt,
+        width: brief.width ?? 1024,
+        height: brief.height ?? 1024,
+        steps: brief.steps ?? 4,
+        n: 1,
+        response_format: 'url',
+      }),
     });
-    const url = response.data?.[0]?.url;
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`Together AI API error: ${response.status} ${err}`);
+    }
+    const data = await response.json();
+    const url = data.data?.[0]?.url;
     if (!url) throw new Error('No image URL returned from Together AI');
-    return { url, model: brief.model ?? 'black-forest-labs/FLUX.1-schnell', prompt: brief.prompt };
+    return { url, model, prompt: brief.prompt };
   }
 }
 
