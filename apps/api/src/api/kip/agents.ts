@@ -3136,6 +3136,10 @@ export class KipAgentService {
 
         const requestId = randomUUID();
         let structured = parseStructuredAgentResponse(response, requestId);
+        console.log('[kip/agents] Raw AI response (first 1000):', response.slice(0, 1000));
+        console.log('[actions] Parsed actions:', JSON.stringify(structured.actions));
+        console.log('[kip/agents] ignoredReason:', structured.ignoredReason ?? null);
+        console.log('[kip/agents] validationError:', structured.validationError?.message ?? null);
         const allowActions = buildAllowedActions(options?.environment ?? null);
         const actionPack = options?.actionPack ?? buildActionPackFromAllowlist(allowActions);
 
