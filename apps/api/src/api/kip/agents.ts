@@ -1525,6 +1525,7 @@ export async function executeAgentActions(
           }
 
           case 'image.generate': {
+            console.log('[image.generate] Action received:', action);
             const payload = action.payload ?? {};
             const subject = typeof payload.subject === 'string' ? payload.subject.trim() : '';
 
@@ -1556,6 +1557,7 @@ export async function executeAgentActions(
                   // Non-fatal — proceed without domain context
                 }
               }
+              console.log('[image.generate] domain_context:', domainContext);
 
               const parts: string[] = [subject];
               if (typeof payload.mood === 'string' && payload.mood.trim()) parts.push(payload.mood.trim());
@@ -1587,6 +1589,7 @@ export async function executeAgentActions(
                 model: brief.model ?? 'default',
                 userId: ctx.userId,
               }, '[kip.actions] image.generate dispatching');
+              console.log('[image.generate] Calling ModelProviderService.generateImage');
 
               const imageResult = await ModelProviderService.generateImage(brief, ctx.userId);
 
@@ -1603,7 +1606,9 @@ export async function executeAgentActions(
                 },
               });
             } catch (error) {
-              const errorMessage = error instanceof Error ? error.message : 'Image generation failed';
+              const err = error instanceof Error ? error : undefined;
+              console.error('[image.generate] FAILED:', err?.message, err?.stack);
+              const errorMessage = err?.message ?? 'Image generation failed';
               logger.warn({
                 requestId,
                 actionType: action.type,
