@@ -332,7 +332,7 @@ class TogetherProvider {
   async generateImage(brief: ImageGenerationBrief): Promise<ImageGenerationResult> {
     const Together = (await import('together-ai')).default;
     const together = new Together({ apiKey: this.apiKey });
-    const response = await together.images.create({
+    const response = await (together.images as any).create({
       model: brief.model ?? 'black-forest-labs/FLUX.1-schnell',
       prompt: brief.prompt,
       width: brief.width ?? 1024,
@@ -340,7 +340,7 @@ class TogetherProvider {
       steps: brief.steps ?? 4,
       n: 1,
       response_format: 'url',
-    } as any);
+    });
     const url = response.data?.[0]?.url;
     if (!url) throw new Error('No image URL returned from Together AI');
     return { url, model: brief.model ?? 'black-forest-labs/FLUX.1-schnell', prompt: brief.prompt };
