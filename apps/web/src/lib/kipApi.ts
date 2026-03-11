@@ -818,6 +818,16 @@ export class KipApi {
     }
   }
 
+  static async publishDraft(domainId: string, draftId: string): Promise<{ success: boolean; idempotent?: boolean; domain?: { id: string; slug: string }; status?: string }> {
+    const response = await apiFetch(`/api/domains/${domainId}/kip/drafts/${draftId}/publish`, {
+      method: 'POST',
+    });
+    if (!response?.success) {
+      throw new Error(pickErrorMessage(response, 'Failed to publish draft'));
+    }
+    return response;
+  }
+
   /**
    * Get domain-scoped agents (only agents assigned to the domain)
    */

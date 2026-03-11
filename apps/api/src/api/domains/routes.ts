@@ -16,6 +16,7 @@ import customDomainRoutes from './custom-domain-routes.js';
 import contactRoutes from './contact.js';
 import boardDataRoutes from './board-data.js';
 import kipDraftRoutes from './kip-drafts.js';
+import kipDesignerRoutes from './kip-designer.js';
 import { createDomainResolutionMiddleware } from '../../middleware/domainResolutionMiddleware.js';
 import { ensureDomainTableShape } from '../../lib/db-guards.js';
 import { DomainService } from '@keeper/database';
@@ -198,6 +199,7 @@ router.use(contactRoutes);
 // Mount board data routes
 router.use(boardDataRoutes);
 router.use(kipDraftRoutes);
+router.use(kipDesignerRoutes);
 
 // GET /api/domains/:domainId/kip/sole-memory-cards - Domain anchor SOLE (Option B)
 router.get('/:domainId/kip/sole-memory-cards', authMiddlewareCompat, requireDomainReadCompat, async (req: AuthenticatedRequest, res: Response) => {

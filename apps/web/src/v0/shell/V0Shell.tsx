@@ -6,20 +6,8 @@ import { useAuth } from "../../context/AuthContext"
 import { useTheme } from "../../context/ThemeContext"
 import type { StyleId } from "../styles/styles"
 import { StyleOverrideProvider } from "../styles/StyleOverrideProvider"
-import { CoverFrame } from "../components/cover-frame"
-import { MomentFrame } from "../components/moment-frame"
-import { KeptMomentsFrame } from "../components/kept-moments-frame"
-import { CommonsFrame } from "../frames/commons/CommonsFrame"
-import { PresentFrame } from "../frames/present/PresentFrame"
-import { DiagnosticsFrame } from "../frames/diagnostics/DiagnosticsFrame"
-import { FeedFrame } from "../frames/feed/FeedFrame"
-import { KeepersFrame } from "../frames/keepers/KeepersFrame"
-import { JourneysFrame } from "../frames/journeys/JourneysFrame"
-import { ProfileFrame } from "../frames/profile/ProfileFrame"
-import { AgentFrame } from "../frames/agent/AgentFrame"
-import { AgentBoardFrame } from "../frames/agent/AgentBoardFrame"
-import { AdminFrame } from "../frames/admin/AdminFrame"
-import { IndexFrame } from "../frames/index/IndexFrame"
+import { CORE_FRAME_MAP } from "./frameRegistryMap"
+import { DesignerFrame } from "../frames/designer/DesignerFrame"
 import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
 import { loadDomainFrame } from "../data/loadDomainFrame"
@@ -42,20 +30,8 @@ const getDomainFallback = (slug: string) => ({
 })
 
 const FRAME_REGISTRY: Record<V0FrameKey, React.ComponentType<any>> = {
-  cover: CoverFrame,
-  commons: CommonsFrame,
-  index: IndexFrame,
-  moment: MomentFrame,
-  moments: KeptMomentsFrame,
-  present: PresentFrame,
-  diagnostics: DiagnosticsFrame,
-  feed: FeedFrame,
-  keepers: KeepersFrame,
-  journeys: JourneysFrame,
-  profile: ProfileFrame,
-  agent: AgentBoardFrame,
-  kip: AgentFrame,
-  admin: AdminFrame,
+  ...CORE_FRAME_MAP,
+  designer: DesignerFrame,
 }
 
 export function V0Shell() {
@@ -68,7 +44,7 @@ export function V0Shell() {
   const [searchParams] = useSearchParams()
   const defaultFrame = isAuthenticated ? "commons" : "cover"
   const frameParam = (searchParams.get("frame") || defaultFrame).toLowerCase() as V0FrameKey
-  const privateFrames = new Set<V0FrameKey>(["commons", "profile", "admin"])
+  const privateFrames = new Set<V0FrameKey>(["commons", "profile", "admin", "designer"])
   const requestedFrame = FRAME_REGISTRY[frameParam] ? frameParam : "cover"
   const isPrivateRequest = privateFrames.has(requestedFrame)
 

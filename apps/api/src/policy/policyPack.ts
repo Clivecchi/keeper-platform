@@ -8,7 +8,7 @@ export const DEFAULT_POLICY_PACK_V1 = {
     autoDraft: {
       enabled: true,
       thresholds: { minSections: 3, minChars: 1200 },
-      kinds: ['vehicle_template', 'journey_spec', 'keeper_type_proposal', 'checklist_spec'],
+      kinds: ['vehicle_template', 'journey_spec', 'keeper_type_proposal', 'checklist_spec', 'domain_json'],
       behavior: 'create_then_confirm' as const,
     },
   },

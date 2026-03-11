@@ -413,6 +413,116 @@ router.delete(
   },
 );
 
+/**
+ * POST /:domainId/kip/drafts/:draftId/publish
+ *
+ * Publish a domain_json draft: writes draft.spec_json to Domain.frame_json (full replace)
+ * and marks the draft as "promoted". Only the domain owner may invoke this.
+ *
+ * Idempotent: calling again on an already-promoted draft returns 200 without re-writing.
+ */
+router.post(
+  '/:domainId/kip/drafts/:draftId/publish',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const requestId = (req.headers['x-request-id'] || req.headers['x-railway-request-id'] || 'unknown') as string;
+    const { domainId, draftId } = req.params;
+
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+
+      // Fetch draft — must belong to this domain
+      const draft = await prisma.kip_drafts.findFirst({
+        where: { id: draftId, domain_id: domainId },
+      });
+
+      if (!draft) {
+        return res.status(404).json({ error: 'DRAFT_NOT_FOUND', message: 'Draft not found in this domain' });
+      }
+
+      // Only domain_json drafts may be published via this handler
+      if (draft.kind !== 'domain_json') {
+        return res.status(400).json({
+          error: 'INVALID_DRAFT_KIND',
+          message: `publish is only supported for kind "domain_json", this draft has kind "${draft.kind}"`,
+        });
+      }
+
+      // Validate spec_json is a non-null plain object
+      const specJson = draft.spec_json;
+      if (specJson === null || typeof specJson !== 'object' || Array.isArray(specJson)) {
+        return res.status(400).json({
+          error: 'INVALID_SPEC_JSON',
+          message: 'Draft spec_json must be a non-null JSON object before publishing',
+        });
+      }
+
+      // Fetch domain — needed for ownership check and slug in response
+      const domain = await prisma.domain.findUnique({
+        where: { id: domainId },
+        select: { id: true, slug: true, ownerId: true },
+      });
+
+      if (!domain) {
+        return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
+      }
+
+      // Only the domain owner may publish to frame_json
+      if (domain.ownerId !== req.user.id) {
+        logger.warn({ requestId, domainId, draftId, userId: req.user.id }, 'kip draft domain_json publish: forbidden — not domain owner');
+        return res.status(403).json({
+          error: 'FORBIDDEN',
+          message: 'Only the domain owner can publish a domain_json draft',
+        });
+      }
+
+      // Idempotent: already published
+      if (draft.status === 'promoted') {
+        logger.info({ requestId, domainId, draftId }, 'kip draft domain_json publish: already promoted, idempotent ok');
+        return res.status(200).json({
+          success: true,
+          idempotent: true,
+          message: 'Draft was already published',
+          domain: { id: domain.id, slug: domain.slug },
+          draftId: draft.id,
+          status: draft.status,
+        });
+      }
+
+      // Write spec_json → Domain.frame_json (full replace) and mark draft promoted — in a transaction
+      const [updatedDomain, updatedDraft] = await prisma.$transaction([
+        prisma.domain.update({
+          where: { id: domainId },
+          data: { frame_json: specJson },
+          select: { id: true, slug: true },
+        }),
+        prisma.kip_drafts.update({
+          where: { id: draftId },
+          data: { status: 'promoted', updated_at: new Date() },
+        }),
+      ]);
+
+      logger.info(
+        { requestId, domainId, draftId, userId: req.user.id, domainSlug: updatedDomain.slug },
+        'kip draft domain_json publish ok',
+      );
+
+      return res.status(200).json({
+        success: true,
+        domain: { id: updatedDomain.id, slug: updatedDomain.slug },
+        draftId: updatedDraft.id,
+        status: updatedDraft.status,
+      });
+    } catch (error) {
+      logger.error({ requestId, domainId, draftId, err: error, userId: req.user?.id }, 'kip draft domain_json publish failed');
+      return res.status(500).json({ error: 'PUBLISH_FAILED', code: 'INTERNAL_ERROR' });
+    }
+  },
+);
+
 router.delete(
   '/:domainId/kip/drafts/:draftId',
   authMiddlewareCompat,

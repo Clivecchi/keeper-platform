@@ -698,7 +698,7 @@ export async function executeAgentActions(
   }, '[kip.actions] received');
 
   // Normalize draft.create payloads (map common model mistakes to schema)
-  const VALID_KINDS = ['journey_spec', 'keeper_type_proposal', 'vehicle_template', 'checklist_spec', 'development_journey', 'conversation_review'];
+  const VALID_KINDS = ['journey_spec', 'keeper_type_proposal', 'vehicle_template', 'checklist_spec', 'development_journey', 'conversation_review', 'domain_json'];
   const normalizedActions = actions.map((action) => {
     if (action.type !== 'draft.create' || !action.payload || typeof action.payload !== 'object') return action;
     const p = action.payload as Record<string, unknown>;

@@ -20,6 +20,7 @@ export type V0FrameKey =
   | "agent"
   | "kip"
   | "admin"
+  | "designer"
 
 export interface BuildFrameUrlOptions {
   draftId?: string | null
