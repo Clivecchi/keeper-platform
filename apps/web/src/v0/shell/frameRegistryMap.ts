@@ -1,12 +1,8 @@
 /**
  * Core Frame Registry Map
  *
- * All V0 Frames except DesignerFrame — exported separately to avoid the
- * circular-import that would occur if DesignerFrame (which renders previews)
- * imported from V0Shell (which imports DesignerFrame).
- *
- * V0Shell.tsx builds FRAME_REGISTRY by spreading this map and adding designer.
- * DesignerFramePreview imports this map directly to render preview frames.
+ * All V0 Frames. Imported by V0Shell.tsx to build FRAME_REGISTRY.
+ * Also imported by DesignBoardCanvas (boards/designer) to render frame previews.
  */
 
 import type React from "react"
@@ -58,7 +54,6 @@ export const FRAME_DISPLAY_NAMES: Record<string, string> = {
   agent: "Agent Board",
   kip: "Kip",
   admin: "Admin",
-  designer: "Designer",
 }
 
 /**
@@ -80,5 +75,4 @@ export const FRAME_TO_JSON_KEY: Record<string, string | null> = {
   agent: "agent_board",
   kip: "kip",
   admin: "domain_admin",
-  designer: null,
 }

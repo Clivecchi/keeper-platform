@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * DesignerFrameNav — Left panel of the Designer Frame.
+ * DesignBoardNav (was DesignerFrameNav) — Left panel of the Design Board.
  *
  * Lists all V0 Frames with:
  *   • Display name

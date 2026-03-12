@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * DesignerFrameKip — Center panel of the Designer Frame.
+ * DesignBoardKip (was DesignerFrameKip) — Center panel of the Design Board.
  *
  * Conversation interface between the domain owner and Kip.
  *
@@ -18,7 +18,7 @@
 
 import * as React from "react"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
-import type { DesignerMessage } from "./DesignerFrame"
+import type { DesignerMessage } from "./DesignBoard"
 import { FRAME_DISPLAY_NAMES } from "../../shell/frameRegistryMap"
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"

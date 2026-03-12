@@ -1193,6 +1193,20 @@ export function AgentBoardFrame({
             />
 
             <PromptedActionCard items={promptedActions} />
+
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  const url = `/d/${domainSlug}/board?board=designer`
+                  window.location.href = url
+                }}
+                className="w-full text-left px-3 py-2 rounded-md text-xs font-medium transition-opacity opacity-60 hover:opacity-100"
+                style={{ color: "var(--theme-ink-secondary-color)" }}
+              >
+                Design Board
+              </button>
+            )}
           </>
         }
       >

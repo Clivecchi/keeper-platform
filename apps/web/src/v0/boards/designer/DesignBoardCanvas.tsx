@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * DesignerFramePreview — Right panel of the Designer Frame.
+ * DesignBoardCanvas (was DesignerFramePreview) — Right panel of the Design Board.
  *
  * Renders the active V0 Frame using the same CORE_FRAME_MAP registry.
  * The frame component receives a V0ShellProvider override so it reads
@@ -15,7 +15,7 @@
 
 import * as React from "react"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
-import type { DesignerAudience } from "./DesignerFrame"
+import type { DesignerAudience } from "./DesignBoard"
 import { CORE_FRAME_MAP, FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
 import { V0ShellProvider, useV0Shell } from "../../shell/V0ShellContext"
 import { FrameContextProvider } from "../../shell/FrameContext"

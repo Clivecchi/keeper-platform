@@ -7,7 +7,7 @@ import { useTheme } from "../../context/ThemeContext"
 import type { StyleId } from "../styles/styles"
 import { StyleOverrideProvider } from "../styles/StyleOverrideProvider"
 import { CORE_FRAME_MAP } from "./frameRegistryMap"
-import { DesignerFrame } from "../frames/designer/DesignerFrame"
+import { BOARD_REGISTRY, type V0BoardKey } from "../boards/boardRegistry"
 import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
 import { loadDomainFrame } from "../data/loadDomainFrame"
@@ -31,7 +31,6 @@ const getDomainFallback = (slug: string) => ({
 
 const FRAME_REGISTRY: Record<V0FrameKey, React.ComponentType<any>> = {
   ...CORE_FRAME_MAP,
-  designer: DesignerFrame,
 }
 
 export function V0Shell() {
@@ -44,7 +43,7 @@ export function V0Shell() {
   const [searchParams] = useSearchParams()
   const defaultFrame = isAuthenticated ? "commons" : "cover"
   const frameParam = (searchParams.get("frame") || defaultFrame).toLowerCase() as V0FrameKey
-  const privateFrames = new Set<V0FrameKey>(["commons", "profile", "admin", "designer"])
+  const privateFrames = new Set<V0FrameKey>(["commons", "profile", "admin"])
   const requestedFrame = FRAME_REGISTRY[frameParam] ? frameParam : "cover"
   const isPrivateRequest = privateFrames.has(requestedFrame)
 
@@ -54,6 +53,10 @@ export function V0Shell() {
 
   const styleId = (searchParams.get("style") || "neutral") as StyleId
   const draftId = searchParams.get("draftId")
+
+  // ?board= parameter — takes precedence over ?frame= when present and recognised
+  const boardParam = (searchParams.get("board") || "").toLowerCase() as V0BoardKey
+  const boardEntry = BOARD_REGISTRY[boardParam] ?? null
 
   // initialStyleId: passed to StyleOverrideProvider.
   // When any theme slug is active (URL or domain), omit the initial style so
@@ -164,6 +167,12 @@ export function V0Shell() {
     }
   }, [isAuthenticated, isPrivateRequest, slug, navigate, buildFrameUrl])
 
+  React.useEffect(() => {
+    if (boardEntry?.isPrivate && !isAuthenticated && slug) {
+      navigate(buildFrameUrl("cover"))
+    }
+  }, [boardEntry, isAuthenticated, slug, navigate, buildFrameUrl])
+
   const closeToBoard = () => {
     const params = new URLSearchParams()
     if (urlThemeSlug) params.set("theme", urlThemeSlug)
@@ -187,6 +196,65 @@ export function V0Shell() {
   })
   const frame = experience.state.frame
   const FrameComponent = FRAME_REGISTRY[frame]
+
+  // ── Board rendering — takes precedence over frame routing ─────────────────
+  if (boardEntry) {
+    const BoardComponent = boardEntry.component
+
+    // isAdminOnly guard — render inline, no redirect
+    if (boardEntry.isAdminOnly && !isAdmin) {
+      return (
+        <StyleOverrideProvider initialStyleId={initialStyleId}>
+          <div className="flex h-screen items-center justify-center bg-neutral-50">
+            <div className="rounded-xl border border-neutral-200 bg-white px-8 py-6 text-center shadow-sm">
+              <p className="text-sm font-medium text-neutral-700">Access restricted</p>
+              <p className="mt-1 text-xs text-neutral-400">
+                Design Board is available to Platform Admins only.
+              </p>
+            </div>
+          </div>
+        </StyleOverrideProvider>
+      )
+    }
+
+    // isPrivate + unauthenticated — redirect handled by useEffect above; render nothing while redirecting
+    if (boardEntry.isPrivate && !isAuthenticated) {
+      return null
+    }
+
+    // Authorised — Board owns its layout and chrome; V0Shell mounts it with context and steps back
+    return (
+      <StyleOverrideProvider initialStyleId={initialStyleId}>
+        <V0ShellProvider
+          value={{
+            domainSlug: slug,
+            frame,
+            experienceMode: experience.state.mode,
+            experienceActions: experience.actions,
+            themeSlug: urlThemeSlug,
+            styleId,
+            draftId,
+            domainData,
+            domainFrame,
+            resolvedAudience,
+            buildFrameUrl,
+            navigateToFrame,
+            closeToBoard,
+          }}
+        >
+          <FrameContextProvider
+            domainSlug={slug}
+            frame={frame}
+            experienceMode={experience.state.mode}
+            themeSlug={activeThemeSlug}
+            draftId={draftId}
+          >
+            <BoardComponent />
+          </FrameContextProvider>
+        </V0ShellProvider>
+      </StyleOverrideProvider>
+    )
+  }
 
   return (
     <StyleOverrideProvider initialStyleId={initialStyleId}>

@@ -1,12 +1,12 @@
 "use client"
 
 /**
- * DesignerFrame
+ * DesignBoard (was DesignerFrame)
  *
  * Platform Admin–only surface. Three panels at full viewport height:
- *   Left   — DesignerFrameNav   (frame list + live/draft status)
- *   Center — DesignerFrameKip   (Kip conversation for the active frame)
- *   Right  — DesignerFramePreview (live/draft frame preview + JSON toggle)
+ *   Left   — DesignBoardNav   (frame list + live/draft status)
+ *   Center — DesignBoardKip   (Kip conversation for the active frame)
+ *   Right  — DesignBoardCanvas (live/draft frame preview + JSON toggle)
  *
  * Interaction loop: Kip proposes → Preview updates → Human approves → Frame publishes.
  *
@@ -21,9 +21,9 @@ import { loadDomainFrame } from "../../data/loadDomainFrame"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
-import { DesignerFrameNav } from "./DesignerFrameNav"
-import { DesignerFrameKip } from "./DesignerFrameKip"
-import { DesignerFramePreview } from "./DesignerFramePreview"
+import { DesignerFrameNav } from "./DesignBoardNav"
+import { DesignerFrameKip } from "./DesignBoardKip"
+import { DesignerFramePreview } from "./DesignBoardCanvas"
 
 export type DesignerMessage = {
   id: string
@@ -208,3 +208,6 @@ export function DesignerFrame({
     </div>
   )
 }
+
+/** Named export alias used by BOARD_REGISTRY */
+export { DesignerFrame as DesignBoard }
