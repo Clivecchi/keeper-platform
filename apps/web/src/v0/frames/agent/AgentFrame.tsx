@@ -6,16 +6,18 @@ import { DesignFrame } from "../DesignFrame"
 import { ThemeSwitcher } from "../ThemeSwitcher"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { KipAgentBoard } from "../../../pages/kip/KipAgentBoardPage"
+import { DEFAULT_DOMAIN_FRAME } from "../../data/domain-frame.default"
 
 export function AgentFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
-  const { closeToBoard } = useV0Shell()
+  const { closeToBoard, domainFrame } = useV0Shell()
+  const kipLabels = domainFrame?.kip ?? DEFAULT_DOMAIN_FRAME.kip
 
   return (
     <DesignFrame
       styleId={styleId}
       themeSlug={themeSlug}
       title="Kip"
-      subtitle="This frame will host the domain agent surface inside the v0 shell."
+      subtitle={kipLabels.greeting}
       themeSwitcherSlot={<ThemeSwitcher />}
       rightSlot={
         <button

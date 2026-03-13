@@ -4,7 +4,13 @@
  *
  * Two-model pattern:
  *   Anthropic (claude-sonnet-4-6) — conversation, reasoning, brand voice
- *   Together AI (Mixtral JSON Mode)  — guaranteed schema-compliant domain JSON output
+ *   Together AI (meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo, JSON Mode + schema)
+ *     — guaranteed schema-compliant domain JSON output via response_format with frame schema
+ *
+ * Model selection rationale:
+ *   meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo — fast, cost-efficient, supports
+ *   Together AI guided decoding (response_format with JSON Schema). Selected over
+ *   Mixtral-8x7B (schema-less only) and Mixtral-8x22B (heavier, higher latency).
  *
  * Request:  { message, frameKey, conversationHistory }
  * Response: { response: string, draft?: { spec_json: object } }
@@ -20,6 +26,7 @@ import { z } from 'zod';
 import { logger } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
+import { FRAME_SCHEMA_MAP } from './frame-schemas.js';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -76,13 +83,17 @@ async function callAnthropic(
 }
 
 // ─── Together AI JSON Mode call ───────────────────────────────────────────────
+// Model: meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo
+// Supports Together AI guided decoding via response_format with JSON Schema.
+// The schema parameter is required — this function is only called when a schema exists.
 
 async function callTogetherJsonMode(
   systemPrompt: string,
   userPrompt: string,
+  schema: object,
   apiKey: string,
 ): Promise<unknown> {
-  logger.info('[designer] Calling Together AI JSON mode');
+  logger.info('[designer] Calling Together AI JSON mode with schema');
 
   const response = await fetch('https://api.together.xyz/v1/chat/completions', {
     method: 'POST',
@@ -91,12 +102,12 @@ async function callTogetherJsonMode(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
+      model: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      response_format: { type: 'json_object' },
+      response_format: { type: 'json_object', schema },
       max_tokens: 4000,
       temperature: 0.3,
     }),
@@ -196,42 +207,48 @@ router.post(
       logger.info({ requestId, domainId, frameKey, userId: req.user.id }, '[designer] Anthropic call');
       const kipResponse = await callAnthropic(kipSystemPrompt, anthropicMessages, anthropicKey);
 
+      // ── Look up frame schema — null means no JSON governance for this frame ──
+      const frameSchema = FRAME_SCHEMA_MAP[frameKey] ?? null;
+
       // ── Decide if Together AI JSON mode is needed ──
-      const needsJson = wantsJsonProposal(message) && togetherKey;
+      // Requires: authoring intent detected + Together AI key configured + frame has a schema
+      const needsJson = wantsJsonProposal(message) && togetherKey && frameSchema !== null;
 
       let draftSpecJson: unknown | null = null;
 
       if (needsJson) {
-        // ── Together AI JSON Mode call ──
+        // ── Together AI JSON Mode call (schema-guaranteed output) ──
         const togetherSystemPrompt = [
-          `You produce domain JSON for the Keeper platform.`,
-          `Domain slug: ${domain.slug}`,
-          `Frame key: ${frameKey}`,
+          `You are authoring the \`${frameKey}\` frame JSON block for the Keeper domain "${domain.slug}".`,
+          `Your output must strictly match the provided JSON schema — every required field must be present, no extra keys allowed.`,
           ``,
-          `Current content for "${frameKey}":`,
+          `All string values must be meaningful, brand-appropriate content for this domain. Do not use placeholder text.`,
+          ``,
+          `Current \`${frameKey}\` content:`,
           currentFrameBlock
             ? JSON.stringify(currentFrameBlock, null, 2)
             : '{}',
           ``,
-          `The designer's intent (from conversation):`,
-          message,
+          `Authoring intent: ${message}`,
           ``,
-          `Kip's proposed approach:`,
-          kipResponse,
+          `Proposed approach from Kip: ${kipResponse}`,
           ``,
-          `Produce updated JSON for the "${frameKey}" block only.`,
-          `Output ONLY the JSON object. No explanation, no wrapper.`,
-          `Preserve all existing fields; only update what was specifically requested.`,
+          `Produce the complete updated \`${frameKey}\` JSON object. Preserve all existing fields; update only what was requested.`,
         ].join('\n');
 
-        const togetherUserPrompt = `Update the ${frameKey} frame JSON based on the conversation above.`;
+        const togetherUserPrompt = `Produce the updated \`${frameKey}\` frame JSON object.`;
 
         try {
-          const rawJson = await callTogetherJsonMode(togetherSystemPrompt, togetherUserPrompt, togetherKey!);
+          const rawJson = await callTogetherJsonMode(
+            togetherSystemPrompt,
+            togetherUserPrompt,
+            frameSchema,
+            togetherKey!,
+          );
           draftSpecJson = rawJson;
           logger.info({ requestId, domainId, frameKey }, '[designer] Together AI JSON mode produced draft');
         } catch (jsonErr) {
-          // JSON generation failed — still return Kip's conversational response
+          // JSON generation failed — conversation continues normally without a draft proposal
           logger.warn({ requestId, domainId, err: jsonErr }, '[designer] Together AI JSON mode failed, returning conversation only');
         }
       }
