@@ -14,6 +14,7 @@
  */
 
 import * as React from "react"
+import { useNavigate } from "react-router-dom"
 import type { StyleId } from "../../styles/styles"
 import { useAuth } from "../../../context/AuthContext"
 import { useV0Shell } from "../../shell/V0ShellContext"
@@ -24,6 +25,71 @@ import { KipApi } from "../../../lib/kipApi"
 import { DesignerFrameNav } from "./DesignBoardNav"
 import { DesignerFrameKip } from "./DesignBoardKip"
 import { DesignerFramePreview } from "./DesignBoardCanvas"
+
+// ─── Banner ───────────────────────────────────────────────────────────────────
+// Domain wordmark + navigation chrome. Sits above the three-panel layout as
+// the top chrome for the Designer Board — mirrors the domain branding visible
+// in the standard authenticated frame experience.
+
+function DesignBoardBanner({
+  domainSlug,
+  wordmark,
+  onBack,
+}: {
+  domainSlug: string
+  wordmark: string
+  onBack: () => void
+}) {
+  return (
+    <div
+      className="shrink-0 flex items-center justify-between px-4"
+      style={{
+        height: 44,
+        borderBottom: "1px solid var(--theme-border-soft, #e5e7eb)",
+        background: "hsl(var(--theme-surface-paper, 0 0% 100%))",
+      }}
+    >
+      {/* Left: back button + domain wordmark */}
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Back to domain board"
+          className="shrink-0 flex items-center gap-1 rounded px-2 py-1 text-[11px] transition-colors hover:bg-black/5"
+          style={{ color: "var(--theme-ink-secondary, #6b7280)" }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+            <path d="M8 2L4 6L8 10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Back
+        </button>
+        <span
+          className="text-[11px] font-medium truncate"
+          style={{ color: "var(--theme-ink-secondary, #6b7280)" }}
+        >
+          {domainSlug}
+        </span>
+        <span
+          className="font-serif text-[15px] leading-tight truncate"
+          style={{ color: "var(--theme-ink-primary, #111)" }}
+        >
+          {wordmark}
+        </span>
+      </div>
+
+      {/* Right: Designer label */}
+      <span
+        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest"
+        style={{
+          background: "hsl(var(--theme-surface-raised, 0 0% 95%))",
+          color: "var(--theme-ink-secondary, #6b7280)",
+        }}
+      >
+        Designer
+      </span>
+    </div>
+  )
+}
 
 export type DesignerMessage = {
   id: string
@@ -48,6 +114,7 @@ export function DesignerFrame({
 }) {
   const { isAdmin } = useAuth()
   const { domainSlug: ctxSlug, domainFrame: shellDomainFrame } = useV0Shell()
+  const navigate = useNavigate()
   const domainSlug = propDomainSlug ?? ctxSlug ?? ""
 
   // ── Local live domain frame (separate from shell — reloads after publish) ──
@@ -135,11 +202,27 @@ export function DesignerFrame({
     )
   }
 
+  const wordmark = liveDomainFrame?.theme?.wordmark ?? domainSlug
+
+  const handleBack = () => {
+    navigate(`/d/${domainSlug}/board`)
+  }
+
   return (
     <div
-      className="flex h-screen w-full overflow-hidden"
+      className="flex flex-col h-screen w-full overflow-hidden"
       style={{ background: "hsl(var(--theme-surface-page, 0 0% 97%))" }}
     >
+      {/* Top — Domain banner (wordmark + navigation chrome) */}
+      <DesignBoardBanner
+        domainSlug={domainSlug}
+        wordmark={wordmark}
+        onBack={handleBack}
+      />
+
+      {/* Three-panel layout */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+
       {/* Left — Frame Navigator */}
       <div
         className="flex flex-col border-r"
@@ -204,6 +287,8 @@ export function DesignerFrame({
           showRawJson={showRawJson}
           setShowRawJson={setShowRawJson}
         />
+      </div>
+
       </div>
     </div>
   )

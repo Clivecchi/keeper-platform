@@ -12,6 +12,12 @@ export function AgentFrame({ styleId = "neutral", themeSlug }: { styleId?: Style
   const { closeToBoard, domainFrame } = useV0Shell()
   const kipLabels = domainFrame?.kip ?? DEFAULT_DOMAIN_FRAME.kip
 
+  // DomainFrameKip.agent_id — available, no current render surface (consumed by KipAgentBoard internally)
+  // DomainFrameKip.model — available, no current render surface (consumed by KipAgentBoard internally)
+  // DomainFrameKip.visibility — available, no current render surface (access control flag, not display text)
+  // DomainFrameKip.image_style — available, no current render surface (image generation prompt, not display text)
+  // DomainFrameKip.image_model — available, no current render surface (image generation model id, not display text)
+
   return (
     <DesignFrame
       styleId={styleId}
