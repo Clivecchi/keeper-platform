@@ -65,7 +65,7 @@ function FramePreviewShell({
       <FrameContextProvider
         domainSlug={domainSlug}
         frame={frameKey as any}
-        experienceMode="standard"
+        experienceMode={parentShell.experienceMode}
         themeSlug={parentShell.themeSlug}
         draftId={null}
       >

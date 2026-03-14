@@ -118,7 +118,7 @@ function MessageBubble({
         <p style={{ whiteSpace: "pre-wrap" }}>{msg.content}</p>
 
         {/* Approve button — only shown when there's a proposal and no draft yet */}
-        {msg.draftProposal && !draftId && (
+        {!!msg.draftProposal && !draftId && (
           <div className="mt-2 pt-2 border-t border-black/10">
             <button
               type="button"
