@@ -492,27 +492,37 @@ router.post(
         });
       }
 
-      // Write spec_json → Domain.frame_json (full replace) and mark draft promoted — in a transaction
-      const [updatedDomain, updatedDraft] = await prisma.$transaction([
-        prisma.domain.update({
-          where: { id: domainId },
-          data: { frame_json: specJson },
-          select: { id: true, slug: true },
-        }),
-        prisma.kip_drafts.update({
-          where: { id: draftId },
-          data: { status: 'promoted', updated_at: new Date() },
-        }),
-      ]);
+      // Write spec_json → Domain.frame_json (full replace) using raw SQL.
+      // Prisma ORM silently fails to persist JSONB updates on this column in some
+      // configurations — raw SQL with ::jsonb cast is the reliable path.
+      const frameJsonStr = JSON.stringify(specJson);
+      await prisma.$executeRaw`
+        UPDATE "Domain"
+        SET frame_json = ${frameJsonStr}::jsonb,
+            "updatedAt" = NOW()
+        WHERE id = ${domainId}
+      `;
+
+      // Mark draft as promoted
+      const updatedDraft = await prisma.kip_drafts.update({
+        where: { id: draftId },
+        data: { status: 'promoted', updated_at: new Date() },
+      });
+
+      // Re-fetch domain for the response
+      const updatedDomain = await prisma.domain.findUnique({
+        where: { id: domainId },
+        select: { id: true, slug: true },
+      });
 
       logger.info(
-        { requestId, domainId, draftId, userId: req.user.id, domainSlug: updatedDomain.slug },
+        { requestId, domainId, draftId, userId: req.user.id, domainSlug: updatedDomain?.slug ?? domainId },
         'kip draft domain_json publish ok',
       );
 
       return res.status(200).json({
         success: true,
-        domain: { id: updatedDomain.id, slug: updatedDomain.slug },
+        domain: { id: updatedDomain?.id ?? domainId, slug: updatedDomain?.slug ?? domain.slug },
         draftId: updatedDraft.id,
         status: updatedDraft.status,
       });
