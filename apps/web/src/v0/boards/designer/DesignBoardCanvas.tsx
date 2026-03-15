@@ -11,6 +11,7 @@
  *   • Audience switcher — Guest · Keeper · Admin
  *   • JSON toggle — switches between rendered frame and raw JSON view
  *   • "Draft preview" badge appears when draftSpecJson is set
+ *   • Click any text in the preview to edit it inline (direct-edit mode)
  */
 
 import * as React from "react"
@@ -28,6 +29,163 @@ function formatJson(value: unknown): string {
   } catch {
     return String(value)
   }
+}
+
+// ─── String-leaf utilities for direct editing ─────────────────────────────────
+
+type StringLeaf = { path: string[]; value: string }
+
+/** Extract every string leaf from a JSON block with its dot-path */
+function extractStringLeaves(obj: unknown, path: string[] = []): StringLeaf[] {
+  if (typeof obj === "string" && obj.trim()) return [{ path, value: obj }]
+  if (typeof obj !== "object" || obj === null || Array.isArray(obj)) return []
+  return Object.entries(obj as Record<string, unknown>).flatMap(([k, v]) =>
+    extractStringLeaves(v, [...path, k]),
+  )
+}
+
+/** Set a deeply-nested value by path, returning a new object */
+function setNestedValue(
+  obj: Record<string, unknown>,
+  path: string[],
+  value: string,
+): Record<string, unknown> {
+  if (path.length === 0) return obj
+  const [head, ...rest] = path
+  if (rest.length === 0) return { ...obj, [head]: value }
+  return {
+    ...obj,
+    [head]: setNestedValue((obj[head] as Record<string, unknown>) ?? {}, rest, value),
+  }
+}
+
+// ─── Inline edit popup ────────────────────────────────────────────────────────
+
+interface EditPopupState {
+  x: number
+  y: number
+  path: string[]
+  value: string
+}
+
+function EditPopup({
+  popup,
+  onSave,
+  onClose,
+}: {
+  popup: EditPopupState
+  onSave: (path: string[], newValue: string) => void
+  onClose: () => void
+}) {
+  const [value, setValue] = React.useState(popup.value)
+  const inputRef = React.useRef<HTMLInputElement>(null)
+
+  React.useEffect(() => {
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [])
+
+  // Close on outside click
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest("[data-edit-popup]")) onClose()
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [onClose])
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") { e.preventDefault(); onSave(popup.path, value) }
+    if (e.key === "Escape") onClose()
+  }
+
+  const label = popup.path.join(" › ")
+
+  return (
+    <div
+      data-edit-popup
+      style={{
+        position: "fixed",
+        left: Math.min(popup.x, window.innerWidth - 300),
+        top: popup.y + 8,
+        zIndex: 9999,
+        background: "#ffffff",
+        border: "1px solid #d1d5db",
+        borderRadius: 8,
+        padding: "10px 12px",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.14)",
+        minWidth: 260,
+        maxWidth: 340,
+      }}
+    >
+      <p
+        style={{
+          fontSize: 10,
+          color: "#6b7280",
+          marginBottom: 6,
+          fontFamily: "ui-monospace, monospace",
+          letterSpacing: "0.03em",
+        }}
+      >
+        {label}
+      </p>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input
+          ref={inputRef}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          style={{
+            flex: 1,
+            border: "1px solid #d1d5db",
+            borderRadius: 4,
+            padding: "5px 8px",
+            fontSize: 13,
+            color: "#111827",
+            outline: "none",
+            background: "#f9fafb",
+          }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "#6b7280" }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "#d1d5db" }}
+        />
+        <button
+          type="button"
+          onClick={() => onSave(popup.path, value)}
+          style={{
+            background: "#111827",
+            color: "#fff",
+            border: "none",
+            borderRadius: 4,
+            padding: "5px 10px",
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Save
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            background: "transparent",
+            color: "#6b7280",
+            border: "1px solid #e5e7eb",
+            borderRadius: 4,
+            padding: "5px 8px",
+            fontSize: 12,
+            cursor: "pointer",
+          }}
+        >
+          ✕
+        </button>
+      </div>
+      <p style={{ fontSize: 10, color: "#9ca3af", marginTop: 5 }}>
+        Enter to save · Esc to cancel
+      </p>
+    </div>
+  )
 }
 
 // ─── Preview wrapper that overrides V0ShellContext for the inner frame ─────────
@@ -81,11 +239,12 @@ interface DesignerFramePreviewProps {
   domainSlug: string
   activeFrameKey: string | null
   liveDomainFrame: DomainFrameJson | null
-  draftSpecJson: unknown | null
+  draftSpecJson: DomainFrameJson | null
   audience: DesignerAudience
   setAudience: (a: DesignerAudience) => void
   showRawJson: boolean
   setShowRawJson: (v: boolean) => void
+  onDirectEdit: (updatedFrame: DomainFrameJson) => void
 }
 
 const AUDIENCE_OPTIONS: { key: DesignerAudience; label: string }[] = [
@@ -103,17 +262,67 @@ export function DesignerFramePreview({
   setAudience,
   showRawJson,
   setShowRawJson,
+  onDirectEdit,
 }: DesignerFramePreviewProps) {
   // The domain frame shown in the preview: draft takes priority over live.
-  // draftSpecJson is the FULL DomainFrameJson built by DesignBoardKip (live frame
-  // with the proposed frame block merged in at the correct JSON key). Spreading it
-  // over liveDomainFrame is safe — unchanged keys pass through, the edited key wins.
+  // draftSpecJson is the FULL DomainFrameJson (live frame with one block replaced).
   const previewDomainFrame = React.useMemo<DomainFrameJson | null>(() => {
-    if (draftSpecJson && liveDomainFrame && typeof draftSpecJson === "object" && !Array.isArray(draftSpecJson)) {
-      return { ...liveDomainFrame, ...(draftSpecJson as Partial<DomainFrameJson>) }
-    }
+    if (draftSpecJson) return { ...liveDomainFrame, ...draftSpecJson } as DomainFrameJson
     return liveDomainFrame
   }, [draftSpecJson, liveDomainFrame])
+
+  // ── Direct-edit state ──
+  const [editPopup, setEditPopup] = React.useState<EditPopupState | null>(null)
+
+  // String leaves extracted from the current frame's JSON block (for click-matching)
+  const stringLeaves = React.useMemo<StringLeaf[]>(() => {
+    const jsonKey = activeFrameKey ? (FRAME_TO_JSON_KEY[activeFrameKey] ?? null) : null
+    if (!jsonKey || !previewDomainFrame) return []
+    const block = (previewDomainFrame as Record<string, unknown>)[jsonKey]
+    return extractStringLeaves(block)
+  }, [activeFrameKey, previewDomainFrame])
+
+  // Click-capture overlay handler — uses poke-through to identify the underlying element
+  const handleOverlayClick = React.useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!activeFrameKey || showRawJson) return
+      const jsonKey = activeFrameKey ? (FRAME_TO_JSON_KEY[activeFrameKey] ?? null) : null
+      if (!jsonKey) return // non-governed frame — nothing to edit
+
+      const overlay = e.currentTarget
+      // Temporarily disable pointer events on the overlay so elementFromPoint
+      // returns the underlying rendered element
+      overlay.style.pointerEvents = "none"
+      const target = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
+      overlay.style.pointerEvents = ""
+
+      if (!target) return
+      const clickedText = target.textContent?.trim() ?? ""
+      if (!clickedText) return
+
+      // Find a string leaf whose value matches the clicked text
+      const leaf = stringLeaves.find((l) => l.value === clickedText)
+      if (!leaf) return
+
+      setEditPopup({ x: e.clientX, y: e.clientY, path: leaf.path, value: leaf.value })
+    },
+    [activeFrameKey, showRawJson, stringLeaves],
+  )
+
+  const handleEditSave = React.useCallback(
+    (path: string[], newValue: string) => {
+      if (!activeFrameKey || !previewDomainFrame) return
+      const jsonKey = FRAME_TO_JSON_KEY[activeFrameKey] ?? null
+      if (!jsonKey) return
+
+      const currentBlock = (previewDomainFrame as Record<string, unknown>)[jsonKey] as Record<string, unknown> ?? {}
+      const updatedBlock = setNestedValue(currentBlock, path, newValue)
+      const updatedFrame = { ...previewDomainFrame, [jsonKey]: updatedBlock } as DomainFrameJson
+      onDirectEdit(updatedFrame)
+      setEditPopup(null)
+    },
+    [activeFrameKey, previewDomainFrame, onDirectEdit],
+  )
 
   const isDraftPreview = Boolean(draftSpecJson)
 
@@ -243,20 +452,32 @@ export function DesignerFramePreview({
             </div>
           )
         ) : FrameComponent ? (
-          /* Rendered frame preview — wrapped in a context override */
-          <div className="h-full overflow-auto" style={{ pointerEvents: "none" }}>
-            <FramePreviewShell
-              domainSlug={domainSlug}
-              frameKey={activeFrameKey}
-              domainFrame={previewDomainFrame}
-              audience={audience}
-            >
-              <FrameComponent
-                styleId="neutral"
-                themeSlug={null}
+          /* Rendered frame preview — frame has pointer-events disabled to prevent
+             accidental navigation; a transparent overlay captures clicks for direct editing */
+          <div className="relative h-full overflow-auto">
+            <div style={{ pointerEvents: "none" }}>
+              <FramePreviewShell
                 domainSlug={domainSlug}
+                frameKey={activeFrameKey}
+                domainFrame={previewDomainFrame}
+                audience={audience}
+              >
+                <FrameComponent
+                  styleId="neutral"
+                  themeSlug={null}
+                  domainSlug={domainSlug}
+                />
+              </FramePreviewShell>
+            </div>
+            {/* Click-capture overlay — only on JSON-governed frames */}
+            {FRAME_TO_JSON_KEY[activeFrameKey] && (
+              <div
+                className="absolute inset-0"
+                style={{ cursor: "text", zIndex: 10 }}
+                onClick={handleOverlayClick}
+                title="Click any text to edit it"
               />
-            </FramePreviewShell>
+            )}
           </div>
         ) : (
           <div className="flex h-full items-center justify-center">
@@ -269,6 +490,27 @@ export function DesignerFramePreview({
           </div>
         )}
       </div>
+
+      {/* Direct-edit hint footer — only shown for JSON-governed frames in preview mode */}
+      {!showRawJson && activeFrameKey && FRAME_TO_JSON_KEY[activeFrameKey] && (
+        <div
+          className="shrink-0 px-4 py-1.5 border-t"
+          style={{ borderColor: "#e5e7eb", background: "#f9fafb" }}
+        >
+          <p style={{ fontSize: 10, color: "#9ca3af" }}>
+            Click any text in the preview to edit it directly
+          </p>
+        </div>
+      )}
+
+      {/* Inline edit popup */}
+      {editPopup && (
+        <EditPopup
+          popup={editPopup}
+          onSave={handleEditSave}
+          onClose={() => setEditPopup(null)}
+        />
+      )}
     </div>
   )
 }

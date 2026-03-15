@@ -33,7 +33,9 @@ interface DesignerFrameKipProps {
   setMessages: React.Dispatch<React.SetStateAction<DesignerMessage[]>>
   draftId: string | null
   setDraftId: (id: string | null) => void
-  setDraftSpecJson: (spec: unknown | null) => void
+  setDraftSpecJson: (spec: DomainFrameJson | null) => void
+  /** True when draftSpecJson is non-null — includes direct-edit drafts with no draftId */
+  hasDraftSpec: boolean
   isPublishing: boolean
   publishSuccess: boolean
   onPublish: () => void
@@ -57,14 +59,13 @@ function buildFullSpec(
   liveDomainFrame: DomainFrameJson | null,
   frameKey: string,
   frameBlock: unknown,
-): Record<string, unknown> {
+): DomainFrameJson {
   const jsonKey = FRAME_TO_JSON_KEY[frameKey] ?? null
   const base = liveDomainFrame ? { ...(liveDomainFrame as Record<string, unknown>) } : {}
   if (jsonKey) {
-    return { ...base, [jsonKey]: frameBlock }
+    return { ...base, [jsonKey]: frameBlock } as DomainFrameJson
   }
-  // No json key — shouldn't happen if backend produced a spec, but handle gracefully
-  return base
+  return base as DomainFrameJson
 }
 
 // ─── Message bubble ───────────────────────────────────────────────────────────
@@ -114,6 +115,7 @@ export function DesignerFrameKip({
   draftId,
   setDraftId,
   setDraftSpecJson,
+  hasDraftSpec,
   isPublishing,
   publishSuccess,
   onPublish,
@@ -267,8 +269,8 @@ export function DesignerFrameKip({
         <div ref={bottomRef} />
       </div>
 
-      {/* Draft / publish status bar */}
-      {(draftId || publishSuccess) && (
+      {/* Draft / publish status bar — visible for Kip drafts, direct edits, and post-publish success */}
+      {(hasDraftSpec || publishSuccess) && (
         <div
           className="shrink-0 px-4 py-3 border-t flex items-center justify-between gap-3"
           style={{
@@ -284,16 +286,18 @@ export function DesignerFrameKip({
           >
             {publishSuccess
               ? "✓ Published — live platform updated"
-              : "Draft ready — review preview on the right, then publish"}
+              : draftId
+                ? "Draft ready — review preview on the right, then publish"
+                : "Edit staged — review preview on the right, then publish"}
           </p>
 
-          {draftId && !publishSuccess && (
+          {hasDraftSpec && !publishSuccess && (
             <button
               type="button"
               onClick={onPublish}
               disabled={isPublishing}
               className="rounded-md px-3 py-1.5 text-[12px] font-medium transition-opacity disabled:opacity-50 shrink-0"
-              style={{ background: "hsl(var(--theme-ink-primary, 0 0% 10%))", color: "#fff" }}
+              style={{ background: "#111827", color: "#fff" }}
             >
               {isPublishing ? "Publishing…" : "Publish"}
             </button>

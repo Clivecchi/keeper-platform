@@ -134,7 +134,7 @@ export function DesignerFrame({
   const [showRawJson, setShowRawJson] = React.useState(false)
 
   // ── Draft state (lifted so all panels can read it) ──
-  const [draftSpecJson, setDraftSpecJson] = React.useState<unknown | null>(null)
+  const [draftSpecJson, setDraftSpecJson] = React.useState<DomainFrameJson | null>(null)
   const [draftId, setDraftId] = React.useState<string | null>(null)
   const [isPublishing, setIsPublishing] = React.useState(false)
   const [publishSuccess, setPublishSuccess] = React.useState(false)
@@ -174,12 +174,36 @@ export function DesignerFrame({
     }
   }, [domainSlug])
 
+  // ── Direct-edit handler (from Canvas click-to-edit) ──
+  // Receives the full updated DomainFrameJson. Updates preview immediately;
+  // a kip_draft is created lazily at publish time.
+  const handleDirectEdit = React.useCallback((updatedFrame: DomainFrameJson) => {
+    setDraftSpecJson(updatedFrame)
+    // Clear any stale Kip draft ID — this edit supersedes any pending draft
+    setDraftId(null)
+    setPublishSuccess(false)
+  }, [])
+
   // ── Publish handler ──
+  // Works for both Kip-generated drafts (draftId exists) and direct edits
+  // (draftSpecJson exists but no draftId — creates draft lazily then publishes).
   const handlePublish = React.useCallback(async () => {
-    if (!draftId || !domainId || isPublishing) return
+    if (!draftSpecJson || !domainId || isPublishing) return
     setIsPublishing(true)
     try {
-      await KipApi.publishDraft(domainId, draftId)
+      let resolvedDraftId = draftId
+      if (!resolvedDraftId) {
+        // Direct edit path: no persistent draft yet — create one now
+        const draft = await KipApi.createDraft(domainId, {
+          kind: "domain_json",
+          key: `direct-edit-${Date.now()}`,
+          title: "Direct edit",
+          spec: draftSpecJson as Record<string, unknown>,
+        })
+        resolvedDraftId = draft.id
+        setDraftId(resolvedDraftId)
+      }
+      await KipApi.publishDraft(domainId, resolvedDraftId)
       setPublishSuccess(true)
       setDraftSpecJson(null)
       setDraftId(null)
@@ -190,7 +214,7 @@ export function DesignerFrame({
     } finally {
       setIsPublishing(false)
     }
-  }, [draftId, domainId, isPublishing, reloadLiveFrame])
+  }, [draftId, draftSpecJson, domainId, isPublishing, reloadLiveFrame])
 
   // ── Admin guard ──
   if (!isAdmin) {
@@ -266,6 +290,7 @@ export function DesignerFrame({
           draftId={draftId}
           setDraftId={setDraftId}
           setDraftSpecJson={setDraftSpecJson}
+          hasDraftSpec={draftSpecJson !== null}
           isPublishing={isPublishing}
           publishSuccess={publishSuccess}
           onPublish={handlePublish}
@@ -291,6 +316,7 @@ export function DesignerFrame({
           setAudience={setAudience}
           showRawJson={showRawJson}
           setShowRawJson={setShowRawJson}
+          onDirectEdit={handleDirectEdit}
         />
       </div>
 
