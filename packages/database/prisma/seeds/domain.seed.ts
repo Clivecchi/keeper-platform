@@ -120,13 +120,14 @@ export default async function seedDomain() {
     await prisma.users.update({ where: { id: owner.id }, data: { primaryDomainId: undefined } }).catch(() => {});
   }
 
-  // Ensure the 'default' domain exists and has the correct frame_json.
-  // This is the public-facing domain that drives the cover card, InteractionBar,
-  // and companion for ke3p.com/d/default/board.
+  // Ensure the 'default' domain exists.
+  // frame_json is only set on CREATE — never overwritten on UPDATE.
+  // Once the domain exists, frame_json is owned by the Designer Board and Kip.
+  // Overwriting it here would wipe any JSON authored via the platform.
   await prisma.domain.upsert({
     where: { slug: 'default' },
     update: {
-      frame_json: DEFAULT_DOMAIN_FRAME_JSON,
+      // Intentionally no frame_json here — preserve whatever is in the database.
       updatedAt: new Date(),
     },
     create: {
