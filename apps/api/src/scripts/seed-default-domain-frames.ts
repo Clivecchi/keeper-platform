@@ -504,14 +504,35 @@ async function main() {
     return
   }
 
-  // 4. Write merged result back
-  console.log('\n  Writing to database...')
-  await prisma.domain.update({
-    where: { id: domain.id },
-    data: { frame_json: merged as Prisma.InputJsonValue },
-  })
+  // 4. Write merged result back using raw SQL to guarantee JSONB persistence
+  // (Prisma ORM update silently failed for this column — raw bypasses serialization quirks)
+  console.log('\n  Writing to database via raw SQL...')
+  const mergedJson = JSON.stringify(merged)
+  await prisma.$executeRaw`
+    UPDATE "Domain"
+    SET frame_json = ${mergedJson}::jsonb
+    WHERE id = ${domain.id}
+  `
 
-  console.log(`✅ Done — ${seededCount} frame(s) seeded on domain "${domain.slug}"`)
+  // 5. Verify the write
+  console.log('  Verifying write...')
+  const verify = await prisma.domain.findFirst({
+    where: { id: domain.id },
+    select: { frame_json: true },
+  })
+  const afterKeys = Object.keys((verify?.frame_json as Record<string, unknown>) ?? {})
+  console.log(`  frame_json keys after write (${afterKeys.length}): ${afterKeys.join(', ')}`)
+
+  const successKeys = GOVERNED_KEYS.filter(k => afterKeys.includes(k))
+  const missingKeys = GOVERNED_KEYS.filter(k => !afterKeys.includes(k))
+
+  if (missingKeys.length > 0) {
+    console.error(`❌ Write verification FAILED — missing keys: ${missingKeys.join(', ')}`)
+    process.exit(1)
+  }
+
+  console.log(`✅ Done — ${seededCount} frame(s) verified on domain "${domain.slug}"`)
+  console.log(`   Governed frames confirmed: ${successKeys.join(', ')}`)
 }
 
 main()

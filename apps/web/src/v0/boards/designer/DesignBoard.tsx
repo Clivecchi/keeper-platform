@@ -42,11 +42,12 @@ function DesignBoardBanner({
 }) {
   return (
     <div
-      className="shrink-0 flex items-center justify-between px-4"
+      className="shrink-0 flex items-center justify-between px-5"
       style={{
-        height: 44,
+        height: 56,
         borderBottom: "1px solid #e5e7eb",
         background: "#ffffff",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
       }}
     >
       {/* Left: back button + domain wordmark */}
@@ -55,38 +56,41 @@ function DesignBoardBanner({
           type="button"
           onClick={onBack}
           aria-label="Back to domain board"
-          className="shrink-0 flex items-center gap-1 rounded px-2 py-1 text-[11px] transition-colors hover:bg-black/5"
-          style={{ color: "#4b5563" }}
+          className="shrink-0 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors hover:bg-gray-100"
+          style={{ color: "#374151" }}
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
-            <path d="M8 2L4 6L8 10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="none" aria-hidden>
+            <path d="M8 2L4 6L8 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           Back
         </button>
+        <div className="h-4 w-px bg-gray-200 shrink-0" />
         <span
-          className="text-[11px] font-medium truncate"
-          style={{ color: "#4b5563" }}
+          className="text-[12px] font-medium truncate"
+          style={{ color: "#6b7280" }}
         >
           {domainSlug}
         </span>
         <span
-          className="font-serif text-[15px] leading-tight truncate"
+          className="font-serif text-[18px] font-semibold leading-tight truncate"
           style={{ color: "#111827" }}
         >
           {wordmark}
         </span>
       </div>
 
-      {/* Right: Designer label */}
-      <span
-        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest"
-        style={{
-          background: "#f3f4f6",
-          color: "#4b5563",
-        }}
-      >
-        Designer
-      </span>
+      {/* Right: Designer badge */}
+      <div className="flex items-center gap-2 shrink-0">
+        <span
+          className="rounded-md px-3 py-1 text-[11px] font-bold uppercase tracking-widest"
+          style={{
+            background: "#111827",
+            color: "#ffffff",
+          }}
+        >
+          Designer
+        </span>
+      </div>
     </div>
   )
 }
@@ -225,7 +229,7 @@ export function DesignerFrame({
 
       {/* Left — Frame Navigator */}
       <div
-        className="flex flex-col border-r"
+        className="flex flex-col border-r min-h-0"
         style={{
           width: 220,
           minWidth: 220,
@@ -243,12 +247,13 @@ export function DesignerFrame({
 
       {/* Center — Kip conversation */}
       <div
-        className="flex flex-col border-r"
+        className="flex flex-col border-r min-h-0"
         style={{
           flex: "1 1 0%",
           minWidth: 0,
           borderColor: "#e5e7eb",
           background: "#ffffff",
+          overflow: "hidden",
         }}
       >
         <DesignerFrameKip
