@@ -526,6 +526,36 @@ export interface DiagnosticsFrameJson {
   };
 }
 
+// ─── Feed ─────────────────────────────────────────────────────────────────────
+
+export interface FeedFrameJson {
+  frame_title: string
+  frame_subtitle: string
+  coming_soon_heading: string
+  coming_soon_body: string
+  cta_back_to_commons: string
+}
+
+// ─── Keepers ──────────────────────────────────────────────────────────────────
+
+export interface KeepersFrameJson {
+  frame_title: string
+  frame_subtitle: string
+  coming_soon_heading: string
+  coming_soon_body: string
+  cta_back_to_commons: string
+}
+
+// ─── Profile ──────────────────────────────────────────────────────────────────
+
+export interface ProfileFrameJson {
+  frame_title: string
+  frame_subtitle: string
+  coming_soon_heading: string
+  coming_soon_body: string
+  cta_back_to_commons: string
+}
+
 export interface DomainFrameJson {
   domain: string
   keeper_type: string
@@ -544,4 +574,7 @@ export interface DomainFrameJson {
   commons: CommonsFrameJson
   diagnostics: DiagnosticsFrameJson
   domain_admin: DomainAdminFrameJson
+  feed: FeedFrameJson
+  keepers: KeepersFrameJson
+  profile: ProfileFrameJson
 }

@@ -8,10 +8,9 @@
  * Flow:
  *   1. Owner types a message about the active frame
  *   2. POST /api/domains/:domainId/kip/designer
- *   3. Kip responds conversationally (Anthropic)
- *   4. If Kip produced a JSON proposal, an Approve button appears
- *   5. Approve → create draft → preview switches to draft view
- *   6. Publish → call publish endpoint → live frame updates
+ *   3. Kip responds; if a JSON proposal is included, a draft is auto-created
+ *      and the Publish bar appears immediately — no manual "Approve" step
+ *   4. Publish → call publish endpoint → live frame updates
  *
  * Conversation resets when the active frame changes.
  */
@@ -19,7 +18,7 @@
 import * as React from "react"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
 import type { DesignerMessage } from "./DesignBoard"
-import { FRAME_DISPLAY_NAMES } from "../../shell/frameRegistryMap"
+import { FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
 
@@ -46,57 +45,35 @@ function uid(): string {
   return Math.random().toString(36).slice(2, 10)
 }
 
+/**
+ * Build the full DomainFrameJson spec for the draft.
+ *
+ * The designer backend returns only the FRAME-LEVEL block (e.g. the commons
+ * object, not the full domain JSON). We must merge it back into the live frame
+ * at the correct key before storing as the draft spec — otherwise publish would
+ * overwrite the entire Domain.frame_json with just one frame block.
+ */
+function buildFullSpec(
+  liveDomainFrame: DomainFrameJson | null,
+  frameKey: string,
+  frameBlock: unknown,
+): Record<string, unknown> {
+  const jsonKey = FRAME_TO_JSON_KEY[frameKey] ?? null
+  const base = liveDomainFrame ? { ...(liveDomainFrame as Record<string, unknown>) } : {}
+  if (jsonKey) {
+    return { ...base, [jsonKey]: frameBlock }
+  }
+  // No json key — shouldn't happen if backend produced a spec, but handle gracefully
+  return base
+}
+
 // ─── Message bubble ───────────────────────────────────────────────────────────
 
-function MessageBubble({
-  msg,
-  domainId,
-  draftId,
-  setDraftId,
-  setDraftSpecJson,
-  addMessage,
-}: {
-  msg: DesignerMessage
-  domainId: string | null
-  draftId: string | null
-  setDraftId: (id: string | null) => void
-  setDraftSpecJson: (spec: unknown | null) => void
-  addMessage: (m: DesignerMessage) => void
-}) {
-  const [isApproving, setIsApproving] = React.useState(false)
-  const [approveError, setApproveError] = React.useState<string | null>(null)
-
-  const handleApprove = async () => {
-    if (!domainId || !msg.draftProposal || isApproving) return
-    setIsApproving(true)
-    setApproveError(null)
-    try {
-      const draft = await KipApi.createDraft(domainId, {
-        kind: "domain_json",
-        key: `designer-${Date.now()}`,
-        title: `Designer proposal`,
-        spec: msg.draftProposal as Record<string, unknown>,
-      })
-      setDraftId(draft.id)
-      setDraftSpecJson(draft.spec ?? msg.draftProposal)
-      addMessage({
-        id: uid(),
-        role: "kip",
-        content: "Draft created. Review the preview on the right, then publish when ready.",
-      })
-    } catch (err: any) {
-      setApproveError(err?.message ?? "Failed to create draft")
-    } finally {
-      setIsApproving(false)
-    }
-  }
-
+function MessageBubble({ msg }: { msg: DesignerMessage }) {
   const isUser = msg.role === "user"
 
   return (
-    <div
-      className={`flex ${isUser ? "justify-end" : "justify-start"}`}
-    >
+    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
         className="max-w-[80%] rounded-xl px-3 py-2.5 text-[13px] leading-relaxed"
         style={{
@@ -109,33 +86,16 @@ function MessageBubble({
         }}
       >
         {!isUser && (
-          <p
-            className="mb-1 text-[10px] font-semibold uppercase tracking-widest opacity-50"
-          >
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest opacity-50">
             Kip
           </p>
         )}
         <p style={{ whiteSpace: "pre-wrap" }}>{msg.content}</p>
-
-        {/* Approve button — only shown when there's a proposal and no draft yet */}
-        {!!msg.draftProposal && !draftId && (
-          <div className="mt-2 pt-2 border-t border-black/10">
-            <button
-              type="button"
-              onClick={handleApprove}
-              disabled={isApproving}
-              className="rounded-md px-3 py-1.5 text-[12px] font-medium transition-opacity disabled:opacity-50"
-              style={{
-                background: "hsl(142 71% 45%)",
-                color: "#fff",
-              }}
-            >
-              {isApproving ? "Creating draft…" : "Approve & create draft"}
-            </button>
-            {approveError && (
-              <p className="mt-1 text-[11px] text-red-500">{approveError}</p>
-            )}
-          </div>
+        {/* Draft proposal indicator — shown when this message triggered an auto-draft */}
+        {!!msg.draftProposal && (
+          <p className="mt-1.5 text-[10px] opacity-60">
+            ↑ Draft proposal generated
+          </p>
         )}
       </div>
     </div>
@@ -148,7 +108,7 @@ export function DesignerFrameKip({
   domainId,
   domainSlug: _domainSlug,
   activeFrameKey,
-  liveDomainFrame: _liveDomainFrame,
+  liveDomainFrame,
   messages,
   setMessages,
   draftId,
@@ -163,7 +123,6 @@ export function DesignerFrameKip({
   const [sendError, setSendError] = React.useState<string | null>(null)
   const bottomRef = React.useRef<HTMLDivElement>(null)
 
-  // Scroll to bottom when messages change
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
@@ -194,12 +153,42 @@ export function DesignerFrameKip({
         }),
       }) as { response: string; draft?: { spec_json: unknown } }
 
+      const frameBlock = result.draft?.spec_json ?? undefined
+
+      // ── Add Kip's message ──
       addMessage({
         id: uid(),
         role: "kip",
         content: result.response ?? "(no response)",
-        draftProposal: result.draft?.spec_json ?? undefined,
+        draftProposal: frameBlock,
       })
+
+      // ── Auto-create draft when Kip returns a JSON proposal ──
+      // Build the FULL DomainFrameJson spec (not just the frame block) so that
+      // publish does not overwrite unrelated frame data.
+      if (frameBlock !== undefined && typeof frameBlock === "object" && frameBlock !== null) {
+        const fullSpec = buildFullSpec(liveDomainFrame, activeFrameKey, frameBlock)
+
+        // Set preview immediately so Canvas updates before the API round-trip
+        setDraftSpecJson(fullSpec)
+
+        try {
+          const frameDisplayName = FRAME_DISPLAY_NAMES[activeFrameKey] ?? activeFrameKey
+          const draft = await KipApi.createDraft(domainId, {
+            kind: "domain_json",
+            key: `designer-${activeFrameKey}-${Date.now()}`,
+            title: `${frameDisplayName} proposal`,
+            spec: fullSpec,
+          })
+          setDraftId(draft.id)
+        } catch (draftErr: any) {
+          // Draft creation failed — show an error but do not lose the preview
+          console.error("[DesignBoardKip] auto-create draft failed:", draftErr)
+          setSendError(
+            `Draft creation failed: ${draftErr?.message ?? "unknown error"}. The preview is shown but publish is unavailable.`,
+          )
+        }
+      }
     } catch (err: any) {
       setSendError(err?.message ?? "Failed to send message")
       addMessage({
@@ -235,10 +224,7 @@ export function DesignerFrameKip({
           Kip · Designer
         </p>
         {frameDisplayName && (
-          <p
-            className="mt-0.5 text-[12px]"
-            style={{ color: "#111827" }}
-          >
+          <p className="mt-0.5 text-[12px]" style={{ color: "#111827" }}>
             Editing: {frameDisplayName}
           </p>
         )}
@@ -260,15 +246,7 @@ export function DesignerFrameKip({
         )}
 
         {messages.map((msg) => (
-          <MessageBubble
-            key={msg.id}
-            msg={msg}
-            domainId={domainId}
-            draftId={draftId}
-            setDraftId={setDraftId}
-            setDraftSpecJson={setDraftSpecJson}
-            addMessage={addMessage}
-          />
+          <MessageBubble key={msg.id} msg={msg} />
         ))}
 
         {isSending && (
@@ -304,7 +282,9 @@ export function DesignerFrameKip({
             className="text-[12px] font-medium"
             style={{ color: publishSuccess ? "hsl(142 71% 25%)" : "hsl(43 80% 30%)" }}
           >
-            {publishSuccess ? "✓ Published" : "Draft ready — review preview, then publish"}
+            {publishSuccess
+              ? "✓ Published — live platform updated"
+              : "Draft ready — review preview on the right, then publish"}
           </p>
 
           {draftId && !publishSuccess && (
@@ -362,10 +342,7 @@ export function DesignerFrameKip({
             Send
           </button>
         </div>
-        <p
-          className="mt-1.5 text-[10px]"
-          style={{ color: "#9ca3af" }}
-        >
+        <p className="mt-1.5 text-[10px]" style={{ color: "#9ca3af" }}>
           Enter to send · Shift+Enter for new line
         </p>
       </div>

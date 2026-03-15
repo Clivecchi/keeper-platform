@@ -5,16 +5,26 @@ import type { StyleId } from "../../styles/styles"
 import { DesignFrame } from "../DesignFrame"
 import { ThemeSwitcher } from "../ThemeSwitcher"
 import { useV0Shell } from "../../shell/V0ShellContext"
+import type { KeepersFrameJson } from "../../data/domain-frame.types"
+
+const KEEPERS_DEFAULTS: KeepersFrameJson = {
+  frame_title: "Keepers",
+  frame_subtitle: "Spaces that hold memory for the domain",
+  coming_soon_heading: "Coming soon",
+  coming_soon_body: "Keeper management is being prepared. Return to the commons to explore what is available now.",
+  cta_back_to_commons: "Back to Commons",
+}
 
 export function KeepersFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
-  const { closeToBoard, experienceActions } = useV0Shell()
+  const { closeToBoard, experienceActions, domainFrame } = useV0Shell()
+  const json: KeepersFrameJson = (domainFrame as any)?.keepers ?? KEEPERS_DEFAULTS
 
   return (
     <DesignFrame
       styleId={styleId}
       themeSlug={themeSlug}
-      title="Keepers"
-      subtitle="Spaces that hold memory for the domain"
+      title={json.frame_title}
+      subtitle={json.frame_subtitle}
       themeSwitcherSlot={<ThemeSwitcher />}
       rightSlot={
         <button
@@ -28,11 +38,29 @@ export function KeepersFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       }
       onClose={closeToBoard}
     >
-      <div className="rounded-2xl border p-6 text-sm shadow-sm" style={{ borderColor: "var(--theme-border-soft)", backgroundColor: "hsl(var(--theme-surface-paper) / 0.8)", color: "var(--theme-ink-secondary)" }}>
-        <p className="font-medium mb-2" style={{ color: "var(--theme-ink-primary)" }}>Coming soon</p>
-        <p>Keeper management is being prepared. Return to the commons to explore what is available now.</p>
-        <button type="button" onClick={experienceActions.goCommons} className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90" style={{ borderColor: "var(--theme-border-soft)", backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)", color: "var(--theme-ink-primary)" }}>
-          Back to Commons
+      <div
+        className="rounded-2xl border p-6 text-sm shadow-sm"
+        style={{
+          borderColor: "var(--theme-border-soft)",
+          backgroundColor: "hsl(var(--theme-surface-paper) / 0.8)",
+          color: "var(--theme-ink-secondary)",
+        }}
+      >
+        <p className="font-medium mb-2" style={{ color: "var(--theme-ink-primary)" }}>
+          {json.coming_soon_heading}
+        </p>
+        <p>{json.coming_soon_body}</p>
+        <button
+          type="button"
+          onClick={experienceActions.goCommons}
+          className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
+          style={{
+            borderColor: "var(--theme-border-soft)",
+            backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
+            color: "var(--theme-ink-primary)",
+          }}
+        >
+          {json.cta_back_to_commons}
         </button>
       </div>
     </DesignFrame>

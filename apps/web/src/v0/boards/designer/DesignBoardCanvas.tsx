@@ -104,10 +104,12 @@ export function DesignerFramePreview({
   showRawJson,
   setShowRawJson,
 }: DesignerFramePreviewProps) {
-  // The domain frame shown in the preview: draft takes priority over live
+  // The domain frame shown in the preview: draft takes priority over live.
+  // draftSpecJson is the FULL DomainFrameJson built by DesignBoardKip (live frame
+  // with the proposed frame block merged in at the correct JSON key). Spreading it
+  // over liveDomainFrame is safe — unchanged keys pass through, the edited key wins.
   const previewDomainFrame = React.useMemo<DomainFrameJson | null>(() => {
     if (draftSpecJson && liveDomainFrame && typeof draftSpecJson === "object" && !Array.isArray(draftSpecJson)) {
-      // Merge draft spec_json into live frame (draft may be the full DomainFrameJson or a partial)
       return { ...liveDomainFrame, ...(draftSpecJson as Partial<DomainFrameJson>) }
     }
     return liveDomainFrame

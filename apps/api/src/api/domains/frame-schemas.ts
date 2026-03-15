@@ -921,6 +921,54 @@ export const kipFrameSchema = {
   additionalProperties: false,
 } as const;
 
+// ─── feed ─────────────────────────────────────────────────────────────────────
+// Source: FeedFrameJson
+
+export const feedFrameSchema = {
+  type: "object",
+  properties: {
+    frame_title: { type: "string" },
+    frame_subtitle: { type: "string" },
+    coming_soon_heading: { type: "string" },
+    coming_soon_body: { type: "string" },
+    cta_back_to_commons: { type: "string" },
+  },
+  required: ["frame_title", "frame_subtitle", "coming_soon_heading", "coming_soon_body", "cta_back_to_commons"],
+  additionalProperties: false,
+} as const;
+
+// ─── keepers ──────────────────────────────────────────────────────────────────
+// Source: KeepersFrameJson
+
+export const keepersFrameSchema = {
+  type: "object",
+  properties: {
+    frame_title: { type: "string" },
+    frame_subtitle: { type: "string" },
+    coming_soon_heading: { type: "string" },
+    coming_soon_body: { type: "string" },
+    cta_back_to_commons: { type: "string" },
+  },
+  required: ["frame_title", "frame_subtitle", "coming_soon_heading", "coming_soon_body", "cta_back_to_commons"],
+  additionalProperties: false,
+} as const;
+
+// ─── profile ──────────────────────────────────────────────────────────────────
+// Source: ProfileFrameJson
+
+export const profileFrameSchema = {
+  type: "object",
+  properties: {
+    frame_title: { type: "string" },
+    frame_subtitle: { type: "string" },
+    coming_soon_heading: { type: "string" },
+    coming_soon_body: { type: "string" },
+    cta_back_to_commons: { type: "string" },
+  },
+  required: ["frame_title", "frame_subtitle", "coming_soon_heading", "coming_soon_body", "cta_back_to_commons"],
+  additionalProperties: false,
+} as const;
+
 // ─── Schema lookup map ────────────────────────────────────────────────────────
 // Keys match V0FrameKey values as sent by the frontend.
 // Frames with no JSON governance are explicitly null — Together AI is skipped.
@@ -935,10 +983,10 @@ export const FRAME_SCHEMA_MAP: Record<string, object | null> = {
   diagnostics: diagnosticsFrameSchema,
   admin: adminFrameSchema,
   kip: kipFrameSchema,
+  feed: feedFrameSchema,
+  keepers: keepersFrameSchema,
+  profile: profileFrameSchema,
   // Frames with no JSON governance — Together AI call is skipped
   index: null,
   present: null,
-  feed: null,
-  keepers: null,
-  profile: null,
 };

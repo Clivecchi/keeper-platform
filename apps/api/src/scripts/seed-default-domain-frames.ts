@@ -434,6 +434,33 @@ const DEFAULT_DOMAIN_ADMIN = {
   },
 }
 
+const DEFAULT_FEED = {
+  frame_title: 'Domain Feed',
+  frame_subtitle: 'Activity from across the commons',
+  coming_soon_heading: 'Coming soon',
+  coming_soon_body:
+    'The domain feed is being prepared. Return to the commons to explore what is available now.',
+  cta_back_to_commons: 'Back to Commons',
+}
+
+const DEFAULT_KEEPERS = {
+  frame_title: 'Keepers',
+  frame_subtitle: 'Spaces that hold memory for the domain',
+  coming_soon_heading: 'Coming soon',
+  coming_soon_body:
+    'Keeper management is being prepared. Return to the commons to explore what is available now.',
+  cta_back_to_commons: 'Back to Commons',
+}
+
+const DEFAULT_PROFILE = {
+  frame_title: 'Profile',
+  frame_subtitle: 'Your presence in this domain',
+  coming_soon_heading: 'Coming soon',
+  coming_soon_body:
+    'Your profile and relationships view is being prepared. Return to the commons to explore what is available now.',
+  cta_back_to_commons: 'Back to Commons',
+}
+
 // ─── Governed frame registry ──────────────────────────────────────────────────
 
 const GOVERNED_DEFAULTS: Record<string, object> = {
@@ -445,6 +472,9 @@ const GOVERNED_DEFAULTS: Record<string, object> = {
   agent_board: DEFAULT_AGENT_BOARD,
   diagnostics: DEFAULT_DIAGNOSTICS,
   domain_admin: DEFAULT_DOMAIN_ADMIN,
+  feed: DEFAULT_FEED,
+  keepers: DEFAULT_KEEPERS,
+  profile: DEFAULT_PROFILE,
 }
 
 const GOVERNED_KEYS = Object.keys(GOVERNED_DEFAULTS)
