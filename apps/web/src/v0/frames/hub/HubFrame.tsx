@@ -4,22 +4,20 @@
  * HubFrame
  *
  * Central navigation surface — the "control tower" of the Keeper platform.
- * Surfaces all frames, boards, and legacy interfaces in one place so admins
- * and Kip can orient, migrate, and launch anything from a single screen.
+ * Surfaces all frames, boards, and legacy interfaces in one place.
+ *
+ * Uses DesignFrame for consistent platform chrome:
+ *   - Domain cover image as background
+ *   - Standard sticky header
+ *   - Margin interaction bar at the bottom
  *
  * Route: /d/:slug?frame=hub
- *
- * Design intent:
- *  - Clean card grid, no sidebar
- *  - Cards grouped by category: Core Frames, Boards, Legacy Tools
- *  - Admin-only cards are clearly labelled and protected
- *  - Kip-accessible: each card has a machine-readable id for Kip to link to
  */
 
 import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import type { StyleId } from "../../styles/styles"
-import { StyleScope } from "../../styles/StyleScope"
+import { DesignFrame } from "../DesignFrame"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { useAuth } from "../../../context/AuthContext"
 
@@ -57,70 +55,70 @@ interface HubSection {
 
 function FrameIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <rect x="2" y="2" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M6 7h8M6 10h8M6 13h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <rect x="2" y="2" width="14" height="14" rx="3" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M5 6.5h8M5 9h8M5 11.5h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   )
 }
 
 function DesignerIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M3 17l4-1 9-9-3-3-9 9-1 4z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-      <path d="M13 4l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M3 15l3.5-1 8-8-2.5-2.5-8 8-1 3.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+      <path d="M12 3l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   )
 }
 
 function ThemeIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M10 3v7l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <circle cx="9" cy="9" r="6.5" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M9 2.5v6.5l3.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )
 }
 
 function AgentIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="8" r="4" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <circle cx="9" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M2.5 15.5c0-3.038 2.91-5.5 6.5-5.5s6.5 2.462 6.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   )
 }
 
 function MomentIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M4 14V6a2 2 0 012-2h8a2 2 0 012 2v8l-3-2H6l-2 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M3.5 13V5.5a2 2 0 012-2h7a2 2 0 012 2V13l-2.5-1.5H6L3.5 13z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
     </svg>
   )
 }
 
 function JourneyIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M3 10c0-3.866 3.134-7 7-7s7 3.134 7 7-3.134 7-7 7-7-3.134-7-7z" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M10 7v3l2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M3 9a6 6 0 1012 0A6 6 0 003 9z" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M9 6.5v2.5l1.5 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )
 }
 
 function AdminIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path d="M10 2l2 5h5l-4 3 1.5 5L10 12l-4.5 3L7 10 3 7h5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M9 1.5l1.75 4.5h4.5L12 8.5l1.25 4.25L9 10.25l-4.25 2.5L6 8.5 2.75 6h4.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
     </svg>
   )
 }
 
 function LegacyIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M7 8h6M7 11h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <rect x="2.5" y="3.5" width="13" height="11" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M6 7h6M6 10h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   )
 }
@@ -129,21 +127,18 @@ function LegacyIcon() {
 // Badge
 // =============================================================================
 
-const BADGE_STYLES: Record<HubCardBadge, { bg: string; text: string; label: string }> = {
-  admin:  { bg: "#fef2f2", text: "#dc2626", label: "Admin" },
-  new:    { bg: "#f0fdf4", text: "#16a34a", label: "New" },
-  legacy: { bg: "#fefce8", text: "#ca8a04", label: "Legacy" },
-  beta:   { bg: "#eff6ff", text: "#2563eb", label: "Beta" },
+const BADGE_CFG: Record<HubCardBadge, { label: string; style: React.CSSProperties }> = {
+  admin:  { label: "Admin",  style: { background: "hsl(var(--theme-surface-page))", color: "var(--theme-ink-secondary)", border: "1px solid var(--theme-border-soft)" } },
+  new:    { label: "New",    style: { background: "hsl(var(--theme-surface-page))", color: "var(--theme-ink-secondary)", border: "1px solid var(--theme-border-soft)" } },
+  legacy: { label: "Legacy", style: { background: "hsl(var(--theme-surface-page))", color: "var(--theme-ink-tertiary)",  border: "1px solid var(--theme-border-soft)" } },
+  beta:   { label: "Beta",   style: { background: "hsl(var(--theme-surface-page))", color: "var(--theme-ink-secondary)", border: "1px solid var(--theme-border-soft)" } },
 }
 
 function Badge({ type }: { type: HubCardBadge }) {
-  const s = BADGE_STYLES[type]
+  const { label, style } = BADGE_CFG[type]
   return (
-    <span
-      className="rounded text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5"
-      style={{ background: s.bg, color: s.text }}
-    >
-      {s.label}
+    <span className="rounded text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5" style={style}>
+      {label}
     </span>
   )
 }
@@ -152,13 +147,7 @@ function Badge({ type }: { type: HubCardBadge }) {
 // Card
 // =============================================================================
 
-function HubCardItem({
-  card,
-  isAdmin,
-}: {
-  card: HubCard
-  isAdmin: boolean
-}) {
+function HubCardItem({ card, isAdmin }: { card: HubCard; isAdmin: boolean }) {
   const navigate = useNavigate()
   const isLocked = card.adminOnly && !isAdmin
 
@@ -176,34 +165,32 @@ function HubCardItem({
       type="button"
       onClick={handleClick}
       disabled={isLocked}
-      className="group flex flex-col gap-3 rounded-xl p-5 text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+      className="group flex flex-col gap-3 rounded-2xl p-4 text-left transition-all disabled:opacity-30 disabled:cursor-not-allowed"
       style={{
-        background: "#ffffff",
-        border: "1px solid #e5e7eb",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+        background: "hsl(var(--theme-surface-paper) / 0.7)",
+        border: "1px solid var(--theme-border-soft)",
+        backdropFilter: "blur(8px)",
       }}
       onMouseEnter={(e) => {
         if (!isLocked) {
-          e.currentTarget.style.borderColor = "#d1d5db"
-          e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"
+          e.currentTarget.style.background = "hsl(var(--theme-surface-paper) / 0.9)"
           e.currentTarget.style.transform = "translateY(-1px)"
         }
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "#e5e7eb"
-        e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"
+        e.currentTarget.style.background = "hsl(var(--theme-surface-paper) / 0.7)"
         e.currentTarget.style.transform = "translateY(0)"
       }}
     >
       <div className="flex items-start justify-between gap-2">
         <div
-          className="flex items-center justify-center rounded-lg shrink-0"
+          className="flex items-center justify-center rounded-xl shrink-0"
           style={{
-            width: 36,
-            height: 36,
-            background: "#f9fafb",
-            border: "1px solid #e5e7eb",
-            color: "#374151",
+            width: 34,
+            height: 34,
+            background: "hsl(var(--theme-surface-page) / 0.6)",
+            border: "1px solid var(--theme-border-soft)",
+            color: "var(--theme-ink-secondary)",
           }}
         >
           {card.icon}
@@ -211,10 +198,10 @@ function HubCardItem({
         {card.badge && <Badge type={card.badge} />}
       </div>
       <div>
-        <div className="text-[13px] font-semibold" style={{ color: "#111827" }}>
+        <div className="text-[13px] font-semibold" style={{ color: "var(--theme-ink-primary)" }}>
           {card.label}
         </div>
-        <div className="mt-0.5 text-[12px] leading-relaxed" style={{ color: "#6b7280" }}>
+        <div className="mt-0.5 text-[11px] leading-relaxed" style={{ color: "var(--theme-ink-tertiary)" }}>
           {card.description}
         </div>
       </div>
@@ -223,50 +210,13 @@ function HubCardItem({
 }
 
 // =============================================================================
-// Section
-// =============================================================================
-
-function HubSection({
-  section,
-  isAdmin,
-}: {
-  section: HubSection
-  isAdmin: boolean
-}) {
-  const visible = isAdmin
-    ? section.cards
-    : section.cards.filter((c) => !c.adminOnly)
-
-  if (visible.length === 0) return null
-
-  return (
-    <div>
-      <div className="flex items-center gap-3 mb-4">
-        <span
-          className="text-[11px] font-semibold uppercase tracking-widest"
-          style={{ color: "#9ca3af" }}
-        >
-          {section.label}
-        </span>
-        <div className="flex-1 h-px" style={{ background: "#f3f4f6" }} />
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {visible.map((card) => (
-          <HubCardItem key={card.id} card={card} isAdmin={isAdmin} />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// =============================================================================
 // Main component
 // =============================================================================
 
-export function HubFrame({ styleId = "neutral", themeSlug }: HubFrameProps) {
-  const { domainSlug, navigateToFrame, domainFrame } = useV0Shell()
+export function HubFrame({ styleId = "neutral", themeSlug, domainSlug: propSlug }: HubFrameProps) {
+  const { domainSlug: ctxSlug, domainFrame } = useV0Shell()
   const { isAdmin } = useAuth()
-
+  const domainSlug = propSlug ?? ctxSlug ?? ""
   const wordmark = domainFrame?.theme?.wordmark || domainSlug || "Keeper"
 
   const sections: HubSection[] = [
@@ -305,7 +255,7 @@ export function HubFrame({ styleId = "neutral", themeSlug }: HubFrameProps) {
         {
           id: "moments",
           label: "Kept Moments",
-          description: "Browse all captured moments in this domain",
+          description: "Browse all captured moments",
           href: `/d/${domainSlug}?frame=moments`,
           icon: <MomentIcon />,
         },
@@ -326,7 +276,7 @@ export function HubFrame({ styleId = "neutral", themeSlug }: HubFrameProps) {
         {
           id: "admin",
           label: "Domain Admin",
-          description: "Domain settings, profile, and governance",
+          description: "Domain settings and governance",
           href: `/d/${domainSlug}?frame=admin`,
           icon: <AdminIcon />,
           badge: "admin",
@@ -350,7 +300,7 @@ export function HubFrame({ styleId = "neutral", themeSlug }: HubFrameProps) {
         {
           id: "designer",
           label: "Designer Board",
-          description: "Edit frame JSON, preview, and configure Kip",
+          description: "Edit frame JSON, preview, configure Kip",
           href: `/d/${domainSlug}?board=designer`,
           icon: <DesignerIcon />,
           badge: "admin",
@@ -359,7 +309,7 @@ export function HubFrame({ styleId = "neutral", themeSlug }: HubFrameProps) {
         {
           id: "theme",
           label: "Theme Editor",
-          description: "Edit colors, fonts, wordmark, and tagline",
+          description: "Colors, fonts, wordmark, tagline",
           href: `/d/${domainSlug}?frame=theme`,
           icon: <ThemeIcon />,
           badge: "admin",
@@ -374,7 +324,7 @@ export function HubFrame({ styleId = "neutral", themeSlug }: HubFrameProps) {
         {
           id: "studio",
           label: "Studio",
-          description: "Original management board — pending migration",
+          description: "Original management board",
           href: "/studio",
           icon: <LegacyIcon />,
           badge: "legacy",
@@ -383,7 +333,7 @@ export function HubFrame({ styleId = "neutral", themeSlug }: HubFrameProps) {
         {
           id: "studio-agents",
           label: "Agents",
-          description: "Agent configuration (legacy studio)",
+          description: "Agent configuration (legacy)",
           href: "/studio/agents",
           icon: <AgentIcon />,
           badge: "legacy",
@@ -392,7 +342,7 @@ export function HubFrame({ styleId = "neutral", themeSlug }: HubFrameProps) {
         {
           id: "keeper",
           label: "Keeper Manager",
-          description: "Manage keepers (legacy studio)",
+          description: "Manage keepers (legacy)",
           href: "/keeper",
           icon: <AgentIcon />,
           badge: "legacy",
@@ -411,79 +361,38 @@ export function HubFrame({ styleId = "neutral", themeSlug }: HubFrameProps) {
     },
   ]
 
+  const visibleSections = sections.map((s) => ({
+    ...s,
+    cards: isAdmin ? s.cards : s.cards.filter((c) => !c.adminOnly),
+  })).filter((s) => s.cards.length > 0)
+
   return (
-    <StyleScope styleId={styleId} themeSlug={themeSlug}>
-      <div className="flex flex-col min-h-screen" style={{ background: "#f9fafb" }}>
-
-        {/* Header */}
-        <div
-          className="shrink-0 flex items-center justify-between px-6"
-          style={{
-            height: 56,
-            background: "#ffffff",
-            borderBottom: "1px solid #e5e7eb",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigateToFrame("cover")}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors hover:bg-gray-100"
-              style={{ color: "#374151" }}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              {wordmark}
-            </button>
-            <div className="h-4 w-px" style={{ background: "#e5e7eb" }} />
-            <span className="text-[13px] font-semibold" style={{ color: "#111827" }}>Hub</span>
-          </div>
-
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={() => navigateToFrame("theme")}
-              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-gray-100"
-              style={{ color: "#6b7280" }}
-            >
-              <ThemeIcon />
-              Theme
-            </button>
-          )}
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-6 py-8">
-
-            {/* Page title */}
-            <div className="mb-8">
-              <h1
-                className="text-2xl font-bold"
-                style={{ color: "#111827" }}
+    <DesignFrame
+      styleId={styleId}
+      themeSlug={themeSlug}
+      title={`${wordmark} Hub`}
+      subtitle="All frames, boards, and tools in one place"
+    >
+      <div className="flex flex-col gap-10">
+        {visibleSections.map((section) => (
+          <div key={section.id}>
+            <div className="flex items-center gap-3 mb-4">
+              <span
+                className="text-[11px] font-semibold uppercase tracking-widest"
+                style={{ color: "var(--theme-ink-tertiary)" }}
               >
-                Platform Hub
-              </h1>
-              <p className="mt-1 text-[13px]" style={{ color: "#6b7280" }}>
-                All frames, boards, and tools for <span className="font-medium" style={{ color: "#374151" }}>{domainSlug}</span>
-              </p>
+                {section.label}
+              </span>
+              <div className="flex-1 h-px" style={{ background: "var(--theme-border-soft)" }} />
             </div>
-
-            {/* Sections */}
-            <div className="flex flex-col gap-10">
-              {sections.map((section) => (
-                <HubSection
-                  key={section.id}
-                  section={section}
-                  isAdmin={!!isAdmin}
-                />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {section.cards.map((card) => (
+                <HubCardItem key={card.id} card={card} isAdmin={!!isAdmin} />
               ))}
             </div>
           </div>
-        </div>
+        ))}
       </div>
-    </StyleScope>
+    </DesignFrame>
   )
 }

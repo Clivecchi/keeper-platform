@@ -119,7 +119,7 @@ export function DesignFrame({
     params.set("frame", "admin")
     if (boardId) params.set("boardId", boardId)
 
-    navigate(`/d/${v0Shell.domainSlug}/board?${params.toString()}`)
+    navigate(`/d/${v0Shell.domainSlug}?${params.toString()}`)
     setIsOpeningAdmin(false)
   }
 

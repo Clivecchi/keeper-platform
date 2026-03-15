@@ -3,19 +3,21 @@
 /**
  * ThemeFrame
  *
- * A Designer Board-adjacent surface for editing a domain's DomainFrameTheme:
- * wordmark, tagline, background image path, primary/accent/surface colors, and
- * display/ui fonts.
+ * Admin editing surface for a domain's DomainFrameTheme:
+ * wordmark, tagline, primary/accent/surface colors, and display/ui fonts.
+ *
+ * Uses DesignFrame for consistent platform chrome:
+ *   - Domain cover image as background (matches actual platform look)
+ *   - Standard sticky header with title
+ *   - Margin interaction bar at the bottom
  *
  * Route: /d/:slug?frame=theme (admin-only)
- *
- * Changes are persisted via PATCH /api/domains/:slug/frame and hot-reloaded
- * into the shell without a full page refresh.
+ * Also accessible from the Designer Board canvas.
  */
 
 import * as React from "react"
 import type { StyleId } from "../../styles/styles"
-import { StyleScope } from "../../styles/StyleScope"
+import { DesignFrame } from "../DesignFrame"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { useAuth } from "../../../context/AuthContext"
 import { apiFetch } from "../../../lib/api"
@@ -32,7 +34,6 @@ interface ThemeFrameProps {
   domainSlug?: string
 }
 
-// Google Fonts available in the theme system
 const DISPLAY_FONTS = [
   "Cormorant Garamond",
   "Playfair Display",
@@ -60,16 +61,15 @@ const UI_FONTS = [
 // =============================================================================
 
 function hexToHSLString(hex: string): string {
-  // Quick validation — returns hex if it can't parse
-  const match = /^#?([0-9a-fA-F]{6})$/.exec(hex.replace("#", "").padStart(6, "0"))
+  const clean = hex.replace("#", "").padStart(6, "0")
+  const match = /^([0-9a-fA-F]{6})$/.exec(clean)
   if (!match) return hex
   const r = parseInt(match[1].slice(0, 2), 16) / 255
   const g = parseInt(match[1].slice(2, 4), 16) / 255
   const b = parseInt(match[1].slice(4, 6), 16) / 255
   const max = Math.max(r, g, b)
   const min = Math.min(r, g, b)
-  let h = 0
-  let s = 0
+  let h = 0, s = 0
   const l = (max + min) / 2
   if (max !== min) {
     const d = max - min
@@ -87,84 +87,54 @@ function hexToHSLString(hex: string): string {
 // Sub-components
 // =============================================================================
 
-function SectionHeader({ label }: { label: string }) {
+function SectionLabel({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-3 mb-4">
-      <span className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#9ca3af" }}>
+    <div className="flex items-center gap-3 mb-3">
+      <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--theme-ink-tertiary)" }}>
         {label}
       </span>
-      <div className="flex-1 h-px" style={{ background: "#f3f4f6" }} />
+      <div className="flex-1 h-px" style={{ background: "var(--theme-border-soft)" }} />
     </div>
   )
 }
 
-function FieldRow({
-  label,
-  hint,
-  children,
-}: {
-  label: string
-  hint?: string
-  children: React.ReactNode
-}) {
+function FieldRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[160px_1fr] gap-4 items-start py-3" style={{ borderBottom: "1px solid #f3f4f6" }}>
+    <div className="grid grid-cols-[140px_1fr] gap-4 items-start py-3" style={{ borderBottom: "1px solid var(--theme-border-soft)" }}>
       <div>
-        <div className="text-[13px] font-medium" style={{ color: "#374151" }}>{label}</div>
-        {hint && <div className="text-[11px] mt-0.5" style={{ color: "#9ca3af" }}>{hint}</div>}
+        <div className="text-[13px] font-medium" style={{ color: "var(--theme-ink-primary)" }}>{label}</div>
+        {hint && <div className="text-[11px] mt-0.5" style={{ color: "var(--theme-ink-tertiary)" }}>{hint}</div>}
       </div>
       <div>{children}</div>
     </div>
   )
 }
 
-function TextInput({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string
-  onChange: (v: string) => void
-  placeholder?: string
-}) {
+function TextInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <input
       type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full rounded-md px-3 py-2 text-[13px] outline-none transition-shadow"
+      className="w-full rounded-lg px-3 py-2 text-[13px] outline-none transition-shadow"
       style={{
-        border: "1px solid #e5e7eb",
-        color: "#111827",
-        background: "#ffffff",
+        border: "1px solid var(--theme-border-soft)",
+        color: "var(--theme-ink-primary)",
+        background: "hsl(var(--theme-surface-paper) / 0.6)",
       }}
-      onFocus={(e) => { e.currentTarget.style.boxShadow = "0 0 0 2px #3b82f680" }}
-      onBlur={(e) => { e.currentTarget.style.boxShadow = "none" }}
     />
   )
 }
 
-function ColorInput({
-  value,
-  onChange,
-  label,
-}: {
-  value: string
-  onChange: (v: string) => void
-  label: string
-}) {
+function ColorInput({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
   return (
     <div className="flex items-center gap-3">
       <div
-        className="relative shrink-0 rounded-md overflow-hidden cursor-pointer"
-        style={{ width: 40, height: 40, border: "1px solid #e5e7eb" }}
-        title={`Pick ${label} color`}
+        className="relative shrink-0 rounded-lg overflow-hidden cursor-pointer"
+        style={{ width: 40, height: 40, border: "1px solid var(--theme-border-soft)" }}
       >
-        <div
-          className="absolute inset-0"
-          style={{ background: value }}
-        />
+        <div className="absolute inset-0" style={{ background: value }} />
         <input
           type="color"
           value={value}
@@ -174,77 +144,48 @@ function ColorInput({
         />
       </div>
       <TextInput value={value} onChange={onChange} placeholder="#000000" />
-      <div
-        className="text-[11px] shrink-0"
-        style={{ color: "#9ca3af", minWidth: 140 }}
-      >
+      <div className="text-[11px] shrink-0" style={{ color: "var(--theme-ink-tertiary)", minWidth: 120 }}>
         {hexToHSLString(value)}
       </div>
     </div>
   )
 }
 
-function FontSelect({
-  value,
-  onChange,
-  options,
-}: {
-  value: string
-  onChange: (v: string) => void
-  options: string[]
-}) {
+function FontSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-md px-3 py-2 text-[13px] outline-none"
+      className="w-full rounded-lg px-3 py-2 text-[13px] outline-none"
       style={{
-        border: "1px solid #e5e7eb",
-        color: "#111827",
-        background: "#ffffff",
+        border: "1px solid var(--theme-border-soft)",
+        color: "var(--theme-ink-primary)",
+        background: "hsl(var(--theme-surface-paper) / 0.6)",
       }}
     >
       {options.map((f) => (
-        <option key={f} value={f} style={{ fontFamily: f }}>
-          {f}
-        </option>
+        <option key={f} value={f}>{f}</option>
       ))}
     </select>
   )
 }
 
-function TokenSwatchRow({ tokens }: { tokens: Record<string, string> }) {
-  const colorKeys = [
-    "surface.page",
-    "surface.paper",
-    "ink.primary",
-    "ink.secondary",
-    "dialogue.userBg",
-    "dialogue.agentBg",
-  ]
+function TokenSwatch({ tokens }: { tokens: Record<string, string> }) {
+  const keys = ["surface.page", "surface.paper", "ink.primary", "ink.secondary", "dialogue.userBg", "dialogue.agentBg"]
   return (
     <div className="flex flex-wrap gap-2">
-      {colorKeys.map((key) => {
+      {keys.map((key) => {
         const raw = tokens[key]
         if (!raw) return null
-        // tokens are stored as "H S% L%" (no hsl wrapper)
         const color = raw.includes("hsl") ? raw : `hsl(${raw})`
         return (
           <div key={key} className="flex flex-col items-center gap-1">
             <div
               className="rounded-md"
-              style={{
-                width: 36,
-                height: 36,
-                background: color,
-                border: "1px solid rgba(0,0,0,0.08)",
-              }}
+              style={{ width: 32, height: 32, background: color, border: "1px solid rgba(0,0,0,0.08)" }}
               title={`${key}: ${raw}`}
             />
-            <span
-              className="text-[9px] text-center"
-              style={{ color: "#9ca3af", maxWidth: 50, wordBreak: "break-all" }}
-            >
+            <span className="text-[9px]" style={{ color: "var(--theme-ink-tertiary)" }}>
               {key.split(".")[1]}
             </span>
           </div>
@@ -258,9 +199,10 @@ function TokenSwatchRow({ tokens }: { tokens: Record<string, string> }) {
 // Main component
 // =============================================================================
 
-export function ThemeFrame({ styleId = "neutral", themeSlug }: ThemeFrameProps) {
-  const { domainSlug, domainFrame, reloadDomainFrame, navigateToFrame } = useV0Shell()
+export function ThemeFrame({ styleId = "neutral", themeSlug, domainSlug: propSlug }: ThemeFrameProps) {
+  const { domainSlug: ctxSlug, domainFrame, reloadDomainFrame, closeToBoard } = useV0Shell()
   const { isAdmin } = useAuth()
+  const domainSlug = propSlug ?? ctxSlug ?? ""
 
   const defaultTheme: DomainFrameTheme = {
     wordmark: "",
@@ -270,40 +212,28 @@ export function ThemeFrame({ styleId = "neutral", themeSlug }: ThemeFrameProps) 
     fonts: { display: "Cormorant Garamond", ui: "Outfit" },
   }
 
-  const [draft, setDraft] = React.useState<DomainFrameTheme>(
-    domainFrame?.theme ?? defaultTheme
-  )
+  const [draft, setDraft] = React.useState<DomainFrameTheme>(domainFrame?.theme ?? defaultTheme)
   const [saving, setSaving] = React.useState(false)
   const [saveStatus, setSaveStatus] = React.useState<"idle" | "saved" | "error">("idle")
 
-  // Sync from domainFrame when it loads or reloads
   React.useEffect(() => {
-    if (domainFrame?.theme) {
-      setDraft(domainFrame.theme)
-    }
+    if (domainFrame?.theme) setDraft(domainFrame.theme)
   }, [domainFrame?.theme])
 
-  // Live token preview from the current draft
-  const previewTokens = React.useMemo(
-    () => resolveDomainThemeSync(draft, "light"),
-    [draft]
-  )
+  const previewTokens = React.useMemo(() => resolveDomainThemeSync(draft, "light"), [draft])
 
-  const updateColor = (key: keyof DomainFrameTheme["colors"], value: string) => {
-    setDraft((prev) => ({ ...prev, colors: { ...prev.colors, [key]: value } }))
+  const setColor = (key: keyof DomainFrameTheme["colors"], v: string) => {
+    setDraft((p) => ({ ...p, colors: { ...p.colors, [key]: v } }))
     setSaveStatus("idle")
   }
 
-  const updateFont = (key: keyof DomainFrameTheme["fonts"], value: string) => {
-    setDraft((prev) => ({ ...prev, fonts: { ...prev.fonts, [key]: value } }))
+  const setFont = (key: keyof DomainFrameTheme["fonts"], v: string) => {
+    setDraft((p) => ({ ...p, fonts: { ...p.fonts, [key]: v } }))
     setSaveStatus("idle")
   }
 
-  const updateField = <K extends keyof DomainFrameTheme>(
-    key: K,
-    value: DomainFrameTheme[K]
-  ) => {
-    setDraft((prev) => ({ ...prev, [key]: value }))
+  const setField = <K extends keyof DomainFrameTheme>(key: K, v: DomainFrameTheme[K]) => {
+    setDraft((p) => ({ ...p, [key]: v }))
     setSaveStatus("idle")
   }
 
@@ -326,264 +256,154 @@ export function ThemeFrame({ styleId = "neutral", themeSlug }: ThemeFrameProps) 
     }
   }
 
-  if (!isAdmin) {
-    return (
-      <StyleScope styleId={styleId} themeSlug={themeSlug}>
-        <div className="flex min-h-screen items-center justify-center" style={{ background: "#f9fafb" }}>
-          <div className="rounded-xl border p-8 text-center" style={{ borderColor: "#e5e7eb", background: "#ffffff" }}>
-            <p className="text-sm font-medium" style={{ color: "#374151" }}>Admin access required</p>
-            <p className="mt-1 text-xs" style={{ color: "#9ca3af" }}>Theme editing is available to platform admins only.</p>
-          </div>
-        </div>
-      </StyleScope>
-    )
-  }
+  const saveButton = (
+    <button
+      type="button"
+      onClick={handleSave}
+      disabled={saving || !isAdmin}
+      className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors hover:opacity-80 disabled:opacity-40"
+      style={{ borderColor: "var(--theme-border-soft)", color: "var(--theme-ink-primary)" }}
+    >
+      {saving ? "Saving…" : saveStatus === "saved" ? "✓ Saved" : saveStatus === "error" ? "Error — retry" : "Save Theme"}
+    </button>
+  )
 
   return (
-    <StyleScope styleId={styleId} themeSlug={themeSlug}>
-      <div className="flex flex-col min-h-screen" style={{ background: "#f9fafb" }}>
-
-        {/* ── Header ── */}
-        <div
-          className="shrink-0 flex items-center justify-between px-6"
-          style={{
-            height: 56,
-            background: "#ffffff",
-            borderBottom: "1px solid #e5e7eb",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigateToFrame("agent")}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors hover:bg-gray-100"
-              style={{ color: "#374151" }}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Back
-            </button>
-            <div className="h-4 w-px" style={{ background: "#e5e7eb" }} />
-            <span className="text-[13px] font-medium" style={{ color: "#111827" }}>
-              Theme Editor
-            </span>
-            <span
-              className="text-[10px] font-bold uppercase tracking-widest rounded px-2 py-0.5"
-              style={{ background: "#f3f4f6", color: "#6b7280" }}
-            >
-              {domainSlug}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {saveStatus === "saved" && (
-              <span className="text-[12px] font-medium" style={{ color: "#16a34a" }}>
-                ✓ Saved
-              </span>
-            )}
-            {saveStatus === "error" && (
-              <span className="text-[12px] font-medium" style={{ color: "#dc2626" }}>
-                Save failed — try again
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving}
-              className="rounded-md px-4 py-2 text-[13px] font-medium transition-colors disabled:opacity-60"
-              style={{
-                background: saving ? "#e5e7eb" : "#111827",
-                color: saving ? "#6b7280" : "#ffffff",
-              }}
-            >
-              {saving ? "Saving…" : "Save Theme"}
-            </button>
-          </div>
+    <DesignFrame
+      styleId={styleId}
+      themeSlug={themeSlug}
+      title="Theme Editor"
+      subtitle={domainSlug ? `${domainSlug} · brand tokens & identity` : "brand tokens & identity"}
+      rightSlot={saveButton}
+      onClose={closeToBoard}
+    >
+      {!isAdmin ? (
+        <div className="rounded-2xl border px-6 py-6" style={{ borderColor: "var(--theme-border-soft)" }}>
+          <p className="text-sm" style={{ color: "var(--theme-ink-primary)" }}>Admin access required to edit the theme.</p>
         </div>
+      ) : (
+        <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 1fr" }}>
 
-        {/* ── Body ── */}
-        <div className="flex flex-1 min-h-0">
-
-          {/* Editor panel */}
+          {/* Left — edit form */}
           <div
-            className="flex flex-col overflow-y-auto"
+            className="rounded-2xl px-6 py-5"
             style={{
-              width: 600,
-              minWidth: 480,
-              background: "#ffffff",
-              borderRight: "1px solid #e5e7eb",
+              background: "hsl(var(--theme-surface-paper) / 0.85)",
+              border: "1px solid var(--theme-border-soft)",
+              backdropFilter: "blur(8px)",
             }}
           >
-            <div className="px-8 py-6">
+            <SectionLabel label="Identity" />
+            <FieldRow label="Wordmark" hint="Short name in headers">
+              <TextInput value={draft.wordmark} onChange={(v) => setField("wordmark", v)} placeholder="KE3P" />
+            </FieldRow>
+            <FieldRow label="Tagline" hint="One-line description">
+              <TextInput value={draft.tagline} onChange={(v) => setField("tagline", v)} placeholder="cryptically designed…" />
+            </FieldRow>
 
-              {/* Identity */}
-              <SectionHeader label="Identity" />
-              <FieldRow label="Wordmark" hint="Short domain name shown in headers">
-                <TextInput
-                  value={draft.wordmark}
-                  onChange={(v) => updateField("wordmark", v)}
-                  placeholder="KE3P"
-                />
+            <div className="mt-5">
+              <SectionLabel label="Colors" />
+              <FieldRow label="Primary" hint="Ink, buttons">
+                <ColorInput value={draft.colors.primary} onChange={(v) => setColor("primary", v)} label="Primary color" />
               </FieldRow>
-              <FieldRow label="Tagline" hint="One-line domain description">
-                <TextInput
-                  value={draft.tagline}
-                  onChange={(v) => updateField("tagline", v)}
-                  placeholder="cryptically designed, wonderfully underfolded"
-                />
+              <FieldRow label="Accent" hint="Badges, links">
+                <ColorInput value={draft.colors.accent} onChange={(v) => setColor("accent", v)} label="Accent color" />
               </FieldRow>
-              <FieldRow label="Background" hint="Cover image path or URL">
-                <TextInput
-                  value={draft.background}
-                  onChange={(v) => updateField("background", v)}
-                  placeholder="/images/keeper-dawn.jpg"
-                />
+              <FieldRow label="Surface" hint="Page background tint">
+                <ColorInput value={draft.colors.surface} onChange={(v) => setColor("surface", v)} label="Surface color" />
               </FieldRow>
+            </div>
 
-              {/* Colors */}
-              <div className="mt-8">
-                <SectionHeader label="Colors" />
-                <FieldRow label="Primary" hint="Main brand color — ink, buttons">
-                  <ColorInput
-                    value={draft.colors.primary}
-                    onChange={(v) => updateColor("primary", v)}
-                    label="Primary color"
-                  />
-                </FieldRow>
-                <FieldRow label="Accent" hint="Highlight color — badges, links">
-                  <ColorInput
-                    value={draft.colors.accent}
-                    onChange={(v) => updateColor("accent", v)}
-                    label="Accent color"
-                  />
-                </FieldRow>
-                <FieldRow label="Surface" hint="Base page background color">
-                  <ColorInput
-                    value={draft.colors.surface}
-                    onChange={(v) => updateColor("surface", v)}
-                    label="Surface color"
-                  />
-                </FieldRow>
-              </div>
-
-              {/* Typography */}
-              <div className="mt-8">
-                <SectionHeader label="Typography" />
-                <FieldRow label="Display font" hint="Headings, wordmark">
-                  <FontSelect
-                    value={draft.fonts.display}
-                    onChange={(v) => updateFont("display", v)}
-                    options={DISPLAY_FONTS}
-                  />
-                </FieldRow>
-                <FieldRow label="UI font" hint="Body, labels, buttons">
-                  <FontSelect
-                    value={draft.fonts.ui}
-                    onChange={(v) => updateFont("ui", v)}
-                    options={UI_FONTS}
-                  />
-                </FieldRow>
-              </div>
-
+            <div className="mt-5">
+              <SectionLabel label="Typography" />
+              <FieldRow label="Display font" hint="Headings, wordmark">
+                <FontSelect value={draft.fonts.display} onChange={(v) => setFont("display", v)} options={DISPLAY_FONTS} />
+              </FieldRow>
+              <FieldRow label="UI font" hint="Body, labels, buttons">
+                <FontSelect value={draft.fonts.ui} onChange={(v) => setFont("ui", v)} options={UI_FONTS} />
+              </FieldRow>
             </div>
           </div>
 
-          {/* Preview panel */}
-          <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
-            <div className="px-8 py-6">
+          {/* Right — preview */}
+          <div className="flex flex-col gap-4">
 
-              {/* Token swatches */}
-              <SectionHeader label="Resolved Tokens — Light Mode" />
-              <TokenSwatchRow tokens={previewTokens} />
+            {/* Token swatches */}
+            <div
+              className="rounded-2xl px-5 py-4"
+              style={{
+                background: "hsl(var(--theme-surface-paper) / 0.85)",
+                border: "1px solid var(--theme-border-soft)",
+                backdropFilter: "blur(8px)",
+              }}
+            >
+              <SectionLabel label="Resolved Tokens — Light Mode" />
+              <TokenSwatch tokens={previewTokens} />
+            </div>
 
-              {/* Live preview card */}
-              <div className="mt-8">
-                <SectionHeader label="Live Preview" />
+            {/* Live preview card */}
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{
+                background: "hsl(var(--theme-surface-paper) / 0.85)",
+                border: "1px solid var(--theme-border-soft)",
+                backdropFilter: "blur(8px)",
+              }}
+            >
+              <div
+                className="flex flex-col items-center justify-center py-10 px-6 text-center"
+                style={{ background: draft.colors.surface, minHeight: 140 }}
+              >
                 <div
-                  className="rounded-xl overflow-hidden"
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                  }}
+                  className="text-3xl font-bold mb-1"
+                  style={{ fontFamily: `"${draft.fonts.display}", serif`, color: draft.colors.primary }}
                 >
-                  {/* Cover-style preview */}
-                  <div
-                    className="flex flex-col items-center justify-center py-12 px-8 text-center"
-                    style={{
-                      background: draft.colors.surface,
-                      minHeight: 180,
-                    }}
-                  >
-                    <div
-                      className="text-4xl font-bold mb-2"
-                      style={{
-                        fontFamily: `"${draft.fonts.display}", serif`,
-                        color: draft.colors.primary,
-                      }}
-                    >
-                      {draft.wordmark || "KE3P"}
-                    </div>
-                    <div
-                      className="text-sm"
-                      style={{
-                        fontFamily: `"${draft.fonts.ui}", sans-serif`,
-                        color: draft.colors.primary + "99",
-                      }}
-                    >
-                      {draft.tagline || "your tagline here"}
-                    </div>
-                  </div>
-
-                  {/* Bottom strip */}
-                  <div
-                    className="flex items-center gap-3 px-6 py-3"
-                    style={{ background: draft.colors.primary }}
-                  >
-                    <div
-                      className="rounded px-3 py-1 text-xs font-semibold"
-                      style={{
-                        fontFamily: `"${draft.fonts.ui}", sans-serif`,
-                        background: draft.colors.accent,
-                        color: "#ffffff",
-                      }}
-                    >
-                      Accent
-                    </div>
-                    <span
-                      className="text-xs"
-                      style={{
-                        fontFamily: `"${draft.fonts.ui}", sans-serif`,
-                        color: "#ffffff99",
-                      }}
-                    >
-                      Primary surface
-                    </span>
-                  </div>
+                  {draft.wordmark || "KE3P"}
+                </div>
+                <div
+                  className="text-sm"
+                  style={{ fontFamily: `"${draft.fonts.ui}", sans-serif`, color: `${draft.colors.primary}99` }}
+                >
+                  {draft.tagline || "your tagline here"}
                 </div>
               </div>
-
-              {/* Raw JSON for advanced users */}
-              <div className="mt-8">
-                <SectionHeader label="Raw JSON (read-only)" />
-                <pre
-                  className="rounded-lg p-4 text-[11px] overflow-x-auto"
-                  style={{
-                    background: "#f9fafb",
-                    border: "1px solid #e5e7eb",
-                    color: "#374151",
-                    fontFamily: "monospace",
-                  }}
+              <div
+                className="flex items-center gap-3 px-5 py-2.5"
+                style={{ background: draft.colors.primary }}
+              >
+                <span
+                  className="rounded px-2.5 py-0.5 text-[11px] font-semibold"
+                  style={{ background: draft.colors.accent, color: "#fff", fontFamily: `"${draft.fonts.ui}", sans-serif` }}
                 >
-                  {JSON.stringify(draft, null, 2)}
-                </pre>
+                  Accent
+                </span>
+                <span className="text-[11px]" style={{ color: "#ffffff99", fontFamily: `"${draft.fonts.ui}", sans-serif` }}>
+                  Primary surface
+                </span>
               </div>
-
             </div>
+
+            {/* Raw JSON */}
+            <div
+              className="rounded-2xl px-5 py-4"
+              style={{
+                background: "hsl(var(--theme-surface-paper) / 0.85)",
+                border: "1px solid var(--theme-border-soft)",
+                backdropFilter: "blur(8px)",
+              }}
+            >
+              <SectionLabel label="Raw JSON" />
+              <pre
+                className="text-[11px] overflow-x-auto"
+                style={{ color: "var(--theme-ink-secondary)", fontFamily: "monospace" }}
+              >
+                {JSON.stringify(draft, null, 2)}
+              </pre>
+            </div>
+
           </div>
         </div>
-      </div>
-    </StyleScope>
+      )}
+    </DesignFrame>
   )
 }
