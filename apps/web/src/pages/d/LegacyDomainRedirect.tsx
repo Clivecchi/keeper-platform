@@ -26,7 +26,7 @@ const LegacyDomainRedirect: React.FC = () => {
   if (theme) nextParams.set("theme", theme)
   if (style) nextParams.set("style", style)
 
-  return <Navigate to={`/d/${slug}/board?${nextParams.toString()}`} replace />
+  return <Navigate to={`/d/${slug}?${nextParams.toString()}`} replace />
 }
 
 export default LegacyDomainRedirect

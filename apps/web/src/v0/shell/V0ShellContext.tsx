@@ -20,6 +20,8 @@ export type V0FrameKey =
   | "agent"
   | "kip"
   | "admin"
+  | "theme"
+  | "hub"
 
 export interface BuildFrameUrlOptions {
   draftId?: string | null
@@ -52,6 +54,8 @@ export interface V0ShellContextValue {
   buildFrameUrl: (frame: V0FrameKey, options?: BuildFrameUrlOptions) => string
   navigateToFrame: (frame: V0FrameKey, options?: BuildFrameUrlOptions) => void
   closeToBoard: () => void
+  /** Re-fetch the domain frame JSON from the API and refresh all state derived from it */
+  reloadDomainFrame: () => Promise<void>
 }
 
 const V0ShellContext = React.createContext<V0ShellContextValue | null>(null)

@@ -97,7 +97,7 @@ export const UserIdentityDropdown: React.FC = () => {
             <div className="border-t border-gray-200 my-1"></div>
             {/* Quick Actions */}
             <NavLink 
-              to={`/d/${domainSlug}/board?frame=commons`} 
+              to={`/d/${domainSlug}?frame=commons`} 
               className="block px-4 py-2 text-sm hover:bg-gray-50"
               onClick={() => setIsOpen(false)}
             >

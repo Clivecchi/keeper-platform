@@ -13,6 +13,6 @@ export default function V0Page() {
   if (style) nextParams.set("style", style)
   if (draftId) nextParams.set("draftId", draftId)
 
-  return <Navigate to={`/d/${domainSlug}/board?${nextParams.toString()}`} replace />
+  return <Navigate to={`/d/${domainSlug}?${nextParams.toString()}`} replace />
 }
 

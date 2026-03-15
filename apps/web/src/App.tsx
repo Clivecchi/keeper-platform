@@ -110,7 +110,7 @@ const RequireAdminRoute: React.FC = () => {
   }
 
   if (!isAdmin) {
-    return <Navigate to={`/d/${domainSlug}/board?frame=commons`} replace />;
+    return <Navigate to={`/d/${domainSlug}?frame=commons`} replace />;
   }
 
   return <Outlet />;
@@ -122,7 +122,7 @@ const RootRedirect: React.FC = () => {
   const suffix = params.toString();
   // No frame param: V0Shell uses defaultFrame (cover for anon, commons for auth)
   // Avoids double redirect: / -> ?frame=commons -> ?frame=cover for public visitors
-  const target = `/d/default/board${suffix ? `?${suffix}` : ''}`;
+  const target = `/d/default${suffix ? `?${suffix}` : ''}`;
   return <Navigate to={target} replace />;
 };
 
@@ -131,10 +131,19 @@ const V1ToDRedirect: React.FC = () => {
   const location = useLocation();
   const match = location.pathname.match(/^\/v1\/([^/]+)(\/board)?/);
   if (!match) return null;
-  const [, slug, boardPart] = match;
-  const path = `/d/${slug}${boardPart || ''}`;
+  const [, slug] = match;
   const search = location.search || '';
-  return <Navigate to={`${path}${search}`} replace />;
+  return <Navigate to={`/d/${slug}${search}`} replace />;
+};
+
+/** Redirect /d/:slug/board to /d/:slug — /board suffix is no longer needed */
+const BoardToShellRedirect: React.FC = () => {
+  const location = useLocation();
+  const match = location.pathname.match(/^\/d\/([^/]+)\/board/);
+  if (!match) return null;
+  const [, slug] = match;
+  const search = location.search || '';
+  return <Navigate to={`/d/${slug}${search}`} replace />;
 };
 
 const App: React.FC = () => {
@@ -278,10 +287,10 @@ const App: React.FC = () => {
         <Route path="/d/:slug/journeys" element={<LegacyDomainRedirect />} />
         <Route path="/d/:slug/profile" element={<LegacyDomainRedirect />} />
         <Route path="/d/:slug/agent" element={<LegacyDomainRedirect />} />
-        {/* Public Domain Board - Shows board for logged out, redirects logged in to Feed */}
+        {/* Domain shell — canonical URL is /d/:slug, all params via ?frame= / ?board= */}
         <Route path="/d/:slug" element={<V0ShellPage />} />
-        {/* Public Domain Board View - Always shows board, even when logged in */}
-        <Route path="/d/:slug/board" element={<V0ShellPage />} />
+        {/* Backward compat: /d/:slug/board → /d/:slug (preserves query string) */}
+        <Route path="/d/:slug/board" element={<BoardToShellRedirect />} />
         {/* Manifesto Pages - Clean, distraction-free reading */}
         <Route path="/manifestos/clean-surface-doctrine" element={<CleanSurfaceDoctrinePage />} />
       </Route>

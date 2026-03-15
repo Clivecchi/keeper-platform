@@ -48,7 +48,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo
           .then(() => console.log('SystemStatus: /api/kam/me ok'))
           .catch((e) => console.warn('SystemStatus: /api/kam/me failed', e));
         // Navigate to returnTo URL if provided, otherwise default to Commons
-        navigate(returnTo || '/d/default/board?frame=commons');
+        navigate(returnTo || '/d/default?frame=commons');
       } else {
         setError(result.error?.message || 'An unknown error occurred.');
       }

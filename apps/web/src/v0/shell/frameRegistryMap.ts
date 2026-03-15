@@ -20,6 +20,8 @@ import { AgentFrame } from "../frames/agent/AgentFrame"
 import { AgentBoardFrame } from "../frames/agent/AgentBoardFrame"
 import { AdminFrame } from "../frames/admin/AdminFrame"
 import { IndexFrame } from "../frames/index/IndexFrame"
+import { ThemeFrame } from "../frames/theme/ThemeFrame"
+import { HubFrame } from "../frames/hub/HubFrame"
 
 export const CORE_FRAME_MAP: Record<string, React.ComponentType<any>> = {
   cover: CoverFrame,
@@ -36,6 +38,8 @@ export const CORE_FRAME_MAP: Record<string, React.ComponentType<any>> = {
   agent: AgentBoardFrame,
   kip: AgentFrame,
   admin: AdminFrame,
+  theme: ThemeFrame,
+  hub: HubFrame,
 }
 
 /** Human-readable display name for each frame key */
@@ -54,6 +58,8 @@ export const FRAME_DISPLAY_NAMES: Record<string, string> = {
   agent: "Agent Board",
   kip: "Kip",
   admin: "Admin",
+  theme: "Theme",
+  hub: "Hub",
 }
 
 /**
@@ -75,4 +81,6 @@ export const FRAME_TO_JSON_KEY: Record<string, string | null> = {
   agent: "agent_board",
   kip: "kip",
   admin: "domain_admin",
+  theme: "theme",
+  hub: null,
 }

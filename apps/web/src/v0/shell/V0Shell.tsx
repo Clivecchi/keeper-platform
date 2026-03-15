@@ -149,6 +149,7 @@ export function V0Shell() {
 
   // buildFrameUrl uses urlThemeSlug (not DOMAIN_THEME_SLUG) so that generated URLs
   // only carry ?theme= when the developer has explicitly set an override.
+  // Canonical URL form: /d/:slug?frame=... (no /board segment)
   const buildFrameUrl = React.useCallback((nextFrame: V0FrameKey, options?: { draftId?: string | null; themeSlug?: string | null; styleId?: StyleId | null }) => {
     const params = new URLSearchParams()
     params.set("frame", nextFrame)
@@ -158,7 +159,7 @@ export function V0Shell() {
     if (resolvedTheme) params.set("theme", resolvedTheme)
     if (resolvedStyle) params.set("style", resolvedStyle)
     if (resolvedDraft) params.set("draftId", resolvedDraft)
-    return `/d/${slug}/board?${params.toString()}`
+    return `/d/${slug}?${params.toString()}`
   }, [draftId, slug, styleId, urlThemeSlug])
 
   React.useEffect(() => {
@@ -178,12 +179,22 @@ export function V0Shell() {
     if (urlThemeSlug) params.set("theme", urlThemeSlug)
     if (styleId) params.set("style", styleId)
     const suffix = params.toString()
-    navigate(`/d/${slug}/board${suffix ? `?${suffix}` : ""}`)
+    navigate(`/d/${slug}${suffix ? `?${suffix}` : ""}`)
   }
 
   const navigateToFrame = (nextFrame: V0FrameKey, options?: { draftId?: string | null; themeSlug?: string | null; styleId?: StyleId | null }) => {
     navigate(buildFrameUrl(nextFrame, options))
   }
+
+  const reloadDomainFrame = React.useCallback(async () => {
+    if (!slug) return
+    try {
+      const frame = await loadDomainFrame(slug)
+      setDomainFrame(frame)
+    } catch (err) {
+      console.warn("[DomainFrame] Reload failed:", err)
+    }
+  }, [slug])
 
   const experience = useExperienceMode({
     domainSlug: resolvedSlug,
@@ -240,6 +251,7 @@ export function V0Shell() {
             buildFrameUrl,
             navigateToFrame,
             closeToBoard,
+            reloadDomainFrame,
           }}
         >
           <FrameContextProvider
@@ -275,6 +287,7 @@ export function V0Shell() {
           buildFrameUrl,
           navigateToFrame,
           closeToBoard,
+          reloadDomainFrame,
         }}
       >
         <FrameContextProvider
@@ -291,7 +304,7 @@ export function V0Shell() {
         ) : frame === "moments" ? (
           <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} />
         ) : frame === "diagnostics" ? (
-          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} returnPath={`/d/${slug}/board`} />
+          <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} returnPath={`/d/${slug}`} />
         ) : (
           <FrameComponent styleId={styleId} themeSlug={activeThemeSlug} domainSlug={slug} />
         )}

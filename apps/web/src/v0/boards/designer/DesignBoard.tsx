@@ -209,7 +209,7 @@ export function DesignerFrame({
   const wordmark = liveDomainFrame?.theme?.wordmark ?? domainSlug
 
   const handleBack = () => {
-    navigate(`/d/${domainSlug}/board`)
+    navigate(`/d/${domainSlug}`)
   }
 
   return (

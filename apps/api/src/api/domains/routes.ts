@@ -180,6 +180,72 @@ router.get('/:slug/frame', async (req: Request, res: Response) => {
   }
 });
 
+// PATCH /api/domains/:slug/frame — deep-merge a partial frame_json update (admin only)
+// Uses raw SQL to avoid Prisma JSONB serialization quirks.
+router.patch('/:slug/frame', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const authedReq = req as AuthenticatedRequest;
+    if (!authedReq.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { slug } = req.params;
+    const domain = await prisma.domain.findUnique({
+      where: { slug },
+      select: { id: true, frame_json: true },
+    });
+    if (!domain) {
+      return res.status(404).json({ error: 'Domain not found' });
+    }
+
+    const permission = await getPermissionService().checkPermission({
+      userId: authedReq.user.id,
+      domainId: domain.id,
+      permission: 'admin',
+    });
+    if (!permission.hasPermission) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const current = (domain.frame_json as Record<string, unknown>) ?? {};
+    const patch = req.body as Record<string, unknown>;
+
+    // Deep-merge top-level keys; for 'theme', also merge nested sub-objects
+    const merged: Record<string, unknown> = { ...current };
+    for (const key of Object.keys(patch)) {
+      const pVal = patch[key];
+      const cVal = current[key];
+      if (pVal !== null && typeof pVal === 'object' && !Array.isArray(pVal) &&
+          cVal !== null && typeof cVal === 'object' && !Array.isArray(cVal)) {
+        // Shallow merge objects one level deep
+        const merged1: Record<string, unknown> = { ...(cVal as Record<string, unknown>), ...(pVal as Record<string, unknown>) };
+        // For 'theme', also deep-merge 'colors' and 'fonts' sub-objects
+        if (key === 'theme') {
+          const pTheme = pVal as Record<string, unknown>;
+          const cTheme = cVal as Record<string, unknown>;
+          if (pTheme['colors'] && typeof pTheme['colors'] === 'object') {
+            merged1['colors'] = { ...(cTheme['colors'] as object ?? {}), ...(pTheme['colors'] as object) };
+          }
+          if (pTheme['fonts'] && typeof pTheme['fonts'] === 'object') {
+            merged1['fonts'] = { ...(cTheme['fonts'] as object ?? {}), ...(pTheme['fonts'] as object) };
+          }
+        }
+        merged[key] = merged1;
+      } else {
+        merged[key] = pVal;
+      }
+    }
+
+    const mergedJson = JSON.stringify(merged);
+    await prisma.$executeRaw`UPDATE "Domain" SET frame_json = ${mergedJson}::jsonb WHERE id = ${domain.id}`;
+
+    return res.json({ ok: true, frame: merged });
+  } catch (error) {
+    console.error('[domains:frame:patch:error]', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ============================================================================
 // Apply domain resolution middleware (affects routes below)
 // ============================================================================
