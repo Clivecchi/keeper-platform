@@ -208,16 +208,38 @@ export function DesignerFramePreview({
           </div>
         ) : showRawJson ? (
           /* Raw JSON view */
-          <pre
-            className="p-4 text-[11px] leading-relaxed overflow-auto h-full"
-            style={{
-              fontFamily: "ui-monospace, 'Cascadia Code', monospace",
-              color: "#111827",
-              background: "#f9fafb",
-            }}
-          >
-            {formatJson(jsonBlockValue)}
-          </pre>
+          jsonKey ? (
+            <pre
+              className="p-4 text-[11px] leading-relaxed overflow-auto h-full"
+              style={{
+                fontFamily: "ui-monospace, 'Cascadia Code', monospace",
+                color: "#111827",
+                background: "#f9fafb",
+              }}
+            >
+              {formatJson(jsonBlockValue)}
+            </pre>
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
+              <div
+                className="rounded-full flex items-center justify-center"
+                style={{ width: 36, height: 36, background: "#f3f4f6" }}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 5v3M8 10.5v.5" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round"/>
+                  <circle cx="8" cy="8" r="6.25" stroke="#9ca3af" strokeWidth="1.5"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-[13px] font-medium" style={{ color: "#374151" }}>
+                  No JSON block for this frame
+                </p>
+                <p className="mt-1 text-[11px]" style={{ color: "#9ca3af" }}>
+                  This frame renders live data — its content is not governed by frame JSON.
+                </p>
+              </div>
+            </div>
+          )
         ) : FrameComponent ? (
           /* Rendered frame preview — wrapped in a context override */
           <div className="h-full overflow-auto" style={{ pointerEvents: "none" }}>
