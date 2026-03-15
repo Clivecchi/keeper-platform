@@ -39,6 +39,13 @@ const router: Router = Router();
 // Attach domain context for any route that contains :domainId
 router.param('domainId', async (req, res, next, domainId) => {
   try {
+    if (!domainService) {
+      if (!cacheService) {
+        const redis = getRedis();
+        cacheService = new DomainCacheService(redis);
+      }
+      domainService = new DomainService(prisma, cacheService);
+    }
     const domain = await domainService.getDomainById(domainId);
     if (domain) {
       console.log('[PARAM PROBE] domainId:', domainId, 'domain:', domain);

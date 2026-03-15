@@ -48,11 +48,11 @@ export function DesignerFrameNav({
       {/* Header */}
       <div
         className="px-4 py-3 border-b"
-        style={{ borderColor: "var(--theme-border-soft, #e5e7eb)" }}
+        style={{ borderColor: "#e5e7eb" }}
       >
         <p
           className="text-[11px] font-semibold uppercase tracking-widest"
-          style={{ color: "var(--theme-ink-secondary, #6b7280)" }}
+          style={{ color: "#4b5563" }}
         >
           Frame Navigator
         </p>
@@ -76,10 +76,8 @@ export function DesignerFrameNav({
                 onClick={() => onSelectFrame(key)}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors"
                 style={{
-                  background: isActive
-                    ? "hsl(var(--theme-surface-raised, 0 0% 95%))"
-                    : "transparent",
-                  borderLeft: isActive ? "2px solid hsl(var(--theme-ink-primary, 0 0% 10%))" : "2px solid transparent",
+                  background: isActive ? "#f3f4f6" : "transparent",
+                  borderLeft: isActive ? "2px solid #111827" : "2px solid transparent",
                 }}
               >
                 {/* Status dot */}
@@ -98,9 +96,7 @@ export function DesignerFrameNav({
                 <span
                   className="text-[13px] leading-snug"
                   style={{
-                    color: isActive
-                      ? "var(--theme-ink-primary, #111)"
-                      : "var(--theme-ink-secondary, #6b7280)",
+                    color: isActive ? "#111827" : "#4b5563",
                     fontWeight: isActive ? 500 : 400,
                   }}
                 >
@@ -115,13 +111,13 @@ export function DesignerFrameNav({
       {/* New Frame placeholder */}
       <div
         className="px-4 py-3 border-t"
-        style={{ borderColor: "var(--theme-border-soft, #e5e7eb)" }}
+        style={{ borderColor: "#e5e7eb" }}
       >
         <button
           type="button"
           disabled
           className="w-full text-left text-[12px] opacity-40 cursor-not-allowed"
-          style={{ color: "var(--theme-ink-secondary, #6b7280)" }}
+          style={{ color: "#4b5563" }}
         >
           ＋ New Frame
         </button>

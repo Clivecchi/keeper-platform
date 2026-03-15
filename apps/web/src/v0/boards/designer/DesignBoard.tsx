@@ -45,8 +45,8 @@ function DesignBoardBanner({
       className="shrink-0 flex items-center justify-between px-4"
       style={{
         height: 44,
-        borderBottom: "1px solid var(--theme-border-soft, #e5e7eb)",
-        background: "hsl(var(--theme-surface-paper, 0 0% 100%))",
+        borderBottom: "1px solid #e5e7eb",
+        background: "#ffffff",
       }}
     >
       {/* Left: back button + domain wordmark */}
@@ -56,7 +56,7 @@ function DesignBoardBanner({
           onClick={onBack}
           aria-label="Back to domain board"
           className="shrink-0 flex items-center gap-1 rounded px-2 py-1 text-[11px] transition-colors hover:bg-black/5"
-          style={{ color: "var(--theme-ink-secondary, #6b7280)" }}
+          style={{ color: "#4b5563" }}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
             <path d="M8 2L4 6L8 10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -65,13 +65,13 @@ function DesignBoardBanner({
         </button>
         <span
           className="text-[11px] font-medium truncate"
-          style={{ color: "var(--theme-ink-secondary, #6b7280)" }}
+          style={{ color: "#4b5563" }}
         >
           {domainSlug}
         </span>
         <span
           className="font-serif text-[15px] leading-tight truncate"
-          style={{ color: "var(--theme-ink-primary, #111)" }}
+          style={{ color: "#111827" }}
         >
           {wordmark}
         </span>
@@ -81,8 +81,8 @@ function DesignBoardBanner({
       <span
         className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest"
         style={{
-          background: "hsl(var(--theme-surface-raised, 0 0% 95%))",
-          color: "var(--theme-ink-secondary, #6b7280)",
+          background: "#f3f4f6",
+          color: "#4b5563",
         }}
       >
         Designer
@@ -211,7 +211,7 @@ export function DesignerFrame({
   return (
     <div
       className="flex flex-col h-screen w-full overflow-hidden"
-      style={{ background: "hsl(var(--theme-surface-page, 0 0% 97%))" }}
+      style={{ background: "#f9fafb" }}
     >
       {/* Top — Domain banner (wordmark + navigation chrome) */}
       <DesignBoardBanner
@@ -229,8 +229,8 @@ export function DesignerFrame({
         style={{
           width: 220,
           minWidth: 220,
-          borderColor: "var(--theme-border-soft, #e5e7eb)",
-          background: "hsl(var(--theme-surface-paper, 0 0% 100%))",
+          borderColor: "#e5e7eb",
+          background: "#ffffff",
           overflowY: "auto",
         }}
       >
@@ -247,8 +247,8 @@ export function DesignerFrame({
         style={{
           flex: "1 1 0%",
           minWidth: 0,
-          borderColor: "var(--theme-border-soft, #e5e7eb)",
-          background: "hsl(var(--theme-surface-paper, 0 0% 100%))",
+          borderColor: "#e5e7eb",
+          background: "#ffffff",
         }}
       >
         <DesignerFrameKip
@@ -273,7 +273,7 @@ export function DesignerFrame({
         style={{
           width: "42%",
           minWidth: 320,
-          background: "hsl(var(--theme-surface-page, 0 0% 97%))",
+          background: "#f9fafb",
           overflow: "hidden",
         }}
       >

@@ -130,15 +130,15 @@ export function DesignerFramePreview({
       <div
         className="shrink-0 flex items-center justify-between gap-3 px-4 py-2.5 border-b"
         style={{
-          background: "hsl(var(--theme-surface-paper, 0 0% 100%))",
-          borderColor: "var(--theme-border-soft, #e5e7eb)",
+          background: "#ffffff",
+          borderColor: "#e5e7eb",
         }}
       >
         {/* Left: title + draft badge */}
         <div className="flex items-center gap-2 min-w-0">
           <p
             className="text-[11px] font-semibold uppercase tracking-widest shrink-0"
-            style={{ color: "var(--theme-ink-secondary, #6b7280)" }}
+            style={{ color: "#4b5563" }}
           >
             {frameDisplayName ?? "Live Preview"}
           </p>
@@ -161,7 +161,7 @@ export function DesignerFramePreview({
           {/* Audience switcher */}
           <div
             className="flex rounded-md overflow-hidden border text-[11px]"
-            style={{ borderColor: "var(--theme-border-soft, #e5e7eb)" }}
+            style={{ borderColor: "#e5e7eb" }}
           >
             {AUDIENCE_OPTIONS.map(({ key, label }) => (
               <button
@@ -170,12 +170,8 @@ export function DesignerFramePreview({
                 onClick={() => setAudience(key)}
                 className="px-2 py-1 transition-colors"
                 style={{
-                  background: audience === key
-                    ? "hsl(var(--theme-ink-primary, 0 0% 10%))"
-                    : "transparent",
-                  color: audience === key
-                    ? "hsl(var(--theme-surface-paper, 0 0% 100%))"
-                    : "var(--theme-ink-secondary, #6b7280)",
+                  background: audience === key ? "#111827" : "transparent",
+                  color: audience === key ? "#ffffff" : "#4b5563",
                 }}
               >
                 {label}
@@ -189,13 +185,9 @@ export function DesignerFramePreview({
             onClick={() => setShowRawJson(!showRawJson)}
             className="rounded px-2 py-1 text-[11px] transition-colors border"
             style={{
-              background: showRawJson
-                ? "hsl(var(--theme-ink-primary, 0 0% 10%))"
-                : "transparent",
-              color: showRawJson
-                ? "hsl(var(--theme-surface-paper, 0 0% 100%))"
-                : "var(--theme-ink-secondary, #6b7280)",
-              borderColor: "var(--theme-border-soft, #e5e7eb)",
+              background: showRawJson ? "#111827" : "transparent",
+              color: showRawJson ? "#ffffff" : "#4b5563",
+              borderColor: "#e5e7eb",
             }}
           >
             {"{ }"}
@@ -209,7 +201,7 @@ export function DesignerFramePreview({
           <div className="flex h-full items-center justify-center">
             <p
               className="text-[13px] text-center"
-              style={{ color: "var(--theme-ink-secondary, #6b7280)" }}
+              style={{ color: "#6b7280" }}
             >
               Select a frame to preview
             </p>
@@ -220,8 +212,8 @@ export function DesignerFramePreview({
             className="p-4 text-[11px] leading-relaxed overflow-auto h-full"
             style={{
               fontFamily: "ui-monospace, 'Cascadia Code', monospace",
-              color: "var(--theme-ink-primary, #111)",
-              background: "hsl(var(--theme-surface-page, 0 0% 97%))",
+              color: "#111827",
+              background: "#f9fafb",
             }}
           >
             {formatJson(jsonBlockValue)}
@@ -246,7 +238,7 @@ export function DesignerFramePreview({
           <div className="flex h-full items-center justify-center">
             <p
               className="text-[13px]"
-              style={{ color: "var(--theme-ink-secondary, #6b7280)" }}
+              style={{ color: "#6b7280" }}
             >
               No preview available for this frame
             </p>

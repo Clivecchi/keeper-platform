@@ -226,18 +226,18 @@ export function DesignerFrameKip({
       {/* Header */}
       <div
         className="shrink-0 px-4 py-3 border-b"
-        style={{ borderColor: "var(--theme-border-soft, #e5e7eb)" }}
+        style={{ borderColor: "#e5e7eb" }}
       >
         <p
           className="text-[11px] font-semibold uppercase tracking-widest"
-          style={{ color: "var(--theme-ink-secondary, #6b7280)" }}
+          style={{ color: "#4b5563" }}
         >
           Kip · Designer
         </p>
         {frameDisplayName && (
           <p
             className="mt-0.5 text-[12px]"
-            style={{ color: "var(--theme-ink-primary, #111)" }}
+            style={{ color: "#111827" }}
           >
             Editing: {frameDisplayName}
           </p>
@@ -250,7 +250,7 @@ export function DesignerFrameKip({
           <div className="flex h-full items-center justify-center">
             <p
               className="text-center text-[13px] max-w-xs"
-              style={{ color: "var(--theme-ink-secondary, #6b7280)" }}
+              style={{ color: "#6b7280" }}
             >
               {activeFrameKey
                 ? `Tell Kip what you want to change about the ${frameDisplayName} frame.`
@@ -324,7 +324,7 @@ export function DesignerFrameKip({
       {/* Input area */}
       <div
         className="shrink-0 border-t px-3 py-3"
-        style={{ borderColor: "var(--theme-border-soft, #e5e7eb)" }}
+        style={{ borderColor: "#e5e7eb" }}
       >
         {sendError && (
           <p className="mb-2 text-[11px] text-red-500">{sendError}</p>
@@ -343,9 +343,9 @@ export function DesignerFrameKip({
             rows={2}
             className="flex-1 resize-none rounded-lg border px-3 py-2 text-[13px] outline-none transition-colors disabled:opacity-40"
             style={{
-              borderColor: "var(--theme-border-soft, #e5e7eb)",
-              background: "hsl(var(--theme-surface-paper, 0 0% 100%))",
-              color: "var(--theme-ink-primary, #111)",
+              borderColor: "#e5e7eb",
+              background: "#ffffff",
+              color: "#111827",
               maxHeight: 120,
             }}
           />
@@ -364,7 +364,7 @@ export function DesignerFrameKip({
         </div>
         <p
           className="mt-1.5 text-[10px]"
-          style={{ color: "var(--theme-ink-secondary, #9ca3af)" }}
+          style={{ color: "#9ca3af" }}
         >
           Enter to send · Shift+Enter for new line
         </p>
