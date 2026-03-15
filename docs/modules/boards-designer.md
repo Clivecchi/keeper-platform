@@ -16,12 +16,21 @@ Platform Admin–only surface for visually designing and editing V0 domain Frame
 - `DesignBoardCanvas` imports `CORE_FRAME_MAP` directly (no circular risk since board is no longer in FRAME_REGISTRY)
 - `DesignBoardCanvas` wraps previewed frames in a `V0ShellProvider` override so draft JSON is visible
 
+## 🐛 Debug Mode
+Design Board debug logging traces draft propagation from Kip → preview. Enable via:
+- **Runtime** (browser console): `window.__keeperDebug = window.__keeperDebug || {}; window.__keeperDebug.designer = true`
+- **Build-time**: `VITE_DESIGNER_DEBUG=1` in `.env` or `VITE_DESIGNER_DEBUG=1 npm run dev`
+
+When enabled, `[DesignBoard:debug]` logs appear for `setDraftSpecJson` and `previewDomainFrame updated`.
+
 ## ⚠️ Notes & ToDo
 - [ ] Component internals still use `DesignerFrame` / `DesignerFrameKip` etc. as internal names — rename in a future step
 - [ ] The admin guard is duplicated: once in `DesignBoard.tsx` (component level) and once in `V0Shell.tsx` (routing level)
 - [ ] `Margin` (interaction bar) renders as a `fixed` overlay over the whole board when any frame is previewed — intentional leakage from `DesignFrame`. May want to suppress it in the preview context in a future pass.
 
 ## 📆 Update Log
+### 2026-03-15 — Debug logging
+- Added `[DesignBoard:debug]` logging in `DesignBoardKip` and `DesignBoardCanvas` for draft → preview propagation. Gated by `VITE_DESIGNER_DEBUG=1` or `window.__keeperDebug.designer`.
 ### 2026-03-12 — Pre-existing error fixes
 - `DesignBoardCanvas.tsx` line 68: `experienceMode="standard"` → `experienceMode={parentShell.experienceMode}`. `"standard"` was never a valid `ExperienceMode` member; now inherits the board's actual experience mode from shell context.
 - `DesignBoardKip.tsx` line 120: `{msg.draftProposal && ...}` → `{!!msg.draftProposal && ...}`. `draftProposal` is typed `unknown`; `!!` narrows to `boolean` making the JSX short-circuit valid as `ReactNode`. Net error count: 45 → 43 (2 fixed, 0 introduced).

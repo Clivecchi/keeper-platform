@@ -16,12 +16,24 @@ Platform Admin–only surface for visually designing and editing V0 domain Frame
 - `DesignBoardCanvas` imports `CORE_FRAME_MAP` directly (no circular risk since board is no longer in FRAME_REGISTRY)
 - `DesignBoardCanvas` wraps previewed frames in a `V0ShellProvider` override so draft JSON is visible
 
+## 🐛 Debug Mode
+Design Board debug logging traces draft propagation from Kip → preview. Enable via:
+
+- **Runtime** (browser console): `window.__keeperDebug = window.__keeperDebug || {}; window.__keeperDebug.designer = true`
+- **Build-time**: `VITE_DESIGNER_DEBUG=1` in `.env` or `VITE_DESIGNER_DEBUG=1 npm run dev`
+
+When enabled, `[DesignBoard:debug]` logs appear:
+- `setDraftSpecJson` — when Kip returns a draft (frameKey, fullSpecKeys, frameBlockKeys)
+- `previewDomainFrame updated` — when Canvas receives new draft/live data (activeFrameKey, hasDraftSpec, blockKeys)
+
 ## ⚠️ Notes & ToDo
 - [ ] Component internals still use `DesignerFrame` / `DesignerFrameKip` etc. as internal names — rename in a future step
 - [ ] The admin guard is duplicated: once in `DesignBoard.tsx` (component level) and once in `V0Shell.tsx` (routing level)
 - [ ] `Margin` (interaction bar) renders as a `fixed` overlay over the whole board when any frame is previewed — intentional leakage from `DesignFrame`. May want to suppress it in the preview context in a future pass.
 
 ## 📆 Update Log
+### 2026-03-15 — Debug logging
+- Added `[DesignBoard:debug]` logging in `DesignBoardKip` and `DesignBoardCanvas` for draft → preview propagation. Gated by `VITE_DESIGNER_DEBUG=1` or `window.__keeperDebug.designer`.
 ### 2026-03-15 — Full end-to-end loop fix
 - **`DesignBoardKip.tsx`**: Removed the two-step "Approve & create draft" flow. `handleSend()` now auto-creates the draft immediately when the backend returns `draft.spec_json`. The draft `spec` is built as the **full** `DomainFrameJson` (live frame merged with the proposed frame block at the correct JSON key via `buildFullSpec()`), not just the frame-level block. This prevents publish from overwriting unrelated frame data. `draftId` and `draftSpecJson` are both set before the API round-trip completes so the Canvas and Publish bar update immediately. `MessageBubble` no longer handles approve logic — it is now a pure display component.
 - **`DesignBoardCanvas.tsx`**: Comment update — `draftSpecJson` is now always the full `DomainFrameJson`; the spread merge is correct as-is.

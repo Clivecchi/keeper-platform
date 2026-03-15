@@ -21,6 +21,14 @@ import { CORE_FRAME_MAP, FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../../sh
 import { V0ShellProvider, useV0Shell } from "../../shell/V0ShellContext"
 import { FrameContextProvider } from "../../shell/FrameContext"
 
+/** True when Design Board debug logging is enabled (VITE_DESIGNER_DEBUG=1 or window.__keeperDebug.designer) */
+function isDesignerDebug(): boolean {
+  if (typeof window === "undefined") return false
+  const env = (import.meta as any)?.env?.VITE_DESIGNER_DEBUG
+  if (env === "1" || env === "true") return true
+  return Boolean((window as any).__keeperDebug?.designer)
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatJson(value: unknown): string {
@@ -270,6 +278,18 @@ export function DesignerFramePreview({
     if (draftSpecJson) return { ...liveDomainFrame, ...draftSpecJson } as DomainFrameJson
     return liveDomainFrame
   }, [draftSpecJson, liveDomainFrame])
+
+  React.useEffect(() => {
+    if (!isDesignerDebug()) return
+    const jsonKey = activeFrameKey ? (FRAME_TO_JSON_KEY[activeFrameKey] ?? null) : null
+    const block = previewDomainFrame && jsonKey ? (previewDomainFrame as Record<string, unknown>)[jsonKey] : null
+    console.log("[DesignBoard:debug] previewDomainFrame updated", {
+      activeFrameKey,
+      hasDraftSpec: Boolean(draftSpecJson),
+      hasLiveFrame: Boolean(liveDomainFrame),
+      blockKeys: block && typeof block === "object" ? Object.keys(block) : null,
+    })
+  }, [previewDomainFrame, activeFrameKey, draftSpecJson, liveDomainFrame])
 
   // ── Direct-edit state ──
   const [editPopup, setEditPopup] = React.useState<EditPopupState | null>(null)

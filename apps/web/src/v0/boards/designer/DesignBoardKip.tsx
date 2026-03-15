@@ -22,6 +22,14 @@ import { FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../../shell/frameRegistr
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
 
+/** True when Design Board debug logging is enabled (VITE_DESIGNER_DEBUG=1 or window.__keeperDebug.designer) */
+function isDesignerDebug(): boolean {
+  if (typeof window === "undefined") return false
+  const env = (import.meta as any)?.env?.VITE_DESIGNER_DEBUG
+  if (env === "1" || env === "true") return true
+  return Boolean((window as any).__keeperDebug?.designer)
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface DesignerFrameKipProps {
@@ -172,6 +180,15 @@ export function DesignerFrameKip({
         const fullSpec = buildFullSpec(liveDomainFrame, activeFrameKey, frameBlock)
 
         // Set preview immediately so Canvas updates before the API round-trip
+        if (isDesignerDebug()) {
+          const jsonKey = FRAME_TO_JSON_KEY[activeFrameKey] ?? null
+          const block = jsonKey ? (fullSpec as Record<string, unknown>)[jsonKey] : null
+          console.log("[DesignBoard:debug] setDraftSpecJson", {
+            frameKey: activeFrameKey,
+            fullSpecKeys: Object.keys(fullSpec as object),
+            frameBlockKeys: block && typeof block === "object" ? Object.keys(block) : null,
+          })
+        }
         setDraftSpecJson(fullSpec)
 
         try {
