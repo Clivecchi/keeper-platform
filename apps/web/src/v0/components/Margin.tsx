@@ -262,8 +262,9 @@ export function Margin() {
         style={{
           minHeight: marginHeight,
           borderTop: "1px solid var(--theme-border-soft)",
-          backgroundColor: "hsl(var(--theme-surface-page) / 0.7)",
-          backdropFilter: "blur(6px)",
+          backgroundColor: "hsl(var(--theme-surface-paper) / 0.96)",
+          backdropFilter: "blur(8px)",
+          boxShadow: "0 -1px 0 0 hsl(var(--theme-border-soft) / 0.5)",
         }}
       >
         {/* Scroll-up hint decoration sits just above the bar border */}
