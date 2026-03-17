@@ -22,6 +22,7 @@ import { loadDomainFrame } from "../../data/loadDomainFrame"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
+import { V0_MARGIN_HEIGHT } from "../../components/Margin"
 import { DesignerFrameNav } from "./DesignBoardNav"
 import { DesignerFrameKip } from "./DesignBoardKip"
 import { DesignerFramePreview } from "./DesignBoardCanvas"
@@ -116,7 +117,7 @@ export function DesignerFrame({
   themeSlug?: string | null
   domainSlug?: string
 }) {
-  const { isAdmin } = useAuth()
+  const { isAdmin, isAuthenticated } = useAuth()
   const { domainSlug: ctxSlug, domainFrame: shellDomainFrame } = useV0Shell()
   const navigate = useNavigate()
   const domainSlug = propDomainSlug ?? ctxSlug ?? ""
@@ -130,7 +131,10 @@ export function DesignerFrame({
   // ── Designer state ──
   const [activeFrameKey, setActiveFrameKey] = React.useState<string | null>(null)
   const [messages, setMessages] = React.useState<DesignerMessage[]>([])
-  const [audience, setAudience] = React.useState<DesignerAudience>("guest")
+  // Default audience to keeper when designer is logged in — interaction bar should reflect auth
+  const [audience, setAudience] = React.useState<DesignerAudience>(
+    () => (isAuthenticated ? "keeper" : "guest"),
+  )
   const [showRawJson, setShowRawJson] = React.useState(false)
 
   // ── Draft state (lifted so all panels can read it) ──
@@ -154,6 +158,15 @@ export function DesignerFrame({
     }).catch(() => {})
     return () => { ignore = true }
   }, [domainSlug])
+
+  // ── Sync audience when auth loads (one-time) — interaction bar must reflect actual auth ──
+  const prevAuthRef = React.useRef<boolean | null>(null)
+  React.useEffect(() => {
+    if (prevAuthRef.current === false && isAuthenticated) {
+      setAudience("keeper")
+    }
+    prevAuthRef.current = isAuthenticated
+  }, [isAuthenticated])
 
   // ── Reset conversation when active frame changes ──
   React.useEffect(() => {
@@ -248,8 +261,11 @@ export function DesignerFrame({
         onBack={handleBack}
       />
 
-      {/* Three-panel layout */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      {/* Three-panel layout — hard boundary: content must not extend behind interaction bar */}
+      <div
+        className="flex flex-1 min-h-0 overflow-hidden"
+        style={{ paddingBottom: V0_MARGIN_HEIGHT }}
+      >
 
       {/* Left — Frame Navigator */}
       <div
