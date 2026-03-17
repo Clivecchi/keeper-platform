@@ -4,9 +4,9 @@
  * DesignBoard (was DesignerFrame)
  *
  * Platform Admin–only surface. Three panels at full viewport height:
- *   Left   — DesignBoardNav   (frame list + live/draft status)
- *   Center — DesignBoardKip   (Kip conversation for the active frame)
- *   Right  — DesignBoardCanvas (live/draft frame preview + JSON toggle)
+ *   Left   — DesignBoardList       (collapsible board & template list)
+ *   Center — DesignBoardFrameList  (frame rows + view toggles + Kip chat)
+ *   Right  — DesignBoardFrameDetail (tabbed: Preview, Config, Props, JSON)
  *
  * Interaction loop: Kip proposes → Preview updates → Human approves → Frame publishes.
  *
@@ -23,14 +23,11 @@ import type { DomainFrameJson } from "../../data/domain-frame.types"
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
 import { V0_MARGIN_HEIGHT } from "../../components/Margin"
-import { DesignerFrameNav } from "./DesignBoardNav"
-import { DesignerFrameKip } from "./DesignBoardKip"
-import { DesignerFramePreview } from "./DesignBoardCanvas"
+import { DesignBoardList } from "./DesignBoardList"
+import { DesignBoardFrameList, BOARD_FRAMES } from "./DesignBoardFrameList"
+import { DesignBoardFrameDetail } from "./DesignBoardFrameDetail"
 
 // ─── Banner ───────────────────────────────────────────────────────────────────
-// Domain wordmark + navigation chrome. Sits above the three-panel layout as
-// the top chrome for the Designer Board — mirrors the domain branding visible
-// in the standard authenticated frame experience.
 
 function DesignBoardBanner({
   domainSlug,
@@ -51,7 +48,6 @@ function DesignBoardBanner({
         boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
       }}
     >
-      {/* Left: back button + domain wordmark */}
       <div className="flex items-center gap-3 min-w-0">
         <button
           type="button"
@@ -80,7 +76,6 @@ function DesignBoardBanner({
         </span>
       </div>
 
-      {/* Right: Designer badge */}
       <div className="flex items-center gap-2 shrink-0">
         <span
           className="rounded-md px-3 py-1 text-[11px] font-bold uppercase tracking-widest"
@@ -131,7 +126,6 @@ export function DesignerFrame({
   // ── Designer state ──
   const [activeFrameKey, setActiveFrameKey] = React.useState<string | null>(null)
   const [messages, setMessages] = React.useState<DesignerMessage[]>([])
-  // Default audience to keeper when designer is logged in — interaction bar should reflect auth
   const [audience, setAudience] = React.useState<DesignerAudience>(
     () => (isAuthenticated ? "keeper" : "guest"),
   )
@@ -142,6 +136,10 @@ export function DesignerFrame({
   const [draftId, setDraftId] = React.useState<string | null>(null)
   const [isPublishing, setIsPublishing] = React.useState(false)
   const [publishSuccess, setPublishSuccess] = React.useState(false)
+
+  // ── New panel state ──
+  const [activeBoardId, setActiveBoardId] = React.useState("domain")
+  const [leftCollapsed, setLeftCollapsed] = React.useState(false)
 
   // ── Sync live frame from shell on mount ──
   React.useEffect(() => {
@@ -159,7 +157,7 @@ export function DesignerFrame({
     return () => { ignore = true }
   }, [domainSlug])
 
-  // ── Sync audience when auth loads (one-time) — interaction bar must reflect actual auth ──
+  // ── Sync audience when auth loads (one-time) ──
   const prevAuthRef = React.useRef<boolean | null>(null)
   React.useEffect(() => {
     if (prevAuthRef.current === false && isAuthenticated) {
@@ -188,25 +186,19 @@ export function DesignerFrame({
   }, [domainSlug])
 
   // ── Direct-edit handler (from Canvas click-to-edit) ──
-  // Receives the full updated DomainFrameJson. Updates preview immediately;
-  // a kip_draft is created lazily at publish time.
   const handleDirectEdit = React.useCallback((updatedFrame: DomainFrameJson) => {
     setDraftSpecJson(updatedFrame)
-    // Clear any stale Kip draft ID — this edit supersedes any pending draft
     setDraftId(null)
     setPublishSuccess(false)
   }, [])
 
   // ── Publish handler ──
-  // Works for both Kip-generated drafts (draftId exists) and direct edits
-  // (draftSpecJson exists but no draftId — creates draft lazily then publishes).
   const handlePublish = React.useCallback(async () => {
     if (!draftSpecJson || !domainId || isPublishing) return
     setIsPublishing(true)
     try {
       let resolvedDraftId = draftId
       if (!resolvedDraftId) {
-        // Direct edit path: no persistent draft yet — create one now
         const draft = await KipApi.createDraft(domainId, {
           kind: "domain_json",
           key: `direct-edit-${Date.now()}`,
@@ -228,6 +220,19 @@ export function DesignerFrame({
       setIsPublishing(false)
     }
   }, [draftId, draftSpecJson, domainId, isPublishing, reloadLiveFrame])
+
+  // ── Frame select handler — auto-collapses left panel ──
+  const handleFrameSelect = React.useCallback((key: string) => {
+    setActiveFrameKey(key)
+    setLeftCollapsed(true)
+  }, [])
+
+  // ── Derive active frame info from board data ──
+  const activeFrameInfo = React.useMemo(() => {
+    if (!activeFrameKey) return null
+    const frames = BOARD_FRAMES[activeBoardId] ?? []
+    return frames.find((f) => f.key === activeFrameKey) ?? null
+  }, [activeFrameKey, activeBoardId])
 
   // ── Admin guard ──
   if (!isAdmin) {
@@ -254,38 +259,39 @@ export function DesignerFrame({
       className="flex flex-col h-screen w-full overflow-hidden"
       style={{ background: "#f9fafb" }}
     >
-      {/* Top — Domain banner (wordmark + navigation chrome) */}
+      {/* Top — Domain banner */}
       <DesignBoardBanner
         domainSlug={domainSlug}
         wordmark={wordmark}
         onBack={handleBack}
       />
 
-      {/* Three-panel layout — hard boundary: content must not extend behind interaction bar */}
+      {/* Three-panel layout */}
       <div
         className="flex flex-1 min-h-0 overflow-hidden"
         style={{ paddingBottom: V0_MARGIN_HEIGHT }}
       >
 
-      {/* Left — Frame Navigator */}
+      {/* Left — Board & Template List */}
       <div
-        className="flex flex-col border-r min-h-0"
+        className="flex flex-col border-r min-h-0 transition-all duration-200"
         style={{
-          width: 220,
-          minWidth: 220,
+          width: leftCollapsed ? 36 : 220,
+          minWidth: leftCollapsed ? 36 : 220,
           borderColor: "#e5e7eb",
           background: "#ffffff",
           overflowY: "auto",
         }}
       >
-        <DesignerFrameNav
-          liveDomainFrame={liveDomainFrame}
-          activeFrameKey={activeFrameKey}
-          onSelectFrame={setActiveFrameKey}
+        <DesignBoardList
+          activeBoardId={activeBoardId}
+          onSelectBoard={setActiveBoardId}
+          collapsed={leftCollapsed}
+          onToggleCollapsed={() => setLeftCollapsed((c) => !c)}
         />
       </div>
 
-      {/* Center — Kip conversation */}
+      {/* Center — Frame list + Kip chat */}
       <div
         className="flex flex-col border-r min-h-0"
         style={{
@@ -296,10 +302,12 @@ export function DesignerFrame({
           overflow: "hidden",
         }}
       >
-        <DesignerFrameKip
+        <DesignBoardFrameList
+          activeBoardId={activeBoardId}
+          activeFrameKey={activeFrameKey}
+          onSelectFrame={handleFrameSelect}
           domainId={domainId}
           domainSlug={domainSlug}
-          activeFrameKey={activeFrameKey}
           liveDomainFrame={liveDomainFrame}
           messages={messages}
           setMessages={setMessages}
@@ -313,7 +321,7 @@ export function DesignerFrame({
         />
       </div>
 
-      {/* Right — Live / Draft preview */}
+      {/* Right — Frame detail (tabbed) */}
       <div
         className="flex flex-col"
         style={{
@@ -323,15 +331,14 @@ export function DesignerFrame({
           overflow: "hidden",
         }}
       >
-        <DesignerFramePreview
+        <DesignBoardFrameDetail
           domainSlug={domainSlug}
           activeFrameKey={activeFrameKey}
+          activeFrameInfo={activeFrameInfo}
           liveDomainFrame={liveDomainFrame}
           draftSpecJson={draftSpecJson}
           audience={audience}
           setAudience={setAudience}
-          showRawJson={showRawJson}
-          setShowRawJson={setShowRawJson}
           onDirectEdit={handleDirectEdit}
         />
       </div>

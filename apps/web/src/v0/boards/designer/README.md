@@ -4,17 +4,19 @@
 Platform Admin–only surface for visually designing and editing V0 domain Frame JSON with Kip. Accessed via `?board=designer` on any `/d/:slug/board` URL.
 
 ## 🧱 Key Files
-- `DesignBoard.tsx` — Root component; three-panel layout with lifted state; also exports `DesignBoard` alias used by `boardRegistry.ts`
-- `DesignBoardNav.tsx` — Left panel; lists V0 Frames with live/draft status dots; frame selection triggers Kip conversation
-- `DesignBoardKip.tsx` — Center panel; Kip conversation interface; approve-to-draft flow; publish handler
-- `DesignBoardCanvas.tsx` — Right panel; live/draft frame preview with audience switcher and raw JSON toggle
+- `DesignBoard.tsx` — Root component; three-panel layout with lifted state (`activeBoardId`, `activeFrameKey`, `leftCollapsed`, draft/publish); exports `DesignBoard` alias for `boardRegistry.ts`
+- `DesignBoardList.tsx` — Left panel; collapsible Board & Template list; auto-collapses when a Frame is selected
+- `DesignBoardFrameList.tsx` — Center panel; Frame rows with color dots & role badges, three view toggle icons, Kip chat box footer, draft/publish status bar; contains Kip send logic
+- `DesignBoardFrameDetail.tsx` — Right panel; tabbed Frame detail (Preview, Config, Props, JSON); preserves `FramePreviewShell` and direct-edit overlay
+- `DesignBoardNav.tsx` — (Legacy) Original left panel; superseded by `DesignBoardList.tsx`
+- `DesignBoardKip.tsx` — (Legacy) Original center panel; superseded by `DesignBoardFrameList.tsx`
+- `DesignBoardCanvas.tsx` — (Legacy) Original right panel; superseded by `DesignBoardFrameDetail.tsx`
 
 ## 🔄 Data & Behavior
-- Parent component (`DesignBoard.tsx`) owns all state: `activeFrameKey`, `messages`, `draftSpecJson`, `draftId`, `liveDomainFrame`
-- `DesignBoardNav` reads `CORE_FRAME_MAP` for the frame list; does not include the board itself
-- `DesignBoardKip` posts to `POST /api/domains/:domainId/kip/designer` and calls `KipApi.createDraft` on approve
-- `DesignBoardCanvas` imports `CORE_FRAME_MAP` directly (no circular risk since board is no longer in FRAME_REGISTRY)
-- `DesignBoardCanvas` wraps previewed frames in a `V0ShellProvider` override so draft JSON is visible
+- Parent component (`DesignBoard.tsx`) owns all state: `activeBoardId`, `activeFrameKey`, `leftCollapsed`, `messages`, `draftSpecJson`, `draftId`, `liveDomainFrame`, `audience`
+- `DesignBoardList` renders hard-coded Board items (Domain Board, Design Board, Keeper Starter template); collapses to 36px
+- `DesignBoardFrameList` renders Frame rows from hard-coded `BOARD_FRAMES` data; posts to `POST /api/domains/:domainId/kip/designer` and calls `KipApi.createDraft` on Kip proposal
+- `DesignBoardFrameDetail` imports `CORE_FRAME_MAP` directly; wraps previewed frames in a `V0ShellProvider` override so draft JSON is visible; four tabs: Preview (live frame preview + audience switcher + direct edit), Config (frame props + labels), Props (prop library display), JSON (syntax-highlighted read-only)
 
 ## 🐛 Debug Mode
 Design Board debug logging traces draft propagation from Kip → preview. Enable via:
@@ -27,11 +29,17 @@ When enabled, `[DesignBoard:debug]` logs appear:
 - `previewDomainFrame updated` — when Canvas receives new draft/live data (activeFrameKey, hasDraftSpec, blockKeys)
 
 ## ⚠️ Notes & ToDo
-- [ ] Component internals still use `DesignerFrame` / `DesignerFrameKip` etc. as internal names — rename in a future step
+- [x] Component internals renamed: `DesignerFrameNav` → `DesignBoardList`, `DesignerFrameKip` → `DesignBoardFrameList`, `DesignerFramePreview` → `DesignBoardFrameDetail`
 - [ ] The admin guard is duplicated: once in `DesignBoard.tsx` (component level) and once in `V0Shell.tsx` (routing level)
 - [ ] `Margin` (interaction bar) renders as a `fixed` overlay over the whole board when any frame is previewed — intentional leakage from `DesignFrame`. May want to suppress it in the preview context in a future pass.
 
 ## 📆 Update Log
+### 2026-03-16 — Three-panel layout upgrade (Board-first authoring surface)
+- **Left panel**: Replaced `DesignBoardNav` with `DesignBoardList` — collapsible Board & Template list with chevron toggle; auto-collapses on Frame select; 36px collapsed width.
+- **Center panel**: Replaced `DesignBoardKip` with `DesignBoardFrameList` — Frame rows with color dots and role badges, three icon-only view toggles (Frames/Dialog/Preview), Add Frame placeholder, draft/publish status bar, Kip chat box footer with arrow send button.
+- **Right panel**: Replaced `DesignBoardCanvas` with `DesignBoardFrameDetail` — four tabs (Preview, Config, Props, JSON); Preview preserves `FramePreviewShell` + audience switcher + direct-edit overlay; Config shows Frame Props + Labels; Props shows categorized prop library; JSON shows syntax-highlighted read-only output.
+- **DesignBoard.tsx**: Added `activeBoardId`, `leftCollapsed` state; `onFrameSelect` auto-collapses left; all existing state and handlers preserved.
+- **boardRegistry.ts**: Added `domain` entry with stub `DomainBoard` component; updated `V0BoardKey` union.
 ### 2026-03-16 — Board Chrome hard boundary + auth wiring
 - **Auth**: Default audience to `keeper` when designer is logged in; sync when auth loads. Interaction bar (Sign In) now reflects actual auth state instead of always showing guest view.
 - **Hard boundary**: Three-panel layout now has `paddingBottom: V0_MARGIN_HEIGHT` so content cannot extend behind the interaction bar. Board Chrome (top banner + interaction bar) enforces a hard boundary; background image can continue to scroll.

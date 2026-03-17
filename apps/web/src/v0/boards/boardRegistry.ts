@@ -7,7 +7,7 @@
 import * as React from "react"
 import { DesignBoard } from "./designer/DesignBoard"
 
-export type V0BoardKey = "designer"
+export type V0BoardKey = "designer" | "domain"
 
 export interface BoardRegistryEntry {
   component: React.ComponentType<any>
@@ -16,11 +16,19 @@ export interface BoardRegistryEntry {
   isAdminOnly: boolean    // true = requires Platform Admin role
 }
 
+const DomainBoard: React.FC = () => React.createElement("div", null, "Domain Board")
+
 export const BOARD_REGISTRY: Record<V0BoardKey, BoardRegistryEntry> = {
   designer: {
     component: DesignBoard,
     displayName: "Design Board",
     isPrivate: true,
     isAdminOnly: true,
+  },
+  domain: {
+    component: DomainBoard,
+    displayName: "Domain Board",
+    isPrivate: false,
+    isAdminOnly: false,
   },
 }
