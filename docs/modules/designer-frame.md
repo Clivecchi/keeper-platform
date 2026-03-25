@@ -52,6 +52,10 @@ Platform Admin–only three-panel surface where Kip and the domain owner author,
 - [ ] Together AI JSON mode may occasionally produce malformed JSON for complex frames — the endpoint degrades gracefully (returns conversation only)
 
 ## 📆 Update Log
+### 2026-03-25 — Design Board UX (see `apps/web/src/v0/boards/designer/README.md`)
+- Display density (`keeper-density`, `data-density` on `<html>`, banner control, `index.css` + `index.html` bootstrap).
+- Left list: no auto-collapse on frame select; center: focus mode rail + banner + Kip thread; right Preview: eye + audience dropdown.
+- Source of truth for full module spec: `apps/web/src/v0/boards/designer/README.md`.
 ### 2026-03-10 - Initial implementation
 - Created DesignerFrame shell (3-panel layout, admin guard, shared state)
 - Created DesignerFrameNav (frame list, live/draft status dots, active highlight)

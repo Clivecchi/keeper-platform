@@ -4,9 +4,9 @@
 Platform Admin–only surface for visually designing and editing V0 domain Frame JSON with Kip. Accessed via `?board=designer` on any `/d/:slug/board` URL.
 
 ## 🧱 Key Files
-- `DesignBoard.tsx` — Root component; three-panel layout with lifted state (`activeBoardId`, `activeFrameKey`, `leftCollapsed`, draft/publish); exports `DesignBoard` alias for `boardRegistry.ts`
-- `DesignBoardList.tsx` — Left panel; collapsible Board & Template list; auto-collapses when a Frame is selected
-- `DesignBoardFrameList.tsx` — Center panel; Frame rows with color dots & role badges, three view toggle icons, Kip chat box footer, draft/publish status bar; contains Kip send logic
+- `DesignBoard.tsx` — Root component; three-panel layout with lifted state (`activeBoardId`, `activeFrameKey`, `leftCollapsed`, `density`, draft/publish); exports `DesignBoard` alias for `boardRegistry.ts`; syncs `data-density` on `document.documentElement` and `keeper-density` in `localStorage`
+- `DesignBoardList.tsx` — Left panel; collapsible Board & Template list; collapses only via chevron (not on frame select)
+- `DesignBoardFrameList.tsx` — Center panel; frame list + focus mode (rail, context banner, Kip thread) when a frame is selected; three view toggle icons; Kip chat; draft/publish bar; `POST /api/domains/:domainId/kip/designer`
 - `DesignBoardFrameDetail.tsx` — Right panel; tabbed Frame detail (Preview, Config, Props, JSON); preserves `FramePreviewShell` and direct-edit overlay
 - `DesignBoardNav.tsx` — (Legacy) Original left panel; superseded by `DesignBoardList.tsx`
 - `DesignBoardKip.tsx` — (Legacy) Original center panel; superseded by `DesignBoardFrameList.tsx`
@@ -16,7 +16,7 @@ Platform Admin–only surface for visually designing and editing V0 domain Frame
 - Parent component (`DesignBoard.tsx`) owns all state: `activeBoardId`, `activeFrameKey`, `leftCollapsed`, `messages`, `draftSpecJson`, `draftId`, `liveDomainFrame`, `audience`
 - `DesignBoardList` renders hard-coded Board items (Domain Board, Design Board, Keeper Starter template); collapses to 36px
 - `DesignBoardFrameList` renders Frame rows from hard-coded `BOARD_FRAMES` data; posts to `POST /api/domains/:domainId/kip/designer` and calls `KipApi.createDraft` on Kip proposal
-- `DesignBoardFrameDetail` imports `CORE_FRAME_MAP` directly; wraps previewed frames in a `V0ShellProvider` override so draft JSON is visible; four tabs: Preview (live frame preview + audience switcher + direct edit), Config (frame props + labels), Props (prop library display), JSON (syntax-highlighted read-only)
+- `DesignBoardFrameDetail` imports `CORE_FRAME_MAP` directly; wraps previewed frames in a `V0ShellProvider` override so draft JSON is visible; four tabs: Preview (live frame preview + eye icon audience menu + direct edit), Config (frame props + labels), Props (prop library display), JSON (syntax-highlighted read-only)
 
 ## 🐛 Debug Mode
 Design Board debug logging traces draft propagation from Kip → preview. Enable via:
@@ -34,6 +34,12 @@ When enabled, `[DesignBoard:debug]` logs appear:
 - [ ] `Margin` (interaction bar) renders as a `fixed` overlay over the whole board when any frame is previewed — intentional leakage from `DesignFrame`. May want to suppress it in the preview context in a future pass.
 
 ## 📆 Update Log
+### 2026-03-25 — Designer UX pass (density, left panel, center focus, audience menu)
+- **Density**: Banner segmented control (Compact / Default / Comfortable); persists `keeper-density` in `localStorage`; `data-density` on `<html>`; global CSS in `apps/web/src/index.css` (`--density-scale`, root `font-size`, `.keeper-design-board-scope` `zoom` for px-heavy UI); early read in `apps/web/index.html` to reduce flash.
+- **Left panel**: Frame selection no longer sets `leftCollapsed`; chevron toggle unchanged.
+- **Center**: When a frame is selected — horizontal frame rail, context banner (name, role badge, Live/Draft, title from domain JSON when present), full-height Kip thread + active input; "← All Frames" clears selection; when none selected — full list + subdued disabled chat with placeholder "Select a frame to begin".
+- **Right Preview**: "Viewing as" segment control replaced by eye icon + Radix dropdown (Guest / Keeper / Admin) with checkmark; audience dot on icon; `setAudience` behavior unchanged.
+- **Types**: `buildFullSpec` / draft spec casts use `unknown` intermediates where required by strict TS.
 ### 2026-03-16 — Three-panel layout upgrade (Board-first authoring surface)
 - **Left panel**: Replaced `DesignBoardNav` with `DesignBoardList` — collapsible Board & Template list with chevron toggle; auto-collapses on Frame select; 36px collapsed width.
 - **Center panel**: Replaced `DesignBoardKip` with `DesignBoardFrameList` — Frame rows with color dots and role badges, three icon-only view toggles (Frames/Dialog/Preview), Add Frame placeholder, draft/publish status bar, Kip chat box footer with arrow send button.

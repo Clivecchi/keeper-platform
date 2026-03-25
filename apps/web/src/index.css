@@ -41,6 +41,30 @@ body {
   font-feature-settings: "rlig" 1, "calt" 1;
 }
 
+/* Display density — `keeper-density` in localStorage; `data-density` on <html> (see index.html + Design Board banner) */
+html {
+  --density-scale: 1;
+}
+html[data-density="compact"] {
+  --density-scale: 0.875;
+}
+html[data-density="default"] {
+  --density-scale: 1;
+}
+html[data-density="comfortable"] {
+  --density-scale: 1.2;
+}
+
+/*
+ * Designer Board uses many Tailwind arbitrary `px` sizes (they do not follow root rem).
+ * Density affects only `.keeper-design-board-scope` (see DesignBoard.tsx), not the public platform.
+ */
+@supports (zoom: 1) {
+  .keeper-design-board-scope {
+    zoom: var(--density-scale, 1);
+  }
+}
+
 /* Animations */
 @keyframes fade-in {
   from {

@@ -27,20 +27,47 @@ import { DesignBoardList } from "./DesignBoardList"
 import { DesignBoardFrameList, BOARD_FRAMES } from "./DesignBoardFrameList"
 import { DesignBoardFrameDetail } from "./DesignBoardFrameDetail"
 
+// ─── Density ───────────────────────────────────────────────────────────────────
+
+export type KeeperDensity = "compact" | "default" | "comfortable"
+
+const DENSITY_STORAGE_KEY = "keeper-density"
+
+function readStoredDensity(): KeeperDensity {
+  if (typeof window === "undefined") return "default"
+  try {
+    const v = localStorage.getItem(DENSITY_STORAGE_KEY)
+    if (v === "compact" || v === "comfortable") return v
+  } catch {
+    /* ignore */
+  }
+  return "default"
+}
+
 // ─── Banner ───────────────────────────────────────────────────────────────────
 
 function DesignBoardBanner({
   domainSlug,
   wordmark,
   onBack,
+  density,
+  onDensityChange,
 }: {
   domainSlug: string
   wordmark: string
   onBack: () => void
+  density: KeeperDensity
+  onDensityChange: (d: KeeperDensity) => void
 }) {
+  const DENSITY_SEGMENTS: { key: KeeperDensity; label: string }[] = [
+    { key: "compact", label: "Compact" },
+    { key: "default", label: "Default" },
+    { key: "comfortable", label: "Comfortable" },
+  ]
+
   return (
     <div
-      className="shrink-0 flex items-center justify-between px-5"
+      className="shrink-0 flex items-center justify-between px-5 gap-3"
       style={{
         height: 56,
         borderBottom: "1px solid #e5e7eb",
@@ -77,6 +104,28 @@ function DesignBoardBanner({
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
+        <div
+          className="hidden sm:flex items-center rounded-md overflow-hidden border text-[10px] font-medium"
+          style={{ borderColor: "#e5e7eb", background: "#f9fafb" }}
+          role="group"
+          aria-label="Display density"
+        >
+          {DENSITY_SEGMENTS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onDensityChange(key)}
+              className="px-2 py-1 transition-colors whitespace-nowrap"
+              style={{
+                background: density === key ? "#ffffff" : "transparent",
+                color: density === key ? "#111827" : "#6b7280",
+                boxShadow: density === key ? "inset 0 0 0 1px #e5e7eb" : "none",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <span
           className="rounded-md px-3 py-1 text-[11px] font-bold uppercase tracking-widest"
           style={{
@@ -140,6 +189,7 @@ export function DesignerFrame({
   // ── New panel state ──
   const [activeBoardId, setActiveBoardId] = React.useState("domain")
   const [leftCollapsed, setLeftCollapsed] = React.useState(false)
+  const [density, setDensity] = React.useState<KeeperDensity>(readStoredDensity)
 
   // ── Sync live frame from shell on mount ──
   React.useEffect(() => {
@@ -203,7 +253,7 @@ export function DesignerFrame({
           kind: "domain_json",
           key: `direct-edit-${Date.now()}`,
           title: "Direct edit",
-          spec: draftSpecJson as Record<string, unknown>,
+          spec: draftSpecJson as unknown as Record<string, unknown>,
         })
         resolvedDraftId = draft.id
         setDraftId(resolvedDraftId)
@@ -221,10 +271,18 @@ export function DesignerFrame({
     }
   }, [draftId, draftSpecJson, domainId, isPublishing, reloadLiveFrame])
 
-  // ── Frame select handler — auto-collapses left panel ──
+  React.useEffect(() => {
+    document.documentElement.setAttribute("data-density", density)
+    try {
+      localStorage.setItem(DENSITY_STORAGE_KEY, density)
+    } catch {
+      /* ignore */
+    }
+  }, [density])
+
+  // ── Frame select handler ──
   const handleFrameSelect = React.useCallback((key: string) => {
     setActiveFrameKey(key)
-    setLeftCollapsed(true)
   }, [])
 
   // ── Derive active frame info from board data ──
@@ -256,7 +314,7 @@ export function DesignerFrame({
 
   return (
     <div
-      className="flex flex-col h-screen w-full overflow-hidden"
+      className="keeper-design-board-scope flex flex-col h-screen w-full overflow-hidden"
       style={{ background: "#f9fafb" }}
     >
       {/* Top — Domain banner */}
@@ -264,6 +322,8 @@ export function DesignerFrame({
         domainSlug={domainSlug}
         wordmark={wordmark}
         onBack={handleBack}
+        density={density}
+        onDensityChange={setDensity}
       />
 
       {/* Three-panel layout */}
@@ -306,6 +366,7 @@ export function DesignerFrame({
           activeBoardId={activeBoardId}
           activeFrameKey={activeFrameKey}
           onSelectFrame={handleFrameSelect}
+          onClearFrameSelection={() => setActiveFrameKey(null)}
           domainId={domainId}
           domainSlug={domainSlug}
           liveDomainFrame={liveDomainFrame}

@@ -1,6 +1,8 @@
 "use client"
 
 import * as React from "react"
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
+import { Check, Eye } from "lucide-react"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
 import type { DesignerAudience } from "./DesignBoard"
 import type { FrameItem } from "./DesignBoardFrameList"
@@ -620,33 +622,56 @@ export function DesignBoardFrameDetail({
       <div className="flex-1 overflow-auto">
         {activeTab === "preview" && (
           <div className="flex flex-col h-full">
-            {/* Audience switcher */}
+            {/* Preview audience (compact menu) */}
             <div
-              className="shrink-0 flex items-center justify-between gap-2 px-4 py-2 border-b"
+              className="shrink-0 flex items-center justify-end px-4 py-2 border-b"
               style={{ borderColor: "#f3f4f6", background: "#fafafa" }}
             >
-              <span className="text-[10px]" style={{ color: "#9ca3af" }}>
-                Viewing as
-              </span>
-              <div
-                className="flex rounded-md overflow-hidden border text-[10px]"
-                style={{ borderColor: "#e5e7eb" }}
-              >
-                {AUDIENCE_OPTIONS.map(({ key, label }) => (
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
                   <button
-                    key={key}
                     type="button"
-                    onClick={() => setAudience(key)}
-                    className="px-2 py-0.5 transition-colors"
-                    style={{
-                      background: audience === key ? "#111827" : "transparent",
-                      color: audience === key ? "#ffffff" : "#4b5563",
-                    }}
+                    className="relative flex h-8 w-8 items-center justify-center rounded-md border transition-colors hover:bg-gray-100"
+                    style={{ borderColor: "#e5e7eb", color: "#374151" }}
+                    aria-label="Preview audience"
                   >
-                    {label}
+                    <Eye className="h-4 w-4" strokeWidth={2} aria-hidden />
+                    <span
+                      className="pointer-events-none absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full border border-white"
+                      style={{
+                        background:
+                          audience === "admin"
+                            ? "#111827"
+                            : audience === "keeper"
+                              ? "#3b82f6"
+                              : "#9ca3af",
+                      }}
+                    />
                   </button>
-                ))}
-              </div>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content
+                    sideOffset={6}
+                    align="end"
+                    className="z-[10050] min-w-[148px] rounded-md border border-gray-200 bg-white py-1 text-[12px] shadow-md"
+                  >
+                    {AUDIENCE_OPTIONS.map(({ key, label }) => (
+                      <DropdownMenu.Item
+                        key={key}
+                        className="flex cursor-pointer items-center justify-between gap-3 px-3 py-2 outline-none data-[highlighted]:bg-gray-100"
+                        onSelect={() => setAudience(key)}
+                      >
+                        <span style={{ color: "#111827" }}>{label}</span>
+                        {audience === key ? (
+                          <Check className="h-3.5 w-3.5 shrink-0 text-gray-700" aria-hidden />
+                        ) : (
+                          <span className="w-3.5 shrink-0" aria-hidden />
+                        )}
+                      </DropdownMenu.Item>
+                    ))}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
             </div>
 
             {/* Preview area */}

@@ -5,16 +5,15 @@ import * as React from "react"
 interface BoardItem {
   id: string
   name: string
-  frameCount: number
 }
 
 const MY_BOARDS: BoardItem[] = [
-  { id: "domain", name: "Domain Board", frameCount: 6 },
-  { id: "design", name: "Design Board", frameCount: 3 },
+  { id: "domain", name: "Domain Board" },
+  { id: "design", name: "Design Board" },
 ]
 
 const TEMPLATES: BoardItem[] = [
-  { id: "keeper-starter", name: "Keeper Starter", frameCount: 4 },
+  { id: "keeper-starter", name: "Keeper Starter" },
 ]
 
 interface DesignBoardListProps {
@@ -88,7 +87,7 @@ export function DesignBoardList({
               <button
                 type="button"
                 onClick={() => onSelectBoard(board.id)}
-                className="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-left transition-colors"
+                className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-left transition-colors"
                 style={{ background: isActive ? "#f3f4f6" : "transparent" }}
               >
                 <span
@@ -99,9 +98,6 @@ export function DesignBoardList({
                   }}
                 >
                   {board.name}
-                </span>
-                <span className="text-[11px] shrink-0" style={{ color: "#9ca3af" }}>
-                  {board.frameCount}
                 </span>
               </button>
             </li>
@@ -126,7 +122,7 @@ export function DesignBoardList({
               <button
                 type="button"
                 onClick={() => onSelectBoard(board.id)}
-                className="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-left transition-colors"
+                className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-left transition-colors"
                 style={{ background: isActive ? "#f3f4f6" : "transparent" }}
               >
                 <span
@@ -137,9 +133,6 @@ export function DesignBoardList({
                   }}
                 >
                   {board.name}
-                </span>
-                <span className="text-[11px] shrink-0" style={{ color: "#9ca3af" }}>
-                  {board.frameCount}
                 </span>
               </button>
             </li>

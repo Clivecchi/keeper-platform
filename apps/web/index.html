@@ -1,6 +1,17 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      (function () {
+        try {
+          var v = localStorage.getItem("keeper-density");
+          var d = v === "compact" || v === "comfortable" ? v : "default";
+          document.documentElement.setAttribute("data-density", d);
+        } catch (e) {
+          document.documentElement.setAttribute("data-density", "default");
+        }
+      })();
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
