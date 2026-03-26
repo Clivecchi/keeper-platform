@@ -49,20 +49,17 @@ html[data-density="compact"] {
   --density-scale: 0.875;
 }
 html[data-density="default"] {
-  --density-scale: 1;
+  --density-scale: 1.125;
 }
 html[data-density="comfortable"] {
-  --density-scale: 1.2;
+  --density-scale: 1.3;
 }
 
 /*
- * Designer Board uses many Tailwind arbitrary `px` sizes (they do not follow root rem).
- * Density affects only `.keeper-design-board-scope` (see DesignBoard.tsx), not the public platform.
+ * Designer Board: scale typography inside panels only (not the outer h-screen shell).
  */
-@supports (zoom: 1) {
-  .keeper-design-board-scope {
-    zoom: var(--density-scale, 1);
-  }
+.keeper-design-board-scope .density-content {
+  font-size: calc(1rem * var(--density-scale, 1));
 }
 
 /* Animations */

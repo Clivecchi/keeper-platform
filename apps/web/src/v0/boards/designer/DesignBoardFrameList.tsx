@@ -115,6 +115,48 @@ const BADGE_STYLES: Record<string, React.CSSProperties> = {
   panel: { background: "#eff6ff", color: "#3b82f6", borderColor: "#bfdbfe" },
 }
 
+/** Role badges on the dark frame context banner */
+const BANNER_BADGE_STYLES: Record<string, React.CSSProperties> = {
+  default: {
+    background: "rgba(255,255,255,0.12)",
+    color: "#f9fafb",
+    borderColor: "rgba(255,255,255,0.35)",
+  },
+  primary: {
+    background: "rgba(16,185,129,0.28)",
+    color: "#ecfdf5",
+    borderColor: "rgba(110,231,183,0.45)",
+  },
+  panel: {
+    background: "rgba(59,130,246,0.28)",
+    color: "#eff6ff",
+    borderColor: "rgba(147,197,253,0.45)",
+  },
+}
+
+/** `DomainFrameJson.theme.background` — image path or URL for cover-style imagery (see cover-frame.tsx). */
+function themeBackgroundImageUrl(
+  theme: DomainFrameJson["theme"] | undefined,
+): string | null {
+  const raw = theme?.background?.trim()
+  if (!raw) return null
+  if (
+    raw.startsWith("linear-gradient")
+    || raw.startsWith("#")
+    || raw.startsWith("rgb")
+    || raw.startsWith("hsl")
+  ) {
+    return null
+  }
+  if (raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("/")) {
+    return raw
+  }
+  if (/\.(png|jpe?g|gif|webp|svg)(\?|[#]|$)/i.test(raw)) {
+    return raw.startsWith("/") ? raw : `/${raw}`
+  }
+  return null
+}
+
 function extractFrameTitleFromBlock(frameBlock: unknown): string | null {
   if (!frameBlock || typeof frameBlock !== "object") return null
   const obj = frameBlock as Record<string, unknown>
@@ -363,10 +405,13 @@ export function DesignBoardFrameList({
     : "Select a frame to begin"
 
   const chatInputClass =
-    "flex-1 rounded-lg border px-3 py-2 text-[13px] outline-none transition-colors disabled:opacity-40"
+    "flex-1 rounded-lg border px-3 py-3 min-h-[48px] text-[13px] outline-none transition-colors disabled:opacity-40 box-border"
+
+  const bannerBgUrl = themeBackgroundImageUrl(liveDomainFrame?.theme)
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      <div className="density-content flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Header */}
       <div
         className="shrink-0 flex items-center justify-between gap-3 px-4 py-3 border-b"
@@ -442,55 +487,72 @@ export function DesignBoardFrameList({
 
           {/* Frame context banner */}
           <div
-            className="shrink-0 border-b px-4 py-3 transition-all duration-200"
-            style={{ borderColor: "#e5e7eb", background: "#ffffff" }}
+            className="shrink-0 relative overflow-hidden border-b transition-all duration-200 min-h-[120px]"
+            style={{
+              borderColor: "rgba(255,255,255,0.12)",
+              ...(bannerBgUrl
+                ? {
+                    backgroundImage: `url(${bannerBgUrl})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }
+                : {
+                    background:
+                      "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+                  }),
+            }}
           >
-            <button
-              type="button"
-              onClick={onClearFrameSelection}
-              className="mb-2 text-[11px] font-medium transition-colors hover:underline text-left block w-full"
-              style={{ color: "#6b7280" }}
-            >
-              ← All Frames
-            </button>
-            <div className="flex flex-wrap items-center gap-2 gap-y-1">
-              <h2
-                className="text-[17px] font-semibold leading-tight"
-                style={{ color: "#111827" }}
+            <div
+              className="absolute inset-0 z-0 pointer-events-none"
+              style={{
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                background: "rgba(0,0,0,0.45)",
+              }}
+            />
+            <div className="relative z-[1] px-5 py-4 flex flex-col justify-center min-h-[120px]">
+              <button
+                type="button"
+                onClick={onClearFrameSelection}
+                className="absolute left-5 top-4 text-xs text-white/50 hover:text-white/80 transition-colors text-left"
               >
-                {activeFrameRow.name}
-              </h2>
-              <span
-                className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium border"
-                style={BADGE_STYLES[activeFrameRow.badge] ?? BADGE_STYLES.default}
-              >
-                {activeFrameRow.badge}
-              </span>
-              <span
-                className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold border"
-                style={
-                  hasDraftSpec
-                    ? {
-                        borderColor: "#fcd34d",
-                        background: "#fffbeb",
-                        color: "#92400e",
-                      }
-                    : {
-                        borderColor: "#bbf7d0",
-                        background: "#ecfdf5",
-                        color: "#047857",
-                      }
-                }
-              >
-                {hasDraftSpec ? "Draft" : "Live"}
-              </span>
+                ← All Frames
+              </button>
+              <div className="mt-6 flex flex-wrap items-center gap-2 gap-y-1">
+                <h2 className="text-2xl font-semibold text-white tracking-tight leading-tight">
+                  {activeFrameRow.name}
+                </h2>
+                <span
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium border"
+                  style={
+                    BANNER_BADGE_STYLES[activeFrameRow.badge] ?? BANNER_BADGE_STYLES["default"]
+                  }
+                >
+                  {activeFrameRow.badge}
+                </span>
+                <span
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold border"
+                  style={
+                    hasDraftSpec
+                      ? {
+                          borderColor: "rgba(251,191,36,0.65)",
+                          background: "rgba(251,191,36,0.22)",
+                          color: "#fef3c7",
+                        }
+                      : {
+                          borderColor: "rgba(52,211,153,0.65)",
+                          background: "rgba(52,211,153,0.2)",
+                          color: "#d1fae5",
+                        }
+                  }
+                >
+                  {hasDraftSpec ? "Draft" : "Live"}
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-white/60 leading-snug line-clamp-2">
+                {frameContextLine}
+              </p>
             </div>
-            <p
-              className="mt-2 text-[12px] leading-snug line-clamp-2"
-              style={{ color: "#6b7280" }}
-            >
-              {frameContextLine}
-            </p>
           </div>
 
           {/* Kip thread + draft + input (focus) */}
@@ -537,7 +599,7 @@ export function DesignBoardFrameList({
               )}
               <div className="flex items-center gap-2">
                 <span
-                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold self-center"
                   style={{
                     background: "#f3f4f6",
                     color: "#6b7280",
@@ -649,7 +711,7 @@ export function DesignBoardFrameList({
             )}
             <div className="flex items-center gap-2">
               <span
-                className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold self-center"
                 style={{
                   background: "#f3f4f6",
                   color: "#9ca3af",
@@ -693,6 +755,7 @@ export function DesignBoardFrameList({
           </div>
         </>
       )}
+      </div>
     </div>
   )
 }

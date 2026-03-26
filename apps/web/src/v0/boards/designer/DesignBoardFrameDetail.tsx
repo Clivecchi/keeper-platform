@@ -569,16 +569,19 @@ export function DesignBoardFrameDetail({
 
   if (!activeFrameKey || !activeFrameInfo) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-[13px] text-center" style={{ color: "#6b7280" }}>
-          Select a frame to view details
-        </p>
+      <div className="flex flex-col h-full overflow-hidden">
+        <div className="density-content flex flex-1 items-center justify-center min-h-0">
+          <p className="text-[13px] text-center" style={{ color: "#6b7280" }}>
+            Select a frame to view details
+          </p>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      <div className="density-content flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Header: dot + frame name */}
       <div
         className="shrink-0 flex items-center gap-2.5 px-4 py-3 border-b"
@@ -757,6 +760,7 @@ export function DesignBoardFrameDetail({
             </div>
           )
         )}
+      </div>
       </div>
 
       {/* Inline edit popup */}
