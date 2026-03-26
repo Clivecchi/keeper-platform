@@ -4,12 +4,20 @@ import { useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { CoverLens, type CoverLensItem } from "../../components/cover-lens"
 import { createDraftMoment } from "../../api/v0Moments"
-import { useV0ShellOptional } from "../../shell/V0ShellContext"
+import { useV0ShellOptional, type V0FrameKey } from "../../shell/V0ShellContext"
 import { JourneyInvitationSlide } from "../../slides/JourneyInvitationSlide"
+
+function isDesignerBoardPreviewShell(
+  shell: ReturnType<typeof useV0ShellOptional>,
+): boolean {
+  if (!shell?.buildFrameUrl) return false
+  return shell.buildFrameUrl("cover" as V0FrameKey) === "#"
+}
 
 interface CoverBodyProps {
   /** Domain data for navigation */
   domainData?: {
+    id?: string
     name: string
     slug: string
     description?: string
@@ -99,7 +107,8 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
 
   const renderClosedCover = () => {
     const domainFrame = v0Shell?.domainFrame
-    const cardType = domainFrame?.cover.card.type
+    const designerPreview = isDesignerBoardPreviewShell(v0Shell)
+    const cardType = domainFrame?.cover?.card?.type
 
     // journey_invitation SlideType — render from domain frame JSON
     if (cardType === "journey_invitation" && domainFrame) {
@@ -123,10 +132,21 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
     }
 
     // Fallback: render from domain API data (used while domainFrame is loading
-    // or for domains without a frame JSON record)
-    const isPlaceholder = !domainData?.id || String(domainData.id).startsWith("fallback-")
-    const title = isPlaceholder ? undefined : (domainData?.name ?? undefined)
-    const tagline = isPlaceholder ? undefined : (domainData?.description ?? undefined)
+    // or for domains without a frame JSON record). Designer preview uses shell domainFrame.theme.
+    const useFrameTheme = Boolean(designerPreview && domainFrame?.theme)
+    const isPlaceholder =
+      !useFrameTheme &&
+      (!domainData?.id || String(domainData.id).startsWith("fallback-"))
+    const title = isPlaceholder
+      ? undefined
+      : useFrameTheme
+        ? (domainFrame!.theme!.wordmark || domainData?.name)
+        : (domainData?.name ?? undefined)
+    const tagline = isPlaceholder
+      ? undefined
+      : useFrameTheme
+        ? (domainFrame!.theme!.tagline ?? domainData?.description)
+        : (domainData?.description ?? undefined)
 
     return (
       <section

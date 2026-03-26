@@ -31,7 +31,7 @@ function formatJson(value: unknown): string {
   }
 }
 
-type StringLeaf = { path: string[]; value: string }
+type StringLeaf = { path: string[]; value: string; blockKey?: string }
 
 function extractStringLeaves(obj: unknown, path: string[] = []): StringLeaf[] {
   if (typeof obj === "string" && obj.trim()) return [{ path, value: obj }]
@@ -79,6 +79,8 @@ interface EditPopupState {
   y: number
   path: string[]
   value: string
+  /** Top-level `DomainFrameJson` key to patch when different from the frame block (e.g. `theme` on cover). */
+  blockKey?: string
 }
 
 function EditPopup({
@@ -87,7 +89,7 @@ function EditPopup({
   onClose,
 }: {
   popup: EditPopupState
-  onSave: (path: string[], newValue: string) => void
+  onSave: (path: string[], newValue: string, blockKey?: string) => void
   onClose: () => void
 }) {
   const [value, setValue] = React.useState(popup.value)
@@ -110,12 +112,12 @@ function EditPopup({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault()
-      onSave(popup.path, value)
+      onSave(popup.path, value, popup.blockKey)
     }
     if (e.key === "Escape") onClose()
   }
 
-  const label = popup.path.join(" \u203A ")
+  const label = [popup.blockKey, ...popup.path].filter(Boolean).join(" \u203A ")
 
   return (
     <div
@@ -137,7 +139,7 @@ function EditPopup({
       <p
         style={{
           fontSize: 10,
-          color: "#6b7280",
+          color: "#57534e",
           marginBottom: 6,
           fontFamily: "ui-monospace, monospace",
           letterSpacing: "0.03em",
@@ -162,7 +164,7 @@ function EditPopup({
             background: "#f9fafb",
           }}
           onFocus={(e) => {
-            e.currentTarget.style.borderColor = "#6b7280"
+            e.currentTarget.style.borderColor = "#57534e"
           }}
           onBlur={(e) => {
             e.currentTarget.style.borderColor = "#d1d5db"
@@ -170,7 +172,7 @@ function EditPopup({
         />
         <button
           type="button"
-          onClick={() => onSave(popup.path, value)}
+          onClick={() => onSave(popup.path, value, popup.blockKey)}
           style={{
             background: "#111827",
             color: "#fff",
@@ -189,7 +191,7 @@ function EditPopup({
           onClick={onClose}
           style={{
             background: "transparent",
-            color: "#6b7280",
+            color: "#57534e",
             border: "1px solid #e5e7eb",
             borderRadius: 4,
             padding: "5px 8px",
@@ -200,7 +202,7 @@ function EditPopup({
           \u2715
         </button>
       </div>
-      <p style={{ fontSize: 10, color: "#9ca3af", marginTop: 5 }}>
+      <p style={{ fontSize: 10, color: "#78716c", marginTop: 5 }}>
         Enter to save \u00B7 Esc to cancel
       </p>
     </div>
@@ -289,14 +291,14 @@ function ConfigTabContent({
       <div>
         <p
           className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-          style={{ color: "#9ca3af" }}
+          style={{ color: "#78716c" }}
         >
           Frame Props
         </p>
         <div className="space-y-2">
           {frameProps.map((item) => (
             <div key={item.label} className="flex items-center justify-between">
-              <span className="text-[12px]" style={{ color: "#6b7280" }}>
+              <span className="text-[12px]" style={{ color: "#57534e" }}>
                 {item.label}
               </span>
               <span
@@ -315,14 +317,14 @@ function ConfigTabContent({
       <div>
         <p
           className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-          style={{ color: "#9ca3af" }}
+          style={{ color: "#78716c" }}
         >
           Labels
         </p>
         <div className="space-y-2">
           {labelEntries.map((item) => (
             <div key={item.label} className="flex items-center justify-between gap-2">
-              <span className="text-[12px] shrink-0" style={{ color: "#6b7280" }}>
+              <span className="text-[12px] shrink-0" style={{ color: "#57534e" }}>
                 {item.label}
               </span>
               <span
@@ -398,7 +400,7 @@ function PropsTabContent() {
         <div key={section.label}>
           <p
             className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-            style={{ color: "#9ca3af" }}
+            style={{ color: "#78716c" }}
           >
             {section.label}
           </p>
@@ -427,7 +429,7 @@ function PropsTabContent() {
                   <p className="text-[12px] font-medium leading-tight" style={{ color: "#374151" }}>
                     {item.name}
                   </p>
-                  <p className="text-[10px] leading-tight" style={{ color: "#9ca3af" }}>
+                  <p className="text-[10px] leading-tight" style={{ color: "#78716c" }}>
                     {item.description}
                   </p>
                 </div>
@@ -459,7 +461,7 @@ function JsonTabContent({ value }: { value: unknown }) {
       } else if (/true|false/.test(match)) {
         color = "#D4537E"
       } else if (/null/.test(match)) {
-        color = "#9ca3af"
+        color = "#78716c"
       }
       return `<span style="color:${color}">${processedMatch}</span>`
     },
@@ -470,7 +472,7 @@ function JsonTabContent({ value }: { value: unknown }) {
       className="p-4 text-[11px] leading-relaxed overflow-auto h-full"
       style={{
         fontFamily: "ui-monospace, 'Cascadia Code', monospace",
-        color: "#6b7280",
+        color: "#57534e",
         background: "#f9fafb",
       }}
       dangerouslySetInnerHTML={{ __html: highlighted }}
@@ -524,12 +526,26 @@ export function DesignBoardFrameDetail({
 
   const FrameComponent = activeFrameKey ? CORE_FRAME_MAP[activeFrameKey] ?? null : null
 
-  // String leaves for direct editing
+  // String leaves for direct editing (cover tagline lives under `theme`, not `cover`)
   const stringLeaves = React.useMemo<StringLeaf[]>(() => {
-    if (!jsonKey || !previewDomainFrame) return []
-    const block = (previewDomainFrame as Record<string, unknown>)[jsonKey]
-    return extractStringLeaves(block)
-  }, [jsonKey, previewDomainFrame])
+    if (!previewDomainFrame) return []
+    const leaves: StringLeaf[] = []
+    if (jsonKey) {
+      const block = (previewDomainFrame as unknown as Record<string, unknown>)[jsonKey]
+      for (const leaf of extractStringLeaves(block)) {
+        leaves.push({ ...leaf, blockKey: jsonKey })
+      }
+    }
+    if (activeFrameKey === "cover") {
+      const theme = (previewDomainFrame as unknown as Record<string, unknown>)["theme"]
+      if (theme && typeof theme === "object") {
+        for (const leaf of extractStringLeaves(theme)) {
+          leaves.push({ ...leaf, blockKey: "theme" })
+        }
+      }
+    }
+    return leaves
+  }, [jsonKey, previewDomainFrame, activeFrameKey])
 
   const handleOverlayClick = React.useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -545,22 +561,36 @@ export function DesignBoardFrameDetail({
       const clickedText = target.textContent?.trim() ?? ""
       if (!clickedText) return
 
-      const leaf = stringLeaves.find((l) => l.value === clickedText)
+      const leaf = stringLeaves.find(
+        (l) =>
+          l.value === clickedText ||
+          l.value.includes(clickedText) ||
+          clickedText.includes(l.value),
+      )
       if (!leaf) return
 
-      setEditPopup({ x: e.clientX, y: e.clientY, path: leaf.path, value: leaf.value })
+      setEditPopup({
+        x: e.clientX,
+        y: e.clientY,
+        path: leaf.path,
+        value: leaf.value,
+        blockKey: leaf.blockKey,
+      })
     },
     [activeFrameKey, activeTab, jsonKey, stringLeaves],
   )
 
   const handleEditSave = React.useCallback(
-    (path: string[], newValue: string) => {
-      if (!activeFrameKey || !previewDomainFrame || !jsonKey) return
+    (path: string[], newValue: string, blockKey?: string) => {
+      if (!activeFrameKey || !previewDomainFrame) return
+      const rootKey = blockKey ?? jsonKey
+      if (!rootKey) return
 
       const currentBlock =
-        ((previewDomainFrame as Record<string, unknown>)[jsonKey] as Record<string, unknown>) ?? {}
+        ((previewDomainFrame as unknown as Record<string, unknown>)[rootKey] as Record<string, unknown>) ??
+        {}
       const updatedBlock = setNestedValue(currentBlock, path, newValue)
-      const updatedFrame = { ...previewDomainFrame, [jsonKey]: updatedBlock } as DomainFrameJson
+      const updatedFrame = { ...previewDomainFrame, [rootKey]: updatedBlock } as DomainFrameJson
       onDirectEdit(updatedFrame)
       setEditPopup(null)
     },
@@ -571,7 +601,7 @@ export function DesignBoardFrameDetail({
     return (
       <div className="flex flex-col h-full overflow-hidden">
         <div className="density-content flex flex-1 items-center justify-center min-h-0">
-          <p className="text-[13px] text-center" style={{ color: "#6b7280" }}>
+          <p className="text-[13px] text-center" style={{ color: "#57534e" }}>
             Select a frame to view details
           </p>
         </div>
@@ -611,7 +641,7 @@ export function DesignBoardFrameDetail({
             onClick={() => setActiveTab(tab.key)}
             className="px-4 py-2 text-[12px] font-medium transition-colors"
             style={{
-              color: activeTab === tab.key ? "#111827" : "#9ca3af",
+              color: activeTab === tab.key ? "#111827" : "#78716c",
               borderBottom: activeTab === tab.key ? "2px solid #111827" : "2px solid transparent",
               marginBottom: -1,
             }}
@@ -647,7 +677,7 @@ export function DesignBoardFrameDetail({
                             ? "#111827"
                             : audience === "keeper"
                               ? "#3b82f6"
-                              : "#9ca3af",
+                              : "#78716c",
                       }}
                     />
                   </button>
@@ -681,7 +711,7 @@ export function DesignBoardFrameDetail({
             <div className="flex-1 overflow-auto">
               {FrameComponent ? (
                 <div className="relative h-full overflow-auto">
-                  <div style={{ pointerEvents: "none" }}>
+                  <div style={{ pointerEvents: "auto" }}>
                     <FramePreviewShell
                       domainSlug={domainSlug}
                       frameKey={activeFrameKey}
@@ -706,7 +736,7 @@ export function DesignBoardFrameDetail({
                 </div>
               ) : (
                 <div className="flex h-full items-center justify-center">
-                  <p className="text-[13px]" style={{ color: "#6b7280" }}>
+                  <p className="text-[13px]" style={{ color: "#57534e" }}>
                     No preview available for this frame
                   </p>
                 </div>
@@ -719,7 +749,7 @@ export function DesignBoardFrameDetail({
                 className="shrink-0 px-4 py-1.5 border-t"
                 style={{ borderColor: "#e5e7eb", background: "#f9fafb" }}
               >
-                <p style={{ fontSize: 10, color: "#9ca3af" }}>
+                <p style={{ fontSize: 10, color: "#78716c" }}>
                   Click any text in the preview to edit it directly
                 </p>
               </div>
@@ -745,15 +775,15 @@ export function DesignBoardFrameDetail({
                 style={{ width: 36, height: 36, background: "#f3f4f6" }}
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 5v3M8 10.5v.5" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" />
-                  <circle cx="8" cy="8" r="6.25" stroke="#9ca3af" strokeWidth="1.5" />
+                  <path d="M8 5v3M8 10.5v.5" stroke="#78716c" strokeWidth="1.5" strokeLinecap="round" />
+                  <circle cx="8" cy="8" r="6.25" stroke="#78716c" strokeWidth="1.5" />
                 </svg>
               </div>
               <div>
                 <p className="text-[13px] font-medium" style={{ color: "#374151" }}>
                   No JSON block for this frame
                 </p>
-                <p className="mt-1 text-[11px]" style={{ color: "#9ca3af" }}>
+                <p className="mt-1 text-[11px]" style={{ color: "#78716c" }}>
                   This frame renders live data \u2014 its content is not governed by frame JSON.
                 </p>
               </div>

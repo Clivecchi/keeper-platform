@@ -29,6 +29,8 @@ When enabled, `[DesignBoard:debug]` logs appear for `setDraftSpecJson` and `prev
 - [ ] `Margin` (interaction bar) renders as a `fixed` overlay over the whole board when any frame is previewed — intentional leakage from `DesignFrame`. May want to suppress it in the preview context in a future pass.
 
 ## 📆 Update Log
+### 2026-03-25 — Preview, publish staleness, click-to-edit
+- See `apps/web/src/v0/boards/designer/README.md` (same date entry) for `DesignBoard.tsx`, `DesignBoardFrameDetail.tsx`, and cover preview wiring.
 ### 2026-03-16 — Board Chrome hard boundary + auth wiring
 - **Auth**: Default audience to `keeper` when designer is logged in; sync when auth loads. Interaction bar (Sign In) now reflects actual auth state instead of always showing guest view.
 - **Hard boundary**: Three-panel layout now has `paddingBottom: V0_MARGIN_HEIGHT` so content cannot extend behind the interaction bar. Board Chrome (top banner + interaction bar) enforces a hard boundary; background image can continue to scroll.

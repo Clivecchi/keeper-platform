@@ -13,6 +13,14 @@ import { getApiBase } from "../../lib/apiFetch"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
 import { useV0ShellOptional } from "../shell/V0ShellContext"
 
+/** Designer Board preview stubs `buildFrameUrl` to always return "#" (see FramePreviewShell). */
+function isDesignerBoardPreviewShell(
+  shell: ReturnType<typeof useV0ShellOptional>,
+): boolean {
+  if (!shell?.buildFrameUrl) return false
+  return shell.buildFrameUrl("cover") === "#"
+}
+
 const COVER_IMPRINT = "KE3P"
 
 const COVER_CONSTANTS = {
@@ -52,6 +60,8 @@ export function CoverFrame({
   // Fallback: when domainData has id but no theme.coverImage (e.g. old API or by-slug omits theme),
   // fetch domain by ID to get full theme. Only when authenticated (endpoint requires auth).
   useEffect(() => {
+    if (isDesignerBoardPreviewShell(v0Shell)) return
+
     const domainId = domainData?.id
     const hasCoverFromProps = !!domainData?.theme?.coverImage
     const isRealId = domainId && !domainId.startsWith("fallback-")
@@ -69,15 +79,32 @@ export function CoverFrame({
       }
     })()
     return () => { ignore = true }
-  }, [domainData?.id, domainData?.theme?.coverImage, isAuthenticated])
+  }, [domainData?.id, domainData?.theme?.coverImage, isAuthenticated, v0Shell])
+
+  const designerPreview = isDesignerBoardPreviewShell(v0Shell)
+  const previewDomainFrame = designerPreview ? v0Shell?.domainFrame ?? null : null
+  const useFrameThemeForHeader =
+    Boolean(designerPreview && previewDomainFrame?.theme)
 
   // Dynamic cover content based on domain — never show hardcoded fallback to visitors.
   // When domainData is loading (fallback id) or missing, show nothing until real data loads.
-  const isPlaceholder = !domainData?.id || domainData.id.startsWith("fallback-");
-  const coverTitle = isPlaceholder ? undefined : (domainData?.name ?? undefined);
-  const coverLiner = isPlaceholder ? undefined : (domainData?.description ?? undefined);
-  const domainLabel = domainData?.slug || domainData?.name || "domain";
-  const domainSlug = domainData?.slug || "default";
+  // In Designer Board preview, prefer domainFrame.theme (draft + live) from shell context.
+  const isPlaceholder =
+    !useFrameThemeForHeader &&
+    (!domainData?.id || domainData.id.startsWith("fallback-"))
+  const coverTitle = isPlaceholder
+    ? undefined
+    : useFrameThemeForHeader
+      ? (previewDomainFrame!.theme!.wordmark || domainData?.name)
+      : (domainData?.name ?? undefined)
+  const coverLiner = isPlaceholder
+    ? undefined
+    : useFrameThemeForHeader
+      ? (previewDomainFrame!.theme!.tagline ?? domainData?.description)
+      : (domainData?.description ?? undefined)
+  const domainLabel =
+    domainData?.slug || domainData?.name || v0Shell?.domainSlug || "domain"
+  const domainSlug = domainData?.slug || v0Shell?.domainSlug || "default"
   const userLabel = user?.name || user?.email || "Account";
   const menuLabel = `${domainLabel} · ${userLabel}`;
 

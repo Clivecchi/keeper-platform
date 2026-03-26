@@ -110,9 +110,9 @@ function EyeIcon() {
 // ─── Badge colors ─────────────────────────────────────────────────────────────
 
 const BADGE_STYLES: Record<string, React.CSSProperties> = {
-  default: { background: "#f3f4f6", color: "#6b7280", borderColor: "#e5e7eb" },
-  primary: { background: "#ecfdf5", color: "#059669", borderColor: "#a7f3d0" },
-  panel: { background: "#eff6ff", color: "#3b82f6", borderColor: "#bfdbfe" },
+  default: { background: "#f0ece4", color: "#57534e", borderColor: "#d6d3d1" },
+  primary: { background: "#ecfdf5", color: "#047857", borderColor: "#6ee7b7" },
+  panel: { background: "#e0e7ff", color: "#1d4ed8", borderColor: "#a5b4fc" },
 }
 
 /** Role badges on the dark frame context banner */
@@ -184,22 +184,22 @@ function MessageBubble({ msg }: { msg: DesignerMessage }) {
       <div
         className="max-w-[80%] rounded-xl px-3 py-2.5 text-[13px] leading-relaxed"
         style={{
-          background: isUser
-            ? "hsl(var(--theme-ink-primary, 0 0% 10%))"
-            : "hsl(var(--theme-surface-raised, 0 0% 94%))",
-          color: isUser
-            ? "hsl(var(--theme-surface-paper, 0 0% 100%))"
-            : "var(--theme-ink-primary, #111)",
+          background: isUser ? "#1c1917" : "#f0ece4",
+          color: isUser ? "#faf8f5" : "#292524",
+          border: isUser ? "none" : "1px solid #e7e5e4",
         }}
       >
         {!isUser && (
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest opacity-50">
+          <p
+            className="mb-1 text-[10px] font-semibold uppercase tracking-widest"
+            style={{ color: "#78716c" }}
+          >
             Kip
           </p>
         )}
         <p style={{ whiteSpace: "pre-wrap" }}>{msg.content}</p>
         {!!msg.draftProposal && (
-          <p className="mt-1.5 text-[10px] opacity-60">
+          <p className="mt-1.5 text-[10px]" style={{ color: "#78716c" }}>
             ↑ Draft proposal generated
           </p>
         )}
@@ -372,13 +372,13 @@ export function DesignBoardFrameList({
       <div
         className="shrink-0 px-4 py-3 border-t flex items-center justify-between gap-3"
         style={{
-          borderColor: "#e5e7eb",
-          background: publishSuccess ? "hsl(142 71% 96%)" : "hsl(43 100% 97%)",
+          borderColor: "#d6d3d1",
+          background: publishSuccess ? "#ecfdf5" : "#fffbeb",
         }}
       >
         <p
           className="text-[12px] font-medium"
-          style={{ color: publishSuccess ? "hsl(142 71% 25%)" : "hsl(43 80% 30%)" }}
+          style={{ color: publishSuccess ? "#14532d" : "#92400e" }}
         >
           {publishSuccess
             ? "\u2713 Published \u2014 live platform updated"
@@ -392,7 +392,7 @@ export function DesignBoardFrameList({
             onClick={onPublish}
             disabled={isPublishing}
             className="rounded-md px-3 py-1.5 text-[12px] font-medium transition-opacity disabled:opacity-50 shrink-0"
-            style={{ background: "#111827", color: "#fff" }}
+            style={{ background: "#1c1917", color: "#faf8f5" }}
           >
             {isPublishing ? "Publishing\u2026" : "Publish"}
           </button>
@@ -405,7 +405,7 @@ export function DesignBoardFrameList({
     : "Select a frame to begin"
 
   const chatInputClass =
-    "flex-1 rounded-lg border px-3 py-3 min-h-[48px] text-[13px] outline-none transition-colors disabled:opacity-40 box-border"
+    "design-board-chat-input flex-1 rounded-lg border px-3 py-3 min-h-[48px] text-[13px] outline-none transition-colors box-border focus-visible:ring-2 focus-visible:ring-stone-400/50 focus-visible:border-stone-400"
 
   const bannerBgUrl = themeBackgroundImageUrl(liveDomainFrame?.theme)
 
@@ -415,11 +415,11 @@ export function DesignBoardFrameList({
       {/* Header */}
       <div
         className="shrink-0 flex items-center justify-between gap-3 px-4 py-3 border-b"
-        style={{ borderColor: "#e5e7eb" }}
+        style={{ borderColor: "#e7e5e4" }}
       >
         <p
           className="text-[13px] font-semibold truncate"
-          style={{ color: "#111827" }}
+          style={{ color: "#1c1917" }}
         >
           {boardName}
         </p>
@@ -427,7 +427,7 @@ export function DesignBoardFrameList({
         {/* View toggle pill */}
         <div
           className="flex items-center rounded-md overflow-hidden shrink-0"
-          style={{ border: "1px solid #e5e7eb", background: "#f9fafb" }}
+          style={{ border: "1px solid #d6d3d1", background: "#f5f2eb" }}
         >
           {VIEW_MODES.map(({ mode, Icon }) => (
             <button
@@ -438,9 +438,9 @@ export function DesignBoardFrameList({
               style={{
                 width: 28,
                 height: 26,
-                background: viewMode === mode ? "#ffffff" : "transparent",
-                color: viewMode === mode ? "#111827" : "#9ca3af",
-                boxShadow: viewMode === mode ? "0 0 0 1px #e5e7eb" : "none",
+                background: viewMode === mode ? "#fefdfb" : "transparent",
+                color: viewMode === mode ? "#1c1917" : "#78716c",
+                boxShadow: viewMode === mode ? "0 0 0 1px #d6d3d1" : "none",
               }}
               aria-label={mode}
             >
@@ -455,7 +455,7 @@ export function DesignBoardFrameList({
           {/* Focus mode — frame rail */}
           <div
             className="shrink-0 border-b px-3 py-2 transition-all duration-200 ease-out"
-            style={{ borderColor: "#e5e7eb", background: "#fafafa" }}
+            style={{ borderColor: "#e7e5e4", background: "#f5f2eb" }}
           >
             <div
               className="flex gap-2 overflow-x-auto pb-0.5"
@@ -470,8 +470,8 @@ export function DesignBoardFrameList({
                     onClick={() => onSelectFrame(frame.key)}
                     className="shrink-0 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
                     style={{
-                      background: picked ? "#111827" : "#f3f4f6",
-                      color: picked ? "#ffffff" : "#374151",
+                      background: picked ? "#1c1917" : "#f0ece4",
+                      color: picked ? "#faf8f5" : "#44403c",
                     }}
                   >
                     <span
@@ -562,7 +562,7 @@ export function DesignBoardFrameList({
                 <div className="flex min-h-[100px] items-center justify-center">
                   <p
                     className="text-center text-[13px] max-w-xs"
-                    style={{ color: "#6b7280" }}
+                    style={{ color: "#57534e" }}
                   >
                     {`Tell Kip what you want to change about the ${activeFrameRow.name}.`}
                   </p>
@@ -574,13 +574,17 @@ export function DesignBoardFrameList({
               {isSending && (
                 <div className="flex justify-start">
                   <div
-                    className="rounded-xl px-3 py-2.5 text-[13px]"
+                    className="rounded-xl px-3 py-2.5 text-[13px] border"
                     style={{
-                      background: "hsl(var(--theme-surface-raised, 0 0% 94%))",
-                      color: "var(--theme-ink-secondary, #6b7280)",
+                      background: "#f0ece4",
+                      color: "#57534e",
+                      borderColor: "#e7e5e4",
                     }}
                   >
-                    <p className="text-[10px] font-semibold uppercase tracking-widest mb-1 opacity-50">
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-widest mb-1"
+                      style={{ color: "#78716c" }}
+                    >
                       Kip
                     </p>
                     <p>Thinking…</p>
@@ -592,18 +596,18 @@ export function DesignBoardFrameList({
             {draftBar}
             <div
               className="shrink-0 border-t px-3 py-3"
-              style={{ borderColor: "#e5e7eb", background: "#fafafa" }}
+              style={{ borderColor: "#e7e5e4", background: "#f5f2eb" }}
             >
               {sendError && (
-                <p className="mb-2 text-[11px] text-red-500">{sendError}</p>
+                <p className="mb-2 text-[11px] text-red-600 font-medium">{sendError}</p>
               )}
               <div className="flex items-center gap-2">
                 <span
                   className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold self-center"
                   style={{
-                    background: "#f3f4f6",
-                    color: "#6b7280",
-                    border: "1px solid #e5e7eb",
+                    background: "#e7e5e4",
+                    color: "#44403c",
+                    border: "1px solid #d6d3d1",
                   }}
                 >
                   Kip
@@ -617,18 +621,18 @@ export function DesignBoardFrameList({
                   disabled={!activeFrameKey || isSending}
                   className={chatInputClass}
                   style={{
-                    borderColor: "#d1d5db",
-                    background: "#ffffff",
-                    color: "#111827",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                    borderColor: "#d6d3d1",
+                    background: "#fefdfb",
+                    color: "#1c1917",
+                    boxShadow: "0 1px 2px rgba(28,25,23,0.06)",
                   }}
                 />
                 <button
                   type="button"
                   onClick={handleSend}
                   disabled={!input.trim() || !activeFrameKey || isSending}
-                  className="rounded-lg p-2 transition-opacity disabled:opacity-30 shrink-0"
-                  style={{ background: "#111827", color: "#fff" }}
+                  className="rounded-lg p-2 transition-opacity disabled:opacity-40 shrink-0"
+                  style={{ background: "#1c1917", color: "#faf8f5" }}
                   aria-label="Send"
                 >
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
@@ -658,8 +662,8 @@ export function DesignBoardFrameList({
                       onClick={() => onSelectFrame(frame.key)}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
                       style={{
-                        background: isActive ? "#f3f4f6" : "transparent",
-                        borderLeft: isActive ? "2px solid #111827" : "2px solid transparent",
+                        background: isActive ? "#f0ece4" : "transparent",
+                        borderLeft: isActive ? "2px solid #1c1917" : "2px solid transparent",
                       }}
                     >
                       <span
@@ -669,7 +673,7 @@ export function DesignBoardFrameList({
                       <span
                         className="flex-1 text-[13px] leading-snug truncate"
                         style={{
-                          color: isActive ? "#111827" : "#4b5563",
+                          color: isActive ? "#1c1917" : "#44403c",
                           fontWeight: isActive ? 500 : 400,
                         }}
                       >
@@ -692,8 +696,8 @@ export function DesignBoardFrameList({
                 disabled
                 className="w-full py-2 rounded-md text-[12px] cursor-not-allowed transition-colors"
                 style={{
-                  border: "1px dashed #d1d5db",
-                  color: "#9ca3af",
+                  border: "1px dashed #d6d3d1",
+                  color: "#78716c",
                   background: "transparent",
                 }}
               >
@@ -704,18 +708,18 @@ export function DesignBoardFrameList({
           {draftBar}
           <div
             className="shrink-0 border-t px-3 py-3"
-            style={{ borderColor: "#e5e7eb", background: "#fafafa", opacity: 0.45 }}
+            style={{ borderColor: "#e7e5e4", background: "#f5f2eb" }}
           >
             {sendError && (
-              <p className="mb-2 text-[11px] text-red-500">{sendError}</p>
+              <p className="mb-2 text-[11px] text-red-600 font-medium">{sendError}</p>
             )}
             <div className="flex items-center gap-2">
               <span
                 className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold self-center"
                 style={{
-                  background: "#f3f4f6",
-                  color: "#9ca3af",
-                  border: "1px solid #e5e7eb",
+                  background: "#e7e5e4",
+                  color: "#57534e",
+                  border: "1px solid #d6d3d1",
                 }}
               >
                 Kip
@@ -729,16 +733,16 @@ export function DesignBoardFrameList({
                 disabled
                 className={chatInputClass}
                 style={{
-                  borderColor: "#e5e7eb",
-                  background: "#f9fafb",
-                  color: "#9ca3af",
+                  borderColor: "#d6d3d1",
+                  background: "#faf8f5",
+                  color: "#57534e",
                 }}
               />
               <button
                 type="button"
                 disabled
-                className="rounded-lg p-2 opacity-30 shrink-0"
-                style={{ background: "#111827", color: "#fff" }}
+                className="rounded-lg p-2 opacity-40 shrink-0"
+                style={{ background: "#1c1917", color: "#faf8f5" }}
                 aria-label="Send"
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>

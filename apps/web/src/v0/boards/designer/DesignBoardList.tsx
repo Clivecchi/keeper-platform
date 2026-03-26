@@ -50,11 +50,11 @@ export function DesignBoardList({
     <div className="flex flex-col h-full">
       <div
         className="px-4 py-3 border-b flex items-center justify-between"
-        style={{ borderColor: "#e5e7eb" }}
+        style={{ borderColor: "#e7e5e4" }}
       >
         <p
           className="text-[11px] font-semibold uppercase tracking-widest"
-          style={{ color: "#4b5563" }}
+          style={{ color: "#57534e" }}
         >
           Boards
         </p>
@@ -73,7 +73,7 @@ export function DesignBoardList({
       <div className="px-4 pt-3 pb-1">
         <p
           className="text-[10px] font-semibold uppercase tracking-widest"
-          style={{ color: "#9ca3af" }}
+          style={{ color: "#78716c" }}
         >
           My Boards
         </p>
@@ -88,12 +88,12 @@ export function DesignBoardList({
                 type="button"
                 onClick={() => onSelectBoard(board.id)}
                 className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-left transition-colors"
-                style={{ background: isActive ? "#f3f4f6" : "transparent" }}
+                style={{ background: isActive ? "#f0ece4" : "transparent" }}
               >
                 <span
                   className="text-[13px] leading-snug truncate"
                   style={{
-                    color: isActive ? "#111827" : "#4b5563",
+                    color: isActive ? "#1c1917" : "#44403c",
                     fontWeight: isActive ? 500 : 400,
                   }}
                 >
@@ -108,7 +108,7 @@ export function DesignBoardList({
       <div className="px-4 pt-4 pb-1">
         <p
           className="text-[10px] font-semibold uppercase tracking-widest"
-          style={{ color: "#9ca3af" }}
+          style={{ color: "#78716c" }}
         >
           Templates
         </p>
@@ -123,12 +123,12 @@ export function DesignBoardList({
                 type="button"
                 onClick={() => onSelectBoard(board.id)}
                 className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-left transition-colors"
-                style={{ background: isActive ? "#f3f4f6" : "transparent" }}
+                style={{ background: isActive ? "#f0ece4" : "transparent" }}
               >
                 <span
                   className="text-[13px] leading-snug truncate"
                   style={{
-                    color: isActive ? "#111827" : "#4b5563",
+                    color: isActive ? "#1c1917" : "#44403c",
                     fontWeight: isActive ? 500 : 400,
                   }}
                 >

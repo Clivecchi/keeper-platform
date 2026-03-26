@@ -13,6 +13,7 @@ Creates a draft moment on "Write a Moment" and navigates to the Moment frame. Fa
 - [ ] Confirm draft bootstrap error handling for unauthenticated visitors.
 
 ## 📆 Update Log
+- 2026-03-25: CoverBody — optional `id` on `domainData` typing; closed-cover fallback uses `domainFrame.theme` when `buildFrameUrl("cover") === "#"` (Designer preview) so tagline/wordmark track shell `domainFrame`.
 - 2026-01-27: Updated cover copy to align the Act threshold language for map entrypoints.
 - 2026-01-19: Simplified closed cover to identity-only content in the main well.
 - 2026-01-19: Added coverState open/closed handling with First Page threshold actions.

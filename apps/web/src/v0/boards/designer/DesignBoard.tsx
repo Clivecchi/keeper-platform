@@ -70,9 +70,9 @@ function DesignBoardBanner({
       className="shrink-0 flex items-center justify-between px-5 gap-3"
       style={{
         height: 56,
-        borderBottom: "1px solid #e5e7eb",
-        background: "#ffffff",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+        borderBottom: "1px solid #e7e5e4",
+        background: "#faf8f5",
+        boxShadow: "0 1px 2px rgba(28,25,23,0.06)",
       }}
     >
       <div className="flex items-center gap-3 min-w-0">
@@ -81,7 +81,7 @@ function DesignBoardBanner({
           onClick={onBack}
           aria-label="Back to domain board"
           className="shrink-0 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors hover:bg-gray-100"
-          style={{ color: "#374151" }}
+          style={{ color: "#44403c" }}
         >
           <svg width="14" height="14" viewBox="0 0 12 12" fill="none" aria-hidden>
             <path d="M8 2L4 6L8 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -91,13 +91,13 @@ function DesignBoardBanner({
         <div className="h-4 w-px bg-gray-200 shrink-0" />
         <span
           className="text-[12px] font-medium truncate"
-          style={{ color: "#6b7280" }}
+          style={{ color: "#57534e" }}
         >
           {domainSlug}
         </span>
         <span
           className="font-serif text-[18px] font-semibold leading-tight truncate"
-          style={{ color: "#111827" }}
+          style={{ color: "#1c1917" }}
         >
           {wordmark}
         </span>
@@ -106,7 +106,7 @@ function DesignBoardBanner({
       <div className="flex items-center gap-2 shrink-0">
         <div
           className="hidden sm:flex items-center rounded-md overflow-hidden border text-[10px] font-medium"
-          style={{ borderColor: "#e5e7eb", background: "#f9fafb" }}
+          style={{ borderColor: "#d6d3d1", background: "#f5f2eb" }}
           role="group"
           aria-label="Display density"
         >
@@ -118,8 +118,8 @@ function DesignBoardBanner({
               className="px-2 py-1 transition-colors whitespace-nowrap"
               style={{
                 background: density === key ? "#ffffff" : "transparent",
-                color: density === key ? "#111827" : "#6b7280",
-                boxShadow: density === key ? "inset 0 0 0 1px #e5e7eb" : "none",
+                color: density === key ? "#1c1917" : "#57534e",
+                boxShadow: density === key ? "inset 0 0 0 1px #d6d3d1" : "none",
               }}
             >
               {label}
@@ -245,6 +245,11 @@ export function DesignerFrame({
   // ── Publish handler ──
   const handlePublish = React.useCallback(async () => {
     if (!draftSpecJson || !domainId || isPublishing) return
+    console.log("[publish] start", {
+      draftSpecJson: !!draftSpecJson,
+      draftId,
+      domainId,
+    })
     setIsPublishing(true)
     try {
       let resolvedDraftId = draftId
@@ -258,7 +263,14 @@ export function DesignerFrame({
         resolvedDraftId = draft.id
         setDraftId(resolvedDraftId)
       }
-      await KipApi.publishDraft(domainId, resolvedDraftId)
+      console.log("[publish] resolved draftId", resolvedDraftId)
+
+      await KipApi.updateDraft(domainId, resolvedDraftId, {
+        spec: draftSpecJson as unknown as Record<string, unknown>,
+      })
+
+      const pub = await KipApi.publishDraft(domainId, resolvedDraftId)
+      console.log("[publish] response", pub)
       setPublishSuccess(true)
       setDraftSpecJson(null)
       setDraftId(null)
@@ -315,7 +327,7 @@ export function DesignerFrame({
   return (
     <div
       className="keeper-design-board-scope flex flex-col h-screen w-full overflow-hidden"
-      style={{ background: "#f9fafb" }}
+      style={{ background: "#f5f2eb" }}
     >
       {/* Top — Domain banner */}
       <DesignBoardBanner
@@ -338,8 +350,8 @@ export function DesignerFrame({
         style={{
           width: leftCollapsed ? 36 : 220,
           minWidth: leftCollapsed ? 36 : 220,
-          borderColor: "#e5e7eb",
-          background: "#ffffff",
+          borderColor: "#e7e5e4",
+          background: "#fdfbf7",
           overflowY: "auto",
         }}
       >
@@ -357,8 +369,8 @@ export function DesignerFrame({
         style={{
           flex: "1 1 0%",
           minWidth: 0,
-          borderColor: "#e5e7eb",
-          background: "#ffffff",
+          borderColor: "#e7e5e4",
+          background: "#fefdfb",
           overflow: "hidden",
         }}
       >
@@ -388,7 +400,7 @@ export function DesignerFrame({
         style={{
           width: "42%",
           minWidth: 320,
-          background: "#f9fafb",
+          background: "#f5f2eb",
           overflow: "hidden",
         }}
       >

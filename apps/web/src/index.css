@@ -46,20 +46,30 @@ html {
   --density-scale: 1;
 }
 html[data-density="compact"] {
-  --density-scale: 0.875;
+  --density-scale: 0.86;
 }
 html[data-density="default"] {
-  --density-scale: 1.125;
+  --density-scale: 1;
 }
 html[data-density="comfortable"] {
-  --density-scale: 1.3;
+  --density-scale: 1.15;
 }
 
 /*
- * Designer Board: scale typography inside panels only (not the outer h-screen shell).
+ * Designer Board: most UI uses fixed px (Tailwind arbitrary sizes), so parent font-size
+ * alone did not change layout. `zoom` scales the whole subtree so Compact / Default / Comfortable read clearly.
  */
 .keeper-design-board-scope .density-content {
-  font-size: calc(1rem * var(--density-scale, 1));
+  zoom: var(--density-scale, 1);
+}
+
+/* Warm paper theme: readable placeholders and typed text in Kip chat (no washed-out grays) */
+.keeper-design-board-scope .design-board-chat-input::placeholder {
+  color: #78716c;
+  opacity: 1;
+}
+.keeper-design-board-scope .design-board-chat-input:disabled {
+  cursor: not-allowed;
 }
 
 /* Animations */

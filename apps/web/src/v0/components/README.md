@@ -25,6 +25,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-03-25: CoverFrame: Designer Board preview detection (`buildFrameUrl("cover") === "#"`); skip authenticated cover-image refetch in that shell; prefer `domainFrame.theme` wordmark/tagline for header when in preview so draft JSON drives the right-panel preview.
 - 2026-02-28: CoverFrame: (a) hide header imprint when domain name matches platform brand to avoid duplicate KE3P; (b) add solid cover surface (92% opacity) for readable content; (c) CoverBody shows domain name + tagline together when loaded, subtle loading bar when placeholder.
 - 2026-02-23: CoverFrame now renders domain cover image as full-page background when `domainData.theme.coverImage` is present. DomainData interface extended with optional `theme`.
 - 2026-02-19: Margin: Composer full-width on top; Act, Kip, kip-old below. Bar height 180px when composer shown. AgentComposerContext provides state from AgentBoardFrame.
