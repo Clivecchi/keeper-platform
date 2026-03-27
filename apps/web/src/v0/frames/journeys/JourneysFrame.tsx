@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { X, MapPin, ChevronRight, Plus, Check } from "lucide-react"
 import type { StyleId } from "../../styles/styles"
 import { DesignFrame } from "../DesignFrame"
@@ -8,6 +9,8 @@ import { ThemeSwitcher } from "../ThemeSwitcher"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { useFrameContextOptional } from "../../shell/FrameContext"
 import { apiFetch } from "../../../lib/api"
+import { useAuth } from "../../../context/AuthContext"
+import { getApiBase } from "../../../lib/apiFetch"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -58,11 +61,16 @@ export function JourneysFrame({
   themeSlug?: string | null
   domainSlug?: string
 }) {
-  const { closeToBoard, navigateToFrame, domainFrame } = useV0Shell()
+  const { closeToBoard, navigateToFrame, domainFrame, domainSlug: shellDomainSlug } = useV0Shell()
   const jf = domainFrame?.journeys
   const frameCtx = useFrameContextOptional()
   const domain = frameCtx?.domain
   const activeJourneyId = frameCtx?.selection.activeJourneyId ?? null
+  const setActiveJourneyId = frameCtx?.setActiveJourneyId
+  const { isAuthenticated } = useAuth()
+  const [searchParams] = useSearchParams()
+  const journeyParam = searchParams.get("journey")
+  const effectiveDomainSlug = shellDomainSlug || domainSlug || ""
 
   // ---- state ----
   const [journeys, setJourneys] = useState<JourneySummary[]>([])
@@ -73,70 +81,159 @@ export function JourneysFrame({
 
   // ---- fetch journey list ----
   const fetchJourneys = useCallback(async () => {
-    if (!domain?.id) return
+    if (isAuthenticated) {
+      if (!domain?.id) return
+    } else if (!effectiveDomainSlug) {
+      return
+    }
+
     setIsLoadingList(true)
     setError(null)
     try {
-      const res = await apiFetch(`/api/journeys?domainId=${domain.id}`)
-      const data = (res as any)?.data?.journeys ?? (res as any)?.journeys ?? []
-      setJourneys(
-        data.map((j: any) => ({
-          id: j.id,
-          name: j.name,
-          forward: j.forward,
-          createdAt: j.createdAt,
-          momentCount: j.momentCount ?? j.Moment?.length ?? 0,
-          pathCount: j.pathCount ?? j.Path?.length ?? 0,
-        })),
-      )
+      if (isAuthenticated) {
+        const res = await apiFetch(`/api/journeys?domainId=${domain!.id}`)
+        const data = (res as any)?.data?.journeys ?? (res as any)?.journeys ?? []
+        setJourneys(
+          data.map((j: any) => ({
+            id: j.id,
+            name: j.name,
+            forward: j.forward,
+            createdAt: j.createdAt,
+            momentCount: j.momentCount ?? j.Moment?.length ?? 0,
+            pathCount: j.pathCount ?? j.Path?.length ?? 0,
+          })),
+        )
+      } else {
+        const base = getApiBase()
+        const res = await fetch(
+          `${base}/api/public/${encodeURIComponent(effectiveDomainSlug)}/journeys`,
+        )
+        if (!res.ok) {
+          throw new Error(`public journeys ${res.status}`)
+        }
+        const body = (await res.json()) as { journeys?: { id: string; name: string; createdAt: string }[] }
+        const data = body.journeys ?? []
+        setJourneys(
+          data.map((j) => ({
+            id: j.id,
+            name: j.name,
+            forward: "",
+            createdAt: j.createdAt,
+            momentCount: 0,
+            pathCount: 0,
+          })),
+        )
+      }
     } catch (err) {
       console.error("[JourneysFrame] Failed to load journeys:", err)
       setError(domainFrame?.journeys?.messaging.errors.failed_to_load ?? "Failed to load journeys.")
     } finally {
       setIsLoadingList(false)
     }
-  }, [domain?.id])
+  }, [
+    isAuthenticated,
+    domain?.id,
+    effectiveDomainSlug,
+    domainFrame?.journeys?.messaging.errors.failed_to_load,
+  ])
 
   useEffect(() => {
     fetchJourneys()
   }, [fetchJourneys])
 
   // ---- fetch journey detail ----
-  const fetchDetail = useCallback(async (id: string) => {
-    setIsLoadingDetail(true)
-    try {
-      const res = await apiFetch(`/api/journeys/${id}`)
-      const j = (res as any)?.data ?? res
-      setSelectedJourney({
-        id: j.id,
-        name: j.name,
-        forward: j.forward,
-        createdAt: j.createdAt,
-        updatedAt: j.updatedAt,
-        keeper: j.keeper ?? null,
-        moment: (j.moment ?? j.Moment ?? []).map((m: any) => ({
-          id: m.id,
-          title: m.title,
-          narrative: m.narrative,
-          keptAt: m.keptAt,
-          createdAt: m.createdAt,
-        })),
-        paths: j.paths ?? j.Path ?? [],
-        stats: j.stats ?? { totalPaths: 0, totalMoments: 0 },
-      })
-    } catch (err) {
-      console.error("[JourneysFrame] Failed to load journey detail:", err)
-    } finally {
-      setIsLoadingDetail(false)
-    }
-  }, [])
+  const fetchDetail = useCallback(
+    async (id: string) => {
+      if (!id) return
+      setIsLoadingDetail(true)
+      try {
+        if (isAuthenticated) {
+          const res = await apiFetch(`/api/journeys/${id}`)
+          const j = (res as any)?.data ?? res
+          setSelectedJourney({
+            id: j.id,
+            name: j.name,
+            forward: j.forward,
+            createdAt: j.createdAt,
+            updatedAt: j.updatedAt,
+            keeper: j.keeper ?? null,
+            moment: (j.moment ?? j.Moment ?? []).map((m: any) => ({
+              id: m.id,
+              title: m.title,
+              narrative: m.narrative,
+              keptAt: m.keptAt,
+              createdAt: m.createdAt,
+            })),
+            paths: j.paths ?? j.Path ?? [],
+            stats: j.stats ?? { totalPaths: 0, totalMoments: 0 },
+          })
+        } else {
+          if (!effectiveDomainSlug) return
+          const base = getApiBase()
+          const res = await fetch(
+            `${base}/api/public/${encodeURIComponent(effectiveDomainSlug)}/journeys/${encodeURIComponent(id)}`,
+          )
+          if (!res.ok) {
+            throw new Error(`public journey detail ${res.status}`)
+          }
+          const json = (await res.json()) as {
+            journey: {
+              id: string
+              name: string
+              forward: string
+              createdAt: string
+              updatedAt: string
+            }
+            paths: { id: string; name: string; prelude: string }[]
+            moments: { id: string; title: string; narrative: string; createdAt: string }[]
+          }
+          const j = json.journey
+          const paths = json.paths ?? []
+          const moments = json.moments ?? []
+          setSelectedJourney({
+            id: j.id,
+            name: j.name,
+            forward: j.forward,
+            createdAt: j.createdAt,
+            updatedAt: j.updatedAt,
+            keeper: null,
+            moment: moments.map((m) => ({
+              id: m.id,
+              title: m.title,
+              narrative: m.narrative,
+              keptAt: null,
+              createdAt: m.createdAt,
+            })),
+            paths: paths.map((p) => ({ id: p.id, name: p.name })),
+            stats: {
+              totalPaths: paths.length,
+              totalMoments: moments.length,
+            },
+          })
+        }
+      } catch (err) {
+        console.error("[JourneysFrame] Failed to load journey detail:", err)
+      } finally {
+        setIsLoadingDetail(false)
+      }
+    },
+    [isAuthenticated, effectiveDomainSlug],
+  )
 
-  // Auto-select active journey on mount
+  // Deep-link: ?journey=<id> (e.g. Cover Forward for guests)
   useEffect(() => {
+    if (!journeyParam) return
+    setActiveJourneyId?.(journeyParam)
+    void fetchDetail(journeyParam)
+  }, [journeyParam, fetchDetail, setActiveJourneyId])
+
+  // Auto-select persisted active journey when no URL journey param
+  useEffect(() => {
+    if (journeyParam) return
     if (activeJourneyId && journeys.length > 0 && !selectedJourney) {
       fetchDetail(activeJourneyId)
     }
-  }, [activeJourneyId, journeys.length, selectedJourney, fetchDetail])
+  }, [journeyParam, activeJourneyId, journeys.length, selectedJourney, fetchDetail])
 
   // ---- handlers ----
   const handleSelectJourney = (id: string) => {

@@ -9,4 +9,3 @@ Migrated to JSON UI Frame standard: March 2026.
 ## Update Log
 
 - **2026-03-27** — Guests load lists/details via `GET /api/public/:domainSlug/journeys*`. `?journey=<id>` deep-links into detail. Authenticated path unchanged.
-

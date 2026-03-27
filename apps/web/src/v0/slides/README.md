@@ -28,6 +28,9 @@ SlideTypes receive data from the domain frame JSON and the resolved audience rol
 
 ## 📆 Update Log
 
+### 2026-03-27 — JourneyInvitationSlide loading state
+- Optional `forwardDisabled` prop disables Forward while Cover resolves the first public journey.
+
 ### 2026-03-03 — Step 5: JourneyInvitationSlide
 - Created `JourneyInvitationSlide.tsx` — SlideType: journey_invitation
 - Wired into `CoverBody.renderClosedCover()`: checks `domainFrame.cover.card.type`, renders JourneyInvitationSlide when "journey_invitation"

@@ -1,11 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { useSearchParams } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { CoverLens, type CoverLensItem } from "../../components/cover-lens"
 import { createDraftMoment } from "../../api/v0Moments"
 import { useV0ShellOptional, type V0FrameKey } from "../../shell/V0ShellContext"
 import { JourneyInvitationSlide } from "../../slides/JourneyInvitationSlide"
+import { useAuth } from "../../../context/AuthContext"
+import { getApiBase } from "../../../lib/apiFetch"
 
 function isDesignerBoardPreviewShell(
   shell: ReturnType<typeof useV0ShellOptional>,
@@ -32,8 +34,11 @@ interface CoverBodyProps {
 
 export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "closed" }: CoverBodyProps) {
   const [isCreatingDraft, setIsCreatingDraft] = useState(false)
+  const [forwardLoading, setForwardLoading] = useState(false)
   const v0Shell = useV0ShellOptional()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const navigateTo = (path: string) => {
     onNavigate?.(path)
   }
@@ -112,13 +117,50 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
 
     // journey_invitation SlideType — render from domain frame JSON
     if (cardType === "journey_invitation" && domainFrame) {
-      const handleForward = () => {
-        // Destination from JSON: "journey/default" → journeys frame
-        if (v0Shell) {
-          v0Shell.navigateToFrame("journeys")
-        } else {
-          navigateTo(`/d/${domainData?.slug || 'default'}/board?frame=journeys`)
+      const handleForward = async () => {
+        if (forwardLoading) return
+        // Destination from JSON: "journey/default" → first journey for guests, else journeys frame
+        const slug = domainData?.slug || v0Shell?.domainSlug || "default"
+
+        const navigateToJourneysFallback = () => {
+          if (v0Shell) {
+            v0Shell.navigateToFrame("journeys")
+          } else {
+            navigateTo(`/d/${slug}/board?frame=journeys`)
+          }
         }
+
+        if (isAuthenticated || designerPreview) {
+          navigateToJourneysFallback()
+          return
+        }
+
+        setForwardLoading(true)
+        try {
+          const base = getApiBase()
+          const res = await fetch(`${base}/api/public/${encodeURIComponent(slug)}/journeys`)
+          if (res.ok) {
+            const body = (await res.json()) as { journeys?: { id: string }[] }
+            const list = body.journeys ?? []
+            if (list.length > 0) {
+              const params = new URLSearchParams()
+              params.set("frame", "journeys")
+              params.set("journey", list[0].id)
+              const theme = searchParams.get("theme")
+              const style = searchParams.get("style")
+              if (theme) params.set("theme", theme)
+              if (style) params.set("style", style)
+              navigate(`/d/${slug}?${params.toString()}`)
+              return
+            }
+          }
+        } catch (e) {
+          console.warn("[CoverBody] public journeys fetch failed, falling back to journeys frame", e)
+        } finally {
+          setForwardLoading(false)
+        }
+
+        navigateToJourneysFallback()
       }
 
       return (
@@ -126,7 +168,10 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
           wordmark={domainFrame.theme.wordmark}
           tagline={domainFrame.theme.tagline}
           forwardLabel={domainFrame.forward.label}
-          onForward={handleForward}
+          onForward={() => {
+            void handleForward()
+          }}
+          forwardDisabled={forwardLoading}
         />
       )
     }

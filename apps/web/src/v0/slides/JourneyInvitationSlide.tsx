@@ -22,6 +22,8 @@ interface JourneyInvitationSlideProps {
   tagline: string
   forwardLabel: string
   onForward: () => void
+  /** Disables the Forward button (e.g. while resolving the first public journey). */
+  forwardDisabled?: boolean
 }
 
 export function JourneyInvitationSlide({
@@ -29,6 +31,7 @@ export function JourneyInvitationSlide({
   tagline,
   forwardLabel,
   onForward,
+  forwardDisabled = false,
 }: JourneyInvitationSlideProps) {
   return (
     <section
@@ -55,7 +58,9 @@ export function JourneyInvitationSlide({
       <button
         type="button"
         onClick={onForward}
-        className="mt-2 rounded-full border px-5 py-2 text-[11px] font-medium tracking-wide uppercase transition-colors hover:opacity-90"
+        disabled={forwardDisabled}
+        aria-busy={forwardDisabled}
+        className="mt-2 rounded-full border px-5 py-2 text-[11px] font-medium tracking-wide uppercase transition-colors hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
         style={{
           borderColor: "var(--theme-border-soft)",
           backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
