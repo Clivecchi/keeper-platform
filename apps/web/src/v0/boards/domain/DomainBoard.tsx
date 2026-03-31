@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { Code2, FileText, LayoutGrid } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
 import { loadDomainFrame } from "../../data/loadDomainFrame"
@@ -102,6 +103,8 @@ function MessageBubble({ msg }: { msg: DesignerMessage }) {
 
 type BoardNavId = "domain" | "design" | "agent"
 
+type CenterPanelMode = "frames" | "brief" | "code"
+
 const DOMAIN_FRAMES: FrameItem[] = BOARD_FRAMES.domain ?? [
   { key: "cover", name: "Board Cover", dotColor: "#7F77DD", badge: "default" },
   { key: "feed", name: "Feed", dotColor: "#1D9E75", badge: "primary" },
@@ -126,6 +129,7 @@ export function DomainBoard() {
   const [input, setInput] = React.useState("")
   const [isSending, setIsSending] = React.useState(false)
   const [sendError, setSendError] = React.useState<string | null>(null)
+  const [centerPanelMode, setCenterPanelMode] = React.useState<CenterPanelMode>("frames")
   const bottomRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -177,7 +181,7 @@ export function DomainBoard() {
 
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isSending, selectedFrameKey])
+  }, [messages, isSending, selectedFrameKey, centerPanelMode])
 
   const wordmark = liveDomainFrame?.theme?.wordmark?.trim() || domainSlug
   const coverTagline = (() => {
@@ -268,6 +272,60 @@ export function DomainBoard() {
 
   const chatInputClass =
     "domain-board-chat-input flex-1 rounded-lg border px-3 py-3 min-h-[48px] text-[13px] outline-none transition-colors box-border focus-visible:ring-2 focus-visible:ring-stone-400/50 focus-visible:border-stone-400 resize-y min-h-[52px] max-h-[140px]"
+
+  const renderKipComposer = () => (
+    <div
+      className="shrink-0 border-t px-3 py-3"
+      style={{ borderColor: "#e7e5e4", background: "#f5f2eb" }}
+    >
+      {sendError && <p className="mb-2 text-[11px] text-red-600 font-medium">{sendError}</p>}
+      <div className="flex items-start gap-2">
+        <span
+          className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold self-end mb-2"
+          style={{
+            background: "#e7e5e4",
+            color: "#44403c",
+            border: "1px solid #d6d3d1",
+          }}
+        >
+          Kip
+        </span>
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask Kip about this domain…"
+          disabled={!domainId || isSending}
+          rows={2}
+          className={chatInputClass}
+          style={{
+            borderColor: "#d6d3d1",
+            background: "#fefdfb",
+            color: "#1c1917",
+            boxShadow: "0 1px 2px rgba(28,25,23,0.06)",
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => void handleSend()}
+          disabled={!input.trim() || !domainId || isSending}
+          className="rounded-lg p-2 transition-opacity disabled:opacity-40 shrink-0 self-end mb-1"
+          style={{ background: "#1c1917", color: "#faf8f5" }}
+          aria-label="Send"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+            <path
+              d="M2 7h9M8 4l3 3-3 3"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  )
 
   return (
     <div
@@ -420,205 +478,237 @@ export function DomainBoard() {
           className="flex flex-col flex-1 min-w-0 min-h-0 border-r border-gray-200 overflow-hidden"
           style={{ background: "#fefdfb" }}
         >
-          {selectedFrameKey && activeFrameRow ? (
-            <>
-              <div
-                className="shrink-0 border-b px-3 py-2"
-                style={{ borderColor: "#e7e5e4", background: "#f5f2eb" }}
-              >
-                <div className="flex gap-2 overflow-x-auto pb-0.5" style={{ scrollbarWidth: "thin" }}>
-                  {frames.map((frame) => {
-                    const picked = frame.key === selectedFrameKey
-                    return (
-                      <button
-                        key={frame.key}
-                        type="button"
-                        onClick={() => setSelectedFrameKey(frame.key)}
-                        className="shrink-0 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
-                        style={{
-                          background: picked ? "#1c1917" : "#f0ece4",
-                          color: picked ? "#faf8f5" : "#44403c",
-                        }}
-                      >
-                        <span
-                          className="shrink-0 rounded-full"
-                          style={{ width: 6, height: 6, background: frame.dotColor }}
-                        />
-                        {abbrevFrameLabel(frame.name)}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div
-                className="shrink-0 relative overflow-hidden border-b transition-all duration-200 min-h-[120px]"
-                style={{
-                  borderColor: "rgba(255,255,255,0.12)",
-                  ...(bannerBgUrl
-                    ? {
-                        backgroundImage: `url(${bannerBgUrl})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                      }
-                    : {
-                        background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
-                      }),
-                }}
-              >
-                <div
-                  className="absolute inset-0 z-0 pointer-events-none"
-                  style={{
-                    backdropFilter: "blur(12px)",
-                    WebkitBackdropFilter: "blur(12px)",
-                    background: "rgba(0,0,0,0.45)",
-                  }}
-                />
-                <div className="relative z-[1] px-5 py-4 flex flex-col justify-center min-h-[120px]">
+          <div
+            className="shrink-0 flex items-center justify-center border-b px-3 py-2"
+            style={{ borderColor: "#e7e5e4", background: "#f5f2eb" }}
+          >
+            <div
+              className="flex items-center rounded-md overflow-hidden shrink-0"
+              style={{ border: "1px solid #d6d3d1", background: "#faf8f5" }}
+              role="tablist"
+              aria-label="Center panel mode"
+            >
+              {(
+                [
+                  { mode: "frames" as const, Icon: LayoutGrid, label: "Frames — frame navigator" },
+                  { mode: "brief" as const, Icon: FileText, label: "Domain Brief" },
+                  { mode: "code" as const, Icon: Code2, label: "Domain JSON" },
+                ] as const
+              ).map(({ mode, Icon, label }) => {
+                const active = centerPanelMode === mode
+                return (
                   <button
+                    key={mode}
                     type="button"
-                    onClick={() => setSelectedFrameKey(null)}
-                    className="absolute left-5 top-4 text-xs text-white/50 hover:text-white/80 transition-colors text-left"
-                  >
-                    ← All Frames
-                  </button>
-                  <div className="mt-6 flex flex-wrap items-center gap-2 gap-y-1">
-                    <h2 className="text-2xl font-semibold text-white tracking-tight leading-tight">
-                      {activeFrameRow.name}
-                    </h2>
-                    <span
-                      className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium border"
-                      style={BANNER_BADGE_STYLES[activeFrameRow.badge] ?? BANNER_BADGE_STYLES.default}
-                    >
-                      {activeFrameRow.badge}
-                    </span>
-                    <span
-                      className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold border"
-                      style={{
-                        borderColor: "rgba(52,211,153,0.65)",
-                        background: "rgba(52,211,153,0.2)",
-                        color: "#d1fae5",
-                      }}
-                    >
-                      Live
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm text-white/60 leading-snug line-clamp-2">{frameContextLine}</p>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="shrink-0 px-6 pt-8 pb-4 text-center border-b border-[#e7e5e4]">
-              <h2 className="font-serif text-3xl font-semibold" style={{ color: "#1c1917" }}>
-                {wordmark}
-              </h2>
-              {coverTagline ? (
-                <p className="mt-2 text-sm" style={{ color: "#57534e" }}>
-                  {coverTagline}
-                </p>
-              ) : null}
-              <button
-                type="button"
-                onClick={goPresentJourney}
-                className="mt-6 w-full max-w-sm mx-auto rounded-lg px-4 py-3 text-[14px] font-medium transition-opacity"
-                style={{ background: "#1c1917", color: "#faf8f5" }}
-              >
-                Begin the Journey
-              </button>
-            </div>
-          )}
-
-          <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
-              {selectedFrameKey && messages.length === 0 && (
-                <div className="flex min-h-[80px] items-center justify-center">
-                  <p className="text-center text-[13px] max-w-xs" style={{ color: "#57534e" }}>
-                    {`Tell Kip what you want to explore on ${activeFrameRow?.name ?? "this domain"}.`}
-                  </p>
-                </div>
-              )}
-              {!selectedFrameKey && messages.length === 0 && (
-                <div className="flex min-h-[120px] items-center justify-center px-4">
-                  <p className="text-center text-[13px] max-w-md" style={{ color: "#78716c" }}>
-                    Select a frame from the left to focus Kip on a specific surface, or ask about the whole domain
-                    below.
-                  </p>
-                </div>
-              )}
-              {messages.map((msg) => (
-                <MessageBubble key={msg.id} msg={msg} />
-              ))}
-              {isSending && (
-                <div className="flex justify-start">
-                  <div
-                    className="rounded-xl px-3 py-2.5 text-[13px] border"
+                    role="tab"
+                    aria-selected={active}
+                    aria-label={label}
+                    onClick={() => setCenterPanelMode(mode)}
+                    className="flex items-center justify-center transition-colors"
                     style={{
-                      background: "#f0ece4",
-                      color: "#57534e",
-                      borderColor: "#e7e5e4",
+                      width: 32,
+                      height: 28,
+                      color: active ? "#faf8f5" : "#57534e",
+                      background: active ? "#1c1917" : "transparent",
+                      boxShadow: "none",
+                      border: "none",
                     }}
                   >
-                    <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: "#78716c" }}>
-                      Kip
-                    </p>
-                    <p>Thinking…</p>
-                  </div>
-                </div>
-              )}
-              <div ref={bottomRef} />
+                    <Icon className="h-[14px] w-[14px]" strokeWidth={1.75} aria-hidden />
+                  </button>
+                )
+              })}
             </div>
+          </div>
 
-            <div
-              className="shrink-0 border-t px-3 py-3"
-              style={{ borderColor: "#e7e5e4", background: "#f5f2eb" }}
-            >
-              {sendError && <p className="mb-2 text-[11px] text-red-600 font-medium">{sendError}</p>}
-              <div className="flex items-start gap-2">
-                <span
-                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold self-end mb-2"
-                  style={{
-                    background: "#e7e5e4",
-                    color: "#44403c",
-                    border: "1px solid #d6d3d1",
-                  }}
-                >
-                  Kip
-                </span>
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask Kip about this domain…"
-                  disabled={!domainId || isSending}
-                  rows={2}
-                  className={chatInputClass}
-                  style={{
-                    borderColor: "#d6d3d1",
-                    background: "#fefdfb",
-                    color: "#1c1917",
-                    boxShadow: "0 1px 2px rgba(28,25,23,0.06)",
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => void handleSend()}
-                  disabled={!input.trim() || !domainId || isSending}
-                  className="rounded-lg p-2 transition-opacity disabled:opacity-40 shrink-0 self-end mb-1"
-                  style={{ background: "#1c1917", color: "#faf8f5" }}
-                  aria-label="Send"
-                >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-                    <path
-                      d="M2 7h9M8 4l3 3-3 3"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
+          <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+            {centerPanelMode === "frames" && (
+              <>
+                {selectedFrameKey && activeFrameRow ? (
+                  <>
+                    <div
+                      className="shrink-0 border-b px-3 py-2"
+                      style={{ borderColor: "#e7e5e4", background: "#f5f2eb" }}
+                    >
+                      <div className="flex gap-2 overflow-x-auto pb-0.5" style={{ scrollbarWidth: "thin" }}>
+                        {frames.map((frame) => {
+                          const picked = frame.key === selectedFrameKey
+                          return (
+                            <button
+                              key={frame.key}
+                              type="button"
+                              onClick={() => setSelectedFrameKey(frame.key)}
+                              className="shrink-0 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
+                              style={{
+                                background: picked ? "#1c1917" : "#f0ece4",
+                                color: picked ? "#faf8f5" : "#44403c",
+                              }}
+                            >
+                              <span
+                                className="shrink-0 rounded-full"
+                                style={{ width: 6, height: 6, background: frame.dotColor }}
+                              />
+                              {abbrevFrameLabel(frame.name)}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div
+                      className="shrink-0 relative overflow-hidden border-b transition-all duration-200 min-h-[120px]"
+                      style={{
+                        borderColor: "rgba(255,255,255,0.12)",
+                        ...(bannerBgUrl
+                          ? {
+                              backgroundImage: `url(${bannerBgUrl})`,
+                              backgroundSize: "cover",
+                              backgroundPosition: "center",
+                            }
+                          : {
+                              background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+                            }),
+                      }}
+                    >
+                      <div
+                        className="absolute inset-0 z-0 pointer-events-none"
+                        style={{
+                          backdropFilter: "blur(12px)",
+                          WebkitBackdropFilter: "blur(12px)",
+                          background: "rgba(0,0,0,0.45)",
+                        }}
+                      />
+                      <div className="relative z-[1] px-5 py-4 flex flex-col justify-center min-h-[120px]">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFrameKey(null)}
+                          className="absolute left-5 top-4 text-xs text-white/50 hover:text-white/80 transition-colors text-left"
+                        >
+                          ← All Frames
+                        </button>
+                        <div className="mt-6 flex flex-wrap items-center gap-2 gap-y-1">
+                          <h2 className="text-2xl font-semibold text-white tracking-tight leading-tight">
+                            {activeFrameRow.name}
+                          </h2>
+                          <span
+                            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium border"
+                            style={BANNER_BADGE_STYLES[activeFrameRow.badge] ?? BANNER_BADGE_STYLES.default}
+                          >
+                            {activeFrameRow.badge}
+                          </span>
+                          <span
+                            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold border"
+                            style={{
+                              borderColor: "rgba(52,211,153,0.65)",
+                              background: "rgba(52,211,153,0.2)",
+                              color: "#d1fae5",
+                            }}
+                          >
+                            Live
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-white/60 leading-snug line-clamp-2">{frameContextLine}</p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="shrink-0 px-6 pt-8 pb-4 text-center border-b border-[#e7e5e4]">
+                    <h2 className="font-serif text-3xl font-semibold" style={{ color: "#1c1917" }}>
+                      {wordmark}
+                    </h2>
+                    {coverTagline ? (
+                      <p className="mt-2 text-sm" style={{ color: "#57534e" }}>
+                        {coverTagline}
+                      </p>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={goPresentJourney}
+                      className="mt-6 w-full max-w-sm mx-auto rounded-lg px-4 py-3 text-[14px] font-medium transition-opacity"
+                      style={{ background: "#1c1917", color: "#faf8f5" }}
+                    >
+                      Begin the Journey
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+                  <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
+                    {selectedFrameKey && messages.length === 0 && (
+                      <div className="flex min-h-[80px] items-center justify-center">
+                        <p className="text-center text-[13px] max-w-xs" style={{ color: "#57534e" }}>
+                          {`Tell Kip what you want to explore on ${activeFrameRow?.name ?? "this domain"}.`}
+                        </p>
+                      </div>
+                    )}
+                    {!selectedFrameKey && messages.length === 0 && (
+                      <div className="flex min-h-[120px] items-center justify-center px-4">
+                        <p className="text-center text-[13px] max-w-md" style={{ color: "#78716c" }}>
+                          Select a frame from the left to focus Kip on a specific surface, or ask about the whole
+                          domain below.
+                        </p>
+                      </div>
+                    )}
+                    {messages.map((msg) => (
+                      <MessageBubble key={msg.id} msg={msg} />
+                    ))}
+                    {isSending && (
+                      <div className="flex justify-start">
+                        <div
+                          className="rounded-xl px-3 py-2.5 text-[13px] border"
+                          style={{
+                            background: "#f0ece4",
+                            color: "#57534e",
+                            borderColor: "#e7e5e4",
+                          }}
+                        >
+                          <p
+                            className="text-[10px] font-semibold uppercase tracking-widest mb-1"
+                            style={{ color: "#78716c" }}
+                          >
+                            Kip
+                          </p>
+                          <p>Thinking…</p>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={bottomRef} />
+                  </div>
+
+                  {renderKipComposer()}
+                </div>
+              </>
+            )}
+
+            {centerPanelMode === "brief" && (
+              <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+                <div className="flex-1 overflow-y-auto px-4 py-6 min-h-0">
+                  <h2 className="text-lg font-semibold" style={{ color: "#1c1917" }}>
+                    Domain Brief
+                  </h2>
+                  <p className="mt-2 text-[13px] leading-relaxed max-w-md" style={{ color: "#57534e" }}>
+                    Editable domain configuration. Coming soon.
+                  </p>
+                </div>
+                {renderKipComposer()}
               </div>
-            </div>
+            )}
+
+            {centerPanelMode === "code" && (
+              <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+                <div className="flex-1 overflow-auto px-4 py-3 min-h-0" style={{ background: "#fefdfb" }}>
+                  <pre
+                    className="text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-words"
+                    style={{ color: "#292524" }}
+                  >
+                    {liveDomainFrame
+                      ? JSON.stringify(liveDomainFrame, null, 2)
+                      : "// Domain frame not loaded yet"}
+                  </pre>
+                </div>
+                {renderKipComposer()}
+              </div>
+            )}
           </div>
         </div>
 
