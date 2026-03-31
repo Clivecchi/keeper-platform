@@ -8,6 +8,7 @@ import { useV0ShellOptional, type V0FrameKey } from "../../shell/V0ShellContext"
 import { JourneyInvitationSlide } from "../../slides/JourneyInvitationSlide"
 import { useAuth } from "../../../context/AuthContext"
 import { getApiBase } from "../../../lib/apiFetch"
+import { CoverChatInterface, mergeCoverChatInterface } from "./CoverChatInterface"
 
 function isDesignerBoardPreviewShell(
   shell: ReturnType<typeof useV0ShellOptional>,
@@ -117,6 +118,10 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
 
     // journey_invitation SlideType — render from domain frame JSON
     if (cardType === "journey_invitation" && domainFrame) {
+      const chat_interface = mergeCoverChatInterface(domainFrame.cover.chat_interface)
+      const coverChatSlug = domainData?.slug || v0Shell?.domainSlug || "default"
+      const resolvedAudience = v0Shell?.resolvedAudience ?? null
+
       const handleForward = async () => {
         if (forwardLoading) return
         // Destination from JSON: "journey/default" → first journey for guests, else journeys frame
@@ -164,15 +169,22 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
       }
 
       return (
-        <JourneyInvitationSlide
-          wordmark={domainFrame.theme.wordmark}
-          tagline={domainFrame.theme.tagline}
-          forwardLabel={domainFrame.forward.label}
-          onForward={() => {
-            void handleForward()
-          }}
-          forwardDisabled={forwardLoading}
-        />
+        <div className="flex w-full flex-col items-center">
+          <JourneyInvitationSlide
+            wordmark={domainFrame.theme.wordmark}
+            tagline={domainFrame.theme.tagline}
+            forwardLabel={domainFrame.forward.label}
+            onForward={() => {
+              void handleForward()
+            }}
+            forwardDisabled={forwardLoading}
+          />
+          <CoverChatInterface
+            chat_interface={chat_interface}
+            domainSlug={coverChatSlug}
+            audience={resolvedAudience}
+          />
+        </div>
       )
     }
 
@@ -192,6 +204,12 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
       : useFrameTheme
         ? (domainFrame!.theme!.tagline ?? domainData?.description)
         : (domainData?.description ?? undefined)
+
+    const fallbackChat = domainFrame
+      ? mergeCoverChatInterface(domainFrame.cover.chat_interface)
+      : mergeCoverChatInterface(undefined)
+    const fallbackChatSlug = domainData?.slug || v0Shell?.domainSlug || "default"
+    const fallbackAudience = v0Shell?.resolvedAudience ?? null
 
     return (
       <section
@@ -216,6 +234,13 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
             aria-hidden
           />
         )}
+        {domainFrame ? (
+          <CoverChatInterface
+            chat_interface={fallbackChat}
+            domainSlug={fallbackChatSlug}
+            audience={fallbackAudience}
+          />
+        ) : null}
       </section>
     )
   }

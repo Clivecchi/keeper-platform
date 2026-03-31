@@ -40,9 +40,19 @@ export function V0Shell() {
   const location = useLocation()
   const { isAuthenticated, isAdmin } = useAuth()
   const { colorScheme } = useTheme()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const defaultFrame = isAuthenticated ? "commons" : "cover"
   const frameParam = (searchParams.get("frame") || defaultFrame).toLowerCase() as V0FrameKey
+
+  React.useEffect(() => {
+    if (
+      isAuthenticated &&
+      !searchParams.get("frame") &&
+      !searchParams.get("board")
+    ) {
+      setSearchParams({ board: "domain" }, { replace: true })
+    }
+  }, [isAuthenticated, searchParams, setSearchParams])
   const privateFrames = new Set<V0FrameKey>(["commons", "profile", "admin"])
   const requestedFrame = FRAME_REGISTRY[frameParam] ? frameParam : "cover"
   const isPrivateRequest = privateFrames.has(requestedFrame)

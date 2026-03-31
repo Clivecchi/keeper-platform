@@ -6,6 +6,7 @@
 
 import * as React from "react"
 import { DesignBoard } from "./designer/DesignBoard"
+import { DomainBoard } from "./domain/DomainBoard"
 
 export type V0BoardKey = "designer" | "domain"
 
@@ -15,8 +16,6 @@ export interface BoardRegistryEntry {
   isPrivate: boolean      // true = requires authentication
   isAdminOnly: boolean    // true = requires Platform Admin role
 }
-
-const DomainBoard: React.FC = () => React.createElement("div", null, "Domain Board")
 
 export const BOARD_REGISTRY: Record<V0BoardKey, BoardRegistryEntry> = {
   designer: {

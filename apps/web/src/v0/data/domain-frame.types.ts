@@ -38,9 +38,21 @@ export interface DomainFrameCoverCard {
   available_to: AudienceRole[]
 }
 
+/** Inline / cover-surface chat driven by domain JSON (`cover.chat_interface`). */
+export interface DomainFrameCoverChatInterface {
+  label?: string
+  enabled: boolean
+  /** Layout hint for future positioning (e.g. `below_forward`); not used by the UI yet. */
+  position?: string
+  placeholder?: string
+  available_to: AudienceRole[]
+  submit_label?: string
+}
+
 export interface DomainFrameCover {
   slide_type: string
   card: DomainFrameCoverCard
+  chat_interface?: DomainFrameCoverChatInterface
 }
 
 export interface DomainFrameForward {

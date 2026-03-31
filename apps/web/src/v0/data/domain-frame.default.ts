@@ -201,6 +201,14 @@ export const DEFAULT_DOMAIN_FRAME: DomainFrameJson = {
       type: "journey_invitation",
       available_to: ["guest", "keeper", "admin"],
     },
+    chat_interface: {
+      label: "Start a Conversation",
+      enabled: true,
+      position: "below_forward",
+      placeholder: "Say hello or ask a question to get started...",
+      available_to: ["guest", "keeper", "admin"],
+      submit_label: "Send",
+    },
   },
 
   forward: {
