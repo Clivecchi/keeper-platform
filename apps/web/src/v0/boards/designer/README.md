@@ -6,7 +6,7 @@ Platform Admin–only surface for visually designing and editing V0 domain Frame
 ## 🧱 Key Files
 - `DesignBoard.tsx` — Root component; three-panel layout with lifted state (`activeBoardId`, `activeFrameKey`, `leftCollapsed`, `density`, draft/publish); exports `DesignBoard` alias for `boardRegistry.ts`; syncs `data-density` on `document.documentElement` and `keeper-density` in `localStorage`
 - `DesignBoardList.tsx` — Left panel; collapsible Board & Template list; collapses only via chevron (not on frame select)
-- `DesignBoardFrameList.tsx` — Center panel; frame list + focus mode (rail, context banner, Kip thread) when a frame is selected; three view toggle icons; Kip chat; draft/publish bar; `POST /api/domains/:domainId/kip/designer`
+- `DesignBoardFrameList.tsx` — Center panel; mode switcher (Lucide `LayoutGrid` / `FileText` / `Code2`) for **frames** (list + focus + Kip), **brief** (placeholder + Kip), **code** (read-only `liveDomainFrame` JSON + Kip); draft/publish bar; `POST /api/domains/:domainId/kip/designer` (frame key falls back to `cover` when no frame is selected in brief/code)
 - `DesignBoardFrameDetail.tsx` — Right panel; tabbed Frame detail (Preview, Config, Props, JSON); preserves `FramePreviewShell` and direct-edit overlay
 - `DesignBoardNav.tsx` — (Legacy) Original left panel; superseded by `DesignBoardList.tsx`
 - `DesignBoardKip.tsx` — (Legacy) Original center panel; superseded by `DesignBoardFrameList.tsx`
@@ -34,6 +34,8 @@ When enabled, `[DesignBoard:debug]` logs appear:
 - [ ] `Margin` (interaction bar) renders as a `fixed` overlay over the whole board when any frame is previewed — intentional leakage from `DesignFrame`. May want to suppress it in the preview context in a future pass.
 
 ## 📆 Update Log
+### 2026-03-30 — Design Board center panel modes (frames / brief / code)
+- **`DesignBoardFrameList.tsx`**: Replaced non-functional dialog/preview toggles with `centerPanelMode`: `frames` (existing navigator + Kip), `brief` (Domain Brief placeholder), `code` (formatted read-only domain JSON from `liveDomainFrame`). Kip composer stays at bottom in all modes; designer API uses `activeFrameKey ?? "cover"` when no frame is focused.
 ### 2026-03-25 — Preview, publish staleness, click-to-edit
 - **`DesignBoard.tsx`**: Temporary `[publish]` `console.log` diagnostics in `handlePublish`. Before `publishDraft`, always `KipApi.updateDraft(..., { spec: draftSpecJson })` so the DB draft matches the latest in-session JSON after multiple Kip turns.
 - **`DesignBoardFrameDetail.tsx`**: Preview wrapper `pointerEvents: "auto"` (overlay still captures clicks at `z-index: 10`). Loose text matching in `handleOverlayClick`. Direct-edit string leaves for Board Cover also walk `theme` (tagline lives there); `EditPopup` / `handleEditSave` support optional `blockKey` for patches outside the frame block.
