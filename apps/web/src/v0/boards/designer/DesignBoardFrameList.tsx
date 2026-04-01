@@ -7,6 +7,7 @@ import type { DesignerMessage } from "./DesignBoard"
 import { FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
+import { DomainBrief } from "../../components/DomainBrief"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -752,13 +753,14 @@ export function DesignBoardFrameList({
 
       {centerPanelMode === "brief" && (
         <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-4 py-6 min-h-0">
-            <h2 className="text-lg font-semibold" style={{ color: "#1c1917" }}>
-              Domain Brief
-            </h2>
-            <p className="mt-2 text-[13px] leading-relaxed max-w-md" style={{ color: "#57534e" }}>
-              Editable domain configuration. Coming soon.
-            </p>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {liveDomainFrame ? (
+              <DomainBrief domainFrame={liveDomainFrame} />
+            ) : (
+              <div className="px-4 py-6 text-[13px]" style={{ color: "#57534e" }}>
+                Loading domain brief…
+              </div>
+            )}
           </div>
           {draftBar}
           <div
