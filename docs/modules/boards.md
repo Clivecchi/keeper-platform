@@ -19,6 +19,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] `V0BoardKey` type lives in `boardRegistry.ts`; if more boards are added, consider splitting
 
 ## 📆 Update Log
+### 2026-03-31
+- Domain Board (`domain/DomainBoard.tsx`): Brief mode center panel now renders `DomainBrief` (editable domain JSON form) instead of the placeholder; Kip composer unchanged.
+
 ### 2026-03-11
 - Created `boards/` directory and `boardRegistry.ts` (Step 3 of designer-to-board migration)
 - Moved designer files from `frames/designer/` to `boards/designer/` (Step 2)

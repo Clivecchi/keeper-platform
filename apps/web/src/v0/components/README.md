@@ -4,6 +4,8 @@
 View components for the V0 surface: cover frame and moment diary frame, with no backend wiring.
 
 ## 🧱 Key Files
+- `StoryScroll.tsx` / `StoryScroll.types.ts` – Schema-driven inline narrative editor (edit buffer + `onChange`); optional Kip bar (`sendPrompt` / `onKipMessage`). See `StoryScroll.example.tsx` for usage (documentation-only).
+- `DomainBrief.tsx` – Domain Board Brief mode: human-readable form for core domain frame JSON (identity, theme, audience, Kip, cover chat); local draft with Publish via `PATCH /api/domains/:slug/frame` and `reloadDomainFrame`.
 - `cover-frame.tsx` – Album/storybook-inspired cover with imprint, title, liner notes, and setlist routes.
 - `moment-frame.tsx` – Moment diary preview frame with close loop back to the cover.
 - `kept-moments-frame.tsx` – Minimal list view for recently kept moments.
@@ -25,6 +27,8 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-03-31: Added `StoryScroll` neutral narrative editor (`StoryScroll.tsx`, `StoryScroll.types.ts`, `StoryScroll.example.tsx`) — inline `{fieldId}` prose fields, grace note, crumb bar, internal change buffer; no persistence or domain coupling.
+- 2026-03-31: Added `DomainBrief.tsx` for Domain Board Brief mode — accordion sections, theme tokens (`--theme-*`) for chrome, domain JSON colors for swatches / section dots / change indicator / active pills.
 - 2026-03-25: CoverFrame: Designer Board preview detection (`buildFrameUrl("cover") === "#"`); skip authenticated cover-image refetch in that shell; prefer `domainFrame.theme` wordmark/tagline for header when in preview so draft JSON drives the right-panel preview.
 - 2026-02-28: CoverFrame: (a) hide header imprint when domain name matches platform brand to avoid duplicate KE3P; (b) add solid cover surface (92% opacity) for readable content; (c) CoverBody shows domain name + tagline together when loaded, subtle loading bar when placeholder.
 - 2026-02-23: CoverFrame now renders domain cover image as full-page background when `domainData.theme.coverImage` is present. DomainData interface extended with optional `theme`.
