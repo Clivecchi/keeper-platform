@@ -6,7 +6,7 @@ Platform Admin–only surface for visually designing and editing V0 domain Frame
 ## 🧱 Key Files
 - `DesignBoard.tsx` — Root component; three-panel layout with lifted state (`activeBoardId`, `activeFrameKey`, `leftCollapsed`, `density`, draft/publish); exports `DesignBoard` alias for `boardRegistry.ts`; syncs `data-density` on `document.documentElement` and `keeper-density` in `localStorage`
 - `DesignBoardList.tsx` — Left panel; collapsible Board & Template list; collapses only via chevron (not on frame select)
-- `DesignBoardFrameList.tsx` — Center panel; mode switcher (Lucide `LayoutGrid` / `FileText` / `Code2`) for **frames** (list + focus + Kip), **brief** (`DomainBrief` component + Kip draft bar), **code** (read-only `liveDomainFrame` JSON + Kip); draft/publish bar; `POST /api/domains/:domainId/kip/designer` (frame key falls back to `cover` when no frame is selected in brief/code)
+- `DesignBoardFrameList.tsx` — Center panel; mode switcher (Lucide `LayoutGrid` / `FileText` / `Code2`) for **frames** (list + focus + Kip), **brief** (`DomainBrief` component + Kip draft bar), **code** (read-only `liveDomainFrame` JSON + Kip); draft/publish bar; `POST /api/domains/:domainId/kip/designer` with `dialog_board: "designer"`; frame list has **Designing** label and 6px live (green) / draft (amber) dots vs `draftSpecJson`; `GET .../kip/dialogs/resolve/active?board=designer&frame=...`
 - `DesignBoardFrameDetail.tsx` — Right panel; tabbed Frame detail (Preview, Config, Props, JSON); preserves `FramePreviewShell` and direct-edit overlay
 - `DesignBoardNav.tsx` — (Legacy) Original left panel; superseded by `DesignBoardList.tsx`
 - `DesignBoardKip.tsx` — (Legacy) Original center panel; superseded by `DesignBoardFrameList.tsx`
@@ -34,6 +34,10 @@ When enabled, `[DesignBoard:debug]` logs appear:
 - [ ] `Margin` (interaction bar) renders as a `fixed` overlay over the whole board when any frame is previewed — intentional leakage from `DesignFrame`. May want to suppress it in the preview context in a future pass.
 
 ## 📆 Update Log
+### 2026-04-01 — Studio vs stage: Designing label, live/draft dots, Dialog context
+- **`DesignBoardFrameList.tsx`**: "Designing" label above the frame list; 6px green/amber status dot per row (draft vs `liveDomainFrame` via `draftSpecJson`); designer Kip requests send `dialog_board: "designer"`.
+- **`DesignBoard.tsx`**: Passes `draftSpecJson`; dialog resolve uses `board=designer` (was `domain`).
+
 ### 2026-03-31 — Brief mode: replace placeholder with DomainBrief
 - **`DesignBoardFrameList.tsx`**: Brief mode now renders `<DomainBrief domainFrame={liveDomainFrame} />` (same component as DomainBoard). The old placeholder ("Editable domain configuration. Coming soon.") is removed. Kip draft bar remains below the Brief component.
 

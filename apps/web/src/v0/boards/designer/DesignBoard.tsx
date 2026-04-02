@@ -235,7 +235,7 @@ export function DesignerFrame({
     let cancelled = false
 
     apiFetch(
-      `/api/domains/${domainId}/kip/dialogs/resolve/active?board=domain&frame=${encodeURIComponent(activeFrameKey)}&available_to=admin`,
+      `/api/domains/${domainId}/kip/dialogs/resolve/active?board=designer&frame=${encodeURIComponent(activeFrameKey)}&available_to=admin`,
     )
       .then((res: any) => {
         if (cancelled) return
@@ -423,6 +423,7 @@ export function DesignerFrame({
           domainId={domainId}
           domainSlug={domainSlug}
           liveDomainFrame={liveDomainFrame}
+          draftSpecJson={draftSpecJson}
           messages={messages}
           setMessages={setMessages}
           draftId={draftId}

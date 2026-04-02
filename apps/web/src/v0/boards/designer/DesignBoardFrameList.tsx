@@ -136,6 +136,23 @@ function abbrevFrameLabel(name: string): string {
   return s.length > 14 ? `${s.slice(0, 12)}…` : s
 }
 
+function frameBlockDiffersFromLive(
+  frameKey: string,
+  live: DomainFrameJson | null,
+  draft: DomainFrameJson | null,
+): boolean {
+  if (!live || !draft) return false
+  const jsonKey = FRAME_TO_JSON_KEY[frameKey]
+  if (!jsonKey) return false
+  const a = (live as unknown as Record<string, unknown>)[jsonKey]
+  const b = (draft as unknown as Record<string, unknown>)[jsonKey]
+  try {
+    return JSON.stringify(a) !== JSON.stringify(b)
+  } catch {
+    return true
+  }
+}
+
 // ─── Message bubble (same behavior as DesignBoardKip) ────────────────────────
 
 function MessageBubble({ msg }: { msg: DesignerMessage }) {
@@ -180,6 +197,8 @@ interface DesignBoardFrameListProps {
   domainId: string | null
   domainSlug: string
   liveDomainFrame: DomainFrameJson | null
+  /** When set, frames whose JSON block differs from live are shown as draft (amber). */
+  draftSpecJson: DomainFrameJson | null
   messages: DesignerMessage[]
   setMessages: React.Dispatch<React.SetStateAction<DesignerMessage[]>>
   draftId: string | null
@@ -205,6 +224,7 @@ export function DesignBoardFrameList({
   domainId,
   domainSlug: _domainSlug,
   liveDomainFrame,
+  draftSpecJson,
   messages,
   setMessages,
   draftId,
@@ -270,6 +290,7 @@ export function DesignBoardFrameList({
           frameKey: frameKeyForKip,
           conversationHistory: history,
           dialog_id: dialogId ?? undefined,
+          dialog_board: "designer",
         }),
       })) as { response: string; draft?: { spec_json: unknown }; dialog_id?: string; session_id?: string }
 
@@ -652,9 +673,15 @@ export function DesignBoardFrameList({
       ) : (
         <>
           <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="px-4 pt-2 pb-1">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Designing
+              </p>
+            </div>
             <ul className="py-1">
               {frames.map((frame) => {
                 const isActive = frame.key === activeFrameKey
+                const isDraftRow = frameBlockDiffersFromLive(frame.key, liveDomainFrame, draftSpecJson)
                 return (
                   <li key={frame.key}>
                     <button
@@ -668,7 +695,12 @@ export function DesignBoardFrameList({
                     >
                       <span
                         className="shrink-0 rounded-full"
-                        style={{ width: 8, height: 8, background: frame.dotColor }}
+                        style={{
+                          width: 6,
+                          height: 6,
+                          background: isDraftRow ? "#f59e0b" : "#10b981",
+                        }}
+                        title={isDraftRow ? "Draft differs from live" : "Live"}
                       />
                       <span
                         className="flex-1 text-[13px] leading-snug truncate"

@@ -22,6 +22,17 @@ const frameTitleFallback = (frameKey: string): string => {
   return map[frameKey] ?? frameKey;
 };
 
+/** Human-readable board label for auto-generated Dialog titles. */
+const boardTitleForContext = (board: string): string => {
+  const key = board.trim().toLowerCase();
+  const map: Record<string, string> = {
+    domain: 'Domain',
+    designer: 'Designer',
+    design: 'Designer',
+  };
+  return map[key] ?? (board ? board.charAt(0).toUpperCase() + board.slice(1).toLowerCase() : 'Board');
+};
+
 export async function findOrCreateKipDialog(
   prisma: PrismaClient,
   params: {
@@ -60,10 +71,12 @@ export async function findOrCreateKipDialog(
 
   const frameName = frameTitleFallback(frame);
   const dateLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const boardLabel = boardTitleForContext(board);
+  const title = `${boardLabel} · ${frameName} · ${dateLabel}`;
 
   const dialog = await prisma.dialog.create({
     data: {
-      title: `${frameName} · ${dateLabel}`,
+      title,
       domain_id: domainId,
       user_id: dialogUserId,
       available_to: availableTo,

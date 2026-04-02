@@ -4,6 +4,8 @@
 View components for the V0 surface: cover frame and moment diary frame, with no backend wiring.
 
 ## 🧱 Key Files
+- `DomainBanner.tsx` – Domain Board center column: slim identity row + live pulse + journey/moment counts (`--theme-*`).
+- `DomainFeed.tsx` – Domain Board feed: recent kept moments + journey activity from public journey APIs and `GET /api/v0/moments`.
 - `StoryScroll.tsx` / `StoryScroll.types.ts` – Schema-driven inline narrative editor (edit buffer + `onChange`); optional Kip bar. See `StoryScroll.example.tsx` for usage (documentation-only).
 - `DomainBrief.tsx` – Domain Board Brief mode: human-readable form for core domain frame JSON (identity, theme, audience, Kip, cover chat); local draft with Publish via `PATCH /api/domains/:slug/frame` and `reloadDomainFrame`.
 - `cover-frame.tsx` – Album/storybook-inspired cover with imprint, title, liner notes, and setlist routes.
@@ -27,6 +29,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-04-01: Added `DomainBanner.tsx` and `DomainFeed.tsx` for Domain Board center panel (feed/chat modes). See repo `apps/web/src/v0/components/README.md` for detail.
 - 2026-03-31: Added `StoryScroll` neutral narrative editor (`StoryScroll.tsx`, `StoryScroll.types.ts`, `StoryScroll.example.tsx`).
 - 2026-03-31: Added `DomainBrief.tsx` for Domain Board Brief mode — accordion sections, theme tokens (`--theme-*`) for chrome, domain JSON colors for swatches / section dots / change indicator / active pills.
 - 2026-02-28: CoverFrame: (a) hide header imprint when domain name matches platform brand to avoid duplicate KE3P; (b) add solid cover surface (92% opacity) for readable content; (c) CoverBody shows domain name + tagline together when loaded, subtle loading bar when placeholder.

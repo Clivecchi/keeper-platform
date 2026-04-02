@@ -45,6 +45,8 @@ const designerRequestSchema = z.object({
   // subsequent messages with the same Dialog. On the first message it is null
   // and the backend finds-or-creates the Dialog automatically.
   dialog_id: z.string().optional().nullable(),
+  /** Dialog context board slug — drives title format and resolve/active matching. Default `domain`. */
+  dialog_board: z.enum(['domain', 'designer']).optional().default('domain'),
 });
 
 // ─── Intent detection ─────────────────────────────────────────────────────────
@@ -272,7 +274,13 @@ router.post(
         return res.status(400).json({ error: 'INVALID_REQUEST', details: parsed.error.flatten() });
       }
 
-      const { message, frameKey, conversationHistory, dialog_id: clientDialogId } = parsed.data;
+      const {
+        message,
+        frameKey,
+        conversationHistory,
+        dialog_id: clientDialogId,
+        dialog_board: dialogBoard,
+      } = parsed.data;
 
       // ── Fetch domain + live frame_json ──
       const domain = await prisma.domain.findUnique({
@@ -416,7 +424,7 @@ router.post(
           if (!verified) {
             dialog = await findOrCreateKipDialog(prisma, {
               domainId,
-              board: 'domain',
+              board: dialogBoard,
               frame: frameKey,
               subject: domain.slug,
               scope: 'admin',
@@ -428,7 +436,7 @@ router.post(
         } else {
           dialog = await findOrCreateKipDialog(prisma, {
             domainId,
-            board: 'domain',
+            board: dialogBoard,
             frame: frameKey,
             subject: domain.slug,
             scope: 'admin',

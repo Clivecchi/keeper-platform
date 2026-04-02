@@ -9,9 +9,11 @@ interface StyleScopeProps {
   styleId: StyleId
   themeSlug?: string | null
   children: React.ReactNode
+  /** Merged with `v0-style-scope` for flex layout in shells (e.g. boards). */
+  className?: string
 }
 
-export function StyleScope({ styleId, themeSlug, children }: StyleScopeProps) {
+export function StyleScope({ styleId, themeSlug, children, className }: StyleScopeProps) {
   const { exportTokens, setCurrentStyle } = useStyleOverride()
 
   // Set the current style in the provider
@@ -124,7 +126,7 @@ export function StyleScope({ styleId, themeSlug, children }: StyleScopeProps) {
 
   return (
     <div
-      className="v0-style-scope"
+      className={["v0-style-scope", className].filter(Boolean).join(" ")}
       style={styleVars}
     >
       {children}

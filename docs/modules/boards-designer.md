@@ -9,6 +9,9 @@ Platform Admin–only surface for visually designing and editing V0 domain Frame
 - `DesignBoardKip.tsx` — Center panel; Kip conversation interface; approve-to-draft flow; publish handler
 - `DesignBoardCanvas.tsx` — Right panel; live/draft frame preview with audience switcher and raw JSON toggle
 
+## 📆 Update Log
+- 2026-04-01: Frame list (center column) — "Designing" label; live/draft dots; `dialog_board: designer` + resolve `board=designer`. See `apps/web/src/v0/boards/designer/README.md`.
+
 ## 🔄 Data & Behavior
 - Parent component (`DesignBoard.tsx`) owns all state: `activeFrameKey`, `messages`, `draftSpecJson`, `draftId`, `liveDomainFrame`
 - `DesignBoardNav` reads `CORE_FRAME_MAP` for the frame list; does not include the board itself
