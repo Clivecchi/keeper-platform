@@ -248,6 +248,8 @@ export type KipSessionInput = {
     tags?: string[];
     primary_keeper_id?: string;
     primary_journey_id?: string;
+    dialog_id?: string | null;
+    beat_metadata?: unknown;
 };
 /**
  * KIP Session with relations

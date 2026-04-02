@@ -5,17 +5,9 @@
  * Guest-accessible — no auth required.
  * Rate limited: 20 requests per minute per IP.
  *
- * Makes a direct Anthropic call using:
- *   - kip_context.guest from the domain frame as the system prompt
- *   - kip.model from the domain frame as the model
- *   - conversationHistory (last 6 prior turns) for context continuity
- *
- * No SOLE memory, no governance, no action packs.
- *
- * API key resolution priority:
- *   1. ANTHROPIC_API_KEY Railway env var
- *   2. Domain owner's personal Anthropic key (kip_user_keys)
- *   3. Platform DB key (kip_platform_keys)
+ * Makes a direct Anthropic call using domain frame JSON for system prompt + model.
+ * Persists turns to `kip_sessions` / `kip_messages` (guest user_id = null, no Dialog).
+ * Clients call POST /api/keys to obtain a handoff token for login promotion.
  *
  * KE3P · Keeper Platform · March 2026
  */
@@ -28,8 +20,6 @@ import { KipUserKeyService } from '../../services/KipUserKeyService.js';
 import { PlatformApiKeyService } from '../../services/PlatformApiKeyService.js';
 
 const router = express.Router();
-
-// ─── Rate limiter ─────────────────────────────────────────────────────────────
 
 const companionLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -44,8 +34,6 @@ const companionLimiter = rateLimit({
   },
 });
 
-// ─── Input schema ─────────────────────────────────────────────────────────────
-
 const HistoryItemSchema = z.object({
   role: z.enum(['user', 'assistant']),
   content: z.string().max(4000),
@@ -59,14 +47,15 @@ const CompanionRequestSchema = z.object({
     .max(20)
     .optional()
     .default([]),
+  sessionId: z.string().uuid().optional(),
 });
 
-// ─── Defaults ─────────────────────────────────────────────────────────────────
-
-const DEFAULT_MODEL   = 'claude-sonnet-4-6';
+const DEFAULT_MODEL = 'claude-sonnet-4-6';
 const DEFAULT_CONTEXT = 'A visitor exploring Keeper for the first time. Warm welcome. Offer Forward.';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+function guestDomainTag(domainId: string): string {
+  return `guest-domain:${domainId}`;
+}
 
 function stripHtml(raw: string): string {
   return raw
@@ -75,51 +64,46 @@ function stripHtml(raw: string): string {
     .trim();
 }
 
-// ─── Route ────────────────────────────────────────────────────────────────────
-
-// INVARIANT: Guest conversations on the Cover Frame are ephemeral — Session only.
-// This endpoint deliberately never creates a Dialog record. Guest conversations
-// must not be promoted to Dialog persistence. This is enforced by design:
-// the companion route is public, unauthenticated, and contains no Dialog logic.
 router.post('/', companionLimiter, async (req: Request, res: Response) => {
   const validation = CompanionRequestSchema.safeParse(req.body);
   if (!validation.success) {
     return res.status(400).json({ success: false, error: 'Invalid request.' });
   }
 
-  const { domainSlug, conversationHistory } = validation.data;
+  const { domainSlug, conversationHistory, sessionId: clientSessionId } = validation.data;
   const rawMessage = stripHtml(validation.data.message);
   if (!rawMessage) {
     return res.status(400).json({ success: false, error: 'Message cannot be empty.' });
   }
 
   try {
-    // 1. Fetch domain frame — same DB query as GET /api/domains/:slug/frame
-    let kipModel     = DEFAULT_MODEL;
+    let kipModel = DEFAULT_MODEL;
     let guestContext = DEFAULT_CONTEXT;
     let domainOwnerId: string | null = null;
+    let domainId: string | null = null;
 
     try {
       const domain = await prisma.domain.findUnique({
-        where:  { slug: domainSlug },
-        select: { frame_json: true, ownerId: true },
+        where: { slug: domainSlug },
+        select: { id: true, frame_json: true, ownerId: true },
       });
 
       if (domain) {
-        domainOwnerId = (domain as any).ownerId ?? null;
-        const frame = domain.frame_json as Record<string, any> | null;
+        domainId = domain.id;
+        domainOwnerId = domain.ownerId ?? null;
+        const frame = domain.frame_json as Record<string, unknown> | null;
 
         if (frame && typeof frame === 'object' && Object.keys(frame).length > 0) {
-          if (frame.kip?.model)         kipModel     = String(frame.kip.model);
-          if (frame.kip_context?.guest) guestContext = String(frame.kip_context.guest);
+          const kip = frame.kip as Record<string, unknown> | undefined;
+          const kipCtx = frame.kip_context as Record<string, unknown> | undefined;
+          if (kip?.model) kipModel = String(kip.model);
+          if (kipCtx?.guest) guestContext = String(kipCtx.guest);
         }
       }
     } catch {
-      // DB failure — proceed with defaults; do not block the visitor
+      // proceed with defaults
     }
 
-    // 2. Resolve Anthropic API key
-    //    Priority: Railway env var → domain owner's user key → platform DB key
     let apiKey: string | null = null;
 
     const envKey = process.env.ANTHROPIC_API_KEY;
@@ -139,31 +123,26 @@ router.post('/', companionLimiter, async (req: Request, res: Response) => {
       return res.status(500).json({ success: false, error: 'Something went wrong.' });
     }
 
-    // 3. Build message list — up to last 6 prior turns + current message
-    const priorTurns = conversationHistory.slice(-6).map(h => ({
-      role:    h.role as 'user' | 'assistant',
+    const priorTurns = conversationHistory.slice(-6).map((h) => ({
+      role: h.role as 'user' | 'assistant',
       content: h.content,
     }));
 
-    // 4. Call Anthropic directly
     const { default: Anthropic } = await import('@anthropic-ai/sdk');
     const client = new Anthropic({ apiKey });
 
     const MODEL_TIMEOUT_MS = 30_000;
     const controller = new AbortController();
-    const timeoutId  = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
 
     let reply: string;
     try {
       const response = await client.messages.create(
         {
-          model:      kipModel,
+          model: kipModel,
           max_tokens: 1024,
-          system:     guestContext,
-          messages: [
-            ...priorTurns,
-            { role: 'user', content: rawMessage },
-          ],
+          system: guestContext,
+          messages: [...priorTurns, { role: 'user', content: rawMessage }],
         } as any,
         { signal: controller.signal },
       );
@@ -182,8 +161,86 @@ router.post('/', companionLimiter, async (req: Request, res: Response) => {
       throw err;
     }
 
-    return res.json({ success: true, reply });
+    let persistedSessionId: string | undefined;
+    try {
+      if (domainId) {
+        const kipAgent = await prisma.kip_agents.findFirst({
+          where: { slug: 'kip' },
+          select: { id: true },
+        });
 
+        if (kipAgent) {
+          const tag = guestDomainTag(domainId);
+          let sessionId = clientSessionId ?? null;
+
+          if (sessionId) {
+            const existing = await prisma.kip_sessions.findUnique({
+              where: { id: sessionId },
+              select: { id: true, user_id: true, dialog_id: true, tags: true, agent_id: true },
+            });
+            if (
+              !existing ||
+              existing.user_id !== null ||
+              existing.dialog_id !== null ||
+              existing.agent_id !== kipAgent.id ||
+              !existing.tags.includes(tag)
+            ) {
+              sessionId = null;
+            }
+          }
+
+          if (!sessionId) {
+            const created = await prisma.kip_sessions.create({
+              data: {
+                agent_id: kipAgent.id,
+                user_id: null,
+                session_name: 'cover-companion',
+                tags: [tag, 'guest-companion'],
+                dialog_id: null,
+                updated_at: new Date(),
+              },
+              select: { id: true },
+            });
+            sessionId = created.id;
+          }
+
+          await prisma.kip_messages.createMany({
+            data: [
+              {
+                session_id: sessionId,
+                sender: 'user',
+                content: rawMessage,
+                role: 'user',
+                metadata: {},
+              },
+              {
+                session_id: sessionId,
+                sender: 'kip',
+                content: reply,
+                role: 'assistant',
+                metadata: {},
+              },
+            ],
+          });
+
+          await prisma.kip_sessions.update({
+            where: { id: sessionId },
+            data: { updated_at: new Date() },
+          });
+
+          persistedSessionId = sessionId;
+        }
+      }
+    } catch {
+      // Persistence failure must not block the conversational reply
+    }
+
+    return res.json({
+      success: true,
+      reply,
+      ...(persistedSessionId ? { sessionId: persistedSessionId } : {}),
+      ...(domainId ? { domainId } : {}),
+    });
   } catch {
     return res.status(500).json({ success: false, error: 'Something went wrong.' });
   }

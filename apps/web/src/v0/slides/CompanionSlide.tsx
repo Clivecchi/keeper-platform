@@ -19,6 +19,7 @@
 import * as React from "react"
 import type { AudienceRole } from "../data/domain-frame.types"
 import { getApiBase } from "../../lib/apiFetch"
+import { issueGuestHandoffKey } from "../../lib/kipGuestHandoff"
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 
@@ -360,7 +361,11 @@ export function CompanionSlide({
   isOpen,
   onClose,
   greeting,
+  audience: _audience,
   domainSlug,
+  agentId: _agentId,
+  onSignIn: _onSignIn,
+  experienceContext: _experienceContext,
 }: CompanionSlideProps) {
   // State is never reset on close — session persists across open/close
   const [items,              setItems]              = React.useState<ChatItem[]>(() => buildSeedItems(greeting))
@@ -369,6 +374,7 @@ export function CompanionSlide({
   const [firstCardCollapsed, setFirstCardCollapsed] = React.useState(false)
   const [panelVisible,       setPanelVisible]       = React.useState(false)
   const [isSending,          setIsSending]          = React.useState(false)
+  const [companionSessionId, setCompanionSessionId] = React.useState<string | null>(null)
 
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
   const textareaRef    = React.useRef<HTMLTextAreaElement>(null)
@@ -380,9 +386,9 @@ export function CompanionSlide({
         requestAnimationFrame(() => setPanelVisible(true))
       )
       return () => cancelAnimationFrame(id)
-    } else {
-      setPanelVisible(false)
     }
+    setPanelVisible(false)
+    return undefined
   }, [isOpen])
 
   // Focus input when companion opens
@@ -391,6 +397,7 @@ export function CompanionSlide({
       const t = setTimeout(() => textareaRef.current?.focus(), 150)
       return () => clearTimeout(t)
     }
+    return undefined
   }, [isOpen])
 
   // Scroll to bottom when new items arrive in chat view
@@ -418,6 +425,7 @@ export function CompanionSlide({
     // Build prior conversation from current items before adding new messages
     const history = items
       .filter((i): i is Extract<ChatItem, { kind: "bubble" }> => i.kind === "bubble")
+      .filter((b) => b.content !== "Kip is thinking\u2026")
       .slice(-6)
       .map(b => ({
         role:    (b.role === "kip" ? "assistant" : "user") as "assistant" | "user",
@@ -436,7 +444,12 @@ export function CompanionSlide({
       const response = await fetch(`${getApiBase()}/api/kip/companion`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ message: text, domainSlug, conversationHistory: history }),
+        body:    JSON.stringify({
+          message: text,
+          domainSlug,
+          conversationHistory: history,
+          ...(companionSessionId ? { sessionId: companionSessionId } : {}),
+        }),
       })
 
       const data = await response.json().catch(() => null)
@@ -449,6 +462,13 @@ export function CompanionSlide({
       } else {
         reply = "Something went wrong. Try again."
       }
+
+      const sid =
+        response.ok && typeof data?.sessionId === "string" ? data.sessionId : null
+      const did =
+        response.ok && typeof data?.domainId === "string" ? data.domainId : null
+      if (sid) setCompanionSessionId(sid)
+      if (did && sid) void issueGuestHandoffKey(did, sid)
 
       setItems(prev => prev.map(item =>
         item.id === thinkingId && item.kind === "bubble"

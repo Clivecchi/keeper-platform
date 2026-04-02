@@ -25,6 +25,7 @@ import { logger } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { FRAME_SCHEMA_MAP } from './frame-schemas.js';
+import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -181,65 +182,6 @@ async function callAnthropicJsonFallback(
 // ─── Route ────────────────────────────────────────────────────────────────────
 
 // ─── Dialog + session persistence helpers ────────────────────────────────────
-
-/**
- * Find or create a Dialog for the Design Board admin conversation context.
- * Admin-scoped: available_to = ["admin"], user_id = null.
- * Keyed by (domain_id, board, frame).
- */
-async function findOrCreateDesignerDialog(
-  domainId: string,
-  frameKey: string,
-  domainSlug: string,
-): Promise<{ id: string }> {
-  const existing = await prisma.dialog.findFirst({
-    where: {
-      domain_id: domainId,
-      is_archived: false,
-      user_id: null,
-      available_to: { has: 'admin' },
-      context: {
-        path: ['board'],
-        equals: 'domain',
-      },
-    },
-    orderBy: { updated_at: 'desc' },
-    select: { id: true, context: true },
-  });
-
-  // Narrow the context match to the specific frame (JSON field)
-  if (existing) {
-    const ctx = existing.context as Record<string, unknown>;
-    if (ctx.frame === frameKey) {
-      return { id: existing.id };
-    }
-  }
-
-  // Generate a human-readable title: "Board Cover · Apr 1"
-  const frameDisplayNames: Record<string, string> = {
-    cover: 'Board Cover',
-    feed: 'Feed',
-    journeys: 'Journeys',
-    keepers: 'Keepers',
-    moments: 'Moments',
-    relationships: 'Relationships',
-  };
-  const frameName = frameDisplayNames[frameKey] ?? frameKey;
-  const dateLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-  const dialog = await prisma.dialog.create({
-    data: {
-      title: `${frameName} · ${dateLabel}`,
-      domain_id: domainId,
-      user_id: null,
-      available_to: ['admin'],
-      context: { board: 'domain', frame: frameKey, subject: domainSlug },
-    },
-    select: { id: true },
-  });
-
-  return dialog;
-}
 
 /**
  * Find the most recent kip_session for a Dialog, or create a new one.
@@ -460,9 +402,39 @@ router.post(
         // explicit check ensures Dialog creation is never reached for guests.
         if (!req.user) throw new Error('unauthenticated — skip dialog persistence');
 
-        const dialog = clientDialogId
-          ? { id: clientDialogId }
-          : await findOrCreateDesignerDialog(domainId, frameKey, domain.slug);
+        let dialog: { id: string };
+        if (clientDialogId) {
+          const verified = await prisma.dialog.findFirst({
+            where: {
+              id: clientDialogId,
+              domain_id: domainId,
+              user_id: null,
+              available_to: { equals: ['admin'] },
+            },
+            select: { id: true },
+          });
+          if (!verified) {
+            dialog = await findOrCreateKipDialog(prisma, {
+              domainId,
+              board: 'domain',
+              frame: frameKey,
+              subject: domain.slug,
+              scope: 'admin',
+              userId: null,
+            });
+          } else {
+            dialog = verified;
+          }
+        } else {
+          dialog = await findOrCreateKipDialog(prisma, {
+            domainId,
+            board: 'domain',
+            frame: frameKey,
+            subject: domain.slug,
+            scope: 'admin',
+            userId: null,
+          });
+        }
 
         const session = await findOrCreateDesignerSession(dialog.id, req.user.id);
         await persistDesignerMessages(session.id, message, kipResponse);

@@ -3,6 +3,7 @@
 import * as React from "react"
 import type { AudienceRole, DomainFrameCoverChatInterface } from "../../data/domain-frame.types"
 import { getApiBase } from "../../../lib/apiFetch"
+import { issueGuestHandoffKey } from "../../../lib/kipGuestHandoff"
 
 export interface CoverChatInterfaceProps {
   chat_interface: DomainFrameCoverChatInterface
@@ -37,6 +38,7 @@ export function CoverChatInterface({ chat_interface, domainSlug, audience }: Cov
   const [inputValue, setInputValue] = React.useState("")
   const [items, setItems] = React.useState<{ role: "user" | "kip"; content: string; id: string }[]>([])
   const [isSending, setIsSending] = React.useState(false)
+  const [companionSessionId, setCompanionSessionId] = React.useState<string | null>(null)
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
   React.useEffect(() => {
@@ -58,6 +60,7 @@ export function CoverChatInterface({ chat_interface, domainSlug, audience }: Cov
     const thinkingId = `kip-thinking-${ts}`
 
     const history = items
+      .filter((b) => b.content !== "Kip is thinking\u2026")
       .slice(-6)
       .map((b) => ({
         role: (b.role === "kip" ? "assistant" : "user") as "assistant" | "user",
@@ -80,6 +83,7 @@ export function CoverChatInterface({ chat_interface, domainSlug, audience }: Cov
           message: text,
           domainSlug,
           conversationHistory: history,
+          ...(companionSessionId ? { sessionId: companionSessionId } : {}),
         }),
       })
 
@@ -93,6 +97,13 @@ export function CoverChatInterface({ chat_interface, domainSlug, audience }: Cov
       } else {
         reply = "Something went wrong. Try again."
       }
+
+      const sid =
+        response.ok && typeof data?.sessionId === "string" ? data.sessionId : null
+      const did =
+        response.ok && typeof data?.domainId === "string" ? data.domainId : null
+      if (sid) setCompanionSessionId(sid)
+      if (did && sid) void issueGuestHandoffKey(did, sid)
 
       setItems((prev) =>
         prev.map((item) =>

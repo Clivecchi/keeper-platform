@@ -160,6 +160,63 @@ router.get(
   },
 );
 
+// ─── GET /api/domains/:domainId/kip/dialogs/resolve/active ─────────────────
+// MUST be registered before `/:dialogId` so "resolve" is not captured as an id.
+
+router.get(
+  '/:domainId/kip/dialogs/resolve/active',
+  authMiddlewareCompat,
+  requireDomainReadCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId } = req.params;
+
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+
+      const board = typeof req.query.board === 'string' ? req.query.board : '';
+      const frame = typeof req.query.frame === 'string' ? req.query.frame : '';
+      const scope = typeof req.query.available_to === 'string' ? req.query.available_to : 'admin';
+
+      const contextFilters =
+        board || frame
+          ? [
+              ...(board ? [{ context: { path: ['board'], equals: board } as const }] : []),
+              ...(frame ? [{ context: { path: ['frame'], equals: frame } as const }] : []),
+            ]
+          : [];
+
+      const dialog = await prisma.dialog.findFirst({
+        where: {
+          domain_id: domainId,
+          is_archived: false,
+          ...(scope === 'keeper'
+            ? { user_id: req.user.id, available_to: { has: 'keeper' } }
+            : { user_id: null, available_to: { has: 'admin' } }),
+          ...(contextFilters.length ? { AND: contextFilters } : {}),
+        },
+        include: {
+          sessions: {
+            orderBy: { created_at: 'asc' },
+            include: {
+              kip_messages: {
+                orderBy: { created_at: 'asc' },
+              },
+            },
+          },
+        },
+        orderBy: { updated_at: 'desc' },
+      });
+
+      return res.json({ dialog: dialog ?? null });
+    } catch (error) {
+      logger.error({ err: error, domainId }, '[kip-dialogs] resolve active failed');
+      return res.status(500).json({ error: 'FAILED_TO_RESOLVE_DIALOG' });
+    }
+  },
+);
+
 // ─── GET /api/domains/:domainId/kip/dialogs/:dialogId ────────────────────────
 // Get a single Dialog with its sessions in chronological order.
 // Used to resume a Dialog — loads full conversation history.
@@ -261,67 +318,6 @@ router.patch(
     } catch (error) {
       logger.error({ err: error, domainId, dialogId }, '[kip-dialogs] update failed');
       return res.status(500).json({ error: 'FAILED_TO_UPDATE_DIALOG' });
-    }
-  },
-);
-
-// ─── GET /api/domains/:domainId/kip/dialogs/active ───────────────────────────
-// Resolve the active (most recent non-archived) Dialog for a given context.
-// Query params: board, frame, available_to
-// Used by the Design Board on mount to resume the previous conversation.
-// Returns null (not 404) when no active Dialog exists for the context.
-
-router.get(
-  '/:domainId/kip/dialogs/resolve/active',
-  authMiddlewareCompat,
-  requireDomainReadCompat,
-  async (req: AuthenticatedRequest, res: Response) => {
-    const { domainId } = req.params;
-
-    try {
-      if (!req.user) {
-        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
-      }
-
-      const board = typeof req.query.board === 'string' ? req.query.board : '';
-      const frame = typeof req.query.frame === 'string' ? req.query.frame : '';
-      const scope = typeof req.query.available_to === 'string' ? req.query.available_to : 'admin';
-
-      const dialog = await prisma.dialog.findFirst({
-        where: {
-          domain_id: domainId,
-          is_archived: false,
-          ...(scope === 'keeper'
-            ? { user_id: req.user.id, available_to: { has: 'keeper' } }
-            : { available_to: { has: 'admin' } }),
-        },
-        include: {
-          sessions: {
-            orderBy: { created_at: 'asc' },
-            include: {
-              kip_messages: {
-                orderBy: { created_at: 'asc' },
-              },
-            },
-          },
-        },
-        orderBy: { updated_at: 'desc' },
-      });
-
-      // Filter by context (board + frame) — stored as JSON in the context field
-      const matched = dialog
-        ? (() => {
-            const ctx = dialog.context as Record<string, unknown>;
-            const boardMatch = !board || ctx.board === board;
-            const frameMatch = !frame || ctx.frame === frame;
-            return boardMatch && frameMatch ? dialog : null;
-          })()
-        : null;
-
-      return res.json({ dialog: matched });
-    } catch (error) {
-      logger.error({ err: error, domainId }, '[kip-dialogs] resolve active failed');
-      return res.status(500).json({ error: 'FAILED_TO_RESOLVE_DIALOG' });
     }
   },
 );

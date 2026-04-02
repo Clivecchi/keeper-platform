@@ -54,6 +54,7 @@ import kipModeConfigRouter from './api/kip/mode-config.js';
 import kipModelsRouter from './api/kip/models.js';
 import { getUserKeys, setUserKey, deleteUserKey, getUserProviders } from './api/kip/user-keys.js';
 import companionRouter from './api/kip/companion.js';
+import sessionHandoffKeysRouter from './api/kip/session-handoff-keys.js';
 // Import KAM settings handler
 import kamSettingsHandler from './api/kam/settings.js';
 // Import Board Studio routes
@@ -1142,6 +1143,9 @@ app.options('/api/mcp/*', (_req, res) => {
 // Mount at BOTH /mcp and /api/mcp for compatibility with different clients
 app.use('/mcp', mcpRouter);
 app.use('/api/mcp', mcpRouter);
+
+// Guest session handoff keys — POST /api/keys (issue), POST /api/keys/:id/redeem (auth)
+app.use('/api/keys', sessionHandoffKeysRouter);
 
 // Public route: POST /api/kip/companion — guest chat surface (no auth, rate-limited)
 app.use('/api/kip/companion', companionRouter);

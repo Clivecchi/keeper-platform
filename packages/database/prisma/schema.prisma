@@ -726,6 +726,8 @@ model kip_sessions {
   primary_journey_id String?
   active_draft_id    String?        @db.Uuid
   dialog_id    String?
+  /// Reserved for Beat — structured Kip response markers. See Beat prompt.
+  beat_metadata Json?
   created_at   DateTime       @default(now())
   updated_at   DateTime       @default(now())
   active_draft kip_drafts?    @relation("KipDraftActiveSessions", fields: [active_draft_id], references: [id], onDelete: SetNull)
@@ -733,6 +735,7 @@ model kip_sessions {
   kip_agents   kip_agents     @relation(fields: [agent_id], references: [id], onDelete: Cascade)
   users        users?         @relation(fields: [user_id], references: [id])
   dialog       Dialog?        @relation(fields: [dialog_id], references: [id], onDelete: SetNull)
+  session_keys Key[]
 
   @@index([agent_id])
   @@index([user_id])
@@ -807,6 +810,27 @@ model users {
   kip_sessions                                         kip_sessions[]
   kip_drafts                                           kip_drafts[]
   dialogs                                              Dialog[]
+  claimed_session_handoff_keys                         Key[]                      @relation("UserClaimedSessionHandoffKey")
+}
+
+/// Domain-issued guest session handoff token (warm return / login promotion).
+model Key {
+  id         String    @id @default(cuid())
+  domain_id  String
+  session_id String    @db.Uuid
+  issued_at  DateTime  @default(now())
+  expires_at DateTime
+  claimed_by String?
+  claimed_at DateTime?
+
+  domain  Domain       @relation(fields: [domain_id], references: [id], onDelete: Cascade)
+  session kip_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  claimer users?       @relation("UserClaimedSessionHandoffKey", fields: [claimed_by], references: [id], onDelete: SetNull)
+
+  @@index([domain_id])
+  @@index([session_id])
+  @@index([claimed_by])
+  @@map("kip_session_handoff_keys")
 }
 
 model UserVoicePreferences {
@@ -1104,6 +1128,7 @@ model Domain {
   moments                                                  Moment[]
   kip_drafts                                               kip_drafts[]
   dialogs                                                  Dialog[]
+  session_handoff_keys                                     Key[]
   policy                                                   DomainPolicy?
   agentPolicy                                              DomainAgentPolicy?
   AgentLens                                                AgentLens[]

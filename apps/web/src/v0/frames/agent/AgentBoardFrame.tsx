@@ -107,7 +107,7 @@ export function AgentBoardFrame({
   styleId?: StyleId
   themeSlug?: string | null
 }) {
-  const { domainSlug, navigateToFrame, domainFrame, resolvedAudience } = useV0Shell()
+  const { domainSlug, navigateToFrame, domainFrame, resolvedAudience, frame: shellFrame } = useV0Shell()
   const ab = domainFrame?.agent_board
   const frameCtx = useFrameContextOptional()
   const { isAuthenticated, isAdmin, refreshSession } = useAuth()
@@ -521,9 +521,19 @@ export function AgentBoardFrame({
 
   const handleCreateSession = async () => {
     try {
+      const dialogScope: "admin" | "keeper" =
+        resolvedAudience === "admin" ? "admin" : "keeper"
       const session = await createSession(undefined, {
         domainId: domainId || undefined,
         domainSlug: domainSlug || undefined,
+        ...(domainId
+          ? {
+              dialogBoard: "agent",
+              dialogFrame: shellFrame,
+              dialogSubject: domainSlug ?? undefined,
+              dialogScope,
+            }
+          : {}),
       })
       setView({ kind: "dialogue", sessionId: session.id })
       setMessages([])

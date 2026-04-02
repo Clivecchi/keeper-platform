@@ -87,6 +87,39 @@ export function V0Shell() {
   const debugHudFlag = String((import.meta as any).env?.VITE_SHOW_DEBUG_HUD ?? "").toLowerCase()
   const showDebugHud = debugHudFlag === "1" || debugHudFlag === "true"
 
+  const [kipHandoffNotice, setKipHandoffNotice] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!isAuthenticated) return undefined
+    try {
+      if (sessionStorage.getItem("keeper.kip.handoffNotice") === "1") {
+        sessionStorage.removeItem("keeper.kip.handoffNotice")
+        setKipHandoffNotice(true)
+        const t = window.setTimeout(() => setKipHandoffNotice(false), 9000)
+        return () => window.clearTimeout(t)
+      }
+    } catch {
+      /* ignore */
+    }
+    return undefined
+  }, [isAuthenticated])
+
+  const kipHandoffToast = kipHandoffNotice ? (
+    <div
+      role="status"
+      className="fixed bottom-20 left-1/2 z-[100] max-w-sm -translate-x-1/2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-center text-sm text-slate-800 shadow-lg"
+    >
+      Your previous conversation has been saved
+      <button
+        type="button"
+        className="ml-3 text-xs font-medium text-slate-500 underline"
+        onClick={() => setKipHandoffNotice(false)}
+      >
+        Dismiss
+      </button>
+    </div>
+  ) : null
+
   React.useEffect(() => {
     if (!slug) return
     const fallback = getDomainFallback(slug)
@@ -272,6 +305,7 @@ export function V0Shell() {
             draftId={draftId}
           >
             <BoardComponent />
+            {kipHandoffToast}
           </FrameContextProvider>
         </V0ShellProvider>
       </StyleOverrideProvider>
@@ -326,6 +360,7 @@ export function V0Shell() {
             {commitSha} | {buildTime}
           </div>
         )}
+        {kipHandoffToast}
         </FrameContextProvider>
       </V0ShellProvider>
     </StyleOverrideProvider>

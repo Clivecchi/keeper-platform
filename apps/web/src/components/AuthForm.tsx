@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '@/lib/api';
+import { redeemGuestHandoffKeyIfPresent } from '@/lib/kipGuestHandoff';
 
 interface AuthFormProps {
   isRegister?: boolean;
@@ -43,6 +44,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo
 
       if (result.success) {
         auth.login(result.data);
+        await redeemGuestHandoffKeyIfPresent();
         // Non-blocking auth check to confirm env-based API base URL works
         apiFetch('/api/kam/me', { method: 'GET' })
           .then(() => console.log('SystemStatus: /api/kam/me ok'))

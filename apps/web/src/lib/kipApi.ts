@@ -959,7 +959,14 @@ export class KipApi {
     agentId: string,
     userId?: string,
     sessionName?: string,
-    options: { domainId?: string | null; domainSlug?: string | null } = {},
+    options: {
+      domainId?: string | null;
+      domainSlug?: string | null;
+      dialogBoard?: string;
+      dialogFrame?: string;
+      dialogSubject?: string;
+      dialogScope?: 'admin' | 'keeper';
+    } = {},
   ): Promise<KipSession> {
     try {
       const payload = {
@@ -969,6 +976,14 @@ export class KipApi {
         sessionName,
         ...(options.domainId ? { domainId: options.domainId } : {}),
         ...(options.domainSlug ? { domainSlug: options.domainSlug } : {}),
+        ...(options.dialogBoard && options.dialogFrame && options.dialogScope
+          ? {
+              dialogBoard: options.dialogBoard,
+              dialogFrame: options.dialogFrame,
+              ...(options.dialogSubject ? { dialogSubject: options.dialogSubject } : {}),
+              dialogScope: options.dialogScope,
+            }
+          : {}),
       };
 
       console.info?.('[KipApi] createSession payload', {

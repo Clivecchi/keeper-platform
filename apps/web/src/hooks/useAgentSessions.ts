@@ -105,7 +105,14 @@ export function useAgentSessions(agentId?: string | null) {
   const handleCreateSession = useCallback(
     async (
       sessionName?: string,
-      options: { domainId?: string | null; domainSlug?: string | null } = {},
+      options: {
+        domainId?: string | null;
+        domainSlug?: string | null;
+        dialogBoard?: string;
+        dialogFrame?: string;
+        dialogSubject?: string;
+        dialogScope?: 'admin' | 'keeper';
+      } = {},
     ) => {
       if (!agentId) {
         throw new Error('Agent id is required to create a session');

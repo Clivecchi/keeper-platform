@@ -30,6 +30,7 @@ import type {
 import { ModelProviderService, ModelMessage, ModelContentPart, ModelProviderErrorCode } from '../../services/ModelProviderService.js';
 import type { ImageGenerationBrief } from '../../services/ModelProviderService.js';
 import { SoleMemoryService } from '../../services/SoleMemoryService.js';
+import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
 import {
   preExecGovernanceCheck,
   postExecGovernanceCheck,
@@ -2264,6 +2265,13 @@ export class KipAgentService {
     userId?: string,
     sessionName?: string,
     context?: { primaryJourneyId?: string | null; primaryKeeperId?: string | null },
+    dialogLink?: {
+      domainId: string;
+      board: string;
+      frame: string;
+      subject?: string;
+      scope: 'admin' | 'keeper';
+    },
   ): Promise<KipSessionWithRelations> {
     try {
       if (!userId) {
@@ -2271,6 +2279,19 @@ export class KipAgentService {
       }
       // Validate agent exists
       const agent = await this.getAgentSafely(agentId);
+
+      let dialogId: string | undefined;
+      if (dialogLink) {
+        const dialog = await findOrCreateKipDialog(prisma, {
+          domainId: dialogLink.domainId,
+          board: dialogLink.board,
+          frame: dialogLink.frame,
+          subject: dialogLink.subject,
+          scope: dialogLink.scope,
+          userId: dialogLink.scope === 'keeper' ? userId : null,
+        });
+        dialogId = dialog.id;
+      }
       
       const sessionData: KipSessionInput = {
         agent_id: agent.id,
@@ -2278,6 +2299,7 @@ export class KipAgentService {
         session_name: sessionName || `Session with ${agent.name}`,
         ...(context?.primaryJourneyId ? { primary_journey_id: context.primaryJourneyId } : {}),
         ...(context?.primaryKeeperId ? { primary_keeper_id: context.primaryKeeperId } : {}),
+        ...(dialogId ? { dialog_id: dialogId } : {}),
       };
 
       return await createKipSession(sessionData);
@@ -4167,7 +4189,40 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
           }
           
           try {
-            const session = await KipAgentService.createSession(agentId, resolvedUserId, sessionName);
+            const body = req.body as Record<string, unknown>;
+            const domainIdForDialog = resolvedDomain.domainId;
+            const dialogBoard = typeof body.dialogBoard === 'string' ? body.dialogBoard : null;
+            const dialogFrame = typeof body.dialogFrame === 'string' ? body.dialogFrame : null;
+            const dialogSubject = typeof body.dialogSubject === 'string' ? body.dialogSubject : undefined;
+            const ds = body.dialogScope;
+            const dialogScope = ds === 'admin' || ds === 'keeper' ? ds : null;
+
+            let dialogLink:
+              | {
+                  domainId: string;
+                  board: string;
+                  frame: string;
+                  subject?: string;
+                  scope: 'admin' | 'keeper';
+                }
+              | undefined;
+            if (domainIdForDialog && dialogBoard && dialogFrame && dialogScope) {
+              dialogLink = {
+                domainId: domainIdForDialog,
+                board: dialogBoard,
+                frame: dialogFrame,
+                subject: dialogSubject,
+                scope: dialogScope,
+              };
+            }
+
+            const session = await KipAgentService.createSession(
+              agentId,
+              resolvedUserId,
+              sessionName,
+              undefined,
+              dialogLink,
+            );
             console.info('[kip/agents] createSession success', {
               requestId,
               agentId,
