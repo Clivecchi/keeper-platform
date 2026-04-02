@@ -1762,13 +1762,22 @@ const createKipAgentLog = async (data: {
   });
 };
 
+/** Includes optional DB fields not yet in published `KipSessionInput` typings from dist. */
+type KipSessionCreatePayload = KipSessionInput & {
+  beat_metadata?: Prisma.InputJsonValue | null;
+  dialog_id?: string | null;
+};
+
 const createKipSession = async (data: KipSessionInput) => {
-  return prisma.kip_sessions.create({
-    data: {
-      ...data,
-      updated_at: new Date()
-    }
-  });
+  const d = data as KipSessionCreatePayload;
+  const { beat_metadata: beatMeta, ...rest } = d;
+  const payload: Prisma.kip_sessionsUncheckedCreateInput = {
+    ...rest,
+    tags: rest.tags ?? [],
+    updated_at: new Date(),
+    ...(beatMeta !== undefined && beatMeta !== null ? { beat_metadata: beatMeta } : {}),
+  };
+  return prisma.kip_sessions.create({ data: payload });
 };
 
 const getKipSessionById = async (sessionId: string) => {
