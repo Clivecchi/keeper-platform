@@ -658,6 +658,7 @@ model kip_drafts {
   summary          String?
   status           String         @default("draft")
   spec_json        Json           @default("{}")
+  dialog_id        String?
   created_at       DateTime       @default(now())
   updated_at       DateTime       @default(now())
   domain           Domain         @relation(fields: [domain_id], references: [id], onDelete: Cascade)
@@ -666,9 +667,11 @@ model kip_drafts {
   agent            kip_agents?    @relation(fields: [agent_id], references: [id], onDelete: SetNull)
   active_sessions  kip_sessions[] @relation("KipDraftActiveSessions")
   versions         kip_draft_versions[]
+  dialog           Dialog?        @relation(fields: [dialog_id], references: [id], onDelete: SetNull)
 
   @@index([domain_id, owner_id, kind, status])
   @@index([keeper_id, owner_id])
+  @@index([dialog_id])
 }
 
 model kip_draft_versions {
@@ -687,6 +690,30 @@ model kip_draft_versions {
   @@index([draft_id])
 }
 
+// ─── Dialog — persistent, named conversation container ────────────────────────
+// Groups kip_sessions across browser closes. Scoped to domain + user/role.
+// Guest conversations are ephemeral (Session only) and never create a Dialog.
+model Dialog {
+  id           String   @id @default(cuid())
+  title        String
+  domain_id    String
+  user_id      String?  // null for admin/domain-scoped dialogs
+  available_to String[] // ["admin"] | ["keeper"] | ["admin", "keeper"]
+  context      Json     // { board, frame, subject }
+  is_archived  Boolean  @default(false)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  domain   Domain         @relation(fields: [domain_id], references: [id], onDelete: Cascade)
+  user     users?         @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  sessions kip_sessions[]
+  drafts   kip_drafts[]
+
+  @@index([domain_id])
+  @@index([user_id])
+  @@index([domain_id, is_archived])
+}
+
 model kip_sessions {
   id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   agent_id     String         @db.Uuid
@@ -698,16 +725,19 @@ model kip_sessions {
   primary_keeper_id  String?
   primary_journey_id String?
   active_draft_id    String?        @db.Uuid
+  dialog_id    String?
   created_at   DateTime       @default(now())
   updated_at   DateTime       @default(now())
   active_draft kip_drafts?    @relation("KipDraftActiveSessions", fields: [active_draft_id], references: [id], onDelete: SetNull)
   kip_messages kip_messages[]
   kip_agents   kip_agents     @relation(fields: [agent_id], references: [id], onDelete: Cascade)
   users        users?         @relation(fields: [user_id], references: [id])
+  dialog       Dialog?        @relation(fields: [dialog_id], references: [id], onDelete: SetNull)
 
   @@index([agent_id])
   @@index([user_id])
   @@index([active_draft_id])
+  @@index([dialog_id])
   @@index([created_at])
 }
 
@@ -776,6 +806,7 @@ model users {
   kip_agent_logs                                       kip_agent_logs[]
   kip_sessions                                         kip_sessions[]
   kip_drafts                                           kip_drafts[]
+  dialogs                                              Dialog[]
 }
 
 model UserVoicePreferences {
@@ -1072,6 +1103,7 @@ model Domain {
   keepers                                                  Keeper[]
   moments                                                  Moment[]
   kip_drafts                                               kip_drafts[]
+  dialogs                                                  Dialog[]
   policy                                                   DomainPolicy?
   agentPolicy                                              DomainAgentPolicy?
   AgentLens                                                AgentLens[]

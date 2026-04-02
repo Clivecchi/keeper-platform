@@ -180,6 +180,9 @@ export function DesignerFrame({
   )
   const [showRawJson, setShowRawJson] = React.useState(false)
 
+  // ── Dialog state — the persistent container for this conversation ──
+  const [dialogId, setDialogId] = React.useState<string | null>(null)
+
   // ── Draft state (lifted so all panels can read it) ──
   const [draftSpecJson, setDraftSpecJson] = React.useState<DomainFrameJson | null>(null)
   const [draftId, setDraftId] = React.useState<string | null>(null)
@@ -216,13 +219,51 @@ export function DesignerFrame({
     prevAuthRef.current = isAuthenticated
   }, [isAuthenticated])
 
-  // ── Reset conversation when active frame changes ──
+  // ── Restore Dialog context when active frame changes ──
+  // On every frame change: clear draft/publish state, then look up the
+  // active Dialog for this domain + frame context. If one exists, load
+  // its full message history so the conversation resumes after browser close.
   React.useEffect(() => {
-    setMessages([])
     setDraftSpecJson(null)
     setDraftId(null)
     setPublishSuccess(false)
-  }, [activeFrameKey])
+    setDialogId(null)
+    setMessages([])
+
+    if (!domainId || !activeFrameKey) return
+
+    let cancelled = false
+
+    apiFetch(
+      `/api/domains/${domainId}/kip/dialogs/resolve/active?board=domain&frame=${encodeURIComponent(activeFrameKey)}&available_to=admin`,
+    )
+      .then((res: any) => {
+        if (cancelled) return
+        const dialog = res?.dialog
+        if (!dialog) return
+
+        setDialogId(dialog.id)
+
+        // Build DesignerMessage[] from kip_messages across all sessions
+        const loaded: DesignerMessage[] = []
+        const sessions: any[] = dialog.sessions ?? []
+        for (const session of sessions) {
+          for (const msg of session.kip_messages ?? []) {
+            loaded.push({
+              id: msg.id,
+              role: msg.role === "assistant" ? "kip" : "user",
+              content: msg.content,
+            })
+          }
+        }
+        if (loaded.length > 0) setMessages(loaded)
+      })
+      .catch(() => {
+        // Not critical — start fresh if resolution fails
+      })
+
+    return () => { cancelled = true }
+  }, [activeFrameKey, domainId])
 
   // ── Reload live frame JSON (called after publish) ──
   const reloadLiveFrame = React.useCallback(async () => {
@@ -391,6 +432,8 @@ export function DesignerFrame({
           isPublishing={isPublishing}
           publishSuccess={publishSuccess}
           onPublish={handlePublish}
+          dialogId={dialogId}
+          setDialogId={setDialogId}
         />
       </div>
 

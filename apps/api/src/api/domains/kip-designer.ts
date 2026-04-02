@@ -40,6 +40,10 @@ const designerRequestSchema = z.object({
   message: z.string().min(1).max(4000),
   frameKey: z.string().min(1).max(100),
   conversationHistory: z.array(conversationMessageSchema).max(50).optional().default([]),
+  // Optional — provided by the frontend after the first message to associate
+  // subsequent messages with the same Dialog. On the first message it is null
+  // and the backend finds-or-creates the Dialog automatically.
+  dialog_id: z.string().optional().nullable(),
 });
 
 // ─── Intent detection ─────────────────────────────────────────────────────────
@@ -176,6 +180,138 @@ async function callAnthropicJsonFallback(
 
 // ─── Route ────────────────────────────────────────────────────────────────────
 
+// ─── Dialog + session persistence helpers ────────────────────────────────────
+
+/**
+ * Find or create a Dialog for the Design Board admin conversation context.
+ * Admin-scoped: available_to = ["admin"], user_id = null.
+ * Keyed by (domain_id, board, frame).
+ */
+async function findOrCreateDesignerDialog(
+  domainId: string,
+  frameKey: string,
+  domainSlug: string,
+): Promise<{ id: string }> {
+  const existing = await prisma.dialog.findFirst({
+    where: {
+      domain_id: domainId,
+      is_archived: false,
+      user_id: null,
+      available_to: { has: 'admin' },
+      context: {
+        path: ['board'],
+        equals: 'domain',
+      },
+    },
+    orderBy: { updated_at: 'desc' },
+    select: { id: true, context: true },
+  });
+
+  // Narrow the context match to the specific frame (JSON field)
+  if (existing) {
+    const ctx = existing.context as Record<string, unknown>;
+    if (ctx.frame === frameKey) {
+      return { id: existing.id };
+    }
+  }
+
+  // Generate a human-readable title: "Board Cover · Apr 1"
+  const frameDisplayNames: Record<string, string> = {
+    cover: 'Board Cover',
+    feed: 'Feed',
+    journeys: 'Journeys',
+    keepers: 'Keepers',
+    moments: 'Moments',
+    relationships: 'Relationships',
+  };
+  const frameName = frameDisplayNames[frameKey] ?? frameKey;
+  const dateLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  const dialog = await prisma.dialog.create({
+    data: {
+      title: `${frameName} · ${dateLabel}`,
+      domain_id: domainId,
+      user_id: null,
+      available_to: ['admin'],
+      context: { board: 'domain', frame: frameKey, subject: domainSlug },
+    },
+    select: { id: true },
+  });
+
+  return dialog;
+}
+
+/**
+ * Find the most recent kip_session for a Dialog, or create a new one.
+ * Uses the "kip" platform agent as the session agent.
+ */
+async function findOrCreateDesignerSession(dialogId: string, userId: string): Promise<{ id: string }> {
+  const existing = await prisma.kip_sessions.findFirst({
+    where: { dialog_id: dialogId },
+    orderBy: { created_at: 'desc' },
+    select: { id: true },
+  });
+
+  if (existing) return existing;
+
+  const kipAgent = await prisma.kip_agents.findFirst({
+    where: { slug: 'kip' },
+    select: { id: true },
+  });
+
+  if (!kipAgent) {
+    throw new Error('kip agent not found — cannot create designer session');
+  }
+
+  const session = await prisma.kip_sessions.create({
+    data: {
+      agent_id: kipAgent.id,
+      user_id: userId,
+      session_name: 'designer',
+      dialog_id: dialogId,
+    },
+    select: { id: true },
+  });
+
+  return session;
+}
+
+/**
+ * Persist a user + assistant message pair to kip_messages for a session.
+ */
+async function persistDesignerMessages(
+  sessionId: string,
+  userMessage: string,
+  kipResponse: string,
+): Promise<void> {
+  await prisma.kip_messages.createMany({
+    data: [
+      {
+        session_id: sessionId,
+        sender: 'user',
+        content: userMessage,
+        role: 'user',
+        metadata: {},
+      },
+      {
+        session_id: sessionId,
+        sender: 'kip',
+        content: kipResponse,
+        role: 'assistant',
+        metadata: {},
+      },
+    ],
+  });
+
+  // Touch the session's updated_at
+  await prisma.kip_sessions.update({
+    where: { id: sessionId },
+    data: { updated_at: new Date() },
+  });
+}
+
+// ─── Route ────────────────────────────────────────────────────────────────────
+
 router.post(
   '/:domainId/kip/designer',
   authMiddlewareCompat,
@@ -194,7 +330,7 @@ router.post(
         return res.status(400).json({ error: 'INVALID_REQUEST', details: parsed.error.flatten() });
       }
 
-      const { message, frameKey, conversationHistory } = parsed.data;
+      const { message, frameKey, conversationHistory, dialog_id: clientDialogId } = parsed.data;
 
       // ── Fetch domain + live frame_json ──
       const domain = await prisma.domain.findUnique({
@@ -312,9 +448,44 @@ router.post(
         }
       }
 
+      // ── Persist Dialog + session + messages ──────────────────────────────────
+      // Only for authenticated users. Guest conversations (no req.user) must
+      // never create Dialog records — they are ephemeral by design.
+      let persistedDialogId: string | null = null;
+      let persistedSessionId: string | null = null;
+
+      try {
+        // Guard: never persist a Dialog for unauthenticated requests.
+        // req.user is guaranteed by authMiddlewareCompat above, but this
+        // explicit check ensures Dialog creation is never reached for guests.
+        if (!req.user) throw new Error('unauthenticated — skip dialog persistence');
+
+        const dialog = clientDialogId
+          ? { id: clientDialogId }
+          : await findOrCreateDesignerDialog(domainId, frameKey, domain.slug);
+
+        const session = await findOrCreateDesignerSession(dialog.id, req.user.id);
+        await persistDesignerMessages(session.id, message, kipResponse);
+
+        // Touch the dialog so it sorts to the top on subsequent listing
+        await prisma.dialog.update({
+          where: { id: dialog.id },
+          data: { updated_at: new Date() },
+        });
+
+        persistedDialogId = dialog.id;
+        persistedSessionId = session.id;
+      } catch (persistErr) {
+        // Persistence failure must not block the Kip response — log and continue.
+        // The conversation is still functional; only resumption will be affected.
+        logger.warn({ requestId, domainId, frameKey, err: persistErr }, '[designer] dialog persistence failed — response unaffected');
+      }
+
       return res.status(200).json({
         response: kipResponse,
         ...(draftSpecJson !== null ? { draft: { spec_json: draftSpecJson } } : {}),
+        ...(persistedDialogId ? { dialog_id: persistedDialogId } : {}),
+        ...(persistedSessionId ? { session_id: persistedSessionId } : {}),
       });
     } catch (error) {
       logger.error({ requestId, domainId: req.params.domainId, err: error }, '[designer] handler failed');

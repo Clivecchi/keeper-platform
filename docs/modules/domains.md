@@ -9,7 +9,8 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - `custom-domain-routes.ts` – Legacy + new custom domain verification endpoints.
 - `contact.ts` – Domain contact form submission handler.
 - `kip-drafts.ts` – Domain-scoped Kip draft directory and session active-draft pointer routes.
-- `kip-designer.ts` – Kip Designer conversation endpoint (Anthropic conversation + Together AI JSON Mode with schema).
+- `kip-designer.ts` – Kip Designer conversation endpoint. Now persists Dialog + kip_session + kip_messages, enabling conversation resumption after browser close.
+- `kip-dialogs.ts` – Dialog CRUD routes: create, list, get-with-sessions, update/archive, resolve-active.
 - `frame-schemas.ts` – Per-frame JSON Schema objects for Together AI guided decoding (`response_format`). One schema per governed frame; `FRAME_SCHEMA_MAP` keyed by `V0FrameKey`.
 - `DOMAIN_HOME_BOARD_CHECKLIST.md` – Manual verification checklist for domain-home board ensure.
 
@@ -35,6 +36,12 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+### 2026-04-01 — Dialog: persistent conversation container
+- Added `kip-dialogs.ts` with four routes: `POST /:domainId/kip/dialogs`, `GET /:domainId/kip/dialogs`, `GET /:domainId/kip/dialogs/:dialogId`, `PATCH /:domainId/kip/dialogs/:dialogId`, and `GET /:domainId/kip/dialogs/resolve/active`.
+- Modified `kip-designer.ts`: accepts optional `dialog_id` in the request body; after generating the Kip response, finds-or-creates a `Dialog` for the context (domain + board + frame), finds-or-creates a `kip_session` for that Dialog, and persists both the user message and Kip response as `kip_messages`. Returns `dialog_id` and `session_id` in the response.
+- Persistence failure is non-blocking: if the DB operation fails, the Kip response is still returned; only resumption is affected.
+- Guest conversations (via `/api/kip/companion`) explicitly never create Dialog records — enforced by the `INVARIANT` comment and absence of any Dialog logic in that handler.
+- Registered `kipDialogRoutes` in `routes.ts`.
 ### 2026-03-12 - Together AI JSON Mode upgrade + frame schemas
 - Created `frame-schemas.ts` with nine per-frame JSON Schema objects (cover, commons, moment, moments, journeys, agent, diagnostics, admin, kip) derived from `domain-frame.types.ts`. Exports `FRAME_SCHEMA_MAP` keyed by `V0FrameKey`.
 - Upgraded `kip-designer.ts`: imports `FRAME_SCHEMA_MAP`; skips Together AI for schema-less frames (`index`, `present`, `feed`, `keepers`, `profile`); passes `response_format: { type: 'json_object', schema }` for governed frames; upgraded model from `Mixtral-8x7B` to `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo`; updated Together AI system prompt to use frame-aware authoring instructions.

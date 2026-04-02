@@ -189,6 +189,10 @@ interface DesignBoardFrameListProps {
   isPublishing: boolean
   publishSuccess: boolean
   onPublish: () => void
+  /** Persistent Dialog ID for this context — null until the first message is sent */
+  dialogId: string | null
+  /** Callback to store the dialog_id returned from the backend */
+  setDialogId: (id: string | null) => void
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -210,6 +214,8 @@ export function DesignBoardFrameList({
   isPublishing,
   publishSuccess,
   onPublish,
+  dialogId,
+  setDialogId,
 }: DesignBoardFrameListProps) {
   const [centerPanelMode, setCenterPanelMode] = React.useState<CenterPanelMode>("frames")
   const [input, setInput] = React.useState("")
@@ -263,8 +269,14 @@ export function DesignBoardFrameList({
           message: text,
           frameKey: frameKeyForKip,
           conversationHistory: history,
+          dialog_id: dialogId ?? undefined,
         }),
-      })) as { response: string; draft?: { spec_json: unknown } }
+      })) as { response: string; draft?: { spec_json: unknown }; dialog_id?: string; session_id?: string }
+
+      // Persist the dialog_id so subsequent messages attach to the same Dialog
+      if (result.dialog_id && result.dialog_id !== dialogId) {
+        setDialogId(result.dialog_id)
+      }
 
       const frameBlock = result.draft?.spec_json ?? undefined
 

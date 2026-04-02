@@ -77,6 +77,10 @@ function stripHtml(raw: string): string {
 
 // ─── Route ────────────────────────────────────────────────────────────────────
 
+// INVARIANT: Guest conversations on the Cover Frame are ephemeral — Session only.
+// This endpoint deliberately never creates a Dialog record. Guest conversations
+// must not be promoted to Dialog persistence. This is enforced by design:
+// the companion route is public, unauthenticated, and contains no Dialog logic.
 router.post('/', companionLimiter, async (req: Request, res: Response) => {
   const validation = CompanionRequestSchema.safeParse(req.body);
   if (!validation.success) {
