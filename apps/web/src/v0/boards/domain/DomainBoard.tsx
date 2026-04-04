@@ -17,6 +17,7 @@ import { DomainBanner } from "../../components/DomainBanner"
 import { DomainFeed } from "../../components/DomainFeed"
 import { StyleScope } from "../../styles/StyleScope"
 import { getApiBase } from "../../../lib/apiFetch"
+import { getBlobProxyUrl } from "../../../lib/blobProxy"
 
 const JOURNEY_BEGIN_ID = "journey-begin-again-default"
 
@@ -119,7 +120,7 @@ const DOMAIN_FRAMES: FrameItem[] = BOARD_FRAMES.domain ?? [
 ]
 
 export function DomainBoard() {
-  const { domainSlug: slug, domainFrame: shellDomainFrame, styleId, themeSlug } = useV0Shell()
+  const { domainSlug: slug, domainFrame: shellDomainFrame, styleId, themeSlug, domainData } = useV0Shell()
   const domainSlug = slug ?? ""
   const navigate = useNavigate()
 
@@ -225,6 +226,18 @@ export function DomainBoard() {
     (activeFrameRow && extractFrameTitleFromBlock(frameBlockForActive)) ?? activeFrameRow?.name ?? ""
 
   const bannerBgUrl = themeBackgroundImageUrl(liveDomainFrame?.theme)
+
+  const coverImageUrl = domainData?.theme?.coverImage ?? null
+  const coverImageMode = domainData?.theme?.coverImageMode ?? "cover"
+  const displayCoverUrl = coverImageUrl ? getBlobProxyUrl(coverImageUrl) : null
+  const pageBackground: React.CSSProperties = displayCoverUrl
+    ? {
+        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${displayCoverUrl})`,
+        backgroundPosition: coverImageMode === "tile" ? "0 0" : "center",
+        backgroundSize: coverImageMode === "tile" ? "auto" : "cover",
+        backgroundRepeat: coverImageMode === "tile" ? "repeat" : "no-repeat",
+      }
+    : {}
 
   const addMessage = React.useCallback((m: DesignerMessage) => {
     setMessages((prev) => [...prev, m])
@@ -357,9 +370,10 @@ export function DomainBoard() {
   )
 
   return (
+    <StyleScope styleId={styleId} themeSlug={themeSlug ?? null}>
     <div
       className="keeper-board-scope flex flex-col h-screen w-full overflow-hidden"
-      style={{ background: "#f5f2eb" }}
+      style={pageBackground}
     >
       <DomainBoardBanner domainSlug={domainSlug} liveDomainFrame={liveDomainFrame} />
 
@@ -894,5 +908,6 @@ export function DomainBoard() {
         </div>
       </div>
     </div>
+    </StyleScope>
   )
 }
