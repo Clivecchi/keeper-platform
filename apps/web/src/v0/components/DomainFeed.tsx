@@ -1,3 +1,5 @@
+// DEPRECATED: Data fetching and rendering merged into FeedFrame (apps/web/src/v0/frames/feed/FeedFrame.tsx).
+// DomainBoard now uses FeedFrame directly. This file can be deleted once confirmed stable.
 "use client"
 
 import * as React from "react"

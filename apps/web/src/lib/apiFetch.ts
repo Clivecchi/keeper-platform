@@ -15,6 +15,7 @@ export function getApiBase(): string {
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
     if (host === 'www.ke3p.com' || host === 'ke3p.com') return ''; // Same-origin: /api → Vercel rewrite
+    if (host === 'localhost' || host === '127.0.0.1') return ''; // Dev: /api → Vite proxy → localhost:3002
   }
   const env = (import.meta as any)?.env?.VITE_API_URL;
   return (env || 'https://api.ke3p.com').replace(/\/$/, '');

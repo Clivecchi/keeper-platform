@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@keeper/web", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@keeper/api", "dev"],
+      "port": 3002
+    },
+    {
+      "name": "all (turbo)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev:simple"],
+      "port": 5173
+    }
+  ]
+}

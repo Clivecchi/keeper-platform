@@ -1,11 +1,15 @@
 "use client"
 
+import * as React from "react"
 import { X } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import type { StyleId } from "../../styles/styles"
 import { DesignFrame } from "../DesignFrame"
 import { ThemeSwitcher } from "../ThemeSwitcher"
 import { useV0Shell } from "../../shell/V0ShellContext"
-import type { FeedFrameJson } from "../../data/domain-frame.types"
+import type { FeedFrameJson, DomainFrameJson } from "../../data/domain-frame.types"
+import { apiFetch } from "../../../lib/api"
+import { getApiBase } from "../../../lib/apiFetch"
 
 const FEED_DEFAULTS: FeedFrameJson = {
   frame_title: "Domain Feed",
@@ -15,9 +19,139 @@ const FEED_DEFAULTS: FeedFrameJson = {
   cta_back_to_commons: "Back to Commons",
 }
 
+const DEFAULT_EMPTY = "Nothing kept yet. Begin a Journey to start building."
+
+type KeptRow = {
+  id: string
+  title: string
+  keptAt: string | null
+  createdAt: string
+  journeyName?: string | null
+}
+
+type JourneyListItem = { id: string; name: string; createdAt: string }
+
+type JourneyActivityRow = {
+  id: string
+  name: string
+  lastMomentTitle: string | null
+  pathCount: number
+  momentCount: number
+}
+
+function emptyMessage(frame: DomainFrameJson | null): string {
+  const fromCommons = frame?.commons?.messaging?.feed?.empty_detail?.trim()
+  if (fromCommons) return fromCommons
+  const fromTitle = frame?.commons?.messaging?.feed?.empty_title?.trim()
+  if (fromTitle) return fromTitle
+  return DEFAULT_EMPTY
+}
+
+function formatWhen(iso: string | null | undefined): string {
+  if (!iso) return "—"
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return "—"
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })
+}
+
 export function FeedFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
-  const { closeToBoard, experienceActions, domainFrame } = useV0Shell()
+  const { closeToBoard, domainFrame, domainSlug, navigateToFrame } = useV0Shell()
+  const navigate = useNavigate()
   const json: FeedFrameJson = (domainFrame as any)?.feed ?? FEED_DEFAULTS
+
+  const [moments, setMoments] = React.useState<KeptRow[] | null>(null)
+  const [journeys, setJourneys] = React.useState<JourneyActivityRow[] | null>(null)
+  const [error, setError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (!domainSlug) return
+    let cancelled = false
+
+    const run = async () => {
+      setError(null)
+      try {
+        const momentsJson = (await apiFetch(
+          `/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=kept&limit=30`,
+        )) as { success?: boolean; data?: KeptRow[] }
+
+        const kept: KeptRow[] = Array.isArray(momentsJson?.data) ? momentsJson.data : []
+
+        const base = getApiBase()
+        const listRes = await fetch(
+          `${base}/api/public/${encodeURIComponent(domainSlug)}/journeys`,
+        )
+        if (!listRes.ok) throw new Error(`journeys ${listRes.status}`)
+        const listJson = (await listRes.json()) as { journeys?: JourneyListItem[] }
+        const list = Array.isArray(listJson.journeys) ? listJson.journeys : []
+
+        const sorted = [...list].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
+        const top = sorted.slice(0, 4)
+
+        const detailRows = await Promise.all(
+          top.map(async (j) => {
+            try {
+              const dRes = await fetch(
+                `${base}/api/public/${encodeURIComponent(domainSlug)}/journeys/${encodeURIComponent(j.id)}`,
+              )
+              if (!dRes.ok) {
+                return { id: j.id, name: j.name, lastMomentTitle: null as string | null, pathCount: 0, momentCount: 0 }
+              }
+              const dJson = (await dRes.json()) as {
+                paths?: { id: string }[]
+                moments?: { title: string }[]
+              }
+              const paths = Array.isArray(dJson.paths) ? dJson.paths : []
+              const mom = Array.isArray(dJson.moments) ? dJson.moments : []
+              const lastMomentTitle = mom.length > 0 ? (mom[mom.length - 1]?.title?.trim() || null) : null
+              return { id: j.id, name: j.name, lastMomentTitle, pathCount: paths.length, momentCount: mom.length }
+            } catch {
+              return { id: j.id, name: j.name, lastMomentTitle: null as string | null, pathCount: 0, momentCount: 0 }
+            }
+          }),
+        )
+
+        if (!cancelled) {
+          setMoments(kept)
+          setJourneys(detailRows)
+        }
+      } catch (e: unknown) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Failed to load feed")
+          setMoments([])
+          setJourneys([])
+        }
+      }
+    }
+
+    void run()
+    return () => { cancelled = true }
+  }, [domainSlug])
+
+  const empty = moments && journeys && moments.length === 0 && journeys.length === 0 && !error
+
+  const cardBase: React.CSSProperties = {
+    borderColor: "hsl(var(--theme-line-hairline))",
+    background: "hsl(var(--theme-surface-elevated))",
+  }
+
+  const handleMomentClick = (momentId: string) => {
+    navigateToFrame("moment", { draftId: momentId })
+  }
+
+  const handleJourneyClick = (journeyId: string) => {
+    if (!domainSlug) return
+    const params = new URLSearchParams()
+    params.set("frame", "journeys")
+    params.set("journey", journeyId)
+    navigate(`/d/${encodeURIComponent(domainSlug)}?${params.toString()}`)
+  }
 
   return (
     <DesignFrame
@@ -38,30 +172,105 @@ export function FeedFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleI
       }
       onClose={closeToBoard}
     >
-      <div
-        className="rounded-2xl border p-6 text-sm shadow-sm"
-        style={{
-          borderColor: "var(--theme-border-soft)",
-          backgroundColor: "hsl(var(--theme-surface-paper) / 0.8)",
-          color: "var(--theme-ink-secondary)",
-        }}
-      >
-        <p className="font-medium mb-2" style={{ color: "var(--theme-ink-primary)" }}>
-          {json.coming_soon_heading}
-        </p>
-        <p>{json.coming_soon_body}</p>
-        <button
-          type="button"
-          onClick={experienceActions.goCommons}
-          className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
-          style={{
-            borderColor: "var(--theme-border-soft)",
-            backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
-            color: "var(--theme-ink-primary)",
-          }}
-        >
-          {json.cta_back_to_commons}
-        </button>
+      <div className="space-y-6">
+        {error ? (
+          <p className="text-sm" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            {error}
+          </p>
+        ) : null}
+
+        {!moments || !journeys ? (
+          <p className="text-sm" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+            Loading activity…
+          </p>
+        ) : empty ? (
+          <p className="text-sm text-center max-w-md mx-auto py-8" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+            {emptyMessage(domainFrame)}
+          </p>
+        ) : null}
+
+        {moments && moments.length > 0 ? (
+          <section>
+            <h3
+              className="text-[10px] font-semibold uppercase tracking-widest mb-3"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Recent moments
+            </h3>
+            <ul className="space-y-2">
+              {moments.slice(0, 12).map((m) => (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    onClick={() => handleMomentClick(m.id)}
+                    className="w-full text-left rounded-lg border px-3 py-2.5 transition-opacity hover:opacity-80 active:opacity-60"
+                    style={cardBase}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p
+                        className="text-[13px] font-medium leading-snug line-clamp-2 flex-1 min-w-0"
+                        style={{ color: "hsl(var(--theme-ink-primary))" }}
+                      >
+                        {m.title?.trim() || "Untitled moment"}
+                      </p>
+                      <span
+                        className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide border"
+                        style={{
+                          borderColor: "hsl(var(--theme-border-soft))",
+                          color: "hsl(var(--theme-ink-secondary))",
+                        }}
+                      >
+                        Kept
+                      </span>
+                    </div>
+                    <p className="text-[11px] mt-1 line-clamp-1" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+                      {m.journeyName ? `${m.journeyName} · ` : ""}
+                      {formatWhen(m.keptAt ?? m.createdAt)}
+                    </p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {journeys && journeys.length > 0 ? (
+          <section>
+            <h3
+              className="text-[10px] font-semibold uppercase tracking-widest mb-3"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Journey activity
+            </h3>
+            <ul className="space-y-2">
+              {journeys.map((j) => (
+                <li key={j.id}>
+                  <button
+                    type="button"
+                    onClick={() => handleJourneyClick(j.id)}
+                    className="w-full text-left rounded-lg border px-3 py-2.5 transition-opacity hover:opacity-80 active:opacity-60"
+                    style={cardBase}
+                  >
+                    <p
+                      className="text-[13px] font-medium leading-snug"
+                      style={{ color: "hsl(var(--theme-ink-primary))" }}
+                    >
+                      {j.name}
+                    </p>
+                    <p className="text-[11px] mt-1 line-clamp-2" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+                      {j.lastMomentTitle
+                        ? `Last moment: ${j.lastMomentTitle}`
+                        : "No moments in journey yet"}
+                      {j.pathCount > 0 || j.momentCount > 0
+                        ? ` · ${j.pathCount} path${j.pathCount === 1 ? "" : "s"} · ${j.momentCount} moment${j.momentCount === 1 ? "" : "s"}`
+                        : ""}
+                    </p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </div>
     </DesignFrame>
   )

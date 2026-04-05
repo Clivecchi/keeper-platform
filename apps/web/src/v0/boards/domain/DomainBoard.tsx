@@ -14,7 +14,7 @@ import { apiFetch } from "../../../lib/api"
 import { DomainBoardBanner } from "./DomainBoardBanner"
 import { DomainBrief } from "../../components/DomainBrief"
 import { DomainBanner } from "../../components/DomainBanner"
-import { DomainFeed } from "../../components/DomainFeed"
+import { FeedFrame } from "../../frames/feed/FeedFrame"
 import { StyleScope } from "../../styles/StyleScope"
 import { getApiBase } from "../../../lib/apiFetch"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
@@ -612,7 +612,7 @@ export function DomainBoard() {
             />
             <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
               {centerPanelMode === "feed" && domainSlug ? (
-                <DomainFeed domainSlug={domainSlug} domainFrame={liveDomainFrame} />
+                <FeedFrame styleId={styleId} themeSlug={themeSlug ?? null} />
               ) : null}
 
               {centerPanelMode === "feed" && !domainSlug ? (
