@@ -612,7 +612,9 @@ export function DomainBoard() {
             />
             <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
               {centerPanelMode === "feed" && domainSlug ? (
-                <FeedFrame styleId={styleId} themeSlug={themeSlug ?? null} />
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  <FeedFrame />
+                </div>
               ) : null}
 
               {centerPanelMode === "feed" && !domainSlug ? (

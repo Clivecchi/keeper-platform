@@ -3,7 +3,6 @@
 import * as React from "react"
 import { X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import type { StyleId } from "../../styles/styles"
 import { DesignFrame } from "../DesignFrame"
 import { ThemeSwitcher } from "../ThemeSwitcher"
 import { useV0Shell } from "../../shell/V0ShellContext"
@@ -59,8 +58,8 @@ function formatWhen(iso: string | null | undefined): string {
   })
 }
 
-export function FeedFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
-  const { closeToBoard, domainFrame, domainSlug, navigateToFrame } = useV0Shell()
+export function FeedFrame() {
+  const { closeToBoard, domainFrame, domainSlug, navigateToFrame, styleId, themeSlug } = useV0Shell()
   const navigate = useNavigate()
   const json: FeedFrameJson = (domainFrame as any)?.feed ?? FEED_DEFAULTS
 
