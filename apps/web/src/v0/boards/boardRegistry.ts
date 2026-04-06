@@ -7,8 +7,9 @@
 import * as React from "react"
 import { DesignBoard } from "./designer/DesignBoard"
 import { DomainBoard } from "./domain/DomainBoard"
+import { AgentBoard } from "./agent/AgentBoard"
 
-export type V0BoardKey = "designer" | "domain"
+export type V0BoardKey = "designer" | "domain" | "agent"
 
 export interface BoardRegistryEntry {
   component: React.ComponentType<any>
@@ -28,6 +29,12 @@ export const BOARD_REGISTRY: Record<V0BoardKey, BoardRegistryEntry> = {
     component: DomainBoard,
     displayName: "Domain Board",
     isPrivate: false,
+    isAdminOnly: false,
+  },
+  agent: {
+    component: AgentBoard,
+    displayName: "Agent Board",
+    isPrivate: true,
     isAdminOnly: false,
   },
 }

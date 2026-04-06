@@ -308,7 +308,7 @@ export function DomainBoard() {
     } else if (id === "design") {
       navigate(`/d/${encodeURIComponent(domainSlug)}?board=designer`)
     } else {
-      navigate(`/d/${encodeURIComponent(domainSlug)}?frame=agent`)
+      navigate(`/d/${encodeURIComponent(domainSlug)}?board=agent`)
     }
   }
 
