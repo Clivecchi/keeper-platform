@@ -237,7 +237,7 @@ export function DomainBoard() {
         backgroundSize: coverImageMode === "tile" ? "auto" : "cover",
         backgroundRepeat: coverImageMode === "tile" ? "repeat" : "no-repeat",
       }
-    : {}
+    : { backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page)), hsl(var(--theme-surface-paper) / 0.25))` }
 
   const addMessage = React.useCallback((m: DesignerMessage) => {
     setMessages((prev) => [...prev, m])
