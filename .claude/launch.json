@@ -4,7 +4,7 @@
     {
       "name": "web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@keeper/web", "dev"],
+      "runtimeArgs": ["--filter", "keeper-web", "--", "dev"],
       "port": 5173
     },
     {
