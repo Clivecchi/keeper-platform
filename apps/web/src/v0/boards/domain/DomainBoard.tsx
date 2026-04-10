@@ -12,6 +12,8 @@ import { BOARD_FRAMES, type FrameItem } from "../designer/DesignBoardFrameList"
 import type { DesignerMessage } from "../designer/DesignBoard"
 import { apiFetch } from "../../../lib/api"
 import { DomainBoardBanner } from "./DomainBoardBanner"
+import { KeeperTopBar } from "../../components/KeeperTopBar"
+import { DomainSwitcher } from "../../components/DomainSwitcher"
 import { DomainBrief } from "../../components/DomainBrief"
 import { DomainBanner } from "../../components/DomainBanner"
 import { FeedFrame } from "../../frames/feed/FeedFrame"
@@ -136,6 +138,7 @@ export function DomainBoard() {
   const [sendError, setSendError] = React.useState<string | null>(null)
   const [centerPanelMode, setCenterPanelMode] = React.useState<CenterPanelMode>("feed")
   const [momentCount, setMomentCount] = React.useState<number | null>(null)
+  const [switcherOpen, setSwitcherOpen] = React.useState(false)
   const bottomRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -369,12 +372,27 @@ export function DomainBoard() {
     </div>
   )
 
+  const MOCK_DOMAINS = [
+    { slug: "default", name: "KE3P", tagline: "cynically designed, wonderfully unfolded", coverImageUrl: null },
+    { slug: "frogmore", name: "Frogmore Juke Joint", tagline: "housefrogmore.com", coverImageUrl: null },
+  ]
+
   return (
     <StyleScope styleId={styleId} themeSlug={themeSlug ?? null}>
     <div
-      className="keeper-board-scope flex flex-col h-screen w-full overflow-hidden"
+      className="keeper-board-scope relative flex flex-col h-screen w-full overflow-hidden"
       style={pageBackground}
     >
+      <KeeperTopBar onDomainClick={() => setSwitcherOpen(true)} onBriefClick={() => {}} />
+      {switcherOpen && (
+        <DomainSwitcher
+          domains={MOCK_DOMAINS}
+          currentSlug={domainSlug || "default"}
+          onSelect={(slug) => navigate(`/d/${encodeURIComponent(slug)}/board`)}
+          onAddDomain={() => console.log("Add domain")}
+          onClose={() => setSwitcherOpen(false)}
+        />
+      )}
       <DomainBoardBanner domainSlug={domainSlug} liveDomainFrame={liveDomainFrame} />
 
       <div
