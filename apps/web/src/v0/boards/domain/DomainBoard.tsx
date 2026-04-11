@@ -15,6 +15,8 @@ import { DomainSwitcher } from "../../components/DomainSwitcher"
 import { DomainBrief } from "../../components/DomainBrief"
 import { DomainBanner } from "../../components/DomainBanner"
 import { FeedFrame } from "../../frames/feed/FeedFrame"
+import type { KeptRow } from "../../frames/feed/FeedFrame"
+import { MomentDetailPanel } from "../../frames/moment/MomentDetailPanel"
 import { StyleScope } from "../../styles/StyleScope"
 import { getApiBase } from "../../../lib/apiFetch"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
@@ -133,6 +135,7 @@ export function DomainBoard() {
   const [sendError, setSendError] = React.useState<string | null>(null)
   const [momentCount, setMomentCount] = React.useState<number | null>(null)
   const [switcherOpen, setSwitcherOpen] = React.useState(false)
+  const [selectedMoment, setSelectedMoment] = React.useState<KeptRow | null>(null)
   const bottomRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -545,7 +548,7 @@ export function DomainBoard() {
             <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
               {domainSlug ? (
                 <div className="flex-1 overflow-y-auto min-h-0">
-                  <FeedFrame />
+                  <FeedFrame onMomentSelect={setSelectedMoment} />
                 </div>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-sm text-stone-500">No domain loaded</div>
@@ -565,68 +568,86 @@ export function DomainBoard() {
             className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[#e7e5e4]"
           >
             <span className="text-[13px] font-semibold" style={{ color: "#1c1917" }}>
-              Domain
+              {selectedMoment ? "Moment" : "Domain"}
             </span>
-            <button
-              type="button"
-              aria-label="View state"
-              disabled
-              className="p-1.5 rounded-md opacity-50 cursor-not-allowed text-[#57534e]"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                  d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-                <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-            </button>
-          </div>
-          <div className="px-4 py-4 space-y-4 text-[13px]" style={{ color: "#44403c" }}>
-            <div>
-              <p className="text-[11px] uppercase tracking-widest font-semibold mb-1" style={{ color: "#78716c" }}>
-                Name
-              </p>
-              <p className="font-medium" style={{ color: "#1c1917" }}>
-                {wordmark}
-              </p>
-              <p className="text-[12px] mt-1 font-mono" style={{ color: "#57534e" }}>
-                {domainSlug}
-              </p>
+            <div className="flex items-center gap-1">
+              {selectedMoment && (
+                <button
+                  type="button"
+                  aria-label="Close moment"
+                  onClick={() => setSelectedMoment(null)}
+                  className="p-1.5 rounded-md transition-colors hover:bg-gray-100 text-[#57534e]"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                    <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              )}
+              <button
+                type="button"
+                aria-label="View state"
+                disabled
+                className="p-1.5 rounded-md opacity-50 cursor-not-allowed text-[#57534e]"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path
+                    d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" />
+                </svg>
+              </button>
             </div>
-            {coverTagline ? (
+          </div>
+          {selectedMoment ? (
+            <MomentDetailPanel moment={selectedMoment} />
+          ) : (
+            <div className="px-4 py-4 space-y-4 text-[13px]" style={{ color: "#44403c" }}>
               <div>
                 <p className="text-[11px] uppercase tracking-widest font-semibold mb-1" style={{ color: "#78716c" }}>
-                  Tagline
+                  Name
                 </p>
-                <p>{coverTagline}</p>
+                <p className="font-medium" style={{ color: "#1c1917" }}>
+                  {wordmark}
+                </p>
+                <p className="text-[12px] mt-1 font-mono" style={{ color: "#57534e" }}>
+                  {domainSlug}
+                </p>
               </div>
-            ) : null}
-            <div>
-              <p className="text-[11px] uppercase tracking-widest font-semibold mb-1" style={{ color: "#78716c" }}>
-                Journeys
-              </p>
-              <p>{journeyCount === null ? "—" : `${journeyCount} Journeys`}</p>
-            </div>
-            <button
-              type="button"
-              onClick={goPresentJourney}
-              className="w-full rounded-lg px-3 py-3 text-[13px] font-medium transition-opacity"
-              style={{ background: "#1c1917", color: "#faf8f5" }}
-            >
-              Begin the Journey
-            </button>
-            <div className="border-t border-[#e7e5e4] pt-4">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span className="text-[12px] font-medium" style={{ color: "#047857" }}>
-                  Kip is ready
-                </span>
+              {coverTagline ? (
+                <div>
+                  <p className="text-[11px] uppercase tracking-widest font-semibold mb-1" style={{ color: "#78716c" }}>
+                    Tagline
+                  </p>
+                  <p>{coverTagline}</p>
+                </div>
+              ) : null}
+              <div>
+                <p className="text-[11px] uppercase tracking-widest font-semibold mb-1" style={{ color: "#78716c" }}>
+                  Journeys
+                </p>
+                <p>{journeyCount === null ? "—" : `${journeyCount} Journeys`}</p>
+              </div>
+              <button
+                type="button"
+                onClick={goPresentJourney}
+                className="w-full rounded-lg px-3 py-3 text-[13px] font-medium transition-opacity"
+                style={{ background: "#1c1917", color: "#faf8f5" }}
+              >
+                Begin the Journey
+              </button>
+              <div className="border-t border-[#e7e5e4] pt-4">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span className="text-[12px] font-medium" style={{ color: "#047857" }}>
+                    Kip is ready
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

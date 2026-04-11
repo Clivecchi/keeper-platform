@@ -20,12 +20,13 @@ const FEED_DEFAULTS: FeedFrameJson = {
 
 const DEFAULT_EMPTY = "Nothing kept yet. Begin a Journey to start building."
 
-type KeptRow = {
+export type KeptRow = {
   id: string
   title: string
   keptAt: string | null
   createdAt: string
   journeyName?: string | null
+  body?: string | null
 }
 
 type JourneyListItem = { id: string; name: string; createdAt: string }
@@ -58,7 +59,11 @@ function formatWhen(iso: string | null | undefined): string {
   })
 }
 
-export function FeedFrame() {
+interface FeedFrameProps {
+  onMomentSelect?: (moment: KeptRow) => void
+}
+
+export function FeedFrame({ onMomentSelect }: FeedFrameProps) {
   const { closeToBoard, domainFrame, domainSlug, navigateToFrame, styleId, themeSlug } = useV0Shell()
   const navigate = useNavigate()
   const json: FeedFrameJson = (domainFrame as any)?.feed ?? FEED_DEFAULTS
@@ -140,8 +145,12 @@ export function FeedFrame() {
     background: "hsl(var(--theme-surface-elevated))",
   }
 
-  const handleMomentClick = (momentId: string) => {
-    navigateToFrame("moment", { draftId: momentId })
+  const handleMomentClick = (m: KeptRow) => {
+    if (onMomentSelect) {
+      onMomentSelect(m)
+    } else {
+      navigateToFrame("moment", { draftId: m.id })
+    }
   }
 
   const handleJourneyClick = (journeyId: string) => {
@@ -201,7 +210,7 @@ export function FeedFrame() {
                 <li key={m.id}>
                   <button
                     type="button"
-                    onClick={() => handleMomentClick(m.id)}
+                    onClick={() => handleMomentClick(m)}
                     className="w-full text-left rounded-lg border px-3 py-2.5 transition-opacity hover:opacity-80 active:opacity-60"
                     style={cardBase}
                   >

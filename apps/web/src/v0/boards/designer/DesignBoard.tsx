@@ -23,6 +23,8 @@ import type { DomainFrameJson } from "../../data/domain-frame.types"
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
 import { V0_MARGIN_HEIGHT } from "../../components/Margin"
+import { StyleScope } from "../../styles/StyleScope"
+import { KeeperTopBar } from "../../components/KeeperTopBar"
 import { DesignBoardList } from "./DesignBoardList"
 import { DesignBoardFrameList, BOARD_FRAMES } from "./DesignBoardFrameList"
 import { DesignBoardFrameDetail } from "./DesignBoardFrameDetail"
@@ -44,101 +46,13 @@ function readStoredDensity(): KeeperDensity {
   return "default"
 }
 
-// ─── Banner ───────────────────────────────────────────────────────────────────
+// ─── Density segments ─────────────────────────────────────────────────────────
 
-function DesignBoardBanner({
-  domainSlug,
-  wordmark,
-  onBack,
-  density,
-  onDensityChange,
-}: {
-  domainSlug: string
-  wordmark: string
-  onBack: () => void
-  density: KeeperDensity
-  onDensityChange: (d: KeeperDensity) => void
-}) {
-  const DENSITY_SEGMENTS: { key: KeeperDensity; label: string }[] = [
-    { key: "compact", label: "Compact" },
-    { key: "default", label: "Default" },
-    { key: "comfortable", label: "Comfortable" },
-  ]
-
-  return (
-    <div
-      className="shrink-0 flex items-center justify-between px-5 gap-3"
-      style={{
-        height: 56,
-        borderBottom: "1px solid #e7e5e4",
-        background: "#faf8f5",
-        boxShadow: "0 1px 2px rgba(28,25,23,0.06)",
-      }}
-    >
-      <div className="flex items-center gap-3 min-w-0">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Back to domain board"
-          className="shrink-0 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors hover:bg-gray-100"
-          style={{ color: "#44403c" }}
-        >
-          <svg width="14" height="14" viewBox="0 0 12 12" fill="none" aria-hidden>
-            <path d="M8 2L4 6L8 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Back
-        </button>
-        <div className="h-4 w-px bg-gray-200 shrink-0" />
-        <span
-          className="text-[12px] font-medium truncate"
-          style={{ color: "#57534e" }}
-        >
-          {domainSlug}
-        </span>
-        <span
-          className="font-serif text-[18px] font-semibold leading-tight truncate"
-          style={{ color: "#1c1917" }}
-        >
-          {wordmark}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-2 shrink-0">
-        <div
-          className="hidden sm:flex items-center rounded-md overflow-hidden border text-[10px] font-medium"
-          style={{ borderColor: "#d6d3d1", background: "#f5f2eb" }}
-          role="group"
-          aria-label="Display density"
-        >
-          {DENSITY_SEGMENTS.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onDensityChange(key)}
-              className="px-2 py-1 transition-colors whitespace-nowrap"
-              style={{
-                background: density === key ? "#ffffff" : "transparent",
-                color: density === key ? "#1c1917" : "#57534e",
-                boxShadow: density === key ? "inset 0 0 0 1px #d6d3d1" : "none",
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <span
-          className="rounded-md px-3 py-1 text-[11px] font-bold uppercase tracking-widest"
-          style={{
-            background: "#111827",
-            color: "#ffffff",
-          }}
-        >
-          Designer
-        </span>
-      </div>
-    </div>
-  )
-}
+const DENSITY_SEGMENTS: { key: KeeperDensity; label: string }[] = [
+  { key: "compact", label: "Compact" },
+  { key: "default", label: "Default" },
+  { key: "comfortable", label: "Comfortable" },
+]
 
 export type DesignerMessage = {
   id: string
@@ -162,7 +76,7 @@ export function DesignerFrame({
   domainSlug?: string
 }) {
   const { isAdmin, isAuthenticated } = useAuth()
-  const { domainSlug: ctxSlug, domainFrame: shellDomainFrame } = useV0Shell()
+  const { domainSlug: ctxSlug, domainFrame: shellDomainFrame, styleId: shellStyleId, themeSlug: shellThemeSlug } = useV0Shell()
   const navigate = useNavigate()
   const domainSlug = propDomainSlug ?? ctxSlug ?? ""
 
@@ -359,25 +273,48 @@ export function DesignerFrame({
     )
   }
 
-  const wordmark = liveDomainFrame?.theme?.wordmark ?? domainSlug
-
-  const handleBack = () => {
-    navigate(`/d/${domainSlug}`)
-  }
-
   return (
-    <div
+    <StyleScope
+      styleId={shellStyleId ?? (_styleId as StyleId)}
+      themeSlug={shellThemeSlug ?? _themeSlug ?? null}
       className="keeper-design-board-scope flex flex-col h-screen w-full overflow-hidden"
       style={{ background: "#f5f2eb" }}
     >
-      {/* Top — Domain banner */}
-      <DesignBoardBanner
-        domainSlug={domainSlug}
-        wordmark={wordmark}
-        onBack={handleBack}
-        density={density}
-        onDensityChange={setDensity}
-      />
+      {/* Top bar */}
+      <KeeperTopBar onDomainClick={() => {}} onBriefClick={() => {}} />
+
+      {/* Density sub-bar */}
+      <div
+        className="shrink-0 flex items-center justify-end px-4 gap-1"
+        style={{
+          height: 34,
+          borderBottom: "1px solid #e7e5e4",
+          background: "#faf8f5",
+        }}
+      >
+        <div
+          className="flex items-center rounded-md overflow-hidden border text-[10px] font-medium"
+          style={{ borderColor: "#d6d3d1", background: "#f5f2eb" }}
+          role="group"
+          aria-label="Display density"
+        >
+          {DENSITY_SEGMENTS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setDensity(key)}
+              className="px-2 py-1 transition-colors whitespace-nowrap"
+              style={{
+                background: density === key ? "#ffffff" : "transparent",
+                color: density === key ? "#1c1917" : "#57534e",
+                boxShadow: density === key ? "inset 0 0 0 1px #d6d3d1" : "none",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Three-panel layout */}
       <div
@@ -461,7 +398,7 @@ export function DesignerFrame({
       </div>
 
       </div>
-    </div>
+    </StyleScope>
   )
 }
 
