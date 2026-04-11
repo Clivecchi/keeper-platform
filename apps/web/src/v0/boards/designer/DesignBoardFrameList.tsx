@@ -29,7 +29,6 @@ export const BOARD_FRAMES: Record<string, FrameItem[]> = {
     { key: "journeys", name: "Journeys Frame", dotColor: "#378ADD", badge: "panel" },
     { key: "keepers", name: "Keepers Frame", dotColor: "#BA7517", badge: "panel" },
     { key: "moments", name: "Moments Frame", dotColor: "#D4537E", badge: "panel" },
-    { key: "relationships", name: "Relationships Frame", dotColor: "#888780", badge: "panel" },
   ],
   design: [],
   "keeper-starter": [],

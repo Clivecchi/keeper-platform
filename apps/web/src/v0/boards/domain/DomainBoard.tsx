@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { Code2, FileText, LayoutGrid, Layers, MessageCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
 import { loadDomainFrame } from "../../data/loadDomainFrame"
@@ -11,7 +10,6 @@ import { V0_MARGIN_HEIGHT } from "../../components/Margin"
 import { BOARD_FRAMES, type FrameItem } from "../designer/DesignBoardFrameList"
 import type { DesignerMessage } from "../designer/DesignBoard"
 import { apiFetch } from "../../../lib/api"
-import { DomainBoardBanner } from "./DomainBoardBanner"
 import { KeeperTopBar } from "../../components/KeeperTopBar"
 import { DomainSwitcher } from "../../components/DomainSwitcher"
 import { DomainBrief } from "../../components/DomainBrief"
@@ -110,15 +108,12 @@ function MessageBubble({ msg }: { msg: DesignerMessage }) {
 
 type BoardNavId = "domain" | "design" | "agent"
 
-type CenterPanelMode = "feed" | "chat" | "frames" | "brief" | "code"
-
 const DOMAIN_FRAMES: FrameItem[] = BOARD_FRAMES.domain ?? [
   { key: "cover", name: "Board Cover", dotColor: "#7F77DD", badge: "default" },
   { key: "feed", name: "Feed", dotColor: "#1D9E75", badge: "primary" },
   { key: "journeys", name: "Journeys", dotColor: "#378ADD", badge: "panel" },
   { key: "keepers", name: "Keepers", dotColor: "#BA7517", badge: "panel" },
   { key: "moments", name: "Moments", dotColor: "#D4537E", badge: "panel" },
-  { key: "relationships", name: "Relationships", dotColor: "#888780", badge: "panel" },
 ]
 
 export function DomainBoard() {
@@ -136,7 +131,6 @@ export function DomainBoard() {
   const [input, setInput] = React.useState("")
   const [isSending, setIsSending] = React.useState(false)
   const [sendError, setSendError] = React.useState<string | null>(null)
-  const [centerPanelMode, setCenterPanelMode] = React.useState<CenterPanelMode>("feed")
   const [momentCount, setMomentCount] = React.useState<number | null>(null)
   const [switcherOpen, setSwitcherOpen] = React.useState(false)
   const bottomRef = React.useRef<HTMLDivElement>(null)
@@ -210,7 +204,7 @@ export function DomainBoard() {
 
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isSending, selectedFrameKey, centerPanelMode])
+  }, [messages, isSending, selectedFrameKey])
 
   const wordmark = liveDomainFrame?.theme?.wordmark?.trim() || domainSlug
   const coverTagline = (() => {
@@ -246,10 +240,9 @@ export function DomainBoard() {
     setMessages((prev) => [...prev, m])
   }, [])
 
-  const kipFrameKey = centerPanelMode === "chat" ? "cover" : (selectedFrameKey ?? "cover")
+  const kipFrameKey = selectedFrameKey ?? "cover"
 
-  const kipInputPlaceholder =
-    centerPanelMode === "chat" ? "Ask Kip about this domain..." : "Ask Kip about this domain…"
+  const kipInputPlaceholder = "Ask Kip about this domain…"
 
   const handleSend = async () => {
     const text = input.trim()
@@ -393,8 +386,6 @@ export function DomainBoard() {
           onClose={() => setSwitcherOpen(false)}
         />
       )}
-      <DomainBoardBanner domainSlug={domainSlug} liveDomainFrame={liveDomainFrame} />
-
       <div
         className="flex flex-1 min-h-0 overflow-hidden"
         style={{ paddingBottom: V0_MARGIN_HEIGHT }}
@@ -539,83 +530,6 @@ export function DomainBoard() {
           className="flex flex-col flex-1 min-w-0 min-h-0 border-r border-gray-200 overflow-hidden"
           style={{ background: "#fefdfb" }}
         >
-          <div
-            className="shrink-0 flex items-center justify-center border-b px-3 py-2 gap-3"
-            style={{ borderColor: "#e7e5e4", background: "#f5f2eb" }}
-          >
-            <div
-              className="flex items-center rounded-md overflow-hidden shrink-0"
-              style={{ border: "1px solid #d6d3d1", background: "#faf8f5" }}
-              role="tablist"
-              aria-label="Primary center modes"
-            >
-              {(
-                [
-                  { mode: "feed" as const, Icon: Layers, label: "Domain feed" },
-                  { mode: "chat" as const, Icon: MessageCircle, label: "Domain chat with Kip" },
-                ] as const
-              ).map(({ mode, Icon, label }) => {
-                const active = centerPanelMode === mode
-                return (
-                  <button
-                    key={mode}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    aria-label={label}
-                    onClick={() => setCenterPanelMode(mode)}
-                    className="flex items-center justify-center transition-colors"
-                    style={{
-                      width: 36,
-                      height: 30,
-                      color: active ? "#faf8f5" : "#57534e",
-                      background: active ? "#1c1917" : "transparent",
-                      border: "none",
-                    }}
-                  >
-                    <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-                  </button>
-                )
-              })}
-            </div>
-            <div
-              className="flex items-center rounded-md overflow-hidden shrink-0"
-              style={{ border: "1px solid #d6d3d1", background: "#faf8f5" }}
-              role="tablist"
-              aria-label="Admin and design modes"
-            >
-              {(
-                [
-                  { mode: "frames" as const, Icon: LayoutGrid, label: "Frames — frame navigator" },
-                  { mode: "brief" as const, Icon: FileText, label: "Domain Brief" },
-                  { mode: "code" as const, Icon: Code2, label: "Domain JSON" },
-                ] as const
-              ).map(({ mode, Icon, label }) => {
-                const active = centerPanelMode === mode
-                return (
-                  <button
-                    key={mode}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    aria-label={label}
-                    onClick={() => setCenterPanelMode(mode)}
-                    className="flex items-center justify-center transition-colors"
-                    style={{
-                      width: 28,
-                      height: 26,
-                      color: active ? "#faf8f5" : "#57534e",
-                      background: active ? "#1c1917" : "transparent",
-                      border: "none",
-                    }}
-                  >
-                    <Icon className="h-[13px] w-[13px]" strokeWidth={1.75} aria-hidden />
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
           <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
             <StyleScope
               styleId={styleId}
@@ -629,225 +543,13 @@ export function DomainBoard() {
               momentCount={momentCount}
             />
             <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-              {centerPanelMode === "feed" && domainSlug ? (
+              {domainSlug ? (
                 <div className="flex-1 overflow-y-auto min-h-0">
                   <FeedFrame />
                 </div>
-              ) : null}
-
-              {centerPanelMode === "feed" && !domainSlug ? (
+              ) : (
                 <div className="flex-1 flex items-center justify-center text-sm text-stone-500">No domain loaded</div>
-              ) : null}
-
-              {centerPanelMode === "chat" ? (
-                <div
-                  className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0"
-                  style={{ background: "#fefdfb" }}
-                >
-                  {messages.length === 0 && (
-                    <div className="flex min-h-[120px] items-center justify-center px-4">
-                      <p className="text-center text-[13px] max-w-md" style={{ color: "#78716c" }}>
-                        Ask Kip anything about this domain — strategy, copy, or what to build next.
-                      </p>
-                    </div>
-                  )}
-                  {messages.map((msg) => (
-                    <MessageBubble key={msg.id} msg={msg} />
-                  ))}
-                  {isSending && (
-                    <div className="flex justify-start">
-                      <div
-                        className="rounded-xl px-3 py-2.5 text-[13px] border"
-                        style={{
-                          background: "#f0ece4",
-                          color: "#57534e",
-                          borderColor: "#e7e5e4",
-                        }}
-                      >
-                        <p
-                          className="text-[10px] font-semibold uppercase tracking-widest mb-1"
-                          style={{ color: "#78716c" }}
-                        >
-                          Kip
-                        </p>
-                        <p>Thinking…</p>
-                      </div>
-                    </div>
-                  )}
-                  <div ref={bottomRef} />
-                </div>
-              ) : null}
-
-              {centerPanelMode === "frames" ? (
-                <>
-                  {selectedFrameKey && activeFrameRow ? (
-                    <>
-                      <div
-                        className="shrink-0 border-b px-3 py-2"
-                        style={{ borderColor: "#e7e5e4", background: "#f5f2eb" }}
-                      >
-                        <div className="flex gap-2 overflow-x-auto pb-0.5" style={{ scrollbarWidth: "thin" }}>
-                          {frames.map((frame) => {
-                            const picked = frame.key === selectedFrameKey
-                            return (
-                              <button
-                                key={frame.key}
-                                type="button"
-                                onClick={() => setSelectedFrameKey(frame.key)}
-                                className="shrink-0 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
-                                style={{
-                                  background: picked ? "#1c1917" : "#f0ece4",
-                                  color: picked ? "#faf8f5" : "#44403c",
-                                }}
-                              >
-                                <span
-                                  className="shrink-0 rounded-full"
-                                  style={{ width: 6, height: 6, background: frame.dotColor }}
-                                />
-                                {abbrevFrameLabel(frame.name)}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-
-                      <div
-                        className="shrink-0 relative overflow-hidden border-b transition-all duration-200 min-h-[120px]"
-                        style={{
-                          borderColor: "rgba(255,255,255,0.12)",
-                          ...(bannerBgUrl
-                            ? {
-                                backgroundImage: `url(${bannerBgUrl})`,
-                                backgroundSize: "cover",
-                                backgroundPosition: "center",
-                              }
-                            : {
-                                background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
-                              }),
-                        }}
-                      >
-                        <div
-                          className="absolute inset-0 z-0 pointer-events-none"
-                          style={{
-                            backdropFilter: "blur(12px)",
-                            WebkitBackdropFilter: "blur(12px)",
-                            background: "rgba(0,0,0,0.45)",
-                          }}
-                        />
-                        <div className="relative z-[1] px-5 py-4 flex flex-col justify-center min-h-[120px]">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedFrameKey(null)}
-                            className="absolute left-5 top-4 text-xs text-white/50 hover:text-white/80 transition-colors text-left"
-                          >
-                            ← All Frames
-                          </button>
-                          <div className="mt-6 flex flex-wrap items-center gap-2 gap-y-1">
-                            <h2 className="text-2xl font-semibold text-white tracking-tight leading-tight">
-                              {activeFrameRow.name}
-                            </h2>
-                            <span
-                              className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium border"
-                              style={BANNER_BADGE_STYLES[activeFrameRow.badge] ?? BANNER_BADGE_STYLES.default}
-                            >
-                              {activeFrameRow.badge}
-                            </span>
-                            <span
-                              className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold border"
-                              style={{
-                                borderColor: "rgba(52,211,153,0.65)",
-                                background: "rgba(52,211,153,0.2)",
-                                color: "#d1fae5",
-                              }}
-                            >
-                              Live
-                            </span>
-                          </div>
-                          <p className="mt-2 text-sm text-white/60 leading-snug line-clamp-2">{frameContextLine}</p>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="shrink-0 px-6 py-4 text-center border-b border-[#e7e5e4]">
-                      <button
-                        type="button"
-                        onClick={goPresentJourney}
-                        className="w-full max-w-sm mx-auto rounded-lg px-4 py-3 text-[14px] font-medium transition-opacity"
-                        style={{ background: "#1c1917", color: "#faf8f5" }}
-                      >
-                        Begin the Journey
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
-                    {selectedFrameKey && messages.length === 0 && (
-                      <div className="flex min-h-[80px] items-center justify-center">
-                        <p className="text-center text-[13px] max-w-xs" style={{ color: "#57534e" }}>
-                          {`Tell Kip what you want to explore on ${activeFrameRow?.name ?? "this domain"}.`}
-                        </p>
-                      </div>
-                    )}
-                    {!selectedFrameKey && messages.length === 0 && (
-                      <div className="flex min-h-[120px] items-center justify-center px-4">
-                        <p className="text-center text-[13px] max-w-md" style={{ color: "#78716c" }}>
-                          Select a frame from the left to focus Kip on a specific surface, or ask about the whole
-                          domain below.
-                        </p>
-                      </div>
-                    )}
-                    {messages.map((msg) => (
-                      <MessageBubble key={msg.id} msg={msg} />
-                    ))}
-                    {isSending && (
-                      <div className="flex justify-start">
-                        <div
-                          className="rounded-xl px-3 py-2.5 text-[13px] border"
-                          style={{
-                            background: "#f0ece4",
-                            color: "#57534e",
-                            borderColor: "#e7e5e4",
-                          }}
-                        >
-                          <p
-                            className="text-[10px] font-semibold uppercase tracking-widest mb-1"
-                            style={{ color: "#78716c" }}
-                          >
-                            Kip
-                          </p>
-                          <p>Thinking…</p>
-                        </div>
-                      </div>
-                    )}
-                    <div ref={bottomRef} />
-                  </div>
-                </>
-              ) : null}
-
-              {centerPanelMode === "brief" ? (
-                <div className="flex-1 overflow-y-auto min-h-0">
-                  {liveDomainFrame ? (
-                    <DomainBrief domainFrame={liveDomainFrame} />
-                  ) : (
-                    <div className="px-4 py-6 text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-                      Loading domain brief…
-                    </div>
-                  )}
-                </div>
-              ) : null}
-
-              {centerPanelMode === "code" ? (
-                <div className="flex-1 overflow-auto px-4 py-3 min-h-0" style={{ background: "#fefdfb" }}>
-                  <pre
-                    className="text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-words"
-                    style={{ color: "#292524" }}
-                  >
-                    {liveDomainFrame
-                      ? JSON.stringify(liveDomainFrame, null, 2)
-                      : "// Domain frame not loaded yet"}
-                  </pre>
-                </div>
-              ) : null}
+              )}
             </div>
             {renderKipComposer()}
           </StyleScope>

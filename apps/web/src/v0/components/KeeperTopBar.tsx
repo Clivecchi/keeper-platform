@@ -6,6 +6,115 @@ import { useNavigate, useSearchParams } from "react-router-dom"
 import { useV0Shell } from "../shell/V0ShellContext"
 import { useAuth } from "../../context/AuthContext"
 
+// ─── Profile Popover ──────────────────────────────────────────────────────────
+
+interface ProfilePopoverProps {
+  displayName: string
+  roleLabel: string
+  onSignOut: () => void
+  onClose: () => void
+  anchorRef: React.RefObject<HTMLButtonElement | null>
+}
+
+function ProfilePopover({ displayName, roleLabel, onSignOut, onClose, anchorRef }: ProfilePopoverProps) {
+  const popoverRef = React.useRef<HTMLDivElement>(null)
+  const [hoveredItem, setHoveredItem] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    function handleMouseDown(e: MouseEvent) {
+      if (
+        anchorRef.current?.contains(e.target as Node) ||
+        popoverRef.current?.contains(e.target as Node)
+      ) return
+      onClose()
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose()
+    }
+    document.addEventListener("mousedown", handleMouseDown)
+    document.addEventListener("keydown", handleKeyDown)
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown)
+      document.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [anchorRef, onClose])
+
+  return (
+    <div
+      ref={popoverRef}
+      role="menu"
+      aria-label="Profile menu"
+      style={{
+        position: "absolute",
+        top: "calc(100% + 4px)",
+        right: 0,
+        width: 180,
+        zIndex: 50,
+        backgroundColor: "var(--color-background-primary, hsl(var(--theme-surface-paper)))",
+        border: "0.5px solid var(--theme-border-soft)",
+        borderRadius: "var(--border-radius-lg, 8px)",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)",
+      }}
+    >
+      {/* Identity block */}
+      <div className="px-3 py-3">
+        <p
+          style={{
+            fontSize: 13,
+            fontWeight: 500,
+            lineHeight: "1.25",
+            color: "var(--theme-ink-primary)",
+          }}
+        >
+          {displayName}
+        </p>
+        <p
+          style={{
+            fontSize: 11,
+            lineHeight: "1.25",
+            marginTop: 3,
+            color: "var(--theme-ink-muted, var(--theme-ink-secondary))",
+          }}
+        >
+          {roleLabel}
+        </p>
+      </div>
+
+      {/* Hairline divider */}
+      <div style={{ height: "0.5px", backgroundColor: "var(--theme-border-soft)" }} aria-hidden />
+
+      {/* Menu items — add Profile, Settings, etc. as additional <li> entries */}
+      <ul role="none" style={{ margin: 0, padding: "4px 0", listStyle: "none" }}>
+        <li role="none">
+          <button
+            type="button"
+            role="menuitem"
+            onClick={onSignOut}
+            onMouseEnter={() => setHoveredItem("sign-out")}
+            onMouseLeave={() => setHoveredItem(null)}
+            style={{
+              display: "block",
+              width: "100%",
+              textAlign: "left",
+              padding: "7px 12px",
+              fontSize: 12,
+              border: "none",
+              cursor: "pointer",
+              color: "var(--theme-ink-primary)",
+              backgroundColor:
+                hoveredItem === "sign-out"
+                  ? "var(--color-background-secondary, hsl(var(--theme-surface-raised, var(--theme-surface-paper)) / 1))"
+                  : "transparent",
+            }}
+          >
+            Sign out
+          </button>
+        </li>
+      </ul>
+    </div>
+  )
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type TopBarBoardId = "domain" | "ide" | "designer" | "agent"
@@ -67,9 +176,11 @@ function resolveActiveBoardId(searchParams: URLSearchParams): TopBarBoardId | nu
 
 export function KeeperTopBar({ onDomainClick, onBriefClick }: KeeperTopBarProps) {
   const { domainSlug, domainFrame, resolvedAudience } = useV0Shell()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const [profileOpen, setProfileOpen] = React.useState(false)
+  const avatarButtonRef = React.useRef<HTMLButtonElement>(null)
 
   // ── Data ──
   const wordmark = domainFrame?.theme?.wordmark?.trim() || domainSlug
@@ -86,6 +197,16 @@ export function KeeperTopBar({ onDomainClick, onBriefClick }: KeeperTopBarProps)
 
   const handleBoardClick = (id: TopBarBoardId) => {
     navigate(boardUrl(id, domainSlug))
+  }
+
+  const handleAvatarClick = () => {
+    if (resolvedAudience === "guest") return
+    setProfileOpen((prev) => !prev)
+  }
+
+  const handleSignOut = () => {
+    setProfileOpen(false)
+    logout()
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -130,7 +251,7 @@ export function KeeperTopBar({ onDomainClick, onBriefClick }: KeeperTopBarProps)
         </button>
 
         {/* Right: user name, role, avatar */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0" style={{ position: "relative" }}>
           <div className="text-right">
             <p
               className="text-[12px] font-medium leading-tight"
@@ -145,20 +266,40 @@ export function KeeperTopBar({ onDomainClick, onBriefClick }: KeeperTopBarProps)
               {roleLabel}
             </p>
           </div>
-          {/* Avatar circle */}
-          <div
+          {/* Avatar circle — clickable for authenticated users */}
+          <button
+            ref={avatarButtonRef}
+            type="button"
+            onClick={handleAvatarClick}
+            aria-expanded={profileOpen}
+            aria-haspopup="menu"
+            aria-label="Open profile menu"
             className="flex items-center justify-center rounded-full shrink-0 text-[11px] font-semibold"
             style={{
               width: 26,
               height: 26,
               backgroundColor: "hsl(var(--theme-surface-raised, var(--theme-surface-paper)) / 1)",
-              border: "1px solid var(--theme-border-soft)",
+              border: profileOpen
+                ? "1px solid var(--theme-ink-secondary)"
+                : "1px solid var(--theme-border-soft)",
               color: "var(--theme-ink-secondary)",
+              cursor: resolvedAudience === "guest" ? "default" : "pointer",
+              padding: 0,
             }}
-            aria-hidden
           >
             {initials}
-          </div>
+          </button>
+
+          {/* Profile popover */}
+          {profileOpen && resolvedAudience !== "guest" && (
+            <ProfilePopover
+              displayName={displayName}
+              roleLabel={roleLabel}
+              onSignOut={handleSignOut}
+              onClose={() => setProfileOpen(false)}
+              anchorRef={avatarButtonRef}
+            />
+          )}
         </div>
       </div>
 
