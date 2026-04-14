@@ -25,6 +25,7 @@ import { KipApi } from "../../../lib/kipApi"
 import { V0_MARGIN_HEIGHT } from "../../components/Margin"
 import { StyleScope } from "../../styles/StyleScope"
 import { KeeperTopBar } from "../../components/KeeperTopBar"
+import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
 import { DesignBoardList } from "./DesignBoardList"
 import { DesignBoardFrameList, BOARD_FRAMES } from "./DesignBoardFrameList"
 import { DesignBoardFrameDetail } from "./DesignBoardFrameDetail"
@@ -107,6 +108,7 @@ export function DesignerFrame({
   const [activeBoardId, setActiveBoardId] = React.useState("domain")
   const [leftCollapsed, setLeftCollapsed] = React.useState(false)
   const [density, setDensity] = React.useState<KeeperDensity>(readStoredDensity)
+  const [briefOpen, setBriefOpen] = React.useState(false)
 
   // ── Sync live frame from shell on mount ──
   React.useEffect(() => {
@@ -281,7 +283,17 @@ export function DesignerFrame({
       style={{ background: "#f5f2eb" }}
     >
       {/* Top bar */}
-      <KeeperTopBar onDomainClick={() => {}} onBriefClick={() => {}} />
+      <KeeperTopBar
+        onDomainClick={() => {}}
+        onBriefClick={() => setBriefOpen((o) => !o)}
+        isBriefOpen={briefOpen}
+      />
+      {briefOpen && liveDomainFrame && (
+        <DomainBriefSlideOver
+          domainFrame={liveDomainFrame}
+          onClose={() => setBriefOpen(false)}
+        />
+      )}
 
       {/* Density sub-bar */}
       <div

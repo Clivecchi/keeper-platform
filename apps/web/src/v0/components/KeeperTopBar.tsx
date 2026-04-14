@@ -122,6 +122,7 @@ type TopBarBoardId = "domain" | "ide" | "designer" | "agent"
 interface KeeperTopBarProps {
   onDomainClick: () => void
   onBriefClick: () => void
+  isBriefOpen?: boolean
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -174,7 +175,7 @@ function resolveActiveBoardId(searchParams: URLSearchParams): TopBarBoardId | nu
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function KeeperTopBar({ onDomainClick, onBriefClick }: KeeperTopBarProps) {
+export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: KeeperTopBarProps) {
   const { domainSlug, domainFrame, resolvedAudience } = useV0Shell()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -350,10 +351,16 @@ export function KeeperTopBar({ onDomainClick, onBriefClick }: KeeperTopBarProps)
           type="button"
           onClick={onBriefClick}
           className="flex items-center gap-1 transition-colors"
-          style={{ color: "var(--theme-ink-muted, var(--theme-ink-secondary))" }}
+          style={{
+            color: isBriefOpen
+              ? "hsl(var(--theme-ink-primary))"
+              : "var(--theme-ink-muted, var(--theme-ink-secondary))",
+            fontWeight: isBriefOpen ? 500 : undefined,
+          }}
           aria-label="Open domain brief"
+          aria-pressed={isBriefOpen}
         >
-          <FileText className="shrink-0" style={{ width: 13, height: 13 }} strokeWidth={1.75} aria-hidden />
+          <FileText className="shrink-0" style={{ width: 13, height: 13 }} strokeWidth={isBriefOpen ? 2 : 1.75} aria-hidden />
           <span className="text-[12px]">Brief</span>
         </button>
       </div>

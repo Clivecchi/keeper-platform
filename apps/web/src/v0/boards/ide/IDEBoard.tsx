@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { KeeperTopBar } from "../../components/KeeperTopBar"
+import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
 import { V0_MARGIN_HEIGHT } from "../../components/Margin"
 import { StyleScope } from "../../styles/StyleScope"
 import { IDEBoardNav } from "./IDEBoardNav"
@@ -10,11 +11,22 @@ import { IDEBoardConversation } from "./IDEBoardConversation"
 import { IDEBoardJourney } from "./IDEBoardJourney"
 
 export function IDEBoard() {
-  const { domainSlug, styleId, themeSlug } = useV0Shell()
+  const { domainSlug, styleId, themeSlug, domainFrame } = useV0Shell()
+  const [briefOpen, setBriefOpen] = React.useState(false)
 
   return (
     <StyleScope styleId={styleId} themeSlug={themeSlug ?? null} className="keeper-board-scope relative flex flex-col h-screen w-full overflow-hidden">
-      <KeeperTopBar onDomainClick={() => {}} onBriefClick={() => {}} />
+      <KeeperTopBar
+        onDomainClick={() => {}}
+        onBriefClick={() => setBriefOpen((o) => !o)}
+        isBriefOpen={briefOpen}
+      />
+      {briefOpen && domainFrame && (
+        <DomainBriefSlideOver
+          domainFrame={domainFrame}
+          onClose={() => setBriefOpen(false)}
+        />
+      )}
 
       <div className="flex flex-1 min-h-0 overflow-hidden" style={{ paddingBottom: V0_MARGIN_HEIGHT }}>
         {/* Left */}

@@ -4,7 +4,8 @@ import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { StyleScope } from "../../styles/StyleScope"
-import { DomainBoardBanner } from "../domain/DomainBoardBanner"
+import { KeeperTopBar } from "../../components/KeeperTopBar"
+import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
 import { AgentBoardFrame } from "../../frames/agent/AgentBoardFrame"
 import { V0_MARGIN_HEIGHT } from "../../components/Margin"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
@@ -22,6 +23,7 @@ export function AgentBoard() {
   const ab = domainFrame?.agent_board
 
   const [leftCollapsed, setLeftCollapsed] = React.useState(false)
+  const [briefOpen, setBriefOpen] = React.useState(false)
 
   const wordmark = domainFrame?.theme?.wordmark?.trim() || domainSlug
   const frameTitle = ab?.frame_title ?? "Agent"
@@ -57,7 +59,17 @@ export function AgentBoard() {
         className="keeper-board-scope flex flex-col h-screen w-full overflow-hidden"
         style={pageBackground}
       >
-        <DomainBoardBanner domainSlug={domainSlug} liveDomainFrame={domainFrame} />
+        <KeeperTopBar
+          onDomainClick={() => {}}
+          onBriefClick={() => setBriefOpen((o) => !o)}
+          isBriefOpen={briefOpen}
+        />
+        {briefOpen && domainFrame && (
+          <DomainBriefSlideOver
+            domainFrame={domainFrame}
+            onClose={() => setBriefOpen(false)}
+          />
+        )}
 
         <div
           className="flex flex-1 min-h-0 overflow-hidden"

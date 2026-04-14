@@ -12,7 +12,7 @@ import type { DesignerMessage } from "../designer/DesignBoard"
 import { apiFetch } from "../../../lib/api"
 import { KeeperTopBar } from "../../components/KeeperTopBar"
 import { DomainSwitcher } from "../../components/DomainSwitcher"
-import { DomainBrief } from "../../components/DomainBrief"
+import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
 import { DomainBanner } from "../../components/DomainBanner"
 import { FeedFrame } from "../../frames/feed/FeedFrame"
 import type { KeptRow } from "../../frames/feed/FeedFrame"
@@ -135,6 +135,7 @@ export function DomainBoard() {
   const [sendError, setSendError] = React.useState<string | null>(null)
   const [momentCount, setMomentCount] = React.useState<number | null>(null)
   const [switcherOpen, setSwitcherOpen] = React.useState(false)
+  const [briefOpen, setBriefOpen] = React.useState(false)
   const [selectedMoment, setSelectedMoment] = React.useState<KeptRow | null>(null)
   const bottomRef = React.useRef<HTMLDivElement>(null)
 
@@ -379,7 +380,17 @@ export function DomainBoard() {
       className="keeper-board-scope relative flex flex-col h-screen w-full overflow-hidden"
       style={pageBackground}
     >
-      <KeeperTopBar onDomainClick={() => setSwitcherOpen(true)} onBriefClick={() => {}} />
+      <KeeperTopBar
+        onDomainClick={() => setSwitcherOpen(true)}
+        onBriefClick={() => setBriefOpen((o) => !o)}
+        isBriefOpen={briefOpen}
+      />
+      {briefOpen && liveDomainFrame && (
+        <DomainBriefSlideOver
+          domainFrame={liveDomainFrame}
+          onClose={() => setBriefOpen(false)}
+        />
+      )}
       {switcherOpen && (
         <DomainSwitcher
           domains={MOCK_DOMAINS}
