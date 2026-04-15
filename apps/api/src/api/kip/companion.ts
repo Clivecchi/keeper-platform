@@ -39,6 +39,17 @@ const HistoryItemSchema = z.object({
   content: z.string().max(4000),
 });
 
+const BoardContextAgentSchema = z.object({
+  name: z.string().max(100),
+  model: z.string().max(100),
+  scope: z.string().max(500),
+});
+
+const BoardContextSchema = z.object({
+  board: z.string().max(50),
+  agents: z.array(BoardContextAgentSchema).max(20).optional(),
+});
+
 const CompanionRequestSchema = z.object({
   message: z.string().min(1).max(2000),
   domainSlug: z.string().min(1).max(100),
@@ -48,6 +59,7 @@ const CompanionRequestSchema = z.object({
     .optional()
     .default([]),
   sessionId: z.string().uuid().optional(),
+  boardContext: BoardContextSchema.optional(),
 });
 
 const DEFAULT_MODEL = 'claude-sonnet-4-6';
@@ -70,7 +82,7 @@ router.post('/', companionLimiter, async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: 'Invalid request.' });
   }
 
-  const { domainSlug, conversationHistory, sessionId: clientSessionId } = validation.data;
+  const { domainSlug, conversationHistory, sessionId: clientSessionId, boardContext } = validation.data;
   const rawMessage = stripHtml(validation.data.message);
   if (!rawMessage) {
     return res.status(400).json({ success: false, error: 'Message cannot be empty.' });
@@ -121,6 +133,23 @@ router.post('/', companionLimiter, async (req: Request, res: Response) => {
 
     if (!apiKey) {
       return res.status(500).json({ success: false, error: 'Something went wrong.' });
+    }
+
+    // Prepend board context when the caller identifies the surface
+    if (boardContext) {
+      const agentLines = (boardContext.agents ?? [])
+        .map((a) => `- ${a.name} (${a.model}) — ${a.scope}`)
+        .join('\n');
+      const contextBlock = [
+        `You are operating on the ${boardContext.board === 'agent' ? 'Agent Board' : boardContext.board} of the Keeper platform.`,
+        `Domain: ${domainSlug}`,
+        agentLines
+          ? `Registered agents on this domain:\n${agentLines}`
+          : 'No agents are registered on this domain yet.',
+        ``,
+        `Your role here: help the domain owner understand, configure, and direct their agents. You know these agents. You don't need to ask what platform this is.`,
+      ].join('\n');
+      guestContext = `${contextBlock}\n\n${guestContext}`;
     }
 
     const priorTurns = conversationHistory.slice(-6).map((h) => ({

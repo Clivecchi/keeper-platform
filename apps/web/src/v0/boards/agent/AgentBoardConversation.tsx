@@ -5,8 +5,15 @@ import { getApiBase } from "../../../lib/apiFetch"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
+export type AgentItem = {
+  name: string
+  model: string
+  scope: string
+}
+
 interface AgentBoardConversationProps {
   domainSlug: string
+  agents?: AgentItem[]
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -22,12 +29,12 @@ interface Message {
 const GREETING: Message = {
   id: "kip-greeting",
   role: "kip",
-  content: "I'm here. Which agent are we working with?",
+  content: "I'm here. I can see your registered agents. What would you like to work on?",
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AgentBoardConversation({ domainSlug }: AgentBoardConversationProps) {
+export function AgentBoardConversation({ domainSlug, agents }: AgentBoardConversationProps) {
   const [messages, setMessages] = React.useState<Message[]>([GREETING])
   const [input, setInput]       = React.useState("")
   const [isSending, setIsSending] = React.useState(false)
@@ -83,6 +90,10 @@ export function AgentBoardConversation({ domainSlug }: AgentBoardConversationPro
           domainSlug,
           conversationHistory: history,
           ...(sessionId ? { sessionId } : {}),
+          boardContext: {
+            board: "agent",
+            agents: agents ?? [],
+          },
         }),
       })
 
