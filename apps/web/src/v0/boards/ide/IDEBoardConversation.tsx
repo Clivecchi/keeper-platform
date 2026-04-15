@@ -1,11 +1,18 @@
 "use client"
 
 import * as React from "react"
-import { getApiBase } from "../../../lib/apiFetch"
+import { KipApi } from "../../../lib/kipApi"
+import { useAgentSessions } from "../../../hooks/useAgentSessions"
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface IDEBoardConversationProps {
   domainSlug: string
+  /** Optional — improves context precision. Falls back to domainSlug lookup server-side. */
+  domainId?: string | null
 }
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type MessageRole = "user" | "kip"
 
@@ -21,14 +28,28 @@ const GREETING: Message = {
   content: "I'm here. What are we building?",
 }
 
-export function IDEBoardConversation({ domainSlug }: IDEBoardConversationProps) {
-  const [messages, setMessages] = React.useState<Message[]>([GREETING])
-  const [input, setInput] = React.useState("")
-  const [isSending, setIsSending] = React.useState(false)
-  const [sessionId, setSessionId] = React.useState<string | null>(null)
+// ─── Component ────────────────────────────────────────────────────────────────
 
-  const threadRef = React.useRef<HTMLDivElement>(null)
+export function IDEBoardConversation({ domainSlug, domainId }: IDEBoardConversationProps) {
+  const [messages, setMessages]               = React.useState<Message[]>([GREETING])
+  const [input, setInput]                     = React.useState("")
+  const [isSending, setIsSending]             = React.useState(false)
+  const [kipAgentId, setKipAgentId]           = React.useState<string | null>(null)
+  const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
+
+  const { createSession } = useAgentSessions(kipAgentId ?? undefined)
+
+  const threadRef   = React.useRef<HTMLDivElement>(null)
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+
+  // Resolve Kip's agent ID once on mount. Uses the authenticated /api/kip/agents endpoint.
+  React.useEffect(() => {
+    let cancelled = false
+    KipApi.getAgentBySlug("kip")
+      .then((agent) => { if (!cancelled) setKipAgentId(agent.id) })
+      .catch(() => { /* degrade silently — send will remain disabled */ })
+    return () => { cancelled = true }
+  }, [])
 
   // Auto-scroll thread to bottom whenever messages change
   React.useEffect(() => {
@@ -46,67 +67,56 @@ export function IDEBoardConversation({ domainSlug }: IDEBoardConversationProps) 
 
   const handleSend = async () => {
     const text = input.trim()
-    if (!text || isSending) return
+    if (!text || isSending || !kipAgentId) return
 
-    const ts = Date.now()
+    const ts         = Date.now()
     const thinkingId = `kip-thinking-${ts}`
-
-    // Build history from current messages (excluding thinking bubbles)
-    const history = messages
-      .filter((m) => m.content !== "Kip is thinking\u2026" && m.id !== GREETING.id)
-      .slice(-6)
-      .map((m) => ({
-        role: (m.role === "kip" ? "assistant" : "user") as "assistant" | "user",
-        content: m.content,
-      }))
 
     setMessages((prev) => [
       ...prev,
       { id: `user-${ts}`, role: "user", content: text },
-      { id: thinkingId, role: "kip", content: "Kip is thinking\u2026" },
+      { id: thinkingId,   role: "kip",  content: "Kip is thinking\u2026" },
     ])
     setInput("")
     setIsSending(true)
 
     try {
-      const response = await fetch(`${getApiBase()}/api/kip/companion`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: text,
+      // Create a DB-backed session on the first turn; resume on all subsequent turns.
+      let sessionId = activeSessionId
+      if (!sessionId) {
+        const session = await createSession("IDE Board", { domainSlug })
+        sessionId = session.id
+        setActiveSessionId(sessionId)
+      }
+
+      const result = await KipApi.runAgent(
+        kipAgentId,
+        text,
+        undefined,
+        sessionId,
+        {
           domainSlug,
-          conversationHistory: history,
-          ...(sessionId ? { sessionId } : {}),
-        }),
-      })
+          ...(domainId ? { domainId } : {}),
+        },
+      )
 
-      const data = await response.json().catch(() => null)
-
-      let reply: string
-      if (response.status === 429) {
-        reply = "Kip needs a moment. Try again shortly."
-      } else if (response.ok && data?.success && typeof data.reply === "string") {
-        reply = data.reply
-      } else if (response.ok === false) {
-        reply = "Kip couldn't respond. Try again."
-      } else {
-        reply = "Something went wrong. Try again."
-      }
-
-      if (response.ok && typeof data?.sessionId === "string") {
-        setSessionId(data.sessionId)
-      }
+      const data = result.data as Record<string, unknown> | null
+      const reply: string =
+        typeof data?.response === "string" && data.response
+          ? data.response
+          : "I appreciate your message."
 
       setMessages((prev) =>
         prev.map((m) => (m.id === thinkingId ? { ...m, content: reply } : m)),
       )
-    } catch {
+    } catch (err) {
+      const status = (err as { status?: number })?.status
+      const reply =
+        status === 401
+          ? "Please sign in to continue the conversation with Kip."
+          : "Kip couldn't respond. Try again."
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === thinkingId
-            ? { ...m, content: "Kip couldn't respond. Try again." }
-            : m,
-        ),
+        prev.map((m) => (m.id === thinkingId ? { ...m, content: reply } : m)),
       )
     } finally {
       setIsSending(false)
@@ -119,6 +129,8 @@ export function IDEBoardConversation({ domainSlug }: IDEBoardConversationProps) 
       void handleSend()
     }
   }
+
+  const canSend = Boolean(input.trim()) && !isSending && Boolean(kipAgentId)
 
   return (
     <div
@@ -201,9 +213,9 @@ export function IDEBoardConversation({ domainSlug }: IDEBoardConversationProps) 
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Direct Kip..."
+            placeholder={kipAgentId ? "Direct Kip..." : "Connecting to Kip…"}
             rows={1}
-            disabled={isSending}
+            disabled={isSending || !kipAgentId}
             className="flex-1 resize-none rounded-lg border px-3 py-2.5 text-[13px] outline-none transition-colors focus-visible:ring-1 min-h-[40px] max-h-[120px]"
             style={{
               borderColor: "hsl(var(--theme-line-hairline))",
@@ -214,7 +226,7 @@ export function IDEBoardConversation({ domainSlug }: IDEBoardConversationProps) 
           <button
             type="button"
             onClick={() => void handleSend()}
-            disabled={!input.trim() || isSending}
+            disabled={!canSend}
             className="shrink-0 rounded-lg p-2.5 transition-opacity disabled:opacity-40 self-end"
             style={{
               background: "hsl(var(--theme-ink-primary))",

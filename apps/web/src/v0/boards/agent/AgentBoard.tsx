@@ -7,9 +7,8 @@ import { KeeperTopBar } from "../../components/KeeperTopBar"
 import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
 import { V0_MARGIN_HEIGHT } from "../../components/Margin"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
-import { apiFetch } from "../../../lib/api"
 import { AgentBoardNav } from "./AgentBoardNav"
-import { AgentBoardConversation, type AgentItem } from "./AgentBoardConversation"
+import { AgentBoardConversation } from "./AgentBoardConversation"
 import { AgentBoardPanel } from "./AgentBoardPanel"
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -20,28 +19,6 @@ export function AgentBoard() {
 
   const [briefOpen, setBriefOpen]             = React.useState(false)
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null)
-  const [agentsForContext, setAgentsForContext] = React.useState<AgentItem[]>([])
-
-  // Fetch agents once at board level — shared with Conversation for context injection.
-  // AgentBoardNav fetches independently for its own display; we do not re-use that
-  // internal state since AgentBoardNav is not modified by this prompt.
-  React.useEffect(() => {
-    let cancelled = false
-    apiFetch("/api/agents")
-      .then((res: unknown) => {
-        if (cancelled) return
-        const list = ((res as { agents?: Array<{ name: string; model: string | null; purpose: string | null }> })?.agents) ?? []
-        setAgentsForContext(
-          list.map((a) => ({
-            name: a.name,
-            model: a.model ?? "",
-            scope: a.purpose ?? "",
-          }))
-        )
-      })
-      .catch(() => { /* degrade silently — context injection is best-effort */ })
-    return () => { cancelled = true }
-  }, [])
 
   // ─── Background ──────────────────────────────────────────────────────────
   const coverImageUrl  = domainData?.theme?.coverImage ?? null
@@ -104,7 +81,7 @@ export function AgentBoard() {
               themeSlug={themeSlug ?? null}
               className="flex flex-1 flex-col min-h-0 overflow-hidden"
             >
-              <AgentBoardConversation domainSlug={domainSlug} agents={agentsForContext} />
+              <AgentBoardConversation domainSlug={domainSlug} />
             </StyleScope>
           </div>
 
