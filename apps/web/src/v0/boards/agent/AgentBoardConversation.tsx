@@ -53,7 +53,7 @@ export function AgentBoardConversation({ domainSlug, domainId, agents: _agents }
     let cancelled = false
     async function init() {
       try {
-        const agent = await KipApi.getAgentBySlug("kip")
+        const agent = await KipApi.getLeadAgent("kip")
         if (cancelled) return
         setKipAgentId(agent.id)
 
@@ -105,12 +105,10 @@ export function AgentBoardConversation({ domainSlug, domainId, agents: _agents }
         },
       )
 
-      // Lead agents return: AgentResponse.data = { action, type, data: { response, ... } }
-      const outer = result.data as Record<string, unknown> | null
-      const inner = (outer?.data as Record<string, unknown>) ?? null
+      // /api/kip/agents returns: AgentResponse.data = { response, actions, sessionId }
+      const data = result.data as Record<string, unknown> | null
       const reply: string =
-        typeof inner?.response === "string" && inner.response ? inner.response :
-        typeof outer?.response === "string" && outer.response ? outer.response :
+        typeof data?.response === "string" && data.response ? data.response :
         "I appreciate your message."
 
       setMessages((prev) =>
