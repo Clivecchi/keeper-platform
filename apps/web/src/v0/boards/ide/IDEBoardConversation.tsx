@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import { KipApi } from "../../../lib/kipApi"
-import { useAgentSessions } from "../../../hooks/useAgentSessions"
+import { AgentComposer } from "../../../components/agent/AgentComposer"
+import type { AgentAttachment } from "../../../components/agent/AgentComposer"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -37,19 +38,29 @@ export function IDEBoardConversation({ domainSlug, domainId }: IDEBoardConversat
   const [kipAgentId, setKipAgentId]           = React.useState<string | null>(null)
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
 
-  const { createSession } = useAgentSessions(kipAgentId ?? undefined)
+  const threadRef = React.useRef<HTMLDivElement>(null)
 
-  const threadRef   = React.useRef<HTMLDivElement>(null)
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
-
-  // Resolve Kip's agent ID once on mount. Uses the authenticated /api/kip/agents endpoint.
+  // Resolve Kip's agent ID then eagerly create a session so AgentComposer is ready immediately.
   React.useEffect(() => {
     let cancelled = false
-    KipApi.getAgentBySlug("kip")
-      .then((agent) => { if (!cancelled) setKipAgentId(agent.id) })
-      .catch(() => { /* degrade silently — send will remain disabled */ })
+    async function init() {
+      try {
+        const agent = await KipApi.getAgentBySlug("kip")
+        if (cancelled) return
+        setKipAgentId(agent.id)
+
+        const session = await KipApi.createSession(agent.id, undefined, "IDE Board", {
+          domainSlug,
+          ...(domainId ? { domainId } : {}),
+        })
+        if (!cancelled) setActiveSessionId(session.id)
+      } catch {
+        // degrade silently — composer stays disabled
+      }
+    }
+    void init()
     return () => { cancelled = true }
-  }, [])
+  }, [domainSlug, domainId])
 
   // Auto-scroll thread to bottom whenever messages change
   React.useEffect(() => {
@@ -57,64 +68,55 @@ export function IDEBoardConversation({ domainSlug, domainId }: IDEBoardConversat
     if (el) el.scrollTop = el.scrollHeight
   }, [messages])
 
-  // Auto-resize textarea
-  React.useEffect(() => {
-    const ta = textareaRef.current
-    if (!ta) return
-    ta.style.height = "auto"
-    ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`
-  }, [input])
-
-  const handleSend = async () => {
-    const text = input.trim()
-    if (!text || isSending || !kipAgentId) return
+  const handleSubmit = async (
+    _e: React.FormEvent,
+    { content, attachments }: { content: string; attachments?: AgentAttachment[] },
+  ) => {
+    if ((!content.trim() && !attachments?.length) || isSending || !kipAgentId || !activeSessionId) return
 
     const ts         = Date.now()
     const thinkingId = `kip-thinking-${ts}`
 
     setMessages((prev) => [
       ...prev,
-      { id: `user-${ts}`, role: "user", content: text },
+      { id: `user-${ts}`, role: "user", content: content || "[attachment]" },
       { id: thinkingId,   role: "kip",  content: "Kip is thinking\u2026" },
     ])
-    setInput("")
     setIsSending(true)
 
     try {
-      // Create a DB-backed session on the first turn; resume on all subsequent turns.
-      let sessionId = activeSessionId
-      if (!sessionId) {
-        const session = await createSession("IDE Board", { domainSlug })
-        sessionId = session.id
-        setActiveSessionId(sessionId)
-      }
-
       const result = await KipApi.runAgent(
         kipAgentId,
-        text,
+        content,
         undefined,
-        sessionId,
+        activeSessionId,
         {
           domainSlug,
           ...(domainId ? { domainId } : {}),
+          attachments: attachments?.length ? attachments : undefined,
         },
       )
 
-      const data = result.data as Record<string, unknown> | null
+      // Lead agents return: AgentResponse.data = { action, type, data: { response, ... } }
+      const outer = result.data as Record<string, unknown> | null
+      const inner = (outer?.data as Record<string, unknown>) ?? null
       const reply: string =
-        typeof data?.response === "string" && data.response
-          ? data.response
-          : "I appreciate your message."
+        typeof inner?.response === "string" && inner.response ? inner.response :
+        typeof outer?.response === "string" && outer.response ? outer.response :
+        "I appreciate your message."
 
       setMessages((prev) =>
         prev.map((m) => (m.id === thinkingId ? { ...m, content: reply } : m)),
       )
     } catch (err) {
-      const status = (err as { status?: number })?.status
+      const status  = (err as { status?: number })?.status
+      const message = err instanceof Error ? err.message : ""
       const reply =
         status === 401
           ? "Please sign in to continue the conversation with Kip."
-          : "Kip couldn't respond. Try again."
+          : message && message.length > 0 && message.length < 300
+            ? message
+            : "Kip couldn't respond. Try again."
       setMessages((prev) =>
         prev.map((m) => (m.id === thinkingId ? { ...m, content: reply } : m)),
       )
@@ -122,15 +124,6 @@ export function IDEBoardConversation({ domainSlug, domainId }: IDEBoardConversat
       setIsSending(false)
     }
   }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      void handleSend()
-    }
-  }
-
-  const canSend = Boolean(input.trim()) && !isSending && Boolean(kipAgentId)
 
   return (
     <div
@@ -202,49 +195,24 @@ export function IDEBoardConversation({ domainSlug, domainId }: IDEBoardConversat
         ))}
       </div>
 
-      {/* Ambient input */}
+      {/* AgentComposer — full upload + mode support */}
       <div
         className="shrink-0 border-t px-3 py-3"
         style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
       >
-        <div className="flex items-end gap-2">
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={kipAgentId ? "Direct Kip..." : "Connecting to Kip…"}
-            rows={1}
-            disabled={isSending || !kipAgentId}
-            className="flex-1 resize-none rounded-lg border px-3 py-2.5 text-[13px] outline-none transition-colors focus-visible:ring-1 min-h-[40px] max-h-[120px]"
-            style={{
-              borderColor: "hsl(var(--theme-line-hairline))",
-              background: "hsl(var(--theme-surface-elevated))",
-              color: "hsl(var(--theme-ink-primary))",
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => void handleSend()}
-            disabled={!canSend}
-            className="shrink-0 rounded-lg p-2.5 transition-opacity disabled:opacity-40 self-end"
-            style={{
-              background: "hsl(var(--theme-ink-primary))",
-              color: "hsl(var(--theme-surface-page))",
-            }}
-            aria-label="Send"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-              <path
-                d="M2 7h9M8 4l3 3-3 3"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
+        <AgentComposer
+          agentName="Kip"
+          agentId={kipAgentId}
+          domainId={domainId ?? null}
+          dialogueMode="domain"
+          inputValue={input}
+          onInputChange={setInput}
+          onSubmit={handleSubmit}
+          onFileAttach={(text) => setInput((prev) => prev ? `${prev}\n\n${text}` : text)}
+          isSending={isSending}
+          activeSessionId={activeSessionId}
+          disabled={!kipAgentId}
+        />
       </div>
     </div>
   )
