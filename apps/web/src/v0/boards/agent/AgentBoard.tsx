@@ -7,6 +7,7 @@ import { KeeperTopBar } from "../../components/KeeperTopBar"
 import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
 import { V0_MARGIN_HEIGHT } from "../../components/Margin"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
+import { apiFetch } from "../../../lib/api"
 import { AgentBoardNav } from "./AgentBoardNav"
 import { AgentBoardConversation } from "./AgentBoardConversation"
 import { AgentBoardPanel } from "./AgentBoardPanel"
@@ -19,6 +20,32 @@ export function AgentBoard() {
 
   const [briefOpen, setBriefOpen]             = React.useState(false)
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null)
+  const [selectedDraftId, setSelectedDraftId] = React.useState<string | null>(null)
+  const [domainId, setDomainId]               = React.useState<string | null>(null)
+
+  // Resolve domainId from slug so conversation has full context
+  React.useEffect(() => {
+    if (!domainSlug) return
+    let cancelled = false
+    apiFetch(`/api/domains/by-slug/${encodeURIComponent(domainSlug)}`)
+      .then((res: unknown) => {
+        if (!cancelled) setDomainId((res as { id?: string })?.id ?? null)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [domainSlug])
+
+  const handleAgentSelect = (agentId: string) => {
+    setSelectedAgentId(agentId)
+    setSelectedDraftId(null)
+  }
+
+  const handleDraftSelect = (draftId: string) => {
+    setSelectedDraftId(draftId)
+    setSelectedAgentId(null)
+  }
+
+  const handleClearDraft = () => setSelectedDraftId(null)
 
   // ─── Background ──────────────────────────────────────────────────────────
   const coverImageUrl  = domainData?.theme?.coverImage ?? null
@@ -70,7 +97,9 @@ export function AgentBoard() {
             <AgentBoardNav
               domainSlug={domainSlug}
               selectedAgentId={selectedAgentId}
-              onAgentSelect={setSelectedAgentId}
+              onAgentSelect={handleAgentSelect}
+              selectedDraftId={selectedDraftId}
+              onDraftSelect={handleDraftSelect}
             />
           </div>
 
@@ -81,11 +110,14 @@ export function AgentBoard() {
               themeSlug={themeSlug ?? null}
               className="flex flex-1 flex-col min-h-0 overflow-hidden"
             >
-              <AgentBoardConversation domainSlug={domainSlug} />
+              <AgentBoardConversation
+                domainSlug={domainSlug}
+                domainId={domainId}
+              />
             </StyleScope>
           </div>
 
-          {/* ── Right: Agent Panel ──────────────────────────────────────── */}
+          {/* ── Right: Agent/Draft Panel ────────────────────────────────── */}
           <div
             className="shrink-0 flex flex-col border-l min-h-0 overflow-hidden"
             style={{
@@ -97,7 +129,10 @@ export function AgentBoard() {
           >
             <AgentBoardPanel
               agentId={selectedAgentId}
+              draftId={selectedDraftId}
+              domainId={domainId}
               domainSlug={domainSlug}
+              onClearDraft={handleClearDraft}
             />
           </div>
         </div>

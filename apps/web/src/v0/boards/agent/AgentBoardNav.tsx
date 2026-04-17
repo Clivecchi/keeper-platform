@@ -10,6 +10,8 @@ interface AgentBoardNavProps {
   domainSlug: string
   onAgentSelect?: (agentId: string) => void
   selectedAgentId?: string | null
+  onDraftSelect?: (draftId: string) => void
+  selectedDraftId?: string | null
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -37,7 +39,7 @@ function formatDate(iso: string | null | undefined): string {
 
 interface NavSectionProps {
   title: string
-  items: Array<{ id: string; primary: string; secondary: string }> | null
+  items: Array<{ id: string; primary: string; secondary: string; onClick?: () => void; isActive?: boolean }> | null
   emptyText: string
 }
 
@@ -76,11 +78,21 @@ function NavSection({ title, items, emptyText }: NavSectionProps) {
             <li key={item.id}>
               <button
                 type="button"
-                className="w-full text-left px-3 py-1.5 transition-opacity hover:opacity-70"
+                onClick={item.onClick}
+                className="w-full text-left px-3 py-1.5 rounded-md transition-colors"
+                style={{
+                  background: item.isActive
+                    ? "hsl(var(--theme-accent-subtle, var(--theme-surface-elevated)))"
+                    : "transparent",
+                }}
               >
                 <p
                   className="text-[12px] leading-snug truncate"
-                  style={{ color: "hsl(var(--theme-ink-primary))" }}
+                  style={{
+                    color: item.isActive
+                      ? "hsl(var(--theme-accent-fg, var(--theme-ink-primary)))"
+                      : "hsl(var(--theme-ink-primary))",
+                  }}
                 >
                   {item.primary}
                 </p>
@@ -101,7 +113,7 @@ function NavSection({ title, items, emptyText }: NavSectionProps) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AgentBoardNav({ domainSlug, onAgentSelect, selectedAgentId }: AgentBoardNavProps) {
+export function AgentBoardNav({ domainSlug, onAgentSelect, selectedAgentId, onDraftSelect, selectedDraftId }: AgentBoardNavProps) {
   const [agents, setAgents]     = React.useState<AgentItem[] | null>(null)
   const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
   const [keepers, setKeepers]   = React.useState<KeeperItem[] | null>(null)
@@ -199,6 +211,8 @@ export function AgentBoardNav({ domainSlug, onAgentSelect, selectedAgentId }: Ag
       id: d.id,
       primary: d.title?.trim() || "Untitled draft",
       secondary: formatDate(d.createdAt),
+      isActive: d.id === selectedDraftId,
+      onClick: () => onDraftSelect?.(d.id),
     })) ?? null
 
   // ─── Render ─────────────────────────────────────────────────────────────────

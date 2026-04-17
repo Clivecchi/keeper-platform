@@ -2,12 +2,19 @@
 
 import * as React from "react"
 import { apiFetch } from "../../../lib/api"
+import { KipApi } from "../../../lib/kipApi"
+import type { KipDraft, KipDraftStatus } from "../../../lib/kipApi"
+import { DraftCard } from "../../../components/agent/DraftCard"
+import type { DraftSpec } from "../../../components/agent/DraftCard"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface AgentBoardPanelProps {
   agentId?: string | null
+  draftId?: string | null
+  domainId?: string | null
   domainSlug: string
+  onClearDraft?: () => void
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -23,9 +30,162 @@ type AgentDetail = {
   agent_class: string | null
 }
 
+// ─── Banner ───────────────────────────────────────────────────────────────────
+
+function PanelBanner({ label, title }: { label: string; title?: string }) {
+  return (
+    <div
+      className="shrink-0 px-4 py-3 border-b"
+      style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
+    >
+      <p
+        className="text-[10px] font-semibold uppercase tracking-widest"
+        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+      >
+        {label}
+      </p>
+      {title && (
+        <p
+          className="text-[13px] font-medium mt-0.5 truncate"
+          style={{ color: "hsl(var(--theme-ink-primary))" }}
+        >
+          {title}
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ─── Draft view ───────────────────────────────────────────────────────────────
+
+function DraftView({
+  draftId,
+  domainId,
+  onBack,
+}: {
+  draftId: string
+  domainId: string
+  onBack: () => void
+}) {
+  const [draft, setDraft]       = React.useState<KipDraft | null>(null)
+  const [loading, setLoading]   = React.useState(true)
+  const [saving, setSaving]     = React.useState(false)
+  const [error, setError]       = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    KipApi.getDraft(domainId, draftId)
+      .then((d) => { if (!cancelled) setDraft(d) })
+      .catch(() => { if (!cancelled) setError("Could not load draft.") })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [draftId, domainId])
+
+  const handleSave = async (payload: {
+    title: string
+    summary: string | null
+    status: KipDraftStatus
+    spec: DraftSpec
+  }) => {
+    if (!draft) return
+    setSaving(true)
+    setError(null)
+    try {
+      const updated = await KipApi.updateDraft(domainId, draft.id, {
+        title: payload.title,
+        summary: payload.summary ?? undefined,
+        status: payload.status,
+        spec: payload.spec,
+      })
+      setDraft(updated)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to save draft")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+        <PanelBanner label="Draft" />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+            Loading…
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !draft) {
+    return (
+      <div className="flex flex-col h-full" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+        <PanelBanner label="Draft" />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <p className="text-[12px] text-center" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+            {error ?? "Draft not found."}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+      <PanelBanner label="Draft" title={draft.title} />
+      <div className="flex-1 overflow-y-auto">
+        <DraftCard
+          draft={draft}
+          isSaving={saving}
+          error={error}
+          onSave={handleSave}
+          onBackToDialogue={onBack}
+        />
+      </div>
+    </div>
+  )
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AgentBoardPanel({ agentId }: AgentBoardPanelProps) {
+export function AgentBoardPanel({ agentId, draftId, domainId, onClearDraft }: AgentBoardPanelProps) {
+
+  // ── Draft view ──────────────────────────────────────────────────────────────
+
+  if (draftId && domainId) {
+    return (
+      <DraftView
+        draftId={draftId}
+        domainId={domainId}
+        onBack={onClearDraft ?? (() => {})}
+      />
+    )
+  }
+
+  if (draftId && !domainId) {
+    return (
+      <div className="flex flex-col h-full" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+        <PanelBanner label="Draft" />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <p className="text-[12px] text-center" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+            Loading domain…
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Agent view ──────────────────────────────────────────────────────────────
+
+  return <AgentView agentId={agentId ?? null} />
+}
+
+// ─── Agent view (extracted to keep component tree clean) ─────────────────────
+
+function AgentView({ agentId }: { agentId: string | null }) {
   const [agent, setAgent]     = React.useState<AgentDetail | null>(null)
   const [loading, setLoading] = React.useState(false)
   const [error, setError]     = React.useState<string | null>(null)
@@ -53,31 +213,12 @@ export function AgentBoardPanel({ agentId }: AgentBoardPanelProps) {
     return () => { cancelled = true }
   }, [agentId])
 
-  // ─── Empty state ──────────────────────────────────────────────────────────
-
   if (!agentId) {
     return (
-      <div
-        className="flex flex-col h-full"
-        style={{ color: "hsl(var(--theme-ink-primary))" }}
-      >
-        {/* Banner */}
-        <div
-          className="shrink-0 px-4 py-3 border-b"
-          style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
-        >
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            Agent
-          </p>
-        </div>
+      <div className="flex flex-col h-full" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+        <PanelBanner label="Agent" />
         <div className="flex-1 flex items-center justify-center px-4">
-          <p
-            className="text-[13px] text-center"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
+          <p className="text-[13px] text-center" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
             Select an agent from the left panel
           </p>
         </div>
@@ -85,20 +226,10 @@ export function AgentBoardPanel({ agentId }: AgentBoardPanelProps) {
     )
   }
 
-  // ─── Loading / error ──────────────────────────────────────────────────────
-
   if (loading) {
     return (
       <div className="flex flex-col h-full" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-        <div
-          className="shrink-0 px-4 py-3 border-b"
-          style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
-        >
-          <p className="text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-            Agent
-          </p>
-        </div>
+        <PanelBanner label="Agent" />
         <div className="flex-1 flex items-center justify-center">
           <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
             Loading…
@@ -111,15 +242,7 @@ export function AgentBoardPanel({ agentId }: AgentBoardPanelProps) {
   if (error || !agent) {
     return (
       <div className="flex flex-col h-full" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-        <div
-          className="shrink-0 px-4 py-3 border-b"
-          style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
-        >
-          <p className="text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-            Agent
-          </p>
-        </div>
+        <PanelBanner label="Agent" />
         <div className="flex-1 flex items-center justify-center px-4">
           <p className="text-[12px] text-center" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
             {error ?? "Agent not found."}
@@ -129,35 +252,12 @@ export function AgentBoardPanel({ agentId }: AgentBoardPanelProps) {
     )
   }
 
-  // ─── Agent detail ─────────────────────────────────────────────────────────
-
   const isReady = agent.status === "ready" || agent.status === "active"
 
   return (
-    <div
-      className="flex flex-col h-full"
-      style={{ color: "hsl(var(--theme-ink-primary))" }}
-    >
-      {/* Banner */}
-      <div
-        className="shrink-0 px-4 py-3 border-b"
-        style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
-      >
-        <p
-          className="text-[10px] font-semibold uppercase tracking-widest"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-        >
-          Agent
-        </p>
-        <p
-          className="text-[13px] font-medium mt-0.5 truncate"
-          style={{ color: "hsl(var(--theme-ink-primary))" }}
-        >
-          {agent.name}
-        </p>
-      </div>
+    <div className="flex flex-col h-full" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+      <PanelBanner label="Agent" title={agent.name} />
 
-      {/* Detail card */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
 
         {/* Name */}
@@ -267,7 +367,6 @@ export function AgentBoardPanel({ agentId }: AgentBoardPanelProps) {
             }}
           >
             Configure
-            {/* TODO: open agent config panel */}
           </button>
         </div>
       </div>
