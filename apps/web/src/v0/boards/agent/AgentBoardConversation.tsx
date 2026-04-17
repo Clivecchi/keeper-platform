@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { KipApi } from "../../../lib/kipApi"
+import type { KipMessage } from "../../../lib/kipApi"
 import { AgentComposer } from "../../../components/agent/AgentComposer"
 import type { AgentAttachment } from "../../../components/agent/AgentComposer"
 
@@ -48,6 +49,20 @@ export function AgentBoardConversation({ domainSlug, domainId, agents: _agents }
 
   const threadRef = React.useRef<HTMLDivElement>(null)
 
+  // Re-fetch persisted messages from session — same pattern as AgentBoardFrame
+  const fetchMessages = React.useCallback(async (sessionId: string) => {
+    try {
+      const msgs: KipMessage[] = await KipApi.getSessionMessages(sessionId)
+      setMessages(msgs.map((m) => ({
+        id: m.id,
+        role: ((m.sender || m.role) === "user" ? "user" : "kip") as MessageRole,
+        content: m.content,
+      })))
+    } catch {
+      // keep existing messages if fetch fails
+    }
+  }, [])
+
   // Resolve Kip's agent ID then eagerly create a session so AgentComposer is ready immediately.
   React.useEffect(() => {
     let cancelled = false
@@ -90,10 +105,11 @@ export function AgentBoardConversation({ domainSlug, domainId, agents: _agents }
       { id: `user-${ts}`, role: "user", content: content || "[attachment]" },
       { id: thinkingId,   role: "kip",  content: "Kip is thinking\u2026" },
     ])
+    setInput("")
     setIsSending(true)
 
     try {
-      const result = await KipApi.runAgent(
+      await KipApi.runAgent(
         kipAgentId,
         content,
         undefined,
@@ -105,15 +121,7 @@ export function AgentBoardConversation({ domainSlug, domainId, agents: _agents }
         },
       )
 
-      // /api/kip/agents returns: AgentResponse.data = { response, actions, sessionId }
-      const data = result.data as Record<string, unknown> | null
-      const reply: string =
-        typeof data?.response === "string" && data.response ? data.response :
-        "I appreciate your message."
-
-      setMessages((prev) =>
-        prev.map((m) => (m.id === thinkingId ? { ...m, content: reply } : m)),
-      )
+      await fetchMessages(activeSessionId)
     } catch (err) {
       const status  = (err as { status?: number })?.status
       const message = err instanceof Error ? err.message : ""
