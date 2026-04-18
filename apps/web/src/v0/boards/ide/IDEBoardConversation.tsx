@@ -5,6 +5,7 @@ import { KipApi } from "../../../lib/kipApi"
 import type { KipMessage } from "../../../lib/kipApi"
 import { AgentComposer } from "../../../components/agent/AgentComposer"
 import type { AgentAttachment } from "../../../components/agent/AgentComposer"
+import { useV0Shell } from "../../shell/V0ShellContext"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ const GREETING: Message = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function IDEBoardConversation({ domainSlug, domainId }: IDEBoardConversationProps) {
+  const { domainFrame, resolvedAudience } = useV0Shell()
   const [messages, setMessages]               = React.useState<Message[]>([GREETING])
   const [input, setInput]                     = React.useState("")
   const [isSending, setIsSending]             = React.useState(false)
@@ -60,13 +62,17 @@ export function IDEBoardConversation({ domainSlug, domainId }: IDEBoardConversat
     let cancelled = false
     async function init() {
       try {
-        const agent = await KipApi.getAgentBySlug("kip")
+        const agent = await KipApi.getLeadAgent("kip")
         if (cancelled) return
         setKipAgentId(agent.id)
 
         const session = await KipApi.createSession(agent.id, undefined, "IDE Board", {
           domainSlug,
           ...(domainId ? { domainId } : {}),
+          dialogBoard: "ide",
+          dialogFrame: "conversation",
+          dialogSubject: "domain",
+          dialogScope: resolvedAudience === "admin" ? "admin" : "keeper",
         })
         if (!cancelled) setActiveSessionId(session.id)
       } catch {
@@ -100,6 +106,17 @@ export function IDEBoardConversation({ domainSlug, domainId }: IDEBoardConversat
     setInput("")
     setIsSending(true)
 
+    const audience = resolvedAudience ?? "keeper"
+    const experienceContext: Record<string, unknown> | undefined = domainFrame
+      ? {
+          audience,
+          model: domainFrame.kip.model,
+          forward: domainFrame.forward,
+          directions: domainFrame.directions.filter((d) => d.available_to.includes(audience)),
+          kip_context: domainFrame.kip_context[audience] ?? "",
+        }
+      : undefined
+
     try {
       await KipApi.runAgent(
         kipAgentId,
@@ -108,7 +125,9 @@ export function IDEBoardConversation({ domainSlug, domainId }: IDEBoardConversat
         activeSessionId,
         {
           domainSlug,
-          ...(domainId ? { domainId } : {}),
+          domainId: domainId || undefined,
+          mode: "domain",
+          experienceContext,
           attachments: attachments?.length ? attachments : undefined,
         },
       )

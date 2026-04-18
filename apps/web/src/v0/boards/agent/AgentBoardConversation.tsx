@@ -5,6 +5,7 @@ import { KipApi } from "../../../lib/kipApi"
 import type { KipMessage } from "../../../lib/kipApi"
 import { AgentComposer } from "../../../components/agent/AgentComposer"
 import type { AgentAttachment } from "../../../components/agent/AgentComposer"
+import { useV0Shell } from "../../shell/V0ShellContext"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,7 @@ const GREETING: Message = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function AgentBoardConversation({ domainSlug, domainId, agents: _agents }: AgentBoardConversationProps) {
+  const { domainFrame, resolvedAudience } = useV0Shell()
   const [messages, setMessages]               = React.useState<Message[]>([GREETING])
   const [input, setInput]                     = React.useState("")
   const [isSending, setIsSending]             = React.useState(false)
@@ -75,6 +77,10 @@ export function AgentBoardConversation({ domainSlug, domainId, agents: _agents }
         const session = await KipApi.createSession(agent.id, undefined, "Agent Board", {
           domainSlug,
           ...(domainId ? { domainId } : {}),
+          dialogBoard: "agent",
+          dialogFrame: "conversation",
+          dialogSubject: "domain",
+          dialogScope: resolvedAudience === "admin" ? "admin" : "keeper",
         })
         if (!cancelled) setActiveSessionId(session.id)
       } catch {
@@ -108,6 +114,17 @@ export function AgentBoardConversation({ domainSlug, domainId, agents: _agents }
     setInput("")
     setIsSending(true)
 
+    const audience = resolvedAudience ?? "keeper"
+    const experienceContext: Record<string, unknown> | undefined = domainFrame
+      ? {
+          audience,
+          model: domainFrame.kip.model,
+          forward: domainFrame.forward,
+          directions: domainFrame.directions.filter((d) => d.available_to.includes(audience)),
+          kip_context: domainFrame.kip_context[audience] ?? "",
+        }
+      : undefined
+
     try {
       await KipApi.runAgent(
         kipAgentId,
@@ -116,7 +133,9 @@ export function AgentBoardConversation({ domainSlug, domainId, agents: _agents }
         activeSessionId,
         {
           domainSlug,
-          ...(domainId ? { domainId } : {}),
+          domainId: domainId || undefined,
+          mode: "domain",
+          experienceContext,
           attachments: attachments?.length ? attachments : undefined,
         },
       )
