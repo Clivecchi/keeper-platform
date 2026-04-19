@@ -8,6 +8,8 @@ import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
 import { V0_MARGIN_HEIGHT } from "../../components/Margin"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
 import { apiFetch } from "../../../lib/api"
+import { KipApi } from "../../../lib/kipApi"
+import type { KipDraftSummary } from "../../../lib/kipApi"
 import { AgentBoardNav } from "./AgentBoardNav"
 import { AgentBoardConversation } from "./AgentBoardConversation"
 import { AgentBoardPanel } from "./AgentBoardPanel"
@@ -22,6 +24,7 @@ export function AgentBoard() {
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null)
   const [selectedDraftId, setSelectedDraftId] = React.useState<string | null>(null)
   const [domainId, setDomainId]               = React.useState<string | null>(null)
+  const [drafts, setDrafts]                   = React.useState<KipDraftSummary[] | null>(null)
 
   // Resolve domainId from slug so conversation has full context
   React.useEffect(() => {
@@ -34,6 +37,20 @@ export function AgentBoard() {
       .catch(() => {})
     return () => { cancelled = true }
   }, [domainSlug])
+
+  const refreshDrafts = React.useCallback(async () => {
+    if (!domainId) return
+    try {
+      const list = await KipApi.listDrafts(domainId)
+      setDrafts(list)
+    } catch {
+      // degrade silently
+    }
+  }, [domainId])
+
+  React.useEffect(() => {
+    if (domainId) void refreshDrafts()
+  }, [domainId, refreshDrafts])
 
   const handleAgentSelect = (agentId: string) => {
     setSelectedAgentId(agentId)
@@ -100,6 +117,8 @@ export function AgentBoard() {
               onAgentSelect={handleAgentSelect}
               selectedDraftId={selectedDraftId}
               onDraftSelect={handleDraftSelect}
+              drafts={drafts}
+              refreshDrafts={refreshDrafts}
             />
           </div>
 
@@ -113,6 +132,8 @@ export function AgentBoard() {
               <AgentBoardConversation
                 domainSlug={domainSlug}
                 domainId={domainId}
+                refreshDrafts={refreshDrafts}
+                onDraftSelect={handleDraftSelect}
               />
             </StyleScope>
           </div>

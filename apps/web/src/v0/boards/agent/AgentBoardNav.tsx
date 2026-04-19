@@ -3,6 +3,7 @@
 import * as React from "react"
 import { apiFetch } from "../../../lib/api"
 import { getApiBase } from "../../../lib/apiFetch"
+import type { KipDraftSummary } from "../../../lib/kipApi"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -12,6 +13,8 @@ interface AgentBoardNavProps {
   selectedAgentId?: string | null
   onDraftSelect?: (draftId: string) => void
   selectedDraftId?: string | null
+  drafts?: KipDraftSummary[] | null
+  refreshDrafts?: () => void
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -26,7 +29,6 @@ type AgentItem = {
 
 type JourneyItem = { id: string; name: string; createdAt: string }
 type KeeperItem  = { id: string; name: string; type?: string; createdAt?: string }
-type DraftItem   = { id: string; title: string; createdAt: string }
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—"
@@ -113,11 +115,10 @@ function NavSection({ title, items, emptyText }: NavSectionProps) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AgentBoardNav({ domainSlug, onAgentSelect, selectedAgentId, onDraftSelect, selectedDraftId }: AgentBoardNavProps) {
+export function AgentBoardNav({ domainSlug, onAgentSelect, selectedAgentId, onDraftSelect, selectedDraftId, drafts, refreshDrafts: _refreshDrafts }: AgentBoardNavProps) {
   const [agents, setAgents]     = React.useState<AgentItem[] | null>(null)
   const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
   const [keepers, setKeepers]   = React.useState<KeeperItem[] | null>(null)
-  const [drafts, setDrafts]     = React.useState<DraftItem[] | null>(null)
   const [moreOpen, setMoreOpen] = React.useState(false)
 
   // Agents — auth-protected; degrade to empty on failure
@@ -176,20 +177,6 @@ export function AgentBoardNav({ domainSlug, onAgentSelect, selectedAgentId, onDr
     return () => { cancelled = true }
   }, [domainSlug])
 
-  // Drafts — auth-protected; degrade to empty on failure
-  React.useEffect(() => {
-    if (!domainSlug) return
-    let cancelled = false
-    apiFetch(`/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=draft&limit=5`)
-      .then((res: unknown) => {
-        if (cancelled) return
-        const list = (res as { data?: unknown })?.data ?? []
-        setDrafts(Array.isArray(list) ? (list as DraftItem[]) : [])
-      })
-      .catch(() => { if (!cancelled) setDrafts([]) })
-    return () => { cancelled = true }
-  }, [domainSlug])
-
   // ─── Derived items ──────────────────────────────────────────────────────────
 
   const journeyItems =
@@ -207,13 +194,15 @@ export function AgentBoardNav({ domainSlug, onAgentSelect, selectedAgentId, onDr
     })) ?? null
 
   const draftItems =
-    drafts?.slice(0, 5).map((d) => ({
-      id: d.id,
-      primary: d.title?.trim() || "Untitled draft",
-      secondary: formatDate(d.createdAt),
-      isActive: d.id === selectedDraftId,
-      onClick: () => onDraftSelect?.(d.id),
-    })) ?? null
+    drafts == null
+      ? null
+      : drafts.slice(0, 5).map((d) => ({
+          id: d.id,
+          primary: d.title?.trim() || "Untitled draft",
+          secondary: formatDate(typeof d.updatedAt === "string" ? d.updatedAt : d.updatedAt?.toString()),
+          isActive: d.id === selectedDraftId,
+          onClick: () => onDraftSelect?.(d.id),
+        }))
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 

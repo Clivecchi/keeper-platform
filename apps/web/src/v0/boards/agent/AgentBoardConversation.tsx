@@ -5,6 +5,10 @@ import { KipApi } from "../../../lib/kipApi"
 import type { KipMessage } from "../../../lib/kipApi"
 import { AgentComposer } from "../../../components/agent/AgentComposer"
 import type { AgentAttachment } from "../../../components/agent/AgentComposer"
+import { DialogueMessageList } from "../../../components/agent/DialogueMessageList"
+import type { AgentDialogueMessage } from "../../../components/agent/types"
+import { normalizeActionReceipt } from "../../../components/agent/types"
+import { extractLinkedCard } from "../../../components/agent/helpers"
 import { useV0Shell } from "../../shell/V0ShellContext"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -21,45 +25,44 @@ interface AgentBoardConversationProps {
   domainId?: string | null
   /** Agent list passed from board level for reference (retained for API compat). */
   agents?: AgentItem[]
+  refreshDrafts?: () => void
+  onDraftSelect?: (draftId: string) => void
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-type MessageRole = "user" | "kip"
-
-interface Message {
-  id: string
-  role: MessageRole
-  content: string
-}
-
-const GREETING: Message = {
-  id: "kip-greeting",
-  role: "kip",
-  content: "I'm here. I can see your registered agents. What would you like to work on?",
+function normalizeMessage(message: KipMessage): AgentDialogueMessage {
+  const role = (message.sender || message.role) === "user" ? "user" : "agent"
+  const meta = message.metadata as Record<string, unknown> | null | undefined
+  const actionResults = Array.isArray(meta?.actionResults) ? meta.actionResults : undefined
+  const linkedCard = extractLinkedCard(meta)
+  return {
+    id: message.id,
+    role,
+    content: message.content,
+    createdAt: new Date(message.created_at || Date.now()).toISOString(),
+    linkedCard,
+    actionResults,
+  }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AgentBoardConversation({ domainSlug, domainId, agents: _agents }: AgentBoardConversationProps) {
+export function AgentBoardConversation({ domainSlug, domainId, agents: _agents, refreshDrafts, onDraftSelect }: AgentBoardConversationProps) {
   const { domainFrame, resolvedAudience } = useV0Shell()
-  const [messages, setMessages]               = React.useState<Message[]>([GREETING])
+  const [messages, setMessages]               = React.useState<AgentDialogueMessage[]>([])
   const [input, setInput]                     = React.useState("")
   const [isSending, setIsSending]             = React.useState(false)
   const [kipAgentId, setKipAgentId]           = React.useState<string | null>(null)
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
 
-  const threadRef = React.useRef<HTMLDivElement>(null)
+  const threadRef = React.useRef<HTMLDivElement>(null)  // kept for scroll-to-bottom
 
   // Re-fetch persisted messages from session — same pattern as AgentBoardFrame
   const fetchMessages = React.useCallback(async (sessionId: string) => {
     try {
       const msgs: KipMessage[] = await KipApi.getSessionMessages(sessionId)
-      setMessages(msgs.map((m) => ({
-        id: m.id,
-        role: ((m.sender || m.role) === "user" ? "user" : "kip") as MessageRole,
-        content: m.content,
-      })))
+      setMessages(msgs.map(normalizeMessage))
     } catch {
       // keep existing messages if fetch fails
     }
@@ -108,8 +111,8 @@ export function AgentBoardConversation({ domainSlug, domainId, agents: _agents }
 
     setMessages((prev) => [
       ...prev,
-      { id: `user-${ts}`, role: "user", content: content || "[attachment]" },
-      { id: thinkingId,   role: "kip",  content: "Kip is thinking\u2026" },
+      { id: `user-${ts}`, role: "user", content: content || "[attachment]", createdAt: new Date(ts).toISOString() },
+      { id: thinkingId,   role: "agent", content: "Kip is thinking\u2026",  createdAt: new Date(ts).toISOString() },
     ])
     setInput("")
     setIsSending(true)
@@ -126,7 +129,7 @@ export function AgentBoardConversation({ domainSlug, domainId, agents: _agents }
       : undefined
 
     try {
-      await KipApi.runAgent(
+      const result = await KipApi.runAgent(
         kipAgentId,
         content,
         undefined,
@@ -141,6 +144,15 @@ export function AgentBoardConversation({ domainSlug, domainId, agents: _agents }
       )
 
       await fetchMessages(activeSessionId)
+
+      const actionResults = (result as any)?.data?.actions
+      if (Array.isArray(actionResults) && actionResults.length > 0) {
+        const hasDraftMutation = actionResults.some((ar: any) => {
+          const n = normalizeActionReceipt(ar)
+          return n.status === "success" && ["draft.create", "draft.update", "draft.delete", "draft.setActive"].includes(n.type)
+        })
+        if (hasDraftMutation) await refreshDrafts?.()
+      }
     } catch (err) {
       const status  = (err as { status?: number })?.status
       const message = err instanceof Error ? err.message : ""
@@ -185,47 +197,16 @@ export function AgentBoardConversation({ domainSlug, domainId, agents: _agents }
       {/* Message thread */}
       <div
         ref={threadRef}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0"
+        className="flex-1 overflow-y-auto min-h-0"
       >
-        {messages.map((m) => (
-          <div
-            key={m.id}
-            className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
-          >
-            <span
-              className="text-[10px] font-semibold uppercase tracking-widest mb-1"
-              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-            >
-              {m.role === "kip" ? "Kip" : "You"}
-            </span>
-            <div
-              className="max-w-[85%] rounded-xl px-3 py-2 text-[13px] leading-relaxed"
-              style={
-                m.role === "kip"
-                  ? {
-                      background: "hsl(var(--theme-surface-elevated))",
-                      border: "1px solid hsl(var(--theme-line-hairline))",
-                      color: "hsl(var(--theme-ink-primary))",
-                    }
-                  : {
-                      background: "hsl(var(--theme-surface-panel))",
-                      border: "1px solid hsl(var(--theme-line-hairline))",
-                      color: "hsl(var(--theme-ink-primary))",
-                    }
-              }
-            >
-              <span
-                style={
-                  m.content === "Kip is thinking\u2026"
-                    ? { color: "hsl(var(--theme-ink-tertiary))", fontStyle: "italic" }
-                    : undefined
-                }
-              >
-                {m.content}
-              </span>
-            </div>
-          </div>
-        ))}
+        <DialogueMessageList
+          isLoading={false}
+          messages={messages}
+          isSending={isSending}
+          error={null}
+          agentName="Kip"
+          onOpenDraft={onDraftSelect}
+        />
       </div>
 
       {/* AgentComposer — full upload + mode support */}
