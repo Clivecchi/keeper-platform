@@ -4,7 +4,7 @@ import * as React from "react"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { KeeperTopBar } from "../../components/KeeperTopBar"
 import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
-import { V0_MARGIN_HEIGHT } from "../../components/Margin"
+
 import { StyleScope } from "../../styles/StyleScope"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
 import { IDEBoardNav } from "./IDEBoardNav"
@@ -43,7 +43,7 @@ export function IDEBoard() {
           />
         )}
 
-        <div className="flex flex-1 min-h-0 overflow-hidden" style={{ paddingBottom: V0_MARGIN_HEIGHT }}>
+        <div className="flex flex-1 min-h-0 overflow-hidden px-6 pb-8">
           {/* Left */}
           <div
             className="flex flex-col border-r min-h-0"

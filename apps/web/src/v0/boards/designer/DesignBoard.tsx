@@ -22,7 +22,7 @@ import { loadDomainFrame } from "../../data/loadDomainFrame"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
-import { V0_MARGIN_HEIGHT } from "../../components/Margin"
+
 import { StyleScope } from "../../styles/StyleScope"
 import { KeeperTopBar } from "../../components/KeeperTopBar"
 import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
@@ -329,10 +329,7 @@ export function DesignerFrame({
       </div>
 
       {/* Three-panel layout */}
-      <div
-        className="flex flex-1 min-h-0 overflow-hidden"
-        style={{ paddingBottom: V0_MARGIN_HEIGHT }}
-      >
+      <div className="flex flex-1 min-h-0 overflow-hidden px-6 pb-8">
 
       {/* Left — Board & Template List */}
       <div

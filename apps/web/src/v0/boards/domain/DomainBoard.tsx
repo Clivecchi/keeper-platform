@@ -6,7 +6,7 @@ import type { DomainFrameJson } from "../../data/domain-frame.types"
 import { loadDomainFrame } from "../../data/loadDomainFrame"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
-import { V0_MARGIN_HEIGHT } from "../../components/Margin"
+
 import { BOARD_FRAMES, type FrameItem } from "../designer/DesignBoardFrameList"
 import type { DesignerMessage } from "../designer/DesignBoard"
 import { apiFetch } from "../../../lib/api"
@@ -400,10 +400,7 @@ export function DomainBoard() {
           onClose={() => setSwitcherOpen(false)}
         />
       )}
-      <div
-        className="flex flex-1 min-h-0 overflow-hidden"
-        style={{ paddingBottom: V0_MARGIN_HEIGHT }}
-      >
+      <div className="flex flex-1 min-h-0 overflow-hidden px-6 pb-8">
         {/* Left */}
         <div
           className="flex flex-col border-r border-[#e7e5e4] min-h-0 transition-all duration-200"
