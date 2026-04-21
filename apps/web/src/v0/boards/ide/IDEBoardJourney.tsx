@@ -125,6 +125,30 @@ export function IDEBoardJourney({ domainSlug, journeyId }: IDEBoardJourneyProps)
         >
           {bannerTitle}
         </p>
+        {loadState === "ready" && journey && (
+          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+            <span
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+              style={{
+                background: "hsl(var(--theme-surface-elevated))",
+                border: "1px solid hsl(var(--theme-line-hairline))",
+                color: "hsl(var(--theme-ink-tertiary))",
+              }}
+            >
+              {moments.length} {moments.length === 1 ? "Moment" : "Moments"}
+            </span>
+            <span
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+              style={{
+                background: "hsl(var(--theme-surface-elevated))",
+                border: "1px solid hsl(var(--theme-line-hairline))",
+                color: "hsl(var(--theme-ink-tertiary))",
+              }}
+            >
+              Updated {formatDate(journey.updatedAt)}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Body — scrollable */}

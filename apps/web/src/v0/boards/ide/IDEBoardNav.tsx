@@ -3,7 +3,9 @@
 import * as React from "react"
 import { apiFetch } from "../../../lib/api"
 import { getApiBase } from "../../../lib/apiFetch"
+import { KipApi } from "../../../lib/kipApi"
 import { useV0Shell, type V0FrameKey } from "../../shell/V0ShellContext"
+import { SidebarCard, type SidebarCardItem } from "../../components/SidebarCard"
 
 interface IDEBoardNavProps {
   domainSlug: string
@@ -12,8 +14,9 @@ interface IDEBoardNavProps {
 }
 
 type JourneyItem = { id: string; name: string; createdAt: string }
-type KeeperItem = { id: string; name: string; type?: string; createdAt?: string }
-type DraftItem = { id: string; title: string; createdAt: string }
+type KeeperItem  = { id: string; name: string; type?: string; createdAt?: string }
+type DraftItem   = { id: string; title: string; createdAt: string }
+type SessionItem = { id: string; title: string }
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—"
@@ -22,86 +25,12 @@ function formatDate(iso: string | null | undefined): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
 }
 
-interface NavSectionProps {
-  title: string
-  items: Array<{ id: string; primary: string; secondary: string; onClick?: () => void; isActive?: boolean }> | null
-  emptyText: string
-}
-
-function NavSection({ title, items, emptyText }: NavSectionProps) {
-  return (
-    <div className="mb-6">
-      <div className="flex items-center justify-between px-3 mb-2">
-        <span
-          className="text-[10px] font-semibold uppercase tracking-widest"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-        >
-          {title}
-        </span>
-        {/* TODO: create flow not yet implemented for journeys, keepers, or drafts */}
-        <button
-          type="button"
-          aria-label={`Add ${title.toLowerCase()}`}
-          className="flex items-center justify-center w-5 h-5 rounded transition-opacity hover:opacity-60"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-        >
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
-            <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </button>
-      </div>
-      {items === null ? (
-        <p className="px-3 text-[11px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-          Loading…
-        </p>
-      ) : items.length === 0 ? (
-        <p className="px-3 text-[11px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-          {emptyText}
-        </p>
-      ) : (
-        <ul>
-          {items.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                onClick={item.onClick}
-                className="w-full text-left px-3 py-2 rounded-md transition-colors"
-                style={{
-                  background: item.isActive
-                    ? "hsl(var(--theme-accent-subtle, var(--theme-surface-elevated)))"
-                    : "transparent",
-                }}
-              >
-                <p
-                  className="text-[12px] leading-snug truncate"
-                  style={{
-                    color: item.isActive
-                      ? "hsl(var(--theme-accent-fg, var(--theme-ink-primary)))"
-                      : "hsl(var(--theme-ink-primary))",
-                  }}
-                >
-                  {item.primary}
-                </p>
-                <p
-                  className="text-[10px] leading-snug truncate"
-                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-                >
-                  {item.secondary}
-                </p>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
-}
-
 export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: IDEBoardNavProps) {
   const { navigateToFrame } = useV0Shell()
   const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
-  const [keepers, setKeepers] = React.useState<KeeperItem[] | null>(null)
-  const [drafts, setDrafts] = React.useState<DraftItem[] | null>(null)
+  const [keepers, setKeepers]   = React.useState<KeeperItem[] | null>(null)
+  const [drafts, setDrafts]     = React.useState<DraftItem[] | null>(null)
+  const [sessions, setSessions] = React.useState<SessionItem[] | null>(null)
   const [moreOpen, setMoreOpen] = React.useState(false)
 
   // Journeys — public endpoint, no auth required
@@ -114,12 +43,8 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
       .then((json: { journeys?: JourneyItem[] }) => {
         if (!cancelled) setJourneys(Array.isArray(json.journeys) ? json.journeys : [])
       })
-      .catch(() => {
-        if (!cancelled) setJourneys([])
-      })
-    return () => {
-      cancelled = true
-    }
+      .catch(() => { if (!cancelled) setJourneys([]) })
+    return () => { cancelled = true }
   }, [domainSlug])
 
   // Keepers — auth-protected; degrade to empty on failure
@@ -129,156 +54,114 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
     apiFetch(`/api/domains/by-slug/${encodeURIComponent(domainSlug)}`)
       .then((domain: unknown) => {
         const id = (domain as { id?: string })?.id
-        if (!id || cancelled) {
-          if (!cancelled) setKeepers([])
-          return
-        }
+        if (!id || cancelled) { if (!cancelled) setKeepers([]); return }
         apiFetch(`/api/keepers?domainId=${encodeURIComponent(id)}`)
           .then((res: unknown) => {
             if (cancelled) return
             const r = res as Record<string, unknown>
-            const list =
-              (r?.data as Record<string, unknown>)?.keepers ??
-              r?.keepers ??
-              []
+            const list = (r?.data as Record<string, unknown>)?.keepers ?? r?.keepers ?? []
             setKeepers(Array.isArray(list) ? (list as KeeperItem[]) : [])
           })
-          .catch(() => {
-            if (!cancelled) setKeepers([])
-          })
+          .catch(() => { if (!cancelled) setKeepers([]) })
       })
-      .catch(() => {
-        if (!cancelled) setKeepers([])
-      })
-    return () => {
-      cancelled = true
-    }
+      .catch(() => { if (!cancelled) setKeepers([]) })
+    return () => { cancelled = true }
   }, [domainSlug])
 
   // Drafts — auth-protected; degrade to empty on failure
   React.useEffect(() => {
     if (!domainSlug) return
     let cancelled = false
-    apiFetch(
-      `/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=draft&limit=5`,
-    )
+    apiFetch(`/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=draft&limit=5`)
       .then((res: unknown) => {
         if (cancelled) return
         const list = (res as { data?: unknown })?.data ?? []
         setDrafts(Array.isArray(list) ? (list as DraftItem[]) : [])
       })
-      .catch(() => {
-        if (!cancelled) setDrafts([])
-      })
-    return () => {
-      cancelled = true
-    }
+      .catch(() => { if (!cancelled) setDrafts([]) })
+    return () => { cancelled = true }
   }, [domainSlug])
 
-  const journeyItems =
-    journeys?.slice(0, 5).map((j) => ({
-      id: j.id,
-      primary: j.name?.trim() || "Untitled journey",
-      secondary: formatDate(j.createdAt),
-      isActive: j.id === selectedJourneyId,
-      onClick: () => onSelectJourney(j.id),
-    })) ?? null
+  // Sessions — resolve Kip agent then fetch recent sessions
+  React.useEffect(() => {
+    let cancelled = false
+    KipApi.getLeadAgent("kip")
+      .then((agent) => KipApi.getSessionsByAgentId(agent.id))
+      .then((raw) => {
+        if (cancelled) return
+        const items = (Array.isArray(raw) ? raw : [])
+          .slice(0, 5)
+          .map((s) => ({
+            id: s.id,
+            title:
+              (s.topic as string | undefined)?.trim() ||
+              s.session_name?.trim() ||
+              `Session · ${formatDate(s.updated_at ? new Date(s.updated_at).toISOString() : undefined)}`,
+          }))
+        setSessions(items)
+      })
+      .catch(() => { if (!cancelled) setSessions([]) })
+    return () => { cancelled = true }
+  }, [])
 
-  const keeperItems =
-    keepers?.slice(0, 5).map((k) => ({
-      id: k.id,
-      primary: k.name?.trim() || "Untitled keeper",
-      secondary: k.type ?? "Keeper",
-    })) ?? null
+  // ─── Derived SidebarCard item arrays ────────────────────────────────────────
 
-  const draftItems =
-    drafts?.slice(0, 5).map((d) => ({
-      id: d.id,
-      primary: d.title?.trim() || "Untitled draft",
-      secondary: formatDate(d.createdAt),
-    })) ?? null
+  const journeyItems: SidebarCardItem[] = (journeys ?? []).slice(0, 5).map((j) => ({
+    id: j.id,
+    label: j.name?.trim() || "Untitled journey",
+    onClick: () => onSelectJourney(j.id),
+  }))
+
+  const keeperItems: SidebarCardItem[] = (keepers ?? []).slice(0, 5).map((k) => ({
+    id: k.id,
+    label: k.name?.trim() || "Untitled keeper",
+  }))
+
+  const draftItems: SidebarCardItem[] = (drafts ?? []).slice(0, 5).map((d) => ({
+    id: d.id,
+    label: d.title?.trim() || "Untitled draft",
+  }))
+
+  const sessionItems: SidebarCardItem[] = (sessions ?? []).map((s) => ({
+    id: s.id,
+    label: s.title,
+  }))
+
+  // ─── Section description helpers ─────────────────────────────────────────────
+
+  const countLabel = (n: number | null, singular: string) =>
+    n === null ? "Loading…" : `${n} ${n === 1 ? singular : `${singular}s`}`
 
   return (
     <div
       className="flex flex-col h-full overflow-hidden"
       style={{ color: "hsl(var(--theme-ink-primary))" }}
     >
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto py-4 min-h-0">
-        {/* Nav label */}
-        <div className="px-3 mb-5">
-          <p
-            className="text-[11px] font-semibold"
-            style={{ color: "hsl(var(--theme-ink-secondary))" }}
-          >
-            IDE Board
-          </p>
-        </div>
-
-        {/* Primary section: Journeys, Keepers, Drafts */}
-        <NavSection
+      {/* Scrollable section cards */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+        <SidebarCard
           title="Journeys"
-          items={journeyItems}
-          emptyText="No journeys yet"
+          description={countLabel(journeys?.length ?? null, "journey")}
+          items={journeyItems.length ? journeyItems : undefined}
         />
-        <NavSection
+        <SidebarCard
           title="Keepers"
-          items={keeperItems}
-          emptyText="No keepers yet"
+          description={countLabel(keepers?.length ?? null, "keeper")}
+          items={keeperItems.length ? keeperItems : undefined}
         />
-        <NavSection
+        <SidebarCard
           title="Drafts"
-          items={draftItems}
-          emptyText="No drafts yet"
+          description={countLabel(drafts?.length ?? null, "draft")}
+          items={draftItems.length ? draftItems : undefined}
         />
-
-        {/* Divider above Recent */}
-        {drafts !== null && drafts.length > 0 && (
-          <div
-            className="mx-3 mb-5 border-t"
-            style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
-          />
-        )}
-
-        {/* Recent — sources from most recently created draft */}
-        {drafts !== null && drafts.length > 0 && (() => {
-          const recent = [...drafts].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          )[0]
-          return (
-            <div className="px-3">
-              <div
-                className="rounded-md px-3 py-2.5 border"
-                style={{
-                  borderColor: "hsl(var(--theme-line-hairline))",
-                  background: "hsl(var(--theme-surface-elevated))",
-                }}
-              >
-                <p
-                  className="text-[9px] font-semibold uppercase tracking-widest mb-1"
-                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-                >
-                  Recent
-                </p>
-                <p
-                  className="text-[11px] leading-snug truncate"
-                  style={{ color: "hsl(var(--theme-ink-secondary))" }}
-                >
-                  {recent.title?.trim() || "Untitled draft"}
-                </p>
-                <p
-                  className="text-[10px] mt-0.5"
-                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-                >
-                  {formatDate(recent.createdAt)}
-                </p>
-              </div>
-            </div>
-          )
-        })()}
+        <SidebarCard
+          title="Sessions"
+          description={countLabel(sessions?.length ?? null, "session")}
+          items={sessionItems.length ? sessionItems : undefined}
+        />
       </div>
 
-      {/* Secondary: ··· More overflow — pinned to bottom */}
+      {/* ··· More — pinned to bottom */}
       <div
         className="shrink-0 border-t px-3 py-2"
         style={{ borderColor: "hsl(var(--theme-line-hairline))" }}

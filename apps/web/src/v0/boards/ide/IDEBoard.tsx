@@ -44,42 +44,39 @@ export function IDEBoard() {
           />
         )}
 
-        <div className="flex flex-1 min-h-0 overflow-hidden px-6 pb-8">
-          {/* Left */}
+        <div className="flex flex-1 min-h-0 overflow-hidden px-6 pb-6">
+          {/* Floating card — three-panel layout sits inside */}
           <div
-            className="flex flex-col border-r min-h-0"
+            className="flex flex-1 min-h-0 rounded-3xl border overflow-hidden"
             style={{
-              width: 220,
-              minWidth: 220,
-              background: "hsl(var(--theme-surface-sidebar, var(--theme-surface-page)))",
-              borderColor: "hsl(var(--theme-line-hairline))",
+              borderColor: "var(--theme-border-soft, hsl(var(--theme-line-hairline)))",
+              background: "hsl(var(--theme-surface-paper, var(--theme-surface-page)) / 0.88)",
             }}
           >
-            <IDEBoardNav
-              domainSlug={domainSlug ?? ""}
-              selectedJourneyId={selectedJourneyId}
-              onSelectJourney={setSelectedJourneyId}
-            />
-          </div>
+            {/* Left */}
+            <div
+              className="flex flex-col border-r min-h-0"
+              style={{ width: 260, minWidth: 260, borderColor: "hsl(var(--theme-line-hairline))" }}
+            >
+              <IDEBoardNav
+                domainSlug={domainSlug ?? ""}
+                selectedJourneyId={selectedJourneyId}
+                onSelectJourney={setSelectedJourneyId}
+              />
+            </div>
 
-          {/* Center */}
-          <div
-            className="flex flex-col flex-1 min-w-0 min-h-0 border-r"
-            style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
-          >
-            <IDEBoardConversation domainSlug={domainSlug ?? ""} />
-          </div>
+            {/* Center */}
+            <div
+              className="flex flex-col flex-1 min-w-0 min-h-0 border-r"
+              style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
+            >
+              <IDEBoardConversation domainSlug={domainSlug ?? ""} />
+            </div>
 
-          {/* Right */}
-          <div
-            className="shrink-0 flex flex-col border-l min-h-0"
-            style={{
-              width: 380,
-              borderColor: "hsl(var(--theme-line-hairline))",
-              background: "hsl(var(--theme-surface-panel, var(--theme-surface-page)))",
-            }}
-          >
-            <IDEBoardJourney domainSlug={domainSlug ?? ""} journeyId={selectedJourneyId ?? undefined} />
+            {/* Right */}
+            <div className="shrink-0 flex flex-col min-h-0" style={{ width: 380 }}>
+              <IDEBoardJourney domainSlug={domainSlug ?? ""} journeyId={selectedJourneyId ?? undefined} />
+            </div>
           </div>
         </div>
       </div>
