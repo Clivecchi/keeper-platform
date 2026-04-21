@@ -30,8 +30,8 @@ interface NavSectionProps {
 
 function NavSection({ title, items, emptyText }: NavSectionProps) {
   return (
-    <div className="mb-3">
-      <div className="flex items-center justify-between px-3 mb-1">
+    <div className="mb-6">
+      <div className="flex items-center justify-between px-3 mb-2">
         <span
           className="text-[10px] font-semibold uppercase tracking-widest"
           style={{ color: "hsl(var(--theme-ink-tertiary))" }}
@@ -65,7 +65,7 @@ function NavSection({ title, items, emptyText }: NavSectionProps) {
               <button
                 type="button"
                 onClick={item.onClick}
-                className="w-full text-left px-3 py-1.5 rounded-md transition-colors"
+                className="w-full text-left px-3 py-2 rounded-md transition-colors"
                 style={{
                   background: item.isActive
                     ? "hsl(var(--theme-accent-subtle, var(--theme-surface-elevated)))"
@@ -204,7 +204,17 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
       style={{ color: "hsl(var(--theme-ink-primary))" }}
     >
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto py-3 min-h-0">
+      <div className="flex-1 overflow-y-auto py-4 min-h-0">
+        {/* Nav label */}
+        <div className="px-3 mb-5">
+          <p
+            className="text-[11px] font-semibold"
+            style={{ color: "hsl(var(--theme-ink-secondary))" }}
+          >
+            IDE Board
+          </p>
+        </div>
+
         {/* Primary section: Journeys, Keepers, Drafts */}
         <NavSection
           title="Journeys"
@@ -222,13 +232,21 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
           emptyText="No drafts yet"
         />
 
+        {/* Divider above Recent */}
+        {drafts !== null && drafts.length > 0 && (
+          <div
+            className="mx-3 mb-5 border-t"
+            style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
+          />
+        )}
+
         {/* Recent — sources from most recently created draft */}
         {drafts !== null && drafts.length > 0 && (() => {
           const recent = [...drafts].sort(
             (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
           )[0]
           return (
-            <div className="px-3 mt-4">
+            <div className="px-3">
               <div
                 className="rounded-md px-3 py-2.5 border"
                 style={{
