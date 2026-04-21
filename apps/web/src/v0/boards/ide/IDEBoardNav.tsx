@@ -6,6 +6,8 @@ import { getApiBase } from "../../../lib/apiFetch"
 
 interface IDEBoardNavProps {
   domainSlug: string
+  selectedJourneyId: string | null
+  onSelectJourney: (id: string) => void
 }
 
 type JourneyItem = { id: string; name: string; createdAt: string }
@@ -21,7 +23,7 @@ function formatDate(iso: string | null | undefined): string {
 
 interface NavSectionProps {
   title: string
-  items: Array<{ id: string; primary: string; secondary: string }> | null
+  items: Array<{ id: string; primary: string; secondary: string; onClick?: () => void; isActive?: boolean }> | null
   emptyText: string
 }
 
@@ -60,11 +62,21 @@ function NavSection({ title, items, emptyText }: NavSectionProps) {
             <li key={item.id}>
               <button
                 type="button"
-                className="w-full text-left px-3 py-1.5 transition-opacity hover:opacity-70"
+                onClick={item.onClick}
+                className="w-full text-left px-3 py-1.5 rounded-md transition-colors"
+                style={{
+                  background: item.isActive
+                    ? "hsl(var(--theme-accent-subtle, var(--theme-surface-elevated)))"
+                    : "transparent",
+                }}
               >
                 <p
                   className="text-[12px] leading-snug truncate"
-                  style={{ color: "hsl(var(--theme-ink-primary))" }}
+                  style={{
+                    color: item.isActive
+                      ? "hsl(var(--theme-accent-fg, var(--theme-ink-primary)))"
+                      : "hsl(var(--theme-ink-primary))",
+                  }}
                 >
                   {item.primary}
                 </p>
@@ -83,7 +95,7 @@ function NavSection({ title, items, emptyText }: NavSectionProps) {
   )
 }
 
-export function IDEBoardNav({ domainSlug }: IDEBoardNavProps) {
+export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: IDEBoardNavProps) {
   const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
   const [keepers, setKeepers] = React.useState<KeeperItem[] | null>(null)
   const [drafts, setDrafts] = React.useState<DraftItem[] | null>(null)
@@ -165,6 +177,8 @@ export function IDEBoardNav({ domainSlug }: IDEBoardNavProps) {
       id: j.id,
       primary: j.name?.trim() || "Untitled journey",
       secondary: formatDate(j.createdAt),
+      isActive: j.id === selectedJourneyId,
+      onClick: () => onSelectJourney(j.id),
     })) ?? null
 
   const keeperItems =

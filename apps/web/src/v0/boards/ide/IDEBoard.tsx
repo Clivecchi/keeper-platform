@@ -14,6 +14,7 @@ import { IDEBoardJourney } from "./IDEBoardJourney"
 export function IDEBoard() {
   const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
   const [briefOpen, setBriefOpen] = React.useState(false)
+  const [selectedJourneyId, setSelectedJourneyId] = React.useState<string | null>(null)
 
   // ─── Background (same pattern as AgentBoard) ─────────────────────────────
   const coverImageUrl   = domainData?.theme?.coverImage ?? null
@@ -54,7 +55,11 @@ export function IDEBoard() {
               borderColor: "hsl(var(--theme-line-hairline))",
             }}
           >
-            <IDEBoardNav domainSlug={domainSlug ?? ""} />
+            <IDEBoardNav
+              domainSlug={domainSlug ?? ""}
+              selectedJourneyId={selectedJourneyId}
+              onSelectJourney={setSelectedJourneyId}
+            />
           </div>
 
           {/* Center */}
@@ -74,7 +79,7 @@ export function IDEBoard() {
               background: "hsl(var(--theme-surface-panel, var(--theme-surface-page)))",
             }}
           >
-            <IDEBoardJourney domainSlug={domainSlug ?? ""} />
+            <IDEBoardJourney domainSlug={domainSlug ?? ""} journeyId={selectedJourneyId ?? undefined} />
           </div>
         </div>
       </div>
