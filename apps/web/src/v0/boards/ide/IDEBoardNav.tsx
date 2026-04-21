@@ -3,6 +3,7 @@
 import * as React from "react"
 import { apiFetch } from "../../../lib/api"
 import { getApiBase } from "../../../lib/apiFetch"
+import { useV0Shell, type V0FrameKey } from "../../shell/V0ShellContext"
 
 interface IDEBoardNavProps {
   domainSlug: string
@@ -37,6 +38,7 @@ function NavSection({ title, items, emptyText }: NavSectionProps) {
         >
           {title}
         </span>
+        {/* TODO: create flow not yet implemented for journeys, keepers, or drafts */}
         <button
           type="button"
           aria-label={`Add ${title.toLowerCase()}`}
@@ -96,6 +98,7 @@ function NavSection({ title, items, emptyText }: NavSectionProps) {
 }
 
 export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: IDEBoardNavProps) {
+  const { navigateToFrame } = useV0Shell()
   const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
   const [keepers, setKeepers] = React.useState<KeeperItem[] | null>(null)
   const [drafts, setDrafts] = React.useState<DraftItem[] | null>(null)
@@ -219,49 +222,42 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
           emptyText="No drafts yet"
         />
 
-        {/* Board-specific: Recent + Next cards */}
-        <div className="px-3 mt-4 space-y-2">
-          <div
-            className="rounded-md px-3 py-2.5 border"
-            style={{
-              borderColor: "hsl(var(--theme-line-hairline))",
-              background: "hsl(var(--theme-surface-elevated))",
-            }}
-          >
-            <p
-              className="text-[9px] font-semibold uppercase tracking-widest mb-1"
-              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-            >
-              Recent
-            </p>
-            <p
-              className="text-[11px] leading-snug"
-              style={{ color: "hsl(var(--theme-ink-secondary))" }}
-            >
-              Last build prompt: Prompt 8 — IDE Board Nav Panel
-            </p>
-          </div>
-          <div
-            className="rounded-md px-3 py-2.5 border"
-            style={{
-              borderColor: "hsl(var(--theme-line-hairline))",
-              background: "hsl(var(--theme-surface-elevated))",
-            }}
-          >
-            <p
-              className="text-[9px] font-semibold uppercase tracking-widest mb-1"
-              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-            >
-              Next
-            </p>
-            <p
-              className="text-[11px] leading-snug"
-              style={{ color: "hsl(var(--theme-ink-secondary))" }}
-            >
-              Prompt 9 — Kip conversation surface
-            </p>
-          </div>
-        </div>
+        {/* Recent — sources from most recently created draft */}
+        {drafts !== null && drafts.length > 0 && (() => {
+          const recent = [...drafts].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          )[0]
+          return (
+            <div className="px-3 mt-4">
+              <div
+                className="rounded-md px-3 py-2.5 border"
+                style={{
+                  borderColor: "hsl(var(--theme-line-hairline))",
+                  background: "hsl(var(--theme-surface-elevated))",
+                }}
+              >
+                <p
+                  className="text-[9px] font-semibold uppercase tracking-widest mb-1"
+                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                >
+                  Recent
+                </p>
+                <p
+                  className="text-[11px] leading-snug truncate"
+                  style={{ color: "hsl(var(--theme-ink-secondary))" }}
+                >
+                  {recent.title?.trim() || "Untitled draft"}
+                </p>
+                <p
+                  className="text-[10px] mt-0.5"
+                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                >
+                  {formatDate(recent.createdAt)}
+                </p>
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* Secondary: ··· More overflow — pinned to bottom */}
@@ -284,9 +280,9 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
           <ul className="mt-1 space-y-0.5 pb-1">
             {(["Feed", "Admin", "Diagnostics"] as const).map((label) => (
               <li key={label}>
-                {/* TODO: wire to navigateToFrame when frame navigation is available */}
                 <button
                   type="button"
+                  onClick={() => navigateToFrame(label.toLowerCase() as V0FrameKey)}
                   className="w-full text-left px-1 py-1 rounded-sm text-[11px] transition-opacity hover:opacity-70"
                   style={{ color: "hsl(var(--theme-ink-secondary))" }}
                 >
