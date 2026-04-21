@@ -157,7 +157,7 @@ export function IDEBoardConversation({ domainSlug, domainId }: IDEBoardConversat
     >
       {/* Banner */}
       <div
-        className="shrink-0 px-4 py-3 border-b"
+        className="shrink-0 px-4 py-4 border-b"
         style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
       >
         <p
@@ -167,7 +167,7 @@ export function IDEBoardConversation({ domainSlug, domainId }: IDEBoardConversat
           Conversation
         </p>
         <p
-          className="text-[13px] font-medium mt-0.5"
+          className="text-[14px] font-semibold mt-1"
           style={{ color: "hsl(var(--theme-ink-primary))" }}
         >
           Development Journey
@@ -185,7 +185,7 @@ export function IDEBoardConversation({ domainSlug, domainId }: IDEBoardConversat
             className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}
           >
             <span
-              className="text-[10px] font-semibold uppercase tracking-widest mb-1"
+              className="text-[11px] font-semibold uppercase tracking-widest mb-1"
               style={{ color: "hsl(var(--theme-ink-tertiary))" }}
             >
               {m.role === "kip" ? "Kip" : "You"}
@@ -197,6 +197,7 @@ export function IDEBoardConversation({ domainSlug, domainId }: IDEBoardConversat
                   ? {
                       background: "hsl(var(--theme-surface-elevated))",
                       border: "1px solid hsl(var(--theme-line-hairline))",
+                      borderLeft: "2px solid hsl(var(--theme-accent-subtle, var(--theme-line-hairline)))",
                       color: "hsl(var(--theme-ink-primary))",
                     }
                   : {
@@ -223,7 +224,10 @@ export function IDEBoardConversation({ domainSlug, domainId }: IDEBoardConversat
       {/* AgentComposer — full upload + mode support */}
       <div
         className="shrink-0 border-t px-3 py-3"
-        style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
+        style={{
+          borderColor: "hsl(var(--theme-line-hairline))",
+          background: "hsl(var(--theme-surface-elevated))",
+        }}
       >
         <AgentComposer
           agentName="Kip"

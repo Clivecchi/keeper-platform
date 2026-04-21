@@ -110,7 +110,7 @@ export function IDEBoardJourney({ domainSlug, journeyId }: IDEBoardJourneyProps)
     >
       {/* Banner */}
       <div
-        className="shrink-0 px-4 py-3 border-b"
+        className="shrink-0 px-4 py-4 border-b"
         style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
       >
         <p
@@ -120,7 +120,7 @@ export function IDEBoardJourney({ domainSlug, journeyId }: IDEBoardJourneyProps)
           Journey
         </p>
         <p
-          className="text-[13px] font-medium mt-0.5 truncate"
+          className="text-[14px] font-semibold mt-1 truncate"
           style={{ color: "hsl(var(--theme-ink-primary))" }}
         >
           {bannerTitle}
@@ -158,27 +158,21 @@ export function IDEBoardJourney({ domainSlug, journeyId }: IDEBoardJourneyProps)
 
         {loadState === "ready" && journey && (
           <>
-            {/* Journey header */}
+            {/* Journey header — name is shown in banner, so start with forward text */}
             <div
               className="px-4 py-4 border-b"
               style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
             >
-              <p
-                className="text-[15px] font-semibold leading-snug"
-                style={{ color: "hsl(var(--theme-ink-primary))" }}
-              >
-                {journey.name}
-              </p>
               {journey.forward?.trim() ? (
                 <p
-                  className="text-[12px] leading-relaxed mt-1"
+                  className="text-[12px] leading-relaxed"
                   style={{ color: "hsl(var(--theme-ink-secondary))" }}
                 >
                   {journey.forward.trim()}
                 </p>
               ) : null}
               <p
-                className="text-[11px] mt-2"
+                className="text-[11px] font-medium mt-2"
                 style={{ color: "hsl(var(--theme-ink-tertiary))" }}
               >
                 {moments.length} {moments.length === 1 ? "Moment" : "Moments"}
@@ -203,17 +197,43 @@ export function IDEBoardJourney({ domainSlug, journeyId }: IDEBoardJourneyProps)
                       <button
                         type="button"
                         onClick={() => toggleExpand(m.id)}
-                        className="w-full text-left px-4 py-3 border-b transition-colors hover:opacity-80"
+                        className="w-full text-left px-4 py-4 border-b transition-colors hover:opacity-80 group"
                         style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
                       >
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2">
+                          <div
+                            className="shrink-0 w-0.5 self-stretch rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            style={{ background: "hsl(var(--theme-accent-fg, var(--theme-ink-tertiary)))" }}
+                          />
                           <div className="flex-1 min-w-0">
-                            <p
-                              className="text-[12px] font-medium leading-snug truncate"
-                              style={{ color: "hsl(var(--theme-ink-primary))" }}
-                            >
-                              {m.title?.trim() || "Untitled Moment"}
-                            </p>
+                            <div className="flex items-start justify-between gap-2">
+                              <p
+                                className="text-[12px] font-medium leading-snug truncate"
+                                style={{ color: "hsl(var(--theme-ink-primary))" }}
+                              >
+                                {m.title?.trim() || "Untitled Moment"}
+                              </p>
+                              <svg
+                                width="10"
+                                height="10"
+                                viewBox="0 0 10 10"
+                                fill="none"
+                                aria-hidden
+                                className="shrink-0 mt-0.5 transition-transform"
+                                style={{
+                                  color: "hsl(var(--theme-ink-tertiary))",
+                                  transform: isExpanded ? "rotate(90deg)" : "none",
+                                }}
+                              >
+                                <path
+                                  d="M3 2l4 3-4 3"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </div>
                             <p
                               className="text-[10px] mt-0.5"
                               style={{ color: "hsl(var(--theme-ink-tertiary))" }}
@@ -229,26 +249,6 @@ export function IDEBoardJourney({ domainSlug, journeyId }: IDEBoardJourneyProps)
                               </p>
                             ) : null}
                           </div>
-                          <svg
-                            width="10"
-                            height="10"
-                            viewBox="0 0 10 10"
-                            fill="none"
-                            aria-hidden
-                            className="shrink-0 mt-1 transition-transform"
-                            style={{
-                              color: "hsl(var(--theme-ink-tertiary))",
-                              transform: isExpanded ? "rotate(90deg)" : "none",
-                            }}
-                          >
-                            <path
-                              d="M3 2l4 3-4 3"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
                         </div>
 
                         {/* Expanded content */}
