@@ -49,8 +49,8 @@ export function IDEBoard() {
           <div
             className="flex flex-1 min-h-0 rounded-3xl border overflow-hidden"
             style={{
-              borderColor: "var(--theme-border-soft, hsl(var(--theme-line-hairline)))",
-              background: "hsl(var(--theme-surface-paper, var(--theme-surface-page)) / 0.88)",
+              borderColor: "var(--theme-border-soft)",
+              background: "hsl(var(--theme-surface-paper) / 0.88)",
             }}
           >
             {/* Left */}

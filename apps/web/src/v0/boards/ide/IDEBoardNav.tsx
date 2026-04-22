@@ -7,14 +7,26 @@ import { KipApi } from "../../../lib/kipApi"
 import { useV0Shell, type V0FrameKey } from "../../shell/V0ShellContext"
 import { SidebarCard, type SidebarCardItem } from "../../components/SidebarCard"
 
+// ─── All registered boards ────────────────────────────────────────────────────
+// Sourced from boardRegistry — kept static since the registry rarely changes.
+const BOARDS: Array<{ key: string; label: string }> = [
+  { key: "designer", label: "Design Board" },
+  { key: "domain",   label: "Domain Board" },
+  { key: "agent",    label: "Agent Board" },
+  { key: "ide",      label: "IDE Board" },
+]
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
 interface IDEBoardNavProps {
   domainSlug: string
   selectedJourneyId: string | null
   onSelectJourney: (id: string) => void
 }
 
+// ─── Types ───────────────────────────────────────────────────────────────────
+
 type JourneyItem = { id: string; name: string; createdAt: string }
-type KeeperItem  = { id: string; name: string; type?: string; createdAt?: string }
 type DraftItem   = { id: string; title: string; createdAt: string }
 type SessionItem = { id: string; title: string }
 
@@ -25,10 +37,23 @@ function formatDate(iso: string | null | undefined): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
 }
 
+function countLabel(n: number | null, singular: string): string {
+  if (n === null) return "Loading…"
+  return `${n} ${n === 1 ? singular : `${singular}s`}`
+}
+
+function navigateToBoard(key: string) {
+  const url = new URL(window.location.href)
+  url.searchParams.set("board", key)
+  url.searchParams.delete("frame")
+  window.location.href = url.toString()
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: IDEBoardNavProps) {
   const { navigateToFrame } = useV0Shell()
   const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
-  const [keepers, setKeepers]   = React.useState<KeeperItem[] | null>(null)
   const [drafts, setDrafts]     = React.useState<DraftItem[] | null>(null)
   const [sessions, setSessions] = React.useState<SessionItem[] | null>(null)
   const [moreOpen, setMoreOpen] = React.useState(false)
@@ -47,32 +72,11 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
     return () => { cancelled = true }
   }, [domainSlug])
 
-  // Keepers — auth-protected; degrade to empty on failure
-  React.useEffect(() => {
-    if (!domainSlug) return
-    let cancelled = false
-    apiFetch(`/api/domains/by-slug/${encodeURIComponent(domainSlug)}`)
-      .then((domain: unknown) => {
-        const id = (domain as { id?: string })?.id
-        if (!id || cancelled) { if (!cancelled) setKeepers([]); return }
-        apiFetch(`/api/keepers?domainId=${encodeURIComponent(id)}`)
-          .then((res: unknown) => {
-            if (cancelled) return
-            const r = res as Record<string, unknown>
-            const list = (r?.data as Record<string, unknown>)?.keepers ?? r?.keepers ?? []
-            setKeepers(Array.isArray(list) ? (list as KeeperItem[]) : [])
-          })
-          .catch(() => { if (!cancelled) setKeepers([]) })
-      })
-      .catch(() => { if (!cancelled) setKeepers([]) })
-    return () => { cancelled = true }
-  }, [domainSlug])
-
   // Drafts — auth-protected; degrade to empty on failure
   React.useEffect(() => {
     if (!domainSlug) return
     let cancelled = false
-    apiFetch(`/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=draft&limit=5`)
+    apiFetch(`/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=draft&limit=10`)
       .then((res: unknown) => {
         if (cancelled) return
         const list = (res as { data?: unknown })?.data ?? []
@@ -104,7 +108,7 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
     return () => { cancelled = true }
   }, [])
 
-  // ─── Derived SidebarCard item arrays ────────────────────────────────────────
+  // ─── SidebarCard item arrays ─────────────────────────────────────────────────
 
   const journeyItems: SidebarCardItem[] = (journeys ?? []).slice(0, 5).map((j) => ({
     id: j.id,
@@ -112,14 +116,10 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
     onClick: () => onSelectJourney(j.id),
   }))
 
-  const keeperItems: SidebarCardItem[] = (keepers ?? []).slice(0, 5).map((k) => ({
-    id: k.id,
-    label: k.name?.trim() || "Untitled keeper",
-  }))
-
   const draftItems: SidebarCardItem[] = (drafts ?? []).slice(0, 5).map((d) => ({
     id: d.id,
     label: d.title?.trim() || "Untitled draft",
+    onClick: () => navigateToFrame("moment" as V0FrameKey, { draftId: d.id }),
   }))
 
   const sessionItems: SidebarCardItem[] = (sessions ?? []).map((s) => ({
@@ -127,10 +127,13 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
     label: s.title,
   }))
 
-  // ─── Section description helpers ─────────────────────────────────────────────
+  const boardItems: SidebarCardItem[] = BOARDS.map((b) => ({
+    id: b.key,
+    label: b.label,
+    onClick: () => navigateToBoard(b.key),
+  }))
 
-  const countLabel = (n: number | null, singular: string) =>
-    n === null ? "Loading…" : `${n} ${n === 1 ? singular : `${singular}s`}`
+  // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div
@@ -145,11 +148,6 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
           items={journeyItems.length ? journeyItems : undefined}
         />
         <SidebarCard
-          title="Keepers"
-          description={countLabel(keepers?.length ?? null, "keeper")}
-          items={keeperItems.length ? keeperItems : undefined}
-        />
-        <SidebarCard
           title="Drafts"
           description={countLabel(drafts?.length ?? null, "draft")}
           items={draftItems.length ? draftItems : undefined}
@@ -158,6 +156,11 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
           title="Sessions"
           description={countLabel(sessions?.length ?? null, "session")}
           items={sessionItems.length ? sessionItems : undefined}
+        />
+        <SidebarCard
+          title="Boards"
+          description="Switch to another board"
+          items={boardItems}
         />
       </div>
 
