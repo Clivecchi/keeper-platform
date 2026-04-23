@@ -82,22 +82,20 @@ export function IDEBoardNav({ domainSlug, setActiveContext, onSelectSession }: I
     return () => { cancelled = true }
   }, [domainId])
 
-  // Sessions — resolve Kip agent then fetch recent sessions
+  // Sessions — resolve Kip agent then fetch sessions (up to 50; display slices below)
   React.useEffect(() => {
     let cancelled = false
     KipApi.getLeadAgent("kip")
-      .then((agent) => KipApi.getSessionsByAgentId(agent.id))
+      .then((agent) => KipApi.getSessionsByAgentId(agent.id, { pageSize: 50 }))
       .then((raw) => {
         if (cancelled) return
-        const items = (Array.isArray(raw) ? raw : [])
-          .slice(0, 5)
-          .map((s) => ({
-            id: s.id,
-            title:
-              (s.topic as string | undefined)?.trim() ||
-              s.session_name?.trim() ||
-              `Session · ${formatDate(s.updated_at ? new Date(s.updated_at).toISOString() : undefined)}`,
-          }))
+        const items = (Array.isArray(raw) ? raw : []).map((s) => ({
+          id: s.id,
+          title:
+            (s.topic as string | undefined)?.trim() ||
+            s.session_name?.trim() ||
+            `Session · ${formatDate(s.updated_at ? new Date(s.updated_at).toISOString() : undefined)}`,
+        }))
         setSessions(items)
       })
       .catch(() => { if (!cancelled) setSessions([]) })
@@ -118,11 +116,13 @@ export function IDEBoardNav({ domainSlug, setActiveContext, onSelectSession }: I
     onClick: () => navigateToFrame("moment" as V0FrameKey, { draftId: d.id }),
   }))
 
-  const sessionItems: SidebarCardItem[] = (sessions ?? []).map((s) => ({
-    id: s.id,
-    label: s.title,
-    onClick: () => onSelectSession(s.id),
-  }))
+  const sessionItems: SidebarCardItem[] = (sessions ?? [])
+    .slice(0, 50)
+    .map((s) => ({
+      id: s.id,
+      label: s.title,
+      onClick: () => onSelectSession(s.id),
+    }))
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 

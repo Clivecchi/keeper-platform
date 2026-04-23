@@ -50,43 +50,46 @@ export function IDEBoard() {
           />
         )}
 
-        <div className="flex flex-1 min-h-0 overflow-hidden px-6 pb-6">
-          {/* Floating card — three-panel layout sits inside */}
+        <div className="flex flex-1 min-h-0 overflow-hidden px-6 pb-8">
+          {/* Left — nav (matches AgentBoard sidebar surface) */}
           <div
-            className="flex flex-1 min-h-0 rounded-3xl border overflow-hidden"
+            className="shrink-0 flex flex-col border-r min-h-0"
             style={{
-              borderColor: "var(--theme-border-soft)",
-              background: "hsl(var(--theme-surface-paper) / 0.88)",
+              width: 260,
+              minWidth: 260,
+              background: "hsl(var(--theme-surface-sidebar, var(--theme-surface-page)))",
+              borderColor: "hsl(var(--theme-line-hairline))",
             }}
           >
-            {/* Left */}
-            <div
-              className="flex flex-col border-r min-h-0"
-              style={{ width: 260, minWidth: 260, borderColor: "hsl(var(--theme-line-hairline))" }}
-            >
-              <IDEBoardNav
-                domainSlug={domainSlug ?? ""}
-                setActiveContext={setActiveContext}
-                onSelectSession={setSelectedSessionId}
-              />
-            </div>
+            <IDEBoardNav
+              domainSlug={domainSlug ?? ""}
+              setActiveContext={setActiveContext}
+              onSelectSession={setSelectedSessionId}
+            />
+          </div>
 
-            {/* Center */}
-            <div
-              className="flex flex-col flex-1 min-w-0 min-h-0 border-r"
-              style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
-            >
+          {/* Center — conversation; atmosphere reads through (same pattern as AgentBoard) */}
+          <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden border-r" style={{ borderColor: "hsl(var(--theme-line-hairline))" }}>
+            <StyleScope styleId={styleId} themeSlug={themeSlug ?? null} className="flex flex-1 flex-col min-h-0 overflow-hidden">
               <IDEBoardConversation
                 domainSlug={domainSlug ?? ""}
                 selectedSessionId={selectedSessionId}
                 setActiveContext={setActiveContext}
               />
-            </div>
+            </StyleScope>
+          </div>
 
-            {/* Right */}
-            <div className="shrink-0 flex flex-col min-h-0" style={{ width: 380 }}>
-              <IDEBoardJourney domainSlug={domainSlug ?? ""} activeContext={activeContext} />
-            </div>
+          {/* Right — journey panel (matches AgentBoard right surface) */}
+          <div
+            className="shrink-0 flex flex-col border-l min-h-0 overflow-hidden"
+            style={{
+              width: 380,
+              minWidth: 380,
+              background: "hsl(var(--theme-surface-panel, var(--theme-surface-page)))",
+              borderColor: "hsl(var(--theme-line-hairline))",
+            }}
+          >
+            <IDEBoardJourney domainSlug={domainSlug ?? ""} activeContext={activeContext} />
           </div>
         </div>
       </div>

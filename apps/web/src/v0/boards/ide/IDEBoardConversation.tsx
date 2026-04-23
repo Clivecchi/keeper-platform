@@ -8,6 +8,8 @@ import type { AgentAttachment } from "../../../components/agent/AgentComposer"
 import { DialogueMessageList } from "../../../components/agent/DialogueMessageList"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { extractLinkedCard } from "../../../components/agent/helpers"
+import { apiFetch } from "../../../lib/api"
+import { useFrameContextOptional } from "../../shell/FrameContext"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import type { IDEBoardActiveContext } from "./IDEBoard"
 
@@ -46,6 +48,69 @@ const GREETING: AgentDialogueMessage = {
   createdAt: new Date().toISOString(),
 }
 
+function sessionNameDateFallback(): string {
+  return `Session · ${new Date().toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`
+}
+
+/** Resolves a unique session name from frame selection, then default journey/keeper for the domain, then a timestamped date string. */
+async function buildIdeSessionName(params: {
+  domainId: string | undefined
+  activeJourneyId: string | null
+  activeKeeperId: string | null
+}): Promise<string> {
+  const { domainId, activeJourneyId, activeKeeperId } = params
+  if (activeJourneyId) {
+    try {
+      const res = (await apiFetch(`/api/journeys/${activeJourneyId}`)) as { journey?: { name?: string }; data?: { name?: string } }
+      const j = res.journey ?? res.data
+      const n = j?.name?.trim()
+      if (n) return n
+    } catch {
+      /* keep trying fallbacks */
+    }
+  }
+  if (activeKeeperId) {
+    try {
+      const res = (await apiFetch(`/api/keepers/${activeKeeperId}`)) as {
+        keeper?: { title?: string; name?: string }
+        data?: { title?: string; name?: string }
+      }
+      const k = res.keeper ?? res.data
+      const n = (k?.title ?? k?.name)?.trim()
+      if (n) return n
+    } catch {
+      /* keep trying fallbacks */
+    }
+  }
+  if (domainId) {
+    try {
+      const jRes = (await apiFetch(`/api/journeys?domainId=${encodeURIComponent(domainId)}`)) as {
+        data?: { journeys?: Array<{ name?: string }> }
+        journeys?: Array<{ name?: string }>
+      }
+      const journeys = jRes.data?.journeys ?? jRes.journeys ?? []
+      const firstJ = Array.isArray(journeys) ? journeys[0] : null
+      const jn = firstJ?.name?.trim()
+      if (jn) return jn
+    } catch {
+      /* keep trying */
+    }
+    try {
+      const kRes = (await apiFetch(`/api/keepers?domainId=${encodeURIComponent(domainId)}`)) as {
+        data?: { keepers?: Array<{ title?: string; name?: string }> }
+        keepers?: Array<{ title?: string; name?: string }>
+      }
+      const keepers = kRes.data?.keepers ?? kRes.keepers ?? []
+      const firstK = Array.isArray(keepers) ? keepers[0] : null
+      const kn = (firstK?.title ?? firstK?.name)?.trim()
+      if (kn) return kn
+    } catch {
+      /* use date */
+    }
+  }
+  return sessionNameDateFallback()
+}
+
 /** After a successful run, align view context with linked cards or draft.create in the response. */
 function syncActiveContextFromKipResponse(
   setActiveContext: React.Dispatch<React.SetStateAction<IDEBoardActiveContext>>,
@@ -79,12 +144,14 @@ function syncActiveContextFromKipResponse(
 
 export function IDEBoardConversation({ domainSlug, domainId, selectedSessionId, setActiveContext }: IDEBoardConversationProps) {
   const { domainFrame, resolvedAudience, navigateToFrame } = useV0Shell()
+  const frameCtx = useFrameContextOptional()
   const [messages, setMessages]               = React.useState<AgentDialogueMessage[]>([GREETING])
   const [input, setInput]                     = React.useState("")
   const [isSending, setIsSending]             = React.useState(false)
   const [error, setError]                     = React.useState<string | null>(null)
   const [kipAgentId, setKipAgentId]           = React.useState<string | null>(null)
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
+  const ideSessionInitDoneRef = React.useRef(false)
 
   // Re-fetch persisted messages from session — same pattern as AgentBoardFrame
   const fetchMessages = React.useCallback(async (sessionId: string) => {
@@ -100,6 +167,16 @@ export function IDEBoardConversation({ domainSlug, domainId, selectedSessionId, 
 
   // Resolve Kip's agent ID then eagerly create a session so AgentComposer is ready immediately.
   React.useEffect(() => {
+    if (ideSessionInitDoneRef.current) return
+    if (frameCtx?.isResolving) return
+    const rid = frameCtx?.domain?.id
+    const resolvedDomainId =
+      rid && !String(rid).startsWith("fallback-")
+        ? rid
+        : domainId && !String(domainId).startsWith("fallback-")
+          ? domainId
+          : undefined
+
     let cancelled = false
     async function init() {
       try {
@@ -107,22 +184,40 @@ export function IDEBoardConversation({ domainSlug, domainId, selectedSessionId, 
         if (cancelled) return
         setKipAgentId(agent.id)
 
-        const session = await KipApi.createSession(agent.id, undefined, "IDE Board", {
+        const sessionName = await buildIdeSessionName({
+          domainId: resolvedDomainId,
+          activeJourneyId: frameCtx?.selection?.activeJourneyId ?? null,
+          activeKeeperId: frameCtx?.selection?.activeKeeperId ?? null,
+        })
+        if (cancelled) return
+
+        const session = await KipApi.createSession(agent.id, undefined, sessionName, {
           domainSlug,
-          ...(domainId ? { domainId } : {}),
+          ...(resolvedDomainId ? { domainId: resolvedDomainId } : {}),
           dialogBoard: "ide",
           dialogFrame: "conversation",
           dialogSubject: "domain",
           dialogScope: resolvedAudience === "admin" ? "admin" : "keeper",
         })
-        if (!cancelled) setActiveSessionId(session.id)
+        if (!cancelled) {
+          ideSessionInitDoneRef.current = true
+          setActiveSessionId(session.id)
+        }
       } catch {
         // degrade silently — composer stays disabled
       }
     }
     void init()
     return () => { cancelled = true }
-  }, [domainSlug, domainId])
+  }, [
+    domainSlug,
+    domainId,
+    resolvedAudience,
+    frameCtx?.isResolving,
+    frameCtx?.domain?.id,
+    frameCtx?.selection?.activeJourneyId,
+    frameCtx?.selection?.activeKeeperId,
+  ])
 
   // When a session is selected from the nav, switch to it and load its messages.
   React.useEffect(() => {
