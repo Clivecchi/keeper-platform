@@ -14,6 +14,7 @@ import { IDEBoardConversation } from "./IDEBoardConversation"
 import { IDEBoardContext } from "./IDEBoardContext"
 import type { IDEBoardKipContext } from "./ideBoardTypes"
 import { KeeperBoardPanelGroup } from "../KeeperBoardPanelGroup"
+import { ServicesFrame } from "./components/ServicesFrame"
 
 type JourneySummary = { id: string; name: string; momentCount?: number }
 type KeeperSummary = { id: string; title: string }
@@ -31,6 +32,14 @@ export function IDEBoard() {
   const [selectedMomentId, setSelectedMomentId] = React.useState<string | null>(null)
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
   const [draftListVersion, setDraftListVersion] = React.useState(0)
+  const [activeService, setActiveService] = React.useState<"cloud" | "railway" | "vercel" | "github" | null>(null)
+
+  const onServiceOpen = React.useCallback(
+    (service?: "cloud" | "railway" | "vercel" | "github") => {
+      setActiveService(service ?? "cloud")
+    },
+    [],
+  )
 
   React.useEffect(() => {
     if (!domainSlug) return
@@ -192,6 +201,7 @@ export function IDEBoard() {
                     onMomentSelect={onMomentSelect}
                     keeperName={keeperName}
                     journeyName={journeyName}
+                    onServiceOpen={onServiceOpen}
                   />
                 </div>
               }
@@ -199,17 +209,24 @@ export function IDEBoard() {
                 <div
                   className="flex h-full min-h-0 flex-col border-l"
                   style={{
-                    background: "hsl(var(--theme-surface-panel))",
+                    background: activeService !== null ? "#1c2128" : "hsl(var(--theme-surface-panel))",
                     borderColor: "hsl(var(--theme-line-hairline))",
                   }}
                 >
-                  <IDEBoardContext
-                    domainSlug={slug}
-                    domainId={domainId}
-                    activeJourneyId={activeJourneyId}
-                    selectedDraftId={selectedDraftId}
-                    selectedMomentId={selectedMomentId}
-                  />
+                  {activeService !== null ? (
+                    <ServicesFrame
+                      initialService={activeService}
+                      onClose={() => setActiveService(null)}
+                    />
+                  ) : (
+                    <IDEBoardContext
+                      domainSlug={slug}
+                      domainId={domainId}
+                      activeJourneyId={activeJourneyId}
+                      selectedDraftId={selectedDraftId}
+                      selectedMomentId={selectedMomentId}
+                    />
+                  )}
                 </div>
               }
             />

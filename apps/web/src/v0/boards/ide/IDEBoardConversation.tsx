@@ -12,7 +12,12 @@ import { useV0Shell } from "../../shell/V0ShellContext"
 import type { IDEBoardKipContext } from "./ideBoardTypes"
 import { useKipSession } from "../../../hooks/useKipSession"
 import { useDraftContext } from "../../../hooks/useDraftContext"
-import { IDEBannerActions } from "./IDEBannerActions"
+import { IntegratedServicesBar } from "./components/IntegratedServicesBar"
+import type { IntegratedServicesBarProps } from "./components/IntegratedServicesBar"
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type ServiceSlug = Parameters<IntegratedServicesBarProps["onOpen"]>[0]
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +39,8 @@ interface IDEBoardConversationProps {
   keeperName?: string | null
   /** Active journey name for the banner */
   journeyName?: string | null
+  /** Opens the Services panel in the right panel, optionally jumping to a specific service */
+  onServiceOpen?: (service?: ServiceSlug) => void
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -80,6 +87,7 @@ export function IDEBoardConversation({
   onMomentSelect,
   keeperName,
   journeyName,
+  onServiceOpen,
 }: IDEBoardConversationProps) {
   const { domainFrame, resolvedAudience } = useV0Shell()
   const frameCtx = useFrameContextOptional()
@@ -136,22 +144,17 @@ export function IDEBoardConversation({
 
   const modelProvider = (domainFrame?.kip as any)?.model ?? null
 
-  const handleBannerAction = React.useCallback(
-    (prompt: string) => {
-      void sendMessage({ preventDefault: () => {} } as React.FormEvent, { content: prompt })
-    },
-    [sendMessage],
-  )
-
   return (
     <div
       className="flex flex-col h-full min-h-0"
       style={{ color: "hsl(var(--theme-ink-primary))" }}
     >
+      {/* ── Banner header ─────────────────────────────────────────────────── */}
       <div
         className="shrink-0 border-b"
         style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
       >
+        {/* Row 1: SessionBannerCard */}
         <div className="mx-auto w-full max-w-3xl px-4 pt-3 pb-2">
           <SessionBannerCard
             sessionTitle={journeyName || "Development Journey"}
@@ -166,12 +169,18 @@ export function IDEBoardConversation({
             }}
           />
         </div>
-        <IDEBannerActions
-          onAction={handleBannerAction}
-          activeJourneyId={activeJourneyId}
+
+        {/* Row 2: Integrated Services bar */}
+        <IntegratedServicesBar
+          onOpen={onServiceOpen ?? (() => {})}
+          cloudStatus="connected"
+          railwayStatus="disconnected"
+          vercelStatus="disconnected"
+          githubStatus="disconnected"
         />
       </div>
 
+      {/* ── Conversation thread ───────────────────────────────────────────── */}
       <div className="keeper-panel-scroll min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-3xl px-4 pb-4 pt-2">
           <DialogueMessageList
@@ -187,6 +196,7 @@ export function IDEBoardConversation({
         </div>
       </div>
 
+      {/* ── Composer ──────────────────────────────────────────────────────── */}
       <div
         className="shrink-0 border-t"
         style={{
@@ -195,19 +205,19 @@ export function IDEBoardConversation({
         }}
       >
         <div className="mx-auto w-full max-w-3xl px-3 py-3">
-        <AgentComposer
-          agentName="Kip"
-          agentId={kipAgentId}
-          domainId={domainId ?? null}
-          dialogueMode="domain"
-          inputValue={input}
-          onInputChange={setInput}
-          onSubmit={sendMessage}
-          onFileAttach={(text) => setInput((prev) => (prev ? `${prev}\n\n${text}` : text))}
-          isSending={isSending}
-          activeSessionId={activeSessionId}
-          disabled={!kipAgentId}
-        />
+          <AgentComposer
+            agentName="Kip"
+            agentId={kipAgentId}
+            domainId={domainId ?? null}
+            dialogueMode="domain"
+            inputValue={input}
+            onInputChange={setInput}
+            onSubmit={sendMessage}
+            onFileAttach={(text) => setInput((prev) => (prev ? `${prev}\n\n${text}` : text))}
+            isSending={isSending}
+            activeSessionId={activeSessionId}
+            disabled={!kipAgentId}
+          />
         </div>
       </div>
     </div>
