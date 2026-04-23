@@ -30,7 +30,11 @@ export function AgentFrame({ styleId = "neutral", themeSlug }: { styleId?: Style
           type="button"
           aria-label="Close Kip"
           onClick={closeToBoard}
-          className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/60 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm"
+          className="inline-flex items-center justify-center rounded-sm border border-transparent p-1 shadow-sm backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--theme-focus-ring))] focus-visible:ring-offset-[hsl(var(--theme-surface-paper))] hover:border-[hsl(var(--theme-border-soft))] hover:bg-[hsl(var(--theme-hover-surface))] hover:text-[var(--theme-ink-primary-color)]"
+          style={{
+            color: "var(--theme-ink-tertiary-color)",
+            backgroundColor: "hsl(var(--theme-surface-elevated) / 0.92)",
+          }}
         >
           <X className="w-4 h-4" strokeWidth={1.25} />
         </button>
@@ -38,7 +42,14 @@ export function AgentFrame({ styleId = "neutral", themeSlug }: { styleId?: Style
       onClose={closeToBoard}
     >
       {/* MVP: v0 frame mounts legacy Kip agent surface (not FrameRenderer yet). */}
-      <div className="rounded-2xl border border-black/5 bg-white/80 shadow-sm">
+      <div
+        className="rounded-2xl shadow-sm"
+        style={{
+          border: "1px solid hsl(var(--theme-border-soft))",
+          backgroundColor: "hsl(var(--theme-surface-paper) / 0.92)",
+          boxShadow: "var(--theme-shadow-soft)",
+        }}
+      >
         <KipAgentBoard />
       </div>
     </DesignFrame>

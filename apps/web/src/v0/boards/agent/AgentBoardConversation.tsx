@@ -23,6 +23,8 @@ interface AgentBoardConversationProps {
   agents?: AgentItem[]
   refreshDrafts?: () => void
   onDraftSelect?: (draftId: string) => void
+  bannerEyebrow?: string
+  bannerTitle?: string
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -33,6 +35,8 @@ export function AgentBoardConversation({
   agents: _agents,
   refreshDrafts,
   onDraftSelect,
+  bannerEyebrow = "Conversation",
+  bannerTitle = "Agent Studio",
 }: AgentBoardConversationProps) {
   const { domainFrame, resolvedAudience } = useV0Shell()
 
@@ -86,41 +90,47 @@ export function AgentBoardConversation({
       style={{ color: "hsl(var(--theme-ink-primary))" }}
     >
       <div
-        className="shrink-0 px-4 py-3 border-b"
+        className="shrink-0 border-b"
         style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
       >
-        <p
-          className="text-[10px] font-semibold uppercase tracking-widest"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-        >
-          Conversation
-        </p>
-        <p
-          className="text-[13px] font-medium mt-0.5"
-          style={{ color: "hsl(var(--theme-ink-primary))" }}
-        >
-          Agent Studio
-        </p>
+        <div className="mx-auto w-full max-w-3xl px-4 py-3">
+          <p
+            className="text-[10px] font-semibold uppercase tracking-widest"
+            style={{ color: "var(--theme-ink-tertiary-color)" }}
+          >
+            {bannerEyebrow}
+          </p>
+          <p
+            className="mt-0.5 text-[13px] font-medium leading-snug"
+            style={{ color: "var(--theme-ink-primary-color)" }}
+          >
+            {bannerTitle}
+          </p>
+        </div>
+      </div>
+
+      <div ref={threadRef} className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-3xl px-4 pb-4 pt-2">
+          <DialogueMessageList
+            isLoading={false}
+            messages={messages}
+            isSending={isSending}
+            error={null}
+            agentName="Kip"
+            onOpenDraft={onDraftSelect}
+            agentBubbleFullWidth
+          />
+        </div>
       </div>
 
       <div
-        ref={threadRef}
-        className="flex-1 overflow-y-auto min-h-0"
+        className="shrink-0 border-t"
+        style={{
+          borderColor: "hsl(var(--theme-line-hairline))",
+          background: "hsl(var(--theme-surface-elevated))",
+        }}
       >
-        <DialogueMessageList
-          isLoading={false}
-          messages={messages}
-          isSending={isSending}
-          error={null}
-          agentName="Kip"
-          onOpenDraft={onDraftSelect}
-        />
-      </div>
-
-      <div
-        className="shrink-0 border-t px-3 py-3"
-        style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
-      >
+        <div className="mx-auto w-full max-w-3xl px-3 py-3">
         <AgentComposer
           agentName="Kip"
           agentId={kipAgentId}
@@ -134,6 +144,7 @@ export function AgentBoardConversation({
           activeSessionId={activeSessionId}
           disabled={!kipAgentId}
         />
+        </div>
       </div>
     </div>
   )

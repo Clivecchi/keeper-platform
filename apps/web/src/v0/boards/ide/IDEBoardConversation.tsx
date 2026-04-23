@@ -28,6 +28,10 @@ interface IDEBoardConversationProps {
   onSelectDraftInPlace: (id: string) => void
   /** Open a moment in the context panel without leaving the board */
   onMomentSelect: (momentId: string) => void
+  /** Dialog banner eyebrow (e.g. Conversation, Draft, Journey) */
+  bannerEyebrow?: string
+  /** Dialog banner title line */
+  bannerTitle?: string
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -72,6 +76,8 @@ export function IDEBoardConversation({
   onKipContextSync,
   onSelectDraftInPlace,
   onMomentSelect,
+  bannerEyebrow = "Conversation",
+  bannerTitle = "Development Journey",
 }: IDEBoardConversationProps) {
   const { domainFrame, resolvedAudience } = useV0Shell()
   const frameCtx = useFrameContextOptional()
@@ -132,42 +138,48 @@ export function IDEBoardConversation({
       style={{ color: "hsl(var(--theme-ink-primary))" }}
     >
       <div
-        className="shrink-0 px-4 py-4 border-b"
+        className="shrink-0 border-b"
         style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
       >
-        <p
-          className="text-[10px] font-semibold uppercase tracking-widest"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-        >
-          Conversation
-        </p>
-        <p
-          className="text-[14px] font-semibold mt-1"
-          style={{ color: "hsl(var(--theme-ink-primary))" }}
-        >
-          Development Journey
-        </p>
+        <div className="mx-auto w-full max-w-3xl px-4 py-4">
+          <p
+            className="text-[10px] font-semibold uppercase tracking-widest"
+            style={{ color: "var(--theme-ink-tertiary-color)" }}
+          >
+            {bannerEyebrow}
+          </p>
+          <p
+            className="mt-1 text-[14px] font-semibold leading-snug"
+            style={{ color: "var(--theme-ink-primary-color)" }}
+          >
+            {bannerTitle}
+          </p>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <DialogueMessageList
-          isLoading={false}
-          messages={messages}
-          isSending={isSending}
-          error={error}
-          agentName="Kip"
-          onOpenDraft={onSelectDraftInPlace}
-          onOpenMoment={onMomentSelect}
-        />
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-3xl px-4 pb-4 pt-2">
+          <DialogueMessageList
+            isLoading={false}
+            messages={messages}
+            isSending={isSending}
+            error={error}
+            agentName="Kip"
+            onOpenDraft={onSelectDraftInPlace}
+            onOpenMoment={onMomentSelect}
+            agentBubbleFullWidth
+          />
+        </div>
       </div>
 
       <div
-        className="shrink-0 border-t px-3 py-3"
+        className="shrink-0 border-t"
         style={{
           borderColor: "hsl(var(--theme-line-hairline))",
           background: "hsl(var(--theme-surface-elevated))",
         }}
       >
+        <div className="mx-auto w-full max-w-3xl px-3 py-3">
         <AgentComposer
           agentName="Kip"
           agentId={kipAgentId}
@@ -181,6 +193,7 @@ export function IDEBoardConversation({
           activeSessionId={activeSessionId}
           disabled={!kipAgentId}
         />
+        </div>
       </div>
     </div>
   )

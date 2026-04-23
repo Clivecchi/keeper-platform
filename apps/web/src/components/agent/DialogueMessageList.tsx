@@ -33,6 +33,8 @@ export interface DialogueMessageListProps {
   agentName?: string
   /** Domain-driven messaging strings for dialogue states */
   agentBoardMessaging?: AgentBoardMessaging
+  /** Agent messages span full width of the centered column (narrow reading measure) */
+  agentBubbleFullWidth?: boolean
 }
 
 export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
@@ -45,10 +47,11 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onConfirmDraftUpdate,
   agentName = "Agent",
   agentBoardMessaging,
+  agentBubbleFullWidth = true,
 }) => (
   <div
     className="min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl px-4 py-4"
-    style={{ backgroundColor: 'hsl(var(--theme-dialogue-area-bg, 35 33% 97%))' }}
+    style={{ backgroundColor: "hsl(var(--theme-dialogue-area-bg, 35 33% 97%))" }}
   >
     {isLoading ? (
       <>
@@ -77,14 +80,14 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
         >
           <div
             className={clsx(
-              "max-w-xl rounded-2xl px-4 py-3 text-sm shadow-sm",
-              message.role === "user" && "text-white",
+              "rounded-2xl px-4 py-3 text-sm shadow-sm",
+              message.role === "user" ? "max-w-xl text-white" : agentBubbleFullWidth ? "w-full max-w-none" : "max-w-xl",
             )}
             style={{
               backgroundColor:
                 message.role === "user"
                   ? "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))"
-                  : "hsl(var(--theme-surface-paper))",
+                  : "hsl(var(--theme-dialogue-agent-bg, var(--theme-surface-paper)))",
               color: message.role === "user" ? undefined : "var(--theme-ink-primary-color)",
               border: message.role === "agent" ? "1px solid hsl(var(--theme-border-soft))" : undefined,
               boxShadow: message.role === "agent" ? "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)" : undefined,
@@ -208,7 +211,10 @@ const SkeletonBubble: React.FC<{ alignment: "left" | "right" }> = ({
       alignment === "left" ? "justify-start" : "justify-end",
     )}
   >
-    <div className="h-16 w-40 animate-pulse rounded-2xl bg-white/70" />
+    <div
+      className="h-16 w-40 animate-pulse rounded-2xl"
+      style={{ backgroundColor: "hsl(var(--theme-surface-elevated) / 0.85)" }}
+    />
   </div>
 )
 

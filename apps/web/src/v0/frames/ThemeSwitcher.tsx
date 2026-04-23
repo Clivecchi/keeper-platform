@@ -42,7 +42,11 @@ export function ThemeSwitcher() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-2 rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/60 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background px-3 py-1 text-sm shadow-sm"
+        className="inline-flex items-center gap-2 rounded-sm border border-transparent px-3 py-1 text-sm shadow-sm backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--theme-focus-ring))] focus-visible:ring-offset-[hsl(var(--theme-surface-paper))] hover:border-[hsl(var(--theme-border-soft))] hover:bg-[hsl(var(--theme-hover-surface))] hover:text-[var(--theme-ink-primary-color)]"
+        style={{
+          color: "var(--theme-ink-tertiary-color)",
+          backgroundColor: "hsl(var(--theme-surface-elevated) / 0.92)",
+        }}
         aria-label="Select theme"
       >
         <span>{currentThemeData?.label || 'Neutral'}</span>
@@ -61,8 +65,8 @@ export function ThemeSwitcher() {
           <div
             className="absolute right-0 top-full mt-1 z-50 w-48 rounded-md border shadow-lg"
             style={{
-              backgroundColor: "var(--theme-surface-paper)",
-              borderColor: "var(--theme-border-soft)",
+              backgroundColor: "hsl(var(--theme-surface-paper))",
+              borderColor: "hsl(var(--theme-border-soft))",
               boxShadow: "var(--theme-shadow-soft)",
             }}
           >

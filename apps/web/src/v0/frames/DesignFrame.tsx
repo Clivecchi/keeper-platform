@@ -147,7 +147,7 @@ export function DesignFrame({
               className="sticky top-0 z-40"
               style={{
                 backgroundColor: headerBackgroundColor ?? "hsl(var(--theme-surface-paper) / 0.96)",
-                borderBottom: "1px solid var(--theme-border-soft)",
+                borderBottom: "1px solid hsl(var(--theme-border-soft))",
                 backdropFilter: "blur(8px)",
                 boxShadow: "0 1px 0 0 hsl(var(--theme-border-soft) / 0.5)",
                 paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
@@ -196,7 +196,11 @@ export function DesignFrame({
                         aria-label="Open board admin"
                         onClick={handleOpenAdmin}
                         disabled={isOpeningAdmin}
-                        className="inline-flex items-center justify-center rounded-sm border border-transparent text-muted-foreground/60 hover:text-foreground hover:border-muted/60 bg-white/70 backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary focus-visible:ring-offset-background p-1 shadow-sm disabled:opacity-60"
+                        className="inline-flex items-center justify-center rounded-sm border border-transparent p-1 shadow-sm backdrop-blur transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--theme-focus-ring))] focus-visible:ring-offset-[hsl(var(--theme-surface-paper))] hover:border-[hsl(var(--theme-border-soft))] hover:bg-[hsl(var(--theme-hover-surface))] hover:text-[var(--theme-ink-primary-color)] disabled:opacity-60"
+                        style={{
+                          color: "var(--theme-ink-tertiary-color)",
+                          backgroundColor: "hsl(var(--theme-surface-elevated) / 0.92)",
+                        }}
                       >
                         <Settings className="w-4 h-4" strokeWidth={1.25} />
                       </button>

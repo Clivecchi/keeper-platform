@@ -5,6 +5,8 @@ import { useV0Shell } from "../../shell/V0ShellContext"
 import { KeeperTopBar } from "../../components/KeeperTopBar"
 import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
 import { apiFetch } from "../../../lib/api"
+import { getApiBase } from "../../../lib/apiFetch"
+import { KipApi } from "../../../lib/kipApi"
 
 import { StyleScope } from "../../styles/StyleScope"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
@@ -12,6 +14,7 @@ import { IDEBoardNav } from "./IDEBoardNav"
 import { IDEBoardConversation } from "./IDEBoardConversation"
 import { IDEBoardContext } from "./IDEBoardContext"
 import type { IDEBoardKipContext } from "./ideBoardTypes"
+import { KeeperBoardPanelGroup } from "../KeeperBoardPanelGroup"
 
 export function IDEBoard() {
   const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
@@ -23,6 +26,9 @@ export function IDEBoard() {
   const [selectedMomentId, setSelectedMomentId] = React.useState<string | null>(null)
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
   const [draftListVersion, setDraftListVersion] = React.useState(0)
+
+  const [bannerEyebrow, setBannerEyebrow] = React.useState("Conversation")
+  const [bannerTitle, setBannerTitle] = React.useState("Development Journey")
 
   React.useEffect(() => {
     if (!domainSlug) return
@@ -36,6 +42,55 @@ export function IDEBoard() {
       cancelled = true
     }
   }, [domainSlug])
+
+  React.useEffect(() => {
+    let cancelled = false
+
+    async function resolveBanner() {
+      if (selectedDraftId && domainId) {
+        try {
+          const d = await KipApi.getDraft(domainId, selectedDraftId)
+          if (!cancelled) {
+            setBannerEyebrow("Draft")
+            setBannerTitle(d.title?.trim() || "Untitled draft")
+          }
+        } catch {
+          if (!cancelled) {
+            setBannerEyebrow("Conversation")
+            setBannerTitle("Development Journey")
+          }
+        }
+        return
+      }
+      if (activeJourneyId && domainSlug) {
+        try {
+          const base = getApiBase()
+          const r = await fetch(`${base}/api/public/${encodeURIComponent(domainSlug)}/journeys`)
+          const json = (await r.json()) as { journeys?: { id: string; name: string }[] }
+          const j = (json.journeys ?? []).find((x) => x.id === activeJourneyId)
+          if (!cancelled) {
+            setBannerEyebrow("Journey")
+            setBannerTitle(j?.name?.trim() || "Development Journey")
+          }
+        } catch {
+          if (!cancelled) {
+            setBannerEyebrow("Conversation")
+            setBannerTitle("Development Journey")
+          }
+        }
+        return
+      }
+      if (!cancelled) {
+        setBannerEyebrow("Conversation")
+        setBannerTitle("Development Journey")
+      }
+    }
+
+    void resolveBanner()
+    return () => {
+      cancelled = true
+    }
+  }, [selectedDraftId, activeJourneyId, domainId, domainSlug])
 
   const onJourneySelect = React.useCallback((id: string) => {
     setActiveJourneyId(id)
@@ -81,7 +136,6 @@ export function IDEBoard() {
     }
   }, [])
 
-  // ─── Background (same pattern as AgentBoard) ─────────────────────────────
   const coverImageUrl = domainData?.theme?.coverImage ?? null
   const coverImageMode = domainData?.theme?.coverImageMode ?? "cover"
   const displayCoverUrl = coverImageUrl ? getBlobProxyUrl(coverImageUrl) : null
@@ -93,6 +147,14 @@ export function IDEBoard() {
         backgroundRepeat: coverImageMode === "tile" ? "repeat" : "no-repeat",
       }
     : {}
+
+  const sheetChrome: React.CSSProperties = {
+    background: "hsl(var(--theme-surface-paper) / 0.96)",
+    border: "1px solid hsl(var(--theme-border-soft))",
+    boxShadow: "var(--theme-shadow-soft)",
+  }
+
+  const slug = domainSlug ?? ""
 
   return (
     <StyleScope styleId={styleId} themeSlug={themeSlug ?? null}>
@@ -109,66 +171,66 @@ export function IDEBoard() {
           />
         )}
 
-        <div className="flex flex-1 min-h-0 overflow-hidden px-6 pb-8">
-          {/* Left — nav (matches AgentBoard sidebar surface) */}
-          <div
-            className="shrink-0 flex flex-col border-r min-h-0"
-            style={{
-              width: 260,
-              minWidth: 260,
-              background: "hsl(var(--theme-surface-sidebar, var(--theme-surface-page)))",
-              borderColor: "hsl(var(--theme-line-hairline))",
-            }}
-          >
-            <IDEBoardNav
-              domainSlug={domainSlug ?? ""}
-              domainId={domainId}
-              activeJourneyId={activeJourneyId}
-              onJourneySelect={onJourneySelect}
-              selectedDraftId={selectedDraftId}
-              onDraftSelect={onDraftSelect}
-              activeSessionId={activeSessionId}
-              onSessionSelect={onSessionSelect}
-              draftListVersion={draftListVersion}
-            />
-          </div>
-
-          {/* Center — conversation; atmosphere reads through (same pattern as AgentBoard) */}
-          <div
-            className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden border-r"
-            style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
-          >
-            <StyleScope styleId={styleId} themeSlug={themeSlug ?? null} className="flex flex-1 flex-col min-h-0 overflow-hidden">
-              <IDEBoardConversation
-                domainSlug={domainSlug ?? ""}
-                domainId={domainId}
-                activeSessionId={activeSessionId}
-                onActiveSessionIdChange={setActiveSessionId}
-                activeJourneyId={activeJourneyId}
-                selectedDraftId={selectedDraftId}
-                onKipContextSync={onKipContextSync}
-                onSelectDraftInPlace={onDraftSelect}
-                onMomentSelect={onMomentSelect}
-              />
-            </StyleScope>
-          </div>
-
-          {/* Right — context panel (matches AgentBoard right surface) */}
-          <div
-            className="shrink-0 flex flex-col border-l min-h-0 overflow-hidden"
-            style={{
-              width: 380,
-              minWidth: 380,
-              background: "hsl(var(--theme-surface-panel, var(--theme-surface-page)))",
-              borderColor: "hsl(var(--theme-line-hairline))",
-            }}
-          >
-            <IDEBoardContext
-              domainSlug={domainSlug ?? ""}
-              domainId={domainId}
-              activeJourneyId={activeJourneyId}
-              selectedDraftId={selectedDraftId}
-              selectedMomentId={selectedMomentId}
+        <div className="flex flex-1 min-h-0 flex-col px-6 pt-4 pb-8">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl" style={sheetChrome}>
+            <KeeperBoardPanelGroup
+              boardKind="ide"
+              domainSlug={slug}
+              left={
+                <div
+                  className="flex h-full min-h-0 flex-col border-r"
+                  style={{
+                    background: "hsl(var(--theme-surface-panel))",
+                    borderColor: "hsl(var(--theme-line-hairline))",
+                  }}
+                >
+                  <IDEBoardNav
+                    domainSlug={slug}
+                    domainId={domainId}
+                    activeJourneyId={activeJourneyId}
+                    onJourneySelect={onJourneySelect}
+                    selectedDraftId={selectedDraftId}
+                    onDraftSelect={onDraftSelect}
+                    activeSessionId={activeSessionId}
+                    onSessionSelect={onSessionSelect}
+                    draftListVersion={draftListVersion}
+                  />
+                </div>
+              }
+              center={
+                <div className="flex h-full min-h-0 flex-col" style={{ background: "hsl(var(--theme-dialogue-area-bg))" }}>
+                  <IDEBoardConversation
+                    domainSlug={slug}
+                    domainId={domainId}
+                    activeSessionId={activeSessionId}
+                    onActiveSessionIdChange={setActiveSessionId}
+                    activeJourneyId={activeJourneyId}
+                    selectedDraftId={selectedDraftId}
+                    onKipContextSync={onKipContextSync}
+                    onSelectDraftInPlace={onDraftSelect}
+                    onMomentSelect={onMomentSelect}
+                    bannerEyebrow={bannerEyebrow}
+                    bannerTitle={bannerTitle}
+                  />
+                </div>
+              }
+              right={
+                <div
+                  className="flex h-full min-h-0 flex-col border-l"
+                  style={{
+                    background: "hsl(var(--theme-surface-panel))",
+                    borderColor: "hsl(var(--theme-line-hairline))",
+                  }}
+                >
+                  <IDEBoardContext
+                    domainSlug={slug}
+                    domainId={domainId}
+                    activeJourneyId={activeJourneyId}
+                    selectedDraftId={selectedDraftId}
+                    selectedMomentId={selectedMomentId}
+                  />
+                </div>
+              }
             />
           </div>
         </div>
