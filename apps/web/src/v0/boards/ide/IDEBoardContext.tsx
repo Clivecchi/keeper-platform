@@ -7,6 +7,7 @@ import type { KipDraft } from "../../../lib/kipApi"
 import { apiFetch } from "../../../lib/api"
 import type { KeptRow } from "../../frames/feed/FeedFrame"
 import { MomentDetailPanel } from "../../frames/moment/MomentDetailPanel"
+import { IDEDraftPanel } from "./IDEDraftPanel"
 
 interface IDEBoardContextProps {
   domainSlug: string
@@ -47,14 +48,6 @@ function truncate(text: string | null | undefined, max: number): string {
   return trimmed.slice(0, max) + "…"
 }
 
-function draftBodyText(draft: KipDraft): string {
-  if (draft.summary?.trim()) return draft.summary.trim()
-  const spec = draft.spec
-  if (spec && typeof spec === "object")
-    return JSON.stringify(spec, null, 2)
-  if (typeof spec === "string") return spec
-  return ""
-}
 
 export function IDEBoardContext({
   domainSlug,
@@ -230,67 +223,39 @@ export function IDEBoardContext({
 
   // Priority: draft → moment → journey
   if (selectedDraftId) {
-    const title = draftDetail?.title?.trim() || "Draft"
     return (
       <div
         className="flex flex-col h-full min-h-0"
         style={{ color: "hsl(var(--theme-ink-primary))" }}
       >
-        <div
-          className="shrink-0 px-4 py-4 border-b"
-          style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
-        >
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            Draft
-          </p>
-          <p
-            className="text-[14px] font-semibold mt-1 truncate"
-            style={{ color: "hsl(var(--theme-ink-primary))" }}
-          >
-            {draftLoadState === "loading" ? "Loading…" : title}
-          </p>
-          {draftDetail && (
-            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              <span
-                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium capitalize"
-                style={{
-                  background: "hsl(var(--theme-surface-elevated))",
-                  border: "1px solid hsl(var(--theme-line-hairline))",
-                  color: "hsl(var(--theme-ink-tertiary))",
-                }}
-              >
-                {draftDetail.status}
-              </span>
-              {draftDetail.updatedAt && (
-                <span
-                  className="text-[10px]"
-                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-                >
-                  Updated {formatDate(String(draftDetail.updatedAt))}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4 text-[12px] leading-relaxed">
-          {draftLoadState === "loading" && (
-            <p style={{ color: "hsl(var(--theme-ink-tertiary))" }}>Loading draft…</p>
-          )}
-          {draftLoadState === "error" && (
-            <p style={{ color: "hsl(var(--theme-ink-tertiary))" }}>Couldn&apos;t load this draft.</p>
-          )}
-          {draftLoadState === "ready" && draftDetail && (
-            <pre
-              className="whitespace-pre-wrap font-sans"
-              style={{ color: "hsl(var(--theme-ink-secondary))" }}
-            >
-              {draftBodyText(draftDetail)}
-            </pre>
-          )}
-        </div>
+        {draftLoadState === "loading" && (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+              Loading draft…
+            </p>
+          </div>
+        )}
+        {draftLoadState === "error" && (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+              Couldn&apos;t load this draft.
+            </p>
+          </div>
+        )}
+        {draftLoadState === "ready" && draftDetail && (
+          <IDEDraftPanel
+            draft={draftDetail}
+            domainId={domainId}
+            onSaved={(updated) => setDraftDetail(updated)}
+          />
+        )}
+        {draftLoadState === "ready" && !draftDetail && (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+              Draft not found.
+            </p>
+          </div>
+        )}
       </div>
     )
   }
