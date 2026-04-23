@@ -171,8 +171,12 @@ export function IDEBoard() {
           />
         )}
 
-        <div className="flex flex-1 min-h-0 flex-col px-6 pt-4 pb-8">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl" style={sheetChrome}>
+        <div className="flex min-h-0 flex-1 flex-col px-6 pt-4 pb-8">
+          <div
+            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl"
+            style={sheetChrome}
+          >
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <KeeperBoardPanelGroup
               boardKind="ide"
               domainSlug={slug}
@@ -232,6 +236,7 @@ export function IDEBoard() {
                 </div>
               }
             />
+            </div>
           </div>
         </div>
       </div>
