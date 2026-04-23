@@ -136,7 +136,7 @@ function DraftView({
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ color: "hsl(var(--theme-ink-primary))" }}>
       <PanelBanner label="Draft" title={draft.title} />
-      <div className="flex-1 overflow-y-auto">
+      <div className="keeper-panel-scroll flex-1 overflow-y-auto">
         <DraftCard
           draft={draft}
           isSaving={saving}
@@ -258,7 +258,7 @@ function AgentView({ agentId }: { agentId: string | null }) {
     <div className="flex flex-col h-full" style={{ color: "hsl(var(--theme-ink-primary))" }}>
       <PanelBanner label="Agent" title={agent.name} />
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div className="keeper-panel-scroll flex-1 overflow-y-auto px-4 py-4 space-y-4">
 
         {/* Name */}
         <div>

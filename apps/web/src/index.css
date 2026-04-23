@@ -87,3 +87,36 @@ html[data-density="comfortable"] {
 .animate-fade-in {
   animation: fade-in 0.4s ease-in;
 }
+
+/*
+ * Board panels: hide scrollbars until the user hovers the panel or focuses inside it
+ * (keyboard / assistive tech). Scroll position still changes with wheel / trackpad.
+ */
+.keeper-panel-scroll {
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+}
+
+.keeper-panel-scroll:hover,
+.keeper-panel-scroll:focus-within {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--theme-line-hairline, 0 0% 72%) / 0.55) transparent;
+}
+
+.keeper-panel-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.keeper-panel-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.keeper-panel-scroll::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 9999px;
+}
+
+.keeper-panel-scroll:hover::-webkit-scrollbar-thumb,
+.keeper-panel-scroll:focus-within::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--theme-line-hairline, 0 0% 70%) / 0.45);
+}

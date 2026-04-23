@@ -157,7 +157,7 @@ export function IDEBoardConversation({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="keeper-panel-scroll min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-3xl px-4 pb-4 pt-2">
           <DialogueMessageList
             isLoading={false}

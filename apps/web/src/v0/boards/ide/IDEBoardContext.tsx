@@ -275,7 +275,7 @@ export function IDEBoardContext({
             </div>
           )}
         </div>
-        <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4 text-[12px] leading-relaxed">
+        <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 py-4 text-[12px] leading-relaxed">
           {draftLoadState === "loading" && (
             <p style={{ color: "hsl(var(--theme-ink-tertiary))" }}>Loading draft…</p>
           )}
@@ -318,7 +318,7 @@ export function IDEBoardContext({
             {momentLoadState === "loading" ? "Loading…" : momentRow?.title?.trim() || "Moment"}
           </p>
         </div>
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto">
           {momentLoadState === "loading" && (
             <p
               className="px-4 py-6 text-[12px]"
@@ -390,7 +390,7 @@ export function IDEBoardContext({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto">
         {loadState === "loading" && (
           <p
             className="px-4 py-6 text-[12px]"

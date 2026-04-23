@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { getApiBase } from "../../../lib/apiFetch"
+import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
 import type { KipDraftSummary } from "../../../lib/kipApi"
 import { useV0Shell, type V0FrameKey } from "../../shell/V0ShellContext"
@@ -25,7 +25,8 @@ interface IDEBoardNavProps {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type JourneyItem = { id: string; name: string; createdAt: string }
+type JourneyItem = { id: string; name: string; momentCount?: number }
+type KeeperItem = { id: string; title: string }
 type SessionItem = { id: string; title: string }
 
 function formatDate(iso: string | null | undefined): string {
@@ -55,27 +56,33 @@ export function IDEBoardNav({
 }: IDEBoardNavProps) {
   const { navigateToFrame } = useV0Shell()
   const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
+  const [keepers, setKeepers] = React.useState<KeeperItem[] | null>(null)
   const [drafts, setDrafts] = React.useState<KipDraftSummary[] | null>(null)
   const [sessions, setSessions] = React.useState<SessionItem[] | null>(null)
   const [moreOpen, setMoreOpen] = React.useState(false)
 
-  // Journeys — public endpoint, no auth required
+  // Journeys + Keepers — authenticated endpoints (include moment counts and keeper data)
   React.useEffect(() => {
-    if (!domainSlug) return
+    if (!domainId) return
     let cancelled = false
-    const base = getApiBase()
-    fetch(`${base}/api/public/${encodeURIComponent(domainSlug)}/journeys`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((json: { journeys?: JourneyItem[] }) => {
-        if (!cancelled) setJourneys(Array.isArray(json.journeys) ? json.journeys : [])
-      })
-      .catch(() => {
-        if (!cancelled) setJourneys([])
-      })
+    Promise.all([
+      apiFetch(`/api/journeys?domainId=${domainId}`).catch(() => null),
+      apiFetch(`/api/keepers?domainId=${domainId}`).catch(() => null),
+    ]).then(([journeysRes, keepersRes]) => {
+      if (cancelled) return
+      setJourneys(
+        ((journeysRes as any)?.data?.journeys ?? (journeysRes as any)?.journeys ?? []) as JourneyItem[],
+      )
+      setKeepers(
+        ((keepersRes as any)?.data?.keepers ?? (keepersRes as any)?.keepers ?? []) as KeeperItem[],
+      )
+    }).catch(() => {
+      if (!cancelled) { setJourneys([]); setKeepers([]) }
+    })
     return () => {
       cancelled = true
     }
-  }, [domainSlug])
+  }, [domainId])
 
   // Drafts — /api/domains/{domainId}/kip/drafts
   React.useEffect(() => {
@@ -93,7 +100,7 @@ export function IDEBoardNav({
     }
   }, [domainId, draftListVersion])
 
-  // Sessions — resolve Kip agent then fetch sessions (up to 50; display slices below)
+  // Sessions — resolve Kip agent then fetch sessions (display last 7 below)
   React.useEffect(() => {
     let cancelled = false
     KipApi.getLeadAgent("kip")
@@ -103,8 +110,8 @@ export function IDEBoardNav({
         const items = (Array.isArray(raw) ? raw : []).map((s) => ({
           id: s.id,
           title:
-            (s.topic as string | undefined)?.trim() ||
             s.session_name?.trim() ||
+            (s.topic as string | undefined)?.trim() ||
             `Session · ${formatDate(s.updated_at ? new Date(s.updated_at).toISOString() : undefined)}`,
         }))
         setSessions(items)
@@ -119,22 +126,31 @@ export function IDEBoardNav({
 
   // ─── SidebarCard item arrays — all selection is local state (no frame navigation) ─
 
-  const journeyItems: SidebarCardItem[] = (journeys ?? []).slice(0, 5).map((j) => ({
+  const journeyItems: SidebarCardItem[] = (journeys ?? []).slice(0, 4).map((j) => ({
     id: j.id,
-    label: j.name?.trim() || "Untitled journey",
+    label: `${j.name?.trim() || "Untitled journey"}${j.momentCount != null ? ` · ${j.momentCount} moments` : ""}`,
     isSelected: activeJourneyId === j.id,
     onClick: () => onJourneySelect(j.id),
   }))
 
-  const draftItems: SidebarCardItem[] = (drafts ?? []).slice(0, 5).map((d) => ({
-    id: d.id,
-    label: d.title?.trim() || "Untitled draft",
-    isSelected: selectedDraftId === d.id,
-    onClick: () => onDraftSelect(d.id),
+  const keeperItems: SidebarCardItem[] = (keepers ?? []).slice(0, 4).map((k) => ({
+    id: k.id,
+    label: k.title?.trim() || "Untitled keeper",
+    onClick: () => {},
   }))
 
+  const draftItems: SidebarCardItem[] = (drafts ?? []).slice(0, 5).map((d) => {
+    const keeperName = d.keeperId ? (keepers ?? []).find((k) => k.id === d.keeperId)?.title : null
+    return {
+      id: d.id,
+      label: keeperName ? `${d.title?.trim() || "Untitled draft"} · ${keeperName}` : (d.title?.trim() || "Untitled draft"),
+      isSelected: selectedDraftId === d.id,
+      onClick: () => onDraftSelect(d.id),
+    }
+  })
+
   const sessionItems: SidebarCardItem[] = (sessions ?? [])
-    .slice(0, 50)
+    .slice(0, 7)
     .map((s) => ({
       id: s.id,
       label: s.title,
@@ -150,16 +166,21 @@ export function IDEBoardNav({
       style={{ color: "hsl(var(--theme-ink-primary))" }}
     >
       {/* Scrollable section cards */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+      <div className="keeper-panel-scroll flex-1 min-h-0 space-y-3 overflow-y-auto p-3">
+        <SidebarCard
+          title="Drafts"
+          description={countLabel(drafts?.length ?? null, "draft")}
+          items={draftItems.length ? draftItems : undefined}
+        />
         <SidebarCard
           title="Journeys"
           description={countLabel(journeys?.length ?? null, "journey")}
           items={journeyItems.length ? journeyItems : undefined}
         />
         <SidebarCard
-          title="Drafts"
-          description={countLabel(drafts?.length ?? null, "draft")}
-          items={draftItems.length ? draftItems : undefined}
+          title="Keepers"
+          description={countLabel(keepers?.length ?? null, "keeper")}
+          items={keeperItems.length ? keeperItems : undefined}
         />
         <SidebarCard
           title="Sessions"

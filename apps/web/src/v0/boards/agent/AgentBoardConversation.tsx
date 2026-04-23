@@ -109,7 +109,7 @@ export function AgentBoardConversation({
         </div>
       </div>
 
-      <div ref={threadRef} className="min-h-0 flex-1 overflow-y-auto">
+      <div ref={threadRef} className="keeper-panel-scroll min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-3xl px-4 pb-4 pt-2">
           <DialogueMessageList
             isLoading={false}

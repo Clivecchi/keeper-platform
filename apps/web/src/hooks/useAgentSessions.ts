@@ -35,7 +35,7 @@ const normalizeSession = (session: KipSession): AgentConversationSession => {
     (session as any).activeDraftId ??
     (session as any).active_draft_id ??
     null;
-  const primaryTitle = topic || session.session_name?.trim() || 'Session with Kip';
+  const primaryTitle = session.session_name?.trim() || topic || null;
   const subtitle = summary
     ? truncate(summary, 120)
     : lastMessage?.content
@@ -44,7 +44,7 @@ const normalizeSession = (session: KipSession): AgentConversationSession => {
 
   return {
     id: session.id,
-    title: primaryTitle || `Session • ${readableDate(createdAtDate)}`,
+    title: primaryTitle || `Session · ${readableDate(createdAtDate)}`,
     subtitle,
     topic,
     summary: summary || null,
