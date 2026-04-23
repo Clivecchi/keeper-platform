@@ -4,17 +4,9 @@ import * as React from "react"
 import { apiFetch } from "../../../lib/api"
 import { getApiBase } from "../../../lib/apiFetch"
 import { KipApi } from "../../../lib/kipApi"
+import type { KipDraftSummary } from "../../../lib/kipApi"
 import { useV0Shell, type V0FrameKey } from "../../shell/V0ShellContext"
 import { SidebarCard, type SidebarCardItem } from "../../components/SidebarCard"
-
-// ─── All registered boards ────────────────────────────────────────────────────
-// Sourced from boardRegistry — kept static since the registry rarely changes.
-const BOARDS: Array<{ key: string; label: string }> = [
-  { key: "designer", label: "Design Board" },
-  { key: "domain",   label: "Domain Board" },
-  { key: "agent",    label: "Agent Board" },
-  { key: "ide",      label: "IDE Board" },
-]
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -22,12 +14,12 @@ interface IDEBoardNavProps {
   domainSlug: string
   selectedJourneyId: string | null
   onSelectJourney: (id: string) => void
+  onSelectSession: (id: string) => void
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type JourneyItem = { id: string; name: string; createdAt: string }
-type DraftItem   = { id: string; title: string; createdAt: string }
 type SessionItem = { id: string; title: string }
 
 function formatDate(iso: string | null | undefined): string {
@@ -42,21 +34,27 @@ function countLabel(n: number | null, singular: string): string {
   return `${n} ${n === 1 ? singular : `${singular}s`}`
 }
 
-function navigateToBoard(key: string) {
-  const url = new URL(window.location.href)
-  url.searchParams.set("board", key)
-  url.searchParams.delete("frame")
-  window.location.href = url.toString()
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: IDEBoardNavProps) {
+export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney, onSelectSession }: IDEBoardNavProps) {
   const { navigateToFrame } = useV0Shell()
+  const [domainId, setDomainId] = React.useState<string | null>(null)
   const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
-  const [drafts, setDrafts]     = React.useState<DraftItem[] | null>(null)
+  const [drafts, setDrafts]     = React.useState<KipDraftSummary[] | null>(null)
   const [sessions, setSessions] = React.useState<SessionItem[] | null>(null)
   const [moreOpen, setMoreOpen] = React.useState(false)
+
+  // Resolve domainId from domainSlug — needed for drafts
+  React.useEffect(() => {
+    if (!domainSlug) return
+    let cancelled = false
+    apiFetch(`/api/domains/by-slug/${encodeURIComponent(domainSlug)}`)
+      .then((res: any) => {
+        if (!cancelled && res?.id) setDomainId(res.id)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [domainSlug])
 
   // Journeys — public endpoint, no auth required
   React.useEffect(() => {
@@ -72,19 +70,17 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
     return () => { cancelled = true }
   }, [domainSlug])
 
-  // Drafts — auth-protected; degrade to empty on failure
+  // Drafts — same endpoint as AgentBoardFrame: /api/domains/{domainId}/kip/drafts
   React.useEffect(() => {
-    if (!domainSlug) return
+    if (!domainId) return
     let cancelled = false
-    apiFetch(`/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=draft&limit=10`)
-      .then((res: unknown) => {
-        if (cancelled) return
-        const list = (res as { data?: unknown })?.data ?? []
-        setDrafts(Array.isArray(list) ? (list as DraftItem[]) : [])
+    KipApi.listDrafts(domainId)
+      .then((list) => {
+        if (!cancelled) setDrafts(list)
       })
       .catch(() => { if (!cancelled) setDrafts([]) })
     return () => { cancelled = true }
-  }, [domainSlug])
+  }, [domainId])
 
   // Sessions — resolve Kip agent then fetch recent sessions
   React.useEffect(() => {
@@ -125,12 +121,7 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
   const sessionItems: SidebarCardItem[] = (sessions ?? []).map((s) => ({
     id: s.id,
     label: s.title,
-  }))
-
-  const boardItems: SidebarCardItem[] = BOARDS.map((b) => ({
-    id: b.key,
-    label: b.label,
-    onClick: () => navigateToBoard(b.key),
+    onClick: () => onSelectSession(s.id),
   }))
 
   // ─── Render ──────────────────────────────────────────────────────────────────
@@ -156,11 +147,6 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney }: 
           title="Sessions"
           description={countLabel(sessions?.length ?? null, "session")}
           items={sessionItems.length ? sessionItems : undefined}
-        />
-        <SidebarCard
-          title="Boards"
-          description="Switch to another board"
-          items={boardItems}
         />
       </div>
 

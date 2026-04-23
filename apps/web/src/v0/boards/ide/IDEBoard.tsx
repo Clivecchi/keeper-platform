@@ -15,6 +15,7 @@ export function IDEBoard() {
   const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
   const [briefOpen, setBriefOpen] = React.useState(false)
   const [selectedJourneyId, setSelectedJourneyId] = React.useState<string | null>(null)
+  const [selectedSessionId, setSelectedSessionId] = React.useState<string | null>(null)
 
   // ─── Background (same pattern as AgentBoard) ─────────────────────────────
   const coverImageUrl   = domainData?.theme?.coverImage ?? null
@@ -62,6 +63,7 @@ export function IDEBoard() {
                 domainSlug={domainSlug ?? ""}
                 selectedJourneyId={selectedJourneyId}
                 onSelectJourney={setSelectedJourneyId}
+                onSelectSession={setSelectedSessionId}
               />
             </div>
 
@@ -70,7 +72,7 @@ export function IDEBoard() {
               className="flex flex-col flex-1 min-w-0 min-h-0 border-r"
               style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
             >
-              <IDEBoardConversation domainSlug={domainSlug ?? ""} />
+              <IDEBoardConversation domainSlug={domainSlug ?? ""} selectedSessionId={selectedSessionId} />
             </div>
 
             {/* Right */}
