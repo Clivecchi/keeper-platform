@@ -7,13 +7,13 @@ import { KipApi } from "../../../lib/kipApi"
 import type { KipDraftSummary } from "../../../lib/kipApi"
 import { useV0Shell, type V0FrameKey } from "../../shell/V0ShellContext"
 import { SidebarCard, type SidebarCardItem } from "../../components/SidebarCard"
+import type { IDEBoardActiveContext } from "./IDEBoard"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface IDEBoardNavProps {
   domainSlug: string
-  selectedJourneyId: string | null
-  onSelectJourney: (id: string) => void
+  setActiveContext: React.Dispatch<React.SetStateAction<IDEBoardActiveContext>>
   onSelectSession: (id: string) => void
 }
 
@@ -36,7 +36,7 @@ function countLabel(n: number | null, singular: string): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney, onSelectSession }: IDEBoardNavProps) {
+export function IDEBoardNav({ domainSlug, setActiveContext, onSelectSession }: IDEBoardNavProps) {
   const { navigateToFrame } = useV0Shell()
   const [domainId, setDomainId] = React.useState<string | null>(null)
   const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
@@ -109,7 +109,7 @@ export function IDEBoardNav({ domainSlug, selectedJourneyId, onSelectJourney, on
   const journeyItems: SidebarCardItem[] = (journeys ?? []).slice(0, 5).map((j) => ({
     id: j.id,
     label: j.name?.trim() || "Untitled journey",
-    onClick: () => onSelectJourney(j.id),
+    onClick: () => setActiveContext({ type: "journey", id: j.id }),
   }))
 
   const draftItems: SidebarCardItem[] = (drafts ?? []).slice(0, 5).map((d) => ({

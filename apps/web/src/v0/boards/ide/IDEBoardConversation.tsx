@@ -9,6 +9,7 @@ import { DialogueMessageList } from "../../../components/agent/DialogueMessageLi
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { extractLinkedCard } from "../../../components/agent/helpers"
 import { useV0Shell } from "../../shell/V0ShellContext"
+import type { IDEBoardActiveContext } from "./IDEBoard"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,7 @@ interface IDEBoardConversationProps {
   domainId?: string | null
   /** When set, loads this session's messages instead of creating a new one. */
   selectedSessionId?: string | null
+  setActiveContext: React.Dispatch<React.SetStateAction<IDEBoardActiveContext>>
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -44,9 +46,38 @@ const GREETING: AgentDialogueMessage = {
   createdAt: new Date().toISOString(),
 }
 
+/** After a successful run, align view context with linked cards or draft.create in the response. */
+function syncActiveContextFromKipResponse(
+  setActiveContext: React.Dispatch<React.SetStateAction<IDEBoardActiveContext>>,
+  rawMessages: KipMessage[] | undefined,
+  actions: unknown[] | undefined,
+) {
+  if (Array.isArray(actions)) {
+    for (const ar of actions) {
+      const a = ar as { type?: string; result?: { draft?: { id: string } } }
+      if (a.type === "draft.create" && a.result?.draft?.id) {
+        setActiveContext({ type: "draft", id: a.result.draft.id })
+        return
+      }
+    }
+  }
+  if (!rawMessages?.length) return
+  for (let i = rawMessages.length - 1; i >= 0; i--) {
+    const m = rawMessages[i]
+    if ((m.sender || m.role) === "user") continue
+    const linked = extractLinkedCard(m.metadata)
+    if (linked) {
+      if (linked.entityType === "journey" || linked.entityType === "moment" || linked.entityType === "keeper") {
+        setActiveContext({ type: linked.entityType, id: linked.entityId })
+      }
+    }
+    return
+  }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function IDEBoardConversation({ domainSlug, domainId, selectedSessionId }: IDEBoardConversationProps) {
+export function IDEBoardConversation({ domainSlug, domainId, selectedSessionId, setActiveContext }: IDEBoardConversationProps) {
   const { domainFrame, resolvedAudience, navigateToFrame } = useV0Shell()
   const [messages, setMessages]               = React.useState<AgentDialogueMessage[]>([GREETING])
   const [input, setInput]                     = React.useState("")
@@ -60,8 +91,10 @@ export function IDEBoardConversation({ domainSlug, domainId, selectedSessionId }
     try {
       const msgs: KipMessage[] = await KipApi.getSessionMessages(sessionId)
       setMessages(msgs.map(normalizeMessage))
+      return msgs
     } catch {
       // keep existing messages if fetch fails
+      return undefined
     }
   }, [])
 
@@ -135,19 +168,26 @@ export function IDEBoardConversation({ domainSlug, domainId, selectedSessionId }
         undefined,
         activeSessionId,
         {
-          domainSlug,
+          domainSlug: domainSlug || undefined,
           domainId: domainId || undefined,
           mode: "domain",
+          activeJourneyId: undefined,
+          activeKeeperId: undefined,
           experienceContext,
           attachments: attachments?.length ? attachments : undefined,
         },
       )
 
-      await fetchMessages(activeSessionId)
-
-      // Attach actionResults from response to last agent message
+      const latestRaw = await fetchMessages(activeSessionId)
       const respData = (result as any)?.data
       const actionResults = respData?.actions || (result as any)?.actionResults || undefined
+      syncActiveContextFromKipResponse(
+        setActiveContext,
+        latestRaw,
+        Array.isArray(actionResults) ? actionResults : undefined,
+      )
+
+      // Attach actionResults from response to last agent message
       if (actionResults && Array.isArray(actionResults) && actionResults.length > 0) {
         setMessages((prev) => {
           const updated = [...prev]

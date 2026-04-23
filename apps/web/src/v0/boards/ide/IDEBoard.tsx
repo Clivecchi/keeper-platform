@@ -11,10 +11,15 @@ import { IDEBoardNav } from "./IDEBoardNav"
 import { IDEBoardConversation } from "./IDEBoardConversation"
 import { IDEBoardJourney } from "./IDEBoardJourney"
 
+export type IDEBoardActiveContext = {
+  type: "journey" | "moment" | "keeper" | "draft"
+  id: string
+} | null
+
 export function IDEBoard() {
   const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
   const [briefOpen, setBriefOpen] = React.useState(false)
-  const [selectedJourneyId, setSelectedJourneyId] = React.useState<string | null>(null)
+  const [activeContext, setActiveContext] = React.useState<IDEBoardActiveContext>(null)
   const [selectedSessionId, setSelectedSessionId] = React.useState<string | null>(null)
 
   // ─── Background (same pattern as AgentBoard) ─────────────────────────────
@@ -61,8 +66,7 @@ export function IDEBoard() {
             >
               <IDEBoardNav
                 domainSlug={domainSlug ?? ""}
-                selectedJourneyId={selectedJourneyId}
-                onSelectJourney={setSelectedJourneyId}
+                setActiveContext={setActiveContext}
                 onSelectSession={setSelectedSessionId}
               />
             </div>
@@ -72,12 +76,16 @@ export function IDEBoard() {
               className="flex flex-col flex-1 min-w-0 min-h-0 border-r"
               style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
             >
-              <IDEBoardConversation domainSlug={domainSlug ?? ""} selectedSessionId={selectedSessionId} />
+              <IDEBoardConversation
+                domainSlug={domainSlug ?? ""}
+                selectedSessionId={selectedSessionId}
+                setActiveContext={setActiveContext}
+              />
             </div>
 
             {/* Right */}
             <div className="shrink-0 flex flex-col min-h-0" style={{ width: 380 }}>
-              <IDEBoardJourney domainSlug={domainSlug ?? ""} journeyId={selectedJourneyId ?? undefined} />
+              <IDEBoardJourney domainSlug={domainSlug ?? ""} activeContext={activeContext} />
             </div>
           </div>
         </div>

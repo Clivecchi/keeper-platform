@@ -2,10 +2,11 @@
 
 import * as React from "react"
 import { getApiBase } from "../../../lib/apiFetch"
+import type { IDEBoardActiveContext } from "./IDEBoard"
 
 interface IDEBoardJourneyProps {
   domainSlug: string
-  journeyId?: string
+  activeContext: IDEBoardActiveContext
 }
 
 interface JourneyMeta {
@@ -39,7 +40,7 @@ function truncate(text: string | null | undefined, max: number): string {
   return trimmed.slice(0, max) + "…"
 }
 
-export function IDEBoardJourney({ domainSlug, journeyId }: IDEBoardJourneyProps) {
+export function IDEBoardJourney({ domainSlug, activeContext }: IDEBoardJourneyProps) {
   const [journey, setJourney] = React.useState<JourneyMeta | null>(null)
   const [moments, setMoments] = React.useState<JourneyMoment[]>([])
   const [loadState, setLoadState] = React.useState<LoadState>("idle")
@@ -48,6 +49,15 @@ export function IDEBoardJourney({ domainSlug, journeyId }: IDEBoardJourneyProps)
   React.useEffect(() => {
     if (!domainSlug) return
     let cancelled = false
+
+    if (activeContext && activeContext.type !== "journey") {
+      setJourney(null)
+      setMoments([])
+      setLoadState("ready")
+      setExpandedId(null)
+      return
+    }
+
     setLoadState("loading")
 
     const base = getApiBase()
@@ -67,12 +77,14 @@ export function IDEBoardJourney({ domainSlug, journeyId }: IDEBoardJourneyProps)
       setLoadState("ready")
     }
 
-    if (journeyId) {
-      loadJourney(journeyId).catch(() => {
+    const targetJourneyId = activeContext?.type === "journey" ? activeContext.id : undefined
+
+    if (targetJourneyId) {
+      loadJourney(targetJourneyId).catch(() => {
         if (!cancelled) setLoadState("error")
       })
     } else {
-      // Fetch list, use first journey
+      // No selection — use first journey (same as previous default)
       fetch(`${base}/api/public/${encodeURIComponent(domainSlug)}/journeys`)
         .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
         .then((json: { journeys?: Array<{ id: string }> }) => {
@@ -95,13 +107,47 @@ export function IDEBoardJourney({ domainSlug, journeyId }: IDEBoardJourneyProps)
     return () => {
       cancelled = true
     }
-  }, [domainSlug, journeyId])
+  }, [domainSlug, activeContext])
 
   const toggleExpand = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id))
   }
 
   const bannerTitle = journey?.name ?? (loadState === "loading" ? "Loading…" : "Journey")
+
+  if (activeContext && activeContext.type !== "journey") {
+    const typeLabel =
+      activeContext.type === "moment" ? "Moment" : activeContext.type === "keeper" ? "Keeper" : "Draft"
+    return (
+      <div
+        className="flex flex-col h-full min-h-0"
+        style={{ color: "hsl(var(--theme-ink-primary))" }}
+      >
+        <div
+          className="shrink-0 px-4 py-4 border-b"
+          style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
+        >
+          <p
+            className="text-[10px] font-semibold uppercase tracking-widest"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            View state
+          </p>
+          <p
+            className="text-[14px] font-semibold mt-1"
+            style={{ color: "hsl(var(--theme-ink-primary))" }}
+          >
+            {typeLabel}
+          </p>
+        </div>
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 py-6 text-[12px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+          <p>
+            {typeLabel} view is not built yet. Active id: <span className="font-mono text-[11px]">{activeContext.id}</span>
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
