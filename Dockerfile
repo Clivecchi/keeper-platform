@@ -1,4 +1,5 @@
 # Use Node.js 20 (Keeper rule)
+# Redeploy hint: image definition touched to trigger CI/Railway only (no behavior change).
 FROM node:20-alpine
 
 # Install pnpm with the CORRECT version that matches our lockfile (pnpm v10+)
