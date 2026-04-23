@@ -2,11 +2,10 @@
 
 import * as React from "react"
 import { useV0Shell } from "../../shell/V0ShellContext"
+import { useFrameContextOptional } from "../../shell/FrameContext"
 import { KeeperTopBar } from "../../components/KeeperTopBar"
 import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
 import { apiFetch } from "../../../lib/api"
-import { getApiBase } from "../../../lib/apiFetch"
-import { KipApi } from "../../../lib/kipApi"
 
 import { StyleScope } from "../../styles/StyleScope"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
@@ -16,19 +15,22 @@ import { IDEBoardContext } from "./IDEBoardContext"
 import type { IDEBoardKipContext } from "./ideBoardTypes"
 import { KeeperBoardPanelGroup } from "../KeeperBoardPanelGroup"
 
+type JourneySummary = { id: string; name: string; momentCount?: number }
+type KeeperSummary = { id: string; title: string }
+
 export function IDEBoard() {
   const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
+  const frameCtx = useFrameContextOptional()
   const [briefOpen, setBriefOpen] = React.useState(false)
 
   const [domainId, setDomainId] = React.useState<string | null>(null)
+  const [journeys, setJourneys] = React.useState<JourneySummary[]>([])
+  const [keepers, setKeepers] = React.useState<KeeperSummary[]>([])
   const [activeJourneyId, setActiveJourneyId] = React.useState<string | null>(null)
   const [selectedDraftId, setSelectedDraftId] = React.useState<string | null>(null)
   const [selectedMomentId, setSelectedMomentId] = React.useState<string | null>(null)
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
   const [draftListVersion, setDraftListVersion] = React.useState(0)
-
-  const [bannerEyebrow, setBannerEyebrow] = React.useState("Conversation")
-  const [bannerTitle, setBannerTitle] = React.useState("Development Journey")
 
   React.useEffect(() => {
     if (!domainSlug) return
@@ -43,54 +45,28 @@ export function IDEBoard() {
     }
   }, [domainSlug])
 
+  // Load journeys + keepers (same as AgentBoardFrame)
   React.useEffect(() => {
+    if (!domainId) return
     let cancelled = false
+    Promise.all([
+      apiFetch(`/api/journeys?domainId=${domainId}`).catch(() => null),
+      apiFetch(`/api/keepers?domainId=${domainId}`).catch(() => null),
+    ]).then(([journeysRes, keepersRes]) => {
+      if (cancelled) return
+      setJourneys(
+        ((journeysRes as any)?.data?.journeys ?? (journeysRes as any)?.journeys ?? []) as JourneySummary[],
+      )
+      setKeepers(
+        ((keepersRes as any)?.data?.keepers ?? (keepersRes as any)?.keepers ?? []) as KeeperSummary[],
+      )
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [domainId])
 
-    async function resolveBanner() {
-      if (selectedDraftId && domainId) {
-        try {
-          const d = await KipApi.getDraft(domainId, selectedDraftId)
-          if (!cancelled) {
-            setBannerEyebrow("Draft")
-            setBannerTitle(d.title?.trim() || "Untitled draft")
-          }
-        } catch {
-          if (!cancelled) {
-            setBannerEyebrow("Conversation")
-            setBannerTitle("Development Journey")
-          }
-        }
-        return
-      }
-      if (activeJourneyId && domainSlug) {
-        try {
-          const base = getApiBase()
-          const r = await fetch(`${base}/api/public/${encodeURIComponent(domainSlug)}/journeys`)
-          const json = (await r.json()) as { journeys?: { id: string; name: string }[] }
-          const j = (json.journeys ?? []).find((x) => x.id === activeJourneyId)
-          if (!cancelled) {
-            setBannerEyebrow("Journey")
-            setBannerTitle(j?.name?.trim() || "Development Journey")
-          }
-        } catch {
-          if (!cancelled) {
-            setBannerEyebrow("Conversation")
-            setBannerTitle("Development Journey")
-          }
-        }
-        return
-      }
-      if (!cancelled) {
-        setBannerEyebrow("Conversation")
-        setBannerTitle("Development Journey")
-      }
-    }
-
-    void resolveBanner()
-    return () => {
-      cancelled = true
-    }
-  }, [selectedDraftId, activeJourneyId, domainId, domainSlug])
+  // Derive names from frameCtx selections (same pattern as AgentBoardFrame)
+  const keeperName = keepers.find((k) => k.id === (frameCtx?.selection.activeKeeperId ?? null))?.title ?? null
+  const journeyName = journeys.find((j) => j.id === (frameCtx?.selection.activeJourneyId ?? activeJourneyId))?.name ?? null
 
   const onJourneySelect = React.useCallback((id: string) => {
     setActiveJourneyId(id)
@@ -214,8 +190,8 @@ export function IDEBoard() {
                     onKipContextSync={onKipContextSync}
                     onSelectDraftInPlace={onDraftSelect}
                     onMomentSelect={onMomentSelect}
-                    bannerEyebrow={bannerEyebrow}
-                    bannerTitle={bannerTitle}
+                    keeperName={keeperName}
+                    journeyName={journeyName}
                   />
                 </div>
               }

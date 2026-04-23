@@ -4,6 +4,7 @@ import * as React from "react"
 import type { KipMessage } from "../../../lib/kipApi"
 import { AgentComposer } from "../../../components/agent/AgentComposer"
 import { DialogueMessageList } from "../../../components/agent/DialogueMessageList"
+import { SessionBannerCard } from "../../../components/agent/SessionBannerCard"
 import { extractLinkedCard } from "../../../components/agent/helpers"
 import { useAuth } from "../../../context/AuthContext"
 import { useFrameContextOptional } from "../../shell/FrameContext"
@@ -28,10 +29,10 @@ interface IDEBoardConversationProps {
   onSelectDraftInPlace: (id: string) => void
   /** Open a moment in the context panel without leaving the board */
   onMomentSelect: (momentId: string) => void
-  /** Dialog banner eyebrow (e.g. Conversation, Draft, Journey) */
-  bannerEyebrow?: string
-  /** Dialog banner title line */
-  bannerTitle?: string
+  /** Active keeper name for the banner */
+  keeperName?: string | null
+  /** Active journey name for the banner */
+  journeyName?: string | null
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -76,8 +77,8 @@ export function IDEBoardConversation({
   onKipContextSync,
   onSelectDraftInPlace,
   onMomentSelect,
-  bannerEyebrow = "Conversation",
-  bannerTitle = "Development Journey",
+  keeperName,
+  journeyName,
 }: IDEBoardConversationProps) {
   const { domainFrame, resolvedAudience } = useV0Shell()
   const frameCtx = useFrameContextOptional()
@@ -132,28 +133,25 @@ export function IDEBoardConversation({
     onActiveSessionIdChange,
   })
 
+  const modelProvider = (domainFrame?.kip as any)?.model ?? null
+
   return (
     <div
       className="flex flex-col h-full min-h-0"
       style={{ color: "hsl(var(--theme-ink-primary))" }}
     >
       <div
-        className="shrink-0 border-b"
+        className="shrink-0 border-b px-4 py-3"
         style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
       >
-        <div className="mx-auto w-full max-w-3xl px-4 py-4">
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: "var(--theme-ink-tertiary-color)" }}
-          >
-            {bannerEyebrow}
-          </p>
-          <p
-            className="mt-1 text-[14px] font-semibold leading-snug"
-            style={{ color: "var(--theme-ink-primary-color)" }}
-          >
-            {bannerTitle}
-          </p>
+        <div className="mx-auto w-full max-w-3xl">
+          <SessionBannerCard
+            sessionTitle="Development Journey"
+            sessionId={activeSessionId}
+            journeyName={journeyName}
+            keeperName={keeperName}
+            modelProvider={modelProvider}
+          />
         </div>
       </div>
 

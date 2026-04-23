@@ -5,6 +5,7 @@ import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
 import type { KipDraftSummary } from "../../../lib/kipApi"
 import { useV0Shell, type V0FrameKey } from "../../shell/V0ShellContext"
+import { useFrameContextOptional } from "../../shell/FrameContext"
 import { SidebarCard, type SidebarCardItem } from "../../components/SidebarCard"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -29,6 +30,15 @@ type JourneyItem = { id: string; name: string; momentCount?: number }
 type KeeperItem = { id: string; title: string }
 type SessionItem = { id: string; title: string }
 
+type SectionKey = "drafts" | "journeys" | "keepers" | "sessions"
+
+const PREVIEW_LIMIT: Record<SectionKey, number> = {
+  drafts: 5,
+  journeys: 4,
+  keepers: 4,
+  sessions: 5,
+}
+
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—"
   const d = new Date(iso)
@@ -44,7 +54,7 @@ function countLabel(n: number | null, singular: string): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function IDEBoardNav({
-  domainSlug,
+  domainSlug: _domainSlug,
   domainId,
   activeJourneyId,
   onJourneySelect,
@@ -55,13 +65,28 @@ export function IDEBoardNav({
   draftListVersion,
 }: IDEBoardNavProps) {
   const { navigateToFrame } = useV0Shell()
+  const frameCtx = useFrameContextOptional()
+  const activeKeeperId = frameCtx?.selection.activeKeeperId ?? null
+
   const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
   const [keepers, setKeepers] = React.useState<KeeperItem[] | null>(null)
   const [drafts, setDrafts] = React.useState<KipDraftSummary[] | null>(null)
   const [sessions, setSessions] = React.useState<SessionItem[] | null>(null)
   const [moreOpen, setMoreOpen] = React.useState(false)
 
-  // Journeys + Keepers — authenticated endpoints (include moment counts and keeper data)
+  // Which sections are expanded to show full list
+  const [expanded, setExpanded] = React.useState<Set<SectionKey>>(new Set())
+  const toggleExpanded = React.useCallback((section: SectionKey) => {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(section)) next.delete(section)
+      else next.add(section)
+      return next
+    })
+  }, [])
+
+  // ── Journeys + Keepers ────────────────────────────────────────────────────
+
   React.useEffect(() => {
     if (!domainId) return
     let cancelled = false
@@ -79,28 +104,22 @@ export function IDEBoardNav({
     }).catch(() => {
       if (!cancelled) { setJourneys([]); setKeepers([]) }
     })
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [domainId])
 
-  // Drafts — /api/domains/{domainId}/kip/drafts
+  // ── Drafts (filtered by active keeper, same as AgentBoardFrame) ───────────
+
   React.useEffect(() => {
     if (!domainId) return
     let cancelled = false
-    KipApi.listDrafts(domainId)
-      .then((list) => {
-        if (!cancelled) setDrafts(list)
-      })
-      .catch(() => {
-        if (!cancelled) setDrafts([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [domainId, draftListVersion])
+    KipApi.listDrafts(domainId, activeKeeperId)
+      .then((list) => { if (!cancelled) setDrafts(list) })
+      .catch(() => { if (!cancelled) setDrafts([]) })
+    return () => { cancelled = true }
+  }, [domainId, activeKeeperId, draftListVersion])
 
-  // Sessions — resolve Kip agent then fetch sessions (display last 7 below)
+  // ── Sessions ──────────────────────────────────────────────────────────────
+
   React.useEffect(() => {
     let cancelled = false
     KipApi.getLeadAgent("kip")
@@ -116,54 +135,59 @@ export function IDEBoardNav({
         }))
         setSessions(items)
       })
-      .catch(() => {
-        if (!cancelled) setSessions([])
-      })
-    return () => {
-      cancelled = true
-    }
+      .catch(() => { if (!cancelled) setSessions([]) })
+    return () => { cancelled = true }
   }, [])
 
-  // ─── SidebarCard item arrays — all selection is local state (no frame navigation) ─
+  // ── Derived item arrays ───────────────────────────────────────────────────
 
-  const journeyItems: SidebarCardItem[] = (journeys ?? []).slice(0, 4).map((j) => ({
+  const allJourneyItems: SidebarCardItem[] = (journeys ?? []).map((j) => ({
     id: j.id,
     label: `${j.name?.trim() || "Untitled journey"}${j.momentCount != null ? ` · ${j.momentCount} moments` : ""}`,
     isSelected: activeJourneyId === j.id,
     onClick: () => onJourneySelect(j.id),
   }))
 
-  const keeperItems: SidebarCardItem[] = (keepers ?? []).slice(0, 4).map((k) => ({
+  const allKeeperItems: SidebarCardItem[] = (keepers ?? []).map((k) => ({
     id: k.id,
     label: k.title?.trim() || "Untitled keeper",
     onClick: () => {},
   }))
 
-  const draftItems: SidebarCardItem[] = (drafts ?? []).slice(0, 5).map((d) => {
+  const allDraftItems: SidebarCardItem[] = (drafts ?? []).map((d) => {
     const keeperName = d.keeperId ? (keepers ?? []).find((k) => k.id === d.keeperId)?.title : null
     return {
       id: d.id,
-      label: keeperName ? `${d.title?.trim() || "Untitled draft"} · ${keeperName}` : (d.title?.trim() || "Untitled draft"),
+      label: keeperName
+        ? `${d.title?.trim() || "Untitled draft"} · ${keeperName}`
+        : (d.title?.trim() || "Untitled draft"),
       isSelected: selectedDraftId === d.id,
       onClick: () => onDraftSelect(d.id),
     }
   })
 
-  const sessionItems: SidebarCardItem[] = (sessions ?? [])
-    .slice(0, 7)
-    .map((s) => ({
-      id: s.id,
-      label: s.title,
-      isSelected: activeSessionId === s.id,
-      onClick: () => onSessionSelect(s.id),
-    }))
+  const allSessionItems: SidebarCardItem[] = (sessions ?? []).map((s) => ({
+    id: s.id,
+    label: s.title,
+    isSelected: activeSessionId === s.id,
+    onClick: () => onSessionSelect(s.id),
+  }))
+
+  // Apply preview slice unless section is expanded
+  const slice = <T,>(section: SectionKey, items: T[]): T[] =>
+    expanded.has(section) ? items : items.slice(0, PREVIEW_LIMIT[section])
+
+  const journeyItems = slice("journeys", allJourneyItems)
+  const keeperItems = slice("keepers", allKeeperItems)
+  const draftItems = slice("drafts", allDraftItems)
+  const sessionItems = slice("sessions", allSessionItems)
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div
       className="flex flex-col h-full overflow-hidden"
-      style={{ color: "hsl(var(--theme-ink-primary))" }}
+      style={{ color: "var(--theme-ink-primary-color)" }}
     >
       {/* Scrollable section cards */}
       <div className="keeper-panel-scroll flex-1 min-h-0 space-y-3 overflow-y-auto p-3">
@@ -171,34 +195,38 @@ export function IDEBoardNav({
           title="Drafts"
           description={countLabel(drafts?.length ?? null, "draft")}
           items={draftItems.length ? draftItems : undefined}
+          onTitleClick={() => toggleExpanded("drafts")}
         />
         <SidebarCard
           title="Journeys"
           description={countLabel(journeys?.length ?? null, "journey")}
           items={journeyItems.length ? journeyItems : undefined}
+          onTitleClick={() => toggleExpanded("journeys")}
         />
         <SidebarCard
           title="Keepers"
           description={countLabel(keepers?.length ?? null, "keeper")}
           items={keeperItems.length ? keeperItems : undefined}
+          onTitleClick={() => toggleExpanded("keepers")}
         />
         <SidebarCard
           title="Sessions"
           description={countLabel(sessions?.length ?? null, "session")}
           items={sessionItems.length ? sessionItems : undefined}
+          onTitleClick={() => toggleExpanded("sessions")}
         />
       </div>
 
       {/* ··· More — pinned to bottom */}
       <div
         className="shrink-0 border-t px-3 py-2"
-        style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
+        style={{ borderColor: "hsl(var(--theme-border-soft))" }}
       >
         <button
           type="button"
           onClick={() => setMoreOpen((prev) => !prev)}
           className="flex items-center gap-1.5 px-1 py-1 rounded-sm transition-opacity hover:opacity-70"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          style={{ color: "var(--theme-ink-tertiary-color)" }}
           aria-expanded={moreOpen}
           aria-label="More frames"
         >
@@ -213,7 +241,7 @@ export function IDEBoardNav({
                   type="button"
                   onClick={() => navigateToFrame(label.toLowerCase() as V0FrameKey)}
                   className="w-full text-left px-1 py-1 rounded-sm text-[11px] transition-opacity hover:opacity-70"
-                  style={{ color: "hsl(var(--theme-ink-secondary))" }}
+                  style={{ color: "var(--theme-ink-secondary-color)" }}
                 >
                   {label}
                 </button>
