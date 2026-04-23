@@ -1,20 +1,26 @@
 "use client"
 
 import * as React from "react"
-import { apiFetch } from "../../../lib/api"
 import { getApiBase } from "../../../lib/apiFetch"
 import { KipApi } from "../../../lib/kipApi"
 import type { KipDraftSummary } from "../../../lib/kipApi"
 import { useV0Shell, type V0FrameKey } from "../../shell/V0ShellContext"
 import { SidebarCard, type SidebarCardItem } from "../../components/SidebarCard"
-import type { IDEBoardActiveContext } from "./IDEBoard"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface IDEBoardNavProps {
   domainSlug: string
-  setActiveContext: React.Dispatch<React.SetStateAction<IDEBoardActiveContext>>
-  onSelectSession: (id: string) => void
+  /** Resolved domain id (parent fetches from slug) */
+  domainId: string | null
+  activeJourneyId: string | null
+  onJourneySelect: (id: string) => void
+  selectedDraftId: string | null
+  onDraftSelect: (id: string) => void
+  activeSessionId: string | null
+  onSessionSelect: (id: string) => void
+  /** Bumps when a new draft is created in-panel so the list can refresh */
+  draftListVersion: number
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -36,25 +42,22 @@ function countLabel(n: number | null, singular: string): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function IDEBoardNav({ domainSlug, setActiveContext, onSelectSession }: IDEBoardNavProps) {
+export function IDEBoardNav({
+  domainSlug,
+  domainId,
+  activeJourneyId,
+  onJourneySelect,
+  selectedDraftId,
+  onDraftSelect,
+  activeSessionId,
+  onSessionSelect,
+  draftListVersion,
+}: IDEBoardNavProps) {
   const { navigateToFrame } = useV0Shell()
-  const [domainId, setDomainId] = React.useState<string | null>(null)
   const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
-  const [drafts, setDrafts]     = React.useState<KipDraftSummary[] | null>(null)
+  const [drafts, setDrafts] = React.useState<KipDraftSummary[] | null>(null)
   const [sessions, setSessions] = React.useState<SessionItem[] | null>(null)
   const [moreOpen, setMoreOpen] = React.useState(false)
-
-  // Resolve domainId from domainSlug — needed for drafts
-  React.useEffect(() => {
-    if (!domainSlug) return
-    let cancelled = false
-    apiFetch(`/api/domains/by-slug/${encodeURIComponent(domainSlug)}`)
-      .then((res: any) => {
-        if (!cancelled && res?.id) setDomainId(res.id)
-      })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [domainSlug])
 
   // Journeys — public endpoint, no auth required
   React.useEffect(() => {
@@ -66,11 +69,15 @@ export function IDEBoardNav({ domainSlug, setActiveContext, onSelectSession }: I
       .then((json: { journeys?: JourneyItem[] }) => {
         if (!cancelled) setJourneys(Array.isArray(json.journeys) ? json.journeys : [])
       })
-      .catch(() => { if (!cancelled) setJourneys([]) })
-    return () => { cancelled = true }
+      .catch(() => {
+        if (!cancelled) setJourneys([])
+      })
+    return () => {
+      cancelled = true
+    }
   }, [domainSlug])
 
-  // Drafts — same endpoint as AgentBoardFrame: /api/domains/{domainId}/kip/drafts
+  // Drafts — /api/domains/{domainId}/kip/drafts
   React.useEffect(() => {
     if (!domainId) return
     let cancelled = false
@@ -78,9 +85,13 @@ export function IDEBoardNav({ domainSlug, setActiveContext, onSelectSession }: I
       .then((list) => {
         if (!cancelled) setDrafts(list)
       })
-      .catch(() => { if (!cancelled) setDrafts([]) })
-    return () => { cancelled = true }
-  }, [domainId])
+      .catch(() => {
+        if (!cancelled) setDrafts([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [domainId, draftListVersion])
 
   // Sessions — resolve Kip agent then fetch sessions (up to 50; display slices below)
   React.useEffect(() => {
@@ -98,22 +109,28 @@ export function IDEBoardNav({ domainSlug, setActiveContext, onSelectSession }: I
         }))
         setSessions(items)
       })
-      .catch(() => { if (!cancelled) setSessions([]) })
-    return () => { cancelled = true }
+      .catch(() => {
+        if (!cancelled) setSessions([])
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  // ─── SidebarCard item arrays ─────────────────────────────────────────────────
+  // ─── SidebarCard item arrays — all selection is local state (no frame navigation) ─
 
   const journeyItems: SidebarCardItem[] = (journeys ?? []).slice(0, 5).map((j) => ({
     id: j.id,
     label: j.name?.trim() || "Untitled journey",
-    onClick: () => setActiveContext({ type: "journey", id: j.id }),
+    isSelected: activeJourneyId === j.id,
+    onClick: () => onJourneySelect(j.id),
   }))
 
   const draftItems: SidebarCardItem[] = (drafts ?? []).slice(0, 5).map((d) => ({
     id: d.id,
     label: d.title?.trim() || "Untitled draft",
-    onClick: () => navigateToFrame("moment" as V0FrameKey, { draftId: d.id }),
+    isSelected: selectedDraftId === d.id,
+    onClick: () => onDraftSelect(d.id),
   }))
 
   const sessionItems: SidebarCardItem[] = (sessions ?? [])
@@ -121,7 +138,8 @@ export function IDEBoardNav({ domainSlug, setActiveContext, onSelectSession }: I
     .map((s) => ({
       id: s.id,
       label: s.title,
-      onClick: () => onSelectSession(s.id),
+      isSelected: activeSessionId === s.id,
+      onClick: () => onSessionSelect(s.id),
     }))
 
   // ─── Render ──────────────────────────────────────────────────────────────────

@@ -48,6 +48,8 @@ export interface SidebarCardItem {
   id?: string
   /** When provided, the item becomes a clickable link */
   onClick?: () => void
+  /** When true, shows the item as selected in the list (e.g. IDE nav) */
+  isSelected?: boolean
 }
 
 export interface SidebarCardProps {
@@ -137,8 +139,17 @@ export function SidebarCard({
                 <button
                   type="button"
                   onClick={item.onClick}
-                  className="text-left underline-offset-2 decoration-dotted hover:underline transition-colors hover:opacity-80"
-                  style={{ color: SURFACE.inkPrimary }}
+                  className={`text-left rounded-md px-1.5 py-0.5 -mx-1.5 -my-0.5 transition-colors ${
+                    item.isSelected
+                      ? "font-medium"
+                      : "underline-offset-2 decoration-dotted hover:underline hover:opacity-80"
+                  }`}
+                  style={{
+                    color: SURFACE.inkPrimary,
+                    ...(item.isSelected
+                      ? { backgroundColor: "hsl(var(--theme-surface-elevated) / 0.85)" }
+                      : {}),
+                  }}
                 >
                   {item.label}
                 </button>

@@ -2,11 +2,18 @@
 
 import * as React from "react"
 import { getApiBase } from "../../../lib/apiFetch"
-import type { IDEBoardActiveContext } from "./IDEBoard"
+import { KipApi } from "../../../lib/kipApi"
+import type { KipDraft } from "../../../lib/kipApi"
+import { apiFetch } from "../../../lib/api"
+import type { KeptRow } from "../../frames/feed/FeedFrame"
+import { MomentDetailPanel } from "../../frames/moment/MomentDetailPanel"
 
-interface IDEBoardJourneyProps {
+interface IDEBoardContextProps {
   domainSlug: string
-  activeContext: IDEBoardActiveContext
+  domainId: string | null
+  activeJourneyId: string | null
+  selectedDraftId: string | null
+  selectedMomentId: string | null
 }
 
 interface JourneyMeta {
@@ -40,26 +47,130 @@ function truncate(text: string | null | undefined, max: number): string {
   return trimmed.slice(0, max) + "…"
 }
 
-export function IDEBoardJourney({ domainSlug, activeContext }: IDEBoardJourneyProps) {
+function draftBodyText(draft: KipDraft): string {
+  if (draft.summary?.trim()) return draft.summary.trim()
+  const spec = draft.spec
+  if (spec && typeof spec === "object")
+    return JSON.stringify(spec, null, 2)
+  if (typeof spec === "string") return spec
+  return ""
+}
+
+export function IDEBoardContext({
+  domainSlug,
+  domainId,
+  activeJourneyId,
+  selectedDraftId,
+  selectedMomentId,
+}: IDEBoardContextProps) {
   const [journey, setJourney] = React.useState<JourneyMeta | null>(null)
   const [moments, setMoments] = React.useState<JourneyMoment[]>([])
+  const [draftDetail, setDraftDetail] = React.useState<KipDraft | null>(null)
   const [loadState, setLoadState] = React.useState<LoadState>("idle")
+  const [draftLoadState, setDraftLoadState] = React.useState<LoadState>("idle")
   const [expandedId, setExpandedId] = React.useState<string | null>(null)
+  const [momentRow, setMomentRow] = React.useState<KeptRow | null>(null)
+  const [momentLoadState, setMomentLoadState] = React.useState<LoadState>("idle")
 
+  // Draft (context panel) — Kip API
+  React.useEffect(() => {
+    if (!selectedDraftId || !domainId) {
+      setDraftDetail(null)
+      setDraftLoadState("idle")
+      return
+    }
+    let cancelled = false
+    setDraftLoadState("loading")
+    KipApi.getDraft(domainId, selectedDraftId)
+      .then((d) => {
+        if (!cancelled) {
+          setDraftDetail(d)
+          setDraftLoadState("ready")
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDraftDetail(null)
+          setDraftLoadState("error")
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedDraftId, domainId])
+
+  // Moment — list API first (same pattern as FeedFrame), then authenticated single fetch
+  React.useEffect(() => {
+    if (!selectedMomentId || !domainSlug) {
+      setMomentRow(null)
+      setMomentLoadState("idle")
+      return
+    }
+    let cancelled = false
+    setMomentLoadState("loading")
+    void (async () => {
+      try {
+        const json = (await apiFetch(
+          `/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=kept&limit=500`,
+        )) as { data?: KeptRow[] }
+        const rows = Array.isArray(json?.data) ? json.data : []
+        let row = rows.find((r) => r.id === selectedMomentId)
+        if (!row) {
+          const mjson = (await apiFetch(`/api/moments/${encodeURIComponent(selectedMomentId)}`)) as {
+            moment?: {
+              id: string
+              title: string
+              narrative: string
+              keptAt?: string | Date | null
+              createdAt: string | Date
+              Journey?: { name?: string | null }
+            }
+          }
+          const m = mjson.moment
+          if (m) {
+            row = {
+              id: m.id,
+              title: m.title,
+              body: m.narrative,
+              keptAt: m.keptAt != null ? String(m.keptAt) : null,
+              createdAt: String(m.createdAt),
+              journeyName: m.Journey?.name ?? null,
+            }
+          }
+        }
+        if (!cancelled) {
+          setMomentRow(row ?? null)
+          setMomentLoadState(row ? "ready" : "error")
+        }
+      } catch {
+        if (!cancelled) {
+          setMomentRow(null)
+          setMomentLoadState("error")
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [selectedMomentId, domainSlug])
+
+  // Journey — public API (when draft and moment are not the primary context focus)
   React.useEffect(() => {
     if (!domainSlug) return
-    let cancelled = false
-
-    if (activeContext && activeContext.type !== "journey") {
+    if (selectedDraftId) {
       setJourney(null)
       setMoments([])
-      setLoadState("ready")
-      setExpandedId(null)
+      setLoadState("idle")
+      return
+    }
+    if (selectedMomentId) {
+      setJourney(null)
+      setMoments([])
+      setLoadState("idle")
       return
     }
 
-    setLoadState("loading")
-
+    let cancelled = false
     const base = getApiBase()
 
     const loadJourney = async (jid: string) => {
@@ -67,7 +178,7 @@ export function IDEBoardJourney({ domainSlug, activeContext }: IDEBoardJourneyPr
         `${base}/api/public/${encodeURIComponent(domainSlug)}/journeys/${encodeURIComponent(jid)}`,
       )
       if (!res.ok) throw new Error(String(res.status))
-      const data = await res.json() as {
+      const data = (await res.json()) as {
         journey: JourneyMeta
         moments: JourneyMoment[]
       }
@@ -77,47 +188,49 @@ export function IDEBoardJourney({ domainSlug, activeContext }: IDEBoardJourneyPr
       setLoadState("ready")
     }
 
-    const targetJourneyId = activeContext?.type === "journey" ? activeContext.id : undefined
-
-    if (targetJourneyId) {
-      loadJourney(targetJourneyId).catch(() => {
+    if (activeJourneyId) {
+      setLoadState("loading")
+      setExpandedId(null)
+      loadJourney(activeJourneyId).catch(() => {
         if (!cancelled) setLoadState("error")
       })
-    } else {
-      // No selection — use first journey (same as previous default)
-      fetch(`${base}/api/public/${encodeURIComponent(domainSlug)}/journeys`)
-        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-        .then((json: { journeys?: Array<{ id: string }> }) => {
-          const first = json.journeys?.[0]
-          if (!first) {
-            if (!cancelled) {
-              setJourney(null)
-              setMoments([])
-              setLoadState("ready")
-            }
-            return
-          }
-          return loadJourney(first.id)
-        })
-        .catch(() => {
-          if (!cancelled) setLoadState("error")
-        })
+      return () => {
+        cancelled = true
+      }
     }
+
+    setExpandedId(null)
+    setLoadState("loading")
+    fetch(`${base}/api/public/${encodeURIComponent(domainSlug)}/journeys`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((json: { journeys?: Array<{ id: string }> }) => {
+        const first = json.journeys?.[0]
+        if (!first) {
+          if (!cancelled) {
+            setJourney(null)
+            setMoments([])
+            setLoadState("ready")
+          }
+          return
+        }
+        return loadJourney(first.id)
+      })
+      .catch(() => {
+        if (!cancelled) setLoadState("error")
+      })
 
     return () => {
       cancelled = true
     }
-  }, [domainSlug, activeContext])
+  }, [domainSlug, activeJourneyId, selectedDraftId, selectedMomentId])
 
   const toggleExpand = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id))
   }
 
-  const bannerTitle = journey?.name ?? (loadState === "loading" ? "Loading…" : "Journey")
-
-  if (activeContext && activeContext.type !== "journey") {
-    const typeLabel =
-      activeContext.type === "moment" ? "Moment" : activeContext.type === "keeper" ? "Keeper" : "Draft"
+  // Priority: draft → moment → journey
+  if (selectedDraftId) {
+    const title = draftDetail?.title?.trim() || "Draft"
     return (
       <div
         className="flex flex-col h-full min-h-0"
@@ -131,30 +244,110 @@ export function IDEBoardJourney({ domainSlug, activeContext }: IDEBoardJourneyPr
             className="text-[10px] font-semibold uppercase tracking-widest"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
-            View state
+            Draft
           </p>
           <p
-            className="text-[14px] font-semibold mt-1"
+            className="text-[14px] font-semibold mt-1 truncate"
             style={{ color: "hsl(var(--theme-ink-primary))" }}
           >
-            {typeLabel}
+            {draftLoadState === "loading" ? "Loading…" : title}
           </p>
+          {draftDetail && (
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              <span
+                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium capitalize"
+                style={{
+                  background: "hsl(var(--theme-surface-elevated))",
+                  border: "1px solid hsl(var(--theme-line-hairline))",
+                  color: "hsl(var(--theme-ink-tertiary))",
+                }}
+              >
+                {draftDetail.status}
+              </span>
+              {draftDetail.updatedAt && (
+                <span
+                  className="text-[10px]"
+                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                >
+                  Updated {formatDate(String(draftDetail.updatedAt))}
+                </span>
+              )}
+            </div>
+          )}
         </div>
-        <div className="flex-1 overflow-y-auto min-h-0 px-4 py-6 text-[12px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-          <p>
-            {typeLabel} view is not built yet. Active id: <span className="font-mono text-[11px]">{activeContext.id}</span>
-          </p>
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4 text-[12px] leading-relaxed">
+          {draftLoadState === "loading" && (
+            <p style={{ color: "hsl(var(--theme-ink-tertiary))" }}>Loading draft…</p>
+          )}
+          {draftLoadState === "error" && (
+            <p style={{ color: "hsl(var(--theme-ink-tertiary))" }}>Couldn&apos;t load this draft.</p>
+          )}
+          {draftLoadState === "ready" && draftDetail && (
+            <pre
+              className="whitespace-pre-wrap font-sans"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            >
+              {draftBodyText(draftDetail)}
+            </pre>
+          )}
         </div>
       </div>
     )
   }
+
+  if (selectedMomentId) {
+    return (
+      <div
+        className="flex flex-col h-full min-h-0"
+        style={{ color: "hsl(var(--theme-ink-primary))" }}
+      >
+        <div
+          className="shrink-0 px-4 py-4 border-b"
+          style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
+        >
+          <p
+            className="text-[10px] font-semibold uppercase tracking-widest"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            Moment
+          </p>
+          <p
+            className="text-[14px] font-semibold mt-1 truncate"
+            style={{ color: "hsl(var(--theme-ink-primary))" }}
+          >
+            {momentLoadState === "loading" ? "Loading…" : momentRow?.title?.trim() || "Moment"}
+          </p>
+        </div>
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {momentLoadState === "loading" && (
+            <p
+              className="px-4 py-6 text-[12px]"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Loading moment…
+            </p>
+          )}
+          {momentLoadState === "error" && (
+            <p
+              className="px-4 py-6 text-[12px]"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Couldn&apos;t load this moment.
+            </p>
+          )}
+          {momentLoadState === "ready" && momentRow && <MomentDetailPanel moment={momentRow} />}
+        </div>
+      </div>
+    )
+  }
+
+  const bannerTitle = journey?.name ?? (loadState === "loading" ? "Loading…" : "Journey")
 
   return (
     <div
       className="flex flex-col h-full min-h-0"
       style={{ color: "hsl(var(--theme-ink-primary))" }}
     >
-      {/* Banner */}
       <div
         className="shrink-0 px-4 py-4 border-b"
         style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
@@ -197,7 +390,6 @@ export function IDEBoardJourney({ domainSlug, activeContext }: IDEBoardJourneyPr
         )}
       </div>
 
-      {/* Body — scrollable */}
       <div className="flex-1 overflow-y-auto min-h-0">
         {loadState === "loading" && (
           <p
@@ -228,7 +420,6 @@ export function IDEBoardJourney({ domainSlug, activeContext }: IDEBoardJourneyPr
 
         {loadState === "ready" && journey && (
           <>
-            {/* Journey header — name is shown in banner, so start with forward text */}
             <div
               className="px-4 py-4 border-b"
               style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
@@ -249,7 +440,6 @@ export function IDEBoardJourney({ domainSlug, activeContext }: IDEBoardJourneyPr
               </p>
             </div>
 
-            {/* Moment list */}
             {moments.length === 0 ? (
               <p
                 className="px-4 py-6 text-[12px]"
@@ -321,7 +511,6 @@ export function IDEBoardJourney({ domainSlug, activeContext }: IDEBoardJourneyPr
                           </div>
                         </div>
 
-                        {/* Expanded content */}
                         {isExpanded && (
                           <div
                             className="mt-2 pt-2 border-t"
