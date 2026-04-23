@@ -117,6 +117,7 @@ export function AgentBoard() {
           >
             <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <KeeperBoardPanelGroup
+              key={`agent-board-panels-${domainSlug || "default"}`}
               boardKind="agent"
               domainSlug={domainSlug}
               left={
