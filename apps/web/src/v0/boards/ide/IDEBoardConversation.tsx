@@ -12,6 +12,7 @@ import { useV0Shell } from "../../shell/V0ShellContext"
 import type { IDEBoardKipContext } from "./ideBoardTypes"
 import { useKipSession } from "../../../hooks/useKipSession"
 import { useDraftContext } from "../../../hooks/useDraftContext"
+import { IDEBannerActions } from "./IDEBannerActions"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -135,24 +136,40 @@ export function IDEBoardConversation({
 
   const modelProvider = (domainFrame?.kip as any)?.model ?? null
 
+  const handleBannerAction = React.useCallback(
+    (prompt: string) => {
+      void sendMessage({ preventDefault: () => {} } as React.FormEvent, { content: prompt })
+    },
+    [sendMessage],
+  )
+
   return (
     <div
       className="flex flex-col h-full min-h-0"
       style={{ color: "hsl(var(--theme-ink-primary))" }}
     >
       <div
-        className="shrink-0 border-b px-4 py-3"
+        className="shrink-0 border-b"
         style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
       >
-        <div className="mx-auto w-full max-w-3xl">
+        <div className="mx-auto w-full max-w-3xl px-4 pt-3 pb-2">
           <SessionBannerCard
-            sessionTitle="Development Journey"
+            sessionTitle={journeyName || "Development Journey"}
             sessionId={activeSessionId}
             journeyName={journeyName}
             keeperName={keeperName}
             modelProvider={modelProvider}
+            // TODO: wire soleActive from session — useKipSession does not yet expose soleStatus
+            soleActive={false}
+            onOpenCockpit={() => {
+              // TODO: open IDE CockpitPanel — wired, not yet built
+            }}
           />
         </div>
+        <IDEBannerActions
+          onAction={handleBannerAction}
+          activeJourneyId={activeJourneyId}
+        />
       </div>
 
       <div className="keeper-panel-scroll min-h-0 flex-1 overflow-y-auto">
