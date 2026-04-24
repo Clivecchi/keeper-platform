@@ -209,7 +209,7 @@ export function IDEBoard() {
                 <div
                   className="flex h-full min-h-0 flex-col border-l"
                   style={{
-                    background: activeService !== null ? "#1c2128" : "hsl(var(--theme-surface-panel))",
+                    background: "hsl(var(--theme-surface-panel))",
                     borderColor: "hsl(var(--theme-line-hairline))",
                   }}
                 >

@@ -11,7 +11,7 @@ export interface ServicesFrameProps {
   onClose?: () => void
 }
 
-// ─── Tab config ───────────────────────────────────────────────────────────────
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
 
 const TABS: Array<{ slug: ServiceSlug; label: string }> = [
   { slug: "cloud",   label: "Cloud" },
@@ -25,13 +25,10 @@ const TABS: Array<{ slug: ServiceSlug; label: string }> = [
 function CloudSection() {
   return (
     <div style={{ padding: "20px 20px 24px" }}>
-      <h2 style={{ fontSize: "14px", fontWeight: 600, color: "#e6edf3", marginBottom: "10px" }}>
-        Cloud
-      </h2>
-      <p style={{ fontSize: "12px", lineHeight: "1.6", color: "#8b949e", marginBottom: "16px" }}>
+      <p style={{ fontSize: "12px", lineHeight: "1.65", color: "var(--theme-ink-secondary-color)", marginBottom: "16px" }}>
         Cloud is Kip&apos;s technical subagent. It has access to the codebase, Railway, Vercel, and GitHub. Invoke Cloud through Kip in the conversation.
       </p>
-      <StatusRow label="Agent" value="Registered" detail="claude-sonnet-4-6" valueColor="#3fb950" />
+      <StatusRow label="Agent" value="Registered" detail="claude-sonnet-4-6" connected />
     </div>
   )
 }
@@ -39,20 +36,12 @@ function CloudSection() {
 function RailwaySection() {
   return (
     <div style={{ padding: "20px 20px 24px" }}>
-      <h2 style={{ fontSize: "14px", fontWeight: 600, color: "#e6edf3", marginBottom: "10px" }}>
-        Railway
-      </h2>
-      <p style={{ fontSize: "12px", lineHeight: "1.6", color: "#8b949e", marginBottom: "16px" }}>
+      <p style={{ fontSize: "12px", lineHeight: "1.65", color: "var(--theme-ink-secondary-color)", marginBottom: "16px" }}>
         Connect Railway to enable backend deployment from the IDE Board.
       </p>
-      <StatusRow label="Status" value="Not connected" valueColor="#484f58" />
+      <StatusRow label="Status" value="Not connected" />
       <div style={{ marginTop: "16px" }}>
-        <ConnectButton
-          label="Connect Railway"
-          onClick={() => {
-            // TODO: Railway OAuth
-          }}
-        />
+        <ConnectButton label="Connect Railway" onClick={() => { /* TODO: Railway OAuth */ }} />
       </div>
     </div>
   )
@@ -61,20 +50,12 @@ function RailwaySection() {
 function VercelSection() {
   return (
     <div style={{ padding: "20px 20px 24px" }}>
-      <h2 style={{ fontSize: "14px", fontWeight: 600, color: "#e6edf3", marginBottom: "10px" }}>
-        Vercel
-      </h2>
-      <p style={{ fontSize: "12px", lineHeight: "1.6", color: "#8b949e", marginBottom: "16px" }}>
+      <p style={{ fontSize: "12px", lineHeight: "1.65", color: "var(--theme-ink-secondary-color)", marginBottom: "16px" }}>
         Connect Vercel to enable frontend deployment and preview URLs from the IDE Board.
       </p>
-      <StatusRow label="Status" value="Not connected" valueColor="#484f58" />
+      <StatusRow label="Status" value="Not connected" />
       <div style={{ marginTop: "16px" }}>
-        <ConnectButton
-          label="Connect Vercel"
-          onClick={() => {
-            // TODO: Vercel OAuth
-          }}
-        />
+        <ConnectButton label="Connect Vercel" onClick={() => { /* TODO: Vercel OAuth */ }} />
       </div>
     </div>
   )
@@ -83,20 +64,12 @@ function VercelSection() {
 function GitHubSection() {
   return (
     <div style={{ padding: "20px 20px 24px" }}>
-      <h2 style={{ fontSize: "14px", fontWeight: 600, color: "#e6edf3", marginBottom: "10px" }}>
-        GitHub
-      </h2>
-      <p style={{ fontSize: "12px", lineHeight: "1.6", color: "#8b949e", marginBottom: "16px" }}>
+      <p style={{ fontSize: "12px", lineHeight: "1.65", color: "var(--theme-ink-secondary-color)", marginBottom: "16px" }}>
         Connect GitHub to surface branch status, commits, and pull requests from the IDE Board.
       </p>
-      <StatusRow label="Status" value="Not connected" valueColor="#484f58" />
+      <StatusRow label="Status" value="Not connected" />
       <div style={{ marginTop: "16px" }}>
-        <ConnectButton
-          label="Connect GitHub"
-          onClick={() => {
-            // TODO: GitHub OAuth
-          }}
-        />
+        <ConnectButton label="Connect GitHub" onClick={() => { /* TODO: GitHub OAuth */ }} />
       </div>
     </div>
   )
@@ -108,33 +81,39 @@ function StatusRow({
   label,
   value,
   detail,
-  valueColor = "#8b949e",
+  connected,
 }: {
   label: string
   value: string
   detail?: string
-  valueColor?: string
+  connected?: boolean
 }) {
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "8px",
-        fontFamily: "monospace",
+        gap: "6px",
         fontSize: "11px",
-        color: "#484f58",
         padding: "6px 0",
-        borderTop: "1px solid rgba(255,255,255,0.06)",
+        borderTop: "1px solid hsl(var(--theme-line-hairline))",
+        color: "var(--theme-ink-tertiary-color)",
       }}
     >
-      <span style={{ minWidth: "52px" }}>{label}</span>
-      <span style={{ color: "#484f58", marginRight: "4px" }}>·</span>
-      <span style={{ color: valueColor }}>{value}</span>
+      <span>{label}</span>
+      <span style={{ opacity: 0.4 }}>·</span>
+      <span
+        style={{
+          color: connected ? "rgb(16 185 129)" : "var(--theme-ink-tertiary-color)",
+          fontWeight: connected ? 500 : 400,
+        }}
+      >
+        {value}
+      </span>
       {detail && (
         <>
-          <span style={{ color: "#484f58" }}>·</span>
-          <span style={{ color: "#484f58" }}>{detail}</span>
+          <span style={{ opacity: 0.4 }}>·</span>
+          <span>{detail}</span>
         </>
       )}
     </div>
@@ -150,15 +129,16 @@ function ConnectButton({ label, onClick }: { label: string; onClick: () => void 
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        fontFamily: "monospace",
-        fontSize: "11px",
-        padding: "5px 14px",
-        border: "1px solid #6ee7b7",
+        fontSize: "12px",
+        padding: "6px 14px",
+        border: "1px solid hsl(var(--theme-border-soft))",
         borderRadius: "6px",
-        color: "#6ee7b7",
-        backgroundColor: hovered ? "rgba(110,231,183,0.08)" : "transparent",
+        color: "var(--theme-ink-secondary-color)",
+        backgroundColor: hovered
+          ? "hsl(var(--theme-surface-paper) / 0.8)"
+          : "transparent",
         cursor: "pointer",
-        transition: "background-color 80ms ease",
+        transition: "background-color 100ms ease",
       }}
     >
       {label}
@@ -168,19 +148,12 @@ function ConnectButton({ label, onClick }: { label: string; onClick: () => void 
 
 // ─── Tab bar ──────────────────────────────────────────────────────────────────
 
-function TabBar({
-  active,
-  onChange,
-}: {
-  active: ServiceSlug
-  onChange: (slug: ServiceSlug) => void
-}) {
+function TabBar({ active, onChange }: { active: ServiceSlug; onChange: (s: ServiceSlug) => void }) {
   return (
     <div
       style={{
         display: "flex",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
-        backgroundColor: "#161b22",
+        borderBottom: "1px solid hsl(var(--theme-line-hairline))",
         flexShrink: 0,
       }}
     >
@@ -192,16 +165,19 @@ function TabBar({
             type="button"
             onClick={() => onChange(slug)}
             style={{
-              fontFamily: "monospace",
               fontSize: "11px",
               padding: "8px 14px",
               border: "none",
-              borderBottom: isActive ? "2px solid #6ee7b7" : "2px solid transparent",
+              borderBottom: isActive
+                ? "2px solid rgb(16 185 129)"
+                : "2px solid transparent",
               marginBottom: "-1px",
               backgroundColor: "transparent",
-              color: isActive ? "#6ee7b7" : "#484f58",
+              color: isActive
+                ? "rgb(16 185 129)"
+                : "var(--theme-ink-tertiary-color)",
               cursor: "pointer",
-              transition: "color 80ms ease",
+              transition: "color 100ms ease",
               whiteSpace: "nowrap",
             }}
           >
@@ -229,7 +205,7 @@ export function ServicesFrame({ initialService = "cloud", onClose }: ServicesFra
         flexDirection: "column",
         height: "100%",
         minHeight: 0,
-        backgroundColor: "#1c2128",
+        background: "hsl(var(--theme-surface-panel))",
         overflow: "hidden",
       }}
     >
@@ -239,20 +215,19 @@ export function ServicesFrame({ initialService = "cloud", onClose }: ServicesFra
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "10px 16px 0",
+          padding: "12px 16px 0",
           flexShrink: 0,
         }}
       >
         <span
           style={{
-            fontFamily: "monospace",
-            fontSize: "9px",
-            letterSpacing: "0.12em",
+            fontSize: "10px",
+            letterSpacing: "0.04em",
             textTransform: "uppercase",
-            color: "#484f58",
+            color: "var(--theme-ink-tertiary-color)",
           }}
         >
-          Integrated Services
+          Services
         </span>
         {onClose && (
           <button
@@ -260,14 +235,14 @@ export function ServicesFrame({ initialService = "cloud", onClose }: ServicesFra
             onClick={onClose}
             aria-label="Close services panel"
             style={{
-              fontFamily: "monospace",
-              fontSize: "10px",
-              color: "#484f58",
+              fontSize: "11px",
+              color: "var(--theme-ink-tertiary-color)",
               backgroundColor: "transparent",
               border: "none",
               cursor: "pointer",
-              padding: "2px 4px",
-              borderRadius: "3px",
+              padding: "2px 6px",
+              borderRadius: "4px",
+              lineHeight: 1,
             }}
           >
             ✕
@@ -276,7 +251,7 @@ export function ServicesFrame({ initialService = "cloud", onClose }: ServicesFra
       </div>
 
       {/* Tabs */}
-      <div style={{ paddingTop: "8px", flexShrink: 0 }}>
+      <div style={{ padding: "8px 0 0", flexShrink: 0 }}>
         <TabBar active={activeTab} onChange={setActiveTab} />
       </div>
 
