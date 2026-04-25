@@ -90,10 +90,10 @@ export const SessionBannerCard: React.FC<SessionBannerCardProps> = ({
   }
 
   const contextItems: { label: string; value: string; active: boolean }[] = [
-    { label: "Journey", value: journeyName || "None", active: Boolean(journeyName) },
     { label: "Keeper", value: keeperName || "None", active: Boolean(keeperName) },
-    { label: "SOLE", value: soleActive ? "Active" : "Inactive", active: soleActive },
+    { label: "Journey", value: journeyName || "None", active: Boolean(journeyName) },
     { label: "Session", value: sessionId ? shortId(sessionId) : "None", active: Boolean(sessionId) },
+    { label: "SOLE", value: soleActive ? "Active" : "Inactive", active: soleActive },
     {
       label: "Model",
       value: modelProvider ? modelProvider.toUpperCase() : "OpenAI",

@@ -8,6 +8,7 @@ import { apiFetch } from "../../../lib/api"
 import type { KeptRow } from "../../frames/feed/FeedFrame"
 import { MomentDetailPanel } from "../../frames/moment/MomentDetailPanel"
 import { IDEDraftPanel } from "./IDEDraftPanel"
+import { KeeperPanel } from "./components/KeeperPanel"
 
 interface IDEBoardContextProps {
   domainSlug: string
@@ -19,6 +20,8 @@ interface IDEBoardContextProps {
   selectedKeeperId?: string | null
   /** Resolved keeper display name */
   activeKeeperName?: string | null
+  /** Navigate to a journey from the right panel (e.g. from KeeperPanel) */
+  onJourneySelect?: (id: string) => void
 }
 
 interface JourneyMeta {
@@ -61,6 +64,7 @@ export function IDEBoardContext({
   selectedMomentId,
   selectedKeeperId,
   activeKeeperName,
+  onJourneySelect,
 }: IDEBoardContextProps) {
   const [journey, setJourney] = React.useState<JourneyMeta | null>(null)
   const [moments, setMoments] = React.useState<JourneyMoment[]>([])
@@ -315,36 +319,12 @@ export function IDEBoardContext({
   // Priority: draft → moment → keeper → journey
   if (selectedKeeperId) {
     return (
-      <div
-        className="flex flex-col h-full min-h-0"
-        style={{ color: "hsl(var(--theme-ink-primary))" }}
-      >
-        <div
-          className="shrink-0 px-4 py-4 border-b"
-          style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
-        >
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            Keeper
-          </p>
-          <p
-            className="text-[14px] font-semibold mt-1 truncate"
-            style={{ color: "hsl(var(--theme-ink-primary))" }}
-          >
-            {activeKeeperName ?? "Keeper"}
-          </p>
-        </div>
-        <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto">
-          <p
-            className="px-4 py-6 text-[12px]"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            Keeper context coming soon.
-          </p>
-        </div>
-      </div>
+      <KeeperPanel
+        keeperId={selectedKeeperId}
+        keeperName={activeKeeperName}
+        domainId={domainId}
+        onJourneySelect={onJourneySelect ?? (() => {})}
+      />
     )
   }
 

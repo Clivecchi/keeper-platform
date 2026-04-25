@@ -259,6 +259,7 @@ export function IDEBoard() {
                       selectedMomentId={selectedMomentId}
                       selectedKeeperId={selectedKeeperId}
                       activeKeeperName={keeperName}
+                      onJourneySelect={onJourneySelect}
                     />
                   )}
                 </div>
