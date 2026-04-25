@@ -22,6 +22,12 @@ interface IDEBoardNavProps {
   onSessionSelect: (id: string) => void
   /** Bumps when a new draft is created in-panel so the list can refresh */
   draftListVersion: number
+  /** Bumps when a session is renamed so the list re-fetches */
+  sessionListVersion?: number
+  /** Called when a keeper is clicked in the nav */
+  onKeeperSelect?: (id: string) => void
+  /** Provides the parent with the fetched sessions list for title derivation */
+  onSessionsLoaded?: (sessions: { id: string; title: string }[]) => void
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -63,6 +69,9 @@ export function IDEBoardNav({
   activeSessionId,
   onSessionSelect,
   draftListVersion,
+  sessionListVersion,
+  onKeeperSelect,
+  onSessionsLoaded,
 }: IDEBoardNavProps) {
   const { navigateToFrame } = useV0Shell()
   const frameCtx = useFrameContextOptional()
@@ -134,10 +143,12 @@ export function IDEBoardNav({
             `Session · ${formatDate(s.updated_at ? new Date(s.updated_at).toISOString() : undefined)}`,
         }))
         setSessions(items)
+        onSessionsLoaded?.(items)
       })
       .catch(() => { if (!cancelled) setSessions([]) })
     return () => { cancelled = true }
-  }, [])
+    // sessionListVersion triggers re-fetch when a session is renamed
+  }, [sessionListVersion, onSessionsLoaded])
 
   // ── Derived item arrays ───────────────────────────────────────────────────
 
@@ -151,7 +162,11 @@ export function IDEBoardNav({
   const allKeeperItems: SidebarCardItem[] = (keepers ?? []).map((k) => ({
     id: k.id,
     label: k.title?.trim() || "Untitled keeper",
-    onClick: () => {},
+    isSelected: activeKeeperId === k.id,
+    onClick: () => {
+      frameCtx?.setActiveKeeperId(k.id)
+      onKeeperSelect?.(k.id)
+    },
   }))
 
   const allDraftItems: SidebarCardItem[] = (drafts ?? []).map((d) => {

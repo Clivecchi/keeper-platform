@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { KipApi } from "../../../lib/kipApi"
 import type { KipMessage } from "../../../lib/kipApi"
 import { AgentComposer } from "../../../components/agent/AgentComposer"
 import { DialogueMessageList } from "../../../components/agent/DialogueMessageList"
@@ -39,6 +40,10 @@ interface IDEBoardConversationProps {
   keeperName?: string | null
   /** Active journey name for the banner */
   journeyName?: string | null
+  /** Actual session title — shown in banner header (not the journey name) */
+  sessionTitle?: string | null
+  /** Called after a successful session rename so the parent can update its sessions list */
+  onSaveSessionTitle?: (id: string, title: string) => void
   /** Opens the Services panel in the right panel, optionally jumping to a specific service */
   onServiceOpen?: (service?: ServiceSlug) => void
 }
@@ -87,6 +92,8 @@ export function IDEBoardConversation({
   onMomentSelect,
   keeperName,
   journeyName,
+  sessionTitle,
+  onSaveSessionTitle,
   onServiceOpen,
 }: IDEBoardConversationProps) {
   const { domainFrame, resolvedAudience } = useV0Shell()
@@ -142,6 +149,22 @@ export function IDEBoardConversation({
     onActiveSessionIdChange,
   })
 
+  const [isSavingTitle, setIsSavingTitle] = React.useState(false)
+
+  const handleSaveTitle = React.useCallback(
+    async (title: string) => {
+      if (!activeSessionId || !kipAgentId) return
+      setIsSavingTitle(true)
+      try {
+        await KipApi.updateSessionMetadata(kipAgentId, activeSessionId, { session_name: title })
+        onSaveSessionTitle?.(activeSessionId, title)
+      } finally {
+        setIsSavingTitle(false)
+      }
+    },
+    [activeSessionId, kipAgentId, onSaveSessionTitle],
+  )
+
   const modelProvider = (domainFrame?.kip as any)?.model ?? null
 
   return (
@@ -157,12 +180,13 @@ export function IDEBoardConversation({
         {/* Row 1: SessionBannerCard */}
         <div className="mx-auto w-full max-w-3xl px-4 pt-3 pb-2">
           <SessionBannerCard
-            sessionTitle={journeyName || "Development Journey"}
+            sessionTitle={sessionTitle || "New session"}
             sessionId={activeSessionId}
+            onSaveTitle={handleSaveTitle}
+            isSavingTitle={isSavingTitle}
             journeyName={journeyName}
             keeperName={keeperName}
             modelProvider={modelProvider}
-            // TODO: wire soleActive from session — useKipSession does not yet expose soleStatus
             soleActive={false}
             onOpenCockpit={() => {
               // TODO: open IDE CockpitPanel — wired, not yet built

@@ -18,6 +18,7 @@ import { ServicesFrame } from "./components/ServicesFrame"
 
 type JourneySummary = { id: string; name: string; momentCount?: number }
 type KeeperSummary = { id: string; title: string }
+type NavSession = { id: string; title: string }
 
 export function IDEBoard() {
   const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
@@ -30,9 +31,13 @@ export function IDEBoard() {
   const [activeJourneyId, setActiveJourneyId] = React.useState<string | null>(null)
   const [selectedDraftId, setSelectedDraftId] = React.useState<string | null>(null)
   const [selectedMomentId, setSelectedMomentId] = React.useState<string | null>(null)
+  const [selectedKeeperId, setSelectedKeeperId] = React.useState<string | null>(null)
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
   const [draftListVersion, setDraftListVersion] = React.useState(0)
+  const [sessionListVersion, setSessionListVersion] = React.useState(0)
   const [activeService, setActiveService] = React.useState<"cloud" | "railway" | "vercel" | "github" | null>(null)
+  // Sessions lifted from IDEBoardNav so banner title and rename stay in sync
+  const [navSessions, setNavSessions] = React.useState<NavSession[]>([])
 
   const onServiceOpen = React.useCallback(
     (service?: "cloud" | "railway" | "vercel" | "github") => {
@@ -76,23 +81,33 @@ export function IDEBoard() {
   // Derive names from frameCtx selections (same pattern as AgentBoardFrame)
   const keeperName = keepers.find((k) => k.id === (frameCtx?.selection.activeKeeperId ?? null))?.title ?? null
   const journeyName = journeys.find((j) => j.id === (frameCtx?.selection.activeJourneyId ?? activeJourneyId))?.name ?? null
+  const activeSessionTitle = navSessions.find((s) => s.id === activeSessionId)?.title ?? null
 
   const onJourneySelect = React.useCallback((id: string) => {
     setActiveJourneyId(id)
     setSelectedDraftId(null)
     setSelectedMomentId(null)
+    setSelectedKeeperId(null)
   }, [])
 
   const onDraftSelect = React.useCallback((id: string) => {
     setSelectedDraftId(id)
     setActiveJourneyId(null)
     setSelectedMomentId(null)
+    setSelectedKeeperId(null)
   }, [])
 
   const onMomentSelect = React.useCallback((id: string) => {
     setSelectedMomentId(id)
     setSelectedDraftId(null)
     setActiveJourneyId(null)
+    setSelectedKeeperId(null)
+  }, [])
+
+  const onKeeperSelect = React.useCallback((id: string) => {
+    setSelectedKeeperId(id)
+    setSelectedDraftId(null)
+    setSelectedMomentId(null)
   }, [])
 
   const onSessionSelect = React.useCallback((id: string) => {
@@ -100,11 +115,21 @@ export function IDEBoard() {
     setSelectedMomentId(null)
   }, [])
 
+  const onSessionsLoaded = React.useCallback((sessions: NavSession[]) => {
+    setNavSessions(sessions)
+  }, [])
+
+  const onSaveSessionTitle = React.useCallback((id: string, title: string) => {
+    setNavSessions((prev) => prev.map((s) => (s.id === id ? { ...s, title } : s)))
+    setSessionListVersion((v) => v + 1)
+  }, [])
+
   const onKipContextSync = React.useCallback((ctx: IDEBoardKipContext) => {
     if (ctx.type === "draft") {
       setSelectedDraftId(ctx.id)
       setActiveJourneyId(null)
       setSelectedMomentId(null)
+      setSelectedKeeperId(null)
       setDraftListVersion((v) => v + 1)
       return
     }
@@ -112,12 +137,14 @@ export function IDEBoard() {
       setActiveJourneyId(ctx.id)
       setSelectedDraftId(null)
       setSelectedMomentId(null)
+      setSelectedKeeperId(null)
       return
     }
     if (ctx.type === "moment") {
       setSelectedMomentId(ctx.id)
       setSelectedDraftId(null)
       setActiveJourneyId(null)
+      setSelectedKeeperId(null)
     }
   }, [])
 
@@ -184,6 +211,9 @@ export function IDEBoard() {
                     activeSessionId={activeSessionId}
                     onSessionSelect={onSessionSelect}
                     draftListVersion={draftListVersion}
+                    sessionListVersion={sessionListVersion}
+                    onKeeperSelect={onKeeperSelect}
+                    onSessionsLoaded={onSessionsLoaded}
                   />
                 </div>
               }
@@ -201,6 +231,8 @@ export function IDEBoard() {
                     onMomentSelect={onMomentSelect}
                     keeperName={keeperName}
                     journeyName={journeyName}
+                    sessionTitle={activeSessionTitle}
+                    onSaveSessionTitle={onSaveSessionTitle}
                     onServiceOpen={onServiceOpen}
                   />
                 </div>
@@ -225,6 +257,8 @@ export function IDEBoard() {
                       activeJourneyId={activeJourneyId}
                       selectedDraftId={selectedDraftId}
                       selectedMomentId={selectedMomentId}
+                      selectedKeeperId={selectedKeeperId}
+                      activeKeeperName={keeperName}
                     />
                   )}
                 </div>
