@@ -260,6 +260,7 @@ export function IDEBoard() {
                       selectedKeeperId={selectedKeeperId}
                       activeKeeperName={keeperName}
                       onJourneySelect={onJourneySelect}
+                      onDraftSelect={onDraftSelect}
                     />
                   )}
                 </div>

@@ -309,27 +309,44 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         {/* Attachment bar: shows attached files above the input */}
         {attachments.length > 0 && (
           <div
-            className="flex flex-wrap gap-2 px-3 py-2"
+            className="flex flex-col gap-1.5 px-3 py-2"
             style={{ borderBottom: `1px solid ${SURFACE.border}`, backgroundColor: SURFACE.toolbarBg }}
           >
-            {attachments.map((a) => (
-              <div
-                key={a.id}
-                className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs"
-                style={{ borderColor: SURFACE.border, color: SURFACE.inkPrimary }}
-              >
-                <PaperClipIcon className="h-3.5 w-3.5 shrink-0" style={{ color: SURFACE.inkSecondary }} />
-                <span className="max-w-[120px] truncate">{a.name}</span>
-                <button
-                  type="button"
-                  onClick={() => removeAttachment(a.id)}
-                  className="rounded p-0.5 transition-colors hover:bg-black/10"
-                  aria-label={`Remove ${a.name}`}
+            <div className="flex flex-wrap gap-2">
+              {attachments.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs"
+                  style={{ borderColor: SURFACE.border, color: SURFACE.inkPrimary }}
                 >
-                  <XMarkIcon className="h-3.5 w-3.5" style={{ color: SURFACE.inkSecondary }} />
-                </button>
-              </div>
-            ))}
+                  <PaperClipIcon className="h-3.5 w-3.5 shrink-0" style={{ color: SURFACE.inkSecondary }} />
+                  <span className="max-w-[120px] truncate">{a.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(a.id)}
+                    className="rounded p-0.5 transition-colors hover:bg-black/10"
+                    aria-label={`Remove ${a.name}`}
+                  >
+                    <XMarkIcon className="h-3.5 w-3.5" style={{ color: SURFACE.inkSecondary }} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            {/* Vision unavailability notice — shown when any image is attached */}
+            {attachments.some((a) => a.type === "image") && (
+              <p
+                className="text-[11px] leading-snug px-1"
+                style={{
+                  color: "hsl(38 80% 35%)",
+                  background: "hsl(48 90% 94%)",
+                  border: "1px solid hsl(38 60% 80%)",
+                  borderRadius: "6px",
+                  padding: "5px 8px",
+                }}
+              >
+                Kip can&apos;t currently see attached images — describe what you&apos;re seeing for best results.
+              </p>
+            )}
           </div>
         )}
 

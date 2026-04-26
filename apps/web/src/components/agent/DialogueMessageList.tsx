@@ -27,6 +27,8 @@ export interface DialogueMessageListProps {
   onOpenDraft?: (draftId: string) => void
   /** Callback when a moment link is clicked (e.g. in action receipts) */
   onOpenMoment?: (momentId: string) => void
+  /** Callback when a journey card is tapped (loads it in the right panel) */
+  onOpenJourney?: (journeyId: string) => void
   /** Callback when user confirms a proposed draft update */
   onConfirmDraftUpdate?: (draftId: string, payload: { title?: string; summary?: string; status?: string; spec?: unknown }) => void
   /** Agent name for empty state and thinking indicator (dynamic, not hardcoded) */
@@ -44,6 +46,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   error,
   onOpenDraft,
   onOpenMoment,
+  onOpenJourney,
   onConfirmDraftUpdate,
   agentName = "Agent",
   agentBoardMessaging,
@@ -136,6 +139,11 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                       onOpenMoment={
                         receipt.data?.moment?.id
                           ? (momentId) => onOpenMoment?.(momentId)
+                          : undefined
+                      }
+                      onOpenJourney={
+                        receipt.data?.journey?.id
+                          ? (journeyId) => onOpenJourney?.(journeyId)
                           : undefined
                       }
                     />

@@ -1,0 +1,37 @@
+# IDE Board
+
+## 📌 Purpose
+The primary collaborative workspace where Kip and the user build Journeys, Paths, Moments, and Drafts together. Three-column layout: left nav, center conversation, right context panel.
+
+## 🧱 Key Files
+- `IDEBoard.tsx` — Root board component. Owns all selection state (activeJourneyId, selectedDraftId, selectedMomentId, selectedKeeperId, activeSessionId). Renders the three-column `KeeperBoardPanelGroup`.
+- `IDEBoardNav.tsx` — Left panel: Drafts, Journeys, Keepers, Sessions navigation sections.
+- `IDEBoardConversation.tsx` — Center panel: Kip chat via `useKipSession`. Renders `DialogueMessageList` and `AgentComposer`. Syncs Kip context (journey/draft/moment) to parent via `onKipContextSync`.
+- `IDEBoardContext.tsx` — Right panel: priority display (draft → moment → keeper → journey). Journey view has **three tabs: Paths / Moments / Drafts** with inline-editable cards.
+- `IDEDraftPanel.tsx` — Right panel draft detail view (reuses Kip draft editing UI).
+- `ideBoardTypes.ts` — `IDEBoardKipContext` union type (`{ type: "journey" | "draft" | "moment" | "keeper"; id: string }`).
+- `components/KeeperPanel.tsx` — Keeper detail view in right panel.
+- `components/ServicesFrame.tsx` — Services overlay (Cloud, Railway, Vercel, GitHub tabs). Shown when `activeService !== null`.
+- `components/IntegratedServicesBar.tsx` — Compact services status bar in conversation header.
+
+## 🔄 Data & Behavior
+- State ownership: `IDEBoard` owns all selection IDs; passes them down as props.
+- Context sync: When Kip creates/references a journey/draft/moment, `IDEBoardConversation` calls `onKipContextSync` → `IDEBoard` updates the appropriate selection ID → `IDEBoardContext` loads and displays the entity in the right panel.
+- Journey tabs (`IDEBoardContext`):
+  - **Paths**: fetched from `GET /api/paths?journeyId=...`. Cards are inline-editable (name and prelude via `PUT /api/paths/:id`). Status chips rendered per path.
+  - **Moments**: fetched from public journey API. Expand/collapse each moment. Chronological (newest first).
+  - **Drafts**: fetched from `KipApi.listDrafts(domainId)`. Tapping a draft fires `onDraftSelect` to load it in the right panel. (Domain-scoped; journey-scoped filtering is a future enhancement once `kip_drafts` has a `journey_id` column.)
+- Image vision: `AgentComposer` shows a yellow warning banner when image attachments are pending, since Kip does not currently have vision capability wired.
+- Journey/Path/Moment action receipts in chat render as rich card components (`JourneyReceiptCard`, `PathReceiptCard`, `MomentReceiptCard`) inside `ActionReceiptCard`. Tapping a Journey card fires `onOpenJourney` → syncs `activeJourneyId` in the right panel.
+
+## ⚠️ Notes & ToDo
+- [ ] `DraftsTab` in `IDEBoardContext` shows all domain drafts. Needs journey-scoped filter once `kip_drafts.journey_id` column is added (schema migration required).
+- [ ] `onDraftSelect` in `IDEBoardContext` triggers right panel draft view — verify this also updates left nav selection state.
+- [ ] Path status chip is static ("Active") — add a `status` field to `Path` model if we want Active/Planned/Reference to be data-driven.
+- [ ] Wire vision capability into IDE Board chat context so agent can see attached screenshots (high-value future enhancement).
+- [ ] Moment capture frame-first pattern: agent should present the Moment frame card for confirmation without a back-and-forth prompt. Requires KipAgentService change.
+- [ ] Known Gaps Path: create a dedicated "Known Gaps & Improvements" Path in the Building Keeper Journey where each gap is a Moment.
+
+## 📆 Update Log
+- 2026-04-25: IDEBoardContext major refactor. Journey view now has three tabs: **Paths** (inline-editable cards, status chips, fetched from `/api/paths?journeyId=...`), **Moments** (chronological expand/collapse, unchanged behavior), **Drafts** (domain drafts from KipApi, tappable to open). Added `InlineEditField`, `StatusChip`, `JourneyTabBar`, `PathsTab`, `MomentsTab`, `DraftsTab` sub-components. Added `onDraftSelect` prop to `IDEBoardContextProps`. Wired in `IDEBoard.tsx`.
+- 2026-04-25: IDEBoardConversation: `DialogueMessageList` now receives `onOpenJourney` → calls `onKipContextSync({ type: "journey", id })` to auto-load journey in right panel when a Journey receipt card is tapped.

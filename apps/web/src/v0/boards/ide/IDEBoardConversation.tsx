@@ -215,6 +215,7 @@ export function IDEBoardConversation({
             agentName="Kip"
             onOpenDraft={onSelectDraftInPlace}
             onOpenMoment={onMomentSelect}
+            onOpenJourney={(journeyId) => onKipContextSync({ type: "journey", id: journeyId })}
             agentBubbleFullWidth
           />
         </div>
