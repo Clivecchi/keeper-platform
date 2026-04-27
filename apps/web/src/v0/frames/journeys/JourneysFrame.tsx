@@ -33,7 +33,7 @@ interface JourneyDetail {
   updatedAt: string
   keeper: { id: string; title: string } | null
   moment: JourneyMoment[]
-  paths: { id: string; name: string }[]
+  paths: { id: string; name: string; prelude: string }[]
   stats: {
     totalPaths: number
     totalMoments: number
@@ -164,7 +164,7 @@ export function JourneysFrame({
               keptAt: m.keptAt,
               createdAt: m.createdAt,
             })),
-            paths: j.paths ?? j.Path ?? [],
+            paths: (j.paths ?? j.Path ?? []).map((p: any) => ({ id: p.id, name: p.name, prelude: p.prelude ?? '' })),
             stats: j.stats ?? { totalPaths: 0, totalMoments: 0 },
           })
         } else {
@@ -204,7 +204,7 @@ export function JourneysFrame({
               keptAt: null,
               createdAt: m.createdAt,
             })),
-            paths: paths.map((p) => ({ id: p.id, name: p.name })),
+            paths: paths.map((p) => ({ id: p.id, name: p.name, prelude: p.prelude ?? '' })),
             stats: {
               totalPaths: paths.length,
               totalMoments: moments.length,
@@ -440,6 +440,39 @@ export function JourneysFrame({
                   {selectedJourney.stats.totalMoments !== 1 ? "s" : ""}
                 </span>
               </div>
+
+              {/* Paths */}
+              {selectedJourney.paths.length > 0 && (
+                <div className="mb-4">
+                  <h3
+                    className="mb-2 text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: themeInkSecondary }}
+                  >
+                    Paths
+                  </h3>
+                  <div className="space-y-2">
+                    {selectedJourney.paths.map((path) => (
+                      <div
+                        key={path.id}
+                        className="rounded-lg border p-3"
+                        style={{ borderColor: themeBorder }}
+                      >
+                        <p className="text-sm font-medium" style={{ color: themeInk }}>
+                          {path.name}
+                        </p>
+                        {path.prelude && (
+                          <p
+                            className="mt-1 text-sm leading-relaxed"
+                            style={{ color: themeInkSecondary }}
+                          >
+                            {path.prelude}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Moments */}
               <div>

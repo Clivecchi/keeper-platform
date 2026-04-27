@@ -28,7 +28,8 @@ function mapPublicJourneyToNarrative(
   domainSlug: string,
 ): { frame: Frame; domain: Record<string, unknown> } {
   const j = json.journey
-  const first = json.moments?.[0]
+  const paths = json.paths ?? []
+  const moments = json.moments ?? []
   const props: Frame["props"] = [
     {
       id: `${j.id}-journey-title`,
@@ -46,17 +47,35 @@ function mapPublicJourneyToNarrative(
       orderIndex: order++,
     })
   }
-  if (first) {
+
+  for (const p of paths) {
     props.push({
-      id: `${first.id}-moment-title`,
+      id: `${p.id}-path-title`,
       type: "heading",
-      config: { content: first.title || "Moment" },
+      config: { content: p.name },
+      orderIndex: order++,
+    })
+    if (p.prelude?.trim()) {
+      props.push({
+        id: `${p.id}-path-prelude`,
+        type: "text",
+        config: { content: p.prelude },
+        orderIndex: order++,
+      })
+    }
+  }
+
+  for (const m of moments) {
+    props.push({
+      id: `${m.id}-moment-title`,
+      type: "heading",
+      config: { content: m.title || "Moment" },
       orderIndex: order++,
     })
     props.push({
-      id: `${first.id}-moment-body`,
+      id: `${m.id}-moment-body`,
       type: "text",
-      config: { content: first.narrative || "" },
+      config: { content: m.narrative || "" },
       orderIndex: order++,
     })
   }
