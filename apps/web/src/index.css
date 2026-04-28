@@ -126,9 +126,12 @@ html[data-density="comfortable"] {
 .keeper-dialog-frame {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   position: relative;
   overflow: hidden;
+  margin: 12px;
+  border-radius: 8px;
 }
 
 .dialog-header-banner {
@@ -175,19 +178,21 @@ html[data-density="comfortable"] {
 
 .dialog-message-surface {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   scrollbar-width: none;
   scrollbar-color: transparent transparent;
+  background: hsl(var(--theme-surface-paper) / 0.85);
   mask-image: linear-gradient(
     to bottom,
     black 0%,
-    black 60%,
+    black 85%,
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to bottom,
     black 0%,
-    black 60%,
+    black 85%,
     transparent 100%
   );
 }
@@ -227,4 +232,25 @@ html[data-density="comfortable"] {
 /* Override IntegratedServicesBar's inner max-w-3xl when inside KeeperDialogFrame */
 .dialog-bottom-zone [class~="max-w-3xl"] {
   max-width: none;
+}
+
+/* ← Commons back affordance — shown in Banner when in Dialog Mode on Domain Board */
+.dialog-back-to-feed {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 5px;
+  letter-spacing: 0.01em;
+  transition: opacity 0.12s;
+}
+
+.dialog-back-to-feed:hover {
+  opacity: 0.65;
 }

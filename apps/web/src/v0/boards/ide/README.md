@@ -33,5 +33,6 @@ The primary collaborative workspace where Kip and the user build Journeys, Paths
 - [ ] Known Gaps Path: create a dedicated "Known Gaps & Improvements" Path in the Building Keeper Journey where each gap is a Moment.
 
 ## 📆 Update Log
+- 2026-04-27 (Prompt 3): `IDEBoardContext` — Paths fetch now includes `domainId` as a query param (`GET /api/paths?journeyId=...&domainId=...&limit=50`) to satisfy `requireDomainReadCompat` middleware. `domainId` added to the effect dependency array so the fetch re-runs if `domainId` resolves late. Fixes "Couldn't load paths." error state in the Paths tab.
 - 2026-04-25: IDEBoardContext major refactor. Journey view now has three tabs: **Paths** (inline-editable cards, status chips, fetched from `/api/paths?journeyId=...`), **Moments** (chronological expand/collapse, unchanged behavior), **Drafts** (domain drafts from KipApi, tappable to open). Added `InlineEditField`, `StatusChip`, `JourneyTabBar`, `PathsTab`, `MomentsTab`, `DraftsTab` sub-components. Added `onDraftSelect` prop to `IDEBoardContextProps`. Wired in `IDEBoard.tsx`.
 - 2026-04-25: IDEBoardConversation: `DialogueMessageList` now receives `onOpenJourney` → calls `onKipContextSync({ type: "journey", id })` to auto-load journey in right panel when a Journey receipt card is tapped.

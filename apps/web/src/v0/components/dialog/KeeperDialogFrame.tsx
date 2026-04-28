@@ -65,6 +65,23 @@ export interface KeeperDialogFrameProps {
   onFileAttach?: (text: string) => void
   activeSessionId: string | null
   disabled?: boolean
+
+  // ── Optional Dialog zone override ─────────────────────────────────────────
+  /** When provided, renders in Zone 2 instead of DialogueMessageList (dialog mode only). */
+  dialogContent?: React.ReactNode
+
+  // ── Feed / Dialog mode ────────────────────────────────────────────────────
+  /**
+   * Controls the center panel mode.
+   * 'feed'   — hides the Banner; renders feedContent in Zone 2.
+   * 'dialog' — shows the Banner; renders DialogueMessageList (or dialogContent) in Zone 2.
+   * Default: 'dialog'. IDE Board and Agent Board omit this prop — behavior unchanged.
+   */
+  mode?: 'feed' | 'dialog'
+  /** Renders in Zone 2 when mode === 'feed'. */
+  feedContent?: React.ReactNode
+  /** When provided and mode === 'dialog', shows a ← Commons back affordance in the Banner. */
+  onReturnToFeed?: () => void
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -103,23 +120,35 @@ export function KeeperDialogFrame({
   onFileAttach,
   activeSessionId,
   disabled,
+  dialogContent,
+  mode = 'dialog',
+  feedContent,
+  onReturnToFeed,
 }: KeeperDialogFrameProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change — skip in feed mode or when dialogContent is in use
   React.useEffect(() => {
+    if (mode === 'feed' || dialogContent) return
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [messages, isSending])
+  }, [messages, isSending, dialogContent, mode])
 
   const hasBreadcrumb = keeperName || journeyName || pathName
+  // Banner only renders in dialog mode when there is something to show
+  const showBanner = mode !== 'feed' && (!!hasBreadcrumb || !!pathPrelude || !!onReturnToFeed)
 
   return (
     <div className="keeper-dialog-frame">
 
-      {/* ── Zone 1: Frosted Header Banner ───────────────────────────────────── */}
-      {(hasBreadcrumb || pathPrelude) && (
+      {/* ── Zone 1: Frosted Header Banner — hidden in feed mode ─────────────── */}
+      {showBanner && (
         <div className="dialog-header-banner">
+          {onReturnToFeed && (
+            <button type="button" onClick={onReturnToFeed} className="dialog-back-to-feed">
+              ← Commons
+            </button>
+          )}
           {hasBreadcrumb && (
             <div className="dialog-breadcrumb">
               {keeperName && <span>{keeperName}</span>}
@@ -147,21 +176,26 @@ export function KeeperDialogFrame({
 
       {/* ── Zone 2: Scrollable Message Surface ──────────────────────────────── */}
       <div ref={scrollRef} className="dialog-message-surface">
-        <div className="mx-auto w-full max-w-3xl px-4 pb-32 pt-2">
-          <DialogueMessageList
-            isLoading={false}
-            messages={messages}
-            isSending={isSending}
-            error={error}
-            agentName={agentName}
-            onOpenDraft={onOpenDraft}
-            onOpenMoment={onOpenMoment}
-            onOpenJourney={onOpenJourney}
-            onConfirmDraftUpdate={onConfirmDraftUpdate}
-            agentBubbleFullWidth={agentBubbleFullWidth}
-            agentBoardMessaging={agentBoardMessaging}
-          />
-        </div>
+        {mode === 'feed'
+          ? feedContent
+          : dialogContent ?? (
+              <div className="mx-auto w-full max-w-3xl px-4 pb-32 pt-2">
+                <DialogueMessageList
+                  isLoading={false}
+                  messages={messages}
+                  isSending={isSending}
+                  error={error}
+                  agentName={agentName}
+                  onOpenDraft={onOpenDraft}
+                  onOpenMoment={onOpenMoment}
+                  onOpenJourney={onOpenJourney}
+                  onConfirmDraftUpdate={onConfirmDraftUpdate}
+                  agentBubbleFullWidth={agentBubbleFullWidth}
+                  agentBoardMessaging={agentBoardMessaging}
+                />
+              </div>
+            )
+        }
       </div>
 
       {/* ── Zone 3: Frosted Bottom Zone — Service Bar + Composer ────────────── */}

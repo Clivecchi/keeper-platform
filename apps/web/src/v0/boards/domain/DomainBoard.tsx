@@ -139,6 +139,8 @@ export function DomainBoard() {
   const [switcherOpen, setSwitcherOpen] = React.useState(false)
   const [briefOpen, setBriefOpen] = React.useState(false)
   const [selectedMoment, setSelectedMoment] = React.useState<KeptRow | null>(null)
+  // Feed Mode = The Commons (default on load). Dialog Mode = The Workshop (after first message).
+  const [centerMode, setCenterMode] = React.useState<'feed' | 'dialog'>('feed')
 
   React.useEffect(() => {
     if (shellDomainFrame) setLiveDomainFrame(shellDomainFrame)
@@ -305,11 +307,13 @@ export function DomainBoard() {
 
   const handleDialogSubmit = React.useCallback(
     (_e: React.FormEvent, options: { content: string }) => {
+      // Sending a message is the moment of intention — switch to Dialog Mode (The Workshop)
+      if (centerMode === 'feed') setCenterMode('dialog')
       void handleSend(options.content)
     },
     // handleSend is not memoized; include the deps it closes over
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [domainId, isSending, messages, kipFrameKey],
+    [centerMode, domainId, isSending, messages, kipFrameKey],
   )
 
   const goPresentJourney = () => {
@@ -497,10 +501,9 @@ export function DomainBoard() {
           )}
         </div>
 
-        {/* Center */}
+        {/* Center — no solid background so Board atmosphere shows through */}
         <div
           className="flex flex-col flex-1 min-w-0 min-h-0 border-r border-gray-200 overflow-hidden"
-          style={{ background: "#fefdfb" }}
         >
           <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
             <StyleScope
@@ -514,35 +517,35 @@ export function DomainBoard() {
               journeyCount={journeyCount}
               momentCount={momentCount}
             />
-            <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-              {domainSlug ? (
-                <div className="flex-1 overflow-y-auto min-h-0">
-                  <FeedFrame onMomentSelect={setSelectedMoment} />
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-sm text-stone-500">No domain loaded</div>
-              )}
-            </div>
-            {/* Kip conversation — shared dialog shell, domain-specific endpoint */}
-            <div style={{ height: 300, flexShrink: 0 }}>
-              <KeeperDialogFrame
-                keeperName={wordmark || undefined}
-                showServiceBar={false}
-                messages={adaptedMessages}
-                isSending={isSending}
-                error={sendError}
-                agentName="Kip"
-                agentBubbleFullWidth={false}
-                agentId={null}
-                domainId={domainId}
-                dialogueMode="domain"
-                inputValue={input}
-                onInputChange={setInput}
-                onSubmit={handleDialogSubmit}
-                activeSessionId={domainId}
-                disabled={!domainId || isSending}
-              />
-            </div>
+            {/*
+              Domain Board center panel — two modes:
+              Feed Mode  (centerMode='feed')   — The Commons. FeedFrame in Zone 2. No Banner.
+              Dialog Mode (centerMode='dialog') — The Workshop. Kip conversation in Zone 2. Banner with ← Commons.
+            */}
+            <KeeperDialogFrame
+              mode={centerMode}
+              keeperName={wordmark || undefined}
+              showServiceBar={false}
+              messages={adaptedMessages}
+              isSending={isSending}
+              error={sendError}
+              agentName="Kip"
+              agentBubbleFullWidth={false}
+              agentId={null}
+              domainId={domainId}
+              dialogueMode="domain"
+              inputValue={input}
+              onInputChange={setInput}
+              onSubmit={handleDialogSubmit}
+              activeSessionId={domainId}
+              disabled={!domainId || isSending}
+              onReturnToFeed={() => setCenterMode('feed')}
+              feedContent={
+                domainSlug
+                  ? <FeedFrame onMomentSelect={setSelectedMoment} />
+                  : <div className="flex items-center justify-center h-full text-sm text-stone-500">No domain loaded</div>
+              }
+            />
           </StyleScope>
           </div>
         </div>

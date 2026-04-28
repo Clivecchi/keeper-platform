@@ -706,7 +706,9 @@ export function IDEBoardContext({
     }
     let cancelled = false
     setPathsLoadState("loading")
-    apiFetch(`/api/paths?journeyId=${encodeURIComponent(jid)}&limit=50`)
+    const pathsQuery = new URLSearchParams({ journeyId: jid, limit: "50" })
+    if (domainId) pathsQuery.set("domainId", domainId)
+    apiFetch(`/api/paths?${pathsQuery.toString()}`)
       .then((res: { paths?: JourneyPath[] }) => {
         if (!cancelled) {
           setPaths(Array.isArray(res?.paths) ? res.paths : [])
@@ -717,7 +719,7 @@ export function IDEBoardContext({
         if (!cancelled) { setPaths([]); setPathsLoadState("error") }
       })
     return () => { cancelled = true }
-  }, [activeJourneyId, journey?.id, selectedDraftId, selectedMomentId])
+  }, [activeJourneyId, journey?.id, domainId, selectedDraftId, selectedMomentId])
 
   // ─── Domain drafts ──────────────────────────────────────────────────────
 
