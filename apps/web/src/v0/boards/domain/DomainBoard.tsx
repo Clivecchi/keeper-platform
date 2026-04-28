@@ -10,6 +10,8 @@ import { FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
 import { BOARD_FRAMES, type FrameItem } from "../designer/DesignBoardFrameList"
 import type { DesignerMessage } from "../designer/DesignBoard"
 import { apiFetch } from "../../../lib/api"
+import { KeeperDialogFrame } from "../../components/dialog/KeeperDialogFrame"
+import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { KeeperTopBar } from "../../components/KeeperTopBar"
 import { DomainSwitcher } from "../../components/DomainSwitcher"
 import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
@@ -137,7 +139,6 @@ export function DomainBoard() {
   const [switcherOpen, setSwitcherOpen] = React.useState(false)
   const [briefOpen, setBriefOpen] = React.useState(false)
   const [selectedMoment, setSelectedMoment] = React.useState<KeptRow | null>(null)
-  const bottomRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     if (shellDomainFrame) setLiveDomainFrame(shellDomainFrame)
@@ -206,10 +207,6 @@ export function DomainBoard() {
     }
   }, [domainSlug])
 
-  React.useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, isSending, selectedFrameKey])
-
   const wordmark = liveDomainFrame?.theme?.wordmark?.trim() || domainSlug
   const coverTagline = (() => {
     const card = liveDomainFrame?.cover?.card as { tagLine?: string } | undefined
@@ -248,8 +245,8 @@ export function DomainBoard() {
 
   const kipInputPlaceholder = "Ask Kip about this domain…"
 
-  const handleSend = async () => {
-    const text = input.trim()
+  const handleSend = async (textOverride?: string) => {
+    const text = (textOverride ?? input).trim()
     if (!text || !domainId || isSending) return
 
     const userMsg: DesignerMessage = { id: uid(), role: "user", content: text }
@@ -288,12 +285,32 @@ export function DomainBoard() {
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      void handleSend()
-    }
-  }
+  // Synthetic timestamps stable per message id — DesignerMessage has no createdAt
+  const syntheticTimestamps = React.useRef<Record<string, string>>({})
+  const adaptedMessages: AgentDialogueMessage[] = React.useMemo(
+    () =>
+      messages.map((m) => {
+        if (!syntheticTimestamps.current[m.id]) {
+          syntheticTimestamps.current[m.id] = new Date().toISOString()
+        }
+        return {
+          id: m.id,
+          role: (m.role === "kip" ? "agent" : "user") as "user" | "agent",
+          content: m.content,
+          createdAt: syntheticTimestamps.current[m.id]!,
+        }
+      }),
+    [messages],
+  )
+
+  const handleDialogSubmit = React.useCallback(
+    (_e: React.FormEvent, options: { content: string }) => {
+      void handleSend(options.content)
+    },
+    // handleSend is not memoized; include the deps it closes over
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [domainId, isSending, messages, kipFrameKey],
+  )
 
   const goPresentJourney = () => {
     if (!domainSlug) return
@@ -312,62 +329,6 @@ export function DomainBoard() {
     }
   }
 
-  const chatInputClass =
-    "domain-board-chat-input flex-1 rounded-lg border px-3 py-3 min-h-[48px] text-[13px] outline-none transition-colors box-border focus-visible:ring-2 focus-visible:ring-stone-400/50 focus-visible:border-stone-400 resize-y min-h-[52px] max-h-[140px]"
-
-  const renderKipComposer = () => (
-    <div
-      className="shrink-0 border-t px-3 py-3"
-      style={{ borderColor: "#e7e5e4", background: "#f5f2eb" }}
-    >
-      {sendError && <p className="mb-2 text-[11px] text-red-600 font-medium">{sendError}</p>}
-      <div className="flex items-start gap-2">
-        <span
-          className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold self-end mb-2"
-          style={{
-            background: "#e7e5e4",
-            color: "#44403c",
-            border: "1px solid #d6d3d1",
-          }}
-        >
-          Kip
-        </span>
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={kipInputPlaceholder}
-          disabled={!domainId || isSending}
-          rows={2}
-          className={chatInputClass}
-          style={{
-            borderColor: "#d6d3d1",
-            background: "#fefdfb",
-            color: "#1c1917",
-            boxShadow: "0 1px 2px rgba(28,25,23,0.06)",
-          }}
-        />
-        <button
-          type="button"
-          onClick={() => void handleSend()}
-          disabled={!input.trim() || !domainId || isSending}
-          className="rounded-lg p-2 transition-opacity disabled:opacity-40 shrink-0 self-end mb-1"
-          style={{ background: "#1c1917", color: "#faf8f5" }}
-          aria-label="Send"
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-            <path
-              d="M2 7h9M8 4l3 3-3 3"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-      </div>
-    </div>
-  )
 
   const MOCK_DOMAINS = [
     { slug: "default", name: "KE3P", tagline: "cynically designed, wonderfully unfolded", coverImageUrl: null },
@@ -562,7 +523,26 @@ export function DomainBoard() {
                 <div className="flex-1 flex items-center justify-center text-sm text-stone-500">No domain loaded</div>
               )}
             </div>
-            {renderKipComposer()}
+            {/* Kip conversation — shared dialog shell, domain-specific endpoint */}
+            <div style={{ height: 300, flexShrink: 0 }}>
+              <KeeperDialogFrame
+                keeperName={wordmark || undefined}
+                showServiceBar={false}
+                messages={adaptedMessages}
+                isSending={isSending}
+                error={sendError}
+                agentName="Kip"
+                agentBubbleFullWidth={false}
+                agentId={null}
+                domainId={domainId}
+                dialogueMode="domain"
+                inputValue={input}
+                onInputChange={setInput}
+                onSubmit={handleDialogSubmit}
+                activeSessionId={domainId}
+                disabled={!domainId || isSending}
+              />
+            </div>
           </StyleScope>
           </div>
         </div>

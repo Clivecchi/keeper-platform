@@ -120,3 +120,111 @@ html[data-density="comfortable"] {
 .keeper-panel-scroll:focus-within::-webkit-scrollbar-thumb {
   background-color: hsl(var(--theme-line-hairline, 0 0% 70%) / 0.45);
 }
+
+/* ─── KeeperDialogFrame — Staged frame shell ─────────────────────────────── */
+
+.keeper-dialog-frame {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.dialog-header-banner {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 10px 16px 8px;
+  background: hsl(var(--theme-surface, 35 33% 97%) / 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid hsl(var(--theme-border, 35 20% 88%) / 0.4);
+  flex-shrink: 0;
+}
+
+.dialog-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+}
+
+.dialog-breadcrumb span:last-of-type {
+  color: hsl(var(--theme-ink, 20 14% 14%));
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 13px;
+}
+
+.dialog-prelude {
+  margin-top: 3px;
+  font-size: 12px;
+  font-style: italic;
+  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.dialog-message-surface {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+  mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 60%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 60%,
+    transparent 100%
+  );
+}
+
+.dialog-message-surface:hover,
+.dialog-message-surface:focus-within {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--theme-line-hairline, 0 0% 72%) / 0.55) transparent;
+}
+
+.dialog-message-surface::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dialog-message-surface::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dialog-message-surface::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 9999px;
+}
+
+.dialog-message-surface:hover::-webkit-scrollbar-thumb,
+.dialog-message-surface:focus-within::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--theme-line-hairline, 0 0% 70%) / 0.45);
+}
+
+.dialog-bottom-zone {
+  flex-shrink: 0;
+  background: hsl(var(--theme-surface, 35 33% 97%) / 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid hsl(var(--theme-border, 35 20% 88%) / 0.4);
+}
+
+/* Override IntegratedServicesBar's inner max-w-3xl when inside KeeperDialogFrame */
+.dialog-bottom-zone [class~="max-w-3xl"] {
+  max-width: none;
+}

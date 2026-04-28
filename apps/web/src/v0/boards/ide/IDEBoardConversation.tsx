@@ -3,8 +3,6 @@
 import * as React from "react"
 import { KipApi } from "../../../lib/kipApi"
 import type { KipMessage } from "../../../lib/kipApi"
-import { AgentComposer } from "../../../components/agent/AgentComposer"
-import { DialogueMessageList } from "../../../components/agent/DialogueMessageList"
 import { SessionBannerCard } from "../../../components/agent/SessionBannerCard"
 import { extractLinkedCard } from "../../../components/agent/helpers"
 import { useAuth } from "../../../context/AuthContext"
@@ -13,8 +11,8 @@ import { useV0Shell } from "../../shell/V0ShellContext"
 import type { IDEBoardKipContext } from "./ideBoardTypes"
 import { useKipSession } from "../../../hooks/useKipSession"
 import { useDraftContext } from "../../../hooks/useDraftContext"
-import { IntegratedServicesBar } from "./components/IntegratedServicesBar"
 import type { IntegratedServicesBarProps } from "./components/IntegratedServicesBar"
+import { KeeperDialogFrame } from "../../components/dialog/KeeperDialogFrame"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -172,12 +170,11 @@ export function IDEBoardConversation({
       className="flex flex-col h-full min-h-0"
       style={{ color: "hsl(var(--theme-ink-primary))" }}
     >
-      {/* ── Banner header ─────────────────────────────────────────────────── */}
+      {/* ── Session Banner — stays above KeeperDialogFrame ────────────────── */}
       <div
         className="shrink-0 border-b"
         style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
       >
-        {/* Row 1: SessionBannerCard */}
         <div className="mx-auto w-full max-w-3xl px-4 pt-3 pb-2">
           <SessionBannerCard
             sessionTitle={sessionTitle || "New session"}
@@ -193,58 +190,36 @@ export function IDEBoardConversation({
             }}
           />
         </div>
-
-        {/* Row 2: Integrated Services bar */}
-        <IntegratedServicesBar
-          onOpen={onServiceOpen ?? (() => {})}
-          cloudStatus="connected"
-          railwayStatus="disconnected"
-          vercelStatus="disconnected"
-          githubStatus="disconnected"
-        />
       </div>
 
-      {/* ── Conversation thread ───────────────────────────────────────────── */}
-      <div className="keeper-panel-scroll min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-3xl px-4 pb-4 pt-2">
-          <DialogueMessageList
-            isLoading={false}
-            messages={messages}
-            isSending={isSending}
-            error={error}
-            agentName="Kip"
-            onOpenDraft={onSelectDraftInPlace}
-            onOpenMoment={onMomentSelect}
-            onOpenJourney={(journeyId) => onKipContextSync({ type: "journey", id: journeyId })}
-            agentBubbleFullWidth
-          />
-        </div>
-      </div>
-
-      {/* ── Composer ──────────────────────────────────────────────────────── */}
-      <div
-        className="shrink-0 border-t"
-        style={{
-          borderColor: "hsl(var(--theme-line-hairline))",
-          background: "hsl(var(--theme-surface-elevated))",
-        }}
-      >
-        <div className="mx-auto w-full max-w-3xl px-3 py-3">
-          <AgentComposer
-            agentName="Kip"
-            agentId={kipAgentId}
-            domainId={domainId ?? null}
-            dialogueMode="domain"
-            inputValue={input}
-            onInputChange={setInput}
-            onSubmit={sendMessage}
-            onFileAttach={(text) => setInput((prev) => (prev ? `${prev}\n\n${text}` : text))}
-            isSending={isSending}
-            activeSessionId={activeSessionId}
-            disabled={!kipAgentId}
-          />
-        </div>
-      </div>
+      {/* ── Shared Dialog Frame ───────────────────────────────────────────── */}
+      <KeeperDialogFrame
+        keeperName={keeperName}
+        journeyName={journeyName}
+        showServiceBar={true}
+        onServiceOpen={onServiceOpen}
+        cloudStatus="connected"
+        railwayStatus="disconnected"
+        vercelStatus="disconnected"
+        githubStatus="disconnected"
+        messages={messages}
+        isSending={isSending}
+        error={error}
+        agentName="Kip"
+        onOpenDraft={onSelectDraftInPlace}
+        onOpenMoment={onMomentSelect}
+        onOpenJourney={(journeyId) => onKipContextSync({ type: "journey", id: journeyId })}
+        agentBubbleFullWidth
+        agentId={kipAgentId}
+        domainId={domainId ?? null}
+        dialogueMode="domain"
+        inputValue={input}
+        onInputChange={setInput}
+        onSubmit={sendMessage}
+        onFileAttach={(text) => setInput((prev) => (prev ? `${prev}\n\n${text}` : text))}
+        activeSessionId={activeSessionId}
+        disabled={!kipAgentId}
+      />
     </div>
   )
 }
