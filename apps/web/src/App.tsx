@@ -119,11 +119,13 @@ const RequireAdminRoute: React.FC = () => {
 const RootRedirect: React.FC = () => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
-  const suffix = params.toString();
-  // No frame param: V0Shell uses defaultFrame (cover for anon, commons for auth)
-  // Avoids double redirect: / -> ?frame=commons -> ?frame=cover for public visitors
-  const target = `/d/default${suffix ? `?${suffix}` : ''}`;
-  return <Navigate to={target} replace />;
+  // Default to Domain Board. It is isPrivate: false — safe for all users.
+  // Without this, V0Shell renders the cover frame first (before auth resolves),
+  // then switches to Domain Board once the auth useEffect fires — a visible flash.
+  if (!params.get("board") && !params.get("frame")) {
+    params.set("board", "domain");
+  }
+  return <Navigate to={`/d/default?${params.toString()}`} replace />;
 };
 
 /** Redirect /v1/:slug and /v1/:slug/board to /d/:slug (typo: v1 vs d) */

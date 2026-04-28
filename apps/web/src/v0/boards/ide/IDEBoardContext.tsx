@@ -9,6 +9,7 @@ import type { KeptRow } from "../../frames/feed/FeedFrame"
 import { MomentDetailPanel } from "../../frames/moment/MomentDetailPanel"
 import { IDEDraftPanel } from "./IDEDraftPanel"
 import { KeeperPanel } from "./components/KeeperPanel"
+import { KeeperJourneyPanel } from "../../components/panels/KeeperJourneyPanel"
 
 // ─── Props ─────────────────────────────────────────────────────────────────
 
@@ -817,104 +818,41 @@ export function IDEBoardContext({
     )
   }
 
-  // ─── Default: Journey tabbed view ──────────────────────────────────────
+  // ─── Default: Journey document view ────────────────────────────────────
+  //
+  // KeeperJourneyPanel is self-contained: it fetches the authenticated
+  // /api/journeys/:id detail (with per-path Moments) and renders the living
+  // document layout. The public-API journey fetch above still runs to resolve
+  // journey?.id when no activeJourneyId is set (first-journey fallback).
 
-  const bannerTitle = journey?.name ?? (loadState === "loading" ? "Loading…" : "Journey")
+  const resolvedJourneyId = activeJourneyId ?? journey?.id ?? ""
 
   return (
     <div className="flex flex-col h-full min-h-0" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-      {/* Header */}
-      <div className="shrink-0 px-4 py-4 border-b" style={{ borderColor: "hsl(var(--theme-line-hairline))" }}>
-        <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-          Journey
-        </p>
-        <p className="text-[14px] font-semibold mt-1 truncate" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-          {bannerTitle}
-        </p>
-        {loadState === "ready" && journey && (
-          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-            <span
-              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
-              style={{
-                background: "hsl(var(--theme-surface-elevated))",
-                border: "1px solid hsl(var(--theme-line-hairline))",
-                color: "hsl(var(--theme-ink-tertiary))",
-              }}
-            >
-              {paths.length} {paths.length === 1 ? "Path" : "Paths"}
-            </span>
-            <span
-              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
-              style={{
-                background: "hsl(var(--theme-surface-elevated))",
-                border: "1px solid hsl(var(--theme-line-hairline))",
-                color: "hsl(var(--theme-ink-tertiary))",
-              }}
-            >
-              {moments.length} {moments.length === 1 ? "Moment" : "Moments"}
-            </span>
-          </div>
-        )}
-        {loadState === "ready" && journey?.forward?.trim() && (
-          <p className="text-[11px] mt-2 leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-            {journey.forward.trim()}
-          </p>
-        )}
-      </div>
-
-      {/* Loading / error states before tabs render */}
-      {loadState === "loading" && (
+      {/* Show loading / error only while resolving the journey ID fallback */}
+      {!resolvedJourneyId && loadState === "loading" && (
         <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
           Loading Journey…
         </p>
       )}
-      {loadState === "error" && (
+      {!resolvedJourneyId && loadState === "error" && (
         <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
           Journey couldn&apos;t load.
         </p>
       )}
-      {loadState === "ready" && !journey && (
+      {!resolvedJourneyId && loadState === "ready" && !journey && (
         <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
           No Journey found for this domain.
         </p>
       )}
 
-      {/* Tabs — only when a journey is loaded */}
-      {loadState === "ready" && journey && (
-        <>
-          <JourneyTabBar
-            active={journeyTab}
-            pathCount={paths.length}
-            momentCount={moments.length}
-            draftCount={drafts.length}
-            onChange={setJourneyTab}
-          />
-          <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto">
-            {journeyTab === "paths" && (
-              <PathsTab
-                paths={paths}
-                loadState={pathsLoadState}
-                domainId={domainId}
-                onPathSaved={handlePathSaved}
-              />
-            )}
-            {journeyTab === "moments" && (
-              <MomentsTab
-                moments={moments}
-                loadState={loadState}
-                expandedId={expandedMomentId}
-                onToggle={toggleExpandMoment}
-              />
-            )}
-            {journeyTab === "drafts" && (
-              <DraftsTab
-                drafts={drafts}
-                loadState={draftsLoadState}
-                onOpenDraft={onDraftSelect}
-              />
-            )}
-          </div>
-        </>
+      {resolvedJourneyId && (
+        <KeeperJourneyPanel
+          journeyId={resolvedJourneyId}
+          domainId={domainId}
+          onMomentSelect={() => {}}
+          onPathSelect={() => {}}
+        />
       )}
     </div>
   )

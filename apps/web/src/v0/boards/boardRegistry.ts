@@ -29,7 +29,7 @@ export const BOARD_REGISTRY: Record<V0BoardKey, BoardRegistryEntry> = {
   domain: {
     component: DomainBoard,
     displayName: "Domain Board",
-    isPrivate: false,
+    isPrivate: true,
     isAdminOnly: false,
   },
   agent: {
