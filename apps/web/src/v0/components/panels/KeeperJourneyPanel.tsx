@@ -237,8 +237,18 @@ function PathSection({ path, onMomentSelect, onPathSelect }: PathSectionProps) {
           {/* Prelude — max 2 lines */}
           {path.prelude?.trim() && (
             <p
-              className="px-4 pb-1.5 text-[12px] italic leading-relaxed line-clamp-2"
-              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+              className="px-4 pb-1.5"
+              style={{
+                fontSize: "11px",
+                fontStyle: "italic",
+                color: "hsl(var(--theme-ink-tertiary))",
+                lineHeight: 1.4,
+                marginBottom: "8px",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}
             >
               {path.prelude.trim()}
             </p>
@@ -251,11 +261,11 @@ function PathSection({ path, onMomentSelect, onPathSelect }: PathSectionProps) {
                 <button
                   type="button"
                   onClick={() => onMomentSelect?.(m.id)}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-left group transition-colors"
+                  className="w-full flex items-center gap-3 px-3 py-[6px] text-left group transition-colors"
                   style={{ background: "transparent" }}
                   onMouseEnter={(e) => {
                     ;(e.currentTarget as HTMLElement).style.background =
-                      "hsl(var(--theme-surface-paper))"
+                      "hsl(var(--theme-surface-paper) / 0.6)"
                   }}
                   onMouseLeave={(e) => {
                     ;(e.currentTarget as HTMLElement).style.background = "transparent"
@@ -411,15 +421,27 @@ export function KeeperJourneyPanel({
         style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
       >
         <p
-          className="font-semibold leading-snug"
-          style={{ fontSize: 18, color: "hsl(var(--theme-ink-primary))" }}
+          style={{
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
+            fontSize: "22px",
+            fontWeight: 600,
+            lineHeight: 1.2,
+            letterSpacing: "-0.01em",
+            color: "hsl(var(--theme-ink-primary))",
+          }}
         >
           {journey.name}
         </p>
         {journey.forward?.trim() && (
           <p
-            className="text-[13px] italic mt-1 leading-relaxed"
-            style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            style={{
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontSize: "14px",
+              fontStyle: "italic",
+              color: "hsl(var(--theme-ink-secondary))",
+              lineHeight: 1.5,
+              marginTop: "4px",
+            }}
           >
             {journey.forward.trim()}
           </p>

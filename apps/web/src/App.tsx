@@ -119,9 +119,9 @@ const RequireAdminRoute: React.FC = () => {
 const RootRedirect: React.FC = () => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
-  // Default to Domain Board. It is isPrivate: false — safe for all users.
-  // Without this, V0Shell renders the cover frame first (before auth resolves),
-  // then switches to Domain Board once the auth useEffect fires — a visible flash.
+  // Default to Domain Board. V0Shell guards isPrivate boards behind authResolved,
+  // so authenticated users land on Domain Board and unauthenticated users are
+  // redirected to cover — without a premature redirect on page refresh.
   if (!params.get("board") && !params.get("frame")) {
     params.set("board", "domain");
   }

@@ -143,7 +143,7 @@ export function KeeperBoardPanelGroup({
   )
 
   return (
-    <div ref={rootRef} className="flex h-full min-h-0 w-full min-w-0 flex-row">
+    <div ref={rootRef} className="flex h-full min-h-0 w-full min-w-0 flex-row gap-[10px]">
       <div
         className="flex min-h-0 min-w-0 flex-col overflow-hidden"
         style={{ flex: `0 0 ${leftPct}%` }}

@@ -38,7 +38,7 @@ export function V0Shell() {
   const resolvedSlug = slug ?? ""
   const navigate = useNavigate()
   const location = useLocation()
-  const { isAuthenticated, isAdmin } = useAuth()
+  const { isAuthenticated, isAdmin, authResolved } = useAuth()
   const { colorScheme } = useTheme()
   const [searchParams, setSearchParams] = useSearchParams()
   const defaultFrame = isAuthenticated ? "commons" : "cover"
@@ -206,16 +206,19 @@ export function V0Shell() {
   }, [draftId, slug, styleId, urlThemeSlug])
 
   React.useEffect(() => {
-    if (!isAuthenticated && isPrivateRequest && slug) {
+    // Only redirect after auth has resolved — avoids bouncing authenticated
+    // users who have a stored token but whose session API call hasn't returned yet.
+    if (authResolved && !isAuthenticated && isPrivateRequest && slug) {
       navigate(buildFrameUrl("cover"))
     }
-  }, [isAuthenticated, isPrivateRequest, slug, navigate, buildFrameUrl])
+  }, [authResolved, isAuthenticated, isPrivateRequest, slug, navigate, buildFrameUrl])
 
   React.useEffect(() => {
-    if (boardEntry?.isPrivate && !isAuthenticated && slug) {
+    // Same authResolved guard — prevents premature redirect on page refresh.
+    if (authResolved && boardEntry?.isPrivate && !isAuthenticated && slug) {
       navigate(buildFrameUrl("cover"))
     }
-  }, [boardEntry, isAuthenticated, slug, navigate, buildFrameUrl])
+  }, [authResolved, boardEntry, isAuthenticated, slug, navigate, buildFrameUrl])
 
   const closeToBoard = () => {
     const params = new URLSearchParams()

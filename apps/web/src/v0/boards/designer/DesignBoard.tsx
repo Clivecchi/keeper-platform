@@ -329,16 +329,19 @@ export function DesignerFrame({
       </div>
 
       {/* Three-panel layout */}
-      <div className="flex flex-1 min-h-0 overflow-hidden px-6 pb-8">
+      <div className="flex flex-1 min-h-0 overflow-hidden px-6 pb-8 gap-[10px]">
 
       {/* Left — Board & Template List */}
       <div
-        className="flex flex-col border-r min-h-0 transition-all duration-200"
+        className="flex flex-col min-h-0 transition-all duration-200 overflow-hidden"
         style={{
           width: leftCollapsed ? 36 : 220,
           minWidth: leftCollapsed ? 36 : 220,
-          borderColor: "#e7e5e4",
-          background: "#fdfbf7",
+          background: "hsl(var(--theme-surface-panel) / 0.85)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          borderRadius: "8px",
+          border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
           overflowY: "auto",
         }}
       >
@@ -352,12 +355,12 @@ export function DesignerFrame({
 
       {/* Center — Frame list + Kip chat */}
       <div
-        className="flex flex-col border-r min-h-0"
+        className="flex flex-col min-h-0"
         style={{
           flex: "1 1 0%",
           minWidth: 0,
-          borderColor: "#e7e5e4",
-          background: "#fefdfb",
+          background: "transparent",
+          borderRadius: "8px",
           overflow: "hidden",
         }}
       >
@@ -386,12 +389,15 @@ export function DesignerFrame({
 
       {/* Right — Frame detail (tabbed) */}
       <div
-        className="flex flex-col"
+        className="flex flex-col overflow-hidden"
         style={{
           width: "42%",
           minWidth: 320,
-          background: "#f5f2eb",
-          overflow: "hidden",
+          background: "hsl(var(--theme-surface-panel) / 0.85)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          borderRadius: "8px",
+          border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
         }}
       >
         <DesignBoardFrameDetail

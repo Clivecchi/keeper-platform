@@ -85,12 +85,6 @@ export function AgentBoard() {
       }
     : {}
 
-  const sheetChrome: React.CSSProperties = {
-    background: "hsl(var(--theme-surface-paper) / 0.96)",
-    border: "1px solid hsl(var(--theme-border-soft))",
-    boxShadow: "var(--theme-shadow-soft)",
-  }
-
   return (
     <StyleScope styleId={styleId} themeSlug={themeSlug ?? null}>
       <div
@@ -111,21 +105,20 @@ export function AgentBoard() {
         )}
 
         <div className="flex min-h-0 flex-1 flex-col px-6 pt-4 pb-8">
-          <div
-            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl"
-            style={sheetChrome}
-          >
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <KeeperBoardPanelGroup
               key={`agent-board-panels-${domainSlug || "default"}`}
               boardKind="agent"
               domainSlug={domainSlug}
               left={
                 <div
-                  className="flex h-full min-h-0 flex-col border-r"
+                  className="flex h-full min-h-0 flex-col overflow-hidden"
                   style={{
-                    background: "hsl(var(--theme-surface-panel))",
-                    borderColor: "hsl(var(--theme-line-hairline))",
+                    background: "hsl(var(--theme-surface-panel) / 0.85)",
+                    backdropFilter: "blur(16px)",
+                    WebkitBackdropFilter: "blur(16px)",
+                    borderRadius: "8px",
+                    border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
                   }}
                 >
                   <AgentBoardNav
@@ -140,7 +133,10 @@ export function AgentBoard() {
                 </div>
               }
               center={
-                <div className="flex h-full min-h-0 flex-col" style={{ background: "hsl(var(--theme-dialogue-area-bg))" }}>
+                <div
+                  className="flex h-full min-h-0 flex-col overflow-hidden"
+                  style={{ background: "transparent", borderRadius: "8px" }}
+                >
                   <AgentBoardConversation
                     domainSlug={domainSlug}
                     domainId={domainId}
@@ -153,10 +149,13 @@ export function AgentBoard() {
               }
               right={
                 <div
-                  className="flex h-full min-h-0 flex-col border-l"
+                  className="flex h-full min-h-0 flex-col overflow-hidden"
                   style={{
-                    background: "hsl(var(--theme-surface-panel))",
-                    borderColor: "hsl(var(--theme-line-hairline))",
+                    background: "hsl(var(--theme-surface-panel) / 0.85)",
+                    backdropFilter: "blur(16px)",
+                    WebkitBackdropFilter: "blur(16px)",
+                    borderRadius: "8px",
+                    border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
                   }}
                 >
                   <AgentBoardPanel
@@ -169,7 +168,6 @@ export function AgentBoard() {
                 </div>
               }
             />
-            </div>
           </div>
         </div>
       </div>

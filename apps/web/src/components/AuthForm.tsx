@@ -49,8 +49,11 @@ export const AuthForm: React.FC<AuthFormProps> = ({ isRegister = false, returnTo
         apiFetch('/api/kam/me', { method: 'GET' })
           .then(() => console.log('SystemStatus: /api/kam/me ok'))
           .catch((e) => console.warn('SystemStatus: /api/kam/me failed', e));
-        // Navigate to returnTo URL if provided, otherwise default to Commons
-        navigate(returnTo || '/d/default?board=domain');
+        // Always land on Domain Board after login — ?next= / returnTo params
+        // from session-expiry redirects (AgentBoardFrame, KipChatDrawer, etc.)
+        // were returning users to the wrong board. Domain Board is the correct
+        // home surface after authentication.
+        navigate('/d/default?board=domain');
       } else {
         setError(result.error?.message || 'An unknown error occurred.');
       }

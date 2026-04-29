@@ -160,12 +160,6 @@ export function IDEBoard() {
       }
     : {}
 
-  const sheetChrome: React.CSSProperties = {
-    background: "hsl(var(--theme-surface-paper) / 0.96)",
-    border: "1px solid hsl(var(--theme-border-soft))",
-    boxShadow: "var(--theme-shadow-soft)",
-  }
-
   const slug = domainSlug ?? ""
 
   return (
@@ -184,21 +178,20 @@ export function IDEBoard() {
         )}
 
         <div className="flex min-h-0 flex-1 flex-col px-6 pt-4 pb-8">
-          <div
-            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl"
-            style={sheetChrome}
-          >
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <KeeperBoardPanelGroup
               key={`ide-board-panels-${slug || "default"}`}
               boardKind="ide"
               domainSlug={slug}
               left={
                 <div
-                  className="flex h-full min-h-0 flex-col border-r"
+                  className="flex h-full min-h-0 flex-col overflow-hidden"
                   style={{
-                    background: "hsl(var(--theme-surface-panel))",
-                    borderColor: "hsl(var(--theme-line-hairline))",
+                    background: "hsl(var(--theme-surface-panel) / 0.85)",
+                    backdropFilter: "blur(16px)",
+                    WebkitBackdropFilter: "blur(16px)",
+                    borderRadius: "8px",
+                    border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
                   }}
                 >
                   <IDEBoardNav
@@ -218,7 +211,10 @@ export function IDEBoard() {
                 </div>
               }
               center={
-                <div className="flex h-full min-h-0 flex-col" style={{ background: "hsl(var(--theme-dialogue-area-bg))" }}>
+                <div
+                  className="flex h-full min-h-0 flex-col overflow-hidden"
+                  style={{ background: "transparent", borderRadius: "8px" }}
+                >
                   <IDEBoardConversation
                     domainSlug={slug}
                     domainId={domainId}
@@ -239,10 +235,13 @@ export function IDEBoard() {
               }
               right={
                 <div
-                  className="flex h-full min-h-0 flex-col border-l"
+                  className="flex h-full min-h-0 flex-col overflow-hidden"
                   style={{
-                    background: "hsl(var(--theme-surface-panel))",
-                    borderColor: "hsl(var(--theme-line-hairline))",
+                    background: "hsl(var(--theme-surface-panel) / 0.85)",
+                    backdropFilter: "blur(16px)",
+                    WebkitBackdropFilter: "blur(16px)",
+                    borderRadius: "8px",
+                    border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
                   }}
                 >
                   {activeService !== null ? (
@@ -266,7 +265,6 @@ export function IDEBoard() {
                 </div>
               }
             />
-            </div>
           </div>
         </div>
       </div>

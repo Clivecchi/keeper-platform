@@ -424,14 +424,18 @@ export function DomainBoard() {
           onClose={() => setSwitcherOpen(false)}
         />
       )}
-      <div className="flex flex-1 min-h-0 overflow-hidden px-6 pb-8">
+      <div className="flex flex-1 min-h-0 overflow-hidden px-6 pb-8 gap-[10px]">
         {/* Left */}
         <div
-          className="flex flex-col border-r border-[#e7e5e4] min-h-0 transition-all duration-200"
+          className="flex flex-col min-h-0 transition-all duration-200 overflow-hidden"
           style={{
             width: leftCollapsed ? 36 : 220,
             minWidth: leftCollapsed ? 36 : 220,
-            background: "#fdfbf7",
+            background: "hsl(var(--theme-surface-panel) / 0.85)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            borderRadius: "8px",
+            border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
             overflowY: "auto",
           }}
         >
@@ -560,9 +564,10 @@ export function DomainBoard() {
           )}
         </div>
 
-        {/* Center — no solid background so Board atmosphere shows through */}
+        {/* Center — transparent so Board atmosphere shows through */}
         <div
-          className="flex flex-col flex-1 min-w-0 min-h-0 border-r border-gray-200 overflow-hidden"
+          className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden"
+          style={{ background: "transparent", borderRadius: "8px" }}
         >
           <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
             <StyleScope
@@ -611,8 +616,15 @@ export function DomainBoard() {
 
         {/* Right */}
         <div
-          className="shrink-0 flex flex-col border-l border-gray-200 bg-[#faf8f5] min-h-0"
-          style={{ width: 380 }}
+          className="shrink-0 flex flex-col min-h-0 overflow-hidden"
+          style={{
+            width: 380,
+            background: "hsl(var(--theme-surface-panel) / 0.85)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            borderRadius: "8px",
+            border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
+          }}
         >
           {activeJourneyId ? (
             /* Journey view state — KeeperJourneyPanel owns the full panel including its header */
