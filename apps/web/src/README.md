@@ -26,3 +26,7 @@ Defines the root application shell, routing, and shared providers for the Keeper
 - Routed `/legacy` to the authenticated `/root` dashboard so legacy UI is no longer public.
 ### 2026-01-25 - Commons + settings routing
 - Defaulted authenticated domain routing to Commons and introduced `/settings` for profile edits.
+### 2026-04-29 - Panel opacity fix (Prompt 7b)
+- Removed `.keeper-board-scope` dark token overrides from `index.css` — panel surfaces revert to original warm cream values.
+- Added ghost panel fix: `.keeper-board-scope .keeper-dialog-frame .keeper-panel-scroll { background: transparent }` so the inner scroll container no longer doubles the surface background.
+- Upgraded banner and bottom zone `backdrop-filter` from `blur(12px)` to `blur(16px)` and opacity from `0.70` to `0.88` for visual consistency with the frosted panel system.
