@@ -6,6 +6,8 @@
 
 import React from "react"
 import clsx from "clsx"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { LinkedCard } from "../props/LinkedCard"
 import { ActionReceiptCard } from "../kip/ActionReceiptCard"
 import { DraftUpdateProposeCard } from "../kip/DraftUpdateProposeCard"
@@ -96,7 +98,34 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
               boxShadow: message.role === "agent" ? "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)" : undefined,
             }}
           >
-            <p className="whitespace-pre-line">{message.content}</p>
+            {message.role === "user" ? (
+              <p className="whitespace-pre-line">{message.content}</p>
+            ) : (
+              <div className="kip-message-content">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h1: ({children}) => <h1 className="kip-md-h1">{children}</h1>,
+                    h2: ({children}) => <h2 className="kip-md-h2">{children}</h2>,
+                    h3: ({children}) => <h3 className="kip-md-h3">{children}</h3>,
+                    p: ({children}) => <p className="kip-md-p">{children}</p>,
+                    strong: ({children}) => <strong className="kip-md-strong">{children}</strong>,
+                    em: ({children}) => <em className="kip-md-em">{children}</em>,
+                    ul: ({children}) => <ul className="kip-md-ul">{children}</ul>,
+                    ol: ({children}) => <ol className="kip-md-ol">{children}</ol>,
+                    li: ({children}) => <li className="kip-md-li">{children}</li>,
+                    code: ({inline, children, ...props}: any) => inline
+                      ? <code className="kip-md-code-inline" {...props}>{children}</code>
+                      : <pre className="kip-md-code-block"><code {...props}>{children}</code></pre>,
+                    blockquote: ({children}) => <blockquote className="kip-md-blockquote">{children}</blockquote>,
+                    hr: () => <hr className="kip-md-hr" />,
+                    a: ({href, children}) => <a href={href} target="_blank" rel="noopener noreferrer" className="kip-md-link">{children}</a>,
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              </div>
+            )}
             {message.linkedCard && (
               <div className="mt-3">
                 <LinkedCard {...message.linkedCard} variant="inline" />

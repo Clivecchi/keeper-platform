@@ -393,3 +393,128 @@ html[data-density="comfortable"] {
   background: transparent !important;
   background-color: transparent !important;
 }
+
+/* ─── Kip Markdown Rendering ─────────────────────────────────────────────────
+ * Applied to agent messages in DialogueMessageList via .kip-message-content.
+ * User messages render plain text — these classes do not apply there.
+ */
+.kip-message-content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: hsl(var(--theme-ink));
+}
+.kip-message-content .kip-md-h1 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 14px 0 6px;
+  line-height: 1.2;
+}
+.kip-message-content .kip-md-h2 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 15px;
+  font-weight: 600;
+  margin: 12px 0 4px;
+}
+.kip-message-content .kip-md-h3 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: hsl(var(--theme-ink-faint));
+  margin: 10px 0 4px;
+}
+.kip-message-content .kip-md-p {
+  margin: 0 0 8px;
+}
+.kip-message-content .kip-md-p:last-child {
+  margin-bottom: 0;
+}
+.kip-message-content .kip-md-strong {
+  font-weight: 600;
+}
+.kip-message-content .kip-md-em {
+  font-style: italic;
+  color: hsl(var(--theme-ink-faint));
+}
+.kip-message-content .kip-md-ul {
+  margin: 6px 0 8px;
+  padding-left: 16px;
+  list-style: none;
+}
+.kip-message-content .kip-md-ol {
+  margin: 6px 0 8px;
+  padding-left: 20px;
+}
+.kip-message-content .kip-md-li {
+  margin-bottom: 4px;
+  position: relative;
+}
+.kip-message-content .kip-md-ul .kip-md-li::before {
+  content: '·';
+  position: absolute;
+  left: -12px;
+  color: hsl(var(--theme-primary));
+  font-weight: 700;
+}
+.kip-message-content .kip-md-code-inline {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  background: hsl(var(--theme-surface-elevated) / 0.6);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: hsl(var(--theme-primary));
+}
+.kip-message-content .kip-md-code-block {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  background: hsl(var(--theme-surface) / 0.8);
+  border: 1px solid hsl(var(--theme-border) / 0.5);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 8px 0;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+.kip-message-content .kip-md-blockquote {
+  border-left: 3px solid hsl(var(--theme-primary) / 0.5);
+  margin: 8px 0;
+  padding: 4px 12px;
+  color: hsl(var(--theme-ink-faint));
+  font-style: italic;
+}
+.kip-message-content .kip-md-hr {
+  border: none;
+  border-top: 1px solid hsl(var(--theme-border) / 0.4);
+  margin: 12px 0;
+}
+.kip-message-content .kip-md-link {
+  color: hsl(var(--theme-primary));
+  text-decoration: underline;
+  text-decoration-color: hsl(var(--theme-primary) / 0.4);
+  text-underline-offset: 2px;
+}
+.kip-message-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin: 8px 0;
+}
+.kip-message-content th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: hsl(var(--theme-ink-faint));
+  padding: 6px 10px;
+  border-bottom: 1px solid hsl(var(--theme-border) / 0.5);
+}
+.kip-message-content td {
+  padding: 5px 10px;
+  border-bottom: 1px solid hsl(var(--theme-border) / 0.2);
+  vertical-align: top;
+}
+.kip-message-content tr:last-child td {
+  border-bottom: none;
+}
