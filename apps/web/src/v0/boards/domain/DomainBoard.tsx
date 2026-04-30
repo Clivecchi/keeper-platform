@@ -606,7 +606,7 @@ export function DomainBoard() {
               onReturnToFeed={() => setCenterMode('feed')}
               feedContent={
                 domainSlug
-                  ? <FeedFrame onMomentSelect={setSelectedMoment} />
+                  ? <FeedFrame onMomentSelect={setSelectedMoment} suppressAtmosphere />
                   : <div className="flex items-center justify-center h-full text-sm text-stone-500">No domain loaded</div>
               }
             />

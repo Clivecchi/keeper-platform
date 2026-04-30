@@ -3,7 +3,6 @@
 import * as React from "react"
 import { KipApi } from "../../../lib/kipApi"
 import type { KipMessage } from "../../../lib/kipApi"
-import { SessionBannerCard } from "../../../components/agent/SessionBannerCard"
 import { extractLinkedCard } from "../../../components/agent/helpers"
 import { useAuth } from "../../../context/AuthContext"
 import { useFrameContextOptional } from "../../shell/FrameContext"
@@ -147,17 +146,14 @@ export function IDEBoardConversation({
     onActiveSessionIdChange,
   })
 
-  const [isSavingTitle, setIsSavingTitle] = React.useState(false)
-
   const handleSaveTitle = React.useCallback(
     async (title: string) => {
       if (!activeSessionId || !kipAgentId) return
-      setIsSavingTitle(true)
       try {
         await KipApi.updateSessionMetadata(kipAgentId, activeSessionId, { session_name: title })
         onSaveSessionTitle?.(activeSessionId, title)
-      } finally {
-        setIsSavingTitle(false)
+      } catch {
+        // silent — title save is best-effort
       }
     },
     [activeSessionId, kipAgentId, onSaveSessionTitle],
@@ -166,60 +162,40 @@ export function IDEBoardConversation({
   const modelProvider = (domainFrame?.kip as any)?.model ?? null
 
   return (
-    <div
-      className="flex flex-col h-full min-h-0"
-      style={{ color: "hsl(var(--theme-ink-primary))" }}
-    >
-      {/* ── Session Banner — stays above KeeperDialogFrame ────────────────── */}
-      <div
-        className="shrink-0 border-b"
-        style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
-      >
-        <div className="mx-auto w-full max-w-3xl px-4 pt-3 pb-2">
-          <SessionBannerCard
-            sessionTitle={sessionTitle || "New session"}
-            sessionId={activeSessionId}
-            onSaveTitle={handleSaveTitle}
-            isSavingTitle={isSavingTitle}
-            journeyName={journeyName}
-            keeperName={keeperName}
-            modelProvider={modelProvider}
-            soleActive={false}
-            onOpenCockpit={() => {
-              // TODO: open IDE CockpitPanel — wired, not yet built
-            }}
-          />
-        </div>
-      </div>
-
-      {/* ── Shared Dialog Frame ───────────────────────────────────────────── */}
-      <KeeperDialogFrame
-        keeperName={keeperName}
-        journeyName={journeyName}
-        showServiceBar={true}
-        onServiceOpen={onServiceOpen}
-        cloudStatus="connected"
-        railwayStatus="disconnected"
-        vercelStatus="disconnected"
-        githubStatus="disconnected"
-        messages={messages}
-        isSending={isSending}
-        error={error}
-        agentName="Kip"
-        onOpenDraft={onSelectDraftInPlace}
-        onOpenMoment={onMomentSelect}
-        onOpenJourney={(journeyId) => onKipContextSync({ type: "journey", id: journeyId })}
-        agentBubbleFullWidth
-        agentId={kipAgentId}
-        domainId={domainId ?? null}
-        dialogueMode="domain"
-        inputValue={input}
-        onInputChange={setInput}
-        onSubmit={sendMessage}
-        onFileAttach={(text) => setInput((prev) => (prev ? `${prev}\n\n${text}` : text))}
-        activeSessionId={activeSessionId}
-        disabled={!kipAgentId}
-      />
-    </div>
+    <KeeperDialogFrame
+      keeperName={keeperName}
+      journeyName={journeyName}
+      sessionTitle={sessionTitle ?? "New session"}
+      sessionId={activeSessionId}
+      soleActive={false}
+      modelProvider={modelProvider}
+      onSaveTitle={handleSaveTitle}
+      onOpenCockpit={() => {
+        // TODO: open IDE CockpitPanel — wired, not yet built
+      }}
+      showServiceBar={true}
+      onServiceOpen={onServiceOpen}
+      cloudStatus="connected"
+      railwayStatus="disconnected"
+      vercelStatus="disconnected"
+      githubStatus="disconnected"
+      messages={messages}
+      isSending={isSending}
+      error={error}
+      agentName="Kip"
+      onOpenDraft={onSelectDraftInPlace}
+      onOpenMoment={onMomentSelect}
+      onOpenJourney={(journeyId) => onKipContextSync({ type: "journey", id: journeyId })}
+      agentBubbleFullWidth
+      agentId={kipAgentId}
+      domainId={domainId ?? null}
+      dialogueMode="domain"
+      inputValue={input}
+      onInputChange={setInput}
+      onSubmit={sendMessage}
+      onFileAttach={(text) => setInput((prev) => (prev ? `${prev}\n\n${text}` : text))}
+      activeSessionId={activeSessionId}
+      disabled={!kipAgentId}
+    />
   )
 }

@@ -138,12 +138,23 @@ html[data-density="comfortable"] {
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 10px 16px 8px;
+  padding: 8px 16px;
   background: hsl(var(--theme-surface, 35 33% 97%) / 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid hsl(var(--theme-border, 35 20% 88%) / 0.4);
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 40px;
+}
+
+.dialog-banner-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
 }
 
 .dialog-breadcrumb {
@@ -155,6 +166,8 @@ html[data-density="comfortable"] {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  flex: 1;
+  min-width: 0;
 }
 
 .dialog-breadcrumb span:last-of-type {
@@ -165,15 +178,129 @@ html[data-density="comfortable"] {
   font-size: 13px;
 }
 
+.breadcrumb-sep {
+  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.breadcrumb-path {
+  color: hsl(var(--theme-ink, 20 14% 14%));
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .dialog-prelude {
-  margin-top: 3px;
-  font-size: 12px;
+  margin-top: 2px;
+  font-size: 11px;
   font-style: italic;
   color: hsl(var(--theme-ink-faint, 35 15% 60%));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+}
+
+/* Session meta — right side of banner */
+.dialog-session-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sole-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.sole-badge.active {
+  background: hsl(172 55% 35% / 0.2);
+  color: hsl(172 55% 35%);
+}
+
+.sole-badge.inactive {
+  background: hsl(var(--theme-ink-faint, 35 15% 60%) / 0.15);
+  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+}
+
+.session-id-short {
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  opacity: 0.7;
+}
+
+.banner-chevron {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+  transform: rotate(90deg);
+  display: inline-flex;
+  align-items: center;
+}
+
+.banner-chevron.open {
+  transform: rotate(270deg);
+}
+
+/* Expanded session details row */
+.dialog-banner-expanded {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0 2px;
+  border-top: 1px solid hsl(var(--theme-border, 35 20% 88%) / 0.3);
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  font-size: 11px;
+  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+}
+
+.meta-item.session-title {
+  outline: none;
+  border-bottom: 1px dashed hsl(var(--theme-border, 35 20% 88%) / 0.5);
+  cursor: text;
+  min-width: 40px;
+}
+
+.model-badge {
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  background: hsl(var(--theme-surface-elevated, 0 0% 96%) / 0.5);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.meta-action {
+  background: none;
+  border: 1px solid hsl(var(--theme-border, 35 20% 88%) / 0.5);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.meta-action:hover {
+  color: hsl(var(--theme-ink, 20 14% 14%));
+  border-color: hsl(var(--theme-border, 35 20% 88%));
 }
 
 .dialog-message-surface {
@@ -253,4 +380,31 @@ html[data-density="comfortable"] {
 
 .dialog-back-to-feed:hover {
   opacity: 0.65;
+}
+
+/* ─── Keeper Board — dark surface theme ──────────────────────────────────────
+ * Panels recede. Atmosphere comes forward.
+ * Scoped to .keeper-board-scope so public/present views are unaffected.
+ * These override StyleScope runtime tokens for Board views only.
+ */
+.keeper-board-scope {
+  --theme-surface-panel: 220 15% 16%;
+  --theme-surface-paper: 220 12% 20%;
+  --theme-surface: 220 15% 16%;
+  --theme-surface-elevated: 220 12% 24%;
+  --theme-surface-page: 220 18% 10%;
+
+  --theme-ink: 40 15% 85%;
+  --theme-ink-faint: 220 10% 50%;
+  --theme-ink-primary: 40 15% 88%;
+  --theme-ink-secondary: 220 10% 58%;
+  --theme-ink-tertiary: 220 10% 42%;
+
+  --theme-border: 220 15% 28%;
+  --theme-border-soft: 220 15% 28%;
+  --theme-line-hairline: 220 15% 28%;
+
+  --theme-dialogue-area-bg: 220 12% 18%;
+  --theme-dialogue-user-bg: 14 55% 45%;
+  --theme-dialogue-agent-bg: 220 12% 22%;
 }

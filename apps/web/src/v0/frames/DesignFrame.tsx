@@ -44,6 +44,12 @@ interface DesignFrameProps {
   footerSlot?: React.ReactNode
   /** Close handler */
   onClose?: () => void
+  /**
+   * When true, suppresses the cover-image background and inner StyleScope.
+   * Use when DesignFrame renders inside a Board shell that already applies
+   * the atmosphere (e.g. Domain Board Feed Mode).
+   */
+  suppressAtmosphere?: boolean
 }
 
 const FRAME_CONSTANTS = {
@@ -68,7 +74,8 @@ export function DesignFrame({
   framePaddingTop,
   children,
   footerSlot,
-  onClose
+  onClose,
+  suppressAtmosphere = false,
 }: DesignFrameProps) {
   const { isAuthenticated } = useAuth()
   const v0Shell = useV0ShellOptional()
@@ -123,14 +130,13 @@ export function DesignFrame({
     setIsOpeningAdmin(false)
   }
 
-  return (
-    <StyleScope styleId={styleId} themeSlug={themeSlug}>
+  const mainContent = (
       <main
         className="min-h-screen text-foreground"
         style={{
           color: "var(--theme-ink-primary)",
           ["--v0-margin-height" as any]: marginHeight,
-          ...pageBackground,
+          ...(suppressAtmosphere ? {} : pageBackground),
         }}
       >
         <div
@@ -228,6 +234,15 @@ export function DesignFrame({
         </div>
         <Margin />
       </main>
+  )
+
+  if (suppressAtmosphere) {
+    return mainContent
+  }
+
+  return (
+    <StyleScope styleId={styleId} themeSlug={themeSlug}>
+      {mainContent}
     </StyleScope>
   )
 }

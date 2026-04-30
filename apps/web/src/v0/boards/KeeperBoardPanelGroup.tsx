@@ -72,7 +72,7 @@ function saveStored(groupId: string, leftPct: number, rightPct: number) {
 }
 
 const HANDLE_CLASS =
-  "relative z-20 w-2 shrink-0 cursor-col-resize select-none rounded-full border-0 bg-[hsl(var(--theme-line-hairline)/0.45)] outline-none transition-colors hover:bg-[hsl(var(--theme-border-soft))] focus-visible:ring-2 focus-visible:ring-[hsl(var(--theme-focus-ring))] focus-visible:ring-offset-1"
+  "relative z-20 w-[4px] shrink-0 cursor-col-resize select-none bg-transparent outline-none group focus-visible:ring-2 focus-visible:ring-[hsl(var(--theme-focus-ring))] focus-visible:ring-offset-1"
 
 export function KeeperBoardPanelGroup({
   boardKind,
@@ -157,7 +157,9 @@ export function KeeperBoardPanelGroup({
         className={HANDLE_CLASS}
         style={{ touchAction: "none" }}
         onPointerDown={(e) => onResizePointerDown("left", e)}
-      />
+      >
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-8 rounded-full bg-transparent group-hover:bg-[hsl(var(--theme-border)/0.6)] transition-colors duration-150" />
+      </div>
       <div className="flex min-h-0 min-w-0 flex-col overflow-hidden" style={{ flex: "1 1 0%", minWidth: 0 }}>
         {centerChild}
       </div>
@@ -168,7 +170,9 @@ export function KeeperBoardPanelGroup({
         className={HANDLE_CLASS}
         style={{ touchAction: "none" }}
         onPointerDown={(e) => onResizePointerDown("right", e)}
-      />
+      >
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-8 rounded-full bg-transparent group-hover:bg-[hsl(var(--theme-border)/0.6)] transition-colors duration-150" />
+      </div>
       <div
         className="flex min-h-0 min-w-0 flex-col overflow-hidden"
         style={{ flex: `0 0 ${rightPct}%` }}

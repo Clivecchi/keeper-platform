@@ -61,9 +61,10 @@ function formatWhen(iso: string | null | undefined): string {
 
 interface FeedFrameProps {
   onMomentSelect?: (moment: KeptRow) => void
+  suppressAtmosphere?: boolean
 }
 
-export function FeedFrame({ onMomentSelect }: FeedFrameProps) {
+export function FeedFrame({ onMomentSelect, suppressAtmosphere = false }: FeedFrameProps) {
   const { closeToBoard, domainFrame, domainSlug, navigateToFrame, styleId, themeSlug } = useV0Shell()
   const navigate = useNavigate()
   const json: FeedFrameJson = (domainFrame as any)?.feed ?? FEED_DEFAULTS
@@ -165,6 +166,7 @@ export function FeedFrame({ onMomentSelect }: FeedFrameProps) {
     <DesignFrame
       styleId={styleId}
       themeSlug={themeSlug}
+      suppressAtmosphere={suppressAtmosphere}
       title={json.frame_title}
       subtitle={json.frame_subtitle}
       themeSwitcherSlot={<ThemeSwitcher />}

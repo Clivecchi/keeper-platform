@@ -32,6 +32,14 @@ export interface KeeperDialogFrameProps {
   pathName?: string | null
   pathPrelude?: string | null
 
+  // ── Session context — absorbed from SessionBannerCard (IDE Board only) ────
+  sessionTitle?: string | null
+  sessionId?: string | null
+  soleActive?: boolean
+  modelProvider?: string | null
+  onOpenCockpit?: () => void
+  onSaveTitle?: (title: string) => void
+
   // ── Service bar — bottom zone, IDE Board only ─────────────────────────────
   showServiceBar?: boolean
   onServiceOpen?: (service?: ServiceSlug) => void
@@ -92,6 +100,13 @@ export function KeeperDialogFrame({
   journeyName,
   pathName,
   pathPrelude,
+  // Session context
+  sessionTitle,
+  sessionId,
+  soleActive,
+  modelProvider,
+  onOpenCockpit,
+  onSaveTitle,
   // Service bar
   showServiceBar = false,
   onServiceOpen,
@@ -126,6 +141,7 @@ export function KeeperDialogFrame({
   onReturnToFeed,
 }: KeeperDialogFrameProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null)
+  const [bannerExpanded, setBannerExpanded] = React.useState(false)
 
   // Auto-scroll to bottom when messages change — skip in feed mode or when dialogContent is in use
   React.useEffect(() => {
@@ -135,8 +151,9 @@ export function KeeperDialogFrame({
   }, [messages, isSending, dialogContent, mode])
 
   const hasBreadcrumb = keeperName || journeyName || pathName
-  // Banner only renders in dialog mode when there is something to show
-  const showBanner = mode !== 'feed' && (!!hasBreadcrumb || !!pathPrelude || !!onReturnToFeed)
+  const hasSessionMeta = sessionId !== undefined
+  // Banner renders in dialog mode when there is context to show
+  const showBanner = mode !== 'feed' && (!!hasBreadcrumb || !!pathPrelude || !!onReturnToFeed || hasSessionMeta)
 
   return (
     <div className="keeper-dialog-frame">
@@ -144,32 +161,87 @@ export function KeeperDialogFrame({
       {/* ── Zone 1: Frosted Header Banner — hidden in feed mode ─────────────── */}
       {showBanner && (
         <div className="dialog-header-banner">
-          {onReturnToFeed && (
-            <button type="button" onClick={onReturnToFeed} className="dialog-back-to-feed">
-              ← Commons
-            </button>
-          )}
-          {hasBreadcrumb && (
-            <div className="dialog-breadcrumb">
-              {keeperName && <span>{keeperName}</span>}
-              {journeyName && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span>{journeyName}</span>
-                </>
+          {/* Main banner row: breadcrumb left, session meta right */}
+          <div className="dialog-banner-main-row">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {onReturnToFeed && (
+                <button type="button" onClick={onReturnToFeed} className="dialog-back-to-feed">
+                  ← Commons
+                </button>
               )}
-              {pathName && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span>{pathName}</span>
-                </>
+              {hasBreadcrumb && (
+                <div className="dialog-breadcrumb">
+                  {keeperName && <span>{keeperName}</span>}
+                  {journeyName && (
+                    <>
+                      <span className="breadcrumb-sep" aria-hidden>·</span>
+                      <span>{journeyName}</span>
+                    </>
+                  )}
+                  {pathName && (
+                    <>
+                      <span className="breadcrumb-sep" aria-hidden>·</span>
+                      <span className="breadcrumb-path">{pathName}</span>
+                    </>
+                  )}
+                </div>
+              )}
+              {pathPrelude && (
+                <p className="dialog-prelude" title={pathPrelude}>
+                  {pathPrelude}
+                </p>
               )}
             </div>
-          )}
-          {pathPrelude && (
-            <p className="dialog-prelude" title={pathPrelude}>
-              {pathPrelude}
-            </p>
+
+            {hasSessionMeta && (
+              <div className="dialog-session-meta">
+                {soleActive !== undefined && (
+                  <span className={`sole-badge ${soleActive ? 'active' : 'inactive'}`}>
+                    SOLE
+                  </span>
+                )}
+                {sessionId && (
+                  <span className="session-id-short">
+                    {sessionId.slice(0, 6)}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className={`banner-chevron${bannerExpanded ? ' open' : ''}`}
+                  onClick={() => setBannerExpanded((v) => !v)}
+                  aria-label="Expand session details"
+                >
+                  ›
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Expanded session details — visible on chevron tap */}
+          {bannerExpanded && hasSessionMeta && (
+            <div className="dialog-banner-expanded">
+              {keeperName && <span className="meta-item">{keeperName}</span>}
+              {sessionTitle && (
+                <span
+                  className="meta-item session-title"
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) => onSaveTitle?.(e.currentTarget.textContent?.trim() ?? '')}
+                >
+                  {sessionTitle}
+                </span>
+              )}
+              {modelProvider && (
+                <span className="meta-item model-badge">
+                  {modelProvider.toUpperCase()}
+                </span>
+              )}
+              {onOpenCockpit && (
+                <button type="button" className="meta-action" onClick={onOpenCockpit}>
+                  Configure
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
