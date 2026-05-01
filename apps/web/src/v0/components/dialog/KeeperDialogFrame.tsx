@@ -247,27 +247,46 @@ export function KeeperDialogFrame({
       )}
 
       {/* ── Zone 2: Scrollable Message Surface ──────────────────────────────── */}
-      <div ref={scrollRef} className="dialog-message-surface">
-        {mode === 'feed'
-          ? feedContent
-          : dialogContent ?? (
-              <div className="mx-auto w-full max-w-3xl px-4 pb-4 pt-2">
-                <DialogueMessageList
-                  isLoading={false}
-                  messages={messages}
-                  isSending={isSending}
-                  error={error}
-                  agentName={agentName}
-                  onOpenDraft={onOpenDraft}
-                  onOpenMoment={onOpenMoment}
-                  onOpenJourney={onOpenJourney}
-                  onConfirmDraftUpdate={onConfirmDraftUpdate}
-                  agentBubbleFullWidth={agentBubbleFullWidth}
-                  agentBoardMessaging={agentBoardMessaging}
-                />
-              </div>
-            )
-        }
+      {/* dialog-message-zone owns flex:1 / min-height:0 so the inner surface can be height:100% */}
+      <div className="dialog-message-zone">
+        <div ref={scrollRef} className="dialog-message-surface">
+          {mode === 'feed'
+            ? feedContent
+            : dialogContent ?? (
+                <div className="mx-auto w-full max-w-3xl px-4 pb-4 pt-2">
+                  <DialogueMessageList
+                    isLoading={false}
+                    messages={messages}
+                    isSending={isSending}
+                    error={error}
+                    agentName={agentName}
+                    onOpenDraft={onOpenDraft}
+                    onOpenMoment={onOpenMoment}
+                    onOpenJourney={onOpenJourney}
+                    onConfirmDraftUpdate={onConfirmDraftUpdate}
+                    agentBubbleFullWidth={agentBubbleFullWidth}
+                    agentBoardMessaging={agentBoardMessaging}
+                  />
+                </div>
+              )
+          }
+        </div>
+
+        {/* Gradient dissolve — messages fade before reaching the Composer */}
+        {mode !== 'feed' && (
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '80px',
+              background: 'linear-gradient(to bottom, transparent, hsl(var(--theme-surface-paper) / 0.60))',
+              pointerEvents: 'none',
+            }}
+          />
+        )}
       </div>
 
       {/* ── Thinking Space: ambient breath between conversation and composer ── *

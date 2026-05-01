@@ -139,9 +139,9 @@ html[data-density="comfortable"] {
   top: 0;
   z-index: 10;
   padding: 8px 16px;
-  background: hsl(var(--theme-surface, 35 33% 97%) / 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: hsl(var(--theme-surface-paper) / 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid hsl(var(--theme-border, 35 20% 88%) / 0.4);
   flex-shrink: 0;
   display: flex;
@@ -304,15 +304,15 @@ html[data-density="comfortable"] {
 }
 
 .dialog-message-surface {
-  flex: 1;
-  min-height: 0;
+  /* flex: 1 and min-height: 0 are now owned by the .dialog-message-zone wrapper in TSX */
+  height: 100%;
   overflow-y: auto;
   scrollbar-width: none;
   scrollbar-color: transparent transparent;
-  /* Semi-transparent — the atmosphere breathes through the conversation */
-  background: hsl(var(--theme-surface-paper) / 0.52);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  /* Nearly invisible — the atmosphere breathes through the conversation */
+  background: hsl(var(--theme-surface-paper) / 0.12);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   /* Oldest messages dissolve into the atmosphere at the top */
   mask-image: linear-gradient(
     to bottom,
@@ -326,6 +326,14 @@ html[data-density="comfortable"] {
     black 16%,
     black 100%
   );
+}
+
+/* Zone 2 wrapper — takes flex:1 so the scroll surface can be height:100% */
+.dialog-message-zone {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .dialog-message-surface:hover,
@@ -354,10 +362,10 @@ html[data-density="comfortable"] {
 
 .dialog-bottom-zone {
   flex-shrink: 0;
-  /* Composer zone: solid, intentional — where the user speaks */
-  background: hsl(var(--theme-surface-paper, 0 0% 98%) / 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  /* Composer zone: more present than thinking space, lighter than the Banner */
+  background: hsl(var(--theme-surface-paper) / 0.60);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   /* A breath, not a line — barely visible top edge */
   border-top: 1px solid hsl(var(--theme-border, 35 20% 88%) / 0.18);
 }
@@ -377,8 +385,8 @@ html[data-density="comfortable"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Most transparent surface — nearly atmosphere */
-  background: hsl(var(--theme-surface-paper, 0 0% 98%) / 0.16);
+  /* Kip's working surface — semi-transparent, between message area and composer */
+  background: hsl(var(--theme-surface-paper) / 0.30);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   overflow: hidden;
