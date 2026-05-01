@@ -251,7 +251,7 @@ export function KeeperDialogFrame({
         {mode === 'feed'
           ? feedContent
           : dialogContent ?? (
-              <div className="mx-auto w-full max-w-3xl px-4 pb-32 pt-2">
+              <div className="mx-auto w-full max-w-3xl px-4 pb-4 pt-2">
                 <DialogueMessageList
                   isLoading={false}
                   messages={messages}
@@ -270,17 +270,22 @@ export function KeeperDialogFrame({
         }
       </div>
 
-      {/* ── Zone 3: Frosted Bottom Zone — Service Bar + Composer ────────────── */}
+      {/* ── Thinking Space: ambient breath between conversation and composer ── *
+       *  Most transparent surface — the atmosphere is most present here.       *
+       *  Fixed height: never causes the composer to resize or jump.            *
+       *  Only shown in dialog mode — feed mode has no composer below it.       */}
+      {mode !== 'feed' && (
+        <div className="dialog-think-space" aria-hidden="true">
+          {isSending
+            ? <span className="dialog-think-pulse">· · ·</span>
+            : <span className="dialog-think-idle">· · ·</span>
+          }
+        </div>
+      )}
+
+      {/* ── Zone 3: Composer Zone — where the user speaks ───────────────────── *
+       *  Service bar lives below the input field: barely-there, at the floor.  */}
       <div className="dialog-bottom-zone">
-        {showServiceBar && (
-          <IntegratedServicesBar
-            onOpen={onServiceOpen ?? (() => {})}
-            cloudStatus={cloudStatus}
-            railwayStatus={railwayStatus}
-            vercelStatus={vercelStatus}
-            githubStatus={githubStatus}
-          />
-        )}
         <div className="mx-auto w-full max-w-3xl px-3 py-3">
           <AgentComposer
             agentName={agentName}
@@ -296,6 +301,15 @@ export function KeeperDialogFrame({
             disabled={disabled}
           />
         </div>
+        {showServiceBar && (
+          <IntegratedServicesBar
+            onOpen={onServiceOpen ?? (() => {})}
+            cloudStatus={cloudStatus}
+            railwayStatus={railwayStatus}
+            vercelStatus={vercelStatus}
+            githubStatus={githubStatus}
+          />
+        )}
       </div>
 
     </div>

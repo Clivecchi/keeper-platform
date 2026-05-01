@@ -309,18 +309,22 @@ html[data-density="comfortable"] {
   overflow-y: auto;
   scrollbar-width: none;
   scrollbar-color: transparent transparent;
-  background: hsl(var(--theme-surface-paper) / 0.85);
+  /* Semi-transparent — the atmosphere breathes through the conversation */
+  background: hsl(var(--theme-surface-paper) / 0.52);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  /* Oldest messages dissolve into the atmosphere at the top */
   mask-image: linear-gradient(
     to bottom,
-    black 0%,
-    black 85%,
-    transparent 100%
+    transparent 0%,
+    black 16%,
+    black 100%
   );
   -webkit-mask-image: linear-gradient(
     to bottom,
-    black 0%,
-    black 85%,
-    transparent 100%
+    transparent 0%,
+    black 16%,
+    black 100%
   );
 }
 
@@ -350,15 +354,96 @@ html[data-density="comfortable"] {
 
 .dialog-bottom-zone {
   flex-shrink: 0;
-  background: hsl(var(--theme-surface, 35 33% 97%) / 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid hsl(var(--theme-border, 35 20% 88%) / 0.4);
+  /* Composer zone: solid, intentional — where the user speaks */
+  background: hsl(var(--theme-surface-paper, 0 0% 98%) / 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  /* A breath, not a line — barely visible top edge */
+  border-top: 1px solid hsl(var(--theme-border, 35 20% 88%) / 0.18);
 }
 
 /* Override IntegratedServicesBar's inner max-w-3xl when inside KeeperDialogFrame */
 .dialog-bottom-zone [class~="max-w-3xl"] {
   max-width: none;
+}
+
+/* ─── Thinking Space — ambient surface between chat and composer ─────────────
+ * The most transparent surface. The atmosphere is most visible here.
+ * A fixed-height zone that never causes the composer to resize.
+ */
+.dialog-think-space {
+  flex-shrink: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Most transparent surface — nearly atmosphere */
+  background: hsl(var(--theme-surface-paper, 0 0% 98%) / 0.16);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Idle placeholder — present but barely there */
+.dialog-think-idle {
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  color: hsl(var(--theme-ink-faint, 35 15% 60%) / 0.28);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Active state — breathes gently when Kip is working */
+.dialog-think-pulse {
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  color: hsl(var(--theme-ink-faint, 35 15% 60%) / 0.6);
+  animation: dialog-think-breathe 1.8s ease-in-out infinite;
+  user-select: none;
+  pointer-events: none;
+}
+
+@keyframes dialog-think-breathe {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 1; }
+}
+
+/* ─── Message Depth Cascade — conversation recedes to atmosphere ─────────────
+ * Messages fade and scale back as new ones arrive, creating depth.
+ * Applied via nth-last-child: no JavaScript needed.
+ * transform-origin: bottom so scale pulls inward from the conversation floor.
+ */
+.dialog-message-surface .keeper-panel-scroll > div {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  transform-origin: center bottom;
+}
+
+/* Active exchange — the most recent pair at full presence */
+.dialog-message-surface .keeper-panel-scroll > div:nth-last-child(1),
+.dialog-message-surface .keeper-panel-scroll > div:nth-last-child(2) {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* One exchange back — yields the stage, still present */
+.dialog-message-surface .keeper-panel-scroll > div:nth-last-child(3),
+.dialog-message-surface .keeper-panel-scroll > div:nth-last-child(4) {
+  opacity: 0.68;
+  transform: scale(0.97);
+}
+
+/* Two exchanges back — receding, readable if you look */
+.dialog-message-surface .keeper-panel-scroll > div:nth-last-child(5),
+.dialog-message-surface .keeper-panel-scroll > div:nth-last-child(6) {
+  opacity: 0.35;
+  transform: scale(0.94);
+}
+
+/* Everything older — echoes, not content */
+.dialog-message-surface .keeper-panel-scroll > div:nth-last-child(n+7) {
+  opacity: 0.12;
+  transform: scale(0.92);
 }
 
 /* ← Commons back affordance — shown in Banner when in Dialog Mode on Domain Board */
