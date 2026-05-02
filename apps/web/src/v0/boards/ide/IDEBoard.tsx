@@ -272,10 +272,10 @@ export function IDEBoard() {
                       keeper={{
                         name:
                           keeperName ??
-                          (domainFrame?.theme as any)?.wordmark?.trim() ??
+                          domainFrame?.theme?.wordmark?.trim() ??
                           slug,
                         description:
-                          (domainFrame?.forward as string | undefined)?.trim() ?? null,
+                          domainFrame?.theme?.tagline?.trim() ?? null,
                       }}
                       recentSessions={navSessions.slice(0, 3).map((s) => ({
                         id: s.id,
