@@ -26,15 +26,15 @@ interface IDEBoardNavProps {
   sessionListVersion?: number
   /** Called when a keeper is clicked in the nav */
   onKeeperSelect?: (id: string) => void
-  /** Provides the parent with the fetched sessions list for title derivation */
-  onSessionsLoaded?: (sessions: { id: string; title: string }[]) => void
+  /** Provides the parent with the fetched sessions list for title derivation and recency */
+  onSessionsLoaded?: (sessions: { id: string; title: string; updatedAt: string }[]) => void
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type JourneyItem = { id: string; name: string; momentCount?: number }
 type KeeperItem = { id: string; title: string }
-type SessionItem = { id: string; title: string }
+type SessionItem = { id: string; title: string; updatedAt: string }
 
 type SectionKey = "drafts" | "journeys" | "keepers" | "sessions"
 
@@ -141,6 +141,7 @@ export function IDEBoardNav({
             s.session_name?.trim() ||
             (s.topic as string | undefined)?.trim() ||
             `Session · ${formatDate(s.updated_at ? new Date(s.updated_at).toISOString() : undefined)}`,
+          updatedAt: s.updated_at ? new Date(s.updated_at).toISOString() : "",
         }))
         setSessions(items)
         onSessionsLoaded?.(items)

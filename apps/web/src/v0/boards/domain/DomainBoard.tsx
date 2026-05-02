@@ -11,6 +11,7 @@ import { BOARD_FRAMES, type FrameItem } from "../designer/DesignBoardFrameList"
 import type { DesignerMessage } from "../designer/DesignBoard"
 import { apiFetch } from "../../../lib/api"
 import { KeeperDialogFrame } from "../../components/dialog/KeeperDialogFrame"
+import { KeeperViewPanel } from "../../components/panels/KeeperViewPanel"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { KeeperTopBar } from "../../components/KeeperTopBar"
 import { DomainSwitcher } from "../../components/DomainSwitcher"
@@ -25,6 +26,8 @@ import { getApiBase } from "../../../lib/apiFetch"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
 
 const JOURNEY_BEGIN_ID = "journey-begin-again-default"
+
+type JourneySummary = { id: string; name: string; momentCount?: number }
 
 const BADGE_STYLES: Record<string, React.CSSProperties> = {
   default: { background: "#f0ece4", color: "#57534e", borderColor: "#d6d3d1" },
@@ -132,6 +135,7 @@ export function DomainBoard() {
   const [selectedFrameKey, setSelectedFrameKey] = React.useState<string | null>(null)
   const [domainId, setDomainId] = React.useState<string | null>(null)
   const [journeyCount, setJourneyCount] = React.useState<number | null>(null)
+  const [journeys, setJourneys] = React.useState<JourneySummary[]>([])
   const [messages, setMessages] = React.useState<DesignerMessage[]>([])
   const [input, setInput] = React.useState("")
   const [isSending, setIsSending] = React.useState(false)
@@ -190,6 +194,22 @@ export function DomainBoard() {
       ignore = true
     }
   }, [domainSlug])
+
+  // Journeys list for KeeperViewPanel — authenticated, degrades silently
+  React.useEffect(() => {
+    if (!domainId) return
+    let cancelled = false
+    apiFetch(`/api/journeys?domainId=${domainId}`)
+      .then((res: unknown) => {
+        if (cancelled) return
+        const raw = res as { data?: { journeys?: JourneySummary[] }; journeys?: JourneySummary[] }
+        setJourneys((raw?.data?.journeys ?? raw?.journeys ?? []) as JourneySummary[])
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [domainId])
 
   React.useEffect(() => {
     if (!domainSlug) return
@@ -627,101 +647,55 @@ export function DomainBoard() {
           }}
         >
           {activeJourneyId ? (
-            /* Journey view state — KeeperJourneyPanel owns the full panel including its header */
+            /* Journey view state — KeeperJourneyPanel owns the full panel */
             <KeeperJourneyPanel
               journeyId={activeJourneyId}
               domainId={domainId}
               onMomentSelect={handleMomentSelectFromJourney}
               onPathSelect={() => {}}
             />
-          ) : (
-            /* Moment view state or default Domain metadata */
+          ) : selectedMoment ? (
+            /* Moment view state */
             <>
-              <div
-                className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[#e7e5e4]"
-              >
+              <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[#e7e5e4]">
                 <span className="text-[13px] font-semibold" style={{ color: "#1c1917" }}>
-                  {selectedMoment ? "Moment" : "Domain"}
+                  Moment
                 </span>
-                <div className="flex items-center gap-1">
-                  {selectedMoment && (
-                    <button
-                      type="button"
-                      aria-label="Close moment"
-                      onClick={() => setSelectedMoment(null)}
-                      className="p-1.5 rounded-md transition-colors hover:bg-gray-100 text-[#57534e]"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-                        <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                      </svg>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    aria-label="View state"
-                    disabled
-                    className="p-1.5 rounded-md opacity-50 cursor-not-allowed text-[#57534e]"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                      <path
-                        d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" />
-                    </svg>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  aria-label="Close moment"
+                  onClick={() => setSelectedMoment(null)}
+                  className="p-1.5 rounded-md transition-colors hover:bg-gray-100 text-[#57534e]"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                    <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
               </div>
-              {selectedMoment ? (
-                <MomentDetailPanel moment={selectedMoment} />
-              ) : (
-                <div className="px-4 py-4 space-y-4 text-[13px] overflow-y-auto" style={{ color: "#44403c" }}>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-widest font-semibold mb-1" style={{ color: "#78716c" }}>
-                      Name
-                    </p>
-                    <p className="font-medium" style={{ color: "#1c1917" }}>
-                      {wordmark}
-                    </p>
-                    <p className="text-[12px] mt-1 font-mono" style={{ color: "#57534e" }}>
-                      {domainSlug}
-                    </p>
-                  </div>
-                  {coverTagline ? (
-                    <div>
-                      <p className="text-[11px] uppercase tracking-widest font-semibold mb-1" style={{ color: "#78716c" }}>
-                        Tagline
-                      </p>
-                      <p>{coverTagline}</p>
-                    </div>
-                  ) : null}
-                  <div>
-                    <p className="text-[11px] uppercase tracking-widest font-semibold mb-1" style={{ color: "#78716c" }}>
-                      Journeys
-                    </p>
-                    <p>{journeyCount === null ? "—" : `${journeyCount} Journeys`}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={goPresentJourney}
-                    className="w-full rounded-lg px-3 py-3 text-[13px] font-medium transition-opacity"
-                    style={{ background: "#1c1917", color: "#faf8f5" }}
-                  >
-                    Begin the Journey
-                  </button>
-                  <div className="border-t border-[#e7e5e4] pt-4">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      <span className="text-[12px] font-medium" style={{ color: "#047857" }}>
-                        Kip is ready
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <MomentDetailPanel moment={selectedMoment} />
             </>
+          ) : (
+            /* Default view state: Keeper session resumption surface */
+            <KeeperViewPanel
+              keeper={{
+                name: wordmark || domainSlug,
+                description: coverTagline || null,
+              }}
+              recentSessions={[]}
+              activeJourneys={journeys.map((j) => ({
+                id: j.id,
+                title: j.name,
+                momentCount: j.momentCount ?? 0,
+              }))}
+              onSessionSelect={(id) => {
+                // TODO: wire to IDE Board session select when Domain Board gains session state
+                console.log("[DomainBoard] session select not yet wired:", id)
+              }}
+              onJourneySelect={(id) => {
+                setActiveJourneyId(id)
+                setSelectedMoment(null)
+              }}
+            />
           )}
         </div>
       </div>

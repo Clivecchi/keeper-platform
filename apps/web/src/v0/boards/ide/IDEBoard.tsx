@@ -15,10 +15,11 @@ import { IDEBoardContext } from "./IDEBoardContext"
 import type { IDEBoardKipContext } from "./ideBoardTypes"
 import { KeeperBoardPanelGroup } from "../KeeperBoardPanelGroup"
 import { ServicesFrame } from "./components/ServicesFrame"
+import { KeeperViewPanel } from "../../components/panels/KeeperViewPanel"
 
 type JourneySummary = { id: string; name: string; momentCount?: number }
 type KeeperSummary = { id: string; title: string }
-type NavSession = { id: string; title: string }
+type NavSession = { id: string; title: string; updatedAt: string }
 
 export function IDEBoard() {
   const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
@@ -115,9 +116,12 @@ export function IDEBoard() {
     setSelectedMomentId(null)
   }, [])
 
-  const onSessionsLoaded = React.useCallback((sessions: NavSession[]) => {
-    setNavSessions(sessions)
-  }, [])
+  const onSessionsLoaded = React.useCallback(
+    (sessions: { id: string; title: string; updatedAt: string }[]) => {
+      setNavSessions(sessions)
+    },
+    [],
+  )
 
   const onSaveSessionTitle = React.useCallback((id: string, title: string) => {
     setNavSessions((prev) => prev.map((s) => (s.id === id ? { ...s, title } : s)))
@@ -249,7 +253,8 @@ export function IDEBoard() {
                       initialService={activeService}
                       onClose={() => setActiveService(null)}
                     />
-                  ) : (
+                  ) : (activeJourneyId || selectedDraftId || selectedMomentId || selectedKeeperId) ? (
+                    // Specific view state: delegate to IDEBoardContext
                     <IDEBoardContext
                       domainSlug={slug}
                       domainId={domainId}
@@ -260,6 +265,30 @@ export function IDEBoard() {
                       activeKeeperName={keeperName}
                       onJourneySelect={onJourneySelect}
                       onDraftSelect={onDraftSelect}
+                    />
+                  ) : (
+                    // Default view state: session resumption surface
+                    <KeeperViewPanel
+                      keeper={{
+                        name:
+                          keeperName ??
+                          (domainFrame?.theme as any)?.wordmark?.trim() ??
+                          slug,
+                        description:
+                          (domainFrame?.forward as string | undefined)?.trim() ?? null,
+                      }}
+                      recentSessions={navSessions.slice(0, 3).map((s) => ({
+                        id: s.id,
+                        title: s.title,
+                        updatedAt: s.updatedAt,
+                      }))}
+                      activeJourneys={journeys.map((j) => ({
+                        id: j.id,
+                        title: j.name,
+                        momentCount: j.momentCount ?? 0,
+                      }))}
+                      onSessionSelect={onSessionSelect}
+                      onJourneySelect={onJourneySelect}
                     />
                   )}
                 </div>
