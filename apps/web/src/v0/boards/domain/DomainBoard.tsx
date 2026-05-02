@@ -12,6 +12,7 @@ import type { DesignerMessage } from "../designer/DesignBoard"
 import { apiFetch } from "../../../lib/api"
 import { KeeperDialogFrame } from "../../components/dialog/KeeperDialogFrame"
 import { KeeperViewPanel } from "../../components/panels/KeeperViewPanel"
+import { HomeViewPanel } from "../../components/panels/HomeViewPanel"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { KeeperTopBar } from "../../components/KeeperTopBar"
 import { DomainSwitcher } from "../../components/DomainSwitcher"
@@ -674,11 +675,11 @@ export function DomainBoard() {
               </div>
               <MomentDetailPanel moment={selectedMoment} />
             </>
-          ) : (
-            /* Default view state: Keeper session resumption surface */
+          ) : wordmark ? (
+            /* Keeper view state: domain keeper context is present */
             <KeeperViewPanel
               keeper={{
-                name: wordmark || domainSlug,
+                name: wordmark,
                 description: coverTagline || null,
               }}
               recentSessions={[]}
@@ -691,6 +692,22 @@ export function DomainBoard() {
                 // TODO: wire to IDE Board session select when Domain Board gains session state
                 console.log("[DomainBoard] session select not yet wired:", id)
               }}
+              onJourneySelect={(id) => {
+                setActiveJourneyId(id)
+                setSelectedMoment(null)
+              }}
+            />
+          ) : (
+            /* Home view state: fallback when no domain keeper context available */
+            <HomeViewPanel
+              platformName="KE3P"
+              activeJourneys={journeys.map((j) => ({
+                id: j.id,
+                title: j.name,
+                momentCount: j.momentCount ?? 0,
+                domain: domainSlug ?? "",
+                keeperName: "",
+              }))}
               onJourneySelect={(id) => {
                 setActiveJourneyId(id)
                 setSelectedMoment(null)

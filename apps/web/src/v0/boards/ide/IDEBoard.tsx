@@ -16,6 +16,7 @@ import type { IDEBoardKipContext } from "./ideBoardTypes"
 import { KeeperBoardPanelGroup } from "../KeeperBoardPanelGroup"
 import { ServicesFrame } from "./components/ServicesFrame"
 import { KeeperViewPanel } from "../../components/panels/KeeperViewPanel"
+import { HomeViewPanel } from "../../components/panels/HomeViewPanel"
 
 type JourneySummary = { id: string; name: string; momentCount?: number }
 type KeeperSummary = { id: string; title: string }
@@ -266,14 +267,11 @@ export function IDEBoard() {
                       onJourneySelect={onJourneySelect}
                       onDraftSelect={onDraftSelect}
                     />
-                  ) : (
-                    // Default view state: session resumption surface
+                  ) : keeperName !== null ? (
+                    // Keeper view state: a specific keeper is in focus
                     <KeeperViewPanel
                       keeper={{
-                        name:
-                          keeperName ??
-                          domainFrame?.theme?.wordmark?.trim() ??
-                          slug,
+                        name: keeperName,
                         description:
                           domainFrame?.theme?.tagline?.trim() ?? null,
                       }}
@@ -288,6 +286,19 @@ export function IDEBoard() {
                         momentCount: j.momentCount ?? 0,
                       }))}
                       onSessionSelect={onSessionSelect}
+                      onJourneySelect={onJourneySelect}
+                    />
+                  ) : (
+                    // Home view state: true default — nothing selected, no keeper in focus
+                    <HomeViewPanel
+                      platformName={domainFrame?.theme?.wordmark?.trim() ?? "KE3P"}
+                      activeJourneys={journeys.map((j) => ({
+                        id: j.id,
+                        title: j.name,
+                        momentCount: j.momentCount ?? 0,
+                        domain: slug,
+                        keeperName: "",
+                      }))}
                       onJourneySelect={onJourneySelect}
                     />
                   )}
