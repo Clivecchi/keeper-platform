@@ -18,7 +18,7 @@ import { ServicesFrame } from "./components/ServicesFrame"
 import { KeeperViewPanel } from "../../components/panels/KeeperViewPanel"
 import { HomeViewPanel } from "../../components/panels/HomeViewPanel"
 
-type JourneySummary = { id: string; name: string; momentCount?: number }
+type JourneySummary = { id: string; name: string; momentCount?: number; keeperId?: string | null }
 type KeeperSummary = { id: string; title: string }
 type NavSession = { id: string; title: string; updatedAt: string }
 
@@ -289,11 +289,13 @@ export function IDEBoard() {
                         title: s.title,
                         updatedAt: s.updatedAt,
                       }))}
-                      activeJourneys={journeys.map((j) => ({
-                        id: j.id,
-                        title: j.name,
-                        momentCount: j.momentCount ?? 0,
-                      }))}
+                      activeJourneys={journeys
+                        .filter((j) => j.keeperId === selectedKeeperId)
+                        .map((j) => ({
+                          id: j.id,
+                          title: j.name,
+                          momentCount: j.momentCount ?? 0,
+                        }))}
                       onSessionSelect={onSessionSelect}
                       onJourneySelect={onJourneySelect}
                     />
@@ -310,11 +312,13 @@ export function IDEBoard() {
                         title: s.title,
                         updatedAt: s.updatedAt,
                       }))}
-                      activeJourneys={journeys.map((j) => ({
-                        id: j.id,
-                        title: j.name,
-                        momentCount: j.momentCount ?? 0,
-                      }))}
+                      activeJourneys={journeys
+                        .filter((j) => j.keeperId === (frameCtx?.selection.activeKeeperId ?? null))
+                        .map((j) => ({
+                          id: j.id,
+                          title: j.name,
+                          momentCount: j.momentCount ?? 0,
+                        }))}
                       onSessionSelect={onSessionSelect}
                       onJourneySelect={onJourneySelect}
                     />

@@ -182,12 +182,20 @@ export function IDEBoardNav({
     }
   })
 
-  const allSessionItems: SidebarCardItem[] = (sessions ?? []).map((s) => ({
-    id: s.id,
-    label: s.title,
-    isSelected: activeSessionId === s.id,
-    onClick: () => onSessionSelect(s.id),
-  }))
+  const allSessionItems: SidebarCardItem[] = (sessions ?? []).map((s) => {
+    // If the stored title matches a keeper name it's a keeper label, not a session title — fall back to date
+    const keeperTitleSet = new Set((keepers ?? []).map((k) => k.title.toLowerCase().trim()))
+    const isKeeperName = keeperTitleSet.has(s.title.toLowerCase().trim())
+    const displayLabel = isKeeperName
+      ? `Session · ${formatDate(s.updatedAt)}`
+      : s.title
+    return {
+      id: s.id,
+      label: displayLabel,
+      isSelected: activeSessionId === s.id,
+      onClick: () => onSessionSelect(s.id),
+    }
+  })
 
   // Apply preview slice unless section is expanded
   const slice = <T,>(section: SectionKey, items: T[]): T[] =>
@@ -212,22 +220,24 @@ export function IDEBoardNav({
           description={countLabel(drafts?.length ?? null, "draft")}
           items={draftItems.length ? draftItems : undefined}
           onTitleClick={() => toggleExpanded("drafts")}
+          onAdd={() => console.log("create draft")}
         />
         <SidebarCard
           title="Journeys"
           description={countLabel(journeys?.length ?? null, "journey")}
           items={journeyItems.length ? journeyItems : undefined}
           onTitleClick={() => toggleExpanded("journeys")}
+          onAdd={() => console.log("create journey")}
         />
         <SidebarCard
           title="Keepers"
           description={countLabel(keepers?.length ?? null, "keeper")}
           items={keeperItems.length ? keeperItems : undefined}
           onTitleClick={() => toggleExpanded("keepers")}
+          onAdd={() => console.log("create keeper")}
         />
         <SidebarCard
           title="Sessions"
-          description={countLabel(sessions?.length ?? null, "session")}
           items={sessionItems.length ? sessionItems : undefined}
           onTitleClick={() => toggleExpanded("sessions")}
         />

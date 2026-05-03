@@ -55,8 +55,8 @@ export interface SidebarCardItem {
 export interface SidebarCardProps {
   /** Card heading */
   title: string
-  /** Brief description shown below the title */
-  description: string
+  /** Brief description shown below the title — omit to hide the subtitle row */
+  description?: string
   /** Optional list items — static bullets or clickable links */
   items?: SidebarCardItem[]
   /** When provided, renders a "+" button inline with the title */
@@ -122,9 +122,11 @@ export function SidebarCard({
             </button>
           )}
         </div>
-        <p className="text-sm" style={{ color: SURFACE.inkSecondary }}>
-          {description}
-        </p>
+        {description ? (
+          <p className="text-sm" style={{ color: SURFACE.inkSecondary }}>
+            {description}
+          </p>
+        ) : null}
       </div>
 
       {items && items.length > 0 && (
