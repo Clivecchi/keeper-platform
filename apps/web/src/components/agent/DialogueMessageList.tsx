@@ -4,7 +4,8 @@
  * Extracted from KipAgentBoardPage for reuse in the new Agent Board frame.
  */
 
-import React from "react"
+import React, { useRef, useEffect, useCallback } from "react"
+import { motion } from "framer-motion"
 import clsx from "clsx"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -136,6 +137,12 @@ export interface DialogueMessageListProps {
   agentBoardMessaging?: AgentBoardMessaging
   /** Agent messages span full width of the centered column (narrow reading measure) */
   agentBubbleFullWidth?: boolean
+  /**
+   * Ref to the outer scroll container. Pass the scroll surface ref from KeeperDialogFrame
+   * so the scroll-based opacity listener attaches to the correct element. When omitted the
+   * component falls back to listening on its own inner container.
+   */
+  scrollContainerRef?: React.RefObject<HTMLDivElement>
 }
 
 export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
@@ -150,168 +157,288 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   agentName = "Agent",
   agentBoardMessaging,
   agentBubbleFullWidth = true,
-}) => (
-  <div
-    className="keeper-panel-scroll min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl px-4 py-4"
-    style={{ backgroundColor: "hsl(var(--theme-dialogue-area-bg, 35 33% 97%))" }}
-  >
-    {isLoading ? (
-      <>
-        <SkeletonBubble alignment="left" />
-        <SkeletonBubble alignment="right" />
-      </>
-    ) : messages.length === 0 ? (
-      <div
-        className="rounded-xl border border-dashed p-6 text-center text-sm"
-        style={{
-          borderColor: 'hsl(var(--theme-dialogue-border, 35 20% 88%))',
-          backgroundColor: 'hsl(var(--theme-surface-paper) / 0.7)',
-          color: 'var(--theme-ink-secondary-color)',
-        }}
-      >
-        {(agentBoardMessaging?.dialogue.start_prompt ?? "Say hello to {agent_name} to start the conversation.").replace("{agent_name}", agentName)}
-      </div>
-    ) : (
-      messages.map((message) => (
+  scrollContainerRef,
+}) => {
+  const innerContainerRef = useRef<HTMLDivElement>(null)
+
+  // Map<messageId, wrapper DOM element> — used to read positions for opacity computation
+  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+
+  // IDs that were present on mount; only new arrivals get entry animations
+  const seenMessageIds = useRef<Set<string>>(new Set(messages.map((m) => m.id)))
+
+  // Keep seenMessageIds current so re-renders don't re-animate already-shown messages
+  useEffect(() => {
+    messages.forEach((m) => seenMessageIds.current.add(m.id))
+  }, [messages])
+
+  // ── Scroll-based atmospheric opacity ──────────────────────────────────────
+  // Reads each message wrapper's viewport position and writes --scroll-opacity
+  // as a CSS custom property directly on the DOM node — zero React re-renders.
+  const computeOpacities = useCallback(() => {
+    const container = scrollContainerRef?.current ?? innerContainerRef.current
+    if (!container) return
+
+    const cr = container.getBoundingClientRect()
+    const containerHeight = cr.height
+    const containerBottom = cr.bottom
+    const containerTop = cr.top
+
+    // First pass — identify the topmost fully-visible message so it can hold
+    // full presence when the user scrolls back up to read it.
+    let topmostFullyVisibleId: string | null = null
+    let topmostTop = Infinity
+
+    messageRefs.current.forEach((el, id) => {
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      if (rect.top >= containerTop && rect.bottom <= containerBottom && rect.top < topmostTop) {
+        topmostTop = rect.top
+        topmostFullyVisibleId = id
+      }
+    })
+
+    // Second pass — assign opacity via CSS custom property
+    messageRefs.current.forEach((el, id) => {
+      if (!el) return
+
+      if (id === topmostFullyVisibleId) {
+        el.style.setProperty("--scroll-opacity", "1")
+        return
+      }
+
+      const rect = el.getBoundingClientRect()
+      // Fraction of container height the message bottom sits above the container bottom.
+      // 0 = at the floor (newest), 1 = at the ceiling (oldest visible).
+      const distFromBottom = (containerBottom - rect.bottom) / containerHeight
+
+      let opacity: number
+      if (distFromBottom <= 0.4) {
+        opacity = 1.0
+      } else if (distFromBottom <= 0.7) {
+        // Linear interpolation: 1.0 → 0.6 across the middle band
+        const t = (distFromBottom - 0.4) / 0.3
+        opacity = 1.0 - t * 0.4
+      } else {
+        opacity = 0.6
+      }
+
+      el.style.setProperty("--scroll-opacity", String(opacity))
+    })
+  }, [scrollContainerRef])
+
+  // Attach scroll listener to whichever container is doing the scrolling
+  useEffect(() => {
+    const container = scrollContainerRef?.current ?? innerContainerRef.current
+    if (!container) return
+    container.addEventListener("scroll", computeOpacities, { passive: true })
+    return () => container.removeEventListener("scroll", computeOpacities)
+  }, [computeOpacities, scrollContainerRef])
+
+  // Recompute after message list changes (new message appended, scroll-to-bottom)
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => computeOpacities())
+    return () => cancelAnimationFrame(raf)
+  }, [messages, computeOpacities])
+
+  // ─────────────────────────────────────────────────────────────────────────
+
+  return (
+    <div
+      ref={innerContainerRef}
+      className="keeper-panel-scroll min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl px-4 py-4"
+      style={{ backgroundColor: "hsl(var(--theme-dialogue-area-bg, 35 33% 97%))" }}
+    >
+      {isLoading ? (
+        <>
+          <SkeletonBubble alignment="left" />
+          <SkeletonBubble alignment="right" />
+        </>
+      ) : messages.length === 0 ? (
         <div
-          key={message.id}
-          className={clsx(
-            "flex",
-            message.role === "user" ? "justify-end" : "justify-start",
-          )}
+          className="rounded-xl border border-dashed p-6 text-center text-sm"
+          style={{
+            borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))",
+            backgroundColor: "hsl(var(--theme-surface-paper) / 0.7)",
+            color: "var(--theme-ink-secondary-color)",
+          }}
         >
-          <div
-            className={clsx(
-              "rounded-2xl px-4 py-3 text-sm shadow-sm",
-              message.role === "user" ? "max-w-xl text-white" : agentBubbleFullWidth ? "w-full max-w-none" : "max-w-xl",
-            )}
-            style={{
-              backgroundColor:
-                message.role === "user"
-                  ? "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))"
-                  : "hsl(var(--theme-dialogue-agent-bg, var(--theme-surface-paper)))",
-              color: message.role === "user" ? undefined : "var(--theme-ink-primary-color)",
-              border: message.role === "agent" ? "1px solid hsl(var(--theme-border-soft))" : undefined,
-              boxShadow: message.role === "agent" ? "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)" : undefined,
-            }}
-          >
-            {message.role === "user" ? (
-              <p className="whitespace-pre-line">{message.content}</p>
-            ) : (
-              <AgentMessageContent content={message.content} />
-            )}
-            {message.linkedCard && (
-              <div className="mt-3">
-                <LinkedCard {...message.linkedCard} variant="inline" />
-              </div>
-            )}
-            {message.actionResults && message.actionResults.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {message.actionResults.map((actionResult, idx) => {
-                  const receipt = normalizeActionReceipt(actionResult)
-                  const isPropose = receipt.type === "draft.update.propose" && receipt.status === "success"
-                  const proposeData = receipt.data as {
-                    draftId?: string
-                    draftTitle?: string
-                    summary?: string
-                    proposedPayload?: { id: string; title?: string; summary?: string; status?: string; spec?: unknown }
-                  } | undefined
-                  if (isPropose && proposeData?.draftId && proposeData?.proposedPayload && onConfirmDraftUpdate) {
-                    return (
-                      <DraftUpdateProposeCard
-                        key={idx}
-                        draftId={proposeData.draftId}
-                        draftTitle={proposeData.draftTitle ?? "Draft"}
-                        summary={proposeData.summary ?? "Update draft"}
-                        proposedPayload={proposeData.proposedPayload}
-                        onConfirm={onConfirmDraftUpdate}
-                        onReject={() => {}}
-                        onOpenDraft={onOpenDraft}
-                      />
-                    )
-                  }
-                  return (
-                    <ActionReceiptCard
-                      key={idx}
-                      receipt={receipt}
-                      onOpenDraft={
-                        receipt.data?.draft?.id
-                          ? (draftId) => onOpenDraft?.(draftId)
-                          : undefined
-                      }
-                      onOpenMoment={
-                        receipt.data?.moment?.id
-                          ? (momentId) => onOpenMoment?.(momentId)
-                          : undefined
-                      }
-                      onOpenJourney={
-                        receipt.data?.journey?.id
-                          ? (journeyId) => onOpenJourney?.(journeyId)
-                          : undefined
-                      }
-                    />
-                  )
-                })}
-              </div>
-            )}
-            <span
-              className="mt-2 block text-xs"
-              style={{
-                color: message.role === "user" ? "rgba(255,255,255,0.8)" : "var(--theme-ink-tertiary-color)",
+          {(agentBoardMessaging?.dialogue.start_prompt ?? "Say hello to {agent_name} to start the conversation.").replace("{agent_name}", agentName)}
+        </div>
+      ) : (
+        messages.map((message) => {
+          // Messages present on mount skip the entry animation (initial={false}).
+          // Only arrivals after mount animate in.
+          const isNew = !seenMessageIds.current.has(message.id)
+
+          return (
+            // Outer wrapper owns the scroll-based opacity via CSS custom property.
+            // CSS (.dialog-message-surface .keeper-panel-scroll > div) reads
+            // --scroll-opacity and applies it. Hover is handled by the :hover rule
+            // in index.css — no JS hover state needed.
+            <div
+              key={message.id}
+              ref={(el) => {
+                if (el) messageRefs.current.set(message.id, el)
+                else messageRefs.current.delete(message.id)
               }}
             >
-              {formatTime(message.createdAt)}
+              {/* Inner motion.div owns entry animation only — opacity 0→1 and x/y drift.
+                  After animation completes its opacity is 1, so the outer wrapper's
+                  CSS opacity controls atmospheric fading without compounding. */}
+              <motion.div
+                className={clsx(
+                  "flex",
+                  message.role === "user" ? "justify-end" : "justify-start",
+                )}
+                initial={
+                  isNew
+                    ? message.role === "user"
+                      ? { opacity: 0, x: 40 }
+                      : { opacity: 0, y: 8 }
+                    : false
+                }
+                animate={{ opacity: 1, x: 0, y: 0 }}
+                transition={{
+                  duration: message.role === "user" ? 0.2 : 0.3,
+                  ease: "easeOut",
+                }}
+              >
+                <div
+                  className={clsx(
+                    "rounded-2xl px-4 py-3 text-sm shadow-sm",
+                    message.role === "user" ? "max-w-xl text-white" : agentBubbleFullWidth ? "w-full max-w-none" : "max-w-xl",
+                  )}
+                  style={{
+                    backgroundColor:
+                      message.role === "user"
+                        ? "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))"
+                        : "hsl(var(--theme-dialogue-agent-bg, var(--theme-surface-paper)))",
+                    color: message.role === "user" ? undefined : "var(--theme-ink-primary-color)",
+                    border: message.role === "agent" ? "1px solid hsl(var(--theme-border-soft))" : undefined,
+                    boxShadow: message.role === "agent" ? "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)" : undefined,
+                  }}
+                >
+                  {message.role === "user" ? (
+                    <p className="whitespace-pre-line">{message.content}</p>
+                  ) : (
+                    <AgentMessageContent content={message.content} />
+                  )}
+                  {message.linkedCard && (
+                    <div className="mt-3">
+                      <LinkedCard {...message.linkedCard} variant="inline" />
+                    </div>
+                  )}
+                  {message.actionResults && message.actionResults.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {message.actionResults.map((actionResult, idx) => {
+                        const receipt = normalizeActionReceipt(actionResult)
+                        const isPropose = receipt.type === "draft.update.propose" && receipt.status === "success"
+                        const proposeData = receipt.data as {
+                          draftId?: string
+                          draftTitle?: string
+                          summary?: string
+                          proposedPayload?: { id: string; title?: string; summary?: string; status?: string; spec?: unknown }
+                        } | undefined
+                        if (isPropose && proposeData?.draftId && proposeData?.proposedPayload && onConfirmDraftUpdate) {
+                          return (
+                            <DraftUpdateProposeCard
+                              key={idx}
+                              draftId={proposeData.draftId}
+                              draftTitle={proposeData.draftTitle ?? "Draft"}
+                              summary={proposeData.summary ?? "Update draft"}
+                              proposedPayload={proposeData.proposedPayload}
+                              onConfirm={onConfirmDraftUpdate}
+                              onReject={() => {}}
+                              onOpenDraft={onOpenDraft}
+                            />
+                          )
+                        }
+                        return (
+                          <ActionReceiptCard
+                            key={idx}
+                            receipt={receipt}
+                            onOpenDraft={
+                              receipt.data?.draft?.id
+                                ? (draftId) => onOpenDraft?.(draftId)
+                                : undefined
+                            }
+                            onOpenMoment={
+                              receipt.data?.moment?.id
+                                ? (momentId) => onOpenMoment?.(momentId)
+                                : undefined
+                            }
+                            onOpenJourney={
+                              receipt.data?.journey?.id
+                                ? (journeyId) => onOpenJourney?.(journeyId)
+                                : undefined
+                            }
+                          />
+                        )
+                      })}
+                    </div>
+                  )}
+                  <span
+                    className="mt-2 block text-xs"
+                    style={{
+                      color: message.role === "user" ? "rgba(255,255,255,0.8)" : "var(--theme-ink-tertiary-color)",
+                    }}
+                  >
+                    {formatTime(message.createdAt)}
+                  </span>
+                </div>
+              </motion.div>
+            </div>
+          )
+        })
+      )}
+      {isSending && (
+        <p className="text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>{(agentBoardMessaging?.dialogue.thinking ?? "{agent_name} is thinking…").replace("{agent_name}", agentName)}</p>
+      )}
+      {error && (
+        <div
+          className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
+            error.toLowerCase().includes("credits") ||
+            error.toLowerCase().includes("quota")
+              ? "border-amber-300 bg-amber-50 text-amber-800"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="mt-0.5 h-5 w-5 flex-shrink-0"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            {error.toLowerCase().includes("credits") ||
+            error.toLowerCase().includes("quota") ? (
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            ) : (
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            )}
+          </svg>
+          <div className="flex flex-col gap-1">
+            <span className="font-medium">
+              {error.toLowerCase().includes("credits") ||
+              error.toLowerCase().includes("quota")
+                ? "AI Model Needs Credits"
+                : "Something went wrong"}
             </span>
+            <span className="text-xs opacity-80">{error}</span>
           </div>
         </div>
-      ))
-    )}
-    {isSending && (
-      <p className="text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>{(agentBoardMessaging?.dialogue.thinking ?? "{agent_name} is thinking…").replace("{agent_name}", agentName)}</p>
-    )}
-    {error && (
-      <div
-        className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
-          error.toLowerCase().includes("credits") ||
-          error.toLowerCase().includes("quota")
-            ? "border-amber-300 bg-amber-50 text-amber-800"
-            : "border-red-200 bg-red-50 text-red-700"
-        }`}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="mt-0.5 h-5 w-5 flex-shrink-0"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-        >
-          {error.toLowerCase().includes("credits") ||
-          error.toLowerCase().includes("quota") ? (
-            <path
-              fillRule="evenodd"
-              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-              clipRule="evenodd"
-            />
-          ) : (
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-              clipRule="evenodd"
-            />
-          )}
-        </svg>
-        <div className="flex flex-col gap-1">
-          <span className="font-medium">
-            {error.toLowerCase().includes("credits") ||
-            error.toLowerCase().includes("quota")
-              ? "AI Model Needs Credits"
-              : "Something went wrong"}
-          </span>
-          <span className="text-xs opacity-80">{error}</span>
-        </div>
-      </div>
-    )}
-  </div>
-)
+      )}
+    </div>
+  )
+}
 
 const SkeletonBubble: React.FC<{ alignment: "left" | "right" }> = ({
   alignment,

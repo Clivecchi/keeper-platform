@@ -266,6 +266,7 @@ export function KeeperDialogFrame({
                     onConfirmDraftUpdate={onConfirmDraftUpdate}
                     agentBubbleFullWidth={agentBubbleFullWidth}
                     agentBoardMessaging={agentBoardMessaging}
+                    scrollContainerRef={scrollRef}
                   />
                 </div>
               )

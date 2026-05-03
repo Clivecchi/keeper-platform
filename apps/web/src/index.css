@@ -419,39 +419,46 @@ html[data-density="comfortable"] {
 }
 
 /* ─── Message Depth Cascade — conversation recedes to atmosphere ─────────────
- * Messages fade and scale back as new ones arrive, creating depth.
- * Applied via nth-last-child: no JavaScript needed.
+ * Opacity is now driven by scroll position via --scroll-opacity (set in JS by
+ * DialogueMessageList). Scale depth is still applied here via nth-last-child
+ * so messages subtly pull back as the conversation grows — no JS needed for that.
  * transform-origin: bottom so scale pulls inward from the conversation floor.
+ *
+ * Hover: the :hover rule forces full presence on any message the user rests on,
+ * overriding the scroll-position opacity with !important so it always wins.
  */
 .dialog-message-surface .keeper-panel-scroll > div {
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition: opacity 0.15s ease-in-out, transform 0.4s ease;
   transform-origin: center bottom;
+  /* Reads --scroll-opacity written by the JS scroll listener; defaults to 1. */
+  opacity: var(--scroll-opacity, 1);
 }
 
-/* Active exchange — the most recent pair at full presence */
+/* Hovering a receded message restores full presence — 150ms ease-in-out */
+.dialog-message-surface .keeper-panel-scroll > div:hover {
+  opacity: 1 !important;
+}
+
+/* Active exchange — the most recent pair at full scale */
 .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(1),
 .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(2) {
-  opacity: 1;
   transform: scale(1);
 }
 
-/* One exchange back — yields the stage, still present */
+/* One exchange back — yields the stage slightly */
 .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(3),
 .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(4) {
-  opacity: 0.68;
   transform: scale(0.97);
 }
 
-/* Two exchanges back — receding, readable if you look */
+/* Two exchanges back — receding */
 .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(5),
 .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(6) {
-  opacity: 0.35;
   transform: scale(0.94);
 }
 
-/* Everything older — echoes, not content */
+/* Everything older — echoes in the atmosphere */
 .dialog-message-surface .keeper-panel-scroll > div:nth-last-child(n+7) {
-  opacity: 0.12;
   transform: scale(0.92);
 }
 
