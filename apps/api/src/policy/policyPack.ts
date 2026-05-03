@@ -22,6 +22,10 @@ export const DEFAULT_POLICY_PACK_V1 = {
       'draft.read',
       'moment.create',
       'sole.save',
+      'sole.read',
+      'journey.read',
+      'moment.read',
+      'keeper.read',
     ],
   },
 } as const;

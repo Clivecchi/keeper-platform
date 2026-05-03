@@ -107,6 +107,36 @@ const soleSavePayloadSchema = z.object({
 });
 
 /**
+ * SOLE read action payload schema
+ */
+const soleReadPayloadSchema = z.object({
+  topic: z.string().optional(),
+  keeperId: z.string().optional(),
+  limit: z.number().int().min(1).max(50).optional().default(20),
+});
+
+/**
+ * Journey read action payload schema
+ */
+const journeyReadPayloadSchema = z.object({
+  journeyId: z.string(),
+});
+
+/**
+ * Moment read action payload schema
+ */
+const momentReadPayloadSchema = z.object({
+  momentId: z.string(),
+});
+
+/**
+ * Keeper read action payload schema
+ */
+const keeperReadPayloadSchema = z.object({
+  keeperId: z.string(),
+});
+
+/**
  * Image generate action payload schema
  * domain_context is intentionally absent — it is added server-side from domain JSON
  */
@@ -134,6 +164,10 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'draft.setActive': draftSetActivePayloadSchema,
   'moment.create': momentCreatePayloadSchema,
   'sole.save': soleSavePayloadSchema,
+  'sole.read': soleReadPayloadSchema,
+  'journey.read': journeyReadPayloadSchema,
+  'moment.read': momentReadPayloadSchema,
+  'keeper.read': keeperReadPayloadSchema,
   'image.generate': imageGeneratePayloadSchema,
 };
 

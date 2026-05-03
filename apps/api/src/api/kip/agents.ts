@@ -487,6 +487,10 @@ function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironm
   allow.add('draft.delete');
   allow.add('moment.create');
   allow.add('sole.save');
+  allow.add('sole.read');
+  allow.add('journey.read');
+  allow.add('moment.read');
+  allow.add('keeper.read');
   return allow;
 }
 
@@ -782,6 +786,12 @@ export async function executeAgentActions(
     'draft.read',
     'draft.setActive',
     'image.generate',
+    'moment.create',
+    'sole.save',
+    'sole.read',
+    'journey.read',
+    'moment.read',
+    'keeper.read',
   ]);
 
   for (const coreAction of CORE_ACTIONS) {
@@ -1515,6 +1525,309 @@ export async function executeAgentActions(
                 actionType: action.type,
                 error: errorMessage,
               }, '[kip.actions] rejected');
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: errorMessage,
+                errorCode: 'EXECUTION_ERROR',
+              });
+            }
+            break;
+          }
+
+          case 'sole.read': {
+            const payload = action.payload ?? {};
+            const topic = typeof payload.topic === 'string' ? payload.topic.trim() || null : null;
+            const keeperIdFilter = typeof payload.keeperId === 'string' ? payload.keeperId.trim() || null : null;
+            const limit = typeof payload.limit === 'number' && payload.limit >= 1 && payload.limit <= 50 ? payload.limit : 20;
+
+            if (!ctx.domainId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'No domain context for sole.read',
+                errorCode: 'MISSING_CONTEXT',
+              });
+              break;
+            }
+
+            try {
+              const where: Record<string, unknown> = keeperIdFilter
+                ? { keeperId: keeperIdFilter }
+                : { domainId: ctx.domainId, keeperId: null };
+
+              if (topic) {
+                where.topic = { contains: topic, mode: 'insensitive' };
+              }
+
+              const cards = await tx.soleMemoryCard.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                take: limit,
+                include: {
+                  SoleReflection: {
+                    select: { id: true, agentId: true, createdAt: true },
+                  },
+                },
+              });
+
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: `Retrieved ${cards.length} SOLE memory card${cards.length !== 1 ? 's' : ''}`,
+                data: {
+                  entityIds: cards.map((c) => c.id),
+                  cards: cards.map((c) => ({
+                    id: c.id,
+                    content: c.content,
+                    topic: c.topic,
+                    createdAt: c.createdAt,
+                    reflection: c.SoleReflection
+                      ? { agentId: c.SoleReflection.agentId, createdAt: c.SoleReflection.createdAt }
+                      : null,
+                  })),
+                  count: cards.length,
+                },
+              });
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'Failed to read SOLE memory cards';
+              logger.error({ requestId, actionType: action.type, error: errorMessage }, '[kip.actions] rejected');
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: errorMessage,
+                errorCode: 'EXECUTION_ERROR',
+              });
+            }
+            break;
+          }
+
+          case 'journey.read': {
+            const payload = action.payload ?? {};
+            const journeyId = typeof payload.journeyId === 'string' ? payload.journeyId.trim() : '';
+
+            if (!journeyId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'journeyId is required for journey.read',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+
+            try {
+              const journey = await tx.journey.findUnique({
+                where: { id: journeyId },
+                include: {
+                  Path: {
+                    include: {
+                      Moment: {
+                        orderBy: { createdAt: 'asc' },
+                        select: { id: true, title: true, narrative: true, createdAt: true },
+                      },
+                    },
+                  },
+                },
+              });
+
+              if (!journey) {
+                results.push({
+                  type: action.type,
+                  status: 'error',
+                  message: `Journey ${journeyId} not found`,
+                  errorCode: 'NOT_FOUND',
+                });
+                break;
+              }
+
+              if (journey.domainId !== ctx.domainId) {
+                results.push({
+                  type: action.type,
+                  status: 'error',
+                  message: `Journey ${journeyId} does not belong to this domain`,
+                  errorCode: 'FORBIDDEN',
+                });
+                break;
+              }
+
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: `Journey "${journey.name}" retrieved successfully`,
+                data: {
+                  entityIds: [journey.id],
+                  journey: {
+                    id: journey.id,
+                    title: journey.name,
+                    forward: journey.forward,
+                    createdAt: journey.createdAt,
+                    paths: journey.Path.map((p) => ({
+                      id: p.id,
+                      title: p.name,
+                      prelude: p.prelude,
+                      moments: p.Moment.map((m) => ({
+                        id: m.id,
+                        title: m.title,
+                        narrative: m.narrative,
+                        createdAt: m.createdAt,
+                      })),
+                    })),
+                  },
+                },
+              });
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'Failed to read journey';
+              logger.error({ requestId, actionType: action.type, error: errorMessage }, '[kip.actions] rejected');
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: errorMessage,
+                errorCode: 'EXECUTION_ERROR',
+              });
+            }
+            break;
+          }
+
+          case 'moment.read': {
+            const payload = action.payload ?? {};
+            const momentId = typeof payload.momentId === 'string' ? payload.momentId.trim() : '';
+
+            if (!momentId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'momentId is required for moment.read',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+
+            try {
+              const moment = await tx.moment.findUnique({
+                where: { id: momentId },
+                include: {
+                  Path: { select: { id: true, name: true } },
+                  Journey: { select: { id: true, name: true } },
+                },
+              });
+
+              if (!moment) {
+                results.push({
+                  type: action.type,
+                  status: 'error',
+                  message: `Moment ${momentId} not found`,
+                  errorCode: 'NOT_FOUND',
+                });
+                break;
+              }
+
+              if (moment.domainId !== ctx.domainId) {
+                results.push({
+                  type: action.type,
+                  status: 'error',
+                  message: `Moment ${momentId} does not belong to this domain`,
+                  errorCode: 'FORBIDDEN',
+                });
+                break;
+              }
+
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: `Moment "${moment.title}" retrieved successfully`,
+                data: {
+                  entityIds: [moment.id],
+                  moment: {
+                    id: moment.id,
+                    title: moment.title,
+                    narrative: moment.narrative,
+                    createdAt: moment.createdAt,
+                    path: moment.Path ? { id: moment.Path.id, title: moment.Path.name } : null,
+                    journey: moment.Journey ? { id: moment.Journey.id, title: moment.Journey.name } : null,
+                  },
+                },
+              });
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'Failed to read moment';
+              logger.error({ requestId, actionType: action.type, error: errorMessage }, '[kip.actions] rejected');
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: errorMessage,
+                errorCode: 'EXECUTION_ERROR',
+              });
+            }
+            break;
+          }
+
+          case 'keeper.read': {
+            const payload = action.payload ?? {};
+            const keeperIdToRead = typeof payload.keeperId === 'string' ? payload.keeperId.trim() : '';
+
+            if (!keeperIdToRead) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'keeperId is required for keeper.read',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+
+            try {
+              const keeper = await tx.keeper.findUnique({
+                where: { id: keeperIdToRead },
+                include: {
+                  Journey: { select: { id: true, name: true } },
+                  _count: { select: { kip_drafts: true } },
+                },
+              });
+
+              if (!keeper) {
+                results.push({
+                  type: action.type,
+                  status: 'error',
+                  message: `Keeper ${keeperIdToRead} not found`,
+                  errorCode: 'NOT_FOUND',
+                });
+                break;
+              }
+
+              if (keeper.domainId !== ctx.domainId) {
+                results.push({
+                  type: action.type,
+                  status: 'error',
+                  message: `Keeper ${keeperIdToRead} does not belong to this domain`,
+                  errorCode: 'FORBIDDEN',
+                });
+                break;
+              }
+
+              const momentCount = await tx.moment.count({
+                where: { Journey: { keeperId: keeperIdToRead } },
+              });
+
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: `Keeper "${keeper.title}" retrieved successfully`,
+                data: {
+                  entityIds: [keeper.id],
+                  keeper: {
+                    id: keeper.id,
+                    title: keeper.title,
+                    description: keeper.purpose,
+                    createdAt: keeper.createdAt,
+                    journeys: keeper.Journey.map((j) => ({ id: j.id, title: j.name })),
+                    momentCount,
+                    draftCount: keeper._count.kip_drafts,
+                  },
+                },
+              });
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'Failed to read keeper';
+              logger.error({ requestId, actionType: action.type, error: errorMessage }, '[kip.actions] rejected');
               results.push({
                 type: action.type,
                 status: 'error',
@@ -2640,6 +2953,29 @@ export class KipAgentService {
         '- The keeper-card JSON must be on a single line inside the fenced block',
         '- Do not wrap conversational content in a keeper-card',
         '- Do not produce a keeper-card for every response — only when the content is operational',
+      ].join('\n'),
+    );
+
+    // ── Domain content tools — on-demand retrieval ────────────────────────────
+    // Unconditional: Kip always knows these tools exist regardless of environment.
+    systemParts.push(
+      [
+        'DOMAIN CONTENT TOOLS — use these to read live domain content on demand:',
+        '',
+        'sole.read — retrieves your saved SOLE memory cards. Use when you need to recall',
+        'what you know about this domain, a keeper, or a topic. Payload: { topic?, keeperId?, limit? }',
+        '',
+        'journey.read — retrieves a full Journey with all Paths and nested Moments.',
+        'Use when a user asks about a specific Journey in depth. Payload: { journeyId }',
+        '',
+        'moment.read — retrieves the full content of a specific Moment including narrative.',
+        'Use when a user asks about a specific Moment. Payload: { momentId }',
+        '',
+        'keeper.read — retrieves full Keeper content including associated journeys and counts.',
+        'Use when a user asks about a specific Keeper. Payload: { keeperId }',
+        '',
+        'You have an index at session start. Use these tools to go deeper when needed.',
+        'Do not guess at content you can retrieve. Call the tool and read the territory.',
       ].join('\n'),
     );
 
