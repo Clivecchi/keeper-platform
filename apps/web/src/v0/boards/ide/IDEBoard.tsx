@@ -131,6 +131,20 @@ export function IDEBoard() {
     [],
   )
 
+  const onJourneyCreated = React.useCallback(
+    (journey: { id: string; name: string }) => {
+      setJourneys((prev) => [{ id: journey.id, name: journey.name }, ...prev])
+    },
+    [],
+  )
+
+  const onKeeperCreated = React.useCallback(
+    (keeper: { id: string; title: string }) => {
+      setKeepers((prev) => [{ id: keeper.id, title: keeper.title }, ...prev])
+    },
+    [],
+  )
+
   const onSaveSessionTitle = React.useCallback((id: string, title: string) => {
     setNavSessions((prev) => prev.map((s) => (s.id === id ? { ...s, title } : s)))
     setSessionListVersion((v) => v + 1)
@@ -219,6 +233,8 @@ export function IDEBoard() {
                     sessionListVersion={sessionListVersion}
                     onKeeperSelect={onKeeperSelect}
                     onSessionsLoaded={onSessionsLoaded}
+                    onJourneyCreated={onJourneyCreated}
+                    onKeeperCreated={onKeeperCreated}
                   />
                 </div>
               }

@@ -28,6 +28,10 @@ interface IDEBoardNavProps {
   onKeeperSelect?: (id: string) => void
   /** Provides the parent with the fetched sessions list for title derivation and recency */
   onSessionsLoaded?: (sessions: { id: string; title: string; updatedAt: string }[]) => void
+  /** Called after a new journey is confirmed by the API — parent keeps its list in sync */
+  onJourneyCreated?: (journey: { id: string; name: string }) => void
+  /** Called after a new keeper is confirmed by the API — parent keeps its list in sync */
+  onKeeperCreated?: (keeper: { id: string; title: string }) => void
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -72,6 +76,8 @@ export function IDEBoardNav({
   sessionListVersion,
   onKeeperSelect,
   onSessionsLoaded,
+  onJourneyCreated,
+  onKeeperCreated,
 }: IDEBoardNavProps) {
   const { navigateToFrame } = useV0Shell()
   const frameCtx = useFrameContextOptional()
@@ -82,6 +88,12 @@ export function IDEBoardNav({
   const [drafts, setDrafts] = React.useState<KipDraftSummary[] | null>(null)
   const [sessions, setSessions] = React.useState<SessionItem[] | null>(null)
   const [moreOpen, setMoreOpen] = React.useState(false)
+
+  // Per-section error messages — shown below the relevant SidebarCard
+  const [sectionErrors, setSectionErrors] = React.useState<Partial<Record<SectionKey, string>>>({})
+
+  // Cached lead-agent id so creation doesn't need a fresh agent fetch
+  const leadAgentIdRef = React.useRef<string | null>(null)
 
   // Which sections are expanded to show full list
   const [expanded, setExpanded] = React.useState<Set<SectionKey>>(new Set())
@@ -132,7 +144,10 @@ export function IDEBoardNav({
   React.useEffect(() => {
     let cancelled = false
     KipApi.getLeadAgent("kip")
-      .then((agent) => KipApi.getSessionsByAgentId(agent.id, { pageSize: 50 }))
+      .then((agent) => {
+        leadAgentIdRef.current = agent.id
+        return KipApi.getSessionsByAgentId(agent.id, { pageSize: 50 })
+      })
       .then((raw) => {
         if (cancelled) return
         const items = (Array.isArray(raw) ? raw : []).map((s) => ({
@@ -150,6 +165,112 @@ export function IDEBoardNav({
     return () => { cancelled = true }
     // sessionListVersion triggers re-fetch when a session is renamed
   }, [sessionListVersion, onSessionsLoaded])
+
+  // ── Creation handlers ─────────────────────────────────────────────────────
+
+  const handleCreateSession = React.useCallback(async () => {
+    const agentId = leadAgentIdRef.current
+    if (!agentId) return
+    setSectionErrors((prev) => ({ ...prev, sessions: undefined }))
+    const tempId = `__opt_${Date.now()}`
+    const now = new Date().toISOString()
+    const optimistic: SessionItem = { id: tempId, title: "New Session", updatedAt: now }
+    setSessions((prev) => [optimistic, ...(prev ?? [])])
+    try {
+      const session = await KipApi.createSession(agentId, undefined, "New Session")
+      const confirmed: SessionItem = {
+        id: session.id,
+        title: session.session_name?.trim() || "New Session",
+        updatedAt: session.updated_at ? new Date(session.updated_at).toISOString() : now,
+      }
+      setSessions((prev) => {
+        const next = (prev ?? []).map((s) => (s.id === tempId ? confirmed : s))
+        onSessionsLoaded?.(next)
+        return next
+      })
+      onSessionSelect(session.id)
+    } catch {
+      setSessions((prev) => (prev ?? []).filter((s) => s.id !== tempId))
+      setSectionErrors((prev) => ({ ...prev, sessions: "Failed to create session" }))
+    }
+  }, [onSessionSelect, onSessionsLoaded])
+
+  const handleCreateJourney = React.useCallback(async () => {
+    if (!domainId) return
+    setSectionErrors((prev) => ({ ...prev, journeys: undefined }))
+    const tempId = `__opt_${Date.now()}`
+    const optimistic: JourneyItem = { id: tempId, name: "New Journey" }
+    setJourneys((prev) => [optimistic, ...(prev ?? [])])
+    try {
+      const res = await apiFetch("/api/journeys", {
+        method: "POST",
+        body: JSON.stringify({ domainId, name: "New Journey" }),
+      })
+      const raw = (res as any)?.journey ?? (res as any)?.data?.journey ?? res
+      const realId: string = raw?.id
+      if (!realId || typeof realId !== "string") throw new Error("Invalid journey response")
+      const confirmed: JourneyItem = { id: realId, name: raw?.name ?? "New Journey" }
+      setJourneys((prev) => (prev ?? []).map((j) => (j.id === tempId ? confirmed : j)))
+      onJourneyCreated?.(confirmed)
+      onJourneySelect(realId)
+    } catch {
+      setJourneys((prev) => (prev ?? []).filter((j) => j.id !== tempId))
+      setSectionErrors((prev) => ({ ...prev, journeys: "Failed to create journey" }))
+    }
+  }, [domainId, onJourneySelect, onJourneyCreated])
+
+  const handleCreateKeeper = React.useCallback(async () => {
+    if (!domainId) return
+    setSectionErrors((prev) => ({ ...prev, keepers: undefined }))
+    const tempId = `__opt_${Date.now()}`
+    const optimistic: KeeperItem = { id: tempId, title: "New Keeper" }
+    setKeepers((prev) => [optimistic, ...(prev ?? [])])
+    try {
+      const res = await apiFetch("/api/keepers", {
+        method: "POST",
+        body: JSON.stringify({ domainId, title: "New Keeper" }),
+      })
+      const raw = (res as any)?.keeper ?? (res as any)?.data?.keeper ?? res
+      const realId: string = raw?.id
+      if (!realId || typeof realId !== "string") throw new Error("Invalid keeper response")
+      const confirmed: KeeperItem = { id: realId, title: raw?.title ?? "New Keeper" }
+      setKeepers((prev) => (prev ?? []).map((k) => (k.id === tempId ? confirmed : k)))
+      onKeeperCreated?.(confirmed)
+      frameCtx?.setActiveKeeperId(realId)
+      onKeeperSelect?.(realId)
+    } catch {
+      setKeepers((prev) => (prev ?? []).filter((k) => k.id !== tempId))
+      setSectionErrors((prev) => ({ ...prev, keepers: "Failed to create keeper" }))
+    }
+  }, [domainId, frameCtx, onKeeperSelect, onKeeperCreated])
+
+  const handleCreateDraft = React.useCallback(async () => {
+    if (!domainId) return
+    setSectionErrors((prev) => ({ ...prev, drafts: undefined }))
+    const tempId = `__opt_${Date.now()}`
+    const optimistic: KipDraftSummary = {
+      id: tempId,
+      kind: "draft",
+      key: tempId,
+      title: "New Draft",
+      status: "draft",
+      keeperId: activeKeeperId ?? null,
+    }
+    setDrafts((prev) => [optimistic, ...(prev ?? [])])
+    try {
+      const draft = await KipApi.createDraft(domainId, {
+        kind: "draft",
+        key: `draft-${Date.now()}`,
+        title: "New Draft",
+        keeperId: activeKeeperId ?? null,
+      })
+      setDrafts((prev) => (prev ?? []).map((d) => (d.id === tempId ? draft : d)))
+      onDraftSelect(draft.id)
+    } catch {
+      setDrafts((prev) => (prev ?? []).filter((d) => d.id !== tempId))
+      setSectionErrors((prev) => ({ ...prev, drafts: "Failed to create draft" }))
+    }
+  }, [domainId, activeKeeperId, onDraftSelect])
 
   // ── Derived item arrays ───────────────────────────────────────────────────
 
@@ -220,27 +341,48 @@ export function IDEBoardNav({
           description={countLabel(drafts?.length ?? null, "draft")}
           items={draftItems.length ? draftItems : undefined}
           onTitleClick={() => toggleExpanded("drafts")}
-          onAdd={() => console.log("create draft")}
+          onAdd={handleCreateDraft}
         />
+        {sectionErrors.drafts && (
+          <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+            {sectionErrors.drafts}
+          </p>
+        )}
         <SidebarCard
           title="Journeys"
           description={countLabel(journeys?.length ?? null, "journey")}
           items={journeyItems.length ? journeyItems : undefined}
           onTitleClick={() => toggleExpanded("journeys")}
-          onAdd={() => console.log("create journey")}
+          onAdd={handleCreateJourney}
         />
+        {sectionErrors.journeys && (
+          <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+            {sectionErrors.journeys}
+          </p>
+        )}
         <SidebarCard
           title="Keepers"
           description={countLabel(keepers?.length ?? null, "keeper")}
           items={keeperItems.length ? keeperItems : undefined}
           onTitleClick={() => toggleExpanded("keepers")}
-          onAdd={() => console.log("create keeper")}
+          onAdd={handleCreateKeeper}
         />
+        {sectionErrors.keepers && (
+          <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+            {sectionErrors.keepers}
+          </p>
+        )}
         <SidebarCard
           title="Sessions"
           items={sessionItems.length ? sessionItems : undefined}
           onTitleClick={() => toggleExpanded("sessions")}
+          onAdd={handleCreateSession}
         />
+        {sectionErrors.sessions && (
+          <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+            {sectionErrors.sessions}
+          </p>
+        )}
       </div>
 
       {/* ··· More — pinned to bottom */}
