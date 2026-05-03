@@ -2450,7 +2450,15 @@ export class KipAgentService {
 
   /**
    * Build the composed system prompt for a given context (without running the model).
-   * Used to expose the full prompt in the Cockpit.
+   * Used to expose the full prompt in the Cockpit (load-time preview only).
+   *
+   * @deprecated This function diverges from callAIModel and does not reflect what
+   * the LLM actually receives. The authoritative composed prompt is built inside
+   * callAIModel and returned as composedSystemPrompt on each runAgent response.
+   * The Cockpit updates from that source after every message. This function exists
+   * only to populate the Cockpit before the first message is sent. It should be
+   * removed once the Cockpit is wired to show a placeholder until the first real
+   * prompt arrives. Do not add behavioral rules here — add them to callAIModel.
    */
   static async buildComposedSystemPrompt(
     agentId: string,
@@ -2891,6 +2899,46 @@ export class KipAgentService {
           ]
             .filter(Boolean)
             .join('\n'),
+        });
+
+        // ── Response rendering governance — keeper-card versus prose ──────────────
+        // Unconditional within domain context: governs how Kip formats the "response"
+        // string inside the agent_output envelope. Must stay in sync with
+        // buildComposedSystemPrompt (Cockpit preview). Source of truth is here.
+        messages.push({
+          role: 'system',
+          content: [
+            'RESPONSE RENDERING — keeper-card versus prose:',
+            '',
+            'Relational responses — conversations, questions, reflections, and explanations — render as prose inside the "response" field. Clean, warm, direct. No card wrapper.',
+            '',
+            'Operational responses — platform objects, status summaries, action results, structured plans, and lists the user must act on — render using a keeper-card fenced block inside the "response" field. Not prose. Not markdown headers. A keeper-card.',
+            '',
+            'The governance rule: if the response requires the user to do something with it — act on it, choose from it, navigate to it — it renders as a keeper-card. If Kip is speaking, it renders as prose.',
+            '',
+            'keeper-card format (inside the "response" string value):',
+            '```keeper-card',
+            '{"type":"status","title":"Brief title of what happened","body":"One sentence description","meta":"Secondary detail if relevant"}',
+            '```',
+            '',
+            'Example — a status card Kip produces in its response field:',
+            '```keeper-card',
+            '{"type":"status","title":"Phase 2 Sprint 1","body":"Governance rules confirmed live in runtime prompt. keeper-card pipeline verified end to end."}',
+            '```',
+            '',
+            'Permitted type values: "status" | "summary" | "error" | "info".',
+            '- "status" — confirmation of a completed action (most common)',
+            '- "summary" — summary of multiple items or states the user needs to scan',
+            '- "error" — something failed or could not be completed',
+            '- "info" — informational context, no action taken',
+            '',
+            'keeper-card rules:',
+            '- One keeper-card per response maximum',
+            '- Prose may appear before or after the keeper-card block',
+            '- The keeper-card JSON must be on a single line inside the fenced block',
+            '- Do not wrap conversational content in a keeper-card',
+            '- Do not produce a keeper-card for every response — only when the content is operational',
+          ].join('\n'),
         });
       }
       
