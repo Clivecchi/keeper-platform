@@ -4846,10 +4846,24 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
         const updatedAgent = await KipAgentService.updateAgent(updateId, updateData);
         return respond(200, { success: true, data: updatedAgent });
 
-      case 'DELETE':
-        // Handle agent deletion
-        const { id: deleteId } = req.body;
-        
+      case 'DELETE': {
+        const { id: deleteId, type: deleteType } = req.body;
+
+        // Session delete: DELETE /api/kip/agents with body { type: 'session', id: sessionId }
+        if (deleteType === 'session') {
+          if (!deleteId || typeof deleteId !== 'string') {
+            return respond(400, { success: false, error: 'Valid session ID is required' });
+          }
+          const session = await prisma.kip_sessions.findUnique({ where: { id: deleteId }, select: { id: true } });
+          if (!session) {
+            return respond(404, { success: false, error: 'Session not found' });
+          }
+          await prisma.kip_messages.deleteMany({ where: { session_id: deleteId } });
+          await prisma.kip_sessions.delete({ where: { id: deleteId } });
+          return respond(200, { success: true, data: { message: 'Session deleted successfully' } });
+        }
+
+        // Agent delete (existing behaviour)
         if (!deleteId || typeof deleteId !== 'string') {
           return respond(400, { 
             success: false, 
@@ -4859,6 +4873,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
         
         const deleteResult = await KipAgentService.deleteAgent(deleteId);
         return respond(200, { success: true, data: deleteResult });
+      }
 
       default:
       res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);

@@ -818,6 +818,52 @@ export class KipApi {
     }
   }
 
+  static async deleteSession(sessionId: string): Promise<void> {
+    const response = await apiFetch('/api/kip/agents', {
+      method: 'DELETE',
+      body: JSON.stringify({ type: 'session', id: sessionId }),
+    });
+    if (!response?.success) {
+      throw new Error(pickErrorMessage(response, 'Failed to delete session'));
+    }
+  }
+
+  static async deleteJourney(journeyId: string): Promise<void> {
+    const response = await apiFetch(`/api/journeys/${encodeURIComponent(journeyId)}`, {
+      method: 'DELETE',
+    });
+    if (!response?.success) {
+      throw new Error(pickErrorMessage(response, 'Failed to delete journey'));
+    }
+  }
+
+  static async deleteKeeper(keeperId: string): Promise<void> {
+    const response = await apiFetch(`/api/keepers/${encodeURIComponent(keeperId)}`, {
+      method: 'DELETE',
+    });
+    if (response?.error) {
+      throw new Error(pickErrorMessage(response, 'Failed to delete keeper'));
+    }
+  }
+
+  static async deletePath(pathId: string): Promise<void> {
+    const response = await apiFetch(`/api/paths/${encodeURIComponent(pathId)}`, {
+      method: 'DELETE',
+    });
+    if (response?.error) {
+      throw new Error(pickErrorMessage(response, 'Failed to delete path'));
+    }
+  }
+
+  static async deleteMoment(momentId: string): Promise<void> {
+    const response = await apiFetch(`/api/moments/${encodeURIComponent(momentId)}`, {
+      method: 'DELETE',
+    });
+    if (response?.error) {
+      throw new Error(pickErrorMessage(response, 'Failed to delete moment'));
+    }
+  }
+
   static async publishDraft(domainId: string, draftId: string): Promise<{ success: boolean; idempotent?: boolean; domain?: { id: string; slug: string }; status?: string }> {
     const response = await apiFetch(`/api/domains/${domainId}/kip/drafts/${draftId}/publish`, {
       method: 'POST',

@@ -6,6 +6,7 @@ import { useFrameContextOptional } from "../../shell/FrameContext"
 import { KeeperTopBar } from "../../components/KeeperTopBar"
 import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
 import { apiFetch } from "../../../lib/api"
+import { KipApi } from "../../../lib/kipApi"
 
 import { StyleScope } from "../../styles/StyleScope"
 import { getBlobProxyUrl } from "../../../lib/blobProxy"
@@ -40,6 +41,8 @@ export function IDEBoard() {
   const [activeService, setActiveService] = React.useState<"cloud" | "railway" | "vercel" | "github" | null>(null)
   // Sessions lifted from IDEBoardNav so banner title and rename stay in sync
   const [navSessions, setNavSessions] = React.useState<NavSession[]>([])
+  // Lead Kip agent ID — resolved by IDEBoardNav, used for session creation
+  const [kipAgentId, setKipAgentId] = React.useState<string | null>(null)
 
   const onServiceOpen = React.useCallback(
     (service?: "cloud" | "railway" | "vercel" | "github") => {
@@ -150,6 +153,27 @@ export function IDEBoard() {
     setSessionListVersion((v) => v + 1)
   }, [])
 
+  const onAgentIdResolved = React.useCallback((agentId: string) => {
+    setKipAgentId(agentId)
+  }, [])
+
+  const onNewSession = React.useCallback(async () => {
+    if (!kipAgentId) return
+    try {
+      const now = new Date().toISOString()
+      const session = await KipApi.createSession(kipAgentId, undefined, "New Session")
+      const newItem: NavSession = {
+        id: session.id,
+        title: session.session_name?.trim() || "New Session",
+        updatedAt: session.updated_at ? new Date(session.updated_at).toISOString() : now,
+      }
+      setNavSessions((prev) => [newItem, ...prev])
+      setActiveSessionId(session.id)
+    } catch {
+      // silent — user sees no change
+    }
+  }, [kipAgentId])
+
   const onKipContextSync = React.useCallback((ctx: IDEBoardKipContext) => {
     if (ctx.type === "draft") {
       setSelectedDraftId(ctx.id)
@@ -235,6 +259,7 @@ export function IDEBoard() {
                     onSessionsLoaded={onSessionsLoaded}
                     onJourneyCreated={onJourneyCreated}
                     onKeeperCreated={onKeeperCreated}
+                    onAgentIdResolved={onAgentIdResolved}
                   />
                 </div>
               }
@@ -300,6 +325,7 @@ export function IDEBoard() {
                         description:
                           domainFrame?.theme?.tagline?.trim() ?? null,
                       }}
+                      keeperId={selectedKeeperId}
                       recentSessions={navSessions.slice(0, 3).map((s) => ({
                         id: s.id,
                         title: s.title,
@@ -314,6 +340,17 @@ export function IDEBoard() {
                         }))}
                       onSessionSelect={onSessionSelect}
                       onJourneySelect={onJourneySelect}
+                      onKeeperDeleted={() => {
+                        setSelectedKeeperId(null)
+                        setKeepers((prev) => prev.filter((k) => k.id !== selectedKeeperId))
+                      }}
+                      onSessionDeleted={(id) => {
+                        setNavSessions((prev) => prev.filter((s) => s.id !== id))
+                      }}
+                      onJourneyDeleted={(id) => {
+                        setJourneys((prev) => prev.filter((j) => j.id !== id))
+                      }}
+                      onNewSession={kipAgentId ? onNewSession : undefined}
                     />
                   ) : keeperName !== null ? (
                     // Keeper view state: a keeper is in focus via frame context
@@ -323,6 +360,7 @@ export function IDEBoard() {
                         description:
                           domainFrame?.theme?.tagline?.trim() ?? null,
                       }}
+                      keeperId={frameCtx?.selection.activeKeeperId ?? null}
                       recentSessions={navSessions.slice(0, 3).map((s) => ({
                         id: s.id,
                         title: s.title,
@@ -337,6 +375,13 @@ export function IDEBoard() {
                         }))}
                       onSessionSelect={onSessionSelect}
                       onJourneySelect={onJourneySelect}
+                      onSessionDeleted={(id) => {
+                        setNavSessions((prev) => prev.filter((s) => s.id !== id))
+                      }}
+                      onJourneyDeleted={(id) => {
+                        setJourneys((prev) => prev.filter((j) => j.id !== id))
+                      }}
+                      onNewSession={kipAgentId ? onNewSession : undefined}
                     />
                   ) : (
                     // Home view state: true default — nothing selected, no keeper in focus

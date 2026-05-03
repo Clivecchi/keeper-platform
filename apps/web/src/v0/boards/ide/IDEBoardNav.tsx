@@ -32,6 +32,8 @@ interface IDEBoardNavProps {
   onJourneyCreated?: (journey: { id: string; name: string }) => void
   /** Called after a new keeper is confirmed by the API — parent keeps its list in sync */
   onKeeperCreated?: (keeper: { id: string; title: string }) => void
+  /** Called once the lead Kip agent ID is resolved — lets parent create sessions */
+  onAgentIdResolved?: (agentId: string) => void
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -78,6 +80,7 @@ export function IDEBoardNav({
   onSessionsLoaded,
   onJourneyCreated,
   onKeeperCreated,
+  onAgentIdResolved,
 }: IDEBoardNavProps) {
   const { navigateToFrame } = useV0Shell()
   const frameCtx = useFrameContextOptional()
@@ -146,6 +149,7 @@ export function IDEBoardNav({
     KipApi.getLeadAgent("kip")
       .then((agent) => {
         leadAgentIdRef.current = agent.id
+        onAgentIdResolved?.(agent.id)
         return KipApi.getSessionsByAgentId(agent.id, { pageSize: 50 })
       })
       .then((raw) => {

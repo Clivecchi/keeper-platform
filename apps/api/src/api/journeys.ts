@@ -179,6 +179,36 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
 });
 
 /**
+ * DELETE /api/journeys/:id - Delete a journey
+ */
+router.delete('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const journey = await prisma.journey.findUnique({
+      where: { id },
+      select: { id: true, ownerId: true },
+    });
+
+    if (!journey) {
+      return res.status(404).json({ error: 'Journey not found' });
+    }
+
+    await prisma.journey.delete({ where: { id } });
+
+    return res.json({ success: true, message: 'Journey deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting journey:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
  * POST /api/journeys - Create a new journey
  */
 router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {

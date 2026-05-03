@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { Trash2 } from "lucide-react"
 import { getApiBase } from "../../../lib/apiFetch"
 import { KipApi } from "../../../lib/kipApi"
 import type { KipDraft, KipDraftSummary } from "../../../lib/kipApi"
@@ -75,7 +76,6 @@ function truncate(text: string | null | undefined, max: number): string {
 }
 
 // ─── InlineEditField ───────────────────────────────────────────────────────
-//
 // Click to edit, blur/Enter to save, Escape to cancel.
 
 interface InlineEditFieldProps {
@@ -178,6 +178,61 @@ function InlineEditField({ value, onSave, placeholder, className, style, multili
   )
 }
 
+// ─── InlineDeleteRow ────────────────────────────────────────────────────────
+// Reusable inline delete confirm pattern — no modal.
+
+interface InlineDeleteRowProps {
+  label: string
+  onConfirm: () => Promise<void>
+  onCancel: () => void
+}
+
+function InlineDeleteRow({ label, onConfirm, onCancel }: InlineDeleteRowProps) {
+  const [error, setError] = React.useState<string | null>(null)
+
+  const handleConfirm = async () => {
+    setError(null)
+    try {
+      await onConfirm()
+    } catch {
+      setError("Delete failed — try again")
+    }
+  }
+
+  return (
+    <div
+      className="rounded-xl border px-4 py-3 space-y-1.5"
+      style={{
+        background: "hsl(0 60% 50% / 0.06)",
+        borderColor: "hsl(0 60% 50% / 0.25)",
+      }}
+    >
+      <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+        {label}
+      </p>
+      {error && <p className="text-[11px]" style={{ color: "hsl(0 70% 50%)" }}>{error}</p>}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={handleConfirm}
+          className="text-[11px] px-2.5 py-1 rounded-md font-medium transition-opacity hover:opacity-80"
+          style={{ background: "hsl(0 60% 45%)", color: "#fff" }}
+        >
+          Confirm
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-[11px] px-2.5 py-1 rounded-md transition-opacity hover:opacity-70"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── StatusChip ─────────────────────────────────────────────────────────────
 
 function StatusChip({ label, tone }: { label: string; tone: "active" | "planned" | "ref" }) {
@@ -204,9 +259,12 @@ interface PathsTabProps {
   loadState: LoadState
   domainId: string | null
   onPathSaved: (id: string, updates: Partial<Pick<JourneyPath, "name" | "prelude">>) => void
+  onPathDeleted: (id: string) => void
 }
 
-function PathsTab({ paths, loadState, onPathSaved }: PathsTabProps) {
+function PathsTab({ paths, loadState, onPathSaved, onPathDeleted }: PathsTabProps) {
+  const [deletingId, setDeletingId] = React.useState<string | null>(null)
+
   const savePath = async (id: string, updates: Partial<Pick<JourneyPath, "name" | "prelude">>) => {
     try {
       await apiFetch(`/api/paths/${id}`, {
@@ -219,63 +277,77 @@ function PathsTab({ paths, loadState, onPathSaved }: PathsTabProps) {
     }
   }
 
+  const deletePath = async (id: string) => {
+    onPathDeleted(id)
+    try {
+      await KipApi.deletePath(id)
+    } catch {
+      // parent will restore on failure via its error handler if needed
+      throw new Error("Delete failed")
+    }
+  }
+
   if (loadState === "loading") {
-    return (
-      <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-        Loading paths…
-      </p>
-    )
+    return <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>Loading paths…</p>
   }
-
   if (loadState === "error") {
-    return (
-      <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-        Couldn&apos;t load paths.
-      </p>
-    )
+    return <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>Couldn&apos;t load paths.</p>
   }
-
   if (loadState === "ready" && paths.length === 0) {
-    return (
-      <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-        No Paths yet. Ask Kip to define the spine of this Journey.
-      </p>
-    )
+    return <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>No Paths yet. Ask Kip to define the spine of this Journey.</p>
   }
 
   return (
     <ul className="py-3 space-y-2 px-3">
       {paths.map((path) => (
-        <li
-          key={path.id}
-          className="rounded-xl border px-4 py-3"
-          style={{
-            background: "hsl(var(--theme-surface-paper) / 0.7)",
-            borderColor: "hsl(var(--theme-line-hairline))",
-          }}
-        >
-          <div className="flex items-start gap-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <InlineEditField
-                  value={path.name}
-                  onSave={(v) => savePath(path.id, { name: v })}
-                  placeholder="Path name"
-                  className="text-[13px] font-semibold leading-snug flex-1"
-                  style={{ color: "hsl(var(--theme-ink-primary))" }}
-                />
-                <StatusChip label="Active" tone="active" />
+        <li key={path.id}>
+          {deletingId === path.id ? (
+            <InlineDeleteRow
+              label={`Delete path "${path.name}"?`}
+              onConfirm={() => deletePath(path.id)}
+              onCancel={() => setDeletingId(null)}
+            />
+          ) : (
+            <div
+              className="group rounded-xl border px-4 py-3"
+              style={{
+                background: "hsl(var(--theme-surface-paper) / 0.7)",
+                borderColor: "hsl(var(--theme-line-hairline))",
+              }}
+            >
+              <div className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <InlineEditField
+                      value={path.name}
+                      onSave={(v) => savePath(path.id, { name: v })}
+                      placeholder="Path name"
+                      className="text-[13px] font-semibold leading-snug flex-1"
+                      style={{ color: "hsl(var(--theme-ink-primary))" }}
+                    />
+                    <StatusChip label="Active" tone="active" />
+                    <button
+                      type="button"
+                      title="Delete path"
+                      onClick={() => setDeletingId(path.id)}
+                      className="shrink-0 opacity-0 group-hover:opacity-60 transition-opacity rounded p-1 hover:opacity-90"
+                      style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                  <InlineEditField
+                    value={path.prelude}
+                    onSave={(v) => savePath(path.id, { prelude: v })}
+                    placeholder="Add a description…"
+                    className="text-[11px] leading-relaxed"
+                    style={{ color: "hsl(var(--theme-ink-secondary))" }}
+                    multiline
+                  />
+                </div>
               </div>
-              <InlineEditField
-                value={path.prelude}
-                onSave={(v) => savePath(path.id, { prelude: v })}
-                placeholder="Add a description…"
-                className="text-[11px] leading-relaxed"
-                style={{ color: "hsl(var(--theme-ink-secondary))" }}
-                multiline
-              />
             </div>
-          </div>
+          )}
         </li>
       ))}
     </ul>
@@ -289,31 +361,29 @@ interface MomentsTabProps {
   loadState: LoadState
   expandedId: string | null
   onToggle: (id: string) => void
+  onMomentDeleted: (id: string) => void
 }
 
-function MomentsTab({ moments, loadState, expandedId, onToggle }: MomentsTabProps) {
+function MomentsTab({ moments, loadState, expandedId, onToggle, onMomentDeleted }: MomentsTabProps) {
+  const [deletingId, setDeletingId] = React.useState<string | null>(null)
+
+  const deleteMoment = async (id: string) => {
+    onMomentDeleted(id)
+    try {
+      await KipApi.deleteMoment(id)
+    } catch {
+      throw new Error("Delete failed")
+    }
+  }
+
   if (loadState === "loading") {
-    return (
-      <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-        Loading Moments…
-      </p>
-    )
+    return <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>Loading Moments…</p>
   }
-
   if (loadState === "error") {
-    return (
-      <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-        Journey couldn&apos;t load.
-      </p>
-    )
+    return <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>Journey couldn&apos;t load.</p>
   }
-
   if (loadState === "ready" && moments.length === 0) {
-    return (
-      <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-        No Moments yet. Start building.
-      </p>
-    )
+    return <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>No Moments yet. Start building.</p>
   }
 
   return (
@@ -323,71 +393,86 @@ function MomentsTab({ moments, loadState, expandedId, onToggle }: MomentsTabProp
         const preview = truncate(m.narrative, 100)
         return (
           <li key={m.id}>
-            <button
-              type="button"
-              onClick={() => onToggle(m.id)}
-              className="w-full text-left px-4 py-4 border-b transition-colors hover:opacity-80 group"
-              style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
-            >
-              <div className="flex items-start gap-2">
-                <div
-                  className="shrink-0 w-0.5 self-stretch rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ background: "hsl(var(--theme-accent-fg, var(--theme-ink-tertiary)))" }}
+            {deletingId === m.id ? (
+              <div className="px-4 py-3 border-b" style={{ borderColor: "hsl(var(--theme-line-hairline))" }}>
+                <InlineDeleteRow
+                  label={`Delete "${m.title?.trim() || "Untitled Moment"}"?`}
+                  onConfirm={() => deleteMoment(m.id)}
+                  onCancel={() => setDeletingId(null)}
                 />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <p
-                      className="text-[12px] font-medium leading-snug truncate"
-                      style={{ color: "hsl(var(--theme-ink-primary))" }}
-                    >
-                      {m.title?.trim() || "Untitled Moment"}
-                    </p>
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 10 10"
-                      fill="none"
-                      aria-hidden
-                      className="shrink-0 mt-0.5 transition-transform"
-                      style={{
-                        color: "hsl(var(--theme-ink-tertiary))",
-                        transform: isExpanded ? "rotate(90deg)" : "none",
-                      }}
-                    >
-                      <path
-                        d="M3 2l4 3-4 3"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                  <p className="text-[10px] mt-0.5" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-                    {formatDate(m.createdAt)}
-                  </p>
-                  {!isExpanded && preview ? (
-                    <p className="text-[11px] mt-1 leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-                      {preview}
-                    </p>
-                  ) : null}
-                </div>
               </div>
+            ) : (
+              <div className="group relative border-b" style={{ borderColor: "hsl(var(--theme-line-hairline))" }}>
+                <button
+                  type="button"
+                  onClick={() => onToggle(m.id)}
+                  className="w-full text-left px-4 py-4 transition-colors hover:opacity-80"
+                >
+                  <div className="flex items-start gap-2">
+                    <div
+                      className="shrink-0 w-0.5 self-stretch rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: "hsl(var(--theme-accent-fg, var(--theme-ink-tertiary)))" }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <p
+                          className="text-[12px] font-medium leading-snug truncate"
+                          style={{ color: "hsl(var(--theme-ink-primary))" }}
+                        >
+                          {m.title?.trim() || "Untitled Moment"}
+                        </p>
+                        <svg
+                          width="10"
+                          height="10"
+                          viewBox="0 0 10 10"
+                          fill="none"
+                          aria-hidden
+                          className="shrink-0 mt-0.5 transition-transform"
+                          style={{
+                            color: "hsl(var(--theme-ink-tertiary))",
+                            transform: isExpanded ? "rotate(90deg)" : "none",
+                          }}
+                        >
+                          <path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                      <p className="text-[10px] mt-0.5" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+                        {formatDate(m.createdAt)}
+                      </p>
+                      {!isExpanded && preview ? (
+                        <p className="text-[11px] mt-1 leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+                          {preview}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
 
-              {isExpanded && (
-                <div className="mt-2 pt-2 border-t" style={{ borderColor: "hsl(var(--theme-line-hairline))" }}>
-                  {m.narrative?.trim() ? (
-                    <p className="text-[12px] leading-relaxed whitespace-pre-wrap" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-                      {m.narrative.trim()}
-                    </p>
-                  ) : (
-                    <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-                      No content recorded.
-                    </p>
+                  {isExpanded && (
+                    <div className="mt-2 pt-2 border-t" style={{ borderColor: "hsl(var(--theme-line-hairline))" }}>
+                      {m.narrative?.trim() ? (
+                        <p className="text-[12px] leading-relaxed whitespace-pre-wrap" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+                          {m.narrative.trim()}
+                        </p>
+                      ) : (
+                        <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+                          No content recorded.
+                        </p>
+                      )}
+                    </div>
                   )}
-                </div>
-              )}
-            </button>
+                </button>
+                {/* Hover trash icon — absolute positioned */}
+                <button
+                  type="button"
+                  title="Delete moment"
+                  onClick={() => setDeletingId(m.id)}
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-60 transition-opacity rounded p-1 hover:opacity-90"
+                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            )}
           </li>
         )
       })}
@@ -401,6 +486,8 @@ interface DraftsTabProps {
   drafts: KipDraftSummary[]
   loadState: LoadState
   onOpenDraft?: (id: string) => void
+  onDraftDeleted: (id: string) => void
+  domainId: string | null
 }
 
 const DRAFT_STATUS_TONE: Record<string, "active" | "planned" | "ref"> = {
@@ -411,29 +498,27 @@ const DRAFT_STATUS_TONE: Record<string, "active" | "planned" | "ref"> = {
   archived: "ref",
 }
 
-function DraftsTab({ drafts, loadState, onOpenDraft }: DraftsTabProps) {
+function DraftsTab({ drafts, loadState, onOpenDraft, onDraftDeleted, domainId }: DraftsTabProps) {
+  const [deletingId, setDeletingId] = React.useState<string | null>(null)
+
+  const deleteDraft = async (id: string) => {
+    if (!domainId) throw new Error("No domain ID")
+    onDraftDeleted(id)
+    try {
+      await KipApi.deleteDraft(domainId, id)
+    } catch {
+      throw new Error("Delete failed")
+    }
+  }
+
   if (loadState === "loading") {
-    return (
-      <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-        Loading Drafts…
-      </p>
-    )
+    return <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>Loading Drafts…</p>
   }
-
   if (loadState === "error") {
-    return (
-      <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-        Couldn&apos;t load drafts.
-      </p>
-    )
+    return <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>Couldn&apos;t load drafts.</p>
   }
-
   if (loadState === "ready" && drafts.length === 0) {
-    return (
-      <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-        No Drafts yet. Ask Kip to create a reference document.
-      </p>
-    )
+    return <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>No Drafts yet. Ask Kip to create a reference document.</p>
   }
 
   return (
@@ -442,37 +527,55 @@ function DraftsTab({ drafts, loadState, onOpenDraft }: DraftsTabProps) {
         const tone = DRAFT_STATUS_TONE[d.status] ?? "ref"
         const updated = d.updatedAt ? formatDate(String(d.updatedAt)) : null
         return (
-          <li
-            key={d.id}
-            className="rounded-xl border px-4 py-3 cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => onOpenDraft?.(d.id)}
-            style={{
-              background: "hsl(var(--theme-surface-paper) / 0.7)",
-              borderColor: "hsl(var(--theme-line-hairline))",
-            }}
-          >
-            <div className="flex items-start gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <p
-                    className="text-[12px] font-semibold truncate flex-1"
-                    style={{ color: "hsl(var(--theme-ink-primary))" }}
-                  >
-                    {d.title}
-                  </p>
-                  <StatusChip label={d.status} tone={tone} />
+          <li key={d.id}>
+            {deletingId === d.id ? (
+              <InlineDeleteRow
+                label={`Delete draft "${d.title}"?`}
+                onConfirm={() => deleteDraft(d.id)}
+                onCancel={() => setDeletingId(null)}
+              />
+            ) : (
+              <div
+                className="group relative rounded-xl border px-4 py-3 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => onOpenDraft?.(d.id)}
+                style={{
+                  background: "hsl(var(--theme-surface-paper) / 0.7)",
+                  borderColor: "hsl(var(--theme-line-hairline))",
+                }}
+              >
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p
+                        className="text-[12px] font-semibold truncate flex-1"
+                        style={{ color: "hsl(var(--theme-ink-primary))" }}
+                      >
+                        {d.title}
+                      </p>
+                      <StatusChip label={d.status} tone={tone} />
+                    </div>
+                    <p className="text-[10px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+                      {d.kind}{updated ? ` · ${updated}` : ""}
+                    </p>
+                    {d.summary && (
+                      <p className="text-[11px] mt-1 leading-relaxed line-clamp-2" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+                        {d.summary}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <p className="text-[10px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-                  {d.kind}
-                  {updated ? ` · ${updated}` : ""}
-                </p>
-                {d.summary && (
-                  <p className="text-[11px] mt-1 leading-relaxed line-clamp-2" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-                    {d.summary}
-                  </p>
-                )}
+                {/* Hover trash icon */}
+                <button
+                  type="button"
+                  title="Delete draft"
+                  onClick={(e) => { e.stopPropagation(); setDeletingId(d.id) }}
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-60 transition-opacity rounded p-1 hover:opacity-90"
+                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                >
+                  <Trash2 size={12} />
+                </button>
               </div>
-            </div>
+            )}
           </li>
         )
       })}
@@ -751,6 +854,18 @@ export function IDEBoardContext({
     setPaths((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)))
   }
 
+  const handlePathDeleted = (id: string) => {
+    setPaths((prev) => prev.filter((p) => p.id !== id))
+  }
+
+  const handleMomentDeleted = (id: string) => {
+    setMoments((prev) => prev.filter((m) => m.id !== id))
+  }
+
+  const handleDraftDeleted = (id: string) => {
+    setDrafts((prev) => prev.filter((d) => d.id !== id))
+  }
+
   const toggleExpandMoment = (id: string) => {
     setExpandedMomentId((prev) => (prev === id ? null : id))
   }
@@ -821,18 +936,16 @@ export function IDEBoardContext({
     )
   }
 
-  // ─── Default: Journey document view ────────────────────────────────────
+  // ─── Default: Journey tab view ──────────────────────────────────────────
   //
-  // KeeperJourneyPanel is self-contained: it fetches the authenticated
-  // /api/journeys/:id detail (with per-path Moments) and renders the living
-  // document layout. The public-API journey fetch above still runs to resolve
-  // journey?.id when no activeJourneyId is set (first-journey fallback).
+  // Shows JourneyTabBar + active tab (Paths / Moments / Drafts) when a
+  // journey is resolved. Paths and Moments have delete actions on every item.
 
   const resolvedJourneyId = activeJourneyId ?? journey?.id ?? ""
 
   return (
     <div className="flex flex-col h-full min-h-0" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-      {/* Show loading / error only while resolving the journey ID fallback */}
+      {/* Loading / error / empty for the journey ID fallback resolution */}
       {!resolvedJourneyId && loadState === "loading" && (
         <p className="px-4 py-6 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
           Loading Journey…
@@ -850,13 +963,75 @@ export function IDEBoardContext({
       )}
 
       {resolvedJourneyId && (
-        <KeeperJourneyPanel
-          journeyId={resolvedJourneyId}
-          domainId={domainId}
-          onMomentSelect={() => {}}
-          onPathSelect={() => {}}
-          onBack={onJourneyBack}
-        />
+        <>
+          {/* Journey name header */}
+          {journey?.name && (
+            <div
+              className="shrink-0 px-4 py-3 border-b flex items-center justify-between gap-2"
+              style={{ borderColor: "hsl(var(--theme-line-hairline))" }}
+            >
+              <p
+                className="text-[14px] font-semibold truncate"
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  color: "hsl(var(--theme-ink-primary))",
+                }}
+              >
+                {journey.name}
+              </p>
+              {onJourneyBack && (
+                <button
+                  type="button"
+                  onClick={onJourneyBack}
+                  className="shrink-0 text-[11px] transition-opacity hover:opacity-70"
+                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                >
+                  ← Back
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Tab bar */}
+          <JourneyTabBar
+            active={journeyTab}
+            pathCount={paths.length}
+            momentCount={moments.length}
+            draftCount={drafts.length}
+            onChange={setJourneyTab}
+          />
+
+          {/* Tab content */}
+          <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto">
+            {journeyTab === "paths" && (
+              <PathsTab
+                paths={paths}
+                loadState={pathsLoadState}
+                domainId={domainId}
+                onPathSaved={handlePathSaved}
+                onPathDeleted={handlePathDeleted}
+              />
+            )}
+            {journeyTab === "moments" && (
+              <MomentsTab
+                moments={moments}
+                loadState={loadState}
+                expandedId={expandedMomentId}
+                onToggle={toggleExpandMoment}
+                onMomentDeleted={handleMomentDeleted}
+              />
+            )}
+            {journeyTab === "drafts" && (
+              <DraftsTab
+                drafts={drafts}
+                loadState={draftsLoadState}
+                onOpenDraft={onDraftSelect}
+                onDraftDeleted={handleDraftDeleted}
+                domainId={domainId}
+              />
+            )}
+          </div>
+        </>
       )}
     </div>
   )
