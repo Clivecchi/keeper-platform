@@ -11,10 +11,107 @@ import remarkGfm from "remark-gfm"
 import { LinkedCard } from "../props/LinkedCard"
 import { ActionReceiptCard } from "../kip/ActionReceiptCard"
 import { DraftUpdateProposeCard } from "../kip/DraftUpdateProposeCard"
+import { KipResponseCard } from "./KipResponseCard"
 import type { AgentDialogueMessage } from "./types"
 import { normalizeActionReceipt } from "./types"
 import { formatTime } from "./helpers"
 import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
+
+// ─── keeper-card parsing ──────────────────────────────────────────────────────
+
+const KEEPER_CARD_RE = /```keeper-card\n([\s\S]*?)```/g
+
+type ContentSegment =
+  | { kind: "markdown"; text: string }
+  | { kind: "card"; data: { type: string; title: string; body?: string; meta?: string; items?: string[] } }
+
+function parseContentSegments(content: string): ContentSegment[] {
+  const segments: ContentSegment[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+  // Reset lastIndex since the regex is module-level with /g
+  const re = new RegExp(KEEPER_CARD_RE.source, "g")
+
+  while ((match = re.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ kind: "markdown", text: content.slice(lastIndex, match.index) })
+    }
+    try {
+      const json = JSON.parse(match[1].trim())
+      if (json && typeof json.type === "string" && typeof json.title === "string") {
+        segments.push({ kind: "card", data: json })
+      } else {
+        // Missing required fields — fall back to standard code block
+        segments.push({ kind: "markdown", text: match[0] })
+      }
+    } catch {
+      // Invalid JSON — fall back to standard code block
+      segments.push({ kind: "markdown", text: match[0] })
+    }
+    lastIndex = match.index + match[0].length
+  }
+
+  if (lastIndex < content.length) {
+    segments.push({ kind: "markdown", text: content.slice(lastIndex) })
+  }
+
+  return segments.length > 0 ? segments : [{ kind: "markdown", text: content }]
+}
+
+// ─── Markdown component map (shared across all segment renders) ───────────────
+
+const MD_COMPONENTS = {
+  h1: ({ children }: React.PropsWithChildren) => <h1 className="kip-md-h1">{children}</h1>,
+  h2: ({ children }: React.PropsWithChildren) => <h2 className="kip-md-h2">{children}</h2>,
+  h3: ({ children }: React.PropsWithChildren) => <h3 className="kip-md-h3">{children}</h3>,
+  p: ({ children }: React.PropsWithChildren) => <p className="kip-md-p">{children}</p>,
+  strong: ({ children }: React.PropsWithChildren) => <strong className="kip-md-strong">{children}</strong>,
+  em: ({ children }: React.PropsWithChildren) => <em className="kip-md-em">{children}</em>,
+  ul: ({ children }: React.PropsWithChildren) => <ul className="kip-md-ul">{children}</ul>,
+  ol: ({ children }: React.PropsWithChildren) => <ol className="kip-md-ol">{children}</ol>,
+  li: ({ children }: React.PropsWithChildren) => <li className="kip-md-li">{children}</li>,
+  code: ({ inline, children, ...props }: any) =>
+    inline
+      ? <code className="kip-md-code-inline" {...props}>{children}</code>
+      : <pre className="kip-md-code-block"><code {...props}>{children}</code></pre>,
+  blockquote: ({ children }: React.PropsWithChildren) => <blockquote className="kip-md-blockquote">{children}</blockquote>,
+  hr: () => <hr className="kip-md-hr" />,
+  a: ({ href, children }: React.AnchorHTMLAttributes<HTMLAnchorElement> & React.PropsWithChildren) =>
+    <a href={href} target="_blank" rel="noopener noreferrer" className="kip-md-link">{children}</a>,
+}
+
+// ─── Segment renderer ─────────────────────────────────────────────────────────
+
+function AgentMessageContent({ content }: { content: string }) {
+  const segments = parseContentSegments(content)
+  return (
+    <div className="kip-message-content">
+      {segments.map((seg, idx) => {
+        if (seg.kind === "card") {
+          return (
+            <KipResponseCard
+              key={idx}
+              type={seg.data.type}
+              title={seg.data.title}
+              body={seg.data.body}
+              meta={seg.data.meta}
+              items={seg.data.items}
+            />
+          )
+        }
+        // Only render ReactMarkdown if the text is non-empty
+        if (!seg.text.trim()) return null
+        return (
+          <ReactMarkdown key={idx} remarkPlugins={[remarkGfm]} components={MD_COMPONENTS as any}>
+            {seg.text}
+          </ReactMarkdown>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface DialogueMessageListProps {
   /** Whether messages are still loading */
@@ -101,30 +198,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
             {message.role === "user" ? (
               <p className="whitespace-pre-line">{message.content}</p>
             ) : (
-              <div className="kip-message-content">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    h1: ({children}) => <h1 className="kip-md-h1">{children}</h1>,
-                    h2: ({children}) => <h2 className="kip-md-h2">{children}</h2>,
-                    h3: ({children}) => <h3 className="kip-md-h3">{children}</h3>,
-                    p: ({children}) => <p className="kip-md-p">{children}</p>,
-                    strong: ({children}) => <strong className="kip-md-strong">{children}</strong>,
-                    em: ({children}) => <em className="kip-md-em">{children}</em>,
-                    ul: ({children}) => <ul className="kip-md-ul">{children}</ul>,
-                    ol: ({children}) => <ol className="kip-md-ol">{children}</ol>,
-                    li: ({children}) => <li className="kip-md-li">{children}</li>,
-                    code: ({inline, children, ...props}: any) => inline
-                      ? <code className="kip-md-code-inline" {...props}>{children}</code>
-                      : <pre className="kip-md-code-block"><code {...props}>{children}</code></pre>,
-                    blockquote: ({children}) => <blockquote className="kip-md-blockquote">{children}</blockquote>,
-                    hr: () => <hr className="kip-md-hr" />,
-                    a: ({href, children}) => <a href={href} target="_blank" rel="noopener noreferrer" className="kip-md-link">{children}</a>,
-                  }}
-                >
-                  {message.content}
-                </ReactMarkdown>
-              </div>
+              <AgentMessageContent content={message.content} />
             )}
             {message.linkedCard && (
               <div className="mt-3">
