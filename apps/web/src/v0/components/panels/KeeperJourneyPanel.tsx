@@ -36,6 +36,8 @@ export interface KeeperJourneyPanelProps {
   domainId?: string | null
   onMomentSelect?: (momentId: string) => void
   onPathSelect?: (pathId: string) => void
+  /** Called when the user taps the back affordance above the Journey title. */
+  onBack?: () => void
 }
 
 type LoadState = "idle" | "loading" | "ready" | "error"
@@ -321,6 +323,7 @@ export function KeeperJourneyPanel({
   journeyId,
   onMomentSelect,
   onPathSelect,
+  onBack,
 }: KeeperJourneyPanelProps) {
   const [journey, setJourney] = React.useState<JourneyDetail | null>(null)
   const [loadState, setLoadState] = React.useState<LoadState>("idle")
@@ -415,6 +418,27 @@ export function KeeperJourneyPanel({
       className="flex flex-col h-full min-h-0"
       style={{ color: "hsl(var(--theme-ink-primary))" }}
     >
+      {/* Back affordance */}
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="shrink-0 flex items-center gap-1 px-4 pt-3 pb-0.5 transition-opacity hover:opacity-70"
+          style={{ color: "hsl(var(--theme-ink-tertiary))", background: "none", border: "none" }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+            <path
+              d="M8 2L4 6l4 4"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <span className="text-[11px]">Keeper</span>
+        </button>
+      )}
+
       {/* Journey header */}
       <div
         className="shrink-0 px-4 py-4 border-b"

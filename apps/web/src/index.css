@@ -43,6 +43,7 @@ body {
 
 /* Display density — `keeper-density` in localStorage; `data-density` on <html> (see index.html + Design Board banner) */
 html {
+  font-size: 17px;
   --density-scale: 1;
 }
 html[data-density="compact"] {

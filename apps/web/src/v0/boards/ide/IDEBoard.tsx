@@ -92,6 +92,13 @@ export function IDEBoard() {
     setSelectedKeeperId(null)
   }, [])
 
+  const onJourneyBack = React.useCallback(() => {
+    setActiveJourneyId(null)
+    setSelectedDraftId(null)
+    setSelectedMomentId(null)
+    setSelectedKeeperId(null)
+  }, [])
+
   const onDraftSelect = React.useCallback((id: string) => {
     setSelectedDraftId(id)
     setActiveJourneyId(null)
@@ -254,21 +261,44 @@ export function IDEBoard() {
                       initialService={activeService}
                       onClose={() => setActiveService(null)}
                     />
-                  ) : (activeJourneyId || selectedDraftId || selectedMomentId || selectedKeeperId) ? (
-                    // Specific view state: delegate to IDEBoardContext
+                  ) : (activeJourneyId || selectedDraftId || selectedMomentId) ? (
+                    // Journey / Draft / Moment view state: delegate to IDEBoardContext
                     <IDEBoardContext
                       domainSlug={slug}
                       domainId={domainId}
                       activeJourneyId={activeJourneyId}
                       selectedDraftId={selectedDraftId}
                       selectedMomentId={selectedMomentId}
-                      selectedKeeperId={selectedKeeperId}
-                      activeKeeperName={keeperName}
                       onJourneySelect={onJourneySelect}
                       onDraftSelect={onDraftSelect}
+                      onJourneyBack={onJourneyBack}
+                    />
+                  ) : selectedKeeperId !== null ? (
+                    // Keeper view state: a specific keeper was clicked in the left nav
+                    <KeeperViewPanel
+                      keeper={{
+                        name:
+                          keepers.find((k) => k.id === selectedKeeperId)?.title ??
+                          keeperName ??
+                          slug,
+                        description:
+                          domainFrame?.theme?.tagline?.trim() ?? null,
+                      }}
+                      recentSessions={navSessions.slice(0, 3).map((s) => ({
+                        id: s.id,
+                        title: s.title,
+                        updatedAt: s.updatedAt,
+                      }))}
+                      activeJourneys={journeys.map((j) => ({
+                        id: j.id,
+                        title: j.name,
+                        momentCount: j.momentCount ?? 0,
+                      }))}
+                      onSessionSelect={onSessionSelect}
+                      onJourneySelect={onJourneySelect}
                     />
                   ) : keeperName !== null ? (
-                    // Keeper view state: a specific keeper is in focus
+                    // Keeper view state: a keeper is in focus via frame context
                     <KeeperViewPanel
                       keeper={{
                         name: keeperName,

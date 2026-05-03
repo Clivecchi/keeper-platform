@@ -654,6 +654,7 @@ export function DomainBoard() {
               domainId={domainId}
               onMomentSelect={handleMomentSelectFromJourney}
               onPathSelect={() => {}}
+              onBack={() => setActiveJourneyId(null)}
             />
           ) : selectedMoment ? (
             /* Moment view state */

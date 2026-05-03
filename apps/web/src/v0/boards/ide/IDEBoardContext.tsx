@@ -27,6 +27,8 @@ interface IDEBoardContextProps {
   onJourneySelect?: (id: string) => void
   /** Open a draft in the right panel from the Drafts tab */
   onDraftSelect?: (id: string) => void
+  /** Called when the back affordance in KeeperJourneyPanel is tapped */
+  onJourneyBack?: () => void
 }
 
 // ─── Data shapes ───────────────────────────────────────────────────────────
@@ -551,6 +553,7 @@ export function IDEBoardContext({
   activeKeeperName,
   onJourneySelect,
   onDraftSelect,
+  onJourneyBack,
 }: IDEBoardContextProps) {
   // Journey meta + moments (public API)
   const [journey, setJourney] = React.useState<JourneyMeta | null>(null)
@@ -852,6 +855,7 @@ export function IDEBoardContext({
           domainId={domainId}
           onMomentSelect={() => {}}
           onPathSelect={() => {}}
+          onBack={onJourneyBack}
         />
       )}
     </div>
