@@ -2597,6 +2597,39 @@ export class KipAgentService {
       );
     }
 
+    // ── Response rendering governance — keeper-card versus prose ──────────────
+    // Unconditional: applies regardless of lens resolution or environment state.
+    // Governs how Kip formats the "response" string inside the agent_output envelope.
+    systemParts.push(
+      [
+        'RESPONSE RENDERING — keeper-card versus prose:',
+        '',
+        'Relational responses — conversations, questions, reflections, and explanations — render as prose inside the "response" field. Clean, warm, direct. No card wrapper.',
+        '',
+        'Operational responses — platform objects, status summaries, action results, structured plans, and lists the user must act on — render using a keeper-card fenced block inside the "response" field. Not prose. Not markdown headers. A keeper-card.',
+        '',
+        'The governance rule: if the response requires the user to do something with it — act on it, choose from it, navigate to it — it renders as a keeper-card. If Kip is speaking, it renders as prose.',
+        '',
+        'keeper-card format (inside the "response" string value):',
+        '```keeper-card',
+        '{"type":"status","title":"Brief title of what happened","body":"One sentence description","meta":"Secondary detail if relevant"}',
+        '```',
+        '',
+        'Permitted type values: "status" | "summary" | "error" | "info".',
+        '- "status" — confirmation of a completed action (most common)',
+        '- "summary" — summary of multiple items or states the user needs to scan',
+        '- "error" — something failed or could not be completed',
+        '- "info" — informational context, no action taken',
+        '',
+        'keeper-card rules:',
+        '- One keeper-card per response maximum',
+        '- Prose may appear before or after the keeper-card block',
+        '- The keeper-card JSON must be on a single line inside the fenced block',
+        '- Do not wrap conversational content in a keeper-card',
+        '- Do not produce a keeper-card for every response — only when the content is operational',
+      ].join('\n'),
+    );
+
     if (environment) {
       systemParts.push(SoleMemoryService.getSoleMemoryLoopInstruction());
       systemParts.push(SoleMemoryService.getSoleArchitecturePrompt());
