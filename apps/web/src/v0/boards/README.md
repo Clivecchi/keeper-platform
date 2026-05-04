@@ -19,6 +19,18 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] `V0BoardKey` type lives in `boardRegistry.ts`; if more boards are added, consider splitting
 
 ## 📆 Update Log
+### 2026-05-04 — Moment 2.2: AgentBoard Reconciliation
+- All 9 diagnostic gaps addressed. See `agent/README.md` for full change log.
+- `AgentBoardIdlePanel.tsx` created in `agent/` directory.
+- `AGENT_BOARD_SCHEMA` in `UniversalBoardSchema.ts` updated — right panel now has 3 named view states: `draft`, `agent`, `idle`.
+
+### 2026-05-04 — Moment 2.1: Universal Board Schema
+- Created `UniversalBoardSchema.ts` — new file only, no existing files modified
+- Exports three interfaces: `UniversalBoardViewState`, `UniversalBoardDataFetch`, `UniversalBoardSchema`
+- Exports four typed constants: `IDE_BOARD_SCHEMA`, `AGENT_BOARD_SCHEMA`, `DOMAIN_BOARD_SCHEMA`, `DESIGN_BOARD_SCHEMA`
+- All constants populated from diagnostic-confirmed facts; unconfirmed values marked `// TODO: verify`
+- Note: `boardRegistry.ts` confirms `isPrivate: true` for all boards; schema document's `isPrivate: false` for IDE/Agent/Domain diverges — flagged for Chuck to verify intent
+- This is documentation-first wiring. Moment 2.2 begins Board reconciliation using this schema as the standard.
 ### 2026-03-31
 - Domain Board (`domain/DomainBoard.tsx`): Brief mode center panel now renders `DomainBrief` (editable domain JSON form) instead of the placeholder; Kip composer unchanged.
 

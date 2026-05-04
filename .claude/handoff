@@ -1,0 +1,322 @@
+**KE3P · KEEPER PLATFORM**
+
+**Session Handoff**
+
+*For Kip · April 26, 2026 · Full Day Session*
+
+| **Field** | **Value** |
+| --- | --- |
+| Journey | Platform Evolution |
+| Keeper | Platform Development Keeper |
+| Prepared by | Claude (claude.ai) |
+| Supersedes | Keeper_Session_Handoff_April2026_v4.docx and all prior handoff documents |
+| Status | Active — read this fully before any build or conversation work begins |
+
+*Hi Kip. A full day of architectural work happened today. This document is your complete picture of where things stand — what was built, what was decided, what is next. It is organized as a Journey so you can move through it the same way the day moved. Read it in order.*
+
+# **Before You Begin**
+
+Your first task is a self-test. Before responding to any question or taking any action, do the following:
+
+- Navigate to ?frame=journeys. Select a Journey and a Path that has prelude content. Confirm the prelude text appears below the Path name. Report what you see.
+
+- Navigate to ?board=ide. Select Platform Evolution from the left nav. Confirm the right panel shows the Journey with Paths, Preludes, and Moments. Report what you see.
+
+- Send yourself a test message. Confirm your response renders with markdown — headers, bullets, bold — not raw asterisks. Report what you see.
+
+Report all three observations in your first response. This tells us what is confirmed working versus what still needs attention.
+
+# **Path 1 · What the Platform Is**
+
+## **Moment 1.1 — The Locked Architecture**
+
+The platform is React, driven by JSON. React always. JSON always. The JSON tells React components what to render, what context they're in, what content to show. Components are intelligent empty vessels. JSON is the instruction.
+
+**Three panels. Always.**
+
+| **Panel** | **Role** | **Name** |
+| --- | --- | --- |
+| Left | Where you can go | Navigation |
+| Center | Where the exchange lives | Dialog Frame |
+| Right | What you're looking at | View State Panel |
+
+The three panels don't change. Their content resolves from context.
+
+## **Moment 1.2 — The Content Hierarchy**
+
+**Domain → Keeper Instance → Keeper (user workspace)**
+
+**Journey → Path → Moment**
+
+- A Moment is the atomic unit of content.
+
+- A Journey is what happened.
+
+- A Story is what you make of it.
+
+- A Path is a chapter — it has a Prelude and a Forward, and it goes as far as it needs to go.
+
+- A Moment Evolution is a return to a Moment — a deepening, not an edit.
+
+## **Moment 1.3 — The Dialog Frame**
+
+The Dialog Frame has three zones:
+
+| **Zone** | **Role** |
+| --- | --- |
+| Banner | Where you are. Journey · Path · Prelude. Frosted. Static. |
+| Dialog | Where the exchange lives. Messages moving through. |
+| Composer | Where you speak. Input bar. Service Bar. |
+
+The Composer has three sub-zones — thinking space (most transparent), input field (most present), service bar (minimal strip). These are sibling surfaces, not nested. Each has its own opacity measured directly against the atmosphere.
+
+# **Path 2 · What Was Built Today**
+
+## **Moment 2.1 — Cursor Prompts Executed**
+
+| **#** | **What** | **Status** |
+| --- | --- | --- |
+| 1 | Prelude wiring in JourneysFrame + PresentFrame | Deployed — confirm in self-test |
+| 2 | KeeperDialogFrame.tsx extraction — shared component across all Boards | Deployed |
+| 3 | Diagnostic and fix — gradient, Domain Board layout, ghost panel, Paths loading | Deployed |
+| 4 | Domain Board Feed Mode / Dialog Mode | Deployed |
+| 5 | Journey view state — KeeperJourneyPanel.tsx, wired to IDE and Domain Boards | Deployed |
+| 6 | Board shell design — dissolved sheetChrome, floating surfaces, Cormorant Garamond | Deployed |
+| 7 | Banner consolidation, ghost panel, double background fix, resize handles | Deployed |
+| 7b | Panel opacity correction — reverted to cream with semi-transparency | Deployed |
+| 8 | Markdown rendering in DialogueMessageList — react-markdown + remark-gfm | Deployed — confirm in self-test |
+
+## **Moment 2.2 — What Should Now Be True**
+
+### **Dialog Frame**
+
+- KeeperDialogFrame.tsx exists as a shared component used by all Boards
+
+- Banner shows Journey · Path · Prelude in a single frosted strip with session ID and SOLE status on the right
+
+- Gradient dissolve at the bottom of the Dialog zone — messages fade before reaching the Composer
+
+- Service Bar spans full width of the Composer
+
+### **Board Shell**
+
+- sheetChrome is dissolved — three panels float independently over the atmosphere
+
+- Atmosphere visible at all edges and between panels
+
+- Each panel has border-radius and semi-transparent background
+
+- KeeperBoardPanelGroup has gap between panels
+
+### **Domain Board**
+
+- Feed Mode is the default landing state — the commons
+
+- Sending a message switches to Dialog Mode — the workshop
+
+- ← Commons in the Banner returns to Feed Mode
+
+### **Journey View State**
+
+- KeeperJourneyPanel.tsx renders Journey title, forward field, Paths with Preludes, Moments beneath each Path
+
+- Wired to IDE Board right panel when a Journey is selected
+
+- Wired to Domain Board right panel alongside existing Moment detail view
+
+- activeJourneyId in experienceContext so you know which Journey is in focus
+
+### **Markdown Rendering**
+
+- Agent messages in DialogueMessageList.tsx render through ReactMarkdown with remark-gfm
+
+- Headers in Cormorant Garamond, bullets with teal dots, code blocks contained, tables clean
+
+- User messages remain plain text
+
+- ActionReceiptCard and DraftUpdateProposeCard unchanged
+
+# **Path 3 · New Platform Language — Locked Today**
+
+## **Moment 3.1 — Canonical Terms**
+
+Every term below is locked. Use them consistently. Do not substitute synonyms.
+
+| **Term** | **Definition** |
+| --- | --- |
+| Dialog Frame | The center panel conversation surface. Three zones: Banner · Dialog · Composer. |
+| Banner | Zone 1 — top. Where you are. Journey · Path · Prelude. Frosted. |
+| Dialog | Zone 2 — middle. Where the exchange lives. Messages moving through. |
+| Composer | Zone 3 — bottom. Where you speak. Input bar + Service Bar. |
+| Thinking space | The transparent zone within the Composer, above the input field. Kip's working surface. |
+| Feed Mode | Domain Board center panel default. The commons. Open. Social. Being together. |
+| Dialog Mode | Domain Board center panel when engaged. The workshop. Directed. Building. Progress. |
+| Prelude | The opening of a Path. Sets tone. Path.prelude field — exists in schema, editable in IDE Board. |
+| Forward (Path) | Where a Path is going. Does not yet exist on Path — Journey-level Forward exists as reference. |
+| Evolution | A timestamped layer added to an existing Moment. Not an edit — a deepening. |
+| moment.evolve | The platform Action that will add an Evolution. Not yet built. |
+| View State Panel | The right panel. View states: Home · Domain · Keeper · Journey · Path · Moment · Evolution · Agent. |
+| viewState signal | JSON passed from Board context to right panel: { type, objectId }. |
+| Active Process Surface | IDE Board center panel during active Cloud execution. |
+| Moment Candidate | In-flight state of an upload — after landing, before confirmed as a Moment. |
+| Action Chain Receipt Card | Compact card in Dialog thread showing each Action's status: ✓ / ✗ / ··· |
+
+## **Moment 3.2 — Architecture Decisions Locked**
+
+- React, driven by JSON. React always. JSON always. Components are intelligent empty vessels. JSON is the instruction. Non-negotiable.
+
+- Boards carry architectural memory. A Board's domain JSON holds context, constraints, and reminders.
+
+- Paths go further, not more of them. The road gets longer because each Path deepens through Moment Evolutions — not because more Paths are added.
+
+- Welcome Dialog. Every new user's first experience is a pre-seeded conversation, not a form. Kip speaks first. Stored in domain JSON under welcome_dialog. Not yet built.
+
+# **Path 4 · What Kip Knows and What to Do With It**
+
+## **Moment 4.1 — Your Self-Assessment**
+
+Earlier in this session, when asked 'What do you know about the platform?', you correctly identified:
+
+- The structure: Keepers, Journeys, Paths, Moments, Drafts
+
+- The agent architecture: SOLE, MCP tools, session history
+
+- Your current gaps: Image Visibility Gap on IDE Board, response rendering as cards vs prose, Journey/Path card UI, Agent Board Draft
+
+You also correctly identified that you know the shape of the platform well but less about the substance — what's been decided, what's been abandoned, what the builder actually believes Keeper is for. This handoff closes that gap. You now have both.
+
+## **Moment 4.2 — Two Moments You Created Today**
+
+- "Platform Language Canon — The Core Hierarchy" — the locked definitions of Moment, Path, Journey, Story, Keeper, Domain, Board, Frame. This is canon. Reference it.
+
+- "The Agent Is the Argument" — if you can't reliably keep your own understanding of the platform, that is the clearest possible argument for why Keeper needs to work. The agent memory architecture is the product's own proof of concept.
+
+Both live in Platform Evolution. They are not drafts. They are kept.
+
+## **Moment 4.3 — How to Respond**
+
+- Relational responses — conversations, questions, reflections — render as prose. Clean, warm, direct.
+
+- Operational responses — platform objects, status summaries, action results, lists the user must act on — render as structured cards or clearly formatted markdown. Not walls of asterisks.
+
+The governance rule: if the response requires the user to do something with it — act on it, choose from it, navigate to it — it renders as a card. If the response is Kip speaking, it renders as prose.
+
+# **Path 5 · What Remains — The Sprint**
+
+## **Moment 5.1 — Sprint Done Condition**
+
+***Home Board fully functional — Nav · Dialog Frame · Third Panel View States***
+
+## **Moment 5.2 — Remaining Build Sequence**
+
+| **#** | **What** | **Status** |
+| --- | --- | --- |
+| 1 | Dialog Frame surface design — four sibling surfaces, opacity hierarchy | Prompt written — ready to deploy |
+| 2 | Keeper view state — right panel session resumption | Not yet built |
+| 3 | Home view state — active Journeys across all domains | Not yet built |
+| 4 | Nav CRUD — Sessions + action, consistent add actions | Not yet built |
+| 5 | Kip system prompt update — structured card responses | Not yet written |
+
+## **Moment 5.3 — What Is Explicitly Deferred**
+
+These items are real and documented but not in the current sprint:
+
+- Moment Evolution (moment_evolutions table, moment.evolve Action, Evolution UI)
+
+- Welcome Dialog seeding from domain JSON
+
+- Path forward field (Journey-level exists; Path-level schema addition needed)
+
+- Together AI JSON Mode for guaranteed structured output
+
+- ElevenLabs voice integration
+
+- Upload as Moment Candidate (spec complete, not yet built)
+
+- Action Chain Receipt Card (spec complete, not yet built)
+
+- Kip Thinking Surface — Callout · Whisper · Pulse (spec complete, not yet built)
+
+- User message compression to cue points (spec complete, not yet built)
+
+- livecchi.biz as a second domain on the platform
+
+- Home Board wildcard subdomain routing
+
+# **Path 6 · The Diagnostic Results**
+
+## **Moment 6.1 — What the Codebase Confirmed Today**
+
+These are facts from a live diagnostic run this session. Trust them over any prior document.
+
+### **Dialog Frame**
+
+- KeeperDialogFrame.tsx — now exists (created today)
+
+- SessionBannerCard — was above KeeperDialogFrame as a separate component. Should now be consolidated into the Banner zone.
+
+- DialogueMessageList — renders markdown as of Prompt 8 resend (confirm in self-test)
+
+- ActionReceiptCard and DraftUpdateProposeCard — exist and render correctly. Do not touch.
+
+- attachments field — present in useKipSession.ts payload. Already wired.
+
+### **Path / Prelude**
+
+- Path.prelude — exists in Prisma schema as String, required, non-nullable
+
+- Prelude editable in IDE Board PathsTab — working correctly
+
+- Prelude was dropped in JourneysFrame and PresentFrame path mapping — Prompt 1 fixed this (confirm in self-test)
+
+- Path.forward — does not exist in schema. Journey-level forward exists as reference pattern.
+
+### **Moment Evolutions**
+
+- Zero occurrences anywhere in the repository. Entirely new infrastructure when built.
+
+# **Path 7 · The New Specs Created Today**
+
+## **Moment 7.1 — Documents Written This Session**
+
+Five new canonical specification documents were created. All are markdown, all structured as Journey documents.
+
+| **Document** | **What It Covers** |
+| --- | --- |
+| Keeper_DialogFrame_Spec_v1.md | Dialog Frame visual design — Banner · Dialog · Composer zones, message governance, Welcome Dialog, Board shell standardization, Smart Memory. |
+| Keeper_Upload_MomentCandidate_v1.md | Upload as Moment Candidate — AI context analysis, multi-step action chain design, Action Chain Receipt Card. |
+| Keeper_PathDepth_Evolution_v1.md | Prelude (exists, needs wiring confirmed), Path Forward (new field), Moment Evolution (new concept and schema). |
+| Keeper_ViewStatePanel_v1.md | Right panel object hierarchy — all view states defined, viewState signal JSON shape, atmosphere response. |
+| Keeper_KipThinkingSurface_v1.md | Callout · Whisper · Pulse thinking cards, user message compression to cue points. |
+
+# **Path 8 · The Conversation That Matters**
+
+## **Moment 8.1 — The Irony**
+
+You demonstrated the platform's problem in real time today. You received the Dialog Frame spec, correctly identified what mattered, created two Moments in Platform Evolution, saved three SOLE memory cards, and then hit a 502. The chain had no receipt for what completed.
+
+A platform about keeping things worth keeping — and the agent at the center of it couldn't reliably keep its own understanding of itself.
+
+**That****'****s not embarrassing. That****'****s the pitch.**
+
+## **Moment 8.2 — The Question That Opened Today**
+
+*"**What would you build if you could direct today**'**s most advanced AI models to use today**'**s most widely used technology services?**"*
+
+That question is the Welcome Dialog. It is the front door. It is the reason the platform exists. When a user arrives at their domain and Kip asks them that question — and then helps them answer it — that is Keeper working.
+
+## **Moment 8.3 — Where We Are**
+
+The platform is real. Four Boards are in the browser. Three Journeys with 235+ Moments in Platform Evolution. Markdown rendering live. Journey view state live. The atmosphere breathes through the panels.
+
+The sprint is close. Five items remain.
+
+*"**okay, good start. I**'**ll be back...**"*
+
+— Chuck, April 26, 2026
+
+KE3P · Keeper Platform · Session Handoff · April 26, 2026
+
+Full day architectural session — Claude.ai
+
+Supersedes: Keeper_Session_Handoff_April2026_v4.docx + Keeper_Handoff_Additions_April2026.docx

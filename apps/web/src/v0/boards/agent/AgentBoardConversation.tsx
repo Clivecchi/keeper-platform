@@ -8,18 +8,10 @@ import { KeeperDialogFrame } from "../../components/dialog/KeeperDialogFrame"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
-export type AgentItem = {
-  name: string
-  model: string
-  scope: string
-}
-
 interface AgentBoardConversationProps {
   domainSlug: string
   /** Optional — improves context precision. Falls back to domainSlug lookup server-side. */
   domainId?: string | null
-  /** Agent list passed from board level for reference (retained for API compat). */
-  agents?: AgentItem[]
   refreshDrafts?: () => void
   onDraftSelect?: (draftId: string) => void
   bannerEyebrow?: string
@@ -31,7 +23,6 @@ interface AgentBoardConversationProps {
 export function AgentBoardConversation({
   domainSlug,
   domainId,
-  agents: _agents,
   refreshDrafts,
   onDraftSelect,
   bannerEyebrow = "Conversation",

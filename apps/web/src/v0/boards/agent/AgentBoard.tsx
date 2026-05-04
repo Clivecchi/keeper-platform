@@ -13,6 +13,7 @@ import type { KipDraftSummary } from "../../../lib/kipApi"
 import { AgentBoardNav } from "./AgentBoardNav"
 import { AgentBoardConversation } from "./AgentBoardConversation"
 import { AgentBoardPanel } from "./AgentBoardPanel"
+import { AgentBoardIdlePanel } from "./AgentBoardIdlePanel"
 import { KeeperBoardPanelGroup } from "../KeeperBoardPanelGroup"
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -25,16 +26,20 @@ export function AgentBoard() {
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null)
   const [selectedDraftId, setSelectedDraftId] = React.useState<string | null>(null)
   const [domainId, setDomainId] = React.useState<string | null>(null)
+  const [domainError, setDomainError] = React.useState(false)
   const [drafts, setDrafts] = React.useState<KipDraftSummary[] | null>(null)
 
   React.useEffect(() => {
     if (!domainSlug) return
     let cancelled = false
+    setDomainError(false)
     apiFetch(`/api/domains/by-slug/${encodeURIComponent(domainSlug)}`)
       .then((res: unknown) => {
         if (!cancelled) setDomainId((res as { id?: string })?.id ?? null)
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setDomainError(true)
+      })
     return () => {
       cancelled = true
     }
@@ -85,6 +90,24 @@ export function AgentBoard() {
       }
     : {}
 
+  if (domainError && !domainId) {
+    return (
+      <StyleScope styleId={styleId} themeSlug={themeSlug ?? null}>
+        <div
+          className="keeper-board-scope flex h-screen w-full items-center justify-center"
+          style={pageBackground}
+        >
+          <p
+            className="text-[13px]"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            Unable to load workspace. Please refresh.
+          </p>
+        </div>
+      </StyleScope>
+    )
+  }
+
   return (
     <StyleScope styleId={styleId} themeSlug={themeSlug ?? null}>
       <div
@@ -123,12 +146,12 @@ export function AgentBoard() {
                 >
                   <AgentBoardNav
                     domainSlug={domainSlug}
+                    domainId={domainId}
                     selectedAgentId={selectedAgentId}
                     onAgentSelect={handleAgentSelect}
                     selectedDraftId={selectedDraftId}
                     onDraftSelect={handleDraftSelect}
                     drafts={drafts}
-                    refreshDrafts={refreshDrafts}
                   />
                 </div>
               }
@@ -158,13 +181,28 @@ export function AgentBoard() {
                     border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
                   }}
                 >
-                  <AgentBoardPanel
-                    agentId={selectedAgentId}
-                    draftId={selectedDraftId}
-                    domainId={domainId}
-                    domainSlug={domainSlug}
-                    onClearDraft={handleClearDraft}
-                  />
+                  {/* Board-level view state — draft → agent → idle */}
+                  {selectedDraftId && domainId ? (
+                    <AgentBoardPanel
+                      mode="draft"
+                      agentId={null}
+                      draftId={selectedDraftId}
+                      domainId={domainId}
+                      domainSlug={domainSlug}
+                      onClearDraft={handleClearDraft}
+                    />
+                  ) : selectedAgentId ? (
+                    <AgentBoardPanel
+                      mode="agent"
+                      agentId={selectedAgentId}
+                      draftId={null}
+                      domainId={domainId}
+                      domainSlug={domainSlug}
+                      onClearDraft={handleClearDraft}
+                    />
+                  ) : (
+                    <AgentBoardIdlePanel />
+                  )}
                 </div>
               }
             />

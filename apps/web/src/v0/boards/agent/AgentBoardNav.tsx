@@ -9,12 +9,13 @@ import type { KipDraftSummary } from "../../../lib/kipApi"
 
 interface AgentBoardNavProps {
   domainSlug: string
+  /** Board-resolved domainId. Keeper fetch fires only when this is non-null. */
+  domainId: string | null
   onAgentSelect?: (agentId: string) => void
   selectedAgentId?: string | null
   onDraftSelect?: (draftId: string) => void
   selectedDraftId?: string | null
   drafts?: KipDraftSummary[] | null
-  refreshDrafts?: () => void
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -115,11 +116,12 @@ function NavSection({ title, items, emptyText }: NavSectionProps) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AgentBoardNav({ domainSlug, onAgentSelect, selectedAgentId, onDraftSelect, selectedDraftId, drafts, refreshDrafts: _refreshDrafts }: AgentBoardNavProps) {
-  const [agents, setAgents]     = React.useState<AgentItem[] | null>(null)
-  const [journeys, setJourneys] = React.useState<JourneyItem[] | null>(null)
-  const [keepers, setKeepers]   = React.useState<KeeperItem[] | null>(null)
-  const [moreOpen, setMoreOpen] = React.useState(false)
+export function AgentBoardNav({ domainSlug, domainId, onAgentSelect, selectedAgentId, onDraftSelect, selectedDraftId, drafts }: AgentBoardNavProps) {
+  const [agents, setAgents]         = React.useState<AgentItem[] | null>(null)
+  const [journeys, setJourneys]     = React.useState<JourneyItem[] | null>(null)
+  const [keepers, setKeepers]       = React.useState<KeeperItem[] | null>(null)
+  const [showAllKeepers, setShowAllKeepers] = React.useState(false)
+  const [moreOpen, setMoreOpen]     = React.useState(false)
 
   // Agents — auth-protected; degrade to empty on failure
   React.useEffect(() => {
@@ -150,32 +152,20 @@ export function AgentBoardNav({ domainSlug, onAgentSelect, selectedAgentId, onDr
     return () => { cancelled = true }
   }, [domainSlug])
 
-  // Keepers — auth-protected; degrade to empty on failure
+  // Keepers — fires from Board-resolved domainId (no duplicate domain slug resolution).
   React.useEffect(() => {
-    if (!domainSlug) return
+    if (!domainId) return
     let cancelled = false
-    apiFetch(`/api/domains/by-slug/${encodeURIComponent(domainSlug)}`)
-      .then((domain: unknown) => {
-        const id = (domain as { id?: string })?.id
-        if (!id || cancelled) {
-          if (!cancelled) setKeepers([])
-          return
-        }
-        apiFetch(`/api/keepers?domainId=${encodeURIComponent(id)}`)
-          .then((res: unknown) => {
-            if (cancelled) return
-            const r = res as Record<string, unknown>
-            const list =
-              (r?.data as Record<string, unknown>)?.keepers ??
-              r?.keepers ??
-              []
-            setKeepers(Array.isArray(list) ? (list as KeeperItem[]) : [])
-          })
-          .catch(() => { if (!cancelled) setKeepers([]) })
+    apiFetch(`/api/keepers?domainId=${encodeURIComponent(domainId)}`)
+      .then((res: unknown) => {
+        if (cancelled) return
+        // CONFIRMED: GET /api/keepers returns { success: true, data: { keepers: KeeperItem[] } }
+        const list = (res as { data?: { keepers?: KeeperItem[] } })?.data?.keepers ?? []
+        setKeepers(Array.isArray(list) ? (list as KeeperItem[]) : [])
       })
       .catch(() => { if (!cancelled) setKeepers([]) })
     return () => { cancelled = true }
-  }, [domainSlug])
+  }, [domainId])
 
   // ─── Derived items ──────────────────────────────────────────────────────────
 
@@ -186,12 +176,18 @@ export function AgentBoardNav({ domainSlug, onAgentSelect, selectedAgentId, onDr
       secondary: formatDate(j.createdAt),
     })) ?? null
 
+  const KEEPER_INITIAL_LIMIT = 10
   const keeperItems =
-    keepers?.slice(0, 5).map((k) => ({
+    keepers?.map((k) => ({
       id: k.id,
       primary: k.name?.trim() || "Untitled keeper",
       secondary: k.type ?? "Keeper",
     })) ?? null
+  const visibleKeeperItems = keeperItems
+    ? showAllKeepers
+      ? keeperItems
+      : keeperItems.slice(0, KEEPER_INITIAL_LIMIT)
+    : null
 
   const draftItems =
     drafts == null
@@ -291,8 +287,21 @@ export function AgentBoardNav({ domainSlug, onAgentSelect, selectedAgentId, onDr
 
         {/* ── SECONDARY: Journeys, Keepers, Drafts ────────────────────────── */}
         <NavSection title="Journeys" items={journeyItems} emptyText="No journeys yet" />
-        <NavSection title="Keepers"  items={keeperItems}  emptyText="No keepers yet"  />
-        <NavSection title="Drafts"   items={draftItems}   emptyText="No drafts yet"   />
+
+        {/* Keepers with "Show all" affordance when count exceeds initial limit */}
+        <NavSection title="Keepers" items={visibleKeeperItems} emptyText="No keepers yet" />
+        {!showAllKeepers && keeperItems && keeperItems.length > KEEPER_INITIAL_LIMIT && (
+          <button
+            type="button"
+            onClick={() => setShowAllKeepers(true)}
+            className="w-full text-left px-3 pb-2 text-[11px] transition-opacity hover:opacity-70"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            Show all ({keeperItems.length})
+          </button>
+        )}
+
+        <NavSection title="Drafts" items={draftItems} emptyText="No drafts yet" />
       </div>
 
       {/* ··· More — pinned to bottom */}

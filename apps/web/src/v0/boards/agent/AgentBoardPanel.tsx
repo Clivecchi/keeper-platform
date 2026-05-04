@@ -10,6 +10,8 @@ import type { DraftSpec } from "../../../components/agent/DraftCard"
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface AgentBoardPanelProps {
+  /** Board-determined view mode. The Board, not the panel, decides what to render. */
+  mode: "draft" | "agent"
   agentId?: string | null
   draftId?: string | null
   domainId?: string | null
@@ -151,11 +153,20 @@ function DraftView({
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AgentBoardPanel({ agentId, draftId, domainId, onClearDraft }: AgentBoardPanelProps) {
-
-  // ── Draft view ──────────────────────────────────────────────────────────────
-
-  if (draftId && domainId) {
+export function AgentBoardPanel({ mode, agentId, draftId, domainId, onClearDraft }: AgentBoardPanelProps) {
+  if (mode === "draft") {
+    if (!draftId || !domainId) {
+      return (
+        <div className="flex flex-col h-full" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+          <PanelBanner label="Draft" />
+          <div className="flex-1 flex items-center justify-center px-4">
+            <p className="text-[12px] text-center" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+              Loading…
+            </p>
+          </div>
+        </div>
+      )
+    }
     return (
       <DraftView
         draftId={draftId}
@@ -164,21 +175,6 @@ export function AgentBoardPanel({ agentId, draftId, domainId, onClearDraft }: Ag
       />
     )
   }
-
-  if (draftId && !domainId) {
-    return (
-      <div className="flex flex-col h-full" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-        <PanelBanner label="Draft" />
-        <div className="flex-1 flex items-center justify-center px-4">
-          <p className="text-[12px] text-center" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-            Loading domain…
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Agent view ──────────────────────────────────────────────────────────────
 
   return <AgentView agentId={agentId ?? null} />
 }
@@ -212,19 +208,6 @@ function AgentView({ agentId }: { agentId: string | null }) {
       })
     return () => { cancelled = true }
   }, [agentId])
-
-  if (!agentId) {
-    return (
-      <div className="flex flex-col h-full" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-        <PanelBanner label="Agent" />
-        <div className="flex-1 flex items-center justify-center px-4">
-          <p className="text-[13px] text-center" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-            Select an agent from the left panel
-          </p>
-        </div>
-      </div>
-    )
-  }
 
   if (loading) {
     return (
