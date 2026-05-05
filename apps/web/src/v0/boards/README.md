@@ -19,6 +19,15 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] `V0BoardKey` type lives in `boardRegistry.ts`; if more boards are added, consider splitting
 
 ## 📆 Update Log
+### 2026-05-04 — Moment 2.2: UniversalNavPanel
+- Created `UniversalNavPanel.tsx` — new file only, no existing files modified
+- Single standard left nav panel component for all Boards rendering data records
+- Replaces four divergent nav implementations (IDEBoardNav, AgentBoardNav, DomainBoard inline JSX, DesignBoardList) — wiring to Boards happens in Moments 2.6–2.9
+- Layer 1: Dialogs, Journeys, Keepers, Drafts (conditional on boardContext)
+- Layer 2: Board Instruments — IDE (Cloud, Rendr), Agent (fetched Agents), Designer (Rendr), Domain (none)
+- All fetches keyed on `domainId` (never calls `/api/domains/by-slug`); all colors via `hsl(var(--theme-*))` only
+- Response shapes confirmed from actual API routes and commented inline on every fetch
+
 ### 2026-05-04 — Moment 2.2: AgentBoard Reconciliation
 - All 9 diagnostic gaps addressed. See `agent/README.md` for full change log.
 - `AgentBoardIdlePanel.tsx` created in `agent/` directory.
