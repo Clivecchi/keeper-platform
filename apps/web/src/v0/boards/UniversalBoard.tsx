@@ -82,11 +82,33 @@ export interface UniversalBoardCenterProps {
   clearSelection: () => void
 }
 
+// ─── Left Panel Render Prop ───────────────────────────────────────────────────
+
+/**
+ * Props delivered to the left panel render prop.
+ * Provides resolved domain identity — sufficient for any nav panel implementation.
+ * Board-local selection state is available from UniversalBoardContext if needed.
+ */
+export interface UniversalBoardLeftProps {
+  domainId: string | null
+  domainSlug: string
+  domainName: string
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface UniversalBoardProps {
   /** The board definition — drives what each panel shows and how it behaves. */
   def: UniversalBoardDef
+
+  /**
+   * Optional left panel render prop.
+   * When provided, replaces UniversalNavPanel entirely.
+   * Use for boards with specialized nav requirements —
+   * e.g. IDEBoardNav (sessions, optimistic creation) or DomainBoard (board switcher + frames list).
+   * When omitted, UniversalNavPanel renders with the board's context and selection wiring.
+   */
+  left?: (props: UniversalBoardLeftProps) => React.ReactNode
 
   /**
    * Center panel render prop — the conversation frame.
@@ -109,6 +131,12 @@ export interface UniversalBoardProps {
   right?: (props: UniversalBoardCenterProps) => React.ReactNode | null
 
   /**
+   * Optional callback for when the domain label in KeeperTopBar is clicked.
+   * Default: no-op. Pass to open a domain switcher or other top-bar action.
+   */
+  onDomainClick?: () => void
+
+  /**
    * Optional additional nav list version counters.
    * Increment to trigger re-fetch of specific nav sections from outside the board.
    */
@@ -124,8 +152,10 @@ export interface UniversalBoardProps {
 
 function UniversalBoardShell({
   def,
+  left: leftRenderProp,
   center,
   right: rightRenderProp,
+  onDomainClick,
   navVersions,
 }: UniversalBoardProps) {
   const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
@@ -183,6 +213,13 @@ function UniversalBoardShell({
   const boardKind: KeeperBoardKind =
     def.boardId === "ide" || def.boardId === "agent" ? def.boardId : "ide"
 
+  // ── Left panel — resolved identity for render prop ─────────────────────────
+  const leftProps: UniversalBoardLeftProps = {
+    domainId,
+    domainSlug: slug,
+    domainName: domainName || slug,
+  }
+
   // ── Board context — delivered to center and right render props ───────────
   const centerProps: UniversalBoardCenterProps = {
     domainId,
@@ -224,7 +261,7 @@ function UniversalBoardShell({
         style={pageBackground}
       >
         <KeeperTopBar
-          onDomainClick={() => {}}
+          onDomainClick={onDomainClick ?? (() => {})}
           onBriefClick={() => setBriefOpen((o) => !o)}
           isBriefOpen={briefOpen}
         />
@@ -243,35 +280,39 @@ function UniversalBoardShell({
               boardKind={boardKind}
               domainSlug={slug}
               left={
-                <UniversalNavPanel
-                  domainId={domainId}
-                  domainSlug={slug}
-                  domainName={domainName || slug}
-                  boardContext={
-                    (def.boardId === "ide" ||
-                      def.boardId === "agent" ||
-                      def.boardId === "domain" ||
-                      def.boardId === "designer")
-                      ? (def.boardId as "ide" | "agent" | "domain" | "designer")
-                      : "domain"
-                  }
-                  selectedDialogId={null}
-                  selectedJourneyId={selection.selectedJourneyId}
-                  selectedKeeperId={selection.selectedKeeperId}
-                  selectedDraftId={selection.selectedDraftId}
-                  selectedAgentId={selection.selectedAgentId}
-                  onDialogSelect={undefined}
-                  onJourneySelect={actions.onJourneySelect}
-                  onKeeperSelect={actions.onKeeperSelect}
-                  onDraftSelect={actions.onDraftSelect}
-                  onAgentSelect={actions.onAgentSelect}
-                  collapsed={navCollapsed}
-                  onToggleCollapsed={onToggleNavCollapsed}
-                  dialogListVersion={navVersions?.dialogListVersion}
-                  journeyListVersion={navVersions?.journeyListVersion}
-                  keeperListVersion={navVersions?.keeperListVersion}
-                  draftListVersion={navVersions?.draftListVersion}
-                />
+                leftRenderProp
+                  ? leftRenderProp(leftProps)
+                  : (
+                    <UniversalNavPanel
+                      domainId={domainId}
+                      domainSlug={slug}
+                      domainName={domainName || slug}
+                      boardContext={
+                        (def.boardId === "ide" ||
+                          def.boardId === "agent" ||
+                          def.boardId === "domain" ||
+                          def.boardId === "designer")
+                          ? (def.boardId as "ide" | "agent" | "domain" | "designer")
+                          : "domain"
+                      }
+                      selectedDialogId={null}
+                      selectedJourneyId={selection.selectedJourneyId}
+                      selectedKeeperId={selection.selectedKeeperId}
+                      selectedDraftId={selection.selectedDraftId}
+                      selectedAgentId={selection.selectedAgentId}
+                      onDialogSelect={undefined}
+                      onJourneySelect={actions.onJourneySelect}
+                      onKeeperSelect={actions.onKeeperSelect}
+                      onDraftSelect={actions.onDraftSelect}
+                      onAgentSelect={actions.onAgentSelect}
+                      collapsed={navCollapsed}
+                      onToggleCollapsed={onToggleNavCollapsed}
+                      dialogListVersion={navVersions?.dialogListVersion}
+                      journeyListVersion={navVersions?.journeyListVersion}
+                      keeperListVersion={navVersions?.keeperListVersion}
+                      draftListVersion={navVersions?.draftListVersion}
+                    />
+                  )
               }
               center={
                 <div

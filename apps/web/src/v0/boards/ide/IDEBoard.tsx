@@ -1,33 +1,71 @@
 "use client"
 
+/**
+ * IDEBoard — Moment 2.5
+ *
+ * Migrated to UniversalBoard shell.
+ *
+ * Shell removed: StyleScope, KeeperTopBar, DomainBriefSlideOver, pageBackground,
+ * KeeperBoardPanelGroup, domainId resolution for panel layout.
+ * UniversalBoard owns all of that now.
+ *
+ * What stays — board-specific logic that is NOT shell:
+ *   - domainId resolution for journeys/keepers fetch (board data, not panel wiring)
+ *   - journeys + keepers state (banner name derivation + KeeperViewPanel)
+ *   - Session management: navSessions, kipAgentId, sessionListVersion
+ *   - Selection state with mutual exclusion (activeJourneyId, selectedDraftId,
+ *     selectedMomentId, selectedKeeperId, activeSessionId)
+ *   - activeService — ServicesFrame overlay in the right panel
+ *   - All creation/sync callbacks from IDEBoardNav and IDEBoardConversation
+ *
+ * Left panel:  IDEBoardNav — has session management not in UniversalNavPanel
+ * Center panel: IDEBoardConversation — untouched
+ * Right panel:  5-state custom panel (service → journey/draft/moment → keeper explicit
+ *               → keeper from frame context → home) — all with frosted glass wrapper
+ */
+
 import * as React from "react"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { useFrameContextOptional } from "../../shell/FrameContext"
-import { KeeperTopBar } from "../../components/KeeperTopBar"
-import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
 
-import { StyleScope } from "../../styles/StyleScope"
-import { getBlobProxyUrl } from "../../../lib/blobProxy"
+import { UniversalBoard } from "../UniversalBoard"
+import { IDE_BOARD_DEF } from "../UniversalBoardDefinition"
 import { IDEBoardNav } from "./IDEBoardNav"
 import { IDEBoardConversation } from "./IDEBoardConversation"
 import { IDEBoardContext } from "./IDEBoardContext"
 import type { IDEBoardKipContext } from "./ideBoardTypes"
-import { KeeperBoardPanelGroup } from "../KeeperBoardPanelGroup"
 import { ServicesFrame } from "./components/ServicesFrame"
 import { KeeperViewPanel } from "../../components/panels/KeeperViewPanel"
 import { HomeViewPanel } from "../../components/panels/HomeViewPanel"
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type JourneySummary = { id: string; name: string; momentCount?: number; keeperId?: string | null }
 type KeeperSummary = { id: string; title: string }
 type NavSession = { id: string; title: string; updatedAt: string }
 
-export function IDEBoard() {
-  const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
-  const frameCtx = useFrameContextOptional()
-  const [briefOpen, setBriefOpen] = React.useState(false)
+// Shared frosted glass style for all right panel branches
+const FROSTED_GLASS: React.CSSProperties = {
+  background: "hsl(var(--theme-surface-panel) / 0.85)",
+  backdropFilter: "blur(16px)",
+  WebkitBackdropFilter: "blur(16px)",
+  borderRadius: "8px",
+  border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
+}
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export function IDEBoard() {
+  const { domainSlug, domainFrame } = useV0Shell()
+  const frameCtx = useFrameContextOptional()
+  const slug = domainSlug ?? ""
+
+  // ── Board-specific state ───────────────────────────────────────────────────
+
+  // domainId: resolved for journeys/keepers fetch and conversation wiring.
+  // UniversalBoard resolves domainId independently for panel layout.
   const [domainId, setDomainId] = React.useState<string | null>(null)
   const [journeys, setJourneys] = React.useState<JourneySummary[]>([])
   const [keepers, setKeepers] = React.useState<KeeperSummary[]>([])
@@ -39,32 +77,22 @@ export function IDEBoard() {
   const [draftListVersion, setDraftListVersion] = React.useState(0)
   const [sessionListVersion, setSessionListVersion] = React.useState(0)
   const [activeService, setActiveService] = React.useState<"cloud" | "railway" | "vercel" | "github" | null>(null)
-  // Sessions lifted from IDEBoardNav so banner title and rename stay in sync
   const [navSessions, setNavSessions] = React.useState<NavSession[]>([])
-  // Lead Kip agent ID — resolved by IDEBoardNav, used for session creation
   const [kipAgentId, setKipAgentId] = React.useState<string | null>(null)
 
-  const onServiceOpen = React.useCallback(
-    (service?: "cloud" | "railway" | "vercel" | "github") => {
-      setActiveService(service ?? "cloud")
-    },
-    [],
-  )
-
+  // domainId resolution — for journeys/keepers and conversation.
   React.useEffect(() => {
-    if (!domainSlug) return
+    if (!slug) return
     let cancelled = false
-    apiFetch(`/api/domains/by-slug/${encodeURIComponent(domainSlug)}`)
+    apiFetch(`/api/domains/by-slug/${encodeURIComponent(slug)}`)
       .then((res: { id?: string }) => {
         if (!cancelled && res?.id) setDomainId(res.id)
       })
       .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [domainSlug])
+    return () => { cancelled = true }
+  }, [slug])
 
-  // Load journeys + keepers (same as AgentBoardFrame)
+  // Journeys + keepers — for banner name derivation and right panel KeeperViewPanel.
   React.useEffect(() => {
     if (!domainId) return
     let cancelled = false
@@ -83,10 +111,13 @@ export function IDEBoard() {
     return () => { cancelled = true }
   }, [domainId])
 
-  // Derive names from frameCtx selections (same pattern as AgentBoardFrame)
+  // ── Derived names (banner context) ────────────────────────────────────────
+
   const keeperName = keepers.find((k) => k.id === (frameCtx?.selection.activeKeeperId ?? null))?.title ?? null
   const journeyName = journeys.find((j) => j.id === (frameCtx?.selection.activeJourneyId ?? activeJourneyId))?.name ?? null
   const activeSessionTitle = navSessions.find((s) => s.id === activeSessionId)?.title ?? null
+
+  // ── Selection callbacks — mutual exclusion maintained as before ───────────
 
   const onJourneySelect = React.useCallback((id: string) => {
     setActiveJourneyId(id)
@@ -170,7 +201,7 @@ export function IDEBoard() {
       setNavSessions((prev) => [newItem, ...prev])
       setActiveSessionId(session.id)
     } catch {
-      // silent — user sees no change
+      // silent
     }
   }, [kipAgentId])
 
@@ -198,211 +229,175 @@ export function IDEBoard() {
     }
   }, [])
 
-  const coverImageUrl = domainData?.theme?.coverImage ?? null
-  const coverImageMode = domainData?.theme?.coverImageMode ?? "cover"
-  const displayCoverUrl = coverImageUrl ? getBlobProxyUrl(coverImageUrl) : null
-  const pageBackground: React.CSSProperties = displayCoverUrl
-    ? {
-        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${displayCoverUrl})`,
-        backgroundPosition: coverImageMode === "tile" ? "0 0" : "center",
-        backgroundSize: coverImageMode === "tile" ? "auto" : "cover",
-        backgroundRepeat: coverImageMode === "tile" ? "repeat" : "no-repeat",
-      }
-    : {}
-
-  const slug = domainSlug ?? ""
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <StyleScope styleId={styleId} themeSlug={themeSlug ?? null}>
-      <div className="keeper-board-scope flex flex-col h-screen w-full overflow-hidden" style={pageBackground}>
-        <KeeperTopBar
-          onDomainClick={() => {}}
-          onBriefClick={() => setBriefOpen((o) => !o)}
-          isBriefOpen={briefOpen}
-        />
-        {briefOpen && domainFrame && (
-          <DomainBriefSlideOver
-            domainFrame={domainFrame}
-            onClose={() => setBriefOpen(false)}
-          />
-        )}
+    <UniversalBoard
+      def={IDE_BOARD_DEF}
 
-        <div className="flex min-h-0 flex-1 flex-col px-6 pt-4 pb-8">
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <KeeperBoardPanelGroup
-              key={`ide-board-panels-${slug || "default"}`}
-              boardKind="ide"
-              domainSlug={slug}
-              left={
-                <div
-                  className="flex h-full min-h-0 flex-col overflow-hidden"
-                  style={{
-                    background: "hsl(var(--theme-surface-panel) / 0.85)",
-                    backdropFilter: "blur(16px)",
-                    WebkitBackdropFilter: "blur(16px)",
-                    borderRadius: "8px",
-                    border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
-                  }}
-                >
-                  <IDEBoardNav
-                    domainSlug={slug}
-                    domainId={domainId}
-                    activeJourneyId={activeJourneyId}
-                    onJourneySelect={onJourneySelect}
-                    selectedDraftId={selectedDraftId}
-                    onDraftSelect={onDraftSelect}
-                    activeSessionId={activeSessionId}
-                    onSessionSelect={onSessionSelect}
-                    draftListVersion={draftListVersion}
-                    sessionListVersion={sessionListVersion}
-                    onKeeperSelect={onKeeperSelect}
-                    onSessionsLoaded={onSessionsLoaded}
-                    onJourneyCreated={onJourneyCreated}
-                    onKeeperCreated={onKeeperCreated}
-                    onAgentIdResolved={onAgentIdResolved}
-                  />
-                </div>
-              }
-              center={
-                <div
-                  className="flex h-full min-h-0 flex-col overflow-hidden"
-                  style={{ background: "transparent", borderRadius: "8px" }}
-                >
-                  <IDEBoardConversation
-                    domainSlug={slug}
-                    domainId={domainId}
-                    activeSessionId={activeSessionId}
-                    onActiveSessionIdChange={setActiveSessionId}
-                    activeJourneyId={activeJourneyId}
-                    selectedDraftId={selectedDraftId}
-                    onKipContextSync={onKipContextSync}
-                    onSelectDraftInPlace={onDraftSelect}
-                    onMomentSelect={onMomentSelect}
-                    keeperName={keeperName}
-                    journeyName={journeyName}
-                    sessionTitle={activeSessionTitle}
-                    onSaveSessionTitle={onSaveSessionTitle}
-                    onServiceOpen={onServiceOpen}
-                  />
-                </div>
-              }
-              right={
-                <div
-                  className="flex h-full min-h-0 flex-col overflow-hidden"
-                  style={{
-                    background: "hsl(var(--theme-surface-panel) / 0.85)",
-                    backdropFilter: "blur(16px)",
-                    WebkitBackdropFilter: "blur(16px)",
-                    borderRadius: "8px",
-                    border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
-                  }}
-                >
-                  {activeService !== null ? (
-                    <ServicesFrame
-                      initialService={activeService}
-                      onClose={() => setActiveService(null)}
-                    />
-                  ) : (activeJourneyId || selectedDraftId || selectedMomentId) ? (
-                    // Journey / Draft / Moment view state: delegate to IDEBoardContext
-                    <IDEBoardContext
-                      domainSlug={slug}
-                      domainId={domainId}
-                      activeJourneyId={activeJourneyId}
-                      selectedDraftId={selectedDraftId}
-                      selectedMomentId={selectedMomentId}
-                      onJourneySelect={onJourneySelect}
-                      onDraftSelect={onDraftSelect}
-                      onJourneyBack={onJourneyBack}
-                    />
-                  ) : selectedKeeperId !== null ? (
-                    // Keeper view state: a specific keeper was clicked in the left nav
-                    <KeeperViewPanel
-                      keeper={{
-                        name:
-                          keepers.find((k) => k.id === selectedKeeperId)?.title ??
-                          keeperName ??
-                          slug,
-                        description:
-                          domainFrame?.theme?.tagline?.trim() ?? null,
-                      }}
-                      keeperId={selectedKeeperId}
-                      recentSessions={navSessions.slice(0, 3).map((s) => ({
-                        id: s.id,
-                        title: s.title,
-                        updatedAt: s.updatedAt,
-                      }))}
-                      activeJourneys={journeys
-                        .filter((j) => j.keeperId === selectedKeeperId)
-                        .map((j) => ({
-                          id: j.id,
-                          title: j.name,
-                          momentCount: j.momentCount ?? 0,
-                        }))}
-                      onSessionSelect={onSessionSelect}
-                      onJourneySelect={onJourneySelect}
-                      onKeeperDeleted={() => {
-                        setSelectedKeeperId(null)
-                        setKeepers((prev) => prev.filter((k) => k.id !== selectedKeeperId))
-                      }}
-                      onSessionDeleted={(id) => {
-                        setNavSessions((prev) => prev.filter((s) => s.id !== id))
-                      }}
-                      onJourneyDeleted={(id) => {
-                        setJourneys((prev) => prev.filter((j) => j.id !== id))
-                      }}
-                      onNewSession={kipAgentId ? onNewSession : undefined}
-                    />
-                  ) : keeperName !== null ? (
-                    // Keeper view state: a keeper is in focus via frame context
-                    <KeeperViewPanel
-                      keeper={{
-                        name: keeperName,
-                        description:
-                          domainFrame?.theme?.tagline?.trim() ?? null,
-                      }}
-                      keeperId={frameCtx?.selection.activeKeeperId ?? null}
-                      recentSessions={navSessions.slice(0, 3).map((s) => ({
-                        id: s.id,
-                        title: s.title,
-                        updatedAt: s.updatedAt,
-                      }))}
-                      activeJourneys={journeys
-                        .filter((j) => j.keeperId === (frameCtx?.selection.activeKeeperId ?? null))
-                        .map((j) => ({
-                          id: j.id,
-                          title: j.name,
-                          momentCount: j.momentCount ?? 0,
-                        }))}
-                      onSessionSelect={onSessionSelect}
-                      onJourneySelect={onJourneySelect}
-                      onSessionDeleted={(id) => {
-                        setNavSessions((prev) => prev.filter((s) => s.id !== id))
-                      }}
-                      onJourneyDeleted={(id) => {
-                        setJourneys((prev) => prev.filter((j) => j.id !== id))
-                      }}
-                      onNewSession={kipAgentId ? onNewSession : undefined}
-                    />
-                  ) : (
-                    // Home view state: true default — nothing selected, no keeper in focus
-                    <HomeViewPanel
-                      platformName={domainFrame?.theme?.wordmark?.trim() ?? "KE3P"}
-                      activeJourneys={journeys.map((j) => ({
-                        id: j.id,
-                        title: j.name,
-                        momentCount: j.momentCount ?? 0,
-                        domain: slug,
-                        keeperName: "",
-                      }))}
-                      onJourneySelect={onJourneySelect}
-                    />
-                  )}
-                </div>
-              }
+      // Left — IDEBoardNav: sessions, optimistic creation, agent ID resolution
+      left={(leftProps) => (
+        <div
+          className="flex h-full min-h-0 flex-col overflow-hidden"
+          style={FROSTED_GLASS}
+        >
+          <IDEBoardNav
+            domainSlug={leftProps.domainSlug}
+            domainId={leftProps.domainId}
+            activeJourneyId={activeJourneyId}
+            onJourneySelect={onJourneySelect}
+            selectedDraftId={selectedDraftId}
+            onDraftSelect={onDraftSelect}
+            activeSessionId={activeSessionId}
+            onSessionSelect={onSessionSelect}
+            draftListVersion={draftListVersion}
+            sessionListVersion={sessionListVersion}
+            onKeeperSelect={onKeeperSelect}
+            onSessionsLoaded={onSessionsLoaded}
+            onJourneyCreated={onJourneyCreated}
+            onKeeperCreated={onKeeperCreated}
+            onAgentIdResolved={onAgentIdResolved}
+          />
+        </div>
+      )}
+
+      // Center — IDEBoardConversation: untouched conversation wrapper
+      center={(_props) => (
+        <IDEBoardConversation
+          domainSlug={slug}
+          domainId={domainId}
+          activeSessionId={activeSessionId}
+          onActiveSessionIdChange={setActiveSessionId}
+          activeJourneyId={activeJourneyId}
+          selectedDraftId={selectedDraftId}
+          onKipContextSync={onKipContextSync}
+          onSelectDraftInPlace={onDraftSelect}
+          onMomentSelect={onMomentSelect}
+          keeperName={keeperName}
+          journeyName={journeyName}
+          sessionTitle={activeSessionTitle}
+          onSaveSessionTitle={onSaveSessionTitle}
+          onServiceOpen={(service) => setActiveService(service ?? "cloud")}
+        />
+      )}
+
+      // Right — 5-state custom panel (same logic as before, frosted glass applied here)
+      right={(_props) => {
+        // State 1: Service connection overlay
+        if (activeService !== null) {
+          return (
+            <div className="flex h-full min-h-0 flex-col overflow-hidden" style={FROSTED_GLASS}>
+              <ServicesFrame
+                initialService={activeService}
+                onClose={() => setActiveService(null)}
+              />
+            </div>
+          )
+        }
+
+        // State 2: Journey / Draft / Moment in context — IDEBoardContext owns the panel
+        if (activeJourneyId || selectedDraftId || selectedMomentId) {
+          return (
+            <div className="flex h-full min-h-0 flex-col overflow-hidden" style={FROSTED_GLASS}>
+              <IDEBoardContext
+                domainSlug={slug}
+                domainId={domainId}
+                activeJourneyId={activeJourneyId}
+                selectedDraftId={selectedDraftId}
+                selectedMomentId={selectedMomentId}
+                onJourneySelect={onJourneySelect}
+                onDraftSelect={onDraftSelect}
+                onJourneyBack={onJourneyBack}
+              />
+            </div>
+          )
+        }
+
+        // State 3: Explicit keeper selection from nav
+        if (selectedKeeperId !== null) {
+          return (
+            <div className="flex h-full min-h-0 flex-col overflow-hidden" style={FROSTED_GLASS}>
+              <KeeperViewPanel
+                keeper={{
+                  name: keepers.find((k) => k.id === selectedKeeperId)?.title ?? keeperName ?? slug,
+                  description: domainFrame?.theme?.tagline?.trim() ?? null,
+                }}
+                keeperId={selectedKeeperId}
+                recentSessions={navSessions.slice(0, 3).map((s) => ({
+                  id: s.id,
+                  title: s.title,
+                  updatedAt: s.updatedAt,
+                }))}
+                activeJourneys={journeys
+                  .filter((j) => j.keeperId === selectedKeeperId)
+                  .map((j) => ({
+                    id: j.id,
+                    title: j.name,
+                    momentCount: j.momentCount ?? 0,
+                  }))}
+                onSessionSelect={onSessionSelect}
+                onJourneySelect={onJourneySelect}
+                onKeeperDeleted={() => {
+                  setSelectedKeeperId(null)
+                  setKeepers((prev) => prev.filter((k) => k.id !== selectedKeeperId))
+                }}
+                onSessionDeleted={(id) => setNavSessions((prev) => prev.filter((s) => s.id !== id))}
+                onJourneyDeleted={(id) => setJourneys((prev) => prev.filter((j) => j.id !== id))}
+                onNewSession={kipAgentId ? onNewSession : undefined}
+              />
+            </div>
+          )
+        }
+
+        // State 4: Keeper in frame context focus (no explicit selection)
+        if (keeperName !== null) {
+          return (
+            <div className="flex h-full min-h-0 flex-col overflow-hidden" style={FROSTED_GLASS}>
+              <KeeperViewPanel
+                keeper={{
+                  name: keeperName,
+                  description: domainFrame?.theme?.tagline?.trim() ?? null,
+                }}
+                keeperId={frameCtx?.selection.activeKeeperId ?? null}
+                recentSessions={navSessions.slice(0, 3).map((s) => ({
+                  id: s.id,
+                  title: s.title,
+                  updatedAt: s.updatedAt,
+                }))}
+                activeJourneys={journeys
+                  .filter((j) => j.keeperId === (frameCtx?.selection.activeKeeperId ?? null))
+                  .map((j) => ({
+                    id: j.id,
+                    title: j.name,
+                    momentCount: j.momentCount ?? 0,
+                  }))}
+                onSessionSelect={onSessionSelect}
+                onJourneySelect={onJourneySelect}
+                onSessionDeleted={(id) => setNavSessions((prev) => prev.filter((s) => s.id !== id))}
+                onJourneyDeleted={(id) => setJourneys((prev) => prev.filter((j) => j.id !== id))}
+                onNewSession={kipAgentId ? onNewSession : undefined}
+              />
+            </div>
+          )
+        }
+
+        // State 5: Home — true default, nothing selected, no keeper in frame context
+        return (
+          <div className="flex h-full min-h-0 flex-col overflow-hidden" style={FROSTED_GLASS}>
+            <HomeViewPanel
+              platformName={domainFrame?.theme?.wordmark?.trim() ?? "KE3P"}
+              activeJourneys={journeys.map((j) => ({
+                id: j.id,
+                title: j.name,
+                momentCount: j.momentCount ?? 0,
+                domain: slug,
+                keeperName: "",
+              }))}
+              onJourneySelect={onJourneySelect}
             />
           </div>
-        </div>
-      </div>
-    </StyleScope>
+        )
+      }}
+    />
   )
 }

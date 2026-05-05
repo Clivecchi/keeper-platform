@@ -1,5 +1,31 @@
 "use client"
 
+/**
+ * DomainBoard — Moment 2.5
+ *
+ * Migrated to UniversalBoard shell.
+ *
+ * Shell removed: outer StyleScope, KeeperTopBar, DomainBriefSlideOver,
+ * pageBackground, panel layout divs, gap/padding wiring.
+ * UniversalBoard owns all of that now.
+ *
+ * DomainBoard is the outlier — it does NOT use IDEBoardConversation or
+ * AgentBoardConversation. It calls KeeperDialogFrame directly with two modes:
+ *   Feed Mode  ('feed')   — The Commons. FeedFrame in Zone 2. Default on load.
+ *   Dialog Mode ('dialog') — The Workshop. Kip conversation in Zone 2.
+ *   Sending a message switches feed → dialog. ← Commons in banner returns to feed.
+ *
+ * Left panel:   Custom board switcher (Domain / Design / Agent) + domain frames list.
+ * Center panel: DomainBanner + KeeperDialogFrame (feed/dialog mode).
+ * Right panel:  KeeperJourneyPanel → MomentDetailPanel → KeeperViewPanel → HomeViewPanel.
+ *
+ * Domain-specific data that stays here:
+ *   - liveDomainFrame (separately fetched, kept in sync with shell)
+ *   - domainId, journeyCount, journeys, momentCount (public + authed fetches)
+ *   - messages, input, centerMode, selectedMoment, activeJourneyId
+ *   - switcherOpen (DomainSwitcher overlay, triggered by top bar onDomainClick)
+ */
+
 import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
@@ -14,9 +40,7 @@ import { KeeperDialogFrame } from "../../components/dialog/KeeperDialogFrame"
 import { KeeperViewPanel } from "../../components/panels/KeeperViewPanel"
 import { HomeViewPanel } from "../../components/panels/HomeViewPanel"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
-import { KeeperTopBar } from "../../components/KeeperTopBar"
 import { DomainSwitcher } from "../../components/DomainSwitcher"
-import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
 import { DomainBanner } from "../../components/DomainBanner"
 import { FeedFrame } from "../../frames/feed/FeedFrame"
 import type { KeptRow } from "../../frames/feed/FeedFrame"
@@ -24,7 +48,11 @@ import { MomentDetailPanel } from "../../frames/moment/MomentDetailPanel"
 import { KeeperJourneyPanel } from "../../components/panels/KeeperJourneyPanel"
 import { StyleScope } from "../../styles/StyleScope"
 import { getApiBase } from "../../../lib/apiFetch"
-import { getBlobProxyUrl } from "../../../lib/blobProxy"
+
+import { UniversalBoard } from "../UniversalBoard"
+import { DOMAIN_BOARD_DEF } from "../UniversalBoardDefinition"
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const JOURNEY_BEGIN_ID = "journey-begin-again-default"
 
@@ -36,46 +64,8 @@ const BADGE_STYLES: Record<string, React.CSSProperties> = {
   panel: { background: "#e0e7ff", color: "#1d4ed8", borderColor: "#a5b4fc" },
 }
 
-const BANNER_BADGE_STYLES: Record<string, React.CSSProperties> = {
-  default: {
-    background: "rgba(255,255,255,0.12)",
-    color: "#f9fafb",
-    borderColor: "rgba(255,255,255,0.35)",
-  },
-  primary: {
-    background: "rgba(16,185,129,0.28)",
-    color: "#ecfdf5",
-    borderColor: "rgba(110,231,183,0.45)",
-  },
-  panel: {
-    background: "rgba(59,130,246,0.28)",
-    color: "#eff6ff",
-    borderColor: "rgba(147,197,253,0.45)",
-  },
-}
-
 function uid(): string {
   return Math.random().toString(36).slice(2, 10)
-}
-
-function themeBackgroundImageUrl(theme: DomainFrameJson["theme"] | undefined): string | null {
-  const raw = theme?.background?.trim()
-  if (!raw) return null
-  if (
-    raw.startsWith("linear-gradient")
-    || raw.startsWith("#")
-    || raw.startsWith("rgb")
-    || raw.startsWith("hsl")
-  ) {
-    return null
-  }
-  if (raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("/")) {
-    return raw
-  }
-  if (/\.(png|jpe?g|gif|webp|svg)(\?|[#]|$)/i.test(raw)) {
-    return raw.startsWith("/") ? raw : `/${raw}`
-  }
-  return null
 }
 
 function extractFrameTitleFromBlock(frameBlock: unknown): string | null {
@@ -86,33 +76,12 @@ function extractFrameTitleFromBlock(frameBlock: unknown): string | null {
   return typeof raw === "string" && raw.trim() ? raw.trim() : null
 }
 
-function abbrevFrameLabel(name: string): string {
-  const shortened = name.replace(/\s+Frame$/i, "").trim()
-  const s = shortened.length > 0 ? shortened : name
-  return s.length > 14 ? `${s.slice(0, 12)}…` : s
-}
-
-function MessageBubble({ msg }: { msg: DesignerMessage }) {
-  const isUser = msg.role === "user"
-  return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className="max-w-[80%] rounded-xl px-3 py-2.5 text-[13px] leading-relaxed"
-        style={{
-          background: isUser ? "#1c1917" : "#f0ece4",
-          color: isUser ? "#faf8f5" : "#292524",
-          border: isUser ? "none" : "1px solid #e7e5e4",
-        }}
-      >
-        {!isUser && (
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#78716c" }}>
-            Kip
-          </p>
-        )}
-        <p style={{ whiteSpace: "pre-wrap" }}>{msg.content}</p>
-      </div>
-    </div>
-  )
+const FROSTED_GLASS: React.CSSProperties = {
+  background: "hsl(var(--theme-surface-panel) / 0.85)",
+  backdropFilter: "blur(16px)",
+  WebkitBackdropFilter: "blur(16px)",
+  borderRadius: "8px",
+  border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
 }
 
 type BoardNavId = "domain" | "design" | "agent"
@@ -125,29 +94,20 @@ const DOMAIN_FRAMES: FrameItem[] = BOARD_FRAMES.domain ?? [
   { key: "moments", name: "Moments", dotColor: "#D4537E", badge: "panel" },
 ]
 
+const MOCK_DOMAINS = [
+  { slug: "default", name: "KE3P", tagline: "cynically designed, wonderfully unfolded", coverImageUrl: null },
+  { slug: "frogmore", name: "Frogmore Juke Joint", tagline: "housefrogmore.com", coverImageUrl: null },
+]
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function DomainBoard() {
-  const { domainSlug: slug, domainFrame: shellDomainFrame, styleId, themeSlug, domainData } = useV0Shell()
+  const { domainSlug: slug, domainFrame: shellDomainFrame, styleId, themeSlug } = useV0Shell()
   const domainSlug = slug ?? ""
   const navigate = useNavigate()
 
+  // ── Domain Frame — separately loaded, kept in sync with shell ─────────────
   const [liveDomainFrame, setLiveDomainFrame] = React.useState<DomainFrameJson | null>(shellDomainFrame)
-  const [leftCollapsed, setLeftCollapsed] = React.useState(false)
-  const [activeBoardNav, setActiveBoardNav] = React.useState<BoardNavId>("domain")
-  const [selectedFrameKey, setSelectedFrameKey] = React.useState<string | null>(null)
-  const [domainId, setDomainId] = React.useState<string | null>(null)
-  const [journeyCount, setJourneyCount] = React.useState<number | null>(null)
-  const [journeys, setJourneys] = React.useState<JourneySummary[]>([])
-  const [messages, setMessages] = React.useState<DesignerMessage[]>([])
-  const [input, setInput] = React.useState("")
-  const [isSending, setIsSending] = React.useState(false)
-  const [sendError, setSendError] = React.useState<string | null>(null)
-  const [momentCount, setMomentCount] = React.useState<number | null>(null)
-  const [switcherOpen, setSwitcherOpen] = React.useState(false)
-  const [briefOpen, setBriefOpen] = React.useState(false)
-  const [selectedMoment, setSelectedMoment] = React.useState<KeptRow | null>(null)
-  const [activeJourneyId, setActiveJourneyId] = React.useState<string | null>(null)
-  // Feed Mode = The Commons (default on load). Dialog Mode = The Workshop (after first message).
-  const [centerMode, setCenterMode] = React.useState<'feed' | 'dialog'>('feed')
 
   React.useEffect(() => {
     if (shellDomainFrame) setLiveDomainFrame(shellDomainFrame)
@@ -157,14 +117,21 @@ export function DomainBoard() {
     if (!domainSlug) return
     let ignore = false
     loadDomainFrame(domainSlug)
-      .then((frame) => {
-        if (!ignore) setLiveDomainFrame(frame)
-      })
+      .then((frame) => { if (!ignore) setLiveDomainFrame(frame) })
       .catch(console.error)
-    return () => {
-      ignore = true
-    }
+    return () => { ignore = true }
   }, [domainSlug])
+
+  // ── Left panel state ───────────────────────────────────────────────────────
+  const [leftCollapsed, setLeftCollapsed] = React.useState(false)
+  const [activeBoardNav, setActiveBoardNav] = React.useState<BoardNavId>("domain")
+  const [selectedFrameKey, setSelectedFrameKey] = React.useState<string | null>(null)
+
+  // ── Domain data ────────────────────────────────────────────────────────────
+  const [domainId, setDomainId] = React.useState<string | null>(null)
+  const [journeyCount, setJourneyCount] = React.useState<number | null>(null)
+  const [journeys, setJourneys] = React.useState<JourneySummary[]>([])
+  const [momentCount, setMomentCount] = React.useState<number | null>(null)
 
   React.useEffect(() => {
     if (!domainSlug) return
@@ -174,9 +141,7 @@ export function DomainBoard() {
         if (!ignore && res?.id) setDomainId(res.id)
       })
       .catch(() => {})
-    return () => {
-      ignore = true
-    }
+    return () => { ignore = true }
   }, [domainSlug])
 
   React.useEffect(() => {
@@ -188,15 +153,10 @@ export function DomainBoard() {
       .then((json: { journeys?: unknown[] }) => {
         if (!ignore) setJourneyCount(Array.isArray(json?.journeys) ? json.journeys.length : 0)
       })
-      .catch(() => {
-        if (!ignore) setJourneyCount(null)
-      })
-    return () => {
-      ignore = true
-    }
+      .catch(() => { if (!ignore) setJourneyCount(null) })
+    return () => { ignore = true }
   }, [domainSlug])
 
-  // Journeys list for KeeperViewPanel — authenticated, degrades silently
   React.useEffect(() => {
     if (!domainId) return
     let cancelled = false
@@ -207,33 +167,26 @@ export function DomainBoard() {
         setJourneys((raw?.data?.journeys ?? raw?.journeys ?? []) as JourneySummary[])
       })
       .catch(() => {})
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [domainId])
 
   React.useEffect(() => {
     if (!domainSlug) return
     let ignore = false
-    apiFetch(
-      `/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=kept&limit=500`,
-    )
+    apiFetch(`/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=kept&limit=500`)
       .then((json: { data?: unknown[] }) => {
         if (!ignore) {
           const n = Array.isArray(json?.data) ? json.data.length : 0
           setMomentCount(n >= 500 ? 500 : n)
         }
       })
-      .catch(() => {
-        if (!ignore) setMomentCount(null)
-      })
-    return () => {
-      ignore = true
-    }
+      .catch(() => { if (!ignore) setMomentCount(null) })
+    return () => { ignore = true }
   }, [domainSlug])
 
   // Auto-resolve first Journey when the "Journeys" frame is selected in the left nav.
-  // Clears when a different frame is chosen.
+  const [activeJourneyId, setActiveJourneyId] = React.useState<string | null>(null)
+
   React.useEffect(() => {
     if (selectedFrameKey !== "journeys" || !domainSlug) {
       setActiveJourneyId(null)
@@ -248,19 +201,51 @@ export function DomainBoard() {
         if (!cancelled && first) setActiveJourneyId(first.id)
       })
       .catch(() => {})
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [selectedFrameKey, domainSlug])
 
-  // Fetch a moment by ID and switch the right panel to Moment view.
-  // Called when a Moment row is tapped inside KeeperJourneyPanel.
+  // ── Center panel state ─────────────────────────────────────────────────────
+
+  const [messages, setMessages] = React.useState<DesignerMessage[]>([])
+  const [input, setInput] = React.useState("")
+  const [isSending, setIsSending] = React.useState(false)
+  const [sendError, setSendError] = React.useState<string | null>(null)
+  // Feed Mode = The Commons (default). Dialog Mode = The Workshop (after first message).
+  const [centerMode, setCenterMode] = React.useState<"feed" | "dialog">("feed")
+
+  // ── Right panel state ──────────────────────────────────────────────────────
+  const [selectedMoment, setSelectedMoment] = React.useState<KeptRow | null>(null)
+
+  // ── Domain switcher overlay ────────────────────────────────────────────────
+  const [switcherOpen, setSwitcherOpen] = React.useState(false)
+
+  // ── Derived values ─────────────────────────────────────────────────────────
+
+  const wordmark = liveDomainFrame?.theme?.wordmark?.trim() || domainSlug
+  const coverTagline = (() => {
+    const card = liveDomainFrame?.cover?.card as { tagLine?: string } | undefined
+    return card?.tagLine?.trim() || liveDomainFrame?.theme?.tagline?.trim() || ""
+  })()
+
+  const frames = DOMAIN_FRAMES
+  const activeFrameRow = selectedFrameKey ? frames.find((f) => f.key === selectedFrameKey) ?? null : null
+  const jsonKeyForActive = selectedFrameKey ? FRAME_TO_JSON_KEY[selectedFrameKey] ?? null : null
+  const frameBlockForActive =
+    jsonKeyForActive && liveDomainFrame
+      ? (liveDomainFrame as unknown as Record<string, unknown>)[jsonKeyForActive]
+      : null
+  // frameContextLine available for future use (currently drives no JSX)
+  const _frameContextLine =
+    (activeFrameRow && extractFrameTitleFromBlock(frameBlockForActive)) ?? activeFrameRow?.name ?? ""
+
+  const kipFrameKey = selectedFrameKey ?? "cover"
+
+  // ── Moment detail fetch ────────────────────────────────────────────────────
+
   const handleMomentSelectFromJourney = React.useCallback(
     async (momentId: string) => {
       try {
-        const json = (await apiFetch(
-          `/api/moments/${encodeURIComponent(momentId)}`,
-        )) as {
+        const json = (await apiFetch(`/api/moments/${encodeURIComponent(momentId)}`)) as {
           moment?: {
             id: string
             title: string
@@ -289,43 +274,11 @@ export function DomainBoard() {
     [],
   )
 
-  const wordmark = liveDomainFrame?.theme?.wordmark?.trim() || domainSlug
-  const coverTagline = (() => {
-    const card = liveDomainFrame?.cover?.card as { tagLine?: string } | undefined
-    return card?.tagLine?.trim() || liveDomainFrame?.theme?.tagline?.trim() || ""
-  })()
-
-  const frames = DOMAIN_FRAMES
-  const activeFrameRow = selectedFrameKey ? frames.find((f) => f.key === selectedFrameKey) ?? null : null
-  const jsonKeyForActive = selectedFrameKey ? FRAME_TO_JSON_KEY[selectedFrameKey] ?? null : null
-  const frameBlockForActive =
-    jsonKeyForActive && liveDomainFrame
-      ? (liveDomainFrame as unknown as Record<string, unknown>)[jsonKeyForActive]
-      : null
-  const frameContextLine =
-    (activeFrameRow && extractFrameTitleFromBlock(frameBlockForActive)) ?? activeFrameRow?.name ?? ""
-
-  const bannerBgUrl = themeBackgroundImageUrl(liveDomainFrame?.theme)
-
-  const coverImageUrl = domainData?.theme?.coverImage ?? null
-  const coverImageMode = domainData?.theme?.coverImageMode ?? "cover"
-  const displayCoverUrl = coverImageUrl ? getBlobProxyUrl(coverImageUrl) : null
-  const pageBackground: React.CSSProperties = displayCoverUrl
-    ? {
-        backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page) / 0.08), hsl(var(--theme-surface-page) / 0.75)), url(${displayCoverUrl})`,
-        backgroundPosition: coverImageMode === "tile" ? "0 0" : "center",
-        backgroundSize: coverImageMode === "tile" ? "auto" : "cover",
-        backgroundRepeat: coverImageMode === "tile" ? "repeat" : "no-repeat",
-      }
-    : { backgroundImage: `linear-gradient(180deg, hsl(var(--theme-surface-page)), hsl(var(--theme-surface-paper) / 0.25))` }
+  // ── Message sending ────────────────────────────────────────────────────────
 
   const addMessage = React.useCallback((m: DesignerMessage) => {
     setMessages((prev) => [...prev, m])
   }, [])
-
-  const kipFrameKey = selectedFrameKey ?? "cover"
-
-  const kipInputPlaceholder = "Ask Kip about this domain…"
 
   const handleSend = async (textOverride?: string) => {
     const text = (textOverride ?? input).trim()
@@ -349,25 +302,44 @@ export function DomainBoard() {
         }),
       })) as { response: string }
 
-      addMessage({
-        id: uid(),
-        role: "kip",
-        content: result.response ?? "(no response)",
-      })
+      addMessage({ id: uid(), role: "kip", content: result.response ?? "(no response)" })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to send message"
       setSendError(message)
-      addMessage({
-        id: uid(),
-        role: "kip",
-        content: "Sorry, something went wrong. Please try again.",
-      })
+      addMessage({ id: uid(), role: "kip", content: "Sorry, something went wrong. Please try again." })
     } finally {
       setIsSending(false)
     }
   }
 
-  // Synthetic timestamps stable per message id — DesignerMessage has no createdAt
+  const handleDialogSubmit = React.useCallback(
+    (_e: React.FormEvent, options: { content: string }) => {
+      // Sending a message is the moment of intention — switch to Dialog Mode (The Workshop)
+      if (centerMode === "feed") setCenterMode("dialog")
+      void handleSend(options.content)
+    },
+    // handleSend is not memoized; include the deps it closes over
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [centerMode, domainId, isSending, messages, kipFrameKey],
+  )
+
+  // ── Board navigation ───────────────────────────────────────────────────────
+
+  const navigateBoard = (id: BoardNavId) => {
+    setActiveBoardNav(id)
+    if (!domainSlug) return
+    if (id === "domain") navigate(`/d/${encodeURIComponent(domainSlug)}?board=domain`)
+    else if (id === "design") navigate(`/d/${encodeURIComponent(domainSlug)}?board=designer`)
+    else navigate(`/d/${encodeURIComponent(domainSlug)}?board=agent`)
+  }
+
+  const goPresentJourney = () => {
+    if (!domainSlug) return
+    navigate(`/d/${encodeURIComponent(domainSlug)}?frame=present&journeyId=${encodeURIComponent(JOURNEY_BEGIN_ID)}`)
+  }
+
+  // ── Adapted messages for KeeperDialogFrame ─────────────────────────────────
+
   const syntheticTimestamps = React.useRef<Record<string, string>>({})
   const adaptedMessages: AgentDialogueMessage[] = React.useMemo(
     () =>
@@ -385,78 +357,21 @@ export function DomainBoard() {
     [messages],
   )
 
-  const handleDialogSubmit = React.useCallback(
-    (_e: React.FormEvent, options: { content: string }) => {
-      // Sending a message is the moment of intention — switch to Dialog Mode (The Workshop)
-      if (centerMode === 'feed') setCenterMode('dialog')
-      void handleSend(options.content)
-    },
-    // handleSend is not memoized; include the deps it closes over
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [centerMode, domainId, isSending, messages, kipFrameKey],
-  )
-
-  const goPresentJourney = () => {
-    if (!domainSlug) return
-    navigate(`/d/${encodeURIComponent(domainSlug)}?frame=present&journeyId=${encodeURIComponent(JOURNEY_BEGIN_ID)}`)
-  }
-
-  const navigateBoard = (id: BoardNavId) => {
-    setActiveBoardNav(id)
-    if (!domainSlug) return
-    if (id === "domain") {
-      navigate(`/d/${encodeURIComponent(domainSlug)}?board=domain`)
-    } else if (id === "design") {
-      navigate(`/d/${encodeURIComponent(domainSlug)}?board=designer`)
-    } else {
-      navigate(`/d/${encodeURIComponent(domainSlug)}?board=agent`)
-    }
-  }
-
-
-  const MOCK_DOMAINS = [
-    { slug: "default", name: "KE3P", tagline: "cynically designed, wonderfully unfolded", coverImageUrl: null },
-    { slug: "frogmore", name: "Frogmore Juke Joint", tagline: "housefrogmore.com", coverImageUrl: null },
-  ]
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <StyleScope styleId={styleId} themeSlug={themeSlug ?? null}>
-    <div
-      className="keeper-board-scope relative flex flex-col h-screen w-full overflow-hidden"
-      style={pageBackground}
-    >
-      <KeeperTopBar
-        onDomainClick={() => setSwitcherOpen(true)}
-        onBriefClick={() => setBriefOpen((o) => !o)}
-        isBriefOpen={briefOpen}
-      />
-      {briefOpen && liveDomainFrame && (
-        <DomainBriefSlideOver
-          domainFrame={liveDomainFrame}
-          onClose={() => setBriefOpen(false)}
-        />
-      )}
-      {switcherOpen && (
-        <DomainSwitcher
-          domains={MOCK_DOMAINS}
-          currentSlug={domainSlug || "default"}
-          onSelect={(slug) => navigate(`/d/${encodeURIComponent(slug)}/board`)}
-          onAddDomain={() => console.log("Add domain")}
-          onClose={() => setSwitcherOpen(false)}
-        />
-      )}
-      <div className="flex flex-1 min-h-0 overflow-hidden px-6 pb-8 gap-[10px]">
-        {/* Left */}
+    <UniversalBoard
+      def={DOMAIN_BOARD_DEF}
+      onDomainClick={() => setSwitcherOpen(true)}
+
+      // Left — custom board switcher + domain frames list (preserved from original)
+      left={(_leftProps) => (
         <div
           className="flex flex-col min-h-0 transition-all duration-200 overflow-hidden"
           style={{
             width: leftCollapsed ? 36 : 220,
             minWidth: leftCollapsed ? 36 : 220,
-            background: "hsl(var(--theme-surface-panel) / 0.85)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
-            borderRadius: "8px",
-            border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
+            ...FROSTED_GLASS,
             overflowY: "auto",
           }}
         >
@@ -584,18 +499,16 @@ export function DomainBoard() {
             </div>
           )}
         </div>
+      )}
 
-        {/* Center — transparent so Board atmosphere shows through */}
-        <div
-          className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden"
-          style={{ background: "transparent", borderRadius: "8px" }}
-        >
-          <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-            <StyleScope
-              styleId={styleId}
-              themeSlug={themeSlug ?? null}
-              className="flex flex-1 flex-col min-h-0 overflow-hidden"
-            >
+      // Center — DomainBanner + KeeperDialogFrame (feed/dialog mode preserved exactly)
+      center={(props) => (
+        <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+          <StyleScope
+            styleId={styleId}
+            themeSlug={themeSlug ?? null}
+            className="flex flex-1 flex-col min-h-0 overflow-hidden"
+          >
             <DomainBanner
               domainFrame={liveDomainFrame}
               fallbackWordmark={domainSlug || "—"}
@@ -603,9 +516,9 @@ export function DomainBoard() {
               momentCount={momentCount}
             />
             {/*
-              Domain Board center panel — two modes:
-              Feed Mode  (centerMode='feed')   — The Commons. FeedFrame in Zone 2. No Banner.
-              Dialog Mode (centerMode='dialog') — The Workshop. Kip conversation in Zone 2. Banner with ← Commons.
+              Two modes:
+              Feed Mode  (centerMode='feed')   — The Commons. FeedFrame in Zone 2.
+              Dialog Mode (centerMode='dialog') — The Workshop. Kip conversation in Zone 2.
             */}
             <KeeperDialogFrame
               mode={centerMode}
@@ -617,14 +530,14 @@ export function DomainBoard() {
               agentName="Kip"
               agentBubbleFullWidth={false}
               agentId={null}
-              domainId={domainId}
+              domainId={props.domainId}
               dialogueMode="domain"
               inputValue={input}
               onInputChange={setInput}
               onSubmit={handleDialogSubmit}
-              activeSessionId={domainId}
-              disabled={!domainId || isSending}
-              onReturnToFeed={() => setCenterMode('feed')}
+              activeSessionId={props.domainId}
+              disabled={!props.domainId || isSending}
+              onReturnToFeed={() => setCenterMode("feed")}
               feedContent={
                 domainSlug
                   ? <FeedFrame onMomentSelect={setSelectedMoment} suppressAtmosphere />
@@ -632,33 +545,38 @@ export function DomainBoard() {
               }
             />
           </StyleScope>
-          </div>
-        </div>
-
-        {/* Right */}
-        <div
-          className="shrink-0 flex flex-col min-h-0 overflow-hidden"
-          style={{
-            width: 380,
-            background: "hsl(var(--theme-surface-panel) / 0.85)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
-            borderRadius: "8px",
-            border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
-          }}
-        >
-          {activeJourneyId ? (
-            /* Journey view state — KeeperJourneyPanel owns the full panel */
-            <KeeperJourneyPanel
-              journeyId={activeJourneyId}
-              domainId={domainId}
-              onMomentSelect={handleMomentSelectFromJourney}
-              onPathSelect={() => {}}
-              onBack={() => setActiveJourneyId(null)}
+          {/* DomainSwitcher — fixed overlay, triggered by top bar onDomainClick */}
+          {switcherOpen && (
+            <DomainSwitcher
+              domains={MOCK_DOMAINS}
+              currentSlug={domainSlug || "default"}
+              onSelect={(s) => navigate(`/d/${encodeURIComponent(s)}/board`)}
+              onAddDomain={() => console.log("Add domain")}
+              onClose={() => setSwitcherOpen(false)}
             />
-          ) : selectedMoment ? (
-            /* Moment view state */
-            <>
+          )}
+        </div>
+      )}
+
+      // Right — journey/moment/keeper/home presence panel (4 states, same as before)
+      right={(_props) => {
+        if (activeJourneyId) {
+          return (
+            <div className="flex h-full min-h-0 flex-col overflow-hidden" style={FROSTED_GLASS}>
+              <KeeperJourneyPanel
+                journeyId={activeJourneyId}
+                domainId={domainId}
+                onMomentSelect={handleMomentSelectFromJourney}
+                onPathSelect={() => {}}
+                onBack={() => setActiveJourneyId(null)}
+              />
+            </div>
+          )
+        }
+
+        if (selectedMoment) {
+          return (
+            <div className="flex h-full min-h-0 flex-col overflow-hidden" style={FROSTED_GLASS}>
               <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[#e7e5e4]">
                 <span className="text-[13px] font-semibold" style={{ color: "#1c1917" }}>
                   Moment
@@ -675,31 +593,39 @@ export function DomainBoard() {
                 </button>
               </div>
               <MomentDetailPanel moment={selectedMoment} />
-            </>
-          ) : wordmark ? (
-            /* Keeper view state: domain keeper context is present */
-            <KeeperViewPanel
-              keeper={{
-                name: wordmark,
-                description: coverTagline || null,
-              }}
-              recentSessions={[]}
-              activeJourneys={journeys.map((j) => ({
-                id: j.id,
-                title: j.name,
-                momentCount: j.momentCount ?? 0,
-              }))}
-              onSessionSelect={(id) => {
-                // TODO: wire to IDE Board session select when Domain Board gains session state
-                console.log("[DomainBoard] session select not yet wired:", id)
-              }}
-              onJourneySelect={(id) => {
-                setActiveJourneyId(id)
-                setSelectedMoment(null)
-              }}
-            />
-          ) : (
-            /* Home view state: fallback when no domain keeper context available */
+            </div>
+          )
+        }
+
+        if (wordmark) {
+          return (
+            <div className="flex h-full min-h-0 flex-col overflow-hidden" style={FROSTED_GLASS}>
+              <KeeperViewPanel
+                keeper={{
+                  name: wordmark,
+                  description: coverTagline || null,
+                }}
+                recentSessions={[]}
+                activeJourneys={journeys.map((j) => ({
+                  id: j.id,
+                  title: j.name,
+                  momentCount: j.momentCount ?? 0,
+                }))}
+                onSessionSelect={(id) => {
+                  // TODO: wire to session select when Domain Board gains session state
+                  console.log("[DomainBoard] session select not yet wired:", id)
+                }}
+                onJourneySelect={(id) => {
+                  setActiveJourneyId(id)
+                  setSelectedMoment(null)
+                }}
+              />
+            </div>
+          )
+        }
+
+        return (
+          <div className="flex h-full min-h-0 flex-col overflow-hidden" style={FROSTED_GLASS}>
             <HomeViewPanel
               platformName="KE3P"
               activeJourneys={journeys.map((j) => ({
@@ -714,10 +640,9 @@ export function DomainBoard() {
                 setSelectedMoment(null)
               }}
             />
-          )}
-        </div>
-      </div>
-    </div>
-    </StyleScope>
+          </div>
+        )
+      }}
+    />
   )
 }
