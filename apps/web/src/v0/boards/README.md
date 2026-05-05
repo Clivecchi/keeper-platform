@@ -17,8 +17,33 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ## ⚠️ Notes & ToDo
 - [ ] Boards do not currently have their own URL namespace — they share `/d/:slug/board`
 - [ ] `V0BoardKey` type lives in `boardRegistry.ts`; if more boards are added, consider splitting
+- [ ] Migrate existing boards (IDEBoard, AgentBoard, DomainBoard) to use `UniversalBoard` shell
+- [ ] Build `UniversalConversation` component — standard center panel for new boards (no custom component needed)
 
 ## 📆 Update Log
+### 2026-05-04 — Universal Board: Full Definition with Treatment
+- Created `UniversalBoardDefinition.ts` — runtime board definition types and all four board defs
+  - `UniversalBoardDef` interface — a new Board is a new object of this type, not a new component
+  - `NavPanelDef`, `ConversationPanelDef`, `ContextPanelDef` — per-panel configuration
+  - `ContextViewStateDef.presenceTreatment` — free-form treatment instructions to Rendr
+  - `IDE_BOARD_DEF`, `AGENT_BOARD_DEF`, `DOMAIN_BOARD_DEF`, `DESIGNER_BOARD_DEF` — all four boards as defs
+  - `BOARD_DEFINITIONS` registry — index by boardId
+- Created `UniversalBoardContext.tsx` — unified selection state context
+  - Mutually exclusive entity selections (Journey/Moment/Keeper/Draft/Agent/Service)
+  - Session selection is independent — does not clear entity focus
+  - Nav collapsed state owned at board level
+  - `useUniversalBoard()` and `useUniversalBoardOptional()` hooks
+- Created `UniversalBoard.tsx` — master orchestrator shell
+  - Three panels: `UniversalNavPanel` (left) + `center` render prop + `UniversalContextPanel` (right)
+  - domainId resolved once at board root — never delegated to panels
+  - `rightOverride` prop for boards with transient right panel states (ServicesFrame, etc.)
+  - `center` render prop delivers `UniversalBoardCenterProps` to the conversation component
+- Created `panels/UniversalContextPanel.tsx` — right panel Living Multi-Context Surface
+  - Treatment character: presence and intentional interaction
+  - Five presence surfaces: DomainPresence, JourneyPresence, MomentPresence, KeeperPresence, DraftPresence
+  - `PresenceTransition` layer — CSS-driven exit/enter sequence (140ms exit, 200ms enter)
+  - Each surface fetches its own data — self-sufficient
+- Updated `boardRegistry.ts` — added `def: UniversalBoardDef` field to each entry
 ### 2026-05-04 — Moment 2.2: UniversalNavPanel
 - Created `UniversalNavPanel.tsx` — new file only, no existing files modified
 - Single standard left nav panel component for all Boards rendering data records
