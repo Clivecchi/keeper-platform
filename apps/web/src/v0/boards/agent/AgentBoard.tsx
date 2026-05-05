@@ -10,7 +10,7 @@ import { getBlobProxyUrl } from "../../../lib/blobProxy"
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
 import type { KipDraftSummary } from "../../../lib/kipApi"
-import { AgentBoardNav } from "./AgentBoardNav"
+import { UniversalNavPanel } from "../UniversalNavPanel"
 import { AgentBoardConversation } from "./AgentBoardConversation"
 import { AgentBoardPanel } from "./AgentBoardPanel"
 import { AgentBoardIdlePanel } from "./AgentBoardIdlePanel"
@@ -134,24 +134,16 @@ export function AgentBoard() {
               boardKind="agent"
               domainSlug={domainSlug}
               left={
-                <div
-                  className="flex h-full min-h-0 flex-col overflow-hidden"
-                  style={{
-                    background: "hsl(var(--theme-surface-panel) / 0.85)",
-                    backdropFilter: "blur(16px)",
-                    WebkitBackdropFilter: "blur(16px)",
-                    borderRadius: "8px",
-                    border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
-                  }}
-                >
-                  <AgentBoardNav
-                    domainSlug={domainSlug}
+                <div className="flex h-full min-h-0 flex-col overflow-hidden">
+                  <UniversalNavPanel
                     domainId={domainId}
+                    domainSlug={domainSlug}
+                    domainName={domainFrame?.theme?.wordmark?.trim() || domainSlug}
+                    boardContext="agent"
                     selectedAgentId={selectedAgentId}
-                    onAgentSelect={handleAgentSelect}
                     selectedDraftId={selectedDraftId}
+                    onAgentSelect={handleAgentSelect}
                     onDraftSelect={handleDraftSelect}
-                    drafts={drafts}
                   />
                 </div>
               }
