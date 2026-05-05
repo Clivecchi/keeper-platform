@@ -73,8 +73,7 @@ export function AgentBoardConversation({
       style={{ color: "hsl(var(--theme-ink-primary))" }}
     >
       <KeeperDialogFrame
-        keeperName={bannerEyebrow || undefined}
-        journeyName={bannerTitle || undefined}
+        bannerContext={{ primary: bannerEyebrow, secondary: bannerTitle }}
         showServiceBar={false}
         messages={messages}
         isSending={isSending}

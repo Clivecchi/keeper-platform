@@ -163,9 +163,11 @@ export function IDEBoardConversation({
 
   return (
     <KeeperDialogFrame
-      keeperName={keeperName}
-      journeyName={journeyName}
-      sessionTitle={sessionTitle ?? "New session"}
+      bannerContext={{
+        primary: keeperName ?? "",
+        secondary: journeyName ?? undefined,
+        sessionLabel: sessionTitle ?? "New session",
+      }}
       sessionId={activeSessionId}
       soleActive={false}
       modelProvider={modelProvider}

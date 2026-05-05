@@ -609,7 +609,7 @@ export function DomainBoard() {
             */}
             <KeeperDialogFrame
               mode={centerMode}
-              keeperName={wordmark || undefined}
+              bannerContext={{ primary: wordmark || "" }}
               showServiceBar={false}
               messages={adaptedMessages}
               isSending={isSending}

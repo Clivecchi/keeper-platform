@@ -25,15 +25,38 @@ import type { AgentBoardMessaging } from "../../data/domain-frame.types"
 type ServiceSlug = "cloud" | "railway" | "vercel" | "github"
 type ServiceStatus = "connected" | "warning" | "disconnected"
 
+/**
+ * BannerContext
+ *
+ * Structured replacement for the five individual banner props:
+ * keeperName, journeyName, pathName, pathPrelude, sessionTitle.
+ *
+ * The Banner renders: primary · secondary · tertiary
+ *                     prelude (italic, below)
+ * The expanded meta row renders: primary (read-only) + sessionLabel (editable)
+ *
+ * Callers assemble this from whatever semantic labels their board uses —
+ * keeper name, domain wordmark, agent eyebrow, session title, path prelude.
+ * KeeperDialogFrame renders the shape; callers own the meaning.
+ */
+export interface BannerContext {
+  /** Lead label — was keeperName / wordmark / agent eyebrow. Required when BannerContext is provided. */
+  primary: string
+  /** Second breadcrumb segment — was journeyName / session name / dialog title. */
+  secondary?: string
+  /** Third breadcrumb segment — was pathName. */
+  tertiary?: string
+  /** Italic sub-line below the breadcrumb — was pathPrelude. */
+  prelude?: string
+  /** Editable session label in the expanded meta row — was sessionTitle. */
+  sessionLabel?: string
+}
+
 export interface KeeperDialogFrameProps {
   // ── Header context — frosted breadcrumb banner ────────────────────────────
-  keeperName?: string | null
-  journeyName?: string | null
-  pathName?: string | null
-  pathPrelude?: string | null
+  bannerContext?: BannerContext
 
   // ── Session context — absorbed from SessionBannerCard (IDE Board only) ────
-  sessionTitle?: string | null
   sessionId?: string | null
   soleActive?: boolean
   modelProvider?: string | null
@@ -96,12 +119,8 @@ export interface KeeperDialogFrameProps {
 
 export function KeeperDialogFrame({
   // Header
-  keeperName,
-  journeyName,
-  pathName,
-  pathPrelude,
+  bannerContext,
   // Session context
-  sessionTitle,
   sessionId,
   soleActive,
   modelProvider,
@@ -150,10 +169,10 @@ export function KeeperDialogFrame({
     if (el) el.scrollTop = el.scrollHeight
   }, [messages, isSending, dialogContent, mode])
 
-  const hasBreadcrumb = keeperName || journeyName || pathName
+  const hasBreadcrumb = bannerContext?.primary || bannerContext?.secondary || bannerContext?.tertiary
   const hasSessionMeta = sessionId !== undefined
   // Banner renders in dialog mode when there is context to show
-  const showBanner = mode !== 'feed' && (!!hasBreadcrumb || !!pathPrelude || !!onReturnToFeed || hasSessionMeta)
+  const showBanner = mode !== 'feed' && (!!hasBreadcrumb || !!bannerContext?.prelude || !!onReturnToFeed || hasSessionMeta)
 
   return (
     <div className="keeper-dialog-frame">
@@ -171,24 +190,24 @@ export function KeeperDialogFrame({
               )}
               {hasBreadcrumb && (
                 <div className="dialog-breadcrumb">
-                  {keeperName && <span>{keeperName}</span>}
-                  {journeyName && (
+                  {bannerContext?.primary && <span>{bannerContext.primary}</span>}
+                  {bannerContext?.secondary && (
                     <>
                       <span className="breadcrumb-sep" aria-hidden>·</span>
-                      <span>{journeyName}</span>
+                      <span>{bannerContext.secondary}</span>
                     </>
                   )}
-                  {pathName && (
+                  {bannerContext?.tertiary && (
                     <>
                       <span className="breadcrumb-sep" aria-hidden>·</span>
-                      <span className="breadcrumb-path">{pathName}</span>
+                      <span className="breadcrumb-path">{bannerContext.tertiary}</span>
                     </>
                   )}
                 </div>
               )}
-              {pathPrelude && (
-                <p className="dialog-prelude" title={pathPrelude}>
-                  {pathPrelude}
+              {bannerContext?.prelude && (
+                <p className="dialog-prelude" title={bannerContext.prelude}>
+                  {bannerContext.prelude}
                 </p>
               )}
             </div>
@@ -220,15 +239,15 @@ export function KeeperDialogFrame({
           {/* Expanded session details — visible on chevron tap */}
           {bannerExpanded && hasSessionMeta && (
             <div className="dialog-banner-expanded">
-              {keeperName && <span className="meta-item">{keeperName}</span>}
-              {sessionTitle && (
+              {bannerContext?.primary && <span className="meta-item">{bannerContext.primary}</span>}
+              {bannerContext?.sessionLabel && (
                 <span
                   className="meta-item session-title"
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => onSaveTitle?.(e.currentTarget.textContent?.trim() ?? '')}
                 >
-                  {sessionTitle}
+                  {bannerContext.sessionLabel}
                 </span>
               )}
               {modelProvider && (

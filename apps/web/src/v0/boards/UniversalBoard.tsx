@@ -26,9 +26,10 @@
  *     center={(props) => <IDEBoardConversation {...props} ... />}
  *   />
  *
- * When `rightOverride` is provided, it replaces UniversalContextPanel entirely.
- * Use this for boards with non-standard right panel requirements (e.g. ServicesFrame
- * injection in the IDE Board).
+ * The optional `right` render prop mirrors `center`. Return a node to override
+ * UniversalContextPanel for that render cycle. Return null to fall back to it.
+ * Use for boards with conditional right panel content — e.g. ServicesFrame
+ * when a service connection is active in the IDE Board.
  *
  * CRITICAL RULES:
  * - domainId is resolved once, here, at board root. Never resolved by panels.
@@ -77,6 +78,8 @@ export interface UniversalBoardCenterProps {
   onDraftSelect: (id: string) => void
   onAgentSelect: (id: string) => void
   onServiceOpen: (slug: string) => void
+  /** Clears all entity selections — returns the right panel to idle/domain presence. */
+  clearSelection: () => void
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -93,12 +96,17 @@ export interface UniversalBoardProps {
   center: (props: UniversalBoardCenterProps) => React.ReactNode
 
   /**
-   * Optional right panel override.
-   * When provided, renders in place of UniversalContextPanel.
-   * Use for transient states: ServicesFrame injection, modal overlays, etc.
-   * When null, UniversalContextPanel renders normally.
+   * Optional right panel render prop.
+   * Receives the same UniversalBoardCenterProps as center.
+   * When provided and returns non-null, replaces UniversalContextPanel entirely.
+   * When omitted or returns null, UniversalContextPanel renders normally.
+   *
+   * Use for boards with conditional right panel content —
+   * e.g. ServicesFrame overlay in IDE Board when a service is active.
+   * Returning null lets the right panel fall back to UniversalContextPanel
+   * for idle/journey/keeper presence.
    */
-  rightOverride?: React.ReactNode | null
+  right?: (props: UniversalBoardCenterProps) => React.ReactNode | null
 
   /**
    * Optional additional nav list version counters.
@@ -117,7 +125,7 @@ export interface UniversalBoardProps {
 function UniversalBoardShell({
   def,
   center,
-  rightOverride,
+  right: rightRenderProp,
   navVersions,
 }: UniversalBoardProps) {
   const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
@@ -175,7 +183,7 @@ function UniversalBoardShell({
   const boardKind: KeeperBoardKind =
     def.boardId === "ide" || def.boardId === "agent" ? def.boardId : "ide"
 
-  // ── Board context — delivered to center render prop ────────────────────────
+  // ── Board context — delivered to center and right render props ───────────
   const centerProps: UniversalBoardCenterProps = {
     domainId,
     domainSlug: slug,
@@ -193,30 +201,21 @@ function UniversalBoardShell({
     onDraftSelect: actions.onDraftSelect,
     onAgentSelect: actions.onAgentSelect,
     onServiceOpen: actions.onServiceOpen,
+    clearSelection: actions.clearSelection,
   }
 
-  // ── Right panel — context surface or override ──────────────────────────────
-  const rightNode =
-    rightOverride != null ? (
-      <div
-        className="flex h-full min-h-0 flex-col overflow-hidden"
-        style={{
-          background: "hsl(var(--theme-surface-panel) / 0.85)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          borderRadius: "8px",
-          border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
-        }}
-      >
-        {rightOverride}
-      </div>
-    ) : (
-      <UniversalContextPanel
-        def={def}
-        domainId={domainId}
-        domainName={domainName || slug}
-      />
-    )
+  // ── Right panel — render prop or UniversalContextPanel ────────────────────
+  // If a right render prop is provided and returns non-null, use it directly.
+  // The render prop is responsible for its own styling (including frosted glass if wanted).
+  // If omitted or returns null, UniversalContextPanel handles the right panel.
+  const rightOverrideNode = rightRenderProp ? rightRenderProp(centerProps) : null
+  const rightNode = rightOverrideNode ?? (
+    <UniversalContextPanel
+      def={def}
+      domainId={domainId}
+      domainName={domainName || slug}
+    />
+  )
 
   return (
     <StyleScope styleId={styleId} themeSlug={themeSlug ?? null}>
