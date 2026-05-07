@@ -15,8 +15,8 @@
  *     UniversalBoard resolves domainId independently for panel wiring.
  *   - Banner string computation: draftTitle → bannerEyebrow / bannerTitle.
  *
- * Right panel: UniversalContextPanel (DraftPresence when draft selected, DomainPresence idle).
- * No rightOverride needed — UniversalContextPanel covers the Agent Board's context surfaces.
+ * Right panel: Chronicle (UniversalViewPanel) — trail history, keeper/journey/idle views.
+ * No rightOverride needed — Chronicle covers the Agent Board's context surfaces.
  */
 
 import * as React from "react"

@@ -1,0 +1,226 @@
+KE3P · KEEPER PLATFORM
+
+# Moment 2.1 — Universal Board Schema
+
+*Cursor Build Prompt · Path 2 · May 2026*
+
+For: Cursor · Read by: Claude before sending · Approved by: Chuck
+
+---
+
+# Locked Decision — Visual and Structural Standard
+
+This decision is locked as of May 3, 2026. It travels with every Cursor prompt in Path 2. Do not build against a different standard.
+
+**Visual reference: IDE Board.** The IDE Board is the visual standard for all Universal Board work. Right panel rendering, Dialog Frame behavior, atmospheric background, Banner clarity, and Composer placement on IDE Board represent the target. Any Board that diverges from this visual standard is behind, not different.
+
+**Structural reference: Agent Board's pattern, not its current state.** Agent Board's code pattern — small footprint, clean delegation to named sub-components, KeeperBoardPanelGroup for layout — is the structural model. Its current visual state and its left nav reliability gap are defects, not features. Universal Boards inherits the pattern, not the problems.
+
+**Right panel standard: neither current implementation.** The IDE Board right panel renders objects cleanly. The Agent Board right panel gestures toward direct editability that has value. The Universal Board right panel must do both — render any object (Draft, Moment, Journey, Keeper) to IDE's visual standard, with an editable surface quality that makes it feel actionable, not just readable. This is the View State Panel done correctly. It does not exist yet in either Board.
+
+**Left nav reliability is non-negotiable.** The Agent Board left nav drops Keepers that IDE loads correctly. This is a defect. The Universal Board left nav must load all records reliably, matching IDE's behavior. Any schema or prompt that touches nav must treat IDE's nav reliability as the floor, not the ceiling.
+
+> *The rule: Build with Agent Board's structural discipline. Render to IDE Board's visual standard. Exceed both in the right panel.*
+
+---
+
+# Context
+
+This is Path 2 of Phase 2. Sprint 1 is closed as of May 3, 2026. The Universal Boards diagnostic has been completed, reviewed, and summarized. This prompt is Moment 2.1 — the schema definition that every subsequent board reconciliation builds from.
+
+This prompt is schema definition work only. No Board component is modified. No existing file is touched. The output is one new file.
+
+Diagnostic before decision has been followed. This prompt was not written until the diagnostic was read.
+
+---
+
+# Objective
+
+Create a single new file:
+
+```
+apps/web/src/v0/boards/UniversalBoardSchema.ts
+```
+
+This file defines and exports the UniversalBoardSchema TypeScript interface and two supporting interfaces. It also exports four typed constant objects — one per existing Board — populated from diagnostic-confirmed facts. These constants are documentation first, wiring second. They make the current state of each Board legible in one place for the first time.
+
+---
+
+# Interfaces to Define and Export
+
+## 1. UniversalBoardViewState
+
+A supporting interface representing a single named state the right panel can be in.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| key | string | Named key for this state. e.g. `"journey"`, `"moment"`, `"draft"`, `"idle"` |
+| triggerVariable | string | The Board-level variable whose truthy value activates this state. e.g. `"activeJourneyId"` |
+| componentName | string | The React component that renders in the right panel for this state. e.g. `"KeeperJourneyPanel"` |
+| isShared | boolean | `true` if the component is shared across Boards (KeeperViewPanel, HomeViewPanel, KeeperJourneyPanel). `false` if Board-specific. |
+| isDefault | boolean | `true` for the idle/fallback state. Only one view state per Board should have `isDefault: true`. |
+
+## 2. UniversalBoardDataFetch
+
+A supporting interface documenting what a Board fetches on mount.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| description | string | Plain-language description. e.g. `"domainId from /api/domains/by-slug/[slug]"` |
+| isDuplicated | boolean | `true` if this same fetch exists in one or more other Boards. Documents duplication — does not fix it yet. |
+
+## 3. UniversalBoardSchema
+
+The primary interface. Every Board is an instance of this shape.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| boardId | `"ide" \| "agent" \| "domain" \| "designer"` | Canonical key. Maps to boardRegistry.ts keys. |
+| displayName | string | Human-readable label used in navigation and registry. |
+| access | `{ isPrivate: boolean; isAdminOnly: boolean }` | Access control. Migrated from boardRegistry.ts. Belongs in the schema. |
+| layoutEngine | `"panel-group" \| "fixed"` | `"panel-group"` = KeeperBoardPanelGroup (resizable, persisted). `"fixed"` = hardcoded flex. Going forward all Boards use `"panel-group"`. This field documents current divergence honestly. |
+| centerPanel | `{ ownsDialogFrame: boolean; componentName: string; }` | `ownsDialogFrame: true` means the Board renders KeeperDialogFrame at root. `false` means a sub-component handles it. |
+| rightPanel | `{ viewStates: UniversalBoardViewState[] }` | Named, ordered list of right panel states. Formalizes what is currently scattered inline conditional logic. |
+| dataFetches | `UniversalBoardDataFetch[]` | What this Board fetches on mount. Documents duplication. Does not fix it yet. |
+| contextDependencies | `Array<"useV0Shell" \| "useFrameContextOptional" \| "useAuth">` | Which context hooks this Board consumes. |
+| sharedState | `string[]` | Selection ID variables that live at Board level as useState. Documents current state. Does not change anything. |
+| diagnosticNotes | `string[]` | Free-form notes from the diagnostic. Defects, gaps, TODOs. Visible in the schema so they travel with the Board. |
+
+---
+
+# Constants to Export
+
+After defining the interfaces, export four typed constants — one per Board — populated from what the diagnostic confirmed. Where the diagnostic was ambiguous or silent, add a `// TODO: verify` comment inline. Do not infer values the diagnostic did not confirm.
+
+## IDE_BOARD_SCHEMA
+
+| Field | Value (from diagnostic) |
+| --- | --- |
+| boardId | `"ide"` |
+| displayName | `"IDE Board"` |
+| access | `{ isPrivate: false, isAdminOnly: false }` |
+| layoutEngine | `"panel-group"` — uses KeeperBoardPanelGroup |
+| centerPanel.ownsDialogFrame | `false` — IDEBoardConversation sub-component owns it |
+| rightPanel.viewStates | 5 states: service (activeService), journey (activeJourneyId), draft/moment (selectedDraftId or selectedMomentId), keeper (selectedKeeperId), idle (HomeViewPanel) |
+| contextDependencies | useV0Shell, useFrameContextOptional |
+| sharedState | activeJourneyId, activeSessionId, selectedDraftId, selectedMomentId, selectedKeeperId |
+| diagnosticNotes | Visual reference standard. activeKeeperId read from useFrameContextOptional, not Board-owned state. Mutual exclusion of selection IDs enforced manually per callback. |
+
+## AGENT_BOARD_SCHEMA
+
+| Field | Value (from diagnostic) |
+| --- | --- |
+| boardId | `"agent"` |
+| displayName | `"Agent Board"` |
+| access | `{ isPrivate: false, isAdminOnly: false }` |
+| layoutEngine | `"panel-group"` — uses KeeperBoardPanelGroup |
+| centerPanel.ownsDialogFrame | `false` — AgentBoardConversation sub-component owns it |
+| rightPanel.viewStates | 1 state delegated entirely to AgentBoardPanel — view state switching is internal to that component, not visible at Board level |
+| contextDependencies | useV0Shell |
+| sharedState | selectedAgentId, selectedDraftId (mutually exclusive) |
+| diagnosticNotes | **DEFECT:** left nav drops Keepers that IDE loads correctly. Structural model (clean delegation, small footprint, KeeperBoardPanelGroup) is the code pattern target. Visual state is behind IDE standard. Right panel renders older draft layout — not current standard. |
+
+## DOMAIN_BOARD_SCHEMA
+
+| Field | Value (from diagnostic) |
+| --- | --- |
+| boardId | `"domain"` |
+| displayName | `"Domain Board"` |
+| access | `{ isPrivate: false, isAdminOnly: false }` |
+| layoutEngine | `"fixed"` — raw div flex, 220px left, 380px right. KeeperBoardPanelGroup NOT used. |
+| centerPanel.ownsDialogFrame | `true` — only Board that owns KeeperDialogFrame at root level |
+| rightPanel.viewStates | 4 states: journey (activeJourneyId / KeeperJourneyPanel), moment (selectedMoment / inline block), keeper (wordmark / KeeperViewPanel), idle (HomeViewPanel) |
+| contextDependencies | useV0Shell |
+| sharedState | activeJourneyId. No activeSessionId. No activeKeeperId. |
+| diagnosticNotes | Most divergent Board. 723 lines. Left nav is inline JSX with no named component. onSessionSelect is a stub with console.log and TODO. Moment detail in right panel is an anonymous inline block. BADGE_STYLES and BANNER_BADGE_STYLES are inline constants. Most structural work required to conform. |
+
+## DESIGN_BOARD_SCHEMA
+
+| Field | Value (from diagnostic) |
+| --- | --- |
+| boardId | `"designer"` |
+| displayName | `"Design Board"` |
+| access | `{ isPrivate: true, isAdminOnly: true }` |
+| layoutEngine | `"fixed"` — raw div flex, 220px left, 42% right min 320px. KeeperBoardPanelGroup NOT used. |
+| centerPanel.ownsDialogFrame | `false` — KeeperDialogFrame NOT used anywhere in DesignBoard |
+| rightPanel.viewStates | 1 state driven by activeFrameKey — DesignBoardFrameDetail renders for any selected frame, empty state when null |
+| contextDependencies | useV0Shell, useAuth |
+| sharedState | activeFrameKey, activeBoardId, draftId, dialogId, draftSpecJson |
+| diagnosticNotes | Most structurally isolated. Zero shared panel components. No KeeperDialogFrame. Has unique density sub-bar chrome. Has admin gate. Background hardcoded to #f5f2eb. dialogId is the only Board doing server-side viewState hydration on activeFrameKey change. |
+
+---
+
+# Done Conditions
+
+The prompt is complete when all of the following are true. Cursor must verify each before reporting done.
+
+| # | Condition |
+| --- | --- |
+| 1 | `apps/web/src/v0/boards/UniversalBoardSchema.ts` exists |
+| 2 | File exports: `UniversalBoardViewState` interface |
+| 3 | File exports: `UniversalBoardDataFetch` interface |
+| 4 | File exports: `UniversalBoardSchema` interface |
+| 5 | File exports: `IDE_BOARD_SCHEMA` (typed as UniversalBoardSchema) |
+| 6 | File exports: `AGENT_BOARD_SCHEMA` (typed as UniversalBoardSchema) |
+| 7 | File exports: `DOMAIN_BOARD_SCHEMA` (typed as UniversalBoardSchema) |
+| 8 | File exports: `DESIGN_BOARD_SCHEMA` (typed as UniversalBoardSchema) |
+| 9 | File compiles without TypeScript errors |
+| 10 | All four constants are populated with values that match the diagnostic results — no inferred values, only confirmed ones |
+| 11 | Any diagnostic gap is marked with a `// TODO: verify` comment inline, not silently omitted or guessed |
+| 12 | `diagnosticNotes` arrays are populated for all four Boards, including DEFECT notations where applicable |
+
+---
+
+# Do Not Touch
+
+The following files and directories must not be modified in this prompt. If Cursor determines that a modification to any of these is required to complete the objective, stop and report — do not proceed.
+
+| File / Directory | Reason |
+| --- | --- |
+| IDEBoard.tsx | Visual reference standard. No changes during schema work. |
+| DomainBoard.tsx | Most divergent. Reconciliation is Moment 2.2, not 2.1. |
+| AgentBoard.tsx | Structural model. No changes during schema work. |
+| DesignBoard.tsx | Most isolated. No changes during schema work. |
+| boardRegistry.ts | Access control registry. Not modified — schema documents what it contains. |
+| domain-frame.types.ts | Existing type system. No changes. |
+| KeeperBoardPanelGroup.tsx | Shared layout component. No changes. |
+| Any panel component | KeeperViewPanel, HomeViewPanel, KeeperJourneyPanel, AgentBoardPanel, DesignBoardFrameDetail — all untouched. |
+| Any nav component | IDEBoardNav, AgentBoardNav, DesignBoardList — all untouched. |
+| Any existing schema or type file | New file only. Nothing else is created or modified. |
+
+---
+
+# Verification
+
+After writing the file, Cursor must:
+
+1. Read the file back in full.
+2. Confirm all four constants are populated and typed correctly.
+3. Confirm all `diagnosticNotes` arrays are non-empty and accurate.
+4. Run TypeScript compilation on the file alone and confirm zero errors.
+5. Report the line count of the new file.
+6. Confirm no other file was created or modified.
+
+Do not report done until all six verification steps are complete.
+
+---
+
+# What Comes Next — Moment 2.2
+
+Moment 2.2 is Board reconciliation — bringing each existing Board into conformance with the schema defined here. The sequence within 2.2 follows divergence order, least to most:
+
+**AgentBoard first** — closest to conformant, smallest structural gap. Fix the left nav reliability defect. Surface the right panel view state at the Board level. Bring visual standard up to IDE.
+
+**IDEBoard second** — the visual reference. Minor structural alignment only.
+
+**DesignBoard third** — isolated but bounded. Admin-only. Structural gaps are contained.
+
+**DomainBoard last** — most divergent. 723 lines. Requires the most structural work. Does not move until the pattern is proven on the three above it.
+
+Moment 2.2 does not begin until the schema file from this prompt is reviewed and approved by Chuck.
+
+---
+
+*KE3P · Keeper Platform · Moment 2.1 Cursor Prompt · May 2026*
+
+*Written by Claude · Approved by Chuck · Executed by Cursor*

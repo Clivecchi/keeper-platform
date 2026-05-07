@@ -27,9 +27,9 @@
  *   />
  *
  * The optional `right` render prop mirrors `center`. Return a node to override
- * UniversalContextPanel for that render cycle. Return null to fall back to it.
- * Use for boards with conditional right panel content — e.g. ServicesFrame
- * when a service connection is active in the IDE Board.
+   * Chronicle (UniversalViewPanel) for that render cycle. Return null to fall back to it.
+   * Use for boards with conditional right panel content — e.g. ServicesFrame
+   * when a service connection is active in the IDE Board.
  *
  * CRITICAL RULES:
  * - domainId is resolved once, here, at board root. Never resolved by panels.
@@ -47,7 +47,7 @@ import { apiFetch } from "../../lib/api"
 import { KeeperBoardPanelGroup } from "./KeeperBoardPanelGroup"
 import type { KeeperBoardKind } from "./KeeperBoardPanelGroup"
 import { UniversalNavPanel } from "./UniversalNavPanel"
-import { UniversalContextPanel } from "./panels/UniversalContextPanel"
+import { UniversalViewPanel } from "./panels/UniversalViewPanel"
 import { UniversalBoardProvider, useUniversalBoard } from "./UniversalBoardContext"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 
@@ -120,12 +120,12 @@ export interface UniversalBoardProps {
   /**
    * Optional right panel render prop.
    * Receives the same UniversalBoardCenterProps as center.
-   * When provided and returns non-null, replaces UniversalContextPanel entirely.
-   * When omitted or returns null, UniversalContextPanel renders normally.
+   * When provided and returns non-null, replaces Chronicle (UniversalViewPanel) entirely.
+   * When omitted or returns null, Chronicle renders normally.
    *
    * Use for boards with conditional right panel content —
    * e.g. ServicesFrame overlay in IDE Board when a service is active.
-   * Returning null lets the right panel fall back to UniversalContextPanel
+   * Returning null lets the right panel fall back to Chronicle
    * for idle/journey/keeper presence.
    */
   right?: (props: UniversalBoardCenterProps) => React.ReactNode | null
@@ -241,13 +241,13 @@ function UniversalBoardShell({
     clearSelection: actions.clearSelection,
   }
 
-  // ── Right panel — render prop or UniversalContextPanel ────────────────────
+  // ── Right panel — render prop or Chronicle ─────────────────────────────────
   // If a right render prop is provided and returns non-null, use it directly.
   // The render prop is responsible for its own styling (including frosted glass if wanted).
-  // If omitted or returns null, UniversalContextPanel handles the right panel.
+  // If omitted or returns null, Chronicle (UniversalViewPanel) handles the right panel.
   const rightOverrideNode = rightRenderProp ? rightRenderProp(centerProps) : null
   const rightNode = rightOverrideNode ?? (
-    <UniversalContextPanel
+    <UniversalViewPanel
       def={def}
       domainId={domainId}
       domainName={domainName || slug}

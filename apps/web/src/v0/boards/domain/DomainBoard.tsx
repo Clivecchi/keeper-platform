@@ -17,12 +17,12 @@
  *
  * Left panel:   Custom board switcher (Domain / Design / Agent) + domain frames list.
  * Center panel: DomainBanner + KeeperDialogFrame (feed/dialog mode).
- * Right panel:  KeeperJourneyPanel → MomentDetailPanel → KeeperViewPanel → HomeViewPanel.
+ * Right panel:  Chronicle (UniversalViewPanel) — trail history, journey/moment/idle views.
  *
  * Domain-specific data that stays here:
  *   - liveDomainFrame (separately fetched, kept in sync with shell)
  *   - domainId, journeyCount, journeys, momentCount (public + authed fetches)
- *   - messages, input, centerMode, selectedMoment, activeJourneyId
+ *   - messages, input, centerMode, selectedMoment (id passed to Chronicle), activeJourneyId
  *   - switcherOpen (DomainSwitcher overlay, triggered by top bar onDomainClick)
  */
 
@@ -37,20 +37,17 @@ import { BOARD_FRAMES, type FrameItem } from "../designer/DesignBoardFrameList"
 import type { DesignerMessage } from "../designer/DesignBoard"
 import { apiFetch } from "../../../lib/api"
 import { KeeperDialogFrame } from "../../components/dialog/KeeperDialogFrame"
-import { KeeperViewPanel } from "../../components/panels/KeeperViewPanel"
-import { HomeViewPanel } from "../../components/panels/HomeViewPanel"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { DomainSwitcher } from "../../components/DomainSwitcher"
 import { DomainBanner } from "../../components/DomainBanner"
 import { FeedFrame } from "../../frames/feed/FeedFrame"
 import type { KeptRow } from "../../frames/feed/FeedFrame"
-import { MomentDetailPanel } from "../../frames/moment/MomentDetailPanel"
-import { KeeperJourneyPanel } from "../../components/panels/KeeperJourneyPanel"
 import { StyleScope } from "../../styles/StyleScope"
 import { getApiBase } from "../../../lib/apiFetch"
 
 import { UniversalBoard } from "../UniversalBoard"
 import { DOMAIN_BOARD_DEF } from "../UniversalBoardDefinition"
+import { UniversalViewPanel } from "../panels/UniversalViewPanel"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -222,10 +219,6 @@ export function DomainBoard() {
   // ── Derived values ─────────────────────────────────────────────────────────
 
   const wordmark = liveDomainFrame?.theme?.wordmark?.trim() || domainSlug
-  const coverTagline = (() => {
-    const card = liveDomainFrame?.cover?.card as { tagLine?: string } | undefined
-    return card?.tagLine?.trim() || liveDomainFrame?.theme?.tagline?.trim() || ""
-  })()
 
   const frames = DOMAIN_FRAMES
   const activeFrameRow = selectedFrameKey ? frames.find((f) => f.key === selectedFrameKey) ?? null : null
@@ -242,37 +235,6 @@ export function DomainBoard() {
 
   // ── Moment detail fetch ────────────────────────────────────────────────────
 
-  const handleMomentSelectFromJourney = React.useCallback(
-    async (momentId: string) => {
-      try {
-        const json = (await apiFetch(`/api/moments/${encodeURIComponent(momentId)}`)) as {
-          moment?: {
-            id: string
-            title: string
-            narrative: string
-            keptAt?: string | null
-            createdAt: string | Date
-            Journey?: { name?: string | null }
-          }
-        }
-        const m = json.moment
-        if (m) {
-          setSelectedMoment({
-            id: m.id,
-            title: m.title,
-            body: m.narrative,
-            keptAt: m.keptAt != null ? String(m.keptAt) : null,
-            createdAt: String(m.createdAt),
-            journeyName: m.Journey?.name ?? null,
-          })
-          setActiveJourneyId(null)
-        }
-      } catch {
-        // silent
-      }
-    },
-    [],
-  )
 
   // ── Message sending ────────────────────────────────────────────────────────
 
@@ -558,91 +520,21 @@ export function DomainBoard() {
         </div>
       )}
 
-      // Right — journey/moment/keeper/home presence panel (4 states, same as before)
-      right={(_props) => {
-        if (activeJourneyId) {
-          return (
-            <div className="flex h-full min-h-0 flex-col overflow-hidden" style={FROSTED_GLASS}>
-              <KeeperJourneyPanel
-                journeyId={activeJourneyId}
-                domainId={domainId}
-                onMomentSelect={handleMomentSelectFromJourney}
-                onPathSelect={() => {}}
-                onBack={() => setActiveJourneyId(null)}
-              />
-            </div>
-          )
-        }
-
-        if (selectedMoment) {
-          return (
-            <div className="flex h-full min-h-0 flex-col overflow-hidden" style={FROSTED_GLASS}>
-              <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[#e7e5e4]">
-                <span className="text-[13px] font-semibold" style={{ color: "#1c1917" }}>
-                  Moment
-                </span>
-                <button
-                  type="button"
-                  aria-label="Close moment"
-                  onClick={() => setSelectedMoment(null)}
-                  className="p-1.5 rounded-md transition-colors hover:bg-gray-100 text-[#57534e]"
-                >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-                    <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </div>
-              <MomentDetailPanel moment={selectedMoment} />
-            </div>
-          )
-        }
-
-        if (wordmark) {
-          return (
-            <div className="flex h-full min-h-0 flex-col overflow-hidden" style={FROSTED_GLASS}>
-              <KeeperViewPanel
-                keeper={{
-                  name: wordmark,
-                  description: coverTagline || null,
-                }}
-                recentSessions={[]}
-                activeJourneys={journeys.map((j) => ({
-                  id: j.id,
-                  title: j.name,
-                  momentCount: j.momentCount ?? 0,
-                }))}
-                onSessionSelect={(id) => {
-                  // TODO: wire to session select when Domain Board gains session state
-                  console.log("[DomainBoard] session select not yet wired:", id)
-                }}
-                onJourneySelect={(id) => {
-                  setActiveJourneyId(id)
-                  setSelectedMoment(null)
-                }}
-              />
-            </div>
-          )
-        }
-
-        return (
-          <div className="flex h-full min-h-0 flex-col overflow-hidden" style={FROSTED_GLASS}>
-            <HomeViewPanel
-              platformName="KE3P"
-              activeJourneys={journeys.map((j) => ({
-                id: j.id,
-                title: j.name,
-                momentCount: j.momentCount ?? 0,
-                domain: domainSlug ?? "",
-                keeperName: "",
-              }))}
-              onJourneySelect={(id) => {
-                setActiveJourneyId(id)
-                setSelectedMoment(null)
-              }}
-            />
-          </div>
-        )
-      }}
+      // Right — Chronicle (UniversalViewPanel). DomainBoard's local selection state
+      // feeds in as explicit props so the trail and views respond to feed/journey clicks.
+      right={(_props) => (
+        <UniversalViewPanel
+          def={DOMAIN_BOARD_DEF}
+          domainId={domainId}
+          domainName={wordmark || domainSlug}
+          selectedJourneyId={activeJourneyId}
+          selectedMomentId={selectedMoment?.id ?? null}
+          onJourneySelect={(id) => {
+            setActiveJourneyId(id)
+            setSelectedMoment(null)
+          }}
+        />
+      )}
     />
   )
 }

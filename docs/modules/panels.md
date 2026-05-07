@@ -1,35 +1,108 @@
-# Panels
+# Panels — Universal Board
 
 ## 📌 Purpose
-Standalone right-panel view state components. Each panel is self-contained: it fetches its own data, renders its own header, and manages its own scroll. Panels are wired into Board right columns via Board-level state.
+Shared panel components used by Universal Board. Each panel has a defined treatment character that governs not just what it shows but how it feels. These are not generic UI components — they are surfaces with intent.
 
 ## 🧱 Key Files
-- `KeeperJourneyPanel.tsx` — Journey view state panel. Renders a Journey as a living document: title, forward statement, status badge + moment count, then each Path in order with its prelude (italic, faint) and Moments listed beneath. `+ Add Moment` below each Path's list; `+ Add Path` below the last Path.
-- `KeeperViewPanel.tsx` — Keeper view state (session resumption surface). Shown when a specific Keeper is in focus but no Journey is selected. Three sections: Keeper identity (Cormorant Garamond name + description), Recent Sessions (top 3, tappable with relative time), Active Journeys (tappable with moment count).
-- `HomeViewPanel.tsx` — Home view state (platform landing surface). The true default — shown when nothing is selected and no specific Keeper is in focus. Two sections: Platform identity (name + tagline), Active Journeys (cross-domain, up to 5, with domain + keeper context per journey).
+- `UniversalViewPanel.tsx` — Chronicle: the right panel for all Universal Boards (TreatmentSurface)
+- `UniversalContextPanel.tsx` — legacy right panel (superseded by Chronicle, retained for reference)
 
 ## 🔄 Data & Behavior
-- `KeeperJourneyPanel` fetches `GET /api/journeys/:id` (authenticated) which returns `paths[].Moment` nested. One fetch — no secondary requests.
-- `onMomentSelect(momentId)` — called when a Moment row is tapped. The Board handles navigation.
-- `onPathSelect(pathId)` — called when a Path header is tapped (also toggles collapse).
-- Paths are expanded by default. Path collapse is local state.
-- `+ Add Path` opens an inline form (name + optional prelude). Posts to `POST /api/paths` on confirm.
-- `+ Add Moment` is a visible affordance; action infrastructure wiring is Board-dependent.
+
+### UniversalViewPanel (Chronicle)
+**Treatment character: presence, intentional interaction, navigable history.**
+
+Chronicle is the right panel for all Universal Boards. It is built as a TreatmentSurface — a component that reads Treatment JSON at runtime. The first tier is Framer Motion ambient only.
+
+**Three elements:**
+
+| Element | Description |
+|---|---|
+| **Trail Bar** | Permanent top. History stack (max 3 visible, `···` compresses older). Feed indicator (soft dot + count, 60s polling). Lateral slide 200ms entry / 140ms exit. |
+| **Panel Body** | Mini-router over `panelHistory[currentIndex]`. Opacity dissolve on context shift (200ms entry / 140ms exit). Never empty — falls back to `UniversalViewPanelIdle`. |
+| **Idle State** | `UniversalViewPanelIdle` — domain name + ambient awareness (active journeys). Always present. |
+
+**Views (mini-router targets):**
+
+| View | Triggered by | What comes forward |
+|---|---|---|
+| `UniversalViewPanelIdle` | domain (nothing selected) | Domain name, moving journeys, present journeys |
+| `JourneyView` | `selectedJourneyId` | Editable title + forward, Paths with moment counts |
+| `MomentView` | `selectedMomentId` | Journey → Path breadcrumb, editable title + narrative |
+| `KeeperView` | `selectedKeeperId` | Editable name + purpose, recent sessions |
+
+**Moment hierarchy — Journey first:**
+The Moment view always shows `Journey title / Path name` above the moment title. It resolves the hierarchy via a secondary journey fetch if `journeyId` is present on the moment response.
+
+**Edit behavior:**
+- Fields editable by default — no view/edit toggle
+- Debounced autosave at 1000ms
+- PATCH `/api/moments/:id`, `/api/journeys/:id`, `/api/keepers/:id`
+
+**Motion — Framer Motion only:**
+- Trail Bar: lateral slide (`x`) on history change — 200ms entry, 140ms exit
+- Panel Body: opacity dissolve on context shift — 200ms entry, 140ms exit
+- No CSS transition fallbacks at this tier
+
+**Trail history:**
+- Maintained in component state, driven by `boardCtx.selection` changes
+- New context key → push entry, set `currentIndex` to end, direction `"forward"`
+- Clicking trail item → set `currentIndex`, direction `"back"` or `"forward"`
+- `···` button → navigate to item before visible window
+- Labels resolved asynchronously by each view via `onLabelResolved` callback
+
+**Feed indicator:**
+- Polls `/api/journeys?domainId=:id` every 60 seconds
+- Counts journeys with `momentCount > 0` as the feed signal
+- Shows soft pulsing dot + count when `feedCount > 0`
+
+**Data:** Each view fetches its own data. The panel is self-sufficient. `domainId` is always received as a prop (resolved at board root, never by panels).
+
+**Colors:** All `hsl(var(--theme-*))` — zero hardcoded values.
+
+**Used by all four Universal Boards:**
+- IDE Board — default right panel (via `UniversalBoard` fallback)
+- Agent Board — default right panel (via `UniversalBoard` fallback)
+- Domain Board — explicit right render prop with local selection state wired in
+- Designer Board — default right panel when migrated to `UniversalBoard` shell
+
+---
+
+### UniversalContextPanel (legacy)
+**Superseded by Chronicle.** Retained for reference. CSS-driven transitions, no Framer Motion.
+Five surfaces: DomainPresence, JourneyPresence, MomentPresence, KeeperPresence, DraftPresence.
+No trail history, no feed indicator, no editable fields.
 
 ## ⚠️ Notes & ToDo
-- [ ] `+ Add Moment` inline form — implement when Action infrastructure is available in the IDE Board context.
-- [ ] `onPathSelect` currently only collapses the path locally — wire scroll-to-path behavior in IDE Board when there are many paths.
-- [ ] Status badge is static ("Active") — wire to `journey.status` field once schema adds it.
-- [ ] `domainId` prop is accepted but not used in the fetch (the authenticated journey endpoint doesn't require it). Reserved for future domain-scoped filtering.
-- [ ] `KeeperViewPanel` — `onSessionSelect` is not wired in Domain Board (no session state there). TODO: connect when Domain Board gains session management.
-- [ ] `KeeperViewPanel` — `recentSessions` is always `[]` in Domain Board. Fetch sessions in DomainBoard or share session state from IDE Board.
-- [ ] `HomeViewPanel` — `activeJourneys` currently receives `domain: slug` and `keeperName: ""` (empty). Enrich journey objects with per-keeper data when a cross-domain journeys API is available.
-- [ ] `HomeViewPanel` — tagline is hardcoded as "cryptically designed, wonderfully unfolded". Pull from domain JSON when a platform-level frame key is defined.
-- [ ] `HomeViewPanel` — `KeeperViewPanel` is the default in DomainBoard (wordmark is always present); `HomeViewPanel` there is a safe fallback but currently unreachable.
+- [ ] Draft presence in Chronicle — currently falls to idle; add DraftView when spec is ready
+- [ ] Agent presence — for Agent Board's agent selection state
+- [ ] Service presence — for IDE Board's ServicesFrame integration
+- [ ] Rendr integration — spatial ratios and density governed by `presenceTreatment` field
+- [ ] Designer Board — migrate DesignBoard to UniversalBoard shell to receive Chronicle
 
 ## 📆 Update Log
-- 2026-05-03 (Phase 2 Sprint 1 Prompt 7 — Delete Layer + Right Panel CRUD): **KeeperViewPanel.tsx** — Complete rewrite. Upgraded from a passive viewer to an active record manager. Added `keeperId` prop (enables all write actions). **Keeper identity section** — title now tap-to-edit inline (blur/Enter saves via `PUT /api/keepers/:id`); description tap-to-edit inline (textarea, blur saves); two-stage Keeper delete with secondary confirmation ("This will delete all associated sessions. Confirm?") using `KipApi.deleteKeeper`. **Recent Sessions section** — `SessionRow` sub-component with hover state: pencil icon triggers inline rename (input, blur/Enter commits via `PATCH /api/kip/agents` `updateSessionMetadata`), trash icon triggers inline "Delete?" Confirm/Cancel via `KipApi.deleteSession`. Optimistic removal on confirm; row restored on API failure. "New Session" button (+ icon) shown when `onNewSession` prop provided. **Journeys section** — `JourneyRow` sub-component with hover state: trash icon triggers inline delete confirm via `KipApi.deleteJourney`. Optimistic removal. Added new optional callback props: `onKeeperDeleted`, `onSessionDeleted`, `onJourneyDeleted`, `onNewSession`. Local state (`sessions`, `journeys`) is initialized from props and managed optimistically — parent receives callbacks for list pruning. Imports: `lucide-react` (Pencil, Trash2, Plus), `KipApi` from kipApi.ts, `apiFetch` from api.
-- 2026-05-02 (Sprint Item 4 — Journey Scoping Fix): `KeeperViewPanel.tsx` receives `activeJourneys` that are now pre-filtered in `IDEBoard.tsx` by the selected keeper's ID. No changes to this file — the fix lives upstream. Empty-keeper state ("No journeys yet") was already handled correctly.
-- 2026-05-01 (Sprint Item 3 — Home View State): Created `HomeViewPanel.tsx`. Platform-level landing state for IDE Board. Shown when `keeperName === null` (no keeper explicitly in focus). Receives `platformName` (from `domainFrame.theme.wordmark` or "KE3P"), `activeJourneys` (current loaded journeys mapped with `domain: slug` and `keeperName: ""`). IDEBoard right-panel priority order updated to: Service → IDEBoardContext → KeeperViewPanel (if keeperName non-null) → HomeViewPanel. DomainBoard receives same priority order; HomeViewPanel is wired as last fallback (unreachable while wordmark is present). No new API calls introduced.
-- 2026-05-01 (Sprint Item 2 — Keeper View State): Created `KeeperViewPanel.tsx`. Default right-panel view state for IDE Board and Domain Board. Wired as the fallback when `activeJourneyId`, `selectedDraftId`, `selectedMomentId`, and `selectedKeeperId` are all null. IDE Board passes real session list (top 3 with `updatedAt`) and full journey list. Domain Board passes journey list (authenticated fetch added) and empty sessions. `IDEBoardNav.tsx` extended to forward `updatedAt` on each session item. `NavSession` type in `IDEBoard.tsx` extended with `updatedAt: string`.
-- 2026-04-28 (Prompt 5): Created `KeeperJourneyPanel.tsx`. First panel in this directory. Wired to IDE Board (`IDEBoardContext.tsx`) and Domain Board (`DomainBoard.tsx`).
+
+### 2026-05-06 — Chronicle: UniversalViewPanel
+- Created `UniversalViewPanel.tsx` — Chronicle, the right panel for all Universal Boards
+  - Trail Bar: history stack (max 3 visible), `···` compressor, feed indicator (60s polling)
+  - Panel Body: mini-router with `AnimatePresence` opacity dissolve (200ms/140ms)
+  - `UniversalViewPanelIdle` (named export) — domain name + ambient awareness, never empty
+  - `JourneyView` — editable title + forward, Paths with moment counts
+  - `MomentView` — Journey → Path breadcrumb hierarchy, editable title + narrative
+  - `KeeperView` — editable name + purpose, recent sessions
+  - Framer Motion lateral slide on Trail Bar history change (200ms/140ms)
+  - Framer Motion opacity dissolve on Panel Body context shift (200ms/140ms)
+  - All colors `hsl(var(--theme-*))` — zero hardcoded values
+  - Debounced autosave (1000ms) on all editable fields
+- Updated `UniversalBoard.tsx` — imports `UniversalViewPanel` instead of `UniversalContextPanel`
+- Updated `DomainBoard.tsx` — right render prop now uses Chronicle with local selection state
+- Updated `AgentBoard.tsx` — stale comment updated to reference Chronicle
+
+### 2026-05-04 — Universal Board: Full Definition with Treatment
+- Created `panels/` directory under `v0/boards/`
+- Created `UniversalContextPanel.tsx` — right panel Living Multi-Context Surface
+  - Five presence surfaces: Domain, Journey, Moment, Keeper, Draft
+  - `PresenceTransition` component — CSS-driven context shift animation
+  - Self-sufficient data fetching per surface
+  - Reads from `UniversalBoardContext` via `useUniversalBoardOptional()`
+  - All colors via `hsl(var(--theme-*))` only
