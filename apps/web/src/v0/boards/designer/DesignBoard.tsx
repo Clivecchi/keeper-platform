@@ -1,21 +1,38 @@
 "use client"
 
 /**
- * DesignBoard (was DesignerFrame)
+ * DesignBoard — Moment 2.7 migration to UniversalBoard
  *
- * Platform Admin–only surface. Three panels at full viewport height:
- *   Left   — DesignBoardList       (collapsible board & template list)
- *   Center — DesignBoardFrameList  (frame rows + view toggles + Kip chat)
- *   Right  — DesignBoardFrameDetail (tabbed: Preview, Config, Props, JSON)
+ * Architecturally distinct from IDE, Agent, and Domain boards.
+ * Purpose: design the domain, not manage content.
  *
- * Interaction loop: Kip proposes → Preview updates → Human approves → Frame publishes.
+ * Shell removed: StyleScope, KeeperTopBar, DomainBriefSlideOver,
+ * pageBackground, panel layout divs, density sub-bar.
+ * UniversalBoard owns all of that now.
+ *
+ * What stays here:
+ *   - Admin guard
+ *   - All design-specific state: activeFrameKey, draftSpecJson, draftId,
+ *     audience, density, dialogId, messages, activeBoardId, selectedBoardDefId
+ *   - domainId resolution — handled by UniversalBoard's shell internally,
+ *     but also resolved here for publish/dialog-restore flows that predate
+ *     the universal shell and need domainId before UniversalBoard delivers it.
+ *   - Dialog restore: GET /api/domains/:domainId/kip/dialogs/resolve/active
+ *   - Publish handler: KipApi.createDraft / updateDraft / publishDraft
+ *
+ * Three panels via UniversalBoard render props:
+ *   left   — UniversalSwitcherPanel (Frames + Board Definitions)
+ *   center — DesignBoardCenter (KeeperDialogFrame, agentName="Design",
+ *            centerPanelMode tabs, frame rail, handleSend preserved)
+ *   right  — conditional: DesignBoardFrameDetail (frame selected) |
+ *            BoardDefPanel (board def selected) | null → Chronicle
+ *
+ * API endpoint POST /api/domains/:domainId/kip/designer — unchanged.
  *
  * KE3P · Keeper Platform · Phase 1 · March 2026
  */
 
 import * as React from "react"
-import { useNavigate } from "react-router-dom"
-import type { StyleId } from "../../styles/styles"
 import { useAuth } from "../../../context/AuthContext"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { loadDomainFrame } from "../../data/loadDomainFrame"
@@ -23,14 +40,16 @@ import type { DomainFrameJson } from "../../data/domain-frame.types"
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
 
-import { StyleScope } from "../../styles/StyleScope"
-import { KeeperTopBar } from "../../components/KeeperTopBar"
-import { DomainBriefSlideOver } from "../../components/DomainBriefSlideOver"
-import { DesignBoardList } from "./DesignBoardList"
-import { DesignBoardFrameList, BOARD_FRAMES } from "./DesignBoardFrameList"
+import { UniversalBoard } from "../UniversalBoard"
+import { DESIGNER_BOARD_DEF, BOARD_DEFINITIONS } from "../UniversalBoardDefinition"
+import type { UniversalBoardDef } from "../UniversalBoardDefinition"
+import { UniversalViewPanel, UniversalViewPanelIdle } from "../panels/UniversalViewPanel"
+import { UniversalSwitcherPanel } from "../panels/UniversalSwitcherPanel"
+import { DesignBoardCenter } from "./DesignBoardCenter"
 import { DesignBoardFrameDetail } from "./DesignBoardFrameDetail"
+import { BOARD_FRAMES } from "./DesignBoardFrameList"
 
-// ─── Density ───────────────────────────────────────────────────────────────────
+// ─── Re-exported types (consumed by DesignBoardCenter, DesignBoardFrameList) ──
 
 export type KeeperDensity = "compact" | "default" | "comfortable"
 
@@ -47,14 +66,6 @@ function readStoredDensity(): KeeperDensity {
   return "default"
 }
 
-// ─── Density segments ─────────────────────────────────────────────────────────
-
-const DENSITY_SEGMENTS: { key: KeeperDensity; label: string }[] = [
-  { key: "compact", label: "Compact" },
-  { key: "default", label: "Default" },
-  { key: "comfortable", label: "Comfortable" },
-]
-
 export type DesignerMessage = {
   id: string
   role: "user" | "kip"
@@ -65,68 +76,155 @@ export type DesignerMessage = {
 
 export type DesignerAudience = "guest" | "keeper" | "admin"
 
+// ─── Board Definition right panel ─────────────────────────────────────────────
+
+function BoardDefPanel({ def }: { def: UniversalBoardDef }) {
+  const json = JSON.stringify(def, null, 2)
+
+  const highlighted = json.replace(
+    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    (match) => {
+      let color = "hsl(var(--theme-accent-secondary))"
+      if (/^"/.test(match)) {
+        color = /:$/.test(match)
+          ? "hsl(var(--theme-ink-primary))"
+          : "hsl(var(--theme-accent-primary) / 0.8)"
+      } else if (/true|false/.test(match)) {
+        color = "hsl(var(--theme-accent-tertiary, var(--theme-accent-primary)))"
+      } else if (/null/.test(match)) {
+        color = "hsl(var(--theme-ink-tertiary))"
+      }
+      return `<span style="color:${color}">${match}</span>`
+    },
+  )
+
+  return (
+    <div
+      className="flex flex-col h-full overflow-hidden"
+      style={{
+        background: "hsl(var(--theme-surface-panel) / 0.85)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        borderRadius: "8px",
+        border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
+      }}
+    >
+      {/* Header */}
+      <div
+        className="shrink-0 px-4 py-3 border-b"
+        style={{ borderColor: "hsl(var(--theme-border-soft) / 0.25)" }}
+      >
+        <p
+          className="text-[10px] font-semibold uppercase tracking-widest"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          Board Definition
+        </p>
+        <h2
+          className="mt-1 text-[14px] font-semibold"
+          style={{ color: "hsl(var(--theme-ink-primary))" }}
+        >
+          {def.displayName}
+        </h2>
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-medium border"
+            style={{
+              background: "hsl(var(--theme-surface-elevated) / 0.5)",
+              color: "hsl(var(--theme-ink-secondary))",
+              borderColor: "hsl(var(--theme-border-soft) / 0.4)",
+            }}
+          >
+            {def.boardId}
+          </span>
+          {def.access.isAdminOnly && (
+            <span
+              className="rounded-full px-2 py-0.5 text-[10px] font-medium border"
+              style={{
+                background: "hsl(38 92% 50% / 0.12)",
+                color: "hsl(38 92% 32%)",
+                borderColor: "hsl(38 92% 50% / 0.3)",
+              }}
+            >
+              admin only
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* JSON */}
+      <div className="flex-1 overflow-auto min-h-0 keeper-panel-scroll">
+        <pre
+          className="p-4 text-[11px] leading-relaxed"
+          style={{
+            fontFamily: "ui-monospace, 'Cascadia Code', monospace",
+            color: "hsl(var(--theme-ink-secondary))",
+          }}
+          dangerouslySetInnerHTML={{ __html: highlighted }}
+        />
+      </div>
+    </div>
+  )
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function DesignerFrame({
-  styleId: _styleId = "neutral",
-  themeSlug: _themeSlug,
-  domainSlug: propDomainSlug,
-}: {
-  styleId?: StyleId
-  themeSlug?: string | null
-  domainSlug?: string
-}) {
+export function DesignerFrame() {
   const { isAdmin, isAuthenticated } = useAuth()
-  const { domainSlug: ctxSlug, domainFrame: shellDomainFrame, styleId: shellStyleId, themeSlug: shellThemeSlug } = useV0Shell()
-  const navigate = useNavigate()
-  const domainSlug = propDomainSlug ?? ctxSlug ?? ""
+  const { domainSlug: ctxSlug, domainFrame: shellDomainFrame } = useV0Shell()
+  const domainSlug = ctxSlug ?? ""
 
-  // ── Local live domain frame (separate from shell — reloads after publish) ──
+  // ── Local live domain frame ────────────────────────────────────────────────
   const [liveDomainFrame, setLiveDomainFrame] = React.useState<DomainFrameJson | null>(
     shellDomainFrame,
   )
   const [domainId, setDomainId] = React.useState<string | null>(null)
 
-  // ── Designer state ──
+  // ── Design-specific state ──────────────────────────────────────────────────
   const [activeFrameKey, setActiveFrameKey] = React.useState<string | null>(null)
   const [messages, setMessages] = React.useState<DesignerMessage[]>([])
   const [audience, setAudience] = React.useState<DesignerAudience>(
     () => (isAuthenticated ? "keeper" : "guest"),
   )
-  const [showRawJson, setShowRawJson] = React.useState(false)
 
-  // ── Dialog state — the persistent container for this conversation ──
+  // Dialog context — persistent session container for this conversation
   const [dialogId, setDialogId] = React.useState<string | null>(null)
 
-  // ── Draft state (lifted so all panels can read it) ──
+  // Draft state — lifted so right panel can read it
   const [draftSpecJson, setDraftSpecJson] = React.useState<DomainFrameJson | null>(null)
   const [draftId, setDraftId] = React.useState<string | null>(null)
   const [isPublishing, setIsPublishing] = React.useState(false)
   const [publishSuccess, setPublishSuccess] = React.useState(false)
 
-  // ── New panel state ──
+  // Left panel state
   const [activeBoardId, setActiveBoardId] = React.useState("domain")
-  const [leftCollapsed, setLeftCollapsed] = React.useState(false)
-  const [density, setDensity] = React.useState<KeeperDensity>(readStoredDensity)
-  const [briefOpen, setBriefOpen] = React.useState(false)
+  const [selectedBoardDefId, setSelectedBoardDefId] = React.useState<string | null>(null)
 
-  // ── Sync live frame from shell on mount ──
+  // Density — stays at board root
+  const [density, setDensity] = React.useState<KeeperDensity>(readStoredDensity)
+
+  // ── Sync live frame from shell ─────────────────────────────────────────────
   React.useEffect(() => {
     if (shellDomainFrame) setLiveDomainFrame(shellDomainFrame)
   }, [shellDomainFrame])
 
-  // ── Load domain ID ──
+  // ── Load domain ID ─────────────────────────────────────────────────────────
   React.useEffect(() => {
     if (!domainSlug) return
     let ignore = false
-    apiFetch(`/api/domains/by-slug/${domainSlug}`).then((res: any) => {
-      if (ignore) return
-      if (res?.id) setDomainId(res.id)
-    }).catch(() => {})
-    return () => { ignore = true }
+    apiFetch(`/api/domains/by-slug/${domainSlug}`)
+      .then((res: unknown) => {
+        if (ignore) return
+        const r = res as { id?: string }
+        if (r?.id) setDomainId(r.id)
+      })
+      .catch(() => {})
+    return () => {
+      ignore = true
+    }
   }, [domainSlug])
 
-  // ── Sync audience when auth loads (one-time) ──
+  // ── Sync audience when auth loads ──────────────────────────────────────────
   const prevAuthRef = React.useRef<boolean | null>(null)
   React.useEffect(() => {
     if (prevAuthRef.current === false && isAuthenticated) {
@@ -135,10 +233,17 @@ export function DesignerFrame({
     prevAuthRef.current = isAuthenticated
   }, [isAuthenticated])
 
-  // ── Restore Dialog context when active frame changes ──
-  // On every frame change: clear draft/publish state, then look up the
-  // active Dialog for this domain + frame context. If one exists, load
-  // its full message history so the conversation resumes after browser close.
+  // ── Density → document + localStorage ─────────────────────────────────────
+  React.useEffect(() => {
+    document.documentElement.setAttribute("data-density", density)
+    try {
+      localStorage.setItem(DENSITY_STORAGE_KEY, density)
+    } catch {
+      /* ignore */
+    }
+  }, [density])
+
+  // ── Dialog restore: reload history when activeFrameKey changes ────────────
   React.useEffect(() => {
     setDraftSpecJson(null)
     setDraftId(null)
@@ -153,16 +258,17 @@ export function DesignerFrame({
     apiFetch(
       `/api/domains/${domainId}/kip/dialogs/resolve/active?board=designer&frame=${encodeURIComponent(activeFrameKey)}&available_to=admin`,
     )
-      .then((res: any) => {
+      .then((res: unknown) => {
         if (cancelled) return
-        const dialog = res?.dialog
+        const dialog = (res as { dialog?: { id?: string; sessions?: unknown[] } })?.dialog
         if (!dialog) return
 
-        setDialogId(dialog.id)
+        setDialogId(dialog.id ?? null)
 
-        // Build DesignerMessage[] from kip_messages across all sessions
         const loaded: DesignerMessage[] = []
-        const sessions: any[] = dialog.sessions ?? []
+        const sessions = (dialog.sessions ?? []) as Array<{
+          kip_messages?: Array<{ id: string; role: string; content: string }>
+        }>
         for (const session of sessions) {
           for (const msg of session.kip_messages ?? []) {
             loaded.push({
@@ -175,13 +281,15 @@ export function DesignerFrame({
         if (loaded.length > 0) setMessages(loaded)
       })
       .catch(() => {
-        // Not critical — start fresh if resolution fails
+        // Non-critical — start fresh if resolution fails
       })
 
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [activeFrameKey, domainId])
 
-  // ── Reload live frame JSON (called after publish) ──
+  // ── Reload live frame (called after publish) ───────────────────────────────
   const reloadLiveFrame = React.useCallback(async () => {
     if (!domainSlug) return
     try {
@@ -192,21 +300,16 @@ export function DesignerFrame({
     }
   }, [domainSlug])
 
-  // ── Direct-edit handler (from Canvas click-to-edit) ──
+  // ── Direct-edit handler (from Canvas click-to-edit) ───────────────────────
   const handleDirectEdit = React.useCallback((updatedFrame: DomainFrameJson) => {
     setDraftSpecJson(updatedFrame)
     setDraftId(null)
     setPublishSuccess(false)
   }, [])
 
-  // ── Publish handler ──
+  // ── Publish handler ────────────────────────────────────────────────────────
   const handlePublish = React.useCallback(async () => {
     if (!draftSpecJson || !domainId || isPublishing) return
-    console.log("[publish] start", {
-      draftSpecJson: !!draftSpecJson,
-      draftId,
-      domainId,
-    })
     setIsPublishing(true)
     try {
       let resolvedDraftId = draftId
@@ -220,12 +323,9 @@ export function DesignerFrame({
         resolvedDraftId = draft.id
         setDraftId(resolvedDraftId)
       }
-      console.log("[publish] resolved draftId", resolvedDraftId)
-
       await KipApi.updateDraft(domainId, resolvedDraftId, {
         spec: draftSpecJson as unknown as Record<string, unknown>,
       })
-
       const pub = await KipApi.publishDraft(domainId, resolvedDraftId)
       console.log("[publish] response", pub)
       setPublishSuccess(true)
@@ -240,34 +340,47 @@ export function DesignerFrame({
     }
   }, [draftId, draftSpecJson, domainId, isPublishing, reloadLiveFrame])
 
-  React.useEffect(() => {
-    document.documentElement.setAttribute("data-density", density)
-    try {
-      localStorage.setItem(DENSITY_STORAGE_KEY, density)
-    } catch {
-      /* ignore */
-    }
-  }, [density])
-
-  // ── Frame select handler ──
+  // ── Frame select handler ───────────────────────────────────────────────────
   const handleFrameSelect = React.useCallback((key: string) => {
     setActiveFrameKey(key)
+    setSelectedBoardDefId(null) // frame focus clears board-def selection in right panel
   }, [])
 
-  // ── Derive active frame info from board data ──
+  // ── Board definition select handler ───────────────────────────────────────
+  const handleBoardDefSelect = React.useCallback((id: string) => {
+    setActiveBoardId(id)         // changes which frames are listed in Frames section
+    setSelectedBoardDefId(id)    // drives right panel to show board def JSON
+    setActiveFrameKey(null)      // clear frame focus when switching board def view
+  }, [])
+
+  // ── Derived: active frame info (for right panel DesignBoardFrameDetail) ───
   const activeFrameInfo = React.useMemo(() => {
     if (!activeFrameKey) return null
     const frames = BOARD_FRAMES[activeBoardId] ?? []
     return frames.find((f) => f.key === activeFrameKey) ?? null
   }, [activeFrameKey, activeBoardId])
 
-  // ── Admin guard ──
+  // ── Admin guard ────────────────────────────────────────────────────────────
   if (!isAdmin) {
     return (
-      <div className="flex h-screen items-center justify-center bg-neutral-50">
-        <div className="rounded-xl border border-neutral-200 bg-white px-8 py-6 text-center shadow-sm">
-          <p className="text-sm font-medium text-neutral-700">Access restricted</p>
-          <p className="mt-1 text-xs text-neutral-400">
+      <div
+        className="flex h-screen items-center justify-center"
+        style={{ background: "hsl(var(--theme-surface-page))" }}
+      >
+        <div
+          className="rounded-xl px-8 py-6 text-center"
+          style={{
+            background: "hsl(var(--theme-surface-panel))",
+            border: "1px solid hsl(var(--theme-border-soft) / 0.4)",
+          }}
+        >
+          <p
+            className="text-sm font-medium"
+            style={{ color: "hsl(var(--theme-ink-primary))" }}
+          >
+            Access restricted
+          </p>
+          <p className="mt-1 text-xs" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
             Designer Frame is available to Platform Admins only.
           </p>
         </div>
@@ -276,144 +389,75 @@ export function DesignerFrame({
   }
 
   return (
-    <StyleScope
-      styleId={shellStyleId ?? (_styleId as StyleId)}
-      themeSlug={shellThemeSlug ?? _themeSlug ?? null}
-      className="keeper-design-board-scope flex flex-col h-screen w-full overflow-hidden"
-      style={{ background: "#f5f2eb" }}
-    >
-      {/* Top bar */}
-      <KeeperTopBar
-        onDomainClick={() => {}}
-        onBriefClick={() => setBriefOpen((o) => !o)}
-        isBriefOpen={briefOpen}
-      />
-      {briefOpen && liveDomainFrame && (
-        <DomainBriefSlideOver
-          domainFrame={liveDomainFrame}
-          onClose={() => setBriefOpen(false)}
+    <UniversalBoard
+      def={DESIGNER_BOARD_DEF}
+
+      // ── Left — UniversalSwitcherPanel ──────────────────────────────────────
+      left={(leftProps) => (
+        <UniversalSwitcherPanel
+          activeBoardId={activeBoardId}
+          activeFrameKey={activeFrameKey}
+          selectedBoardDefId={selectedBoardDefId}
+          draftSpecJson={draftSpecJson}
+          liveDomainFrame={liveDomainFrame}
+          onSelectFrame={handleFrameSelect}
+          onSelectBoard={handleBoardDefSelect}
         />
       )}
 
-      {/* Density sub-bar */}
-      <div
-        className="shrink-0 flex items-center justify-end px-4 gap-1"
-        style={{
-          height: 34,
-          borderBottom: "1px solid #e7e5e4",
-          background: "#faf8f5",
-        }}
-      >
-        <div
-          className="flex items-center rounded-md overflow-hidden border text-[10px] font-medium"
-          style={{ borderColor: "#d6d3d1", background: "#f5f2eb" }}
-          role="group"
-          aria-label="Display density"
-        >
-          {DENSITY_SEGMENTS.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setDensity(key)}
-              className="px-2 py-1 transition-colors whitespace-nowrap"
-              style={{
-                background: density === key ? "#ffffff" : "transparent",
-                color: density === key ? "#1c1917" : "#57534e",
-                boxShadow: density === key ? "inset 0 0 0 1px #d6d3d1" : "none",
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Three-panel layout */}
-      <div className="flex flex-1 min-h-0 overflow-hidden px-6 pb-8 gap-[10px]">
-
-      {/* Left — Board & Template List */}
-      <div
-        className="flex flex-col min-h-0 transition-all duration-200 overflow-hidden"
-        style={{
-          width: leftCollapsed ? 36 : 220,
-          minWidth: leftCollapsed ? 36 : 220,
-          background: "hsl(var(--theme-surface-panel) / 0.85)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          borderRadius: "8px",
-          border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
-          overflowY: "auto",
-        }}
-      >
-        <DesignBoardList
-          activeBoardId={activeBoardId}
-          onSelectBoard={setActiveBoardId}
-          collapsed={leftCollapsed}
-          onToggleCollapsed={() => setLeftCollapsed((c) => !c)}
-        />
-      </div>
-
-      {/* Center — Frame list + Kip chat */}
-      <div
-        className="flex flex-col min-h-0"
-        style={{
-          flex: "1 1 0%",
-          minWidth: 0,
-          background: "transparent",
-          borderRadius: "8px",
-          overflow: "hidden",
-        }}
-      >
-        <DesignBoardFrameList
+      // ── Center — Kip in Design Mode ────────────────────────────────────────
+      center={(centerProps) => (
+        <DesignBoardCenter
+          domainId={centerProps.domainId}
+          domainSlug={centerProps.domainSlug}
           activeBoardId={activeBoardId}
           activeFrameKey={activeFrameKey}
           onSelectFrame={handleFrameSelect}
           onClearFrameSelection={() => setActiveFrameKey(null)}
-          domainId={domainId}
-          domainSlug={domainSlug}
           liveDomainFrame={liveDomainFrame}
           draftSpecJson={draftSpecJson}
-          messages={messages}
-          setMessages={setMessages}
-          draftId={draftId}
-          setDraftId={setDraftId}
           setDraftSpecJson={setDraftSpecJson}
           hasDraftSpec={draftSpecJson !== null}
           isPublishing={isPublishing}
           publishSuccess={publishSuccess}
           onPublish={handlePublish}
+          messages={messages}
+          setMessages={setMessages}
+          draftId={draftId}
+          setDraftId={setDraftId}
           dialogId={dialogId}
           setDialogId={setDialogId}
+          density={density}
+          onDensityChange={setDensity}
         />
-      </div>
+      )}
 
-      {/* Right — Frame detail (tabbed) */}
-      <div
-        className="flex flex-col overflow-hidden"
-        style={{
-          width: "42%",
-          minWidth: 320,
-          background: "hsl(var(--theme-surface-panel) / 0.85)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          borderRadius: "8px",
-          border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
-        }}
-      >
-        <DesignBoardFrameDetail
-          domainSlug={domainSlug}
-          activeFrameKey={activeFrameKey}
-          activeFrameInfo={activeFrameInfo}
-          liveDomainFrame={liveDomainFrame}
-          draftSpecJson={draftSpecJson}
-          audience={audience}
-          setAudience={setAudience}
-          onDirectEdit={handleDirectEdit}
-        />
-      </div>
-
-      </div>
-    </StyleScope>
+      // ── Right — Chronicle (with conditional overrides) ─────────────────────
+      // Frame selected   → DesignBoardFrameDetail (Preview, Config, Props, JSON tabs)
+      // Board def selected → BoardDefPanel (JSON + structure)
+      // Nothing selected → null → UniversalViewPanel (Chronicle) renders
+      right={(rightProps) => {
+        if (activeFrameKey && activeFrameInfo) {
+          return (
+            <DesignBoardFrameDetail
+              domainSlug={rightProps.domainSlug}
+              activeFrameKey={activeFrameKey}
+              activeFrameInfo={activeFrameInfo}
+              liveDomainFrame={liveDomainFrame}
+              draftSpecJson={draftSpecJson}
+              audience={audience}
+              setAudience={setAudience}
+              onDirectEdit={handleDirectEdit}
+            />
+          )
+        }
+        if (selectedBoardDefId) {
+          const def = BOARD_DEFINITIONS[selectedBoardDefId]
+          return def ? <BoardDefPanel def={def} /> : null
+        }
+        return null
+      }}
+    />
   )
 }
 

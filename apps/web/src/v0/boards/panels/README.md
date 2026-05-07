@@ -5,6 +5,7 @@ Shared panel components used by Universal Board. Each panel has a defined treatm
 
 ## 🧱 Key Files
 - `UniversalViewPanel.tsx` — Chronicle: the right panel for all Universal Boards (TreatmentSurface)
+- `UniversalSwitcherPanel.tsx` — Left panel for Design Board; two static sections: Frames and Board Definitions; no fetching; zero hardcoded colors
 - `UniversalContextPanel.tsx` — legacy right panel (superseded by Chronicle, retained for reference)
 
 ## 🔄 Data & Behavior
@@ -78,9 +79,17 @@ No trail history, no feed indicator, no editable fields.
 - [ ] Agent presence — for Agent Board's agent selection state
 - [ ] Service presence — for IDE Board's ServicesFrame integration
 - [ ] Rendr integration — spatial ratios and density governed by `presenceTreatment` field
-- [ ] Designer Board — migrate DesignBoard to UniversalBoard shell to receive Chronicle
+- [x] Designer Board — migrated to UniversalBoard shell (Moment 2.7); Chronicle renders at idle and when Board Definition selected
 
 ## 📆 Update Log
+
+### 2026-05-06 — Moment 2.7: UniversalSwitcherPanel (Design Board left panel)
+- Created `UniversalSwitcherPanel.tsx` — left panel for Design Board
+  - Two static sections: **Frames** (from `BOARD_FRAMES[activeBoardId]` with live/draft dots) and **Board Definitions** (all four board defs from `UniversalBoardDefinition.ts`)
+  - Selecting a Frame → `onSelectFrame(key)` → sets `activeFrameKey` in parent
+  - Selecting a Board Definition → `onSelectBoard(id)` → sets `activeBoardId` + `selectedBoardDefId` in parent
+  - No fetching — all data flows in as props
+  - All colors `hsl(var(--theme-*))` — zero hardcoded values
 
 ### 2026-05-06 — Chronicle: UniversalViewPanel
 - Created `UniversalViewPanel.tsx` — Chronicle, the right panel for all Universal Boards

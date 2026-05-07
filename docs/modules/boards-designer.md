@@ -4,41 +4,90 @@
 Platform Admin–only surface for visually designing and editing V0 domain Frame JSON with Kip. Accessed via `?board=designer` on any `/d/:slug/board` URL.
 
 ## 🧱 Key Files
-- `DesignBoard.tsx` — Root component; three-panel layout with lifted state; also exports `DesignBoard` alias used by `boardRegistry.ts`
-- `DesignBoardNav.tsx` — Left panel; lists V0 Frames with live/draft status dots; frame selection triggers Kip conversation
-- `DesignBoardKip.tsx` — Center panel; Kip conversation interface; approve-to-draft flow; publish handler
-- `DesignBoardCanvas.tsx` — Right panel; live/draft frame preview with audience switcher and raw JSON toggle
-
-## 📆 Update Log
-- 2026-04-01: Frame list (center column) — "Designing" label; live/draft dots; `dialog_board: designer` + resolve `board=designer`. See `apps/web/src/v0/boards/designer/README.md`.
+- `DesignBoard.tsx` — Root component; wraps `UniversalBoard`; owns all design state (`activeBoardId`, `activeFrameKey`, `selectedBoardDefId`, `density`, draft/publish, `dialogId`, `messages`); exports `DesignBoard` alias for `boardRegistry.ts`; syncs `data-density` on `document.documentElement` and `keeper-density` in `localStorage`
+- `DesignBoardCenter.tsx` — Center panel; `KeeperDialogFrame` with `agentName="Design"`; mode switcher (frames / brief / code); frame rail (horizontal pill chips in banner zone when frame active); `POST /api/domains/:domainId/kip/designer` with `dialog_board: "designer"`; `KipApi.createDraft` on Kip proposal
+- `DesignBoardFrameList.tsx` — Exports `BOARD_FRAMES`, `BOARD_NAMES`, `FrameItem` used by center panel and domain board. The `DesignBoardFrameList` component itself is superseded by `DesignBoardCenter`
+- `DesignBoardFrameDetail.tsx` — Right panel; tabbed Frame detail (Preview, Config, Props, JSON); preserves `FramePreviewShell` and direct-edit overlay; shown when a frame is selected
+- `DesignBoardList.tsx` — (Superseded) Original left panel; replaced by `UniversalSwitcherPanel` from `../panels/`
+- `DesignBoardNav.tsx` — (Legacy) Original left panel; superseded
+- `DesignBoardKip.tsx` — (Legacy) Original center panel; superseded
+- `DesignBoardCanvas.tsx` — (Legacy) Original right panel; superseded by `DesignBoardFrameDetail.tsx`
 
 ## 🔄 Data & Behavior
-- Parent component (`DesignBoard.tsx`) owns all state: `activeFrameKey`, `messages`, `draftSpecJson`, `draftId`, `liveDomainFrame`
-- `DesignBoardNav` reads `CORE_FRAME_MAP` for the frame list; does not include the board itself
-- `DesignBoardKip` posts to `POST /api/domains/:domainId/kip/designer` and calls `KipApi.createDraft` on approve
-- `DesignBoardCanvas` imports `CORE_FRAME_MAP` directly (no circular risk since board is no longer in FRAME_REGISTRY)
-- `DesignBoardCanvas` wraps previewed frames in a `V0ShellProvider` override so draft JSON is visible
+- `DesignBoard.tsx` owns all state: `activeBoardId`, `activeFrameKey`, `selectedBoardDefId`, `messages`, `draftSpecJson`, `draftId`, `liveDomainFrame`, `audience`, `density`, `dialogId`
+- Left panel: `UniversalSwitcherPanel` — two static sections: **Frames** (from `BOARD_FRAMES[activeBoardId]` with live/draft dots) and **Board Definitions** (all four board defs). Selecting a Frame → sets `activeFrameKey`. Selecting a Board Definition → sets `activeBoardId` + `selectedBoardDefId`, clears `activeFrameKey`
+- Center panel: `DesignBoardCenter` — `KeeperDialogFrame` with `agentName="Design"`. Mode switcher and density control in header. Frame rail in banner zone when frame active. Dialog content switches by `centerPanelMode`: frame list → messages → brief → JSON
+- Right panel (conditional): Frame selected → `DesignBoardFrameDetail`; Board def selected → `BoardDefPanel` (inline JSON view); Nothing → `null` → Chronicle (`UniversalViewPanel`) renders
+- `DesignBoardFrameDetail` imports `CORE_FRAME_MAP` directly; wraps previewed frames in a `V0ShellProvider` override so draft JSON is visible; four tabs: Preview (live frame preview + eye icon audience menu + direct edit), Config (frame props + labels), Props (prop library display), JSON (syntax-highlighted read-only)
 
 ## 🐛 Debug Mode
 Design Board debug logging traces draft propagation from Kip → preview. Enable via:
+
 - **Runtime** (browser console): `window.__keeperDebug = window.__keeperDebug || {}; window.__keeperDebug.designer = true`
 - **Build-time**: `VITE_DESIGNER_DEBUG=1` in `.env` or `VITE_DESIGNER_DEBUG=1 npm run dev`
 
-When enabled, `[DesignBoard:debug]` logs appear for `setDraftSpecJson` and `previewDomainFrame updated`.
+When enabled, `[DesignBoard:debug]` logs appear:
+- `setDraftSpecJson` — when Kip returns a draft (frameKey, fullSpecKeys, frameBlockKeys)
+- `previewDomainFrame updated` — when Canvas receives new draft/live data (activeFrameKey, hasDraftSpec, blockKeys)
 
 ## ⚠️ Notes & ToDo
-- [ ] Component internals still use `DesignerFrame` / `DesignerFrameKip` etc. as internal names — rename in a future step
+- [x] Component internals renamed: `DesignerFrameNav` → `DesignBoardList`, `DesignerFrameKip` → `DesignBoardFrameList`, `DesignerFramePreview` → `DesignBoardFrameDetail`
+- [x] Moment 2.7: Migrated to `UniversalBoard` shell; left panel replaced with `UniversalSwitcherPanel`; center panel refactored to use `KeeperDialogFrame` with `agentName="Design"`; right panel now conditional (frame detail / board def JSON / Chronicle)
 - [ ] The admin guard is duplicated: once in `DesignBoard.tsx` (component level) and once in `V0Shell.tsx` (routing level)
 - [ ] `Margin` (interaction bar) renders as a `fixed` overlay over the whole board when any frame is previewed — intentional leakage from `DesignFrame`. May want to suppress it in the preview context in a future pass.
+- [ ] `DesignBoardList.tsx`, `DesignBoardKip.tsx`, `DesignBoardCanvas.tsx`, `DesignBoardNav.tsx` are now legacy files — safe to delete in a future cleanup pass once no other consumers remain
 
 ## 📆 Update Log
+### 2026-05-06 — Moment 2.7: Migration to UniversalBoard
+- **`DesignBoard.tsx`**: Rewritten. Removed custom StyleScope / KeeperTopBar / DomainBriefSlideOver / panel layout — all owned by `UniversalBoard` now. Wraps `UniversalBoard` with `left` / `center` / `right` render props. Added `selectedBoardDefId` state (drives right panel board-def view). Admin guard preserved. Density state preserved; surfaced via switcher in `DesignBoardCenter` header instead of separate sub-bar.
+- **`DesignBoardCenter.tsx`** (new): Center panel. `KeeperDialogFrame` shell with `agentName="Design"`. Mode switcher (frames / brief / code) + density control at top. Frame rail (horizontal pill chips) in banner zone when frame active. Full `handleSend` logic with `dialog_board: "designer"` preserved. `dialogContent` prop controls Zone 2 across all three modes. Zero hardcoded colors.
+- **`../panels/UniversalSwitcherPanel.tsx`** (new): Left panel. Two static sections — Frames (from `BOARD_FRAMES[activeBoardId]` with live/draft status dots) and Board Definitions (all four defs from `UniversalBoardDefinition.ts`). No fetching. Zero hardcoded colors.
+- **Right panel**: Now a conditional render prop. Frame selected → `DesignBoardFrameDetail` (unchanged). Board def selected → inline `BoardDefPanel` (JSON + structure). Nothing selected → `null` → Chronicle (`UniversalViewPanel`) renders automatically.
+- **Composer label**: Always "Design" — via `agentName="Design"` on `KeeperDialogFrame`.
+- **API**: `POST /api/domains/:domainId/kip/designer` — unchanged.
+
+### 2026-04-01 — Studio vs stage: Designing label, live/draft dots, Dialog context
+- **`DesignBoardFrameList.tsx`**: "Designing" label above the frame list; 6px green/amber status dot per row (draft vs `liveDomainFrame` via `draftSpecJson`); designer Kip requests send `dialog_board: "designer"`.
+- **`DesignBoard.tsx`**: Passes `draftSpecJson`; dialog resolve uses `board=designer` (was `domain`).
+
+### 2026-03-31 — Brief mode: replace placeholder with DomainBrief
+- **`DesignBoardFrameList.tsx`**: Brief mode now renders `<DomainBrief domainFrame={liveDomainFrame} />` (same component as DomainBoard). The old placeholder ("Editable domain configuration. Coming soon.") is removed. Kip draft bar remains below the Brief component.
+
+### 2026-03-30 — Design Board center panel modes (frames / brief / code)
+- **`DesignBoardFrameList.tsx`**: Replaced non-functional dialog/preview toggles with `centerPanelMode`: `frames` (existing navigator + Kip), `brief` (Domain Brief placeholder), `code` (formatted read-only domain JSON from `liveDomainFrame`). Kip composer stays at bottom in all modes; designer API uses `activeFrameKey ?? "cover"` when no frame is focused.
 ### 2026-03-25 — Preview, publish staleness, click-to-edit
-- See `apps/web/src/v0/boards/designer/README.md` (same date entry) for `DesignBoard.tsx`, `DesignBoardFrameDetail.tsx`, and cover preview wiring.
+- **`DesignBoard.tsx`**: Temporary `[publish]` `console.log` diagnostics in `handlePublish`. Before `publishDraft`, always `KipApi.updateDraft(..., { spec: draftSpecJson })` so the DB draft matches the latest in-session JSON after multiple Kip turns.
+- **`DesignBoardFrameDetail.tsx`**: Preview wrapper `pointerEvents: "auto"` (overlay still captures clicks at `z-index: 10`). Loose text matching in `handleOverlayClick`. Direct-edit string leaves for Board Cover also walk `theme` (tagline lives there); `EditPopup` / `handleEditSave` support optional `blockKey` for patches outside the frame block.
+- **`cover-frame.tsx` / `CoverBody.tsx`**: Designer Board preview detected via `buildFrameUrl("cover") === "#"` (matches `FramePreviewShell` stub). Skip cover-image `apiFetch` fallback in that context; prefer `domainFrame.theme` for closed/open header copy so Kip tagline updates show without reload.
+### 2026-03-25 — Designer contrast + density (paper palette, chat legibility)
+- **Contrast**: Warm off-white surfaces (`#fdfbf7` / `#f5f2eb` / `#fefdfb`), stone-800/900 body text (`#44403c`–`#1c1917`), stronger borders (`#e7e5e4` / `#d6d3d1`). Kip thread bubbles and chat chrome no longer rely on theme CSS variables that could read as low-contrast. Removed `opacity: 0.45` from the “no frame selected” chat footer (was washing out placeholder and labels). `.design-board-chat-input::placeholder` in `index.css` uses `#78716c` at full opacity.
+- **Density**: `index.css` now applies `zoom: var(--density-scale)` on `.keeper-design-board-scope .density-content` so Compact/Default/Comfortable visibly rescale px-based Tailwind sizes (previous `font-size` on the wrapper did not affect `text-[13px]` etc.). Scales: compact `0.86`, default `1`, comfortable `1.15`.
+### 2026-03-25 — Designer UX pass (density, left panel, center focus, audience menu)
+- **Density**: Banner segmented control (Compact / Default / Comfortable); persists `keeper-density` in `localStorage`; `data-density` on `<html>`; global CSS in `apps/web/src/index.css` (`--density-scale` + `zoom` on `.density-content`); early read in `apps/web/index.html` to reduce flash.
+- **Left panel**: Frame selection no longer sets `leftCollapsed`; chevron toggle unchanged.
+- **Center**: When a frame is selected — horizontal frame rail, context banner (name, role badge, Live/Draft, title from domain JSON when present), full-height Kip thread + active input; "← All Frames" clears selection; when none selected — full list + subdued disabled chat with placeholder "Select a frame to begin".
+- **Right Preview**: "Viewing as" segment control replaced by eye icon + Radix dropdown (Guest / Keeper / Admin) with checkmark; audience dot on icon; `setAudience` behavior unchanged.
+- **Types**: `buildFullSpec` / draft spec casts use `unknown` intermediates where required by strict TS.
+### 2026-03-16 — Three-panel layout upgrade (Board-first authoring surface)
+- **Left panel**: Replaced `DesignBoardNav` with `DesignBoardList` — collapsible Board & Template list with chevron toggle; auto-collapses on Frame select; 36px collapsed width.
+- **Center panel**: Replaced `DesignBoardKip` with `DesignBoardFrameList` — Frame rows with color dots and role badges, three icon-only view toggles (Frames/Dialog/Preview), Add Frame placeholder, draft/publish status bar, Kip chat box footer with arrow send button.
+- **Right panel**: Replaced `DesignBoardCanvas` with `DesignBoardFrameDetail` — four tabs (Preview, Config, Props, JSON); Preview preserves `FramePreviewShell` + audience switcher + direct-edit overlay; Config shows Frame Props + Labels; Props shows categorized prop library; JSON shows syntax-highlighted read-only output.
+- **DesignBoard.tsx**: Added `activeBoardId`, `leftCollapsed` state; `onFrameSelect` auto-collapses left; all existing state and handlers preserved.
+- **boardRegistry.ts**: Added `domain` entry with stub `DomainBoard` component; updated `V0BoardKey` union.
 ### 2026-03-16 — Board Chrome hard boundary + auth wiring
 - **Auth**: Default audience to `keeper` when designer is logged in; sync when auth loads. Interaction bar (Sign In) now reflects actual auth state instead of always showing guest view.
 - **Hard boundary**: Three-panel layout now has `paddingBottom: V0_MARGIN_HEIGHT` so content cannot extend behind the interaction bar. Board Chrome (top banner + interaction bar) enforces a hard boundary; background image can continue to scroll.
 ### 2026-03-15 — Debug logging
 - Added `[DesignBoard:debug]` logging in `DesignBoardKip` and `DesignBoardCanvas` for draft → preview propagation. Gated by `VITE_DESIGNER_DEBUG=1` or `window.__keeperDebug.designer`.
+### 2026-03-15 — Full end-to-end loop fix
+- **`DesignBoardKip.tsx`**: Removed the two-step "Approve & create draft" flow. `handleSend()` now auto-creates the draft immediately when the backend returns `draft.spec_json`. The draft `spec` is built as the **full** `DomainFrameJson` (live frame merged with the proposed frame block at the correct JSON key via `buildFullSpec()`), not just the frame-level block. This prevents publish from overwriting unrelated frame data. `draftId` and `draftSpecJson` are both set before the API round-trip completes so the Canvas and Publish bar update immediately. `MessageBubble` no longer handles approve logic — it is now a pure display component.
+- **`DesignBoardCanvas.tsx`**: Comment update — `draftSpecJson` is now always the full `DomainFrameJson`; the spread merge is correct as-is.
+- **`kip-designer.ts`**: (1) `wantsJsonProposal()` replaced: now returns `true` for any authoring intent, `false` only for pure informational questions (starts with what/why/how/when/who/which/where/is/are/do/does/did etc.). (2) `needsJson` no longer requires `togetherKey` — Anthropic JSON fallback (`callAnthropicJsonFallback()`) is used when Together AI is unavailable or fails. This eliminates the `TOGETHER_API_KEY` hard dependency. (3) Kip system prompt rewritten: "confirm what you changed in 1-2 sentences, do not ask clarifying questions before acting."
+- **`domain-frame.types.ts`**: Added `FeedFrameJson`, `KeepersFrameJson`, `ProfileFrameJson`; added `feed`, `keepers`, `profile` to `DomainFrameJson`.
+- **`frameRegistryMap.ts`**: `FRAME_TO_JSON_KEY` updated: `feed: "feed"`, `keepers: "keepers"`, `profile: "profile"` (was `null`).
+- **`frame-schemas.ts`**: Added `feedFrameSchema`, `keepersFrameSchema`, `profileFrameSchema`; added all three to `FRAME_SCHEMA_MAP`.
+- **`FeedFrame.tsx`, `KeepersFrame.tsx`, `ProfileFrame.tsx`**: Now read `frame_title`, `frame_subtitle`, `coming_soon_heading`, `coming_soon_body`, `cta_back_to_commons` from `domainFrame.feed/keepers/profile`; fall back to hardcoded defaults if JSON block absent.
+- **`seed-default-domain-frames.ts`**: Added `DEFAULT_FEED`, `DEFAULT_KEEPERS`, `DEFAULT_PROFILE`; ran seed — all three blocks confirmed in database (`default` domain).
 ### 2026-03-12 — Pre-existing error fixes
 - `DesignBoardCanvas.tsx` line 68: `experienceMode="standard"` → `experienceMode={parentShell.experienceMode}`. `"standard"` was never a valid `ExperienceMode` member; now inherits the board's actual experience mode from shell context.
 - `DesignBoardKip.tsx` line 120: `{msg.draftProposal && ...}` → `{!!msg.draftProposal && ...}`. `draftProposal` is typed `unknown`; `!!` narrows to `boolean` making the JSX short-circuit valid as `ReactNode`. Net error count: 45 → 43 (2 fixed, 0 introduced).

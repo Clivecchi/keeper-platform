@@ -1138,14 +1138,24 @@ export function UniversalViewPanel({
   const { kind, id } = resolveKindId()
   const contextKey = `${kind}:${id ?? "_"}`
 
+  // ── Label cache ────────────────────────────────────────────────────────────
+  // Maps "kind:id" → resolved record name so revisits show the name immediately
+  // rather than waiting for the view's async fetch to fire onLabelResolved again.
+  const labelCache = React.useRef(new Map<string, string>())
+
+  function resolveInitialLabel(k: TrailKind, entryId: string | null): string {
+    if (k === "domain") return domainName || "Home"
+    return labelCache.current.get(`${k}:${entryId ?? "_"}`) ?? "···"
+  }
+
   // ── Trail history ──────────────────────────────────────────────────────────
-  // Initialise with the domain idle entry. Push new entries on context change.
+  // Initialise with the current context. Push new entries on context change.
   const [panelHistory, setPanelHistory] = React.useState<TrailEntry[]>(() => [
     {
       key: `${contextKey}:init`,
       kind,
       id,
-      label: kindLabel(kind, domainName),
+      label: resolveInitialLabel(kind, id),
     },
   ])
   const [currentIndex, setCurrentIndex] = React.useState(0)
@@ -1161,7 +1171,8 @@ export function UniversalViewPanel({
       key: `${contextKey}:${Date.now()}`,
       kind,
       id,
-      label: kindLabel(kind, domainName),
+      // Use cached name immediately — "···" only if this record was never visited.
+      label: resolveInitialLabel(kind, id),
     }
 
     setPanelHistory((prev) => [...prev, newEntry])
@@ -1171,11 +1182,18 @@ export function UniversalViewPanel({
   }, [contextKey])
 
   // ── Label resolution ───────────────────────────────────────────────────────
-  // Views call this when they have resolved their display name.
+  // Views call this when they have fetched the record name. Updates the trail
+  // entry label and populates the cache so future trail pushes for this record
+  // start with the correct name instead of "···".
   const handleLabelResolved = React.useCallback(
     (key: string, label: string) => {
       setPanelHistory((prev) =>
-        prev.map((e) => (e.key === key ? { ...e, label } : e)),
+        prev.map((e) => {
+          if (e.key !== key) return e
+          // Cache by kind:id — next push for this record skips the placeholder.
+          labelCache.current.set(`${e.kind}:${e.id ?? "_"}`, label)
+          return { ...e, label }
+        }),
       )
     },
     [],
