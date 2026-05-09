@@ -9,20 +9,17 @@
  * pageBackground, panel layout divs, gap/padding wiring.
  * UniversalBoard owns all of that now.
  *
- * DomainBoard is the outlier — it does NOT use IDEBoardConversation or
- * AgentBoardConversation. It calls KeeperDialogFrame directly with two modes:
- *   Feed Mode  ('feed')   — The Commons. FeedFrame in Zone 2. Default on load.
- *   Dialog Mode ('dialog') — The Workshop. Kip conversation in Zone 2.
- *   Sending a message switches feed → dialog. ← Commons in banner returns to feed.
+ * Center panel: DomainBanner + DomainBoardConversation (persisted Kip session).
+ * Right panel:  Chronicle (UniversalViewPanel) — trail history, journey/moment/idle views.
+ *               Domain Board Chronicle idle state shows the domain feed (recent Moments +
+ *               active Journeys) — the ambient ambient state, never blank.
  *
  * Left panel:   Custom board switcher (Domain / Design / Agent) + domain frames list.
- * Center panel: DomainBanner + KeeperDialogFrame (feed/dialog mode).
- * Right panel:  Chronicle (UniversalViewPanel) — trail history, journey/moment/idle views.
  *
  * Domain-specific data that stays here:
  *   - liveDomainFrame (separately fetched, kept in sync with shell)
  *   - domainId, journeyCount, journeys, momentCount (public + authed fetches)
- *   - messages, input, centerMode, selectedMoment (id passed to Chronicle), activeJourneyId
+ *   - selectedMoment (id passed to Chronicle), activeJourneyId
  *   - switcherOpen (DomainSwitcher overlay, triggered by top bar onDomainClick)
  */
 
@@ -34,20 +31,16 @@ import { useV0Shell } from "../../shell/V0ShellContext"
 import { FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
 
 import { BOARD_FRAMES, type FrameItem } from "../designer/DesignBoardFrameList"
-import type { DesignerMessage } from "../designer/DesignBoard"
 import { apiFetch } from "../../../lib/api"
-import { KeeperDialogFrame } from "../../components/dialog/KeeperDialogFrame"
-import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { DomainSwitcher } from "../../components/DomainSwitcher"
 import { DomainBanner } from "../../components/DomainBanner"
-import { FeedFrame } from "../../frames/feed/FeedFrame"
-import type { KeptRow } from "../../frames/feed/FeedFrame"
 import { StyleScope } from "../../styles/StyleScope"
 import { getApiBase } from "../../../lib/apiFetch"
 
 import { UniversalBoard } from "../UniversalBoard"
 import { DOMAIN_BOARD_DEF } from "../UniversalBoardDefinition"
 import { UniversalViewPanel } from "../panels/UniversalViewPanel"
+import { DomainBoardConversation } from "./DomainBoardConversation"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -59,10 +52,6 @@ const BADGE_STYLES: Record<string, React.CSSProperties> = {
   default: { background: "#f0ece4", color: "#57534e", borderColor: "#d6d3d1" },
   primary: { background: "#ecfdf5", color: "#047857", borderColor: "#6ee7b7" },
   panel: { background: "#e0e7ff", color: "#1d4ed8", borderColor: "#a5b4fc" },
-}
-
-function uid(): string {
-  return Math.random().toString(36).slice(2, 10)
 }
 
 function extractFrameTitleFromBlock(frameBlock: unknown): string | null {
@@ -201,17 +190,8 @@ export function DomainBoard() {
     return () => { cancelled = true }
   }, [selectedFrameKey, domainSlug])
 
-  // ── Center panel state ─────────────────────────────────────────────────────
-
-  const [messages, setMessages] = React.useState<DesignerMessage[]>([])
-  const [input, setInput] = React.useState("")
-  const [isSending, setIsSending] = React.useState(false)
-  const [sendError, setSendError] = React.useState<string | null>(null)
-  // Feed Mode = The Commons (default). Dialog Mode = The Workshop (after first message).
-  const [centerMode, setCenterMode] = React.useState<"feed" | "dialog">("feed")
-
   // ── Right panel state ──────────────────────────────────────────────────────
-  const [selectedMoment, setSelectedMoment] = React.useState<KeptRow | null>(null)
+  const [selectedMomentId, setSelectedMomentId] = React.useState<string | null>(null)
 
   // ── Domain switcher overlay ────────────────────────────────────────────────
   const [switcherOpen, setSwitcherOpen] = React.useState(false)
@@ -231,60 +211,6 @@ export function DomainBoard() {
   const _frameContextLine =
     (activeFrameRow && extractFrameTitleFromBlock(frameBlockForActive)) ?? activeFrameRow?.name ?? ""
 
-  const kipFrameKey = selectedFrameKey ?? "cover"
-
-  // ── Moment detail fetch ────────────────────────────────────────────────────
-
-
-  // ── Message sending ────────────────────────────────────────────────────────
-
-  const addMessage = React.useCallback((m: DesignerMessage) => {
-    setMessages((prev) => [...prev, m])
-  }, [])
-
-  const handleSend = async (textOverride?: string) => {
-    const text = (textOverride ?? input).trim()
-    if (!text || !domainId || isSending) return
-
-    const userMsg: DesignerMessage = { id: uid(), role: "user", content: text }
-    addMessage(userMsg)
-    setInput("")
-    setIsSending(true)
-    setSendError(null)
-
-    try {
-      const history = messages.map((m) => ({ role: m.role, content: m.content }))
-      const result = (await apiFetch(`/api/domains/${domainId}/kip/designer`, {
-        method: "POST",
-        body: JSON.stringify({
-          message: text,
-          frameKey: kipFrameKey,
-          conversationHistory: history,
-          dialog_board: "domain",
-        }),
-      })) as { response: string }
-
-      addMessage({ id: uid(), role: "kip", content: result.response ?? "(no response)" })
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to send message"
-      setSendError(message)
-      addMessage({ id: uid(), role: "kip", content: "Sorry, something went wrong. Please try again." })
-    } finally {
-      setIsSending(false)
-    }
-  }
-
-  const handleDialogSubmit = React.useCallback(
-    (_e: React.FormEvent, options: { content: string }) => {
-      // Sending a message is the moment of intention — switch to Dialog Mode (The Workshop)
-      if (centerMode === "feed") setCenterMode("dialog")
-      void handleSend(options.content)
-    },
-    // handleSend is not memoized; include the deps it closes over
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [centerMode, domainId, isSending, messages, kipFrameKey],
-  )
-
   // ── Board navigation ───────────────────────────────────────────────────────
 
   const navigateBoard = (id: BoardNavId) => {
@@ -295,29 +221,10 @@ export function DomainBoard() {
     else navigate(`/d/${encodeURIComponent(domainSlug)}?board=agent`)
   }
 
-  const goPresentJourney = () => {
+  const _goPresentJourney = () => {
     if (!domainSlug) return
     navigate(`/d/${encodeURIComponent(domainSlug)}?frame=present&journeyId=${encodeURIComponent(JOURNEY_BEGIN_ID)}`)
   }
-
-  // ── Adapted messages for KeeperDialogFrame ─────────────────────────────────
-
-  const syntheticTimestamps = React.useRef<Record<string, string>>({})
-  const adaptedMessages: AgentDialogueMessage[] = React.useMemo(
-    () =>
-      messages.map((m) => {
-        if (!syntheticTimestamps.current[m.id]) {
-          syntheticTimestamps.current[m.id] = new Date().toISOString()
-        }
-        return {
-          id: m.id,
-          role: (m.role === "kip" ? "agent" : "user") as "user" | "agent",
-          content: m.content,
-          createdAt: syntheticTimestamps.current[m.id]!,
-        }
-      }),
-    [messages],
-  )
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -463,8 +370,8 @@ export function DomainBoard() {
         </div>
       )}
 
-      // Center — DomainBanner + KeeperDialogFrame (feed/dialog mode preserved exactly)
-      center={(props) => (
+      // Center — DomainBanner + persisted Kip conversation (DomainBoardConversation)
+      center={(_props) => (
         <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
           <StyleScope
             styleId={styleId}
@@ -477,34 +384,12 @@ export function DomainBoard() {
               journeyCount={journeyCount}
               momentCount={momentCount}
             />
-            {/*
-              Two modes:
-              Feed Mode  (centerMode='feed')   — The Commons. FeedFrame in Zone 2.
-              Dialog Mode (centerMode='dialog') — The Workshop. Kip conversation in Zone 2.
-            */}
-            <KeeperDialogFrame
-              mode={centerMode}
-              bannerContext={{ primary: wordmark || "" }}
-              showServiceBar={false}
-              messages={adaptedMessages}
-              isSending={isSending}
-              error={sendError}
-              agentName="Kip"
-              agentBubbleFullWidth={false}
-              agentId={null}
-              domainId={props.domainId}
-              dialogueMode="domain"
-              inputValue={input}
-              onInputChange={setInput}
-              onSubmit={handleDialogSubmit}
-              activeSessionId={props.domainId}
-              disabled={!props.domainId || isSending}
-              onReturnToFeed={() => setCenterMode("feed")}
-              feedContent={
-                domainSlug
-                  ? <FeedFrame onMomentSelect={setSelectedMoment} suppressAtmosphere />
-                  : <div className="flex items-center justify-center h-full text-sm text-stone-500">No domain loaded</div>
-              }
+            <DomainBoardConversation
+              domainSlug={domainSlug}
+              domainId={domainId}
+              wordmark={wordmark}
+              journeyCount={journeyCount}
+              momentCount={momentCount}
             />
           </StyleScope>
           {/* DomainSwitcher — fixed overlay, triggered by top bar onDomainClick */}
@@ -520,19 +405,21 @@ export function DomainBoard() {
         </div>
       )}
 
-      // Right — Chronicle (UniversalViewPanel). DomainBoard's local selection state
-      // feeds in as explicit props so the trail and views respond to feed/journey clicks.
+      // Right — Chronicle (UniversalViewPanel). domainSlug enables domain feed in idle state.
+      // DomainBoard's local selection state feeds in so trail/views respond to journey clicks.
       right={(_props) => (
         <UniversalViewPanel
           def={DOMAIN_BOARD_DEF}
           domainId={domainId}
           domainName={wordmark || domainSlug}
+          domainSlug={domainSlug || undefined}
           selectedJourneyId={activeJourneyId}
-          selectedMomentId={selectedMoment?.id ?? null}
+          selectedMomentId={selectedMomentId}
           onJourneySelect={(id) => {
             setActiveJourneyId(id)
-            setSelectedMoment(null)
+            setSelectedMomentId(null)
           }}
+          onMomentSelect={(id) => setSelectedMomentId(id)}
         />
       )}
     />

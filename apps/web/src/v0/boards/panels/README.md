@@ -91,6 +91,12 @@ No trail history, no feed indicator, no editable fields.
   - No fetching — all data flows in as props
   - All colors `hsl(var(--theme-*))` — zero hardcoded values
 
+### 2026-05-09 — Chronicle: domain feed in idle state
+- `UniversalViewPanel` now accepts optional `domainSlug` prop.
+- `UniversalViewPanelIdle` — when `domainSlug` is provided, fetches recent kept Moments (`/api/v0/moments?status=kept&limit=12`) and renders a "Recent Moments" section above the Journeys sections.
+- `PanelBodyProps` updated to thread `domainSlug` to all idle fallback render paths.
+- Domain Board passes `domainSlug` so Chronicle is never blank — domain feed is its ambient idle state.
+
 ### 2026-05-06 — Chronicle: UniversalViewPanel
 - Created `UniversalViewPanel.tsx` — Chronicle, the right panel for all Universal Boards
   - Trail Bar: history stack (max 3 visible), `···` compressor, feed indicator (60s polling)

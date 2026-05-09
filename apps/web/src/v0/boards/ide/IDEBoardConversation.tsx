@@ -8,7 +8,7 @@ import { useAuth } from "../../../context/AuthContext"
 import { useFrameContextOptional } from "../../shell/FrameContext"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import type { IDEBoardKipContext } from "./ideBoardTypes"
-import { useKipSession } from "../../../hooks/useKipSession"
+import { useAgentDialog } from "../../../hooks/useAgentDialog"
 import { useDraftContext } from "../../../hooks/useDraftContext"
 import type { IntegratedServicesBarProps } from "./components/IntegratedServicesBar"
 import { KeeperDialogFrame } from "../../components/dialog/KeeperDialogFrame"
@@ -122,9 +122,11 @@ export function IDEBoardConversation({
     setInput,
     isSending,
     error,
-    kipAgentId,
+    agentId,
     sendMessage,
-  } = useKipSession({
+  } = useAgentDialog({
+    agentSlug: "kip",
+    agentDisplayName: "Kip",
     mode: "ide",
     domainSlug,
     domainId,
@@ -141,22 +143,22 @@ export function IDEBoardConversation({
   useDraftContext({
     selectedDraftId,
     domainId,
-    kipAgentId,
+    agentId,
     activeSessionId,
     onActiveSessionIdChange,
   })
 
   const handleSaveTitle = React.useCallback(
     async (title: string) => {
-      if (!activeSessionId || !kipAgentId) return
+      if (!activeSessionId || !agentId) return
       try {
-        await KipApi.updateSessionMetadata(kipAgentId, activeSessionId, { session_name: title })
+        await KipApi.updateSessionMetadata(agentId, activeSessionId, { session_name: title })
         onSaveSessionTitle?.(activeSessionId, title)
       } catch {
         // silent — title save is best-effort
       }
     },
-    [activeSessionId, kipAgentId, onSaveSessionTitle],
+    [activeSessionId, agentId, onSaveSessionTitle],
   )
 
   const modelProvider = (domainFrame?.kip as any)?.model ?? null
@@ -189,7 +191,7 @@ export function IDEBoardConversation({
       onOpenMoment={onMomentSelect}
       onOpenJourney={(journeyId) => onKipContextSync({ type: "journey", id: journeyId })}
       agentBubbleFullWidth
-      agentId={kipAgentId}
+      agentId={agentId}
       domainId={domainId ?? null}
       dialogueMode="domain"
       inputValue={input}
@@ -197,7 +199,7 @@ export function IDEBoardConversation({
       onSubmit={sendMessage}
       onFileAttach={(text) => setInput((prev) => (prev ? `${prev}\n\n${text}` : text))}
       activeSessionId={activeSessionId}
-      disabled={!kipAgentId}
+      disabled={!agentId}
     />
   )
 }

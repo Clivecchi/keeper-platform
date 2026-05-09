@@ -17,7 +17,7 @@ function pickSessionIdForDraft(sessions: KipSession[], draftId: string): string 
 export interface UseDraftContextOptions {
   selectedDraftId: string | null | undefined
   domainId: string | null | undefined
-  kipAgentId: string | null | undefined
+  agentId: string | null | undefined
   activeSessionId: string | null | undefined
   onActiveSessionIdChange?: (id: string | null) => void
   /** Agent board: refresh draft list after successful draft mutations in runAgent response */
@@ -39,18 +39,18 @@ export interface UseDraftContextResult {
 export function useDraftContext({
   selectedDraftId,
   domainId,
-  kipAgentId,
+  agentId,
   activeSessionId,
   onActiveSessionIdChange,
   onRefreshDraftList,
 }: UseDraftContextOptions): UseDraftContextResult {
   React.useEffect(() => {
-    if (!selectedDraftId || !kipAgentId || !domainId || !onActiveSessionIdChange) return
+    if (!selectedDraftId || !agentId || !domainId || !onActiveSessionIdChange) return
 
     let cancelled = false
     void (async () => {
       try {
-        const sessions = await KipApi.getSessionsByAgentId(kipAgentId, { pageSize: 100 })
+        const sessions = await KipApi.getSessionsByAgentId(agentId, { pageSize: 100 })
         if (cancelled) return
         const match = pickSessionIdForDraft(sessions, selectedDraftId)
         if (match) {
@@ -71,7 +71,7 @@ export function useDraftContext({
     return () => {
       cancelled = true
     }
-  }, [selectedDraftId, kipAgentId, domainId, onActiveSessionIdChange, activeSessionId])
+  }, [selectedDraftId, agentId, domainId, onActiveSessionIdChange, activeSessionId])
 
   const refreshDraftsAfterRun = React.useCallback(
     async (result: unknown) => {

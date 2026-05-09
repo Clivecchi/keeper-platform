@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useV0Shell } from "../../shell/V0ShellContext"
-import { useKipSession } from "../../../hooks/useKipSession"
+import { useAgentDialog } from "../../../hooks/useAgentDialog"
 import { useDraftContext } from "../../../hooks/useDraftContext"
 import { KeeperDialogFrame } from "../../components/dialog/KeeperDialogFrame"
 
@@ -33,7 +33,7 @@ export function AgentBoardConversation({
   const draftCtx = useDraftContext({
     selectedDraftId: null,
     domainId,
-    kipAgentId: null,
+    agentId: null,
     activeSessionId: null,
     onRefreshDraftList: refreshDrafts,
   })
@@ -55,10 +55,12 @@ export function AgentBoardConversation({
     input,
     setInput,
     isSending,
-    kipAgentId,
+    agentId,
     activeSessionId,
     sendMessage,
-  } = useKipSession({
+  } = useAgentDialog({
+    agentSlug: "kip",
+    agentDisplayName: "Kip",
     mode: "agent",
     domainSlug,
     domainId,
@@ -81,7 +83,7 @@ export function AgentBoardConversation({
         agentName="Kip"
         onOpenDraft={onDraftSelect}
         agentBubbleFullWidth
-        agentId={kipAgentId}
+        agentId={agentId}
         domainId={domainId ?? null}
         dialogueMode="domain"
         inputValue={input}
@@ -89,7 +91,7 @@ export function AgentBoardConversation({
         onSubmit={sendMessage}
         onFileAttach={(text) => setInput((prev) => (prev ? `${prev}\n\n${text}` : text))}
         activeSessionId={activeSessionId}
-        disabled={!kipAgentId}
+        disabled={!agentId}
       />
     </div>
   )

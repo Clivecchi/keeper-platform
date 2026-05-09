@@ -364,15 +364,31 @@ function TrailBar({
 export interface UniversalViewPanelIdleProps {
   domainId: string | null
   domainName: string
+  /**
+   * When provided the idle state fetches and shows recent kept Moments from the domain —
+   * the domain feed ambient state. Intended for Domain Board.
+   */
+  domainSlug?: string
   onJourneySelect?: (id: string) => void
+}
+
+type RecentMoment = { id: string; title: string; keptAt: string | null; createdAt: string; journeyName?: string | null }
+
+function formatWhenShort(iso: string | null | undefined): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
 }
 
 export function UniversalViewPanelIdle({
   domainId,
   domainName,
+  domainSlug,
   onJourneySelect,
 }: UniversalViewPanelIdleProps) {
   const [journeys, setJourneys] = React.useState<JourneyBrief[] | null>(null)
+  const [moments, setMoments] = React.useState<RecentMoment[] | null>(null)
 
   React.useEffect(() => {
     if (!domainId) {
@@ -396,8 +412,30 @@ export function UniversalViewPanelIdle({
     }
   }, [domainId])
 
+  // Domain feed: fetch recent kept Moments when domainSlug is provided.
+  React.useEffect(() => {
+    if (!domainSlug) {
+      setMoments(null)
+      return
+    }
+    let cancelled = false
+    apiFetch(`/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=kept&limit=12`)
+      .then((res: unknown) => {
+        if (cancelled) return
+        const rows = (res as { data?: RecentMoment[] })?.data
+        setMoments(Array.isArray(rows) ? rows : [])
+      })
+      .catch(() => {
+        if (!cancelled) setMoments([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [domainSlug])
+
   const moving = journeys?.filter((j) => (j.momentCount ?? 0) > 0) ?? []
   const settled = journeys?.filter((j) => !j.momentCount || j.momentCount === 0) ?? []
+  const hasMoments = moments && moments.length > 0
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -415,6 +453,26 @@ export function UniversalViewPanelIdle({
       </div>
 
       <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4">
+        {/* Domain feed: recent kept Moments — shown when domainSlug is provided */}
+        {domainSlug && hasMoments && (
+          <>
+            <PresenceSection title="Recent Moments">
+              {moments!.map((m) => (
+                <PresenceThread
+                  key={m.id}
+                  label={m.title?.trim() || "Untitled moment"}
+                  sub={
+                    [m.journeyName, formatWhenShort(m.keptAt ?? m.createdAt)]
+                      .filter(Boolean)
+                      .join(" · ") || undefined
+                  }
+                />
+              ))}
+            </PresenceSection>
+            <PresenceDivider />
+          </>
+        )}
+
         {journeys === null ? (
           <>
             <PresenceShimmer width="w-32" />
@@ -972,6 +1030,7 @@ interface PanelBodyProps {
   entry: TrailEntry
   domainId: string | null
   domainName: string
+  domainSlug?: string
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onLabelResolved: (key: string, label: string) => void
@@ -981,6 +1040,7 @@ function PanelBody({
   entry,
   domainId,
   domainName,
+  domainSlug,
   onJourneySelect,
   onMomentSelect,
   onLabelResolved,
@@ -1000,6 +1060,7 @@ function PanelBody({
           <UniversalViewPanelIdle
             domainId={domainId}
             domainName={domainName}
+            domainSlug={domainSlug}
             onJourneySelect={onJourneySelect}
           />
         )
@@ -1015,6 +1076,7 @@ function PanelBody({
           <UniversalViewPanelIdle
             domainId={domainId}
             domainName={domainName}
+            domainSlug={domainSlug}
             onJourneySelect={onJourneySelect}
           />
         )
@@ -1031,6 +1093,7 @@ function PanelBody({
           <UniversalViewPanelIdle
             domainId={domainId}
             domainName={domainName}
+            domainSlug={domainSlug}
             onJourneySelect={onJourneySelect}
           />
         )
@@ -1041,6 +1104,7 @@ function PanelBody({
           <UniversalViewPanelIdle
             domainId={domainId}
             domainName={domainName}
+            domainSlug={domainSlug}
             onJourneySelect={onJourneySelect}
           />
         )
@@ -1084,6 +1148,11 @@ export interface UniversalViewPanelProps {
   domainId: string | null
   /** Domain display name. */
   domainName: string
+  /**
+   * Domain slug — when provided, the Chronicle idle state shows the domain feed
+   * (recent kept Moments + active Journeys). Intended for Domain Board.
+   */
+  domainSlug?: string
 
   // Explicit selection props — override context values when both are present.
   selectedJourneyId?: string | null
@@ -1101,6 +1170,7 @@ export interface UniversalViewPanelProps {
 export function UniversalViewPanel({
   domainId,
   domainName,
+  domainSlug,
   selectedJourneyId,
   selectedMomentId,
   selectedKeeperId,
@@ -1287,6 +1357,7 @@ export function UniversalViewPanel({
           entry={currentEntry}
           domainId={domainId}
           domainName={domainName}
+          domainSlug={domainSlug}
           onJourneySelect={handleJourneySelect}
           onMomentSelect={handleMomentSelect}
           onLabelResolved={handleLabelResolved}
