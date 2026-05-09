@@ -4,7 +4,7 @@ import * as React from "react"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import { Check, Eye } from "lucide-react"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
-import type { DesignerAudience } from "./DesignBoard"
+import type { DesignerAudience, FrameProp } from "./DesignBoard"
 import type { FrameItem } from "./DesignBoardFrameList"
 import { CORE_FRAME_MAP, FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
 import { V0ShellProvider, useV0Shell } from "../../shell/V0ShellContext"
@@ -418,16 +418,20 @@ function CodeTabContent({ domainFrame }: { domainFrame: DomainFrameJson | null }
 
 // ─── Props tab ────────────────────────────────────────────────────────────────
 
-interface PropEntry {
+interface CatalogItem {
   name: string
   description: string
+  /** FrameInstance prop type key — matches board-studio API. */
+  propType: string
+  /** Default config payload sent to PATCH endpoint. */
+  propConfig: Record<string, unknown>
 }
 
 interface PropSection {
   label: string
   /** CSS custom property name (without --) that resolves to an HSL channel triple. */
   colorVar: string
-  items: PropEntry[]
+  items: CatalogItem[]
 }
 
 const PROP_SECTIONS: PropSection[] = [
@@ -435,84 +439,172 @@ const PROP_SECTIONS: PropSection[] = [
     label: "Media",
     colorVar: "--theme-accent-secondary",
     items: [
-      { name: "Hero Image", description: "Full-width hero image banner" },
-      { name: "Video Player", description: "Embedded video playback" },
-      { name: "Image Gallery", description: "Multi-image grid layout" },
+      { name: "Hero Image",    description: "Full-width hero image banner",  propType: "image",    propConfig: { url: "", alt: "Hero image", size: "large", name: "Hero Image" } },
+      { name: "Video Player",  description: "Embedded video playback",       propType: "media",    propConfig: { url: "", type: "video", autoplay: false, name: "Video Player" } },
+      { name: "Image Gallery", description: "Multi-image grid layout",       propType: "gallery",  propConfig: { images: [], layout: "grid", columns: 3, name: "Image Gallery" } },
     ],
   },
   {
     label: "Content",
     colorVar: "--theme-accent-primary",
     items: [
-      { name: "Heading", description: "Section heading text" },
-      { name: "Text Block", description: "Rich text paragraph content" },
-      { name: "Quote", description: "Styled quote or callout" },
+      { name: "Heading",    description: "Section heading text",         propType: "heading", propConfig: { content: "Enter heading text...", level: 2, alignment: "left", name: "Heading" } },
+      { name: "Text Block", description: "Rich text paragraph content",  propType: "text",    propConfig: { content: "Enter your text here...", fontSize: "medium", bold: false, name: "Text Block" } },
+      { name: "Quote",      description: "Styled quote or callout",      propType: "quote",   propConfig: { content: "Enter quote text...", author: "", style: "default", name: "Quote" } },
     ],
   },
   {
     label: "Interactive",
     colorVar: "--theme-accent-secondary",
     items: [
-      { name: "Action Button", description: "Primary CTA button" },
-      { name: "Form", description: "Input form with fields" },
+      { name: "Action Button", description: "Primary CTA button",          propType: "button", propConfig: { label: "Click me", action: "", variant: "primary", name: "Action Button" } },
+      { name: "Form",          description: "Input form with fields",      propType: "form",   propConfig: { fields: [], submitLabel: "Submit", action: "", name: "Form" } },
     ],
   },
   {
     label: "AI",
     colorVar: "--theme-accent-tertiary",
     items: [
-      { name: "AI Token", description: "Dynamic AI-generated token" },
-      { name: "AI Assistant", description: "Embedded Kip assistant" },
-      { name: "Smart Suggestions", description: "Context-aware suggestions" },
+      { name: "AI Token",          description: "Dynamic AI-generated token",    propType: "ai-assistant", propConfig: { displayName: "AI Assistant", avatarUrl: "/placeholder.svg", personaNote: "Helpful AI assistant", name: "AI Token" } },
+      { name: "AI Assistant",      description: "Embedded Kip assistant",        propType: "ai-assistant", propConfig: { greeting: "Hello! How can I help you?", capabilities: [], name: "AI Assistant" } },
+      { name: "Smart Suggestions", description: "Context-aware suggestions",     propType: "ai-assistant", propConfig: { type: "suggestions", title: "Smart Suggestions", suggestions: [], name: "Smart Suggestions" } },
     ],
   },
 ]
 
-function PropsTabContent() {
+function PropsTabContent({
+  frameInstanceProps,
+  onAddProp,
+}: {
+  frameInstanceProps: FrameProp[]
+  onAddProp: ((type: string, config: Record<string, unknown>) => Promise<void>) | null
+}) {
+  const [adding, setAdding] = React.useState<string | null>(null)
+
+  const handleAdd = async (item: CatalogItem) => {
+    if (!onAddProp || adding) return
+    setAdding(item.name)
+    try {
+      await onAddProp(item.propType, item.propConfig)
+    } finally {
+      setAdding(null)
+    }
+  }
+
   return (
-    <div className="p-4 space-y-5">
-      {PROP_SECTIONS.map((section) => (
-        <div key={section.label}>
+    <div className="overflow-y-auto h-full keeper-panel-scroll">
+
+      {/* Current frame components */}
+      {frameInstanceProps.length > 0 && (
+        <div
+          className="px-4 py-3 border-b"
+          style={{ borderColor: "hsl(var(--theme-border-soft))" }}
+        >
           <p
             className="text-[10px] font-semibold uppercase tracking-widest mb-2"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
-            {section.label}
+            Added ({frameInstanceProps.length})
           </p>
-          <div className="space-y-1.5">
-            {section.items.map((item) => (
-              <div key={item.name} className="flex items-center gap-2.5 py-1.5">
+          <div className="space-y-1">
+            {frameInstanceProps.map((prop) => {
+              const displayName = (prop.config.name as string | undefined) || prop.type
+              return (
                 <div
-                  className="shrink-0 rounded-sm flex items-center justify-center"
-                  style={{
-                    width: 18,
-                    height: 18,
-                    background: `hsl(var(${section.colorVar}) / 0.08)`,
-                  }}
+                  key={prop.id}
+                  className="flex items-center gap-2 rounded-md px-2 py-1.5"
+                  style={{ background: "hsl(var(--theme-surface-elevated) / 0.4)" }}
                 >
-                  <div
-                    className="rounded-sm"
-                    style={{
-                      width: 8,
-                      height: 8,
-                      background: `hsl(var(${section.colorVar}))`,
-                      opacity: 0.6,
-                    }}
-                  />
+                  <span
+                    className="flex-1 text-[12px] font-medium truncate"
+                    style={{ color: "hsl(var(--theme-ink-primary))" }}
+                  >
+                    {displayName}
+                  </span>
+                  <span
+                    className="shrink-0 font-mono text-[10px]"
+                    style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                  >
+                    {prop.type}
+                  </span>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[12px] font-medium leading-tight" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-                    {item.name}
-                  </p>
-                  <p className="text-[10px] leading-tight" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-                    {item.description}
-                  </p>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
-      ))}
+      )}
+
+      {/* Catalog */}
+      <div className="p-4 space-y-5">
+        {!onAddProp && (
+          <p
+            className="text-[12px] text-center py-2"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            Connecting to frame…
+          </p>
+        )}
+        {PROP_SECTIONS.map((section) => (
+          <div key={section.label}>
+            <p
+              className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              {section.label}
+            </p>
+            <div className="space-y-0.5">
+              {section.items.map((item) => {
+                const isAdding = adding === item.name
+                const disabled = !onAddProp || !!adding
+                return (
+                  <button
+                    key={item.name}
+                    type="button"
+                    onClick={() => handleAdd(item)}
+                    disabled={disabled}
+                    className="w-full flex items-center gap-2.5 py-1.5 px-2 rounded-md text-left transition-colors"
+                    style={{ opacity: disabled && !isAdding ? 0.5 : 1 }}
+                    onMouseEnter={(e) => {
+                      if (!disabled) e.currentTarget.style.background = `hsl(var(${section.colorVar}) / 0.06)`
+                    }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "" }}
+                  >
+                    <div
+                      className="shrink-0 rounded-sm flex items-center justify-center"
+                      style={{ width: 18, height: 18, background: `hsl(var(${section.colorVar}) / 0.08)` }}
+                    >
+                      <div
+                        className="rounded-sm"
+                        style={{ width: 8, height: 8, background: `hsl(var(${section.colorVar}))`, opacity: 0.6 }}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="text-[12px] font-medium leading-tight"
+                        style={{ color: "hsl(var(--theme-ink-primary))" }}
+                      >
+                        {item.name}
+                      </p>
+                      <p
+                        className="text-[10px] leading-tight"
+                        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                      >
+                        {item.description}
+                      </p>
+                    </div>
+                    <span
+                      className="shrink-0 text-[13px] font-medium w-4 text-right"
+                      style={{ color: `hsl(var(${section.colorVar}))` }}
+                    >
+                      {isAdding ? "…" : "+"}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -563,6 +655,10 @@ interface DesignBoardFrameDetailProps {
   audience: DesignerAudience
   setAudience: (a: DesignerAudience) => void
   onDirectEdit: (updatedFrame: DomainFrameJson) => void
+  /** Current FrameInstance props for this frame (from board-data). */
+  frameInstanceProps: FrameProp[]
+  /** Async callback to add a prop — null when frame is not yet connected to board-data. */
+  onAddProp: ((type: string, config: Record<string, unknown>) => Promise<void>) | null
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -576,6 +672,8 @@ export function DesignBoardFrameDetail({
   audience,
   setAudience,
   onDirectEdit,
+  frameInstanceProps,
+  onAddProp,
 }: DesignBoardFrameDetailProps) {
   const [activeTab, setActiveTab] = React.useState<TabKey>("preview")
   const [editPopup, setEditPopup] = React.useState<EditPopupState | null>(null)
@@ -735,7 +833,7 @@ export function DesignBoardFrameDetail({
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-auto">
         {activeTab === "preview" && (
           <div className="flex flex-col h-full">
             {/* Preview audience (compact menu) */}
@@ -848,6 +946,63 @@ export function DesignBoardFrameDetail({
                 </p>
               </div>
             )}
+
+            {/* Frame Components — live props added via Props tab */}
+            {frameInstanceProps.length > 0 && (
+              <div
+                className="shrink-0 border-t overflow-y-auto keeper-panel-scroll"
+                style={{
+                  borderColor: "hsl(var(--theme-border-soft))",
+                  maxHeight: 180,
+                }}
+              >
+                <div className="px-4 py-3">
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+                    style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                  >
+                    Frame Components ({frameInstanceProps.length})
+                  </p>
+                  <div className="space-y-1.5">
+                    {frameInstanceProps.map((prop) => {
+                      const displayName = (prop.config.name as string | undefined) || prop.type
+                      return (
+                        <div
+                          key={prop.id}
+                          className="flex items-center gap-2 rounded-md px-2.5 py-1.5 border"
+                          style={{
+                            background: "hsl(var(--theme-surface-elevated) / 0.4)",
+                            borderColor: "hsl(var(--theme-border-soft))",
+                          }}
+                        >
+                          <div
+                            className="shrink-0 rounded-sm"
+                            style={{
+                              width: 6,
+                              height: 6,
+                              background: "hsl(var(--theme-accent-primary))",
+                              opacity: 0.7,
+                            }}
+                          />
+                          <span
+                            className="flex-1 text-[12px] font-medium truncate"
+                            style={{ color: "hsl(var(--theme-ink-primary))" }}
+                          >
+                            {displayName}
+                          </span>
+                          <span
+                            className="shrink-0 font-mono text-[10px]"
+                            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                          >
+                            {prop.type}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -856,7 +1011,10 @@ export function DesignBoardFrameDetail({
         )}
 
       {activeTab === "props" && (
-        <PropsTabContent />
+        <PropsTabContent
+          frameInstanceProps={frameInstanceProps}
+          onAddProp={onAddProp}
+        />
       )}
 
       {activeTab === "brief" && (

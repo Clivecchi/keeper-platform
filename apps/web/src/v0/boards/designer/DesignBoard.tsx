@@ -76,6 +76,19 @@ export type DesignerMessage = {
 
 export type DesignerAudience = "guest" | "keeper" | "admin"
 
+/** A single component added to a FrameInstance via the Props tab. */
+export type FrameProp = {
+  id: string
+  type: string
+  config: Record<string, unknown>
+}
+
+type FrameEntry = {
+  boardId: string
+  frameInstanceId: string
+  props: FrameProp[]
+}
+
 // ─── Board Definition right panel ─────────────────────────────────────────────
 
 function BoardDefPanel({ def }: { def: UniversalBoardDef }) {
@@ -200,6 +213,10 @@ export function DesignerFrame() {
   const [activeBoardId, setActiveBoardId] = React.useState("domain")
   const [selectedBoardDefId, setSelectedBoardDefId] = React.useState<string | null>(null)
 
+  // Frame Instance map — loaded from GET /api/domains/:domainId/board-data
+  // Key: frame.name.toLowerCase() → { boardId, frameInstanceId, props }
+  const [frameEntryMap, setFrameEntryMap] = React.useState<Map<string, FrameEntry>>(new Map())
+
   // Density — stays at board root; applies data-density to <html> for CSS.
   // No in-app switcher is currently rendered; value is read from localStorage.
   const [density] = React.useState<KeeperDensity>(readStoredDensity)
@@ -224,6 +241,37 @@ export function DesignerFrame() {
       ignore = true
     }
   }, [domainSlug])
+
+  // ── Load board-data (frame instance IDs + existing props) ────────────────
+  React.useEffect(() => {
+    if (!domainId) return
+    let cancelled = false
+    apiFetch(`/api/domains/${domainId}/board-data`)
+      .then((res: unknown) => {
+        if (cancelled) return
+        const r = res as {
+          board?: {
+            id: string
+            frames: Array<{ id: string; name: string; props: unknown }>
+          }
+        }
+        if (!r?.board) return
+        const map = new Map<string, FrameEntry>()
+        for (const frame of r.board.frames) {
+          const rawProps = Array.isArray(frame.props) ? (frame.props as FrameProp[]) : []
+          map.set(frame.name.toLowerCase(), {
+            boardId: r.board.id,
+            frameInstanceId: frame.id,
+            props: rawProps,
+          })
+        }
+        setFrameEntryMap(map)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [domainId])
 
   // ── Sync audience when auth loads ──────────────────────────────────────────
   const prevAuthRef = React.useRef<boolean | null>(null)
@@ -307,6 +355,45 @@ export function DesignerFrame() {
     setDraftId(null)
     setPublishSuccess(false)
   }, [])
+
+  // ── Active frame entry — wires Props tab to FrameInstance ─────────────────
+  const activeFrameEntry = React.useMemo((): FrameEntry | null => {
+    if (!activeFrameInfo) return null
+    return frameEntryMap.get(activeFrameInfo.name.toLowerCase()) ?? null
+  }, [activeFrameInfo, frameEntryMap])
+
+  // ── Add prop — persists to PATCH /api/boards/:boardId/frames/:frameId ─────
+  const handleAddProp = React.useCallback(
+    async (type: string, config: Record<string, unknown>) => {
+      if (!activeFrameEntry) return
+      const { boardId, frameInstanceId, props: currentProps } = activeFrameEntry
+      const newProp: FrameProp = { id: `prop_${Date.now()}`, type, config }
+      const updatedProps = [...currentProps, newProp]
+
+      // Optimistic update so the Preview tab reflects immediately
+      setFrameEntryMap((prev) => {
+        const next = new Map(prev)
+        for (const [key, entry] of next) {
+          if (entry.frameInstanceId === frameInstanceId) {
+            next.set(key, { ...entry, props: updatedProps })
+            break
+          }
+        }
+        return next
+      })
+
+      // Persist
+      try {
+        await apiFetch(`/api/boards/${boardId}/frames/${frameInstanceId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ props: updatedProps }),
+        })
+      } catch (err) {
+        console.error("[DesignBoard] props PATCH failed:", err)
+      }
+    },
+    [activeFrameEntry],
+  )
 
   // ── Publish handler ────────────────────────────────────────────────────────
   const handlePublish = React.useCallback(async () => {
@@ -444,6 +531,8 @@ export function DesignerFrame() {
               audience={audience}
               setAudience={setAudience}
               onDirectEdit={handleDirectEdit}
+              frameInstanceProps={activeFrameEntry?.props ?? []}
+              onAddProp={activeFrameEntry ? handleAddProp : null}
             />
           )
         }
