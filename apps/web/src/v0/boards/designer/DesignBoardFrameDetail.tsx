@@ -4,7 +4,14 @@ import * as React from "react"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import { Check, Eye } from "lucide-react"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
-import type { DesignerAudience, FrameProp } from "./DesignBoard"
+import type { DesignerAudience } from "./DesignBoard"
+
+/** A single component added to a FrameInstance via the Props tab. */
+export type FrameProp = {
+  id: string
+  type: string
+  config: Record<string, unknown>
+}
 import type { FrameItem } from "./DesignBoardFrameList"
 import { CORE_FRAME_MAP, FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
 import { V0ShellProvider, useV0Shell } from "../../shell/V0ShellContext"

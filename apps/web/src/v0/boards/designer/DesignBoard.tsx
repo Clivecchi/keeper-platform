@@ -43,10 +43,10 @@ import { KipApi } from "../../../lib/kipApi"
 import { UniversalBoard } from "../UniversalBoard"
 import { DESIGNER_BOARD_DEF, BOARD_DEFINITIONS } from "../UniversalBoardDefinition"
 import type { UniversalBoardDef } from "../UniversalBoardDefinition"
-import { UniversalViewPanel, UniversalViewPanelIdle } from "../panels/UniversalViewPanel"
 import { UniversalSwitcherPanel } from "../panels/UniversalSwitcherPanel"
 import { DesignBoardCenter } from "./DesignBoardCenter"
 import { DesignBoardFrameDetail } from "./DesignBoardFrameDetail"
+import type { FrameProp } from "./DesignBoardFrameDetail"
 import { BOARD_FRAMES } from "./DesignBoardFrameList"
 
 // ─── Re-exported types (consumed by DesignBoardCenter, DesignBoardFrameList) ──
@@ -75,13 +75,6 @@ export type DesignerMessage = {
 }
 
 export type DesignerAudience = "guest" | "keeper" | "admin"
-
-/** A single component added to a FrameInstance via the Props tab. */
-export type FrameProp = {
-  id: string
-  type: string
-  config: Record<string, unknown>
-}
 
 type FrameEntry = {
   boardId: string
