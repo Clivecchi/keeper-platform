@@ -349,45 +349,6 @@ export function DesignerFrame() {
     setPublishSuccess(false)
   }, [])
 
-  // ── Active frame entry — wires Props tab to FrameInstance ─────────────────
-  const activeFrameEntry = React.useMemo((): FrameEntry | null => {
-    if (!activeFrameInfo) return null
-    return frameEntryMap.get(activeFrameInfo.name.toLowerCase()) ?? null
-  }, [activeFrameInfo, frameEntryMap])
-
-  // ── Add prop — persists to PATCH /api/boards/:boardId/frames/:frameId ─────
-  const handleAddProp = React.useCallback(
-    async (type: string, config: Record<string, unknown>) => {
-      if (!activeFrameEntry) return
-      const { boardId, frameInstanceId, props: currentProps } = activeFrameEntry
-      const newProp: FrameProp = { id: `prop_${Date.now()}`, type, config }
-      const updatedProps = [...currentProps, newProp]
-
-      // Optimistic update so the Preview tab reflects immediately
-      setFrameEntryMap((prev) => {
-        const next = new Map(prev)
-        for (const [key, entry] of next) {
-          if (entry.frameInstanceId === frameInstanceId) {
-            next.set(key, { ...entry, props: updatedProps })
-            break
-          }
-        }
-        return next
-      })
-
-      // Persist
-      try {
-        await apiFetch(`/api/boards/${boardId}/frames/${frameInstanceId}`, {
-          method: "PATCH",
-          body: JSON.stringify({ props: updatedProps }),
-        })
-      } catch (err) {
-        console.error("[DesignBoard] props PATCH failed:", err)
-      }
-    },
-    [activeFrameEntry],
-  )
-
   // ── Publish handler ────────────────────────────────────────────────────────
   const handlePublish = React.useCallback(async () => {
     if (!draftSpecJson || !domainId || isPublishing) return
@@ -435,11 +396,52 @@ export function DesignerFrame() {
   }, [])
 
   // ── Derived: active frame info (for right panel DesignBoardFrameDetail) ───
+  // MUST be declared before activeFrameEntry — useMemo factories execute immediately,
+  // so any useMemo that references this const must come after its declaration.
   const activeFrameInfo = React.useMemo(() => {
     if (!activeFrameKey) return null
     const frames = BOARD_FRAMES[activeBoardId] ?? []
     return frames.find((f) => f.key === activeFrameKey) ?? null
   }, [activeFrameKey, activeBoardId])
+
+  // ── Active frame entry — wires Props tab to FrameInstance ─────────────────
+  const activeFrameEntry = React.useMemo((): FrameEntry | null => {
+    if (!activeFrameInfo) return null
+    return frameEntryMap.get(activeFrameInfo.name.toLowerCase()) ?? null
+  }, [activeFrameInfo, frameEntryMap])
+
+  // ── Add prop — persists to PATCH /api/boards/:boardId/frames/:frameId ─────
+  const handleAddProp = React.useCallback(
+    async (type: string, config: Record<string, unknown>) => {
+      if (!activeFrameEntry) return
+      const { boardId, frameInstanceId, props: currentProps } = activeFrameEntry
+      const newProp: FrameProp = { id: `prop_${Date.now()}`, type, config }
+      const updatedProps = [...currentProps, newProp]
+
+      // Optimistic update so the Preview tab reflects immediately
+      setFrameEntryMap((prev) => {
+        const next = new Map(prev)
+        for (const [key, entry] of next) {
+          if (entry.frameInstanceId === frameInstanceId) {
+            next.set(key, { ...entry, props: updatedProps })
+            break
+          }
+        }
+        return next
+      })
+
+      // Persist
+      try {
+        await apiFetch(`/api/boards/${boardId}/frames/${frameInstanceId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ props: updatedProps }),
+        })
+      } catch (err) {
+        console.error("[DesignBoard] props PATCH failed:", err)
+      }
+    },
+    [activeFrameEntry],
+  )
 
   // ── Admin guard ────────────────────────────────────────────────────────────
   if (!isAdmin) {
