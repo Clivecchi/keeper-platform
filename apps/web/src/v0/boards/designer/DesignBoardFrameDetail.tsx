@@ -9,16 +9,19 @@ import type { FrameItem } from "./DesignBoardFrameList"
 import { CORE_FRAME_MAP, FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
 import { V0ShellProvider, useV0Shell } from "../../shell/V0ShellContext"
 import { FrameContextProvider } from "../../shell/FrameContext"
+import { DomainBrief } from "../../components/DomainBrief"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type TabKey = "preview" | "config" | "props" | "json"
+type TabKey = "preview" | "config" | "props" | "json" | "brief" | "code"
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "preview", label: "Preview" },
   { key: "config", label: "Config" },
   { key: "props", label: "Props" },
   { key: "json", label: "JSON" },
+  { key: "brief", label: "Brief" },
+  { key: "code", label: "Code" },
 ]
 
 // ─── Helpers (preserved from DesignBoardCanvas.tsx) ───────────────────────────
@@ -127,11 +130,11 @@ function EditPopup({
         left: Math.min(popup.x, window.innerWidth - 300),
         top: popup.y + 8,
         zIndex: 9999,
-        background: "#ffffff",
-        border: "1px solid #d1d5db",
+        background: "hsl(var(--theme-surface-paper))",
+        border: "1px solid hsl(var(--theme-border-soft))",
         borderRadius: 8,
         padding: "10px 12px",
-        boxShadow: "0 4px 16px rgba(0,0,0,0.14)",
+        boxShadow: "0 4px 16px hsl(var(--theme-ink-primary) / 0.12)",
         minWidth: 260,
         maxWidth: 340,
       }}
@@ -139,7 +142,7 @@ function EditPopup({
       <p
         style={{
           fontSize: 10,
-          color: "#57534e",
+          color: "hsl(var(--theme-ink-secondary))",
           marginBottom: 6,
           fontFamily: "ui-monospace, monospace",
           letterSpacing: "0.03em",
@@ -155,27 +158,27 @@ function EditPopup({
           onKeyDown={handleKeyDown}
           style={{
             flex: 1,
-            border: "1px solid #d1d5db",
+            border: "1px solid hsl(var(--theme-border-soft))",
             borderRadius: 4,
             padding: "5px 8px",
             fontSize: 13,
-            color: "#111827",
+            color: "hsl(var(--theme-ink-primary))",
             outline: "none",
-            background: "#f9fafb",
+            background: "hsl(var(--theme-surface-elevated) / 0.4)",
           }}
           onFocus={(e) => {
-            e.currentTarget.style.borderColor = "#57534e"
+            e.currentTarget.style.borderColor = "hsl(var(--theme-ink-secondary))"
           }}
           onBlur={(e) => {
-            e.currentTarget.style.borderColor = "#d1d5db"
+            e.currentTarget.style.borderColor = "hsl(var(--theme-border-soft))"
           }}
         />
         <button
           type="button"
           onClick={() => onSave(popup.path, value, popup.blockKey)}
           style={{
-            background: "#111827",
-            color: "#fff",
+            background: "hsl(var(--theme-ink-primary))",
+            color: "hsl(var(--theme-surface-paper))",
             border: "none",
             borderRadius: 4,
             padding: "5px 10px",
@@ -191,19 +194,19 @@ function EditPopup({
           onClick={onClose}
           style={{
             background: "transparent",
-            color: "#57534e",
-            border: "1px solid #e5e7eb",
+            color: "hsl(var(--theme-ink-secondary))",
+            border: "1px solid hsl(var(--theme-border-soft))",
             borderRadius: 4,
             padding: "5px 8px",
             fontSize: 12,
             cursor: "pointer",
           }}
         >
-          \u2715
+          ✕
         </button>
       </div>
-      <p style={{ fontSize: 10, color: "#78716c", marginTop: 5 }}>
-        Enter to save \u00B7 Esc to cancel
+      <p style={{ fontSize: 10, color: "hsl(var(--theme-ink-tertiary))", marginTop: 5 }}>
+        Enter to save · Esc to cancel
       </p>
     </div>
   )
@@ -291,19 +294,23 @@ function ConfigTabContent({
       <div>
         <p
           className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-          style={{ color: "#78716c" }}
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
         >
           Frame Props
         </p>
         <div className="space-y-2">
           {frameProps.map((item) => (
             <div key={item.label} className="flex items-center justify-between">
-              <span className="text-[12px]" style={{ color: "#57534e" }}>
+              <span className="text-[12px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
                 {item.label}
               </span>
               <span
                 className="rounded-full px-2.5 py-0.5 text-[11px] font-medium border"
-                style={{ background: "#f9fafb", color: "#374151", borderColor: "#e5e7eb" }}
+                style={{
+                  background: "hsl(var(--theme-surface-elevated) / 0.4)",
+                  color: "hsl(var(--theme-ink-primary))",
+                  borderColor: "hsl(var(--theme-border-soft))",
+                }}
               >
                 {item.value}
               </span>
@@ -312,24 +319,28 @@ function ConfigTabContent({
         </div>
       </div>
 
-      <div style={{ borderTop: "1px solid #e5e7eb" }} />
+      <div style={{ borderTop: "1px solid hsl(var(--theme-border-soft))" }} />
 
       <div>
         <p
           className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-          style={{ color: "#78716c" }}
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
         >
           Labels
         </p>
         <div className="space-y-2">
           {labelEntries.map((item) => (
             <div key={item.label} className="flex items-center justify-between gap-2">
-              <span className="text-[12px] shrink-0" style={{ color: "#57534e" }}>
+              <span className="text-[12px] shrink-0" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
                 {item.label}
               </span>
               <span
                 className="rounded-full px-2.5 py-0.5 text-[11px] font-medium border truncate max-w-[60%]"
-                style={{ background: "#f9fafb", color: "#374151", borderColor: "#e5e7eb" }}
+                style={{
+                  background: "hsl(var(--theme-surface-elevated) / 0.4)",
+                  color: "hsl(var(--theme-ink-primary))",
+                  borderColor: "hsl(var(--theme-border-soft))",
+                }}
                 title={item.value}
               >
                 {item.value}
@@ -339,6 +350,69 @@ function ConfigTabContent({
         </div>
       </div>
     </div>
+  )
+}
+
+// ─── Brief tab — domain brief, domain-wide view ───────────────────────────────
+
+function BriefTabContent({ liveDomainFrame }: { liveDomainFrame: DomainFrameJson | null }) {
+  if (!liveDomainFrame) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p
+          className="text-[13px]"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          Loading domain brief…
+        </p>
+      </div>
+    )
+  }
+  return (
+    <div className="overflow-y-auto h-full keeper-panel-scroll">
+      <DomainBrief domainFrame={liveDomainFrame} />
+    </div>
+  )
+}
+
+// ─── Code tab — full domain JSON, domain-wide view ────────────────────────────
+
+function CodeTabContent({ domainFrame }: { domainFrame: DomainFrameJson | null }) {
+  const json = domainFrame
+    ? formatJson(domainFrame)
+    : "// Domain frame not loaded yet"
+
+  const highlighted = domainFrame
+    ? json.replace(
+        /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+        (match) => {
+          let color = "hsl(var(--theme-accent-secondary))"
+          if (/^"/.test(match)) {
+            color = /:$/.test(match)
+              ? "hsl(var(--theme-ink-primary))"
+              : "hsl(var(--theme-accent-primary) / 0.8)"
+          } else if (/true|false/.test(match)) {
+            color = "hsl(var(--theme-accent-tertiary, var(--theme-accent-primary)))"
+          } else if (/null/.test(match)) {
+            color = "hsl(var(--theme-ink-tertiary))"
+          }
+          return `<span style="color:${color}">${match}</span>`
+        },
+      )
+    : json
+
+  return (
+    <pre
+      className="p-4 text-[11px] leading-relaxed overflow-auto h-full"
+      style={{
+        fontFamily: "ui-monospace, 'Cascadia Code', monospace",
+        color: "hsl(var(--theme-ink-secondary))",
+        background: "hsl(var(--theme-surface-paper) / 0.6)",
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-words",
+      }}
+      dangerouslySetInnerHTML={{ __html: highlighted }}
+    />
   )
 }
 
@@ -400,7 +474,7 @@ function PropsTabContent() {
         <div key={section.label}>
           <p
             className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-            style={{ color: "#78716c" }}
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
             {section.label}
           </p>
@@ -426,10 +500,10 @@ function PropsTabContent() {
                   />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[12px] font-medium leading-tight" style={{ color: "#374151" }}>
+                  <p className="text-[12px] font-medium leading-tight" style={{ color: "hsl(var(--theme-ink-primary))" }}>
                     {item.name}
                   </p>
-                  <p className="text-[10px] leading-tight" style={{ color: "#78716c" }}>
+                  <p className="text-[10px] leading-tight" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
                     {item.description}
                   </p>
                 </div>
@@ -472,8 +546,8 @@ function JsonTabContent({ value }: { value: unknown }) {
       className="p-4 text-[11px] leading-relaxed overflow-auto h-full"
       style={{
         fontFamily: "ui-monospace, 'Cascadia Code', monospace",
-        color: "#57534e",
-        background: "#f9fafb",
+        color: "hsl(var(--theme-ink-secondary))",
+        background: "hsl(var(--theme-surface-elevated) / 0.3)",
       }}
       dangerouslySetInnerHTML={{ __html: highlighted }}
     />
@@ -601,7 +675,7 @@ export function DesignBoardFrameDetail({
     return (
       <div className="flex flex-col h-full overflow-hidden">
         <div className="density-content flex flex-1 items-center justify-center min-h-0">
-          <p className="text-[13px] text-center" style={{ color: "#57534e" }}>
+          <p className="text-[13px] text-center" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
             Select a frame to view details
           </p>
         </div>
@@ -615,7 +689,10 @@ export function DesignBoardFrameDetail({
       {/* Header: dot + frame name */}
       <div
         className="shrink-0 flex items-center gap-2.5 px-4 py-3 border-b"
-        style={{ borderColor: "#e5e7eb", background: "#ffffff" }}
+        style={{
+          borderColor: "hsl(var(--theme-border-soft))",
+          background: "hsl(var(--theme-surface-paper))",
+        }}
       >
         <span
           className="shrink-0 rounded-full"
@@ -623,7 +700,7 @@ export function DesignBoardFrameDetail({
         />
         <p
           className="text-[13px] font-semibold truncate"
-          style={{ color: "#111827" }}
+          style={{ color: "hsl(var(--theme-ink-primary))" }}
         >
           {activeFrameInfo.name}
         </p>
@@ -631,18 +708,26 @@ export function DesignBoardFrameDetail({
 
       {/* Tab bar */}
       <div
-        className="shrink-0 flex border-b"
-        style={{ borderColor: "#e5e7eb", background: "#ffffff" }}
+        className="shrink-0 flex border-b overflow-x-auto"
+        style={{
+          borderColor: "hsl(var(--theme-border-soft))",
+          background: "hsl(var(--theme-surface-paper))",
+          scrollbarWidth: "none",
+        }}
       >
         {TABS.map((tab) => (
           <button
             key={tab.key}
             type="button"
             onClick={() => setActiveTab(tab.key)}
-            className="px-4 py-2 text-[12px] font-medium transition-colors"
+            className="shrink-0 px-4 py-2 text-[12px] font-medium transition-colors"
             style={{
-              color: activeTab === tab.key ? "#111827" : "#78716c",
-              borderBottom: activeTab === tab.key ? "2px solid #111827" : "2px solid transparent",
+              color: activeTab === tab.key
+                ? "hsl(var(--theme-ink-primary))"
+                : "hsl(var(--theme-ink-tertiary))",
+              borderBottom: activeTab === tab.key
+                ? "2px solid hsl(var(--theme-ink-primary))"
+                : "2px solid transparent",
               marginBottom: -1,
             }}
           >
@@ -658,26 +743,34 @@ export function DesignBoardFrameDetail({
             {/* Preview audience (compact menu) */}
             <div
               className="shrink-0 flex items-center justify-end px-4 py-2 border-b"
-              style={{ borderColor: "#f3f4f6", background: "#fafafa" }}
+              style={{
+                borderColor: "hsl(var(--theme-border-soft) / 0.5)",
+                background: "hsl(var(--theme-surface-elevated) / 0.3)",
+              }}
             >
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <button
                     type="button"
-                    className="relative flex h-8 w-8 items-center justify-center rounded-md border transition-colors hover:bg-gray-100"
-                    style={{ borderColor: "#e5e7eb", color: "#374151" }}
+                    className="relative flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
+                    style={{
+                      borderColor: "hsl(var(--theme-border-soft))",
+                      color: "hsl(var(--theme-ink-primary))",
+                      background: "transparent",
+                    }}
                     aria-label="Preview audience"
                   >
                     <Eye className="h-4 w-4" strokeWidth={2} aria-hidden />
                     <span
-                      className="pointer-events-none absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full border border-white"
+                      className="pointer-events-none absolute bottom-1 right-1 h-1.5 w-1.5 rounded-full"
                       style={{
                         background:
                           audience === "admin"
-                            ? "#111827"
+                            ? "hsl(var(--theme-ink-primary))"
                             : audience === "keeper"
-                              ? "#3b82f6"
-                              : "#78716c",
+                              ? "hsl(var(--theme-accent-primary))"
+                              : "hsl(var(--theme-ink-tertiary))",
+                        border: "1px solid hsl(var(--theme-surface-paper))",
                       }}
                     />
                   </button>
@@ -694,9 +787,9 @@ export function DesignBoardFrameDetail({
                         className="flex cursor-pointer items-center justify-between gap-3 px-3 py-2 outline-none data-[highlighted]:bg-gray-100"
                         onSelect={() => setAudience(key)}
                       >
-                        <span style={{ color: "#111827" }}>{label}</span>
+                        <span style={{ color: "hsl(var(--theme-ink-primary))" }}>{label}</span>
                         {audience === key ? (
-                          <Check className="h-3.5 w-3.5 shrink-0 text-gray-700" aria-hidden />
+                          <Check className="h-3.5 w-3.5 shrink-0" style={{ color: "hsl(var(--theme-ink-secondary))" }} aria-hidden />
                         ) : (
                           <span className="w-3.5 shrink-0" aria-hidden />
                         )}
@@ -736,7 +829,7 @@ export function DesignBoardFrameDetail({
                 </div>
               ) : (
                 <div className="flex h-full items-center justify-center">
-                  <p className="text-[13px]" style={{ color: "#57534e" }}>
+                  <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
                     No preview available for this frame
                   </p>
                 </div>
@@ -747,9 +840,12 @@ export function DesignBoardFrameDetail({
             {jsonKey && (
               <div
                 className="shrink-0 px-4 py-1.5 border-t"
-                style={{ borderColor: "#e5e7eb", background: "#f9fafb" }}
+                style={{
+                  borderColor: "hsl(var(--theme-border-soft))",
+                  background: "hsl(var(--theme-surface-elevated) / 0.3)",
+                }}
               >
-                <p style={{ fontSize: 10, color: "#78716c" }}>
+                <p style={{ fontSize: 10, color: "hsl(var(--theme-ink-tertiary))" }}>
                   Click any text in the preview to edit it directly
                 </p>
               </div>
@@ -761,30 +857,42 @@ export function DesignBoardFrameDetail({
           <ConfigTabContent frameBlock={jsonBlockValue} />
         )}
 
-        {activeTab === "props" && (
-          <PropsTabContent />
-        )}
+      {activeTab === "props" && (
+        <PropsTabContent />
+      )}
 
-        {activeTab === "json" && (
+      {activeTab === "brief" && (
+        <BriefTabContent liveDomainFrame={liveDomainFrame} />
+      )}
+
+      {activeTab === "code" && (
+        <CodeTabContent domainFrame={previewDomainFrame} />
+      )}
+
+      {activeTab === "json" && (
           jsonBlockValue ? (
             <JsonTabContent value={jsonBlockValue} />
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
               <div
                 className="rounded-full flex items-center justify-center"
-                style={{ width: 36, height: 36, background: "#f3f4f6" }}
+                style={{
+                  width: 36,
+                  height: 36,
+                  background: "hsl(var(--theme-surface-elevated) / 0.5)",
+                }}
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 5v3M8 10.5v.5" stroke="#78716c" strokeWidth="1.5" strokeLinecap="round" />
-                  <circle cx="8" cy="8" r="6.25" stroke="#78716c" strokeWidth="1.5" />
+                  <path d="M8 5v3M8 10.5v.5" stroke="hsl(var(--theme-ink-tertiary))" strokeWidth="1.5" strokeLinecap="round" />
+                  <circle cx="8" cy="8" r="6.25" stroke="hsl(var(--theme-ink-tertiary))" strokeWidth="1.5" />
                 </svg>
               </div>
               <div>
-                <p className="text-[13px] font-medium" style={{ color: "#374151" }}>
+                <p className="text-[13px] font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
                   No JSON block for this frame
                 </p>
-                <p className="mt-1 text-[11px]" style={{ color: "#78716c" }}>
-                  This frame renders live data \u2014 its content is not governed by frame JSON.
+                <p className="mt-1 text-[11px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+                  This frame renders live data — its content is not governed by frame JSON.
                 </p>
               </div>
             </div>

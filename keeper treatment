@@ -1,0 +1,234 @@
+# KE3P · KEEPER PLATFORM
+## Treatment Architecture & TreatmentSurface Specification
+
+*Specification Document · May 2026 · Phase 2 · Path 2*
+
+For: Claude · Cursor · Kip · Rendr · Chuck
+
+---
+
+## Purpose of This Document
+
+This document locks the Treatment architecture for the Keeper platform — what Treatment is, how it is structured as JSON, how it is rendered by React, and where the two layers meet. It also defines TreatmentSurface, the first dynamic React component that reads Treatment JSON at runtime and responds to it — the component that makes Rendr's output visible.
+
+This document emerged from the Design Board migration. Design Board is Rendr's home. Rendr's output needs a surface to render into. That surface is TreatmentSurface. This document defines both.
+
+*Read this document before any build work touching Treatment, Rendr, Chronicle, the Design Board, or the right panel of any Universal Board.*
+
+---
+
+## 1. The Two-Layer Architecture
+
+*Treatment JSON tells the platform what to deliver. TreatmentSurface is the React component that delivers it.*
+
+These are two distinct layers. They must never be collapsed into one.
+
+| Layer | What It Is |
+| --- | --- |
+| Treatment JSON | Named configuration. Produced by Rendr. Approved by the domain owner. Stored in domain JSON. Defines spatial ratios, motion character, density, presence, what surfaces, what recedes. This is data. |
+| TreatmentSurface | A React component. Built by Cursor. Reads Treatment JSON at runtime. Expresses the values visually and behaviorally. Engages the correct motion library based on motion tier. This is code. |
+
+The boundary between these layers is where Rendr's capability ends and Cursor's begins.
+
+| Who | Can Do |
+| --- | --- |
+| Rendr | Adjust values within an existing TreatmentSurface. Change density, motion character, spatial ratios, presence behavior. Output Treatment JSON that a built component can read. |
+| Cursor | Build new TreatmentSurface components. Extend existing ones. Wire motion libraries. Implement new rendering behavior that Treatment JSON cannot express alone. |
+| Cloud | Review and flag when a Treatment JSON value requires a React code change to implement. Mark for Cloud Review in the IDE Board. |
+
+---
+
+## 2. The Treatment JSON Schema
+
+This is the bounded output target — what Rendr writes to, what TreatmentSurface reads from. Every field is a deliberate design decision.
+
+### 2.1 Top-Level Structure
+
+```typescript
+interface TreatmentJSON {
+  name: TreatmentName
+  motionTier: MotionTier
+  spatial: SpatialConfig
+  motion: MotionConfig
+  density: DensityConfig
+  presence: PresenceConfig
+  rationale?: string  // Rendr's plain-language explanation
+}
+```
+
+### 2.2 Named Treatments
+
+| Name | Character | Primary Motion | Use Context |
+| --- | --- | --- | --- |
+| Minimal | Quiet, recessive, content-forward. Motion does not draw attention. | Framer Motion only | Reading, archival, focused work |
+| Standard | Familiar, functional, directed. Motion confirms action. | GSAP | General platform use, domain boards |
+| Cinematic | Immersive, directed, audience-forward. Motion leads. | Theatre.js | Journey playback, presentations |
+| Immersive | Spatial, world-like, environmental. Motion is the environment. | R3F | Character agent worlds, Frogmore |
+
+### 2.3 Motion Tier
+
+| Tier | Library | What It Governs | Status |
+| --- | --- | --- | --- |
+| Ambient (all tiers) | Framer Motion | Panel entry/exit, card appearance, micro-interactions. Baseline for all surfaces. | In stack |
+| Standard | GSAP | Scroll choreography, directed purposeful motion, brand animation. | Directional |
+| Cinematic | Theatre.js | Choreographed sequences, timeline-driven experiences, directed playback. | Directional |
+| Immersive | R3F | 3D scenes as React components. Spatial worlds. Full environmental presence. | Directional |
+
+### 2.4 Spatial Config
+
+```typescript
+interface SpatialConfig {
+  panelRatios: number[]        // e.g. [1, 2, 1.5] — left, center, right
+  contentMaxWidth: 'full' | 'reading' | 'compact'
+  verticalRhythm: number       // Spacing unit multiplier
+  atmosphereVisibility: number // 0.0 to 1.0
+}
+```
+
+### 2.5 Motion Config
+
+```typescript
+interface MotionConfig {
+  entryDuration: number        // Milliseconds
+  exitDuration: number         // Milliseconds
+  entryEasing: string          // e.g. 'easeOut', 'spring'
+  stagger: number              // Milliseconds between sequential entries
+  scrollBehavior: 'none' | 'parallax' | 'directed'
+  transitionStyle: 'fade' | 'slide' | 'dissolve'
+}
+```
+
+### 2.6 Density Config
+
+```typescript
+interface DensityConfig {
+  level: 'compact' | 'default' | 'comfortable'
+  breathing: number            // Multiplier on base vertical spacing unit
+  informationDensity: 'minimal' | 'standard' | 'rich'
+}
+```
+
+### 2.7 Presence Config
+
+```typescript
+interface PresenceConfig {
+  primaryFocus: 'content' | 'context' | 'conversation'
+  recessBehavior: 'fade' | 'compress' | 'none'
+  idleState: 'ambient' | 'feed' | 'empty-named'
+  contextShiftStyle: 'replace' | 'push' | 'dissolve'
+}
+```
+
+---
+
+## 3. TreatmentSurface — The Dynamic React Component
+
+*TreatmentSurface is one component. It reads Treatment JSON. It engages the right motion library. It renders the right presence behavior. It does not have behavior baked in.*
+
+TreatmentSurface is the architectural answer to the question: how does Rendr's output become visible without requiring a rebuild every time Treatment changes?
+
+The answer is that TreatmentSurface is a runtime interpreter. It receives a TreatmentJSON object as a prop and makes all rendering decisions from it. A domain owner changes Treatment through Rendr. The component responds. No Cursor session required.
+
+### 3.1 Component Signature
+
+```typescript
+interface TreatmentSurfaceProps {
+  treatment: TreatmentJSON
+  content: TreatmentContent
+  context?: TreatmentContext
+  onContextShift?: (entry: PanelHistoryEntry) => void
+}
+```
+
+### 3.2 Motion Library Resolution
+
+TreatmentSurface resolves the correct motion library at runtime from `treatment.motionTier`. Framer Motion is always present as the ambient layer. Higher tier libraries are loaded conditionally.
+
+| motionTier value | What TreatmentSurface does |
+| --- | --- |
+| `'ambient'` | Framer Motion only. Standard entry/exit transitions. No additional library loaded. |
+| `'standard'` | Framer Motion for ambient. GSAP engaged for scroll and directed motion sequences. |
+| `'cinematic'` | Framer Motion for ambient. Theatre.js engaged for choreographed timeline sequences. |
+| `'immersive'` | Framer Motion for ambient. R3F engaged for 3D scene rendering. |
+
+### 3.3 Chronicle — The First TreatmentSurface Instance
+
+Chronicle is the right panel surface for Universal Boards. It is the first concrete implementation of TreatmentSurface. Its Treatment character is: warm, unhurried, aware of session history.
+
+Chronicle at its baseline (Minimal/Ambient tier) uses Framer Motion. Lateral slide transitions at 200ms. Fields editable by default. Never empty at idle.
+
+| Chronicle Element | What It Is |
+| --- | --- |
+| Trail Bar | Permanent history stack. Maximum three items visible. `...` compresses older history and is tappable. Sits at the top of the panel. |
+| Feed Indicator | Soft dot + count at the right of the Trail Bar. 60-second polling minimum. Tapping loads the feed in the panel body. Not a notification badge. |
+| Panel Body | Mini-router. Renders `panelHistory[currentIndex]`. Not a conditional branch tree. |
+| Idle State | Named — `UniversalViewPanelIdle`. Never anonymous. Never empty. Shows domain ambient awareness. |
+| Edit Behavior | Fields editable by default. No view/edit toggle. Debounced autosave or save on blur. |
+
+---
+
+## 4. The Cloud Review Pattern
+
+Some Treatment values cannot be expressed by TreatmentSurface alone. They require a React code change — a new rendering behavior, a new motion pattern, a new component capability. Rendr cannot produce these. Cursor must build them.
+
+When Rendr encounters a Treatment requirement that exceeds TreatmentSurface's current capability, the pattern is:
+
+- Rendr flags the gap in its rationale output — plain language, not code
+- The flag surfaces as a Cloud Review item in the IDE Board
+- Cloud reviews — determines whether it is a TreatmentSurface extension or a new component
+- Cursor builds the extension — approved by Chuck
+- TreatmentSurface can now express what Rendr needs
+
+This is the interconnectivity between Design Board (Rendr's home), IDE Board (Cloud's home), and the build layer (Cursor). The boards are not isolated tools — they are a workflow.
+
+---
+
+## 5. The Cascade
+
+Treatment is assigned at any level of the platform hierarchy. The innermost active assignment wins.
+
+| Level | Role |
+| --- | --- |
+| Domain | Sets the default Treatment for all Boards and surfaces within the domain. |
+| Board | May declare its own Treatment, overriding the Domain default for that Board. |
+| Frame | May declare its own Treatment, overriding the Board default for that Frame. |
+| Audience | A Treatment may be defined for the audience-facing experience separately from the builder experience. |
+
+Motion behavior follows this cascade exactly. A domain assigned Standard Treatment uses GSAP for directed motion, Framer Motion for ambient. A Board within that domain assigned Minimal Treatment overrides to Framer Motion only for that Board's surfaces.
+
+---
+
+## 6. Design Board — The First TreatmentSurface Deployment
+
+Design Board is Rendr's home. It is the first board where TreatmentSurface is the right panel. The migration of Design Board to Universal Board is the first concrete deployment of this architecture.
+
+| Panel | Agent / Component | What Happens There |
+| --- | --- | --- |
+| Left | UniversalSwitcherPanel | Frames and Board Definitions. Selecting a Frame or Board Def drives the center and right panels. |
+| Center | Rendr (Dialog Frame) | Conversation with Rendr about Treatment. Not Kip. The banner reflects what is in design focus. Kip accessible via Service Bar. |
+| Right | TreatmentSurface / Keeper Canvas | Live preview of the selected Frame or Board with active Treatment applied. Rendr's output renders here. Eventually: drag-and-drop props, direct visual editing, spatial hotspot mapping. |
+
+The Keeper Canvas — the right panel of Design Board at full capability — is a future state. Chronicle is the first TreatmentSurface instance. Keeper Canvas is what Chronicle becomes when Cinematic and Immersive tiers are live and Rendr has full generative capability.
+
+---
+
+## 7. Build Sequence
+
+In order. Do not skip steps. Each step is a prerequisite for the next.
+
+| Step | What |
+| --- | --- |
+| 1 — This document | Treatment JSON schema defined and locked. TreatmentSurface architecture specified. Chronicle character defined. Cloud Review pattern named. |
+| 2 — Chronicle build | Cursor builds Chronicle as the first TreatmentSurface instance. Framer Motion tier. Trail Bar, Feed Indicator, Panel Body, Idle State, Edit Behavior. Right panel on all Universal Boards. |
+| 3 — Chronicle confirmed | All four boards show Chronicle in the right panel. Moment display has hierarchy and presence. Trail Bar navigates. Feed indicator is ambient. |
+| 4 — Design Board migration | Design Board migrates to Universal Board. Rendr as center agent. TreatmentSurface as right panel. Left panel as UniversalSwitcherPanel with Frames and Board Definitions. |
+| 5 — Rendr schema | Rendr's system prompt and output schema defined against TreatmentJSON. Rendr can produce valid Treatment JSON that TreatmentSurface renders. |
+| 6 — GSAP / Theatre.js | Standard and Cinematic tiers installed after SSR compatibility confirmed and performance targets named. TreatmentSurface extended to engage them from motionTier value. |
+
+---
+
+*KE3P · Keeper Platform · Treatment Architecture · May 2026*
+
+*Companion to: Keeper_Phase2_Forward_May2026.docx · Keeper_MotionArchitecture_May2026.docx · Keeper_UniversalBoard_Definition_May2026.md*
+
+*Status: Locked — Phase 2 active reference. Supersedes all prior Treatment notes.*

@@ -5,9 +5,9 @@ Platform Admin–only surface for visually designing and editing V0 domain Frame
 
 ## 🧱 Key Files
 - `DesignBoard.tsx` — Root component; wraps `UniversalBoard`; owns all design state (`activeBoardId`, `activeFrameKey`, `selectedBoardDefId`, `density`, draft/publish, `dialogId`, `messages`); exports `DesignBoard` alias for `boardRegistry.ts`; syncs `data-density` on `document.documentElement` and `keeper-density` in `localStorage`
-- `DesignBoardCenter.tsx` — Center panel; `KeeperDialogFrame` with `agentName="Design"`; mode switcher (frames / brief / code); frame rail (horizontal pill chips in banner zone when frame active); `POST /api/domains/:domainId/kip/designer` with `dialog_board: "designer"`; `KipApi.createDraft` on Kip proposal
-- `DesignBoardFrameList.tsx` — Exports `BOARD_FRAMES`, `BOARD_NAMES`, `FrameItem` used by center panel and domain board. The `DesignBoardFrameList` component itself is superseded by `DesignBoardCenter`
-- `DesignBoardFrameDetail.tsx` — Right panel; tabbed Frame detail (Preview, Config, Props, JSON); preserves `FramePreviewShell` and direct-edit overlay; shown when a frame is selected
+- `DesignBoardCenter.tsx` — Center panel; pure conversation shell; `KeeperDialogFrame` with `agentName="Design"`; composer anchored at bottom identical to IDE/Agent/Domain boards; single `DraftBar` above the conversation banner; `POST /api/domains/:domainId/kip/designer` with `dialog_board: "designer"`; `KipApi.createDraft` on Kip proposal; zero hardcoded colors
+- `DesignBoardFrameList.tsx` — Exports `BOARD_FRAMES`, `BOARD_NAMES`, `FrameItem`; used by `DesignBoardCenter` (banner context) and `UniversalSwitcherPanel` (left panel frame list)
+- `DesignBoardFrameDetail.tsx` — Right panel; tabbed Frame detail (Preview, Config, Props, JSON, Brief, Code); `FramePreviewShell` + direct-edit overlay; Brief tab shows `DomainBrief`; Code tab shows full domain JSON with theme-variable syntax highlighting; shown when a frame is selected
 - `DesignBoardList.tsx` — (Superseded) Original left panel; replaced by `UniversalSwitcherPanel` from `../panels/`
 - `DesignBoardNav.tsx` — (Legacy) Original left panel; superseded
 - `DesignBoardKip.tsx` — (Legacy) Original center panel; superseded
@@ -16,9 +16,9 @@ Platform Admin–only surface for visually designing and editing V0 domain Frame
 ## 🔄 Data & Behavior
 - `DesignBoard.tsx` owns all state: `activeBoardId`, `activeFrameKey`, `selectedBoardDefId`, `messages`, `draftSpecJson`, `draftId`, `liveDomainFrame`, `audience`, `density`, `dialogId`
 - Left panel: `UniversalSwitcherPanel` — two static sections: **Frames** (from `BOARD_FRAMES[activeBoardId]` with live/draft dots) and **Board Definitions** (all four board defs). Selecting a Frame → sets `activeFrameKey`. Selecting a Board Definition → sets `activeBoardId` + `selectedBoardDefId`, clears `activeFrameKey`
-- Center panel: `DesignBoardCenter` — `KeeperDialogFrame` with `agentName="Design"`. Mode switcher and density control in header. Frame rail in banner zone when frame active. Dialog content switches by `centerPanelMode`: frame list → messages → brief → JSON
-- Right panel (conditional): Frame selected → `DesignBoardFrameDetail`; Board def selected → `BoardDefPanel` (inline JSON view); Nothing → `null` → Chronicle (`UniversalViewPanel`) renders
-- `DesignBoardFrameDetail` imports `CORE_FRAME_MAP` directly; wraps previewed frames in a `V0ShellProvider` override so draft JSON is visible; four tabs: Preview (live frame preview + eye icon audience menu + direct edit), Config (frame props + labels), Props (prop library display), JSON (syntax-highlighted read-only)
+- Center panel: `DesignBoardCenter` — pure `KeeperDialogFrame` conversation with `agentName="Design"`. No mode switcher. No frame rail. No frame list. Composer anchored at bottom at all times. `DraftBar` (publish CTA) shown above the conversation when a draft exists. Frame selection and Brief/Code views are entirely right-panel concerns.
+- Right panel (conditional): Frame selected → `DesignBoardFrameDetail` (six tabs: Preview, Config, Props, JSON, Brief, Code); Board def selected → `BoardDefPanel` (JSON + structure); Nothing selected → `null` → Chronicle (`UniversalViewPanel`) renders
+- `DesignBoardFrameDetail` imports `CORE_FRAME_MAP` directly; wraps previewed frames in a `V0ShellProvider` override so draft JSON is visible; six tabs total: Preview (live frame preview + eye icon audience menu + direct edit), Config (frame props + labels), Props (prop library display), JSON (frame-block JSON), Brief (full `DomainBrief`), Code (full domain JSON)
 
 ## 🐛 Debug Mode
 Design Board debug logging traces draft propagation from Kip → preview. Enable via:
@@ -38,6 +38,11 @@ When enabled, `[DesignBoard:debug]` logs appear:
 - [ ] `DesignBoardList.tsx`, `DesignBoardKip.tsx`, `DesignBoardCanvas.tsx`, `DesignBoardNav.tsx` are now legacy files — safe to delete in a future cleanup pass once no other consumers remain
 
 ## 📆 Update Log
+### 2026-05-06 — True Migration: center panel cleanup + Brief/Code tabs to right panel
+- **`DesignBoardCenter.tsx`**: Full rewrite. Removed `CenterPanelMode` type, `ModeTabBar` component (frames/brief/code switcher), `FrameRail` component (horizontal pill chips), `FrameListContent` component, all `dialogContent` prop branching, duplicate `DraftBar` instances. `KeeperDialogFrame` now renders natively — composer is anchored at bottom, identical to IDE/Agent/Domain boards. Single `DraftBar` placed above the conversation banner. Removed props: `onSelectFrame`, `onClearFrameSelection`, `domainSlug`, `density`, `onDensityChange`. Zero hardcoded colors.
+- **`DesignBoardFrameDetail.tsx`**: Added `"brief"` and `"code"` to `TabKey` union; added both to `TABS` array (six tabs total). Added `BriefTabContent` (renders `DomainBrief` for domain-wide context) and `CodeTabContent` (renders full domain JSON with theme-variable syntax highlighting, using `previewDomainFrame` so draft is visible). Imported `DomainBrief`. Converted all inline hardcoded colors to `hsl(var(--theme-*))` tokens throughout: header, tab bar, Config labels/badges, Props labels, JSON background, JSON empty-state, Preview audience bar, direct-edit hint, EditPopup chrome, no-frame-selected idle state.
+- **`DesignBoard.tsx`**: Removed `onSelectFrame`, `onClearFrameSelection`, `domainSlug`, `density`, `onDensityChange` from `DesignBoardCenter` call site. `density` state retained (read-only from localStorage) to keep `data-density` attribute applied to `<html>`.
+
 ### 2026-05-06 — Moment 2.7: Migration to UniversalBoard
 - **`DesignBoard.tsx`**: Rewritten. Removed custom StyleScope / KeeperTopBar / DomainBriefSlideOver / panel layout — all owned by `UniversalBoard` now. Wraps `UniversalBoard` with `left` / `center` / `right` render props. Added `selectedBoardDefId` state (drives right panel board-def view). Admin guard preserved. Density state preserved; surfaced via switcher in `DesignBoardCenter` header instead of separate sub-bar.
 - **`DesignBoardCenter.tsx`** (new): Center panel. `KeeperDialogFrame` shell with `agentName="Design"`. Mode switcher (frames / brief / code) + density control at top. Frame rail (horizontal pill chips) in banner zone when frame active. Full `handleSend` logic with `dialog_board: "designer"` preserved. `dialogContent` prop controls Zone 2 across all three modes. Zero hardcoded colors.

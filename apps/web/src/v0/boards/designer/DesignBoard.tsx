@@ -200,8 +200,9 @@ export function DesignerFrame() {
   const [activeBoardId, setActiveBoardId] = React.useState("domain")
   const [selectedBoardDefId, setSelectedBoardDefId] = React.useState<string | null>(null)
 
-  // Density — stays at board root
-  const [density, setDensity] = React.useState<KeeperDensity>(readStoredDensity)
+  // Density — stays at board root; applies data-density to <html> for CSS.
+  // No in-app switcher is currently rendered; value is read from localStorage.
+  const [density] = React.useState<KeeperDensity>(readStoredDensity)
 
   // ── Sync live frame from shell ─────────────────────────────────────────────
   React.useEffect(() => {
@@ -409,11 +410,8 @@ export function DesignerFrame() {
       center={(centerProps) => (
         <DesignBoardCenter
           domainId={centerProps.domainId}
-          domainSlug={centerProps.domainSlug}
           activeBoardId={activeBoardId}
           activeFrameKey={activeFrameKey}
-          onSelectFrame={handleFrameSelect}
-          onClearFrameSelection={() => setActiveFrameKey(null)}
           liveDomainFrame={liveDomainFrame}
           draftSpecJson={draftSpecJson}
           setDraftSpecJson={setDraftSpecJson}
@@ -427,8 +425,6 @@ export function DesignerFrame() {
           setDraftId={setDraftId}
           dialogId={dialogId}
           setDialogId={setDialogId}
-          density={density}
-          onDensityChange={setDensity}
         />
       )}
 
