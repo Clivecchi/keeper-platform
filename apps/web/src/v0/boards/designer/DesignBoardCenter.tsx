@@ -104,19 +104,19 @@ function DraftBar({
       className="shrink-0 px-4 py-2.5 border-b flex items-center justify-between gap-3"
       style={{
         borderColor: publishSuccess
-          ? "hsl(152 69% 43% / 0.3)"
-          : "hsl(38 92% 50% / 0.3)",
+          ? "hsl(var(--theme-status-success, 152 69% 43%) / 0.3)"
+          : "hsl(var(--theme-status-warning, 38 92% 50%) / 0.3)",
         background: publishSuccess
-          ? "hsl(152 69% 43% / 0.08)"
-          : "hsl(38 92% 50% / 0.08)",
+          ? "hsl(var(--theme-status-success, 152 69% 43%) / 0.08)"
+          : "hsl(var(--theme-status-warning, 38 92% 50%) / 0.08)",
       }}
     >
       <p
         className="text-[12px] font-medium"
         style={{
           color: publishSuccess
-            ? "hsl(152 69% 28%)"
-            : "hsl(38 92% 32%)",
+            ? "hsl(var(--theme-status-success, 152 69% 28%))"
+            : "hsl(var(--theme-status-warning, 38 92% 32%))",
         }}
       >
         {publishSuccess
@@ -329,9 +329,9 @@ export function DesignBoardCenter({
         <div
           className="shrink-0 px-4 py-2 text-[11px] font-medium border-b"
           style={{
-            background: "hsl(0 84% 60% / 0.08)",
-            color: "hsl(0 84% 40%)",
-            borderColor: "hsl(0 84% 60% / 0.2)",
+            background: "hsl(var(--theme-status-error, 0 84% 60%) / 0.08)",
+            color: "hsl(var(--theme-status-error, 0 84% 40%))",
+            borderColor: "hsl(var(--theme-status-error, 0 84% 60%) / 0.2)",
           }}
         >
           {sendError}

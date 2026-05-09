@@ -141,9 +141,9 @@ function BoardDefPanel({ def }: { def: UniversalBoardDef }) {
             <span
               className="rounded-full px-2 py-0.5 text-[10px] font-medium border"
               style={{
-                background: "hsl(38 92% 50% / 0.12)",
-                color: "hsl(38 92% 32%)",
-                borderColor: "hsl(38 92% 50% / 0.3)",
+                background: "hsl(var(--theme-status-warning, 38 92% 50%) / 0.12)",
+                color: "hsl(var(--theme-status-warning, 38 92% 32%))",
+                borderColor: "hsl(var(--theme-status-warning, 38 92% 50%) / 0.3)",
               }}
             >
               admin only

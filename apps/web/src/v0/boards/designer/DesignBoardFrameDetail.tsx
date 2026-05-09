@@ -425,14 +425,15 @@ interface PropEntry {
 
 interface PropSection {
   label: string
-  color: string
+  /** CSS custom property name (without --) that resolves to an HSL channel triple. */
+  colorVar: string
   items: PropEntry[]
 }
 
 const PROP_SECTIONS: PropSection[] = [
   {
     label: "Media",
-    color: "#7F77DD",
+    colorVar: "--theme-accent-secondary",
     items: [
       { name: "Hero Image", description: "Full-width hero image banner" },
       { name: "Video Player", description: "Embedded video playback" },
@@ -441,7 +442,7 @@ const PROP_SECTIONS: PropSection[] = [
   },
   {
     label: "Content",
-    color: "#1D9E75",
+    colorVar: "--theme-accent-primary",
     items: [
       { name: "Heading", description: "Section heading text" },
       { name: "Text Block", description: "Rich text paragraph content" },
@@ -450,7 +451,7 @@ const PROP_SECTIONS: PropSection[] = [
   },
   {
     label: "Interactive",
-    color: "#378ADD",
+    colorVar: "--theme-accent-secondary",
     items: [
       { name: "Action Button", description: "Primary CTA button" },
       { name: "Form", description: "Input form with fields" },
@@ -458,7 +459,7 @@ const PROP_SECTIONS: PropSection[] = [
   },
   {
     label: "AI",
-    color: "#BA7517",
+    colorVar: "--theme-accent-tertiary",
     items: [
       { name: "AI Token", description: "Dynamic AI-generated token" },
       { name: "AI Assistant", description: "Embedded Kip assistant" },
@@ -486,7 +487,7 @@ function PropsTabContent() {
                   style={{
                     width: 18,
                     height: 18,
-                    background: section.color + "18",
+                    background: `hsl(var(${section.colorVar}) / 0.08)`,
                   }}
                 >
                   <div
@@ -494,7 +495,7 @@ function PropsTabContent() {
                     style={{
                       width: 8,
                       height: 8,
-                      background: section.color,
+                      background: `hsl(var(${section.colorVar}))`,
                       opacity: 0.6,
                     }}
                   />
@@ -524,20 +525,17 @@ function JsonTabContent({ value }: { value: unknown }) {
   const highlighted = json.replace(
     /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
     (match) => {
-      let color = "#7F77DD"
-      let processedMatch = match
+      let color = "hsl(var(--theme-accent-secondary))"
       if (/^"/.test(match)) {
-        if (/:$/.test(match)) {
-          color = "#111827"
-        } else {
-          color = "#1D9E75"
-        }
+        color = /:$/.test(match)
+          ? "hsl(var(--theme-ink-primary))"
+          : "hsl(var(--theme-accent-primary) / 0.8)"
       } else if (/true|false/.test(match)) {
-        color = "#D4537E"
+        color = "hsl(var(--theme-accent-tertiary, var(--theme-accent-primary)))"
       } else if (/null/.test(match)) {
-        color = "#78716c"
+        color = "hsl(var(--theme-ink-tertiary))"
       }
-      return `<span style="color:${color}">${processedMatch}</span>`
+      return `<span style="color:${color}">${match}</span>`
     },
   )
 
