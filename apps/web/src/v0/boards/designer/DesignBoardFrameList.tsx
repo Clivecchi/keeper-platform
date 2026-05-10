@@ -3,7 +3,13 @@
 import * as React from "react"
 import { Code2, FileText, LayoutGrid } from "lucide-react"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
-import type { DesignerMessage } from "./DesignBoard"
+// DesignerMessage defined here; legacy consumers (DesignBoardKip) import from this file.
+export type DesignerMessage = {
+  id: string
+  role: "user" | "kip"
+  content: string
+  draftProposal?: unknown
+}
 import { FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"

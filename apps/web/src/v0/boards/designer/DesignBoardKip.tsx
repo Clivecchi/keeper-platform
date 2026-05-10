@@ -17,7 +17,7 @@
 
 import * as React from "react"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
-import type { DesignerMessage } from "./DesignBoard"
+import type { DesignerMessage } from "./DesignBoardFrameList"
 import { FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"

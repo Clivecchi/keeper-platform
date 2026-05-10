@@ -165,6 +165,7 @@ function UniversalBoardShell({
 }: UniversalBoardProps) {
   const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
   const { selection, actions, navCollapsed, onToggleNavCollapsed } = useUniversalBoard()
+  const { isAdmin } = useAuth()
 
   const [briefOpen, setBriefOpen] = React.useState(false)
   const [domainId, setDomainId] = React.useState<string | null>(null)
@@ -197,6 +198,53 @@ function UniversalBoardShell({
       ""
     if (name) setDomainName(name)
   }, [domainFrame, domainData])
+
+  // ── Density — applied when def.access.requiresDensity is true ─────────────
+  const DENSITY_KEY = "keeper-density"
+  type KeeperDensity = "compact" | "default" | "comfortable"
+
+  const [density] = React.useState<KeeperDensity>(() => {
+    if (!def.access.requiresDensity) return "default"
+    if (typeof window === "undefined") return "default"
+    try {
+      const v = localStorage.getItem(DENSITY_KEY)
+      if (v === "compact" || v === "comfortable") return v
+    } catch { /* ignore */ }
+    return "default"
+  })
+
+  React.useEffect(() => {
+    if (!def.access.requiresDensity) return
+    document.documentElement.setAttribute("data-density", density)
+    try { localStorage.setItem(DENSITY_KEY, density) } catch { /* ignore */ }
+  }, [def.access.requiresDensity, density])
+
+  // ── Admin guard — enforced at shell level when def.access.isAdminOnly ──────
+  if (def.access.isAdminOnly && !isAdmin) {
+    return (
+      <StyleScope styleId={styleId} themeSlug={themeSlug ?? null}>
+        <div
+          className="flex h-screen items-center justify-center"
+          style={{ background: "hsl(var(--theme-surface-page))" }}
+        >
+          <div
+            className="rounded-xl px-8 py-6 text-center"
+            style={{
+              background: "hsl(var(--theme-surface-panel))",
+              border: "1px solid hsl(var(--theme-border-soft) / 0.4)",
+            }}
+          >
+            <p className="text-sm font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+              Access restricted
+            </p>
+            <p className="mt-1 text-xs" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+              {def.displayName} is available to Platform Admins only.
+            </p>
+          </div>
+        </div>
+      </StyleScope>
+    )
+  }
 
   // ── Background ─────────────────────────────────────────────────────────────
   const coverImageUrl = (domainData as { theme?: { coverImage?: string; coverImageMode?: string } } | undefined)?.theme?.coverImage ?? null

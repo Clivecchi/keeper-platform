@@ -16,7 +16,7 @@
 
 import * as React from "react"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
-import type { DesignerAudience } from "./DesignBoard"
+import type { DesignerAudience } from "./DesignBoardFrameDetail"
 import { CORE_FRAME_MAP, FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
 import { V0ShellProvider, useV0Shell } from "../../shell/V0ShellContext"
 import { FrameContextProvider } from "../../shell/FrameContext"
