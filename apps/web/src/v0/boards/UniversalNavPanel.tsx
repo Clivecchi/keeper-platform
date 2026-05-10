@@ -29,6 +29,7 @@ import { KipApi } from "../../lib/kipApi"
 import type { KipDraftSummary } from "../../lib/kipApi"
 import { SidebarCard } from "../components/SidebarCard"
 import type { SidebarCardItem } from "../components/SidebarCard"
+import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -38,8 +39,8 @@ export interface UniversalNavPanelProps {
   domainSlug: string
   domainName: string
 
-  // Board context — drives filtering and instrument section
-  boardContext: "ide" | "agent" | "domain" | "designer"
+  // Board definition — drives filtering and instrument section
+  def: UniversalBoardDef
 
   // Selection state — controlled by the Board
   selectedDialogId?: string | null
@@ -159,7 +160,7 @@ export function UniversalNavPanel({
   domainId,
   domainSlug: _domainSlug,
   domainName,
-  boardContext,
+  def,
   selectedDialogId,
   selectedJourneyId,
   selectedKeeperId,
@@ -274,10 +275,10 @@ export function UniversalNavPanel({
     return () => { cancelled = true }
   }, [domainId, keeperListVersion])
 
-  // ── Fetch: Drafts — only for "ide" and "agent" boardContext ─────────────
+  // ── Fetch: Drafts — only when def.nav.sections.drafts is true ──────────
   React.useEffect(() => {
     if (!domainId) return
-    if (boardContext !== "ide" && boardContext !== "agent") return
+    if (!def.nav.sections.drafts) return
     let cancelled = false
     setDrafts(null)
     setDraftError(null)
@@ -292,12 +293,12 @@ export function UniversalNavPanel({
         }
       })
     return () => { cancelled = true }
-  }, [domainId, boardContext, draftListVersion])
+  }, [domainId, def.nav.sections.drafts, draftListVersion])
 
-  // ── Fetch: Agents — Layer 2, only for boardContext === "agent" ───────────
+  // ── Fetch: Agents — only when def.nav.sections.agents is true ───────────
   React.useEffect(() => {
     if (!domainId) return
-    if (boardContext !== "agent") return
+    if (!def.nav.sections.agents) return
     let cancelled = false
     setAgents(null)
     setAgentError(null)
@@ -314,7 +315,7 @@ export function UniversalNavPanel({
         }
       })
     return () => { cancelled = true }
-  }, [domainId, boardContext])
+  }, [domainId, def.nav.sections.agents])
 
   // ── Collapsed state — 36px strip with centered expand chevron ────────────
   if (collapsed) {
@@ -397,19 +398,14 @@ export function UniversalNavPanel({
     onClick: () => onAgentSelect?.(a.id),
   }))
 
-  // Instruments (IDE / designer) — static named items as SidebarCardItem[]
-  const ideInstrumentItems: SidebarCardItem[] = [
-    { id: "cloud", label: "Cloud", isSelected: selectedAgentId === "cloud", onClick: () => onAgentSelect?.("cloud") },
-    { id: "rendr", label: "Rendr", isSelected: selectedAgentId === "rendr", onClick: () => onAgentSelect?.("rendr") },
-  ]
-  const designerInstrumentItems: SidebarCardItem[] = [
-    { id: "rendr", label: "Rendr", isSelected: selectedAgentId === "rendr", onClick: () => onAgentSelect?.("rendr") },
-  ]
-
-  const showDrafts = boardContext === "ide" || boardContext === "agent"
-  const showAgents = boardContext === "agent"
-  const showIdeInstruments = boardContext === "ide"
-  const showDesignerInstruments = boardContext === "designer"
+  const showDrafts = def.nav.sections.drafts
+  const showAgents = def.nav.sections.agents
+  const instruments: SidebarCardItem[] = (def.nav.instruments ?? []).map((inst) => ({
+    id: inst.id,
+    label: inst.label,
+    isSelected: selectedAgentId === inst.id,
+    onClick: () => onAgentSelect?.(inst.id),
+  }))
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -493,7 +489,7 @@ export function UniversalNavPanel({
           </p>
         )}
 
-        {/* Drafts — ide and agent boardContext only */}
+        {/* Drafts — def.nav.sections.drafts only */}
         {showDrafts && (
           <>
             <SidebarCard
@@ -511,7 +507,7 @@ export function UniversalNavPanel({
           </>
         )}
 
-        {/* Agents — boardContext === "agent" only */}
+        {/* Agents — def.nav.sections.agents only */}
         {showAgents && (
           <>
             <SidebarCard
@@ -529,17 +525,11 @@ export function UniversalNavPanel({
           </>
         )}
 
-        {/* Instruments — ide: Cloud + Rendr, designer: Rendr */}
-        {showIdeInstruments && (
+        {/* Instruments — def.nav.instruments drives this list */}
+        {instruments.length > 0 && (
           <SidebarCard
             title="Instruments"
-            items={ideInstrumentItems}
-          />
-        )}
-        {showDesignerInstruments && (
-          <SidebarCard
-            title="Instruments"
-            items={designerInstrumentItems}
+            items={instruments}
           />
         )}
 

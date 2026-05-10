@@ -287,14 +287,7 @@ function UniversalBoardShell({
                       domainId={domainId}
                       domainSlug={slug}
                       domainName={domainName || slug}
-                      boardContext={
-                        (def.boardId === "ide" ||
-                          def.boardId === "agent" ||
-                          def.boardId === "domain" ||
-                          def.boardId === "designer")
-                          ? (def.boardId as "ide" | "agent" | "domain" | "designer")
-                          : "domain"
-                      }
+                      def={def}
                       selectedDialogId={null}
                       selectedJourneyId={selection.selectedJourneyId}
                       selectedKeeperId={selection.selectedKeeperId}
