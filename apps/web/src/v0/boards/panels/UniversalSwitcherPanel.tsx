@@ -22,10 +22,10 @@
 
 import * as React from "react"
 import { BOARD_FRAMES, type FrameItem } from "../designer/DesignBoardFrameList"
-import { BOARD_DEFINITIONS } from "../UniversalBoardDefinition"
 import { FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
 import { useDesignerDraftOptional } from "../DesignerDraftContext"
+import { useBoardDefs } from "../useBoardDefs"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -173,6 +173,7 @@ function BoardDefRow({
 export function UniversalSwitcherPanel(_props: UniversalSwitcherPanelProps = {}) {
   const boardCtx = useUniversalBoardOptional()
   const draftCtx = useDesignerDraftOptional()
+  const boardDefs = useBoardDefs()
 
   const activeFrameKey = boardCtx?.selection.selectedFrameKey ?? null
   const activeBoardId = boardCtx?.selection.activeBoardForFrames ?? "domain"
@@ -183,7 +184,6 @@ export function UniversalSwitcherPanel(_props: UniversalSwitcherPanelProps = {})
   const liveDomainFrame = draftCtx?.liveDomainFrame ?? null
 
   const frames: FrameItem[] = BOARD_FRAMES[activeBoardId] ?? []
-  const boardDefs = Object.values(BOARD_DEFINITIONS)
 
   return (
     <div

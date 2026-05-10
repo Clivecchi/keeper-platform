@@ -30,7 +30,7 @@ import type { KipDraftSummary } from "../../lib/kipApi"
 import { SidebarCard } from "../components/SidebarCard"
 import type { SidebarCardItem } from "../components/SidebarCard"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
-import { BOARD_DEFINITIONS } from "./UniversalBoardDefinition"
+import { useBoardDefs } from "./useBoardDefs"
 import { useUniversalBoardOptional } from "./UniversalBoardContext"
 import { useDesignerDraftOptional } from "./DesignerDraftContext"
 import { BOARD_FRAMES } from "./designer/DesignBoardFrameList"
@@ -272,6 +272,7 @@ export function UniversalNavPanel({
   // ── designer context — must be called before any early returns ─────────────
   const boardCtx = useUniversalBoardOptional()
   const draftCtx = useDesignerDraftOptional()
+  const allBoardDefs = useBoardDefs()
 
   // ── Section data ────────────────────────────────────────────────────────────
   const [dialogs, setDialogs] = React.useState<DialogItem[] | null>(null)
@@ -539,13 +540,13 @@ export function UniversalNavPanel({
   const boardDefItems: SidebarCardItem[] = React.useMemo(() => {
     if (!showBoardDefs) return []
     const activeDef = boardCtx?.selection.selectedBoardDefId ?? null
-    return Object.values(BOARD_DEFINITIONS).map((d) => ({
+    return allBoardDefs.map((d) => ({
       id: d.boardId,
       label: d.displayName,
       isSelected: d.boardId === activeDef,
       onClick: () => boardCtx?.actions.onBoardDefSelect(d.boardId),
     }))
-  }, [showBoardDefs, boardCtx])
+  }, [showBoardDefs, boardCtx, allBoardDefs])
 
   // ── Render ───────────────────────────────────────────────────────────────
 

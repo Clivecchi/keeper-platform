@@ -7,6 +7,8 @@
  * Shape defined in: Keeper JsonFrame Spec v0.1 · March 2026
  */
 
+import type { UniversalBoardDef } from "../boards/UniversalBoardDefinition"
+
 export type AudienceRole = "guest" | "keeper" | "admin"
 
 export interface DomainFrameTheme {
@@ -589,4 +591,6 @@ export interface DomainFrameJson {
   feed: FeedFrameJson
   keepers: KeepersFrameJson
   profile: ProfileFrameJson
+  /** Board definitions for this domain. When present, replaces the static BOARD_REGISTRY. */
+  boards?: UniversalBoardDef[]
 }

@@ -7,7 +7,9 @@ import { useTheme } from "../../context/ThemeContext"
 import type { StyleId } from "../styles/styles"
 import { StyleOverrideProvider } from "../styles/StyleOverrideProvider"
 import { CORE_FRAME_MAP } from "./frameRegistryMap"
-import { BOARD_REGISTRY, type V0BoardKey } from "../boards/boardRegistry"
+import { BOARD_DEFINITIONS_FALLBACK } from "../boards/useBoardDefs"
+import { UniversalBoard } from "../boards/UniversalBoard"
+import type { UniversalBoardDef } from "../boards/UniversalBoardDefinition"
 import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
 import { loadDomainFrame } from "../data/loadDomainFrame"
@@ -64,9 +66,8 @@ export function V0Shell() {
   const styleId = (searchParams.get("style") || "neutral") as StyleId
   const draftId = searchParams.get("draftId")
 
-  // ?board= parameter — takes precedence over ?frame= when present and recognised
-  const boardParam = (searchParams.get("board") || "").toLowerCase() as V0BoardKey
-  const boardEntry = BOARD_REGISTRY[boardParam] ?? null
+  // ?board= parameter — takes precedence over ?frame= when present and recognised.
+  const boardParam = (searchParams.get("board") || "").toLowerCase()
 
   // initialStyleId: passed to StyleOverrideProvider.
   // When any theme slug is active (URL or domain), omit the initial style so
@@ -76,6 +77,15 @@ export function V0Shell() {
 
   const [domainData, setDomainData] = React.useState<any | null>(null)
   const [domainFrame, setDomainFrame] = React.useState<DomainFrameJson | null>(null)
+
+  // Board defs come from domainFrame.boards (seeded per-domain) with fallback to
+  // BOARD_DEFINITIONS_FALLBACK for domains whose frame_json has not yet been seeded.
+  const boardDefs: UniversalBoardDef[] =
+    (domainFrame?.boards && domainFrame.boards.length > 0)
+      ? domainFrame.boards
+      : Object.values(BOARD_DEFINITIONS_FALLBACK)
+  const matchedDef: UniversalBoardDef | null =
+    boardParam ? boardDefs.find((d) => d.boardId === boardParam) ?? null : null
 
   // Resolved once at the Frame level — no child resolves audience independently
   const resolvedAudience = resolveAudience({ isAuthenticated: isAuthenticated ?? false, isAdmin: isAdmin ?? false })
@@ -215,10 +225,10 @@ export function V0Shell() {
 
   React.useEffect(() => {
     // Same authResolved guard — prevents premature redirect on page refresh.
-    if (authResolved && boardEntry?.isPrivate && !isAuthenticated && slug) {
+    if (authResolved && matchedDef?.access.isPrivate && !isAuthenticated && slug) {
       navigate(buildFrameUrl("cover"))
     }
-  }, [authResolved, boardEntry, isAuthenticated, slug, navigate, buildFrameUrl])
+  }, [authResolved, matchedDef, isAuthenticated, slug, navigate, buildFrameUrl])
 
   const closeToBoard = () => {
     const params = new URLSearchParams()
@@ -255,18 +265,16 @@ export function V0Shell() {
   const FrameComponent = FRAME_REGISTRY[frame]
 
   // ── Board rendering — takes precedence over frame routing ─────────────────
-  if (boardEntry) {
-    const BoardComponent = boardEntry.component
-
+  if (matchedDef) {
     // isAdminOnly guard — render inline, no redirect
-    if (boardEntry.isAdminOnly && !isAdmin) {
+    if (matchedDef.access.isAdminOnly && !isAdmin) {
       return (
         <StyleOverrideProvider initialStyleId={initialStyleId}>
           <div className="flex h-screen items-center justify-center bg-neutral-50">
             <div className="rounded-xl border border-neutral-200 bg-white px-8 py-6 text-center shadow-sm">
               <p className="text-sm font-medium text-neutral-700">Access restricted</p>
               <p className="mt-1 text-xs text-neutral-400">
-                Design Board is available to Platform Admins only.
+                {matchedDef.displayName} is available to Platform Admins only.
               </p>
             </div>
           </div>
@@ -275,11 +283,11 @@ export function V0Shell() {
     }
 
     // isPrivate + unauthenticated — redirect handled by useEffect above; render nothing while redirecting
-    if (boardEntry.isPrivate && !isAuthenticated) {
+    if (matchedDef.access.isPrivate && !isAuthenticated) {
       return null
     }
 
-    // Authorised — Board owns its layout and chrome; V0Shell mounts it with context and steps back
+    // Authorised — UniversalBoard owns its layout and chrome; V0Shell mounts it with context and steps back
     return (
       <StyleOverrideProvider initialStyleId={initialStyleId}>
         <V0ShellProvider
@@ -307,7 +315,7 @@ export function V0Shell() {
             themeSlug={activeThemeSlug}
             draftId={draftId}
           >
-            <BoardComponent />
+            <UniversalBoard def={matchedDef} />
             {kipHandoffToast}
           </FrameContextProvider>
         </V0ShellProvider>

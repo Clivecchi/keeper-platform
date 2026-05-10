@@ -32,7 +32,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch } from "../../../lib/api"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
 import type { UniversalBoardDef } from "../UniversalBoardDefinition"
-import { BOARD_DEFINITIONS } from "../UniversalBoardDefinition"
+import { useBoardDefs } from "../useBoardDefs"
 import { ServicesFrame } from "../../components/ServicesFrame"
 import { DesignBoardFrameDetail } from "../designer/DesignBoardFrameDetail"
 import type { FrameProp } from "../designer/DesignBoardFrameDetail"
@@ -1488,7 +1488,8 @@ function FrameView({ frameKey, domainId, domainSlug, activeBoardForFrames }: Fra
 // Chronicle view for kipMode === "designer" when a board definition is selected.
 
 function BoardDefView({ boardDefId }: { boardDefId: string }) {
-  const def = BOARD_DEFINITIONS[boardDefId]
+  const boardDefs = useBoardDefs()
+  const def = boardDefs.find((d) => d.boardId === boardDefId)
   if (!def) {
     return (
       <div className="flex h-full items-center justify-center">
