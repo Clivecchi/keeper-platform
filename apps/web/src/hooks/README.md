@@ -25,6 +25,15 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-05-09 — useAgentDialog designer transport (Gap 3)
+- Added `frameKey?: string` and `onDesignerDraft?: (draft, frameKey) => void` to `UseAgentDialogOptions`.
+- Added exported `DesignerApiResponse` interface matching POST `/api/domains/:domainId/kip/designer` response shape.
+- `sendMessage` now has a dedicated `mode === "designer"` branch that calls `/kip/designer` with `{ message, frameKey, conversationHistory, dialog_id, dialog_board: "designer" }` instead of `KipApi.runAgent`.
+- `designerDialogIdRef` tracks the `dialog_id` returned by the first response so subsequent turns resume the same Dialog record.
+- `messagesRef` keeps an always-current message snapshot for building conversation history without modifying the `sendMessage` dep array.
+- Standard KipApi session creation is now skipped for `mode === "designer"` — the `/kip/designer` route owns its own dialog/session lifecycle.
+- `DESIGNER_BOARD_DEF.conversation.kipMode` updated from `"domain"` to `"designer"`. `ConversationPanelDef.kipMode` union extended with `"designer"`.
+
 ### 2026-05-09 — useAgentDialog + useDraftContext agentId rename
 - Created `useAgentDialog.ts` — parameterized agent session hook supporting any agent via `agentSlug` / `agentDisplayName`. Adds `mode: "domain" | "designer"`, `dialogBoard`, `dialogFrame`, `dialogSubject`, `sessionDisplayName`, `agentRunMode` params. Renames `kipAgentId` → `agentId` in result. Replaces all hardcoded "kip" / "Kip" strings with params.
 - `useKipSession.ts` replaced with backward-compat re-export alias pointing to `useAgentDialog`.

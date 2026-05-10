@@ -42,7 +42,7 @@ export interface ConversationPanelDef {
   dialogueMode: "domain" | "agent"
   showServiceBar: boolean
   /** Which KipSession mode the conversation uses. Drives context injection and session behavior. */
-  kipMode: "ide" | "agent" | "domain"
+  kipMode: "ide" | "agent" | "domain" | "designer"
 }
 
 // Right panel — Living Multi-Context Surface
@@ -273,7 +273,7 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
     agentName: "Kip",
     dialogueMode: "domain",
     showServiceBar: false,
-    kipMode: "domain",
+    kipMode: "designer",
   },
   contextSurface: {
     viewStates: [
