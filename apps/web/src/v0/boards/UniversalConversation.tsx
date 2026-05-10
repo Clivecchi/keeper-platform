@@ -20,7 +20,7 @@
  *   "ide"    — keeper + journey banner, Kip context sync, session title save,
  *              service bar, draft-session linking
  *   "agent"  — agent studio banner, draft context
- *   "domain" — domain banner + DomainBanner header
+ *   "domain" — domain identity (wordmark, tagline, live pulse, counts) via bannerContext → KeeperDialogFrame
  */
 
 import * as React from "react"
@@ -35,7 +35,6 @@ import { extractLinkedCard } from "../../components/agent/helpers"
 import { useAgentDialog } from "../../hooks/useAgentDialog"
 import { useDraftContext } from "../../hooks/useDraftContext"
 import { KeeperDialogFrame } from "../components/dialog/KeeperDialogFrame"
-import { DomainBanner } from "../components/DomainBanner"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import type { UniversalBoardCenterProps } from "./UniversalBoard"
 import { useUniversalBoard } from "./UniversalBoardContext"
@@ -469,14 +468,28 @@ export function UniversalConversation({
           ...(hasDraftSpec ? { prelude: "Draft in progress" } : {}),
         }
       case "domain":
-      default:
+      default: {
+        const df = domainFrame as {
+          theme?: { wordmark?: string; tagline?: string; colors?: { primary?: string } }
+          cover?: { card?: { tagLine?: string } }
+        } | null
+        const wordmark = df?.theme?.wordmark?.trim() || domainName || "Domain"
+        const tagline = df?.cover?.card?.tagLine?.trim() || df?.theme?.tagline?.trim() || undefined
+        const primaryAccent = df?.theme?.colors?.primary?.trim() || undefined
+        const statJourneys = journeyCount === null ? "—" : String(journeyCount)
+        const statMoments = momentCount === null ? "—" : momentCount >= 500 ? "500+" : String(momentCount)
         return {
-          primary: (domainFrame as { theme?: { wordmark?: string } } | null)?.theme?.wordmark?.trim()
-            || domainName
-            || "Domain",
+          primary: wordmark,
+          ...(tagline ? { tagline } : {}),
+          livePulse: { color: primaryAccent },
+          stats: [
+            { label: "Journeys", value: statJourneys },
+            { label: "Moments", value: statMoments },
+          ] as const,
         }
+      }
     }
-  }, [kipMode, keeperName, journeyName, domainName, selectedDraftId, domainFrame, selectedFrameKey, hasDraftSpec])
+  }, [kipMode, keeperName, journeyName, domainName, selectedDraftId, domainFrame, selectedFrameKey, hasDraftSpec, journeyCount, momentCount])
 
   // ── modelProvider — ide mode reads from domain frame ──────────────────────
   const modelProvider = kipMode === "ide"
@@ -486,16 +499,6 @@ export function UniversalConversation({
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* DomainBanner — domain mode only, above the dialog frame */}
-      {kipMode === "domain" && (
-        <DomainBanner
-          domainFrame={domainFrame}
-          fallbackWordmark={domainSlug || domainName || "—"}
-          journeyCount={journeyCount}
-          momentCount={momentCount}
-        />
-      )}
-
       {/* DraftBar — designer mode only, above the dialog frame */}
       {kipMode === "designer" && designerDraftCtx && (
         <DraftBar

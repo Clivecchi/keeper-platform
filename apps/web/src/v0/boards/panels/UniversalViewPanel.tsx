@@ -883,8 +883,11 @@ function MomentView({ momentId, onLabelResolved, trailKey }: MomentViewProps) {
 // ─── KeeperView ───────────────────────────────────────────────────────────────
 // Keeper: name + description + recent sessions. Editable by default.
 
+type KeeperFetchError = 'not_found' | 'access' | 'unknown'
+
 interface KeeperViewProps {
   keeperId: string
+  domainId: string | null
   onJourneySelect?: (id: string) => void
   onLabelResolved: (key: string, label: string) => void
   trailKey: string
@@ -892,12 +895,14 @@ interface KeeperViewProps {
 
 function KeeperView({
   keeperId,
+  domainId,
   onJourneySelect,
   onLabelResolved,
   trailKey,
 }: KeeperViewProps) {
   const [keeper, setKeeper] = React.useState<KeeperDetail | null>(null)
   const [loading, setLoading] = React.useState(true)
+  const [fetchError, setFetchError] = React.useState<KeeperFetchError | null>(null)
 
   const [title, setTitle] = React.useState("")
   const [purpose, setPurpose] = React.useState("")
@@ -910,9 +915,14 @@ function KeeperView({
     let cancelled = false
     setLoading(true)
     setKeeper(null)
+    setFetchError(null)
     hasEdited.current = false
 
-    apiFetch(`/api/keepers/${encodeURIComponent(keeperId)}`)
+    const url = domainId
+      ? `/api/keepers/${encodeURIComponent(keeperId)}?domainId=${encodeURIComponent(domainId)}`
+      : `/api/keepers/${encodeURIComponent(keeperId)}`
+
+    apiFetch(url)
       .then((res: unknown) => {
         if (cancelled) return
         const data =
@@ -926,14 +936,19 @@ function KeeperView({
         setLoading(false)
         if (k.title) onLabelResolved(trailKey, k.title)
       })
-      .catch(() => {
-        if (!cancelled) setLoading(false)
+      .catch((err: unknown) => {
+        if (cancelled) return
+        const status = (err as { status?: number }).status
+        if (status === 404) setFetchError('not_found')
+        else if (status === 400 || status === 403) setFetchError('access')
+        else setFetchError('unknown')
+        setLoading(false)
       })
     return () => {
       cancelled = true
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [keeperId])
+  }, [keeperId, domainId])
 
   React.useEffect(() => {
     if (!hasEdited.current || !keeper) return
@@ -989,6 +1004,17 @@ function KeeperView({
             <PresenceShimmer width="w-32" />
             <PresenceShimmer width="w-24" />
           </>
+        ) : fetchError ? (
+          <p
+            className="text-[12px]"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            {fetchError === 'not_found'
+              ? "Keeper not found."
+              : fetchError === 'access'
+                ? "Access error — check domain context."
+                : "Could not load keeper."}
+          </p>
         ) : keeper ? (
           <>
             {keeper.journeys && keeper.journeys.length > 0 ? (
@@ -1015,14 +1041,7 @@ function KeeperView({
               </p>
             )}
           </>
-        ) : (
-          <p
-            className="text-[12px]"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            Keeper not found.
-          </p>
-        )}
+        ) : null}
       </div>
     </div>
   )
@@ -1105,6 +1124,25 @@ function DraftView({ draftId, domainId, onLabelResolved, trailKey }: DraftViewPr
 
 // ─── AgentView ────────────────────────────────────────────────────────────────
 
+type AgentDetail = {
+  id: string
+  name?: string
+  slug?: string | null
+  purpose?: string | null
+  model?: string | null
+  model_provider?: string | null
+  agent_class?: string | null
+  status?: string | null
+  visibility?: string | null
+  tools?: string[]
+  permissions?: string[]
+  recent_sessions?: Array<{ id: string; session_name?: string | null; created_at?: string }>
+  created_at?: string
+  updated_at?: string
+}
+
+type AgentFetchError = 'not_found' | 'access' | 'unknown'
+
 interface AgentViewProps {
   agentId: string
   onLabelResolved: (key: string, label: string) => void
@@ -1112,54 +1150,208 @@ interface AgentViewProps {
 }
 
 function AgentView({ agentId, onLabelResolved, trailKey }: AgentViewProps) {
-  const [agent, setAgent] = React.useState<{
-    name?: string; slug?: string; description?: string; status?: string
-  } | null>(null)
+  const [agent, setAgent] = React.useState<AgentDetail | null>(null)
+  const [loading, setLoading] = React.useState(true)
+  const [fetchError, setFetchError] = React.useState<AgentFetchError | null>(null)
 
   React.useEffect(() => {
     let cancelled = false
+    setLoading(true)
+    setAgent(null)
+    setFetchError(null)
     apiFetch(`/api/agents/${encodeURIComponent(agentId)}`)
       .then((res: unknown) => {
         if (cancelled) return
-        const a = (res as { agent?: unknown })?.agent ?? (res as { data?: unknown })?.data ?? res
-        setAgent(a as typeof agent)
-        const name = (a as { name?: string })?.name?.trim()
+        const a =
+          (res as { agent?: AgentDetail })?.agent ??
+          (res as { data?: AgentDetail })?.data ??
+          (res as AgentDetail)
+        setAgent(a)
+        const name = (a as AgentDetail)?.name?.trim()
         if (name) onLabelResolved(trailKey, name)
+        setLoading(false)
       })
-      .catch(() => {})
+      .catch((err: unknown) => {
+        if (cancelled) return
+        const status = (err as { status?: number }).status
+        if (status === 404) setFetchError('not_found')
+        else if (status === 400 || status === 403) setFetchError('access')
+        else setFetchError('unknown')
+        setLoading(false)
+      })
     return () => { cancelled = true }
   }, [agentId, onLabelResolved, trailKey])
 
   const ink = "hsl(var(--theme-ink-primary))"
-  const inkMuted = "hsl(var(--theme-ink-muted))"
+  const inkTertiary = "hsl(var(--theme-ink-tertiary))"
   const inkSecondary = "hsl(var(--theme-ink-secondary))"
+  const hairline = "hsl(var(--theme-line-hairline))"
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
+          <PresenceLabel>Agent</PresenceLabel>
+          <PresenceShimmer width="w-32" />
+        </div>
+        <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4 space-y-3">
+          <PresenceShimmer width="w-48" />
+          <PresenceShimmer width="w-28" />
+          <PresenceShimmer width="w-36" />
+        </div>
+      </div>
+    )
+  }
+
+  if (fetchError || !agent) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
+          <PresenceLabel>Agent</PresenceLabel>
+        </div>
+        <div className="px-4 pt-3">
+          <p className="text-[12px]" style={{ color: inkTertiary }}>
+            {fetchError === 'not_found'
+              ? "Agent not found."
+              : fetchError === 'access'
+                ? "Access error — check permissions."
+                : "Could not load agent."}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const isReady = agent.status === "ready" || agent.status === "active"
+  const statusDotColor = isReady ? "hsl(142 71% 45%)" : inkTertiary
+  const statusTextColor = isReady ? "hsl(142 60% 30%)" : inkTertiary
+  const statusLabel = isReady ? "Ready" : (agent.status ?? "Unknown")
+
+  const tools = Array.isArray(agent.tools) ? agent.tools : []
+  const permissions = Array.isArray(agent.permissions) ? agent.permissions : []
+  const sessions = Array.isArray(agent.recent_sessions) ? agent.recent_sessions : []
 
   return (
-    <div className="flex flex-col gap-3 p-4 min-h-0 overflow-y-auto">
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: inkMuted }}>
-          Agent
+    <div className="flex flex-col h-full" style={{ color: ink }}>
+      {/* Header */}
+      <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
+        <PresenceLabel>Agent</PresenceLabel>
+        <p className="text-[15px] font-semibold leading-snug mt-1" style={{ color: ink }}>
+          {agent.name?.trim() || agent.slug || agentId}
         </p>
-        <p className="text-base font-medium leading-snug" style={{ color: ink }}>
-          {agent?.name?.trim() || agent?.slug || agentId}
-        </p>
+        {agent.slug && (
+          <p className="font-mono text-[11px] mt-0.5" style={{ color: inkTertiary }}>
+            {agent.slug}
+          </p>
+        )}
       </div>
-      {agent?.status && (
-        <span
-          className="self-start text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-          style={{ background: "hsl(var(--theme-surface-selected) / 0.08)", color: inkMuted }}
-        >
-          {agent.status}
-        </span>
-      )}
-      {agent?.description && (
-        <p className="text-sm leading-relaxed" style={{ color: inkSecondary }}>
-          {agent.description}
-        </p>
-      )}
-      {!agent && (
-        <p className="text-sm" style={{ color: inkMuted }}>···</p>
-      )}
+
+      <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4 space-y-4">
+
+        {/* Status */}
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full shrink-0" style={{ background: statusDotColor }} />
+          <span className="text-[12px] font-medium" style={{ color: statusTextColor }}>
+            {statusLabel}
+          </span>
+          {agent.visibility && agent.visibility !== "private" && (
+            <span
+              className="ml-auto text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+              style={{ background: "hsl(var(--theme-surface-elevated))", color: inkTertiary }}
+            >
+              {agent.visibility}
+            </span>
+          )}
+        </div>
+
+        {/* Purpose */}
+        {agent.purpose && (
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: inkTertiary }}>
+              Scope
+            </p>
+            <p className="text-[12px] leading-relaxed" style={{ color: inkSecondary }}>
+              {agent.purpose}
+            </p>
+          </div>
+        )}
+
+        {/* Model */}
+        {(agent.model || agent.model_provider || agent.agent_class) && (
+          <div style={{ borderTop: `1px solid ${hairline}`, paddingTop: 12 }}>
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: inkTertiary }}>
+              Model
+            </p>
+            {agent.model && (
+              <p className="font-mono text-[12px]" style={{ color: ink }}>
+                {agent.model}
+              </p>
+            )}
+            {agent.model_provider && (
+              <p className="text-[11px] mt-0.5" style={{ color: inkSecondary }}>
+                {agent.model_provider}
+              </p>
+            )}
+            {agent.agent_class && (
+              <p className="text-[10px] font-mono mt-0.5 uppercase tracking-widest" style={{ color: inkTertiary }}>
+                {agent.agent_class}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Tools */}
+        {tools.length > 0 && (
+          <div style={{ borderTop: `1px solid ${hairline}`, paddingTop: 12 }}>
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: inkTertiary }}>
+              Tools
+            </p>
+            <p className="text-[12px] leading-relaxed" style={{ color: inkSecondary }}>
+              {tools.join(", ")}
+            </p>
+          </div>
+        )}
+
+        {/* Permissions */}
+        {permissions.length > 0 && (
+          <div style={{ borderTop: `1px solid ${hairline}`, paddingTop: 12 }}>
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: inkTertiary }}>
+              Permissions
+            </p>
+            <p className="text-[12px] leading-relaxed" style={{ color: inkSecondary }}>
+              {permissions.join(", ")}
+            </p>
+          </div>
+        )}
+
+        {/* Recent Sessions */}
+        {sessions.length > 0 && (
+          <div style={{ borderTop: `1px solid ${hairline}`, paddingTop: 12 }}>
+            <PresenceSection title="Recent Sessions">
+              {sessions.slice(0, 6).map((s) => (
+                <PresenceThread
+                  key={s.id}
+                  label={s.session_name?.trim() || s.id.slice(0, 8)}
+                  sub={s.created_at ? new Date(s.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : undefined}
+                />
+              ))}
+            </PresenceSection>
+          </div>
+        )}
+
+        {/* Created */}
+        {agent.created_at && (
+          <div style={{ borderTop: `1px solid ${hairline}`, paddingTop: 12 }}>
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: inkTertiary }}>
+              Created
+            </p>
+            <p className="text-[12px]" style={{ color: inkSecondary }}>
+              {new Date(agent.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+            </p>
+          </div>
+        )}
+
+      </div>
     </div>
   )
 }
@@ -1477,6 +1669,7 @@ function PanelBody({
         return entry.id ? (
           <KeeperView
             keeperId={entry.id}
+            domainId={domainId}
             onJourneySelect={onJourneySelect}
             onLabelResolved={onLabelResolved}
             trailKey={entry.key}

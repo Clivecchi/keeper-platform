@@ -26,17 +26,13 @@ import { BOARD_DEFINITIONS } from "../UniversalBoardDefinition"
 import { FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
 import { useDesignerDraftOptional } from "../DesignerDraftContext"
+import type { DomainFrameJson } from "../../data/domain-frame.types"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
-export interface UniversalSwitcherPanelProps {
-  /** Which board's frames to display in the Frames section. */
-  activeBoardId: string
-  /** Selected board definition id — highlighted in Board Definitions list. */
-  selectedBoardDefId: string | null
-  /** Called when a Board Definition row is clicked. Sets activeBoardId. */
-  onSelectBoard: (id: string) => void
-}
+// All selection state is read from UniversalBoardContext — no props required.
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface UniversalSwitcherPanelProps {}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -62,7 +58,7 @@ function frameHasDraft(
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p
-      className="px-4 pt-4 pb-2 text-[10px] font-semibold uppercase tracking-widest"
+      className="px-3 pt-3 pb-2 text-[10px] font-semibold uppercase tracking-widest"
       style={{ color: "hsl(var(--theme-ink-tertiary))" }}
     >
       {children}
@@ -87,7 +83,7 @@ function FrameRow({
     <button
       type="button"
       onClick={onSelect}
-      className="w-full flex items-center gap-2.5 px-4 py-2 text-left transition-colors"
+      className="w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors"
       style={{
         background: isActive ? "hsl(var(--theme-surface-elevated))" : "transparent",
         borderLeft: `2px solid ${
@@ -139,21 +135,21 @@ function BoardDefRow({
     <button
       type="button"
       onClick={onSelect}
-      className="w-full flex items-center gap-2.5 px-4 py-2 text-left transition-colors"
+      className="w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors"
       style={{
         background: isActive ? "hsl(var(--theme-surface-elevated))" : "transparent",
         borderLeft: `2px solid ${
-          isActive ? "hsl(var(--theme-accent-primary) / 0.7)" : "transparent"
+          isActive ? "hsl(var(--theme-ink-primary))" : "transparent"
         }`,
       }}
     >
       <span
-        className="shrink-0 rounded-sm"
+        className="shrink-0 rounded-full"
         style={{
           width: 6,
           height: 6,
           background: isActive
-            ? "hsl(var(--theme-accent-primary) / 0.7)"
+            ? "hsl(var(--theme-ink-primary))"
             : "hsl(var(--theme-ink-tertiary) / 0.4)",
         }}
       />
@@ -174,16 +170,15 @@ function BoardDefRow({
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function UniversalSwitcherPanel({
-  activeBoardId,
-  selectedBoardDefId,
-  onSelectBoard,
-}: UniversalSwitcherPanelProps) {
+export function UniversalSwitcherPanel(_props: UniversalSwitcherPanelProps = {}) {
   const boardCtx = useUniversalBoardOptional()
   const draftCtx = useDesignerDraftOptional()
 
   const activeFrameKey = boardCtx?.selection.selectedFrameKey ?? null
+  const activeBoardId = boardCtx?.selection.activeBoardForFrames ?? "domain"
+  const selectedBoardDefId = boardCtx?.selection.selectedBoardDefId ?? null
   const onSelectFrame = boardCtx?.actions.onFrameSelect ?? (() => {})
+  const onSelectBoard = boardCtx?.actions.onBoardDefSelect ?? (() => {})
   const draftSpecJson = draftCtx?.draftSpecJson ?? null
   const liveDomainFrame = draftCtx?.liveDomainFrame ?? null
 

@@ -50,6 +50,16 @@ export interface BannerContext {
   prelude?: string
   /** Editable session label in the expanded meta row — was sessionTitle. */
   sessionLabel?: string
+  /**
+   * Domain-mode fields — when present, Zone 1 renders the domain identity layout
+   * (serif wordmark, tagline, live pulse dot, stats) instead of the breadcrumb layout.
+   */
+  /** Sub-line below the wordmark (tagline from domain frame). */
+  tagline?: string
+  /** When set, renders the live pulse dot + "Live" label. Optional accent color. */
+  livePulse?: { color?: string }
+  /** Right-side stat pairs shown in domain mode (e.g. Journeys, Moments). */
+  stats?: ReadonlyArray<{ label: string; value: string }>
 }
 
 export interface KeeperDialogFrameProps {
@@ -180,88 +190,167 @@ export function KeeperDialogFrame({
       {/* ── Zone 1: Frosted Header Banner — hidden in feed mode ─────────────── */}
       {showBanner && (
         <div className="dialog-header-banner">
-          {/* Main banner row: breadcrumb left, session meta right */}
-          <div className="dialog-banner-main-row">
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {onReturnToFeed && (
-                <button type="button" onClick={onReturnToFeed} className="dialog-back-to-feed">
-                  ← Commons
-                </button>
-              )}
-              {hasBreadcrumb && (
-                <div className="dialog-breadcrumb">
-                  {bannerContext?.primary && <span>{bannerContext.primary}</span>}
-                  {bannerContext?.secondary && (
-                    <>
-                      <span className="breadcrumb-sep" aria-hidden>·</span>
-                      <span>{bannerContext.secondary}</span>
-                    </>
-                  )}
-                  {bannerContext?.tertiary && (
-                    <>
-                      <span className="breadcrumb-sep" aria-hidden>·</span>
-                      <span className="breadcrumb-path">{bannerContext.tertiary}</span>
-                    </>
+          {bannerContext?.livePulse
+            ? (
+              /* Domain-mode banner: wordmark + tagline + live pulse + stats */
+              <div className="dialog-banner-main-row" style={{ alignItems: 'center' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    <p
+                      className="font-serif text-lg font-semibold leading-tight truncate"
+                      style={{ color: 'hsl(var(--theme-ink-primary))' }}
+                    >
+                      {bannerContext.primary}
+                    </p>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        paddingLeft: 8,
+                        borderLeft: '1px solid hsl(var(--theme-line-hairline))',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full shrink-0"
+                        style={
+                          bannerContext.livePulse.color
+                            ? {
+                                backgroundColor: bannerContext.livePulse.color,
+                                boxShadow: `0 0 0 2px color-mix(in srgb, ${bannerContext.livePulse.color} 35%, transparent)`,
+                              }
+                            : {
+                                backgroundColor: 'hsl(var(--theme-border-strong))',
+                                boxShadow: '0 0 0 2px hsl(var(--theme-border-soft) / 0.6)',
+                              }
+                        }
+                        aria-hidden
+                      />
+                      <span
+                        className="text-[10px] font-semibold uppercase tracking-widest"
+                        style={{ color: 'hsl(var(--theme-ink-secondary))' }}
+                      >
+                        Live
+                      </span>
+                    </div>
+                  </div>
+                  {bannerContext.tagline && (
+                    <p
+                      className="text-xs leading-snug truncate mt-0.5"
+                      style={{ color: 'hsl(var(--theme-ink-secondary))' }}
+                    >
+                      {bannerContext.tagline}
+                    </p>
                   )}
                 </div>
-              )}
-              {bannerContext?.prelude && (
-                <p className="dialog-prelude" title={bannerContext.prelude}>
-                  {bannerContext.prelude}
-                </p>
-              )}
-            </div>
-
-            {hasSessionMeta && (
-              <div className="dialog-session-meta">
-                {soleActive !== undefined && (
-                  <span className={`sole-badge ${soleActive ? 'active' : 'inactive'}`}>
-                    SOLE
-                  </span>
+                {bannerContext.stats && bannerContext.stats.length > 0 && (
+                  <dl
+                    className="shrink-0 flex items-center gap-4 text-right"
+                    style={{ color: 'hsl(var(--theme-ink-secondary))' }}
+                  >
+                    {bannerContext.stats.map((s) => (
+                      <div key={s.label}>
+                        <dt className="text-[9px] font-semibold uppercase tracking-widest">{s.label}</dt>
+                        <dd
+                          className="text-sm font-medium tabular-nums"
+                          style={{ color: 'hsl(var(--theme-ink-primary))' }}
+                        >
+                          {s.value}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
                 )}
-                {sessionId && (
-                  <span className="session-id-short">
-                    {sessionId.slice(0, 6)}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  className={`banner-chevron${bannerExpanded ? ' open' : ''}`}
-                  onClick={() => setBannerExpanded((v) => !v)}
-                  aria-label="Expand session details"
-                >
-                  ›
-                </button>
               </div>
-            )}
-          </div>
+            )
+            : (
+              /* Standard breadcrumb banner */
+              <>
+                <div className="dialog-banner-main-row">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {onReturnToFeed && (
+                      <button type="button" onClick={onReturnToFeed} className="dialog-back-to-feed">
+                        ← Commons
+                      </button>
+                    )}
+                    {hasBreadcrumb && (
+                      <div className="dialog-breadcrumb">
+                        {bannerContext?.primary && <span>{bannerContext.primary}</span>}
+                        {bannerContext?.secondary && (
+                          <>
+                            <span className="breadcrumb-sep" aria-hidden>·</span>
+                            <span>{bannerContext.secondary}</span>
+                          </>
+                        )}
+                        {bannerContext?.tertiary && (
+                          <>
+                            <span className="breadcrumb-sep" aria-hidden>·</span>
+                            <span className="breadcrumb-path">{bannerContext.tertiary}</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {bannerContext?.prelude && (
+                      <p className="dialog-prelude" title={bannerContext.prelude}>
+                        {bannerContext.prelude}
+                      </p>
+                    )}
+                  </div>
 
-          {/* Expanded session details — visible on chevron tap */}
-          {bannerExpanded && hasSessionMeta && (
-            <div className="dialog-banner-expanded">
-              {bannerContext?.primary && <span className="meta-item">{bannerContext.primary}</span>}
-              {bannerContext?.sessionLabel && (
-                <span
-                  className="meta-item session-title"
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={(e) => onSaveTitle?.(e.currentTarget.textContent?.trim() ?? '')}
-                >
-                  {bannerContext.sessionLabel}
-                </span>
-              )}
-              {modelProvider && (
-                <span className="meta-item model-badge">
-                  {modelProvider.toUpperCase()}
-                </span>
-              )}
-              {onOpenCockpit && (
-                <button type="button" className="meta-action" onClick={onOpenCockpit}>
-                  Configure
-                </button>
-              )}
-            </div>
-          )}
+                  {hasSessionMeta && (
+                    <div className="dialog-session-meta">
+                      {soleActive !== undefined && (
+                        <span className={`sole-badge ${soleActive ? 'active' : 'inactive'}`}>
+                          SOLE
+                        </span>
+                      )}
+                      {sessionId && (
+                        <span className="session-id-short">
+                          {sessionId.slice(0, 6)}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        className={`banner-chevron${bannerExpanded ? ' open' : ''}`}
+                        onClick={() => setBannerExpanded((v) => !v)}
+                        aria-label="Expand session details"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Expanded session details — visible on chevron tap */}
+                {bannerExpanded && hasSessionMeta && (
+                  <div className="dialog-banner-expanded">
+                    {bannerContext?.primary && <span className="meta-item">{bannerContext.primary}</span>}
+                    {bannerContext?.sessionLabel && (
+                      <span
+                        className="meta-item session-title"
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={(e) => onSaveTitle?.(e.currentTarget.textContent?.trim() ?? '')}
+                      >
+                        {bannerContext.sessionLabel}
+                      </span>
+                    )}
+                    {modelProvider && (
+                      <span className="meta-item model-badge">
+                        {modelProvider.toUpperCase()}
+                      </span>
+                    )}
+                    {onOpenCockpit && (
+                      <button type="button" className="meta-action" onClick={onOpenCockpit}>
+                        Configure
+                      </button>
+                    )}
+                  </div>
+                )}
+              </>
+            )
+          }
         </div>
       )}
 
