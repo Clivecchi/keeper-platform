@@ -17,10 +17,29 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ## ⚠️ Notes & ToDo
 - [ ] Boards do not currently have their own URL namespace — they share `/d/:slug/board`
 - [ ] `V0BoardKey` type lives in `boardRegistry.ts`; if more boards are added, consider splitting
-- [ ] Migrate existing boards (IDEBoard, AgentBoard, DomainBoard) to use `UniversalBoard` shell
-- [ ] Build `UniversalConversation` component — standard center panel for new boards (no custom component needed)
+- [x] Migrate existing boards (IDEBoard, AgentBoard, DomainBoard) to use `UniversalBoard` shell — DONE
+- [x] Build `UniversalConversation` component — DONE (Level 2, 2026-05-10)
+- [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## 📆 Update Log
+
+### 2026-05-10 — Level 2: UniversalConversation (single conversation render file)
+- Created `UniversalConversation.tsx` — replaces IDEBoardConversation, AgentBoardConversation, DomainBoardConversation
+  - `experienceContext` computed once from `useV0Shell()`, not three times
+  - Calls `useAgentDialog` with parameters from `def.conversation` (agentSlug, agentDisplayName, mode, dialogueMode)
+  - Branches on `def.conversation.kipMode` only for banner props + three ide-mode callbacks (onAfterAgentRun, handleSaveTitle, onServiceOpen adapter)
+  - Calls `useDraftContext` for ide and agent modes with agentId from useAgentDialog
+  - Domain mode: renders `DomainBanner` above `KeeperDialogFrame` with fetched journeyCount/momentCount
+  - `KeeperDialogFrame` rendered exactly once
+- Updated `UniversalBoard.tsx`:
+  - `center` prop is now optional — omit it to get UniversalConversation by default
+  - `domainSlug` added to default UniversalViewPanel (enables domain feed in Chronicle idle state)
+  - `selectedServiceSlug` added to `UniversalBoardCenterProps` (exposed from context for right panel branch)
+  - `boardKind` ternary fixed for proper TypeScript narrowing
+- `AgentBoard.tsx` → `<UniversalBoard def={AGENT_BOARD_DEF} />` (3 lines)
+- `DomainBoard.tsx` → custom left panel + DomainSwitcher overlay only; center/right/state removed
+- `IDEBoard.tsx` → custom right panel only (5-state); left + center removed; all selection reads from centerProps
+- Deleted: `IDEBoardConversation.tsx`, `IDEBoardNav.tsx`, `AgentBoardConversation.tsx`, `DomainBoardConversation.tsx`
 ### 2026-05-04 — Universal Board: Full Definition with Treatment
 - Created `UniversalBoardDefinition.ts` — runtime board definition types and all four board defs
   - `UniversalBoardDef` interface — a new Board is a new object of this type, not a new component

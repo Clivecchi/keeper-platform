@@ -50,6 +50,7 @@ import { UniversalNavPanel } from "./UniversalNavPanel"
 import { UniversalViewPanel } from "./panels/UniversalViewPanel"
 import { UniversalBoardProvider, useUniversalBoard } from "./UniversalBoardContext"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
+import { UniversalConversation } from "./UniversalConversation"
 
 // ─── Center Panel Render Prop ─────────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ export interface UniversalBoardCenterProps {
   selectedKeeperId: string | null
   selectedDraftId: string | null
   selectedAgentId: string | null
+  selectedServiceSlug: string | null
 
   // Selection actions — conversation fires these to sync state back to board
   onSessionSelect: (id: string) => void
@@ -112,10 +114,11 @@ export interface UniversalBoardProps {
 
   /**
    * Center panel render prop — the conversation frame.
-   * Receives the board's resolved state and returns the center panel node.
+   * When provided, overrides the default UniversalConversation.
+   * When omitted, UniversalConversation renders with parameters from def.conversation.
    * This is the exchange surface: Banner · Dialog · Composer.
    */
-  center: (props: UniversalBoardCenterProps) => React.ReactNode
+  center?: (props: UniversalBoardCenterProps) => React.ReactNode
 
   /**
    * Optional right panel render prop.
@@ -211,7 +214,7 @@ function UniversalBoardShell({
   // ide and agent have distinct persisted layout preferences.
   // All other board IDs default to "ide" layout ratios.
   const boardKind: KeeperBoardKind =
-    def.boardId === "ide" || def.boardId === "agent" ? def.boardId : "ide"
+    def.boardId === "ide" ? "ide" : def.boardId === "agent" ? "agent" : "ide"
 
   // ── Left panel — resolved identity for render prop ─────────────────────────
   const leftProps: UniversalBoardLeftProps = {
@@ -231,6 +234,7 @@ function UniversalBoardShell({
     selectedKeeperId: selection.selectedKeeperId,
     selectedDraftId: selection.selectedDraftId,
     selectedAgentId: selection.selectedAgentId,
+    selectedServiceSlug: selection.selectedServiceSlug,
     onSessionSelect: actions.onSessionSelect,
     onJourneySelect: actions.onJourneySelect,
     onMomentSelect: actions.onMomentSelect,
@@ -251,6 +255,7 @@ function UniversalBoardShell({
       def={def}
       domainId={domainId}
       domainName={domainName || slug}
+      domainSlug={slug || undefined}
     />
   )
 
@@ -312,7 +317,9 @@ function UniversalBoardShell({
                   className="flex h-full min-h-0 flex-col overflow-hidden"
                   style={{ background: "transparent", borderRadius: "8px" }}
                 >
-                  {center(centerProps)}
+                  {center
+                    ? center(centerProps)
+                    : <UniversalConversation def={def} {...centerProps} />}
                 </div>
               }
               right={rightNode}
