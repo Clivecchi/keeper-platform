@@ -32,10 +32,11 @@ import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch } from "../../../lib/api"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
 import type { UniversalBoardDef } from "../UniversalBoardDefinition"
+import { ServicesFrame } from "../../components/ServicesFrame"
 
 // ─── Trail Types ──────────────────────────────────────────────────────────────
 
-type TrailKind = "domain" | "journey" | "moment" | "keeper"
+type TrailKind = "domain" | "journey" | "moment" | "keeper" | "draft" | "agent" | "service"
 type TrailDirection = "forward" | "back"
 
 interface TrailEntry {
@@ -1022,12 +1023,167 @@ function KeeperView({
   )
 }
 
+// ─── DraftView ────────────────────────────────────────────────────────────────
+
+interface DraftViewProps {
+  draftId: string
+  domainId: string | null
+  onLabelResolved: (key: string, label: string) => void
+  trailKey: string
+}
+
+function DraftView({ draftId, domainId, onLabelResolved, trailKey }: DraftViewProps) {
+  const [draft, setDraft] = React.useState<{
+    title?: string; status?: string; summary?: string
+  } | null>(null)
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    if (!domainId) { setLoading(false); return }
+    let cancelled = false
+    setLoading(true)
+    // Fetch draft list and find by id — individual draft endpoint TBD.
+    apiFetch(`/api/v0/drafts?domainId=${encodeURIComponent(domainId)}`)
+      .then((res: unknown) => {
+        if (cancelled) return
+        const list: Array<{ id: string; title?: string; status?: string; summary?: string }> =
+          (res as { data?: unknown[] })?.data as typeof list
+          ?? (res as { drafts?: unknown[] })?.drafts as typeof list
+          ?? []
+        const found = list.find((d) => d.id === draftId) ?? null
+        setDraft(found)
+        const title = found?.title?.trim()
+        if (title) onLabelResolved(trailKey, title)
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [draftId, domainId, onLabelResolved, trailKey])
+
+  const ink = "hsl(var(--theme-ink-primary))"
+  const inkMuted = "hsl(var(--theme-ink-muted))"
+  const inkSecondary = "hsl(var(--theme-ink-secondary))"
+
+  if (loading) {
+    return <div className="p-4 text-sm" style={{ color: inkMuted }}>···</div>
+  }
+  if (!draft) {
+    return <div className="p-4 text-sm" style={{ color: inkMuted }}>Draft not found.</div>
+  }
+
+  return (
+    <div className="flex flex-col gap-3 p-4 min-h-0 overflow-y-auto">
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: inkMuted }}>
+          Draft
+        </p>
+        <p className="text-base font-medium leading-snug" style={{ color: ink }}>
+          {draft.title?.trim() || "Untitled Draft"}
+        </p>
+      </div>
+      {draft.status && (
+        <span
+          className="self-start text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+          style={{ background: "hsl(var(--theme-surface-selected) / 0.08)", color: inkMuted }}
+        >
+          {draft.status}
+        </span>
+      )}
+      {draft.summary && (
+        <p className="text-sm leading-relaxed" style={{ color: inkSecondary }}>
+          {draft.summary}
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ─── AgentView ────────────────────────────────────────────────────────────────
+
+interface AgentViewProps {
+  agentId: string
+  onLabelResolved: (key: string, label: string) => void
+  trailKey: string
+}
+
+function AgentView({ agentId, onLabelResolved, trailKey }: AgentViewProps) {
+  const [agent, setAgent] = React.useState<{
+    name?: string; slug?: string; description?: string; status?: string
+  } | null>(null)
+
+  React.useEffect(() => {
+    let cancelled = false
+    apiFetch(`/api/agents/${encodeURIComponent(agentId)}`)
+      .then((res: unknown) => {
+        if (cancelled) return
+        const a = (res as { agent?: unknown })?.agent ?? (res as { data?: unknown })?.data ?? res
+        setAgent(a as typeof agent)
+        const name = (a as { name?: string })?.name?.trim()
+        if (name) onLabelResolved(trailKey, name)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [agentId, onLabelResolved, trailKey])
+
+  const ink = "hsl(var(--theme-ink-primary))"
+  const inkMuted = "hsl(var(--theme-ink-muted))"
+  const inkSecondary = "hsl(var(--theme-ink-secondary))"
+
+  return (
+    <div className="flex flex-col gap-3 p-4 min-h-0 overflow-y-auto">
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: inkMuted }}>
+          Agent
+        </p>
+        <p className="text-base font-medium leading-snug" style={{ color: ink }}>
+          {agent?.name?.trim() || agent?.slug || agentId}
+        </p>
+      </div>
+      {agent?.status && (
+        <span
+          className="self-start text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+          style={{ background: "hsl(var(--theme-surface-selected) / 0.08)", color: inkMuted }}
+        >
+          {agent.status}
+        </span>
+      )}
+      {agent?.description && (
+        <p className="text-sm leading-relaxed" style={{ color: inkSecondary }}>
+          {agent.description}
+        </p>
+      )}
+      {!agent && (
+        <p className="text-sm" style={{ color: inkMuted }}>···</p>
+      )}
+    </div>
+  )
+}
+
+// ─── ServiceView ──────────────────────────────────────────────────────────────
+
+type ServiceSlugKind = "cloud" | "railway" | "vercel" | "github"
+
+function ServiceView({ serviceSlug }: { serviceSlug: string }) {
+  const boardCtx = useUniversalBoardOptional()
+  const slug = (["cloud", "railway", "vercel", "github"].includes(serviceSlug)
+    ? serviceSlug
+    : "cloud") as ServiceSlugKind
+
+  return (
+    <ServicesFrame
+      initialService={slug}
+      onClose={() => boardCtx?.actions.clearSelection()}
+    />
+  )
+}
+
 // ─── PanelBody ────────────────────────────────────────────────────────────────
 // Mini-router — renders the correct view for panelHistory[currentIndex].
 // Opacity dissolve on context shift: 200ms entry, 140ms exit.
 
 interface PanelBodyProps {
   entry: TrailEntry
+  def: UniversalBoardDef
   domainId: string | null
   domainName: string
   domainSlug?: string
@@ -1038,6 +1194,7 @@ interface PanelBodyProps {
 
 function PanelBody({
   entry,
+  def: _def,
   domainId,
   domainName,
   domainSlug,
@@ -1089,6 +1246,51 @@ function PanelBody({
             onLabelResolved={onLabelResolved}
             trailKey={entry.key}
           />
+        ) : (
+          <UniversalViewPanelIdle
+            domainId={domainId}
+            domainName={domainName}
+            domainSlug={domainSlug}
+            onJourneySelect={onJourneySelect}
+          />
+        )
+
+      case "draft":
+        return entry.id ? (
+          <DraftView
+            draftId={entry.id}
+            domainId={domainId}
+            onLabelResolved={onLabelResolved}
+            trailKey={entry.key}
+          />
+        ) : (
+          <UniversalViewPanelIdle
+            domainId={domainId}
+            domainName={domainName}
+            domainSlug={domainSlug}
+            onJourneySelect={onJourneySelect}
+          />
+        )
+
+      case "agent":
+        return entry.id ? (
+          <AgentView
+            agentId={entry.id}
+            onLabelResolved={onLabelResolved}
+            trailKey={entry.key}
+          />
+        ) : (
+          <UniversalViewPanelIdle
+            domainId={domainId}
+            domainName={domainName}
+            domainSlug={domainSlug}
+            onJourneySelect={onJourneySelect}
+          />
+        )
+
+      case "service":
+        return entry.id ? (
+          <ServiceView serviceSlug={entry.id} />
         ) : (
           <UniversalViewPanelIdle
             domainId={domainId}
@@ -1168,12 +1370,16 @@ export interface UniversalViewPanelProps {
 }
 
 export function UniversalViewPanel({
+  def,
   domainId,
   domainName,
   domainSlug,
   selectedJourneyId,
   selectedMomentId,
   selectedKeeperId,
+  selectedDraftId,
+  selectedAgentId,
+  selectedServiceSlug,
   onJourneySelect,
   onMomentSelect,
 }: UniversalViewPanelProps) {
@@ -1187,20 +1393,39 @@ export function UniversalViewPanel({
       selectedMomentId ?? boardCtx?.selection.selectedMomentId ?? null,
     selectedKeeperId:
       selectedKeeperId ?? boardCtx?.selection.selectedKeeperId ?? null,
+    selectedDraftId:
+      selectedDraftId ?? boardCtx?.selection.selectedDraftId ?? null,
+    selectedAgentId:
+      selectedAgentId ?? boardCtx?.selection.selectedAgentId ?? null,
+    selectedServiceSlug:
+      selectedServiceSlug ?? boardCtx?.selection.selectedServiceSlug ?? null,
   }
+
+  // Active subjects — def.contextSurface.viewStates drives which kinds Chronicle responds to.
+  const activeSubjects = React.useMemo(
+    () => new Set(def.contextSurface.viewStates.map((vs) => vs.key)),
+    [def],
+  )
 
   const handleJourneySelect =
     onJourneySelect ?? boardCtx?.actions.onJourneySelect
   const handleMomentSelect =
     onMomentSelect ?? boardCtx?.actions.onMomentSelect
 
-  // Resolve active kind + id from current selection.
+  // Resolve active kind + id — priority: service > draft > agent > moment > journey > keeper > domain.
+  // Each kind is gated by activeSubjects — if the def doesn't declare it, Chronicle ignores it.
   function resolveKindId(): { kind: TrailKind; id: string | null } {
-    if (resolved.selectedMomentId)
+    if (activeSubjects.has("service") && resolved.selectedServiceSlug)
+      return { kind: "service", id: resolved.selectedServiceSlug }
+    if (activeSubjects.has("draft") && resolved.selectedDraftId)
+      return { kind: "draft", id: resolved.selectedDraftId }
+    if (activeSubjects.has("agent") && resolved.selectedAgentId)
+      return { kind: "agent", id: resolved.selectedAgentId }
+    if (activeSubjects.has("moment") && resolved.selectedMomentId)
       return { kind: "moment", id: resolved.selectedMomentId }
-    if (resolved.selectedJourneyId)
+    if (activeSubjects.has("journey") && resolved.selectedJourneyId)
       return { kind: "journey", id: resolved.selectedJourneyId }
-    if (resolved.selectedKeeperId)
+    if (activeSubjects.has("keeper") && resolved.selectedKeeperId)
       return { kind: "keeper", id: resolved.selectedKeeperId }
     return { kind: "domain", id: null }
   }
@@ -1289,7 +1514,7 @@ export function UniversalViewPanel({
     let cancelled = false
 
     function poll() {
-      apiFetch(`/api/journeys?domainId=${encodeURIComponent(pollDomainId)}`)
+      apiFetch(`/api/journeys?domainId=${encodeURIComponent(pollDomainId!)}`)
         .then((res: unknown) => {
           if (cancelled) return
           const list =
@@ -1355,6 +1580,7 @@ export function UniversalViewPanel({
       >
         <PanelBody
           entry={currentEntry}
+          def={def}
           domainId={domainId}
           domainName={domainName}
           domainSlug={domainSlug}
