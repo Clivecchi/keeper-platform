@@ -359,8 +359,8 @@ export function UniversalConversation({
     refreshSession,
     frameCtx,
     activeJourneyId: kipMode === "ide" ? activeJourneyId : null,
-    controlledSessionId: kipMode === "ide" ? activeSessionId : undefined,
-    onControlledSessionIdChange: kipMode === "ide" ? handleSessionChange : undefined,
+    controlledSessionId: activeSessionId,
+    onControlledSessionIdChange: handleSessionChange,
     onAfterAgentRun: kipMode === "ide" ? onAfterAgentRun : undefined,
     frameKey: selectedFrameKey ?? undefined,
     onDesignerDraft: kipMode === "designer" ? handleDesignerDraft : undefined,
@@ -372,7 +372,7 @@ export function UniversalConversation({
     domainId,
     agentId,
     activeSessionId: dialogSessionId,
-    onActiveSessionIdChange: kipMode === "ide" ? handleSessionChange : undefined,
+    onActiveSessionIdChange: handleSessionChange,
   })
 
   // ── designer mode: sync liveDomainFrame from shell to context ────────────

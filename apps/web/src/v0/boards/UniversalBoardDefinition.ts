@@ -222,6 +222,21 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
           "Agent present. Configuration and status forward. Recent runs surface. What is live comes forward. What is idle recedes.",
       },
       {
+        key: "journey",
+        presenceTreatment:
+          "Journey alive. Paths and active Moments come forward. Threads surface. What is moving comes forward. What is settled recedes. The panel is aware of what Path you are on.",
+      },
+      {
+        key: "moment",
+        presenceTreatment:
+          "Moment in focus. Content and narrative forward. Journey context present but quiet. Path prelude visible above the content.",
+      },
+      {
+        key: "keeper",
+        presenceTreatment:
+          "Keeper present. Active journeys, recent sessions, purpose forward. Nothing is urgent. Just here.",
+      },
+      {
         key: "draft",
         presenceTreatment:
           "Draft in view. Agent spec and status forward. What needs attention surfaces first.",

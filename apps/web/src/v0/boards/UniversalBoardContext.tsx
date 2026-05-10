@@ -23,6 +23,7 @@ import * as React from "react"
 
 export interface UniversalBoardSelection {
   activeSessionId: string | null
+  selectedDialogId: string | null
   selectedJourneyId: string | null
   selectedMomentId: string | null
   selectedKeeperId: string | null
@@ -42,6 +43,7 @@ export interface UniversalBoardSelection {
 
 export interface UniversalBoardActions {
   onSessionSelect: (id: string) => void
+  onDialogSelect: (id: string) => void
   onJourneySelect: (id: string) => void
   onMomentSelect: (id: string) => void
   onKeeperSelect: (id: string) => void
@@ -92,6 +94,7 @@ interface UniversalBoardProviderProps {
 export function UniversalBoardProvider({ children }: UniversalBoardProviderProps) {
   // ── Selection state ────────────────────────────────────────────────────────
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
+  const [selectedDialogId, setSelectedDialogId] = React.useState<string | null>(null)
   const [selectedJourneyId, setSelectedJourneyId] = React.useState<string | null>(null)
   const [selectedMomentId, setSelectedMomentId] = React.useState<string | null>(null)
   const [selectedKeeperId, setSelectedKeeperId] = React.useState<string | null>(null)
@@ -115,8 +118,19 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     // while the right panel stays in the same domain context.
   }, [])
 
+  const onDialogSelect = React.useCallback((id: string) => {
+    setSelectedDialogId(id)
+    setSelectedJourneyId(null)
+    setSelectedMomentId(null)
+    setSelectedKeeperId(null)
+    setSelectedDraftId(null)
+    setSelectedAgentId(null)
+    setSelectedServiceSlug(null)
+  }, [])
+
   const onJourneySelect = React.useCallback((id: string) => {
     setSelectedJourneyId(id)
+    setSelectedDialogId(null)
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
     setSelectedDraftId(null)
@@ -126,6 +140,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const onMomentSelect = React.useCallback((id: string) => {
     setSelectedMomentId(id)
+    setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedKeeperId(null)
     setSelectedDraftId(null)
@@ -135,6 +150,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const onKeeperSelect = React.useCallback((id: string) => {
     setSelectedKeeperId(id)
+    setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedMomentId(null)
     setSelectedDraftId(null)
@@ -144,6 +160,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const onDraftSelect = React.useCallback((id: string) => {
     setSelectedDraftId(id)
+    setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
@@ -153,6 +170,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const onAgentSelect = React.useCallback((id: string) => {
     setSelectedAgentId(id)
+    setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
@@ -162,6 +180,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const onServiceOpen = React.useCallback((slug: string) => {
     setSelectedServiceSlug(slug)
+    setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
@@ -170,6 +189,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [])
 
   const clearSelection = React.useCallback(() => {
+    setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
@@ -199,6 +219,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     () => ({
       selection: {
         activeSessionId,
+        selectedDialogId,
         selectedJourneyId,
         selectedMomentId,
         selectedKeeperId,
@@ -211,6 +232,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       },
       actions: {
         onSessionSelect,
+        onDialogSelect,
         onJourneySelect,
         onMomentSelect,
         onKeeperSelect,
@@ -226,6 +248,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     }),
     [
       activeSessionId,
+      selectedDialogId,
       selectedJourneyId,
       selectedMomentId,
       selectedKeeperId,
@@ -236,6 +259,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       activeBoardForFrames,
       selectedBoardDefId,
       onSessionSelect,
+      onDialogSelect,
       onJourneySelect,
       onMomentSelect,
       onKeeperSelect,

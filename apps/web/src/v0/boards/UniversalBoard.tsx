@@ -346,12 +346,12 @@ function UniversalBoardShell({
                         domainSlug={slug}
                         domainName={domainName || slug}
                         def={def}
-                        selectedDialogId={null}
+                        selectedDialogId={selection.selectedDialogId}
                         selectedJourneyId={selection.selectedJourneyId}
                         selectedKeeperId={selection.selectedKeeperId}
                         selectedDraftId={selection.selectedDraftId}
                         selectedAgentId={selection.selectedAgentId}
-                        onDialogSelect={undefined}
+                        onDialogSelect={actions.onDialogSelect}
                         onJourneySelect={actions.onJourneySelect}
                         onKeeperSelect={actions.onKeeperSelect}
                         onDraftSelect={actions.onDraftSelect}

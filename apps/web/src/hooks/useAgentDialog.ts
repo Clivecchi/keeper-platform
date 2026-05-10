@@ -216,8 +216,9 @@ export function useAgentDialog({
   onDesignerDraft,
 }: UseAgentDialogOptions): UseAgentDialogResult {
   const [internalSessionId, setInternalSessionId] = React.useState<string | null>(null)
-  const activeSessionId =
-    mode === "ide" ? (controlledSessionId ?? null) : internalSessionId
+  // Use controlledSessionId when it has been driven to a real value (non-null).
+  // Fall back to internalSessionId for boards whose session lifecycle starts internally.
+  const activeSessionId = controlledSessionId ?? internalSessionId
 
   // Stable greeting computed from params — only changes when slug/message change.
   const greeting = React.useMemo<AgentDialogueMessage>(
