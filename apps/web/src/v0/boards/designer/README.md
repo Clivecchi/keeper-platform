@@ -4,20 +4,20 @@
 Platform Admin–only surface for visually designing and editing V0 domain Frame JSON with Kip. Accessed via `?board=designer` on any `/d/:slug/board` URL.
 
 ## 🧱 Key Files
-- `DesignBoard.tsx` — Root component; wraps `UniversalBoard`; owns all design state (`activeBoardId`, `activeFrameKey`, `selectedBoardDefId`, `density`, draft/publish, `dialogId`, `messages`); exports `DesignBoard` alias for `boardRegistry.ts`; syncs `data-density` on `document.documentElement` and `keeper-density` in `localStorage`
-- `DesignBoardCenter.tsx` — Center panel; pure conversation shell; `KeeperDialogFrame` with `agentName="Design"`; composer anchored at bottom identical to IDE/Agent/Domain boards; single `DraftBar` above the conversation banner; `POST /api/domains/:domainId/kip/designer` with `dialog_board: "designer"`; `KipApi.createDraft` on Kip proposal; zero hardcoded colors
-- `DesignBoardFrameList.tsx` — Exports `BOARD_FRAMES`, `BOARD_NAMES`, `FrameItem`; used by `DesignBoardCenter` (banner context) and `UniversalSwitcherPanel` (left panel frame list)
-- `DesignBoardFrameDetail.tsx` — Right panel; tabbed Frame detail (Preview, Config, Props, JSON, Brief, Code); `FramePreviewShell` + direct-edit overlay; Brief tab shows `DomainBrief`; Code tab shows full domain JSON with theme-variable syntax highlighting; shown when a frame is selected
+- `DesignBoard.tsx` — Root component; `<UniversalBoard def={DESIGNER_BOARD_DEF} />` with left + right overrides; owns board nav state (`activeBoardId`, `selectedBoardDefId`, `audience`, `density`); exports `DesignBoard` alias for `boardRegistry.ts`; syncs `data-density` on `document.documentElement` and `keeper-density` in `localStorage`
+- `DesignBoardFrameList.tsx` — Exports `BOARD_FRAMES`, `BOARD_NAMES`, `FrameItem`; used by `UniversalSwitcherPanel` (left panel frame list)
+- `DesignBoardFrameDetail.tsx` — Right panel; tabbed Frame detail (Preview, Config, Props, JSON, Brief, Code); `FramePreviewShell` + direct-edit overlay; reads `draftSpecJson`, `liveDomainFrame`, and `onDirectEdit` from `DesignerDraftContext`; Brief tab shows `DomainBrief`; Code tab shows full domain JSON; shown when a frame is selected
 - `DesignBoardList.tsx` — (Superseded) Original left panel; replaced by `UniversalSwitcherPanel` from `../panels/`
 - `DesignBoardNav.tsx` — (Legacy) Original left panel; superseded
 - `DesignBoardKip.tsx` — (Legacy) Original center panel; superseded
 - `DesignBoardCanvas.tsx` — (Legacy) Original right panel; superseded by `DesignBoardFrameDetail.tsx`
 
 ## 🔄 Data & Behavior
-- `DesignBoard.tsx` owns all state: `activeBoardId`, `activeFrameKey`, `selectedBoardDefId`, `messages`, `draftSpecJson`, `draftId`, `liveDomainFrame`, `audience`, `density`, `dialogId`
-- Left panel: `UniversalSwitcherPanel` — two static sections: **Frames** (from `BOARD_FRAMES[activeBoardId]` with live/draft dots) and **Board Definitions** (all four board defs). Selecting a Frame → sets `activeFrameKey`. Selecting a Board Definition → sets `activeBoardId` + `selectedBoardDefId`, clears `activeFrameKey`
-- Center panel: `DesignBoardCenter` — pure `KeeperDialogFrame` conversation with `agentName="Design"`. No mode switcher. No frame rail. No frame list. Composer anchored at bottom at all times. `DraftBar` (publish CTA) shown above the conversation when a draft exists. Frame selection and Brief/Code views are entirely right-panel concerns.
-- Right panel (conditional): Frame selected → `DesignBoardFrameDetail` (six tabs: Preview, Config, Props, JSON, Brief, Code); Board def selected → `BoardDefPanel` (JSON + structure); Nothing selected → `null` → Chronicle (`UniversalViewPanel`) renders
+- **Center panel**: `UniversalConversation` (no override). Handles all Kip conversation, draft creation (`KipApi.createDraft`), publish, and dialog restore for `kipMode === "designer"`. Writes to `DesignerDraftContext`. Reads `selectedFrameKey` from `UniversalBoardContext`.
+- **Left panel**: `DesignBoardLeftPanel` → `UniversalSwitcherPanel`. Frame key selection and draft status dots come from `UniversalBoardContext` + `DesignerDraftContext` inside the panel.
+- **Right panel**: `DesignBoardRightPanel` — loads board-data (frameEntryMap), renders `DesignBoardFrameDetail` when a frame is selected. Reads `activeFrameKey` from `UniversalBoardContext`.
+- Right panel (conditional): Frame selected → `DesignBoardFrameDetail`; Board def selected → `BoardDefPanel`; Nothing → `null` → Chronicle renders
+- **State distribution**: `activeBoardId`, `selectedBoardDefId`, `audience` stay in `DesignBoard.tsx`. `activeFrameKey`, `messages`, `dialogId` live in `UniversalBoardContext` + `useAgentDialog`. `draftSpecJson`, `draftId`, `isPublishing`, `publishSuccess`, `liveDomainFrame` live in `DesignerDraftContext` (provided at `UniversalBoard` level).
 - `DesignBoardFrameDetail` imports `CORE_FRAME_MAP` directly; wraps previewed frames in a `V0ShellProvider` override so draft JSON is visible; six tabs total: Preview (live frame preview + eye icon audience menu + direct edit), Config (frame props + labels), Props (prop library display), JSON (frame-block JSON), Brief (full `DomainBrief`), Code (full domain JSON)
 
 ## 🐛 Debug Mode
@@ -38,6 +38,17 @@ When enabled, `[DesignBoard:debug]` logs appear:
 - [ ] `DesignBoardList.tsx`, `DesignBoardKip.tsx`, `DesignBoardCanvas.tsx`, `DesignBoardNav.tsx` are now legacy files — safe to delete in a future cleanup pass once no other consumers remain
 
 ## 📆 Update Log
+### 2026-05-09 — Gap 1: Remove DesignBoardCenter; UniversalConversation handles designer mode
+- **`DesignBoardCenter.tsx`**: Deleted. All center-panel concerns now belong to the universal layer.
+- **`DesignBoard.tsx`**: Rewritten. Drops center override — `UniversalConversation` handles designer center natively. Drops: `activeFrameKey`, `messages`, `dialogId`, `draftSpecJson`, `draftId`, `isPublishing`, `publishSuccess`, `liveDomainFrame` state — all moved to `UniversalBoardContext` + `DesignerDraftContext`. Adds `DesignBoardLeftPanel` and `DesignBoardRightPanel` sub-components (proper React components so they can call context hooks). `DesignBoardRightPanel` owns `frameEntryMap` loading internally.
+- **`DesignBoardFrameDetail.tsx`**: Removed `draftSpecJson`, `onDirectEdit`, `liveDomainFrame` from props. Reads all three from `useDesignerDraft()` (DesignerDraftContext). `onDirectEdit` now calls context setters directly.
+- **`UniversalConversation.tsx`** (universal layer): Added `"designer"` branch. Reads `selectedFrameKey` from `UniversalBoardContext`. Reads/writes `DesignerDraftContext` for draft state. Adds `DraftBar` component above `KeeperDialogFrame`. Adds dialog restore effect on `selectedFrameKey`/`domainId` change. Syncs `liveDomainFrame` from V0Shell to context. Owns `handleDesignerDraft` and `handlePublish`. Disables composer when no frame is selected.
+- **`../panels/UniversalSwitcherPanel.tsx`** (universal layer): Removed `activeFrameKey`, `draftSpecJson`, `liveDomainFrame`, `onSelectFrame` props. Now reads all four from `useUniversalBoardOptional()` and `useDesignerDraftOptional()` internally.
+- **`../UniversalBoardContext.tsx`** (universal layer): Added `selectedFrameKey: string | null` to `UniversalBoardSelection`. Added `onFrameSelect: (key: string) => void` to `UniversalBoardActions`.
+- **`../DesignerDraftContext.tsx`** (new, universal layer): Thin state bus providing `draftSpecJson`, `draftId`, `isPublishing`, `publishSuccess`, `liveDomainFrame` + setters. Provided by `UniversalBoard` above all three panels.
+- **`../UniversalBoard.tsx`** (universal layer): Wraps with `DesignerDraftProvider` (alongside existing `UniversalBoardProvider`).
+- **`../../hooks/useAgentDialog.ts`**: Added `clearDesignerDialog()` and `setDesignerDialogId()` to result — used by `UniversalConversation` for dialog restore on frame change.
+
 ### 2026-05-08 — Live Props Library wired to FrameInstance
 - **`DesignBoard.tsx`**: Exported `FrameProp` type (`{ id, type, config }`). Added `FrameEntry` internal type. Added `frameEntryMap` state loaded from `GET /api/domains/:domainId/board-data` when `domainId` resolves — maps `frame.name.toLowerCase()` → `{ boardId, frameInstanceId, props }`. Added `activeFrameEntry` memo derived from `activeFrameInfo`. Added `handleAddProp` callback: builds new `FrameProp`, optimistically updates `frameEntryMap`, persists via `PATCH /api/boards/:boardId/frames/:frameId`. Threads `frameInstanceProps` and `onAddProp` into `DesignBoardFrameDetail`.
 - **`DesignBoardFrameDetail.tsx`**: Imported `FrameProp` from `./DesignBoard`. Replaced static `PropEntry` type with `CatalogItem` (adds `propType` and `propConfig` fields). Added add configs to all 10 catalog items (extracted from `board-studio-page.tsx` prop handlers). Replaced static `PropsTabContent` with live version: shows "Added (N)" section at top with current props, shows catalog below with `+` add buttons and loading indicator, disables gracefully with "Connecting to frame…" when `onAddProp` is null. Added `frameInstanceProps: FrameProp[]` and `onAddProp` to props interface. Added "Frame Components" section to Preview tab — appears below the direct-edit hint when props exist, max-height 180px with scroll, reflects immediately on add via optimistic update.

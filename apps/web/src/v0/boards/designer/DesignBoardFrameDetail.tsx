@@ -4,7 +4,9 @@ import * as React from "react"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import { Check, Eye } from "lucide-react"
 import type { DomainFrameJson } from "../../data/domain-frame.types"
-import type { DesignerAudience } from "./DesignBoard"
+import { useDesignerDraft } from "../DesignerDraftContext"
+
+export type DesignerAudience = "guest" | "keeper" | "admin"
 
 /** A single component added to a FrameInstance via the Props tab. */
 export type FrameProp = {
@@ -657,11 +659,6 @@ interface DesignBoardFrameDetailProps {
   domainSlug: string
   activeFrameKey: string | null
   activeFrameInfo: FrameItem | null
-  liveDomainFrame: DomainFrameJson | null
-  draftSpecJson: DomainFrameJson | null
-  audience: DesignerAudience
-  setAudience: (a: DesignerAudience) => void
-  onDirectEdit: (updatedFrame: DomainFrameJson) => void
   /** Current FrameInstance props for this frame (from board-data). */
   frameInstanceProps: FrameProp[]
   /** Async callback to add a prop — null when frame is not yet connected to board-data. */
@@ -674,14 +671,22 @@ export function DesignBoardFrameDetail({
   domainSlug,
   activeFrameKey,
   activeFrameInfo,
-  liveDomainFrame,
-  draftSpecJson,
-  audience,
-  setAudience,
-  onDirectEdit,
   frameInstanceProps,
   onAddProp,
 }: DesignBoardFrameDetailProps) {
+  const { draftSpecJson, liveDomainFrame, setDraftSpecJson, setDraftId, setPublishSuccess } =
+    useDesignerDraft()
+
+  const [audience, setAudience] = React.useState<DesignerAudience>("keeper")
+
+  const onDirectEdit = React.useCallback(
+    (updatedFrame: DomainFrameJson) => {
+      setDraftSpecJson(updatedFrame)
+      setDraftId(null)
+      setPublishSuccess(false)
+    },
+    [setDraftSpecJson, setDraftId, setPublishSuccess],
+  )
   const [activeTab, setActiveTab] = React.useState<TabKey>("preview")
   const [editPopup, setEditPopup] = React.useState<EditPopupState | null>(null)
 

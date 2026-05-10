@@ -20,6 +20,16 @@ export interface NavSectionsDef {
   keepers: boolean
   drafts: boolean
   agents: boolean
+  /**
+   * designer mode: show the Frames section (static list from BOARD_FRAMES[activeBoardForFrames]).
+   * Selection fires onFrameSelect in UniversalBoardContext.
+   */
+  frames?: boolean
+  /**
+   * designer mode: show the Board Definitions section (all entries from BOARD_DEFINITIONS).
+   * Selection fires onBoardDefSelect in UniversalBoardContext.
+   */
+  boardDefs?: boolean
 }
 
 export interface NavInstrumentDef {
@@ -59,6 +69,10 @@ export type PresenceSubject =
   | "draft"
   | "service"
   | "domain"
+  /** designer mode: selected frame — Chronicle renders DesignBoardFrameDetail */
+  | "frame"
+  /** designer mode: selected board definition — Chronicle renders BoardDefView */
+  | "boardDef"
 
 export interface ContextViewStateDef {
   key: PresenceSubject
@@ -79,6 +93,12 @@ export interface ContextPanelDef {
 export interface BoardAccessDef {
   isPrivate: boolean
   isAdminOnly: boolean
+  /**
+   * When true, UniversalBoard reads the stored density preference from localStorage,
+   * applies `data-density` to document.documentElement, and persists changes.
+   * Only boards that need density scaling (e.g. designer) should set this.
+   */
+  requiresDensity?: boolean
 }
 
 // ─── Primary Interface ────────────────────────────────────────────────────────
@@ -258,7 +278,7 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
 export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
   boardId: "designer",
   displayName: "Design Board",
-  access: { isPrivate: true, isAdminOnly: true },
+  access: { isPrivate: true, isAdminOnly: true, requiresDensity: true },
   nav: {
     sections: {
       dialogs: true,
@@ -266,6 +286,8 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
       keepers: false,
       drafts: false,
       agents: false,
+      frames: true,
+      boardDefs: true,
     },
     instruments: [{ id: "rendr", label: "Rendr" }],
   },
@@ -277,6 +299,16 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
   },
   contextSurface: {
     viewStates: [
+      {
+        key: "frame",
+        presenceTreatment:
+          "Frame detail. Configuration, preview, and structure in view. Draft state surfaces when present. Direct-edit available on preview.",
+      },
+      {
+        key: "boardDef",
+        presenceTreatment:
+          "Board definition in view. Structure and access rules present. Declarative spec forward.",
+      },
       {
         key: "domain",
         presenceTreatment:

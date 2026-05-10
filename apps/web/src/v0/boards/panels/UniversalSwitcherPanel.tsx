@@ -23,24 +23,17 @@
 import * as React from "react"
 import { BOARD_FRAMES, type FrameItem } from "../designer/DesignBoardFrameList"
 import { BOARD_DEFINITIONS } from "../UniversalBoardDefinition"
-import type { DomainFrameJson } from "../../data/domain-frame.types"
 import { FRAME_TO_JSON_KEY } from "../../shell/frameRegistryMap"
+import { useUniversalBoardOptional } from "../UniversalBoardContext"
+import { useDesignerDraftOptional } from "../DesignerDraftContext"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface UniversalSwitcherPanelProps {
   /** Which board's frames to display in the Frames section. */
   activeBoardId: string
-  /** Currently focused frame key — highlighted in Frames list. */
-  activeFrameKey: string | null
   /** Selected board definition id — highlighted in Board Definitions list. */
   selectedBoardDefId: string | null
-  /** Current draft spec — used to compute live/draft dot status per frame. */
-  draftSpecJson: DomainFrameJson | null
-  /** Live domain frame — used for draft diff computation. */
-  liveDomainFrame: DomainFrameJson | null
-  /** Called when a Frame row is clicked. */
-  onSelectFrame: (key: string) => void
   /** Called when a Board Definition row is clicked. Sets activeBoardId. */
   onSelectBoard: (id: string) => void
 }
@@ -183,13 +176,17 @@ function BoardDefRow({
 
 export function UniversalSwitcherPanel({
   activeBoardId,
-  activeFrameKey,
   selectedBoardDefId,
-  draftSpecJson,
-  liveDomainFrame,
-  onSelectFrame,
   onSelectBoard,
 }: UniversalSwitcherPanelProps) {
+  const boardCtx = useUniversalBoardOptional()
+  const draftCtx = useDesignerDraftOptional()
+
+  const activeFrameKey = boardCtx?.selection.selectedFrameKey ?? null
+  const onSelectFrame = boardCtx?.actions.onFrameSelect ?? (() => {})
+  const draftSpecJson = draftCtx?.draftSpecJson ?? null
+  const liveDomainFrame = draftCtx?.liveDomainFrame ?? null
+
   const frames: FrameItem[] = BOARD_FRAMES[activeBoardId] ?? []
   const boardDefs = Object.values(BOARD_DEFINITIONS)
 

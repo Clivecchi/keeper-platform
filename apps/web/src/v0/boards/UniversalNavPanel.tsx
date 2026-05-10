@@ -30,6 +30,11 @@ import type { KipDraftSummary } from "../../lib/kipApi"
 import { SidebarCard } from "../components/SidebarCard"
 import type { SidebarCardItem } from "../components/SidebarCard"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
+import { BOARD_DEFINITIONS } from "./UniversalBoardDefinition"
+import { useUniversalBoardOptional } from "./UniversalBoardContext"
+import { useDesignerDraftOptional } from "./DesignerDraftContext"
+import { BOARD_FRAMES } from "./designer/DesignBoardFrameList"
+import { FRAME_TO_JSON_KEY } from "../shell/frameRegistryMap"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -154,6 +159,91 @@ function ChevronLeftIcon() {
   )
 }
 
+// ─── FramesSidebarCard ────────────────────────────────────────────────────────
+// Renders the Frames section for designer mode. Uses the same panel chrome as
+// SidebarCard but adds live/draft status dots per row.
+
+function FramesSidebarCard({
+  items,
+  activeBoardForFrames,
+}: {
+  items: SidebarCardItem[]
+  activeBoardForFrames: string
+}) {
+  return (
+    <div
+      className="rounded-lg overflow-hidden"
+      style={{
+        border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
+        background: "hsl(var(--theme-surface-elevated) / 0.15)",
+      }}
+    >
+      <div
+        className="px-3 py-2 flex items-center justify-between"
+        style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.15)" }}
+      >
+        <p
+          className="text-[10px] font-semibold uppercase tracking-widest"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          Frames
+        </p>
+        <p
+          className="text-[10px] font-mono"
+          style={{ color: "hsl(var(--theme-ink-tertiary) / 0.6)" }}
+        >
+          {activeBoardForFrames}
+        </p>
+      </div>
+      <div className="py-1">
+        {items.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={item.onClick}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors"
+            style={{
+              background: item.isSelected ? "hsl(var(--theme-surface-elevated))" : "transparent",
+              borderLeft: `2px solid ${item.isSelected ? "hsl(var(--theme-ink-primary))" : "transparent"}`,
+            }}
+          >
+            <span
+              className="shrink-0 rounded-full"
+              style={{
+                width: 6,
+                height: 6,
+                background: item.description === "draft"
+                  ? "hsl(38 92% 50%)"
+                  : "hsl(152 69% 43%)",
+              }}
+              title={item.description === "draft" ? "Draft differs from live" : "Live"}
+            />
+            <span
+              className="flex-1 text-[12px] leading-snug truncate"
+              style={{
+                color: item.isSelected
+                  ? "hsl(var(--theme-ink-primary))"
+                  : "hsl(var(--theme-ink-secondary))",
+                fontWeight: item.isSelected ? 500 : 400,
+              }}
+            >
+              {item.label}
+            </span>
+          </button>
+        ))}
+        {items.length === 0 && (
+          <p
+            className="px-3 py-2 text-[11px]"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            No frames
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function UniversalNavPanel({
@@ -178,6 +268,10 @@ export function UniversalNavPanel({
   keeperListVersion = 0,
   draftListVersion = 0,
 }: UniversalNavPanelProps) {
+
+  // ── designer context — must be called before any early returns ─────────────
+  const boardCtx = useUniversalBoardOptional()
+  const draftCtx = useDesignerDraftOptional()
 
   // ── Section data ────────────────────────────────────────────────────────────
   const [dialogs, setDialogs] = React.useState<DialogItem[] | null>(null)
@@ -400,12 +494,58 @@ export function UniversalNavPanel({
 
   const showDrafts = def.nav.sections.drafts
   const showAgents = def.nav.sections.agents
+  const showFrames = def.nav.sections.frames ?? false
+  const showBoardDefs = def.nav.sections.boardDefs ?? false
   const instruments: SidebarCardItem[] = (def.nav.instruments ?? []).map((inst) => ({
     id: inst.id,
     label: inst.label,
     isSelected: selectedAgentId === inst.id,
     onClick: () => onAgentSelect?.(inst.id),
   }))
+
+  // ── designer sections: Frames + Board Definitions ────────────────────────
+
+  const frameItems: SidebarCardItem[] = React.useMemo(() => {
+    if (!showFrames) return []
+    const activeBoard = boardCtx?.selection.activeBoardForFrames ?? "domain"
+    const activeKey = boardCtx?.selection.selectedFrameKey ?? null
+    const draftSpec = draftCtx?.draftSpecJson ?? null
+    const liveFrame = draftCtx?.liveDomainFrame ?? null
+    const frames = BOARD_FRAMES[activeBoard] ?? []
+
+    return frames.map((f) => {
+      const jsonKey = FRAME_TO_JSON_KEY[f.key] ?? null
+      const isDraft = !!(jsonKey && liveFrame && draftSpec
+        ? (() => {
+            try {
+              return JSON.stringify((liveFrame as Record<string, unknown>)[jsonKey])
+                !== JSON.stringify((draftSpec as Record<string, unknown>)[jsonKey])
+            } catch { return true }
+          })()
+        : false)
+
+      return {
+        id: f.key,
+        label: f.name,
+        isSelected: f.key === activeKey,
+        // Status dot color encoded as a suffix the SidebarCard can render, or
+        // we render a custom left slot — handled via description field for now.
+        description: isDraft ? "draft" : "live",
+        onClick: () => boardCtx?.actions.onFrameSelect(f.key),
+      }
+    })
+  }, [showFrames, boardCtx, draftCtx])
+
+  const boardDefItems: SidebarCardItem[] = React.useMemo(() => {
+    if (!showBoardDefs) return []
+    const activeDef = boardCtx?.selection.selectedBoardDefId ?? null
+    return Object.values(BOARD_DEFINITIONS).map((d) => ({
+      id: d.boardId,
+      label: d.displayName,
+      isSelected: d.boardId === activeDef,
+      onClick: () => boardCtx?.actions.onBoardDefSelect(d.boardId),
+    }))
+  }, [showBoardDefs, boardCtx])
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -523,6 +663,22 @@ export function UniversalNavPanel({
               </p>
             )}
           </>
+        )}
+
+        {/* Frames — def.nav.sections.frames only */}
+        {showFrames && (
+          <FramesSidebarCard
+            items={frameItems}
+            activeBoardForFrames={boardCtx?.selection.activeBoardForFrames ?? "domain"}
+          />
+        )}
+
+        {/* Board Definitions — def.nav.sections.boardDefs only */}
+        {showBoardDefs && boardDefItems.length > 0 && (
+          <SidebarCard
+            title="Board Definitions"
+            items={boardDefItems}
+          />
         )}
 
         {/* Instruments — def.nav.instruments drives this list */}

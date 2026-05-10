@@ -49,8 +49,10 @@ import type { KeeperBoardKind } from "./KeeperBoardPanelGroup"
 import { UniversalNavPanel } from "./UniversalNavPanel"
 import { UniversalViewPanel } from "./panels/UniversalViewPanel"
 import { UniversalBoardProvider, useUniversalBoard } from "./UniversalBoardContext"
+import { DesignerDraftProvider } from "./DesignerDraftContext"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import { UniversalConversation } from "./UniversalConversation"
+import { useAuth } from "../../context/AuthContext"
 
 // ─── Center Panel Render Prop ─────────────────────────────────────────────────
 
@@ -345,7 +347,9 @@ function UniversalBoardShell({
 export function UniversalBoard(props: UniversalBoardProps) {
   return (
     <UniversalBoardProvider>
-      <UniversalBoardShell {...props} />
+      <DesignerDraftProvider>
+        <UniversalBoardShell {...props} />
+      </DesignerDraftProvider>
     </UniversalBoardProvider>
   )
 }

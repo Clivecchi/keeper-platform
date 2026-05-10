@@ -32,11 +32,16 @@ import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch } from "../../../lib/api"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
 import type { UniversalBoardDef } from "../UniversalBoardDefinition"
+import { BOARD_DEFINITIONS } from "../UniversalBoardDefinition"
 import { ServicesFrame } from "../../components/ServicesFrame"
+import { DesignBoardFrameDetail } from "../designer/DesignBoardFrameDetail"
+import type { FrameProp } from "../designer/DesignBoardFrameDetail"
+import { BOARD_FRAMES } from "../designer/DesignBoardFrameList"
+import type { FrameItem } from "../designer/DesignBoardFrameList"
 
 // ─── Trail Types ──────────────────────────────────────────────────────────────
 
-type TrailKind = "domain" | "journey" | "moment" | "keeper" | "draft" | "agent" | "service"
+type TrailKind = "domain" | "journey" | "moment" | "keeper" | "draft" | "agent" | "service" | "frame" | "boardDef"
 type TrailDirection = "forward" | "back"
 
 interface TrailEntry {
@@ -1177,6 +1182,206 @@ function ServiceView({ serviceSlug }: { serviceSlug: string }) {
   )
 }
 
+// ─── FrameView ────────────────────────────────────────────────────────────────
+// Chronicle view for kipMode === "designer" when a frame key is selected.
+// Self-contained: owns board-data loading (frameInstanceProps + handleAddProp).
+// audience / setAudience are local — never needed outside this component.
+
+type FrameEntry = {
+  boardId: string
+  frameInstanceId: string
+  props: FrameProp[]
+}
+
+interface FrameViewProps {
+  frameKey: string
+  domainId: string | null
+  domainSlug: string
+  activeBoardForFrames: string
+}
+
+function FrameView({ frameKey, domainId, domainSlug, activeBoardForFrames }: FrameViewProps) {
+  const [frameEntryMap, setFrameEntryMap] = React.useState<Map<string, FrameEntry>>(new Map())
+
+  React.useEffect(() => {
+    if (!domainId) return
+    let cancelled = false
+    apiFetch(`/api/domains/${domainId}/board-data`)
+      .then((res: unknown) => {
+        if (cancelled) return
+        const r = res as {
+          board?: {
+            id: string
+            frames: Array<{ id: string; name: string; props: unknown }>
+          }
+        }
+        if (!r?.board) return
+        const map = new Map<string, FrameEntry>()
+        for (const frame of r.board.frames) {
+          const rawProps = Array.isArray(frame.props) ? (frame.props as FrameProp[]) : []
+          map.set(frame.name.toLowerCase(), {
+            boardId: r.board.id,
+            frameInstanceId: frame.id,
+            props: rawProps,
+          })
+        }
+        setFrameEntryMap(map)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [domainId])
+
+  const frameInfo = React.useMemo((): FrameItem | null => {
+    const frames = BOARD_FRAMES[activeBoardForFrames] ?? []
+    return frames.find((f) => f.key === frameKey) ?? null
+  }, [frameKey, activeBoardForFrames])
+
+  const frameEntry = React.useMemo((): FrameEntry | null => {
+    if (!frameInfo) return null
+    return frameEntryMap.get(frameInfo.name.toLowerCase()) ?? null
+  }, [frameInfo, frameEntryMap])
+
+  const handleAddProp = React.useCallback(
+    async (type: string, config: Record<string, unknown>) => {
+      if (!frameEntry) return
+      const { boardId, frameInstanceId, props: currentProps } = frameEntry
+      const newProp: FrameProp = { id: `prop_${Date.now()}`, type, config }
+      const updatedProps = [...currentProps, newProp]
+
+      setFrameEntryMap((prev) => {
+        const next = new Map(prev)
+        for (const [key, entry] of next) {
+          if (entry.frameInstanceId === frameInstanceId) {
+            next.set(key, { ...entry, props: updatedProps })
+            break
+          }
+        }
+        return next
+      })
+
+      try {
+        await apiFetch(`/api/boards/${boardId}/frames/${frameInstanceId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ props: updatedProps }),
+        })
+      } catch (err) {
+        console.error("[FrameView] props PATCH failed:", err)
+      }
+    },
+    [frameEntry],
+  )
+
+  if (!frameInfo) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+          Frame not found
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <DesignBoardFrameDetail
+      domainSlug={domainSlug}
+      activeFrameKey={frameKey}
+      activeFrameInfo={frameInfo}
+      frameInstanceProps={frameEntry?.props ?? []}
+      onAddProp={frameEntry ? handleAddProp : null}
+    />
+  )
+}
+
+// ─── BoardDefView ─────────────────────────────────────────────────────────────
+// Chronicle view for kipMode === "designer" when a board definition is selected.
+
+function BoardDefView({ boardDefId }: { boardDefId: string }) {
+  const def = BOARD_DEFINITIONS[boardDefId]
+  if (!def) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+          Board definition not found
+        </p>
+      </div>
+    )
+  }
+
+  const json = JSON.stringify(def, null, 2)
+  const highlighted = json.replace(
+    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    (match) => {
+      let color = "hsl(var(--theme-accent-secondary))"
+      if (/^"/.test(match)) {
+        color = /:$/.test(match)
+          ? "hsl(var(--theme-ink-primary))"
+          : "hsl(var(--theme-accent-primary) / 0.8)"
+      } else if (/true|false/.test(match)) {
+        color = "hsl(var(--theme-accent-tertiary, var(--theme-accent-primary)))"
+      } else if (/null/.test(match)) {
+        color = "hsl(var(--theme-ink-tertiary))"
+      }
+      return `<span style="color:${color}">${match}</span>`
+    },
+  )
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      <div
+        className="shrink-0 px-4 pt-4 pb-3"
+        style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.15)" }}
+      >
+        <p
+          className="text-[10px] font-semibold uppercase tracking-widest"
+          style={{ color: "hsl(var(--theme-ink-tertiary) / 0.65)" }}
+        >
+          Board Definition
+        </p>
+        <h2
+          className="text-[14px] font-semibold leading-snug mt-1"
+          style={{ color: "hsl(var(--theme-ink-primary))" }}
+        >
+          {def.displayName}
+        </h2>
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-medium border"
+            style={{
+              background: "hsl(var(--theme-surface-elevated) / 0.5)",
+              color: "hsl(var(--theme-ink-secondary))",
+              borderColor: "hsl(var(--theme-border-soft) / 0.4)",
+            }}
+          >
+            {def.boardId}
+          </span>
+          {def.access.isAdminOnly && (
+            <span
+              className="rounded-full px-2 py-0.5 text-[10px] font-medium border"
+              style={{
+                background: "hsl(var(--theme-status-warning, 38 92% 50%) / 0.12)",
+                color: "hsl(var(--theme-status-warning, 38 92% 32%))",
+                borderColor: "hsl(var(--theme-status-warning, 38 92% 50%) / 0.3)",
+              }}
+            >
+              admin only
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex-1 overflow-auto min-h-0 keeper-panel-scroll">
+        <pre
+          className="p-4 text-[11px] leading-relaxed"
+          style={{
+            fontFamily: "ui-monospace, 'Cascadia Code', monospace",
+            color: "hsl(var(--theme-ink-secondary))",
+          }}
+          dangerouslySetInnerHTML={{ __html: highlighted }}
+        />
+      </div>
+    </div>
+  )
+}
+
 // ─── PanelBody ────────────────────────────────────────────────────────────────
 // Mini-router — renders the correct view for panelHistory[currentIndex].
 // Opacity dissolve on context shift: 200ms entry, 140ms exit.
@@ -1187,6 +1392,7 @@ interface PanelBodyProps {
   domainId: string | null
   domainName: string
   domainSlug?: string
+  activeBoardForFrames?: string
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onLabelResolved: (key: string, label: string) => void
@@ -1198,12 +1404,41 @@ function PanelBody({
   domainId,
   domainName,
   domainSlug,
+  activeBoardForFrames = "domain",
   onJourneySelect,
   onMomentSelect,
   onLabelResolved,
 }: PanelBodyProps) {
   function renderView(): React.ReactNode {
     switch (entry.kind) {
+      case "frame":
+        return entry.id ? (
+          <FrameView
+            frameKey={entry.id}
+            domainId={domainId}
+            domainSlug={domainSlug ?? ""}
+            activeBoardForFrames={activeBoardForFrames}
+          />
+        ) : (
+          <UniversalViewPanelIdle
+            domainId={domainId}
+            domainName={domainName}
+            domainSlug={domainSlug}
+            onJourneySelect={onJourneySelect}
+          />
+        )
+
+      case "boardDef":
+        return entry.id ? (
+          <BoardDefView boardDefId={entry.id} />
+        ) : (
+          <UniversalViewPanelIdle
+            domainId={domainId}
+            domainName={domainName}
+            domainSlug={domainSlug}
+            onJourneySelect={onJourneySelect}
+          />
+        )
       case "journey":
         return entry.id ? (
           <JourneyView
@@ -1412,9 +1647,13 @@ export function UniversalViewPanel({
   const handleMomentSelect =
     onMomentSelect ?? boardCtx?.actions.onMomentSelect
 
-  // Resolve active kind + id — priority: service > draft > agent > moment > journey > keeper > domain.
+  // Resolve active kind + id — priority: frame > boardDef > service > draft > agent > moment > journey > keeper > domain.
   // Each kind is gated by activeSubjects — if the def doesn't declare it, Chronicle ignores it.
   function resolveKindId(): { kind: TrailKind; id: string | null } {
+    if (activeSubjects.has("frame") && boardCtx?.selection.selectedFrameKey)
+      return { kind: "frame", id: boardCtx.selection.selectedFrameKey }
+    if (activeSubjects.has("boardDef") && boardCtx?.selection.selectedBoardDefId)
+      return { kind: "boardDef", id: boardCtx.selection.selectedBoardDefId }
     if (activeSubjects.has("service") && resolved.selectedServiceSlug)
       return { kind: "service", id: resolved.selectedServiceSlug }
     if (activeSubjects.has("draft") && resolved.selectedDraftId)
@@ -1584,6 +1823,7 @@ export function UniversalViewPanel({
           domainId={domainId}
           domainName={domainName}
           domainSlug={domainSlug}
+          activeBoardForFrames={boardCtx?.selection.activeBoardForFrames ?? "domain"}
           onJourneySelect={handleJourneySelect}
           onMomentSelect={handleMomentSelect}
           onLabelResolved={handleLabelResolved}

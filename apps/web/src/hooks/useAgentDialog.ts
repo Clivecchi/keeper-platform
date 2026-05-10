@@ -178,6 +178,17 @@ export interface UseAgentDialogResult {
     e: FormEvent,
     payload: { content: string; attachments?: AgentAttachment[] },
   ) => Promise<void>
+  /**
+   * designer mode: resets the tracked dialog ID so the next send starts a new
+   * dialog lookup rather than resuming the previous one. Call when the active
+   * frame changes so the new conversation is not associated with the old dialog.
+   */
+  clearDesignerDialog: () => void
+  /**
+   * designer mode: restores a known dialog ID (e.g. after loading history from
+   * /kip/dialogs/resolve/active). Subsequent sends resume that dialog.
+   */
+  setDesignerDialogId: (id: string | null) => void
 }
 
 export function useAgentDialog({
@@ -599,6 +610,14 @@ export function useAgentDialog({
     ],
   )
 
+  const clearDesignerDialog = React.useCallback(() => {
+    designerDialogIdRef.current = null
+  }, [])
+
+  const setDesignerDialogId = React.useCallback((id: string | null) => {
+    designerDialogIdRef.current = id
+  }, [])
+
   return {
     messages,
     setMessages,
@@ -611,5 +630,7 @@ export function useAgentDialog({
     activeSessionId,
     fetchMessages,
     sendMessage,
+    clearDesignerDialog,
+    setDesignerDialogId,
   }
 }
