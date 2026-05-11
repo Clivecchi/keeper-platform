@@ -41,6 +41,7 @@ model Journey {
   keeperId       String
   theme_id       String?          @db.Uuid
   domainId       String?
+  presenceSchema Json?
   domain         Domain?          @relation(fields: [domainId], references: [id])
   Keeper         Keeper           @relation(fields: [keeperId], references: [id])
   themes         themes?          @relation(fields: [theme_id], references: [id])
@@ -67,6 +68,7 @@ model Keeper {
   soleDraft            Json?
   soleSubmittedAt      DateTime?
   domainId             String?
+  presenceSchema       Json?
   Journey              Journey[]
   domain               Domain?                @relation(fields: [domainId], references: [id])
   KeeperType           KeeperType?            @relation(fields: [keeperTypeId], references: [id])
@@ -278,6 +280,7 @@ model Moment {
   anonKey             String?
   claimToken          String?
   claimTokenExpiresAt DateTime?
+  presenceSchema      Json?
   domain              Domain?          @relation(fields: [domainId], references: [id])
   Journey             Journey?         @relation(fields: [journeyId], references: [id])
   Path                Path?            @relation(fields: [pathId], references: [id])
@@ -619,6 +622,7 @@ model kip_agents {
   model_settings         Json                     @default("{}")
   created_by             String?                  @db.Uuid
   visibility             String                   @default("private")
+  presenceSchema         Json?
   kip_agent_keeper_types kip_agent_keeper_types[]
   kip_agent_logs         kip_agent_logs[]
   kip_agent_permissions  kip_agent_permissions[]
@@ -658,6 +662,7 @@ model kip_drafts {
   summary          String?
   status           String         @default("draft")
   spec_json        Json           @default("{}")
+  presenceSchema   Json?
   dialog_id        String?
   created_at       DateTime       @default(now())
   updated_at       DateTime       @default(now())
@@ -701,6 +706,7 @@ model Dialog {
   available_to String[] // ["admin"] | ["keeper"] | ["admin", "keeper"]
   context      Json     // { board, frame, subject }
   is_archived  Boolean  @default(false)
+  presenceSchema Json?
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
@@ -1141,6 +1147,7 @@ model Domain {
   SoleReflection                                           SoleReflection[]
   SoleMemoryCard                                           SoleMemoryCard[]
   SslCertificate                                           SslCertificate[]
+  presenceSchemas                                          PresenceSchema[]
 
   @@index([slug])
   @@index([customDomain])
@@ -1159,6 +1166,19 @@ model DomainPolicy {
   updatedAt DateTime @updatedAt
 
   domain Domain @relation(fields: [domainId], references: [id], onDelete: Cascade)
+}
+
+model PresenceSchema {
+  id         String   @id @default(cuid())
+  domainId   String
+  objectType String
+  fields     Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  domain     Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@unique([domainId, objectType])
+  @@index([domainId])
 }
 
 model AgentContract {

@@ -35,6 +35,7 @@ import type { UniversalBoardDef } from "../UniversalBoardDefinition"
 import { useBoardDefs } from "../useBoardDefs"
 import { ServicesFrame } from "../../components/ServicesFrame"
 import { DesignBoardFrameDetail } from "../designer/DesignBoardFrameDetail"
+import { KeeperPresence } from "../../presence/KeeperPresence"
 import type { FrameProp } from "../designer/DesignBoardFrameDetail"
 import { BOARD_FRAMES } from "../designer/DesignBoardFrameList"
 import type { FrameItem } from "../designer/DesignBoardFrameList"
@@ -1634,12 +1635,13 @@ function PanelBody({
         )
       case "journey":
         return entry.id ? (
-          <JourneyView
-            journeyId={entry.id}
-            domainId={domainId}
-            onMomentSelect={onMomentSelect}
-            onLabelResolved={onLabelResolved}
-            trailKey={entry.key}
+          <KeeperPresence
+            objectType="journey"
+            objectId={entry.id}
+            domainId={domainId ?? ""}
+            context="chronicle"
+            density="standard"
+            onLabelResolved={(label) => onLabelResolved(entry.key, label)}
           />
         ) : (
           <UniversalViewPanelIdle
@@ -1652,10 +1654,13 @@ function PanelBody({
 
       case "moment":
         return entry.id ? (
-          <MomentView
-            momentId={entry.id}
-            onLabelResolved={onLabelResolved}
-            trailKey={entry.key}
+          <KeeperPresence
+            objectType="moment"
+            objectId={entry.id}
+            domainId={domainId ?? ""}
+            context="chronicle"
+            density="standard"
+            onLabelResolved={(label) => onLabelResolved(entry.key, label)}
           />
         ) : (
           <UniversalViewPanelIdle
@@ -1668,12 +1673,13 @@ function PanelBody({
 
       case "keeper":
         return entry.id ? (
-          <KeeperView
-            keeperId={entry.id}
-            domainId={domainId}
-            onJourneySelect={onJourneySelect}
-            onLabelResolved={onLabelResolved}
-            trailKey={entry.key}
+          <KeeperPresence
+            objectType="keeper"
+            objectId={entry.id}
+            domainId={domainId ?? ""}
+            context="chronicle"
+            density="standard"
+            onLabelResolved={(label) => onLabelResolved(entry.key, label)}
           />
         ) : (
           <UniversalViewPanelIdle
@@ -1686,11 +1692,13 @@ function PanelBody({
 
       case "draft":
         return entry.id ? (
-          <DraftView
-            draftId={entry.id}
-            domainId={domainId}
-            onLabelResolved={onLabelResolved}
-            trailKey={entry.key}
+          <KeeperPresence
+            objectType="draft"
+            objectId={entry.id}
+            domainId={domainId ?? ""}
+            context="chronicle"
+            density="standard"
+            onLabelResolved={(label) => onLabelResolved(entry.key, label)}
           />
         ) : (
           <UniversalViewPanelIdle
@@ -1703,10 +1711,13 @@ function PanelBody({
 
       case "agent":
         return entry.id ? (
-          <AgentView
-            agentId={entry.id}
-            onLabelResolved={onLabelResolved}
-            trailKey={entry.key}
+          <KeeperPresence
+            objectType="agent"
+            objectId={entry.id}
+            domainId={domainId ?? ""}
+            context="chronicle"
+            density="standard"
+            onLabelResolved={(label) => onLabelResolved(entry.key, label)}
           />
         ) : (
           <UniversalViewPanelIdle
