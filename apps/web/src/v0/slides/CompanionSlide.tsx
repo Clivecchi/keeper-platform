@@ -57,6 +57,8 @@ export interface CompanionSlideProps {
   isOpen:             boolean
   onClose:            () => void
   greeting:           string
+  /** From interaction_bar.labels.kip — no hardcoded agent name in chrome */
+  kipLabel?:          string
   audience:           AudienceRole
   domainSlug:         string
   agentId:            string
@@ -221,11 +223,12 @@ function BubbleItem({ role, content }: { role: "kip" | "user"; content: string }
 
 // ─── ActionLink ───────────────────────────────────────────────────────────────
 
-function ActionLink({ label }: { label: string }) {
+function ActionLink({ label, onClick }: { label: string; onClick?: () => void }) {
   const [hovered, setHovered] = React.useState(false)
   return (
     <button
       type="button"
+      onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -253,11 +256,13 @@ function CueCardItem({
   data,
   autoCollapse,
   onCollapsed,
+  onAction,
   startOpen = true,
 }: {
   data:          CueCardData
   autoCollapse:  boolean
   onCollapsed?:  () => void
+  onAction?:     (action: string) => void
   startOpen?:    boolean
 }) {
   const [expanded,   setExpanded]   = React.useState(startOpen)
@@ -345,7 +350,11 @@ function CueCardItem({
           {data.actions.length > 0 && (
             <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
               {data.actions.map((a) => (
-                <ActionLink key={a.action} label={a.label} />
+                <ActionLink
+                  key={a.action}
+                  label={a.label}
+                  onClick={() => onAction?.(a.action)}
+                />
               ))}
             </div>
           )}
@@ -361,12 +370,15 @@ export function CompanionSlide({
   isOpen,
   onClose,
   greeting,
+  kipLabel = "Kip",
   audience: _audience,
   domainSlug,
   agentId: _agentId,
-  onSignIn: _onSignIn,
-  experienceContext: _experienceContext,
+  onSignIn,
+  experienceContext,
 }: CompanionSlideProps) {
+  void _agentId
+  void experienceContext
   // State is never reset on close — session persists across open/close
   const [items,              setItems]              = React.useState<ChatItem[]>(() => buildSeedItems(greeting))
   const [inputValue,         setInputValue]         = React.useState("")
@@ -493,6 +505,16 @@ export function CompanionSlide({
     }
   }
 
+  const handleCueAction = (action: string) => {
+    if (action === "auth.signin") {
+      onSignIn()
+      return
+    }
+    if (action === "companion.dismiss") {
+      setFirstCardCollapsed(true)
+    }
+  }
+
   const cueCards = items.filter(
     (i): i is Extract<ChatItem, { kind: "cue_card" }> => i.kind === "cue_card"
   )
@@ -554,7 +576,7 @@ export function CompanionSlide({
               color:      B.inkMuted,
             }}
           >
-            Kip
+            {kipLabel}
           </span>
 
           {/* Right: Chat icon · Cue Cards icon (conditional) · × */}
@@ -600,6 +622,7 @@ export function CompanionSlide({
                     data={item.data}
                     autoCollapse={isFirst && !firstCardCollapsed}
                     onCollapsed={() => setFirstCardCollapsed(true)}
+                    onAction={handleCueAction}
                   />
                 )
               })}
@@ -655,6 +678,7 @@ export function CompanionSlide({
                     data={item.data}
                     autoCollapse={false}
                     startOpen={false}
+                    onAction={handleCueAction}
                   />
                 ))
               )}

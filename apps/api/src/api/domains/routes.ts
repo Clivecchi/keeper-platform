@@ -150,6 +150,12 @@ const DEFAULT_FRAME_FALLBACK = {
     primary: 'forward',
     secondary: ['kip'],
     auth: { guest: ['sign_in'], keeper: [], admin: ['settings'] },
+    labels: {
+      forward: 'Forward',
+      kip: 'Kip',
+      sign_in: 'Sign In',
+      settings: 'Settings',
+    },
   },
 };
 

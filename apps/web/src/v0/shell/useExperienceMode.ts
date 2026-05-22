@@ -32,9 +32,14 @@ type ExperienceModeParams = {
 
 const PRIVATE_FRAMES = new Set<V0FrameKey>(["commons", "profile", "admin"])
 const KIP_FRAMES = new Set<V0FrameKey>(["kip", "agent"])
+/** Guest visitors must not render Agent Studio — cover + companion instead. */
+const GUEST_AGENT_FRAMES = new Set<V0FrameKey>(["kip", "agent"])
 
 function resolveFrame(requestedFrame: V0FrameKey, isAuthenticated: boolean): V0FrameKey {
   if (!isAuthenticated && PRIVATE_FRAMES.has(requestedFrame)) {
+    return "cover"
+  }
+  if (!isAuthenticated && GUEST_AGENT_FRAMES.has(requestedFrame)) {
     return "cover"
   }
   return requestedFrame
@@ -67,7 +72,16 @@ export function useExperienceMode({
 
   const actions = useMemo<ExperienceActions>(() => {
     return {
-      openKip: () => navigate(buildFrameUrl("agent")),
+      openKip: () => {
+        if (!isAuthenticated) {
+          const params = new URLSearchParams()
+          params.set("frame", "cover")
+          params.set("companion", "1")
+          navigate(`/d/${domainSlug}?${params.toString()}`)
+          return
+        }
+        navigate(buildFrameUrl("agent"))
+      },
       closeKip: () => navigate(buildFrameUrl(isAuthenticated ? "commons" : "cover")),
       goCommons: () => navigate(buildFrameUrl("commons")),
       goAdmin: () => navigate(buildFrameUrl("admin")),

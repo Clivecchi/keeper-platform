@@ -244,6 +244,12 @@ export const DEFAULT_DOMAIN_FRAME: DomainFrameJson = {
       keeper: [],
       admin: ["settings"],
     },
+    labels: {
+      forward: "Forward",
+      kip: "Kip",
+      sign_in: "Sign In",
+      settings: "Settings",
+    },
   },
 
   agent_board: {

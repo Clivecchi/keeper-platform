@@ -28,6 +28,10 @@ SlideTypes receive data from the domain frame JSON and the resolved audience rol
 
 ## 📆 Update Log
 
+### 2026-05-21 — jsonframe Steps 4–5
+- CompanionSlide: `kipLabel` from `interaction_bar.labels.kip`; cue card `auth.signin` / `companion.dismiss` wired
+- JourneyInvitationSlide: TODO for future card content schema fields
+
 ### 2026-03-27 — JourneyInvitationSlide loading state
 - Optional `forwardDisabled` prop disables Forward while Cover resolves the first public journey.
 

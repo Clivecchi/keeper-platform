@@ -10,6 +10,20 @@
 
 import type { DomainFrameJson } from "./domain-frame.types"
 import { getApiBase } from "../../lib/apiFetch"
+import { DEFAULT_DOMAIN_FRAME } from "./domain-frame.default"
+
+function normalizeDomainFrame(frame: DomainFrameJson): DomainFrameJson {
+  return {
+    ...frame,
+    interaction_bar: {
+      ...frame.interaction_bar,
+      labels: {
+        ...DEFAULT_DOMAIN_FRAME.interaction_bar.labels,
+        ...frame.interaction_bar?.labels,
+      },
+    },
+  }
+}
 
 export async function loadDomainFrame(domainSlug: string): Promise<DomainFrameJson> {
   try {
@@ -20,7 +34,7 @@ export async function loadDomainFrame(domainSlug: string): Promise<DomainFrameJs
       const { DEFAULT_DOMAIN_FRAME } = await import("./domain-frame.default")
       return DEFAULT_DOMAIN_FRAME
     }
-    const frame = await response.json() as DomainFrameJson
+    const frame = normalizeDomainFrame(await response.json() as DomainFrameJson)
     console.log(`[DomainFrame] Loaded for domain: ${domainSlug}`)
     return frame
   } catch (err) {

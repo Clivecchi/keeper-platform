@@ -7,9 +7,11 @@ Centralize frame routing, theme application, and navigation helpers for domain b
 - `V0Shell.tsx`
 - `V0ShellContext.tsx`
 - `FrameContext.tsx`
+- `AgentComposerContext.tsx` — Provides composer state from AgentBoardFrame to Margin (bottom bar)
 - `useExperienceMode.ts`
 - `useWorkspaceMode.ts`
 - `useWorkspaceView.ts`
+- `useAgentWorkspaceView.ts`
 
 ## 🔄 Data & Behavior
 The shell resolves the domain slug, applies the active theme/style, and routes frames by query param. It exposes navigation helpers so frames can build URLs and return to `/d/:slug/board` with theme preserved.
@@ -24,8 +26,10 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - [ ] Default keeper/journey creation when none exist for a domain.
 
 ## 📆 Update Log
+- 2026-05-21: jsonframe Step 4 — guests requesting `?frame=agent|kip` redirect to cover with `companion=1`; `useExperienceMode.openKip` opens companion for guests. `resolveFrame` maps guest agent/kip requests to cover.
 - 2026-03-28: Authenticated users with no `frame` or `board` query params are redirected (replace) to `?board=domain`; `defaultFrame` remains `commons` for explicit `?frame=` navigation.
 - 2026-02-28: FrameContext now derives domain from V0Shell domainData when inside V0Shell — single /api/domains/by-slug fetch, eliminates duplicate domain requests and staged load flicker.
+- 2026-02-19: Added AgentComposerContext — AgentBoardFrame provides composer props; Margin consumes when frame is agent/kip to render composer in bottom bar.
 - 2026-01-31: Registered the Present frame in the v0 shell frame registry and frame key union.
 - 2026-01-27: Added Experience Mode controller + actions and allowed public Kip frame access.
 - 2026-01-19: Added kip frame alias to point at the agent surface.
@@ -38,3 +42,4 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - 2026-02-05: Added `FrameContext.tsx` implementing the Context Contract (auth, domain, keeper/journey selection, theme, frame metadata). Injected `FrameContextProvider` inside V0Shell wrapping all frame components.
 - 2026-02-09: Extracted `useWorkspaceMode` — generic hook for URL-driven workspace mode state. Reads/writes a search param, validates against an allowed mode list, and falls back to a default. Used by CommonsFrame and available for any frame with switchable workspace modes.
 - 2026-02-09: Added `useWorkspaceView` — URL-driven workspace view state hook using a `WorkspaceView` discriminated union (`feed | entity | create | summary`). Replaces fixed mode enums for workspaces that need entity-level navigation. Serializes view state to `?view=`, `?entityType=`, `?entityId=`, `?template=` search params. `useWorkspaceMode` remains for simpler fixed-mode cases.
+- 2026-02-09: Added `useAgentWorkspaceView` — Agent-specific workspace view hook with `dialogue | draft | cockpit` view kinds. Serializes to `?view=dialogue&sessionId=xxx`, `?view=draft&draftId=yyy`, `?view=cockpit`. Used by the new `AgentBoardFrame`. Split `"agent"` frame key to point at `AgentBoardFrame`; `"kip"` retains the legacy `AgentFrame`.

@@ -14,6 +14,7 @@ Creates a draft moment on "Write a Moment" and navigates to the Moment frame. Fa
 - [ ] Confirm draft bootstrap error handling for unauthenticated visitors.
 
 ## 📆 Update Log
+- 2026-05-21: jsonframe Step 5 — closed cover respects `cover.card.available_to`; journey_invitation path unchanged (theme + forward). TODO: card type variants belong in Universal Board Design View.
 - 2026-03-30: `cover.chat_interface` — added `CoverChatInterface` + `mergeCoverChatInterface`; wired in `CoverBody` with audience from `V0ShellContext.resolvedAudience`. Extended `DomainFrameCover` typing; default domain frame JSON includes sample `chat_interface`.
 - 2026-03-27: CoverBody — guests: Journey Invitation **Forward** fetches `/api/public/:slug/journeys`, navigates to `?frame=journeys&journey=<firstId>`; authenticated users unchanged.
 - 2026-03-25: CoverBody — optional `id` on `domainData` typing; closed-cover fallback uses `domainFrame.theme` when `buildFrameUrl("cover") === "#"` (Designer preview) so tagline/wordmark track shell `domainFrame`.

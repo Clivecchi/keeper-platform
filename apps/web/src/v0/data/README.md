@@ -25,6 +25,11 @@ Static data sources and loaders for the JSON UI Frame system. This folder holds 
 
 ## 📆 Update Log
 
+### 2026-05-21 — jsonframe Step 3: interaction_bar.labels
+- Added `DomainFrameInteractionBarLabels` and required `labels` on `DomainFrameInteractionBar`
+- Default frame, API fallback, and DB seed updated with explicit bar labels
+- `loadDomainFrame` merges partial API frames with default labels for older `frame_json` rows
+
 ### 2026-03-08 — Image generation fields added to DomainFrameKip (Step 1 of 4)
 - Added `image_style?: string` and `image_model?: string` as optional fields to `DomainFrameKip` interface in `domain-frame.types.ts`
 - Added default values to `DEFAULT_DOMAIN_FRAME.kip` in `domain-frame.default.ts`:

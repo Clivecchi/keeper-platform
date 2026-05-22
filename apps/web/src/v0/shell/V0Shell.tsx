@@ -56,8 +56,10 @@ export function V0Shell() {
     }
   }, [isAuthenticated, searchParams, setSearchParams])
   const privateFrames = new Set<V0FrameKey>(["commons", "profile", "admin"])
+  const guestAgentFrames = new Set<V0FrameKey>(["agent", "kip"])
   const requestedFrame = FRAME_REGISTRY[frameParam] ? frameParam : "cover"
   const isPrivateRequest = privateFrames.has(requestedFrame)
+  const isGuestAgentRequest = guestAgentFrames.has(requestedFrame)
 
   // urlThemeSlug: the ?theme= URL param — developer preview override only.
   // When present it takes full precedence over domain-resolved theme.
@@ -222,6 +224,15 @@ export function V0Shell() {
       navigate(buildFrameUrl("cover"))
     }
   }, [authResolved, isAuthenticated, isPrivateRequest, slug, navigate, buildFrameUrl])
+
+  React.useEffect(() => {
+    if (authResolved && !isAuthenticated && isGuestAgentRequest && slug) {
+      const params = new URLSearchParams(location.search)
+      params.set("frame", "cover")
+      params.set("companion", "1")
+      navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true })
+    }
+  }, [authResolved, isAuthenticated, isGuestAgentRequest, slug, location.pathname, location.search, navigate])
 
   React.useEffect(() => {
     // Same authResolved guard — prevents premature redirect on page refresh.

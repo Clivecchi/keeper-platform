@@ -6,6 +6,8 @@
  * The default cover card. Entry point to a Journey.
  * Renders from the domain frame JSON — no hardcoded content.
  *
+ * TODO: Card content fields (title, editorial line) are future schema work
+ *
  * Shows:
  *   - Domain wordmark    from domainFrame.theme.wordmark
  *   - Domain tagline     from domainFrame.theme.tagline

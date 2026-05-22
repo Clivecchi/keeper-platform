@@ -115,12 +115,17 @@ export function CoverBody({ domainData, themeSlug, onNavigate, coverState = "clo
     const domainFrame = v0Shell?.domainFrame
     const designerPreview = isDesignerBoardPreviewShell(v0Shell)
     const cardType = domainFrame?.cover?.card?.type
+    const resolvedAudience = v0Shell?.resolvedAudience ?? null
+    const cardAvailableTo = domainFrame?.cover?.card?.available_to ?? []
+    const cardVisible =
+      !resolvedAudience || cardAvailableTo.length === 0 || cardAvailableTo.includes(resolvedAudience)
 
-    // journey_invitation SlideType — render from domain frame JSON
-    if (cardType === "journey_invitation" && domainFrame) {
+    // TODO: Card type variants belong in Universal Board Design View
+
+    // journey_invitation SlideType — render from domain frame JSON (theme + forward)
+    if (cardType === "journey_invitation" && domainFrame && cardVisible) {
       const chat_interface = mergeCoverChatInterface(domainFrame.cover.chat_interface)
       const coverChatSlug = domainData?.slug || v0Shell?.domainSlug || "default"
-      const resolvedAudience = v0Shell?.resolvedAudience ?? null
 
       const handleForward = async () => {
         if (forwardLoading) return

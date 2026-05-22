@@ -76,6 +76,14 @@ export interface DomainFrameKipContext {
   admin: string
 }
 
+/** Display labels for InteractionBar button ids (explicit JSON labels). */
+export interface DomainFrameInteractionBarLabels {
+  forward: string
+  kip: string
+  sign_in: string
+  settings: string
+}
+
 export interface DomainFrameInteractionBar {
   primary: string
   secondary: string[]
@@ -84,6 +92,7 @@ export interface DomainFrameInteractionBar {
     keeper: string[]
     admin: string[]
   }
+  labels: DomainFrameInteractionBarLabels
 }
 
 export interface AgentBoardSidebarLabels {

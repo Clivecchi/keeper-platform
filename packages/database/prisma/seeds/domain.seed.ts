@@ -67,6 +67,12 @@ const DEFAULT_DOMAIN_FRAME_JSON = {
       keeper: [],
       admin: ['settings'],
     },
+    labels: {
+      forward: 'Forward',
+      kip: 'Kip',
+      sign_in: 'Sign In',
+      settings: 'Settings',
+    },
   },
 };
 
