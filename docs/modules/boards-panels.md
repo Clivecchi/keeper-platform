@@ -28,9 +28,11 @@ Chronicle is the right panel for all Universal Boards. It is built as a Treatmen
 | View | Triggered by | What comes forward |
 |---|---|---|
 | `UniversalViewPanelIdle` | domain (nothing selected) | Domain name, moving journeys, present journeys |
-| `JourneyView` | `selectedJourneyId` | Editable title + forward, Paths with moment counts |
-| `MomentView` | `selectedMomentId` | Journey → Path breadcrumb, editable title + narrative |
-| `KeeperView` | `selectedKeeperId` | Editable name + purpose, recent sessions |
+| `JourneyView` | `selectedJourneyId` | Title (read-only), editable forward, Paths with moment counts, created date |
+| `MomentView` | `selectedMomentId` | Journey → Path breadcrumb, title + full narrative, date |
+| `KeeperView` | `selectedKeeperId` | Name + purpose, recent sessions (journeys by keeper) |
+| `DraftView` | `selectedDraftId` | Title, truncated summary preview, date |
+| `KeeperPresence` (agent only) | `selectedAgentId` | Schema-driven agent surface — unchanged |
 
 **Moment hierarchy — Journey first:**
 The Moment view always shows `Journey title / Path name` above the moment title. It resolves the hierarchy via a secondary journey fetch if `journeyId` is present on the moment response.
@@ -75,13 +77,21 @@ Five surfaces: DomainPresence, JourneyPresence, MomentPresence, KeeperPresence, 
 No trail history, no feed indicator, no editable fields.
 
 ## ⚠️ Notes & ToDo
-- [ ] Draft presence in Chronicle — currently falls to idle; add DraftView when spec is ready
-- [ ] Agent presence — for Agent Board's agent selection state
+- [x] Draft presence in Chronicle — DraftView wired via `/api/domains/:domainId/kip/drafts/:id`
+- [x] Agent presence — KeeperPresence (unchanged)
 - [ ] Service presence — for IDE Board's ServicesFrame integration
 - [ ] Rendr integration — spatial ratios and density governed by `presenceTreatment` field
 - [x] Designer Board — migrated to UniversalBoard shell (Moment 2.7); Chronicle renders at idle and when Board Definition selected
 
 ## 📆 Update Log
+
+### 2026-05-21 — Gate 1: Chronicle renders every record type
+- `PanelBody` routes Journey, Moment, Keeper, and Draft to dedicated views instead of `KeeperPresence`
+- `JourneyView` — normalizes API path/moment counts, read-only title, editable forward, created date
+- `KeeperView` — resolves keeper via list fallback when direct fetch lacks domain context; loads recent sessions from `/api/journeys?keeperId=`
+- `DraftView` — fetches via `/api/domains/:domainId/kip/drafts/:id`; truncated summary preview
+- `MomentView` — improved hierarchy resolution; v0 moments list fallback when direct fetch fails
+- Agent remains on `KeeperPresence` — unchanged
 
 ### 2026-05-06 — Moment 2.7: UniversalSwitcherPanel (Design Board left panel)
 - Created `UniversalSwitcherPanel.tsx` — left panel for Design Board
@@ -90,6 +100,12 @@ No trail history, no feed indicator, no editable fields.
   - Selecting a Board Definition → `onSelectBoard(id)` → sets `activeBoardId` + `selectedBoardDefId` in parent
   - No fetching — all data flows in as props
   - All colors `hsl(var(--theme-*))` — zero hardcoded values
+
+### 2026-05-09 — Chronicle: domain feed in idle state
+- `UniversalViewPanel` now accepts optional `domainSlug` prop.
+- `UniversalViewPanelIdle` — when `domainSlug` is provided, fetches recent kept Moments (`/api/v0/moments?status=kept&limit=12`) and renders a "Recent Moments" section above the Journeys sections.
+- `PanelBodyProps` updated to thread `domainSlug` to all idle fallback render paths.
+- Domain Board passes `domainSlug` so Chronicle is never blank — domain feed is its ambient idle state.
 
 ### 2026-05-06 — Chronicle: UniversalViewPanel
 - Created `UniversalViewPanel.tsx` — Chronicle, the right panel for all Universal Boards

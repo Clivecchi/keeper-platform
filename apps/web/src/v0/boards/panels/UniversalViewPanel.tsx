@@ -74,13 +74,21 @@ type JourneyDetail = {
   forward?: string
   paths?: Array<{ id: string; name: string; momentCount?: number }>
   momentCount?: number
+  createdAt?: string
+}
+
+type KeeperSession = {
+  id: string
+  name: string
+  momentCount?: number
+  updatedAt?: string
 }
 
 type KeeperDetail = {
   id: string
   title: string
   purpose?: string
-  journeys?: Array<{ id: string; name: string; momentCount?: number }>
+  journeys?: KeeperSession[]
 }
 
 type JourneyBrief = {
@@ -90,6 +98,45 @@ type JourneyBrief = {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function truncatePreview(text: string | undefined, max = 200): string {
+  const t = (text ?? "").trim()
+  if (!t) return ""
+  if (t.length <= max) return t
+  return `${t.slice(0, max).trimEnd()}…`
+}
+
+function normalizeJourneyDetail(raw: Record<string, unknown>): JourneyDetail {
+  const pathsRaw = (raw.paths ?? raw.Path ?? []) as Array<Record<string, unknown>>
+  const paths = pathsRaw.map((p) => ({
+    id: String(p.id ?? ""),
+    name: String(p.name ?? "Untitled path"),
+    momentCount:
+      typeof p.momentCount === "number"
+        ? p.momentCount
+        : Array.isArray(p.Moment)
+          ? p.Moment.length
+          : 0,
+  }))
+  const momentCount =
+    typeof raw.momentCount === "number"
+      ? raw.momentCount
+      : paths.reduce((sum, p) => sum + (p.momentCount ?? 0), 0)
+
+  return {
+    id: String(raw.id ?? ""),
+    name: String(raw.name ?? ""),
+    forward: typeof raw.forward === "string" ? raw.forward : "",
+    paths,
+    momentCount,
+    createdAt:
+      typeof raw.createdAt === "string"
+        ? raw.createdAt
+        : typeof raw.created_at === "string"
+          ? raw.created_at
+          : undefined,
+  }
+}
 
 function formatRelative(iso: string | undefined): string {
   if (!iso) return ""
@@ -555,7 +602,6 @@ function JourneyView({
   const [name, setName] = React.useState("")
   const [forward, setForward] = React.useState("")
   const hasEdited = React.useRef(false)
-  const debouncedName = useDebounced(name, 1000)
   const debouncedForward = useDebounced(forward, 1000)
 
   React.useEffect(() => {
@@ -568,11 +614,11 @@ function JourneyView({
     apiFetch(`/api/journeys/${encodeURIComponent(journeyId)}`)
       .then((res: unknown) => {
         if (cancelled) return
-        const data =
-          (res as { journey?: JourneyDetail })?.journey ??
-          (res as { data?: JourneyDetail })?.data ??
-          (res as JourneyDetail)
-        const j = data as JourneyDetail
+        const raw =
+          (res as { journey?: Record<string, unknown> })?.journey ??
+          (res as { data?: Record<string, unknown> })?.data ??
+          (res as Record<string, unknown>)
+        const j = normalizeJourneyDetail(raw)
         setJourney(j)
         setName(j.name ?? "")
         setForward(j.forward ?? "")
@@ -594,15 +640,11 @@ function JourneyView({
     apiFetch(`/api/journeys/${encodeURIComponent(journeyId)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: debouncedName, forward: debouncedForward }),
+      body: JSON.stringify({ forward: debouncedForward }),
     }).catch(() => {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedName, debouncedForward])
+  }, [debouncedForward])
 
-  const handleNameChange = (v: string) => {
-    hasEdited.current = true
-    setName(v)
-  }
   const handleForwardChange = (v: string) => {
     hasEdited.current = true
     setForward(v)
@@ -618,13 +660,12 @@ function JourneyView({
         {loading ? (
           <PresenceShimmer width="w-36" />
         ) : (
-          <AutoResizeTextarea
-            value={name}
-            onChange={handleNameChange}
-            placeholder="Untitled journey"
-            className="text-[14px] font-semibold leading-snug mt-1"
+          <p
+            className="text-[15px] font-semibold leading-snug mt-1"
             style={{ color: "hsl(var(--theme-ink-primary))" }}
-          />
+          >
+            {name.trim() || "Untitled journey"}
+          </p>
         )}
         {!loading && (
           <AutoResizeTextarea
@@ -634,6 +675,14 @@ function JourneyView({
             className="text-[12px] leading-relaxed mt-2"
             style={{ color: "hsl(var(--theme-ink-secondary))" }}
           />
+        )}
+        {!loading && journey?.createdAt && (
+          <p
+            className="text-[10px] mt-2"
+            style={{ color: "hsl(var(--theme-ink-tertiary) / 0.55)" }}
+          >
+            {formatRelative(journey.createdAt)}
+          </p>
         )}
       </div>
 
@@ -697,11 +746,12 @@ function JourneyView({
 
 interface MomentViewProps {
   momentId: string
+  domainSlug?: string
   onLabelResolved: (key: string, label: string) => void
   trailKey: string
 }
 
-function MomentView({ momentId, onLabelResolved, trailKey }: MomentViewProps) {
+function MomentView({ momentId, domainSlug, onLabelResolved, trailKey }: MomentViewProps) {
   const [moment, setMoment] = React.useState<MomentDetail | null>(null)
   const [journeyCtx, setJourneyCtx] = React.useState<{
     name: string
@@ -727,48 +777,95 @@ function MomentView({ momentId, onLabelResolved, trailKey }: MomentViewProps) {
       .then((res: unknown) => {
         if (cancelled) return
         const data =
-          (res as { moment?: MomentDetail })?.moment ??
-          (res as { data?: MomentDetail })?.data ??
-          (res as MomentDetail)
-        const m = data as MomentDetail
+          (res as { moment?: Record<string, unknown> })?.moment ??
+          (res as { data?: Record<string, unknown> })?.data ??
+          (res as Record<string, unknown>)
+        const m = data as MomentDetail & {
+          journeyId?: string
+          pathId?: string
+          Journey?: { name?: string }
+          Path?: { name?: string }
+        }
         setMoment(m)
         setTitle(m.title ?? "")
         setNarrative(m.narrative ?? "")
         setLoading(false)
         if (m.title) onLabelResolved(trailKey, m.title)
 
-        // Resolve Journey → Path hierarchy from moment data or secondary fetch.
-        if (m.journeyId) {
+        const journeyName =
+          m.journeyTitle ??
+          m.Journey?.name ??
+          ""
+        const pathName = m.pathName ?? m.Path?.name
+
+        if (journeyName) {
+          setJourneyCtx({ name: journeyName, pathName })
+        } else if (m.journeyId) {
           apiFetch(`/api/journeys/${encodeURIComponent(m.journeyId)}`)
             .then((jr: unknown) => {
               if (cancelled) return
-              const jData =
-                (jr as { journey?: JourneyDetail })?.journey ??
-                (jr as { data?: JourneyDetail })?.data ??
-                (jr as JourneyDetail)
-              const j = jData as JourneyDetail
+              const jRaw =
+                (jr as { journey?: Record<string, unknown> })?.journey ??
+                (jr as { data?: Record<string, unknown> })?.data ??
+                (jr as Record<string, unknown>)
+              const j = normalizeJourneyDetail(jRaw)
               const matchedPath = m.pathId
                 ? j.paths?.find((p) => p.id === m.pathId)
                 : undefined
               setJourneyCtx({
                 name: j.name,
-                pathName: matchedPath?.name ?? m.pathName,
+                pathName: matchedPath?.name ?? pathName,
               })
             })
             .catch(() => {
-              if (!cancelled) {
-                setJourneyCtx({
-                  name: m.journeyTitle ?? "",
-                  pathName: m.pathName,
-                })
+              if (!cancelled && m.journeyTitle) {
+                setJourneyCtx({ name: m.journeyTitle, pathName })
               }
             })
-        } else if (m.journeyTitle) {
-          setJourneyCtx({ name: m.journeyTitle, pathName: m.pathName })
         }
       })
       .catch(() => {
-        if (!cancelled) setLoading(false)
+        if (cancelled) return
+        if (!domainSlug) {
+          setLoading(false)
+          return
+        }
+        apiFetch(
+          `/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&limit=100`,
+        )
+          .then((res: unknown) => {
+            if (cancelled) return
+            const rows = (res as { data?: Array<Record<string, unknown>> })?.data ?? []
+            const found = rows.find((row) => row.id === momentId)
+            if (!found) {
+              setLoading(false)
+              return
+            }
+            const m: MomentDetail = {
+              id: String(found.id),
+              title: String(found.title ?? ""),
+              narrative: String(found.body ?? found.narrative ?? ""),
+              updatedAt:
+                typeof found.updatedAt === "string"
+                  ? found.updatedAt
+                  : typeof found.updated_at === "string"
+                    ? found.updated_at
+                    : undefined,
+              journeyTitle:
+                typeof found.journeyName === "string" ? found.journeyName : undefined,
+            }
+            setMoment(m)
+            setTitle(m.title ?? "")
+            setNarrative(m.narrative ?? "")
+            if (m.title) onLabelResolved(trailKey, m.title)
+            if (m.journeyTitle) {
+              setJourneyCtx({ name: m.journeyTitle })
+            }
+            setLoading(false)
+          })
+          .catch(() => {
+            if (!cancelled) setLoading(false)
+          })
       })
     return () => {
       cancelled = true
@@ -902,6 +999,7 @@ function KeeperView({
   trailKey,
 }: KeeperViewProps) {
   const [keeper, setKeeper] = React.useState<KeeperDetail | null>(null)
+  const [sessions, setSessions] = React.useState<KeeperSession[]>([])
   const [loading, setLoading] = React.useState(true)
   const [fetchError, setFetchError] = React.useState<KeeperFetchError | null>(null)
 
@@ -912,37 +1010,84 @@ function KeeperView({
   const debouncedPurpose = useDebounced(purpose, 1000)
 
   React.useEffect(() => {
-    if (!keeperId) return
+    if (!keeperId || !domainId) {
+      setLoading(false)
+      if (!domainId) setFetchError("access")
+      return
+    }
     let cancelled = false
     setLoading(true)
     setKeeper(null)
+    setSessions([])
     setFetchError(null)
     hasEdited.current = false
 
-    const url = domainId
-      ? `/api/keepers/${encodeURIComponent(keeperId)}?domainId=${encodeURIComponent(domainId)}`
-      : `/api/keepers/${encodeURIComponent(keeperId)}`
+    const resolveKeeper = async (): Promise<KeeperDetail | null> => {
+      try {
+        const direct = await apiFetch(
+          `/api/keepers/${encodeURIComponent(keeperId)}?domainId=${encodeURIComponent(domainId)}`,
+        )
+        const fromDirect =
+          (direct as { keeper?: KeeperDetail })?.keeper ??
+          (direct as { data?: KeeperDetail })?.data ??
+          null
+        if (fromDirect?.id) return fromDirect
+      } catch {
+        // Direct fetch may fail when domain context is unavailable — fall back to list.
+      }
 
-    apiFetch(url)
-      .then((res: unknown) => {
+      const listRes = await apiFetch(
+        `/api/keepers?domainId=${encodeURIComponent(domainId)}&limit=100`,
+      )
+      const list =
+        (listRes as { data?: { keepers?: KeeperDetail[] } })?.data?.keepers ?? []
+      return list.find((k) => k.id === keeperId) ?? null
+    }
+
+    Promise.all([
+      resolveKeeper(),
+      apiFetch(`/api/journeys?keeperId=${encodeURIComponent(keeperId)}&limit=20`).catch(
+        () => null,
+      ),
+    ])
+      .then(([k, journeysRes]) => {
         if (cancelled) return
-        const data =
-          (res as { keeper?: KeeperDetail })?.keeper ??
-          (res as { data?: KeeperDetail })?.data ??
-          (res as KeeperDetail)
-        const k = data as KeeperDetail
+        if (!k) {
+          setFetchError("not_found")
+          setLoading(false)
+          return
+        }
         setKeeper(k)
         setTitle(k.title ?? "")
         setPurpose(k.purpose ?? "")
-        setLoading(false)
         if (k.title) onLabelResolved(trailKey, k.title)
+
+        const journeyList =
+          (journeysRes as { data?: { journeys?: KeeperSession[] } } | null)?.data
+            ?.journeys ?? []
+        const mapped = (Array.isArray(journeyList) ? journeyList : []).map((j) => ({
+          id: j.id,
+          name: j.name,
+          momentCount: j.momentCount,
+          updatedAt:
+            typeof (j as { updatedAt?: string }).updatedAt === "string"
+              ? (j as { updatedAt?: string }).updatedAt
+              : undefined,
+        }))
+        mapped.sort((a, b) => {
+          const aTime = a.updatedAt ? Date.parse(a.updatedAt) : 0
+          const bTime = b.updatedAt ? Date.parse(b.updatedAt) : 0
+          return bTime - aTime
+        })
+        setSessions(mapped)
+        setLoading(false)
       })
       .catch((err: unknown) => {
         if (cancelled) return
         const status = (err as { status?: number }).status
-        if (status === 404) setFetchError('not_found')
-        else if (status === 400 || status === 403) setFetchError('access')
-        else setFetchError('unknown')
+        if (status === 404) setFetchError("not_found")
+        else if (status === 400 || status === 403) setFetchError("access")
+        else setFetchError("unknown")
         setLoading(false)
       })
     return () => {
@@ -1018,9 +1163,9 @@ function KeeperView({
           </p>
         ) : keeper ? (
           <>
-            {keeper.journeys && keeper.journeys.length > 0 ? (
+            {sessions.length > 0 ? (
               <PresenceSection title="Recent Sessions">
-                {keeper.journeys.slice(0, 6).map((j) => (
+                {sessions.slice(0, 6).map((j) => (
                   <PresenceThread
                     key={j.id}
                     label={j.name}
@@ -1057,68 +1202,119 @@ interface DraftViewProps {
   trailKey: string
 }
 
+interface DraftDetail {
+  title?: string
+  summary?: string | null
+  updatedAt?: string
+  updated_at?: string
+}
+
 function DraftView({ draftId, domainId, onLabelResolved, trailKey }: DraftViewProps) {
-  const [draft, setDraft] = React.useState<{
-    title?: string; status?: string; summary?: string
-  } | null>(null)
+  const [draft, setDraft] = React.useState<DraftDetail | null>(null)
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
-    if (!domainId) { setLoading(false); return }
+    if (!domainId) {
+      setLoading(false)
+      return
+    }
     let cancelled = false
     setLoading(true)
-    // Fetch draft list and find by id — individual draft endpoint TBD.
-    apiFetch(`/api/v0/drafts?domainId=${encodeURIComponent(domainId)}`)
+    setDraft(null)
+
+    apiFetch(
+      `/api/domains/${encodeURIComponent(domainId)}/kip/drafts/${encodeURIComponent(draftId)}`,
+    )
       .then((res: unknown) => {
         if (cancelled) return
-        const list: Array<{ id: string; title?: string; status?: string; summary?: string }> =
-          (res as { data?: unknown[] })?.data as typeof list
-          ?? (res as { drafts?: unknown[] })?.drafts as typeof list
-          ?? []
-        const found = list.find((d) => d.id === draftId) ?? null
+        const found =
+          (res as { draft?: DraftDetail })?.draft ??
+          (res as { data?: DraftDetail })?.data ??
+          null
         setDraft(found)
         const title = found?.title?.trim()
         if (title) onLabelResolved(trailKey, title)
       })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
+      .catch(() => {
+        if (!cancelled) setDraft(null)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [draftId, domainId, onLabelResolved, trailKey])
 
   const ink = "hsl(var(--theme-ink-primary))"
-  const inkMuted = "hsl(var(--theme-ink-muted))"
+  const inkTertiary = "hsl(var(--theme-ink-tertiary))"
   const inkSecondary = "hsl(var(--theme-ink-secondary))"
+  const hairline = "hsl(var(--theme-border-soft) / 0.15)"
 
   if (loading) {
-    return <div className="p-4 text-sm" style={{ color: inkMuted }}>···</div>
-  }
-  if (!draft) {
-    return <div className="p-4 text-sm" style={{ color: inkMuted }}>Draft not found.</div>
+    return (
+      <div className="flex flex-col h-full min-h-0">
+        <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
+          <PresenceLabel>Draft</PresenceLabel>
+          <PresenceShimmer width="w-32" />
+        </div>
+        <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4">
+          <PresenceShimmer width="w-full" />
+          <PresenceShimmer width="w-3/4" />
+        </div>
+      </div>
+    )
   }
 
-  return (
-    <div className="flex flex-col gap-3 p-4 min-h-0 overflow-y-auto">
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: inkMuted }}>
-          Draft
-        </p>
-        <p className="text-base font-medium leading-snug" style={{ color: ink }}>
-          {draft.title?.trim() || "Untitled Draft"}
-        </p>
+  if (!draft) {
+    return (
+      <div className="flex flex-col h-full min-h-0">
+        <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
+          <PresenceLabel>Draft</PresenceLabel>
+        </div>
+        <div className="px-4 pt-3">
+          <p className="text-[12px]" style={{ color: inkTertiary }}>
+            Draft not found.
+          </p>
+        </div>
       </div>
-      {draft.status && (
-        <span
-          className="self-start text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-          style={{ background: "hsl(var(--theme-surface-selected) / 0.08)", color: inkMuted }}
+    )
+  }
+
+  const updatedAt = draft.updatedAt ?? draft.updated_at
+  const preview = truncatePreview(draft.summary ?? undefined)
+
+  return (
+    <div className="flex flex-col h-full min-h-0">
+      <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
+        <PresenceLabel>Draft</PresenceLabel>
+        <p
+          className="text-[15px] font-semibold leading-snug mt-1"
+          style={{ color: ink }}
         >
-          {draft.status}
-        </span>
-      )}
-      {draft.summary && (
-        <p className="text-sm leading-relaxed" style={{ color: inkSecondary }}>
-          {draft.summary}
+          {draft.title?.trim() || "Untitled draft"}
         </p>
-      )}
+        {updatedAt && (
+          <p
+            className="text-[10px] mt-2"
+            style={{ color: "hsl(var(--theme-ink-tertiary) / 0.55)" }}
+          >
+            {formatRelative(updatedAt)}
+          </p>
+        )}
+      </div>
+
+      <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4">
+        {preview ? (
+          <p className="text-[12px] leading-relaxed" style={{ color: inkSecondary }}>
+            {preview}
+          </p>
+        ) : (
+          <p className="text-[12px]" style={{ color: inkTertiary }}>
+            No preview yet.
+          </p>
+        )}
+      </div>
     </div>
   )
 }
@@ -1635,13 +1831,12 @@ function PanelBody({
         )
       case "journey":
         return entry.id ? (
-          <KeeperPresence
-            objectType="journey"
-            objectId={entry.id}
-            domainId={domainId ?? ""}
-            context="chronicle"
-            density="standard"
-            onLabelResolved={(label) => onLabelResolved(entry.key, label)}
+          <JourneyView
+            journeyId={entry.id}
+            domainId={domainId}
+            onMomentSelect={onMomentSelect}
+            onLabelResolved={onLabelResolved}
+            trailKey={entry.key}
           />
         ) : (
           <UniversalViewPanelIdle
@@ -1654,13 +1849,11 @@ function PanelBody({
 
       case "moment":
         return entry.id ? (
-          <KeeperPresence
-            objectType="moment"
-            objectId={entry.id}
-            domainId={domainId ?? ""}
-            context="chronicle"
-            density="standard"
-            onLabelResolved={(label) => onLabelResolved(entry.key, label)}
+          <MomentView
+            momentId={entry.id}
+            domainSlug={domainSlug}
+            onLabelResolved={onLabelResolved}
+            trailKey={entry.key}
           />
         ) : (
           <UniversalViewPanelIdle
@@ -1673,13 +1866,12 @@ function PanelBody({
 
       case "keeper":
         return entry.id ? (
-          <KeeperPresence
-            objectType="keeper"
-            objectId={entry.id}
-            domainId={domainId ?? ""}
-            context="chronicle"
-            density="standard"
-            onLabelResolved={(label) => onLabelResolved(entry.key, label)}
+          <KeeperView
+            keeperId={entry.id}
+            domainId={domainId}
+            onJourneySelect={onJourneySelect}
+            onLabelResolved={onLabelResolved}
+            trailKey={entry.key}
           />
         ) : (
           <UniversalViewPanelIdle
@@ -1692,13 +1884,11 @@ function PanelBody({
 
       case "draft":
         return entry.id ? (
-          <KeeperPresence
-            objectType="draft"
-            objectId={entry.id}
-            domainId={domainId ?? ""}
-            context="chronicle"
-            density="standard"
-            onLabelResolved={(label) => onLabelResolved(entry.key, label)}
+          <DraftView
+            draftId={entry.id}
+            domainId={domainId}
+            onLabelResolved={onLabelResolved}
+            trailKey={entry.key}
           />
         ) : (
           <UniversalViewPanelIdle
