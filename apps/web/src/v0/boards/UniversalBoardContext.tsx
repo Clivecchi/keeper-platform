@@ -42,7 +42,7 @@ export interface UniversalBoardSelection {
 }
 
 export interface UniversalBoardActions {
-  onSessionSelect: (id: string) => void
+  onSessionSelect: (id: string | null) => void
   onDialogSelect: (id: string) => void
   onJourneySelect: (id: string) => void
   onMomentSelect: (id: string) => void
@@ -112,7 +112,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   // Domain entity selections are mutually exclusive.
   // Selecting any one clears all others — the right panel shifts to show the new presence.
 
-  const onSessionSelect = React.useCallback((id: string) => {
+  const onSessionSelect = React.useCallback((id: string | null) => {
     setActiveSessionId(id)
     // Session selection does not clear entity focus — conversation can shift
     // while the right panel stays in the same domain context.

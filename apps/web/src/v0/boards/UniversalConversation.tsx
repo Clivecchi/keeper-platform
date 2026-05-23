@@ -34,6 +34,7 @@ import { useAuth } from "../../context/AuthContext"
 import { extractLinkedCard } from "../../components/agent/helpers"
 import { useAgentDialog } from "../../hooks/useAgentDialog"
 import { useDraftContext } from "../../hooks/useDraftContext"
+import { useSelectionSessionResume } from "../../hooks/useSelectionSessionResume"
 import { KeeperDialogFrame } from "../components/dialog/KeeperDialogFrame"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import type { UniversalBoardCenterProps } from "./UniversalBoard"
@@ -124,9 +125,11 @@ export function UniversalConversation({
   domainId,
   domainName,
   activeSessionId,
+  selectedDialogId,
   selectedJourneyId,
   selectedKeeperId,
   selectedDraftId,
+  selectedAgentId,
   onSessionSelect,
   onJourneySelect,
   onMomentSelect,
@@ -162,23 +165,81 @@ export function UniversalConversation({
 
   const [keeperName, setKeeperName] = React.useState<string | null>(null)
   const [journeyName, setJourneyName] = React.useState<string | null>(null)
+  const [dialogTitle, setDialogTitle] = React.useState<string | null>(null)
+  const [draftTitle, setDraftTitle] = React.useState<string | null>(null)
+  const [agentName, setAgentName] = React.useState<string | null>(null)
 
   React.useEffect(() => {
-    if (kipMode !== "ide" || !activeKeeperId) { setKeeperName(null); return }
+    if (!selectedDialogId || !domainId) { setDialogTitle(null); return }
     let cancelled = false
-    apiFetch(`/api/keepers/${encodeURIComponent(activeKeeperId)}`)
+    apiFetch(
+      `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(selectedDialogId)}`,
+    )
       .then((res: unknown) => {
         if (cancelled) return
-        const k = (res as { keeper?: { title?: string }; data?: { title?: string } })?.keeper
-          ?? (res as { data?: { title?: string } })?.data
-        setKeeperName((k as { title?: string } | undefined)?.title?.trim() || null)
+        const title = (res as { dialog?: { title?: string } })?.dialog?.title?.trim()
+        setDialogTitle(title || null)
+      })
+      .catch(() => { if (!cancelled) setDialogTitle(null) })
+    return () => { cancelled = true }
+  }, [selectedDialogId, domainId])
+
+  React.useEffect(() => {
+    if (!selectedDraftId || !domainId) { setDraftTitle(null); return }
+    let cancelled = false
+    KipApi.getDraft(domainId, selectedDraftId)
+      .then((d) => { if (!cancelled) setDraftTitle(d.title?.trim() || null) })
+      .catch(() => { if (!cancelled) setDraftTitle(null) })
+    return () => { cancelled = true }
+  }, [selectedDraftId, domainId])
+
+  React.useEffect(() => {
+    if (!selectedAgentId) { setAgentName(null); return }
+    let cancelled = false
+    apiFetch(`/api/agents/${encodeURIComponent(selectedAgentId)}`)
+      .then((res: unknown) => {
+        if (cancelled) return
+        const a =
+          (res as { agent?: { name?: string } })?.agent ??
+          (res as { data?: { name?: string } })?.data
+        setAgentName((a as { name?: string } | undefined)?.name?.trim() || null)
+      })
+      .catch(() => { if (!cancelled) setAgentName(null) })
+    return () => { cancelled = true }
+  }, [selectedAgentId])
+
+  React.useEffect(() => {
+    if (!activeKeeperId) { setKeeperName(null); return }
+    let cancelled = false
+    const loadFromList = domainId
+      ? apiFetch(`/api/keepers?domainId=${encodeURIComponent(domainId)}&limit=100`)
+          .then((res: unknown) => {
+            const list =
+              (res as { data?: { keepers?: Array<{ id: string; title?: string }> } })?.data
+                ?.keepers ?? []
+            return list.find((k) => k.id === activeKeeperId)?.title?.trim() ?? null
+          })
+      : Promise.resolve(null)
+
+    void loadFromList
+      .then((fromList) => {
+        if (cancelled) return
+        if (fromList) { setKeeperName(fromList); return }
+        return apiFetch(`/api/keepers/${encodeURIComponent(activeKeeperId)}`)
+          .then((res: unknown) => {
+            if (cancelled) return
+            const k =
+              (res as { keeper?: { title?: string } })?.keeper ??
+              (res as { data?: { title?: string } })?.data
+            setKeeperName((k as { title?: string } | undefined)?.title?.trim() || null)
+          })
       })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [kipMode, activeKeeperId])
+  }, [activeKeeperId, domainId])
 
   React.useEffect(() => {
-    if (kipMode !== "ide" || !activeJourneyId) { setJourneyName(null); return }
+    if (!activeJourneyId) { setJourneyName(null); return }
     let cancelled = false
     apiFetch(`/api/journeys/${encodeURIComponent(activeJourneyId)}`)
       .then((res: unknown) => {
@@ -189,7 +250,7 @@ export function UniversalConversation({
       })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [kipMode, activeJourneyId])
+  }, [activeJourneyId])
 
   // ── domain mode: counts for DomainBanner ──────────────────────────────────
   const [journeyCount, setJourneyCount] = React.useState<number | null>(null)
@@ -226,7 +287,7 @@ export function UniversalConversation({
 
   // ── Adapter: hooks require (string | null) but centerProps callbacks take (string) ──
   const handleSessionChange = React.useCallback(
-    (id: string | null) => { if (id !== null) onSessionSelect(id) },
+    (id: string | null) => { onSessionSelect(id) },
     [onSessionSelect],
   )
 
@@ -348,6 +409,7 @@ export function UniversalConversation({
     sendMessage,
     clearDesignerDialog,
     setDesignerDialogId,
+    fetchMessages,
   } = useAgentDialog({
     agentSlug: "kip",
     agentDisplayName: def.conversation.agentName,
@@ -373,6 +435,35 @@ export function UniversalConversation({
     agentId,
     activeSessionId: dialogSessionId,
     onActiveSessionIdChange: handleSessionChange,
+  })
+
+  const idleMessages = React.useMemo<AgentDialogueMessage[]>(
+    () =>
+      kipMode === "ide"
+        ? [{
+            id: "kip-greeting",
+            role: "agent",
+            content: "I'm here. What are we building?",
+            createdAt: new Date().toISOString(),
+          }]
+        : [],
+    [kipMode],
+  )
+
+  useSelectionSessionResume({
+    domainId,
+    kipAgentId: agentId,
+    kipMode,
+    selectedDialogId,
+    selectedJourneyId,
+    selectedKeeperId,
+    selectedDraftId,
+    selectedAgentId,
+    activeSessionId: dialogSessionId,
+    onSessionSelect: handleSessionChange,
+    fetchMessages,
+    setMessages,
+    idleMessages,
   })
 
   // ── designer mode: sync liveDomainFrame from shell to context ────────────
@@ -447,6 +538,42 @@ export function UniversalConversation({
   const hasDraftSpec = designerDraftCtx ? designerDraftCtx.draftSpecJson !== null : false
 
   const bannerContext = React.useMemo(() => {
+    if (selectedDialogId) {
+      return {
+        primary: dialogTitle ?? "Dialog",
+        secondary: domainName || undefined,
+        sessionLabel: "Session" as const,
+      }
+    }
+    if (selectedJourneyId) {
+      return {
+        primary: journeyName ?? "Journey",
+        secondary: keeperName ?? domainName ?? undefined,
+        sessionLabel: "Session" as const,
+      }
+    }
+    if (selectedKeeperId) {
+      return {
+        primary: keeperName ?? "Keeper",
+        secondary: domainName || undefined,
+        sessionLabel: "Session" as const,
+      }
+    }
+    if (selectedDraftId) {
+      return {
+        primary: draftTitle ?? "Draft",
+        secondary: domainName || undefined,
+        sessionLabel: "Session" as const,
+      }
+    }
+    if (selectedAgentId) {
+      return {
+        primary: agentName ?? def.conversation.agentName,
+        secondary: "Agent",
+        sessionLabel: "Session" as const,
+      }
+    }
+
     switch (kipMode) {
       case "ide":
         return {
@@ -489,7 +616,26 @@ export function UniversalConversation({
         }
       }
     }
-  }, [kipMode, keeperName, journeyName, domainName, selectedDraftId, domainFrame, selectedFrameKey, hasDraftSpec, journeyCount, momentCount])
+  }, [
+    kipMode,
+    keeperName,
+    journeyName,
+    domainName,
+    selectedDialogId,
+    selectedJourneyId,
+    selectedKeeperId,
+    selectedDraftId,
+    selectedAgentId,
+    dialogTitle,
+    draftTitle,
+    agentName,
+    def.conversation.agentName,
+    domainFrame,
+    selectedFrameKey,
+    hasDraftSpec,
+    journeyCount,
+    momentCount,
+  ])
 
   // ── modelProvider — ide mode reads from domain frame ──────────────────────
   const modelProvider = kipMode === "ide"

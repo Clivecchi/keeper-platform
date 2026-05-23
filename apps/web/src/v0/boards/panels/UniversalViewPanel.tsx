@@ -30,6 +30,7 @@
 import * as React from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch } from "../../../lib/api"
+import { KipApi } from "../../../lib/kipApi"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
 import type { UniversalBoardDef } from "../UniversalBoardDefinition"
 import { useBoardDefs } from "../useBoardDefs"
@@ -42,7 +43,7 @@ import type { FrameItem } from "../designer/DesignBoardFrameList"
 
 // ─── Trail Types ──────────────────────────────────────────────────────────────
 
-type TrailKind = "domain" | "journey" | "moment" | "keeper" | "draft" | "agent" | "service" | "frame" | "boardDef"
+type TrailKind = "domain" | "dialog" | "journey" | "moment" | "keeper" | "draft" | "agent" | "service" | "frame" | "boardDef"
 type TrailDirection = "forward" | "back"
 
 interface TrailEntry {
@@ -153,6 +154,7 @@ function formatRelative(iso: string | undefined): string {
 
 function kindLabel(kind: TrailKind, domainName?: string): string {
   if (kind === "domain") return domainName?.trim() || "Home"
+  if (kind === "dialog") return "Dialog"
   return kind.charAt(0).toUpperCase() + kind.slice(1)
 }
 
@@ -424,6 +426,7 @@ export interface UniversalViewPanelIdleProps {
    */
   domainSlug?: string
   onJourneySelect?: (id: string) => void
+  onMomentSelect?: (id: string) => void
 }
 
 type RecentMoment = { id: string; title: string; keptAt: string | null; createdAt: string; journeyName?: string | null }
@@ -440,6 +443,7 @@ export function UniversalViewPanelIdle({
   domainName,
   domainSlug,
   onJourneySelect,
+  onMomentSelect,
 }: UniversalViewPanelIdleProps) {
   const [journeys, setJourneys] = React.useState<JourneyBrief[] | null>(null)
   const [moments, setMoments] = React.useState<RecentMoment[] | null>(null)
@@ -520,6 +524,7 @@ export function UniversalViewPanelIdle({
                       .filter(Boolean)
                       .join(" · ") || undefined
                   }
+                  onClick={() => onMomentSelect?.(m.id)}
                 />
               ))}
             </PresenceSection>
@@ -678,10 +683,10 @@ function JourneyView({
         )}
         {!loading && journey?.createdAt && (
           <p
-            className="text-[10px] mt-2"
+            className="text-[10px] mt-3"
             style={{ color: "hsl(var(--theme-ink-tertiary) / 0.55)" }}
           >
-            {formatRelative(journey.createdAt)}
+            Created {formatRelative(journey.createdAt)}
           </p>
         )}
       </div>
@@ -699,11 +704,10 @@ function JourneyView({
                 {journey.paths.map((p) => (
                   <PresenceThread
                     key={p.id}
-                    label={p.name}
-                    sub={
+                    label={
                       p.momentCount != null
-                        ? `${p.momentCount} moment${p.momentCount === 1 ? "" : "s"}`
-                        : undefined
+                        ? `${p.name} · ${p.momentCount} moment${p.momentCount === 1 ? "" : "s"}`
+                        : p.name
                     }
                   />
                 ))}
@@ -929,13 +933,12 @@ function MomentView({ momentId, domainSlug, onLabelResolved, trailKey }: MomentV
         {loading ? (
           <PresenceShimmer width="w-36" />
         ) : (
-          <AutoResizeTextarea
-            value={title}
-            onChange={handleTitleChange}
-            placeholder="Untitled moment"
-            className="text-[14px] font-semibold leading-snug mt-1"
+          <p
+            className="text-[15px] font-semibold leading-snug mt-1"
             style={{ color: "hsl(var(--theme-ink-primary))" }}
-          />
+          >
+            {title.trim() || "Untitled moment"}
+          </p>
         )}
       </div>
 
@@ -947,19 +950,17 @@ function MomentView({ momentId, domainSlug, onLabelResolved, trailKey }: MomentV
           </>
         ) : moment ? (
           <>
-            <PresenceSection title="Narrative">
-              <AutoResizeTextarea
-                value={narrative}
-                onChange={handleNarrativeChange}
-                placeholder="What happened here…"
-                className="text-[12px] leading-relaxed"
-                style={{ color: "hsl(var(--theme-ink-secondary))" }}
-              />
-            </PresenceSection>
+            <AutoResizeTextarea
+              value={narrative}
+              onChange={handleNarrativeChange}
+              placeholder="What happened here…"
+              className="text-[12px] leading-relaxed"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            />
             {moment.updatedAt && (
               <p
-                className="text-[10px] mt-2"
-                style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+                className="text-[10px] mt-3"
+                style={{ color: "hsl(var(--theme-ink-tertiary) / 0.55)" }}
               >
                 {formatRelative(moment.updatedAt)}
               </p>
@@ -1010,9 +1011,12 @@ function KeeperView({
   const debouncedPurpose = useDebounced(purpose, 1000)
 
   React.useEffect(() => {
-    if (!keeperId || !domainId) {
+    if (!keeperId) {
       setLoading(false)
-      if (!domainId) setFetchError("access")
+      return
+    }
+    if (!domainId) {
+      setLoading(true)
       return
     }
     let cancelled = false
@@ -1022,36 +1026,12 @@ function KeeperView({
     setFetchError(null)
     hasEdited.current = false
 
-    const resolveKeeper = async (): Promise<KeeperDetail | null> => {
-      try {
-        const direct = await apiFetch(
-          `/api/keepers/${encodeURIComponent(keeperId)}?domainId=${encodeURIComponent(domainId)}`,
-        )
-        const fromDirect =
-          (direct as { keeper?: KeeperDetail })?.keeper ??
-          (direct as { data?: KeeperDetail })?.data ??
-          null
-        if (fromDirect?.id) return fromDirect
-      } catch {
-        // Direct fetch may fail when domain context is unavailable — fall back to list.
-      }
-
-      const listRes = await apiFetch(
-        `/api/keepers?domainId=${encodeURIComponent(domainId)}&limit=100`,
-      )
-      const list =
-        (listRes as { data?: { keepers?: KeeperDetail[] } })?.data?.keepers ?? []
-      return list.find((k) => k.id === keeperId) ?? null
-    }
-
-    Promise.all([
-      resolveKeeper(),
-      apiFetch(`/api/journeys?keeperId=${encodeURIComponent(keeperId)}&limit=20`).catch(
-        () => null,
-      ),
-    ])
-      .then(([k, journeysRes]) => {
+    apiFetch(`/api/keepers?domainId=${encodeURIComponent(domainId)}&limit=100`)
+      .then(async (listRes) => {
         if (cancelled) return
+        const list =
+          (listRes as { data?: { keepers?: KeeperDetail[] } })?.data?.keepers ?? []
+        const k = list.find((item) => item.id === keeperId) ?? null
         if (!k) {
           setFetchError("not_found")
           setLoading(false)
@@ -1062,24 +1042,31 @@ function KeeperView({
         setPurpose(k.purpose ?? "")
         if (k.title) onLabelResolved(trailKey, k.title)
 
-        const journeyList =
-          (journeysRes as { data?: { journeys?: KeeperSession[] } } | null)?.data
-            ?.journeys ?? []
-        const mapped = (Array.isArray(journeyList) ? journeyList : []).map((j) => ({
-          id: j.id,
-          name: j.name,
-          momentCount: j.momentCount,
-          updatedAt:
-            typeof (j as { updatedAt?: string }).updatedAt === "string"
-              ? (j as { updatedAt?: string }).updatedAt
-              : undefined,
-        }))
-        mapped.sort((a, b) => {
-          const aTime = a.updatedAt ? Date.parse(a.updatedAt) : 0
-          const bTime = b.updatedAt ? Date.parse(b.updatedAt) : 0
-          return bTime - aTime
-        })
-        setSessions(mapped)
+        try {
+          const journeysRes = await apiFetch(
+            `/api/journeys?keeperId=${encodeURIComponent(keeperId)}&limit=20`,
+          )
+          if (cancelled) return
+          const journeyList =
+            (journeysRes as { data?: { journeys?: KeeperSession[] } })?.data?.journeys ?? []
+          const mapped = (Array.isArray(journeyList) ? journeyList : []).map((j) => ({
+            id: j.id,
+            name: j.name,
+            momentCount: j.momentCount,
+            updatedAt:
+              typeof (j as { updatedAt?: string }).updatedAt === "string"
+                ? (j as { updatedAt?: string }).updatedAt
+                : undefined,
+          }))
+          mapped.sort((a, b) => {
+            const aTime = a.updatedAt ? Date.parse(a.updatedAt) : 0
+            const bTime = b.updatedAt ? Date.parse(b.updatedAt) : 0
+            return bTime - aTime
+          })
+          setSessions(mapped)
+        } catch {
+          if (!cancelled) setSessions([])
+        }
         setLoading(false)
       })
       .catch((err: unknown) => {
@@ -1125,22 +1112,20 @@ function KeeperView({
         {loading ? (
           <PresenceShimmer width="w-28" />
         ) : (
-          <AutoResizeTextarea
-            value={title}
-            onChange={handleTitleChange}
-            placeholder="Untitled keeper"
-            className="text-[14px] font-semibold leading-snug mt-1"
+          <p
+            className="text-[15px] font-semibold leading-snug mt-1"
             style={{ color: "hsl(var(--theme-ink-primary))" }}
-          />
+          >
+            {title.trim() || "Untitled keeper"}
+          </p>
         )}
         {!loading && (
-          <AutoResizeTextarea
-            value={purpose}
-            onChange={handlePurposeChange}
-            placeholder="What this keeper holds…"
+          <p
             className="text-[12px] leading-relaxed mt-2"
             style={{ color: "hsl(var(--theme-ink-secondary))" }}
-          />
+          >
+            {purpose.trim() || "What this keeper holds…"}
+          </p>
         )}
       </div>
 
@@ -1214,25 +1199,23 @@ function DraftView({ draftId, domainId, onLabelResolved, trailKey }: DraftViewPr
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
-    if (!domainId) {
+    if (!draftId) {
       setLoading(false)
+      return
+    }
+    if (!domainId) {
+      setLoading(true)
       return
     }
     let cancelled = false
     setLoading(true)
     setDraft(null)
 
-    apiFetch(
-      `/api/domains/${encodeURIComponent(domainId)}/kip/drafts/${encodeURIComponent(draftId)}`,
-    )
-      .then((res: unknown) => {
+    KipApi.getDraft(domainId, draftId)
+      .then((found) => {
         if (cancelled) return
-        const found =
-          (res as { draft?: DraftDetail })?.draft ??
-          (res as { data?: DraftDetail })?.data ??
-          null
-        setDraft(found)
-        const title = found?.title?.trim()
+        setDraft(found as DraftDetail)
+        const title = found.title?.trim()
         if (title) onLabelResolved(trailKey, title)
       })
       .catch(() => {
@@ -1772,6 +1755,56 @@ function BoardDefView({ boardDefId }: { boardDefId: string }) {
   )
 }
 
+// ─── DialogIdleView ───────────────────────────────────────────────────────────
+// Dialog selected from Nav — no Chronicle view yet; idle state, not an error.
+
+interface DialogIdleViewProps {
+  dialogId: string
+  domainId: string | null
+  domainName: string
+  domainSlug?: string
+  onJourneySelect?: (id: string) => void
+  onMomentSelect?: (id: string) => void
+  onLabelResolved: (key: string, label: string) => void
+  trailKey: string
+}
+
+function DialogIdleView({
+  dialogId,
+  domainId,
+  domainName,
+  domainSlug,
+  onJourneySelect,
+  onMomentSelect,
+  onLabelResolved,
+  trailKey,
+}: DialogIdleViewProps) {
+  React.useEffect(() => {
+    if (!dialogId || !domainId) return
+    let cancelled = false
+    apiFetch(
+      `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(dialogId)}`,
+    )
+      .then((res: unknown) => {
+        if (cancelled) return
+        const title = (res as { dialog?: { title?: string } })?.dialog?.title?.trim()
+        if (title) onLabelResolved(trailKey, title)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [dialogId, domainId, onLabelResolved, trailKey])
+
+  return (
+    <UniversalViewPanelIdle
+      domainId={domainId}
+      domainName={domainName}
+      domainSlug={domainSlug}
+      onJourneySelect={onJourneySelect}
+      onMomentSelect={onMomentSelect}
+    />
+  )
+}
+
 // ─── PanelBody ────────────────────────────────────────────────────────────────
 // Mini-router — renders the correct view for panelHistory[currentIndex].
 // Opacity dissolve on context shift: 200ms entry, 140ms exit.
@@ -1801,6 +1834,28 @@ function PanelBody({
 }: PanelBodyProps) {
   function renderView(): React.ReactNode {
     switch (entry.kind) {
+      case "dialog":
+        return entry.id ? (
+          <DialogIdleView
+            dialogId={entry.id}
+            domainId={domainId}
+            domainName={domainName}
+            domainSlug={domainSlug}
+            onJourneySelect={onJourneySelect}
+            onMomentSelect={onMomentSelect}
+            onLabelResolved={onLabelResolved}
+            trailKey={entry.key}
+          />
+        ) : (
+          <UniversalViewPanelIdle
+            domainId={domainId}
+            domainName={domainName}
+            domainSlug={domainSlug}
+            onJourneySelect={onJourneySelect}
+            onMomentSelect={onMomentSelect}
+          />
+        )
+
       case "frame":
         return entry.id ? (
           <FrameView
@@ -1815,6 +1870,7 @@ function PanelBody({
             domainName={domainName}
             domainSlug={domainSlug}
             onJourneySelect={onJourneySelect}
+            onMomentSelect={onMomentSelect}
           />
         )
 
@@ -1827,6 +1883,7 @@ function PanelBody({
             domainName={domainName}
             domainSlug={domainSlug}
             onJourneySelect={onJourneySelect}
+            onMomentSelect={onMomentSelect}
           />
         )
       case "journey":
@@ -1844,6 +1901,7 @@ function PanelBody({
             domainName={domainName}
             domainSlug={domainSlug}
             onJourneySelect={onJourneySelect}
+            onMomentSelect={onMomentSelect}
           />
         )
 
@@ -1861,6 +1919,7 @@ function PanelBody({
             domainName={domainName}
             domainSlug={domainSlug}
             onJourneySelect={onJourneySelect}
+            onMomentSelect={onMomentSelect}
           />
         )
 
@@ -1879,6 +1938,7 @@ function PanelBody({
             domainName={domainName}
             domainSlug={domainSlug}
             onJourneySelect={onJourneySelect}
+            onMomentSelect={onMomentSelect}
           />
         )
 
@@ -1896,6 +1956,7 @@ function PanelBody({
             domainName={domainName}
             domainSlug={domainSlug}
             onJourneySelect={onJourneySelect}
+            onMomentSelect={onMomentSelect}
           />
         )
 
@@ -1915,6 +1976,7 @@ function PanelBody({
             domainName={domainName}
             domainSlug={domainSlug}
             onJourneySelect={onJourneySelect}
+            onMomentSelect={onMomentSelect}
           />
         )
 
@@ -1938,6 +2000,7 @@ function PanelBody({
             domainName={domainName}
             domainSlug={domainSlug}
             onJourneySelect={onJourneySelect}
+            onMomentSelect={onMomentSelect}
           />
         )
     }
@@ -2017,6 +2080,8 @@ export function UniversalViewPanel({
 
   // Merge explicit props with context — explicit props win.
   const resolved = {
+    selectedDialogId:
+      boardCtx?.selection.selectedDialogId ?? null,
     selectedJourneyId:
       selectedJourneyId ?? boardCtx?.selection.selectedJourneyId ?? null,
     selectedMomentId:
@@ -2051,6 +2116,8 @@ export function UniversalViewPanel({
       return { kind: "boardDef", id: boardCtx.selection.selectedBoardDefId }
     if (activeSubjects.has("service") && resolved.selectedServiceSlug)
       return { kind: "service", id: resolved.selectedServiceSlug }
+    if (resolved.selectedDialogId)
+      return { kind: "dialog", id: resolved.selectedDialogId }
     if (activeSubjects.has("draft") && resolved.selectedDraftId)
       return { kind: "draft", id: resolved.selectedDraftId }
     if (activeSubjects.has("agent") && resolved.selectedAgentId)
@@ -2134,8 +2201,46 @@ export function UniversalViewPanel({
       const clamped = Math.max(0, Math.min(panelHistory.length - 1, index))
       setDirection(clamped < currentIndex ? "back" : "forward")
       setCurrentIndex(clamped)
+
+      const entry = panelHistory[clamped]
+      if (!entry || !boardCtx) return
+      const { actions } = boardCtx
+
+      switch (entry.kind) {
+        case "dialog":
+          if (entry.id) actions.onDialogSelect(entry.id)
+          break
+        case "journey":
+          if (entry.id) actions.onJourneySelect(entry.id)
+          break
+        case "moment":
+          if (entry.id) actions.onMomentSelect(entry.id)
+          break
+        case "keeper":
+          if (entry.id) actions.onKeeperSelect(entry.id)
+          break
+        case "draft":
+          if (entry.id) actions.onDraftSelect(entry.id)
+          break
+        case "agent":
+          if (entry.id) actions.onAgentSelect(entry.id)
+          break
+        case "service":
+          if (entry.id) actions.onServiceOpen(entry.id)
+          break
+        case "frame":
+          if (entry.id) actions.onFrameSelect(entry.id)
+          break
+        case "boardDef":
+          if (entry.id) actions.onBoardDefSelect(entry.id)
+          break
+        case "domain":
+        default:
+          actions.clearSelection()
+          break
+      }
     },
-    [currentIndex, panelHistory.length],
+    [currentIndex, panelHistory, boardCtx],
   )
 
   // ── Feed polling ───────────────────────────────────────────────────────────

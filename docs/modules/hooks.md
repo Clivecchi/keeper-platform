@@ -9,6 +9,7 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - `useDraftContext.ts` — Draft–session linking (IDE) and post-run draft list refresh (Agent).
 - `useAgentEvents.ts` – Listens for agent lifecycle events.
 - `useAgentSessions.ts` – Loads Kip sessions, exposes creation helpers, and normalizes previews for the Agent Board.
+- `useSelectionSessionResume.ts` — Resumes the most recent Dialog session when Nav selection changes (Dialog, Journey, Keeper, Draft, Agent).
 - `useAutosave.ts` – Debounced persistence for editable resources.
 - `useViewerContext.ts` – Syncs viewer state with layout shell.
 - `useUserSettings.ts` – Fetches user preference data (themes, toggles) when a bearer token is available.
@@ -24,6 +25,19 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - [ ] Expose `useAgentEvents` telemetry for analytics dashboards.
 
 ## 📆 Update Log
+
+### 2026-05-23 — Gate 1: selection drives Dialog session resume
+- Added `useSelectionSessionResume.ts` — loads most recent session on Nav selection via existing `/kip/dialogs/:id` and `KipApi.getSessionsByAgentId` routes.
+- `UniversalBoardContext.onSessionSelect` now accepts `string | null` to support idle Dialog state when no session exists.
+
+### 2026-05-09 — useAgentDialog designer transport (Gap 3)
+- Added `frameKey?: string` and `onDesignerDraft?: (draft, frameKey) => void` to `UseAgentDialogOptions`.
+- Added exported `DesignerApiResponse` interface matching POST `/api/domains/:domainId/kip/designer` response shape.
+- `sendMessage` now has a dedicated `mode === "designer"` branch that calls `/kip/designer` with `{ message, frameKey, conversationHistory, dialog_id, dialog_board: "designer" }` instead of `KipApi.runAgent`.
+- `designerDialogIdRef` tracks the `dialog_id` returned by the first response so subsequent turns resume the same Dialog record.
+- `messagesRef` keeps an always-current message snapshot for building conversation history without modifying the `sendMessage` dep array.
+- Standard KipApi session creation is now skipped for `mode === "designer"` — the `/kip/designer` route owns its own dialog/session lifecycle.
+- `DESIGNER_BOARD_DEF.conversation.kipMode` updated from `"domain"` to `"designer"`. `ConversationPanelDef.kipMode` union extended with `"designer"`.
 
 ### 2026-05-09 — useAgentDialog + useDraftContext agentId rename
 - Created `useAgentDialog.ts` — parameterized agent session hook supporting any agent via `agentSlug` / `agentDisplayName`. Adds `mode: "domain" | "designer"`, `dialogBoard`, `dialogFrame`, `dialogSubject`, `sessionDisplayName`, `agentRunMode` params. Renames `kipAgentId` → `agentId` in result. Replaces all hardcoded "kip" / "Kip" strings with params.

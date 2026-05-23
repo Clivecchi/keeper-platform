@@ -68,6 +68,7 @@ export interface UniversalBoardCenterProps {
 
   // Active selection — read by the conversation to build context
   activeSessionId: string | null
+  selectedDialogId: string | null
   selectedJourneyId: string | null
   selectedMomentId: string | null
   selectedKeeperId: string | null
@@ -76,7 +77,7 @@ export interface UniversalBoardCenterProps {
   selectedServiceSlug: string | null
 
   // Selection actions — conversation fires these to sync state back to board
-  onSessionSelect: (id: string) => void
+  onSessionSelect: (id: string | null) => void
   onJourneySelect: (id: string) => void
   onMomentSelect: (id: string) => void
   onKeeperSelect: (id: string) => void
@@ -280,6 +281,7 @@ function UniversalBoardShell({
     domainSlug: slug,
     domainName,
     activeSessionId: selection.activeSessionId,
+    selectedDialogId: selection.selectedDialogId,
     selectedJourneyId: selection.selectedJourneyId,
     selectedMomentId: selection.selectedMomentId,
     selectedKeeperId: selection.selectedKeeperId,

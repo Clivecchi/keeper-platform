@@ -9,6 +9,7 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - `useDraftContext.ts` — Draft–session linking (IDE) and post-run draft list refresh (Agent).
 - `useAgentEvents.ts` – Listens for agent lifecycle events.
 - `useAgentSessions.ts` – Loads Kip sessions, exposes creation helpers, and normalizes previews for the Agent Board.
+- `useSelectionSessionResume.ts` — Resumes the most recent Dialog session when Nav selection changes (Dialog, Journey, Keeper, Draft, Agent).
 - `useAutosave.ts` – Debounced persistence for editable resources.
 - `useViewerContext.ts` – Syncs viewer state with layout shell.
 - `useUserSettings.ts` – Fetches user preference data (themes, toggles) when a bearer token is available.
@@ -24,6 +25,10 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - [ ] Expose `useAgentEvents` telemetry for analytics dashboards.
 
 ## 📆 Update Log
+
+### 2026-05-23 — Gate 1: selection drives Dialog session resume
+- Added `useSelectionSessionResume.ts` — loads most recent session on Nav selection via existing `/kip/dialogs/:id` and `KipApi.getSessionsByAgentId` routes.
+- `UniversalBoardContext.onSessionSelect` now accepts `string | null` to support idle Dialog state when no session exists.
 
 ### 2026-05-09 — useAgentDialog designer transport (Gap 3)
 - Added `frameKey?: string` and `onDesignerDraft?: (draft, frameKey) => void` to `UseAgentDialogOptions`.
