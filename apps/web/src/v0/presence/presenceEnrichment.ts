@@ -2,8 +2,8 @@
  * presenceEnrichment
  * ==================
  * Resolves contextual metadata and related content for Chronicle presence.
- * Inherits the Domain Board Chronicle instincts — journey-first hierarchy,
- * source names, timestamps — without duplicating bespoke view logic.
+ * Inherits the Journeys Frame / Domain Board instincts — journey-first hierarchy,
+ * moment threads, keeper context — without duplicating bespoke view logic.
  */
 
 import { apiFetch } from "../../lib/api"
@@ -13,7 +13,7 @@ export interface RelatedItem {
   id: string
   label: string
   sub?: string
-  /** When set, Chronicle can navigate to this related record. */
+  preview?: string
   navigateKind?: "journey" | "moment"
 }
 
@@ -27,12 +27,37 @@ export interface PresenceBreadcrumb {
   path?: string
 }
 
+export interface PresenceMeta {
+  /** Quiet inline stats under the title — e.g. "17 moments · Created Feb 8" */
+  line?: string
+}
+
 export interface EnrichmentResult {
   record: Record<string, unknown>
   breadcrumb?: PresenceBreadcrumb
+  meta?: PresenceMeta
   relatedSections: RelatedSection[]
-  /** Schema field keys rendered elsewhere (e.g. breadcrumb) — omit from body. */
   hiddenFields: string[]
+}
+
+function formatWhenShort(iso: string | null | undefined): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+}
+
+function formatKeptLabel(
+  keptAt: unknown,
+  createdAt: unknown,
+): string | undefined {
+  if (typeof keptAt === "string" && keptAt) {
+    return `Kept ${formatWhenShort(keptAt)}`
+  }
+  if (typeof createdAt === "string" && createdAt) {
+    return formatWhenShort(createdAt)
+  }
+  return undefined
 }
 
 function normalizeJourneyPaths(raw: Record<string, unknown>) {
@@ -47,6 +72,36 @@ function normalizeJourneyPaths(raw: Record<string, unknown>) {
           ? p.Moment.length
           : 0,
   }))
+}
+
+function extractJourneyMoments(record: Record<string, unknown>): RelatedItem[] {
+  const topLevel = (record.moment ?? record.Moment ?? []) as Array<Record<string, unknown>>
+  const fromPaths = normalizeJourneyPaths(record).flatMap((path) => {
+    const pathRaw = ((record.paths ?? record.Path ?? []) as Array<Record<string, unknown>>).find(
+      (p) => String(p.id) === path.id,
+    )
+    const nested = (pathRaw?.Moment ?? pathRaw?.moment ?? []) as Array<Record<string, unknown>>
+    return nested
+  })
+
+  const merged = new Map<string, Record<string, unknown>>()
+  for (const m of [...topLevel, ...fromPaths]) {
+    const id = String(m.id ?? "")
+    if (id) merged.set(id, m)
+  }
+
+  return Array.from(merged.values())
+    .map((m) => ({
+      id: String(m.id),
+      label: String(m.title ?? "Untitled moment").trim() || "Untitled moment",
+      sub: formatKeptLabel(m.keptAt, m.createdAt ?? m.updatedAt),
+      preview:
+        typeof m.narrative === "string" && m.narrative.trim()
+          ? m.narrative.trim().slice(0, 140)
+          : undefined,
+      navigateKind: "moment" as const,
+    }))
+    .slice(0, 12)
 }
 
 function formatContextSummary(context: unknown): string {
@@ -81,11 +136,20 @@ function mapDialogRecord(dialog: Record<string, unknown>): Record<string, unknow
   }
 }
 
+function mapKeeperRecord(raw: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...raw,
+    title: raw.title ?? raw.name ?? "",
+    purpose: raw.purpose ?? "",
+    createdAt: raw.createdAt ?? raw.created_at,
+  }
+}
+
 async function enrichMoment(
   record: Record<string, unknown>,
   domainSlug?: string,
 ): Promise<EnrichmentResult> {
-  const hiddenFields: string[] = []
+  const hiddenFields: string[] = ["journeyName", "pathName"]
   let breadcrumb: PresenceBreadcrumb | undefined
 
   const journeyName =
@@ -99,7 +163,6 @@ async function enrichMoment(
 
   if (journeyName) {
     breadcrumb = { journey: journeyName, path: pathName || undefined }
-    hiddenFields.push("journeyName", "pathName")
   } else if (typeof record.journeyId === "string" && record.journeyId) {
     try {
       const jr = await apiFetch(`/api/journeys/${encodeURIComponent(record.journeyId)}`)
@@ -118,9 +181,7 @@ async function enrichMoment(
       }
       record.journeyName = breadcrumb.journey
       if (breadcrumb.path) record.pathName = breadcrumb.path
-      hiddenFields.push("journeyName", "pathName")
     } catch {
-      // v0 moments fallback when primary fetch already failed upstream
       if (domainSlug && typeof record.id === "string") {
         try {
           const res = await apiFetch(
@@ -137,7 +198,6 @@ async function enrichMoment(
               record.title = record.title ?? found.title
               record.narrative =
                 record.narrative ?? found.body ?? found.narrative ?? ""
-              hiddenFields.push("journeyName", "pathName")
             }
           }
         } catch {
@@ -151,47 +211,77 @@ async function enrichMoment(
     record.updatedAt = record.updated_at
   }
 
-  return { record, breadcrumb, relatedSections: [], hiddenFields }
+  const meta: PresenceMeta = {
+    line: formatKeptLabel(record.keptAt, record.updatedAt ?? record.createdAt),
+  }
+
+  return { record, breadcrumb, meta, relatedSections: [], hiddenFields }
 }
 
 async function enrichJourney(record: Record<string, unknown>): Promise<EnrichmentResult> {
   const paths = normalizeJourneyPaths(record)
+  const moments = extractJourneyMoments(record)
+  const stats = record.stats as { totalMoments?: number; totalPaths?: number } | undefined
   const momentCount =
-    typeof record.momentCount === "number"
+    stats?.totalMoments ??
+    (typeof record.momentCount === "number"
       ? record.momentCount
-      : paths.reduce((sum, p) => sum + (p.momentCount ?? 0), 0)
+      : moments.length || paths.reduce((sum, p) => sum + (p.momentCount ?? 0), 0))
 
   if (typeof record.createdAt !== "string" && typeof record.created_at === "string") {
     record.createdAt = record.created_at
   }
 
-  const relatedSections: RelatedSection[] =
-    paths.length > 0
-      ? [
-          {
-            title: "Paths",
-            items: paths.map((p) => ({
-              id: p.id,
-              label: p.name,
-              sub:
-                p.momentCount != null
-                  ? `${p.momentCount} moment${p.momentCount === 1 ? "" : "s"}`
-                  : undefined,
-            })),
-          },
-        ]
-      : []
+  const keeper = record.keeper as { title?: string } | null | undefined
+  const metaParts = [
+    momentCount > 0
+      ? `${momentCount} moment${momentCount === 1 ? "" : "s"}`
+      : null,
+    paths.length > 0 ? `${paths.length} path${paths.length === 1 ? "" : "s"}` : null,
+    keeper?.title ? `Keeper · ${keeper.title}` : null,
+    typeof record.createdAt === "string" ? `Created ${formatWhenShort(record.createdAt)}` : null,
+  ].filter(Boolean)
 
-  if (momentCount > 0) {
-    record.momentCountSummary = `${momentCount} moment${momentCount === 1 ? "" : "s"} across all paths`
+  const relatedSections: RelatedSection[] = []
+
+  if (moments.length > 0) {
+    relatedSections.push({
+      title: "Moments in this Journey",
+      items: moments,
+    })
+  } else if (momentCount > 0) {
+    relatedSections.push({
+      title: "Moments in this Journey",
+      items: [],
+    })
   }
 
-  return { record, relatedSections, hiddenFields: [] }
+  if (paths.length > 0) {
+    relatedSections.push({
+      title: "Paths",
+      items: paths.map((p) => ({
+        id: p.id,
+        label: p.name,
+        sub:
+          p.momentCount != null
+            ? `${p.momentCount} moment${p.momentCount === 1 ? "" : "s"}`
+            : undefined,
+      })),
+    })
+  }
+
+  return {
+    record,
+    meta: { line: metaParts.join(" · ") || undefined },
+    relatedSections,
+    hiddenFields: ["momentCountSummary", "keeperName"],
+  }
 }
 
 async function enrichKeeper(
   record: Record<string, unknown>,
   keeperId: string,
+  domainId: string,
 ): Promise<EnrichmentResult> {
   const relatedSections: RelatedSection[] = []
 
@@ -236,14 +326,29 @@ async function enrichKeeper(
       })
     }
   } catch {
-    /* sessions are ambient — absence is fine */
+    /* sessions are ambient */
   }
 
   if (typeof record.createdAt !== "string" && typeof record.created_at === "string") {
     record.createdAt = record.created_at
   }
 
-  return { record, relatedSections, hiddenFields: [] }
+  const sessionCount = relatedSections[0]?.items.length ?? 0
+  const metaParts = [
+    sessionCount > 0
+      ? `${sessionCount} session${sessionCount === 1 ? "" : "s"}`
+      : null,
+    typeof record.createdAt === "string"
+      ? `Since ${formatWhenShort(record.createdAt)}`
+      : null,
+  ].filter(Boolean)
+
+  return {
+    record,
+    meta: { line: metaParts.join(" · ") || undefined },
+    relatedSections,
+    hiddenFields: ["keeperType"],
+  }
 }
 
 async function enrichAgent(record: Record<string, unknown>): Promise<EnrichmentResult> {
@@ -263,10 +368,7 @@ async function enrichAgent(record: Record<string, unknown>): Promise<EnrichmentR
                 String(s.id ?? "").slice(0, 8),
               sub:
                 typeof s.created_at === "string"
-                  ? new Date(s.created_at).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })
+                  ? formatWhenShort(s.created_at)
                   : undefined,
             })),
           },
@@ -277,14 +379,35 @@ async function enrichAgent(record: Record<string, unknown>): Promise<EnrichmentR
     record.tools = (record.tools as unknown[]).join(", ")
   }
 
-  return { record, relatedSections, hiddenFields: [] }
+  const metaParts = [
+    typeof record.status === "string" ? String(record.status) : null,
+    typeof record.model === "string" ? String(record.model) : null,
+  ].filter(Boolean)
+
+  return {
+    record,
+    meta: { line: metaParts.join(" · ") || undefined },
+    relatedSections,
+    hiddenFields: [],
+  }
 }
 
 async function enrichDialog(record: Record<string, unknown>): Promise<EnrichmentResult> {
+  const mapped = mapDialogRecord(record)
+  const metaParts = [
+    typeof mapped.sessionCount === "number" && mapped.sessionCount > 0
+      ? `${mapped.sessionCount} session${mapped.sessionCount === 1 ? "" : "s"}`
+      : null,
+    typeof mapped.updated_at === "string"
+      ? formatWhenShort(mapped.updated_at as string)
+      : null,
+  ].filter(Boolean)
+
   return {
-    record: mapDialogRecord(record),
+    record: mapped,
+    meta: { line: metaParts.join(" · ") || undefined },
     relatedSections: [],
-    hiddenFields: [],
+    hiddenFields: ["sessionCount"],
   }
 }
 
@@ -295,17 +418,62 @@ async function enrichDraft(
 ): Promise<EnrichmentResult> {
   try {
     const found = await KipApi.getDraft(domainId, draftId)
+    const mapped = mapDraftRecord(found as unknown as Record<string, unknown>)
     return {
-      record: mapDraftRecord(found as unknown as Record<string, unknown>),
+      record: mapped,
+      meta: {
+        line: [
+          typeof mapped.status === "string" ? String(mapped.status) : null,
+          typeof mapped.updatedAt === "string"
+            ? formatWhenShort(mapped.updatedAt as string)
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · ") || undefined,
+      },
       relatedSections: [],
-      hiddenFields: [],
+      hiddenFields: ["status", "updatedAt", "kind"],
     }
   } catch {
+    const mapped = mapDraftRecord(record)
     return {
-      record: mapDraftRecord(record),
+      record: mapped,
       relatedSections: [],
-      hiddenFields: [],
+      hiddenFields: ["status", "updatedAt", "kind"],
     }
+  }
+}
+
+async function fetchKeeperRecord(
+  objectId: string,
+  domainId: string,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const res = await apiFetch(
+      `/api/keepers/${encodeURIComponent(objectId)}?domainId=${encodeURIComponent(domainId)}`,
+    )
+    const keeper =
+      (res as { keeper?: Record<string, unknown> })?.keeper ??
+      (res as { data?: Record<string, unknown> })?.data ??
+      null
+    if (keeper && (keeper.id || keeper.title)) {
+      return mapKeeperRecord(keeper)
+    }
+  } catch {
+    /* fall through to list */
+  }
+
+  try {
+    const listRes = await apiFetch(
+      `/api/keepers?domainId=${encodeURIComponent(domainId)}&limit=100`,
+    )
+    const list =
+      (listRes as { data?: { keepers?: Array<Record<string, unknown>> } })?.data?.keepers ??
+      []
+    const found = list.find((k) => k.id === objectId)
+    return found ? mapKeeperRecord(found) : null
+  } catch {
+    return null
   }
 }
 
@@ -379,16 +547,8 @@ export async function fetchPresenceRecord(
         (res as Record<string, unknown>)
       return raw as Record<string, unknown>
     }
-    case "keeper": {
-      const res = await apiFetch(
-        `/api/keepers/${encodeURIComponent(objectId)}?domainId=${encodeURIComponent(domainId)}`,
-      )
-      return (
-        (res as { keeper?: Record<string, unknown> })?.keeper ??
-        (res as { data?: Record<string, unknown> })?.data ??
-        (res as Record<string, unknown>)
-      ) as Record<string, unknown>
-    }
+    case "keeper":
+      return fetchKeeperRecord(objectId, domainId)
     case "agent": {
       const res = await apiFetch(`/api/agents/${encodeURIComponent(objectId)}`)
       return (
@@ -415,7 +575,7 @@ export async function enrichPresenceRecord(
     case "journey":
       return enrichJourney(record)
     case "keeper":
-      return enrichKeeper(record, objectId)
+      return enrichKeeper(record, objectId, domainId)
     case "agent":
       return enrichAgent(record)
     case "dialog":

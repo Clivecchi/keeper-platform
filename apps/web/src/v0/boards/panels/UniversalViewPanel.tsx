@@ -465,6 +465,7 @@ interface ChronicleRecordViewProps {
   domainId: string | null
   domainSlug?: string
   onJourneySelect?: (id: string) => void
+  onMomentSelect?: (id: string) => void
   onLabelResolved: (key: string, label: string) => void
   trailKey: string
 }
@@ -475,6 +476,7 @@ function ChronicleRecordView({
   domainId,
   domainSlug,
   onJourneySelect,
+  onMomentSelect,
   onLabelResolved,
   trailKey,
 }: ChronicleRecordViewProps) {
@@ -497,6 +499,7 @@ function ChronicleRecordView({
       density="standard"
       onLabelResolved={(label) => onLabelResolved(trailKey, label)}
       onJourneySelect={onJourneySelect}
+      onMomentSelect={onMomentSelect}
     />
   )
 }
@@ -767,6 +770,7 @@ function PanelBody({
         domainId={domainId}
         domainSlug={domainSlug}
         onJourneySelect={onJourneySelect}
+        onMomentSelect={onMomentSelect}
         onLabelResolved={onLabelResolved}
         trailKey={entry.key}
       />

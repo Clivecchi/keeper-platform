@@ -3,13 +3,11 @@
 /**
  * KeeperPresence
  * ==============
- * Schema-driven Chronicle surface for all object types.
+ * Universal Chronicle rendering surface.
  *
- * One component renders any Keeper object — Moment, Journey, Keeper, Draft,
- * Dialog, Agent — in any context. Field hierarchy is intrinsic to the object;
- * Treatment (density) is the volume knob.
- *
- * Chronicle views are thin wrappers that call this and get out of the way.
+ * Schema-driven field selection; storybook presentation.
+ * Every object in focus is part of a story already in progress —
+ * not a database row, not a labeled form.
  */
 
 import * as React from "react"
@@ -19,16 +17,14 @@ import {
   fetchPresenceRecord,
   enrichPresenceRecord,
   type PresenceBreadcrumb,
+  type PresenceMeta,
   type RelatedSection,
 } from "./presenceEnrichment"
 import {
   fieldPassesDensity,
-  resolveFieldLabel,
   type DensityLevel,
   type FieldDefinition,
 } from "./KeeperPresenceDefaults"
-
-// ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface KeeperPresenceProps {
   object?: Record<string, unknown>
@@ -41,9 +37,8 @@ export interface KeeperPresenceProps {
   onSaved?: (field: string, value: unknown) => void
   onLabelResolved?: (label: string) => void
   onJourneySelect?: (id: string) => void
+  onMomentSelect?: (id: string) => void
 }
-
-// ── Endpoints ─────────────────────────────────────────────────────────────────
 
 function patchEndpoint(
   objectType: string,
@@ -91,8 +86,6 @@ function objectTypeLabel(objectType: string): string {
   return objectType.charAt(0).toUpperCase() + objectType.slice(1)
 }
 
-// ── Formatting ────────────────────────────────────────────────────────────────
-
 function formatRelative(iso: string | undefined): string {
   if (!iso) return ""
   const d = new Date(iso)
@@ -106,20 +99,26 @@ function formatRelative(iso: string | undefined): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
 }
 
-function formatFieldValue(fieldKey: string, raw: unknown, role: FieldDefinition["role"]): string {
+function formatFieldValue(
+  fieldKey: string,
+  raw: unknown,
+  role: FieldDefinition["role"],
+): string {
   if (raw === null || raw === undefined) return ""
   if (typeof raw === "string") {
     if (role === "quiet" || fieldKey.endsWith("At") || fieldKey.endsWith("_at")) {
       const d = new Date(raw)
       if (!Number.isNaN(d.getTime())) {
-        return role === "quiet" ? formatRelative(raw) : d.toLocaleDateString(undefined, {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })
+        return role === "quiet"
+          ? formatRelative(raw)
+          : d.toLocaleDateString(undefined, {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })
       }
     }
-    return raw
+    return raw.trim()
   }
   if (typeof raw === "number" && fieldKey === "sessionCount") {
     return `${raw} session${raw === 1 ? "" : "s"}`
@@ -135,8 +134,6 @@ function formatFieldValue(fieldKey: string, raw: unknown, role: FieldDefinition[
   return String(raw)
 }
 
-// ── Debounce ──────────────────────────────────────────────────────────────────
-
 function useDebounced<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = React.useState<T>(value)
   React.useEffect(() => {
@@ -146,13 +143,11 @@ function useDebounced<T>(value: T, delay: number): T {
   return debounced
 }
 
-// ── Presence primitives ───────────────────────────────────────────────────────
-
-function PresenceLabel({ children }: { children: React.ReactNode }) {
+function PresenceWhisper({ children }: { children: React.ReactNode }) {
   return (
     <p
       className="text-[10px] font-semibold uppercase tracking-widest"
-      style={{ color: "hsl(var(--theme-ink-tertiary) / 0.65)" }}
+      style={{ color: "hsl(var(--theme-ink-tertiary) / 0.55)" }}
     >
       {children}
     </p>
@@ -196,9 +191,9 @@ function PresenceSection({
   children: React.ReactNode
 }) {
   return (
-    <div className="mb-4">
+    <div className="mb-5">
       <p
-        className="text-[9px] font-semibold uppercase tracking-widest mb-2"
+        className="text-[9px] font-semibold uppercase tracking-widest mb-2.5"
         style={{ color: "hsl(var(--theme-ink-tertiary) / 0.5)" }}
       >
         {title}
@@ -211,39 +206,47 @@ function PresenceSection({
 function PresenceThread({
   label,
   sub,
+  preview,
   onClick,
 }: {
   label: string
   sub?: string
+  preview?: string
   onClick?: () => void
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left group flex items-start gap-2 py-1.5 transition-opacity hover:opacity-80"
-      style={{ cursor: onClick ? "pointer" : "default" }}
+      className="w-full text-left group rounded-lg border px-3 py-2.5 mb-2 transition-all hover:opacity-90"
+      style={{
+        cursor: onClick ? "pointer" : "default",
+        borderColor: "hsl(var(--theme-border-soft) / 0.25)",
+        background: "hsl(var(--theme-surface-elevated) / 0.18)",
+      }}
     >
       <span
-        className="mt-[6px] w-1 h-1 rounded-full shrink-0 opacity-30 group-hover:opacity-60 transition-opacity"
-        style={{ background: "hsl(var(--theme-ink-tertiary))" }}
-      />
-      <span className="flex-1 min-w-0">
-        <span
-          className="block text-[12px] leading-snug truncate"
-          style={{ color: "hsl(var(--theme-ink-primary))" }}
-        >
-          {label}
-        </span>
-        {sub && (
-          <span
-            className="block text-[10px] leading-snug mt-0.5"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            {sub}
-          </span>
-        )}
+        className="block text-[12px] font-medium leading-snug"
+        style={{ color: "hsl(var(--theme-ink-primary))" }}
+      >
+        {label}
       </span>
+      {preview && (
+        <span
+          className="block text-[11px] leading-relaxed mt-1 line-clamp-2"
+          style={{ color: "hsl(var(--theme-ink-secondary))" }}
+        >
+          {preview}
+        </span>
+      )}
+      {sub && (
+        <span
+          className="block text-[10px] leading-snug mt-1"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          {sub}
+        </span>
+      )}
     </button>
   )
 }
@@ -290,114 +293,50 @@ function AutoResizeTextarea({
   )
 }
 
-function roleStyle(role: FieldDefinition["role"]): React.CSSProperties {
-  switch (role) {
-    case "primary":
-      return {
-        color: "hsl(var(--theme-ink-primary))",
-        fontSize: 15,
-        fontWeight: 600,
-        lineHeight: "1.35",
-      }
-    case "secondary":
-      return { color: "hsl(var(--theme-ink-secondary))", fontSize: 12, lineHeight: "1.55" }
-    case "ambient":
-      return { color: "hsl(var(--theme-ink-tertiary))", fontSize: 11, lineHeight: "1.4" }
-    case "quiet":
-      return {
-        color: "hsl(var(--theme-ink-tertiary) / 0.55)",
-        fontSize: 10,
-        lineHeight: "1.3",
-      }
-  }
-}
-
-function roleClass(role: FieldDefinition["role"]): string {
-  switch (role) {
-    case "primary":
-      return "font-semibold"
-    case "secondary":
-      return ""
-    case "ambient":
-      return "font-medium"
-    case "quiet":
-      return "tabular-nums"
-  }
-}
-
-interface FieldRowProps {
-  fieldKey: string
-  def: FieldDefinition
-  value: string
-  onChange: (v: string) => void
-  isFirst: boolean
-  inHeader?: boolean
-}
-
-function FieldRow({ fieldKey, def, value, onChange, isFirst, inHeader }: FieldRowProps) {
-  const label = resolveFieldLabel(fieldKey, def)
-  const style = roleStyle(def.role)
-  const cls = roleClass(def.role)
-  const hairline = "hsl(var(--theme-border-soft) / 0.15)"
-
-  return (
-    <div
-      className={inHeader ? "mt-1" : "mb-3"}
-      style={
-        !inHeader && !isFirst && def.role !== "primary"
-          ? { borderTop: `1px solid ${hairline}`, paddingTop: 10 }
-          : undefined
-      }
-    >
-      {def.role !== "primary" && !inHeader && <PresenceLabel>{label}</PresenceLabel>}
-      {def.editable ? (
-        <AutoResizeTextarea
-          value={value}
-          onChange={onChange}
-          placeholder={`${label}…`}
-          className={`${inHeader ? "" : "mt-0.5"} ${cls}`}
-          style={style}
-        />
-      ) : (
-        <p className={`${inHeader ? "" : "mt-0.5"} ${cls}`} style={style}>
-          {value || <span style={{ opacity: 0.35 }}>—</span>}
-        </p>
-      )}
-    </div>
-  )
-}
-
 function RelatedSections({
   sections,
   onJourneySelect,
+  onMomentSelect,
 }: {
   sections: RelatedSection[]
   onJourneySelect?: (id: string) => void
+  onMomentSelect?: (id: string) => void
 }) {
   if (sections.length === 0) return null
+
   return (
     <>
       {sections.map((section) => (
         <PresenceSection key={section.title} title={section.title}>
-          {section.items.map((item) => (
-            <PresenceThread
-              key={item.id}
-              label={item.label}
-              sub={item.sub}
-              onClick={
-                item.navigateKind === "journey" && onJourneySelect
-                  ? () => onJourneySelect(item.id)
-                  : undefined
-              }
-            />
-          ))}
+          {section.items.length === 0 ? (
+            <p
+              className="text-[12px] leading-relaxed"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Nothing here yet — but this journey is alive.
+            </p>
+          ) : (
+            section.items.map((item) => (
+              <PresenceThread
+                key={item.id}
+                label={item.label}
+                sub={item.sub}
+                preview={item.preview}
+                onClick={
+                  item.navigateKind === "journey" && onJourneySelect
+                    ? () => onJourneySelect(item.id)
+                    : item.navigateKind === "moment" && onMomentSelect
+                      ? () => onMomentSelect(item.id)
+                      : undefined
+                }
+              />
+            ))
+          )}
         </PresenceSection>
       ))}
     </>
   )
 }
-
-// ── KeeperPresence component ──────────────────────────────────────────────────
 
 export function KeeperPresence({
   object: objectProp,
@@ -409,10 +348,12 @@ export function KeeperPresence({
   onSaved,
   onLabelResolved,
   onJourneySelect,
+  onMomentSelect,
 }: KeeperPresenceProps) {
   const [record, setRecord] = React.useState<Record<string, unknown> | null>(objectProp ?? null)
   const [loading, setLoading] = React.useState(!objectProp)
   const [breadcrumb, setBreadcrumb] = React.useState<PresenceBreadcrumb | undefined>()
+  const [meta, setMeta] = React.useState<PresenceMeta | undefined>()
   const [relatedSections, setRelatedSections] = React.useState<RelatedSection[]>([])
   const [hiddenFields, setHiddenFields] = React.useState<string[]>([])
 
@@ -427,6 +368,7 @@ export function KeeperPresence({
     let cancelled = false
     setLoading(true)
     setBreadcrumb(undefined)
+    setMeta(undefined)
     setRelatedSections([])
     setHiddenFields([])
 
@@ -450,6 +392,7 @@ export function KeeperPresence({
 
         setRecord(enriched.record)
         setBreadcrumb(enriched.breadcrumb)
+        setMeta(enriched.meta)
         setRelatedSections(enriched.relatedSections)
         setHiddenFields(enriched.hiddenFields)
         setLoading(false)
@@ -531,31 +474,25 @@ export function KeeperPresence({
 
   const visibleFields = React.useMemo(() => {
     const hidden = new Set(hiddenFields)
-    const entries = Object.entries(schema.fields).filter(
+    return Object.entries(schema.fields).filter(
       ([key, def]) => !hidden.has(key) && fieldPassesDensity(def, density),
-    )
-    if (entries.length === 0) {
-      const pf = primaryField(objectType)
-      const def = schema.fields[pf]
-      return def ? [[pf, def] as [string, FieldDefinition]] : []
-    }
-    return entries as [string, FieldDefinition][]
-  }, [schema, density, objectType, hiddenFields])
+    ) as [string, FieldDefinition][]
+  }, [schema, density, hiddenFields])
 
   const hairline = "hsl(var(--theme-border-soft) / 0.15)"
   const typeLabel = objectTypeLabel(objectType)
+  const primaryKey = primaryField(objectType)
 
   if (loading) {
     return (
       <div className="flex flex-col h-full min-h-0">
         <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
-          <PresenceLabel>{typeLabel}</PresenceLabel>
+          <PresenceWhisper>{typeLabel}</PresenceWhisper>
           <PresenceShimmer width="w-36" />
         </div>
         <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4">
           <PresenceShimmer width="w-full" />
           <PresenceShimmer width="w-3/4" />
-          <PresenceShimmer width="w-1/2" />
         </div>
       </div>
     )
@@ -565,78 +502,129 @@ export function KeeperPresence({
     return (
       <div className="flex flex-col h-full min-h-0">
         <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
-          <PresenceLabel>{typeLabel}</PresenceLabel>
+          <PresenceWhisper>{typeLabel}</PresenceWhisper>
         </div>
         <div className="px-4 pt-3">
           <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-            {typeLabel} not found.
+            This {objectType} isn&apos;t here right now — but the story continues.
           </p>
         </div>
       </div>
     )
   }
 
-  const primaryKey = primaryField(objectType)
-  const primaryEntry = visibleFields.find(([k]) => k === primaryKey)
-  const bodyFields = visibleFields.filter(([k]) => k !== primaryKey)
-  const quietFields = bodyFields.filter(([, def]) => def.role === "quiet")
-  const contentFields = bodyFields.filter(([, def]) => def.role !== "quiet")
+  const primaryDef = schema.fields[primaryKey]
+  const primaryValue = fieldValues[primaryKey] ?? ""
+  const secondaryFields = visibleFields.filter(
+    ([key, def]) => key !== primaryKey && def.role === "secondary" && fieldValues[key],
+  )
+  const ambientFields = visibleFields.filter(
+    ([key, def]) =>
+      key !== primaryKey &&
+      def.role === "ambient" &&
+      fieldValues[key] &&
+      !hiddenFields.includes(key),
+  )
+  const quietFields = visibleFields.filter(
+    ([key, def]) => key !== primaryKey && def.role === "quiet" && fieldValues[key],
+  )
+
+  const secondaryPlaceholders: Record<string, string> = {
+    forward: "Where this journey is headed…",
+    narrative: "What happened here…",
+    purpose: "What this keeper holds…",
+    summary: "What this draft carries…",
+    context: "Where this dialog lives…",
+    context_scope: "How this agent shows up…",
+  }
 
   return (
     <div className="flex flex-col h-full min-h-0">
+      {/* Story header — type whisper, title, meta line */}
       <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
         {breadcrumb && <PresenceBreadcrumbBar breadcrumb={breadcrumb} />}
-        <PresenceLabel>{typeLabel}</PresenceLabel>
-        {primaryEntry ? (
-          <FieldRow
-            fieldKey={primaryEntry[0]}
-            def={primaryEntry[1]}
-            value={fieldValues[primaryEntry[0]] ?? ""}
+        <PresenceWhisper>{typeLabel}</PresenceWhisper>
+
+        {primaryDef?.editable ? (
+          <AutoResizeTextarea
+            value={primaryValue}
             onChange={(v) => {
               hasEdited.current = true
-              setFieldValues((prev) => ({ ...prev, [primaryEntry[0]]: v }))
+              setFieldValues((prev) => ({ ...prev, [primaryKey]: v }))
             }}
-            isFirst
-            inHeader
+            placeholder={`Untitled ${objectType}`}
+            className="text-[15px] font-semibold leading-snug mt-1"
+            style={{ color: "hsl(var(--theme-ink-primary))" }}
           />
         ) : (
-          <p
+          <h2
             className="text-[15px] font-semibold leading-snug mt-1"
             style={{ color: "hsl(var(--theme-ink-primary))" }}
           >
-            {formatFieldValue(primaryKey, record[primaryKey], "primary") ||
-              `Untitled ${objectType}`}
+            {primaryValue || `Untitled ${objectType}`}
+          </h2>
+        )}
+
+        {meta?.line && (
+          <p
+            className="text-[10px] mt-2 leading-relaxed"
+            style={{ color: "hsl(var(--theme-ink-tertiary) / 0.7)" }}
+          >
+            {meta.line}
           </p>
         )}
       </div>
 
+      {/* Story body — prose, threads, never labeled form rows */}
       <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4">
-        {contentFields.map(([key, def], i) => (
-          <FieldRow
-            key={key}
-            fieldKey={key}
-            def={def}
-            value={fieldValues[key] ?? ""}
-            onChange={(v) => {
-              hasEdited.current = true
-              setFieldValues((prev) => ({ ...prev, [key]: v }))
-            }}
-            isFirst={i === 0}
-          />
+        {secondaryFields.map(([key, def]) => (
+          <div key={key} className="mb-4">
+            {def.editable ? (
+              <AutoResizeTextarea
+                value={fieldValues[key] ?? ""}
+                onChange={(v) => {
+                  hasEdited.current = true
+                  setFieldValues((prev) => ({ ...prev, [key]: v }))
+                }}
+                placeholder={secondaryPlaceholders[key] ?? "…"}
+                className="text-[12px] leading-relaxed"
+                style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              />
+            ) : (
+              <p
+                className="text-[12px] leading-relaxed"
+                style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              >
+                {fieldValues[key]}
+              </p>
+            )}
+          </div>
         ))}
 
-        <RelatedSections sections={relatedSections} onJourneySelect={onJourneySelect} />
-
-        {quietFields.map(([key, def]) => (
-          <FieldRow
+        {ambientFields.map(([key]) => (
+          <p
             key={key}
-            fieldKey={key}
-            def={def}
-            value={fieldValues[key] ?? ""}
-            onChange={() => {}}
-            isFirst={false}
-          />
+            className="text-[11px] leading-relaxed mb-3"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            {fieldValues[key]}
+          </p>
         ))}
+
+        <RelatedSections
+          sections={relatedSections}
+          onJourneySelect={onJourneySelect}
+          onMomentSelect={onMomentSelect}
+        />
+
+        {quietFields.length > 0 && !meta?.line && (
+          <p
+            className="text-[10px] mt-2"
+            style={{ color: "hsl(var(--theme-ink-tertiary) / 0.55)" }}
+          >
+            {quietFields.map(([key]) => fieldValues[key]).filter(Boolean).join(" · ")}
+          </p>
+        )}
       </div>
     </div>
   )

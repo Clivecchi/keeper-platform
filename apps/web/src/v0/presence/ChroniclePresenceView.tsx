@@ -18,10 +18,10 @@ export interface ChroniclePresenceViewProps {
   objectId: string
   domainId: string
   domainSlug?: string
-  /** Treatment density — standard is the Chronicle default. */
   density?: DensityLevel
   onLabelResolved?: (label: string) => void
   onJourneySelect?: (id: string) => void
+  onMomentSelect?: (id: string) => void
 }
 
 export function ChroniclePresenceView({
@@ -32,6 +32,7 @@ export function ChroniclePresenceView({
   density = "standard",
   onLabelResolved,
   onJourneySelect,
+  onMomentSelect,
 }: ChroniclePresenceViewProps) {
   if (!domainId) {
     return (
@@ -53,6 +54,7 @@ export function ChroniclePresenceView({
       density={density}
       onLabelResolved={onLabelResolved}
       onJourneySelect={onJourneySelect}
+      onMomentSelect={onMomentSelect}
     />
   )
 }
