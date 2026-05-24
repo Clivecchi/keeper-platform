@@ -114,7 +114,7 @@ async function enrichMoment(
           : undefined
       breadcrumb = {
         journey: String(jRaw.name ?? ""),
-        path: matchedPath?.name ?? pathName || undefined,
+        path: matchedPath?.name ?? (pathName || undefined),
       }
       record.journeyName = breadcrumb.journey
       if (breadcrumb.path) record.pathName = breadcrumb.path
