@@ -23,6 +23,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-05-24 — Universal Chronicle: single KeeperPresence path (Steps 1 + 4)
+- Chronicle routes exclusively through KeeperPresence; no board-specific panel renderers
+- `mergeViewStates()` — all boards declare every subject; viewStates are treatment copy only
+
 ### 2026-05-24 — KeeperPresence Phase 1: active journey in board context
 - `UniversalBoardContext` exposes `activeJourneyId` (from FrameContext) and `onSetActiveJourney` for Chronicle Set as Active — components call board context, not FrameContext directly
 

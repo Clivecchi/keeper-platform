@@ -1,5 +1,15 @@
 "use client"
 
+/**
+ * DesignBoardFrameDetail
+ * ======================
+ * Legacy frame detail panel (Preview / Config / Props / JSON / Brief / Code tabs).
+ *
+ * SUPERSEDED by KeeperPresence FrameConfigPresence (Step 2, May 2026).
+ * Retained in codebase — do not mount from Chronicle or board panels.
+ * Props catalog moved to v0/presence/propsCatalog.ts.
+ */
+
 import * as React from "react"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import { Check, Eye } from "lucide-react"

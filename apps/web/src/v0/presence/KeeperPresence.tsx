@@ -27,6 +27,9 @@ import {
   type FieldDefinition,
 } from "./KeeperPresenceDefaults"
 import type { PresenceLayout } from "./types"
+import { FrameConfigPresence, parseFramePropsFromRecord } from "./FrameConfigPresence"
+import { BoardDefConfigPresence } from "./BoardDefConfigPresence"
+import { BOARD_DEFINITIONS } from "../boards/UniversalBoardDefinition"
 
 export type { PresenceLayout } from "./types"
 
@@ -43,6 +46,8 @@ export interface KeeperPresenceProps {
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onKeeperSelect?: (id: string) => void
+  /** Display name for domain idle — used when objectType is "domain". */
+  domainDisplayName?: string
 }
 
 function patchEndpoint(
@@ -82,12 +87,21 @@ function primaryField(objectType: string): string {
       return "title"
     case "dialog":
       return "title"
+    case "frame":
+      return "name"
+    case "boardDef":
+      return "title"
+    case "domain":
+      return "name"
+    case "service":
+      return "name"
     default:
       return "name"
   }
 }
 
 function objectTypeLabel(objectType: string): string {
+  if (objectType === "boardDef") return "Board Definition"
   return objectType.charAt(0).toUpperCase() + objectType.slice(1)
 }
 
@@ -568,6 +582,7 @@ export function KeeperPresence({
   onJourneySelect,
   onMomentSelect,
   onKeeperSelect,
+  domainDisplayName,
 }: KeeperPresenceProps) {
   const [record, setRecord] = React.useState<Record<string, unknown> | null>(objectProp ?? null)
   const [loading, setLoading] = React.useState(!objectProp)
@@ -576,12 +591,10 @@ export function KeeperPresence({
   const [relatedSections, setRelatedSections] = React.useState<RelatedSection[]>([])
   const [hiddenFields, setHiddenFields] = React.useState<string[]>([])
 
+  const boardCtx = useUniversalBoardOptional()
+  const [presenceRefresh, setPresenceRefresh] = React.useState(0)
+
   React.useEffect(() => {
-    if (objectProp) {
-      setRecord(objectProp)
-      setLoading(false)
-      return
-    }
     if (!objectId || !objectType || !domainId) return
 
     let cancelled = false
@@ -591,52 +604,66 @@ export function KeeperPresence({
     setRelatedSections([])
     setHiddenFields([])
 
-    fetchPresenceRecord(objectType, objectId, domainId, domainSlug)
-      .then(async (extracted) => {
-        if (cancelled) return
-        if (!extracted) {
-          setRecord(null)
-          setLoading(false)
-          return
-        }
+    const enrichmentCtx = {
+      domainName: domainDisplayName,
+      domainSlug,
+      domainId,
+      activeBoardForFrames: boardCtx?.selection.activeBoardForFrames ?? "domain",
+    }
 
-        const enriched = await enrichPresenceRecord(
-          objectType,
-          objectId,
-          domainId,
-          extracted,
-          domainSlug,
-        )
-        if (cancelled) return
-
-        setRecord(enriched.record)
-        setBreadcrumb(enriched.breadcrumb)
-        setMeta(enriched.meta)
-        setRelatedSections(enriched.relatedSections)
-        setHiddenFields(enriched.hiddenFields)
+    async function load() {
+      const extracted =
+        objectProp ?? (await fetchPresenceRecord(objectType, objectId, domainId, domainSlug))
+      if (cancelled) return
+      if (!extracted) {
+        setRecord(null)
         setLoading(false)
+        return
+      }
 
-        if (onLabelResolved) {
-          const pf = primaryField(objectType)
-          const label =
-            typeof enriched.record[pf] === "string"
-              ? (enriched.record[pf] as string).trim()
-              : ""
-          if (label) onLabelResolved(label)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setRecord(null)
-          setLoading(false)
-        }
-      })
+      const enriched = await enrichPresenceRecord(
+        objectType,
+        objectId,
+        domainId,
+        extracted,
+        domainSlug,
+        enrichmentCtx,
+      )
+      if (cancelled) return
+
+      setRecord(enriched.record)
+      setBreadcrumb(enriched.breadcrumb)
+      setMeta(enriched.meta)
+      setRelatedSections(enriched.relatedSections)
+      setHiddenFields(enriched.hiddenFields)
+      setLoading(false)
+
+      if (onLabelResolved) {
+        const pf = primaryField(objectType)
+        const label =
+          typeof enriched.record[pf] === "string"
+            ? (enriched.record[pf] as string).trim()
+            : ""
+        if (label) onLabelResolved(label)
+      }
+    }
+
+    load().catch(() => {
+      if (!cancelled) {
+        setRecord(null)
+        setLoading(false)
+      }
+    })
 
     return () => {
       cancelled = true
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [objectId, objectType, domainId, domainSlug])
+  }, [objectId, objectType, domainId, domainSlug, domainDisplayName, objectProp, presenceRefresh])
+
+  const handlePresenceRefresh = React.useCallback(() => {
+    setPresenceRefresh((n) => n + 1)
+  }, [])
 
   const objectSchemaOverride =
     record?.presenceSchema && typeof record.presenceSchema === "object"
@@ -692,7 +719,6 @@ export function KeeperPresence({
   }, [debouncedValues])
 
   const effectiveDensity: DensityLevel = layout === "config" ? "comfortable" : density
-  const boardCtx = useUniversalBoardOptional()
   const handleKeeperSelect =
     onKeeperSelect ?? boardCtx?.actions.onKeeperSelect
 
@@ -752,6 +778,52 @@ export function KeeperPresence({
         onKeeperSelect={handleKeeperSelect}
       />
     )
+  }
+
+  if (objectType === "frame" && layout === "config" && record) {
+    return (
+      <FrameConfigPresence
+        frameKey={objectId}
+        frameName={String(record.name ?? objectId)}
+        domainId={domainId}
+        domainSlug={domainSlug}
+        frameInstanceId={
+          typeof record.frameInstanceId === "string" ? record.frameInstanceId : null
+        }
+        pattern={typeof record.pattern === "string" ? record.pattern : undefined}
+        visibility={typeof record.visibility === "string" ? record.visibility : undefined}
+        description={
+          typeof record.description === "string" ? record.description : undefined
+        }
+        props={parseFramePropsFromRecord(record)}
+        frameJson={typeof record.frameJson === "string" ? record.frameJson : undefined}
+        domainSnapshot={
+          record.domainSnapshot && typeof record.domainSnapshot === "object"
+            ? (record.domainSnapshot as Record<string, unknown>)
+            : undefined
+        }
+        onPropsSaved={handlePresenceRefresh}
+        onLabelResolved={onLabelResolved}
+      />
+    )
+  }
+
+  if (objectType === "boardDef" && layout === "config") {
+    const boardDefId =
+      typeof record?.boardDefId === "string"
+        ? record.boardDefId
+        : typeof record?.boardId === "string"
+          ? record.boardId
+          : objectId
+    const def = BOARD_DEFINITIONS[boardDefId]
+    if (def) {
+      return (
+        <BoardDefConfigPresence
+          def={def}
+          onLabelResolved={onLabelResolved}
+        />
+      )
+    }
   }
 
   const surfaceStyle =

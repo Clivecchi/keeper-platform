@@ -20,18 +20,21 @@ Chronicle is the right panel for all Universal Boards. It is built as a Treatmen
 | Element | Description |
 |---|---|
 | **Trail Bar** | Permanent top. History stack (max 3 visible, `···` compresses older). Feed indicator (soft dot + count, 60s polling, tappable → domain feed). Lateral slide 200ms entry / 140ms exit. |
-| **Panel Body** | Mini-router over `panelHistory[currentIndex]`. Opacity dissolve on context shift (200ms entry / 140ms exit). Never empty — falls back to `UniversalViewPanelIdle`. |
-| **Idle State** | `UniversalViewPanelIdle` — domain name + ambient awareness (recent moments, active journeys). Always present. |
+| **Panel Body** | Universal — `KeeperPresence` for every subject type. Opacity dissolve on context shift (200ms entry / 140ms exit). Never empty — domain idle uses KeeperPresence. |
+| **Idle State** | `KeeperPresence` objectType=`domain` — ambient feed (recent moments, moving/present journeys). |
 
-**Views (mini-router targets):**
+**Panel Body:** Universal path — every selection routes to `ChronicleRecordView` → `ChroniclePresenceView` → `KeeperPresence`. No board-specific renderers.
 
-| View | Triggered by | What comes forward |
-|---|---|---|
-| `UniversalViewPanelIdle` | domain (nothing selected) | Domain name, recent moments feed, moving/present journeys |
-| `ChronicleRecordView` → `KeeperPresence` | dialog, journey, moment, keeper, draft, agent | Schema-driven presence — equivalent depth for every record type |
-| `FrameView` | designer frame selected | DesignBoardFrameDetail |
-| `BoardDefView` | board definition selected | JSON highlight of board def |
-| `ServiceView` | IDE service selected | ServicesFrame |
+**Views:**
+
+| Trigger | Renderer |
+|---|---|
+| Any selection (dialog, journey, moment, keeper, draft, agent, service, frame, boardDef) | `KeeperPresence` |
+| Nothing selected (domain idle) | `KeeperPresence` objectType=`domain` |
+
+`contextSurface.viewStates` on board defs carries **treatment copy only** — it does not gate routing. All boards declare every subject via `mergeViewStates()`.
+
+Frame and boardDef use `layout="config"` via `FrameConfigPresence` and `BoardDefConfigPresence` inside KeeperPresence. `DesignBoardFrameDetail` is retained but not mounted.
 
 **Gate 3 standard:** Chronicle record views are thin wrappers. They call `ChroniclePresenceView` → `KeeperPresence` with `layout="focus"` and density `standard`. No bespoke field assembly per type. Journey focus uses dedicated KeeperPresence layout (paths with prelude, tappable moments, Set as Active).
 
@@ -62,10 +65,21 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 - [x] Gate 3 — all record types on KeeperPresence via ChronicleRecordView
 - [x] Dialog Chronicle view — wired through KeeperPresence
 - [x] Feed indicator tappable
-- [ ] Service presence — for IDE Board's ServicesFrame integration (KeeperPresence schema exists, not wired)
+- [ ] Prop edit/reorder/delete in FrameConfigPresence
 - [ ] Rendr integration — spatial ratios and density governed by `presenceTreatment` field
 
 ## 📆 Update Log
+
+### 2026-05-24 — Step 2: Frame and BoardDef config presence in KeeperPresence
+- Frame selection: preview, unified props catalog, domain board-data save, quiet JSON
+- Board def selection: human-readable structure, quiet full spec JSON
+- `DesignBoardFrameDetail` no longer mounted from Chronicle
+
+### 2026-05-24 — Universal Chronicle: single KeeperPresence path (Steps 1 + 4)
+- Removed `FrameView`, `BoardDefView`, `ServiceView`, and `UniversalViewPanelIdle` from Chronicle router
+- Every trail kind routes through `ChroniclePresenceView` → `KeeperPresence`
+- Removed per-board `viewStates` routing gates; `mergeViewStates()` gives all boards every subject
+- Added `frame`, `boardDef` presence schemas; domain/service idle enrichment in `presenceEnrichment.ts`
 
 ### 2026-05-24 — KeeperPresence Phase 1: Journey focus parity
 - Chronicle journey view uses `KeeperPresence` focus layout (JourneysFrame parity: header, paths with prelude, tappable moments, Set as Active via UniversalBoardContext)

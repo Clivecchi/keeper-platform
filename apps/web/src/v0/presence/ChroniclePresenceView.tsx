@@ -19,6 +19,7 @@ export interface ChroniclePresenceViewProps {
   objectId: string
   domainId: string
   domainSlug?: string
+  domainDisplayName?: string
   layout?: PresenceLayout
   density?: DensityLevel
   onLabelResolved?: (label: string) => void
@@ -32,6 +33,7 @@ export function ChroniclePresenceView({
   objectId,
   domainId,
   domainSlug,
+  domainDisplayName,
   layout = "focus",
   density = "standard",
   onLabelResolved,
@@ -55,6 +57,7 @@ export function ChroniclePresenceView({
       objectId={objectId}
       domainId={domainId}
       domainSlug={domainSlug}
+      domainDisplayName={domainDisplayName}
       layout={layout}
       density={density}
       onLabelResolved={onLabelResolved}

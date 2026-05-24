@@ -66,7 +66,11 @@ export interface ConversationPanelDef {
 //
 // presenceTreatment is a free-form instruction to the rendering layer (Rendr's input).
 // Spatial ratios, motion behavior, density — those are Rendr's answer to this text.
+//
+// IMPORTANT: viewStates declare treatment copy only. They do NOT gate Chronicle routing.
+// Every board accepts every subject type; KeeperPresence renders all selections.
 export type PresenceSubject =
+  | "dialog"
   | "journey"
   | "moment"
   | "keeper"
@@ -74,9 +78,7 @@ export type PresenceSubject =
   | "draft"
   | "service"
   | "domain"
-  /** designer mode: selected frame — Chronicle renders DesignBoardFrameDetail */
   | "frame"
-  /** designer mode: selected board definition — Chronicle renders BoardDefView */
   | "boardDef"
 
 export interface ContextViewStateDef {
@@ -89,9 +91,74 @@ export interface ContextViewStateDef {
 }
 
 export interface ContextPanelDef {
+  /** Treatment copy per subject — does not gate which subjects Chronicle responds to. */
   viewStates: ContextViewStateDef[]
   /** The subject rendered when nothing is selected. Always "domain". */
   idleSubject: "domain"
+}
+
+/** Default treatment copy for every Chronicle subject — all boards include every key. */
+const UNIVERSAL_VIEW_STATE_DEFAULTS: ContextViewStateDef[] = [
+  {
+    key: "dialog",
+    presenceTreatment:
+      "Dialog in view. Scope and sessions forward. Where this conversation lives surfaces first.",
+  },
+  {
+    key: "journey",
+    presenceTreatment:
+      "Journey alive. Paths and active Moments come forward. Threads surface. What is moving comes forward. What is settled recedes.",
+  },
+  {
+    key: "moment",
+    presenceTreatment:
+      "Moment in focus. Content and narrative forward. Journey context present but quiet.",
+  },
+  {
+    key: "keeper",
+    presenceTreatment:
+      "Keeper present. Active journeys, recent sessions, purpose forward. Nothing is urgent. Just here.",
+  },
+  {
+    key: "agent",
+    presenceTreatment:
+      "Agent present. Configuration and status forward. Recent runs surface. What is live comes forward.",
+  },
+  {
+    key: "draft",
+    presenceTreatment:
+      "Draft in view. Spec and status forward. Title prominent. What needs attention surfaces first.",
+  },
+  {
+    key: "service",
+    presenceTreatment:
+      "Service connection surface. Status and controls forward. Other services present but quiet.",
+  },
+  {
+    key: "frame",
+    presenceTreatment:
+      "Frame detail. Configuration, preview, and structure in view. Draft state surfaces when present.",
+  },
+  {
+    key: "boardDef",
+    presenceTreatment:
+      "Board definition in view. Structure and access rules present. Declarative spec forward.",
+  },
+  {
+    key: "domain",
+    presenceTreatment:
+      "Domain breathing. Active journeys present — what is moving comes forward, what is settled is present but quiet.",
+  },
+]
+
+/** Merge board-specific treatment overrides onto the universal subject list. */
+export function mergeViewStates(
+  overrides: Partial<Record<PresenceSubject, string>> = {},
+): ContextViewStateDef[] {
+  return UNIVERSAL_VIEW_STATE_DEFAULTS.map((vs) => ({
+    ...vs,
+    presenceTreatment: overrides[vs.key] ?? vs.presenceTreatment,
+  }))
 }
 
 // Access control
@@ -159,38 +226,12 @@ export const IDE_BOARD_DEF: UniversalBoardDef = {
     kipMode: "ide",
   },
   contextSurface: {
-    viewStates: [
-      {
-        key: "journey",
-        presenceTreatment:
-          "Journey alive. Paths and active Moments come forward. Threads surface. What is moving comes forward. What is settled recedes. The panel is aware of what Path you are on.",
-      },
-      {
-        key: "moment",
-        presenceTreatment:
-          "Moment in focus. Content and narrative forward. Journey context present but quiet. Path prelude visible above the content.",
-      },
-      {
-        key: "keeper",
-        presenceTreatment:
-          "Keeper present. Active journeys, recent sessions, purpose forward. Nothing is urgent. Just here.",
-      },
-      {
-        key: "draft",
-        presenceTreatment:
-          "Draft in view. Spec and status forward. Title prominent. What needs attention surfaces first.",
-      },
-      {
-        key: "service",
-        presenceTreatment:
-          "Service connection surface. Status and controls forward. Other services present but quiet.",
-      },
-      {
-        key: "domain",
-        presenceTreatment:
-          "Domain breathing. Active journeys present — what is moving comes forward, what is settled is present but quiet. Not notifying. Not managing. Present.",
-      },
-    ],
+    viewStates: mergeViewStates({
+      service:
+        "Service connection surface. Status and controls forward. Other services present but quiet.",
+      domain:
+        "Domain breathing. Active journeys present — what is moving comes forward, what is settled is present but quiet. Not notifying. Not managing. Present.",
+    }),
     idleSubject: "domain",
   },
 }
@@ -216,38 +257,14 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
     kipMode: "agent",
   },
   contextSurface: {
-    viewStates: [
-      {
-        key: "agent",
-        presenceTreatment:
-          "Agent present. Configuration and status forward. Recent runs surface. What is live comes forward. What is idle recedes.",
-      },
-      {
-        key: "journey",
-        presenceTreatment:
-          "Journey alive. Paths and active Moments come forward. Threads surface. What is moving comes forward. What is settled recedes. The panel is aware of what Path you are on.",
-      },
-      {
-        key: "moment",
-        presenceTreatment:
-          "Moment in focus. Content and narrative forward. Journey context present but quiet. Path prelude visible above the content.",
-      },
-      {
-        key: "keeper",
-        presenceTreatment:
-          "Keeper present. Active journeys, recent sessions, purpose forward. Nothing is urgent. Just here.",
-      },
-      {
-        key: "draft",
-        presenceTreatment:
-          "Draft in view. Agent spec and status forward. What needs attention surfaces first.",
-      },
-      {
-        key: "domain",
-        presenceTreatment:
-          "Domain in view. Agents and their status present. What is running surfaces. What is idle is present but quiet.",
-      },
-    ],
+    viewStates: mergeViewStates({
+      agent:
+        "Agent present. Configuration and status forward. Recent runs surface. What is live comes forward. What is idle recedes.",
+      draft:
+        "Draft in view. Agent spec and status forward. What needs attention surfaces first.",
+      domain:
+        "Domain in view. Agents and their status present. What is running surfaces. What is idle is present but quiet.",
+    }),
     idleSubject: "domain",
   },
 }
@@ -273,28 +290,16 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
     kipMode: "domain",
   },
   contextSurface: {
-    viewStates: [
-      {
-        key: "journey",
-        presenceTreatment:
-          "Journey alive. Moments surface. Paths present. What is moving comes forward. What is settled is present but quiet.",
-      },
-      {
-        key: "moment",
-        presenceTreatment:
-          "Moment in focus. Narrative and context forward. Journey context present but quiet.",
-      },
-      {
-        key: "keeper",
-        presenceTreatment:
-          "Keeper present. Purpose and journeys forward. Nothing is urgent — just here.",
-      },
-      {
-        key: "domain",
-        presenceTreatment:
-          "Domain overview. Journeys and recent activity present. What is alive surfaces. What is settled recedes.",
-      },
-    ],
+    viewStates: mergeViewStates({
+      journey:
+        "Journey alive. Moments surface. Paths present. What is moving comes forward. What is settled is present but quiet.",
+      moment:
+        "Moment in focus. Narrative and context forward. Journey context present but quiet.",
+      keeper:
+        "Keeper present. Purpose and journeys forward. Nothing is urgent — just here.",
+      domain:
+        "Domain overview. Journeys and recent activity present. What is alive surfaces. What is settled recedes.",
+    }),
     idleSubject: "domain",
   },
 }
@@ -322,23 +327,14 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
     kipMode: "designer",
   },
   contextSurface: {
-    viewStates: [
-      {
-        key: "frame",
-        presenceTreatment:
-          "Frame detail. Configuration, preview, and structure in view. Draft state surfaces when present. Direct-edit available on preview.",
-      },
-      {
-        key: "boardDef",
-        presenceTreatment:
-          "Board definition in view. Structure and access rules present. Declarative spec forward.",
-      },
-      {
-        key: "domain",
-        presenceTreatment:
-          "Design surface. Frame configuration in view. What is being edited surfaces. Structural context present.",
-      },
-    ],
+    viewStates: mergeViewStates({
+      frame:
+        "Frame detail. Configuration, preview, and structure in view. Draft state surfaces when present. Direct-edit available on preview.",
+      boardDef:
+        "Board definition in view. Structure and access rules present. Declarative spec forward.",
+      domain:
+        "Design surface. Frame configuration in view. What is being edited surfaces. Structural context present.",
+    }),
     idleSubject: "domain",
   },
 }

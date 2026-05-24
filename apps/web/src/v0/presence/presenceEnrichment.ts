@@ -8,6 +8,14 @@
 
 import { apiFetch } from "../../lib/api"
 import { KipApi } from "../../lib/kipApi"
+import { BOARD_DEFINITIONS } from "../boards/UniversalBoardDefinition"
+import { BOARD_FRAMES } from "../boards/frameCatalog"
+import { FRAME_TO_JSON_KEY } from "../shell/frameRegistryMap"
+import {
+  fetchDomainBoardData,
+  normalizeFrameProps,
+  resolveFrameInstanceByKey,
+} from "./frameProps"
 
 export interface RelatedItem {
   id: string
@@ -42,6 +50,28 @@ export interface EnrichmentResult {
   meta?: PresenceMeta
   relatedSections: RelatedSection[]
   hiddenFields: string[]
+}
+
+/** Optional context passed into enrichment — not stored on the record. */
+export interface PresenceEnrichmentContext {
+  domainSlug?: string
+  domainName?: string
+  activeBoardForFrames?: string
+  domainId?: string
+}
+
+type JourneyBrief = {
+  id: string
+  name: string
+  momentCount?: number
+}
+
+type RecentMoment = {
+  id: string
+  title: string
+  keptAt: string | null
+  createdAt: string
+  journeyName?: string | null
 }
 
 function formatWhenShort(iso: string | null | undefined): string {
@@ -480,6 +510,239 @@ async function enrichDraft(
   }
 }
 
+async function enrichDomain(
+  record: Record<string, unknown>,
+  domainId: string,
+  ctx?: PresenceEnrichmentContext,
+): Promise<EnrichmentResult> {
+  const relatedSections: RelatedSection[] = []
+
+  if (ctx?.domainName && !record.name) {
+    record.name = ctx.domainName
+  }
+
+  try {
+    const journeysRes = await apiFetch(
+      `/api/journeys?domainId=${encodeURIComponent(domainId)}`,
+    )
+    const journeyList =
+      (journeysRes as { data?: { journeys?: JourneyBrief[] } })?.data?.journeys ?? []
+    const journeys = Array.isArray(journeyList) ? journeyList : []
+    const moving = journeys.filter((j) => (j.momentCount ?? 0) > 0)
+    const settled = journeys.filter((j) => !j.momentCount || j.momentCount === 0)
+
+    if (ctx?.domainSlug) {
+      try {
+        const momentsRes = await apiFetch(
+          `/api/v0/moments?domainSlug=${encodeURIComponent(ctx.domainSlug)}&status=kept&limit=12`,
+        )
+        const moments = (momentsRes as { data?: RecentMoment[] })?.data ?? []
+        if (Array.isArray(moments) && moments.length > 0) {
+          relatedSections.push({
+            title: "Recent Moments",
+            items: moments.map((m) => ({
+              id: m.id,
+              label: m.title?.trim() || "Untitled moment",
+              sub: [m.journeyName, formatWhenShort(m.keptAt ?? m.createdAt)]
+                .filter(Boolean)
+                .join(" · ") || undefined,
+              navigateKind: "moment" as const,
+            })),
+          })
+        }
+      } catch {
+        /* ambient feed */
+      }
+    }
+
+    if (moving.length > 0) {
+      relatedSections.push({
+        title: "Moving",
+        items: moving.map((j) => ({
+          id: j.id,
+          label: j.name || "Untitled",
+          sub:
+            j.momentCount != null
+              ? `${j.momentCount} moment${j.momentCount === 1 ? "" : "s"}`
+              : undefined,
+          navigateKind: "journey" as const,
+        })),
+      })
+    }
+
+    if (settled.length > 0) {
+      relatedSections.push({
+        title: "Present",
+        items: settled.map((j) => ({
+          id: j.id,
+          label: j.name || "Untitled",
+          navigateKind: "journey" as const,
+        })),
+      })
+    }
+
+    const metaParts = [
+      journeys.length > 0
+        ? `${journeys.length} journey${journeys.length === 1 ? "" : "s"}`
+        : null,
+    ].filter(Boolean)
+
+    return {
+      record,
+      meta: { line: metaParts.join(" · ") || undefined },
+      relatedSections,
+      hiddenFields: ["slug", "status"],
+    }
+  } catch {
+    return { record, relatedSections, hiddenFields: ["slug", "status"] }
+  }
+}
+
+async function enrichFrame(
+  record: Record<string, unknown>,
+  frameKey: string,
+  ctx?: PresenceEnrichmentContext,
+): Promise<EnrichmentResult> {
+  const activeBoard = ctx?.activeBoardForFrames ?? "domain"
+  const frames = BOARD_FRAMES[activeBoard] ?? []
+  const frameInfo = frames.find((f) => f.key === frameKey)
+
+  record.name = frameInfo?.name ?? frameKey
+  record.frameKey = frameKey
+  record.boardId = activeBoard
+  record.frameInstanceId = null
+  record.frameProps = []
+  record.pattern = undefined
+  record.visibility = undefined
+  record.description = ""
+  record.frameJson = undefined
+  record.domainSnapshot = undefined
+
+  if (ctx?.domainId) {
+    const boardData = await fetchDomainBoardData(ctx.domainId)
+    if (boardData) {
+      record.domainSnapshot = boardData.domain
+      const instance = resolveFrameInstanceByKey(
+        boardData.board.frames,
+        frameKey,
+        activeBoard,
+      )
+      if (instance) {
+        record.frameInstanceId = instance.id
+        record.pattern = instance.pattern
+        record.visibility = instance.visibility
+        record.frameProps = normalizeFrameProps(instance.props)
+      }
+    }
+  }
+
+  const jsonKey = FRAME_TO_JSON_KEY[frameKey]
+  if (jsonKey && ctx?.domainId) {
+    try {
+      const slug = ctx.domainSlug ?? "default"
+      const frameRes = await apiFetch(
+        `/api/domains/${encodeURIComponent(slug)}/frame`,
+      ).catch(() => null)
+      if (frameRes && typeof frameRes === "object") {
+        const domainFrame = frameRes as Record<string, unknown>
+        const block = domainFrame[jsonKey]
+        if (block && typeof block === "object") {
+          const obj = block as Record<string, unknown>
+          const title =
+            (typeof obj.frame_title === "string" && obj.frame_title) ||
+            (typeof obj.title === "string" && obj.title) ||
+            ""
+          const forward =
+            (typeof obj.forward === "string" && obj.forward) ||
+            (typeof obj.description === "string" && obj.description) ||
+            ""
+          record.description = forward || title || ""
+          record.frameJson = JSON.stringify(block, null, 2)
+        }
+      }
+    } catch {
+      /* frame JSON is ambient */
+    }
+  }
+
+  const propCount = Array.isArray(record.frameProps)
+    ? record.frameProps.length
+    : 0
+
+  return {
+    record,
+    meta: {
+      line: [
+        frameInfo?.name ?? frameKey,
+        record.pattern ? String(record.pattern) : null,
+        propCount > 0 ? `${propCount} prop${propCount === 1 ? "" : "s"}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    },
+    relatedSections: [],
+    hiddenFields: [
+      "frameKey",
+      "boardId",
+      "frameInstanceId",
+      "frameProps",
+      "pattern",
+      "visibility",
+      "frameJson",
+      "domainSnapshot",
+    ],
+  }
+}
+
+async function enrichBoardDef(
+  record: Record<string, unknown>,
+  boardDefId: string,
+): Promise<EnrichmentResult> {
+  const def = BOARD_DEFINITIONS[boardDefId]
+  if (def) {
+    record.title = def.displayName
+    record.boardId = def.boardId
+    record.boardDefId = boardDefId
+  }
+
+  return {
+    record,
+    meta: {
+      line: def
+        ? [
+            def.boardId,
+            def.access.isAdminOnly ? "admin only" : null,
+            def.access.isPrivate ? "private" : null,
+            `${def.contextSurface.viewStates.length} chronicle subjects`,
+          ]
+            .filter(Boolean)
+            .join(" · ") || undefined
+        : undefined,
+    },
+    relatedSections: [],
+    hiddenFields: ["boardId", "boardDefId"],
+  }
+}
+
+async function enrichService(
+  record: Record<string, unknown>,
+  serviceSlug: string,
+): Promise<EnrichmentResult> {
+  const label =
+    serviceSlug.charAt(0).toUpperCase() + serviceSlug.slice(1)
+
+  record.name = label
+  record.slug = serviceSlug
+  record.status = "connected"
+
+  return {
+    record,
+    meta: { line: "Platform integration" },
+    relatedSections: [],
+    hiddenFields: ["slug", "status"],
+  }
+}
+
 async function fetchKeeperRecord(
   objectId: string,
   domainId: string,
@@ -593,6 +856,21 @@ export async function fetchPresenceRecord(
         (res as Record<string, unknown>)
       ) as Record<string, unknown>
     }
+    case "domain":
+      return { id: objectId, name: "" }
+    case "frame":
+      return { frameKey: objectId, name: objectId }
+    case "boardDef": {
+      const def = BOARD_DEFINITIONS[objectId]
+      if (!def) return { boardId: objectId, title: objectId, boardDefId: objectId }
+      return {
+        boardId: def.boardId,
+        title: def.displayName,
+        boardDefId: objectId,
+      }
+    }
+    case "service":
+      return { slug: objectId, name: objectId }
     default:
       return null
   }
@@ -604,7 +882,14 @@ export async function enrichPresenceRecord(
   domainId: string,
   record: Record<string, unknown>,
   domainSlug?: string,
+  ctx?: PresenceEnrichmentContext,
 ): Promise<EnrichmentResult> {
+  const enrichmentCtx: PresenceEnrichmentContext = {
+    domainSlug,
+    domainId,
+    ...ctx,
+  }
+
   switch (objectType) {
     case "moment":
       return enrichMoment(record, domainSlug)
@@ -618,6 +903,14 @@ export async function enrichPresenceRecord(
       return enrichDialog(record)
     case "draft":
       return enrichDraft(record, domainId, objectId)
+    case "domain":
+      return enrichDomain(record, domainId, enrichmentCtx)
+    case "frame":
+      return enrichFrame(record, objectId, enrichmentCtx)
+    case "boardDef":
+      return enrichBoardDef(record, objectId)
+    case "service":
+      return enrichService(record, objectId)
     default:
       return { record, relatedSections: [], hiddenFields: [] }
   }

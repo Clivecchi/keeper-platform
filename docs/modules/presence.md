@@ -5,7 +5,11 @@ Schema-driven Chronicle rendering layer. Resolves and applies per-domain, per-ob
 
 ## 🧱 Key Files
 - `types.ts` — `PresenceLayout` (`focus` | `config`)
-- `KeeperPresenceDefaults.ts` — platform default schemas for all 8 object types (journey, moment, keeper, agent, draft, dialog, service, domain)
+- `propsCatalog.ts` — unified Props Library catalog (single source of truth)
+- `frameProps.ts` — normalize, fetch, persist frame props via domain board-data API
+- `FrameConfigPresence.tsx` — config layout for frame objects (preview, props, quiet JSON)
+- `BoardDefConfigPresence.tsx` — config layout for board definitions (human-readable structure)
+- `KeeperPresenceDefaults.ts` — platform default schemas (journey, moment, keeper, agent, draft, dialog, service, domain, frame, boardDef)
 - `usePresenceSchema.ts` — React hook with 3-level resolution: object override → domain DB → platform default; module-level cache
 - `KeeperPresence.tsx` — schema-driven Chronicle surface; journey focus layout, breadcrumb, related sections, relative timestamps
 - `presenceEnrichment.ts` — fetches records and resolves journey context, paths, sessions per object type
@@ -31,14 +35,32 @@ Enrichment (Domain Board instincts):
 - **Dialog** — scope context + session count via kip/dialogs API
 - **Draft** — summary preview via kip/drafts API
 
-Chronicle views in `UniversalViewPanel` call `ChroniclePresenceView` — they do not assemble their own field lists.
+- **Domain** — moving/present journeys + recent kept moments (domain idle)
+- **Frame** — domain board-data fetch, props via unified catalog + PUT persistence, live preview, quiet JSON (`layout="config"`)
+- **BoardDef** — human-readable nav/conversation/chronicle structure; full spec JSON quiet (`layout="config"`)
+
+Props: one catalog (`propsCatalog.ts`), one persistence path (`frameProps.ts` → `PUT /api/domains/:domainId/board-data`), `normalizeProps()` at every boundary. Legacy Studio sidebar and `DesignBoardFrameDetail` Props tab are orphaned — not deleted.
+
+Chronicle routes exclusively through `ChroniclePresenceView` → `KeeperPresence`. No board-specific panel renderers.
 
 ## ⚠️ Notes & ToDo
+- [ ] Prop edit/reorder/delete in FrameConfigPresence (PropManager-grade CRUD)
 - [ ] `density` prop can be driven by Treatment JSON at board level
 - [ ] `PUT /api/domains/:domainId/presence-schema/:objectType` Design Board write path integration pending
-- [ ] Service type uses `ServicesFrame` in Chronicle — not yet on KeeperPresence
 
 ## 📆 Update Log
+
+### 2026-05-24 — Step 2: Frame and BoardDef as first-class presence types
+- Added `propsCatalog.ts`, `frameProps.ts`, `FrameConfigPresence`, `BoardDefConfigPresence`
+- Frame config: preview, unified props catalog, domain board-data persistence, quiet JSON
+- BoardDef config: human-readable structure (nav, conversation, chronicle subjects), quiet JSON
+- `DesignBoardFrameDetail` superseded — not mounted; retained in codebase
+
+### 2026-05-24 — Universal Chronicle path (Steps 1 + 4)
+- Added `frame`, `boardDef` schemas; domain/service/frame/boardDef enrichment in `presenceEnrichment.ts`
+- Chronicle collapsed to single KeeperPresence path; per-board viewState gates removed
+- `domainDisplayName` prop for domain idle; `PresenceEnrichmentContext` for frame board context
+
 ### 2026-05-24 — KeeperPresence Phase 1: Journey focus parity in Chronicle
 - Replaced dead `context` prop with `layout: PresenceLayout` (`focus` | `config`) on `KeeperPresence`
 - Added `types.ts` exporting `PresenceLayout`

@@ -6,20 +6,16 @@
  * KE3P · Keeper Platform · Universal Board — Right Panel
  *
  * Chronicle is the right panel for all Universal Boards.
- * It is a TreatmentSurface — reads context at runtime, not hardcoded behavior.
+ * Every selection routes through KeeperPresence — no board-specific renderers.
  *
  * Three elements:
  *   Trail Bar    — permanent top, history stack (max 3 visible), feed indicator, lateral slide
- *   Panel Body   — mini-router over panelHistory[currentIndex], opacity dissolve on shift
- *   Idle State   — UniversalViewPanelIdle, domain name + ambient awareness, never empty
+ *   Panel Body   — KeeperPresence for every subject type, opacity dissolve on shift
+ *   Idle State   — KeeperPresence objectType="domain" (never empty)
  *
  * Motion — Framer Motion only at this tier:
  *   Lateral slide on Trail Bar history change (200ms entry, 140ms exit)
  *   Opacity dissolve on Panel Body context shift (200ms entry, 140ms exit)
- *
- * Edit — fields editable by default, no view/edit toggle, debounced autosave at 1000ms.
- *
- * Colors — all hsl(var(--theme-*)) — zero hardcoded values.
  *
  * CRITICAL RULES:
  * - Never call /api/domains/by-slug — domainId is always received as a prop.
@@ -32,16 +28,22 @@ import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch } from "../../../lib/api"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
 import type { UniversalBoardDef } from "../UniversalBoardDefinition"
-import { useBoardDefs } from "../useBoardDefs"
-import { ServicesFrame } from "../../components/ServicesFrame"
-import { DesignBoardFrameDetail } from "../designer/DesignBoardFrameDetail"
 import { ChroniclePresenceView } from "../../presence/ChroniclePresenceView"
-import type { FrameProp } from "../designer/DesignBoardFrameDetail"
-import { BOARD_FRAMES, type FrameItem, BOARD_NAMES } from "../frameCatalog"
+import type { PresenceLayout } from "../../presence/types"
 
 // ─── Trail Types ──────────────────────────────────────────────────────────────
 
-type TrailKind = "domain" | "dialog" | "journey" | "moment" | "keeper" | "draft" | "agent" | "service" | "frame" | "boardDef"
+type TrailKind =
+  | "domain"
+  | "dialog"
+  | "journey"
+  | "moment"
+  | "keeper"
+  | "draft"
+  | "agent"
+  | "service"
+  | "frame"
+  | "boardDef"
 type TrailDirection = "forward" | "back"
 
 interface TrailEntry {
@@ -53,112 +55,27 @@ interface TrailEntry {
   label: string
 }
 
+const TRAIL_KIND_TO_OBJECT_TYPE: Record<TrailKind, string> = {
+  domain: "domain",
+  dialog: "dialog",
+  journey: "journey",
+  moment: "moment",
+  keeper: "keeper",
+  draft: "draft",
+  agent: "agent",
+  service: "service",
+  frame: "frame",
+  boardDef: "boardDef",
+}
+
+const CONFIG_LAYOUT_KINDS = new Set<TrailKind>(["frame", "boardDef"])
+
 // ─── API data shapes ──────────────────────────────────────────────────────────
 
 type JourneyBrief = {
   id: string
   name: string
   momentCount?: number
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function kindLabel(kind: TrailKind, domainName?: string): string {
-  if (kind === "domain") return domainName?.trim() || "Home"
-  if (kind === "dialog") return "Dialog"
-  return kind.charAt(0).toUpperCase() + kind.slice(1)
-}
-
-// ─── Presence primitives ──────────────────────────────────────────────────────
-// Calm. Present. Not loud. Things that matter come forward through weight and position.
-
-function PresenceLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p
-      className="text-[10px] font-semibold uppercase tracking-widest"
-      style={{ color: "hsl(var(--theme-ink-tertiary) / 0.65)" }}
-    >
-      {children}
-    </p>
-  )
-}
-
-function PresenceSection({
-  title,
-  children,
-}: {
-  title: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="mb-4">
-      <p
-        className="text-[9px] font-semibold uppercase tracking-widest mb-2"
-        style={{ color: "hsl(var(--theme-ink-tertiary) / 0.5)" }}
-      >
-        {title}
-      </p>
-      {children}
-    </div>
-  )
-}
-
-function PresenceThread({
-  label,
-  sub,
-  onClick,
-}: {
-  label: string
-  sub?: string
-  onClick?: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full text-left group flex items-start gap-2 py-1.5 transition-opacity hover:opacity-80"
-      style={{ cursor: onClick ? "pointer" : "default" }}
-    >
-      <span
-        className="mt-[6px] w-1 h-1 rounded-full shrink-0 opacity-30 group-hover:opacity-60 transition-opacity"
-        style={{ background: "hsl(var(--theme-ink-tertiary))" }}
-      />
-      <span className="flex-1 min-w-0">
-        <span
-          className="block text-[12px] leading-snug truncate"
-          style={{ color: "hsl(var(--theme-ink-primary))" }}
-        >
-          {label}
-        </span>
-        {sub && (
-          <span
-            className="block text-[10px] leading-snug mt-0.5"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            {sub}
-          </span>
-        )}
-      </span>
-    </button>
-  )
-}
-
-function PresenceShimmer({ width = "w-28" }: { width?: string }) {
-  return (
-    <div
-      className={`h-2.5 ${width} rounded animate-pulse mb-2`}
-      style={{ background: "hsl(var(--theme-surface-elevated) / 0.45)" }}
-    />
-  )
-}
-
-function PresenceDivider() {
-  return (
-    <div
-      className="my-3 shrink-0"
-      style={{ height: 1, background: "hsl(var(--theme-border-soft) / 0.15)" }}
-    />
-  )
 }
 
 // ─── Trail Bar ────────────────────────────────────────────────────────────────
@@ -182,12 +99,10 @@ function TrailBar({
   direction,
   onFeedClick,
 }: TrailBarProps) {
-  // Always show up to 3 entries ending at currentIndex.
   const windowStart = Math.max(0, currentIndex - 2)
   const shown = entries.slice(windowStart, currentIndex + 1)
   const hasOlder = windowStart > 0
 
-  // Direction determines which axis items enter/exit from.
   const xIn = direction === "forward" ? 14 : -14
   const xOut = direction === "forward" ? -14 : 14
 
@@ -199,7 +114,6 @@ function TrailBar({
         minHeight: 36,
       }}
     >
-      {/* Older history compressor — tappable */}
       {hasOlder && (
         <button
           type="button"
@@ -212,10 +126,7 @@ function TrailBar({
         </button>
       )}
 
-      {/* Visible trail chips with lateral slide */}
-      <div
-        className="flex items-center gap-1 flex-1 min-w-0 overflow-hidden"
-      >
+      <div className="flex items-center gap-1 flex-1 min-w-0 overflow-hidden">
         <AnimatePresence initial={false} mode="sync">
           {shown.map((entry, i) => {
             const globalIdx = windowStart + i
@@ -260,7 +171,6 @@ function TrailBar({
         </AnimatePresence>
       </div>
 
-      {/* Feed indicator — tappable, returns to domain feed */}
       {feedCount > 0 && (
         <button
           type="button"
@@ -284,186 +194,16 @@ function TrailBar({
   )
 }
 
-// ─── UniversalViewPanelIdle ───────────────────────────────────────────────────
-// Idle / domain state. Domain name + ambient awareness. Never empty.
-// Named export — done condition requires it to be addressable by name.
-
-export interface UniversalViewPanelIdleProps {
-  domainId: string | null
-  domainName: string
-  /**
-   * When provided the idle state fetches and shows recent kept Moments from the domain —
-   * the domain feed ambient state. Intended for Domain Board.
-   */
-  domainSlug?: string
-  onJourneySelect?: (id: string) => void
-  onMomentSelect?: (id: string) => void
-}
-
-type RecentMoment = { id: string; title: string; keptAt: string | null; createdAt: string; journeyName?: string | null }
-
-function formatWhenShort(iso: string | null | undefined): string {
-  if (!iso) return ""
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ""
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
-}
-
-export function UniversalViewPanelIdle({
-  domainId,
-  domainName,
-  domainSlug,
-  onJourneySelect,
-  onMomentSelect,
-}: UniversalViewPanelIdleProps) {
-  const [journeys, setJourneys] = React.useState<JourneyBrief[] | null>(null)
-  const [moments, setMoments] = React.useState<RecentMoment[] | null>(null)
-
-  React.useEffect(() => {
-    if (!domainId) {
-      setJourneys([])
-      return
-    }
-    let cancelled = false
-    setJourneys(null)
-    apiFetch(`/api/journeys?domainId=${encodeURIComponent(domainId)}`)
-      .then((res: unknown) => {
-        if (cancelled) return
-        const list =
-          (res as { data?: { journeys?: JourneyBrief[] } })?.data?.journeys ?? []
-        setJourneys(Array.isArray(list) ? (list as JourneyBrief[]) : [])
-      })
-      .catch(() => {
-        if (!cancelled) setJourneys([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [domainId])
-
-  // Domain feed: fetch recent kept Moments when domainSlug is provided.
-  React.useEffect(() => {
-    if (!domainSlug) {
-      setMoments(null)
-      return
-    }
-    let cancelled = false
-    apiFetch(`/api/v0/moments?domainSlug=${encodeURIComponent(domainSlug)}&status=kept&limit=12`)
-      .then((res: unknown) => {
-        if (cancelled) return
-        const rows = (res as { data?: RecentMoment[] })?.data
-        setMoments(Array.isArray(rows) ? rows : [])
-      })
-      .catch(() => {
-        if (!cancelled) setMoments([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [domainSlug])
-
-  const moving = journeys?.filter((j) => (j.momentCount ?? 0) > 0) ?? []
-  const settled = journeys?.filter((j) => !j.momentCount || j.momentCount === 0) ?? []
-  const hasMoments = moments && moments.length > 0
-
-  return (
-    <div className="flex flex-col h-full min-h-0">
-      <div
-        className="shrink-0 px-4 pt-4 pb-3"
-        style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.15)" }}
-      >
-        <PresenceLabel>Domain</PresenceLabel>
-        <h2
-          className="text-[14px] font-semibold leading-snug mt-1"
-          style={{ color: "hsl(var(--theme-ink-primary))" }}
-        >
-          {domainName || "—"}
-        </h2>
-      </div>
-
-      <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4">
-        {/* Domain feed: recent kept Moments — shown when domainSlug is provided */}
-        {domainSlug && hasMoments && (
-          <>
-            <PresenceSection title="Recent Moments">
-              {moments!.map((m) => (
-                <PresenceThread
-                  key={m.id}
-                  label={m.title?.trim() || "Untitled moment"}
-                  sub={
-                    [m.journeyName, formatWhenShort(m.keptAt ?? m.createdAt)]
-                      .filter(Boolean)
-                      .join(" · ") || undefined
-                  }
-                  onClick={() => onMomentSelect?.(m.id)}
-                />
-              ))}
-            </PresenceSection>
-            <PresenceDivider />
-          </>
-        )}
-
-        {journeys === null ? (
-          <>
-            <PresenceShimmer width="w-32" />
-            <PresenceShimmer width="w-24" />
-            <PresenceShimmer width="w-28" />
-          </>
-        ) : journeys.length === 0 ? (
-          <p
-            className="text-[12px]"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            No journeys yet.
-          </p>
-        ) : (
-          <>
-            {moving.length > 0 && (
-              <PresenceSection title="Moving">
-                {moving.map((j) => (
-                  <PresenceThread
-                    key={j.id}
-                    label={j.name || "Untitled"}
-                    sub={
-                      j.momentCount != null
-                        ? `${j.momentCount} moment${j.momentCount === 1 ? "" : "s"}`
-                        : undefined
-                    }
-                    onClick={() => onJourneySelect?.(j.id)}
-                  />
-                ))}
-              </PresenceSection>
-            )}
-            {settled.length > 0 && (
-              <>
-                {moving.length > 0 && <PresenceDivider />}
-                <PresenceSection title="Present">
-                  {settled.map((j) => (
-                    <PresenceThread
-                      key={j.id}
-                      label={j.name || "Untitled"}
-                      onClick={() => onJourneySelect?.(j.id)}
-                    />
-                  ))}
-                </PresenceSection>
-              </>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
-
-// ─── Chronicle record views ─────────────────────────────────────────────────
-// Gate 3: thin wrappers — every record type calls KeeperPresence via ChroniclePresenceView.
+// ─── Chronicle record view ────────────────────────────────────────────────────
+// Universal path — every subject type calls KeeperPresence via ChroniclePresenceView.
 
 interface ChronicleRecordViewProps {
   objectType: string
   objectId: string
   domainId: string | null
   domainSlug?: string
+  domainDisplayName?: string
+  layout?: PresenceLayout
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onLabelResolved: (key: string, label: string) => void
@@ -475,6 +215,8 @@ function ChronicleRecordView({
   objectId,
   domainId,
   domainSlug,
+  domainDisplayName,
+  layout = "focus",
   onJourneySelect,
   onMomentSelect,
   onLabelResolved,
@@ -496,6 +238,8 @@ function ChronicleRecordView({
       objectId={objectId}
       domainId={domainId}
       domainSlug={domainSlug}
+      domainDisplayName={domainDisplayName}
+      layout={layout}
       density="standard"
       onLabelResolved={(label) => onLabelResolved(trailKey, label)}
       onJourneySelect={onJourneySelect}
@@ -504,237 +248,14 @@ function ChronicleRecordView({
   )
 }
 
-// ─── ServiceView ──────────────────────────────────────────────────────────────
-
-type ServiceSlugKind = "cloud" | "railway" | "vercel" | "github"
-
-function ServiceView({ serviceSlug }: { serviceSlug: string }) {
-  const boardCtx = useUniversalBoardOptional()
-  const slug = (["cloud", "railway", "vercel", "github"].includes(serviceSlug)
-    ? serviceSlug
-    : "cloud") as ServiceSlugKind
-
-  return (
-    <ServicesFrame
-      initialService={slug}
-      onClose={() => boardCtx?.actions.clearSelection()}
-    />
-  )
-}
-
-// ─── FrameView ────────────────────────────────────────────────────────────────
-// Chronicle view for kipMode === "designer" when a frame key is selected.
-// Self-contained: owns board-data loading (frameInstanceProps + handleAddProp).
-// audience / setAudience are local — never needed outside this component.
-
-type FrameEntry = {
-  boardId: string
-  frameInstanceId: string
-  props: FrameProp[]
-}
-
-interface FrameViewProps {
-  frameKey: string
-  domainId: string | null
-  domainSlug: string
-  activeBoardForFrames: string
-}
-
-function FrameView({ frameKey, domainId, domainSlug, activeBoardForFrames }: FrameViewProps) {
-  const [frameEntryMap, setFrameEntryMap] = React.useState<Map<string, FrameEntry>>(new Map())
-
-  React.useEffect(() => {
-    if (!domainId) return
-    let cancelled = false
-    apiFetch(`/api/domains/${domainId}/board-data`)
-      .then((res: unknown) => {
-        if (cancelled) return
-        const r = res as {
-          board?: {
-            id: string
-            frames: Array<{ id: string; name: string; props: unknown }>
-          }
-        }
-        if (!r?.board) return
-        const map = new Map<string, FrameEntry>()
-        for (const frame of r.board.frames) {
-          const rawProps = Array.isArray(frame.props) ? (frame.props as FrameProp[]) : []
-          map.set(frame.name.toLowerCase(), {
-            boardId: r.board.id,
-            frameInstanceId: frame.id,
-            props: rawProps,
-          })
-        }
-        setFrameEntryMap(map)
-      })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [domainId])
-
-  const frameInfo = React.useMemo((): FrameItem | null => {
-    const frames = BOARD_FRAMES[activeBoardForFrames] ?? []
-    return frames.find((f) => f.key === frameKey) ?? null
-  }, [frameKey, activeBoardForFrames])
-
-  const frameEntry = React.useMemo((): FrameEntry | null => {
-    if (!frameInfo) return null
-    return frameEntryMap.get(frameInfo.name.toLowerCase()) ?? null
-  }, [frameInfo, frameEntryMap])
-
-  const handleAddProp = React.useCallback(
-    async (type: string, config: Record<string, unknown>) => {
-      if (!frameEntry) return
-      const { boardId, frameInstanceId, props: currentProps } = frameEntry
-      const newProp: FrameProp = { id: `prop_${Date.now()}`, type, config }
-      const updatedProps = [...currentProps, newProp]
-
-      setFrameEntryMap((prev) => {
-        const next = new Map(prev)
-        for (const [key, entry] of next) {
-          if (entry.frameInstanceId === frameInstanceId) {
-            next.set(key, { ...entry, props: updatedProps })
-            break
-          }
-        }
-        return next
-      })
-
-      try {
-        await apiFetch(`/api/boards/${boardId}/frames/${frameInstanceId}`, {
-          method: "PATCH",
-          body: JSON.stringify({ props: updatedProps }),
-        })
-      } catch (err) {
-        console.error("[FrameView] props PATCH failed:", err)
-      }
-    },
-    [frameEntry],
-  )
-
-  if (!frameInfo) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-          Frame not found
-        </p>
-      </div>
-    )
-  }
-
-  return (
-    <DesignBoardFrameDetail
-      domainSlug={domainSlug}
-      activeFrameKey={frameKey}
-      activeFrameInfo={frameInfo}
-      frameInstanceProps={frameEntry?.props ?? []}
-      onAddProp={frameEntry ? handleAddProp : null}
-    />
-  )
-}
-
-// ─── BoardDefView ─────────────────────────────────────────────────────────────
-// Chronicle view for kipMode === "designer" when a board definition is selected.
-
-function BoardDefView({ boardDefId }: { boardDefId: string }) {
-  const boardDefs = useBoardDefs()
-  const def = boardDefs.find((d) => d.boardId === boardDefId)
-  if (!def) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-          Board definition not found
-        </p>
-      </div>
-    )
-  }
-
-  const json = JSON.stringify(def, null, 2)
-  const highlighted = json.replace(
-    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
-    (match) => {
-      let color = "hsl(var(--theme-accent-secondary))"
-      if (/^"/.test(match)) {
-        color = /:$/.test(match)
-          ? "hsl(var(--theme-ink-primary))"
-          : "hsl(var(--theme-accent-primary) / 0.8)"
-      } else if (/true|false/.test(match)) {
-        color = "hsl(var(--theme-accent-tertiary, var(--theme-accent-primary)))"
-      } else if (/null/.test(match)) {
-        color = "hsl(var(--theme-ink-tertiary))"
-      }
-      return `<span style="color:${color}">${match}</span>`
-    },
-  )
-
-  return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div
-        className="shrink-0 px-4 pt-4 pb-3"
-        style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.15)" }}
-      >
-        <p
-          className="text-[10px] font-semibold uppercase tracking-widest"
-          style={{ color: "hsl(var(--theme-ink-tertiary) / 0.65)" }}
-        >
-          Board Definition
-        </p>
-        <h2
-          className="text-[14px] font-semibold leading-snug mt-1"
-          style={{ color: "hsl(var(--theme-ink-primary))" }}
-        >
-          {def.displayName}
-        </h2>
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          <span
-            className="rounded-full px-2 py-0.5 text-[10px] font-medium border"
-            style={{
-              background: "hsl(var(--theme-surface-elevated) / 0.5)",
-              color: "hsl(var(--theme-ink-secondary))",
-              borderColor: "hsl(var(--theme-border-soft) / 0.4)",
-            }}
-          >
-            {def.boardId}
-          </span>
-          {def.access.isAdminOnly && (
-            <span
-              className="rounded-full px-2 py-0.5 text-[10px] font-medium border"
-              style={{
-                background: "hsl(var(--theme-status-warning, 38 92% 50%) / 0.12)",
-                color: "hsl(var(--theme-status-warning, 38 92% 32%))",
-                borderColor: "hsl(var(--theme-status-warning, 38 92% 50%) / 0.3)",
-              }}
-            >
-              admin only
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="flex-1 overflow-auto min-h-0 keeper-panel-scroll">
-        <pre
-          className="p-4 text-[11px] leading-relaxed"
-          style={{
-            fontFamily: "ui-monospace, 'Cascadia Code', monospace",
-            color: "hsl(var(--theme-ink-secondary))",
-          }}
-          dangerouslySetInnerHTML={{ __html: highlighted }}
-        />
-      </div>
-    </div>
-  )
-}
-
-
 // ─── PanelBody ────────────────────────────────────────────────────────────────
-// Mini-router — renders the correct view for panelHistory[currentIndex].
-// Opacity dissolve on context shift: 200ms entry, 140ms exit.
+// Universal router — KeeperPresence for every trail kind. Opacity dissolve on shift.
 
 interface PanelBodyProps {
   entry: TrailEntry
-  def: UniversalBoardDef
   domainId: string | null
   domainName: string
   domainSlug?: string
-  activeBoardForFrames?: string
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onLabelResolved: (key: string, label: string) => void
@@ -742,91 +263,42 @@ interface PanelBodyProps {
 
 function PanelBody({
   entry,
-  def: _def,
   domainId,
   domainName,
   domainSlug,
-  activeBoardForFrames = "domain",
   onJourneySelect,
   onMomentSelect,
   onLabelResolved,
 }: PanelBodyProps) {
-  const idleView = (
-    <UniversalViewPanelIdle
-      domainId={domainId}
-      domainName={domainName}
-      domainSlug={domainSlug}
-      onJourneySelect={onJourneySelect}
-      onMomentSelect={onMomentSelect}
-    />
-  )
+  const objectType = TRAIL_KIND_TO_OBJECT_TYPE[entry.kind]
+  const objectId = entry.kind === "domain" ? domainId : entry.id
+  const layout: PresenceLayout = CONFIG_LAYOUT_KINDS.has(entry.kind) ? "config" : "focus"
 
-  function chronicleView(objectType: string): React.ReactNode {
-    if (!entry.id) return idleView
+  function renderPresence(): React.ReactNode {
+    if (!objectId || !domainId) {
+      return (
+        <div className="flex h-full items-center justify-center px-4">
+          <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+            Waiting for domain context…
+          </p>
+        </div>
+      )
+    }
+
     return (
       <ChronicleRecordView
         objectType={objectType}
-        objectId={entry.id}
+        objectId={objectId}
         domainId={domainId}
         domainSlug={domainSlug}
+        domainDisplayName={domainName}
+        layout={layout}
         onJourneySelect={onJourneySelect}
         onMomentSelect={onMomentSelect}
         onLabelResolved={onLabelResolved}
         trailKey={entry.key}
       />
     )
-  }
-
-  function renderView(): React.ReactNode {
-    switch (entry.kind) {
-      case "dialog":
-        return chronicleView("dialog")
-
-      case "frame":
-        return entry.id ? (
-          <FrameView
-            frameKey={entry.id}
-            domainId={domainId}
-            domainSlug={domainSlug ?? ""}
-            activeBoardForFrames={activeBoardForFrames}
-          />
-        ) : (
-          idleView
-        )
-
-      case "boardDef":
-        return entry.id ? (
-          <BoardDefView boardDefId={entry.id} />
-        ) : (
-          idleView
-        )
-
-      case "journey":
-        return chronicleView("journey")
-
-      case "moment":
-        return chronicleView("moment")
-
-      case "keeper":
-        return chronicleView("keeper")
-
-      case "draft":
-        return chronicleView("draft")
-
-      case "agent":
-        return chronicleView("agent")
-
-      case "service":
-        return entry.id ? (
-          <ServiceView serviceSlug={entry.id} />
-        ) : (
-          idleView
-        )
-
-      case "domain":
-      default:
-        return idleView
-    }
   }
 
   return (
@@ -849,30 +321,21 @@ function PanelBody({
           flexDirection: "column",
         }}
       >
-        {renderView()}
+        {renderPresence()}
       </motion.div>
     </AnimatePresence>
   )
 }
 
 // ─── UniversalViewPanel (Chronicle) ──────────────────────────────────────────
-// The Chronicle component. Replaces UniversalContextPanel as the right panel
-// on all Universal Boards.
 
 export interface UniversalViewPanelProps {
-  /** Board definition — drives which presence surfaces are supported. */
+  /** Board definition — presenceTreatment copy only; does not gate routing. */
   def: UniversalBoardDef
-  /** Resolved domain ID — never null by the time this panel renders. */
   domainId: string | null
-  /** Domain display name. */
   domainName: string
-  /**
-   * Domain slug — when provided, the Chronicle idle state shows the domain feed
-   * (recent kept Moments + active Journeys). Intended for Domain Board.
-   */
   domainSlug?: string
 
-  // Explicit selection props — override context values when both are present.
   selectedJourneyId?: string | null
   selectedMomentId?: string | null
   selectedKeeperId?: string | null
@@ -880,13 +343,12 @@ export interface UniversalViewPanelProps {
   selectedAgentId?: string | null
   selectedServiceSlug?: string | null
 
-  // Explicit callbacks.
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
 }
 
 export function UniversalViewPanel({
-  def,
+  def: _def,
   domainId,
   domainName,
   domainSlug,
@@ -901,10 +363,8 @@ export function UniversalViewPanel({
 }: UniversalViewPanelProps) {
   const boardCtx = useUniversalBoardOptional()
 
-  // Merge explicit props with context — explicit props win.
   const resolved = {
-    selectedDialogId:
-      boardCtx?.selection.selectedDialogId ?? null,
+    selectedDialogId: boardCtx?.selection.selectedDialogId ?? null,
     selectedJourneyId:
       selectedJourneyId ?? boardCtx?.selection.selectedJourneyId ?? null,
     selectedMomentId:
@@ -919,37 +379,30 @@ export function UniversalViewPanel({
       selectedServiceSlug ?? boardCtx?.selection.selectedServiceSlug ?? null,
   }
 
-  // Active subjects — def.contextSurface.viewStates drives which kinds Chronicle responds to.
-  const activeSubjects = React.useMemo(
-    () => new Set(def.contextSurface.viewStates.map((vs) => vs.key)),
-    [def],
-  )
-
   const handleJourneySelect =
     onJourneySelect ?? boardCtx?.actions.onJourneySelect
   const handleMomentSelect =
     onMomentSelect ?? boardCtx?.actions.onMomentSelect
 
-  // Resolve active kind + id — priority: frame > boardDef > service > draft > agent > moment > journey > keeper > domain.
-  // Each kind is gated by activeSubjects — if the def doesn't declare it, Chronicle ignores it.
+  // Universal priority — same on every board. viewStates does not gate routing.
   function resolveKindId(): { kind: TrailKind; id: string | null } {
-    if (activeSubjects.has("frame") && boardCtx?.selection.selectedFrameKey)
+    if (boardCtx?.selection.selectedFrameKey)
       return { kind: "frame", id: boardCtx.selection.selectedFrameKey }
-    if (activeSubjects.has("boardDef") && boardCtx?.selection.selectedBoardDefId)
+    if (boardCtx?.selection.selectedBoardDefId)
       return { kind: "boardDef", id: boardCtx.selection.selectedBoardDefId }
-    if (activeSubjects.has("service") && resolved.selectedServiceSlug)
+    if (resolved.selectedServiceSlug)
       return { kind: "service", id: resolved.selectedServiceSlug }
     if (resolved.selectedDialogId)
       return { kind: "dialog", id: resolved.selectedDialogId }
-    if (activeSubjects.has("draft") && resolved.selectedDraftId)
+    if (resolved.selectedDraftId)
       return { kind: "draft", id: resolved.selectedDraftId }
-    if (activeSubjects.has("agent") && resolved.selectedAgentId)
+    if (resolved.selectedAgentId)
       return { kind: "agent", id: resolved.selectedAgentId }
-    if (activeSubjects.has("moment") && resolved.selectedMomentId)
+    if (resolved.selectedMomentId)
       return { kind: "moment", id: resolved.selectedMomentId }
-    if (activeSubjects.has("journey") && resolved.selectedJourneyId)
+    if (resolved.selectedJourneyId)
       return { kind: "journey", id: resolved.selectedJourneyId }
-    if (activeSubjects.has("keeper") && resolved.selectedKeeperId)
+    if (resolved.selectedKeeperId)
       return { kind: "keeper", id: resolved.selectedKeeperId }
     return { kind: "domain", id: null }
   }
@@ -957,9 +410,6 @@ export function UniversalViewPanel({
   const { kind, id } = resolveKindId()
   const contextKey = `${kind}:${id ?? "_"}`
 
-  // ── Label cache ────────────────────────────────────────────────────────────
-  // Maps "kind:id" → resolved record name so revisits show the name immediately
-  // rather than waiting for the view's async fetch to fire onLabelResolved again.
   const labelCache = React.useRef(new Map<string, string>())
 
   function resolveInitialLabel(k: TrailKind, entryId: string | null): string {
@@ -967,8 +417,6 @@ export function UniversalViewPanel({
     return labelCache.current.get(`${k}:${entryId ?? "_"}`) ?? "···"
   }
 
-  // ── Trail history ──────────────────────────────────────────────────────────
-  // Initialise with the current context. Push new entries on context change.
   const [panelHistory, setPanelHistory] = React.useState<TrailEntry[]>(() => [
     {
       key: `${contextKey}:init`,
@@ -981,7 +429,6 @@ export function UniversalViewPanel({
   const [direction, setDirection] = React.useState<TrailDirection>("forward")
   const prevContextKey = React.useRef(contextKey)
 
-  // Push a new trail entry whenever the context key changes.
   React.useEffect(() => {
     if (contextKey === prevContextKey.current) return
     prevContextKey.current = contextKey
@@ -990,7 +437,6 @@ export function UniversalViewPanel({
       key: `${contextKey}:${Date.now()}`,
       kind,
       id,
-      // Use cached name immediately — "···" only if this record was never visited.
       label: resolveInitialLabel(kind, id),
     }
 
@@ -1000,16 +446,11 @@ export function UniversalViewPanel({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contextKey])
 
-  // ── Label resolution ───────────────────────────────────────────────────────
-  // Views call this when they have fetched the record name. Updates the trail
-  // entry label and populates the cache so future trail pushes for this record
-  // start with the correct name instead of "···".
   const handleLabelResolved = React.useCallback(
     (key: string, label: string) => {
       setPanelHistory((prev) =>
         prev.map((e) => {
           if (e.key !== key) return e
-          // Cache by kind:id — next push for this record skips the placeholder.
           labelCache.current.set(`${e.kind}:${e.id ?? "_"}`, label)
           return { ...e, label }
         }),
@@ -1018,7 +459,6 @@ export function UniversalViewPanel({
     [],
   )
 
-  // ── Trail navigation ───────────────────────────────────────────────────────
   const handleNavigate = React.useCallback(
     (index: number) => {
       const clamped = Math.max(0, Math.min(panelHistory.length - 1, index))
@@ -1066,8 +506,6 @@ export function UniversalViewPanel({
     [currentIndex, panelHistory, boardCtx],
   )
 
-  // ── Feed polling ───────────────────────────────────────────────────────────
-  // Polls every 60 seconds. Counts journeys with active moments as the feed signal.
   const [feedCount, setFeedCount] = React.useState(0)
 
   React.useEffect(() => {
@@ -1109,7 +547,6 @@ export function UniversalViewPanel({
     boardCtx?.actions.clearSelection()
   }, [panelHistory, handleNavigate, boardCtx])
 
-  // Guard: always render something — fall back to first entry if index is off.
   const currentEntry =
     panelHistory[currentIndex] ?? panelHistory[0] ?? {
       key: "idle",
@@ -1130,7 +567,6 @@ export function UniversalViewPanel({
         color: "hsl(var(--theme-ink-primary))",
       }}
     >
-      {/* Trail Bar — permanent top */}
       <TrailBar
         entries={panelHistory}
         currentIndex={currentIndex}
@@ -1140,7 +576,6 @@ export function UniversalViewPanel({
         onFeedClick={handleFeedClick}
       />
 
-      {/* Panel Body — mini-router, opacity dissolve on shift */}
       <div
         style={{
           flex: 1,
@@ -1152,11 +587,9 @@ export function UniversalViewPanel({
       >
         <PanelBody
           entry={currentEntry}
-          def={def}
           domainId={domainId}
           domainName={domainName}
           domainSlug={domainSlug}
-          activeBoardForFrames={boardCtx?.selection.activeBoardForFrames ?? "domain"}
           onJourneySelect={handleJourneySelect}
           onMomentSelect={handleMomentSelect}
           onLabelResolved={handleLabelResolved}

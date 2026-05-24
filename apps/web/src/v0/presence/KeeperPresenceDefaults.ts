@@ -126,6 +126,24 @@ export const PRESENCE_SCHEMA_DEFAULTS: Record<string, ObjectPresenceSchema> = {
       slug:        { role: 'ambient',   minDensity: 'comfortable',        editable: false },
     },
   },
+
+  frame: {
+    objectType: 'frame',
+    fields: {
+      name:        { role: 'primary',   always: true,                     editable: false },
+      description: { role: 'secondary', minDensity: 'standard',           editable: false },
+      frameKey:    { role: 'quiet',     always: true,                     editable: false, label: 'Key' },
+      boardId:     { role: 'ambient',   minDensity: 'comfortable',        editable: false, label: 'Board' },
+    },
+  },
+
+  boardDef: {
+    objectType: 'boardDef',
+    fields: {
+      title:       { role: 'primary',   always: true,                   editable: false },
+      boardId:     { role: 'quiet',     always: true,                   editable: false, label: 'ID' },
+    },
+  },
 }
 
 /** Resolve a field label: explicit label > field key formatted as title case */
