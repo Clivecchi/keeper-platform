@@ -166,9 +166,12 @@ function ChevronLeftIcon() {
 
 function BoardNavCard({
   title,
+  subtitle,
   items,
 }: {
   title: string
+  /** Optional mono label shown opposite the title (e.g. active board id for Frames). */
+  subtitle?: string
   items: SidebarCardItem[]
 }) {
   return (
@@ -180,7 +183,7 @@ function BoardNavCard({
       }}
     >
       <div
-        className="px-3 py-2"
+        className="px-3 py-2 flex items-center justify-between gap-2"
         style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.12)" }}
       >
         <p
@@ -189,6 +192,14 @@ function BoardNavCard({
         >
           {title}
         </p>
+        {subtitle ? (
+          <p
+            className="text-[10px] font-mono truncate"
+            style={{ color: "hsl(var(--theme-ink-tertiary) / 0.6)" }}
+          >
+            {subtitle}
+          </p>
+        ) : null}
       </div>
       <div className="py-1">
         {items.map((item) => (
@@ -202,6 +213,20 @@ function BoardNavCard({
               borderLeft: `2px solid ${item.isSelected ? "hsl(var(--theme-ink-primary))" : "transparent"}`,
             }}
           >
+            {item.description === "draft" || item.description === "live" ? (
+              <span
+                className="shrink-0 rounded-full"
+                style={{
+                  width: 6,
+                  height: 6,
+                  background:
+                    item.description === "draft"
+                      ? "hsl(38 92% 50%)"
+                      : "hsl(152 69% 43%)",
+                }}
+                title={item.description === "draft" ? "Draft differs from live" : "Live"}
+              />
+            ) : null}
             <span
               className="flex-1 text-[12px] leading-snug truncate"
               style={{
@@ -245,91 +270,6 @@ function BoardNavDivider({ label }: { label: string }) {
         className="flex-1"
         style={{ height: 1, background: "hsl(var(--theme-border-soft) / 0.25)" }}
       />
-    </div>
-  )
-}
-
-// ─── FramesSidebarCard ────────────────────────────────────────────────────────
-// Renders the Frames section for designer mode. Uses the same panel chrome as
-// SidebarCard but adds live/draft status dots per row.
-
-function FramesSidebarCard({
-  items,
-  activeBoardForFrames,
-}: {
-  items: SidebarCardItem[]
-  activeBoardForFrames: string
-}) {
-  return (
-    <div
-      className="rounded-lg overflow-hidden"
-      style={{
-        border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
-        background: "hsl(var(--theme-surface-elevated) / 0.15)",
-      }}
-    >
-      <div
-        className="px-3 py-2 flex items-center justify-between"
-        style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.15)" }}
-      >
-        <p
-          className="text-[10px] font-semibold uppercase tracking-widest"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-        >
-          Frames
-        </p>
-        <p
-          className="text-[10px] font-mono"
-          style={{ color: "hsl(var(--theme-ink-tertiary) / 0.6)" }}
-        >
-          {activeBoardForFrames}
-        </p>
-      </div>
-      <div className="py-1">
-        {items.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={item.onClick}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors"
-            style={{
-              background: item.isSelected ? "hsl(var(--theme-surface-elevated))" : "transparent",
-              borderLeft: `2px solid ${item.isSelected ? "hsl(var(--theme-ink-primary))" : "transparent"}`,
-            }}
-          >
-            <span
-              className="shrink-0 rounded-full"
-              style={{
-                width: 6,
-                height: 6,
-                background: item.description === "draft"
-                  ? "hsl(38 92% 50%)"
-                  : "hsl(152 69% 43%)",
-              }}
-              title={item.description === "draft" ? "Draft differs from live" : "Live"}
-            />
-            <span
-              className="flex-1 text-[12px] leading-snug truncate"
-              style={{
-                color: item.isSelected
-                  ? "hsl(var(--theme-ink-primary))"
-                  : "hsl(var(--theme-ink-secondary))",
-                fontWeight: item.isSelected ? 500 : 400,
-              }}
-            >
-              {item.label}
-            </span>
-          </button>
-        ))}
-        {items.length === 0 && (
-          <p
-            className="px-3 py-2 text-[11px]"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            No frames
-          </p>
-        )}
-      </div>
     </div>
   )
 }
@@ -401,7 +341,7 @@ export function UniversalNavPanel({
 
   // ── Fetch: Dialogs ───────────────────────────────────────────────────────
   React.useEffect(() => {
-    if (!domainId) return
+    if (!domainId || !def.nav.sections.dialogs) return
     let cancelled = false
     setDialogs(null)
     setDialogError(null)
@@ -418,11 +358,11 @@ export function UniversalNavPanel({
         }
       })
     return () => { cancelled = true }
-  }, [domainId, dialogListVersion])
+  }, [domainId, def.nav.sections.dialogs, dialogListVersion])
 
   // ── Fetch: Journeys ──────────────────────────────────────────────────────
   React.useEffect(() => {
-    if (!domainId) return
+    if (!domainId || !def.nav.sections.journeys) return
     let cancelled = false
     setJourneys(null)
     setJourneyError(null)
@@ -439,11 +379,11 @@ export function UniversalNavPanel({
         }
       })
     return () => { cancelled = true }
-  }, [domainId, journeyListVersion])
+  }, [domainId, def.nav.sections.journeys, journeyListVersion])
 
   // ── Fetch: Keepers ───────────────────────────────────────────────────────
   React.useEffect(() => {
-    if (!domainId) return
+    if (!domainId || !def.nav.sections.keepers) return
     let cancelled = false
     setKeepers(null)
     setKeeperError(null)
@@ -460,7 +400,7 @@ export function UniversalNavPanel({
         }
       })
     return () => { cancelled = true }
-  }, [domainId, keeperListVersion])
+  }, [domainId, def.nav.sections.keepers, keeperListVersion])
 
   // ── Fetch: Drafts — only when def.nav.sections.drafts is true ──────────
   React.useEffect(() => {
@@ -587,9 +527,17 @@ export function UniversalNavPanel({
 
   const showDrafts = def.nav.sections.drafts
   const showAgents = def.nav.sections.agents
+  const showDialogs = def.nav.sections.dialogs
+  const showJourneys = def.nav.sections.journeys
+  const showKeepers = def.nav.sections.keepers
   const showFrames = def.nav.sections.frames ?? false
   const showBoardDefs = def.nav.sections.boardDefs ?? false
-  const hasBoardNav = showAgents || (def.nav.integrations?.length ?? 0) > 0
+  const hasDomainNav = showDialogs || showJourneys || showKeepers || showDrafts
+  const hasBoardNav =
+    showAgents ||
+    (def.nav.integrations?.length ?? 0) > 0 ||
+    showFrames ||
+    showBoardDefs
 
   const integrationItems: SidebarCardItem[] = (def.nav.integrations ?? []).map((item) => ({
     id: item.id,
@@ -682,46 +630,58 @@ export function UniversalNavPanel({
       {/* Scrollable SidebarCards — space-y-3 matches IDEBoardNav */}
       <div className="keeper-panel-scroll flex-1 min-h-0 space-y-3 overflow-y-auto p-3">
 
-        {/* Dialogs */}
-        <SidebarCard
-          title="Dialogs"
-          description={!domainId ? "Loading…" : countLabel(dialogs?.length ?? null, "dialog")}
-          items={slice("dialogs", allDialogItems).length ? slice("dialogs", allDialogItems) : undefined}
-          onTitleClick={() => toggleExpanded("dialogs")}
-          onAdd={() => { /* TODO: wire to dialog create callback in Moment 2.6 */ }}
-        />
-        {dialogError && (
-          <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
-            {dialogError}
-          </p>
+        {/* Dialogs — Domain Nav */}
+        {showDialogs && (
+          <>
+            <SidebarCard
+              title="Dialogs"
+              description={!domainId ? "Loading…" : countLabel(dialogs?.length ?? null, "dialog")}
+              items={slice("dialogs", allDialogItems).length ? slice("dialogs", allDialogItems) : undefined}
+              onTitleClick={() => toggleExpanded("dialogs")}
+              onAdd={() => { /* TODO: wire to dialog create callback in Moment 2.6 */ }}
+            />
+            {dialogError && (
+              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                {dialogError}
+              </p>
+            )}
+          </>
         )}
 
-        {/* Journeys */}
-        <SidebarCard
-          title="Journeys"
-          description={!domainId ? "Loading…" : countLabel(journeys?.length ?? null, "journey")}
-          items={slice("journeys", allJourneyItems).length ? slice("journeys", allJourneyItems) : undefined}
-          onTitleClick={() => toggleExpanded("journeys")}
-          onAdd={() => { /* TODO: wire to journey create callback in Moment 2.6 */ }}
-        />
-        {journeyError && (
-          <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
-            {journeyError}
-          </p>
+        {/* Journeys — Domain Nav */}
+        {showJourneys && (
+          <>
+            <SidebarCard
+              title="Journeys"
+              description={!domainId ? "Loading…" : countLabel(journeys?.length ?? null, "journey")}
+              items={slice("journeys", allJourneyItems).length ? slice("journeys", allJourneyItems) : undefined}
+              onTitleClick={() => toggleExpanded("journeys")}
+              onAdd={() => { /* TODO: wire to journey create callback in Moment 2.6 */ }}
+            />
+            {journeyError && (
+              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                {journeyError}
+              </p>
+            )}
+          </>
         )}
 
-        {/* Keepers */}
-        <SidebarCard
-          title="Keepers"
-          description={!domainId ? "Loading…" : countLabel(keepers?.length ?? null, "keeper")}
-          items={slice("keepers", allKeeperItems).length ? slice("keepers", allKeeperItems) : undefined}
-          onTitleClick={() => toggleExpanded("keepers")}
-          onAdd={() => { /* TODO: wire to keeper create callback in Moment 2.6 */ }}
-        />
-        {keeperError && (
-          <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
-            {keeperError}
-          </p>
+        {/* Keepers — Domain Nav */}
+        {showKeepers && (
+          <>
+            <SidebarCard
+              title="Keepers"
+              description={!domainId ? "Loading…" : countLabel(keepers?.length ?? null, "keeper")}
+              items={slice("keepers", allKeeperItems).length ? slice("keepers", allKeeperItems) : undefined}
+              onTitleClick={() => toggleExpanded("keepers")}
+              onAdd={() => { /* TODO: wire to keeper create callback in Moment 2.6 */ }}
+            />
+            {keeperError && (
+              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                {keeperError}
+              </p>
+            )}
+          </>
         )}
 
         {/* Drafts — def.nav.sections.drafts only */}
@@ -743,7 +703,7 @@ export function UniversalNavPanel({
         )}
 
         {/* Board Nav — visually distinct from Domain Nav above */}
-        {hasBoardNav && <BoardNavDivider label="Board" />}
+        {hasDomainNav && hasBoardNav && <BoardNavDivider label="Board" />}
 
         {/* Integrations — IDE Board Board Nav layer */}
         {integrationItems.length > 0 && (
@@ -765,20 +725,18 @@ export function UniversalNavPanel({
           </>
         )}
 
-        {/* Frames — def.nav.sections.frames only */}
+        {/* Frames — Design Board Board Nav layer */}
         {showFrames && (
-          <FramesSidebarCard
+          <BoardNavCard
+            title="Frames"
+            subtitle={boardCtx?.selection.activeBoardForFrames ?? "domain"}
             items={frameItems}
-            activeBoardForFrames={boardCtx?.selection.activeBoardForFrames ?? "domain"}
           />
         )}
 
-        {/* Board Definitions — def.nav.sections.boardDefs only */}
+        {/* Board Definitions — Design Board Board Nav layer */}
         {showBoardDefs && boardDefItems.length > 0 && (
-          <SidebarCard
-            title="Board Definitions"
-            items={boardDefItems}
-          />
+          <BoardNavCard title="Board Definitions" items={boardDefItems} />
         )}
 
       </div>

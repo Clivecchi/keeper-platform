@@ -50,6 +50,8 @@ export interface SidebarCardItem {
   onClick?: () => void
   /** When true, shows the item as selected in the list (e.g. IDE nav) */
   isSelected?: boolean
+  /** Optional status hint — e.g. "live" | "draft" for frame rows in Board Nav */
+  description?: string
 }
 
 export interface SidebarCardProps {

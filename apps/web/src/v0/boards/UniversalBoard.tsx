@@ -47,7 +47,6 @@ import { apiFetch } from "../../lib/api"
 import { KeeperBoardPanelGroup } from "./KeeperBoardPanelGroup"
 import type { KeeperBoardKind } from "./KeeperBoardPanelGroup"
 import { UniversalNavPanel } from "./UniversalNavPanel"
-import { UniversalSwitcherPanel } from "./panels/UniversalSwitcherPanel"
 import { UniversalViewPanel } from "./panels/UniversalViewPanel"
 import { UniversalBoardProvider, useUniversalBoard } from "./UniversalBoardContext"
 import { DesignerDraftProvider } from "./DesignerDraftContext"
@@ -340,9 +339,7 @@ function UniversalBoardShell({
               left={
                 leftRenderProp
                   ? leftRenderProp(leftProps)
-                  : def.nav.variant === 'switcher'
-                    ? <UniversalSwitcherPanel />
-                    : (
+                  : (
                       <UniversalNavPanel
                         domainId={domainId}
                         domainSlug={slug}

@@ -23,6 +23,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-05-23 — Gate 2 follow-up: Design Board nav shell parity
+- Removed `nav.variant: 'switcher'` — Design Board now uses `UniversalNavPanel` like every other board.
+- Frames + Board Definitions render as `BoardNavCard` (same Board Nav treatment as IDE Integrations / Agent Agents).
+- Domain Nav sections (Dialogs, Journeys, Keepers) gated on `def.nav.sections.*` flags.
+
 ### 2026-05-23 — Gate 2: full Universal Board compliance
 - **Dialog transport:** Design Board uses `useAgentDialog` + `KipApi.runAgent` (divergent `/kip/designer` path removed from hook).
 - **Nav:** Domain Nav vs Board Nav layers — `BoardNavCard` + divider; IDE Integrations (Vercel, Railway, GitHub) in Board Nav; Instruments removed.

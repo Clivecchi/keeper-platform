@@ -311,7 +311,6 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
   displayName: "Design Board",
   access: { isPrivate: true, isAdminOnly: true, requiresDensity: true },
   nav: {
-    variant: 'switcher',
     sections: {
       dialogs: false,
       journeys: false,
