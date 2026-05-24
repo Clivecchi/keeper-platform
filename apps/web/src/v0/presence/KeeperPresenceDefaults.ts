@@ -45,10 +45,11 @@ export const PRESENCE_SCHEMA_DEFAULTS: Record<string, ObjectPresenceSchema> = {
   journey: {
     objectType: 'journey',
     fields: {
-      name:        { role: 'primary',   always: true,                     editable: true  },
-      forward:     { role: 'secondary', minDensity: 'standard',           editable: true  },
-      keeperName:  { role: 'ambient',   minDensity: 'comfortable',        editable: false },
-      createdAt:   { role: 'quiet',     always: true,                     editable: false },
+      name:                { role: 'primary',   always: true,             editable: true  },
+      forward:             { role: 'secondary', minDensity: 'standard',   editable: true  },
+      momentCountSummary:  { role: 'ambient',   minDensity: 'standard',   editable: false, label: 'Moments' },
+      keeperName:          { role: 'ambient',   minDensity: 'comfortable', editable: false },
+      createdAt:           { role: 'quiet',     always: true,             editable: false },
     },
   },
 
@@ -57,9 +58,9 @@ export const PRESENCE_SCHEMA_DEFAULTS: Record<string, ObjectPresenceSchema> = {
     fields: {
       title:       { role: 'primary',   always: true,                     editable: true  },
       narrative:   { role: 'secondary', minDensity: 'standard',           editable: true  },
-      pathName:    { role: 'ambient',   minDensity: 'comfortable',        editable: false },
-      journeyName: { role: 'ambient',   minDensity: 'comfortable',        editable: false },
-      createdAt:   { role: 'quiet',     always: true,                     editable: false },
+      journeyName: { role: 'ambient',   minDensity: 'standard',           editable: false, label: 'Journey' },
+      pathName:    { role: 'ambient',   minDensity: 'comfortable',        editable: false, label: 'Path' },
+      updatedAt:   { role: 'quiet',     always: true,                     editable: false },
     },
   },
 
@@ -68,7 +69,7 @@ export const PRESENCE_SCHEMA_DEFAULTS: Record<string, ObjectPresenceSchema> = {
     fields: {
       title:       { role: 'primary',   always: true,                     editable: true  },
       purpose:     { role: 'secondary', minDensity: 'standard',           editable: true  },
-      keeperType:  { role: 'ambient',   minDensity: 'comfortable',        editable: false },
+      keeperType:  { role: 'ambient',   minDensity: 'comfortable',        editable: false, label: 'Type' },
       createdAt:   { role: 'quiet',     always: true,                     editable: false },
     },
   },
@@ -90,8 +91,9 @@ export const PRESENCE_SCHEMA_DEFAULTS: Record<string, ObjectPresenceSchema> = {
     fields: {
       title:     { role: 'primary',   always: true,                       editable: true  },
       status:    { role: 'quiet',     always: true,                       editable: false },
-      data:      { role: 'secondary', minDensity: 'standard',             editable: false },
-      agentName: { role: 'ambient',   minDensity: 'comfortable',          editable: false },
+      summary:   { role: 'secondary', minDensity: 'standard',             editable: false },
+      kind:      { role: 'ambient',   minDensity: 'comfortable',          editable: false },
+      updatedAt: { role: 'quiet',     minDensity: 'standard',             editable: false, label: 'Updated' },
     },
   },
 
@@ -99,9 +101,9 @@ export const PRESENCE_SCHEMA_DEFAULTS: Record<string, ObjectPresenceSchema> = {
     objectType: 'dialog',
     fields: {
       title:        { role: 'primary',   always: true,                    editable: true  },
-      context:      { role: 'secondary', minDensity: 'standard',          editable: false },
-      sessionCount: { role: 'ambient',   minDensity: 'comfortable',       editable: false },
-      updated_at:   { role: 'quiet',     always: true,                    editable: false },
+      context:      { role: 'secondary', minDensity: 'standard',          editable: false, label: 'Scope' },
+      sessionCount: { role: 'ambient',   minDensity: 'standard',          editable: false, label: 'Sessions' },
+      updated_at:   { role: 'quiet',     always: true,                    editable: false, label: 'Updated' },
     },
   },
 
