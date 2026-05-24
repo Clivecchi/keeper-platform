@@ -14,7 +14,7 @@ export interface RelatedItem {
   label: string
   sub?: string
   preview?: string
-  navigateKind?: "journey" | "moment"
+  navigateKind?: "journey" | "moment" | "keeper"
 }
 
 export interface RelatedSection {
@@ -30,6 +30,10 @@ export interface PresenceBreadcrumb {
 export interface PresenceMeta {
   /** Quiet inline stats under the title — e.g. "17 moments · Created Feb 8" */
   line?: string
+  /** Structured header meta for journey focus layout */
+  keeper?: { id: string; title: string }
+  createdAt?: string
+  momentCount?: number
 }
 
 export interface EnrichmentResult {
@@ -47,17 +51,32 @@ function formatWhenShort(iso: string | null | undefined): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
 }
 
-function formatKeptLabel(
+function formatRelativeKept(
   keptAt: unknown,
   createdAt: unknown,
 ): string | undefined {
-  if (typeof keptAt === "string" && keptAt) {
-    return `Kept ${formatWhenShort(keptAt)}`
+  const keptIso = typeof keptAt === "string" && keptAt ? keptAt : null
+  const iso = keptIso ?? (typeof createdAt === "string" ? createdAt : "")
+  if (!iso) return undefined
+
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return undefined
+
+  const diff = Date.now() - d.getTime()
+  const days = Math.floor(diff / 86_400_000)
+
+  if (days < 30) {
+    const rel =
+      days === 0 ? "today" : days === 1 ? "yesterday" : `${days}d ago`
+    return keptIso ? `Kept ${rel}` : rel
   }
-  if (typeof createdAt === "string" && createdAt) {
-    return formatWhenShort(createdAt)
-  }
-  return undefined
+
+  const abs = d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
+  return keptIso ? `Kept ${abs}` : abs
 }
 
 function normalizeJourneyPaths(raw: Record<string, unknown>) {
@@ -65,6 +84,7 @@ function normalizeJourneyPaths(raw: Record<string, unknown>) {
   return pathsRaw.map((p) => ({
     id: String(p.id ?? ""),
     name: String(p.name ?? "Untitled path"),
+    prelude: typeof p.prelude === "string" ? p.prelude.trim() : "",
     momentCount:
       typeof p.momentCount === "number"
         ? p.momentCount
@@ -94,7 +114,7 @@ function extractJourneyMoments(record: Record<string, unknown>): RelatedItem[] {
     .map((m) => ({
       id: String(m.id),
       label: String(m.title ?? "Untitled moment").trim() || "Untitled moment",
-      sub: formatKeptLabel(m.keptAt, m.createdAt ?? m.updatedAt),
+      sub: formatRelativeKept(m.keptAt, m.createdAt ?? m.updatedAt),
       preview:
         typeof m.narrative === "string" && m.narrative.trim()
           ? m.narrative.trim().slice(0, 140)
@@ -212,7 +232,7 @@ async function enrichMoment(
   }
 
   const meta: PresenceMeta = {
-    line: formatKeptLabel(record.keptAt, record.updatedAt ?? record.createdAt),
+    line: formatRelativeKept(record.keptAt, record.updatedAt ?? record.createdAt),
   }
 
   return { record, breadcrumb, meta, relatedSections: [], hiddenFields }
@@ -232,17 +252,42 @@ async function enrichJourney(record: Record<string, unknown>): Promise<Enrichmen
     record.createdAt = record.created_at
   }
 
-  const keeper = record.keeper as { title?: string } | null | undefined
+  const keeperRaw = record.keeper as { id?: string; title?: string } | null | undefined
+  const keeper =
+    keeperRaw?.title
+      ? {
+          id: keeperRaw.id ? String(keeperRaw.id) : "",
+          title: String(keeperRaw.title),
+        }
+      : undefined
+
   const metaParts = [
     momentCount > 0
       ? `${momentCount} moment${momentCount === 1 ? "" : "s"}`
       : null,
     paths.length > 0 ? `${paths.length} path${paths.length === 1 ? "" : "s"}` : null,
     keeper?.title ? `Keeper · ${keeper.title}` : null,
-    typeof record.createdAt === "string" ? `Created ${formatWhenShort(record.createdAt)}` : null,
+    typeof record.createdAt === "string"
+      ? `Created ${formatWhenShort(record.createdAt)}`
+      : null,
   ].filter(Boolean)
 
   const relatedSections: RelatedSection[] = []
+
+  if (paths.length > 0) {
+    relatedSections.push({
+      title: "Paths",
+      items: paths.map((p) => ({
+        id: p.id,
+        label: p.name,
+        preview: p.prelude || undefined,
+        sub:
+          p.momentCount != null
+            ? `${p.momentCount} moment${p.momentCount === 1 ? "" : "s"}`
+            : undefined,
+      })),
+    })
+  }
 
   if (moments.length > 0) {
     relatedSections.push({
@@ -256,23 +301,14 @@ async function enrichJourney(record: Record<string, unknown>): Promise<Enrichmen
     })
   }
 
-  if (paths.length > 0) {
-    relatedSections.push({
-      title: "Paths",
-      items: paths.map((p) => ({
-        id: p.id,
-        label: p.name,
-        sub:
-          p.momentCount != null
-            ? `${p.momentCount} moment${p.momentCount === 1 ? "" : "s"}`
-            : undefined,
-      })),
-    })
-  }
-
   return {
     record,
-    meta: { line: metaParts.join(" · ") || undefined },
+    meta: {
+      keeper,
+      createdAt: typeof record.createdAt === "string" ? record.createdAt : undefined,
+      momentCount,
+      line: metaParts.join(" · ") || undefined,
+    },
     relatedSections,
     hiddenFields: ["momentCountSummary", "keeperName"],
   }

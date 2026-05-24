@@ -33,7 +33,7 @@ Chronicle is the right panel for all Universal Boards. It is built as a Treatmen
 | `BoardDefView` | board definition selected | JSON highlight of board def |
 | `ServiceView` | IDE service selected | ServicesFrame |
 
-**Gate 3 standard:** Chronicle record views are thin wrappers. They call `ChroniclePresenceView` → `KeeperPresence` with context `chronicle` and density `standard`. No bespoke field assembly per type.
+**Gate 3 standard:** Chronicle record views are thin wrappers. They call `ChroniclePresenceView` → `KeeperPresence` with `layout="focus"` and density `standard`. No bespoke field assembly per type. Journey focus uses dedicated KeeperPresence layout (paths with prelude, tappable moments, Set as Active).
 
 **Moment hierarchy — Journey first (via KeeperPresence enrichment):**
 Moment breadcrumb shows `Journey title / Path name` above the title. Resolved via secondary journey fetch or v0 moments fallback.
@@ -66,6 +66,9 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 - [ ] Rendr integration — spatial ratios and density governed by `presenceTreatment` field
 
 ## 📆 Update Log
+
+### 2026-05-24 — KeeperPresence Phase 1: Journey focus parity
+- Chronicle journey view uses `KeeperPresence` focus layout (JourneysFrame parity: header, paths with prelude, tappable moments, Set as Active via UniversalBoardContext)
 
 ### 2026-05-23 — Gate 3: Chronicle renders every record with equivalent depth
 - Replaced bespoke JourneyView, MomentView, KeeperView, DraftView, AgentView, DialogIdleView with `ChronicleRecordView` → `ChroniclePresenceView` → `KeeperPresence`

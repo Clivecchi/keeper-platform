@@ -23,6 +23,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-05-24 — KeeperPresence Phase 1: active journey in board context
+- `UniversalBoardContext` exposes `activeJourneyId` (from FrameContext) and `onSetActiveJourney` for Chronicle Set as Active — components call board context, not FrameContext directly
+
 ### 2026-05-23 — Universal nav: one panel, one card, code defs win
 - Deleted `UniversalSwitcherPanel` — no alternate nav component remains.
 - All nav sections (Dialogs, Integrations, Frames, Board Definitions, etc.) render as `SidebarCard` — same chrome on every board.

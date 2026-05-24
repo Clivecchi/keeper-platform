@@ -18,11 +18,14 @@
  */
 
 import * as React from "react"
+import { useFrameContextOptional } from "../shell/FrameContext"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface UniversalBoardSelection {
   activeSessionId: string | null
+  /** Domain-level active journey — persisted via FrameContext; used by Set as Active in Chronicle. */
+  activeJourneyId: string | null
   selectedDialogId: string | null
   selectedJourneyId: string | null
   selectedMomentId: string | null
@@ -43,6 +46,8 @@ export interface UniversalBoardSelection {
 
 export interface UniversalBoardActions {
   onSessionSelect: (id: string | null) => void
+  /** Marks a journey as the domain-active journey (Kip sessions, moment keeping). */
+  onSetActiveJourney: (id: string) => void
   onDialogSelect: (id: string) => void
   onJourneySelect: (id: string) => void
   onMomentSelect: (id: string) => void
@@ -92,6 +97,8 @@ interface UniversalBoardProviderProps {
 }
 
 export function UniversalBoardProvider({ children }: UniversalBoardProviderProps) {
+  const frameCtx = useFrameContextOptional()
+
   // ── Selection state ────────────────────────────────────────────────────────
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
   const [selectedDialogId, setSelectedDialogId] = React.useState<string | null>(null)
@@ -117,6 +124,13 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     // Session selection does not clear entity focus — conversation can shift
     // while the right panel stays in the same domain context.
   }, [])
+
+  const onSetActiveJourney = React.useCallback(
+    (id: string) => {
+      frameCtx?.setActiveJourneyId(id)
+    },
+    [frameCtx],
+  )
 
   const onDialogSelect = React.useCallback((id: string) => {
     setSelectedDialogId(id)
@@ -221,6 +235,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     () => ({
       selection: {
         activeSessionId,
+        activeJourneyId: frameCtx?.selection.activeJourneyId ?? null,
         selectedDialogId,
         selectedJourneyId,
         selectedMomentId,
@@ -234,6 +249,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       },
       actions: {
         onSessionSelect,
+        onSetActiveJourney,
         onDialogSelect,
         onJourneySelect,
         onMomentSelect,
@@ -250,6 +266,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     }),
     [
       activeSessionId,
+      frameCtx?.selection.activeJourneyId,
+      onSetActiveJourney,
       selectedDialogId,
       selectedJourneyId,
       selectedMomentId,
@@ -261,6 +279,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       activeBoardForFrames,
       selectedBoardDefId,
       onSessionSelect,
+      onSetActiveJourney,
       onDialogSelect,
       onJourneySelect,
       onMomentSelect,

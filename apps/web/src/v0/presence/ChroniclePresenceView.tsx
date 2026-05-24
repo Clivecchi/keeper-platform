@@ -5,23 +5,26 @@
  * =====================
  * Thin Chronicle wrapper around KeeperPresence.
  *
- * Gate 3 standard: every record type calls KeeperPresence with context 'chronicle'
- * and the active Treatment (density). This view does not assemble its own field list.
+ * Gate 3 standard: every record type calls KeeperPresence in focus layout
+ * with the active Treatment (density). This view does not assemble its own field list.
  */
 
 import * as React from "react"
 import { KeeperPresence } from "./KeeperPresence"
 import type { DensityLevel } from "./KeeperPresenceDefaults"
+import type { PresenceLayout } from "./types"
 
 export interface ChroniclePresenceViewProps {
   objectType: string
   objectId: string
   domainId: string
   domainSlug?: string
+  layout?: PresenceLayout
   density?: DensityLevel
   onLabelResolved?: (label: string) => void
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
+  onKeeperSelect?: (id: string) => void
 }
 
 export function ChroniclePresenceView({
@@ -29,10 +32,12 @@ export function ChroniclePresenceView({
   objectId,
   domainId,
   domainSlug,
+  layout = "focus",
   density = "standard",
   onLabelResolved,
   onJourneySelect,
   onMomentSelect,
+  onKeeperSelect,
 }: ChroniclePresenceViewProps) {
   if (!domainId) {
     return (
@@ -50,11 +55,12 @@ export function ChroniclePresenceView({
       objectId={objectId}
       domainId={domainId}
       domainSlug={domainSlug}
-      context="chronicle"
+      layout={layout}
       density={density}
       onLabelResolved={onLabelResolved}
       onJourneySelect={onJourneySelect}
       onMomentSelect={onMomentSelect}
+      onKeeperSelect={onKeeperSelect}
     />
   )
 }

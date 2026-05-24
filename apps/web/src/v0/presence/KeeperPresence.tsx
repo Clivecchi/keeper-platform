@@ -12,6 +12,7 @@
 
 import * as React from "react"
 import { apiFetch } from "../../lib/api"
+import { useUniversalBoardOptional } from "../boards/UniversalBoardContext"
 import { usePresenceSchema } from "./usePresenceSchema"
 import {
   fetchPresenceRecord,
@@ -25,6 +26,9 @@ import {
   type DensityLevel,
   type FieldDefinition,
 } from "./KeeperPresenceDefaults"
+import type { PresenceLayout } from "./types"
+
+export type { PresenceLayout } from "./types"
 
 export interface KeeperPresenceProps {
   object?: Record<string, unknown>
@@ -32,12 +36,13 @@ export interface KeeperPresenceProps {
   objectId: string
   domainId: string
   domainSlug?: string
-  context?: "chronicle" | "feed" | "journey" | "frame" | "search"
+  layout?: PresenceLayout
   density?: DensityLevel
   onSaved?: (field: string, value: unknown) => void
   onLabelResolved?: (label: string) => void
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
+  onKeeperSelect?: (id: string) => void
 }
 
 function patchEndpoint(
@@ -293,6 +298,218 @@ function AutoResizeTextarea({
   )
 }
 
+function formatCreatedDate(iso: string | undefined): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
+}
+
+function PathCard({
+  label,
+  preview,
+  sub,
+}: {
+  label: string
+  preview?: string
+  sub?: string
+}) {
+  return (
+    <div
+      className="rounded-lg border px-3 py-2.5 mb-2"
+      style={{
+        borderColor: "hsl(var(--theme-border-soft) / 0.25)",
+        background: "hsl(var(--theme-surface-elevated) / 0.12)",
+      }}
+    >
+      <p
+        className="text-[12px] font-medium leading-snug"
+        style={{ color: "hsl(var(--theme-ink-primary))" }}
+      >
+        {label}
+      </p>
+      {preview && (
+        <p
+          className="text-[11px] leading-relaxed mt-1"
+          style={{ color: "hsl(var(--theme-ink-secondary))" }}
+        >
+          {preview}
+        </p>
+      )}
+      {sub && (
+        <p
+          className="text-[10px] mt-1"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          {sub}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function JourneyFocusSections({
+  sections,
+  onMomentSelect,
+}: {
+  sections: RelatedSection[]
+  onMomentSelect?: (id: string) => void
+}) {
+  if (sections.length === 0) return null
+
+  return (
+    <>
+      {sections.map((section) => (
+        <PresenceSection key={section.title} title={section.title}>
+          {section.title === "Paths" ? (
+            section.items.length === 0 ? null : (
+              section.items.map((item) => (
+                <PathCard
+                  key={item.id}
+                  label={item.label}
+                  preview={item.preview}
+                  sub={item.sub}
+                />
+              ))
+            )
+          ) : section.items.length === 0 ? (
+            <p
+              className="text-[12px] leading-relaxed"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Nothing here yet — but this journey is alive.
+            </p>
+          ) : (
+            section.items.map((item) => (
+              <PresenceThread
+                key={item.id}
+                label={item.label}
+                sub={item.sub}
+                preview={item.preview}
+                onClick={
+                  item.navigateKind === "moment" && onMomentSelect
+                    ? () => onMomentSelect(item.id)
+                    : undefined
+                }
+              />
+            ))
+          )}
+        </PresenceSection>
+      ))}
+    </>
+  )
+}
+
+function JourneyFocusPresence({
+  objectId,
+  fieldValues,
+  setFieldValues,
+  markEdited,
+  meta,
+  relatedSections,
+  onMomentSelect,
+  onKeeperSelect,
+}: {
+  objectId: string
+  fieldValues: Record<string, string>
+  setFieldValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  markEdited: () => void
+  meta?: PresenceMeta
+  relatedSections: RelatedSection[]
+  onMomentSelect?: (id: string) => void
+  onKeeperSelect?: (id: string) => void
+}) {
+  const boardCtx = useUniversalBoardOptional()
+  const activeJourneyId = boardCtx?.selection.activeJourneyId ?? null
+  const handleSetActive = boardCtx?.actions.onSetActiveJourney
+
+  const title = fieldValues.name ?? ""
+  const forward = fieldValues.forward ?? ""
+  const hairline = "hsl(var(--theme-border-soft) / 0.15)"
+  const momentCount = meta?.momentCount ?? 0
+
+  return (
+    <div className="flex flex-col h-full min-h-0">
+      <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <AutoResizeTextarea
+              value={title}
+              onChange={(v) => {
+                markEdited()
+                setFieldValues((prev) => ({ ...prev, name: v }))
+              }}
+              placeholder="Untitled journey"
+              className="text-[18px] font-semibold leading-snug"
+              style={{ color: "hsl(var(--theme-ink-primary))" }}
+            />
+            <AutoResizeTextarea
+              value={forward}
+              onChange={(v) => {
+                markEdited()
+                setFieldValues((prev) => ({ ...prev, forward: v }))
+              }}
+              placeholder="Where this journey is headed…"
+              className="text-[12px] leading-relaxed mt-2"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            />
+          </div>
+          {activeJourneyId !== objectId && handleSetActive && (
+            <button
+              type="button"
+              onClick={() => handleSetActive(objectId)}
+              className="shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-opacity hover:opacity-80"
+              style={{
+                borderColor: "hsl(var(--theme-border-soft) / 0.35)",
+                color: "hsl(var(--theme-ink-primary))",
+              }}
+            >
+              Set as Active
+            </button>
+          )}
+        </div>
+
+        <div
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-[10px]"
+          style={{ color: "hsl(var(--theme-ink-tertiary) / 0.85)" }}
+        >
+          {meta?.keeper && (
+            meta.keeper.id ? (
+              <button
+                type="button"
+                onClick={() => onKeeperSelect?.(meta.keeper!.id)}
+                className="transition-opacity hover:opacity-80"
+                style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              >
+                {meta.keeper.title}
+              </button>
+            ) : (
+              <span>{meta.keeper.title}</span>
+            )
+          )}
+          {meta?.createdAt && (
+            <span>Created {formatCreatedDate(meta.createdAt)}</span>
+          )}
+          <span>
+            {momentCount} moment{momentCount === 1 ? "" : "s"}
+          </span>
+        </div>
+      </div>
+
+      <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-4">
+        <JourneyFocusSections
+          sections={relatedSections}
+          onMomentSelect={onMomentSelect}
+        />
+      </div>
+    </div>
+  )
+}
+
 function RelatedSections({
   sections,
   onJourneySelect,
@@ -344,11 +561,13 @@ export function KeeperPresence({
   objectId,
   domainId,
   domainSlug,
+  layout = "focus",
   density = "standard",
   onSaved,
   onLabelResolved,
   onJourneySelect,
   onMomentSelect,
+  onKeeperSelect,
 }: KeeperPresenceProps) {
   const [record, setRecord] = React.useState<Record<string, unknown> | null>(objectProp ?? null)
   const [loading, setLoading] = React.useState(!objectProp)
@@ -472,12 +691,17 @@ export function KeeperPresence({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedValues])
 
+  const effectiveDensity: DensityLevel = layout === "config" ? "comfortable" : density
+  const boardCtx = useUniversalBoardOptional()
+  const handleKeeperSelect =
+    onKeeperSelect ?? boardCtx?.actions.onKeeperSelect
+
   const visibleFields = React.useMemo(() => {
     const hidden = new Set(hiddenFields)
     return Object.entries(schema.fields).filter(
-      ([key, def]) => !hidden.has(key) && fieldPassesDensity(def, density),
+      ([key, def]) => !hidden.has(key) && fieldPassesDensity(def, effectiveDensity),
     ) as [string, FieldDefinition][]
-  }, [schema, density, hiddenFields])
+  }, [schema, effectiveDensity, hiddenFields])
 
   const hairline = "hsl(var(--theme-border-soft) / 0.15)"
   const typeLabel = objectTypeLabel(objectType)
@@ -513,6 +737,28 @@ export function KeeperPresence({
     )
   }
 
+  if (objectType === "journey" && layout === "focus") {
+    return (
+      <JourneyFocusPresence
+        objectId={objectId}
+        fieldValues={fieldValues}
+        setFieldValues={setFieldValues}
+        markEdited={() => {
+          hasEdited.current = true
+        }}
+        meta={meta}
+        relatedSections={relatedSections}
+        onMomentSelect={onMomentSelect}
+        onKeeperSelect={handleKeeperSelect}
+      />
+    )
+  }
+
+  const surfaceStyle =
+    layout === "config"
+      ? { background: "hsl(var(--theme-surface-elevated) / 0.06)" }
+      : undefined
+
   const primaryDef = schema.fields[primaryKey]
   const primaryValue = fieldValues[primaryKey] ?? ""
   const secondaryFields = visibleFields.filter(
@@ -539,9 +785,17 @@ export function KeeperPresence({
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0" style={surfaceStyle}>
       {/* Story header — type whisper, title, meta line */}
       <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
+        {layout === "config" && (
+          <p
+            className="text-[9px] font-semibold uppercase tracking-widest mb-2"
+            style={{ color: "hsl(var(--theme-ink-tertiary) / 0.45)" }}
+          >
+            Configuring
+          </p>
+        )}
         {breadcrumb && <PresenceBreadcrumbBar breadcrumb={breadcrumb} />}
         <PresenceWhisper>{typeLabel}</PresenceWhisper>
 
