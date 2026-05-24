@@ -44,13 +44,6 @@ export interface NavPanelDef {
    * Visually distinct from Domain Nav record sections above.
    */
   integrations?: NavInstrumentDef[]
-  /**
-   * Which left-panel nav component the shell renders.
-   * 'standard' (default) — UniversalNavPanel: Domain Nav + Board Nav layers.
-   * 'switcher' — UniversalSwitcherPanel: frames + board definitions (Design Board only).
-   * Omitting this field is equivalent to 'standard'.
-   */
-  variant?: 'standard' | 'switcher'
 }
 
 // Center panel — Dialog Frame
@@ -309,7 +302,7 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
 export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
   boardId: "designer",
   displayName: "Design Board",
-  access: { isPrivate: true, isAdminOnly: true, requiresDensity: true },
+  access: { isPrivate: true, isAdminOnly: true },
   nav: {
     sections: {
       dialogs: false,

@@ -12,6 +12,7 @@ import {
   DOMAIN_BOARD_DEF,
   DESIGNER_BOARD_DEF,
 } from "./UniversalBoardDefinition"
+import { resolveBoardDefs } from "./resolveBoardDefs"
 
 /**
  * Static fallback — mirrors the four built-in board definitions.
@@ -35,7 +36,5 @@ export const BOARD_DEFINITIONS_FALLBACK: Record<string, UniversalBoardDef> = {
  */
 export function useBoardDefs(): UniversalBoardDef[] {
   const shell = useV0ShellOptional()
-  const fromFrame = shell?.domainFrame?.boards
-  if (fromFrame && fromFrame.length > 0) return fromFrame
-  return Object.values(BOARD_DEFINITIONS_FALLBACK)
+  return resolveBoardDefs(shell?.domainFrame?.boards)
 }

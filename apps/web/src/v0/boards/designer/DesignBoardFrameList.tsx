@@ -14,37 +14,12 @@ import { FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../../shell/frameRegistr
 import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
 import { DomainBrief } from "../../components/DomainBrief"
+import { BOARD_FRAMES, BOARD_NAMES, type FrameItem } from "../frameCatalog"
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type FrameItem = {
-  key: string
-  name: string
-  dotColor: string
-  badge: "default" | "primary" | "panel"
-}
+export type { FrameItem } from "../frameCatalog"
+export { BOARD_FRAMES, BOARD_NAMES } from "../frameCatalog"
 
 type CenterPanelMode = "frames" | "brief" | "code"
-
-// ─── Hard-coded board data ────────────────────────────────────────────────────
-
-export const BOARD_FRAMES: Record<string, FrameItem[]> = {
-  domain: [
-    { key: "cover", name: "Board Cover", dotColor: "#7F77DD", badge: "default" },
-    { key: "feed", name: "Feed Frame", dotColor: "#1D9E75", badge: "primary" },
-    { key: "journeys", name: "Journeys Frame", dotColor: "#378ADD", badge: "panel" },
-    { key: "keepers", name: "Keepers Frame", dotColor: "#BA7517", badge: "panel" },
-    { key: "moments", name: "Moments Frame", dotColor: "#D4537E", badge: "panel" },
-  ],
-  design: [],
-  "keeper-starter": [],
-}
-
-export const BOARD_NAMES: Record<string, string> = {
-  domain: "Domain Board",
-  design: "Design Board",
-  "keeper-starter": "Keeper Starter",
-}
 
 // ─── Helpers (preserved from DesignBoardKip.tsx) ──────────────────────────────
 

@@ -50,8 +50,18 @@ export interface SidebarCardItem {
   onClick?: () => void
   /** When true, shows the item as selected in the list (e.g. IDE nav) */
   isSelected?: boolean
-  /** Optional status hint — e.g. "live" | "draft" for frame rows in Board Nav */
+  /** Optional status hint — e.g. "live" | "draft" for frame rows */
   description?: string
+}
+
+function itemBulletStyle(description?: string): React.CSSProperties {
+  if (description === "draft") {
+    return { backgroundColor: "hsl(38 92% 50%)" }
+  }
+  if (description === "live") {
+    return { backgroundColor: "hsl(152 69% 43%)" }
+  }
+  return { backgroundColor: "hsl(var(--theme-line-hairline))" }
 }
 
 export interface SidebarCardProps {
@@ -137,7 +147,14 @@ export function SidebarCard({
             <li key={item.id ?? item.label} className="flex items-center gap-2">
               <span
                 className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                style={{ backgroundColor: "hsl(var(--theme-line-hairline))" }}
+                style={itemBulletStyle(item.description)}
+                title={
+                  item.description === "draft"
+                    ? "Draft differs from live"
+                    : item.description === "live"
+                      ? "Live"
+                      : undefined
+                }
               />
               {item.onClick ? (
                 <button

@@ -396,12 +396,25 @@ function UniversalBoardShell({
  * Context is provided inside. The board resolves domain identity, manages
  * selection state, and delivers both to all three panels.
  */
+function boardNeedsDraftContext(def: UniversalBoardDef): boolean {
+  return (
+    def.conversation.kipMode === "designer" ||
+    def.nav.sections.frames === true ||
+    def.nav.sections.boardDefs === true
+  )
+}
+
 export function UniversalBoard(props: UniversalBoardProps) {
+  const needsDraft = boardNeedsDraftContext(props.def)
   return (
     <UniversalBoardProvider>
-      <DesignerDraftProvider>
+      {needsDraft ? (
+        <DesignerDraftProvider>
+          <UniversalBoardShell {...props} />
+        </DesignerDraftProvider>
+      ) : (
         <UniversalBoardShell {...props} />
-      </DesignerDraftProvider>
+      )}
     </UniversalBoardProvider>
   )
 }

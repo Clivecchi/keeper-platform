@@ -38,8 +38,7 @@ import { ServicesFrame } from "../../components/ServicesFrame"
 import { DesignBoardFrameDetail } from "../designer/DesignBoardFrameDetail"
 import { KeeperPresence } from "../../presence/KeeperPresence"
 import type { FrameProp } from "../designer/DesignBoardFrameDetail"
-import { BOARD_FRAMES } from "../designer/DesignBoardFrameList"
-import type { FrameItem } from "../designer/DesignBoardFrameList"
+import { BOARD_FRAMES, type FrameItem, BOARD_NAMES } from "../frameCatalog"
 
 // ─── Trail Types ──────────────────────────────────────────────────────────────
 

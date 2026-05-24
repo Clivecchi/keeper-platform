@@ -18,9 +18,7 @@
  * - All selection state is controlled by the Board. This component fires callbacks.
  * - All colors use hsl(var(--theme-*)) CSS variables only. Zero hardcoded hex.
  *
- * Panel structure:
- *   Layer 1 — Domain Nav: Dialogs, Journeys, Keepers, [Drafts]
- *   Layer 2 — Board Nav: Integrations (IDE), Agents (Agent Board)
+ * Panel structure — one component, one card type (SidebarCard), def-driven sections only.
  */
 
 import * as React from "react"
@@ -33,7 +31,7 @@ import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import { useBoardDefs } from "./useBoardDefs"
 import { useUniversalBoardOptional } from "./UniversalBoardContext"
 import { useDesignerDraftOptional } from "./DesignerDraftContext"
-import { BOARD_FRAMES } from "./designer/DesignBoardFrameList"
+import { BOARD_FRAMES } from "./frameCatalog"
 import { FRAME_TO_JSON_KEY } from "../shell/frameRegistryMap"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -158,119 +156,6 @@ function ChevronLeftIcon() {
         strokeLinejoin="round"
       />
     </svg>
-  )
-}
-
-// ─── BoardNavCard ─────────────────────────────────────────────────────────────
-// Board Nav layer — utilitarian, less metadata than Domain Nav SidebarCards.
-
-function BoardNavCard({
-  title,
-  subtitle,
-  items,
-}: {
-  title: string
-  /** Optional mono label shown opposite the title (e.g. active board id for Frames). */
-  subtitle?: string
-  items: SidebarCardItem[]
-}) {
-  return (
-    <div
-      className="rounded-lg overflow-hidden"
-      style={{
-        border: "1px solid hsl(var(--theme-border-soft) / 0.22)",
-        background: "hsl(var(--theme-surface-elevated) / 0.08)",
-      }}
-    >
-      <div
-        className="px-3 py-2 flex items-center justify-between gap-2"
-        style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.12)" }}
-      >
-        <p
-          className="text-[10px] font-semibold uppercase tracking-widest"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-        >
-          {title}
-        </p>
-        {subtitle ? (
-          <p
-            className="text-[10px] font-mono truncate"
-            style={{ color: "hsl(var(--theme-ink-tertiary) / 0.6)" }}
-          >
-            {subtitle}
-          </p>
-        ) : null}
-      </div>
-      <div className="py-1">
-        {items.map((item) => (
-          <button
-            key={item.id ?? item.label}
-            type="button"
-            onClick={item.onClick}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors"
-            style={{
-              background: item.isSelected ? "hsl(var(--theme-surface-elevated))" : "transparent",
-              borderLeft: `2px solid ${item.isSelected ? "hsl(var(--theme-ink-primary))" : "transparent"}`,
-            }}
-          >
-            {item.description === "draft" || item.description === "live" ? (
-              <span
-                className="shrink-0 rounded-full"
-                style={{
-                  width: 6,
-                  height: 6,
-                  background:
-                    item.description === "draft"
-                      ? "hsl(38 92% 50%)"
-                      : "hsl(152 69% 43%)",
-                }}
-                title={item.description === "draft" ? "Draft differs from live" : "Live"}
-              />
-            ) : null}
-            <span
-              className="flex-1 text-[12px] leading-snug truncate"
-              style={{
-                color: item.isSelected
-                  ? "hsl(var(--theme-ink-primary))"
-                  : "hsl(var(--theme-ink-secondary))",
-                fontWeight: item.isSelected ? 500 : 400,
-              }}
-            >
-              {item.label}
-            </span>
-          </button>
-        ))}
-        {items.length === 0 && (
-          <p
-            className="px-3 py-2 text-[11px]"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            None
-          </p>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function BoardNavDivider({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-2 px-1 pt-1">
-      <div
-        className="flex-1"
-        style={{ height: 1, background: "hsl(var(--theme-border-soft) / 0.25)" }}
-      />
-      <p
-        className="text-[9px] font-medium uppercase tracking-widest shrink-0"
-        style={{ color: "hsl(var(--theme-ink-tertiary) / 0.75)" }}
-      >
-        {label}
-      </p>
-      <div
-        className="flex-1"
-        style={{ height: 1, background: "hsl(var(--theme-border-soft) / 0.25)" }}
-      />
-    </div>
   )
 }
 
@@ -532,13 +417,6 @@ export function UniversalNavPanel({
   const showKeepers = def.nav.sections.keepers
   const showFrames = def.nav.sections.frames ?? false
   const showBoardDefs = def.nav.sections.boardDefs ?? false
-  const hasDomainNav = showDialogs || showJourneys || showKeepers || showDrafts
-  const hasBoardNav =
-    showAgents ||
-    (def.nav.integrations?.length ?? 0) > 0 ||
-    showFrames ||
-    showBoardDefs
-
   const integrationItems: SidebarCardItem[] = (def.nav.integrations ?? []).map((item) => ({
     id: item.id,
     label: item.label,
@@ -702,20 +580,23 @@ export function UniversalNavPanel({
           </>
         )}
 
-        {/* Board Nav — visually distinct from Domain Nav above */}
-        {hasDomainNav && hasBoardNav && <BoardNavDivider label="Board" />}
-
-        {/* Integrations — IDE Board Board Nav layer */}
+        {/* Integrations */}
         {integrationItems.length > 0 && (
-          <BoardNavCard title="Integrations" items={integrationItems} />
+          <SidebarCard
+            title="Integrations"
+            description="Platform connections"
+            items={integrationItems}
+          />
         )}
 
-        {/* Agents — Agent Board Board Nav layer */}
+        {/* Agents */}
         {showAgents && (
           <>
-            <BoardNavCard
+            <SidebarCard
               title="Agents"
+              description={!domainId ? "Loading…" : countLabel(agents?.length ?? null, "agent")}
               items={slice("agents", allAgentItems).length ? slice("agents", allAgentItems) : allAgentItems}
+              onTitleClick={() => toggleExpanded("agents")}
             />
             {agentError && (
               <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
@@ -725,18 +606,22 @@ export function UniversalNavPanel({
           </>
         )}
 
-        {/* Frames — Design Board Board Nav layer */}
+        {/* Frames */}
         {showFrames && (
-          <BoardNavCard
+          <SidebarCard
             title="Frames"
-            subtitle={boardCtx?.selection.activeBoardForFrames ?? "domain"}
-            items={frameItems}
+            description={`${frameItems.length} frame${frameItems.length === 1 ? "" : "s"} · ${boardCtx?.selection.activeBoardForFrames ?? "domain"}`}
+            items={frameItems.length ? frameItems : undefined}
           />
         )}
 
-        {/* Board Definitions — Design Board Board Nav layer */}
-        {showBoardDefs && boardDefItems.length > 0 && (
-          <BoardNavCard title="Board Definitions" items={boardDefItems} />
+        {/* Board Definitions */}
+        {showBoardDefs && (
+          <SidebarCard
+            title="Board Definitions"
+            description={countLabel(boardDefItems.length, "definition")}
+            items={boardDefItems.length ? boardDefItems : undefined}
+          />
         )}
 
       </div>

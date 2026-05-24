@@ -7,7 +7,7 @@ import { useTheme } from "../../context/ThemeContext"
 import type { StyleId } from "../styles/styles"
 import { StyleOverrideProvider } from "../styles/StyleOverrideProvider"
 import { CORE_FRAME_MAP } from "./frameRegistryMap"
-import { BOARD_DEFINITIONS_FALLBACK } from "../boards/useBoardDefs"
+import { resolveBoardDefs } from "../boards/resolveBoardDefs"
 import { UniversalBoard } from "../boards/UniversalBoard"
 import type { UniversalBoardDef } from "../boards/UniversalBoardDefinition"
 import { apiFetch } from "../../lib/api"
@@ -82,10 +82,7 @@ export function V0Shell() {
 
   // Board defs come from domainFrame.boards (seeded per-domain) with fallback to
   // BOARD_DEFINITIONS_FALLBACK for domains whose frame_json has not yet been seeded.
-  const boardDefs: UniversalBoardDef[] =
-    (domainFrame?.boards && domainFrame.boards.length > 0)
-      ? domainFrame.boards
-      : Object.values(BOARD_DEFINITIONS_FALLBACK)
+  const boardDefs: UniversalBoardDef[] = resolveBoardDefs(domainFrame?.boards)
   const matchedDef: UniversalBoardDef | null =
     boardParam ? boardDefs.find((d) => d.boardId === boardParam) ?? null : null
 

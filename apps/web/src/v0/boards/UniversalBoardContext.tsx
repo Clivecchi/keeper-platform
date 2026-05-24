@@ -196,6 +196,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedDraftId(null)
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
+    setSelectedFrameKey(null)
+    setSelectedBoardDefId(null)
   }, [])
 
   const onFrameSelect = React.useCallback((key: string) => {

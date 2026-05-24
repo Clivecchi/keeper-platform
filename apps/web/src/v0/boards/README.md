@@ -23,6 +23,14 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-05-23 — Universal nav: one panel, one card, code defs win
+- Deleted `UniversalSwitcherPanel` — no alternate nav component remains.
+- All nav sections (Dialogs, Integrations, Frames, Board Definitions, etc.) render as `SidebarCard` — same chrome on every board.
+- `resolveBoardDefs()` merges domain frame JSON with code defs; built-in boardIds always use `UniversalBoardDefinition.ts` as source of truth (fixes stale seeded defs).
+- `DesignerDraftProvider` mounts only when the board def requires it (designer / frames / boardDefs).
+- Removed `requiresDensity` from Design Board — no global density override special case.
+- Frame catalog moved to `frameCatalog.ts` (not under `designer/`).
+
 ### 2026-05-23 — Gate 2 follow-up: Design Board nav shell parity
 - Removed `nav.variant: 'switcher'` — Design Board now uses `UniversalNavPanel` like every other board.
 - Frames + Board Definitions render as `BoardNavCard` (same Board Nav treatment as IDE Integrations / Agent Agents).
