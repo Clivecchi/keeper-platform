@@ -101,14 +101,6 @@ async function buildIdeSessionName(params: {
   return sessionNameDateFallback()
 }
 
-/** Response shape from POST /api/domains/:domainId/kip/designer */
-export interface DesignerApiResponse {
-  response: string
-  draft?: { spec_json: unknown }
-  dialog_id?: string
-  session_id?: string
-}
-
 export interface UseAgentDialogOptions {
   /** Agent slug used to resolve the agent via `KipApi.getLeadAgent`. */
   agentSlug: string
@@ -150,16 +142,11 @@ export interface UseAgentDialogOptions {
   /** agent/domain/designer: e.g. refresh draft list */
   onRefreshDraftsAfterRun?: (result: unknown) => Promise<void>
   /**
-   * designer mode: the active frame key forwarded to /kip/designer as `frameKey`.
-   * Required when mode === "designer" — sendMessage is a no-op without it.
+   * designer mode: the active frame key — forwarded as `dialogFrame` on session
+   * creation and included in runAgent experienceContext. sendMessage is a no-op
+   * without it when mode === "designer".
    */
   frameKey?: string
-  /**
-   * designer mode: called after each successful /kip/designer response that
-   * includes a JSON proposal. Receives the draft object and the frameKey that
-   * produced it so the caller can build the full spec and create a draft record.
-   */
-  onDesignerDraft?: (draft: { spec_json: unknown }, frameKey: string) => void
 }
 
 export interface UseAgentDialogResult {
@@ -178,17 +165,6 @@ export interface UseAgentDialogResult {
     e: FormEvent,
     payload: { content: string; attachments?: AgentAttachment[] },
   ) => Promise<void>
-  /**
-   * designer mode: resets the tracked dialog ID so the next send starts a new
-   * dialog lookup rather than resuming the previous one. Call when the active
-   * frame changes so the new conversation is not associated with the old dialog.
-   */
-  clearDesignerDialog: () => void
-  /**
-   * designer mode: restores a known dialog ID (e.g. after loading history from
-   * /kip/dialogs/resolve/active). Subsequent sends resume that dialog.
-   */
-  setDesignerDialogId: (id: string | null) => void
 }
 
 export function useAgentDialog({
@@ -213,7 +189,6 @@ export function useAgentDialog({
   onAfterAgentRun,
   onRefreshDraftsAfterRun,
   frameKey,
-  onDesignerDraft,
 }: UseAgentDialogOptions): UseAgentDialogResult {
   const [internalSessionId, setInternalSessionId] = React.useState<string | null>(null)
   // Use controlledSessionId when it has been driven to a real value (non-null).
@@ -243,10 +218,6 @@ export function useAgentDialog({
   const ideSessionInitDoneRef = React.useRef(false)
   const activeSessionIdRef = React.useRef<string | null>(activeSessionId)
   activeSessionIdRef.current = activeSessionId
-
-  // designer mode: tracks the dialog_id returned by /kip/designer so subsequent
-  // messages resume the same Dialog record instead of creating new ones each turn.
-  const designerDialogIdRef = React.useRef<string | null>(null)
 
   // Always-current snapshot of messages — lets sendMessage build conversation
   // history without adding `messages` to its dep array.
@@ -286,7 +257,7 @@ export function useAgentDialog({
   }, [agentSlug])
 
   // agent / domain: create a KipApi session once agentId is known.
-  // designer mode is excluded — /kip/designer owns its own dialog/session lifecycle.
+  // ide and designer use controlled session lifecycle from the board shell.
   React.useEffect(() => {
     if (mode === "ide" || mode === "designer" || !agentId) return
     const aid = agentId
@@ -396,88 +367,9 @@ export function useAgentDialog({
       _e: FormEvent,
       { content, attachments }: { content: string; attachments?: AgentAttachment[] },
     ) => {
-      // ── designer mode: POST /api/domains/:domainId/kip/designer ───────────
-      if (mode === "designer") {
-        if (!content.trim() || isSending || !domainId || !frameKey) return
+      if (mode === "designer" && !frameKey) return
 
-        const ts = Date.now()
-        const thinkingId = `${agentSlug}-thinking-${ts}`
-
-        // Capture history snapshot before adding the optimistic messages.
-        // role "agent" is mapped to "kip" to match the API schema.
-        const conversationHistory = messagesRef.current.map((m) => ({
-          role: m.role === "user" ? ("user" as const) : ("kip" as const),
-          content: m.content,
-        }))
-
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `user-${ts}`,
-            role: "user",
-            content,
-            createdAt: new Date(ts).toISOString(),
-          },
-          {
-            id: thinkingId,
-            role: "agent",
-            content: "Kip is thinking\u2026",
-            createdAt: new Date(ts).toISOString(),
-          },
-        ])
-        setInput("")
-        setIsSending(true)
-        setError(null)
-
-        try {
-          const result = (await apiFetch(`/api/domains/${domainId}/kip/designer`, {
-            method: "POST",
-            body: JSON.stringify({
-              message: content,
-              frameKey,
-              conversationHistory,
-              dialog_id: designerDialogIdRef.current ?? undefined,
-              dialog_board: "designer",
-            }),
-          })) as DesignerApiResponse
-
-          // Persist dialog_id for subsequent messages in this conversation.
-          if (result.dialog_id && !designerDialogIdRef.current) {
-            designerDialogIdRef.current = result.dialog_id
-          }
-
-          // Replace thinking bubble with Kip's conversational response.
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === thinkingId
-                ? { ...m, content: result.response ?? "(no response)" }
-                : m,
-            ),
-          )
-
-          // Notify caller about a JSON draft proposal when present.
-          if (result.draft?.spec_json !== undefined) {
-            onDesignerDraft?.(result.draft as { spec_json: unknown }, frameKey)
-          }
-
-          await onRefreshDraftsAfterRun?.(result)
-        } catch (err: unknown) {
-          const errMsg = err instanceof Error ? err.message : ""
-          const reply =
-            errMsg && errMsg.length > 0 && errMsg.length < 300
-              ? errMsg
-              : "Kip couldn't respond. Try again."
-          setMessages((prev) =>
-            prev.map((m) => (m.id === thinkingId ? { ...m, content: reply } : m)),
-          )
-        } finally {
-          setIsSending(false)
-        }
-
-        return
-      }
-
-      // ── ide / agent / domain: KipApi.runAgent ─────────────────────────────
+      // ── ide / agent / domain / designer: KipApi.runAgent ──────────────────
       if ((!content.trim() && !attachments?.length) || isSending || !agentId || !activeSessionId) {
         return
       }
@@ -518,10 +410,12 @@ export function useAgentDialog({
       const runOpts = {
         domainSlug: domainSlug || undefined,
         domainId: domainId || undefined,
-        mode: (agentRunMode ?? "domain") as "domain",
+        mode: (agentRunMode ?? (mode === "designer" ? "domain" : "domain")) as "domain",
         activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? undefined,
         activeKeeperId: frameCtx?.selection?.activeKeeperId ?? undefined,
-        experienceContext,
+        experienceContext: mode === "designer" && frameKey
+          ? { ...(experienceContext ?? {}), designerFrameKey: frameKey }
+          : experienceContext,
         attachments: attachments?.length ? attachments : undefined,
       }
 
@@ -607,17 +501,8 @@ export function useAgentDialog({
       onAfterAgentRun,
       onRefreshDraftsAfterRun,
       frameKey,
-      onDesignerDraft,
     ],
   )
-
-  const clearDesignerDialog = React.useCallback(() => {
-    designerDialogIdRef.current = null
-  }, [])
-
-  const setDesignerDialogId = React.useCallback((id: string | null) => {
-    designerDialogIdRef.current = id
-  }, [])
 
   return {
     messages,
@@ -631,7 +516,5 @@ export function useAgentDialog({
     activeSessionId,
     fetchMessages,
     sendMessage,
-    clearDesignerDialog,
-    setDesignerDialogId,
   }
 }

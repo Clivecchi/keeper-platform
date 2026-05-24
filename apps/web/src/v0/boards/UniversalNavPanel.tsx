@@ -19,8 +19,8 @@
  * - All colors use hsl(var(--theme-*)) CSS variables only. Zero hardcoded hex.
  *
  * Panel structure:
- *   Layer 1 — Domain Records: Dialogs, Journeys, Keepers, [Drafts]
- *   Layer 2 — Board Instruments: conditional on boardContext
+ *   Layer 1 — Domain Nav: Dialogs, Journeys, Keepers, [Drafts]
+ *   Layer 2 — Board Nav: Integrations (IDE), Agents (Agent Board)
  */
 
 import * as React from "react"
@@ -53,6 +53,7 @@ export interface UniversalNavPanelProps {
   selectedKeeperId?: string | null
   selectedDraftId?: string | null
   selectedAgentId?: string | null
+  selectedServiceSlug?: string | null
 
   // Selection callbacks — fired by this component, handled by the Board
   onDialogSelect?: (id: string) => void
@@ -60,6 +61,7 @@ export interface UniversalNavPanelProps {
   onKeeperSelect?: (id: string) => void
   onDraftSelect?: (id: string) => void
   onAgentSelect?: (id: string) => void
+  onServiceOpen?: (slug: string) => void
 
   // Collapse state — controlled by the Board
   collapsed?: boolean
@@ -156,6 +158,94 @@ function ChevronLeftIcon() {
         strokeLinejoin="round"
       />
     </svg>
+  )
+}
+
+// ─── BoardNavCard ─────────────────────────────────────────────────────────────
+// Board Nav layer — utilitarian, less metadata than Domain Nav SidebarCards.
+
+function BoardNavCard({
+  title,
+  items,
+}: {
+  title: string
+  items: SidebarCardItem[]
+}) {
+  return (
+    <div
+      className="rounded-lg overflow-hidden"
+      style={{
+        border: "1px solid hsl(var(--theme-border-soft) / 0.22)",
+        background: "hsl(var(--theme-surface-elevated) / 0.08)",
+      }}
+    >
+      <div
+        className="px-3 py-2"
+        style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.12)" }}
+      >
+        <p
+          className="text-[10px] font-semibold uppercase tracking-widest"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          {title}
+        </p>
+      </div>
+      <div className="py-1">
+        {items.map((item) => (
+          <button
+            key={item.id ?? item.label}
+            type="button"
+            onClick={item.onClick}
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors"
+            style={{
+              background: item.isSelected ? "hsl(var(--theme-surface-elevated))" : "transparent",
+              borderLeft: `2px solid ${item.isSelected ? "hsl(var(--theme-ink-primary))" : "transparent"}`,
+            }}
+          >
+            <span
+              className="flex-1 text-[12px] leading-snug truncate"
+              style={{
+                color: item.isSelected
+                  ? "hsl(var(--theme-ink-primary))"
+                  : "hsl(var(--theme-ink-secondary))",
+                fontWeight: item.isSelected ? 500 : 400,
+              }}
+            >
+              {item.label}
+            </span>
+          </button>
+        ))}
+        {items.length === 0 && (
+          <p
+            className="px-3 py-2 text-[11px]"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            None
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function BoardNavDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 px-1 pt-1">
+      <div
+        className="flex-1"
+        style={{ height: 1, background: "hsl(var(--theme-border-soft) / 0.25)" }}
+      />
+      <p
+        className="text-[9px] font-medium uppercase tracking-widest shrink-0"
+        style={{ color: "hsl(var(--theme-ink-tertiary) / 0.75)" }}
+      >
+        {label}
+      </p>
+      <div
+        className="flex-1"
+        style={{ height: 1, background: "hsl(var(--theme-border-soft) / 0.25)" }}
+      />
+    </div>
   )
 }
 
@@ -256,11 +346,13 @@ export function UniversalNavPanel({
   selectedKeeperId,
   selectedDraftId,
   selectedAgentId,
+  selectedServiceSlug,
   onDialogSelect,
   onJourneySelect,
   onKeeperSelect,
   onDraftSelect,
   onAgentSelect,
+  onServiceOpen,
   collapsed = false,
   onToggleCollapsed,
   dialogListVersion = 0,
@@ -497,11 +589,13 @@ export function UniversalNavPanel({
   const showAgents = def.nav.sections.agents
   const showFrames = def.nav.sections.frames ?? false
   const showBoardDefs = def.nav.sections.boardDefs ?? false
-  const instruments: SidebarCardItem[] = (def.nav.instruments ?? []).map((inst) => ({
-    id: inst.id,
-    label: inst.label,
-    isSelected: selectedAgentId === inst.id,
-    onClick: () => onAgentSelect?.(inst.id),
+  const hasBoardNav = showAgents || (def.nav.integrations?.length ?? 0) > 0
+
+  const integrationItems: SidebarCardItem[] = (def.nav.integrations ?? []).map((item) => ({
+    id: item.id,
+    label: item.label,
+    isSelected: selectedServiceSlug === item.id,
+    onClick: () => onServiceOpen?.(item.id),
   }))
 
   // ── designer sections: Frames + Board Definitions ────────────────────────
@@ -648,15 +742,20 @@ export function UniversalNavPanel({
           </>
         )}
 
-        {/* Agents — def.nav.sections.agents only */}
+        {/* Board Nav — visually distinct from Domain Nav above */}
+        {hasBoardNav && <BoardNavDivider label="Board" />}
+
+        {/* Integrations — IDE Board Board Nav layer */}
+        {integrationItems.length > 0 && (
+          <BoardNavCard title="Integrations" items={integrationItems} />
+        )}
+
+        {/* Agents — Agent Board Board Nav layer */}
         {showAgents && (
           <>
-            <SidebarCard
+            <BoardNavCard
               title="Agents"
-              description={!domainId ? "Loading…" : countLabel(agents?.length ?? null, "agent")}
-              items={slice("agents", allAgentItems).length ? slice("agents", allAgentItems) : undefined}
-              onTitleClick={() => toggleExpanded("agents")}
-              onAdd={() => { /* TODO: wire to agent register callback in Moment 2.6 */ }}
+              items={slice("agents", allAgentItems).length ? slice("agents", allAgentItems) : allAgentItems}
             />
             {agentError && (
               <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
@@ -679,14 +778,6 @@ export function UniversalNavPanel({
           <SidebarCard
             title="Board Definitions"
             items={boardDefItems}
-          />
-        )}
-
-        {/* Instruments — def.nav.instruments drives this list */}
-        {instruments.length > 0 && (
-          <SidebarCard
-            title="Instruments"
-            items={instruments}
           />
         )}
 

@@ -37,6 +37,7 @@ import { useDraftContext } from "../../hooks/useDraftContext"
 import { useSelectionSessionResume } from "../../hooks/useSelectionSessionResume"
 import { KeeperDialogFrame } from "../components/dialog/KeeperDialogFrame"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
+import { BOARD_DEFINITIONS } from "./UniversalBoardDefinition"
 import type { UniversalBoardCenterProps } from "./UniversalBoard"
 import { useUniversalBoard } from "./UniversalBoardContext"
 import { useDesignerDraftOptional } from "./DesignerDraftContext"
@@ -45,8 +46,24 @@ import { loadDomainFrame } from "../data/loadDomainFrame"
 import type { DomainFrameJson } from "../data/domain-frame.types"
 import type { AgentDialogueMessage } from "../../components/agent/types"
 
-// Local alias used in the dialog-restore effect to build message objects inline.
-type AgentDialogueMessageLocal = AgentDialogueMessage
+type ToolSlug = "cloud" | "rendr"
+
+const TOOL_DISPLAY_NAMES: Record<ToolSlug, string> = {
+  cloud: "Cloud",
+  rendr: "Rendr",
+}
+
+function pickMostRecentDialogSessionId(
+  sessions: Array<{ id: string; updated_at?: string; created_at?: string }>,
+): string | null {
+  if (!sessions.length) return null
+  const sorted = [...sessions].sort((a, b) => {
+    const ta = Date.parse(String(a.updated_at ?? a.created_at ?? "")) || 0
+    const tb = Date.parse(String(b.updated_at ?? b.created_at ?? "")) || 0
+    return tb - ta
+  })
+  return sorted[0]?.id ?? null
+}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -141,10 +158,21 @@ export function UniversalConversation({
   const { refreshSession } = useAuth()
   const audience = shellAudience ?? "keeper"
   const kipMode = def.conversation.kipMode
+  const baseAgentSlug = def.conversation.agentSlug ?? "kip"
+
+  // IDE mode: Cloud and Rendr invoke alternate agents into the Dialog.
+  const [invokedToolSlug, setInvokedToolSlug] = React.useState<ToolSlug | null>(null)
+  const effectiveAgentSlug =
+    kipMode === "ide" && invokedToolSlug ? invokedToolSlug : baseAgentSlug
+  const effectiveAgentDisplayName =
+    kipMode === "ide" && invokedToolSlug
+      ? TOOL_DISPLAY_NAMES[invokedToolSlug]
+      : def.conversation.agentName
 
   // ── designer mode: frame key + draft context ───────────────────────────────
   const { selection, actions } = useUniversalBoard()
   const selectedFrameKey = kipMode === "designer" ? (selection.selectedFrameKey ?? null) : null
+  const selectedBoardDefId = kipMode === "designer" ? (selection.selectedBoardDefId ?? null) : null
   const designerDraftCtx = useDesignerDraftOptional()
 
   // ── experienceContext — computed once, shared across all modes ─────────────
@@ -291,9 +319,62 @@ export function UniversalConversation({
     [onSessionSelect],
   )
 
-  // ── ide mode: Kip context sync → board selection callbacks ────────────────
+  // ── designer mode: draft proposal handler ─────────────────────────────────
+  const handleDesignerDraft = React.useCallback(
+    async (draft: { spec_json: unknown }, fKey: string) => {
+      if (!designerDraftCtx || !domainId) return
+      const frameBlock = draft.spec_json
+      if (!frameBlock || typeof frameBlock !== "object") return
+
+      const jsonKey = FRAME_TO_JSON_KEY[fKey] ?? null
+      const base = designerDraftCtx.liveDomainFrame
+        ? { ...(designerDraftCtx.liveDomainFrame as Record<string, unknown>) }
+        : {}
+      const fullSpec = jsonKey ? { ...base, [jsonKey]: frameBlock } : base
+
+      designerDraftCtx.setDraftSpecJson(fullSpec as DomainFrameJson)
+      designerDraftCtx.setPublishSuccess(false)
+
+      try {
+        const frameDisplayName = FRAME_DISPLAY_NAMES[fKey] ?? fKey
+        const d = await KipApi.createDraft(domainId, {
+          kind: "domain_json",
+          key: `designer-${fKey}-${Date.now()}`,
+          title: `${frameDisplayName} proposal`,
+          spec: fullSpec as Record<string, unknown>,
+        })
+        designerDraftCtx.setDraftId(d.id)
+      } catch (err) {
+        console.error("[UniversalConversation] auto-create draft failed:", err)
+      }
+    },
+    [designerDraftCtx, domainId],
+  )
+
+  // ── ide / designer mode: post-run callbacks ───────────────────────────────
   const onAfterAgentRun = React.useCallback(
     (latestRaw: KipMessage[] | undefined, actionResults: unknown[] | undefined) => {
+      if (kipMode === "designer" && selectedFrameKey) {
+        if (Array.isArray(actionResults)) {
+          for (const ar of actionResults) {
+            const a = ar as {
+              type?: string
+              result?: { draft?: { id?: string; spec_json?: unknown } }
+            }
+            if (a.type === "draft.create" && a.result?.draft?.spec_json !== undefined) {
+              void handleDesignerDraft(
+                { spec_json: a.result.draft.spec_json },
+                selectedFrameKey,
+              )
+              return
+            }
+          }
+        }
+        return
+      }
+
+      if (kipMode !== "ide") return
+
       if (Array.isArray(actionResults)) {
         for (const ar of actionResults) {
           const a = ar as { type?: string; result?: { draft?: { id: string } } }
@@ -316,45 +397,7 @@ export function UniversalConversation({
         return
       }
     },
-    [onDraftSelect, onJourneySelect, onMomentSelect],
-  )
-
-  // ── designer mode: onDesignerDraft — creates draft record + updates context ─
-  // Declared before useAgentDialog so it can be passed as a stable callback.
-  // Uses designerDraftCtx and domainId from the outer scope via closure.
-  const handleDesignerDraft = React.useCallback(
-    async (draft: { spec_json: unknown }, fKey: string) => {
-      if (!designerDraftCtx || !domainId) return
-      const frameBlock = draft.spec_json
-      if (!frameBlock || typeof frameBlock !== "object") return
-
-      // Build the full DomainFrameJson by merging the frame block into the live spec.
-      const jsonKey = FRAME_TO_JSON_KEY[fKey] ?? null
-      const base = designerDraftCtx.liveDomainFrame
-        ? { ...(designerDraftCtx.liveDomainFrame as Record<string, unknown>) }
-        : {}
-      const fullSpec = jsonKey ? { ...base, [jsonKey]: frameBlock } : base
-
-      // Update preview immediately so the right panel reflects the change.
-      designerDraftCtx.setDraftSpecJson(fullSpec as DomainFrameJson)
-      designerDraftCtx.setPublishSuccess(false)
-
-      // Create the draft record. Failure is non-fatal — preview stays active.
-      try {
-        const frameDisplayName = FRAME_DISPLAY_NAMES[fKey] ?? fKey
-        const d = await KipApi.createDraft(domainId, {
-          kind: "domain_json",
-          key: `designer-${fKey}-${Date.now()}`,
-          title: `${frameDisplayName} proposal`,
-          spec: fullSpec as Record<string, unknown>,
-        })
-        designerDraftCtx.setDraftId(d.id)
-      } catch (err) {
-        console.error("[UniversalConversation] auto-create draft failed:", err)
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [designerDraftCtx, domainId],
+    [kipMode, selectedFrameKey, handleDesignerDraft, onDraftSelect, onJourneySelect, onMomentSelect],
   )
 
   // ── designer mode: publish handler ────────────────────────────────────────
@@ -407,13 +450,14 @@ export function UniversalConversation({
     agentId,
     activeSessionId: dialogSessionId,
     sendMessage,
-    clearDesignerDialog,
-    setDesignerDialogId,
     fetchMessages,
   } = useAgentDialog({
-    agentSlug: "kip",
-    agentDisplayName: def.conversation.agentName,
+    agentSlug: effectiveAgentSlug,
+    agentDisplayName: effectiveAgentDisplayName,
     mode: kipMode,
+    dialogBoard: kipMode === "designer" ? "designer" : undefined,
+    dialogFrame: kipMode === "designer" ? (selectedFrameKey ?? undefined) : undefined,
+    dialogSubject: kipMode === "designer" ? "frame" : undefined,
     domainSlug,
     domainId,
     experienceContext,
@@ -423,9 +467,9 @@ export function UniversalConversation({
     activeJourneyId: kipMode === "ide" ? activeJourneyId : null,
     controlledSessionId: activeSessionId,
     onControlledSessionIdChange: handleSessionChange,
-    onAfterAgentRun: kipMode === "ide" ? onAfterAgentRun : undefined,
+    onAfterAgentRun:
+      kipMode === "ide" || kipMode === "designer" ? onAfterAgentRun : undefined,
     frameKey: selectedFrameKey ?? undefined,
-    onDesignerDraft: kipMode === "designer" ? handleDesignerDraft : undefined,
   })
 
   // ── useDraftContext — ide and agent modes ──────────────────────────────────
@@ -466,6 +510,40 @@ export function UniversalConversation({
     idleMessages,
   })
 
+  // ── IDE mode: invoke Cloud / Rendr into the Dialog ───────────────────────
+  const handleToolInvoke = React.useCallback(
+    (tool: ToolSlug) => {
+      setInvokedToolSlug((prev) => (prev === tool ? null : tool))
+      handleSessionChange(null)
+      setMessages(idleMessages)
+    },
+    [handleSessionChange, setMessages, idleMessages],
+  )
+
+  React.useEffect(() => {
+    if (kipMode !== "ide" || !invokedToolSlug || !agentId) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const sessions = await KipApi.getSessionsByAgentId(agentId, { pageSize: 50 })
+        if (cancelled) return
+        const sorted = [...sessions].sort((a, b) => {
+          const ta = Date.parse(String(a.updated_at ?? a.created_at ?? "")) || 0
+          const tb = Date.parse(String(b.updated_at ?? b.created_at ?? "")) || 0
+          return tb - ta
+        })
+        const sessionId = sorted[0]?.id ?? null
+        if (sessionId) {
+          handleSessionChange(sessionId)
+          await fetchMessages(sessionId)
+        }
+      } catch {
+        /* fresh conversation with invoked agent */
+      }
+    })()
+    return () => { cancelled = true }
+  }, [kipMode, invokedToolSlug, agentId, handleSessionChange, fetchMessages])
+
   // ── designer mode: sync liveDomainFrame from shell to context ────────────
   React.useEffect(() => {
     if (kipMode !== "designer" || !designerDraftCtx) return
@@ -473,53 +551,72 @@ export function UniversalConversation({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kipMode, domainFrame])
 
-  // ── designer mode: reset conversation + draft state on frame change ────────
+  // ── designer mode: resume or create session per frame ─────────────────────
   React.useEffect(() => {
     if (kipMode !== "designer") return
-    setMessages([])
-    clearDesignerDialog()
     if (designerDraftCtx) {
       designerDraftCtx.setDraftSpecJson(null)
       designerDraftCtx.setDraftId(null)
       designerDraftCtx.setPublishSuccess(false)
     }
 
-    if (!domainId || !selectedFrameKey) return
+    if (!domainId || !selectedFrameKey || !agentId) {
+      handleSessionChange(null)
+      setMessages([])
+      return
+    }
+
     let cancelled = false
+    const frameKey = selectedFrameKey
+    const aid = agentId
 
-    apiFetch(
-      `/api/domains/${domainId}/kip/dialogs/resolve/active?board=designer&frame=${encodeURIComponent(selectedFrameKey)}&available_to=admin`,
-    )
-      .then((res: unknown) => {
+    void (async () => {
+      try {
+        const res = (await apiFetch(
+          `/api/domains/${domainId}/kip/dialogs/resolve/active?board=designer&frame=${encodeURIComponent(frameKey)}&available_to=admin`,
+        )) as { dialog?: { sessions?: Array<{ id: string; updated_at?: string; created_at?: string }> } }
+
         if (cancelled) return
-        const dialog = (res as { dialog?: { id?: string; sessions?: unknown[] } })?.dialog
-        if (!dialog?.id) return
 
-        setDesignerDialogId(dialog.id)
-
-        const loaded: AgentDialogueMessageLocal[] = []
-        const sessions = (dialog.sessions ?? []) as Array<{
-          kip_messages?: Array<{ id: string; role: string; content: string }>
-        }>
-        for (const session of sessions) {
-          for (const msg of session.kip_messages ?? []) {
-            loaded.push({
-              id: msg.id,
-              role: msg.role === "assistant" ? "agent" : "user",
-              content: msg.content,
-              createdAt: new Date().toISOString(),
-            })
-          }
+        const sessionId = pickMostRecentDialogSessionId(res.dialog?.sessions ?? [])
+        if (sessionId) {
+          handleSessionChange(sessionId)
+          await fetchMessages(sessionId)
+          return
         }
-        if (loaded.length > 0) setMessages(loaded)
-      })
-      .catch(() => {
-        // Non-critical — start fresh if resolve fails
-      })
+
+        const frameDisplayName = FRAME_DISPLAY_NAMES[frameKey] ?? frameKey
+        const session = await KipApi.createSession(aid, undefined, frameDisplayName, {
+          domainSlug,
+          domainId,
+          dialogBoard: "designer",
+          dialogFrame: frameKey,
+          dialogSubject: "frame",
+          dialogScope: "admin",
+        })
+        if (cancelled) return
+        handleSessionChange(session.id)
+        setMessages([])
+      } catch {
+        if (!cancelled) {
+          handleSessionChange(null)
+          setMessages([])
+        }
+      }
+    })()
 
     return () => { cancelled = true }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kipMode, selectedFrameKey, domainId])
+  }, [
+    kipMode,
+    selectedFrameKey,
+    domainId,
+    domainSlug,
+    agentId,
+    designerDraftCtx,
+    handleSessionChange,
+    fetchMessages,
+    setMessages,
+  ])
 
   // ── ide mode: session title save ──────────────────────────────────────────
   const handleSaveTitle = React.useCallback(
@@ -577,8 +674,12 @@ export function UniversalConversation({
     switch (kipMode) {
       case "ide":
         return {
-          primary: keeperName ?? domainName ?? "",
-          secondary: journeyName ?? undefined,
+          primary: invokedToolSlug
+            ? TOOL_DISPLAY_NAMES[invokedToolSlug]
+            : (keeperName ?? domainName ?? ""),
+          secondary: invokedToolSlug
+            ? "Tool"
+            : (journeyName ?? undefined),
           sessionLabel: "Session" as const,
         }
       case "agent":
@@ -586,14 +687,18 @@ export function UniversalConversation({
           primary: selectedDraftId ? "Draft" : "Conversation",
           secondary: "Agent Studio",
         }
-      case "designer":
+      case "designer": {
+        const boardDefLabel = selectedBoardDefId
+          ? (BOARD_DEFINITIONS[selectedBoardDefId]?.displayName ?? selectedBoardDefId)
+          : null
         return {
           primary: "Design",
           secondary: selectedFrameKey
             ? (FRAME_DISPLAY_NAMES[selectedFrameKey] ?? selectedFrameKey)
-            : "Select a frame",
+            : boardDefLabel ?? "Select a frame",
           ...(hasDraftSpec ? { prelude: "Draft in progress" } : {}),
         }
+      }
       case "domain":
       default: {
         const df = domainFrame as {
@@ -632,7 +737,9 @@ export function UniversalConversation({
     def.conversation.agentName,
     domainFrame,
     selectedFrameKey,
+    selectedBoardDefId,
     hasDraftSpec,
+    invokedToolSlug,
     journeyCount,
     momentCount,
   ])
@@ -663,11 +770,13 @@ export function UniversalConversation({
         modelProvider={modelProvider}
         onSaveTitle={kipMode === "ide" ? handleSaveTitle : undefined}
         showServiceBar={def.conversation.showServiceBar}
-        onServiceOpen={kipMode === "ide" ? (service) => onServiceOpen(service ?? "cloud") : undefined}
+        onServiceOpen={kipMode === "ide" ? (service) => onServiceOpen(service ?? "vercel") : undefined}
+        onToolInvoke={kipMode === "ide" ? handleToolInvoke : undefined}
+        activeToolSlug={kipMode === "ide" ? invokedToolSlug : null}
         messages={messages}
         isSending={isSending}
         error={error}
-        agentName={def.conversation.agentName}
+        agentName={effectiveAgentDisplayName}
         onOpenDraft={onDraftSelect}
         onOpenMoment={kipMode === "ide" ? onMomentSelect : undefined}
         onOpenJourney={kipMode === "ide" ? (id) => onJourneySelect(id) : undefined}

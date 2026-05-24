@@ -22,7 +22,8 @@ import type { AgentBoardMessaging } from "../../data/domain-frame.types"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ServiceSlug = "cloud" | "railway" | "vercel" | "github"
+type ServiceSlug = "railway" | "vercel" | "github"
+type ToolSlug = "cloud" | "rendr"
 type ServiceStatus = "connected" | "warning" | "disconnected"
 
 /**
@@ -76,7 +77,8 @@ export interface KeeperDialogFrameProps {
   // ── Service bar — bottom zone, IDE Board only ─────────────────────────────
   showServiceBar?: boolean
   onServiceOpen?: (service?: ServiceSlug) => void
-  cloudStatus?: ServiceStatus
+  onToolInvoke?: (tool: ToolSlug) => void
+  activeToolSlug?: ToolSlug | null
   railwayStatus?: ServiceStatus
   vercelStatus?: ServiceStatus
   githubStatus?: ServiceStatus
@@ -139,7 +141,8 @@ export function KeeperDialogFrame({
   // Service bar
   showServiceBar = false,
   onServiceOpen,
-  cloudStatus = "disconnected",
+  onToolInvoke,
+  activeToolSlug = null,
   railwayStatus = "disconnected",
   vercelStatus = "disconnected",
   githubStatus = "disconnected",
@@ -432,7 +435,8 @@ export function KeeperDialogFrame({
         {showServiceBar && (
           <IntegratedServicesBar
             onOpen={onServiceOpen ?? (() => {})}
-            cloudStatus={cloudStatus}
+            onToolInvoke={onToolInvoke}
+            activeToolSlug={activeToolSlug}
             railwayStatus={railwayStatus}
             vercelStatus={vercelStatus}
             githubStatus={githubStatus}

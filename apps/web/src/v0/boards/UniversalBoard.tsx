@@ -353,11 +353,13 @@ function UniversalBoardShell({
                         selectedKeeperId={selection.selectedKeeperId}
                         selectedDraftId={selection.selectedDraftId}
                         selectedAgentId={selection.selectedAgentId}
+                        selectedServiceSlug={selection.selectedServiceSlug}
                         onDialogSelect={actions.onDialogSelect}
                         onJourneySelect={actions.onJourneySelect}
                         onKeeperSelect={actions.onKeeperSelect}
                         onDraftSelect={actions.onDraftSelect}
                         onAgentSelect={actions.onAgentSelect}
+                        onServiceOpen={actions.onServiceOpen}
                         collapsed={navCollapsed}
                         onToggleCollapsed={onToggleNavCollapsed}
                         dialogListVersion={navVersions?.dialogListVersion}

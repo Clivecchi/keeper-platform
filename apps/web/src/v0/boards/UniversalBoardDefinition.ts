@@ -12,7 +12,7 @@
 export type BoardId = "ide" | "agent" | "domain" | "designer" | (string & {})
 
 // Left panel — Navigation
-// What sections appear. What instruments are present.
+// What sections appear. What board nav integrations are present.
 // Treatment character: orientation and confidence.
 export interface NavSectionsDef {
   dialogs: boolean
@@ -39,11 +39,14 @@ export interface NavInstrumentDef {
 
 export interface NavPanelDef {
   sections: NavSectionsDef
-  /** Layer 2 static instruments — board-specific tools below the domain record sections. */
-  instruments?: NavInstrumentDef[]
+  /**
+   * Board Nav layer — integration connections (IDE Board: Vercel, Railway, GitHub).
+   * Visually distinct from Domain Nav record sections above.
+   */
+  integrations?: NavInstrumentDef[]
   /**
    * Which left-panel nav component the shell renders.
-   * 'standard' (default) — UniversalNavPanel: domain records + instruments.
+   * 'standard' (default) — UniversalNavPanel: Domain Nav + Board Nav layers.
    * 'switcher' — UniversalSwitcherPanel: frames + board definitions (Design Board only).
    * Omitting this field is equivalent to 'standard'.
    */
@@ -55,6 +58,8 @@ export interface NavPanelDef {
 // Treatment character: exchange and momentum.
 // The same surface everywhere — Banner · Dialog · Composer.
 export interface ConversationPanelDef {
+  /** Agent slug resolved via KipApi.getLeadAgent. Defaults to "kip". */
+  agentSlug?: string
   agentName: string
   dialogueMode: "domain" | "agent"
   showServiceBar: boolean
@@ -147,12 +152,14 @@ export const IDE_BOARD_DEF: UniversalBoardDef = {
       drafts: true,
       agents: false,
     },
-    instruments: [
-      { id: "cloud", label: "Cloud" },
-      { id: "rendr", label: "Rendr" },
+    integrations: [
+      { id: "vercel", label: "Vercel" },
+      { id: "railway", label: "Railway" },
+      { id: "github", label: "GitHub" },
     ],
   },
   conversation: {
+    agentSlug: "kip",
     agentName: "Kip",
     dialogueMode: "domain",
     showServiceBar: true,
@@ -209,6 +216,7 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
     },
   },
   conversation: {
+    agentSlug: "kip",
     agentName: "Kip",
     dialogueMode: "agent",
     showServiceBar: false,
@@ -265,6 +273,7 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
     },
   },
   conversation: {
+    agentSlug: "kip",
     agentName: "Kip",
     dialogueMode: "domain",
     showServiceBar: false,
@@ -304,7 +313,7 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
   nav: {
     variant: 'switcher',
     sections: {
-      dialogs: true,
+      dialogs: false,
       journeys: false,
       keepers: false,
       drafts: false,
@@ -312,9 +321,9 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
       frames: true,
       boardDefs: true,
     },
-    instruments: [{ id: "rendr", label: "Rendr" }],
   },
   conversation: {
+    agentSlug: "kip",
     agentName: "Kip",
     dialogueMode: "domain",
     showServiceBar: false,
