@@ -13,6 +13,7 @@ import * as React from "react"
 import { KeeperPresence } from "./KeeperPresence"
 import type { DensityLevel } from "./KeeperPresenceDefaults"
 import type { PresenceLayout } from "./types"
+import type { PresentName, RenderContext } from "../presents/types"
 
 export interface ChroniclePresenceViewProps {
   objectType: string
@@ -20,6 +21,8 @@ export interface ChroniclePresenceViewProps {
   domainId: string
   domainSlug?: string
   domainDisplayName?: string
+  present?: PresentName
+  context?: RenderContext
   layout?: PresenceLayout
   density?: DensityLevel
   onLabelResolved?: (label: string) => void
@@ -34,6 +37,8 @@ export function ChroniclePresenceView({
   domainId,
   domainSlug,
   domainDisplayName,
+  present,
+  context = "chronicle",
   layout = "focus",
   density = "standard",
   onLabelResolved,
@@ -58,6 +63,8 @@ export function ChroniclePresenceView({
       domainId={domainId}
       domainSlug={domainSlug}
       domainDisplayName={domainDisplayName}
+      present={present}
+      context={context}
       layout={layout}
       density={density}
       onLabelResolved={onLabelResolved}

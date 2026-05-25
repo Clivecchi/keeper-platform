@@ -30,6 +30,20 @@ import type { PresenceLayout } from "./types"
 import { FrameConfigPresence, parseFramePropsFromRecord } from "./FrameConfigPresence"
 import { BoardDefConfigPresence } from "./BoardDefConfigPresence"
 import { BOARD_DEFINITIONS } from "../boards/UniversalBoardDefinition"
+import {
+  PresentMotionProvider,
+  usePresentMotionValues,
+} from "../presents/usePresentMotion"
+import {
+  contextMotionStyle,
+  primaryMotionStyle,
+  secondaryMotionStyle,
+} from "../presents/presentMotionStyles"
+import {
+  resolvePresentForObject,
+  type PresentName,
+  type RenderContext,
+} from "../presents/types"
 
 export type { PresenceLayout } from "./types"
 
@@ -39,6 +53,10 @@ export interface KeeperPresenceProps {
   objectId: string
   domainId: string
   domainSlug?: string
+  /** Named form the object inhabits — Theatre.js sequence selection. */
+  present?: PresentName
+  /** Where the object is appearing — distinct from Present. */
+  context?: RenderContext
   layout?: PresenceLayout
   density?: DensityLevel
   onSaved?: (field: string, value: unknown) => void
@@ -418,6 +436,21 @@ function JourneyFocusSections({
   )
 }
 
+function PresentAtmosphereLayer() {
+  const motion = usePresentMotionValues()
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 -z-10"
+      style={{
+        opacity: motion.atmosphereOpacity * 0.28,
+        background:
+          "radial-gradient(ellipse at 28% 0%, hsl(var(--theme-accent) / 0.14), transparent 62%)",
+      }}
+    />
+  )
+}
+
 function JourneyFocusPresence({
   objectId,
   fieldValues,
@@ -438,6 +471,7 @@ function JourneyFocusPresence({
   onKeeperSelect?: (id: string) => void
 }) {
   const boardCtx = useUniversalBoardOptional()
+  const motion = usePresentMotionValues()
   const activeJourneyId = boardCtx?.selection.activeJourneyId ?? null
   const handleSetActive = boardCtx?.actions.onSetActiveJourney
 
@@ -447,30 +481,35 @@ function JourneyFocusPresence({
   const momentCount = meta?.momentCount ?? 0
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="relative flex flex-col h-full min-h-0">
+      <PresentAtmosphereLayer />
       <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <AutoResizeTextarea
-              value={title}
-              onChange={(v) => {
-                markEdited()
-                setFieldValues((prev) => ({ ...prev, name: v }))
-              }}
-              placeholder="Untitled journey"
-              className="text-[20px] font-semibold leading-snug"
-              style={{ color: "hsl(var(--theme-ink-primary))" }}
-            />
-            <AutoResizeTextarea
-              value={forward}
-              onChange={(v) => {
-                markEdited()
-                setFieldValues((prev) => ({ ...prev, forward: v }))
-              }}
-              placeholder="Where this journey is headed…"
-              className="text-[14px] leading-relaxed mt-2"
-              style={{ color: "hsl(var(--theme-ink-secondary))" }}
-            />
+            <div style={primaryMotionStyle(motion)}>
+              <AutoResizeTextarea
+                value={title}
+                onChange={(v) => {
+                  markEdited()
+                  setFieldValues((prev) => ({ ...prev, name: v }))
+                }}
+                placeholder="Untitled journey"
+                className="text-[20px] font-semibold leading-snug"
+                style={{ color: "hsl(var(--theme-ink-primary))" }}
+              />
+            </div>
+            <div style={secondaryMotionStyle(motion)}>
+              <AutoResizeTextarea
+                value={forward}
+                onChange={(v) => {
+                  markEdited()
+                  setFieldValues((prev) => ({ ...prev, forward: v }))
+                }}
+                placeholder="Where this journey is headed…"
+                className="text-[14px] leading-relaxed mt-2"
+                style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              />
+            </div>
           </div>
           {activeJourneyId !== objectId && handleSetActive && (
             <button
@@ -489,7 +528,7 @@ function JourneyFocusPresence({
 
         <div
           className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-[12px]"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          style={{ ...contextMotionStyle(motion), color: "hsl(var(--theme-ink-tertiary))" }}
         >
           {meta?.keeper && (
             meta.keeper.id ? (
@@ -514,7 +553,10 @@ function JourneyFocusPresence({
         </div>
       </div>
 
-      <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-4">
+      <div
+        className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-4"
+        style={secondaryMotionStyle(motion)}
+      >
         <JourneyFocusSections
           sections={relatedSections}
           onMomentSelect={onMomentSelect}
@@ -575,6 +617,8 @@ export function KeeperPresence({
   objectId,
   domainId,
   domainSlug,
+  present,
+  context = "chronicle",
   layout = "focus",
   density = "standard",
   onSaved,
@@ -584,6 +628,9 @@ export function KeeperPresence({
   onKeeperSelect,
   domainDisplayName,
 }: KeeperPresenceProps) {
+  const effectivePresent = resolvePresentForObject(objectType, present)
+  const motionInstanceKey = `${objectType}:${objectId}`
+  const motionEnabled = layout === "focus"
   const [record, setRecord] = React.useState<Record<string, unknown> | null>(objectProp ?? null)
   const [loading, setLoading] = React.useState(!objectProp)
   const [breadcrumb, setBreadcrumb] = React.useState<PresenceBreadcrumb | undefined>()
@@ -733,6 +780,102 @@ export function KeeperPresence({
   const typeLabel = objectTypeLabel(objectType)
   const primaryKey = primaryField(objectType)
 
+  return (
+    <PresentMotionProvider
+      present={effectivePresent}
+      instanceKey={motionInstanceKey}
+      enabled={motionEnabled && !loading && !!record}
+    >
+      <div className="flex flex-col h-full min-h-0" data-render-context={context}>
+        <KeeperPresenceSurface
+        loading={loading}
+        record={record}
+        objectType={objectType}
+        objectId={objectId}
+        domainId={domainId}
+        domainSlug={domainSlug}
+        layout={layout}
+        effectiveDensity={effectiveDensity}
+        hairline={hairline}
+        typeLabel={typeLabel}
+        primaryKey={primaryKey}
+        fieldValues={fieldValues}
+        setFieldValues={setFieldValues}
+        markEdited={() => {
+          hasEdited.current = true
+        }}
+        schema={schema}
+        meta={meta}
+        breadcrumb={breadcrumb}
+        relatedSections={relatedSections}
+        hiddenFields={hiddenFields}
+        visibleFields={visibleFields}
+        handleKeeperSelect={handleKeeperSelect}
+        handlePresenceRefresh={handlePresenceRefresh}
+        onLabelResolved={onLabelResolved}
+        onJourneySelect={onJourneySelect}
+        onMomentSelect={onMomentSelect}
+      />
+      </div>
+    </PresentMotionProvider>
+  )
+}
+
+function KeeperPresenceSurface({
+  loading,
+  record,
+  objectType,
+  objectId,
+  domainId,
+  domainSlug,
+  layout,
+  effectiveDensity,
+  hairline,
+  typeLabel,
+  primaryKey,
+  fieldValues,
+  setFieldValues,
+  markEdited,
+  schema,
+  meta,
+  breadcrumb,
+  relatedSections,
+  hiddenFields,
+  visibleFields,
+  handleKeeperSelect,
+  handlePresenceRefresh,
+  onLabelResolved,
+  onJourneySelect,
+  onMomentSelect,
+}: {
+  loading: boolean
+  record: Record<string, unknown> | null
+  objectType: string
+  objectId: string
+  domainId: string
+  domainSlug?: string
+  layout: PresenceLayout
+  effectiveDensity: DensityLevel
+  hairline: string
+  typeLabel: string
+  primaryKey: string
+  fieldValues: Record<string, string>
+  setFieldValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  markEdited: () => void
+  schema: ReturnType<typeof usePresenceSchema>["schema"]
+  meta?: PresenceMeta
+  breadcrumb?: PresenceBreadcrumb
+  relatedSections: RelatedSection[]
+  hiddenFields: string[]
+  visibleFields: [string, FieldDefinition][]
+  handleKeeperSelect?: (id: string) => void
+  handlePresenceRefresh: () => void
+  onLabelResolved?: (label: string) => void
+  onJourneySelect?: (id: string) => void
+  onMomentSelect?: (id: string) => void
+}) {
+  const motion = usePresentMotionValues()
+
   if (loading) {
     return (
       <div className="flex flex-col h-full min-h-0">
@@ -769,9 +912,7 @@ export function KeeperPresence({
         objectId={objectId}
         fieldValues={fieldValues}
         setFieldValues={setFieldValues}
-        markEdited={() => {
-          hasEdited.current = true
-        }}
+        markEdited={markEdited}
         meta={meta}
         relatedSections={relatedSections}
         onMomentSelect={onMomentSelect}
@@ -857,7 +998,8 @@ export function KeeperPresence({
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0" style={surfaceStyle}>
+    <div className="relative flex flex-col h-full min-h-0" style={surfaceStyle}>
+      <PresentAtmosphereLayer />
       {/* Story header — type whisper, title, meta line */}
       <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
         {layout === "config" && (
@@ -868,33 +1010,41 @@ export function KeeperPresence({
             Configuring
           </p>
         )}
-        {breadcrumb && <PresenceBreadcrumbBar breadcrumb={breadcrumb} />}
-        <PresenceWhisper>{typeLabel}</PresenceWhisper>
-
-        {primaryDef?.editable ? (
-          <AutoResizeTextarea
-            value={primaryValue}
-            onChange={(v) => {
-              hasEdited.current = true
-              setFieldValues((prev) => ({ ...prev, [primaryKey]: v }))
-            }}
-            placeholder={`Untitled ${objectType}`}
-            className="text-[17px] font-semibold leading-snug mt-1"
-            style={{ color: "hsl(var(--theme-ink-primary))" }}
-          />
-        ) : (
-          <h2
-            className="text-[17px] font-semibold leading-snug mt-1"
-            style={{ color: "hsl(var(--theme-ink-primary))" }}
-          >
-            {primaryValue || `Untitled ${objectType}`}
-          </h2>
+        {breadcrumb && (
+          <div style={contextMotionStyle(motion)}>
+            <PresenceBreadcrumbBar breadcrumb={breadcrumb} />
+          </div>
         )}
+        <div style={contextMotionStyle(motion)}>
+          <PresenceWhisper>{typeLabel}</PresenceWhisper>
+        </div>
+
+        <div style={primaryMotionStyle(motion)}>
+          {primaryDef?.editable ? (
+            <AutoResizeTextarea
+              value={primaryValue}
+              onChange={(v) => {
+                markEdited()
+                setFieldValues((prev) => ({ ...prev, [primaryKey]: v }))
+              }}
+              placeholder={`Untitled ${objectType}`}
+              className="text-[17px] font-semibold leading-snug mt-1"
+              style={{ color: "hsl(var(--theme-ink-primary))" }}
+            />
+          ) : (
+            <h2
+              className="text-[17px] font-semibold leading-snug mt-1"
+              style={{ color: "hsl(var(--theme-ink-primary))" }}
+            >
+              {primaryValue || `Untitled ${objectType}`}
+            </h2>
+          )}
+        </div>
 
         {meta?.line && (
           <p
             className="text-[12px] mt-2 leading-relaxed"
-            style={{ color: "hsl(var(--theme-ink-secondary))" }}
+            style={{ ...contextMotionStyle(motion), color: "hsl(var(--theme-ink-secondary))" }}
           >
             {meta.line}
           </p>
@@ -904,12 +1054,12 @@ export function KeeperPresence({
       {/* Story body — prose, threads, never labeled form rows */}
       <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4">
         {secondaryFields.map(([key, def]) => (
-          <div key={key} className="mb-4">
+          <div key={key} className="mb-4" style={secondaryMotionStyle(motion)}>
             {def.editable ? (
               <AutoResizeTextarea
                 value={fieldValues[key] ?? ""}
                 onChange={(v) => {
-                  hasEdited.current = true
+                  markEdited()
                   setFieldValues((prev) => ({ ...prev, [key]: v }))
                 }}
                 placeholder={secondaryPlaceholders[key] ?? "…"}
@@ -931,22 +1081,24 @@ export function KeeperPresence({
           <p
             key={key}
             className="text-[13px] leading-relaxed mb-3"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            style={{ ...contextMotionStyle(motion), color: "hsl(var(--theme-ink-tertiary))" }}
           >
             {fieldValues[key]}
           </p>
         ))}
 
-        <RelatedSections
-          sections={relatedSections}
-          onJourneySelect={onJourneySelect}
-          onMomentSelect={onMomentSelect}
-        />
+        <div style={secondaryMotionStyle(motion)}>
+          <RelatedSections
+            sections={relatedSections}
+            onJourneySelect={onJourneySelect}
+            onMomentSelect={onMomentSelect}
+          />
+        </div>
 
         {quietFields.length > 0 && !meta?.line && (
           <p
             className="text-[12px] mt-2"
-            style={{ color: "hsl(var(--theme-ink-tertiary) / 0.55)" }}
+            style={{ ...contextMotionStyle(motion), color: "hsl(var(--theme-ink-tertiary) / 0.55)" }}
           >
             {quietFields.map(([key]) => fieldValues[key]).filter(Boolean).join(" · ")}
           </p>
