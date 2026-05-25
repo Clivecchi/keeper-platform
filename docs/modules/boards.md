@@ -17,10 +17,66 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ## ⚠️ Notes & ToDo
 - [ ] Boards do not currently have their own URL namespace — they share `/d/:slug/board`
 - [ ] `V0BoardKey` type lives in `boardRegistry.ts`; if more boards are added, consider splitting
-- [ ] Migrate existing boards (IDEBoard, AgentBoard, DomainBoard) to use `UniversalBoard` shell
-- [ ] Build `UniversalConversation` component — standard center panel for new boards (no custom component needed)
+- [x] Migrate existing boards (IDEBoard, AgentBoard, DomainBoard) to use `UniversalBoard` shell — DONE
+- [x] Build `UniversalConversation` component — DONE (Level 2, 2026-05-10)
+- [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## 📆 Update Log
+
+### 2026-05-24 — Board readability pass (contrast + larger type)
+- Theme tokens: darker secondary/tertiary ink, stronger borders (styleRegistry + themeRegistry)
+- Panel chrome: more opaque surfaces, clearer borders (nav + Chronicle)
+- Chronicle/presence: +2px typography scale, story cards with stronger borders
+- SidebarCard: larger titles and list items for nav scanning
+- `index.css` `.keeper-board-scope`: dialog banner, Kip messages, composer zone readability
+
+### 2026-05-24 — Universal Chronicle: single KeeperPresence path (Steps 1 + 4)
+- Chronicle routes exclusively through KeeperPresence; no board-specific panel renderers
+- `mergeViewStates()` — all boards declare every subject; viewStates are treatment copy only
+
+### 2026-05-24 — KeeperPresence Phase 1: active journey in board context
+- `UniversalBoardContext` exposes `activeJourneyId` (from FrameContext) and `onSetActiveJourney` for Chronicle Set as Active — components call board context, not FrameContext directly
+
+### 2026-05-23 — Universal nav: one panel, one card, code defs win
+- Deleted `UniversalSwitcherPanel` — no alternate nav component remains.
+- All nav sections (Dialogs, Integrations, Frames, Board Definitions, etc.) render as `SidebarCard` — same chrome on every board.
+- `resolveBoardDefs()` merges domain frame JSON with code defs; built-in boardIds always use `UniversalBoardDefinition.ts` as source of truth (fixes stale seeded defs).
+- `DesignerDraftProvider` mounts only when the board def requires it (designer / frames / boardDefs).
+- Removed `requiresDensity` from Design Board — no global density override special case.
+- Frame catalog moved to `frameCatalog.ts` (not under `designer/`).
+
+### 2026-05-23 — Gate 2 follow-up: Design Board nav shell parity
+- Removed `nav.variant: 'switcher'` — Design Board now uses `UniversalNavPanel` like every other board.
+- Frames + Board Definitions render as `BoardNavCard` (same Board Nav treatment as IDE Integrations / Agent Agents).
+- Domain Nav sections (Dialogs, Journeys, Keepers) gated on `def.nav.sections.*` flags.
+
+### 2026-05-23 — Gate 2: full Universal Board compliance
+- **Dialog transport:** Design Board uses `useAgentDialog` + `KipApi.runAgent` (divergent `/kip/designer` path removed from hook).
+- **Nav:** Domain Nav vs Board Nav layers — `BoardNavCard` + divider; IDE Integrations (Vercel, Railway, GitHub) in Board Nav; Instruments removed.
+- **Composer Tools:** Cloud and Rendr invoke agents via `IntegratedServicesBar` Tools section (IDE Board only).
+- `UniversalBoardDefinition`: `integrations` replaces `instruments`; `ConversationPanelDef.agentSlug` added.
+
+### 2026-05-23 — Gate 1: selection drives both panels
+- `UniversalBoardCenterProps` includes `selectedDialogId`; passed to `UniversalConversation`.
+- `UniversalConversation` calls `useSelectionSessionResume` and builds Banner context from every Nav record type (Dialog, Journey, Keeper, Draft, Agent).
+
+### 2026-05-10 — Level 2: UniversalConversation (single conversation render file)
+- Created `UniversalConversation.tsx` — replaces IDEBoardConversation, AgentBoardConversation, DomainBoardConversation
+  - `experienceContext` computed once from `useV0Shell()`, not three times
+  - Calls `useAgentDialog` with parameters from `def.conversation` (agentSlug, agentDisplayName, mode, dialogueMode)
+  - Branches on `def.conversation.kipMode` only for banner props + three ide-mode callbacks (onAfterAgentRun, handleSaveTitle, onServiceOpen adapter)
+  - Calls `useDraftContext` for ide and agent modes with agentId from useAgentDialog
+  - Domain mode: renders `DomainBanner` above `KeeperDialogFrame` with fetched journeyCount/momentCount
+  - `KeeperDialogFrame` rendered exactly once
+- Updated `UniversalBoard.tsx`:
+  - `center` prop is now optional — omit it to get UniversalConversation by default
+  - `domainSlug` added to default UniversalViewPanel (enables domain feed in Chronicle idle state)
+  - `selectedServiceSlug` added to `UniversalBoardCenterProps` (exposed from context for right panel branch)
+  - `boardKind` ternary fixed for proper TypeScript narrowing
+- `AgentBoard.tsx` → `<UniversalBoard def={AGENT_BOARD_DEF} />` (3 lines)
+- `DomainBoard.tsx` → custom left panel + DomainSwitcher overlay only; center/right/state removed
+- `IDEBoard.tsx` → custom right panel only (5-state); left + center removed; all selection reads from centerProps
+- Deleted: `IDEBoardConversation.tsx`, `IDEBoardNav.tsx`, `AgentBoardConversation.tsx`, `DomainBoardConversation.tsx`
 ### 2026-05-04 — Universal Board: Full Definition with Treatment
 - Created `UniversalBoardDefinition.ts` — runtime board definition types and all four board defs
   - `UniversalBoardDef` interface — a new Board is a new object of this type, not a new component

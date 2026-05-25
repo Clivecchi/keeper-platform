@@ -94,6 +94,13 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 - `resolveKindId` includes `dialog` when `selectedDialogId` is set
 - Trail Bar navigation re-dispatches board selection actions so history matches context
 
+## 📆 Update Log
+
+### 2026-05-24 — Chronicle readability (Trail Bar + panel chrome)
+- Trail Bar pills: larger type, visible borders on inactive steps, stronger current-state contrast
+- Panel surface: 93% opacity, stronger border — easier to read against atmospheric background
+- Empty states use secondary ink instead of faded tertiary
+
 ### 2026-05-09 — Chronicle: domain feed in idle state
 - `UniversalViewPanelIdle` — when `domainSlug` is provided, fetches recent kept Moments and renders "Recent Moments" section
 

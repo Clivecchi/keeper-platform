@@ -44,7 +44,7 @@ export function ChroniclePresenceView({
   if (!domainId) {
     return (
       <div className="flex h-full items-center justify-center px-4">
-        <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+        <p className="text-[14px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
           Waiting for domain context…
         </p>
       </div>

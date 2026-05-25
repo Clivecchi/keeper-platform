@@ -69,19 +69,19 @@ export const styleRegistry: StyleDefinition[] = [
       'surface.panel': 'hsl(0, 0%, 96%)',
       'surface.elevated': 'hsl(0, 0%, 100%)',
 
-      // Ink colors - neutral grays
+      // Ink colors - neutral grays (stronger contrast for board readability)
       'ink.primary': 'hsl(0, 0%, 9%)',
-      'ink.secondary': 'hsl(0, 0%, 45%)',
-      'ink.tertiary': 'hsl(0, 0%, 60%)',
-      'ink.placeholder': 'hsl(0, 0%, 65%)',
+      'ink.secondary': 'hsl(0, 0%, 32%)',
+      'ink.tertiary': 'hsl(0, 0%, 42%)',
+      'ink.placeholder': 'hsl(0, 0%, 50%)',
 
       // Line colors
-      'line.hairline': 'hsl(0, 0%, 85%)',
-      'line.ruled': 'hsl(0, 0%, 85%)',
+      'line.hairline': 'hsl(0, 0%, 72%)',
+      'line.ruled': 'hsl(0, 0%, 72%)',
 
       // Border colors
-      'border.soft': 'hsl(0, 0%, 90%)',
-      'border.strong': 'hsl(0, 0%, 80%)',
+      'border.soft': 'hsl(0, 0%, 78%)',
+      'border.strong': 'hsl(0, 0%, 68%)',
 
       // Shadow
       'shadow.soft': '0 1px 3px hsl(0, 0%, 0%, 0.1), 0 1px 2px hsl(0, 0%, 0%, 0.06)',
@@ -116,19 +116,19 @@ export const styleRegistry: StyleDefinition[] = [
       'surface.panel': 'hsl(35, 20%, 94%)',
       'surface.elevated': 'hsl(35, 15%, 98%)',
 
-      // Ink colors - brown/charcoal
-      'ink.primary': 'hsl(25, 30%, 25%)',
-      'ink.secondary': 'hsl(25, 20%, 45%)',
-      'ink.tertiary': 'hsl(25, 15%, 60%)',
-      'ink.placeholder': 'hsl(25, 10%, 70%)',
+      // Ink colors - brown/charcoal (stronger contrast for board readability)
+      'ink.primary': 'hsl(25, 30%, 22%)',
+      'ink.secondary': 'hsl(25, 18%, 32%)',
+      'ink.tertiary': 'hsl(25, 12%, 42%)',
+      'ink.placeholder': 'hsl(25, 8%, 50%)',
 
       // Line colors
-      'line.hairline': 'hsl(25, 8%, 75%)',
-      'line.ruled': 'hsl(25, 8%, 75%)',
+      'line.hairline': 'hsl(25, 8%, 68%)',
+      'line.ruled': 'hsl(25, 8%, 68%)',
 
       // Border colors
-      'border.soft': 'hsl(35, 10%, 85%)',
-      'border.strong': 'hsl(35, 15%, 80%)',
+      'border.soft': 'hsl(35, 10%, 72%)',
+      'border.strong': 'hsl(35, 15%, 62%)',
 
       // Shadow
       'shadow.soft': '0 1px 3px hsl(35, 10%, 85%, 0.3), 0 1px 2px hsl(35, 10%, 85%, 0.2)',

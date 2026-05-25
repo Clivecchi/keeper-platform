@@ -25,8 +25,8 @@ function PresenceSection({
   return (
     <div className="mb-5">
       <p
-        className="text-[9px] font-semibold uppercase tracking-widest mb-2"
-        style={{ color: "hsl(var(--theme-ink-tertiary) / 0.5)" }}
+        className="text-[11px] font-semibold uppercase tracking-widest mb-2"
+        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
       >
         {title}
       </p>
@@ -39,13 +39,13 @@ function StructureRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3 py-1.5">
       <span
-        className="text-[12px] shrink-0"
+        className="text-[14px] shrink-0"
         style={{ color: "hsl(var(--theme-ink-secondary))" }}
       >
         {label}
       </span>
       <span
-        className="text-[12px] text-right leading-snug"
+        className="text-[14px] text-right leading-snug"
         style={{ color: "hsl(var(--theme-ink-primary))" }}
       >
         {value}
@@ -73,7 +73,7 @@ export function BoardDefConfigPresence({
   onLabelResolved,
 }: BoardDefConfigPresenceProps) {
   const [showJson, setShowJson] = React.useState(false)
-  const hairline = "hsl(var(--theme-border-soft) / 0.15)"
+  const hairline = "hsl(var(--theme-border-soft) / 0.35)"
 
   React.useEffect(() => {
     if (def.displayName && onLabelResolved) onLabelResolved(def.displayName)
@@ -90,26 +90,26 @@ export function BoardDefConfigPresence({
     <div className="flex flex-col h-full min-h-0">
       <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
         <p
-          className="text-[9px] font-semibold uppercase tracking-widest mb-1"
-          style={{ color: "hsl(var(--theme-ink-tertiary) / 0.45)" }}
+          className="text-[11px] font-semibold uppercase tracking-widest mb-1"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
         >
           Configuring
         </p>
         <p
-          className="text-[10px] font-semibold uppercase tracking-widest"
-          style={{ color: "hsl(var(--theme-ink-tertiary) / 0.65)" }}
+          className="text-[12px] font-semibold uppercase tracking-widest"
+          style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
           Board Definition
         </p>
         <h2
-          className="text-[15px] font-semibold leading-snug mt-1"
+          className="text-[17px] font-semibold leading-snug mt-1"
           style={{ color: "hsl(var(--theme-ink-primary))" }}
         >
           {def.displayName}
         </h2>
         <p
-          className="text-[10px] mt-2 font-mono"
-          style={{ color: "hsl(var(--theme-ink-tertiary) / 0.7)" }}
+          className="text-[12px] mt-2 font-mono"
+          style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
           {def.boardId}
           {accessParts.length > 0 ? ` · ${accessParts.join(" · ")}` : ""}
@@ -136,16 +136,16 @@ export function BoardDefConfigPresence({
               <div
                 key={vs.key}
                 className="rounded-md px-2.5 py-2"
-                style={{ background: "hsl(var(--theme-surface-elevated) / 0.3)" }}
+                style={{ background: "hsl(var(--theme-surface-elevated) / 0.45)" }}
               >
                 <p
-                  className="text-[11px] font-medium capitalize"
+                  className="text-[13px] font-medium capitalize"
                   style={{ color: "hsl(var(--theme-ink-primary))" }}
                 >
                   {vs.key}
                 </p>
                 <p
-                  className="text-[10px] leading-relaxed mt-0.5 line-clamp-2"
+                  className="text-[12px] leading-relaxed mt-0.5 line-clamp-2"
                   style={{ color: "hsl(var(--theme-ink-tertiary))" }}
                 >
                   {vs.presenceTreatment}
@@ -159,14 +159,14 @@ export function BoardDefConfigPresence({
           <button
             type="button"
             onClick={() => setShowJson((v) => !v)}
-            className="text-[10px] transition-opacity hover:opacity-80"
-            style={{ color: "hsl(var(--theme-ink-tertiary) / 0.65)" }}
+            className="text-[12px] transition-opacity hover:opacity-80"
+            style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
             {showJson ? "Hide" : "Show"} full spec JSON
           </button>
           {showJson && (
             <pre
-              className="mt-2 p-3 rounded-md text-[10px] leading-relaxed overflow-auto max-h-48"
+              className="mt-2 p-3 rounded-md text-[12px] leading-relaxed overflow-auto max-h-48"
               style={{
                 fontFamily: "ui-monospace, monospace",
                 color: "hsl(var(--theme-ink-tertiary))",

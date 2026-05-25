@@ -34,7 +34,7 @@ Chronicle is the right panel for all Universal Boards. It is built as a Treatmen
 
 `contextSurface.viewStates` on board defs carries **treatment copy only** — it does not gate routing. All boards declare every subject via `mergeViewStates()`.
 
-Frame and boardDef use `layout="config"`. Step 2 will migrate full DesignBoardFrameDetail capabilities into KeeperPresence internals.
+Frame and boardDef use `layout="config"` via `FrameConfigPresence` and `BoardDefConfigPresence` inside KeeperPresence. `DesignBoardFrameDetail` is retained but not mounted.
 
 **Gate 3 standard:** Chronicle record views are thin wrappers. They call `ChroniclePresenceView` → `KeeperPresence` with `layout="focus"` and density `standard`. No bespoke field assembly per type. Journey focus uses dedicated KeeperPresence layout (paths with prelude, tappable moments, Set as Active).
 
@@ -65,10 +65,15 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 - [x] Gate 3 — all record types on KeeperPresence via ChronicleRecordView
 - [x] Dialog Chronicle view — wired through KeeperPresence
 - [x] Feed indicator tappable
-- [ ] Step 2: migrate DesignBoardFrameDetail preview/config/props into KeeperPresence frame type
+- [ ] Prop edit/reorder/delete in FrameConfigPresence
 - [ ] Rendr integration — spatial ratios and density governed by `presenceTreatment` field
 
 ## 📆 Update Log
+
+### 2026-05-24 — Step 2: Frame and BoardDef config presence in KeeperPresence
+- Frame selection: preview, unified props catalog, domain board-data save, quiet JSON
+- Board def selection: human-readable structure, quiet full spec JSON
+- `DesignBoardFrameDetail` no longer mounted from Chronicle
 
 ### 2026-05-24 — Universal Chronicle: single KeeperPresence path (Steps 1 + 4)
 - Removed `FrameView`, `BoardDefView`, `ServiceView`, and `UniversalViewPanelIdle` from Chronicle router
@@ -88,6 +93,13 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 ### 2026-05-23 — Gate 1: selection drives both panels
 - `resolveKindId` includes `dialog` when `selectedDialogId` is set
 - Trail Bar navigation re-dispatches board selection actions so history matches context
+
+## 📆 Update Log
+
+### 2026-05-24 — Chronicle readability (Trail Bar + panel chrome)
+- Trail Bar pills: larger type, visible borders on inactive steps, stronger current-state contrast
+- Panel surface: 93% opacity, stronger border — easier to read against atmospheric background
+- Empty states use secondary ink instead of faded tertiary
 
 ### 2026-05-09 — Chronicle: domain feed in idle state
 - `UniversalViewPanelIdle` — when `domainSlug` is provided, fetches recent kept Moments and renders "Recent Moments" section

@@ -50,6 +50,11 @@ Chronicle routes exclusively through `ChroniclePresenceView` → `KeeperPresence
 
 ## 📆 Update Log
 
+### 2026-05-24 — Readability pass (storyboard contrast)
+- KeeperPresence, FrameConfigPresence, BoardDefConfigPresence: +2px type scale, stronger section labels
+- Story cards and thread buttons: clearer borders and elevated surfaces
+- Reduced double-faded tertiary ink — labels use token secondary/tertiary directly
+
 ### 2026-05-24 — Step 2: Frame and BoardDef as first-class presence types
 - Added `propsCatalog.ts`, `frameProps.ts`, `FrameConfigPresence`, `BoardDefConfigPresence`
 - Frame config: preview, unified props catalog, domain board-data persistence, quiet JSON
@@ -57,11 +62,6 @@ Chronicle routes exclusively through `ChroniclePresenceView` → `KeeperPresence
 - `DesignBoardFrameDetail` superseded — not mounted; retained in codebase
 
 ### 2026-05-24 — Universal Chronicle path (Steps 1 + 4)
-- Added `frame`, `boardDef` schemas; domain/service/frame/boardDef enrichment in `presenceEnrichment.ts`
-- Chronicle collapsed to single KeeperPresence path; per-board viewState gates removed
-- `domainDisplayName` prop for domain idle; `PresenceEnrichmentContext` for frame board context
-
-### 2026-05-24 — KeeperPresence Phase 1: Journey focus parity in Chronicle
 - Replaced dead `context` prop with `layout: PresenceLayout` (`focus` | `config`) on `KeeperPresence`
 - Added `types.ts` exporting `PresenceLayout`
 - Journey focus layout: title + inline forward narrative, meta row (keeper, created, moment count), paths with prelude, tappable moments, Set as Active via `UniversalBoardContext`

@@ -333,18 +333,18 @@ export function UniversalNavPanel({
         style={{
           width: 36,
           minWidth: 36,
-          background: "hsl(var(--theme-surface-panel) / 0.85)",
+          background: "hsl(var(--theme-surface-panel) / 0.93)",
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
           borderRadius: "8px",
-          border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
+          border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
         }}
       >
         <button
           type="button"
           onClick={onToggleCollapsed}
           className="p-1.5 rounded-md transition-opacity hover:opacity-70"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          style={{ color: "hsl(var(--theme-ink-secondary))" }}
           aria-label="Expand navigation panel"
         >
           <ChevronRightIcon />
@@ -438,22 +438,22 @@ export function UniversalNavPanel({
     <div
       className="flex flex-col h-full overflow-hidden"
       style={{
-        background: "hsl(var(--theme-surface-panel) / 0.85)",
+        background: "hsl(var(--theme-surface-panel) / 0.93)",
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
         borderRadius: "8px",
-        border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
+        border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
         color: "hsl(var(--theme-ink-primary))",
       }}
     >
       {/* Domain name header — quiet anchor, not interactive */}
       <div
         className="shrink-0 flex items-center justify-between px-3 pt-3 pb-2"
-        style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.2)" }}
+        style={{ borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.4)" }}
       >
         <p
-          className="text-[11px] font-medium truncate flex-1 min-w-0"
-          style={{ color: "hsl(var(--theme-ink-tertiary))", letterSpacing: "0.01em" }}
+          className="text-[13px] font-medium truncate flex-1 min-w-0"
+          style={{ color: "hsl(var(--theme-ink-secondary))", letterSpacing: "0.01em" }}
           title={domainName}
         >
           {domainName}
@@ -462,7 +462,7 @@ export function UniversalNavPanel({
           type="button"
           onClick={onToggleCollapsed}
           className="shrink-0 ml-1 p-1 rounded-md transition-opacity hover:opacity-60"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          style={{ color: "hsl(var(--theme-ink-secondary))" }}
           aria-label="Collapse navigation panel"
         >
           <ChevronLeftIcon />

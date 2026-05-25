@@ -165,8 +165,8 @@ function useDebounced<T>(value: T, delay: number): T {
 function PresenceWhisper({ children }: { children: React.ReactNode }) {
   return (
     <p
-      className="text-[10px] font-semibold uppercase tracking-widest"
-      style={{ color: "hsl(var(--theme-ink-tertiary) / 0.55)" }}
+      className="text-[12px] font-semibold uppercase tracking-widest"
+      style={{ color: "hsl(var(--theme-ink-tertiary))" }}
     >
       {children}
     </p>
@@ -177,22 +177,22 @@ function PresenceBreadcrumbBar({ breadcrumb }: { breadcrumb: PresenceBreadcrumb 
   return (
     <div className="flex items-center gap-1.5 mb-2 min-w-0">
       <span
-        className="text-[10px] font-medium truncate"
-        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        className="text-[12px] font-medium truncate"
+        style={{ color: "hsl(var(--theme-ink-secondary))" }}
       >
         {breadcrumb.journey}
       </span>
       {breadcrumb.path && (
         <>
           <span
-            className="text-[10px] shrink-0"
-            style={{ color: "hsl(var(--theme-ink-tertiary) / 0.4)" }}
+            className="text-[12px] shrink-0"
+            style={{ color: "hsl(var(--theme-ink-tertiary) / 0.65)" }}
           >
             /
           </span>
           <span
-            className="text-[10px] font-medium truncate"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            className="text-[12px] font-medium truncate"
+            style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
             {breadcrumb.path}
           </span>
@@ -212,8 +212,8 @@ function PresenceSection({
   return (
     <div className="mb-5">
       <p
-        className="text-[9px] font-semibold uppercase tracking-widest mb-2.5"
-        style={{ color: "hsl(var(--theme-ink-tertiary) / 0.5)" }}
+        className="text-[11px] font-semibold uppercase tracking-widest mb-2.5"
+        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
       >
         {title}
       </p>
@@ -240,19 +240,19 @@ function PresenceThread({
       className="w-full text-left group rounded-lg border px-3 py-2.5 mb-2 transition-all hover:opacity-90"
       style={{
         cursor: onClick ? "pointer" : "default",
-        borderColor: "hsl(var(--theme-border-soft) / 0.25)",
-        background: "hsl(var(--theme-surface-elevated) / 0.18)",
+        borderColor: "hsl(var(--theme-border-soft) / 0.45)",
+        background: "hsl(var(--theme-surface-elevated) / 0.35)",
       }}
     >
       <span
-        className="block text-[12px] font-medium leading-snug"
+        className="block text-[14px] font-medium leading-snug"
         style={{ color: "hsl(var(--theme-ink-primary))" }}
       >
         {label}
       </span>
       {preview && (
         <span
-          className="block text-[11px] leading-relaxed mt-1 line-clamp-2"
+          className="block text-[13px] leading-relaxed mt-1 line-clamp-2"
           style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
           {preview}
@@ -260,7 +260,7 @@ function PresenceThread({
       )}
       {sub && (
         <span
-          className="block text-[10px] leading-snug mt-1"
+          className="block text-[12px] leading-snug mt-1"
           style={{ color: "hsl(var(--theme-ink-tertiary))" }}
         >
           {sub}
@@ -336,19 +336,19 @@ function PathCard({
     <div
       className="rounded-lg border px-3 py-2.5 mb-2"
       style={{
-        borderColor: "hsl(var(--theme-border-soft) / 0.25)",
-        background: "hsl(var(--theme-surface-elevated) / 0.12)",
+        borderColor: "hsl(var(--theme-border-soft) / 0.45)",
+        background: "hsl(var(--theme-surface-elevated) / 0.28)",
       }}
     >
       <p
-        className="text-[12px] font-medium leading-snug"
+        className="text-[14px] font-medium leading-snug"
         style={{ color: "hsl(var(--theme-ink-primary))" }}
       >
         {label}
       </p>
       {preview && (
         <p
-          className="text-[11px] leading-relaxed mt-1"
+          className="text-[13px] leading-relaxed mt-1"
           style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
           {preview}
@@ -356,7 +356,7 @@ function PathCard({
       )}
       {sub && (
         <p
-          className="text-[10px] mt-1"
+          className="text-[12px] mt-1"
           style={{ color: "hsl(var(--theme-ink-tertiary))" }}
         >
           {sub}
@@ -392,7 +392,7 @@ function JourneyFocusSections({
             )
           ) : section.items.length === 0 ? (
             <p
-              className="text-[12px] leading-relaxed"
+              className="text-[14px] leading-relaxed"
               style={{ color: "hsl(var(--theme-ink-tertiary))" }}
             >
               Nothing here yet — but this journey is alive.
@@ -443,7 +443,7 @@ function JourneyFocusPresence({
 
   const title = fieldValues.name ?? ""
   const forward = fieldValues.forward ?? ""
-  const hairline = "hsl(var(--theme-border-soft) / 0.15)"
+  const hairline = "hsl(var(--theme-border-soft) / 0.35)"
   const momentCount = meta?.momentCount ?? 0
 
   return (
@@ -458,7 +458,7 @@ function JourneyFocusPresence({
                 setFieldValues((prev) => ({ ...prev, name: v }))
               }}
               placeholder="Untitled journey"
-              className="text-[18px] font-semibold leading-snug"
+              className="text-[20px] font-semibold leading-snug"
               style={{ color: "hsl(var(--theme-ink-primary))" }}
             />
             <AutoResizeTextarea
@@ -468,7 +468,7 @@ function JourneyFocusPresence({
                 setFieldValues((prev) => ({ ...prev, forward: v }))
               }}
               placeholder="Where this journey is headed…"
-              className="text-[12px] leading-relaxed mt-2"
+              className="text-[14px] leading-relaxed mt-2"
               style={{ color: "hsl(var(--theme-ink-secondary))" }}
             />
           </div>
@@ -476,7 +476,7 @@ function JourneyFocusPresence({
             <button
               type="button"
               onClick={() => handleSetActive(objectId)}
-              className="shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-opacity hover:opacity-80"
+              className="shrink-0 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-opacity hover:opacity-80"
               style={{
                 borderColor: "hsl(var(--theme-border-soft) / 0.35)",
                 color: "hsl(var(--theme-ink-primary))",
@@ -488,8 +488,8 @@ function JourneyFocusPresence({
         </div>
 
         <div
-          className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-[10px]"
-          style={{ color: "hsl(var(--theme-ink-tertiary) / 0.85)" }}
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-[12px]"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
         >
           {meta?.keeper && (
             meta.keeper.id ? (
@@ -541,7 +541,7 @@ function RelatedSections({
         <PresenceSection key={section.title} title={section.title}>
           {section.items.length === 0 ? (
             <p
-              className="text-[12px] leading-relaxed"
+              className="text-[14px] leading-relaxed"
               style={{ color: "hsl(var(--theme-ink-tertiary))" }}
             >
               Nothing here yet — but this journey is alive.
@@ -729,7 +729,7 @@ export function KeeperPresence({
     ) as [string, FieldDefinition][]
   }, [schema, effectiveDensity, hiddenFields])
 
-  const hairline = "hsl(var(--theme-border-soft) / 0.15)"
+  const hairline = "hsl(var(--theme-border-soft) / 0.35)"
   const typeLabel = objectTypeLabel(objectType)
   const primaryKey = primaryField(objectType)
 
@@ -755,7 +755,7 @@ export function KeeperPresence({
           <PresenceWhisper>{typeLabel}</PresenceWhisper>
         </div>
         <div className="px-4 pt-3">
-          <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+          <p className="text-[14px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
             This {objectType} isn&apos;t here right now — but the story continues.
           </p>
         </div>
@@ -862,8 +862,8 @@ export function KeeperPresence({
       <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
         {layout === "config" && (
           <p
-            className="text-[9px] font-semibold uppercase tracking-widest mb-2"
-            style={{ color: "hsl(var(--theme-ink-tertiary) / 0.45)" }}
+            className="text-[11px] font-semibold uppercase tracking-widest mb-2"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
             Configuring
           </p>
@@ -879,12 +879,12 @@ export function KeeperPresence({
               setFieldValues((prev) => ({ ...prev, [primaryKey]: v }))
             }}
             placeholder={`Untitled ${objectType}`}
-            className="text-[15px] font-semibold leading-snug mt-1"
+            className="text-[17px] font-semibold leading-snug mt-1"
             style={{ color: "hsl(var(--theme-ink-primary))" }}
           />
         ) : (
           <h2
-            className="text-[15px] font-semibold leading-snug mt-1"
+            className="text-[17px] font-semibold leading-snug mt-1"
             style={{ color: "hsl(var(--theme-ink-primary))" }}
           >
             {primaryValue || `Untitled ${objectType}`}
@@ -893,8 +893,8 @@ export function KeeperPresence({
 
         {meta?.line && (
           <p
-            className="text-[10px] mt-2 leading-relaxed"
-            style={{ color: "hsl(var(--theme-ink-tertiary) / 0.7)" }}
+            className="text-[12px] mt-2 leading-relaxed"
+            style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
             {meta.line}
           </p>
@@ -913,12 +913,12 @@ export function KeeperPresence({
                   setFieldValues((prev) => ({ ...prev, [key]: v }))
                 }}
                 placeholder={secondaryPlaceholders[key] ?? "…"}
-                className="text-[12px] leading-relaxed"
+                className="text-[14px] leading-relaxed"
                 style={{ color: "hsl(var(--theme-ink-secondary))" }}
               />
             ) : (
               <p
-                className="text-[12px] leading-relaxed"
+                className="text-[14px] leading-relaxed"
                 style={{ color: "hsl(var(--theme-ink-secondary))" }}
               >
                 {fieldValues[key]}
@@ -930,7 +930,7 @@ export function KeeperPresence({
         {ambientFields.map(([key]) => (
           <p
             key={key}
-            className="text-[11px] leading-relaxed mb-3"
+            className="text-[13px] leading-relaxed mb-3"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
             {fieldValues[key]}
@@ -945,7 +945,7 @@ export function KeeperPresence({
 
         {quietFields.length > 0 && !meta?.line && (
           <p
-            className="text-[10px] mt-2"
+            className="text-[12px] mt-2"
             style={{ color: "hsl(var(--theme-ink-tertiary) / 0.55)" }}
           >
             {quietFields.map(([key]) => fieldValues[key]).filter(Boolean).join(" · ")}

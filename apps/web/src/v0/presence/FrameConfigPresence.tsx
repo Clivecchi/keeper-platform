@@ -95,8 +95,8 @@ function PresenceSection({
   return (
     <div className="mb-5">
       <p
-        className="text-[9px] font-semibold uppercase tracking-widest mb-2"
-        style={{ color: "hsl(var(--theme-ink-tertiary) / 0.5)" }}
+        className="text-[11px] font-semibold uppercase tracking-widest mb-2"
+        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
       >
         {title}
       </p>
@@ -124,7 +124,7 @@ export function FrameConfigPresence({
   const [props, setProps] = React.useState<PresenceFrameProp[]>(initialProps)
   const [adding, setAdding] = React.useState<string | null>(null)
   const [showJson, setShowJson] = React.useState(false)
-  const hairline = "hsl(var(--theme-border-soft) / 0.15)"
+  const hairline = "hsl(var(--theme-border-soft) / 0.35)"
 
   React.useEffect(() => {
     setProps(initialProps)
@@ -167,26 +167,26 @@ export function FrameConfigPresence({
     <div className="flex flex-col h-full min-h-0">
       <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
         <p
-          className="text-[9px] font-semibold uppercase tracking-widest mb-1"
-          style={{ color: "hsl(var(--theme-ink-tertiary) / 0.45)" }}
+          className="text-[11px] font-semibold uppercase tracking-widest mb-1"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
         >
           Configuring
         </p>
         <p
-          className="text-[10px] font-semibold uppercase tracking-widest"
-          style={{ color: "hsl(var(--theme-ink-tertiary) / 0.65)" }}
+          className="text-[12px] font-semibold uppercase tracking-widest"
+          style={{ color: "hsl(var(--theme-ink-secondary))" }}
         >
           Frame
         </p>
         <h2
-          className="text-[15px] font-semibold leading-snug mt-1"
+          className="text-[17px] font-semibold leading-snug mt-1"
           style={{ color: "hsl(var(--theme-ink-primary))" }}
         >
           {frameName}
         </h2>
         {description && (
           <p
-            className="text-[12px] leading-relaxed mt-2"
+            className="text-[14px] leading-relaxed mt-2"
             style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
             {description}
@@ -194,8 +194,8 @@ export function FrameConfigPresence({
         )}
         {metaParts.length > 0 && (
           <p
-            className="text-[10px] mt-2 leading-relaxed"
-            style={{ color: "hsl(var(--theme-ink-tertiary) / 0.7)" }}
+            className="text-[12px] mt-2 leading-relaxed"
+            style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
             {metaParts.join(" · ")}
           </p>
@@ -207,8 +207,8 @@ export function FrameConfigPresence({
           <div
             className="rounded-md overflow-hidden border"
             style={{
-              borderColor: "hsl(var(--theme-border-soft) / 0.35)",
-              background: "hsl(var(--theme-surface-paper) / 0.5)",
+              borderColor: "hsl(var(--theme-border-soft) / 0.5)",
+              background: "hsl(var(--theme-surface-paper) / 0.72)",
               maxHeight: 220,
             }}
           >
@@ -241,7 +241,7 @@ export function FrameConfigPresence({
               </div>
             ) : (
               <p
-                className="p-4 text-[12px] text-center"
+                className="p-4 text-[14px] text-center"
                 style={{ color: "hsl(var(--theme-ink-tertiary))" }}
               >
                 Add props below to shape this frame.
@@ -252,7 +252,7 @@ export function FrameConfigPresence({
 
         <PresenceSection title="Props">
           {!frameInstanceId ? (
-            <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+            <p className="text-[14px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
               Connecting to frame instance…
             </p>
           ) : (
@@ -267,16 +267,16 @@ export function FrameConfigPresence({
                       <div
                         key={prop.id}
                         className="flex items-center gap-2 rounded-md px-2 py-1.5"
-                        style={{ background: "hsl(var(--theme-surface-elevated) / 0.4)" }}
+                        style={{ background: "hsl(var(--theme-surface-elevated) / 0.55)" }}
                       >
                         <span
-                          className="flex-1 text-[12px] font-medium truncate"
+                          className="flex-1 text-[14px] font-medium truncate"
                           style={{ color: "hsl(var(--theme-ink-primary))" }}
                         >
                           {displayName}
                         </span>
                         <span
-                          className="shrink-0 font-mono text-[10px]"
+                          className="shrink-0 font-mono text-[12px]"
                           style={{ color: "hsl(var(--theme-ink-tertiary))" }}
                         >
                           {prop.type}
@@ -290,7 +290,7 @@ export function FrameConfigPresence({
               {PROPS_CATALOG_SECTIONS.map((section) => (
                 <div key={section.label} className="mb-3">
                   <p
-                    className="text-[10px] font-medium mb-1.5"
+                    className="text-[12px] font-medium mb-1.5"
                     style={{ color: `hsl(var(${section.colorVar}))` }}
                   >
                     {section.label}
@@ -303,17 +303,17 @@ export function FrameConfigPresence({
                         disabled={Boolean(adding)}
                         onClick={() => void handleAddProp(item.propType, item.propConfig)}
                         className="w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left transition-opacity hover:opacity-80 disabled:opacity-50"
-                        style={{ background: "hsl(var(--theme-surface-elevated) / 0.25)" }}
+                        style={{ background: "hsl(var(--theme-surface-elevated) / 0.4)" }}
                       >
                         <span>
                           <span
-                            className="block text-[12px] font-medium"
+                            className="block text-[14px] font-medium"
                             style={{ color: "hsl(var(--theme-ink-primary))" }}
                           >
                             {item.name}
                           </span>
                           <span
-                            className="block text-[10px]"
+                            className="block text-[12px]"
                             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
                           >
                             {item.description}
@@ -339,14 +339,14 @@ export function FrameConfigPresence({
             <button
               type="button"
               onClick={() => setShowJson((v) => !v)}
-              className="text-[10px] transition-opacity hover:opacity-80"
-              style={{ color: "hsl(var(--theme-ink-tertiary) / 0.65)" }}
+              className="text-[12px] transition-opacity hover:opacity-80"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
             >
               {showJson ? "Hide" : "Show"} frame JSON
             </button>
             {showJson && (
               <pre
-                className="mt-2 p-3 rounded-md text-[10px] leading-relaxed overflow-auto max-h-40"
+                className="mt-2 p-3 rounded-md text-[12px] leading-relaxed overflow-auto max-h-40"
                 style={{
                   fontFamily: "ui-monospace, monospace",
                   color: "hsl(var(--theme-ink-tertiary))",

@@ -31,7 +31,7 @@ import * as React from "react"
 import { Plus } from "lucide-react"
 
 const SURFACE = {
-  sideCard: "hsl(var(--theme-surface-paper) / 0.9)",
+  sideCard: "hsl(var(--theme-surface-paper) / 0.96)",
   border: "hsl(var(--theme-border-soft))",
   inkPrimary: "var(--theme-ink-primary-color)",
   inkSecondary: "var(--theme-ink-secondary-color)",
@@ -99,7 +99,7 @@ export function SidebarCard({
 }: SidebarCardProps) {
   return (
     <div
-      className={`rounded-2xl border px-5 py-4 ${className}`}
+      className={`rounded-2xl border px-5 py-4 shadow-sm ${className}`}
       style={{ backgroundColor, borderColor }}
     >
       <div className="space-y-1">
@@ -108,13 +108,13 @@ export function SidebarCard({
             <button
               type="button"
               onClick={onTitleClick}
-              className="text-base font-semibold text-left underline-offset-2 decoration-dotted hover:underline transition-colors"
+              className="text-lg font-semibold text-left underline-offset-2 decoration-dotted hover:underline transition-colors"
               style={{ color: SURFACE.inkPrimary }}
             >
               {title}
             </button>
           ) : (
-            <h3 className="text-base font-semibold" style={{ color: SURFACE.inkPrimary }}>
+            <h3 className="text-lg font-semibold" style={{ color: SURFACE.inkPrimary }}>
               {title}
             </h3>
           )}
@@ -135,18 +135,18 @@ export function SidebarCard({
           )}
         </div>
         {description ? (
-          <p className="text-sm" style={{ color: SURFACE.inkSecondary }}>
+          <p className="text-base leading-snug" style={{ color: SURFACE.inkSecondary }}>
             {description}
           </p>
         ) : null}
       </div>
 
       {items && items.length > 0 && (
-        <ul className="mt-4 space-y-2 text-sm" style={{ color: SURFACE.inkSecondary }}>
+        <ul className="mt-4 space-y-2.5 text-base leading-snug" style={{ color: SURFACE.inkSecondary }}>
           {items.map((item) => (
             <li key={item.id ?? item.label} className="flex items-center gap-2">
               <span
-                className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                className="h-2 w-2 flex-shrink-0 rounded-full"
                 style={itemBulletStyle(item.description)}
                 title={
                   item.description === "draft"

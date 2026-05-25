@@ -23,6 +23,13 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-05-24 — Board readability pass (contrast + larger type)
+- Theme tokens: darker secondary/tertiary ink, stronger borders (styleRegistry + themeRegistry)
+- Panel chrome: more opaque surfaces, clearer borders (nav + Chronicle)
+- Chronicle/presence: +2px typography scale, story cards with stronger borders
+- SidebarCard: larger titles and list items for nav scanning
+- `index.css` `.keeper-board-scope`: dialog banner, Kip messages, composer zone readability
+
 ### 2026-05-24 — Universal Chronicle: single KeeperPresence path (Steps 1 + 4)
 - Chronicle routes exclusively through KeeperPresence; no board-specific panel renderers
 - `mergeViewStates()` — all boards declare every subject; viewStates are treatment copy only

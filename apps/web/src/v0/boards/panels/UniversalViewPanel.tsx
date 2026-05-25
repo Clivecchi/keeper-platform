@@ -110,16 +110,16 @@ function TrailBar({
     <div
       className="shrink-0 flex items-center gap-1 px-3 py-2"
       style={{
-        borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.2)",
-        minHeight: 36,
+        borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.4)",
+        minHeight: 40,
       }}
     >
       {hasOlder && (
         <button
           type="button"
           onClick={() => onNavigate(Math.max(0, windowStart - 1))}
-          className="shrink-0 text-[11px] font-medium px-1 leading-none transition-opacity hover:opacity-80"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          className="shrink-0 text-[13px] font-medium px-1 leading-none transition-opacity hover:opacity-80"
+          style={{ color: "hsl(var(--theme-ink-secondary))" }}
           aria-label="Navigate to older history"
         >
           ···
@@ -148,19 +148,19 @@ function TrailBar({
                   opacity: 0,
                   transition: { duration: 0.14, ease: "easeIn" },
                 }}
-                className="shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full transition-colors truncate"
+                className="shrink-0 text-[12px] font-medium px-2.5 py-1 rounded-full transition-colors truncate"
                 style={{
-                  maxWidth: 90,
+                  maxWidth: 100,
                   background: isCurrent
                     ? "hsl(var(--theme-surface-elevated))"
-                    : "transparent",
+                    : "hsl(var(--theme-surface-elevated) / 0.35)",
                   color: isCurrent
                     ? "hsl(var(--theme-ink-primary))"
-                    : "hsl(var(--theme-ink-tertiary))",
+                    : "hsl(var(--theme-ink-secondary))",
                   border: `1px solid ${
                     isCurrent
-                      ? "hsl(var(--theme-border-soft) / 0.5)"
-                      : "transparent"
+                      ? "hsl(var(--theme-border-soft) / 0.65)"
+                      : "hsl(var(--theme-border-soft) / 0.35)"
                   }`,
                 }}
               >
@@ -183,8 +183,8 @@ function TrailBar({
             style={{ background: "hsl(var(--theme-accent-primary) / 0.7)" }}
           />
           <span
-            className="text-[9px] tabular-nums"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            className="text-[11px] tabular-nums font-medium"
+            style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
             {feedCount}
           </span>
@@ -225,7 +225,7 @@ function ChronicleRecordView({
   if (!domainId) {
     return (
       <div className="flex h-full items-center justify-center px-4">
-        <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+        <p className="text-[14px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
           Waiting for domain context…
         </p>
       </div>
@@ -278,7 +278,7 @@ function PanelBody({
     if (!objectId || !domainId) {
       return (
         <div className="flex h-full items-center justify-center px-4">
-          <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+          <p className="text-[14px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
             Waiting for domain context…
           </p>
         </div>
@@ -559,11 +559,11 @@ export function UniversalViewPanel({
     <div
       className="flex flex-col h-full min-h-0 overflow-hidden"
       style={{
-        background: "hsl(var(--theme-surface-panel) / 0.85)",
+        background: "hsl(var(--theme-surface-panel) / 0.93)",
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
         borderRadius: "8px",
-        border: "1px solid hsl(var(--theme-border-soft) / 0.3)",
+        border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
         color: "hsl(var(--theme-ink-primary))",
       }}
     >
