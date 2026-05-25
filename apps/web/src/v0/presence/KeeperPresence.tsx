@@ -36,6 +36,7 @@ import {
 } from "../presents/usePresentMotion"
 import {
   contextMotionStyle,
+  captionMotionStyle,
   primaryMotionStyle,
   secondaryMotionStyle,
 } from "../presents/presentMotionStyles"
@@ -497,8 +498,6 @@ function JourneyFocusPresence({
                 className="text-[20px] font-semibold leading-snug"
                 style={{ color: "hsl(var(--theme-ink-primary))" }}
               />
-            </div>
-            <div style={secondaryMotionStyle(motion)}>
               <AutoResizeTextarea
                 value={forward}
                 onChange={(v) => {
@@ -1015,7 +1014,12 @@ function KeeperPresenceSurface({
             <PresenceBreadcrumbBar breadcrumb={breadcrumb} />
           </div>
         )}
-        <div style={contextMotionStyle(motion)}>
+        <div
+          style={{
+            ...captionMotionStyle(motion),
+            ...contextMotionStyle(motion),
+          }}
+        >
           <PresenceWhisper>{typeLabel}</PresenceWhisper>
         </div>
 

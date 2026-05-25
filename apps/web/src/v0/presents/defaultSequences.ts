@@ -2,7 +2,7 @@ import { getProject, type IProject } from "@theatre/core"
 import type { PresentName } from "./types"
 import { DEFAULT_PRESENT_PROJECT_STATE } from "./buildPresentProjectState"
 
-export const KEEPER_PRESENTS_PROJECT_ID = "Keeper Presents"
+export const KEEPER_PRESENTS_PROJECT_ID = "Keeper Presents · tuned"
 
 /** Maps a PresentName to its Theatre sheet id (defaults use the same string). */
 export function presentSheetId(present: PresentName): string {
@@ -11,11 +11,23 @@ export function presentSheetId(present: PresentName): string {
 
 let cachedProject: IProject | null = null
 
-export function getPresentProject(): IProject {
-  if (!cachedProject) {
-    cachedProject = getProject(KEEPER_PRESENTS_PROJECT_ID, {
+function createPresentProject(): IProject {
+  try {
+    return getProject(KEEPER_PRESENTS_PROJECT_ID, {
       state: DEFAULT_PRESENT_PROJECT_STATE,
     })
+  } catch (error) {
+    console.warn(
+      "[Presents] Theatre project state rejected; loading empty project.",
+      error,
+    )
+    return getProject(KEEPER_PRESENTS_PROJECT_ID)
+  }
+}
+
+export function getPresentProject(): IProject {
+  if (!cachedProject) {
+    cachedProject = createPresentProject()
   }
   return cachedProject
 }

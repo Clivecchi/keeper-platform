@@ -27,6 +27,14 @@ Named presentation forms (Cover, Slide, Media, Journey, Moment) rendered as Thea
 
 ## 📆 Update Log
 
+### 2026-05-25 — Tuned default Present sequences (spec §8.2)
+- Cover: 1.2s atmosphere, identity after 1.05s, staggered content through 2.35s
+- Slide: primary → +200ms secondary → +200ms context/caption beats
+- Media: full open at t=0, caption at 800ms, no scale preamble
+- Journey: title+forward on primary track; paths/body stagger on secondary; meta on context
+- Moment: title, 440ms breath (hold), narrative, context beneath
+- Per-keyframe easing + hold types; project id bumped to `Keeper Presents · tuned`
+
 ### 2026-05-25 — Theatre.js scaffold (Steps 4–6)
 - Added five default Present sequences and project state builder
 - Added `present` + `context` props on `KeeperPresence` and `ChroniclePresenceView`
