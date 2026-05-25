@@ -29,6 +29,7 @@ import { WorldModeProvider } from '../context/WorldModeContext';
 import { FrameProvider } from '../context/FrameContext';
 import { KeeperProvider } from '../context/KeeperContext';
 import { BoardProvider } from '../context/BoardContext';
+import { TheatreStudioLoader } from '../v0/presents/theatre/TheatreStudioLoader';
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -37,6 +38,7 @@ interface AppProvidersProps {
 export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   return (
     <React.StrictMode>
+      <TheatreStudioLoader />
       <BrowserRouter>
         <AuthProvider>
           <AuthGate>
