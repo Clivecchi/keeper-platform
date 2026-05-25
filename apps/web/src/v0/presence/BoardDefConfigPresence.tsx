@@ -62,7 +62,6 @@ function formatNavSections(def: UniversalBoardDef): string {
   if (s.keepers) parts.push("Keepers")
   if (s.drafts) parts.push("Drafts")
   if (s.agents) parts.push("Agents")
-  if (s.frames) parts.push("Frames")
   if (s.boardDefs) parts.push("Board Definitions")
   const integrations = def.nav.integrations?.map((i) => i.label) ?? []
   if (integrations.length > 0) parts.push(`Integrations (${integrations.join(", ")})`)

@@ -21,11 +21,6 @@ export interface NavSectionsDef {
   drafts: boolean
   agents: boolean
   /**
-   * designer mode: show the Frames section (static list from BOARD_FRAMES[activeBoardForFrames]).
-   * Selection fires onFrameSelect in UniversalBoardContext.
-   */
-  frames?: boolean
-  /**
    * designer mode: show the Board Definitions section (all entries from BOARD_DEFINITIONS).
    * Selection fires onBoardDefSelect in UniversalBoardContext.
    */
@@ -78,7 +73,6 @@ export type PresenceSubject =
   | "draft"
   | "service"
   | "domain"
-  | "frame"
   | "boardDef"
 
 export interface ContextViewStateDef {
@@ -133,11 +127,6 @@ const UNIVERSAL_VIEW_STATE_DEFAULTS: ContextViewStateDef[] = [
     key: "service",
     presenceTreatment:
       "Service connection surface. Status and controls forward. Other services present but quiet.",
-  },
-  {
-    key: "frame",
-    presenceTreatment:
-      "Frame detail. Configuration, preview, and structure in view. Draft state surfaces when present.",
   },
   {
     key: "boardDef",
@@ -315,7 +304,6 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
       keepers: false,
       drafts: false,
       agents: false,
-      frames: true,
       boardDefs: true,
     },
   },
@@ -328,12 +316,10 @@ export const DESIGNER_BOARD_DEF: UniversalBoardDef = {
   },
   contextSurface: {
     viewStates: mergeViewStates({
-      frame:
-        "Frame detail. Configuration, preview, and structure in view. Draft state surfaces when present. Direct-edit available on preview.",
       boardDef:
         "Board definition in view. Structure and access rules present. Declarative spec forward.",
       domain:
-        "Design surface. Frame configuration in view. What is being edited surfaces. Structural context present.",
+        "Design surface. Treatment and presence configuration in view. What governs how the domain feels and how objects surface.",
     }),
     idleSubject: "domain",
   },

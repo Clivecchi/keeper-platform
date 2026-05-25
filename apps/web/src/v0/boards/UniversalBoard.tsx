@@ -399,7 +399,6 @@ function UniversalBoardShell({
 function boardNeedsDraftContext(def: UniversalBoardDef): boolean {
   return (
     def.conversation.kipMode === "designer" ||
-    def.nav.sections.frames === true ||
     def.nav.sections.boardDefs === true
   )
 }

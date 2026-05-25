@@ -30,9 +30,6 @@ import type { SidebarCardItem } from "../components/SidebarCard"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import { useBoardDefs } from "./useBoardDefs"
 import { useUniversalBoardOptional } from "./UniversalBoardContext"
-import { useDesignerDraftOptional } from "./DesignerDraftContext"
-import { BOARD_FRAMES } from "./frameCatalog"
-import { FRAME_TO_JSON_KEY } from "../shell/frameRegistryMap"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -188,7 +185,6 @@ export function UniversalNavPanel({
 
   // ── designer context — must be called before any early returns ─────────────
   const boardCtx = useUniversalBoardOptional()
-  const draftCtx = useDesignerDraftOptional()
   const allBoardDefs = useBoardDefs()
 
   // ── Section data ────────────────────────────────────────────────────────────
@@ -415,7 +411,6 @@ export function UniversalNavPanel({
   const showDialogs = def.nav.sections.dialogs
   const showJourneys = def.nav.sections.journeys
   const showKeepers = def.nav.sections.keepers
-  const showFrames = def.nav.sections.frames ?? false
   const showBoardDefs = def.nav.sections.boardDefs ?? false
   const integrationItems: SidebarCardItem[] = (def.nav.integrations ?? []).map((item) => ({
     id: item.id,
@@ -424,38 +419,7 @@ export function UniversalNavPanel({
     onClick: () => onServiceOpen?.(item.id),
   }))
 
-  // ── designer sections: Frames + Board Definitions ────────────────────────
-
-  const frameItems: SidebarCardItem[] = React.useMemo(() => {
-    if (!showFrames) return []
-    const activeBoard = boardCtx?.selection.activeBoardForFrames ?? "domain"
-    const activeKey = boardCtx?.selection.selectedFrameKey ?? null
-    const draftSpec = draftCtx?.draftSpecJson ?? null
-    const liveFrame = draftCtx?.liveDomainFrame ?? null
-    const frames = BOARD_FRAMES[activeBoard] ?? []
-
-    return frames.map((f) => {
-      const jsonKey = FRAME_TO_JSON_KEY[f.key] ?? null
-      const isDraft = !!(jsonKey && liveFrame && draftSpec
-        ? (() => {
-            try {
-              return JSON.stringify((liveFrame as Record<string, unknown>)[jsonKey])
-                !== JSON.stringify((draftSpec as Record<string, unknown>)[jsonKey])
-            } catch { return true }
-          })()
-        : false)
-
-      return {
-        id: f.key,
-        label: f.name,
-        isSelected: f.key === activeKey,
-        // Status dot color encoded as a suffix the SidebarCard can render, or
-        // we render a custom left slot — handled via description field for now.
-        description: isDraft ? "draft" : "live",
-        onClick: () => boardCtx?.actions.onFrameSelect(f.key),
-      }
-    })
-  }, [showFrames, boardCtx, draftCtx])
+  // ── designer sections: Board Definitions ─────────────────────────────────
 
   const boardDefItems: SidebarCardItem[] = React.useMemo(() => {
     if (!showBoardDefs) return []
@@ -604,15 +568,6 @@ export function UniversalNavPanel({
               </p>
             )}
           </>
-        )}
-
-        {/* Frames */}
-        {showFrames && (
-          <SidebarCard
-            title="Frames"
-            description={`${frameItems.length} frame${frameItems.length === 1 ? "" : "s"} · ${boardCtx?.selection.activeBoardForFrames ?? "domain"}`}
-            items={frameItems.length ? frameItems : undefined}
-          />
         )}
 
         {/* Board Definitions */}
