@@ -11,6 +11,12 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import './index.css'
 import './worlds/shared/world-mode.css'
 
+if (import.meta.env.DEV) {
+  void import('./v0/presents/theatre/initTheatreStudio.dev').then(
+    ({ initTheatreStudio }) => { initTheatreStudio() }
+  )
+}
+
 // AppProviders wraps all global providers (AuthGate, Router, Auth, Theme, etc.)
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary>
