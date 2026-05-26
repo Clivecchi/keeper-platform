@@ -128,6 +128,11 @@ export interface UseAgentDialogOptions {
   sessionDisplayName?: string | (() => Promise<string>)
   /** The `mode` field forwarded to `KipApi.runAgent` options. Defaults to "domain". */
   agentRunMode?: string
+  /**
+   * When true, session create/resume is owned by the board shell (e.g. Agent Board nav selection).
+   * Skips auto session init to avoid competing sessions that trigger message resets.
+   */
+  manageSessionExternally?: boolean
   domainSlug: string
   domainId?: string | null
   activeJourneyId?: string | null
@@ -195,6 +200,7 @@ export function useAgentDialog({
   onAfterAgentRun,
   onRefreshDraftsAfterRun,
   frameKey,
+  manageSessionExternally = false,
 }: UseAgentDialogOptions): UseAgentDialogResult {
   const [internalSessionId, setInternalSessionId] = React.useState<string | null>(null)
   // Use controlledSessionId when it has been driven to a real value (non-null).
@@ -269,7 +275,7 @@ export function useAgentDialog({
   // agent / domain: create a KipApi session once agentId is known.
   // ide and designer use controlled session lifecycle from the board shell.
   React.useEffect(() => {
-    if (mode === "ide" || mode === "designer" || !agentId) return
+    if (mode === "ide" || mode === "designer" || manageSessionExternally || !agentId) return
     const aid = agentId
     let cancelled = false
     async function init() {
@@ -300,7 +306,7 @@ export function useAgentDialog({
     return () => {
       cancelled = true
     }
-  }, [mode, agentId, domainSlug, domainId, resolvedAudience, dialogBoard, dialogFrame, dialogSubject, sessionDisplayName])
+  }, [mode, agentId, manageSessionExternally, domainSlug, domainId, resolvedAudience, dialogBoard, dialogFrame, dialogSubject, sessionDisplayName])
 
   // ide: controlled session bootstrap
   React.useEffect(() => {

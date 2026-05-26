@@ -511,6 +511,7 @@ export function UniversalConversation({
     onAfterAgentRun:
       kipMode === "ide" || kipMode === "designer" ? onAfterAgentRun : undefined,
     frameKey: selectedFrameKey ?? undefined,
+    manageSessionExternally: kipMode === "agent" && !!boardSelectedAgentId,
   })
 
   // ── useDraftContext — ide and agent modes ──────────────────────────────────
@@ -537,6 +538,7 @@ export function UniversalConversation({
 
   useSelectionSessionResume({
     domainId,
+    domainSlug,
     kipAgentId: agentId,
     kipMode,
     selectedDialogId,
@@ -545,6 +547,7 @@ export function UniversalConversation({
     selectedDraftId,
     selectedAgentId: boardSelectedAgentId,
     activeSessionId: dialogSessionId,
+    isSending,
     onSessionSelect: handleSessionChange,
     fetchMessages,
     setMessages,

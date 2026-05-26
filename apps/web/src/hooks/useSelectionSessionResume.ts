@@ -14,6 +14,7 @@ type DialogSessionRow = {
 
 export interface UseSelectionSessionResumeOptions {
   domainId: string | null | undefined
+  domainSlug?: string | null
   kipAgentId: string | null
   kipMode: "ide" | "agent" | "domain" | "designer"
   selectedDialogId: string | null | undefined
@@ -22,6 +23,8 @@ export interface UseSelectionSessionResumeOptions {
   selectedDraftId: string | null | undefined
   selectedAgentId: string | null | undefined
   activeSessionId: string | null | undefined
+  /** Skip resume while a message is in flight — avoids wiping optimistic UI. */
+  isSending?: boolean
   onSessionSelect: (id: string | null) => void
   fetchMessages: (sessionId: string) => Promise<unknown[] | undefined>
   setMessages: React.Dispatch<React.SetStateAction<AgentDialogueMessage[]>>
@@ -85,6 +88,7 @@ function sessionKeeperId(session: KipSession): string | null {
  */
 export function useSelectionSessionResume({
   domainId,
+  domainSlug,
   kipAgentId,
   kipMode,
   selectedDialogId,
@@ -93,6 +97,7 @@ export function useSelectionSessionResume({
   selectedDraftId,
   selectedAgentId,
   activeSessionId,
+  isSending = false,
   onSessionSelect,
   fetchMessages,
   setMessages,
@@ -114,9 +119,12 @@ export function useSelectionSessionResume({
   ])
 
   const resumeRef = React.useRef(0)
+  const activeSessionIdRef = React.useRef(activeSessionId)
+  activeSessionIdRef.current = activeSessionId
 
   React.useEffect(() => {
     if (kipMode === "designer") return
+    if (isSending) return
     if (!domainId || !resumeKey) return
 
     const token = ++resumeRef.current
@@ -125,6 +133,22 @@ export function useSelectionSessionResume({
     const openIdle = () => {
       onSessionSelect(null)
       setMessages(idleMessages)
+    }
+
+    async function createAgentBoardSession(agentForLookup: string): Promise<string | null> {
+      try {
+        const session = await KipApi.createSession(agentForLookup, undefined, "Agent Board", {
+          domainSlug: domainSlug ?? undefined,
+          domainId,
+          dialogBoard: "agent",
+          dialogFrame: "conversation",
+          dialogSubject: "domain",
+          dialogScope: "keeper",
+        })
+        return session.id
+      } catch {
+        return null
+      }
     }
 
     void (async () => {
@@ -207,15 +231,31 @@ export function useSelectionSessionResume({
         }
 
         if (sessionId) {
-          if (sessionId !== activeSessionId) {
+          if (sessionId !== activeSessionIdRef.current) {
             onSessionSelect(sessionId)
           }
           await fetchMessages(sessionId)
+        } else if (kipMode === "agent" && selectedAgentId && agentForLookup) {
+          if (activeSessionIdRef.current) {
+            // Session already active (e.g. just created) — do not wipe in-flight messages.
+            return
+          }
+          const createdId = await createAgentBoardSession(agentForLookup)
+          if (cancelled || token !== resumeRef.current) return
+          if (createdId) {
+            onSessionSelect(createdId)
+            setMessages([])
+          } else {
+            openIdle()
+          }
         } else {
           openIdle()
         }
       } catch {
         if (!cancelled && token === resumeRef.current) {
+          if (kipMode === "agent" && selectedAgentId && activeSessionIdRef.current) {
+            return
+          }
           openIdle()
         }
       }
@@ -227,14 +267,15 @@ export function useSelectionSessionResume({
   }, [
     resumeKey,
     domainId,
+    domainSlug,
     kipMode,
     kipAgentId,
+    isSending,
     selectedDialogId,
     selectedJourneyId,
     selectedKeeperId,
     selectedDraftId,
     selectedAgentId,
-    activeSessionId,
     onSessionSelect,
     fetchMessages,
     setMessages,
