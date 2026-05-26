@@ -3101,8 +3101,23 @@ export class KipAgentService {
     },
   ): Promise<{ content: string; composedSystemPrompt: string }> {
     try {
-      const modelProvider = agent.model_provider || 'openai';
-      const modelSettings = agent.model_settings || ModelProviderService.getDefaultSettings(modelProvider);
+      const modelProvider = (agent.model_provider || 'openai') as ModelProvider;
+      const defaults = ModelProviderService.getDefaultSettings(modelProvider);
+      const storedSettings =
+        agent.model_settings &&
+        typeof agent.model_settings === 'object' &&
+        !Array.isArray(agent.model_settings)
+          ? (agent.model_settings as Partial<ModelSettings>)
+          : {};
+      const resolvedModel =
+        (typeof agent.model === 'string' && agent.model.trim()) ||
+        (typeof storedSettings.model === 'string' && storedSettings.model.trim()) ||
+        defaults.model;
+      const modelSettings: ModelSettings = {
+        ...defaults,
+        ...storedSettings,
+        model: resolvedModel,
+      };
       
       // Build conversation messages for the AI model
       const messages: ModelMessage[] = [];
