@@ -48,6 +48,12 @@ import type { AgentDialogueMessage } from "../../components/agent/types"
 
 type ToolSlug = "cloud" | "rendr"
 
+interface SelectedAgentRecord {
+  slug: string
+  name: string
+  purpose: string | null
+}
+
 const TOOL_DISPLAY_NAMES: Record<ToolSlug, string> = {
   cloud: "Cloud",
   rendr: "Rendr",
@@ -158,19 +164,68 @@ export function UniversalConversation({
   const { refreshSession } = useAuth()
   const audience = shellAudience ?? "keeper"
   const kipMode = def.conversation.kipMode
-  const baseAgentSlug = def.conversation.agentSlug ?? "kip"
+  const defaultAgentSlug = def.conversation.agentSlug ?? "kip"
+  const baseAgentSlug = defaultAgentSlug
+
+  // ── designer mode: frame key + draft context ───────────────────────────────
+  const { selection, actions } = useUniversalBoard()
+  const boardSelectedAgentId = selection.selectedAgentId ?? selectedAgentId ?? null
+
+  // Agent Board: resolve slug/name from the selected agent when it differs from the board default.
+  const [selectedAgentRecord, setSelectedAgentRecord] = React.useState<SelectedAgentRecord | null>(null)
+
+  React.useEffect(() => {
+    if (kipMode !== "agent" || !boardSelectedAgentId) {
+      setSelectedAgentRecord(null)
+      return
+    }
+    let cancelled = false
+    apiFetch(`/api/agents/${encodeURIComponent(boardSelectedAgentId)}`)
+      .then((res: unknown) => {
+        if (cancelled) return
+        const agent =
+          (res as SelectedAgentRecord & { agent?: SelectedAgentRecord })?.agent ??
+          (res as { data?: SelectedAgentRecord })?.data ??
+          (res as SelectedAgentRecord)
+        const slug = typeof agent.slug === "string" ? agent.slug.trim() : ""
+        const name = typeof agent.name === "string" ? agent.name.trim() : ""
+        const purpose =
+          typeof agent.purpose === "string" && agent.purpose.trim()
+            ? agent.purpose.trim()
+            : null
+        if (slug && name) {
+          setSelectedAgentRecord({ slug, name, purpose })
+        } else {
+          setSelectedAgentRecord(null)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSelectedAgentRecord(null)
+      })
+    return () => { cancelled = true }
+  }, [kipMode, boardSelectedAgentId])
+
+  const usingSelectedNonDefaultAgent =
+    kipMode === "agent" &&
+    !!boardSelectedAgentId &&
+    !!selectedAgentRecord &&
+    selectedAgentRecord.slug !== defaultAgentSlug
 
   // IDE mode: Cloud and Rendr invoke alternate agents into the Dialog.
   const [invokedToolSlug, setInvokedToolSlug] = React.useState<ToolSlug | null>(null)
   const effectiveAgentSlug =
-    kipMode === "ide" && invokedToolSlug ? invokedToolSlug : baseAgentSlug
+    kipMode === "ide" && invokedToolSlug
+      ? invokedToolSlug
+      : usingSelectedNonDefaultAgent && selectedAgentRecord
+        ? selectedAgentRecord.slug
+        : baseAgentSlug
   const effectiveAgentDisplayName =
     kipMode === "ide" && invokedToolSlug
       ? TOOL_DISPLAY_NAMES[invokedToolSlug]
-      : def.conversation.agentName
+      : usingSelectedNonDefaultAgent && selectedAgentRecord
+        ? selectedAgentRecord.name
+        : def.conversation.agentName
 
-  // ── designer mode: frame key + draft context ───────────────────────────────
-  const { selection, actions } = useUniversalBoard()
   const selectedFrameKey = null
   const selectedBoardDefId = kipMode === "designer" ? (selection.selectedBoardDefId ?? null) : null
   const designerDraftCtx = useDesignerDraftOptional()
@@ -195,7 +250,6 @@ export function UniversalConversation({
   const [journeyName, setJourneyName] = React.useState<string | null>(null)
   const [dialogTitle, setDialogTitle] = React.useState<string | null>(null)
   const [draftTitle, setDraftTitle] = React.useState<string | null>(null)
-  const [agentName, setAgentName] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     if (!selectedDialogId || !domainId) { setDialogTitle(null); return }
@@ -220,21 +274,6 @@ export function UniversalConversation({
       .catch(() => { if (!cancelled) setDraftTitle(null) })
     return () => { cancelled = true }
   }, [selectedDraftId, domainId])
-
-  React.useEffect(() => {
-    if (!selectedAgentId) { setAgentName(null); return }
-    let cancelled = false
-    apiFetch(`/api/agents/${encodeURIComponent(selectedAgentId)}`)
-      .then((res: unknown) => {
-        if (cancelled) return
-        const a =
-          (res as { agent?: { name?: string } })?.agent ??
-          (res as { data?: { name?: string } })?.data
-        setAgentName((a as { name?: string } | undefined)?.name?.trim() || null)
-      })
-      .catch(() => { if (!cancelled) setAgentName(null) })
-    return () => { cancelled = true }
-  }, [selectedAgentId])
 
   React.useEffect(() => {
     if (!activeKeeperId) { setKeeperName(null); return }
@@ -502,7 +541,7 @@ export function UniversalConversation({
     selectedJourneyId,
     selectedKeeperId,
     selectedDraftId,
-    selectedAgentId,
+    selectedAgentId: boardSelectedAgentId,
     activeSessionId: dialogSessionId,
     onSessionSelect: handleSessionChange,
     fetchMessages,
@@ -663,9 +702,9 @@ export function UniversalConversation({
         sessionLabel: "Session" as const,
       }
     }
-    if (selectedAgentId) {
+    if (selectedAgentId && kipMode !== "agent") {
       return {
-        primary: agentName ?? def.conversation.agentName,
+        primary: selectedAgentRecord?.name ?? def.conversation.agentName,
         secondary: "Agent",
         sessionLabel: "Session" as const,
       }
@@ -683,6 +722,14 @@ export function UniversalConversation({
           sessionLabel: "Session" as const,
         }
       case "agent":
+        if (usingSelectedNonDefaultAgent && selectedAgentRecord) {
+          return {
+            primary: selectedAgentRecord.name,
+            secondary: def.displayName,
+            ...(selectedAgentRecord.purpose ? { prelude: selectedAgentRecord.purpose } : {}),
+            sessionLabel: "Session" as const,
+          }
+        }
         return {
           primary: selectedDraftId ? "Draft" : "Conversation",
           secondary: "Agent Studio",
@@ -733,8 +780,10 @@ export function UniversalConversation({
     selectedAgentId,
     dialogTitle,
     draftTitle,
-    agentName,
+    selectedAgentRecord,
     def.conversation.agentName,
+    def.displayName,
+    usingSelectedNonDefaultAgent,
     domainFrame,
     selectedFrameKey,
     selectedBoardDefId,

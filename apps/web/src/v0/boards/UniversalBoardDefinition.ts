@@ -60,6 +60,11 @@ export interface ConversationPanelDef {
   showServiceBar: boolean
   /** Which KipSession mode the conversation uses. Drives context injection and session behavior. */
   kipMode: "ide" | "agent" | "domain" | "designer"
+  /**
+   * Agent Board: when true, the lead agent (Kip) may whisper after a non-lead agent's reply.
+   * Declared in board def; wiring is handled by UniversalConversation in a later phase.
+   */
+  leadAgentWhisper?: boolean
 }
 
 // Right panel — Living Multi-Context Surface
@@ -252,6 +257,7 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
     dialogueMode: "agent",
     showServiceBar: false,
     kipMode: "agent",
+    leadAgentWhisper: true,
   },
   contextSurface: {
     viewStates: mergeViewStates({

@@ -52,6 +52,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-05-25 — Agent Board Phase 3 preflight: lens save validation inline error
+- Debounced PATCH failures for `lensSystemPrompt` show inline message beneath the field (10-character minimum); errors clear on successful save or re-edit
+
 ### 2026-05-25 — Agent Board Phase 1–2: composed prompt + teach fields
 - **Phase 1 (read):** Lead agents show read-only `composedSystemPrompt` from `GET /api/agents/:id/composed-prompt`; multiline `<pre>` for long prompts
 - **Phase 2 (write):** Editable `tagline` (`config.tagline`), `lensSystemPrompt` (active domain lens via PATCH + `domainId`); `context_scope` relabeled from misleading "System Prompt" to **Context scope**

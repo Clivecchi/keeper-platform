@@ -69,6 +69,27 @@ export interface KeeperPresenceProps {
   domainDisplayName?: string
 }
 
+function parsePatchFieldErrors(
+  err: unknown,
+  patchKeys: string[],
+): Record<string, string> {
+  const errors: Record<string, string> = {}
+  const data = (err as { data?: { error?: string; details?: Array<{ path?: (string | number)[]; message?: string }> } })
+    ?.data
+  const status = (err as { status?: number })?.status
+
+  if (patchKeys.includes("lensSystemPrompt")) {
+    const zodLensErr = data?.details?.find((d) =>
+      d.path?.some((segment) => String(segment) === "lensSystemPrompt"),
+    )
+    if (zodLensErr || status === 400) {
+      errors.lensSystemPrompt = "Lens prompt must be at least 10 characters."
+    }
+  }
+
+  return errors
+}
+
 function patchEndpoint(
   objectType: string,
   objectId: string,
@@ -719,6 +740,7 @@ export function KeeperPresence({
   const { schema } = usePresenceSchema(objectType, domainId, objectSchemaOverride)
 
   const [fieldValues, setFieldValues] = React.useState<Record<string, string>>({})
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({})
   const hasEdited = React.useRef(false)
   const debouncedValues = useDebounced(fieldValues, 1000)
 
@@ -729,6 +751,7 @@ export function KeeperPresence({
       next[key] = formatFieldValue(key, record[key], schema.fields[key]?.role ?? "secondary")
     }
     setFieldValues(next)
+    setFieldErrors({})
     hasEdited.current = false
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [record, schema])
@@ -761,6 +784,13 @@ export function KeeperPresence({
       body: JSON.stringify(requestBody),
     })
       .then(() => {
+        setFieldErrors((prev) => {
+          const next = { ...prev }
+          for (const key of Object.keys(patch)) {
+            delete next[key]
+          }
+          return next
+        })
         if (onSaved) {
           for (const [k, v] of Object.entries(patch)) onSaved(k, v)
         }
@@ -768,7 +798,12 @@ export function KeeperPresence({
           handlePresenceRefresh()
         }
       })
-      .catch(() => {})
+      .catch((err: unknown) => {
+        const patchErrors = parsePatchFieldErrors(err, Object.keys(patch))
+        if (Object.keys(patchErrors).length > 0) {
+          setFieldErrors((prev) => ({ ...prev, ...patchErrors }))
+        }
+      })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedValues])
 
@@ -808,6 +843,8 @@ export function KeeperPresence({
         primaryKey={primaryKey}
         fieldValues={fieldValues}
         setFieldValues={setFieldValues}
+        fieldErrors={fieldErrors}
+        setFieldErrors={setFieldErrors}
         markEdited={() => {
           hasEdited.current = true
         }}
@@ -842,6 +879,8 @@ function KeeperPresenceSurface({
   primaryKey,
   fieldValues,
   setFieldValues,
+  fieldErrors,
+  setFieldErrors,
   markEdited,
   schema,
   meta,
@@ -868,6 +907,8 @@ function KeeperPresenceSurface({
   primaryKey: string
   fieldValues: Record<string, string>
   setFieldValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  fieldErrors: Record<string, string>
+  setFieldErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>
   markEdited: () => void
   schema: ReturnType<typeof usePresenceSchema>["schema"]
   meta?: PresenceMeta
@@ -1070,16 +1111,33 @@ function KeeperPresenceSurface({
         {secondaryFields.map(([key, def]) => (
           <div key={key} className="mb-4" style={secondaryMotionStyle(motion)}>
             {def.editable ? (
-              <AutoResizeTextarea
-                value={fieldValues[key] ?? ""}
-                onChange={(v) => {
-                  markEdited()
-                  setFieldValues((prev) => ({ ...prev, [key]: v }))
-                }}
-                placeholder={secondaryPlaceholders[key] ?? "…"}
-                className="text-[14px] leading-relaxed"
-                style={{ color: "hsl(var(--theme-ink-secondary))" }}
-              />
+              <>
+                <AutoResizeTextarea
+                  value={fieldValues[key] ?? ""}
+                  onChange={(v) => {
+                    markEdited()
+                    setFieldValues((prev) => ({ ...prev, [key]: v }))
+                    if (fieldErrors[key]) {
+                      setFieldErrors((prev) => {
+                        const next = { ...prev }
+                        delete next[key]
+                        return next
+                      })
+                    }
+                  }}
+                  placeholder={secondaryPlaceholders[key] ?? "…"}
+                  className="text-[14px] leading-relaxed"
+                  style={{ color: "hsl(var(--theme-ink-secondary))" }}
+                />
+                {fieldErrors[key] ? (
+                  <p
+                    className="text-[12px] mt-1.5 leading-relaxed"
+                    style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
+                  >
+                    {fieldErrors[key]}
+                  </p>
+                ) : null}
+              </>
             ) : def.multiline ? (
               <pre
                 className="text-[13px] leading-relaxed whitespace-pre-wrap break-words font-mono max-h-96 overflow-y-auto"

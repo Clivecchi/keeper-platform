@@ -23,6 +23,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-05-25 — Agent Board Phase 3: center dialog follows selected agent
+- **Preflight:** Lens prompt PATCH validation errors surface inline in Chronicle (10-character minimum)
+- **Board def:** `leadAgentWhisper: true` on `AGENT_BOARD_DEF.conversation` (declared, not wired yet)
+- **Center dialog:** `UniversalConversation` resolves `agentSlug` / display name from selected nav agent when it differs from board default; Banner shows agent name, board name, and purpose prelude
+- Session resume already keyed on `selectedAgentId`; `kipAgentId` from `useAgentDialog` now matches the resolved agent
+
 ### 2026-05-25 — Agent Board Phase 0–2 (Universal Board + Chronicle)
 - **Phase 0:** `PATCH /api/agents/:id` for Chronicle saves; `context_scope` on GET; `AGENT_BOARD_DEF.nav.primarySection: "agents"` (agents first in nav)
 - **Phase 1:** Composed system prompt preview in Chronicle (read-only; API `GET /api/agents/:id/composed-prompt`)
