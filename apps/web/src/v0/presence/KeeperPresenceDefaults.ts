@@ -34,6 +34,8 @@ export interface FieldDefinition {
   editable?: boolean
   /** Display label override; defaults to field key formatted as title case */
   label?: string
+  /** Read-only fields: preserve line breaks when rendered in Chronicle */
+  multiline?: boolean
 }
 
 export interface ObjectPresenceSchema {
@@ -79,7 +81,22 @@ export const PRESENCE_SCHEMA_DEFAULTS: Record<string, ObjectPresenceSchema> = {
     fields: {
       name:          { role: 'primary',   always: true,                   editable: true  },
       purpose:       { role: 'secondary', minDensity: 'standard',         editable: true  },
-      context_scope: { role: 'secondary', minDensity: 'standard',         editable: true,  label: 'System Prompt' },
+      tagline:       { role: 'secondary', minDensity: 'standard',         editable: true,  label: 'Tagline' },
+      context_scope: { role: 'secondary', minDensity: 'standard',         editable: true,  label: 'Context scope' },
+      lensSystemPrompt: {
+        role: 'secondary',
+        label: 'Lens prompt',
+        editable: true,
+        minDensity: 'standard',
+        multiline: true,
+      },
+      composedSystemPrompt: {
+        role: 'secondary',
+        label: 'Composed Prompt',
+        editable: false,
+        minDensity: 'standard',
+        multiline: true,
+      },
       model:         { role: 'ambient',   always: true,                   editable: true  },
       status:        { role: 'quiet',     always: true,                   editable: false },
       tools:         { role: 'secondary', minDensity: 'comfortable',      editable: true  },

@@ -417,7 +417,71 @@ async function enrichKeeper(
   }
 }
 
-async function enrichAgent(record: Record<string, unknown>): Promise<EnrichmentResult> {
+function isLeadAgentRecord(record: Record<string, unknown>): boolean {
+  const agentClass = typeof record.agent_class === "string" ? record.agent_class : ""
+  const slug = typeof record.slug === "string" ? record.slug : ""
+  return agentClass === "Lead" || slug === "kip"
+}
+
+async function enrichAgent(
+  record: Record<string, unknown>,
+  domainId: string,
+): Promise<EnrichmentResult> {
+  const agentId = typeof record.id === "string" ? record.id : ""
+  const isLead = isLeadAgentRecord(record)
+
+  if (record.config && typeof record.config === "object" && !Array.isArray(record.config)) {
+    const tagline = (record.config as Record<string, unknown>).tagline
+    if (typeof tagline === "string") {
+      record.tagline = tagline
+    }
+  }
+
+  if (agentId && isLead) {
+    try {
+      const query = domainId
+        ? `?domainId=${encodeURIComponent(domainId)}`
+        : ""
+      const res = (await apiFetch(
+        `/api/agents/${encodeURIComponent(agentId)}/composed-prompt${query}`,
+      )) as { composedSystemPrompt?: string }
+      if (typeof res.composedSystemPrompt === "string" && res.composedSystemPrompt.trim()) {
+        record.composedSystemPrompt = res.composedSystemPrompt
+      }
+    } catch {
+      /* non-fatal — Chronicle still shows other agent fields */
+    }
+
+    if (domainId) {
+      try {
+        const modeRes = (await apiFetch(
+          `/api/kip/agents/${encodeURIComponent(agentId)}/mode-config?domainId=${encodeURIComponent(domainId)}`,
+        )) as {
+          success?: boolean
+          data?: { resolvedLens?: { id?: string; name?: string } }
+        }
+        const resolvedLens = modeRes.data?.resolvedLens
+        const lensId = typeof resolvedLens?.id === "string" ? resolvedLens.id : ""
+        if (lensId) {
+          record.lensId = lensId
+          if (typeof resolvedLens?.name === "string") {
+            record.lensName = resolvedLens.name
+          }
+          const lensesRes = (await apiFetch(
+            `/api/kip/lenses?domainId=${encodeURIComponent(domainId)}`,
+          )) as { success?: boolean; data?: Array<{ id: string; systemPrompt?: string }> }
+          const lenses = Array.isArray(lensesRes.data) ? lensesRes.data : []
+          const lens = lenses.find((entry) => entry.id === lensId)
+          if (typeof lens?.systemPrompt === "string" && lens.systemPrompt.trim()) {
+            record.lensSystemPrompt = lens.systemPrompt
+          }
+        }
+      } catch {
+        /* non-fatal */
+      }
+    }
+  }
+
   const sessions = Array.isArray(record.recent_sessions)
     ? (record.recent_sessions as Array<Record<string, unknown>>)
     : []
@@ -454,7 +518,9 @@ async function enrichAgent(record: Record<string, unknown>): Promise<EnrichmentR
     record,
     meta: { line: metaParts.join(" · ") || undefined },
     relatedSections,
-    hiddenFields: [],
+    hiddenFields: isLead
+      ? ["lensId", "lensName"]
+      : ["lensSystemPrompt", "composedSystemPrompt", "lensId", "lensName"],
   }
 }
 
@@ -898,7 +964,7 @@ export async function enrichPresenceRecord(
     case "keeper":
       return enrichKeeper(record, objectId, domainId)
     case "agent":
-      return enrichAgent(record)
+      return enrichAgent(record, domainId)
     case "dialog":
       return enrichDialog(record)
     case "draft":

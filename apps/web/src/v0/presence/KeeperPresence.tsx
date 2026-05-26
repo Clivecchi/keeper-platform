@@ -750,14 +750,22 @@ export function KeeperPresence({
     }
     if (Object.keys(patch).length === 0) return
 
+    const requestBody =
+      objectType === "agent" && domainId
+        ? { ...patch, domainId }
+        : patch
+
     apiFetch(endpoint, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
+      body: JSON.stringify(requestBody),
     })
       .then(() => {
         if (onSaved) {
           for (const [k, v] of Object.entries(patch)) onSaved(k, v)
+        }
+        if (objectType === "agent") {
+          handlePresenceRefresh()
         }
       })
       .catch(() => {})
@@ -994,6 +1002,8 @@ function KeeperPresenceSurface({
     summary: "What this draft carries…",
     context: "Where this dialog lives…",
     context_scope: "How this agent shows up…",
+    tagline: "Short identity line for this agent…",
+    lensSystemPrompt: "Domain lens — shapes Kip's voice and behavior…",
   }
 
   return (
@@ -1070,6 +1080,13 @@ function KeeperPresenceSurface({
                 className="text-[14px] leading-relaxed"
                 style={{ color: "hsl(var(--theme-ink-secondary))" }}
               />
+            ) : def.multiline ? (
+              <pre
+                className="text-[13px] leading-relaxed whitespace-pre-wrap break-words font-mono max-h-96 overflow-y-auto"
+                style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              >
+                {fieldValues[key]}
+              </pre>
             ) : (
               <p
                 className="text-[14px] leading-relaxed"

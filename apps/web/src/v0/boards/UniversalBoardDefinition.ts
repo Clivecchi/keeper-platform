@@ -256,7 +256,7 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
   contextSurface: {
     viewStates: mergeViewStates({
       agent:
-        "Agent present. Configuration and status forward. Recent runs surface. What is live comes forward. What is idle recedes.",
+        "Agent present. Composed prompt, configuration, and status forward. What is live comes forward. What is idle recedes.",
       draft:
         "Draft in view. Agent spec and status forward. What needs attention surfaces first.",
       domain:

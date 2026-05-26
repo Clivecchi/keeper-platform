@@ -23,6 +23,45 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-05-25 — Agent Board Phase 0–2 (Universal Board + Chronicle)
+- **Phase 0:** `PATCH /api/agents/:id` for Chronicle saves; `context_scope` on GET; `AGENT_BOARD_DEF.nav.primarySection: "agents"` (agents first in nav)
+- **Phase 1:** Composed system prompt preview in Chronicle (read-only; API `GET /api/agents/:id/composed-prompt`)
+- **Phase 2:** Editable tagline + lens prompt in Chronicle; agent view state copy mentions composed prompt
+
+### 2026-05-25 — Experience rename: `experienceContext` → `agentContext`
+- `UniversalConversation` Kip injection payload renamed; no behavior change.
+
+### 2026-05-25 — Layer 3: Chronicle frame routing unwind (`UniversalBoardContext`)
+- Removed `selectedFrameKey`, `activeBoardForFrames`, and `onFrameSelect` from selection state and actions
+- `onBoardDefSelect` now only sets `selectedBoardDefId`; `clearSelection` no longer clears frame state
+
+### 2026-05-24 — Board readability pass (contrast + larger type)
+- Theme tokens: darker secondary/tertiary ink, stronger borders (styleRegistry + themeRegistry)
+- Panel chrome: more opaque surfaces, clearer borders (nav + Chronicle)
+- Chronicle/presence: +2px typography scale, story cards with stronger borders
+- SidebarCard: larger titles and list items for nav scanning
+- `index.css` `.keeper-board-scope`: dialog banner, Kip messages, composer zone readability
+
+### 2026-05-24 — Universal Chronicle: single KeeperPresence path (Steps 1 + 4)
+- Chronicle routes exclusively through KeeperPresence; no board-specific panel renderers
+- `mergeViewStates()` — all boards declare every subject; viewStates are treatment copy only
+
+### 2026-05-24 — KeeperPresence Phase 1: active journey in board context
+- `UniversalBoardContext` exposes `activeJourneyId` (from FrameContext) and `onSetActiveJourney` for Chronicle Set as Active — components call board context, not FrameContext directly
+
+### 2026-05-23 — Universal nav: one panel, one card, code defs win
+- Deleted `UniversalSwitcherPanel` — no alternate nav component remains.
+- All nav sections (Dialogs, Integrations, Frames, Board Definitions, etc.) render as `SidebarCard` — same chrome on every board.
+- `resolveBoardDefs()` merges domain frame JSON with code defs; built-in boardIds always use `UniversalBoardDefinition.ts` as source of truth (fixes stale seeded defs).
+- `DesignerDraftProvider` mounts only when the board def requires it (designer / frames / boardDefs).
+- Removed `requiresDensity` from Design Board — no global density override special case.
+- Frame catalog moved to `frameCatalog.ts` (not under `designer/`).
+
+### 2026-05-23 — Gate 2 follow-up: Design Board nav shell parity
+- Removed `nav.variant: 'switcher'` — Design Board now uses `UniversalNavPanel` like every other board.
+- Frames + Board Definitions render as `BoardNavCard` (same Board Nav treatment as IDE Integrations / Agent Agents).
+- Domain Nav sections (Dialogs, Journeys, Keepers) gated on `def.nav.sections.*` flags.
+
 ### 2026-05-23 — Gate 2: full Universal Board compliance
 - **Dialog transport:** Design Board uses `useAgentDialog` + `KipApi.runAgent` (divergent `/kip/designer` path removed from hook).
 - **Nav:** Domain Nav vs Board Nav layers — `BoardNavCard` + divider; IDE Integrations (Vercel, Railway, GitHub) in Board Nav; Instruments removed.
@@ -35,7 +74,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ### 2026-05-10 — Level 2: UniversalConversation (single conversation render file)
 - Created `UniversalConversation.tsx` — replaces IDEBoardConversation, AgentBoardConversation, DomainBoardConversation
-  - `experienceContext` computed once from `useV0Shell()`, not three times
+  - `agentContext` computed once from `useV0Shell()`, not three times
   - Calls `useAgentDialog` with parameters from `def.conversation` (agentSlug, agentDisplayName, mode, dialogueMode)
   - Branches on `def.conversation.kipMode` only for banner props + three ide-mode callbacks (onAfterAgentRun, handleSaveTitle, onServiceOpen adapter)
   - Calls `useDraftContext` for ide and agent modes with agentId from useAgentDialog

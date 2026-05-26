@@ -31,7 +31,7 @@ Enrichment (Domain Board instincts):
 - **Moment** — journey → path breadcrumb in header; narrative + relative timestamp in body
 - **Journey** — paths (prelude + moment count) then moments (narrative preview, relative kept dates); structured header meta for focus layout
 - **Keeper** — recent sessions (journeys) as tappable related threads
-- **Agent** — recent sessions list; tools formatted
+- **Agent** — recent sessions list; tools formatted; Lead agents (Kip) fetch composed prompt + active lens prompt via API; tagline from `config.tagline`
 - **Dialog** — scope context + session count via kip/dialogs API
 - **Draft** — summary preview via kip/drafts API
 
@@ -51,6 +51,12 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - [ ] `PUT /api/domains/:domainId/presence-schema/:objectType` Design Board write path integration pending
 
 ## 📆 Update Log
+
+### 2026-05-25 — Agent Board Phase 1–2: composed prompt + teach fields
+- **Phase 1 (read):** Lead agents show read-only `composedSystemPrompt` from `GET /api/agents/:id/composed-prompt`; multiline `<pre>` for long prompts
+- **Phase 2 (write):** Editable `tagline` (`config.tagline`), `lensSystemPrompt` (active domain lens via PATCH + `domainId`); `context_scope` relabeled from misleading "System Prompt" to **Context scope**
+- `enrichAgent()` resolves lens via mode-config + lenses API; non-Lead agents hide lens/composed fields
+- Agent Chronicle saves pass `domainId`; successful PATCH triggers presence refresh so composed prompt updates after edits
 
 ### 2026-05-25 — Presents: Theatre.js listener on KeeperPresence
 - Added `present` and `context` props; motion via `PresentMotionProvider` when `layout="focus"`

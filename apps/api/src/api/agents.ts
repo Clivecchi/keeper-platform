@@ -13,6 +13,8 @@ import eventsRouter from './agents/events.js';
 import { z } from 'zod';
 import { PrismaClient, updateKipAgent } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
+import { KipAgentService } from './kip/agents.js';
+import { loadModeState } from '../services/kip/modeConfig.js';
 import { randomUUID } from 'crypto';
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -99,6 +101,9 @@ const patchAgentSchema = z
     model: z.string().min(1).max(100).optional(),
     tools: z.union([z.array(z.string()), z.string()]).optional(),
     config: z.record(z.any()).optional(),
+    tagline: z.string().max(500).optional(),
+    lensSystemPrompt: z.string().min(10).max(50000).optional(),
+    domainId: z.string().optional(),
   })
   .strict();
 
@@ -427,7 +432,11 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
 
     const body = parsed.data;
     const tools = normalizeToolsInput(body.tools);
-    const config = normalizeConfigInput(body.config);
+    const configFromBody = normalizeConfigInput(body.config);
+    const domainIdForLens =
+      typeof body.domainId === 'string' && body.domainId.trim()
+        ? body.domainId.trim()
+        : undefined;
 
     const updatePayload: Parameters<typeof updateKipAgent>[1] = {};
     if (body.name !== undefined) updatePayload.name = body.name;
@@ -437,16 +446,106 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
     }
     if (body.model !== undefined) updatePayload.model = body.model;
     if (tools !== undefined) updatePayload.tools = tools;
-    if (config !== undefined) updatePayload.config = config;
 
-    if (Object.keys(updatePayload).length === 0) {
+    let lensUpdated = false;
+    if (body.lensSystemPrompt !== undefined) {
+      const isLead = existing.agent_class === 'Lead' || existing.slug === 'kip';
+      if (!isLead) {
+        return res.status(400).json({ error: 'Lens prompt is only editable for Lead agents' });
+      }
+
+      const modeState = await loadModeState(id, domainIdForLens);
+      const activeMode = modeState.state.activeMode;
+      const modeConfig = modeState.state.modeConfigs[activeMode];
+      const lensId =
+        (typeof modeConfig?.lensId === 'string' ? modeConfig.lensId : null) ||
+        (activeMode === 'debug' ? modeState.lenses.debugLensId : modeState.lenses.domainLensId);
+
+      if (!lensId) {
+        return res.status(404).json({ error: 'Active lens not found for this agent' });
+      }
+
+      await prisma.kip_lenses.update({
+        where: { id: lensId },
+        data: {
+          systemPrompt: body.lensSystemPrompt,
+          updatedAt: new Date(),
+        },
+      });
+      lensUpdated = true;
+    }
+
+    let mergedConfig = configFromBody;
+    if (body.tagline !== undefined) {
+      const existingConfig =
+        existing.config && typeof existing.config === 'object' && !Array.isArray(existing.config)
+          ? (existing.config as Record<string, unknown>)
+          : {};
+      mergedConfig = {
+        ...existingConfig,
+        ...(mergedConfig ?? {}),
+        tagline: body.tagline,
+      };
+    }
+    if (mergedConfig !== undefined) updatePayload.config = mergedConfig;
+
+    if (Object.keys(updatePayload).length === 0 && !lensUpdated) {
       return res.status(400).json({ error: 'No updatable fields provided' });
     }
 
-    const updated = await updateKipAgent(id, updatePayload);
+    const updated =
+      Object.keys(updatePayload).length > 0
+        ? await updateKipAgent(id, updatePayload)
+        : existing;
     return res.json(formatAgentResponse(updated));
   } catch (error) {
     console.error('Error updating agent:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/agents/:id/composed-prompt - Assembled system prompt (Lead agents only)
+ * Same output as KipAgentService.buildComposedSystemPrompt — Chronicle read path.
+ */
+router.get('/:id/composed-prompt', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (!UUID_V4.test(id)) {
+      return res.status(400).json({ error: 'Invalid agent id' });
+    }
+
+    const agent = await prisma.kip_agents.findUnique({ where: { id } });
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+
+    const isLead = agent.agent_class === 'Lead' || agent.slug === 'kip';
+    if (!isLead) {
+      return res.status(404).json({ error: 'Composed prompt not available for this agent' });
+    }
+
+    const domainId =
+      typeof req.query.domainId === 'string' && req.query.domainId.trim()
+        ? req.query.domainId.trim()
+        : null;
+
+    const composedSystemPrompt = await KipAgentService.buildComposedSystemPrompt(id, {
+      domainId,
+      keeperId: null,
+      journeyId: null,
+      userId: null,
+    });
+
+    return res.json({ composedSystemPrompt });
+  } catch (error) {
+    console.error('Error fetching composed prompt:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

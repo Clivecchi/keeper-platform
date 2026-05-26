@@ -23,6 +23,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-05-25 — Agent Board Phase 0–2 (Universal Board + Chronicle)
+- **Phase 0:** `PATCH /api/agents/:id` for Chronicle saves; `context_scope` on GET; `AGENT_BOARD_DEF.nav.primarySection: "agents"` (agents first in nav)
+- **Phase 1:** Composed system prompt preview in Chronicle (read-only; API `GET /api/agents/:id/composed-prompt`)
+- **Phase 2:** Editable tagline + lens prompt in Chronicle; agent view state copy mentions composed prompt
+
 ### 2026-05-25 — Experience rename: `experienceContext` → `agentContext`
 - `UniversalConversation` Kip injection payload renamed; no behavior change.
 
