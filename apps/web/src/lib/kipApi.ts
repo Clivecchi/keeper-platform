@@ -588,8 +588,8 @@ export class KipApi {
       activeJourneyId?: string | null
       activeKeeperId?: string | null
       attachments?: Array<{ url: string; name: string; type: "image" | "file" }>
-      /** experienceContext — from domain frame JSON, injected into Kip's environment */
-      experienceContext?: Record<string, unknown>
+      /** agentContext — from domain frame JSON, injected into Kip's environment */
+      agentContext?: Record<string, unknown>
     },
   ): Promise<AgentResponse> {
     const response = await apiFetch('/api/kip/agents', {
@@ -607,7 +607,7 @@ export class KipApi {
         activeJourneyId: options?.activeJourneyId ?? undefined,
         activeKeeperId: options?.activeKeeperId ?? undefined,
         attachments: options?.attachments ?? undefined,
-        experienceContext: options?.experienceContext ?? undefined,
+        agentContext: options?.agentContext ?? undefined,
       })
     });
 

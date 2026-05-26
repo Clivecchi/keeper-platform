@@ -2310,7 +2310,7 @@ const AgentRunSchema = z.object({
   attachments: z.array(AgentAttachmentSchema).optional(),
   activeJourneyId: z.string().nullable().optional(),
   activeKeeperId: z.string().nullable().optional(),
-  experienceContext: z.record(z.unknown()).optional(),
+  agentContext: z.record(z.unknown()).optional(),
 }).refine(
   (data) => (typeof data.input === 'string' && data.input.trim().length > 0) || (Array.isArray(data.attachments) && data.attachments.length > 0),
   { message: 'Either input text or at least one attachment is required', path: ['input'] }
@@ -4425,7 +4425,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             attachments: (req.body as any)?.attachments,
             activeJourneyId: (req.body as any)?.activeJourneyId ?? null,
             activeKeeperId: (req.body as any)?.activeKeeperId ?? null,
-            experienceContext: (req.body as any)?.experienceContext ?? undefined,
+            agentContext: (req.body as any)?.agentContext ?? undefined,
           });
           if (!validation.success) {
             return respond(400, { 
@@ -4464,9 +4464,9 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
           if (environment) {
             environment.debug = environmentDebug;
             environment.actionPack = environment.actionPack ?? buildActionPackFromEnvironment(environment);
-            // Inject experienceContext from the domain frame JSON (sent by the frontend)
-            if (validation.data.experienceContext) {
-              (environment as any).experienceContext = validation.data.experienceContext;
+            // Inject agentContext from the domain frame JSON (sent by the frontend)
+            if (validation.data.agentContext) {
+              (environment as any).agentContext = validation.data.agentContext;
             }
           } else {
             environment = {

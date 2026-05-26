@@ -8,7 +8,7 @@ Centralize frame routing, theme application, and navigation helpers for domain b
 - `V0ShellContext.tsx`
 - `FrameContext.tsx`
 - `AgentComposerContext.tsx` — Provides composer state from AgentBoardFrame to Margin (bottom bar)
-- `useExperienceMode.ts`
+- `usePlacementMode.ts`
 - `useWorkspaceMode.ts`
 - `useWorkspaceView.ts`
 - `useAgentWorkspaceView.ts`
@@ -26,7 +26,8 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - [ ] Default keeper/journey creation when none exist for a domain.
 
 ## 📆 Update Log
-- 2026-05-21: jsonframe Step 4 — guests requesting `?frame=agent|kip` redirect to cover with `companion=1`; `useExperienceMode.openKip` opens companion for guests. `resolveFrame` maps guest agent/kip requests to cover.
+- 2026-05-25: Renamed `ExperienceMode` → `PlacementMode` (`usePlacementMode.ts`, `placementMode`, `placementActions`) — shell placement vs domain Experience concept.
+- 2026-05-21: jsonframe Step 4 — guests requesting `?frame=agent|kip` redirect to cover with `companion=1`; `usePlacementMode.openKip` opens companion for guests. `resolveFrame` maps guest agent/kip requests to cover.
 - 2026-03-28: Authenticated users with no `frame` or `board` query params are redirected (replace) to `?board=domain`; `defaultFrame` remains `commons` for explicit `?frame=` navigation.
 - 2026-02-28: FrameContext now derives domain from V0Shell domainData when inside V0Shell — single /api/domains/by-slug fetch, eliminates duplicate domain requests and staged load flicker.
 - 2026-02-19: Added AgentComposerContext — AgentBoardFrame provides composer props; Margin consumes when frame is agent/kip to render composer in bottom bar.

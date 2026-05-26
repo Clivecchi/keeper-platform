@@ -2,16 +2,16 @@ import { useMemo } from "react"
 import type { NavigateFunction } from "react-router-dom"
 import type { V0FrameKey } from "./V0ShellContext"
 
-export type ExperienceMode = "publicStory" | "commons" | "kipFocus" | "admin"
+export type PlacementMode = "publicStory" | "commons" | "kipFocus" | "admin"
 
-export type ExperienceState = {
-  mode: ExperienceMode
+export type PlacementState = {
+  mode: PlacementMode
   frame: V0FrameKey
   isAuthenticated: boolean
   isAdmin: boolean
 }
 
-export type ExperienceActions = {
+export type PlacementActions = {
   openKip: () => void
   closeKip: () => void
   goCommons: () => void
@@ -20,7 +20,7 @@ export type ExperienceActions = {
   goIndex: () => void
 }
 
-type ExperienceModeParams = {
+type PlacementModeParams = {
   domainSlug: string
   pathname: string
   isAuthenticated: boolean
@@ -45,7 +45,7 @@ function resolveFrame(requestedFrame: V0FrameKey, isAuthenticated: boolean): V0F
   return requestedFrame
 }
 
-function deriveMode(pathname: string, frame: V0FrameKey, isAuthenticated: boolean): ExperienceMode {
+function deriveMode(pathname: string, frame: V0FrameKey, isAuthenticated: boolean): PlacementMode {
   if (pathname.endsWith("/admin") || frame === "admin") {
     return "admin"
   }
@@ -58,7 +58,7 @@ function deriveMode(pathname: string, frame: V0FrameKey, isAuthenticated: boolea
   return "publicStory"
 }
 
-export function useExperienceMode({
+export function usePlacementMode({
   domainSlug,
   pathname,
   isAuthenticated,
@@ -66,11 +66,11 @@ export function useExperienceMode({
   requestedFrame,
   buildFrameUrl,
   navigate
-}: ExperienceModeParams): { state: ExperienceState; actions: ExperienceActions } {
+}: PlacementModeParams): { state: PlacementState; actions: PlacementActions } {
   const frame = useMemo(() => resolveFrame(requestedFrame, isAuthenticated), [requestedFrame, isAuthenticated])
   const mode = useMemo(() => deriveMode(pathname, frame, isAuthenticated), [pathname, frame, isAuthenticated])
 
-  const actions = useMemo<ExperienceActions>(() => {
+  const actions = useMemo<PlacementActions>(() => {
     return {
       openKip: () => {
         if (!isAuthenticated) {

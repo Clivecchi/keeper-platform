@@ -4,7 +4,7 @@ import * as React from "react"
 import { useAuth } from "../../context/AuthContext"
 import { apiFetch } from "../../lib/api"
 import type { V0FrameKey } from "./V0ShellContext"
-import type { ExperienceMode } from "./useExperienceMode"
+import type { PlacementMode } from "./usePlacementMode"
 import { useV0ShellOptional } from "./V0ShellContext"
 
 // =============================================================================
@@ -43,7 +43,7 @@ export interface FrameContextValue {
   theme: FrameContextTheme
   frame: {
     frameId: V0FrameKey
-    experienceMode: ExperienceMode
+    placementMode: PlacementMode
     draftId: string | null
   }
   /** Whether domain/keeper/journey are still loading */
@@ -100,7 +100,7 @@ function persistSelection(
 interface FrameContextProviderProps {
   domainSlug: string
   frame: V0FrameKey
-  experienceMode: ExperienceMode
+  placementMode: PlacementMode
   themeSlug: string | null
   draftId: string | null
   children: React.ReactNode
@@ -109,7 +109,7 @@ interface FrameContextProviderProps {
 export function FrameContextProvider({
   domainSlug,
   frame,
-  experienceMode,
+  placementMode,
   themeSlug,
   draftId,
   children,
@@ -298,7 +298,7 @@ export function FrameContextProvider({
       theme: resolvedTheme,
       frame: {
         frameId: frame,
-        experienceMode,
+        placementMode,
         draftId,
       },
       isResolving,
@@ -314,7 +314,7 @@ export function FrameContextProvider({
       activeJourneyId,
       resolvedTheme,
       frame,
-      experienceMode,
+      placementMode,
       draftId,
       isResolving,
       handleSetActiveKeeperId,

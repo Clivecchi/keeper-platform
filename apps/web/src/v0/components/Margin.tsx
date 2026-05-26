@@ -310,9 +310,9 @@ export function Margin() {
     "Hello. What would you like to keep today?"
   const companionAgentId = domainFrame?.kip.agent_id ?? "kip"
 
-  // experienceContext — Spec Step 6: pass the resolved domain frame context into Kip's environment.
+  // agentContext — Spec Step 6: pass the resolved domain frame context into Kip's environment.
   // Computed here from domainFrame + resolvedAudience so the API can inject it into the system prompt.
-  const experienceContext: Record<string, unknown> | undefined = domainFrame
+  const agentContext: Record<string, unknown> | undefined = domainFrame
     ? {
         audience,
         model: domainFrame.kip.model,
@@ -333,7 +333,7 @@ export function Margin() {
         audience={audience}
         domainSlug={v0Shell.domainSlug}
         agentId={companionAgentId}
-        experienceContext={experienceContext}
+        agentContext={agentContext}
         onSignIn={() => {
           setIsCompanionOpen(false)
           handleSignIn()

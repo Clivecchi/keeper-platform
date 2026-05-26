@@ -654,7 +654,7 @@ export function KeeperPresence({
       domainName: domainDisplayName,
       domainSlug,
       domainId,
-      activeBoardForFrames: boardCtx?.selection.activeBoardForFrames ?? "domain",
+      activeBoardForFrames: "domain",
     }
 
     async function load() {

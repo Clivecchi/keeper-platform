@@ -44,10 +44,13 @@ Static data sources and loaders for the JSON UI Frame system. This folder holds 
 - `domain-frame.default.ts` retained as static fallback — not deleted.
 - Console log `[DomainFrame] Loaded for domain: <slug>` now emits on successful API fetch.
 
+### 2026-05-25 — Experience rename: `experienceContext` → `agentContext`
+- Kip injection payload renamed across web/API; shape unchanged.
+
 ### 2026-03-03 — Step 6: Kip reads the JSON
-- `experienceContext` is now computed in `Margin.tsx` from `domainFrame` + `resolvedAudience`
+- `agentContext` is now computed in `Margin.tsx` from `domainFrame` + `resolvedAudience`
 - Shape: `{ audience, model, forward, directions (filtered by role), kip_context }`
-- Passed to `CompanionSlide` → `KipApi.runAgent()` → API → `AgentEnvironmentContext.experienceContext`
+- Passed to `CompanionSlide` → `KipApi.runAgent()` → API → `AgentEnvironmentContext.agentContext`
 - API receives it via the `AgentRunSchema` and injects it into the environment after `resolveAgentEnvironment`
 - Makes Kip aware of: who the visitor is, which model, what Forward means, available directions, domain instruction
 - See also: `resolveAgentEnvironment.ts` (type), `agents.ts` (injection), `CompanionSlide.tsx` (prop)

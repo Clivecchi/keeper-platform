@@ -33,13 +33,6 @@ export interface UniversalBoardSelection {
   selectedDraftId: string | null
   selectedAgentId: string | null
   selectedServiceSlug: string | null
-  /** designer mode: the active frame key — independent of domain entity selections. */
-  selectedFrameKey: string | null
-  /**
-   * designer mode: which board's frame list the nav panel displays.
-   * Defaults to "domain". Changed when a Board Definition row is selected.
-   */
-  activeBoardForFrames: string
   /** designer mode: the board definition currently selected in the nav — drives right-panel BoardDefView. */
   selectedBoardDefId: string | null
 }
@@ -56,12 +49,7 @@ export interface UniversalBoardActions {
   onAgentSelect: (id: string) => void
   onServiceOpen: (slug: string) => void
   clearSelection: () => void
-  /** designer mode: selects a frame key. Independent — does not clear other selections. */
-  onFrameSelect: (key: string) => void
-  /**
-   * designer mode: selects a board definition. Sets both activeBoardForFrames (frame list)
-   * and selectedBoardDefId (right-panel BoardDefView). Clears selectedFrameKey.
-   */
+  /** designer mode: selects a board definition — drives right-panel BoardDefView. */
   onBoardDefSelect: (id: string) => void
 }
 
@@ -108,8 +96,6 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [selectedDraftId, setSelectedDraftId] = React.useState<string | null>(null)
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null)
   const [selectedServiceSlug, setSelectedServiceSlug] = React.useState<string | null>(null)
-  const [selectedFrameKey, setSelectedFrameKey] = React.useState<string | null>(null)
-  const [activeBoardForFrames, setActiveBoardForFrames] = React.useState("domain")
   const [selectedBoardDefId, setSelectedBoardDefId] = React.useState<string | null>(null)
 
   // ── Nav state ──────────────────────────────────────────────────────────────
@@ -210,19 +196,11 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedDraftId(null)
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
-    setSelectedFrameKey(null)
-    setSelectedBoardDefId(null)
-  }, [])
-
-  const onFrameSelect = React.useCallback((key: string) => {
-    setSelectedFrameKey(key)
     setSelectedBoardDefId(null)
   }, [])
 
   const onBoardDefSelect = React.useCallback((id: string) => {
-    setActiveBoardForFrames(id)
     setSelectedBoardDefId(id)
-    setSelectedFrameKey(null)
   }, [])
 
   const onToggleNavCollapsed = React.useCallback(() => {
@@ -243,8 +221,6 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         selectedDraftId,
         selectedAgentId,
         selectedServiceSlug,
-        selectedFrameKey,
-        activeBoardForFrames,
         selectedBoardDefId,
       },
       actions: {
@@ -258,7 +234,6 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onAgentSelect,
         onServiceOpen,
         clearSelection,
-        onFrameSelect,
         onBoardDefSelect,
       },
       navCollapsed,
@@ -275,8 +250,6 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       selectedDraftId,
       selectedAgentId,
       selectedServiceSlug,
-      selectedFrameKey,
-      activeBoardForFrames,
       selectedBoardDefId,
       onSessionSelect,
       onSetActiveJourney,
@@ -288,7 +261,6 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       onAgentSelect,
       onServiceOpen,
       clearSelection,
-      onFrameSelect,
       onBoardDefSelect,
       navCollapsed,
       onToggleNavCollapsed,

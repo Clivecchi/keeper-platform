@@ -413,9 +413,9 @@ export function AgentBoardFrame({
     setIsSending(true)
     setMessagesError(null)
 
-    // Spec Step 6: build experienceContext from domain frame JSON + resolved audience
+    // Spec Step 6: build agentContext from domain frame JSON + resolved audience
     const audience = resolvedAudience ?? "keeper"
-    const experienceContext: Record<string, unknown> | undefined = domainFrame
+    const agentContext: Record<string, unknown> | undefined = domainFrame
       ? {
           audience,
           model: domainFrame.kip.model,
@@ -435,7 +435,7 @@ export function AgentBoardFrame({
           activeJourneyId: frameCtx?.selection.activeJourneyId,
           activeKeeperId: frameCtx?.selection.activeKeeperId,
           attachments: attachments.length > 0 ? attachments : undefined,
-          experienceContext,
+          agentContext,
         })
       } catch (firstErr: unknown) {
         const status = (firstErr as { status?: number })?.status
@@ -449,7 +449,7 @@ export function AgentBoardFrame({
               activeJourneyId: frameCtx?.selection.activeJourneyId,
               activeKeeperId: frameCtx?.selection.activeKeeperId,
               attachments: attachments.length > 0 ? attachments : undefined,
-              experienceContext,
+              agentContext,
             })
           } else {
             setMessagesError(ab?.messaging.errors.session_expired ?? "Session expired. Please log in again.")

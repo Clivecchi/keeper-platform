@@ -42,7 +42,6 @@ type TrailKind =
   | "draft"
   | "agent"
   | "service"
-  | "frame"
   | "boardDef"
 type TrailDirection = "forward" | "back"
 
@@ -64,11 +63,10 @@ const TRAIL_KIND_TO_OBJECT_TYPE: Record<TrailKind, string> = {
   draft: "draft",
   agent: "agent",
   service: "service",
-  frame: "frame",
   boardDef: "boardDef",
 }
 
-const CONFIG_LAYOUT_KINDS = new Set<TrailKind>(["frame", "boardDef"])
+const CONFIG_LAYOUT_KINDS = new Set<TrailKind>(["boardDef"])
 
 // ─── API data shapes ──────────────────────────────────────────────────────────
 
@@ -386,8 +384,6 @@ export function UniversalViewPanel({
 
   // Universal priority — same on every board. viewStates does not gate routing.
   function resolveKindId(): { kind: TrailKind; id: string | null } {
-    if (boardCtx?.selection.selectedFrameKey)
-      return { kind: "frame", id: boardCtx.selection.selectedFrameKey }
     if (boardCtx?.selection.selectedBoardDefId)
       return { kind: "boardDef", id: boardCtx.selection.selectedBoardDefId }
     if (resolved.selectedServiceSlug)
@@ -490,9 +486,6 @@ export function UniversalViewPanel({
           break
         case "service":
           if (entry.id) actions.onServiceOpen(entry.id)
-          break
-        case "frame":
-          if (entry.id) actions.onFrameSelect(entry.id)
           break
         case "boardDef":
           if (entry.id) actions.onBoardDefSelect(entry.id)

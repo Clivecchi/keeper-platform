@@ -9,7 +9,7 @@
  * useAgentDialog handles all conversation lifecycle.
  *
  * This file:
- *   - Computes experienceContext once from useV0Shell()
+ *   - Computes agentContext once from useV0Shell()
  *   - Calls useAgentDialog with parameters from def.conversation
  *   - Branches on def.conversation.kipMode only for banner props
  *     and the three ide-mode callbacks
@@ -171,12 +171,12 @@ export function UniversalConversation({
 
   // ── designer mode: frame key + draft context ───────────────────────────────
   const { selection, actions } = useUniversalBoard()
-  const selectedFrameKey = kipMode === "designer" ? (selection.selectedFrameKey ?? null) : null
+  const selectedFrameKey = null
   const selectedBoardDefId = kipMode === "designer" ? (selection.selectedBoardDefId ?? null) : null
   const designerDraftCtx = useDesignerDraftOptional()
 
-  // ── experienceContext — computed once, shared across all modes ─────────────
-  const experienceContext = React.useMemo(() => {
+  // ── agentContext — computed once, shared across all modes ─────────────
+  const agentContext = React.useMemo(() => {
     if (!domainFrame) return undefined
     return {
       audience,
@@ -460,7 +460,7 @@ export function UniversalConversation({
     dialogSubject: kipMode === "designer" ? "frame" : undefined,
     domainSlug,
     domainId,
-    experienceContext,
+    agentContext,
     resolvedAudience: audience,
     refreshSession,
     frameCtx,

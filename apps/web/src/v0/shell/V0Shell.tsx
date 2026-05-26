@@ -15,7 +15,7 @@ import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
 import { loadDomainFrame } from "../data/loadDomainFrame"
 import type { DomainFrameJson } from "../data/domain-frame.types"
 import { resolveAudience } from "../data/resolveAudience"
-import { useExperienceMode } from "./useExperienceMode"
+import { usePlacementMode } from "./usePlacementMode"
 import { FrameContextProvider } from "./FrameContext"
 import { resolveDomainThemeSync } from "../themes/domainThemeResolver"
 import { registerRuntimeTheme } from "../themes/themeResolver"
@@ -260,7 +260,7 @@ export function V0Shell() {
     }
   }, [slug])
 
-  const experience = useExperienceMode({
+  const placement = usePlacementMode({
     domainSlug: resolvedSlug,
     pathname: location.pathname,
     isAuthenticated,
@@ -269,7 +269,7 @@ export function V0Shell() {
     buildFrameUrl,
     navigate
   })
-  const frame = experience.state.frame
+  const frame = placement.state.frame
   const FrameComponent = FRAME_REGISTRY[frame]
 
   // ── Board rendering — takes precedence over frame routing ─────────────────
@@ -302,8 +302,8 @@ export function V0Shell() {
           value={{
             domainSlug: slug,
             frame,
-            experienceMode: experience.state.mode,
-            experienceActions: experience.actions,
+            placementMode: placement.state.mode,
+            placementActions: placement.actions,
             themeSlug: urlThemeSlug,
             styleId,
             draftId,
@@ -319,7 +319,7 @@ export function V0Shell() {
           <FrameContextProvider
             domainSlug={slug}
             frame={frame}
-            experienceMode={experience.state.mode}
+            placementMode={placement.state.mode}
             themeSlug={activeThemeSlug}
             draftId={draftId}
           >
@@ -337,8 +337,8 @@ export function V0Shell() {
         value={{
           domainSlug: slug,
           frame,
-          experienceMode: experience.state.mode,
-          experienceActions: experience.actions,
+          placementMode: placement.state.mode,
+          placementActions: placement.actions,
           // V0ShellContext carries the URL theme for ThemeSwitcher / navigation compatibility.
           // Frame components receive activeThemeSlug directly as a prop (see below).
           themeSlug: urlThemeSlug,
@@ -356,7 +356,7 @@ export function V0Shell() {
         <FrameContextProvider
           domainSlug={slug}
           frame={frame}
-          experienceMode={experience.state.mode}
+          placementMode={placement.state.mode}
           themeSlug={activeThemeSlug}
           draftId={draftId}
         >

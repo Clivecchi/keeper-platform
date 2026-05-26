@@ -29,12 +29,12 @@ Chronicle is the right panel for all Universal Boards. It is built as a Treatmen
 
 | Trigger | Renderer |
 |---|---|
-| Any selection (dialog, journey, moment, keeper, draft, agent, service, frame, boardDef) | `KeeperPresence` |
+| Any selection (dialog, journey, moment, keeper, draft, agent, service, boardDef) | `KeeperPresence` |
 | Nothing selected (domain idle) | `KeeperPresence` objectType=`domain` |
 
 `contextSurface.viewStates` on board defs carries **treatment copy only** — it does not gate routing. All boards declare every subject via `mergeViewStates()`.
 
-Frame and boardDef use `layout="config"` via `FrameConfigPresence` and `BoardDefConfigPresence` inside KeeperPresence. `DesignBoardFrameDetail` is retained but not mounted.
+Frame and boardDef use `layout="config"` via `BoardDefConfigPresence` inside KeeperPresence; `FrameConfigPresence` remains in codebase but is no longer reachable from Chronicle routing. `DesignBoardFrameDetail` is retained but not mounted.
 
 **Gate 3 standard:** Chronicle record views are thin wrappers. They call `ChroniclePresenceView` → `KeeperPresence` with `layout="focus"` and density `standard`. No bespoke field assembly per type. Journey focus uses dedicated KeeperPresence layout (paths with prelude, tappable moments, Set as Active).
 
@@ -69,6 +69,11 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 - [ ] Rendr integration — spatial ratios and density governed by `presenceTreatment` field
 
 ## 📆 Update Log
+
+### 2026-05-25 — Layer 3: Chronicle frame routing unwind
+- Removed `"frame"` from `TrailKind`, `TRAIL_KIND_TO_OBJECT_TYPE`, and `CONFIG_LAYOUT_KINDS`
+- Removed `selectedFrameKey` branch from `resolveKindId()` and trail back-nav `onFrameSelect` case
+- `FrameConfigPresence` no longer reachable via Chronicle; boardDef and domain idle routing unchanged
 
 ### 2026-05-24 — Step 2: Frame and BoardDef config presence in KeeperPresence
 - Frame selection: preview, unified props catalog, domain board-data save, quiet JSON

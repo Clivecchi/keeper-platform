@@ -14,6 +14,8 @@ export type BoardId = "ide" | "agent" | "domain" | "designer" | (string & {})
 // Left panel — Navigation
 // What sections appear. What board nav integrations are present.
 // Treatment character: orientation and confidence.
+export type NavSectionKey = "dialogs" | "journeys" | "keepers" | "drafts" | "agents" | "boardDefs"
+
 export interface NavSectionsDef {
   dialogs: boolean
   journeys: boolean
@@ -34,6 +36,11 @@ export interface NavInstrumentDef {
 
 export interface NavPanelDef {
   sections: NavSectionsDef
+  /**
+   * When set, this section renders first (when enabled in sections).
+   * Other boards omit — default nav order unchanged.
+   */
+  primarySection?: NavSectionKey
   /**
    * Board Nav layer — integration connections (IDE Board: Vercel, Railway, GitHub).
    * Visually distinct from Domain Nav record sections above.
@@ -237,6 +244,7 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
       drafts: true,
       agents: true,
     },
+    primarySection: "agents",
   },
   conversation: {
     agentSlug: "kip",

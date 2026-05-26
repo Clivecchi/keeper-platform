@@ -9,8 +9,8 @@ import type { AgentDialogueMessage } from "../components/agent/types"
 import { extractLinkedCard } from "../components/agent/helpers"
 import { apiFetch } from "../lib/api"
 
-/** Mirrors `KipApi.runAgent` `options.experienceContext` (no separate exported type in codebase) */
-export type ExperienceContext = NonNullable<Parameters<typeof KipApi.runAgent>[4]>["experienceContext"]
+/** Mirrors `KipApi.runAgent` `options.agentContext` (no separate exported type in codebase) */
+export type AgentContext = NonNullable<Parameters<typeof KipApi.runAgent>[4]>["agentContext"]
 
 export type IdeFrameContextLike =
   | {
@@ -126,7 +126,7 @@ export interface UseAgentDialogOptions {
   domainSlug: string
   domainId?: string | null
   activeJourneyId?: string | null
-  experienceContext?: ExperienceContext
+  agentContext?: AgentContext
   resolvedAudience?: string | null
   refreshSession?: () => Promise<boolean>
   frameCtx?: IdeFrameContextLike
@@ -143,7 +143,7 @@ export interface UseAgentDialogOptions {
   onRefreshDraftsAfterRun?: (result: unknown) => Promise<void>
   /**
    * designer mode: the active frame key — forwarded as `dialogFrame` on session
-   * creation and included in runAgent experienceContext. sendMessage is a no-op
+   * creation and included in runAgent agentContext. sendMessage is a no-op
    * without it when mode === "designer".
    */
   frameKey?: string
@@ -180,7 +180,7 @@ export function useAgentDialog({
   domainSlug,
   domainId,
   activeJourneyId = null,
-  experienceContext,
+  agentContext,
   resolvedAudience = "keeper",
   refreshSession,
   frameCtx,
@@ -413,9 +413,9 @@ export function useAgentDialog({
         mode: (agentRunMode ?? (mode === "designer" ? "domain" : "domain")) as "domain",
         activeJourneyId: activeJourneyId ?? frameCtx?.selection?.activeJourneyId ?? undefined,
         activeKeeperId: frameCtx?.selection?.activeKeeperId ?? undefined,
-        experienceContext: mode === "designer" && frameKey
-          ? { ...(experienceContext ?? {}), designerFrameKey: frameKey }
-          : experienceContext,
+        agentContext: mode === "designer" && frameKey
+          ? { ...(agentContext ?? {}), designerFrameKey: frameKey }
+          : agentContext,
         attachments: attachments?.length ? attachments : undefined,
       }
 
@@ -493,7 +493,7 @@ export function useAgentDialog({
       domainId,
       activeJourneyId,
       agentRunMode,
-      experienceContext,
+      agentContext,
       frameCtx?.selection?.activeJourneyId,
       frameCtx?.selection?.activeKeeperId,
       fetchMessages,

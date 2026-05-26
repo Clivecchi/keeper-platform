@@ -6,7 +6,7 @@
  * in a future cleanup pass.
  */
 
-export type { ExperienceContext, IdeFrameContextLike } from "./useAgentDialog"
+export type { AgentContext, IdeFrameContextLike } from "./useAgentDialog"
 export { useAgentDialog as useKipSession } from "./useAgentDialog"
 
 // Legacy type aliases — callers that destructure kipAgentId must migrate to agentId.

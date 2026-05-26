@@ -16,7 +16,7 @@ const KEEPERS_DEFAULTS: KeepersFrameJson = {
 }
 
 export function KeepersFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
-  const { closeToBoard, experienceActions, domainFrame } = useV0Shell()
+  const { closeToBoard, placementActions, domainFrame } = useV0Shell()
   const json: KeepersFrameJson = (domainFrame as any)?.keepers ?? KEEPERS_DEFAULTS
 
   return (
@@ -52,7 +52,7 @@ export function KeepersFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
         <p>{json.coming_soon_body}</p>
         <button
           type="button"
-          onClick={experienceActions.goCommons}
+          onClick={placementActions.goCommons}
           className="mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium transition-colors hover:opacity-90"
           style={{
             borderColor: "var(--theme-border-soft)",

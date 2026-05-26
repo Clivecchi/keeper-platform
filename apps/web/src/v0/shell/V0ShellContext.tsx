@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import type { StyleId } from "../styles/styles"
-import type { ExperienceActions, ExperienceMode } from "./useExperienceMode"
+import type { PlacementActions, PlacementMode } from "./usePlacementMode"
 import type { AudienceRole, DomainFrameJson } from "../data/domain-frame.types"
 
 export type V0FrameKey =
@@ -40,8 +40,8 @@ export interface DomainDataTheme {
 export interface V0ShellContextValue {
   domainSlug: string
   frame: V0FrameKey
-  experienceMode: ExperienceMode
-  experienceActions: ExperienceActions
+  placementMode: PlacementMode
+  placementActions: PlacementActions
   themeSlug: string | null
   styleId: StyleId
   draftId: string | null

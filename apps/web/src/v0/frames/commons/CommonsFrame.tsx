@@ -110,7 +110,7 @@ function formatRelativeTime(value: string | null | undefined, time: { recently: 
 }
 
 export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: StyleId; themeSlug?: string | null }) {
-  const { domainSlug, experienceActions, domainFrame } = useV0Shell()
+  const { domainSlug, placementActions, domainFrame } = useV0Shell()
   const cf = domainFrame?.commons
   const emptyFeed: FeedItem[] = [
     {
@@ -421,9 +421,9 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
       label: "Kip noticed a pattern",
       detail: "Related to your last 3 sessions",
       actionLabel: "See insight",
-      onAction: () => experienceActions.openKip(),
+      onAction: () => placementActions.openKip(),
     },
-  ], [setView, experienceActions])
+  ], [setView, placementActions])
 
   const renderFeedWorkspace = () => (
     <div className="space-y-6">
@@ -709,7 +709,7 @@ export function CommonsFrame({ styleId = "neutral", themeSlug }: { styleId?: Sty
                     type="button"
                     onClick={() => {
                       setIsConfigOpen(false)
-                      experienceActions.goAdmin()
+                      placementActions.goAdmin()
                     }}
                     className="w-full rounded-md border px-3 py-2 text-left text-xs font-medium transition-colors hover:opacity-80"
                     style={{

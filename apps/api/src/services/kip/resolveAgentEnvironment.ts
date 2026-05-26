@@ -65,14 +65,14 @@ export type AgentEnvironmentContext = {
     journeys: Array<{ id: string; name: string; forward: string; keeperId: string }>;
   };
   /**
-   * experienceContext — injected by the frontend from the domain frame JSON.
+   * agentContext — injected by the frontend from the domain frame JSON.
    * Carries: audience role, model, forward destination, available directions,
    * and the kip_context instruction for this specific visitor.
    *
    * This is the field that makes Kip aware of everything the UI already knows.
    * Spec: Keeper JsonFrame Spec v0.1 · Step 6
    */
-  experienceContext?: {
+  agentContext?: {
     audience: string;
     model: string;
     forward: { label: string; destination: string; available_to: string[] };

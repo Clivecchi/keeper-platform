@@ -28,8 +28,8 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
-### 2026-02-24 - blobProxy: direct URL for public blobs
-- Public blobs (*.public.blob.vercel-storage.com) now use direct URL; proxy returns 500 for these. Fixes domain cover image not showing on www.ke3p.com.
+### 2026-05-25 — Experience rename: `experienceContext` → `agentContext`
+- `KipApi.runAgent` options field renamed; wire format unchanged.
 
 ### 2025-12-17 - Domain policy client
 - Added `getDomainPolicy`/`updateDomainPolicy` helpers to edit domain-scoped Kip policy JSON via `/api/domains/:domainId/policy`.
@@ -83,6 +83,21 @@ Core utility functions and API clients for the Keeper web application, including
 - Added kipApi.ts with database-backed KIP agent operations
 - Established core API client functionality 
 
+### 2026-02-08 - KipApi runAgent error surfacing
+- **kipApi.ts**: Removed mock fallback from `runAgent()` — API errors (429 quota, 401 auth, etc.) were being silently caught and replaced with mock responses, hiding all failures from the user. Now, real errors propagate to the UI.
+- **kipApi.ts**: Added inner `AgentResponse.success` check — the API returns HTTP 200 even when the agent execution fails internally (`success: false`). The method now detects this and throws with the real error message, including user-friendly messages for `QUOTA_EXCEEDED` and `MISSING_API_KEY` error codes.
+
+### 2026-02-08 - Auth Token Store + Reliable Auth
+- Added `authTokenStore.ts` — in-memory + sessionStorage store for the JWT auth token, providing a reliable fallback when HttpOnly cookies are unavailable.
+- Rewrote `apiFetch.ts` — removed production-only Authorization header stripping. Now injects JWT from `authTokenStore` as `Authorization: Bearer` header on every API request. Cookies still sent via `credentials: 'include'` as secondary fallback.
+- **Root cause fixed**: The previous cookie-only auth approach in production had zero fallback. If cookies were blocked by browser settings, SameSite restrictions, or cross-subdomain issues, every API call returned 401 and the entire app was non-functional (Kip wouldn't respond, sessions failed, etc.).
+
+### 2026-03-04 - TypeScript fixes for api.ts, apiFetch.ts, kipApi.ts
+- **api.ts**: Added explicit `import { apiFetch, getApiBase }` — previously only re-exported them, causing TS errors when used as local variables. Also cast `init` params to `any` in `api.get/post` wrappers for `FetchOptions` type compatibility.
+- **apiFetch.ts**: Removed unused `API_HOST` module-level variable (dead code). Fixed headers spread type cast.
+- **kipApi.ts**: Cast `agentResult.data` to `any` before accessing `.error`/`.errorCode` — `AgentResponse.data` is typed as `unknown`, so direct property access caused TS2339.
+- **DomainsPage.tsx**: Removed broken `import { __internal }` from `apiFetch` (symbol does not exist).
+
 ### 2026-02-14 - Governance API client
 - Added `governanceApi.ts`: getDomainGovernance, updateDomainGovernance, getContractDetail, getDomainCompliance. Used by DomainGovernanceCard and CockpitPanel compliance panel.
 
@@ -90,5 +105,4 @@ Core utility functions and API clients for the Keeper web application, including
 
 - All API calls resolve base from `VITE_API_URL` first, falling back to same-origin.
 - Build absolute links using `VITE_PUBLIC_APP_ORIGIN` where needed.
-- No hardcoded domains remain; prepare to re-enable subdomains post-MVP. // TODO(domains)
-
+- No hardcoded domains remain; prepare to re-enable subdomains post-MVP. // TODO(domains) 

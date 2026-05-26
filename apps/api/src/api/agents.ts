@@ -11,9 +11,96 @@ import { activityRouter } from './agents/activity.js';
 import { tasksRouter } from './agents/tasks.js';
 import eventsRouter from './agents/events.js';
 import { z } from 'zod';
-import { PrismaClient } from '@keeper/database';
+import { PrismaClient, updateKipAgent } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { randomUUID } from 'crypto';
+
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function formatAgentResponse(agent: {
+  id: string;
+  name: string;
+  slug: string;
+  purpose: string;
+  model: string;
+  agent_class: string;
+  context_scope: string | null;
+  status: string;
+  model_provider: string;
+  visibility: string;
+  tools: string[];
+  permissions: string[];
+  config: unknown;
+  model_settings: unknown;
+  created_at: Date;
+  updated_at: Date;
+  kip_agent_logs?: unknown[];
+  kip_sessions?: unknown[];
+}) {
+  return {
+    id: agent.id,
+    name: agent.name,
+    slug: agent.slug,
+    purpose: agent.purpose,
+    model: agent.model,
+    agent_class: agent.agent_class,
+    context_scope: agent.context_scope,
+    status: agent.status,
+    model_provider: agent.model_provider,
+    visibility: agent.visibility,
+    tools: agent.tools,
+    permissions: agent.permissions,
+    config: agent.config,
+    model_settings: agent.model_settings,
+    created_at: agent.created_at,
+    updated_at: agent.updated_at,
+    ...(agent.kip_agent_logs !== undefined ? { recent_logs: agent.kip_agent_logs } : {}),
+    ...(agent.kip_sessions !== undefined ? { recent_sessions: agent.kip_sessions } : {}),
+  };
+}
+
+function normalizeToolsInput(value: unknown): string[] | undefined {
+  if (value === undefined) return undefined;
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return undefined;
+}
+
+function normalizeConfigInput(value: unknown): Record<string, unknown> | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+const patchAgentSchema = z
+  .object({
+    name: z.string().min(1).max(100).optional(),
+    purpose: z.string().min(1).max(500).optional(),
+    context_scope: z.string().max(5000).nullable().optional(),
+    model: z.string().min(1).max(100).optional(),
+    tools: z.union([z.array(z.string()), z.string()]).optional(),
+    config: z.record(z.any()).optional(),
+  })
+  .strict();
 
 const router: Router = Router();
 
@@ -304,27 +391,62 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
       return res.status(404).json({ error: 'Agent not found' });
     }
 
-    return res.json({
-      id: agent.id,
-      name: agent.name,
-      slug: agent.slug,
-      purpose: agent.purpose,
-      model: agent.model,
-      agent_class: agent.agent_class,
-      status: agent.status,
-      model_provider: agent.model_provider,
-      visibility: agent.visibility,
-      tools: agent.tools,
-      permissions: agent.permissions,
-      config: agent.config,
-      model_settings: agent.model_settings,
-      created_at: agent.created_at,
-      updated_at: agent.updated_at,
-      recent_logs: agent.kip_agent_logs,
-      recent_sessions: agent.kip_sessions,
-    });
+    return res.json(formatAgentResponse(agent));
   } catch (error) {
     console.error('Error fetching agent:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * PATCH /api/agents/:id - Update agent fields (Chronicle presence saves)
+ * Uses updateKipAgent — same path as PUT /api/kip/agents.
+ */
+router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (!UUID_V4.test(id)) {
+      return res.status(400).json({ error: 'Invalid agent id' });
+    }
+
+    const existing = await prisma.kip_agents.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+
+    const parsed = patchAgentSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Validation error', details: parsed.error.errors });
+    }
+
+    const body = parsed.data;
+    const tools = normalizeToolsInput(body.tools);
+    const config = normalizeConfigInput(body.config);
+
+    const updatePayload: Parameters<typeof updateKipAgent>[1] = {};
+    if (body.name !== undefined) updatePayload.name = body.name;
+    if (body.purpose !== undefined) updatePayload.purpose = body.purpose;
+    if (body.context_scope !== undefined) {
+      updatePayload.context_scope = body.context_scope === null ? undefined : body.context_scope;
+    }
+    if (body.model !== undefined) updatePayload.model = body.model;
+    if (tools !== undefined) updatePayload.tools = tools;
+    if (config !== undefined) updatePayload.config = config;
+
+    if (Object.keys(updatePayload).length === 0) {
+      return res.status(400).json({ error: 'No updatable fields provided' });
+    }
+
+    const updated = await updateKipAgent(id, updatePayload);
+    return res.json(formatAgentResponse(updated));
+  } catch (error) {
+    console.error('Error updating agent:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

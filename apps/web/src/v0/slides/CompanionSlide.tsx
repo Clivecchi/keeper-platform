@@ -63,7 +63,7 @@ export interface CompanionSlideProps {
   domainSlug:         string
   agentId:            string
   onSignIn:           () => void
-  experienceContext?: Record<string, unknown>
+  agentContext?: Record<string, unknown>
 }
 
 // ─── Mock seed content (visual build) ─────────────────────────────────────────
@@ -375,10 +375,10 @@ export function CompanionSlide({
   domainSlug,
   agentId: _agentId,
   onSignIn,
-  experienceContext,
+  agentContext,
 }: CompanionSlideProps) {
   void _agentId
-  void experienceContext
+  void agentContext
   // State is never reset on close — session persists across open/close
   const [items,              setItems]              = React.useState<ChatItem[]>(() => buildSeedItems(greeting))
   const [inputValue,         setInputValue]         = React.useState("")

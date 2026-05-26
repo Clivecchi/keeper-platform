@@ -27,7 +27,7 @@ import { KipApi } from "../../lib/kipApi"
 import type { KipDraftSummary } from "../../lib/kipApi"
 import { SidebarCard } from "../components/SidebarCard"
 import type { SidebarCardItem } from "../components/SidebarCard"
-import type { UniversalBoardDef } from "./UniversalBoardDefinition"
+import type { UniversalBoardDef, NavSectionKey } from "./UniversalBoardDefinition"
 import { useBoardDefs } from "./useBoardDefs"
 import { useUniversalBoardOptional } from "./UniversalBoardContext"
 
@@ -102,6 +102,23 @@ type AgentItem = {
 }
 
 type SectionKey = "dialogs" | "journeys" | "keepers" | "drafts" | "agents"
+
+type NavRenderBlock = SectionKey | "boardDefs" | "integrations"
+
+const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
+  "dialogs",
+  "journeys",
+  "keepers",
+  "drafts",
+  "integrations",
+  "agents",
+  "boardDefs",
+]
+
+function resolveNavBlockOrder(primarySection?: NavSectionKey): NavRenderBlock[] {
+  if (!primarySection) return DEFAULT_NAV_BLOCK_ORDER
+  return [primarySection, ...DEFAULT_NAV_BLOCK_ORDER.filter((block) => block !== primarySection)]
+}
 
 // Items shown before expand (onTitleClick toggles full list)
 const PREVIEW_LIMIT: Record<SectionKey, number> = {
@@ -432,6 +449,122 @@ export function UniversalNavPanel({
     }))
   }, [showBoardDefs, boardCtx, allBoardDefs])
 
+  const navBlockOrder = resolveNavBlockOrder(def.nav.primarySection)
+
+  const renderNavBlock = (block: NavRenderBlock): React.ReactNode => {
+    switch (block) {
+      case "dialogs":
+        if (!showDialogs) return null
+        return (
+          <>
+            <SidebarCard
+              title="Dialogs"
+              description={!domainId ? "Loading…" : countLabel(dialogs?.length ?? null, "dialog")}
+              items={slice("dialogs", allDialogItems).length ? slice("dialogs", allDialogItems) : undefined}
+              onTitleClick={() => toggleExpanded("dialogs")}
+              onAdd={() => { /* TODO: wire to dialog create callback in Moment 2.6 */ }}
+            />
+            {dialogError && (
+              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                {dialogError}
+              </p>
+            )}
+          </>
+        )
+      case "journeys":
+        if (!showJourneys) return null
+        return (
+          <>
+            <SidebarCard
+              title="Journeys"
+              description={!domainId ? "Loading…" : countLabel(journeys?.length ?? null, "journey")}
+              items={slice("journeys", allJourneyItems).length ? slice("journeys", allJourneyItems) : undefined}
+              onTitleClick={() => toggleExpanded("journeys")}
+              onAdd={() => { /* TODO: wire to journey create callback in Moment 2.6 */ }}
+            />
+            {journeyError && (
+              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                {journeyError}
+              </p>
+            )}
+          </>
+        )
+      case "keepers":
+        if (!showKeepers) return null
+        return (
+          <>
+            <SidebarCard
+              title="Keepers"
+              description={!domainId ? "Loading…" : countLabel(keepers?.length ?? null, "keeper")}
+              items={slice("keepers", allKeeperItems).length ? slice("keepers", allKeeperItems) : undefined}
+              onTitleClick={() => toggleExpanded("keepers")}
+              onAdd={() => { /* TODO: wire to keeper create callback in Moment 2.6 */ }}
+            />
+            {keeperError && (
+              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                {keeperError}
+              </p>
+            )}
+          </>
+        )
+      case "drafts":
+        if (!showDrafts) return null
+        return (
+          <>
+            <SidebarCard
+              title="Drafts"
+              description={!domainId ? "Loading…" : countLabel(drafts?.length ?? null, "draft")}
+              items={slice("drafts", allDraftItems).length ? slice("drafts", allDraftItems) : undefined}
+              onTitleClick={() => toggleExpanded("drafts")}
+              onAdd={() => { /* TODO: wire to draft create callback in Moment 2.6 */ }}
+            />
+            {draftError && (
+              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                {draftError}
+              </p>
+            )}
+          </>
+        )
+      case "integrations":
+        if (integrationItems.length === 0) return null
+        return (
+          <SidebarCard
+            title="Integrations"
+            description="Platform connections"
+            items={integrationItems}
+          />
+        )
+      case "agents":
+        if (!showAgents) return null
+        return (
+          <>
+            <SidebarCard
+              title="Agents"
+              description={!domainId ? "Loading…" : countLabel(agents?.length ?? null, "agent")}
+              items={slice("agents", allAgentItems).length ? slice("agents", allAgentItems) : allAgentItems}
+              onTitleClick={() => toggleExpanded("agents")}
+            />
+            {agentError && (
+              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                {agentError}
+              </p>
+            )}
+          </>
+        )
+      case "boardDefs":
+        if (!showBoardDefs) return null
+        return (
+          <SidebarCard
+            title="Board Definitions"
+            description={countLabel(boardDefItems.length, "definition")}
+            items={boardDefItems.length ? boardDefItems : undefined}
+          />
+        )
+      default:
+        return null
+    }
+  }
+
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -469,116 +602,11 @@ export function UniversalNavPanel({
         </button>
       </div>
 
-      {/* Scrollable SidebarCards — space-y-3 matches IDEBoardNav */}
+      {/* Scrollable SidebarCards — order from def.nav.primarySection when set */}
       <div className="keeper-panel-scroll flex-1 min-h-0 space-y-3 overflow-y-auto p-3">
-
-        {/* Dialogs — Domain Nav */}
-        {showDialogs && (
-          <>
-            <SidebarCard
-              title="Dialogs"
-              description={!domainId ? "Loading…" : countLabel(dialogs?.length ?? null, "dialog")}
-              items={slice("dialogs", allDialogItems).length ? slice("dialogs", allDialogItems) : undefined}
-              onTitleClick={() => toggleExpanded("dialogs")}
-              onAdd={() => { /* TODO: wire to dialog create callback in Moment 2.6 */ }}
-            />
-            {dialogError && (
-              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
-                {dialogError}
-              </p>
-            )}
-          </>
-        )}
-
-        {/* Journeys — Domain Nav */}
-        {showJourneys && (
-          <>
-            <SidebarCard
-              title="Journeys"
-              description={!domainId ? "Loading…" : countLabel(journeys?.length ?? null, "journey")}
-              items={slice("journeys", allJourneyItems).length ? slice("journeys", allJourneyItems) : undefined}
-              onTitleClick={() => toggleExpanded("journeys")}
-              onAdd={() => { /* TODO: wire to journey create callback in Moment 2.6 */ }}
-            />
-            {journeyError && (
-              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
-                {journeyError}
-              </p>
-            )}
-          </>
-        )}
-
-        {/* Keepers — Domain Nav */}
-        {showKeepers && (
-          <>
-            <SidebarCard
-              title="Keepers"
-              description={!domainId ? "Loading…" : countLabel(keepers?.length ?? null, "keeper")}
-              items={slice("keepers", allKeeperItems).length ? slice("keepers", allKeeperItems) : undefined}
-              onTitleClick={() => toggleExpanded("keepers")}
-              onAdd={() => { /* TODO: wire to keeper create callback in Moment 2.6 */ }}
-            />
-            {keeperError && (
-              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
-                {keeperError}
-              </p>
-            )}
-          </>
-        )}
-
-        {/* Drafts — def.nav.sections.drafts only */}
-        {showDrafts && (
-          <>
-            <SidebarCard
-              title="Drafts"
-              description={!domainId ? "Loading…" : countLabel(drafts?.length ?? null, "draft")}
-              items={slice("drafts", allDraftItems).length ? slice("drafts", allDraftItems) : undefined}
-              onTitleClick={() => toggleExpanded("drafts")}
-              onAdd={() => { /* TODO: wire to draft create callback in Moment 2.6 */ }}
-            />
-            {draftError && (
-              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
-                {draftError}
-              </p>
-            )}
-          </>
-        )}
-
-        {/* Integrations */}
-        {integrationItems.length > 0 && (
-          <SidebarCard
-            title="Integrations"
-            description="Platform connections"
-            items={integrationItems}
-          />
-        )}
-
-        {/* Agents */}
-        {showAgents && (
-          <>
-            <SidebarCard
-              title="Agents"
-              description={!domainId ? "Loading…" : countLabel(agents?.length ?? null, "agent")}
-              items={slice("agents", allAgentItems).length ? slice("agents", allAgentItems) : allAgentItems}
-              onTitleClick={() => toggleExpanded("agents")}
-            />
-            {agentError && (
-              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
-                {agentError}
-              </p>
-            )}
-          </>
-        )}
-
-        {/* Board Definitions */}
-        {showBoardDefs && (
-          <SidebarCard
-            title="Board Definitions"
-            description={countLabel(boardDefItems.length, "definition")}
-            items={boardDefItems.length ? boardDefItems : undefined}
-          />
-        )}
-
+        {navBlockOrder.map((block) => (
+          <React.Fragment key={block}>{renderNavBlock(block)}</React.Fragment>
+        ))}
       </div>
     </div>
   )

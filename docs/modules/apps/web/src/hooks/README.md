@@ -26,6 +26,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-05-25 — Experience rename: `ExperienceContext` → `AgentContext`
+- `useAgentDialog` exports `AgentContext`; runAgent option `agentContext` replaces `experienceContext`.
+
 ### 2026-05-23 — Gate 2: unified designer transport
 - Removed `/kip/designer` branch from `useAgentDialog.sendMessage` — all modes use `KipApi.runAgent`.
 - Designer sessions resume via `/kip/dialogs/resolve/active` + `KipApi.createSession` with `dialogBoard: "designer"`.

@@ -23,6 +23,13 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-05-25 — Experience rename: `experienceContext` → `agentContext`
+- `UniversalConversation` Kip injection payload renamed; no behavior change.
+
+### 2026-05-25 — Layer 3: Chronicle frame routing unwind (`UniversalBoardContext`)
+- Removed `selectedFrameKey`, `activeBoardForFrames`, and `onFrameSelect` from selection state and actions
+- `onBoardDefSelect` now only sets `selectedBoardDefId`; `clearSelection` no longer clears frame state
+
 ### 2026-05-24 — Board readability pass (contrast + larger type)
 - Theme tokens: darker secondary/tertiary ink, stronger borders (styleRegistry + themeRegistry)
 - Panel chrome: more opaque surfaces, clearer borders (nav + Chronicle)
@@ -62,7 +69,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ### 2026-05-10 — Level 2: UniversalConversation (single conversation render file)
 - Created `UniversalConversation.tsx` — replaces IDEBoardConversation, AgentBoardConversation, DomainBoardConversation
-  - `experienceContext` computed once from `useV0Shell()`, not three times
+  - `agentContext` computed once from `useV0Shell()`, not three times
   - Calls `useAgentDialog` with parameters from `def.conversation` (agentSlug, agentDisplayName, mode, dialogueMode)
   - Branches on `def.conversation.kipMode` only for banner props + three ide-mode callbacks (onAfterAgentRun, handleSaveTitle, onServiceOpen adapter)
   - Calls `useDraftContext` for ide and agent modes with agentId from useAgentDialog
