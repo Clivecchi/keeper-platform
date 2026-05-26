@@ -492,6 +492,8 @@ export function UniversalConversation({
     fetchMessages,
   } = useAgentDialog({
     agentSlug: effectiveAgentSlug,
+    resolvedAgentId:
+      usingSelectedNonDefaultAgent && boardSelectedAgentId ? boardSelectedAgentId : undefined,
     agentDisplayName: effectiveAgentDisplayName,
     mode: kipMode,
     dialogBoard: kipMode === "designer" ? "designer" : undefined,
@@ -798,6 +800,13 @@ export function UniversalConversation({
     ? ((domainFrame as { kip?: { model?: string } } | null)?.kip?.model ?? null)
     : null
 
+  // Composer gate: requires a resolved agent id (Lead via slug lookup, or nav-selected id).
+  const dialogAgentId =
+    agentId ??
+    (usingSelectedNonDefaultAgent && boardSelectedAgentId ? boardSelectedAgentId : null)
+  const composerDisabled =
+    !dialogAgentId || (kipMode === "designer" && !selectedFrameKey)
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -830,7 +839,7 @@ export function UniversalConversation({
         onOpenMoment={kipMode === "ide" ? onMomentSelect : undefined}
         onOpenJourney={kipMode === "ide" ? (id) => onJourneySelect(id) : undefined}
         agentBubbleFullWidth={kipMode !== "ide"}
-        agentId={agentId}
+        agentId={dialogAgentId}
         domainId={domainId ?? null}
         dialogueMode={def.conversation.dialogueMode === "domain" ? "domain" : undefined}
         inputValue={input}
@@ -838,7 +847,7 @@ export function UniversalConversation({
         onSubmit={sendMessage}
         onFileAttach={(text) => setInput((prev) => (prev ? `${prev}\n\n${text}` : text))}
         activeSessionId={dialogSessionId}
-        disabled={!agentId || (kipMode === "designer" && !selectedFrameKey)}
+        disabled={composerDisabled}
       />
     </div>
   )

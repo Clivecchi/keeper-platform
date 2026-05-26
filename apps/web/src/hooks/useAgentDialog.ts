@@ -104,6 +104,11 @@ async function buildIdeSessionName(params: {
 export interface UseAgentDialogOptions {
   /** Agent slug used to resolve the agent via `KipApi.getLeadAgent`. */
   agentSlug: string
+  /**
+   * When set, skips slug lookup and uses this agent id directly.
+   * Agent Board: non-default nav selection (e.g. Cloud) is not a Lead agent.
+   */
+  resolvedAgentId?: string | null
   /** Display name shown in thinking/error strings. */
   agentDisplayName: string
   /** Greeting shown in ide mode when the session has no messages yet. Defaults to "I'm here. What are we building?" */
@@ -169,6 +174,7 @@ export interface UseAgentDialogResult {
 
 export function useAgentDialog({
   agentSlug,
+  resolvedAgentId,
   agentDisplayName,
   greetingMessage,
   mode,
@@ -241,8 +247,12 @@ export function useAgentDialog({
     [mode, greeting],
   )
 
-  // Resolve agent ID from slug
+  // Resolve agent ID from slug, or use an explicit id (non-Lead agents on Agent Board).
   React.useEffect(() => {
+    if (resolvedAgentId) {
+      setAgentId(resolvedAgentId)
+      return
+    }
     let cancelled = false
     KipApi.getLeadAgent(agentSlug)
       .then((agent) => {
@@ -254,7 +264,7 @@ export function useAgentDialog({
     return () => {
       cancelled = true
     }
-  }, [agentSlug])
+  }, [agentSlug, resolvedAgentId])
 
   // agent / domain: create a KipApi session once agentId is known.
   // ide and designer use controlled session lifecycle from the board shell.
