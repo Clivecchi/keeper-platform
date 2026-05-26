@@ -120,11 +120,13 @@ export function useSelectionSessionResume({
 
   const resumeRef = React.useRef(0)
   const activeSessionIdRef = React.useRef(activeSessionId)
+  const isSendingRef = React.useRef(isSending)
   activeSessionIdRef.current = activeSessionId
+  isSendingRef.current = isSending
 
   React.useEffect(() => {
     if (kipMode === "designer") return
-    if (isSending) return
+    if (isSendingRef.current) return
     if (!domainId || !resumeKey) return
 
     const token = ++resumeRef.current
@@ -270,7 +272,6 @@ export function useSelectionSessionResume({
     domainSlug,
     kipMode,
     kipAgentId,
-    isSending,
     selectedDialogId,
     selectedJourneyId,
     selectedKeeperId,

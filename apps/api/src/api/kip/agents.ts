@@ -3157,7 +3157,9 @@ export class KipAgentService {
         });
 
         // --- Domain contract injection (wires contract rules to Kip) ---
-        if (promptOptions?.domainId) {
+        const suppressKipPrompt =
+          (config as Record<string, unknown>)?.suppress_kip_system_prompt === true;
+        if (promptOptions?.domainId && !suppressKipPrompt) {
           try {
             const contractText = await getContractTextForDomain(promptOptions.domainId);
             if (contractText) {
@@ -3918,6 +3920,92 @@ export class KipAgentService {
             }
           };
         }
+      } else if (agent.agent_class === 'System') {
+        // System agents (e.g. Cloud) — real AI dialog with session persistence, no Kip persona overlay.
+        let currentSessionId = sessionId ?? undefined;
+        let previousMessages: KipMessageWithRelations[] = [];
+
+        if (currentSessionId) {
+          try {
+            previousMessages = await this.getSessionMemory(currentSessionId);
+          } catch (error) {
+            console.warn('[System agent] Failed to load session memory:', error);
+          }
+          try {
+            const textToSave =
+              input?.trim() ||
+              (options?.attachments?.length ? `[${options.attachments.length} attachment(s)]` : '');
+            if (textToSave) {
+              await this.saveMessage(currentSessionId, 'user', textToSave, 'user', {
+                timestamp: new Date().toISOString(),
+                agent_id: agentId,
+              });
+            }
+          } catch (error) {
+            console.warn('[System agent] Failed to save user message:', error);
+          }
+        } else {
+          try {
+            const newSession = await this.createSession(agentId, userId, undefined, {
+              primaryJourneyId: options?.activeJourneyId ?? null,
+              primaryKeeperId: options?.activeKeeperId ?? null,
+            });
+            currentSessionId = newSession.id;
+          } catch (error) {
+            console.warn('[System agent] Failed to create session:', error);
+          }
+        }
+
+        const systemModeConfig: ModeConfig = {
+          outputStyle: 'normal',
+          limits: { maxChars: 0 },
+          captureN: 20,
+          autoBrief: true,
+          includeFixPlan: true,
+        };
+
+        const aiResult = await this.callAIModel(agent, input || '', previousMessages, userId, {
+          mode: 'domain',
+          modeConfig: systemModeConfig,
+          lens: { systemPrompt: null },
+          environment: options?.environment ?? null,
+          activeJourneyId: options?.activeJourneyId ?? null,
+          activeKeeperId: options?.activeKeeperId ?? null,
+          domainId: options?.domainId ?? null,
+          attachments: options?.attachments ?? undefined,
+        });
+
+        const systemRequestId = randomUUID();
+        const structured = parseStructuredAgentResponse(aiResult.content, systemRequestId);
+        const finalResponseText = structured.responseText || aiResult.content;
+
+        if (currentSessionId) {
+          try {
+            await this.saveMessage(currentSessionId, 'agent', finalResponseText, 'assistant', {
+              timestamp: new Date().toISOString(),
+              agent_id: agentId,
+              model: agent.model,
+            });
+          } catch (error) {
+            console.warn('[System agent] Failed to save agent response:', error);
+          }
+        }
+
+        const config = agent.config || {};
+        result = {
+          action: 'system_interaction',
+          keeper_id: userId || 'system_user',
+          type: 'conversation',
+          data: {
+            response: finalResponseText,
+            agent_name: agent.name,
+            agent_tagline: (config as Record<string, unknown>).tagline || '',
+            session_id: currentSessionId || `system_${agent.slug}_${Date.now()}`,
+            model: agent.model,
+            composedSystemPrompt: aiResult.composedSystemPrompt,
+            timestamp: new Date().toISOString(),
+          },
+        };
       } else {
         // Standard agent execution based on agent slug
         result = this.getStandardAgentResult(agent, input, userId);

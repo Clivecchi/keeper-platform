@@ -177,6 +177,17 @@ export interface UseAgentDialogResult {
   ) => Promise<void>
 }
 
+function extractAgentReplyFromRunResult(result: unknown): string | null {
+  const data = (result as { data?: Record<string, unknown> })?.data
+  if (!data || typeof data !== "object") return null
+  const nested = data.data as Record<string, unknown> | undefined
+  const response =
+    (typeof nested?.response === "string" && nested.response.trim()) ||
+    (typeof data.response === "string" && data.response.trim()) ||
+    null
+  return response
+}
+
 export function useAgentDialog({
   agentSlug,
   resolvedAgentId,
@@ -456,6 +467,35 @@ export function useAgentDialog({
         }
 
         const latestRaw = await fetchMessages(activeSessionId)
+        if (!latestRaw?.length && mode !== "ide") {
+          const replyText = extractAgentReplyFromRunResult(result)
+          if (replyText) {
+            setMessages((prev) => {
+              const withoutThinking = prev.filter((m) => m.id !== thinkingId)
+              const hasUser = withoutThinking.some((m) => m.id === `user-${ts}`)
+              const base = hasUser
+                ? withoutThinking
+                : [
+                    ...withoutThinking,
+                    {
+                      id: `user-${ts}`,
+                      role: "user" as const,
+                      content: content || "[attachment]",
+                      createdAt: new Date(ts).toISOString(),
+                    },
+                  ]
+              return [
+                ...base,
+                {
+                  id: `${agentSlug}-reply-${ts}`,
+                  role: "agent" as const,
+                  content: replyText,
+                  createdAt: new Date().toISOString(),
+                },
+              ]
+            })
+          }
+        }
         const respData = (result as { data?: { actions?: unknown[] } })?.data
         const actionResults =
           respData?.actions || (result as { actionResults?: unknown })?.actionResults

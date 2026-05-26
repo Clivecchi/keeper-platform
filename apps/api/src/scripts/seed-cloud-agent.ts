@@ -41,6 +41,7 @@ async function main() {
       agent_class:    'System',
       status:         'ready',
       visibility:     'private',
+      memory_enabled: true,
       tools:          [],
       permissions:    [],
       // persona: none — do not load Kip's system prompt or SOLE memory
