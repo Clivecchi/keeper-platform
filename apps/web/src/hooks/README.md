@@ -26,6 +26,12 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-05-26 — Action receipts on Agent Board
+- `useAgentDialog` attaches `actionResults` to the last agent message for `agent` and `domain` modes (was IDE-only).
+
+### 2026-05-26 — Agent Board Chronicle-only nav guard
+- `useSelectionSessionResume` returns early on Agent Board when keeper/journey/draft is selected without an agent — center Dialog session and messages stay put.
+
 ### 2026-05-25 — Experience rename: `ExperienceContext` → `AgentContext`
 - `useAgentDialog` exports `AgentContext`; runAgent option `agentContext` replaces `experienceContext`.
 

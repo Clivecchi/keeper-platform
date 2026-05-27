@@ -45,6 +45,7 @@ import { FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../shell/frameRegistryMa
 import { loadDomainFrame } from "../data/loadDomainFrame"
 import type { DomainFrameJson } from "../data/domain-frame.types"
 import type { AgentDialogueMessage } from "../../components/agent/types"
+import { normalizeActionReceipt } from "../../components/agent/types"
 
 type ToolSlug = "cloud" | "rendr"
 
@@ -208,6 +209,8 @@ export function UniversalConversation({
   onMomentSelect,
   onDraftSelect,
   onServiceOpen,
+  onDraftListRefresh,
+  onJourneyListRefresh,
 }: UniversalConversationProps) {
   const { domainFrame, resolvedAudience: shellAudience } = useV0Shell()
   const frameCtx = useFrameContextOptional()
@@ -223,16 +226,28 @@ export function UniversalConversation({
   const { selection, actions } = useUniversalBoard()
   const boardSelectedAgentId = selection.selectedAgentId ?? selectedAgentId ?? null
 
-  // Agent Board: resolve slug/name from the selected agent when it differs from the board default.
+  // Agent Board: dialog agent persists when Chronicle nav shifts to keeper/journey/draft.
+  const activeDialogAgentIdRef = React.useRef<string | null>(null)
+  React.useEffect(() => {
+    if (kipMode !== "agent" || !boardSelectedAgentId) return
+    activeDialogAgentIdRef.current = boardSelectedAgentId
+  }, [kipMode, boardSelectedAgentId])
+
+  const activeDialogAgentId =
+    kipMode === "agent"
+      ? (boardSelectedAgentId ?? activeDialogAgentIdRef.current)
+      : boardSelectedAgentId
+
+  // Agent Board: resolve slug/name from the active dialog agent when it differs from the board default.
   const [selectedAgentRecord, setSelectedAgentRecord] = React.useState<SelectedAgentRecord | null>(null)
 
   React.useEffect(() => {
-    if (kipMode !== "agent" || !boardSelectedAgentId) {
+    if (kipMode !== "agent" || !activeDialogAgentId) {
       setSelectedAgentRecord(null)
       return
     }
     let cancelled = false
-    apiFetch(`/api/agents/${encodeURIComponent(boardSelectedAgentId)}`)
+    apiFetch(`/api/agents/${encodeURIComponent(activeDialogAgentId)}`)
       .then((res: unknown) => {
         if (cancelled) return
         const agent =
@@ -255,11 +270,11 @@ export function UniversalConversation({
         if (!cancelled) setSelectedAgentRecord(null)
       })
     return () => { cancelled = true }
-  }, [kipMode, boardSelectedAgentId])
+  }, [kipMode, activeDialogAgentId])
 
   const usingSelectedNonDefaultAgent =
     kipMode === "agent" &&
-    !!boardSelectedAgentId &&
+    !!activeDialogAgentId &&
     !!selectedAgentRecord &&
     selectedAgentRecord.slug !== defaultAgentSlug
 
@@ -472,19 +487,17 @@ export function UniversalConversation({
     let cancelled = false
     void (async () => {
       try {
+        const echoSessionName = "Agent Board Echo"
         const sessions = await KipApi.getSessionsByAgentId(echoAgentId, { pageSize: 100 })
         if (cancelled) return
-        const sorted = [...sessions].sort((a, b) => {
-          const ta = Date.parse(String(a.updated_at ?? a.created_at ?? "")) || 0
-          const tb = Date.parse(String(b.updated_at ?? b.created_at ?? "")) || 0
-          return tb - ta
-        })
-        const existingId = sorted[0]?.id ?? null
-        if (existingId) {
-          setEchoSessionId(existingId)
+        const echoSession = sessions.find(
+          (s) => (s.session_name ?? "").trim() === echoSessionName,
+        )
+        if (echoSession?.id) {
+          setEchoSessionId(echoSession.id)
           return
         }
-        const session = await KipApi.createSession(echoAgentId, undefined, "Agent Board", {
+        const session = await KipApi.createSession(echoAgentId, undefined, echoSessionName, {
           domainSlug: domainSlug ?? undefined,
           domainId,
           dialogBoard: "agent",
@@ -504,7 +517,7 @@ export function UniversalConversation({
 
   const setMessagesRef = React.useRef<React.Dispatch<React.SetStateAction<AgentDialogueMessage[]>> | null>(null)
 
-  // ── ide / designer mode: post-run callbacks ───────────────────────────────
+  // ── ide / designer / agent mode: post-run callbacks ─────────────────────────
   const onAfterAgentRun = React.useCallback(
     (latestRaw: KipMessage[] | undefined, actionResults: unknown[] | undefined) => {
       if (kipMode === "designer" && selectedFrameKey) {
@@ -526,12 +539,51 @@ export function UniversalConversation({
         return
       }
 
+      if (kipMode === "agent" && Array.isArray(actionResults)) {
+        for (const ar of actionResults) {
+          const receipt = normalizeActionReceipt(
+            ar as Parameters<typeof normalizeActionReceipt>[0],
+          )
+          if (receipt.status !== "success") continue
+
+          if (
+            (receipt.type === "draft.create" || receipt.type === "draft.update")
+            && receipt.data?.draft?.id
+          ) {
+            onDraftListRefresh?.()
+            onDraftSelect(receipt.data.draft.id)
+            return
+          }
+
+          const moment = receipt.data?.moment as { id?: string } | undefined
+          if (
+            moment?.id
+            && (receipt.type === "moment.create"
+              || receipt.type === "moment.keep"
+              || receipt.type === "moment.capture")
+          ) {
+            onJourneyListRefresh?.()
+            onMomentSelect(moment.id)
+            return
+          }
+
+          const journey = receipt.data?.journey as { id?: string } | undefined
+          if (journey?.id && (receipt.type === "journey.create" || receipt.type === "journey.update")) {
+            onJourneyListRefresh?.()
+            onJourneySelect(journey.id)
+            return
+          }
+        }
+        return
+      }
+
       if (kipMode !== "ide") return
 
       if (Array.isArray(actionResults)) {
         for (const ar of actionResults) {
           const a = ar as { type?: string; result?: { draft?: { id: string } } }
           if (a.type === "draft.create" && a.result?.draft?.id) {
+            onDraftListRefresh?.()
             onDraftSelect(a.result.draft.id)
             return
           }
@@ -550,7 +602,7 @@ export function UniversalConversation({
         return
       }
     },
-    [kipMode, selectedFrameKey, handleDesignerDraft, onDraftSelect, onJourneySelect, onMomentSelect],
+    [kipMode, selectedFrameKey, handleDesignerDraft, onDraftSelect, onJourneySelect, onMomentSelect, onDraftListRefresh, onJourneyListRefresh],
   )
 
   const onAfterAgentRunWithEcho = React.useCallback(
@@ -560,7 +612,7 @@ export function UniversalConversation({
       result: unknown,
     ) => {
       void result
-      if (kipMode === "ide" || kipMode === "designer") {
+      if (kipMode === "ide" || kipMode === "designer" || kipMode === "agent") {
         onAfterAgentRun(latestRaw, actionResults)
       }
 
@@ -677,6 +729,23 @@ export function UniversalConversation({
     }
   }, [designerDraftCtx, domainId, domainSlug])
 
+  const handleRefreshDraftsAfterRun = React.useCallback(
+    async (result: unknown) => {
+      if (kipMode !== "agent" || !onDraftListRefresh) return
+      const actionResults = (result as { data?: { actions?: unknown[] } })?.data?.actions
+      if (!Array.isArray(actionResults) || actionResults.length === 0) return
+      const hasDraftMutation = actionResults.some((ar: unknown) => {
+        const n = normalizeActionReceipt(ar as Parameters<typeof normalizeActionReceipt>[0])
+        return (
+          n.status === "success"
+          && ["draft.create", "draft.update", "draft.delete", "draft.setActive"].includes(n.type)
+        )
+      })
+      if (hasDraftMutation) onDraftListRefresh()
+    },
+    [kipMode, onDraftListRefresh],
+  )
+
   // ── useAgentDialog — conversation lifecycle ───────────────────────────────
   const {
     messages,
@@ -692,7 +761,7 @@ export function UniversalConversation({
   } = useAgentDialog({
     agentSlug: effectiveAgentSlug,
     resolvedAgentId:
-      usingSelectedNonDefaultAgent && boardSelectedAgentId ? boardSelectedAgentId : undefined,
+      usingSelectedNonDefaultAgent && activeDialogAgentId ? activeDialogAgentId : undefined,
     agentDisplayName: effectiveAgentDisplayName,
     mode: kipMode,
     dialogBoard: kipMode === "designer" ? "designer" : undefined,
@@ -708,22 +777,23 @@ export function UniversalConversation({
     controlledSessionId: activeSessionId,
     onControlledSessionIdChange: handleSessionChange,
     onAfterAgentRun:
-      kipMode === "ide" || kipMode === "designer" || (kipMode === "agent" && agentEcho)
+      kipMode === "ide" || kipMode === "designer" || kipMode === "agent"
         ? onAfterAgentRunWithEcho
         : undefined,
+    onRefreshDraftsAfterRun: kipMode === "agent" ? handleRefreshDraftsAfterRun : undefined,
     frameKey: selectedFrameKey ?? undefined,
-    manageSessionExternally: kipMode === "agent" && !!boardSelectedAgentId,
+    manageSessionExternally: kipMode === "agent" && usingSelectedNonDefaultAgent,
   })
 
   setMessagesRef.current = setMessages
 
-  // ── useDraftContext — ide and agent modes ──────────────────────────────────
+  // ── useDraftContext — IDE draft–session linking ─────────────────────────────
   useDraftContext({
-    selectedDraftId: kipMode !== "domain" ? selectedDraftId : null,
+    selectedDraftId: kipMode === "ide" ? selectedDraftId : null,
     domainId,
-    agentId,
+    agentId: kipMode === "ide" ? agentId : null,
     activeSessionId: dialogSessionId,
-    onActiveSessionIdChange: handleSessionChange,
+    onActiveSessionIdChange: kipMode === "ide" ? handleSessionChange : undefined,
   })
 
   const idleMessages = React.useMemo<AgentDialogueMessage[]>(
@@ -1009,7 +1079,7 @@ export function UniversalConversation({
   // Composer gate: requires a resolved agent id (Lead via slug lookup, or nav-selected id).
   const dialogAgentId =
     agentId ??
-    (usingSelectedNonDefaultAgent && boardSelectedAgentId ? boardSelectedAgentId : null)
+    (usingSelectedNonDefaultAgent && activeDialogAgentId ? activeDialogAgentId : null)
   const composerDisabled =
     !dialogAgentId || (kipMode === "designer" && !selectedFrameKey)
 
@@ -1043,8 +1113,8 @@ export function UniversalConversation({
         agentName={effectiveAgentDisplayName}
         echoAgentName={defaultAgentName}
         onOpenDraft={onDraftSelect}
-        onOpenMoment={kipMode === "ide" ? onMomentSelect : undefined}
-        onOpenJourney={kipMode === "ide" ? (id) => onJourneySelect(id) : undefined}
+        onOpenMoment={onMomentSelect}
+        onOpenJourney={(id) => onJourneySelect(id)}
         agentBubbleFullWidth={kipMode !== "ide"}
         agentId={dialogAgentId}
         domainId={domainId ?? null}

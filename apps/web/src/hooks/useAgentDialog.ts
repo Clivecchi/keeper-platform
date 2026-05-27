@@ -504,7 +504,11 @@ export function useAgentDialog({
         if (onAfterAgentRun) {
           onAfterAgentRun(latestRaw, actionsArr, result)
         }
-        if (mode === "ide" && actionsArr && actionsArr.length > 0) {
+        if (
+          (mode === "ide" || mode === "agent" || mode === "domain")
+          && actionsArr
+          && actionsArr.length > 0
+        ) {
           setMessages((prev) => {
             const updated = [...prev]
             const lastAgentIdx = updated.findLastIndex((m) => m.role === "agent")

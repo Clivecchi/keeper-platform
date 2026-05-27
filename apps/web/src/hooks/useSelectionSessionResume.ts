@@ -129,6 +129,16 @@ export function useSelectionSessionResume({
     if (isSendingRef.current) return
     if (!domainId || !resumeKey) return
 
+    // Agent Board: keeper/journey/draft nav drives Chronicle only — do not swap center Dialog.
+    if (
+      kipMode === "agent" &&
+      !selectedAgentId &&
+      !selectedDialogId &&
+      (selectedKeeperId || selectedJourneyId || selectedDraftId)
+    ) {
+      return
+    }
+
     const token = ++resumeRef.current
     let cancelled = false
 

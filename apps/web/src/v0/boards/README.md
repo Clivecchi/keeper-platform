@@ -23,6 +23,16 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-05-26 — Agent Board draft visibility after agent actions
+- **useAgentDialog:** attaches `actionResults` to agent/domain messages (action receipt cards in Dialog)
+- **UniversalConversation:** on successful `draft.create`/`draft.update`, refreshes Drafts nav and opens draft in Chronicle; moment/journey receipts tappable on Agent Board
+- **UniversalBoard:** internal `draftListVersion` / `journeyListVersion` bumps via `onDraftListRefresh` / `onJourneyListRefresh` center props
+
+### 2026-05-26 — Agent Board: decouple Dialog from Chronicle nav
+- **UniversalConversation:** `activeDialogAgentId` persists the center-panel agent when Chronicle shifts to keeper/journey/draft; session no longer reverts to Kip
+- **useSelectionSessionResume:** skips session swap on Agent Board for keeper/journey/draft-only nav
+- **Echo session:** dedicated `"Agent Board Echo"` session name — no longer hijacks the most recent Kip thread
+
 ### 2026-05-26 — UI polish + agent echo prompt + Chronicle lens editing
 - **Dialog glass:** frosted center panel — atmosphere visible through Dialog (see `index.css`, `KeeperDialogFrame`)
 - **Typography:** base `html` font-size 17px → 19px; nav, banner, Chronicle field classes scaled in `.keeper-board-scope`

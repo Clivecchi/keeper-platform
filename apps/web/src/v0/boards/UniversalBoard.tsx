@@ -85,6 +85,10 @@ export interface UniversalBoardCenterProps {
   onServiceOpen: (slug: string) => void
   /** Clears all entity selections — returns the right panel to idle/domain presence. */
   clearSelection: () => void
+  /** Bump nav draft list after agent actions create or update drafts. */
+  onDraftListRefresh?: () => void
+  /** Bump nav journey list after agent actions create journeys or moments. */
+  onJourneyListRefresh?: () => void
 }
 
 // ─── Left Panel Render Prop ───────────────────────────────────────────────────
@@ -171,6 +175,19 @@ function UniversalBoardShell({
   const [briefOpen, setBriefOpen] = React.useState(false)
   const [domainId, setDomainId] = React.useState<string | null>(null)
   const [domainName, setDomainName] = React.useState<string>("")
+  const [draftListVersionBump, setDraftListVersionBump] = React.useState(0)
+  const [journeyListVersionBump, setJourneyListVersionBump] = React.useState(0)
+
+  const onDraftListRefresh = React.useCallback(() => {
+    setDraftListVersionBump((v) => v + 1)
+  }, [])
+
+  const onJourneyListRefresh = React.useCallback(() => {
+    setJourneyListVersionBump((v) => v + 1)
+  }, [])
+
+  const effectiveDraftListVersion = (navVersions?.draftListVersion ?? 0) + draftListVersionBump
+  const effectiveJourneyListVersion = (navVersions?.journeyListVersion ?? 0) + journeyListVersionBump
 
   const slug = domainSlug ?? ""
 
@@ -295,6 +312,8 @@ function UniversalBoardShell({
     onAgentSelect: actions.onAgentSelect,
     onServiceOpen: actions.onServiceOpen,
     clearSelection: actions.clearSelection,
+    onDraftListRefresh,
+    onJourneyListRefresh,
   }
 
   // ── Right panel — render prop or Chronicle ─────────────────────────────────
@@ -360,9 +379,9 @@ function UniversalBoardShell({
                         collapsed={navCollapsed}
                         onToggleCollapsed={onToggleNavCollapsed}
                         dialogListVersion={navVersions?.dialogListVersion}
-                        journeyListVersion={navVersions?.journeyListVersion}
+                        journeyListVersion={effectiveJourneyListVersion}
                         keeperListVersion={navVersions?.keeperListVersion}
-                        draftListVersion={navVersions?.draftListVersion}
+                        draftListVersion={effectiveDraftListVersion}
                       />
                     )
               }
