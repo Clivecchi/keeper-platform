@@ -78,3 +78,4 @@ Once seeded, the platform will have:
 - 2026-01-31: Added seed for Journey/Path/Moment engagement templates to align narrative actions.
 - 2025-12-17: Added `policy.seed.ts` to upsert default policy-v1 for all domains (kept in sync with Kip policy pack) and wired it into the TypeScript seed runner after domain creation.
 - 2025-12-14: Added `lenses.seed.ts` to create default Domain Lens and Debug Investigator Lens for the `default` domain via the TS seed runner.
+- 2026-05-26: Agent Board Phase 4 — added `Agent Board Lens` seed and `## Echo Role (Agent Board)` section on Domain Lens + Agent Board Lens. Re-seed to propagate Echo register to live DB.

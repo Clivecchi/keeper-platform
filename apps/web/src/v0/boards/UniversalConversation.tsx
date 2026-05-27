@@ -71,6 +71,34 @@ function pickMostRecentDialogSessionId(
   return sorted[0]?.id ?? null
 }
 
+function extractAgentReplyFromRunResult(result: unknown): string | null {
+  const data = (result as { data?: Record<string, unknown> })?.data
+  if (!data || typeof data !== "object") return null
+  const nested = data.data as Record<string, unknown> | undefined
+  const response =
+    (typeof nested?.response === "string" && nested.response.trim()) ||
+    (typeof data.response === "string" && data.response.trim()) ||
+    null
+  return response
+}
+
+function isThinkingPlaceholder(content: string, agentDisplayName: string): boolean {
+  const trimmed = content.trim()
+  return trimmed === `${agentDisplayName} is thinking…` || trimmed.endsWith(" is thinking…")
+}
+
+function lastAgentMessageFromRaw(messages: KipMessage[] | undefined): { id: string; content: string } | null {
+  if (!messages?.length) return null
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i]
+    if ((m.sender || m.role) === "user") continue
+    const content = typeof m.content === "string" ? m.content.trim() : ""
+    if (!content) continue
+    return { id: m.id, content }
+  }
+  return null
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface UniversalConversationProps extends UniversalBoardCenterProps {
@@ -164,7 +192,9 @@ export function UniversalConversation({
   const { refreshSession } = useAuth()
   const audience = shellAudience ?? "keeper"
   const kipMode = def.conversation.kipMode
+  const leadAgentWhisper = def.conversation.leadAgentWhisper === true
   const defaultAgentSlug = def.conversation.agentSlug ?? "kip"
+  const defaultAgentName = def.conversation.agentName ?? "Kip"
   const baseAgentSlug = defaultAgentSlug
 
   // ── designer mode: frame key + draft context ───────────────────────────────
@@ -390,6 +420,68 @@ export function UniversalConversation({
     [designerDraftCtx, domainId],
   )
 
+  // ── Agent Board Echo: Kip agent + session (separate from primary agent session) ──
+  const [kipLeadAgentId, setKipLeadAgentId] = React.useState<string | null>(null)
+  const [kipEchoSessionId, setKipEchoSessionId] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (!leadAgentWhisper || kipMode !== "agent") {
+      setKipLeadAgentId(null)
+      return
+    }
+    let cancelled = false
+    KipApi.getLeadAgent(defaultAgentSlug)
+      .then((agent) => {
+        if (!cancelled) setKipLeadAgentId(agent.id)
+      })
+      .catch(() => {
+        if (!cancelled) setKipLeadAgentId(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [leadAgentWhisper, kipMode, defaultAgentSlug])
+
+  React.useEffect(() => {
+    if (!leadAgentWhisper || kipMode !== "agent" || !kipLeadAgentId || !domainId) {
+      setKipEchoSessionId(null)
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      try {
+        const sessions = await KipApi.getSessionsByAgentId(kipLeadAgentId, { pageSize: 100 })
+        if (cancelled) return
+        const sorted = [...sessions].sort((a, b) => {
+          const ta = Date.parse(String(a.updated_at ?? a.created_at ?? "")) || 0
+          const tb = Date.parse(String(b.updated_at ?? b.created_at ?? "")) || 0
+          return tb - ta
+        })
+        const existingId = sorted[0]?.id ?? null
+        if (existingId) {
+          setKipEchoSessionId(existingId)
+          return
+        }
+        const session = await KipApi.createSession(kipLeadAgentId, undefined, "Agent Board", {
+          domainSlug: domainSlug ?? undefined,
+          domainId,
+          dialogBoard: "agent",
+          dialogFrame: "conversation",
+          dialogSubject: "domain",
+          dialogScope: "keeper",
+        })
+        if (!cancelled) setKipEchoSessionId(session.id)
+      } catch {
+        if (!cancelled) setKipEchoSessionId(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [leadAgentWhisper, kipMode, kipLeadAgentId, domainId, domainSlug])
+
+  const setMessagesRef = React.useRef<React.Dispatch<React.SetStateAction<AgentDialogueMessage[]>> | null>(null)
+
   // ── ide / designer mode: post-run callbacks ───────────────────────────────
   const onAfterAgentRun = React.useCallback(
     (latestRaw: KipMessage[] | undefined, actionResults: unknown[] | undefined) => {
@@ -437,6 +529,82 @@ export function UniversalConversation({
       }
     },
     [kipMode, selectedFrameKey, handleDesignerDraft, onDraftSelect, onJourneySelect, onMomentSelect],
+  )
+
+  const onAfterAgentRunWithEcho = React.useCallback(
+    async (
+      latestRaw: KipMessage[] | undefined,
+      actionResults: unknown[] | undefined,
+      result: unknown,
+    ) => {
+      void result
+      if (kipMode === "ide" || kipMode === "designer") {
+        onAfterAgentRun(latestRaw, actionResults)
+      }
+
+      if (!leadAgentWhisper || kipMode !== "agent") return
+      if (effectiveAgentSlug === defaultAgentSlug) return
+      if (!kipLeadAgentId || !kipEchoSessionId) return
+
+      const agentReply = lastAgentMessageFromRaw(latestRaw)
+      if (!agentReply?.content) return
+
+      const echoInput =
+        `[Echo context]\nAgent: ${effectiveAgentSlug}\nAgent response: ${agentReply.content}\n\n` +
+        "Contribute a Dialog Response or return empty to stay silent."
+
+      try {
+        const echoResult = await KipApi.runAgent(
+          kipLeadAgentId,
+          echoInput,
+          undefined,
+          kipEchoSessionId,
+          {
+            domainSlug: domainSlug || undefined,
+            domainId: domainId || undefined,
+            mode: "domain",
+            agentContext,
+          },
+        )
+        const echoContent = extractAgentReplyFromRunResult(echoResult)?.trim()
+        if (!echoContent || !setMessagesRef.current) return
+
+        setMessagesRef.current((prev) => {
+          let targetIdx = prev.findIndex((m) => m.id === agentReply.id)
+          if (targetIdx < 0) {
+            targetIdx = prev.findLastIndex(
+              (m) => m.role === "agent" && !isThinkingPlaceholder(m.content, effectiveAgentDisplayName),
+            )
+          }
+          if (targetIdx < 0) return prev
+          const updated = [...prev]
+          updated[targetIdx] = {
+            ...updated[targetIdx],
+            echo: {
+              content: echoContent,
+              attributedTo: defaultAgentName,
+            },
+          }
+          return updated
+        })
+      } catch {
+        /* Silence is valid — failed Echo inference renders nothing */
+      }
+    },
+    [
+      kipMode,
+      onAfterAgentRun,
+      leadAgentWhisper,
+      effectiveAgentSlug,
+      defaultAgentSlug,
+      kipLeadAgentId,
+      kipEchoSessionId,
+      domainSlug,
+      domainId,
+      agentContext,
+      effectiveAgentDisplayName,
+      defaultAgentName,
+    ],
   )
 
   // ── designer mode: publish handler ────────────────────────────────────────
@@ -509,10 +677,14 @@ export function UniversalConversation({
     controlledSessionId: activeSessionId,
     onControlledSessionIdChange: handleSessionChange,
     onAfterAgentRun:
-      kipMode === "ide" || kipMode === "designer" ? onAfterAgentRun : undefined,
+      kipMode === "ide" || kipMode === "designer" || (kipMode === "agent" && leadAgentWhisper)
+        ? onAfterAgentRunWithEcho
+        : undefined,
     frameKey: selectedFrameKey ?? undefined,
     manageSessionExternally: kipMode === "agent" && !!boardSelectedAgentId,
   })
+
+  setMessagesRef.current = setMessages
 
   // ── useDraftContext — ide and agent modes ──────────────────────────────────
   useDraftContext({

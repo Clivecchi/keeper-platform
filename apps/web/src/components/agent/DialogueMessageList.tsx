@@ -324,6 +324,25 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                   ) : (
                     <AgentMessageContent content={message.content} />
                   )}
+                  {message.echo?.content?.trim() && (
+                    <div
+                      className="mt-2.5 border-t pt-2.5"
+                      style={{ borderColor: "hsl(var(--theme-border-soft) / 0.65)" }}
+                    >
+                      <p
+                        className="mb-1 text-[11px] font-medium tracking-wide"
+                        style={{ color: "hsl(var(--theme-ink-secondary, 25 10% 45%))" }}
+                      >
+                        {message.echo.attributedTo ?? "Kip"}
+                      </p>
+                      <p
+                        className="text-[12px] leading-relaxed"
+                        style={{ color: "hsl(var(--theme-ink-secondary, 25 10% 40%))" }}
+                      >
+                        {message.echo.content.trim()}
+                      </p>
+                    </div>
+                  )}
                   {message.linkedCard && (
                     <div className="mt-3">
                       <LinkedCard {...message.linkedCard} variant="inline" />

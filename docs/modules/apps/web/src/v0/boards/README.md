@@ -23,6 +23,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-05-26 — Agent Board Phase 4: Kip Echo (Dialog Response)
+- **Lens seed:** `Agent Board Lens` added; `## Echo Role (Agent Board)` section appended to Domain Lens and Agent Board Lens — editable via Chronicle after re-seed
+- **Echo inference:** `UniversalConversation` fires second `KipApi.runAgent` on Kip's agent id + session after non-default agent replies when `leadAgentWhisper: true`
+- **Echo rendering:** `AgentDialogueMessage.echo` attached beat beneath agent bubble in `DialogueMessageList` — empty Echo renders nothing
+- **Session split:** Primary agent session (e.g. Cloud) stays separate; Echo stored in Kip's session history
+
 ### 2026-05-25 — Agent Board Phase 3: center dialog follows selected agent
 - **Preflight:** Lens prompt PATCH validation errors surface inline in Chronicle (10-character minimum)
 - **Board def:** `leadAgentWhisper: true` on `AGENT_BOARD_DEF.conversation` (declared, not wired yet)
