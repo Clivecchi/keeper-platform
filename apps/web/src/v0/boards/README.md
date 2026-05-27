@@ -23,6 +23,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-05-26 — UI polish + agent echo prompt + Chronicle lens editing
+- **Dialog glass:** frosted center panel — atmosphere visible through Dialog (see `index.css`, `KeeperDialogFrame`)
+- **Typography:** base `html` font-size 17px → 19px; nav, banner, Chronicle field classes scaled in `.keeper-board-scope`
+- **Chronicle:** Lens prompt editable textarea → `PATCH /api/kip/lenses/:lensId`; composed prompt refresh after save
+- **Agent echo:** supporting-role prompt frames exchange context explicitly (UniversalConversation)
+
 ### 2026-05-26 — Agent Echo rename (no behavior change)
 - Renamed `leadAgentWhisper` → `agentEcho` on board def; `kipLeadAgentId` → `echoAgentId`; `kipEchoSessionId` → `echoSessionId`
 - Echo attribution fallback uses `def.conversation.agentName` via `echoAgentName` prop — not hardcoded "Kip"

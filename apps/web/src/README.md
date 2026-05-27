@@ -18,6 +18,10 @@ Defines the root application shell, routing, and shared providers for the Keeper
 - [ ] Consolidate legacy and public routes once domain routing is stabilized.
 
 ## 📆 Update Log
+### 2026-05-26 - Dialog glass + global type scale
+- Base `html` font-size increased from **17px to 19px** (~12%) in `index.css`
+- Dialog panel frosted glass: warm semi-transparent surfaces + backdrop blur on frame, message zone, banner, composer
+- Chronicle/nav field utility classes under `.keeper-board-scope`
 ### 2026-01-27 - Admin route guard alignment
 - Routed `/d/:slug/admin` through the admin guard and redirected non-admin users back to the domain Commons.
 ### 2026-01-24 - Admin Guard + Root Redirect

@@ -108,13 +108,13 @@ export function SidebarCard({
             <button
               type="button"
               onClick={onTitleClick}
-              className="text-lg font-semibold text-left underline-offset-2 decoration-dotted hover:underline transition-colors"
+              className="text-xl font-semibold text-left underline-offset-2 decoration-dotted hover:underline transition-colors"
               style={{ color: SURFACE.inkPrimary }}
             >
               {title}
             </button>
           ) : (
-            <h3 className="text-lg font-semibold" style={{ color: SURFACE.inkPrimary }}>
+            <h3 className="text-xl font-semibold" style={{ color: SURFACE.inkPrimary }}>
               {title}
             </h3>
           )}
@@ -142,7 +142,7 @@ export function SidebarCard({
       </div>
 
       {items && items.length > 0 && (
-        <ul className="mt-4 space-y-2.5 text-base leading-snug" style={{ color: SURFACE.inkSecondary }}>
+        <ul className="mt-4 space-y-2.5 text-[1.05rem] leading-snug" style={{ color: SURFACE.inkSecondary }}>
           {items.map((item) => (
             <li key={item.id ?? item.label} className="flex items-center gap-2">
               <span

@@ -250,7 +250,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
     <div
       ref={innerContainerRef}
       className="keeper-panel-scroll min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl px-4 py-4"
-      style={{ backgroundColor: "hsl(var(--theme-dialogue-area-bg, 35 33% 97%))" }}
+      style={{ backgroundColor: "transparent" }}
     >
       {isLoading ? (
         <>

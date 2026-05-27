@@ -52,6 +52,11 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-05-26 — Lens prompt: editable textarea + lens PATCH route
+- `lensSystemPrompt` saves via `PATCH /api/kip/lenses/:lensId` (`systemPrompt`), not agent PATCH
+- Labeled secondary fields; composed prompt re-fetched after agent lens save (`handlePresenceRefresh`)
+- Inline 10-character validation on lens PATCH rejection
+
 ### 2026-05-25 — Agent Board Phase 3 preflight: lens save validation inline error
 - Debounced PATCH failures for `lensSystemPrompt` show inline message beneath the field (10-character minimum); errors clear on successful save or re-edit
 

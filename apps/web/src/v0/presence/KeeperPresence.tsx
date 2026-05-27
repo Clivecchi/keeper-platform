@@ -23,6 +23,7 @@ import {
 } from "./presenceEnrichment"
 import {
   fieldPassesDensity,
+  resolveFieldLabel,
   type DensityLevel,
   type FieldDefinition,
 } from "./KeeperPresenceDefaults"
@@ -80,7 +81,10 @@ function parsePatchFieldErrors(
 
   if (patchKeys.includes("lensSystemPrompt")) {
     const zodLensErr = data?.details?.find((d) =>
-      d.path?.some((segment) => String(segment) === "lensSystemPrompt"),
+      d.path?.some(
+        (segment) =>
+          String(segment) === "lensSystemPrompt" || String(segment) === "systemPrompt",
+      ),
     )
     if (zodLensErr || status === 400) {
       errors.lensSystemPrompt = "Lens prompt must be at least 10 characters."
@@ -759,7 +763,6 @@ export function KeeperPresence({
   React.useEffect(() => {
     if (!hasEdited.current || !record || !objectId || !domainId) return
     const endpoint = patchEndpoint(objectType, objectId, domainId)
-    if (!endpoint) return
 
     const editableKeys = Object.entries(schema.fields)
       .filter(([, def]) => def.editable)
@@ -767,43 +770,74 @@ export function KeeperPresence({
 
     const patch: Record<string, string> = {}
     for (const key of editableKeys) {
+      if (key === "lensSystemPrompt") continue
       if (debouncedValues[key] !== undefined) {
         patch[key] = debouncedValues[key]
       }
     }
-    if (Object.keys(patch).length === 0) return
+
+    const lensId = typeof record.lensId === "string" ? record.lensId : ""
+    const lensPrompt = debouncedValues.lensSystemPrompt
+    const shouldSaveLens =
+      Boolean(lensId) &&
+      editableKeys.includes("lensSystemPrompt") &&
+      lensPrompt !== undefined
+
+    if (Object.keys(patch).length === 0 && !shouldSaveLens) return
+    if (Object.keys(patch).length > 0 && !endpoint) return
 
     const requestBody =
       objectType === "agent" && domainId
         ? { ...patch, domainId }
         : patch
 
-    apiFetch(endpoint, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
-    })
-      .then(() => {
-        setFieldErrors((prev) => {
-          const next = { ...prev }
-          for (const key of Object.keys(patch)) {
-            delete next[key]
-          }
-          return next
-        })
-        if (onSaved) {
-          for (const [k, v] of Object.entries(patch)) onSaved(k, v)
+    void (async () => {
+      try {
+        if (shouldSaveLens) {
+          await apiFetch(`/api/kip/lenses/${encodeURIComponent(lensId)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ systemPrompt: lensPrompt }),
+          })
+          setFieldErrors((prev) => {
+            const next = { ...prev }
+            delete next.lensSystemPrompt
+            return next
+          })
         }
-        if (objectType === "agent") {
+
+        if (Object.keys(patch).length > 0 && endpoint) {
+          await apiFetch(endpoint, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+          })
+          setFieldErrors((prev) => {
+            const next = { ...prev }
+            for (const key of Object.keys(patch)) {
+              delete next[key]
+            }
+            return next
+          })
+          if (onSaved) {
+            for (const [k, v] of Object.entries(patch)) onSaved(k, v)
+          }
+        }
+
+        if (objectType === "agent" && (shouldSaveLens || Object.keys(patch).length > 0)) {
           handlePresenceRefresh()
         }
-      })
-      .catch((err: unknown) => {
-        const patchErrors = parsePatchFieldErrors(err, Object.keys(patch))
+      } catch (err: unknown) {
+        const patchKeys = [
+          ...(shouldSaveLens ? ["lensSystemPrompt"] : []),
+          ...Object.keys(patch),
+        ]
+        const patchErrors = parsePatchFieldErrors(err, patchKeys)
         if (Object.keys(patchErrors).length > 0) {
           setFieldErrors((prev) => ({ ...prev, ...patchErrors }))
         }
-      })
+      }
+    })()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedValues])
 
@@ -1022,9 +1056,13 @@ function KeeperPresenceSurface({
 
   const primaryDef = schema.fields[primaryKey]
   const primaryValue = fieldValues[primaryKey] ?? ""
-  const secondaryFields = visibleFields.filter(
-    ([key, def]) => key !== primaryKey && def.role === "secondary" && fieldValues[key],
-  )
+  const secondaryFields = visibleFields.filter(([key, def]) => {
+    if (key === primaryKey || def.role !== "secondary") return false
+    if (key === "lensSystemPrompt") {
+      return Boolean(record?.lensId) || Boolean(fieldValues[key]?.trim())
+    }
+    return Boolean(fieldValues[key])
+  })
   const ambientFields = visibleFields.filter(
     ([key, def]) =>
       key !== primaryKey &&
@@ -1083,12 +1121,12 @@ function KeeperPresenceSurface({
                 setFieldValues((prev) => ({ ...prev, [primaryKey]: v }))
               }}
               placeholder={`Untitled ${objectType}`}
-              className="text-[17px] font-semibold leading-snug mt-1"
+              className="text-[19px] font-semibold leading-snug mt-1"
               style={{ color: "hsl(var(--theme-ink-primary))" }}
             />
           ) : (
             <h2
-              className="text-[17px] font-semibold leading-snug mt-1"
+              className="text-[19px] font-semibold leading-snug mt-1"
               style={{ color: "hsl(var(--theme-ink-primary))" }}
             >
               {primaryValue || `Untitled ${objectType}`}
@@ -1098,7 +1136,7 @@ function KeeperPresenceSurface({
 
         {meta?.line && (
           <p
-            className="text-[12px] mt-2 leading-relaxed"
+            className="text-[13px] mt-2 leading-relaxed"
             style={{ ...contextMotionStyle(motion), color: "hsl(var(--theme-ink-secondary))" }}
           >
             {meta.line}
@@ -1110,6 +1148,11 @@ function KeeperPresenceSurface({
       <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4">
         {secondaryFields.map(([key, def]) => (
           <div key={key} className="mb-4" style={secondaryMotionStyle(motion)}>
+            {def.label ? (
+              <p className="keeper-presence-field-label mb-1.5">
+                {resolveFieldLabel(key, def)}
+              </p>
+            ) : null}
             {def.editable ? (
               <>
                 <AutoResizeTextarea
@@ -1126,12 +1169,16 @@ function KeeperPresenceSurface({
                     }
                   }}
                   placeholder={secondaryPlaceholders[key] ?? "…"}
-                  className="text-[14px] leading-relaxed"
+                  className={
+                    key === "lensSystemPrompt"
+                      ? "keeper-presence-field-value font-mono text-[15px]"
+                      : "keeper-presence-field-value"
+                  }
                   style={{ color: "hsl(var(--theme-ink-secondary))" }}
                 />
                 {fieldErrors[key] ? (
                   <p
-                    className="text-[12px] mt-1.5 leading-relaxed"
+                    className="text-[13px] mt-1.5 leading-relaxed"
                     style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
                   >
                     {fieldErrors[key]}
@@ -1140,14 +1187,14 @@ function KeeperPresenceSurface({
               </>
             ) : def.multiline ? (
               <pre
-                className="text-[13px] leading-relaxed whitespace-pre-wrap break-words font-mono max-h-96 overflow-y-auto"
+                className="keeper-presence-field-value whitespace-pre-wrap break-words font-mono max-h-96 overflow-y-auto"
                 style={{ color: "hsl(var(--theme-ink-secondary))" }}
               >
                 {fieldValues[key]}
               </pre>
             ) : (
               <p
-                className="text-[14px] leading-relaxed"
+                className="keeper-presence-field-value"
                 style={{ color: "hsl(var(--theme-ink-secondary))" }}
               >
                 {fieldValues[key]}
@@ -1159,7 +1206,7 @@ function KeeperPresenceSurface({
         {ambientFields.map(([key]) => (
           <p
             key={key}
-            className="text-[13px] leading-relaxed mb-3"
+            className="text-[14px] leading-relaxed mb-3"
             style={{ ...contextMotionStyle(motion), color: "hsl(var(--theme-ink-tertiary))" }}
           >
             {fieldValues[key]}

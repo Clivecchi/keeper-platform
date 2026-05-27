@@ -87,16 +87,38 @@ function isThinkingPlaceholder(content: string, agentDisplayName: string): boole
   return trimmed === `${agentDisplayName} is thinking…` || trimmed.endsWith(" is thinking…")
 }
 
-function lastAgentMessageFromRaw(messages: KipMessage[] | undefined): { id: string; content: string } | null {
+function lastExchangeFromRaw(
+  messages: KipMessage[] | undefined,
+): { id: string; userMessage: string; agentMessage: string } | null {
   if (!messages?.length) return null
+
+  let agentIdx = -1
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i]
-    if ((m.sender || m.role) === "user") continue
-    const content = typeof m.content === "string" ? m.content.trim() : ""
-    if (!content) continue
-    return { id: m.id, content }
+    if ((m.sender || m.role) !== "user") {
+      agentIdx = i
+      break
+    }
   }
-  return null
+  if (agentIdx < 0) return null
+
+  const agentMessage = typeof messages[agentIdx].content === "string" ? messages[agentIdx].content.trim() : ""
+  if (!agentMessage) return null
+
+  let userMessage = ""
+  for (let i = agentIdx - 1; i >= 0; i--) {
+    const m = messages[i]
+    if ((m.sender || m.role) === "user") {
+      userMessage = typeof m.content === "string" ? m.content.trim() : ""
+      break
+    }
+  }
+
+  return {
+    id: messages[agentIdx].id,
+    userMessage,
+    agentMessage,
+  }
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -546,17 +568,26 @@ export function UniversalConversation({
       if (effectiveAgentSlug === defaultAgentSlug) return
       if (!echoAgentId || !echoSessionId) return
 
-      const agentReply = lastAgentMessageFromRaw(latestRaw)
-      if (!agentReply?.content) return
+      const exchange = lastExchangeFromRaw(latestRaw)
+      if (!exchange?.agentMessage) return
 
-      const echoInput =
-        `[Echo context]\nAgent: ${effectiveAgentSlug}\nAgent response: ${agentReply.content}\n\n` +
-        "Contribute a Dialog Response or return empty to stay silent."
+      const echoPrompt = [
+        `[Agent Echo — supporting role]`,
+        `The user asked: "${exchange.userMessage || "[no user message]"}"`,
+        `${effectiveAgentDisplayName} responded: "${exchange.agentMessage}"`,
+        ``,
+        `You are in the supporting role. Do NOT answer the user's question.`,
+        `Read what ${effectiveAgentDisplayName} said and decide:`,
+        `- If it is accurate and complete, return empty. Stay silent. Let the dialog rest.`,
+        `- If you have something sharp and brief to add, contribute a Dialog Response.`,
+        `Your response is addressed to the exchange, not to the user directly.`,
+        `Maximum three sentences. Usually one is enough. Empty is valid.`,
+      ].join("\n")
 
       try {
         const echoResult = await KipApi.runAgent(
           echoAgentId,
-          echoInput,
+          echoPrompt,
           undefined,
           echoSessionId,
           {
@@ -570,7 +601,7 @@ export function UniversalConversation({
         if (!echoContent || !setMessagesRef.current) return
 
         setMessagesRef.current((prev) => {
-          let targetIdx = prev.findIndex((m) => m.id === agentReply.id)
+          let targetIdx = prev.findIndex((m) => m.id === exchange.id)
           if (targetIdx < 0) {
             targetIdx = prev.findLastIndex(
               (m) => m.role === "agent" && !isThinkingPlaceholder(m.content, effectiveAgentDisplayName),
