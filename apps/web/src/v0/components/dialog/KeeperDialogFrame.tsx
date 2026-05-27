@@ -95,6 +95,8 @@ export interface KeeperDialogFrameProps {
     payload: { title?: string; summary?: string; status?: string; spec?: unknown },
   ) => void
   agentName?: string
+  /** Echo attribution fallback — board def agentName (def.conversation.agentName) */
+  echoAgentName?: string
   agentBubbleFullWidth?: boolean
   agentBoardMessaging?: AgentBoardMessaging
 
@@ -155,6 +157,7 @@ export function KeeperDialogFrame({
   onOpenJourney,
   onConfirmDraftUpdate,
   agentName = "Kip",
+  echoAgentName,
   agentBubbleFullWidth = true,
   agentBoardMessaging,
   // AgentComposer
@@ -371,6 +374,7 @@ export function KeeperDialogFrame({
                     isSending={isSending}
                     error={error}
                     agentName={agentName}
+                    echoAgentName={echoAgentName}
                     onOpenDraft={onOpenDraft}
                     onOpenMoment={onOpenMoment}
                     onOpenJourney={onOpenJourney}

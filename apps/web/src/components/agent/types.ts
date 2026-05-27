@@ -5,7 +5,7 @@
 
 import type { LinkedCardProps } from "../../types/props"
 
-/** Kip's Dialog Response — attached beneath a non-Kip agent message on the Agent Board. */
+/** Agent echo — Dialog Response attached beneath another agent's message. */
 export interface DialogResponseEcho {
   content: string
   attributedTo?: string
@@ -16,7 +16,7 @@ export interface AgentDialogueMessage {
   role: "user" | "agent"
   content: string
   createdAt: string
-  /** Optional Echo beat — Kip's supporting Dialog Response on the Agent Board. */
+  /** Optional agent echo — supporting Dialog Response beneath the primary agent message. */
   echo?: DialogResponseEcho
   linkedCard?: LinkedCardProps
   actionResults?: Array<{

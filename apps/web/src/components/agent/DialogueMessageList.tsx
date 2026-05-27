@@ -133,6 +133,8 @@ export interface DialogueMessageListProps {
   onConfirmDraftUpdate?: (draftId: string, payload: { title?: string; summary?: string; status?: string; spec?: unknown }) => void
   /** Agent name for empty state and thinking indicator (dynamic, not hardcoded) */
   agentName?: string
+  /** Echo attribution fallback when message.echo.attributedTo is missing (board def agentName) */
+  echoAgentName?: string
   /** Domain-driven messaging strings for dialogue states */
   agentBoardMessaging?: AgentBoardMessaging
   /** Agent messages span full width of the centered column (narrow reading measure) */
@@ -155,6 +157,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onOpenJourney,
   onConfirmDraftUpdate,
   agentName = "Agent",
+  echoAgentName,
   agentBoardMessaging,
   agentBubbleFullWidth = true,
   scrollContainerRef,
@@ -333,7 +336,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                         className="mb-1 text-[11px] font-medium tracking-wide"
                         style={{ color: "hsl(var(--theme-ink-secondary, 25 10% 45%))" }}
                       >
-                        {message.echo.attributedTo ?? "Kip"}
+                        {message.echo.attributedTo ?? echoAgentName ?? "Agent"}
                       </p>
                       <p
                         className="text-[12px] leading-relaxed"

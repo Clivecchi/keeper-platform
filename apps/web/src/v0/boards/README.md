@@ -23,15 +23,20 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
-### 2026-05-26 — Agent Board Phase 4: Kip Echo (Dialog Response)
+### 2026-05-26 — Agent Echo rename (no behavior change)
+- Renamed `leadAgentWhisper` → `agentEcho` on board def; `kipLeadAgentId` → `echoAgentId`; `kipEchoSessionId` → `echoSessionId`
+- Echo attribution fallback uses `def.conversation.agentName` via `echoAgentName` prop — not hardcoded "Kip"
+- Comments updated to "agent echo" / "echo agent session"
+
+### 2026-05-26 — Agent Board Phase 4: Agent Echo (Dialog Response)
 - **Lens seed:** `Agent Board Lens` added; `## Echo Role (Agent Board)` section appended to Domain Lens and Agent Board Lens — editable via Chronicle after re-seed
-- **Echo inference:** `UniversalConversation` fires second `KipApi.runAgent` on Kip's agent id + session after non-default agent replies when `leadAgentWhisper: true`
-- **Echo rendering:** `AgentDialogueMessage.echo` attached beat beneath agent bubble in `DialogueMessageList` — empty Echo renders nothing
-- **Session split:** Primary agent session (e.g. Cloud) stays separate; Echo stored in Kip's session history
+- **Agent echo inference:** `UniversalConversation` fires second `KipApi.runAgent` on echo agent id + echo agent session after non-default agent replies when `agentEcho: true`
+- **Agent echo rendering:** `AgentDialogueMessage.echo` attached beat beneath agent bubble in `DialogueMessageList` — empty agent echo renders nothing
+- **Session split:** Primary agent session (e.g. Cloud) stays separate; agent echo stored in echo agent session history
 
 ### 2026-05-25 — Agent Board Phase 3: center dialog follows selected agent
 - **Preflight:** Lens prompt PATCH validation errors surface inline in Chronicle (10-character minimum)
-- **Board def:** `leadAgentWhisper: true` on `AGENT_BOARD_DEF.conversation` (declared, not wired yet)
+- **Board def:** `agentEcho: true` on `AGENT_BOARD_DEF.conversation`
 - **Center dialog:** `UniversalConversation` resolves `agentSlug` / display name from selected nav agent when it differs from board default; Banner shows agent name, board name, and purpose prelude
 - Session resume already keyed on `selectedAgentId`; `kipAgentId` from `useAgentDialog` now matches the resolved agent
 
