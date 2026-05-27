@@ -76,7 +76,12 @@ export function useDraftContext({
   const refreshDraftsAfterRun = React.useCallback(
     async (result: unknown) => {
       if (!onRefreshDraftList) return
-      const actionResults = (result as { data?: { actions?: unknown[] } })?.data?.actions
+      const outer = (result as { data?: Record<string, unknown> })?.data
+      const inner =
+        outer?.data && typeof outer.data === "object"
+          ? (outer.data as Record<string, unknown>)
+          : undefined
+      const actionResults = inner?.actions ?? outer?.actions
       if (!Array.isArray(actionResults) || actionResults.length === 0) return
       const hasDraftMutation = actionResults.some((ar: unknown) => {
         const n = normalizeActionReceipt(

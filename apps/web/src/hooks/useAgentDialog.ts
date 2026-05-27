@@ -188,6 +188,23 @@ function extractAgentReplyFromRunResult(result: unknown): string | null {
   return response
 }
 
+export function extractRunAgentPayload(result: unknown): {
+  actions?: unknown[]
+  sessionId?: string
+} {
+  const outer = (result as { data?: Record<string, unknown> })?.data
+  const inner =
+    outer?.data && typeof outer.data === "object"
+      ? (outer.data as Record<string, unknown>)
+      : undefined
+  const actions = inner?.actions ?? outer?.actions
+  const sessionRaw = inner?.session_id ?? inner?.sessionId ?? outer?.session_id
+  return {
+    actions: Array.isArray(actions) ? actions : undefined,
+    sessionId: typeof sessionRaw === "string" && sessionRaw.trim() ? sessionRaw.trim() : undefined,
+  }
+}
+
 export function useAgentDialog({
   agentSlug,
   resolvedAgentId,
@@ -496,10 +513,19 @@ export function useAgentDialog({
             })
           }
         }
-        const respData = (result as { data?: { actions?: unknown[] } })?.data
-        const actionResults =
-          respData?.actions || (result as { actionResults?: unknown })?.actionResults
-        const actionsArr = Array.isArray(actionResults) ? actionResults : undefined
+        const { actions: actionsArr, sessionId: returnedSessionId } = extractRunAgentPayload(result)
+
+        if (
+          returnedSessionId &&
+          !returnedSessionId.startsWith("system_") &&
+          !activeSessionIdRef.current
+        ) {
+          if (onControlledSessionIdChange) {
+            onControlledSessionIdChange(returnedSessionId)
+          } else {
+            setInternalSessionId(returnedSessionId)
+          }
+        }
 
         if (onAfterAgentRun) {
           onAfterAgentRun(latestRaw, actionsArr, result)

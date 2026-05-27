@@ -3936,9 +3936,21 @@ export class KipAgentService {
           };
         }
       } else if (agent.agent_class === 'System') {
-        // System agents (e.g. Cloud) — real AI dialog with session persistence, no Kip persona overlay.
+        // System agents (e.g. Cloud) — real AI dialog with session persistence, action execution, no Kip persona overlay.
         let currentSessionId = sessionId ?? undefined;
         let previousMessages: KipMessageWithRelations[] = [];
+
+        if (!currentSessionId && userId) {
+          try {
+            const newSession = await this.createSession(agentId, userId, undefined, {
+              primaryJourneyId: options?.activeJourneyId ?? null,
+              primaryKeeperId: options?.activeKeeperId ?? null,
+            });
+            currentSessionId = newSession.id;
+          } catch (error) {
+            console.warn('[System agent] Failed to create session:', error);
+          }
+        }
 
         if (currentSessionId) {
           try {
@@ -3958,16 +3970,6 @@ export class KipAgentService {
             }
           } catch (error) {
             console.warn('[System agent] Failed to save user message:', error);
-          }
-        } else {
-          try {
-            const newSession = await this.createSession(agentId, userId, undefined, {
-              primaryJourneyId: options?.activeJourneyId ?? null,
-              primaryKeeperId: options?.activeKeeperId ?? null,
-            });
-            currentSessionId = newSession.id;
-          } catch (error) {
-            console.warn('[System agent] Failed to create session:', error);
           }
         }
 
@@ -3992,7 +3994,37 @@ export class KipAgentService {
 
         const systemRequestId = randomUUID();
         const structured = parseStructuredAgentResponse(aiResult.content, systemRequestId);
-        const finalResponseText = structured.responseText || aiResult.content;
+        const allowActions = buildAllowedActions(options?.environment ?? null);
+        let actionResults: ActionExecutionResult[] = [];
+        let finalResponseText = structured.responseText || aiResult.content;
+
+        if (structured.actions.length) {
+          if (options?.forceSkipActions) {
+            actionResults = structured.actions.map((action) => ({
+              type: action.type,
+              status: 'skipped',
+              message: 'Action execution disabled by server (draft pipeline owns persistence)',
+            }));
+          } else {
+            const execution = await executeAgentActions(structured.actions, {
+              domainId: options?.domainId ?? null,
+              domainSlug: options?.domainSlug ?? null,
+              userId,
+              agentId: agent.id,
+              allowlist: allowActions,
+              sessionId: currentSessionId,
+              keeperId: options?.activeKeeperId ?? null,
+              requestId: systemRequestId,
+            });
+            actionResults = execution.results;
+
+            if (execution.failedMessage) {
+              finalResponseText = structured.responseText
+                ? `${structured.responseText} I attempted to save but it failed: ${execution.failedMessage}`
+                : `I attempted to save but it failed: ${execution.failedMessage}`;
+            }
+          }
+        }
 
         if (currentSessionId) {
           try {
@@ -4000,6 +4032,7 @@ export class KipAgentService {
               timestamp: new Date().toISOString(),
               agent_id: agentId,
               model: agent.model,
+              actionResults: actionResults.length ? actionResults : undefined,
             });
           } catch (error) {
             console.warn('[System agent] Failed to save agent response:', error);
@@ -4017,6 +4050,7 @@ export class KipAgentService {
             agent_tagline: (config as Record<string, unknown>).tagline || '',
             session_id: currentSessionId || `system_${agent.slug}_${Date.now()}`,
             model: agent.model,
+            actions: actionResults,
             composedSystemPrompt: aiResult.composedSystemPrompt,
             timestamp: new Date().toISOString(),
           },

@@ -32,7 +32,7 @@ import { useV0Shell } from "../shell/V0ShellContext"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { useAuth } from "../../context/AuthContext"
 import { extractLinkedCard } from "../../components/agent/helpers"
-import { useAgentDialog } from "../../hooks/useAgentDialog"
+import { useAgentDialog, extractRunAgentPayload } from "../../hooks/useAgentDialog"
 import { useDraftContext } from "../../hooks/useDraftContext"
 import { useSelectionSessionResume } from "../../hooks/useSelectionSessionResume"
 import { KeeperDialogFrame } from "../components/dialog/KeeperDialogFrame"
@@ -732,8 +732,8 @@ export function UniversalConversation({
   const handleRefreshDraftsAfterRun = React.useCallback(
     async (result: unknown) => {
       if (kipMode !== "agent" || !onDraftListRefresh) return
-      const actionResults = (result as { data?: { actions?: unknown[] } })?.data?.actions
-      if (!Array.isArray(actionResults) || actionResults.length === 0) return
+      const { actions: actionResults } = extractRunAgentPayload(result)
+      if (!actionResults?.length) return
       const hasDraftMutation = actionResults.some((ar: unknown) => {
         const n = normalizeActionReceipt(ar as Parameters<typeof normalizeActionReceipt>[0])
         return (
