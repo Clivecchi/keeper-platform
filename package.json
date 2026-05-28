@@ -36,7 +36,7 @@
     "railway:verify": "echo 'Verifying Railway build artifacts...' && find packages/kam/dist -name '*.js' -type f && ls -la packages/kam/dist/auth/",
     "quick:web": "pnpm -F keeper-web run type-check",
     "quick:api": "pnpm -F keeper-api run test:smoke",
-    "smoke:web": "pnpm -F keeper-web run type-check && pnpm -F keeper-web run build",
+    "smoke:web": "pnpm -F keeper-web run type-check && pnpm turbo build --filter=keeper-web",
     "smoke:api": "pnpm -F keeper-api run type-check && pnpm -F keeper-api exec vitest run src/tests/smoke --reporter=dot --silent",
     "smoke": "pnpm run smoke:api && pnpm run smoke:web",
     "postinstall": "pnpm --filter @keeper/database generate",
