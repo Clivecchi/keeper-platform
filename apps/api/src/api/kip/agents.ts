@@ -1245,9 +1245,9 @@ export async function executeAgentActions(
                 ? (typeof payload.summary === 'string' ? payload.summary : payload.summary ?? '')
                 : draft.summary ?? '',
               status: typeof payload.status === 'string' ? payload.status : draft.status,
-              spec_json: payload.spec !== undefined
+              spec_json: (payload.spec !== undefined
                 ? mergeDraftSpecPatch(draft.spec_json, payload.spec ?? {})
-                : (draft.spec_json ?? {}),
+                : (draft.spec_json ?? {})) as Prisma.InputJsonValue,
               updated_at: new Date(),
             };
 
