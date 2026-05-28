@@ -12,6 +12,8 @@ import remarkGfm from "remark-gfm"
 import { LinkedCard } from "../props/LinkedCard"
 import { ActionReceiptCard } from "../kip/ActionReceiptCard"
 import { DraftUpdateProposeCard } from "../kip/DraftUpdateProposeCard"
+import { DraftPointProposeCard } from "../kip/DraftPointProposeCard"
+import type { DraftPoint } from "@keeper/shared"
 import { KipResponseCard } from "./KipResponseCard"
 import type { AgentDialogueMessage } from "./types"
 import { normalizeActionReceipt } from "./types"
@@ -129,8 +131,14 @@ export interface DialogueMessageListProps {
   onOpenMoment?: (momentId: string) => void
   /** Callback when a journey card is tapped (loads it in the right panel) */
   onOpenJourney?: (journeyId: string) => void
-  /** Callback when user confirms a proposed draft update */
+  /** Callback when user confirms a proposed draft update (legacy whole-draft flow) */
   onConfirmDraftUpdate?: (draftId: string, payload: { title?: string; summary?: string; status?: string; spec?: unknown }) => void
+  /** Callback when user accepts a proposed draft point (Step 3+) */
+  onAcceptDraftPoint?: (draftId: string, pointId: string) => void
+  /** Point ids already accepted in this session (updates card state without reload) */
+  acceptedDraftPointIds?: ReadonlySet<string>
+  /** Point id currently being accepted */
+  acceptingDraftPointId?: string | null
   /** Agent name for empty state and thinking indicator (dynamic, not hardcoded) */
   agentName?: string
   /** Echo attribution fallback when message.echo.attributedTo is missing (board def agentName) */
@@ -156,6 +164,9 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onOpenMoment,
   onOpenJourney,
   onConfirmDraftUpdate,
+  onAcceptDraftPoint,
+  acceptedDraftPointIds,
+  acceptingDraftPointId,
   agentName = "Agent",
   echoAgentName,
   agentBoardMessaging,
@@ -355,14 +366,46 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                     <div className="mt-3 space-y-2">
                       {message.actionResults.map((actionResult, idx) => {
                         const receipt = normalizeActionReceipt(actionResult)
-                        const isPropose = receipt.type === "draft.update.propose" && receipt.status === "success"
+                        const isPointPropose =
+                          receipt.type === "draft.update.propose"
+                          && receipt.status === "success"
+                          && receipt.data?.point
+                        const pointProposeData = receipt.data as {
+                          draftId?: string
+                          draftTitle?: string
+                          point?: DraftPoint
+                        } | undefined
+                        if (
+                          isPointPropose
+                          && pointProposeData?.draftId
+                          && pointProposeData.point
+                        ) {
+                          const point = pointProposeData.point
+                          return (
+                            <DraftPointProposeCard
+                              key={idx}
+                              draftId={pointProposeData.draftId}
+                              draftTitle={pointProposeData.draftTitle ?? "Draft"}
+                              point={point}
+                              onAccept={onAcceptDraftPoint}
+                              onOpenDraft={onOpenDraft}
+                              isAccepting={acceptingDraftPointId === point.id}
+                              accepted={
+                                point.status === "accepted"
+                                || acceptedDraftPointIds?.has(point.id)
+                                || false
+                              }
+                            />
+                          )
+                        }
+                        const isLegacyPropose = receipt.type === "draft.update.propose" && receipt.status === "success"
                         const proposeData = receipt.data as {
                           draftId?: string
                           draftTitle?: string
                           summary?: string
                           proposedPayload?: { id: string; title?: string; summary?: string; status?: string; spec?: unknown }
                         } | undefined
-                        if (isPropose && proposeData?.draftId && proposeData?.proposedPayload && onConfirmDraftUpdate) {
+                        if (isLegacyPropose && proposeData?.draftId && proposeData?.proposedPayload && onConfirmDraftUpdate) {
                           return (
                             <DraftUpdateProposeCard
                               key={idx}

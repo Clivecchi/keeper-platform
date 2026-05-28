@@ -24,7 +24,7 @@
  */
 
 import * as React from "react"
-import type { KipMessage } from "../../lib/kipApi"
+import type { KipDraftStatus } from "../../lib/kipApi"
 import { KipApi } from "../../lib/kipApi"
 import { apiFetch } from "../../lib/api"
 import { getApiBase } from "../../lib/apiFetch"
@@ -547,11 +547,16 @@ export function UniversalConversation({
           if (receipt.status !== "success") continue
 
           if (
-            (receipt.type === "draft.create" || receipt.type === "draft.update")
-            && receipt.data?.draft?.id
+            (receipt.type === "draft.create"
+              || receipt.type === "draft.update"
+              || receipt.type === "draft.update.propose")
+            && (receipt.data?.draft?.id || receipt.data?.draftId)
           ) {
             onDraftListRefresh?.()
-            onDraftSelect(receipt.data.draft.id)
+            onDraftSelect(
+              (receipt.data?.draft?.id ?? receipt.data?.draftId) as string,
+            )
+            actions.bumpDraftPresence()
             return
           }
 
@@ -581,10 +586,22 @@ export function UniversalConversation({
 
       if (Array.isArray(actionResults)) {
         for (const ar of actionResults) {
-          const a = ar as { type?: string; result?: { draft?: { id: string } } }
-          if (a.type === "draft.create" && a.result?.draft?.id) {
+          const receipt = normalizeActionReceipt(
+            ar as Parameters<typeof normalizeActionReceipt>[0],
+          )
+          if (receipt.status !== "success") continue
+
+          if (
+            (receipt.type === "draft.create"
+              || receipt.type === "draft.update"
+              || receipt.type === "draft.update.propose")
+            && (receipt.data?.draft?.id || receipt.data?.draftId)
+          ) {
             onDraftListRefresh?.()
-            onDraftSelect(a.result.draft.id)
+            onDraftSelect(
+              (receipt.data?.draft?.id ?? receipt.data?.draftId) as string,
+            )
+            actions.bumpDraftPresence()
             return
           }
         }
@@ -602,7 +619,7 @@ export function UniversalConversation({
         return
       }
     },
-    [kipMode, selectedFrameKey, handleDesignerDraft, onDraftSelect, onJourneySelect, onMomentSelect, onDraftListRefresh, onJourneyListRefresh],
+    [kipMode, selectedFrameKey, handleDesignerDraft, onDraftSelect, onJourneySelect, onMomentSelect, onDraftListRefresh, onJourneyListRefresh, actions],
   )
 
   const onAfterAgentRunWithEcho = React.useCallback(
@@ -731,7 +748,7 @@ export function UniversalConversation({
 
   const handleRefreshDraftsAfterRun = React.useCallback(
     async (result: unknown) => {
-      if (kipMode !== "agent" || !onDraftListRefresh) return
+      if ((kipMode !== "agent" && kipMode !== "ide") || !onDraftListRefresh) return
       const { actions: actionResults } = extractRunAgentPayload(result)
       if (!actionResults?.length) return
       const hasDraftMutation = actionResults.some((ar: unknown) => {
@@ -780,7 +797,8 @@ export function UniversalConversation({
       kipMode === "ide" || kipMode === "designer" || kipMode === "agent"
         ? onAfterAgentRunWithEcho
         : undefined,
-    onRefreshDraftsAfterRun: kipMode === "agent" ? handleRefreshDraftsAfterRun : undefined,
+    onRefreshDraftsAfterRun:
+      kipMode === "agent" || kipMode === "ide" ? handleRefreshDraftsAfterRun : undefined,
     frameKey: selectedFrameKey ?? undefined,
     manageSessionExternally: kipMode === "agent" && usingSelectedNonDefaultAgent,
   })
@@ -1083,6 +1101,47 @@ export function UniversalConversation({
   const composerDisabled =
     !dialogAgentId || (kipMode === "designer" && !selectedFrameKey)
 
+  const handleConfirmDraftUpdate = React.useCallback(
+    (
+      draftId: string,
+      payload: { title?: string; summary?: string; status?: string; spec?: unknown },
+    ) => {
+      if (!domainId) return
+      void KipApi.updateDraft(domainId, draftId, {
+        ...payload,
+        status: payload.status as KipDraftStatus | undefined,
+      }).then(() => {
+        onDraftListRefresh?.()
+        onDraftSelect(draftId)
+        actions.bumpDraftPresence()
+      })
+    },
+    [domainId, onDraftListRefresh, onDraftSelect, actions],
+  )
+
+  const [acceptedDraftPointIds, setAcceptedDraftPointIds] = React.useState<Set<string>>(
+    () => new Set(),
+  )
+  const [acceptingDraftPointId, setAcceptingDraftPointId] = React.useState<string | null>(null)
+
+  const handleAcceptDraftPoint = React.useCallback(
+    (draftId: string, pointId: string) => {
+      if (!domainId) return
+      setAcceptingDraftPointId(pointId)
+      void KipApi.acceptDraftPoint(domainId, draftId, pointId)
+        .then(() => {
+          setAcceptedDraftPointIds((prev) => new Set(prev).add(pointId))
+          onDraftListRefresh?.()
+          onDraftSelect(draftId)
+          actions.bumpDraftPresence()
+        })
+        .finally(() => {
+          setAcceptingDraftPointId(null)
+        })
+    },
+    [domainId, onDraftListRefresh, onDraftSelect, actions],
+  )
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -1115,6 +1174,10 @@ export function UniversalConversation({
         onOpenDraft={onDraftSelect}
         onOpenMoment={onMomentSelect}
         onOpenJourney={(id) => onJourneySelect(id)}
+        onConfirmDraftUpdate={domainId ? handleConfirmDraftUpdate : undefined}
+        onAcceptDraftPoint={domainId ? handleAcceptDraftPoint : undefined}
+        acceptedDraftPointIds={acceptedDraftPointIds}
+        acceptingDraftPointId={acceptingDraftPointId}
         agentBubbleFullWidth={kipMode !== "ide"}
         agentId={dialogAgentId}
         domainId={domainId ?? null}

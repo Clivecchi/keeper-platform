@@ -27,6 +27,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-05-27: **Draft update reliability** — System agents (Cloud) now use `draft.update` directly in prompts; `draftIntent` no longer skips all actions (only duplicate `draft.create`). Payload normalizer maps `draftId` → `id`; `draft.update` preserves summary/spec when omitted. `skipActionTypes` on execution context.
 - 2026-05-26: **System agents (Cloud) — action execution + session fix** — `agent_class === 'System'` now executes parsed `draft.create` / `moment.create` actions via `executeAgentActions`, persists `actionResults` on agent messages, and returns `actions` in the response. Session bootstrap saves user messages after server-side session creation (was skipped). Frontend reads `data.data.actions` and syncs `session_id` when the client had no session yet.
 
 - 2026-05-25: **System agents (Cloud) interactive dialog** — `agent_class === 'System'` now runs `callAIModel`, persists user/agent messages to the session, and returns `system_interaction` (was stub `generic_processing` with no session writes). Respects `config.suppress_kip_system_prompt` in `callAIModel` domain contract injection. Seed sets `memory_enabled: true` for new Cloud records. **Fix:** `callAIModel` merges default settings with `agent.model` — empty `model_settings: {}` no longer drops the model field (Anthropic `model: Field required`).

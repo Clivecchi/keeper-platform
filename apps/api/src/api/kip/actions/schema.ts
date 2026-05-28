@@ -31,20 +31,35 @@ const draftCreatePayloadSchema = z.object({
  * Draft update action payload schema
  */
 const draftUpdatePayloadSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().optional(),
+  draftId: z.string().uuid().optional(),
   title: z.string().min(1).optional(),
   summary: z.string().nullable().optional(),
   status: z.enum(['draft', 'reviewed', 'approved', 'promoted', 'archived']).optional(),
   spec: z.record(z.any()).optional(),
-});
+}).refine(
+  (data) => Boolean(data.id || data.draftId),
+  { message: 'Must provide id or draftId' },
+);
+
+const draftPointAcceptPayloadSchema = z.object({
+  draftId: z.string().uuid().optional(),
+  id: z.string().uuid().optional(),
+  pointId: z.string().uuid(),
+}).refine(
+  (data) => Boolean(data.draftId || data.id),
+  { message: 'Must provide draftId or id' },
+);
 
 const draftUpdateProposePayloadSchema = z.object({
-  id: z.string().uuid(),
-  title: z.string().min(1).optional(),
-  summary: z.string().nullable().optional(),
-  status: z.enum(['draft', 'reviewed', 'approved', 'promoted', 'archived']).optional(),
-  spec: z.record(z.any()).optional(),
-});
+  id: z.string().uuid().optional(),
+  draftId: z.string().uuid().optional(),
+  content: z.string().min(1, 'content is required'),
+  type: z.enum(['moment', 'decision', 'context', 'general']).optional(),
+}).refine(
+  (data) => Boolean(data.id || data.draftId),
+  { message: 'Must provide id or draftId' },
+);
 
 /**
  * Draft delete action payload schema
@@ -157,6 +172,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'draft.create': draftCreatePayloadSchema,
   'draft.update': draftUpdatePayloadSchema,
   'draft.update.propose': draftUpdateProposePayloadSchema,
+  'draft.point.accept': draftPointAcceptPayloadSchema,
   'draft.delete': draftDeletePayloadSchema,
   'draft.list': draftListPayloadSchema,
   'draft.get': draftGetPayloadSchema,

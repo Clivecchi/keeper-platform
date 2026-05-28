@@ -17,6 +17,7 @@ export const DEFAULT_POLICY_PACK_V1 = {
       'draft.create',
       'draft.update',
       'draft.update.propose',
+      'draft.point.accept',
       'draft.list',
       'draft.get',
       'draft.read',

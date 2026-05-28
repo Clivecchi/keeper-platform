@@ -94,6 +94,9 @@ export interface KeeperDialogFrameProps {
     draftId: string,
     payload: { title?: string; summary?: string; status?: string; spec?: unknown },
   ) => void
+  onAcceptDraftPoint?: (draftId: string, pointId: string) => void
+  acceptedDraftPointIds?: ReadonlySet<string>
+  acceptingDraftPointId?: string | null
   agentName?: string
   /** Echo attribution fallback — board def agentName (def.conversation.agentName) */
   echoAgentName?: string
@@ -156,6 +159,9 @@ export function KeeperDialogFrame({
   onOpenMoment,
   onOpenJourney,
   onConfirmDraftUpdate,
+  onAcceptDraftPoint,
+  acceptedDraftPointIds,
+  acceptingDraftPointId,
   agentName = "Kip",
   echoAgentName,
   agentBubbleFullWidth = true,
@@ -379,6 +385,9 @@ export function KeeperDialogFrame({
                     onOpenMoment={onOpenMoment}
                     onOpenJourney={onOpenJourney}
                     onConfirmDraftUpdate={onConfirmDraftUpdate}
+                    onAcceptDraftPoint={onAcceptDraftPoint}
+                    acceptedDraftPointIds={acceptedDraftPointIds}
+                    acceptingDraftPointId={acceptingDraftPointId}
                     agentBubbleFullWidth={agentBubbleFullWidth}
                     agentBoardMessaging={agentBoardMessaging}
                     scrollContainerRef={scrollRef}

@@ -6,6 +6,7 @@ import { logger } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
+import { normalizeDraftSpecJson } from '@keeper/shared';
 import { normalizeSummary } from '../kip/actions/schema.js';
 
 /**
@@ -50,6 +51,8 @@ const setActiveDraftSchema = z.object({
   draftId: z.string().uuid(),
 });
 
+const mapDraftSpec = (spec: unknown) => normalizeDraftSpecJson(spec);
+
 const mapDraftSummary = (draft: any) => ({
   id: draft.id,
   kind: draft.kind,
@@ -58,6 +61,22 @@ const mapDraftSummary = (draft: any) => ({
   status: draft.status,
   summary: draft.summary ?? null,
   updatedAt: draft.updated_at,
+  keeperId: draft.keeper_id ?? null,
+});
+
+const mapDraftDetail = (draft: {
+  id: string;
+  kind: string;
+  key: string;
+  title: string;
+  status: string;
+  summary: string | null;
+  spec_json: unknown;
+  keeper_id?: string | null;
+  [key: string]: unknown;
+}) => ({
+  ...draft,
+  spec: mapDraftSpec(draft.spec_json),
   keeperId: draft.keeper_id ?? null,
 });
 
@@ -140,11 +159,7 @@ router.get(
       }
 
       return res.json({
-        draft: {
-          ...draft,
-          spec: draft.spec_json,
-          keeperId: draft.keeper_id ?? null,
-        },
+        draft: mapDraftDetail(draft),
       });
     } catch (error) {
       console.error('[domains:kip-drafts:read:error]', error);
@@ -232,7 +247,7 @@ router.post(
         title: body.title,
         summary: body.summary || null,
         status: 'draft',
-        spec_json: body.spec ?? {},
+        spec_json: normalizeDraftSpecJson(body.spec ?? {}) as object,
         updated_at: now,
         agent_id: body.agentId ?? null,
         keeper_id: keeperId,
@@ -264,10 +279,7 @@ router.post(
       logger.info({ requestId, domainId, ownerId, draftId: draft.id, kind: body.kind, key: body.key }, 'kip drafts create ok');
 
       return res.status(200).json({
-        draft: {
-          ...draft,
-          spec: draft.spec_json,
-        },
+        draft: mapDraftDetail(draft),
         links: {
           open: buildDraftOpenUrl(domainSlug, draft.id),
         },
@@ -312,7 +324,7 @@ router.patch(
       if (body.title !== undefined) updatePayload.title = body.title;
       if (body.summary !== undefined) updatePayload.summary = body.summary ?? null;
       if (body.status !== undefined) updatePayload.status = body.status;
-      if (body.spec !== undefined) updatePayload.spec_json = body.spec ?? {};
+      if (body.spec !== undefined) updatePayload.spec_json = normalizeDraftSpecJson(body.spec ?? {}) as object;
 
       const nextVersion = await prisma.kip_draft_versions.count({ where: { draft_id: existing.id } }).then((n) => n + 1);
       await prisma.kip_draft_versions.create({
@@ -332,10 +344,7 @@ router.patch(
       });
 
       return res.json({
-        draft: {
-          ...updated,
-          spec: updated.spec_json,
-        },
+        draft: mapDraftDetail(updated),
       });
     } catch (error) {
       console.error('[domains:kip-drafts:update:error]', error);
@@ -574,6 +583,50 @@ router.delete(
     } catch (error) {
       logger.error({ requestId, domainId, draftId, err: error, userId: req.user?.id }, 'kip drafts delete failed');
       return res.status(500).json({ error: 'FAILED_TO_DELETE_DRAFT', code: 'INTERNAL_ERROR' });
+    }
+  },
+);
+
+router.post(
+  '/:domainId/kip/drafts/:draftId/points/:pointId/accept',
+  authMiddlewareCompat,
+  requireDomainWriteCompat,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { domainId, draftId, pointId } = req.params;
+
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+      }
+
+      const { executeAgentActions } = await import('../kip/agents.js');
+      const domain = await prisma.domain.findUnique({
+        where: { id: domainId },
+        select: { slug: true },
+      });
+
+      const { results } = await executeAgentActions(
+        [{ type: 'draft.point.accept', payload: { draftId, pointId } }],
+        {
+          domainId,
+          domainSlug: domain?.slug ?? null,
+          userId: req.user.id,
+          allowlist: new Set(['draft.point.accept']),
+        },
+      );
+
+      const result = results[0];
+      if (!result || result.status === 'error') {
+        return res.status(result?.errorCode === 'DRAFT_NOT_FOUND' || result?.errorCode === 'POINT_NOT_FOUND' ? 404 : 400).json({
+          error: result?.errorCode ?? 'ACCEPT_FAILED',
+          message: result?.message ?? 'Failed to accept draft point',
+        });
+      }
+
+      return res.json({ success: true, result });
+    } catch (error) {
+      logger.error({ err: error, domainId, draftId, pointId }, 'kip draft point accept failed');
+      return res.status(500).json({ error: 'FAILED_TO_ACCEPT_DRAFT_POINT' });
     }
   },
 );

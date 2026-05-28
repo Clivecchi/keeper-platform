@@ -35,6 +35,8 @@ export interface UniversalBoardSelection {
   selectedServiceSlug: string | null
   /** designer mode: the board definition currently selected in the nav — drives right-panel BoardDefView. */
   selectedBoardDefId: string | null
+  /** Increment to refetch draft presence in Chronicle after point mutations. */
+  draftPresenceRevision: number
 }
 
 export interface UniversalBoardActions {
@@ -51,6 +53,7 @@ export interface UniversalBoardActions {
   clearSelection: () => void
   /** designer mode: selects a board definition — drives right-panel BoardDefView. */
   onBoardDefSelect: (id: string) => void
+  bumpDraftPresence: () => void
 }
 
 export interface UniversalBoardContextValue {
@@ -97,6 +100,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null)
   const [selectedServiceSlug, setSelectedServiceSlug] = React.useState<string | null>(null)
   const [selectedBoardDefId, setSelectedBoardDefId] = React.useState<string | null>(null)
+  const [draftPresenceRevision, setDraftPresenceRevision] = React.useState(0)
 
   // ── Nav state ──────────────────────────────────────────────────────────────
   const [navCollapsed, setNavCollapsed] = React.useState(false)
@@ -203,6 +207,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedBoardDefId(id)
   }, [])
 
+  const bumpDraftPresence = React.useCallback(() => {
+    setDraftPresenceRevision((n) => n + 1)
+  }, [])
+
   const onToggleNavCollapsed = React.useCallback(() => {
     setNavCollapsed((c) => !c)
   }, [])
@@ -222,6 +230,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         selectedAgentId,
         selectedServiceSlug,
         selectedBoardDefId,
+        draftPresenceRevision,
       },
       actions: {
         onSessionSelect,
@@ -235,6 +244,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onServiceOpen,
         clearSelection,
         onBoardDefSelect,
+        bumpDraftPresence,
       },
       navCollapsed,
       onToggleNavCollapsed,
@@ -251,6 +261,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       selectedAgentId,
       selectedServiceSlug,
       selectedBoardDefId,
+      draftPresenceRevision,
       onSessionSelect,
       onSetActiveJourney,
       onDialogSelect,
@@ -262,6 +273,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       onServiceOpen,
       clearSelection,
       onBoardDefSelect,
+      bumpDraftPresence,
       navCollapsed,
       onToggleNavCollapsed,
     ],

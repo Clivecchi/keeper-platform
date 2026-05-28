@@ -12,6 +12,13 @@ import { z } from 'zod';
 import { prisma } from '@keeper/database';
 import { Prisma } from '@prisma/client';
 import { logger } from '@keeper/shared';
+import {
+  appendDraftPointToSpec,
+  createDraftPoint,
+  findDraftPoint,
+  updateDraftPointInSpec,
+  type DraftPointType,
+} from '@keeper/shared';
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import { resolveAgentEnvironment, type AgentEnvironmentContext } from '../../services/kip/resolveAgentEnvironment.js';
@@ -106,12 +113,30 @@ type RunAgentOptions = {
   debugBundle?: DebugBundleInput | null;
   environment?: AgentEnvironmentContext | KipEnvironmentContext | null;
   forceSkipActions?: boolean;
+  /** When set, only these action types are skipped (e.g. draft.create after draftIntent handled). */
+  skipActionTypes?: Set<string>;
   actionPack?: ActionPack;
   draftIntentResult?: DraftIntentResult | null;
   activeJourneyId?: string | null;
   activeKeeperId?: string | null;
   attachments?: AgentAttachmentInput[];
 };
+
+function isOperationalDraftAgent(agent: { agent_class?: string | null; config?: unknown }): boolean {
+  if (agent.agent_class === 'System') return true;
+  const config = agent.config;
+  if (config && typeof config === 'object' && !Array.isArray(config)) {
+    return (config as Record<string, unknown>).suppress_kip_system_prompt === true;
+  }
+  return false;
+}
+
+function buildDraftUpdateInstruction(agent: { agent_class?: string | null; config?: unknown }): string {
+  if (isOperationalDraftAgent(agent)) {
+    return '- When UPDATING a draft, use draft.update directly with payload.id (draft UUID) and the changed fields (title, summary, status, spec). Persist immediately. Do not use draft.update.propose.';
+  }
+  return '- When proposing content for a draft, use draft.update.propose with payload.id (draft UUID), payload.content (the proposed text), and optional payload.type (moment | decision | context | general — default general). Each call appends one proposed point; the human accepts points in the UI.';
+}
 
 class AgentExecutionError extends Error {
   code: AgentErrorCode;
@@ -484,6 +509,7 @@ function buildAllowedActions(environment?: AgentEnvironmentContext | KipEnvironm
   allow.add('image.generate');
   allow.add('draft.update');
   allow.add('draft.update.propose');
+  allow.add('draft.point.accept');
   allow.add('draft.delete');
   allow.add('moment.create');
   allow.add('sole.save');
@@ -673,7 +699,7 @@ function getRequestId(ctx: { requestId?: string }): string {
 
 export async function executeAgentActions(
   actions: StructuredAgentAction[],
-  ctx: { domainId?: string | null; domainSlug?: string | null; userId?: string; agentId?: string | null; allowlist: Set<string>; sessionId?: string | null; keeperId?: string | null; requestId?: string },
+  ctx: { domainId?: string | null; domainSlug?: string | null; userId?: string; agentId?: string | null; allowlist: Set<string>; sessionId?: string | null; keeperId?: string | null; requestId?: string; skipActionTypes?: Set<string> },
 ): Promise<{ results: ActionExecutionResult[]; failedMessage: string | null }> {
   const requestId = getRequestId(ctx);
   const results: ActionExecutionResult[] = [];
@@ -705,6 +731,28 @@ export async function executeAgentActions(
   // Normalize draft.create payloads (map common model mistakes to schema)
   const VALID_KINDS = ['journey_spec', 'keeper_type_proposal', 'vehicle_template', 'checklist_spec', 'development_journey', 'conversation_review', 'domain_json'];
   const normalizedActions = actions.map((action) => {
+    if (
+      action.type === 'draft.update.propose'
+      && action.payload
+      && typeof action.payload === 'object'
+    ) {
+      const p = action.payload as Record<string, unknown>;
+      const out: Record<string, unknown> = { ...p };
+      if (!out.id && typeof out.draftId === 'string') out.id = out.draftId;
+      if (!out.content && typeof p.summary === 'string') out.content = p.summary;
+      if (!out.content && typeof p.text === 'string') out.content = p.text;
+      return { type: action.type, payload: out };
+    }
+    if (
+      action.type === 'draft.update'
+      && action.payload
+      && typeof action.payload === 'object'
+    ) {
+      const p = action.payload as Record<string, unknown>;
+      const out: Record<string, unknown> = { ...p };
+      if (!out.id && typeof out.draftId === 'string') out.id = out.draftId;
+      return { type: action.type, payload: out };
+    }
     if (action.type !== 'draft.create' || !action.payload || typeof action.payload !== 'object') return action;
     const p = action.payload as Record<string, unknown>;
     const out: Record<string, unknown> = { ...p };
@@ -780,6 +828,7 @@ export async function executeAgentActions(
     'draft.create',
     'draft.update',
     'draft.update.propose',
+    'draft.point.accept',
     'draft.delete',
     'draft.list',
     'draft.get',
@@ -831,6 +880,15 @@ export async function executeAgentActions(
           actionType: action.type,
           ...payloadIdentifiers,
         }, '[kip.actions] executing');
+
+        if (ctx.skipActionTypes?.has(action.type)) {
+          results.push({
+            type: action.type,
+            status: 'skipped',
+            message: 'Action skipped (handled by draft intent pipeline)',
+          });
+          continue;
+        }
 
         if (!ctx.allowlist.has(action.type)) {
           const reason = 'Action not allowed by policy';
@@ -992,8 +1050,13 @@ export async function executeAgentActions(
           case 'draft.update.propose': {
             const payload = action.payload ?? {};
             const draftId = payload.draftId || payload.id;
+            const content = typeof payload.content === 'string' ? payload.content.trim() : '';
             if (!draftId) {
               results.push({ type: action.type, status: 'error', message: 'Draft id required for propose', errorCode: 'DRAFT_NOT_FOUND' });
+              break;
+            }
+            if (!content) {
+              results.push({ type: action.type, status: 'error', message: 'Point content is required', errorCode: 'VALIDATION_ERROR' });
               break;
             }
             const draft = await tx.kip_drafts.findFirst({
@@ -1003,22 +1066,125 @@ export async function executeAgentActions(
               results.push({ type: action.type, status: 'error', message: 'Draft not found', errorCode: 'DRAFT_NOT_FOUND' });
               break;
             }
-            const proposed = {
-              title: typeof payload.title === 'string' ? payload.title : draft.title,
-              summary: payload.summary !== undefined ? (payload.summary ?? '') : draft.summary ?? '',
-              status: typeof payload.status === 'string' ? payload.status : draft.status,
-              spec: payload.spec ?? draft.spec_json ?? {},
-            };
-            const summary = `Update "${draft.title}": ${proposed.title !== draft.title ? `title → "${proposed.title}"` : ''} ${JSON.stringify(proposed.spec) !== JSON.stringify(draft.spec_json) ? 'spec changed' : ''}`.trim();
+
+            let proposedBy = 'agent';
+            if (ctx.agentId) {
+              const agent = await tx.kip_agents.findUnique({
+                where: { id: ctx.agentId },
+                select: { slug: true },
+              });
+              proposedBy = agent?.slug ?? ctx.agentId;
+            }
+
+            const pointType = typeof payload.type === 'string'
+              ? payload.type as DraftPointType
+              : 'general';
+
+            const point = createDraftPoint({
+              content,
+              type: pointType,
+              proposedBy,
+              status: 'proposed',
+            });
+
+            const nextSpec = appendDraftPointToSpec(draft.spec_json, point);
+
+            await tx.kip_draft_versions.create({
+              data: {
+                draft_id: draft.id,
+                version: await tx.kip_draft_versions.count({ where: { draft_id: draft.id } }).then((n) => n + 1),
+                spec_json: (draft.spec_json ?? {}) as Prisma.InputJsonValue,
+                title: draft.title,
+                summary: draft.summary ?? null,
+                status: draft.status,
+                created_by_session_id: ctx.sessionId ?? null,
+              },
+            });
+
+            await tx.kip_drafts.update({
+              where: { id: draft.id },
+              data: {
+                spec_json: nextSpec as object,
+                updated_at: new Date(),
+              },
+            });
+
+            const typeLabel = point.type === 'general' ? 'point' : point.type;
             results.push({
               type: action.type,
               status: 'success',
-              message: 'Proposed update — confirm to apply',
+              message: `Proposed ${typeLabel} — tap Accept to keep it`,
               data: {
                 draftId: draft.id,
                 draftTitle: draft.title,
-                summary: summary || 'Update draft',
-                proposedPayload: { id: draft.id, ...proposed },
+                point,
+                draft: {
+                  id: draft.id,
+                  title: draft.title,
+                  kind: draft.kind,
+                  key: draft.key,
+                },
+                links: ctx.domainSlug ? { open: buildDraftOpenUrl(ctx.domainSlug, draft.id) } : undefined,
+              },
+            });
+            break;
+          }
+          case 'draft.point.accept': {
+            const payload = action.payload ?? {};
+            const draftId = payload.draftId || payload.id;
+            const pointId = typeof payload.pointId === 'string' ? payload.pointId : '';
+            if (!draftId || !pointId) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'Draft id and point id required',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+            const draft = await tx.kip_drafts.findFirst({
+              where: { id: draftId, domain_id: ctx.domainId, owner_id: ctx.userId },
+            });
+            if (!draft) {
+              results.push({ type: action.type, status: 'error', message: 'Draft not found', errorCode: 'DRAFT_NOT_FOUND' });
+              break;
+            }
+            const existing = findDraftPoint(draft.spec_json, pointId);
+            if (!existing) {
+              results.push({ type: action.type, status: 'error', message: 'Point not found', errorCode: 'POINT_NOT_FOUND' });
+              break;
+            }
+            if (existing.status === 'accepted') {
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: 'Point already accepted',
+                data: { draftId: draft.id, draftTitle: draft.title, point: existing },
+              });
+              break;
+            }
+            const { spec: nextSpec, point: updatedPoint } = updateDraftPointInSpec(
+              draft.spec_json,
+              pointId,
+              { status: 'accepted' },
+            );
+            if (!updatedPoint) {
+              results.push({ type: action.type, status: 'error', message: 'Failed to update point', errorCode: 'EXECUTION_ERROR' });
+              break;
+            }
+            await tx.kip_drafts.update({
+              where: { id: draft.id },
+              data: { spec_json: nextSpec as object, updated_at: new Date() },
+            });
+            results.push({
+              type: action.type,
+              status: 'success',
+              message: 'Point accepted',
+              data: {
+                draftId: draft.id,
+                draftTitle: draft.title,
+                point: updatedPoint,
+                draft: { id: draft.id, title: draft.title, kind: draft.kind, key: draft.key },
                 links: ctx.domainSlug ? { open: buildDraftOpenUrl(ctx.domainSlug, draft.id) } : undefined,
               },
             });
@@ -1054,9 +1220,11 @@ export async function executeAgentActions(
 
             const updateData = {
               title: typeof payload.title === 'string' ? payload.title : draft.title,
-              summary: typeof payload.summary === 'string' ? payload.summary : draft.summary,
+              summary: payload.summary !== undefined
+                ? (typeof payload.summary === 'string' ? payload.summary : payload.summary ?? '')
+                : draft.summary ?? '',
               status: typeof payload.status === 'string' ? payload.status : draft.status,
-              spec_json: payload.spec ?? draft.spec_json ?? {},
+              spec_json: payload.spec !== undefined ? (payload.spec ?? {}) : (draft.spec_json ?? {}),
               updated_at: new Date(),
             };
 
@@ -2890,7 +3058,7 @@ export class KipAgentService {
           '- When the user asks "what can you do?", "tell me your capabilities", or "how can you help" — give a substantive narrative. If they ask to "show" or "demonstrate" (e.g. "show me with action cards"), use sole.save to record key capabilities and present action cards. Never give a minimal response when the user wants a full explanation.',
           '- When the user wants to work on an EXISTING draft, use draft.update or draft.setActive. Never create a duplicate.',
           '- Check draftsDirectory in the environment. If a draft with the same or similar title already exists, use draft.update (with id) or draft.setActive — do NOT create another.',
-          '- When UPDATING a draft, use draft.update.propose first. Summarize the change in one sentence and ask for permission. Do not use draft.update directly — wait for user confirmation.',
+          buildDraftUpdateInstruction(agent),
           '- Drafts are scoped by keeper (primary) or domain (secondary). When the user has a keeper selected, prefer keeper-scoped drafts. Include keeperId in draft.create when the draft is relevant to the active keeper.',
           '- Never create multiple drafts for the same purpose. One draft per distinct topic. If unsure, respond with text and ask the user to clarify.',
           '- When listing or discussing drafts, ALWAYS include each draft\'s title and updated date. A response that only gives a count (e.g. "You have 3 drafts") is not useful. Use draftsDirectory from the environment — format each as: [title] (updated [date]).',
@@ -2907,6 +3075,7 @@ export class KipAgentService {
           '- Example: {"type":"agent_output","response":"Here\'s your image.","actions":[{"type":"image.generate","payload":{"subject":"a keeper\'s desk at dusk, scattered notes and warm light","mood":"quiet, reflective","style":"cinematic photography","aspect_ratio":"16:9"}}]}',
           '',
           `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
+          'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — replaces draft spec when provided).',
           'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',
           'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"sections":[{"title":"Section 1","content":"Specific content here"},{"title":"Section 2","content":"More details"}]}}}]}',
           draftRules?.autoDraft?.enabled
@@ -3254,7 +3423,7 @@ export class KipAgentService {
             '- When the user asks "what can you do?", "tell me your capabilities", or "how can you help" — give a substantive narrative. If they ask to "show" or "demonstrate" (e.g. "show me with action cards"), use sole.save to record key capabilities and present action cards. Never give a minimal response when the user wants a full explanation.',
             '- When the user wants to work on an EXISTING draft, use draft.update or draft.setActive. Never create a duplicate.',
             '- Check draftsDirectory in the environment. If a draft with the same or similar title already exists, use draft.update (with id) or draft.setActive — do NOT create another.',
-            '- When UPDATING a draft, use draft.update.propose first. Summarize the change in one sentence and ask for permission. Do not use draft.update directly — wait for user confirmation.',
+            buildDraftUpdateInstruction(agent),
             '- Drafts are scoped by keeper (primary) or domain (secondary). When the user has a keeper selected, prefer keeper-scoped drafts. Include keeperId in draft.create when the draft is relevant to the active keeper.',
             '- Never create multiple drafts for the same purpose. One draft per distinct topic. If unsure, respond with text and ask the user to clarify.',
             '- When listing or discussing drafts, ALWAYS include each draft\'s title and updated date. A response that only gives a count (e.g. "You have 3 drafts") is not useful. Use draftsDirectory from the environment — format each as: [title] (updated [date]).',
@@ -3269,6 +3438,7 @@ export class KipAgentService {
             '- Example: {"type":"agent_output","response":"Here\'s your image.","actions":[{"type":"image.generate","payload":{"subject":"a keeper\'s desk at dusk, scattered notes and warm light","mood":"quiet, reflective","style":"cinematic photography","aspect_ratio":"16:9"}}]}',
             '',
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
+            'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — replaces draft spec when provided).',
             'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"sections":[{"title":"Section 1","content":"Specific content here"},{"title":"Section 2","content":"More details"}]}}}]}',
             draftRules?.autoDraft?.enabled
@@ -3776,6 +3946,7 @@ export class KipAgentService {
               sessionId: currentSessionId,
               keeperId: options?.activeKeeperId ?? null,
               requestId,
+              skipActionTypes: options?.skipActionTypes,
             });
             actionResults = execution.results;
 
@@ -4015,6 +4186,7 @@ export class KipAgentService {
               sessionId: currentSessionId,
               keeperId: options?.activeKeeperId ?? null,
               requestId: systemRequestId,
+              skipActionTypes: options?.skipActionTypes,
             });
             actionResults = execution.results;
 
@@ -4664,7 +4836,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
               mode: validation.data.mode as AgentModeKey | undefined,
               debugBundle: validation.data.debugBundle || null,
               environment,
-              forceSkipActions: Boolean(draftIntentPayload),
+              skipActionTypes: draftIntentResult?.draft ? new Set(['draft.create']) : undefined,
               actionPack,
               draftIntentResult,
               activeJourneyId: validation.data.activeJourneyId ?? null,

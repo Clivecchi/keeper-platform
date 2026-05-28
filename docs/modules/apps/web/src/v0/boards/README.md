@@ -23,6 +23,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-05-27 — Draft update reliability (IDE + Agent)
+- **UniversalConversation:** wired `onConfirmDraftUpdate` for `draft.update.propose` confirm cards; IDE mode handles `draft.update` receipts (Chronicle + draft list refresh)
+- **Agent Board:** unchanged — already had confirm wiring via `AgentBoardFrame`
+
 ### 2026-05-26 — Agent Board draft visibility after agent actions
 - **useAgentDialog:** attaches `actionResults` to agent/domain messages (action receipt cards in Dialog)
 - **UniversalConversation:** on successful `draft.create`/`draft.update`, refreshes Drafts nav and opens draft in Chronicle; moment/journey receipts tappable on Agent Board

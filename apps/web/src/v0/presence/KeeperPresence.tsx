@@ -28,6 +28,7 @@ import {
   type FieldDefinition,
 } from "./KeeperPresenceDefaults"
 import type { PresenceLayout } from "./types"
+import { DraftPointsSection } from "./DraftPointsSection"
 import { FrameConfigPresence, parseFramePropsFromRecord } from "./FrameConfigPresence"
 import { BoardDefConfigPresence } from "./BoardDefConfigPresence"
 import { BOARD_DEFINITIONS } from "../boards/UniversalBoardDefinition"
@@ -46,6 +47,7 @@ import {
   type PresentName,
   type RenderContext,
 } from "../presents/types"
+import { toPresentInstanceKey } from "../presents/presentInstanceKey"
 
 export type { PresenceLayout } from "./types"
 
@@ -653,7 +655,10 @@ export function KeeperPresence({
   domainDisplayName,
 }: KeeperPresenceProps) {
   const effectivePresent = resolvePresentForObject(objectType, present)
-  const motionInstanceKey = `${objectType}:${objectId}`
+  const motionInstanceKey = React.useMemo(
+    () => toPresentInstanceKey(objectType, objectId, domainSlug),
+    [objectType, objectId, domainSlug],
+  )
   const motionEnabled = layout === "focus"
   const [record, setRecord] = React.useState<Record<string, unknown> | null>(objectProp ?? null)
   const [loading, setLoading] = React.useState(!objectProp)
@@ -730,7 +735,7 @@ export function KeeperPresence({
       cancelled = true
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [objectId, objectType, domainId, domainSlug, domainDisplayName, objectProp, presenceRefresh])
+  }, [objectId, objectType, domainId, domainSlug, domainDisplayName, objectProp, presenceRefresh, boardCtx?.selection.draftPresenceRevision])
 
   const handlePresenceRefresh = React.useCallback(() => {
     setPresenceRefresh((n) => n + 1)
@@ -1202,6 +1207,12 @@ function KeeperPresenceSurface({
             )}
           </div>
         ))}
+
+        {objectType === "draft" && (
+          <PresenceSection title="Points">
+            <DraftPointsSection spec={record?.spec ?? record?.spec_json} />
+          </PresenceSection>
+        )}
 
         {ambientFields.map(([key]) => (
           <p

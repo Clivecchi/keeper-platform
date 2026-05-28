@@ -7,6 +7,22 @@
  */
 
 import { apiFetch } from './api';
+import {
+  normalizeDraftSpecJson,
+  type DraftPoint,
+  type DraftPointStatus,
+  type DraftPointType,
+  type DraftSpecJson,
+} from '@keeper/shared';
+
+export type {
+  DraftPoint,
+  DraftPointStatus,
+  DraftPointType,
+  DraftSpecJson,
+} from '@keeper/shared';
+
+export { normalizeDraftSpecJson };
 
 // Types matching the backend
 const shouldUseMockFallback = (error: unknown): boolean =>
@@ -152,7 +168,7 @@ export interface KipDraft extends KipDraftSummary {
   domain_id?: string;
   owner_id?: string;
   agent_id?: string | null;
-  spec?: unknown;
+  spec?: DraftSpecJson;
   created_at?: string | Date;
 }
 
@@ -775,7 +791,11 @@ export class KipApi {
   static async getDraft(domainId: string, draftId: string): Promise<KipDraft> {
     const response = await apiFetch(`/api/domains/${domainId}/kip/drafts/${draftId}`);
     if (response?.draft) {
-      return response.draft as KipDraft;
+      const draft = response.draft as KipDraft;
+      return {
+        ...draft,
+        spec: normalizeDraftSpecJson(draft.spec),
+      };
     }
     throw new Error(pickErrorMessage(response, 'Failed to load draft'));
   }
@@ -804,9 +824,25 @@ export class KipApi {
       body: JSON.stringify(payload),
     });
     if (response?.draft) {
-      return response.draft as KipDraft;
+      const draft = response.draft as KipDraft;
+      return { ...draft, spec: normalizeDraftSpecJson(draft.spec) };
     }
     throw new Error(pickErrorMessage(response, 'Failed to update draft'));
+  }
+
+  static async acceptDraftPoint(
+    domainId: string,
+    draftId: string,
+    pointId: string,
+  ): Promise<{ success: boolean; result: { status: string; message: string; data?: { point?: DraftPoint } } }> {
+    const response = await apiFetch(
+      `/api/domains/${domainId}/kip/drafts/${draftId}/points/${pointId}/accept`,
+      { method: 'POST' },
+    );
+    if (response?.success && response?.result) {
+      return response as { success: boolean; result: { status: string; message: string; data?: { point?: DraftPoint } } };
+    }
+    throw new Error(pickErrorMessage(response, 'Failed to accept draft point'));
   }
 
   static async deleteDraft(domainId: string, draftId: string): Promise<void> {
