@@ -345,6 +345,9 @@ export async function updateKipAgent(id: string, data: Partial<{
   permissions: string[];
   config: Record<string, unknown>;
   status: string;
+  model_provider: string;
+  model_settings: Record<string, unknown>;
+  visibility: string;
 }>) {
   const updateData: any = {
     ...data,
@@ -354,6 +357,9 @@ export async function updateKipAgent(id: string, data: Partial<{
   // If config is present, serialize it properly for Prisma
   if (data.config) {
     updateData.config = JSON.parse(JSON.stringify(data.config)) as Prisma.InputJsonValue;
+  }
+  if (data.model_settings) {
+    updateData.model_settings = JSON.parse(JSON.stringify(data.model_settings)) as Prisma.InputJsonValue;
   }
 
   return prisma.kip_agents.update({

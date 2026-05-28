@@ -11,6 +11,7 @@
  * Field roles:
  *   primary   — dominant; always large and prominent
  *   secondary — readable body text
+ *   body      — multiline prose / prompt surfaces (lens, composed prompt)
  *   ambient   — smaller, contextual, muted
  *   quiet     — smallest; metadata-level
  *
@@ -20,7 +21,7 @@
  *   comfortable — rendered only at comfortable
  */
 
-export type FieldRole = 'primary' | 'secondary' | 'ambient' | 'quiet'
+export type FieldRole = 'primary' | 'secondary' | 'body' | 'ambient' | 'quiet'
 export type DensityLevel = 'always' | 'standard' | 'comfortable'
 
 export interface FieldDefinition {
@@ -36,6 +37,8 @@ export interface FieldDefinition {
   label?: string
   /** Read-only fields: preserve line breaks when rendered in Chronicle */
   multiline?: boolean
+  /** When true, field is omitted from the main surface until explicitly revealed (e.g. advanced section) */
+  hiddenByDefault?: boolean
 }
 
 export interface ObjectPresenceSchema {
@@ -79,27 +82,44 @@ export const PRESENCE_SCHEMA_DEFAULTS: Record<string, ObjectPresenceSchema> = {
   agent: {
     objectType: 'agent',
     fields: {
-      name:          { role: 'primary',   always: true,                   editable: true  },
-      purpose:       { role: 'secondary', minDensity: 'standard',         editable: true  },
-      tagline:       { role: 'secondary', minDensity: 'standard',         editable: true,  label: 'Tagline' },
-      context_scope: { role: 'secondary', minDensity: 'standard',         editable: true,  label: 'Context scope' },
-      lensSystemPrompt: {
-        role: 'secondary',
+      name:               { role: 'primary',   always: true,             editable: true  },
+      tagline:            { role: 'secondary', minDensity: 'standard', editable: true,  label: 'Tagline' },
+      purpose:            { role: 'secondary', minDensity: 'standard', editable: true  },
+      lensSystemPrompt:   {
+        role: 'body',
         label: 'Lens prompt',
         editable: true,
         minDensity: 'standard',
         multiline: true,
       },
+      personality:        { role: 'secondary', minDensity: 'standard', editable: true,  label: 'Personality' },
+      avatar:             { role: 'ambient',   minDensity: 'standard', editable: true,  label: 'Avatar' },
+      theme_color:        { role: 'ambient',   minDensity: 'standard', editable: true,  label: 'Theme color' },
+      model:              { role: 'quiet',     minDensity: 'standard', editable: true,  label: 'Model' },
+      model_provider:     { role: 'quiet',     minDensity: 'standard', editable: true,  label: 'Model provider' },
+      memory_enabled:     { role: 'quiet',     minDensity: 'standard', editable: true,  label: 'Memory' },
+      visibility:         { role: 'quiet',     minDensity: 'standard', editable: true,  label: 'Visibility' },
+      status:             { role: 'quiet',     always: true,             editable: false },
+      tools:              {
+        role: 'ambient',
+        minDensity: 'standard',
+        editable: true,
+        label: 'Capability tags',
+      },
       composedSystemPrompt: {
-        role: 'secondary',
-        label: 'Composed Prompt',
+        role: 'body',
+        label: 'Composed prompt',
         editable: false,
         minDensity: 'standard',
         multiline: true,
       },
-      model:         { role: 'ambient',   always: true,                   editable: true  },
-      status:        { role: 'quiet',     always: true,                   editable: false },
-      tools:         { role: 'secondary', minDensity: 'comfortable',      editable: true  },
+      model_settings:     {
+        role: 'quiet',
+        minDensity: 'comfortable',
+        editable: true,
+        label: 'Model settings',
+        hiddenByDefault: true,
+      },
     },
   },
 

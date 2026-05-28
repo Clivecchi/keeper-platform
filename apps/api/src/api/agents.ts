@@ -29,6 +29,7 @@ function formatAgentResponse(agent: {
   context_scope: string | null;
   status: string;
   model_provider: string;
+  memory_enabled: boolean;
   visibility: string;
   tools: string[];
   permissions: string[];
@@ -49,6 +50,7 @@ function formatAgentResponse(agent: {
     context_scope: agent.context_scope,
     status: agent.status,
     model_provider: agent.model_provider,
+    memory_enabled: agent.memory_enabled,
     visibility: agent.visibility,
     tools: agent.tools,
     permissions: agent.permissions,
@@ -93,15 +95,69 @@ function normalizeConfigInput(value: unknown): Record<string, unknown> | undefin
   return undefined;
 }
 
+function existingConfigRecord(config: unknown): Record<string, unknown> {
+  if (config && typeof config === 'object' && !Array.isArray(config)) {
+    return { ...(config as Record<string, unknown>) };
+  }
+  return {};
+}
+
+function mergeAgentConfigFields(
+  existing: unknown,
+  fields: Partial<Record<'tagline' | 'personality' | 'avatar' | 'theme_color', string>>,
+  configOverride?: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  const hasFieldPatch = Object.values(fields).some((v) => v !== undefined);
+  if (!hasFieldPatch && !configOverride) return undefined;
+
+  return {
+    ...existingConfigRecord(existing),
+    ...(configOverride ?? {}),
+    ...(fields.tagline !== undefined ? { tagline: fields.tagline } : {}),
+    ...(fields.personality !== undefined ? { personality: fields.personality } : {}),
+    ...(fields.avatar !== undefined ? { avatar: fields.avatar } : {}),
+    ...(fields.theme_color !== undefined ? { theme_color: fields.theme_color } : {}),
+  };
+}
+
+function normalizeMemoryEnabled(value: unknown): boolean | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === 'boolean') return value;
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return undefined;
+}
+
+function mergeModelSettings(
+  existing: unknown,
+  patch: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!patch) return undefined;
+  return {
+    ...(existing && typeof existing === 'object' && !Array.isArray(existing)
+      ? (existing as Record<string, unknown>)
+      : {}),
+    ...patch,
+  };
+}
+
 const patchAgentSchema = z
   .object({
     name: z.string().min(1).max(100).optional(),
     purpose: z.string().min(1).max(500).optional(),
-    context_scope: z.string().max(5000).nullable().optional(),
     model: z.string().min(1).max(100).optional(),
+    model_provider: z.enum(['openai', 'anthropic', 'together', 'elevenlabs']).optional(),
+    memory_enabled: z.union([z.boolean(), z.enum(['true', 'false'])]).optional(),
+    visibility: z.enum(['private', 'public', 'shared']).optional(),
     tools: z.union([z.array(z.string()), z.string()]).optional(),
     config: z.record(z.any()).optional(),
     tagline: z.string().max(500).optional(),
+    personality: z.string().max(2000).optional(),
+    avatar: z.string().max(500).optional(),
+    theme_color: z.string().max(100).optional(),
+    model_settings: z.record(z.any()).optional(),
+    temperature: z.number().min(0).max(1).optional(),
+    max_tokens: z.number().int().min(1).max(128000).optional(),
     lensSystemPrompt: z.string().min(10).max(50000).optional(),
     domainId: z.string().optional(),
   })
@@ -441,19 +497,16 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
     const updatePayload: Parameters<typeof updateKipAgent>[1] = {};
     if (body.name !== undefined) updatePayload.name = body.name;
     if (body.purpose !== undefined) updatePayload.purpose = body.purpose;
-    if (body.context_scope !== undefined) {
-      updatePayload.context_scope = body.context_scope === null ? undefined : body.context_scope;
-    }
     if (body.model !== undefined) updatePayload.model = body.model;
+    if (body.model_provider !== undefined) updatePayload.model_provider = body.model_provider;
+    if (body.visibility !== undefined) updatePayload.visibility = body.visibility;
     if (tools !== undefined) updatePayload.tools = tools;
+
+    const memoryEnabled = normalizeMemoryEnabled(body.memory_enabled);
+    if (memoryEnabled !== undefined) updatePayload.memory_enabled = memoryEnabled;
 
     let lensUpdated = false;
     if (body.lensSystemPrompt !== undefined) {
-      const isLead = existing.agent_class === 'Lead' || existing.slug === 'kip';
-      if (!isLead) {
-        return res.status(400).json({ error: 'Lens prompt is only editable for Lead agents' });
-      }
-
       const modeState = await loadModeState(id, domainIdForLens);
       const activeMode = modeState.state.activeMode;
       const modeConfig = modeState.state.modeConfigs[activeMode];
@@ -475,19 +528,28 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
       lensUpdated = true;
     }
 
-    let mergedConfig = configFromBody;
-    if (body.tagline !== undefined) {
-      const existingConfig =
-        existing.config && typeof existing.config === 'object' && !Array.isArray(existing.config)
-          ? (existing.config as Record<string, unknown>)
-          : {};
-      mergedConfig = {
-        ...existingConfig,
-        ...(mergedConfig ?? {}),
+    const mergedConfig = mergeAgentConfigFields(
+      existing.config,
+      {
         tagline: body.tagline,
-      };
-    }
+        personality: body.personality,
+        avatar: body.avatar,
+        theme_color: body.theme_color,
+      },
+      configFromBody,
+    );
     if (mergedConfig !== undefined) updatePayload.config = mergedConfig;
+
+    const modelSettingsPatch: Record<string, unknown> = {
+      ...(body.model_settings ?? {}),
+      ...(body.temperature !== undefined ? { temperature: body.temperature } : {}),
+      ...(body.max_tokens !== undefined ? { max_tokens: body.max_tokens } : {}),
+    };
+    const mergedModelSettings = mergeModelSettings(
+      existing.model_settings,
+      Object.keys(modelSettingsPatch).length > 0 ? modelSettingsPatch : undefined,
+    );
+    if (mergedModelSettings !== undefined) updatePayload.model_settings = mergedModelSettings;
 
     if (Object.keys(updatePayload).length === 0 && !lensUpdated) {
       return res.status(400).json({ error: 'No updatable fields provided' });
