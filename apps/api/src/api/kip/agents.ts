@@ -14,8 +14,10 @@ import { Prisma } from '@prisma/client';
 import { logger } from '@keeper/shared';
 import {
   appendDraftPointToSpec,
+  buildDraftSummaryFromAcceptedPoints,
   createDraftPoint,
   findDraftPoint,
+  mergeDraftSpecPatch,
   updateDraftPointInSpec,
   type DraftPointType,
 } from '@keeper/shared';
@@ -1172,9 +1174,28 @@ export async function executeAgentActions(
               results.push({ type: action.type, status: 'error', message: 'Failed to update point', errorCode: 'EXECUTION_ERROR' });
               break;
             }
+            const summaryFromPoints = buildDraftSummaryFromAcceptedPoints(nextSpec);
+            const nextSummary = summaryFromPoints || draft.summary || '';
+
+            await tx.kip_draft_versions.create({
+              data: {
+                draft_id: draft.id,
+                version: await tx.kip_draft_versions.count({ where: { draft_id: draft.id } }).then((n) => n + 1),
+                spec_json: (draft.spec_json ?? {}) as Prisma.InputJsonValue,
+                title: draft.title,
+                summary: draft.summary ?? null,
+                status: draft.status,
+                created_by_session_id: ctx.sessionId ?? null,
+              },
+            });
+
             await tx.kip_drafts.update({
               where: { id: draft.id },
-              data: { spec_json: nextSpec as object, updated_at: new Date() },
+              data: {
+                spec_json: nextSpec as object,
+                summary: nextSummary,
+                updated_at: new Date(),
+              },
             });
             results.push({
               type: action.type,
@@ -1224,7 +1245,9 @@ export async function executeAgentActions(
                 ? (typeof payload.summary === 'string' ? payload.summary : payload.summary ?? '')
                 : draft.summary ?? '',
               status: typeof payload.status === 'string' ? payload.status : draft.status,
-              spec_json: payload.spec !== undefined ? (payload.spec ?? {}) : (draft.spec_json ?? {}),
+              spec_json: payload.spec !== undefined
+                ? mergeDraftSpecPatch(draft.spec_json, payload.spec ?? {})
+                : (draft.spec_json ?? {}),
               updated_at: new Date(),
             };
 

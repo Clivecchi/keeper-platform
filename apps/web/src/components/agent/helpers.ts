@@ -3,6 +3,9 @@
  * Extracted from KipAgentBoardPage for reuse across legacy and new Agent Board.
  */
 
+import type { DraftPoint } from "@keeper/shared"
+import type { AgentDialogueMessage } from "./types"
+import { normalizeActionReceipt } from "./types"
 import type { LinkedCardProps } from "../../types/props"
 
 export function extractLinkedCard(metadata: unknown): LinkedCardProps | undefined {
@@ -64,3 +67,34 @@ export const formatRelative = (value: string): string => {
 }
 
 export const shortId = (id: string): string => id.slice(0, 6).toUpperCase()
+
+/** After accept API succeeds, update propose receipts so Accept does not reappear on reload-in-session. */
+export function patchAcceptedDraftPointInMessages(
+  messages: AgentDialogueMessage[],
+  draftId: string,
+  pointId: string,
+  updatedPoint?: DraftPoint,
+): AgentDialogueMessage[] {
+  return messages.map((msg) => {
+    if (!msg.actionResults?.length) return msg
+
+    let changed = false
+    const nextResults = msg.actionResults.map((ar) => {
+      const receipt = normalizeActionReceipt(ar)
+      if (receipt.type !== "draft.update.propose" || receipt.status !== "success") return ar
+
+      const data = receipt.data as { draftId?: string; point?: DraftPoint } | undefined
+      if (data?.draftId !== draftId || data?.point?.id !== pointId) return ar
+
+      changed = true
+      const point = updatedPoint ?? { ...data.point!, status: "accepted" as const }
+      return {
+        ...ar,
+        status: "success" as const,
+        data: { ...data, point },
+      }
+    })
+
+    return changed ? { ...msg, actionResults: nextResults } : msg
+  })
+}

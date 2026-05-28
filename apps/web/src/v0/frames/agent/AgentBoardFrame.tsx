@@ -49,7 +49,8 @@ import type { KeeperDetail } from "../../../components/agent/KeeperCard"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { useAgentPostureData } from "../../../hooks/useAgentPostureData"
 import { normalizeActionReceipt } from "../../../components/agent/types"
-import { shortId, extractLinkedCard } from "../../../components/agent/helpers"
+import { shortId, extractLinkedCard, patchAcceptedDraftPointInMessages } from "../../../components/agent/helpers"
+import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 
 // =============================================================================
 // Types
@@ -146,6 +147,12 @@ export function AgentBoardFrame({
   const [isSavingDraft, setIsSavingDraft] = React.useState(false)
   const [isCreatingDraft, setIsCreatingDraft] = React.useState(false)
   const [draftsError, setDraftsError] = React.useState<string | null>(null)
+  const [acceptedDraftPointIds, setAcceptedDraftPointIds] = React.useState<Set<string>>(
+    () => new Set(),
+  )
+  const [acceptingDraftPointId, setAcceptingDraftPointId] = React.useState<string | null>(null)
+
+  const boardCtx = useUniversalBoardOptional()
 
   // ── Journey/Keeper detail (for workspace view) ──
   const [journeyDetail, setJourneyDetail] = React.useState<JourneyDetail | null>(null)
@@ -314,8 +321,41 @@ export function AgentBoardFrame({
     if (domainId) refreshDrafts()
   }, [domainId, refreshDrafts])
 
-  // ── Load draft detail when viewing a draft ──
   const draftViewId = view.kind === "draft" ? view.draftId : null
+
+  const handleAcceptDraftPoint = React.useCallback(
+    (draftId: string, pointId: string) => {
+      if (!domainId) return
+      setAcceptingDraftPointId(pointId)
+      setMessagesError(null)
+      void KipApi.acceptDraftPoint(domainId, draftId, pointId)
+        .then((res) => {
+          const updatedPoint = res.result?.data?.point
+          setAcceptedDraftPointIds((prev) => new Set(prev).add(pointId))
+          setMessages((prev) =>
+            patchAcceptedDraftPointInMessages(prev, draftId, pointId, updatedPoint),
+          )
+          boardCtx?.actions.bumpDraftPresence()
+          if (draftViewId === draftId) {
+            void KipApi.getDraft(domainId, draftId).then(setDraftDetail).catch(() => {})
+          }
+          return refreshDrafts()
+        })
+        .catch((err: unknown) => {
+          setMessagesError(
+            err instanceof Error && err.message
+              ? err.message
+              : "Failed to accept draft point",
+          )
+        })
+        .finally(() => {
+          setAcceptingDraftPointId(null)
+        })
+    },
+    [domainId, boardCtx, draftViewId, refreshDrafts],
+  )
+
+  // ── Load draft detail when viewing a draft ──
   React.useEffect(() => {
     if (!draftViewId || !domainId) return
     setIsLoadingDrafts(true)
@@ -495,7 +535,14 @@ export function AgentBoardFrame({
 
           const hasDraftMutation = actionResults.some((ar: any) => {
             const n = normalizeActionReceipt(ar)
-            return n.status === "success" && ["draft.create", "draft.update", "draft.delete", "draft.setActive"].includes(n.type)
+            return n.status === "success" && [
+              "draft.create",
+              "draft.update",
+              "draft.update.propose",
+              "draft.point.accept",
+              "draft.delete",
+              "draft.setActive",
+            ].includes(n.type)
           })
           if (hasDraftMutation) {
             await refreshDrafts().catch(() => {})
@@ -708,6 +755,9 @@ export function AgentBoardFrame({
               }
             : undefined
         }
+        onAcceptDraftPoint={domainId ? handleAcceptDraftPoint : undefined}
+        acceptedDraftPointIds={acceptedDraftPointIds}
+        acceptingDraftPointId={acceptingDraftPointId}
       />
     </div>
   )

@@ -179,3 +179,38 @@ export function updateDraftPointInSpec(
 export function findDraftPoint(spec: unknown, pointId: string): DraftPoint | null {
   return parseDraftPoints(spec).find((point) => point.id === pointId) ?? null;
 }
+
+/**
+ * Merge a partial spec patch into existing spec_json.
+ * Preserves `points` and `sections` when omitted from the patch (common agent/client mistake).
+ */
+export function mergeDraftSpecPatch(existingSpec: unknown, patchSpec: unknown): DraftSpecJson {
+  const existing = normalizeDraftSpecJson(existingSpec);
+  if (!isRecord(patchSpec)) return existing;
+
+  const next: DraftSpecJson = {
+    ...(existing.sections?.length ? { sections: existing.sections } : {}),
+    points: existing.points ?? [],
+  };
+
+  if ('sections' in patchSpec) {
+    const sections = normalizeDraftSpecJson(patchSpec).sections;
+    if (sections?.length) next.sections = sections;
+    else delete next.sections;
+  }
+
+  if ('points' in patchSpec) {
+    next.points = parseDraftPoints(patchSpec);
+  }
+
+  return normalizeDraftSpecJson(next);
+}
+
+/** Build draft summary text from accepted points (visible Chronicle field). */
+export function buildDraftSummaryFromAcceptedPoints(spec: unknown): string {
+  return parseDraftPoints(spec)
+    .filter((point) => point.status === 'accepted')
+    .map((point) => point.content.trim())
+    .filter(Boolean)
+    .join('\n\n');
+}

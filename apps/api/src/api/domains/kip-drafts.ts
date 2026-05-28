@@ -6,7 +6,7 @@ import { logger } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
-import { normalizeDraftSpecJson } from '@keeper/shared';
+import { normalizeDraftSpecJson, mergeDraftSpecPatch } from '@keeper/shared';
 import { normalizeSummary } from '../kip/actions/schema.js';
 
 /**
@@ -324,7 +324,9 @@ router.patch(
       if (body.title !== undefined) updatePayload.title = body.title;
       if (body.summary !== undefined) updatePayload.summary = body.summary ?? null;
       if (body.status !== undefined) updatePayload.status = body.status;
-      if (body.spec !== undefined) updatePayload.spec_json = normalizeDraftSpecJson(body.spec ?? {}) as object;
+      if (body.spec !== undefined) {
+        updatePayload.spec_json = mergeDraftSpecPatch(existing.spec_json, body.spec ?? {}) as object;
+      }
 
       const nextVersion = await prisma.kip_draft_versions.count({ where: { draft_id: existing.id } }).then((n) => n + 1);
       await prisma.kip_draft_versions.create({

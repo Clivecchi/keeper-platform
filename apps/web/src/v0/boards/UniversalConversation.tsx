@@ -31,7 +31,7 @@ import { getApiBase } from "../../lib/apiFetch"
 import { useV0Shell } from "../shell/V0ShellContext"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { useAuth } from "../../context/AuthContext"
-import { extractLinkedCard } from "../../components/agent/helpers"
+import { extractLinkedCard, patchAcceptedDraftPointInMessages } from "../../components/agent/helpers"
 import { useAgentDialog, extractRunAgentPayload } from "../../hooks/useAgentDialog"
 import { useDraftContext } from "../../hooks/useDraftContext"
 import { useSelectionSessionResume } from "../../hooks/useSelectionSessionResume"
@@ -755,7 +755,14 @@ export function UniversalConversation({
         const n = normalizeActionReceipt(ar as Parameters<typeof normalizeActionReceipt>[0])
         return (
           n.status === "success"
-          && ["draft.create", "draft.update", "draft.delete", "draft.setActive"].includes(n.type)
+          && [
+            "draft.create",
+            "draft.update",
+            "draft.update.propose",
+            "draft.point.accept",
+            "draft.delete",
+            "draft.setActive",
+          ].includes(n.type)
         )
       })
       if (hasDraftMutation) onDraftListRefresh()
@@ -771,6 +778,7 @@ export function UniversalConversation({
     setInput,
     isSending,
     error,
+    setError,
     agentId,
     activeSessionId: dialogSessionId,
     sendMessage,
@@ -1128,18 +1136,30 @@ export function UniversalConversation({
     (draftId: string, pointId: string) => {
       if (!domainId) return
       setAcceptingDraftPointId(pointId)
+      setError(null)
       void KipApi.acceptDraftPoint(domainId, draftId, pointId)
-        .then(() => {
+        .then((res) => {
+          const updatedPoint = res.result?.data?.point
           setAcceptedDraftPointIds((prev) => new Set(prev).add(pointId))
+          setMessages((prev) =>
+            patchAcceptedDraftPointInMessages(prev, draftId, pointId, updatedPoint),
+          )
           onDraftListRefresh?.()
           onDraftSelect(draftId)
           actions.bumpDraftPresence()
+        })
+        .catch((err: unknown) => {
+          const message =
+            err instanceof Error && err.message
+              ? err.message
+              : "Failed to accept draft point"
+          setError(message)
         })
         .finally(() => {
           setAcceptingDraftPointId(null)
         })
     },
-    [domainId, onDraftListRefresh, onDraftSelect, actions],
+    [domainId, onDraftListRefresh, onDraftSelect, actions, setMessages, setError],
   )
 
   // ── Render ────────────────────────────────────────────────────────────────
