@@ -43,7 +43,6 @@ import { StyleScope } from "../styles/StyleScope"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
 import { KeeperTopBar } from "../components/KeeperTopBar"
 import { DomainBriefSlideOver } from "../components/DomainBriefSlideOver"
-import { apiFetch } from "../../lib/api"
 import { KeeperBoardPanelGroup } from "./KeeperBoardPanelGroup"
 import type { KeeperBoardKind } from "./KeeperBoardPanelGroup"
 import { UniversalNavPanel } from "./UniversalNavPanel"
@@ -53,6 +52,10 @@ import { DesignerDraftProvider } from "./DesignerDraftContext"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import { UniversalConversation } from "./UniversalConversation"
 import { useAuth } from "../../context/AuthContext"
+
+function isResolvedDomainId(id: string | null | undefined): id is string {
+  return !!id && !String(id).startsWith("fallback-")
+}
 
 // ─── Center Panel Render Prop ─────────────────────────────────────────────────
 
@@ -192,20 +195,15 @@ function UniversalBoardShell({
   const slug = domainSlug ?? ""
 
   // ── domainId resolution — single point, never delegated to panels ──────────
+  // V0Shell owns the by-slug fetch; sync from shell domainData to avoid duplicate round-trips.
   React.useEffect(() => {
     if (!slug) return
-    let cancelled = false
-    apiFetch(`/api/domains/by-slug/${encodeURIComponent(slug)}`)
-      .then((res: unknown) => {
-        if (cancelled) return
-        const r = res as { id?: string; name?: string; displayName?: string }
-        if (r?.id) setDomainId(r.id)
-        const name = (r?.displayName ?? r?.name ?? "").trim()
-        if (name) setDomainName(name)
-      })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [slug])
+    const r = domainData as { id?: string; name?: string; displayName?: string } | null | undefined
+    if (!isResolvedDomainId(r?.id)) return
+    setDomainId(r.id)
+    const name = (r.displayName ?? r.name ?? "").trim()
+    if (name) setDomainName(name)
+  }, [slug, domainData])
 
   // Sync domain name from frame/domain data when available — avoids extra round trip
   React.useEffect(() => {

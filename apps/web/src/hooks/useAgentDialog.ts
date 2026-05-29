@@ -302,8 +302,15 @@ export function useAgentDialog({
 
   // agent / domain: create a KipApi session once agentId is known.
   // ide and designer use controlled session lifecycle from the board shell.
+  // domain: wait for a resolved domainId — shell fetch completes before session bootstrap.
   React.useEffect(() => {
     if (mode === "ide" || mode === "designer" || manageSessionExternally || !agentId) return
+    if (
+      mode === "domain" &&
+      (!domainId || String(domainId).startsWith("fallback-"))
+    ) {
+      return
+    }
     const aid = agentId
     let cancelled = false
     async function init() {

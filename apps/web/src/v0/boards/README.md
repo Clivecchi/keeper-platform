@@ -23,6 +23,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-05-28 — Domain board load: single domain fetch + deferred session
+- **UniversalBoard:** `domainId` syncs from `V0Shell` `domainData` — removed duplicate `/api/domains/by-slug` fetch
+- **useAgentDialog:** domain mode waits for resolved `domainId` before `createSession` — avoids double session + message reload
+
 ### 2026-05-27 — Draft update reliability (IDE + Agent)
 - **UniversalConversation:** wired `onConfirmDraftUpdate` for `draft.update.propose` confirm cards; IDE mode handles `draft.update` receipts (Chronicle + draft list refresh)
 - **Agent Board:** unchanged — already had confirm wiring via `AgentBoardFrame`

@@ -26,6 +26,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-05-28 — Domain mode: defer session until domainId resolves
+- `useAgentDialog` skips `createSession` in domain mode while `domainId` is null or a shell fallback id — pairs with UniversalBoard syncing id from V0Shell.
+
 ### 2026-05-26 — Run-agent payload extraction
 - Added `extractRunAgentPayload` — reads `actions` and `session_id` from nested `data.data` envelope returned by `/api/kip/agents`.
 - Syncs server-returned `session_id` when the client had no active session (System agents e.g. Cloud).
