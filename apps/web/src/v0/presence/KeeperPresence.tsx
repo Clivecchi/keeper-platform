@@ -29,8 +29,7 @@ import {
 } from "./KeeperPresenceDefaults"
 import type { PresenceLayout } from "./types"
 import { DraftPointsSection } from "./DraftPointsSection"
-import { AgentPromptsSection } from "./AgentPromptsSection"
-import { AgentIdentityCard } from "./AgentIdentityCard"
+import { AgentFocusPresence } from "./cover/AgentFocusPresence"
 import { KipApi, type ModelProvider } from "../../lib/kipApi"
 import { FrameConfigPresence, parseFramePropsFromRecord } from "./FrameConfigPresence"
 import { BoardDefConfigPresence } from "./BoardDefConfigPresence"
@@ -1298,6 +1297,7 @@ export function KeeperPresence({
         objectId={objectId}
         domainId={domainId}
         domainSlug={domainSlug}
+        domainDisplayName={domainDisplayName}
         layout={layout}
         effectiveDensity={effectiveDensity}
         hairline={hairline}
@@ -1347,6 +1347,7 @@ function KeeperPresenceSurface({
   objectId,
   domainId,
   domainSlug,
+  domainDisplayName,
   layout,
   effectiveDensity,
   hairline,
@@ -1384,6 +1385,7 @@ function KeeperPresenceSurface({
   objectId: string
   domainId: string
   domainSlug?: string
+  domainDisplayName?: string
   layout: PresenceLayout
   effectiveDensity: DensityLevel
   hairline: string
@@ -1577,6 +1579,51 @@ function KeeperPresenceSurface({
     }
   }
 
+  if (objectType === "agent" && layout === "focus" && record) {
+    const renderFieldEditor = (
+      key: string,
+      def: FieldDefinition,
+      placeholder?: string,
+    ) => (
+      <PresenceFieldEditor
+        fieldKey={key}
+        def={def}
+        value={fieldValues[key] ?? ""}
+        fieldError={fieldErrors[key]}
+        placeholder={placeholder}
+        onChange={(v) => handleFieldChange(key, v)}
+        modelProvider={fieldValues.model_provider}
+      />
+    )
+
+    return (
+      <AgentFocusPresence
+        objectId={objectId}
+        record={record}
+        domainSlug={domainSlug}
+        domainDisplayName={domainDisplayName}
+        fieldValues={fieldValues}
+        fieldErrors={fieldErrors}
+        hiddenFields={hiddenFields}
+        visibleFields={visibleFields}
+        relatedSections={relatedSections}
+        saveStatus={saveStatus}
+        saveMessage={saveMessage}
+        isDirty={isDirty}
+        advancedOpen={advancedOpen}
+        advancedValues={advancedValues}
+        onSaveAgent={onSaveAgent}
+        onFieldChange={handleFieldChange}
+        onAdvancedOpenChange={setAdvancedOpen}
+        onAdvancedChange={(key, value) => {
+          markAdvancedEdited()
+          setAdvancedValues((prev) => ({ ...prev, [key]: value }))
+        }}
+        renderFieldEditor={renderFieldEditor}
+      />
+    )
+  }
+
   return (
     <div className="relative flex flex-col h-full min-h-0" style={surfaceStyle}>
       <PresentAtmosphereLayer />
@@ -1654,70 +1701,6 @@ function KeeperPresenceSurface({
 
       {/* Story body — prose, threads, never labeled form rows */}
       <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4">
-        {objectType === "agent" && (
-          <div style={primaryMotionStyle(motion)}>
-            <AgentIdentityCard
-              name={fieldValues.name ?? primaryValue}
-              tagline={fieldValues.tagline}
-              description={fieldValues.purpose}
-              personality={fieldValues.personality}
-              avatar={fieldValues.avatar}
-              themeColor={fieldValues.theme_color}
-              model={fieldValues.model}
-              modelProvider={fieldValues.model_provider}
-              status={fieldValues.status}
-              agentClass={
-                typeof record?.agent_class === "string" ? record.agent_class : undefined
-              }
-              editable={Boolean(primaryDef?.editable)}
-              onNameChange={(v) => handleFieldChange("name", v)}
-              onTaglineChange={(v) => handleFieldChange("tagline", v)}
-            />
-          </div>
-        )}
-        {objectType === "agent" && onSaveAgent && (
-          <div
-            className="mb-4 flex items-center justify-between gap-3"
-            style={secondaryMotionStyle(motion)}
-          >
-            <div className="min-w-0">
-              {isDirty ? (
-                <p
-                  className="text-[12px] font-medium"
-                  style={{ color: "hsl(var(--theme-ink-secondary))" }}
-                >
-                  Unsaved changes
-                </p>
-              ) : saveStatus === "saved" ? (
-                <p
-                  className="text-[12px]"
-                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-                >
-                  All changes saved
-                </p>
-              ) : (
-                <p
-                  className="text-[12px]"
-                  style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-                >
-                  Edit fields, then save
-                </p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => void onSaveAgent()}
-              disabled={saveStatus === "saving" || !isDirty}
-              className="shrink-0 rounded-md px-3.5 py-1.5 text-[13px] font-semibold transition-opacity disabled:opacity-45"
-              style={{
-                background: "hsl(var(--theme-accent-primary, var(--theme-ink-primary)))",
-                color: "hsl(var(--theme-surface-base, 0 0% 100%))",
-              }}
-            >
-              {saveStatus === "saving" ? "Saving…" : "Save"}
-            </button>
-          </div>
-        )}
         {secondaryFields.map(([key, def]) => (
           <div key={key} className="mb-4" style={secondaryMotionStyle(motion)}>
             {def.label ? (
@@ -1754,24 +1737,6 @@ function KeeperPresenceSurface({
           </div>
         ))}
 
-        {objectType === "agent" && (
-          <PresenceSection title="Prompts">
-            <AgentPromptsSection
-              lensValue={fieldValues.lensSystemPrompt ?? ""}
-              composedValue={fieldValues.composedSystemPrompt ?? ""}
-              showAgentVoice={!hiddenFields.includes("lensSystemPrompt")}
-              showComposed={!hiddenFields.includes("composedSystemPrompt")}
-              operationalContext={
-                hiddenFields.includes("composedSystemPrompt")
-                  ? fieldValues.purpose
-                  : undefined
-              }
-              lensError={fieldErrors.lensSystemPrompt}
-              onLensChange={(v) => handleFieldChange("lensSystemPrompt", v)}
-            />
-          </PresenceSection>
-        )}
-
         {objectType === "draft" && (
           <PresenceSection title="Points">
             <DraftPointsSection spec={record?.spec ?? record?.spec_json} />
@@ -1805,121 +1770,6 @@ function KeeperPresenceSurface({
           </div>
         ))}
 
-        {objectType === "agent" && quietEditableFields.length > 0 && (
-          <PresenceSection title="Configuration">
-            {quietEditableFields.map(([key, def]) => (
-              <div key={key} className="mb-3">
-                <p className="keeper-presence-field-label mb-1.5">
-                  {resolveFieldLabel(key, def)}
-                </p>
-                <PresenceFieldEditor
-                  fieldKey={key}
-                  def={def}
-                  value={fieldValues[key] ?? ""}
-                  fieldError={fieldErrors[key]}
-                  placeholder={secondaryPlaceholders[key]}
-                  onChange={(v) => handleFieldChange(key, v)}
-                  modelProvider={fieldValues.model_provider}
-                />
-              </div>
-            ))}
-          </PresenceSection>
-        )}
-
-        {objectType === "agent" && (
-          <div className="mb-4" style={secondaryMotionStyle(motion)}>
-            <button
-              type="button"
-              onClick={() => setAdvancedOpen((open) => !open)}
-              className="w-full flex items-center justify-between text-left py-2"
-            >
-              <span
-                className="text-[11px] font-semibold uppercase tracking-widest"
-                style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-              >
-                Advanced model settings
-              </span>
-              <span
-                className="text-[12px]"
-                style={{ color: "hsl(var(--theme-ink-secondary))" }}
-              >
-                {advancedOpen ? "Hide" : "Show"}
-              </span>
-            </button>
-            {advancedOpen && (
-              <div className="space-y-3 pt-1">
-                <div>
-                  <p className="keeper-presence-field-label mb-1.5">Temperature</p>
-                  <input
-                    type="number"
-                    min={0}
-                    max={1}
-                    step={0.1}
-                    value={advancedValues.temperature}
-                    onChange={(e) => {
-                      markAdvancedEdited()
-                      setAdvancedValues((prev) => ({ ...prev, temperature: e.target.value }))
-                      if (fieldErrors.temperature) {
-                        setFieldErrors((prev) => {
-                          const next = { ...prev }
-                          delete next.temperature
-                          return next
-                        })
-                      }
-                    }}
-                    className="w-full text-[14px] rounded-md border px-2.5 py-1.5 bg-transparent"
-                    style={{
-                      borderColor: "hsl(var(--theme-border-soft) / 0.55)",
-                      color: "hsl(var(--theme-ink-secondary))",
-                    }}
-                  />
-                  {fieldErrors.temperature ? (
-                    <p
-                      className="text-[13px] mt-1.5"
-                      style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
-                    >
-                      {fieldErrors.temperature}
-                    </p>
-                  ) : null}
-                </div>
-                <div>
-                  <p className="keeper-presence-field-label mb-1.5">Max tokens</p>
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={advancedValues.max_tokens}
-                    onChange={(e) => {
-                      markAdvancedEdited()
-                      setAdvancedValues((prev) => ({ ...prev, max_tokens: e.target.value }))
-                      if (fieldErrors.max_tokens) {
-                        setFieldErrors((prev) => {
-                          const next = { ...prev }
-                          delete next.max_tokens
-                          return next
-                        })
-                      }
-                    }}
-                    className="w-full text-[14px] rounded-md border px-2.5 py-1.5 bg-transparent"
-                    style={{
-                      borderColor: "hsl(var(--theme-border-soft) / 0.55)",
-                      color: "hsl(var(--theme-ink-secondary))",
-                    }}
-                  />
-                  {fieldErrors.max_tokens ? (
-                    <p
-                      className="text-[13px] mt-1.5"
-                      style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
-                    >
-                      {fieldErrors.max_tokens}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         <div style={secondaryMotionStyle(motion)}>
           <RelatedSections
             sections={relatedSections}
@@ -1929,14 +1779,6 @@ function KeeperPresenceSurface({
         </div>
 
         {quietReadOnlyFields.length > 0 && !meta?.line && (
-          <p
-            className="text-[12px] mt-2"
-            style={{ ...contextMotionStyle(motion), color: "hsl(var(--theme-ink-tertiary) / 0.55)" }}
-          >
-            {quietReadOnlyFields.map(([key]) => fieldValues[key]).filter(Boolean).join(" · ")}
-          </p>
-        )}
-        {objectType === "agent" && quietReadOnlyFields.length > 0 && meta?.line && (
           <p
             className="text-[12px] mt-2"
             style={{ ...contextMotionStyle(motion), color: "hsl(var(--theme-ink-tertiary) / 0.55)" }}

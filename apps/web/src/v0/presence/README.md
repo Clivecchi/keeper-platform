@@ -54,6 +54,12 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-05-28 — Step 1: Agent Cover Card (universal cover pattern)
+- Added `cover/` — Layer 1 `EntityCoverPresence` (five fixed slots) + Layer 2 `agentCoverSchema`
+- Agent Chronicle: Cover Mode (cinematic) + Config Mode (Configure tap / back arrow); Framer Motion with Theatre handoff names
+- `AgentFocusPresence` replaces inline `AgentIdentityCard` for `objectType="agent"` + `layout="focus"`
+- Config save reuses existing explicit agent PATCH — no new save path
+
 ### 2026-05-27 — Agent Save button + structured Prompts surface
 - Replaced agent debounced autosave with explicit **Save** control above tagline; dirty-state hint (`Unsaved changes` / `All changes saved`)
 - Added `AgentPromptsSection` — lens prompt as editable numbered points; composed prompt read-only for Lead agents
