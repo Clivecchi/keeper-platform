@@ -14,7 +14,6 @@ import { z } from 'zod';
 import { PrismaClient, updateKipAgent } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { KipAgentService } from './kip/agents.js';
-import { loadModeState } from '../services/kip/modeConfig.js';
 import { randomUUID } from 'crypto';
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -102,9 +101,15 @@ function existingConfigRecord(config: unknown): Record<string, unknown> {
   return {};
 }
 
+function isLeadAgentRecord(agent: { agent_class?: string | null; slug?: string | null }): boolean {
+  return agent.agent_class === 'Lead' || agent.slug === 'kip';
+}
+
 function mergeAgentConfigFields(
   existing: unknown,
-  fields: Partial<Record<'tagline' | 'personality' | 'avatar' | 'theme_color', string>>,
+  fields: Partial<
+    Record<'tagline' | 'personality' | 'avatar' | 'theme_color' | 'voice_prompt', string>
+  >,
   configOverride?: Record<string, unknown>,
 ): Record<string, unknown> | undefined {
   const hasFieldPatch = Object.values(fields).some((v) => v !== undefined);
@@ -117,6 +122,7 @@ function mergeAgentConfigFields(
     ...(fields.personality !== undefined ? { personality: fields.personality } : {}),
     ...(fields.avatar !== undefined ? { avatar: fields.avatar } : {}),
     ...(fields.theme_color !== undefined ? { theme_color: fields.theme_color } : {}),
+    ...(fields.voice_prompt !== undefined ? { voice_prompt: fields.voice_prompt } : {}),
   };
 }
 
@@ -489,11 +495,6 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
     const body = parsed.data;
     const tools = normalizeToolsInput(body.tools);
     const configFromBody = normalizeConfigInput(body.config);
-    const domainIdForLens =
-      typeof body.domainId === 'string' && body.domainId.trim()
-        ? body.domainId.trim()
-        : undefined;
-
     const updatePayload: Parameters<typeof updateKipAgent>[1] = {};
     if (body.name !== undefined) updatePayload.name = body.name;
     if (body.purpose !== undefined) updatePayload.purpose = body.purpose;
@@ -505,31 +506,21 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
     const memoryEnabled = normalizeMemoryEnabled(body.memory_enabled);
     if (memoryEnabled !== undefined) updatePayload.memory_enabled = memoryEnabled;
 
-    let lensUpdated = false;
+    let configForMerge: unknown = existing.config;
     if (body.lensSystemPrompt !== undefined) {
-      const modeState = await loadModeState(id, domainIdForLens);
-      const activeMode = modeState.state.activeMode;
-      const modeConfig = modeState.state.modeConfigs[activeMode];
-      const lensId =
-        (typeof modeConfig?.lensId === 'string' ? modeConfig.lensId : null) ||
-        (activeMode === 'debug' ? modeState.lenses.debugLensId : modeState.lenses.domainLensId);
-
-      if (!lensId) {
-        return res.status(404).json({ error: 'Active lens not found for this agent' });
+      if (isLeadAgentRecord(existing)) {
+        return res.status(400).json({
+          error:
+            'Lead agents do not use per-agent voice prompts. Domain lens is configured at the domain level.',
+        });
       }
-
-      await prisma.kip_lenses.update({
-        where: { id: lensId },
-        data: {
-          systemPrompt: body.lensSystemPrompt,
-          updatedAt: new Date(),
-        },
+      configForMerge = mergeAgentConfigFields(configForMerge, {
+        voice_prompt: body.lensSystemPrompt,
       });
-      lensUpdated = true;
     }
 
     const mergedConfig = mergeAgentConfigFields(
-      existing.config,
+      configForMerge,
       {
         tagline: body.tagline,
         personality: body.personality,
@@ -551,7 +542,7 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
     );
     if (mergedModelSettings !== undefined) updatePayload.model_settings = mergedModelSettings;
 
-    if (Object.keys(updatePayload).length === 0 && !lensUpdated) {
+    if (Object.keys(updatePayload).length === 0) {
       return res.status(400).json({ error: 'No updatable fields provided' });
     }
 

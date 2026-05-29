@@ -548,14 +548,21 @@ export function UniversalConversation({
 
           if (
             (receipt.type === "draft.create"
-              || receipt.type === "draft.update"
-              || receipt.type === "draft.update.propose")
+              || receipt.type === "draft.update")
             && (receipt.data?.draft?.id || receipt.data?.draftId)
           ) {
             onDraftListRefresh?.()
             onDraftSelect(
               (receipt.data?.draft?.id ?? receipt.data?.draftId) as string,
             )
+            actions.bumpDraftPresence()
+            return
+          }
+          if (
+            receipt.type === "draft.update.propose"
+            && (receipt.data?.draft?.id || receipt.data?.draftId)
+          ) {
+            onDraftListRefresh?.()
             actions.bumpDraftPresence()
             return
           }
@@ -593,14 +600,21 @@ export function UniversalConversation({
 
           if (
             (receipt.type === "draft.create"
-              || receipt.type === "draft.update"
-              || receipt.type === "draft.update.propose")
+              || receipt.type === "draft.update")
             && (receipt.data?.draft?.id || receipt.data?.draftId)
           ) {
             onDraftListRefresh?.()
             onDraftSelect(
               (receipt.data?.draft?.id ?? receipt.data?.draftId) as string,
             )
+            actions.bumpDraftPresence()
+            return
+          }
+          if (
+            receipt.type === "draft.update.propose"
+            && (receipt.data?.draft?.id || receipt.data?.draftId)
+          ) {
+            onDraftListRefresh?.()
             actions.bumpDraftPresence()
             return
           }

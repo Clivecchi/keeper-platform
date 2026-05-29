@@ -472,7 +472,14 @@ async function enrichAgent(
     }
   }
 
-  if (agentId && domainId) {
+  if (!isLead && record.config && typeof record.config === "object" && !Array.isArray(record.config)) {
+    const cfg = record.config as Record<string, unknown>
+    if (typeof cfg.voice_prompt === "string" && cfg.voice_prompt.trim()) {
+      record.lensSystemPrompt = cfg.voice_prompt
+    }
+  }
+
+  if (isLead && agentId && domainId) {
     try {
       const modeRes = (await apiFetch(
         `/api/kip/agents/${encodeURIComponent(agentId)}/mode-config?domainId=${encodeURIComponent(domainId)}`,
@@ -481,23 +488,14 @@ async function enrichAgent(
         data?: { resolvedLens?: { id?: string; name?: string } }
       }
       const resolvedLens = modeRes.data?.resolvedLens
-      const lensId = typeof resolvedLens?.id === "string" ? resolvedLens.id : ""
-      if (lensId) {
-        record.lensId = lensId
-        if (typeof resolvedLens?.name === "string") {
-          record.lensName = resolvedLens.name
-        }
-        const lensesRes = (await apiFetch(
-          `/api/kip/lenses?domainId=${encodeURIComponent(domainId)}`,
-        )) as { success?: boolean; data?: Array<{ id: string; systemPrompt?: string }> }
-        const lenses = Array.isArray(lensesRes.data) ? lensesRes.data : []
-        const lens = lenses.find((entry) => entry.id === lensId)
-        if (typeof lens?.systemPrompt === "string" && lens.systemPrompt.trim()) {
-          record.lensSystemPrompt = lens.systemPrompt
-        }
+      if (typeof resolvedLens?.name === "string") {
+        record.lensName = resolvedLens.name
+      }
+      if (typeof resolvedLens?.id === "string") {
+        record.lensId = resolvedLens.id
       }
     } catch {
-      /* non-fatal */
+      /* non-fatal — composed preview still loads */
     }
   }
 
@@ -538,7 +536,7 @@ async function enrichAgent(
     meta: { line: metaParts.join(" · ") || undefined },
     relatedSections,
     hiddenFields: isLead
-      ? ["lensId", "lensName"]
+      ? ["lensId", "lensName", "lensSystemPrompt"]
       : ["lensId", "lensName", "composedSystemPrompt"],
   }
 }

@@ -30,6 +30,8 @@ import {
 import type { PresenceLayout } from "./types"
 import { DraftPointsSection } from "./DraftPointsSection"
 import { AgentPromptsSection } from "./AgentPromptsSection"
+import { AgentIdentityCard } from "./AgentIdentityCard"
+import { KipApi, type ModelProvider } from "../../lib/kipApi"
 import { FrameConfigPresence, parseFramePropsFromRecord } from "./FrameConfigPresence"
 import { BoardDefConfigPresence } from "./BoardDefConfigPresence"
 import { BOARD_DEFINITIONS } from "../boards/UniversalBoardDefinition"
@@ -96,7 +98,7 @@ function parsePatchFieldErrors(
       ),
     )
     if (zodLensErr || status === 400) {
-      errors.lensSystemPrompt = "Lens prompt must be at least 10 characters."
+      errors.lensSystemPrompt = "Agent voice must be at least 10 characters."
     }
   }
 
@@ -471,6 +473,8 @@ function agentFieldVisible(
   return Boolean(fieldValues[key])
 }
 
+const MODEL_PROVIDERS: ModelProvider[] = ["openai", "anthropic", "together", "elevenlabs"]
+
 function PresenceFieldEditor({
   fieldKey,
   def,
@@ -478,6 +482,7 @@ function PresenceFieldEditor({
   fieldError,
   placeholder,
   onChange,
+  modelProvider,
 }: {
   fieldKey: string
   def: FieldDefinition
@@ -485,6 +490,7 @@ function PresenceFieldEditor({
   fieldError?: string
   placeholder?: string
   onChange: (v: string) => void
+  modelProvider?: string
 }) {
   if (fieldKey === "memory_enabled") {
     return (
@@ -504,6 +510,69 @@ function PresenceFieldEditor({
             SOLE memory enabled
           </span>
         </label>
+        {fieldError ? (
+          <p
+            className="text-[13px] mt-1.5 leading-relaxed"
+            style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
+          >
+            {fieldError}
+          </p>
+        ) : null}
+      </>
+    )
+  }
+
+  if (fieldKey === "model_provider") {
+    return (
+      <>
+        <select
+          value={value || "openai"}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full text-[14px] rounded-md border px-2.5 py-1.5 bg-transparent"
+          style={{
+            borderColor: "hsl(var(--theme-border-soft) / 0.55)",
+            color: "hsl(var(--theme-ink-secondary))",
+          }}
+        >
+          {MODEL_PROVIDERS.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+        {fieldError ? (
+          <p
+            className="text-[13px] mt-1.5 leading-relaxed"
+            style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
+          >
+            {fieldError}
+          </p>
+        ) : null}
+      </>
+    )
+  }
+
+  if (fieldKey === "model") {
+    const provider = (modelProvider || "openai") as ModelProvider
+    const models = KipApi.getAvailableModels(provider)
+    const options = models.includes(value) ? models : value ? [value, ...models] : models
+    return (
+      <>
+        <select
+          value={value || models[0] || ""}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full text-[14px] rounded-md border px-2.5 py-1.5 bg-transparent"
+          style={{
+            borderColor: "hsl(var(--theme-border-soft) / 0.55)",
+            color: "hsl(var(--theme-ink-secondary))",
+          }}
+        >
+          {options.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
         {fieldError ? (
           <p
             className="text-[13px] mt-1.5 leading-relaxed"
@@ -1135,7 +1204,7 @@ export function KeeperPresence({
     if (lensTrimmed.length > 0 && lensTrimmed.length < 10) {
       setFieldErrors((prev) => ({
         ...prev,
-        lensSystemPrompt: "Lens prompt must be at least 10 characters.",
+        lensSystemPrompt: "Agent voice must be at least 10 characters.",
       }))
       setSaveStatus("error")
       setSaveMessage("Lens prompt must be at least 10 characters.")
@@ -1449,8 +1518,13 @@ function KeeperPresenceSurface({
   const fieldVisible = (key: string, def: FieldDefinition) =>
     agentFieldVisible(objectType, key, def, fieldValues, record)
 
+  const AGENT_CARD_FIELD_KEYS = new Set(["tagline"])
   const secondaryFields = visibleFields.filter(
-    ([key, def]) => key !== primaryKey && def.role === "secondary" && fieldVisible(key, def),
+    ([key, def]) =>
+      key !== primaryKey
+      && def.role === "secondary"
+      && fieldVisible(key, def)
+      && !(objectType === "agent" && AGENT_CARD_FIELD_KEYS.has(key)),
   )
   const bodyFields = visibleFields.filter(
     ([key, def]) =>
@@ -1530,27 +1604,29 @@ function KeeperPresenceSurface({
           <PresenceWhisper>{typeLabel}</PresenceWhisper>
         </div>
 
-        <div style={primaryMotionStyle(motion)}>
-          {primaryDef?.editable ? (
-            <AutoResizeTextarea
-              value={primaryValue}
-              onChange={(v) => {
-                markEdited()
-                setFieldValues((prev) => ({ ...prev, [primaryKey]: v }))
-              }}
-              placeholder={`Untitled ${objectType}`}
-              className="text-[19px] font-semibold leading-snug mt-1"
-              style={{ color: "hsl(var(--theme-ink-primary))" }}
-            />
-          ) : (
-            <h2
-              className="text-[19px] font-semibold leading-snug mt-1"
-              style={{ color: "hsl(var(--theme-ink-primary))" }}
-            >
-              {primaryValue || `Untitled ${objectType}`}
-            </h2>
-          )}
-        </div>
+        {objectType !== "agent" && (
+          <div style={primaryMotionStyle(motion)}>
+            {primaryDef?.editable ? (
+              <AutoResizeTextarea
+                value={primaryValue}
+                onChange={(v) => {
+                  markEdited()
+                  setFieldValues((prev) => ({ ...prev, [primaryKey]: v }))
+                }}
+                placeholder={`Untitled ${objectType}`}
+                className="text-[19px] font-semibold leading-snug mt-1"
+                style={{ color: "hsl(var(--theme-ink-primary))" }}
+              />
+            ) : (
+              <h2
+                className="text-[19px] font-semibold leading-snug mt-1"
+                style={{ color: "hsl(var(--theme-ink-primary))" }}
+              >
+                {primaryValue || `Untitled ${objectType}`}
+              </h2>
+            )}
+          </div>
+        )}
 
         {meta?.line && (
           <p
@@ -1578,6 +1654,27 @@ function KeeperPresenceSurface({
 
       {/* Story body — prose, threads, never labeled form rows */}
       <div className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4">
+        {objectType === "agent" && (
+          <div style={primaryMotionStyle(motion)}>
+            <AgentIdentityCard
+              name={fieldValues.name ?? primaryValue}
+              tagline={fieldValues.tagline}
+              description={fieldValues.purpose}
+              personality={fieldValues.personality}
+              avatar={fieldValues.avatar}
+              themeColor={fieldValues.theme_color}
+              model={fieldValues.model}
+              modelProvider={fieldValues.model_provider}
+              status={fieldValues.status}
+              agentClass={
+                typeof record?.agent_class === "string" ? record.agent_class : undefined
+              }
+              editable={Boolean(primaryDef?.editable)}
+              onNameChange={(v) => handleFieldChange("name", v)}
+              onTaglineChange={(v) => handleFieldChange("tagline", v)}
+            />
+          </div>
+        )}
         {objectType === "agent" && onSaveAgent && (
           <div
             className="mb-4 flex items-center justify-between gap-3"
@@ -1662,7 +1759,13 @@ function KeeperPresenceSurface({
             <AgentPromptsSection
               lensValue={fieldValues.lensSystemPrompt ?? ""}
               composedValue={fieldValues.composedSystemPrompt ?? ""}
+              showAgentVoice={!hiddenFields.includes("lensSystemPrompt")}
               showComposed={!hiddenFields.includes("composedSystemPrompt")}
+              operationalContext={
+                hiddenFields.includes("composedSystemPrompt")
+                  ? fieldValues.purpose
+                  : undefined
+              }
               lensError={fieldErrors.lensSystemPrompt}
               onLensChange={(v) => handleFieldChange("lensSystemPrompt", v)}
             />
@@ -1716,6 +1819,7 @@ function KeeperPresenceSurface({
                   fieldError={fieldErrors[key]}
                   placeholder={secondaryPlaceholders[key]}
                   onChange={(v) => handleFieldChange(key, v)}
+                  modelProvider={fieldValues.model_provider}
                 />
               </div>
             ))}

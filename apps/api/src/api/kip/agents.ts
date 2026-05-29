@@ -134,10 +134,12 @@ function isOperationalDraftAgent(agent: { agent_class?: string | null; config?: 
 }
 
 function buildDraftUpdateInstruction(agent: { agent_class?: string | null; config?: unknown }): string {
+  const proposePoints =
+    '- When adding or changing draft CONTENT (points, sections, narrative), use draft.update.propose with payload.id (draft UUID), payload.content (the proposed text), and optional payload.type (moment | decision | context | general — default general). Each call appends one proposed point; the human must Accept in the UI before it is canonical.';
   if (isOperationalDraftAgent(agent)) {
-    return '- When UPDATING a draft, use draft.update directly with payload.id (draft UUID) and the changed fields (title, summary, status, spec). Persist immediately. Do not use draft.update.propose.';
+    return `${proposePoints}\n- For draft METADATA only (title, summary, status, kind), you may use draft.update directly with payload.id and the changed fields. Never invent action types like add_point — only use actions from the allowlist.`;
   }
-  return '- When proposing content for a draft, use draft.update.propose with payload.id (draft UUID), payload.content (the proposed text), and optional payload.type (moment | decision | context | general — default general). Each call appends one proposed point; the human accepts points in the UI.';
+  return proposePoints;
 }
 
 class AgentExecutionError extends Error {
@@ -659,7 +661,13 @@ function parseStructuredAgentResponse(
         /* fall through */
       }
     }
-    return { responseText: raw, actions: [], raw, ignoredReason: 'invalid_json' };
+    return {
+      responseText:
+        'I had trouble formatting that response. Please try again — use draft.update.propose for draft points, not custom action types.',
+      actions: [],
+      raw,
+      ignoredReason: 'invalid_json',
+    };
   }
 }
 
@@ -4175,10 +4183,15 @@ export class KipAgentService {
           includeFixPlan: true,
         };
 
+        const systemAgentConfig = (agent.config || {}) as Record<string, unknown>;
+        const agentVoicePrompt =
+          typeof systemAgentConfig.voice_prompt === 'string'
+            ? systemAgentConfig.voice_prompt.trim()
+            : '';
         const aiResult = await this.callAIModel(agent, input || '', previousMessages, userId, {
           mode: 'domain',
           modeConfig: systemModeConfig,
-          lens: { systemPrompt: null },
+          lens: { systemPrompt: agentVoicePrompt || null },
           environment: options?.environment ?? null,
           activeJourneyId: options?.activeJourneyId ?? null,
           activeKeeperId: options?.activeKeeperId ?? null,

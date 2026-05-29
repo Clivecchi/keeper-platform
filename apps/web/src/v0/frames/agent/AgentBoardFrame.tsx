@@ -26,6 +26,7 @@ import { apiFetch } from "../../../lib/api"
 import { KipApi } from "../../../lib/kipApi"
 import type { KipAgent, KipDraftSummary, KipDraft, KipDraftStatus, KipMessage, ActionPack } from "../../../lib/kipApi"
 import { useAgentSessions } from "../../../hooks/useAgentSessions"
+import { extractRunAgentPayload } from "../../../hooks/useAgentDialog"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { useFrameContextOptional } from "../../shell/FrameContext"
 import { useAgentWorkspaceView } from "../../shell/useAgentWorkspaceView"
@@ -522,7 +523,12 @@ export function AgentBoardFrame({
         if (typeof respData?.composedSystemPrompt === "string") setComposedSystemPrompt(respData.composedSystemPrompt)
 
         // Handle action results (draft mutations, etc.)
-        const actionResults = respData?.actions || (result as any)?.actionResults || undefined
+        const { actions: extractedActions } = extractRunAgentPayload(result)
+        const actionResults =
+          extractedActions
+          || respData?.actions
+          || (result as { actionResults?: unknown[] })?.actionResults
+          || undefined
         if (actionResults && Array.isArray(actionResults) && actionResults.length > 0) {
           setMessages((prev) => {
             const updated = [...prev]

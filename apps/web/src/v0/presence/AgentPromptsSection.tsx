@@ -7,11 +7,16 @@ import {
   serializePromptPoints,
   type PromptPoint,
 } from "./promptPoints"
+import { ComposedPromptPreview } from "./ComposedPromptPreview"
 
 export interface AgentPromptsSectionProps {
   lensValue: string
   composedValue?: string
+  /** Lead agents: runtime preview only. Other agents: editable voice on this agent. */
+  showAgentVoice: boolean
   showComposed: boolean
+  /** Shown for System / non-Lead agents when composed prompt is hidden */
+  operationalContext?: string
   lensError?: string
   onLensChange: (value: string) => void
 }
@@ -130,69 +135,83 @@ function useSyncedPoints(value: string) {
     setPoints(parsePromptToPoints(value))
   }, [value])
 
-  const applyPoints = React.useCallback((next: PromptPoint[]): string => {
-    setPoints(next)
-    const serialized = serializePromptPoints(next)
-    lastSerialized.current = serialized
-    return serialized
-  }, [])
-
-  return { points, applyPoints }
+  return { points, setPoints, lastSerialized }
 }
 
 export function AgentPromptsSection({
   lensValue,
   composedValue = "",
+  showAgentVoice,
   showComposed,
+  operationalContext,
   lensError,
   onLensChange,
 }: AgentPromptsSectionProps) {
-  const { points: lensPoints, applyPoints: applyLensPoints } = useSyncedPoints(lensValue)
-  const composedPoints = React.useMemo(
-    () => parsePromptToPoints(composedValue),
-    [composedValue],
-  )
+  const { points: lensPoints, setPoints, lastSerialized } = useSyncedPoints(lensValue)
 
   const handleLensPointsChange = (next: PromptPoint[]) => {
-    const serialized = applyLensPoints(next)
-    onLensChange(serialized)
+    setPoints(next)
+    const serialized = serializePromptPoints(next)
+    // Only propagate to parent when serialized text changes — empty draft points
+    // must stay local or they vanish on re-parse (serialize drops blank lines).
+    if (serialized !== lensValue) {
+      lastSerialized.current = serialized
+      onLensChange(serialized)
+    }
   }
 
   return (
     <div className="space-y-5">
-      <div>
-        <p className="keeper-presence-field-label mb-1.5">Lens prompt</p>
-        <p
-          className="text-[12px] mb-2 leading-relaxed"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-        >
-          Shape voice and behavior — one point at a time. Saved with the agent.
-        </p>
-        <PromptPointList
-          points={lensPoints}
-          editable
-          onChange={handleLensPointsChange}
-        />
-        {lensError ? (
-          <p
-            className="text-[13px] mt-2 leading-relaxed"
-            style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
-          >
-            {lensError}
-          </p>
-        ) : null}
-      </div>
-
-      {showComposed && (
+      {!showComposed && operationalContext?.trim() && (
         <div>
-          <p className="keeper-presence-field-label mb-1.5">Composed prompt</p>
+          <p className="keeper-presence-field-label mb-1.5">System context</p>
           <p
             className="text-[12px] mb-2 leading-relaxed"
             style={{ color: "hsl(var(--theme-ink-tertiary))" }}
           >
-            Read-only — assembled at runtime for Lead agents.
+            Operational prompt for this agent (purpose / role). Lead agents use composed prompt instead.
           </p>
-          <PromptPointList points={composedPoints} editable={false} />
+          <pre
+            className="keeper-presence-field-value whitespace-pre-wrap break-words font-mono text-[14px] rounded-lg border px-3 py-2.5"
+            style={{
+              color: "hsl(var(--theme-ink-secondary))",
+              borderColor: "hsl(var(--theme-border-soft) / 0.45)",
+            }}
+          >
+            {operationalContext.trim()}
+          </pre>
+        </div>
+      )}
+      {showAgentVoice && (
+        <div>
+          <p className="keeper-presence-field-label mb-1.5">Agent voice</p>
+          <p
+            className="text-[12px] mb-2 leading-relaxed"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            Instructions for this agent only — saved on this agent record (Save required). Does not
+            affect other agents.
+          </p>
+          <PromptPointList
+            points={lensPoints}
+            editable
+            onChange={handleLensPointsChange}
+          />
+          {lensError ? (
+            <p
+              className="text-[13px] mt-2 leading-relaxed"
+              style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
+            >
+              {lensError}
+            </p>
+          ) : null}
+        </div>
+      )}
+
+      {showComposed && (
+        <div>
+          <p className="keeper-presence-field-label mb-1.5">Runtime assembly</p>
+          <ComposedPromptPreview value={composedValue} />
         </div>
       )}
     </div>
