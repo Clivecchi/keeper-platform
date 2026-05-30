@@ -157,10 +157,19 @@ export const PRESENCE_SCHEMA_DEFAULTS: Record<string, ObjectPresenceSchema> = {
   domain: {
     objectType: 'domain',
     fields: {
-      name:        { role: 'primary',   always: true,                     editable: false },
-      description: { role: 'secondary', minDensity: 'standard',           editable: true  },
+      name:        { role: 'primary',   always: true,                     editable: true  },
+      tagline:     { role: 'secondary', minDensity: 'standard',           editable: true  },
+      keeperType:  { role: 'secondary', minDensity: 'standard',           editable: true,  label: 'Character' },
+      purpose:     { role: 'secondary', minDensity: 'standard',           editable: true,  label: 'Purpose' },
+      theme_color: { role: 'ambient',   minDensity: 'standard',           editable: true,  label: 'Theme Color' },
+      visibility:  { role: 'quiet',     minDensity: 'standard',           editable: true,  label: 'Visibility' },
       status:      { role: 'quiet',     always: true,                     editable: false },
       slug:        { role: 'ambient',   minDensity: 'comfortable',        editable: false },
+      buildContextName:        { role: 'secondary', minDensity: 'standard', editable: true, hiddenByDefault: true, label: 'Build Context Name' },
+      buildContextDescription: { role: 'body',      minDensity: 'standard', editable: true, hiddenByDefault: true, label: 'Description' },
+      activeRepository:        { role: 'ambient',   minDensity: 'standard', editable: true, hiddenByDefault: true, label: 'Active Repository' },
+      activeBranch:            { role: 'ambient',   minDensity: 'standard', editable: true, hiddenByDefault: true, label: 'Active Branch' },
+      environment:             { role: 'ambient',   minDensity: 'standard', editable: true, hiddenByDefault: true, label: 'Environment' },
     },
   },
 

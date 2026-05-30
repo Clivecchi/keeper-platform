@@ -600,6 +600,91 @@ async function enrichDomain(
 ): Promise<EnrichmentResult> {
   const relatedSections: RelatedSection[] = []
 
+  try {
+    const domainRes = await apiFetch(`/api/domains/${encodeURIComponent(domainId)}`)
+    const domain = (domainRes as { domain?: Record<string, unknown> })?.domain
+    if (domain) {
+      record.id = domain.id ?? domainId
+      record.name = domain.name ?? record.name
+      record.description = domain.description ?? record.description
+      record.purpose = domain.description ?? record.purpose
+      record.slug = domain.slug ?? record.slug
+      record.status = domain.status ?? record.status
+      record.visibility = domain.isPublic === true ? "public" : "private"
+
+      const theme =
+        domain.theme && typeof domain.theme === "object"
+          ? (domain.theme as Record<string, unknown>)
+          : {}
+      const colors =
+        theme.colors && typeof theme.colors === "object"
+          ? (theme.colors as Record<string, unknown>)
+          : {}
+      if (typeof colors.primary === "string") {
+        record.theme_color = colors.primary
+      }
+
+      const settings =
+        domain.settings && typeof domain.settings === "object"
+          ? (domain.settings as Record<string, unknown>)
+          : {}
+      if (typeof settings.keeperTypeKey === "string") {
+        record.keeperType = settings.keeperTypeKey
+      }
+      const ideBuild =
+        settings.ideBuildContext && typeof settings.ideBuildContext === "object"
+          ? (settings.ideBuildContext as Record<string, unknown>)
+          : {}
+      if (typeof ideBuild.name === "string") record.buildContextName = ideBuild.name
+      if (typeof ideBuild.description === "string") {
+        record.buildContextDescription = ideBuild.description
+      }
+      if (typeof ideBuild.activeRepository === "string") {
+        record.activeRepository = ideBuild.activeRepository
+      }
+      if (typeof ideBuild.activeBranch === "string") {
+        record.activeBranch = ideBuild.activeBranch
+      }
+      if (typeof ideBuild.environment === "string") {
+        record.environment = ideBuild.environment
+      }
+    }
+  } catch {
+    /* domain record optional for enrichment */
+  }
+
+  if (ctx?.domainSlug) {
+    try {
+      const frameRes = await apiFetch(
+        `/api/domains/${encodeURIComponent(ctx.domainSlug)}/frame`,
+      )
+      if (frameRes && typeof frameRes === "object") {
+        const frame = frameRes as Record<string, unknown>
+        const theme =
+          frame.theme && typeof frame.theme === "object"
+            ? (frame.theme as Record<string, unknown>)
+            : {}
+        if (typeof theme.tagline === "string") record.tagline = theme.tagline
+        const colors =
+          theme.colors && typeof theme.colors === "object"
+            ? (theme.colors as Record<string, unknown>)
+            : {}
+        if (typeof colors.primary === "string" && !record.theme_color) {
+          record.theme_color = colors.primary
+        }
+        const kip =
+          frame.kip && typeof frame.kip === "object"
+            ? (frame.kip as Record<string, unknown>)
+            : {}
+        if (typeof kip.visibility === "string") {
+          record.visibility = kip.visibility
+        }
+      }
+    } catch {
+      /* frame optional */
+    }
+  }
+
   if (ctx?.domainName && !record.name) {
     record.name = ctx.domainName
   }

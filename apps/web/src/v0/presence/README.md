@@ -16,6 +16,9 @@ Schema-driven Chronicle rendering layer. Resolves and applies per-domain, per-ob
 - `promptPoints.ts` — parse/serialize prompt strings ↔ editable points
 - `presenceEnrichment.ts` — fetches records and resolves journey context, paths, sessions per object type
 - `ChroniclePresenceView.tsx` — thin Chronicle wrapper (`layout="focus"`, density `standard`)
+- `chronicleConfig/` — universal Config Mode save infrastructure (`useChronicleConfig`, save bar, config shell)
+- `cover/DomainFocusPresence.tsx` — Domain Cover + Config orchestration
+- `cover/schemas/domainCoverSchema.ts` — Domain cover slot fill
 
 ## 🔄 Data & Behavior
 Resolution order (highest precedence first):
@@ -27,7 +30,7 @@ Resolution order (highest precedence first):
 - **focus** — story mode (default Chronicle). Journey uses dedicated header, paths with prelude, tappable moments, Set as Active.
 - **config** — shaping mode with elevated surface tint, comfortable field density, and a "Configuring" whisper.
 
-Editable fields debounce at 1000ms and PATCH to the correct object endpoint. **Agents** use explicit **Save** (no autosave) — prompts edit as numbered points in a dedicated Prompts section.
+Editable fields debounce at 1000ms and PATCH to the correct object endpoint for journey, moment, keeper, draft, and dialog. **Agent and domain** use explicit **Save** via `useChronicleConfig` (no autosave).
 
 Enrichment (Domain Board instincts):
 - **Moment** — journey → path breadcrumb in header; narrative + relative timestamp in body
@@ -53,6 +56,14 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - [ ] `PUT /api/domains/:domainId/presence-schema/:objectType` Design Board write path integration pending
 
 ## 📆 Update Log
+
+### 2026-05-29 — Step 2: Universal Chronicle CRUD
+- Added `chronicleConfig/` — `useChronicleConfig`, `ChronicleSaveBar`, `ChronicleConfigShell`, `handleChronicleSave`
+- Agent Board refactored to use shared hook (same PATCH path, same Save bar behavior)
+- Domain Board: `DomainFocusPresence` + `DomainConfigPresence` + `domainCoverSchema` (Cover/Config modes)
+- IDE Board: build context fields on domain Chronicle (`settings.ideBuildContext` via domain PATCH)
+- Design Board: domain idle uses same domain Chronicle config path; BoardDef remains read-only
+- `ChroniclePresenceView` + `UniversalViewPanel` pass `boardId` for board-specific config fields
 
 ### 2026-05-28 — Step 1: Agent Cover Card (universal cover pattern)
 - Added `cover/` — Layer 1 `EntityCoverPresence` (five fixed slots) + Layer 2 `agentCoverSchema`

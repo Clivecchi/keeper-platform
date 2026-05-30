@@ -201,6 +201,7 @@ interface ChronicleRecordViewProps {
   domainId: string | null
   domainSlug?: string
   domainDisplayName?: string
+  boardId?: string
   layout?: PresenceLayout
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
@@ -214,6 +215,7 @@ function ChronicleRecordView({
   domainId,
   domainSlug,
   domainDisplayName,
+  boardId,
   layout = "focus",
   onJourneySelect,
   onMomentSelect,
@@ -237,6 +239,7 @@ function ChronicleRecordView({
       domainId={domainId}
       domainSlug={domainSlug}
       domainDisplayName={domainDisplayName}
+      boardId={boardId}
       layout={layout}
       density="standard"
       onLabelResolved={(label) => onLabelResolved(trailKey, label)}
@@ -254,6 +257,7 @@ interface PanelBodyProps {
   domainId: string | null
   domainName: string
   domainSlug?: string
+  boardId?: string
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onLabelResolved: (key: string, label: string) => void
@@ -264,6 +268,7 @@ function PanelBody({
   domainId,
   domainName,
   domainSlug,
+  boardId,
   onJourneySelect,
   onMomentSelect,
   onLabelResolved,
@@ -290,6 +295,7 @@ function PanelBody({
         domainId={domainId}
         domainSlug={domainSlug}
         domainDisplayName={domainName}
+        boardId={boardId}
         layout={layout}
         onJourneySelect={onJourneySelect}
         onMomentSelect={onMomentSelect}
@@ -346,7 +352,7 @@ export interface UniversalViewPanelProps {
 }
 
 export function UniversalViewPanel({
-  def: _def,
+  def,
   domainId,
   domainName,
   domainSlug,
@@ -583,6 +589,7 @@ export function UniversalViewPanel({
           domainId={domainId}
           domainName={domainName}
           domainSlug={domainSlug}
+          boardId={def.boardId}
           onJourneySelect={handleJourneySelect}
           onMomentSelect={handleMomentSelect}
           onLabelResolved={handleLabelResolved}

@@ -586,7 +586,7 @@ html[data-density="comfortable"] {
 .kip-message-content {
   font-size: 14px;
   line-height: 1.6;
-  color: hsl(var(--theme-ink));
+  color: hsl(var(--theme-ink-primary));
 }
 .kip-message-content .kip-md-h1 {
   font-family: 'Cormorant Garamond', Georgia, serif;
@@ -606,7 +606,7 @@ html[data-density="comfortable"] {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: hsl(var(--theme-ink-faint));
+  color: hsl(var(--theme-ink-tertiary));
   margin: 10px 0 4px;
 }
 .kip-message-content .kip-md-p {
@@ -620,7 +620,7 @@ html[data-density="comfortable"] {
 }
 .kip-message-content .kip-md-em {
   font-style: italic;
-  color: hsl(var(--theme-ink-faint));
+  color: hsl(var(--theme-ink-tertiary));
 }
 .kip-message-content .kip-md-ul {
   margin: 6px 0 8px;
@@ -639,7 +639,7 @@ html[data-density="comfortable"] {
   content: '·';
   position: absolute;
   left: -12px;
-  color: hsl(var(--theme-primary));
+  color: hsl(var(--theme-focus-ring));
   font-weight: 700;
 }
 .kip-message-content .kip-md-code-inline {
@@ -648,13 +648,13 @@ html[data-density="comfortable"] {
   background: hsl(var(--theme-surface-elevated) / 0.6);
   padding: 1px 5px;
   border-radius: 3px;
-  color: hsl(var(--theme-primary));
+  color: hsl(var(--theme-focus-ring));
 }
 .kip-message-content .kip-md-code-block {
   font-family: 'Courier New', monospace;
   font-size: 11px;
-  background: hsl(var(--theme-surface) / 0.8);
-  border: 1px solid hsl(var(--theme-border) / 0.5);
+  background: hsl(var(--theme-surface-paper) / 0.8);
+  border: 1px solid hsl(var(--theme-border-soft) / 0.5);
   border-radius: 6px;
   padding: 10px 12px;
   margin: 8px 0;
@@ -662,21 +662,21 @@ html[data-density="comfortable"] {
   line-height: 1.5;
 }
 .kip-message-content .kip-md-blockquote {
-  border-left: 3px solid hsl(var(--theme-primary) / 0.5);
+  border-left: 3px solid hsl(var(--theme-focus-ring) / 0.5);
   margin: 8px 0;
   padding: 4px 12px;
-  color: hsl(var(--theme-ink-faint));
+  color: hsl(var(--theme-ink-tertiary));
   font-style: italic;
 }
 .kip-message-content .kip-md-hr {
   border: none;
-  border-top: 1px solid hsl(var(--theme-border) / 0.4);
+  border-top: 1px solid hsl(var(--theme-border-soft) / 0.4);
   margin: 12px 0;
 }
 .kip-message-content .kip-md-link {
-  color: hsl(var(--theme-primary));
+  color: hsl(var(--theme-focus-ring));
   text-decoration: underline;
-  text-decoration-color: hsl(var(--theme-primary) / 0.4);
+  text-decoration-color: hsl(var(--theme-focus-ring) / 0.4);
   text-underline-offset: 2px;
 }
 .kip-message-content table {
@@ -691,13 +691,13 @@ html[data-density="comfortable"] {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: hsl(var(--theme-ink-faint));
+  color: hsl(var(--theme-ink-tertiary));
   padding: 6px 10px;
-  border-bottom: 1px solid hsl(var(--theme-border) / 0.5);
+  border-bottom: 1px solid hsl(var(--theme-border-soft) / 0.5);
 }
 .kip-message-content td {
   padding: 5px 10px;
-  border-bottom: 1px solid hsl(var(--theme-border) / 0.2);
+  border-bottom: 1px solid hsl(var(--theme-border-soft) / 0.2);
   vertical-align: top;
 }
 .kip-message-content tr:last-child td {

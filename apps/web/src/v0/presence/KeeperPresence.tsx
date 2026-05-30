@@ -30,7 +30,10 @@ import {
 import type { PresenceLayout } from "./types"
 import { DraftPointsSection } from "./DraftPointsSection"
 import { AgentFocusPresence } from "./cover/AgentFocusPresence"
+import { DomainFocusPresence } from "./cover/DomainFocusPresence"
 import { KipApi, type ModelProvider } from "../../lib/kipApi"
+import { parseChroniclePatchFieldErrors } from "./chronicleConfig/chroniclePatch"
+import { useChronicleConfig } from "./chronicleConfig/useChronicleConfig"
 import { FrameConfigPresence, parseFramePropsFromRecord } from "./FrameConfigPresence"
 import { BoardDefConfigPresence } from "./BoardDefConfigPresence"
 import { BOARD_DEFINITIONS } from "../boards/UniversalBoardDefinition"
@@ -60,6 +63,8 @@ export interface KeeperPresenceProps {
   domainId: string
   domainSlug?: string
   /** Named form the object inhabits — Theatre.js sequence selection. */
+  /** Active board id — drives IDE build-context fields on domain Chronicle. */
+  boardId?: string
   present?: PresentName
   /** Where the object is appearing — distinct from Present. */
   context?: RenderContext
@@ -74,56 +79,24 @@ export interface KeeperPresenceProps {
   domainDisplayName?: string
 }
 
-function parsePatchFieldErrors(
-  err: unknown,
-  patchKeys: string[],
-): Record<string, string> {
-  const errors: Record<string, string> = {}
-  const data = (err as { data?: { error?: string; details?: Array<{ path?: (string | number)[]; message?: string }> } })
-    ?.data
-  const status = (err as { status?: number })?.status
-  const message =
-    typeof data?.error === "string"
-      ? data.error
-      : typeof (err as { message?: string })?.message === "string"
-        ? (err as { message: string }).message
-        : "Save failed"
-
-  if (patchKeys.includes("lensSystemPrompt")) {
-    const zodLensErr = data?.details?.find((d) =>
-      d.path?.some(
-        (segment) =>
-          String(segment) === "lensSystemPrompt" || String(segment) === "systemPrompt",
-      ),
-    )
-    if (zodLensErr || status === 400) {
-      errors.lensSystemPrompt = "Agent voice must be at least 10 characters."
-    }
-  }
-
-  if (Object.keys(errors).length === 0 && patchKeys.length > 0) {
-    errors[patchKeys[0]] = message
-  }
-
-  return errors
-}
-
-function buildAgentPatchBody(
-  patch: Record<string, string>,
-  domainId: string,
-): Record<string, unknown> {
-  const body: Record<string, unknown> = { domainId }
-  for (const [key, value] of Object.entries(patch)) {
-    if (key === "memory_enabled") {
-      body.memory_enabled = value === "true"
-      continue
-    }
-    body[key] = value
-  }
-  return body
-}
-
 const AGENT_PROMPT_FIELD_KEYS = new Set(["lensSystemPrompt", "composedSystemPrompt"])
+
+function buildDomainFieldPatch(
+  schema: ReturnType<typeof usePresenceSchema>["schema"],
+  fieldValues: Record<string, string>,
+): Record<string, string> {
+  const editableKeys = Object.entries(schema.fields)
+    .filter(([, def]) => def.editable)
+    .map(([key]) => key)
+
+  const patch: Record<string, string> = {}
+  for (const key of editableKeys) {
+    if (fieldValues[key] !== undefined) {
+      patch[key] = fieldValues[key]
+    }
+  }
+  return patch
+}
 
 function buildAgentFieldPatch(
   schema: ReturnType<typeof usePresenceSchema>["schema"],
@@ -946,6 +919,7 @@ export function KeeperPresence({
   onMomentSelect,
   onKeeperSelect,
   domainDisplayName,
+  boardId: boardIdProp,
 }: KeeperPresenceProps) {
   const effectivePresent = resolvePresentForObject(objectType, present)
   const motionInstanceKey = React.useMemo(
@@ -1042,16 +1016,107 @@ export function KeeperPresence({
   const { schema } = usePresenceSchema(objectType, domainId, objectSchemaOverride)
 
   const [fieldValues, setFieldValues] = React.useState<Record<string, string>>({})
-  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({})
-  const [saveStatus, setSaveStatus] = React.useState<"idle" | "saving" | "saved" | "error">("idle")
-  const [saveMessage, setSaveMessage] = React.useState<string | null>(null)
-  const [isDirty, setIsDirty] = React.useState(false)
   const [advancedOpen, setAdvancedOpen] = React.useState(false)
   const [advancedValues, setAdvancedValues] = React.useState({ temperature: "", max_tokens: "" })
   const hasEdited = React.useRef(false)
   const hasEditedAdvanced = React.useRef(false)
   const debouncedValues = useDebounced(fieldValues, 1000)
   const debouncedAdvancedValues = useDebounced(advancedValues, 1000)
+
+  const fieldValuesRef = React.useRef(fieldValues)
+  const advancedValuesRef = React.useRef(advancedValues)
+  fieldValuesRef.current = fieldValues
+  advancedValuesRef.current = advancedValues
+
+  const usesExplicitChronicleSave = objectType === "agent" || objectType === "domain"
+  const boardId = boardIdProp
+
+  const chronicleConfig = useChronicleConfig({
+    entityKind: objectType === "domain" ? "domain" : "agent",
+    entityId: usesExplicitChronicleSave ? objectId : null,
+    domainId,
+    domainSlug,
+    buildPayload: () => {
+      if (objectType === "agent") {
+        const patch = buildAgentFieldPatch(schema, fieldValuesRef.current, {
+          includeShortLens: true,
+        })
+        const advancedPatch = buildAgentAdvancedPatch(advancedValuesRef.current)
+        const merged: Record<string, unknown> = { ...patch, ...advancedPatch }
+        if (Object.keys(merged).length === 0) return null
+        return merged
+      }
+      if (objectType === "domain") {
+        const keys =
+          boardId === "ide"
+            ? [
+                "name",
+                "tagline",
+                "keeperType",
+                "purpose",
+                "theme_color",
+                "visibility",
+                "buildContextName",
+                "buildContextDescription",
+                "activeRepository",
+                "activeBranch",
+                "environment",
+              ]
+            : ["name", "tagline", "keeperType", "purpose", "theme_color", "visibility"]
+        const patch: Record<string, string> = {}
+        for (const key of keys) {
+          if (fieldValuesRef.current[key] !== undefined) {
+            patch[key] = fieldValuesRef.current[key]
+          }
+        }
+        if (Object.keys(patch).length === 0) return null
+        return patch
+      }
+      return null
+    },
+    validate: () => {
+      if (objectType !== "agent") return null
+      const lensTrimmed = fieldValuesRef.current.lensSystemPrompt?.trim() ?? ""
+      if (lensTrimmed.length > 0 && lensTrimmed.length < 10) {
+        return "Lens prompt must be at least 10 characters."
+      }
+      return null
+    },
+    patchKeys: () => {
+      if (objectType === "agent") {
+        const patch = buildAgentFieldPatch(schema, fieldValuesRef.current, {
+          includeShortLens: true,
+        })
+        return [...Object.keys(patch), ...Object.keys(buildAgentAdvancedPatch(advancedValuesRef.current))]
+      }
+      if (objectType === "domain") {
+        return Object.keys(buildDomainFieldPatch(schema, fieldValuesRef.current))
+      }
+      return []
+    },
+    onSaved,
+    onRefresh: handlePresenceRefresh,
+  })
+
+  const [autoSaveStatus, setAutoSaveStatus] = React.useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle")
+  const [autoSaveMessage, setAutoSaveMessage] = React.useState<string | null>(null)
+
+  const saveStatus = usesExplicitChronicleSave ? chronicleConfig.saveStatus : autoSaveStatus
+  const saveMessage = usesExplicitChronicleSave ? chronicleConfig.saveMessage : autoSaveMessage
+  const isDirty = usesExplicitChronicleSave ? chronicleConfig.isDirty : false
+  const fieldErrors = chronicleConfig.fieldErrors
+  const setFieldErrors = chronicleConfig.setFieldErrors
+
+  const markEdited = React.useCallback(() => {
+    hasEdited.current = true
+    if (usesExplicitChronicleSave) {
+      chronicleConfig.markEdited()
+    }
+  }, [usesExplicitChronicleSave, chronicleConfig])
+
+  const handleExplicitSave = chronicleConfig.handleSave
 
   React.useEffect(() => {
     if (!record) return
@@ -1074,14 +1139,17 @@ export function KeeperPresence({
         typeof settings.max_tokens === "number" ? String(settings.max_tokens) : "",
     })
     hasEditedAdvanced.current = false
-    setIsDirty(false)
-    setSaveStatus("idle")
-    setSaveMessage(null)
+    if (usesExplicitChronicleSave) {
+      chronicleConfig.resetSaveState()
+    } else {
+      setAutoSaveStatus("idle")
+      setAutoSaveMessage(null)
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [record, schema])
 
   React.useEffect(() => {
-    if (objectType === "agent") return
+    if (usesExplicitChronicleSave) return
     if (!hasEdited.current || !record || !objectId || !domainId) return
     const endpoint = patchEndpoint(objectType, objectId, domainId)
 
@@ -1107,19 +1175,14 @@ export function KeeperPresence({
     if (Object.keys(patch).length === 0) return
     if (!endpoint) return
 
-    const requestBody =
-      objectType === "agent" && domainId
-        ? buildAgentPatchBody(patch, domainId)
-        : patch
-
     void (async () => {
       try {
-        setSaveStatus("saving")
-        setSaveMessage(null)
+        setAutoSaveStatus("saving")
+        setAutoSaveMessage(null)
         await apiFetch(endpoint, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestBody),
+          body: JSON.stringify(patch),
         })
         setFieldErrors((prev) => {
           const next = { ...prev }
@@ -1128,23 +1191,19 @@ export function KeeperPresence({
           }
           return next
         })
-        setSaveStatus("saved")
-        setSaveMessage("Saved")
+        setAutoSaveStatus("saved")
+        setAutoSaveMessage("Saved")
         if (onSaved) {
           for (const [k, v] of Object.entries(patch)) onSaved(k, v)
         }
-
-        if (objectType === "agent") {
-          handlePresenceRefresh()
-        }
       } catch (err: unknown) {
-        const patchErrors = parsePatchFieldErrors(err, Object.keys(patch))
+        const patchErrors = parseChroniclePatchFieldErrors(err, Object.keys(patch))
         if (Object.keys(patchErrors).length > 0) {
           setFieldErrors((prev) => ({ ...prev, ...patchErrors }))
         }
-        setSaveStatus("error")
-        setSaveMessage(
-          Object.values(patchErrors)[0] ??
+        setAutoSaveStatus("error")
+        setAutoSaveMessage(
+          (Object.values(patchErrors)[0] as string | undefined) ??
             (typeof (err as { data?: { error?: string } })?.data?.error === "string"
               ? (err as { data: { error: string } }).data.error
               : "Save failed"),
@@ -1153,119 +1212,6 @@ export function KeeperPresence({
     })()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedValues])
-
-  React.useEffect(() => {
-    if (objectType === "agent") return
-    if (!hasEditedAdvanced.current || objectType !== "agent" || !objectId || !domainId) return
-
-    const body: Record<string, unknown> = { domainId }
-    const temp = debouncedAdvancedValues.temperature.trim()
-    const maxTokens = debouncedAdvancedValues.max_tokens.trim()
-    if (temp) body.temperature = Number.parseFloat(temp)
-    if (maxTokens) body.max_tokens = Number.parseInt(maxTokens, 10)
-    if (Object.keys(body).length <= 1) return
-
-    void (async () => {
-      try {
-        setSaveStatus("saving")
-        setSaveMessage(null)
-        await apiFetch(`/api/agents/${encodeURIComponent(objectId)}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        })
-        setFieldErrors((prev) => {
-          const next = { ...prev }
-          delete next.temperature
-          delete next.max_tokens
-          return next
-        })
-        setSaveStatus("saved")
-        setSaveMessage("Saved")
-        handlePresenceRefresh()
-      } catch (err: unknown) {
-        const patchErrors = parsePatchFieldErrors(err, ["temperature", "max_tokens"])
-        if (Object.keys(patchErrors).length > 0) {
-          setFieldErrors((prev) => ({ ...prev, ...patchErrors }))
-        }
-        setSaveStatus("error")
-        setSaveMessage(Object.values(patchErrors)[0] ?? "Save failed")
-      }
-    })()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedAdvancedValues])
-
-  const handleSaveAgent = React.useCallback(async () => {
-    if (objectType !== "agent" || !objectId || !domainId) return
-
-    const patch = buildAgentFieldPatch(schema, fieldValues, { includeShortLens: true })
-    const lensTrimmed = fieldValues.lensSystemPrompt?.trim() ?? ""
-    if (lensTrimmed.length > 0 && lensTrimmed.length < 10) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        lensSystemPrompt: "Agent voice must be at least 10 characters.",
-      }))
-      setSaveStatus("error")
-      setSaveMessage("Lens prompt must be at least 10 characters.")
-      return
-    }
-
-    const advancedPatch = buildAgentAdvancedPatch(advancedValues)
-    const requestBody: Record<string, unknown> = {
-      ...buildAgentPatchBody(patch, domainId),
-      ...advancedPatch,
-    }
-
-    if (Object.keys(requestBody).length <= 1) return
-
-    try {
-      setSaveStatus("saving")
-      setSaveMessage(null)
-      await apiFetch(`/api/agents/${encodeURIComponent(objectId)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      })
-      setFieldErrors((prev) => {
-        const next = { ...prev }
-        for (const key of Object.keys(patch)) delete next[key]
-        delete next.temperature
-        delete next.max_tokens
-        return next
-      })
-      hasEdited.current = false
-      hasEditedAdvanced.current = false
-      setIsDirty(false)
-      setSaveStatus("saved")
-      setSaveMessage("Saved")
-      if (onSaved) {
-        for (const [k, v] of Object.entries(patch)) onSaved(k, v)
-      }
-      handlePresenceRefresh()
-    } catch (err: unknown) {
-      const patchKeys = [...Object.keys(patch), ...Object.keys(advancedPatch)]
-      const patchErrors = parsePatchFieldErrors(err, patchKeys)
-      if (Object.keys(patchErrors).length > 0) {
-        setFieldErrors((prev) => ({ ...prev, ...patchErrors }))
-      }
-      setSaveStatus("error")
-      setSaveMessage(
-        Object.values(patchErrors)[0] ??
-          (typeof (err as { data?: { error?: string } })?.data?.error === "string"
-            ? (err as { data: { error: string } }).data.error
-            : "Save failed"),
-      )
-    }
-  }, [
-    objectType,
-    objectId,
-    domainId,
-    schema,
-    fieldValues,
-    advancedValues,
-    onSaved,
-    handlePresenceRefresh,
-  ])
 
   const effectiveDensity: DensityLevel = layout === "config" ? "comfortable" : density
   const handleKeeperSelect =
@@ -1315,14 +1261,14 @@ export function KeeperPresence({
         setAdvancedValues={setAdvancedValues}
         markAdvancedEdited={() => {
           hasEditedAdvanced.current = true
-          setIsDirty(true)
+          chronicleConfig.markEdited()
         }}
-        markEdited={() => {
-          hasEdited.current = true
-          setIsDirty(true)
-        }}
+        markEdited={markEdited}
         isDirty={isDirty}
-        onSaveAgent={objectType === "agent" ? handleSaveAgent : undefined}
+        onChronicleSave={
+          usesExplicitChronicleSave ? () => void handleExplicitSave() : undefined
+        }
+        boardId={boardId}
         schema={schema}
         meta={meta}
         breadcrumb={breadcrumb}
@@ -1366,7 +1312,8 @@ function KeeperPresenceSurface({
   markAdvancedEdited,
   markEdited,
   isDirty,
-  onSaveAgent,
+  onChronicleSave,
+  boardId,
   schema,
   meta,
   breadcrumb,
@@ -1404,7 +1351,8 @@ function KeeperPresenceSurface({
   markAdvancedEdited: () => void
   markEdited: () => void
   isDirty: boolean
-  onSaveAgent?: () => void | Promise<void>
+  onChronicleSave?: () => void | Promise<void>
+  boardId?: string
   schema: ReturnType<typeof usePresenceSchema>["schema"]
   meta?: PresenceMeta
   breadcrumb?: PresenceBreadcrumb
@@ -1579,6 +1527,57 @@ function KeeperPresenceSurface({
     }
   }
 
+  if (objectType === "domain" && layout === "focus" && record) {
+    const ideBuildContextFields = (
+      boardId === "ide"
+        ? (Object.entries(schema.fields).filter(
+            ([key, def]) =>
+              def.editable &&
+              [
+                "buildContextName",
+                "buildContextDescription",
+                "activeRepository",
+                "activeBranch",
+                "environment",
+              ].includes(key),
+          ) as [string, FieldDefinition][])
+        : []
+    )
+
+    const renderFieldEditor = (
+      key: string,
+      def: FieldDefinition,
+      placeholder?: string,
+    ) => (
+      <PresenceFieldEditor
+        fieldKey={key}
+        def={def}
+        value={fieldValues[key] ?? ""}
+        fieldError={fieldErrors[key]}
+        placeholder={placeholder}
+        onChange={(v) => handleFieldChange(key, v)}
+      />
+    )
+
+    return (
+      <DomainFocusPresence
+        objectId={objectId}
+        record={record}
+        fieldValues={fieldValues}
+        fieldErrors={fieldErrors}
+        visibleFields={visibleFields}
+        ideBuildContextFields={ideBuildContextFields}
+        relatedSections={relatedSections}
+        saveStatus={saveStatus}
+        saveMessage={saveMessage}
+        isDirty={isDirty}
+        onSave={() => void onChronicleSave?.()}
+        onFieldChange={handleFieldChange}
+        renderFieldEditor={renderFieldEditor}
+      />
+    )
+  }
+
   if (objectType === "agent" && layout === "focus" && record) {
     const renderFieldEditor = (
       key: string,
@@ -1612,7 +1611,7 @@ function KeeperPresenceSurface({
         isDirty={isDirty}
         advancedOpen={advancedOpen}
         advancedValues={advancedValues}
-        onSaveAgent={onSaveAgent}
+        onSaveAgent={onChronicleSave}
         onFieldChange={handleFieldChange}
         onAdvancedOpenChange={setAdvancedOpen}
         onAdvancedChange={(key, value) => {

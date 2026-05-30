@@ -21,6 +21,7 @@ export interface ChroniclePresenceViewProps {
   domainId: string
   domainSlug?: string
   domainDisplayName?: string
+  boardId?: string
   present?: PresentName
   context?: RenderContext
   layout?: PresenceLayout
@@ -37,6 +38,7 @@ export function ChroniclePresenceView({
   domainId,
   domainSlug,
   domainDisplayName,
+  boardId,
   present,
   context = "chronicle",
   layout = "focus",
@@ -63,6 +65,7 @@ export function ChroniclePresenceView({
       domainId={domainId}
       domainSlug={domainSlug}
       domainDisplayName={domainDisplayName}
+      boardId={boardId}
       present={present}
       context={context}
       layout={layout}

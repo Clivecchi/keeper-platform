@@ -407,7 +407,7 @@ export function KeeperDialogFrame({
               left: 0,
               right: 0,
               height: '80px',
-              background: 'linear-gradient(to bottom, transparent, hsl(38 28% 97% / 0.28))',
+              background: 'linear-gradient(to bottom, transparent, hsl(var(--theme-surface-panel) / 0.28))',
               pointerEvents: 'none',
             }}
           />
