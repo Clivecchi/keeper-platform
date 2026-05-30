@@ -60,42 +60,42 @@ export type StyleId = 'neutral' | 'diary-paper'
 export const styleRegistry: StyleDefinition[] = [
   {
     id: 'neutral',
-    name: 'Neutral',
+    name: 'Dusk Glass',
     tone: 'neutral',
     tokens: {
-      // Surface colors - neutral grays
-      'surface.page': 'hsl(0, 0%, 100%)',
-      'surface.paper': 'hsl(0, 0%, 98%)',
-      'surface.panel': 'hsl(0, 0%, 96%)',
-      'surface.elevated': 'hsl(0, 0%, 100%)',
+      // Surfaces — deep indigo-violet glass (panel CSS applies alpha for frosted depth)
+      'surface.page': 'hsl(248, 38%, 10%)',
+      'surface.paper': 'hsl(248, 32%, 16%)',
+      'surface.panel': 'hsl(248, 28%, 22%)',
+      'surface.elevated': 'hsl(248, 26%, 28%)',
 
-      // Ink colors - neutral grays (stronger contrast for board readability)
-      'ink.primary': 'hsl(0, 0%, 9%)',
-      'ink.secondary': 'hsl(0, 0%, 32%)',
-      'ink.tertiary': 'hsl(0, 0%, 42%)',
-      'ink.placeholder': 'hsl(0, 0%, 50%)',
+      // Ink — warm evening light, readable on dark glass
+      'ink.primary': 'hsl(36, 28%, 91%)',
+      'ink.secondary': 'hsl(34, 20%, 78%)',
+      'ink.tertiary': 'hsl(248, 14%, 62%)',
+      'ink.placeholder': 'hsl(248, 10%, 48%)',
 
-      // Line colors
-      'line.hairline': 'hsl(0, 0%, 72%)',
-      'line.ruled': 'hsl(0, 0%, 72%)',
+      // Line colors — glass edges, barely there
+      'line.hairline': 'hsl(248, 14%, 32%)',
+      'line.ruled': 'hsl(248, 14%, 32%)',
 
-      // Border colors
-      'border.soft': 'hsl(0, 0%, 78%)',
-      'border.strong': 'hsl(0, 0%, 68%)',
+      // Border colors — soft rim light, not drawn lines
+      'border.soft': 'hsl(248, 18%, 34%)',
+      'border.strong': 'hsl(248, 16%, 42%)',
 
-      // Shadow
-      'shadow.soft': '0 1px 3px hsl(0, 0%, 0%, 0.1), 0 1px 2px hsl(0, 0%, 0%, 0.06)',
+      // Shadow — depth behind floating panels
+      'shadow.soft': '0 8px 32px hsl(248, 45%, 6%, 0.45), 0 2px 12px hsl(248, 30%, 4%, 0.35)',
 
-      // Interactive colors
-      'focus.ring': 'hsl(221, 83%, 53%)',
-      'hover.surface': 'hsl(0, 0%, 94%)',
-      'press.surface': 'hsl(0, 0%, 92%)',
+      // Interactive — last light of day (warm amber accent)
+      'focus.ring': 'hsl(32, 72%, 62%)',
+      'hover.surface': 'hsl(248, 26%, 26%)',
+      'press.surface': 'hsl(248, 28%, 20%)',
 
-      // Dialogue
-      'dialogue.userBg': 'hsl(14, 60%, 56%)',
-      'dialogue.agentBg': 'hsl(0, 0%, 100%)',
-      'dialogue.areaBg': 'hsl(35, 33%, 97%)',
-      'dialogue.border': 'hsl(35, 20%, 88%)',
+      // Dialogue — dusk-native bubbles (warm user / cool agent glass)
+      'dialogue.userBg': 'hsl(22, 52%, 52%)',
+      'dialogue.agentBg': 'hsl(248, 24%, 26%)',
+      'dialogue.areaBg': 'hsl(248, 30%, 18%)',
+      'dialogue.border': 'hsl(248, 16%, 36%)',
 
       // Border radius
       'radius.sheet': '6px',
@@ -252,5 +252,21 @@ export function tokensToCSSVars(tokens: StyleTokens): Record<string, string> {
     '--theme-radius-sheet': tokens['radius.sheet'],
     '--theme-space-framePadding': tokens['space.framePadding'],
     '--theme-space-sheetPadding': tokens['space.sheetPadding'],
+
+    /* Accent — referenced by presence, Chronicle feed dot, nav selection */
+    '--theme-accent-primary': inkPrimary,
+    '--theme-accent-subtle': toVar('surface.panel', tokens['surface.panel']),
+    '--theme-accent-fg': inkPrimary,
+
+    /* Status — readable on dark glass surfaces */
+    '--theme-status-success': '152 55% 52%',
+    '--theme-status-warning': '38 88% 58%',
+    '--theme-status-error': '0 72% 58%',
+
+    /* Short-name aliases (legacy CSS + components) */
+    '--theme-surface': toVar('surface.panel', tokens['surface.panel']),
+    '--theme-border': toVar('border.soft', tokens['border.soft']),
+    '--theme-ink': inkPrimary,
+    '--theme-ink-faint': inkTertiary,
   }
 }
