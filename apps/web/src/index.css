@@ -135,7 +135,7 @@ html[data-density="comfortable"] {
   margin: 12px;
   border-radius: 8px;
   /* Frosted glass shell — atmosphere breathes through the Dialog panel */
-  background: hsl(38 32% 97% / 0.38);
+  background: hsl(var(--theme-surface-panel) / 0.38);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid hsl(var(--theme-border-soft, 35 20% 88%) / 0.28);
@@ -147,10 +147,10 @@ html[data-density="comfortable"] {
   top: 0;
   z-index: 10;
   padding: 8px 16px;
-  background: hsl(38 32% 97% / 0.68);
+  background: hsl(var(--theme-surface-paper) / 0.68);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid hsl(var(--theme-border, 35 20% 88%) / 0.32);
+  border-bottom: 1px solid hsl(var(--theme-border-soft) / 0.32);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -173,13 +173,13 @@ html[data-density="comfortable"] {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  color: hsl(var(--theme-ink-secondary));
   flex: 1;
   min-width: 0;
 }
 
 .dialog-breadcrumb span:last-of-type {
-  color: hsl(var(--theme-ink, 20 14% 14%));
+  color: hsl(var(--theme-ink-secondary));
   font-weight: 500;
   text-transform: none;
   letter-spacing: normal;
@@ -187,13 +187,13 @@ html[data-density="comfortable"] {
 }
 
 .breadcrumb-sep {
-  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  color: hsl(var(--theme-ink-secondary));
   font-size: 12px;
   flex-shrink: 0;
 }
 
 .breadcrumb-path {
-  color: hsl(var(--theme-ink, 20 14% 14%));
+  color: hsl(var(--theme-ink-secondary));
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
@@ -205,7 +205,7 @@ html[data-density="comfortable"] {
   margin-top: 2px;
   font-size: 12px;
   font-style: italic;
-  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  color: hsl(var(--theme-ink-secondary));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -235,14 +235,14 @@ html[data-density="comfortable"] {
 }
 
 .sole-badge.inactive {
-  background: hsl(var(--theme-ink-faint, 35 15% 60%) / 0.15);
-  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  background: hsl(var(--theme-ink-secondary) / 0.15);
+  color: hsl(var(--theme-ink-secondary));
 }
 
 .session-id-short {
   font-family: 'Courier New', monospace;
   font-size: 10px;
-  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  color: hsl(var(--theme-ink-secondary));
   opacity: 0.7;
 }
 
@@ -250,7 +250,7 @@ html[data-density="comfortable"] {
   background: none;
   border: none;
   cursor: pointer;
-  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  color: hsl(var(--theme-ink-secondary));
   font-size: 14px;
   padding: 0 2px;
   line-height: 1;
@@ -270,19 +270,19 @@ html[data-density="comfortable"] {
   align-items: center;
   gap: 12px;
   padding: 6px 0 2px;
-  border-top: 1px solid hsl(var(--theme-border, 35 20% 88%) / 0.3);
+  border-top: 1px solid hsl(var(--theme-border-soft) / 0.3);
   margin-top: 6px;
   flex-wrap: wrap;
 }
 
 .meta-item {
   font-size: 11px;
-  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  color: hsl(var(--theme-ink-secondary));
 }
 
 .meta-item.session-title {
   outline: none;
-  border-bottom: 1px dashed hsl(var(--theme-border, 35 20% 88%) / 0.5);
+  border-bottom: 1px dashed hsl(var(--theme-border-soft) / 0.5);
   cursor: text;
   min-width: 40px;
 }
@@ -297,18 +297,18 @@ html[data-density="comfortable"] {
 
 .meta-action {
   background: none;
-  border: 1px solid hsl(var(--theme-border, 35 20% 88%) / 0.5);
+  border: 1px solid hsl(var(--theme-border-soft) / 0.5);
   border-radius: 4px;
   padding: 2px 8px;
   font-size: 11px;
-  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  color: hsl(var(--theme-ink-secondary));
   cursor: pointer;
   transition: color 0.12s, border-color 0.12s;
 }
 
 .meta-action:hover {
-  color: hsl(var(--theme-ink, 20 14% 14%));
-  border-color: hsl(var(--theme-border, 35 20% 88%));
+  color: hsl(var(--theme-ink-secondary));
+  border-color: hsl(var(--theme-border-soft));
 }
 
 .dialog-message-surface {
@@ -318,7 +318,7 @@ html[data-density="comfortable"] {
   scrollbar-width: none;
   scrollbar-color: transparent transparent;
   /* Frosted glass — warm semi-transparent; atmosphere visible behind messages */
-  background: hsl(38 28% 97% / 0.42);
+  background: hsl(var(--theme-dialogue-area-bg) / 0.42);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   /* Oldest messages dissolve into the atmosphere at the top */
@@ -371,11 +371,11 @@ html[data-density="comfortable"] {
 .dialog-bottom-zone {
   flex-shrink: 0;
   /* Composer zone — frosted glass over atmosphere */
-  background: hsl(38 32% 97% / 0.58);
+  background: hsl(var(--theme-surface-panel) / 0.58);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   /* A breath, not a line — barely visible top edge */
-  border-top: 1px solid hsl(var(--theme-border, 35 20% 88%) / 0.22);
+  border-top: 1px solid hsl(var(--theme-border-soft) / 0.22);
 }
 
 /* Override IntegratedServicesBar's inner max-w-3xl when inside KeeperDialogFrame */
@@ -393,7 +393,7 @@ html[data-density="comfortable"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: hsl(38 28% 97% / 0.28);
+  background: hsl(var(--theme-surface-panel) / 0.28);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   overflow: hidden;
@@ -404,7 +404,7 @@ html[data-density="comfortable"] {
 .dialog-think-idle {
   font-size: 11px;
   letter-spacing: 0.28em;
-  color: hsl(var(--theme-ink-faint, 35 15% 60%) / 0.28);
+  color: hsl(var(--theme-ink-secondary) / 0.28);
   user-select: none;
   pointer-events: none;
 }
@@ -413,7 +413,7 @@ html[data-density="comfortable"] {
 .dialog-think-pulse {
   font-size: 11px;
   letter-spacing: 0.28em;
-  color: hsl(var(--theme-ink-faint, 35 15% 60%) / 0.6);
+  color: hsl(var(--theme-ink-secondary) / 0.6);
   animation: dialog-think-breathe 1.8s ease-in-out infinite;
   user-select: none;
   pointer-events: none;
@@ -475,7 +475,7 @@ html[data-density="comfortable"] {
   gap: 3px;
   font-size: 11px;
   font-weight: 500;
-  color: hsl(var(--theme-ink-faint, 35 15% 60%));
+  color: hsl(var(--theme-ink-secondary));
   background: none;
   border: none;
   cursor: pointer;
@@ -490,9 +490,8 @@ html[data-density="comfortable"] {
 }
 
 /* ─── Keeper Board — panel opacity ───────────────────────────────────────────
- * Cream token values are unchanged. Opacity applied here so the atmospheric
- * painting breathes through panel surfaces. Tokens remain the original warm
- * cream — only the alpha layering changes.
+ * Theme surface tokens with opacity so the atmospheric painting breathes
+ * through panel surfaces — same variables as Nav and Chronicle.
  * Ghost panel fix: the inner scroll container in DialogueMessageList is made
  * transparent so the dialog-message-surface provides the single background.
  */
@@ -506,7 +505,7 @@ html[data-density="comfortable"] {
  * Scoped to .keeper-board-scope so frame routes stay unchanged.
  */
 .keeper-board-scope .dialog-header-banner {
-  background: hsl(38 32% 97% / 0.72);
+  background: hsl(var(--theme-surface-paper) / 0.72);
   border-bottom-color: hsl(var(--theme-border-soft) / 0.45);
 }
 
@@ -534,13 +533,13 @@ html[data-density="comfortable"] {
 }
 
 .keeper-board-scope .dialog-message-surface {
-  background: hsl(38 28% 97% / 0.48);
+  background: hsl(var(--theme-dialogue-area-bg) / 0.48);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
 
 .keeper-board-scope .dialog-bottom-zone {
-  background: hsl(38 32% 97% / 0.62);
+  background: hsl(var(--theme-surface-panel) / 0.62);
   border-top-color: hsl(var(--theme-border-soft) / 0.38);
 }
 
