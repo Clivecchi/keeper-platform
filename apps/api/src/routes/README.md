@@ -7,6 +7,10 @@ Express route handlers for all API endpoints. Handles HTTP request/response cycl
 ## 🧱 Key Files
 
 - `integration-routes.ts` - Nango-backed integration session, webhook, proxy, list, disconnect
+- `railway-routes.ts` - Capability-gated Railway GraphQL proxy (services, deployments, logs, redeploy)
+- `vercel-routes.ts` - Capability-gated Vercel deployment routes (deployments, logs, project)
+- `webhook-routes.ts` - Inbound Railway, Vercel, GitHub webhook receivers (stub processing)
+- `capability-routes.ts` - `GET /api/capabilities/resolve` for Chronicle and clients
 - `boards.ts` - Board CRUD and management operations
   - Standard CRUD: GET, POST, PATCH, DELETE
   - Domain Board Management: viewer-mode, frames, cover, nav, publish (NEW)
@@ -167,6 +171,11 @@ Using `requestId` prevents duplicate operations:
 - [ ] Add board versioning/history
 
 ## 📆 Update Log
+
+### 2026-05-31 — Infrastructure capabilities (Step 3B)
+- Added `railway-routes.ts`, `vercel-routes.ts`, `webhook-routes.ts`, `capability-routes.ts`
+- Capability middleware in `../middleware/requireCapability.ts`
+- Services: `RailwayService.ts` (GraphQL v2), `VercelDeploymentService.ts` (deployments only)
 
 ### 2026-05-30 — Nango integration infrastructure (Step 3A)
 - Added `integration-routes.ts`: `POST /session`, `POST /webhook`, `POST /proxy`, `GET /`, `POST /disconnect`

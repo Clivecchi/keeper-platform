@@ -2,12 +2,7 @@
  * Seed script — Cloud platform agent
  *
  * Registers "Cloud" as a kip_agents record for the default domain.
- * Idempotent — skips if a record with slug "cloud" already exists.
- *
- * Note: The POST /api/agents route (apps/api/src/api/agents.ts) is the
- * canonical create path but requires an authenticated session.  Platform
- * bootstrap records like Cloud are seeded here instead, consistent with the
- * pattern used in seed-default-domain-frames.ts.
+ * Idempotent — creates or updates capabilities on existing Cloud record.
  *
  * Run with:
  *   cd apps/api && npx tsx src/scripts/seed-cloud-agent.ts
@@ -16,21 +11,28 @@
  */
 import { PrismaClient } from '@keeper/database'
 import 'dotenv/config'
+import { CLOUD_INFRA_READ_CAPABILITIES } from '../capabilities/infraCapabilities.js'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  // ── Check for existing record ─────────────────────────────────────────────
   const existing = await prisma.kip_agents.findFirst({
     where: { slug: 'cloud' },
   })
 
   if (existing) {
-    console.log(`[seed-cloud-agent] Already exists — id: ${existing.id}, name: ${existing.name}. Skipping.`)
+    const agent = await prisma.kip_agents.update({
+      where: { id: existing.id },
+      data: {
+        capabilities: [...CLOUD_INFRA_READ_CAPABILITIES],
+      },
+    })
+    console.log(
+      `[seed-cloud-agent] Updated capabilities — id: ${agent.id}, capabilities: ${agent.capabilities.join(', ')}`,
+    )
     return
   }
 
-  // ── Create Cloud agent ────────────────────────────────────────────────────
   const agent = await prisma.kip_agents.create({
     data: {
       name:           'Cloud',
@@ -44,7 +46,9 @@ async function main() {
       memory_enabled: true,
       tools:          [],
       permissions:    [],
-      // persona: none — do not load Kip's system prompt or SOLE memory
+      // Read infra capabilities only — deploy capabilities require confirmation gate before seeding
+      // incomplete — deploy capabilities require human confirmation gate before seeding on Cloud
+      capabilities:   [...CLOUD_INFRA_READ_CAPABILITIES],
       config: {
         persona: null,
         suppress_kip_system_prompt: true,

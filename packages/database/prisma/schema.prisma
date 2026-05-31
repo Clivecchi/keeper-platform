@@ -613,6 +613,7 @@ model kip_agents {
   memory_enabled         Boolean                  @default(false)
   tools                  String[]                 @default([])
   permissions            String[]                 @default([])
+  capabilities           String[]                 @default([])
   config                 Json                     @default("{}")
   status                 String                   @default("ready")
   created_at             DateTime                 @default(now())

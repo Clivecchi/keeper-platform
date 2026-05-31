@@ -72,6 +72,10 @@ import imageRouter from './api/image/routes.js';
 // Import v0 routes
 import v0MomentsRouter from './routes/v0/moments.js';
 import integrationRoutes from './routes/integration-routes.js';
+import railwayRoutes from './routes/railway-routes.js';
+import vercelRoutes from './routes/vercel-routes.js';
+import webhookRoutes from './routes/webhook-routes.js';
+import capabilityRoutes from './routes/capability-routes.js';
 import agentsRoutes from './api/agents.js';
 import journeysRoutes from './api/journeys.js';
 import publicJourneysRouter from './api/public/journeys.js';
@@ -1059,6 +1063,14 @@ app.use('/api/keeper-types', keeperTypesRoutes);
 app.use('/api/people', peopleRoutes);
 app.use('/api/integrations', integrationRoutes);
 console.log('[boot] ✅ mounted /api/integrations router');
+app.use('/api/railway', railwayRoutes);
+console.log('[boot] ✅ mounted /api/railway router');
+app.use('/api/vercel', vercelRoutes);
+console.log('[boot] ✅ mounted /api/vercel router');
+app.use('/api/webhooks', webhookRoutes);
+console.log('[boot] ✅ mounted /api/webhooks router');
+app.use('/api/capabilities', capabilityRoutes);
+console.log('[boot] ✅ mounted /api/capabilities router');
 // Mount KAM read-only API
 app.use('/kam', kamRouter);
 // Mount auth routes (cookie-based session management)

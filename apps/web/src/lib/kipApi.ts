@@ -81,6 +81,7 @@ export interface KipAgent {
   memory_enabled: boolean;
   tools: string[];
   permissions: string[];
+  capabilities: string[];
   config: Record<string, unknown>;
   status: string;
   model_provider: ModelProvider;

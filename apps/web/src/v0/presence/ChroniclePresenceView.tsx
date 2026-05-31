@@ -60,7 +60,14 @@ export function ChroniclePresenceView({
   }
 
   if (objectType === "service") {
-    return <IntegrationPresence serviceSlug={objectId} domainId={domainId} />
+    return (
+      <IntegrationPresence
+        serviceSlug={objectId}
+        domainId={domainId}
+        boardId={boardId}
+        agentSlug="cloud"
+      />
+    )
   }
 
   return (

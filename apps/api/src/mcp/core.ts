@@ -12,6 +12,7 @@ import { getSchema, callTool } from './tools.js';
 
 export interface McpContext {
   domainId: string | null;
+  agentCapabilities?: string[];
 }
 
 /**

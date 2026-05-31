@@ -1,0 +1,265 @@
+# KE3P · KEEPER PLATFORM
+## Presents — The Missing Layer Between Object and Treatment
+*Specification Document · May 2026 · Phase 2*
+
+For: Claude · Cursor · Kip · Chuck
+
+---
+
+## 1. The Decision That Produced This Document
+
+Frames were retired as a platform concept. The builder model was wrong — a domain owner composing a page from component catalogs, publishing a designed surface. That was the wrong assumption about what the guest experiences.
+
+But the presentation problem Frames were trying to solve is real. It did not retire with them.
+
+When a guest arrives at a domain, something receives them. When a Journey surfaces, it has a form. When a Moment plays, it has a shape. These forms needed a name.
+
+> *Presents are that name.*
+
+This document defines Presents — what they are, how they sit in the architecture, how they are rendered, and what must be built before any Cursor prompt about Presents or KeeperPresence is written.
+
+---
+
+## 2. What a Present Is
+
+A Present is the named form a kept object takes when it surfaces to an audience.
+
+Presents are universal. A Cover is a Cover — a Domain can inhabit it, a Journey can inhabit it, a Keeper can inhabit it. The object brings its content. The Present is the form. Treatment governs how that form feels.
+
+> *The platform's render stack is now three layers, each doing one job:*
+>
+> **Object → Present → Treatment**
+
+This is not a page-builder model. A domain owner does not compose a Present from parts. A Present is intrinsic to the object — the object knows how to inhabit a Cover. Rendr determines which Present is appropriate for a given object in a given context. The owner approves. The platform renders.
+
+### What a Present Is Not
+
+A Present is not a Frame. Frames were authored by composing component catalogs. Presents are configuration — named forms that objects inhabit.
+
+A Present is not a prop. Props are individual field-level display decisions. A Present is the whole form — the named presentation mode.
+
+A Present is not a Treatment. Treatment governs how the Present feels — its spatial ratios, motion behavior, density, presence, atmosphere. The Present governs what the surface is. These are two different layers and must not be collapsed.
+
+---
+
+## 3. The Filmstrip Model
+
+Keeper Presents like a media filmstrip. A presentation has a structure that is independent of what fills it. The content changes. The Present is the form it takes.
+
+| Present | What It Is | Who Can Inhabit It |
+|---|---|---|
+| **Cover** | The arrival surface. The first thing seen. What receives a guest. | Domain, Journey, Keeper, Moment |
+| **Slide** | A structured narrative beat. Content forward, narrative context present. | Journey, Moment, Keeper |
+| **Media** | A filmstrip moment. The content is experiential — video, photo, audio. Not read. Felt. | Moment, Domain |
+| **Journey** | The story arc surface. The narrative rendered for an audience. Earns its own name because Journey drives the domain. | Journey |
+| **Moment** | A single story beat at full depth. Earns its own name because a Moment at full depth is distinct from a Moment in a slide. | Moment |
+
+> This catalog is open. These five are the names confirmed with confidence. Others will emerge from content — not from architecture. Do not invent names before content demands them.
+
+---
+
+## 4. The Architecture
+
+### 4.1 Three Layers, Three Jobs
+
+| Layer | What It Does | Who Writes It |
+|---|---|---|
+| Object | Carries the content — the Journey, the Moment, the Keeper, the Domain. | Kip · Platform |
+| Present | Names the form the object takes in this context. | Rendr · Owner approves |
+| Treatment | Governs how that form feels — motion, density, spatial ratios, presence. | Rendr · Owner approves |
+
+### 4.2 The Present Definition — Data
+
+A Present is a named configuration. It lives in the database or domain JSON alongside the Treatment. It is the instruction — not code.
+
+```json
+{
+  "present": "cover",
+  "treatment": "cinematic",
+  "subject": { "type": "journey", "id": "..." }
+}
+```
+
+Rendr writes this. The owner approves it. The platform renders it. No domain owner writes Present JSON by hand.
+
+### 4.3 The Present Renderer — Theatre.js
+
+This is the critical architectural decision locked in this document.
+
+Presents are not static React components. They are Theatre.js sequences — authored definitions of how values change over time. KeeperPresence is built as a Theatre.js listener from the start.
+
+The Present definition in the database includes a sequence reference. The KeeperPresence component responds to the values Theatre.js is playing. It does not need to know which Present it is — it responds to values.
+
+A Cover sequence is different from a Slide sequence is different from a Media sequence. But they all play through the same React listener. Swap the sequence, the presentation changes. No new React component required.
+
+> *This is the data-driven philosophy carried all the way into motion. JSON is the instruction. The component is an intelligent empty vessel. The sequence is the Present.*
+
+### 4.4 Motion Tier and Theatre.js
+
+| Library | Role in Presents |
+|---|---|
+| Framer Motion | Ambient transitions at all tiers. Always present. Does not govern Presents. |
+| GSAP | Standard Treatment tier. Scroll choreography, directed motion. Not the Present renderer. |
+| Theatre.js | The Present renderer. Sequences that govern how a Present unfolds. Cinematic Treatment tier and above. |
+| R3F | Immersive Treatment tier. Spatial worlds. Presents in three-dimensional space. |
+
+Theatre.js at this level requires a human creative director in the loop. Sequences are not generated — they are authored. Rendr is the right agent for this. Rendr authors Theatre.js sequences as part of its Treatment output. The human approves. The sequence is stored with the Present definition.
+
+### 4.5 KeeperPresence — Updated Signature
+
+KeeperPresence currently receives `object`, `context`, and `treatment`. The `context` prop is typed as a location — `'chronicle'`, `'feed'`, `'journey'`. That is a location context. It answers where the object is appearing, not how it is presenting.
+
+A `present` field is added alongside `context`. These are not the same thing and must not be collapsed.
+
+```typescript
+interface KeeperPresenceProps {
+  object: KeeperObject
+  present: PresentName         // 'cover' | 'slide' | 'media' | 'journey' | 'moment' | string
+  context: RenderContext       // where it is appearing
+  treatment: TreatmentJSON     // how it feels
+  onSelect?: () => void
+}
+```
+
+`PresentName` is a string, not a closed enum. The catalog grows as content demands it. The architecture does not require a rebuild when a new Present is named.
+
+---
+
+## 5. Rendr's Expanded Role
+
+Rendr's role expands with this document. Rendr does not just configure Treatment. Rendr reasons about which Present is appropriate for a given object in a given context — and then configures the Treatment that governs how that Present feels.
+
+Rendr also authors Theatre.js sequences — the definitions of what a Cover actually does, what a Journey surface actually unfolds. These are stored with the Present definition and approved by the owner before anything renders.
+
+| Rendr Reasons From | What It Supplies |
+|---|---|
+| Object type | What kind of object is inhabiting this Present |
+| Present name | What form the object is taking |
+| Domain identity | Purpose, tone, and audience of the domain |
+| Content character | Memorial archive, business pitch, family story, venue |
+| Treatment tier | Standard, Cinematic, or Immersive — the motion library constraint |
+| Audience | Who is receiving this, in what context, with what expectations |
+
+> *Rendr proposes. The owner approves. Nothing renders without confirmation.*
+
+---
+
+## 6. What Must Happen Before Any Cursor Prompt
+
+This decision — that KeeperPresence is a Theatre.js listener, not a static component tree — must be made before any build prompt about Presents or KeeperPresence is written. Retrofitting Theatre.js into a static component architecture is the wrong order.
+
+| Step | What |
+|---|---|
+| 1 | Confirm Theatre.js SSR compatibility with Vercel/Next.js before installation. This is a prerequisite, not an assumption. |
+| 2 | Name performance targets — frame rate, bundle budget, render constraints — before Theatre.js is installed. |
+| 3 | Write the Present definition schema — the JSON structure that includes present name, sequence reference, and subject. |
+| 4 | Update KeeperPresence signature — add `present` field alongside `context` and `treatment`. |
+| 5 | Build KeeperPresence as a Theatre.js listener with placeholder sequences for the five named Presents. |
+| 6 | Rendr authors real sequences when Rendr is built. Placeholder sequences are the scaffold, not the destination. |
+
+---
+
+## 7. What Is Locked
+
+These decisions are locked. Do not substitute, reframe, or reopen without a deliberate architectural decision recorded in a Moment.
+
+| Decision | What Is Locked |
+|---|---|
+| Presents are universal | A Cover is a Cover. Any object can inhabit any Present. Object-specific Present variants are configurations, not new Present types. |
+| Three-layer render stack | Object → Present → Treatment. Each layer does one job. They are not collapsed. |
+| Present catalog is open | Five names confirmed: Cover, Slide, Media, Journey, Moment. New names emerge from content. No premature naming. |
+| Presents are Theatre.js sequences | Not static React components. KeeperPresence is built as a Theatre.js listener from the start. This is not retrofitted later. |
+| `present` is a prop on KeeperPresence | Alongside `context` (location) and `treatment` (feeling). `context` and `present` are not the same field. |
+| Default sequences ship with the platform | Cursor authors the five default sequences in code. They are exported as Theatre.js JSON and stored as the platform's default Present catalog. Rendr overrides per domain. The platform does not wait for Rendr to ship working Presents. |
+| Theatre.js Studio is the human edit surface | The visual editor is Theatre.js's own tool. We do not build a custom sequence editor. We use the one that ships with the library. |
+| Rendr authors bespoke sequences | When Rendr is built, it produces domain-specific sequences that override the defaults. Rendr's sequences are always human-approved before they render. |
+| Theatre.js installs in three places | Local dev, Vercel (frontend), and Railway (if any sequence rendering runs server-side). SSR compatibility confirmed before installation. Performance targets named first. |
+
+---
+
+## 8. Default Sequences — What Cursor Authors
+
+Cursor authors the five default Present sequences before Rendr exists. These are not placeholders — they are disciplined, intentional defaults that work for any domain. Rendr makes them bespoke. The defaults ship with the platform.
+
+### 8.1 Authoring Approach
+
+Cursor writes the sequences as Theatre.js sheet definitions in code. Each sequence is a named sheet with tracks governing the values KeeperPresence listens to. Once written, Theatre.js Studio can open, inspect, and edit them visually. The human does not touch code to adjust timing, easing, or value curves — that is Theatre.js Studio's job.
+
+The authored sequences are exported as Theatre.js project JSON and stored in the platform's default Present catalog — a static file that ships with the codebase. Domain-level overrides (authored by Rendr) are stored in domain JSON and take precedence at runtime.
+
+### 8.2 The Five Default Sequences
+
+| Present | Default Sequence Character |
+|---|---|
+| **Cover** | Atmosphere expands slowly. Domain identity fades in from opacity 0 over 1.2s. Content arrives after atmosphere is present — not simultaneously. Unhurried. The guest is received, not presented at. |
+| **Slide** | Content steps into view. Primary field arrives first. Secondary fields follow at 200ms intervals. Narrative context fades in last. Forward motion — each beat confirms the previous before the next arrives. |
+| **Media** | Opens full. No preamble. The media is the experience. Caption arrives quietly after 800ms. Controls are ambient — present on hover, recessive otherwise. Nothing competes with the content. |
+| **Journey** | Arc motion. The story has a beginning — the title and forward arrive together. Paths surface sequentially, not simultaneously. The sense of going somewhere. Motion mirrors narrative structure. |
+| **Moment** | Full depth, deliberate pace. The Moment title arrives. A breath. Then the narrative. Then context — Journey, Path, date — fades in beneath. The Moment is held, not skimmed. |
+
+### 8.3 What KeeperPresence Listens To
+
+KeeperPresence does not branch on present name. It listens to a set of named values that Theatre.js plays. The sequence determines what those values do. The component responds.
+
+| Value Name | What It Controls |
+|---|---|
+| `atmosphereOpacity` | Background atmosphere — how present the domain's visual context is |
+| `primaryOpacity` | The primary field — title, name, or lead content |
+| `secondaryOpacity` | Secondary fields — supporting content, descriptions |
+| `contextOpacity` | Ambient context — Journey name, Path, date, provenance |
+| `mediaScale` | For Media presents — how the content fills the surface |
+| `contentOffsetY` | Vertical entry offset — how far content travels on arrival |
+| `captionOpacity` | Captions, whispers, and ambient labels |
+
+This value set is the starting definition. It is not closed. New values are added when a Present sequence requires them. The component must handle unknown values gracefully — ignore what it does not know.
+
+### 8.4 Installation — Where Theatre.js Lives
+
+Theatre.js must be installed and confirmed working in three environments before any Present sequence is authored. Do not author sequences in an environment where Theatre.js is not confirmed.
+
+| Environment | What Installs | Confirmation |
+|---|---|---|
+| Local dev | `@theatre/core` + `@theatre/studio`. Studio is dev-only — never ships to production. | Theatre.js Studio opens in browser. A test sheet animates a value. Studio exports JSON without error. |
+| Vercel (production) | `@theatre/core` only. Studio is excluded from the production bundle via build config. | Deployed build plays a sequence from stored JSON. No Studio UI present. No SSR errors. Bundle size confirmed within budget. |
+| Railway (API/backend) | Only if sequence rendering or JSON storage runs server-side. Likely `@theatre/core` only, or not needed at all if sequences are purely frontend. | Confirm whether Railway needs Theatre.js at all before installing. Do not install speculatively. |
+
+> **SSR is the critical risk.** Theatre.js `@theatre/core` has known SSR considerations with Next.js. Cursor must confirm the correct client-only boundary pattern before writing any sequence code. The standard pattern is `dynamic import with ssr: false`. Confirm this works with the current Vercel deployment before proceeding.
+
+### 8.5 Build Sequence for This Prompt
+
+| Step | What Cursor Does |
+|---|---|
+| 1 — Diagnostic | Read the current `package.json` files across `apps/web` and `apps/api`. Report whether `@theatre/core` or `@theatre/studio` appear anywhere. Report the current Next.js version and SSR configuration. |
+| 2 — SSR confirmation | Confirm the correct dynamic import pattern for Theatre.js with this Next.js version. Write a minimal test component that imports `@theatre/core` with `ssr: false`. Confirm it renders without error in a Vercel preview deploy. |
+| 3 — Install | Install `@theatre/core` in `apps/web`. Install `@theatre/studio` as a dev dependency in `apps/web`. Exclude Studio from the production bundle via `next.config.js`. Do not install in `apps/api` unless Step 1 confirms it is needed. |
+| 4 — Default catalog | Create `apps/web/src/v0/presents/defaultSequences.ts` — the five default Present sheets as Theatre.js project JSON. One sheet per Present. Named values matching the value set in Section 8.3. |
+| 5 — KeeperPresence update | Add `present: PresentName` to `KeeperPresenceProps`. Wire Theatre.js listener to the named values. Component responds to values — does not branch on present name. |
+| 6 — Confirm in browser | A Journey object inhabiting a Cover Present animates correctly using the default sequence. Theatre.js Studio opens in dev and shows the Cover sheet with editable tracks. |
+
+---
+
+## 9. Canonical Terms
+
+Every term below is locked for Presents. Do not substitute synonyms.
+
+| Term | Definition |
+|---|---|
+| Present | The named form a kept object takes when it surfaces to an audience. Universal — any object can inhabit any Present. |
+| PresentName | The string type for a Present identifier. Open — not a closed enum. `'cover'` \| `'slide'` \| `'media'` \| `'journey'` \| `'moment'` \| `string`. |
+| Cover | The arrival surface. The first thing a guest sees. Any object can inhabit it. |
+| Slide | A structured narrative beat. Content forward, narrative context present. |
+| Media | A filmstrip moment. The content is experiential — video, photo, audio. Not read. Felt. |
+| Journey (Present) | The story arc surface. The narrative rendered for an audience. Distinct from Journey as an object type. |
+| Moment (Present) | A single story beat at full depth. Distinct from Moment as an object type. |
+| Present sequence | The Theatre.js sequence definition that governs how a Present unfolds. Authored by Rendr. Approved by owner. |
+| KeeperPresence | The universal render component. Receives object, present, context, and treatment. Responds to Theatre.js values. Does not branch on present name. |
+
+---
+
+*KE3P · Keeper Platform · Presents — Specification Document · May 2026*
+
+*Emerged from: Clarity session — May 24, 2026 · Chuck directing · Claude documenting*
+
+*Companion to: Keeper_FramesRetired_DesignBoardRedefined_May2026.md · Keeper_Phase2_SessionSummary_May2026.docx*
+
+*Supersedes: All prior framing of KeeperPresence as a static component tree. When this document and any prior document conflict on Presents architecture, this document wins.*

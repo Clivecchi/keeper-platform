@@ -65,6 +65,11 @@ export interface ConversationPanelDef {
    * Echo agent — resolved from def.conversation.agentSlug for now; echo registry is a future layer.
    */
   agentEcho?: boolean
+  /**
+   * Capability ceiling for this board — agent capabilities are intersected with this set at runtime.
+   * Declared as data; editable through Chronicle / Design Board in future steps.
+   */
+  allowedCapabilities?: string[]
 }
 
 // Right panel — Living Multi-Context Surface
@@ -176,6 +181,16 @@ export interface BoardAccessDef {
 
 // ─── Primary Interface ────────────────────────────────────────────────────────
 
+/** Infra capability ceiling for IDE Board — keep in sync with apps/api/src/capabilities/infraCapabilities.ts */
+const IDE_BOARD_ALLOWED_CAPABILITIES: string[] = [
+  "infra.railway.read",
+  "infra.railway.deploy",
+  "infra.vercel.read",
+  "infra.vercel.deploy",
+  "infra.github.read",
+  "infra.github.write",
+]
+
 /**
  * UniversalBoardDef
  *
@@ -225,6 +240,7 @@ export const IDE_BOARD_DEF: UniversalBoardDef = {
     dialogueMode: "domain",
     showServiceBar: true,
     kipMode: "ide",
+    allowedCapabilities: IDE_BOARD_ALLOWED_CAPABILITIES,
   },
   contextSurface: {
     viewStates: mergeViewStates({

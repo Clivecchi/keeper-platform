@@ -12,6 +12,7 @@ import { logMcp } from './log.js';
 import { rid } from './id.js';
 import { mcpListActions, mcpCallAction, mcpGetCapabilities } from './core.js';
 import { jsonRpcDispatcher } from './jsonRpc.js';
+import { resolveAgentCapabilities } from '../capabilities/resolveCapabilities.js';
 
 const router = Router();
 
@@ -284,10 +285,18 @@ router.post('/call', async (req: Request, res: Response) => {
       return;
     }
     
+    const agentSlug = (req.headers['x-agent-slug'] as string) ?? undefined;
+    const agentId = (req.headers['x-agent-id'] as string) ?? undefined;
+    const boardId = (req.headers['x-board-id'] as string) ?? undefined;
+    const resolvedCaps = await resolveAgentCapabilities({ agentSlug, agentId, boardId });
+
     const result = await mcpCallAction(
       String(name), 
       args ?? {}, 
-      { domainId: (req as any).domainId ?? null }
+      {
+        domainId: (req as any).domainId ?? null,
+        agentCapabilities: resolvedCaps?.capabilities,
+      }
     );
     
     res.json({ 

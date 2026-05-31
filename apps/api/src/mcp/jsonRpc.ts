@@ -4,6 +4,7 @@
 
 import type { Request, Response } from 'express';
 import { mcpListActions, mcpCallAction, mcpGetCapabilities } from './core.js';
+import { resolveAgentCapabilities } from '../capabilities/resolveCapabilities.js';
 import { logMcp } from './log.js';
 import { rid } from './id.js';
 
@@ -181,7 +182,14 @@ export async function jsonRpcDispatcher(req: Request, res: Response): Promise<vo
 
     // Extract domain context from headers
     const domainId = (req.headers['x-domain-id'] as string) ?? null;
-    const ctx = { domainId };
+    const agentSlug = (req.headers['x-agent-slug'] as string) ?? undefined;
+    const agentId = (req.headers['x-agent-id'] as string) ?? undefined;
+    const boardId = (req.headers['x-board-id'] as string) ?? undefined;
+    const resolvedCaps = await resolveAgentCapabilities({ agentSlug, agentId, boardId });
+    const ctx = {
+      domainId,
+      agentCapabilities: resolvedCaps?.capabilities,
+    };
 
     // Dispatch to appropriate handler
     let result: any;
