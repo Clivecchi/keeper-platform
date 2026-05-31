@@ -361,10 +361,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             rows={MIN_ROWS}
             className="keeper-composer-input w-full min-h-[44px] max-h-[120px] resize-none overflow-y-auto rounded-md border text-sm leading-5 focus:outline-none"
             style={{
-              color: "hsl(38 28% 90%)",
               backgroundColor: SURFACE.inputBg,
               borderColor: "hsl(var(--theme-border-soft) / 0.5)",
-              caretColor: "hsl(var(--theme-focus-ring))",
             }}
           />
         </div>

@@ -400,16 +400,8 @@ export function KeeperDialogFrame({
         {/* Gradient dissolve — messages fade before reaching the Composer */}
         {mode !== 'feed' && (
           <div
+            className="dialog-fade-overlay"
             aria-hidden="true"
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: '80px',
-              background: 'linear-gradient(to bottom, transparent, hsl(var(--theme-surface-panel) / 0.18))',
-              pointerEvents: 'none',
-            }}
           />
         )}
       </div>

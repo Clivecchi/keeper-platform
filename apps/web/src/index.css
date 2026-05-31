@@ -313,27 +313,14 @@ html[data-density="comfortable"] {
 
 .dialog-message-surface {
   /* flex: 1 and min-height: 0 are now owned by the .dialog-message-zone wrapper in TSX */
+  position: relative;
+  z-index: 2;
   height: 100%;
   overflow-y: auto;
   scrollbar-width: none;
   scrollbar-color: transparent transparent;
-  /* Open atmosphere — messages float through; no panel background */
+  /* Open atmosphere — messages float above; dissolve handled by sibling overlay */
   background: transparent;
-  /* Oldest messages dissolve at top; newest fade before Composer at bottom */
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    black 16%,
-    black 70%,
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    black 16%,
-    black 70%,
-    transparent 100%
-  );
 }
 
 /* Zone 2 wrapper — takes flex:1 so the scroll surface can be height:100% */
@@ -342,6 +329,44 @@ html[data-density="comfortable"] {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  z-index: 1;
+}
+
+/* Bottom dissolve — sibling overlay above messages at the Composer edge */
+.dialog-fade-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(
+    to top,
+    transparent 0%,
+    hsla(30, 12%, 8%, 0.7) 100%
+  );
+  pointer-events: none;
+  z-index: 3;
+}
+
+.dialog-message-bubble {
+  position: relative;
+  z-index: 2;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.dialog-message-bubble--agent {
+  background: hsla(28, 12%, 14%, 0.72) !important;
+  border: 1px solid hsla(38, 18%, 28%, 0.35) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 12px hsla(20, 10%, 4%, 0.25);
+}
+
+.dialog-message-bubble--user {
+  background: hsla(168, 30%, 16%, 0.68) !important;
+  border: 1px solid hsla(168, 35%, 28%, 0.35) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 12px hsla(20, 10%, 4%, 0.2);
 }
 
 .dialog-message-surface:hover,
@@ -703,12 +728,45 @@ html[data-density="comfortable"] {
   border-bottom: none;
 }
 
+/* ─── Platform header bar (KeeperTopBar) ───────────────────────────────────── */
+
+.keeper-platform-top-bar {
+  background: hsla(28, 15%, 8%, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid hsla(38, 20%, 22%, 0.4);
+}
+
+.keeper-platform-top-bar .keeper-topbar-primary {
+  color: hsl(var(--theme-header-text-primary));
+}
+
+.keeper-platform-top-bar .keeper-topbar-secondary {
+  color: hsl(var(--theme-header-text-secondary));
+}
+
+.keeper-platform-top-bar .keeper-topbar-row {
+  border-bottom-color: hsla(38, 20%, 22%, 0.25) !important;
+}
+
+.keeper-platform-top-bar .keeper-topbar-status-badge {
+  color: hsl(var(--theme-header-sole-text));
+  border: 1px solid hsl(var(--theme-header-sole-border) / 0.45);
+  background: hsl(var(--theme-header-sole-bg) / 0.3);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 /* ─── Board panels — Nav, Chronicle, Composer input ───────────────────────── */
 
 .keeper-nav-panel {
-  background: hsl(var(--theme-surface-panel) / 0.78) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: hsla(28, 10%, 10%, 0.62) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: none !important;
   border-right: 1px solid hsl(var(--theme-border-soft) / 0.25) !important;
   border-radius: 8px;
@@ -746,9 +804,11 @@ html[data-density="comfortable"] {
 
 /* Nav SidebarCard — section headers + record hierarchy (nav panel only) */
 .keeper-nav-panel .keeper-sidebar-card {
-  background: hsl(var(--theme-surface-paper) / 0.22) !important;
-  border-color: hsl(var(--theme-border-soft) / 0.2) !important;
+  background: transparent !important;
+  border: none !important;
   box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .keeper-nav-panel .keeper-sidebar-card h3,
@@ -758,18 +818,54 @@ html[data-density="comfortable"] {
   font-weight: 600 !important;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: hsl(var(--theme-ink-tertiary)) !important;
+  color: hsl(38 15% 48%) !important;
 }
 
 .keeper-nav-panel .keeper-sidebar-card p.text-base {
   font-size: 12px !important;
-  color: hsl(38 12% 52%) !important;
+  color: hsl(38 15% 56%) !important;
 }
 
-.keeper-nav-panel .keeper-sidebar-card ul button,
-.keeper-nav-panel .keeper-sidebar-card ul span {
-  font-size: 13px !important;
-  color: hsl(var(--theme-ink-primary)) !important;
+.keeper-nav-panel .keeper-sidebar-card ul {
+  margin-top: 0.75rem;
+}
+
+.keeper-nav-panel .keeper-sidebar-card ul li {
+  margin-bottom: 4px;
+}
+
+.keeper-nav-panel .keeper-sidebar-card ul li > button,
+.keeper-nav-panel .keeper-sidebar-card ul li > span:not([class*="rounded-full"]) {
+  display: block;
+  width: 100%;
+  background: hsla(35, 12%, 16%, 0.55);
+  border: 1px solid hsla(38, 18%, 28%, 0.3);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 0;
+}
+
+.keeper-nav-panel .keeper-sidebar-card ul button {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: hsl(38 28% 84%) !important;
+  line-height: 1.4;
+}
+
+.keeper-nav-panel .keeper-sidebar-card ul span:not([class*="rounded-full"]) {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: hsl(38 28% 84%) !important;
+  line-height: 1.4;
+}
+
+.keeper-nav-panel .keeper-sidebar-card ul li > span.rounded-full {
+  display: none;
+}
+
+.keeper-nav-panel .keeper-sidebar-card ul button.font-medium {
+  background: hsla(35, 12%, 20%, 0.72) !important;
+  border-color: hsla(38, 18%, 32%, 0.45) !important;
 }
 
 .keeper-nav-panel .keeper-sidebar-card button.inline-flex.rounded-full {
@@ -798,15 +894,15 @@ html[data-density="comfortable"] {
   background: hsl(var(--theme-surface-elevated) / 0.9) !important;
   border: 1px solid hsl(var(--theme-border-soft) / 0.5) !important;
   border-radius: 8px;
-  color: hsl(38 28% 90%) !important;
-  caret-color: hsl(var(--theme-focus-ring));
+  color: hsl(var(--theme-composer-input-text)) !important;
+  caret-color: hsl(var(--theme-composer-caret));
   font-size: 14px;
   line-height: 1.5;
   padding: 10px 14px;
 }
 
 .dialog-bottom-zone .keeper-composer-input::placeholder {
-  color: hsl(var(--theme-ink-placeholder));
+  color: hsl(var(--theme-composer-placeholder));
   opacity: 1;
 }
 

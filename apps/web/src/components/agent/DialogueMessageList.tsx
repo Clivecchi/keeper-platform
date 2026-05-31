@@ -320,25 +320,21 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
               >
                 <div
                   className={clsx(
-                    "rounded-xl px-4 py-3 text-sm shadow-sm",
-                    message.role === "user" ? "max-w-xl" : agentBubbleFullWidth ? "w-full max-w-none" : "max-w-xl",
+                    "dialog-message-bubble px-4 py-3 text-sm",
+                    message.role === "user"
+                      ? "dialog-message-bubble--user max-w-xl"
+                      : clsx(
+                          "dialog-message-bubble--agent",
+                          agentBubbleFullWidth ? "w-full max-w-none" : "max-w-xl",
+                        ),
                   )}
                   style={{
-                    backgroundColor:
-                      message.role === "user"
-                        ? "hsl(var(--theme-dialogue-user-bg) / 0.65)"
-                        : "hsl(var(--theme-dialogue-agent-bg) / 0.72)",
                     color:
                       message.role === "user"
                         ? "hsl(168 10% 88%)"
                         : "hsl(38 22% 85%)",
-                    border:
-                      message.role === "agent"
-                        ? "1px solid hsl(var(--theme-dialogue-border) / 0.3)"
-                        : "1px solid hsl(var(--theme-focus-ring) / 0.35)",
                     fontSize: "14px",
                     lineHeight: message.role === "agent" ? 1.65 : 1.5,
-                    boxShadow: message.role === "agent" ? "none" : undefined,
                   }}
                 >
                   {message.role === "user" ? (

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import clsx from "clsx"
 import { FileText } from "lucide-react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { useV0Shell } from "../shell/V0ShellContext"
@@ -214,18 +215,14 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
 
   return (
     <div
-      style={{
-        borderBottom: "1px solid var(--theme-border-soft)",
-        backgroundColor: "hsl(var(--theme-surface-paper) / 0.98)",
-        backdropFilter: "blur(8px)",
-      }}
+      className="keeper-platform-top-bar"
     >
       {/* Row 1: domain identity + user */}
       <div
-        className="flex items-center justify-between px-5"
+        className="keeper-topbar-row flex items-center justify-between px-5"
         style={{
           height: 40,
-          borderBottom: "0.5px solid var(--theme-border-soft)",
+          borderBottom: "0.5px solid hsla(38, 20%, 22%, 0.25)",
         }}
       >
         {/* Left: domain name + tagline */}
@@ -236,15 +233,13 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
           aria-label={`Domain: ${wordmark}`}
         >
           <span
-            className="font-serif text-[15px] font-semibold leading-tight truncate max-w-[280px]"
-            style={{ color: "var(--theme-ink-primary)" }}
+            className="keeper-topbar-primary font-serif text-[15px] font-semibold leading-tight truncate max-w-[280px]"
           >
             {wordmark}
           </span>
           {tagline ? (
             <span
-              className="text-[11px] leading-none truncate max-w-[280px] mt-0.5"
-              style={{ color: "var(--theme-ink-muted, var(--theme-ink-secondary))" }}
+              className="keeper-topbar-secondary text-[11px] leading-none truncate max-w-[280px] mt-0.5"
             >
               {tagline}
             </span>
@@ -255,16 +250,12 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
         <div className="flex items-center gap-2.5 shrink-0" style={{ position: "relative" }}>
           <div className="text-right">
             <p
-              className="text-[12px] font-medium leading-tight"
-              style={{ color: "var(--theme-ink-primary)" }}
+              className="keeper-topbar-primary text-[12px] font-medium leading-tight"
             >
               {displayName}
             </p>
-            <p
-              className="text-[10px] leading-none mt-0.5"
-              style={{ color: "var(--theme-ink-muted, var(--theme-ink-secondary))" }}
-            >
-              {roleLabel}
+            <p className="mt-0.5">
+              <span className="keeper-topbar-status-badge">{roleLabel}</span>
             </p>
           </div>
           {/* Avatar circle — clickable for authenticated users */}
@@ -275,15 +266,14 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
             aria-expanded={profileOpen}
             aria-haspopup="menu"
             aria-label="Open profile menu"
-            className="flex items-center justify-center rounded-full shrink-0 text-[11px] font-semibold"
+            className="keeper-topbar-secondary flex items-center justify-center rounded-full shrink-0 text-[11px] font-semibold"
             style={{
               width: 26,
               height: 26,
-              backgroundColor: "hsl(var(--theme-surface-raised, var(--theme-surface-paper)) / 1)",
+              backgroundColor: "hsla(35, 12%, 16%, 0.55)",
               border: profileOpen
-                ? "1px solid var(--theme-ink-secondary)"
-                : "1px solid var(--theme-border-soft)",
-              color: "var(--theme-ink-secondary)",
+                ? "1px solid hsl(var(--theme-header-sole-border) / 0.45)"
+                : "1px solid hsla(38, 18%, 28%, 0.3)",
               cursor: resolvedAudience === "guest" ? "default" : "pointer",
               padding: 0,
             }}
@@ -306,10 +296,10 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
 
       {/* Row 2: board links + Brief */}
       <div
-        className="flex items-center justify-between px-5"
+        className="keeper-topbar-row flex items-center justify-between px-5"
         style={{
           height: 32,
-          borderBottom: "0.5px solid var(--theme-border-soft)",
+          borderBottom: "0.5px solid hsla(38, 20%, 22%, 0.25)",
         }}
       >
         {/* Board links */}
@@ -320,8 +310,7 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
               <React.Fragment key={id}>
                 {idx > 0 && (
                   <span
-                    className="select-none px-1.5 text-[12px]"
-                    style={{ color: "var(--theme-ink-muted, var(--theme-ink-secondary))" }}
+                    className="keeper-topbar-secondary select-none px-1.5 text-[12px]"
                     aria-hidden
                   >
                     ·
@@ -330,13 +319,10 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
                 <button
                   type="button"
                   onClick={() => handleBoardClick(id)}
-                  className="text-[12px] transition-colors"
-                  style={{
-                    fontWeight: isActive ? 500 : 400,
-                    color: isActive
-                      ? "var(--theme-ink-primary)"
-                      : "var(--theme-ink-muted, var(--theme-ink-secondary))",
-                  }}
+                  className={clsx(
+                    "text-[12px] transition-colors",
+                    isActive ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
+                  )}
                   aria-current={isActive ? "page" : undefined}
                 >
                   {label}
@@ -350,13 +336,10 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
         <button
           type="button"
           onClick={onBriefClick}
-          className="flex items-center gap-1 transition-colors"
-          style={{
-            color: isBriefOpen
-              ? "hsl(var(--theme-ink-primary))"
-              : "var(--theme-ink-muted, var(--theme-ink-secondary))",
-            fontWeight: isBriefOpen ? 500 : undefined,
-          }}
+          className={clsx(
+            "flex items-center gap-1 transition-colors text-[12px]",
+            isBriefOpen ? "keeper-topbar-primary font-medium" : "keeper-topbar-secondary",
+          )}
           aria-label="Open domain brief"
           aria-pressed={isBriefOpen}
         >

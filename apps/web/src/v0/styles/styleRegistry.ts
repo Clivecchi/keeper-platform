@@ -263,6 +263,18 @@ export function tokensToCSSVars(tokens: StyleTokens): Record<string, string> {
     '--theme-status-warning': '38 88% 58%',
     '--theme-status-error': '0 72% 58%',
 
+    /* Composer input — sunset amber (typed text, placeholder, caret only) */
+    '--theme-composer-input-text': '28 75% 62%',
+    '--theme-composer-placeholder': '28 55% 48%',
+    '--theme-composer-caret': '22 80% 58%',
+
+    /* Platform header bar — warm dark top edge */
+    '--theme-header-text-primary': '38 30% 82%',
+    '--theme-header-text-secondary': '38 18% 52%',
+    '--theme-header-sole-text': '168 55% 52%',
+    '--theme-header-sole-border': '168 55% 42%',
+    '--theme-header-sole-bg': '168 55% 20%',
+
     /* Short-name aliases (legacy CSS + components) */
     '--theme-surface': toVar('surface.panel', tokens['surface.panel']),
     '--theme-border': toVar('border.soft', tokens['border.soft']),
