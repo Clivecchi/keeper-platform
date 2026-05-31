@@ -140,7 +140,7 @@ function BarEyebrow({ label }: { label: string }) {
     <span
       style={{
         fontSize: "10px",
-        color: "var(--theme-ink-tertiary-color)",
+        color: "hsl(var(--theme-ink-placeholder))",
         letterSpacing: "0.04em",
         flexShrink: 0,
         marginRight: "12px",

@@ -459,6 +459,7 @@ export function UniversalNavPanel({
           <>
             <SidebarCard
               title="Dialogs"
+              className="keeper-sidebar-card"
               description={!domainId ? "Loading…" : countLabel(dialogs?.length ?? null, "dialog")}
               items={slice("dialogs", allDialogItems).length ? slice("dialogs", allDialogItems) : undefined}
               onTitleClick={() => toggleExpanded("dialogs")}
@@ -476,6 +477,7 @@ export function UniversalNavPanel({
         return (
           <>
             <SidebarCard
+              className="keeper-sidebar-card"
               title="Journeys"
               description={!domainId ? "Loading…" : countLabel(journeys?.length ?? null, "journey")}
               items={slice("journeys", allJourneyItems).length ? slice("journeys", allJourneyItems) : undefined}
@@ -494,6 +496,7 @@ export function UniversalNavPanel({
         return (
           <>
             <SidebarCard
+              className="keeper-sidebar-card"
               title="Keepers"
               description={!domainId ? "Loading…" : countLabel(keepers?.length ?? null, "keeper")}
               items={slice("keepers", allKeeperItems).length ? slice("keepers", allKeeperItems) : undefined}
@@ -512,6 +515,7 @@ export function UniversalNavPanel({
         return (
           <>
             <SidebarCard
+              className="keeper-sidebar-card"
               title="Drafts"
               description={!domainId ? "Loading…" : countLabel(drafts?.length ?? null, "draft")}
               items={slice("drafts", allDraftItems).length ? slice("drafts", allDraftItems) : undefined}
@@ -529,6 +533,7 @@ export function UniversalNavPanel({
         if (integrationItems.length === 0) return null
         return (
           <SidebarCard
+            className="keeper-sidebar-card"
             title="Integrations"
             description="Platform connections"
             items={integrationItems}
@@ -539,6 +544,7 @@ export function UniversalNavPanel({
         return (
           <>
             <SidebarCard
+              className="keeper-sidebar-card"
               title="Agents"
               description={!domainId ? "Loading…" : countLabel(agents?.length ?? null, "agent")}
               items={slice("agents", allAgentItems).length ? slice("agents", allAgentItems) : allAgentItems}
@@ -555,6 +561,7 @@ export function UniversalNavPanel({
         if (!showBoardDefs) return null
         return (
           <SidebarCard
+            className="keeper-sidebar-card"
             title="Board Definitions"
             description={countLabel(boardDefItems.length, "definition")}
             items={boardDefItems.length ? boardDefItems : undefined}
@@ -569,13 +576,8 @@ export function UniversalNavPanel({
 
   return (
     <div
-      className="flex flex-col h-full overflow-hidden"
+      className="keeper-nav-panel flex flex-col h-full overflow-hidden"
       style={{
-        background: "hsl(var(--theme-surface-panel) / 0.93)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        borderRadius: "8px",
-        border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
         color: "hsl(var(--theme-ink-primary))",
       }}
     >

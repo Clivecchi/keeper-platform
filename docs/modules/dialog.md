@@ -9,12 +9,14 @@ Shared conversation shell used across IDE Board, Agent Board, and Domain Board. 
 ## 🔄 Data & Behavior
 
 ### Named Surfaces — Opacity Hierarchy (most opaque → most transparent)
-| Surface | CSS class | Opacity | Purpose |
-|---|---|---|---|
-| **Banner** | `.dialog-header-banner` | 0.88 | Orientation — readable, grounded |
-| **Composer** | `.dialog-bottom-zone` | 0.92 | Where the user speaks — intentional |
-| **Chat Zone** | `.dialog-message-surface` | 0.52 | Atmosphere breathes through |
-| **Thinking Space** | `.dialog-think-space` | 0.16 | Nearly atmosphere — the breath between |
+| Surface | CSS class | Opacity | Blur | Purpose |
+|---|---|---|---|---|
+| **Banner** | `.dialog-header-banner` | 0.55 | 16px | Orientation — frosted strip, warm secondary text |
+| **Composer** | `.dialog-bottom-zone` | 0.82 | 20px | Where the user speaks — input field lighter still |
+| **Thinking Space** | `.dialog-think-space` | transparent | — | Warm muted italic placeholder; no panel bg |
+| **Chat Zone** | `.dialog-message-surface` | transparent | — | Open atmosphere; top + bottom mask dissolve |
+
+Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:relative, overflow:hidden`) so an absolute-positioned gradient dissolve div can overlay the bottom 80px of the scroll area without scrolling with the content.
 
 ### Zone Behaviour
 - **Zone 1 (Banner)**: Frosted breadcrumb — `keeperName`, `journeyName`, `pathName`, `pathPrelude`. Hidden in `mode === 'feed'`.
@@ -43,6 +45,5 @@ All four zones are direct flex children of `.keeper-dialog-frame`. The thinking 
 - [ ] When `isSending` is true, `DialogueMessageList` may render its own thinking indicator inside Zone 2. This coexists with the thinking space pulse — both are intentional at this stage.
 
 ## 📆 Update Log
-- 2026-04-30 (Dialog Frame Surface Design): Overhauled surface system. Four named surfaces with explicit opacity hierarchy. Added `.dialog-think-space` as a flex sibling between Zone 2 and Zone 3 — fixed 52px height, opacity 0.16, never resizes. Chat zone opacity reduced 0.85→0.52 with top-dissolve mask. Composer zone (`dialog-bottom-zone`) switched to `--theme-surface-paper` token at 0.92. Message depth cascade added via `nth-last-child` CSS selectors (three depth levels: 0.68/0.97, 0.35/0.94, 0.12/0.92). `IntegratedServicesBar` moved below `AgentComposer` within Zone 3 (service bar now at floor). Inner message container bottom padding reduced `pb-32→pb-4`. All values use theme tokens — no hardcoded hex.
-- 2026-04-27 (Prompt 4): Added `mode?: 'feed' | 'dialog'`, `feedContent?: React.ReactNode`, and `onReturnToFeed?: () => void` props. Zone 1 (Banner) now hidden when `mode === 'feed'`; Zone 2 renders `feedContent` in feed mode and `DialogueMessageList` (or `dialogContent`) in dialog mode. Auto-scroll suppressed in feed mode. Back affordance (← Commons button, `.dialog-back-to-feed`) renders in Banner when `onReturnToFeed` is provided and mode is dialog. Default remains `'dialog'` — IDE Board and Agent Board unaffected.
-- 2026-04-27 (Prompt 3): `KeeperDialogFrame` — Added `dialogContent?: React.ReactNode` prop. When provided, Zone 2 renders `dialogContent` instead of `DialogueMessageList`. Auto-scroll skipped when `dialogContent` is active. Used by Domain Board to host `FeedFrame` inside the dialog shell.
+- 2026-05-30: Rendr treatment correction — opacity table updated; chat zone open atmosphere; composer 0.82 / banner 0.55; bottom scroll mask 70%→transparent; gradient dissolve overlay softened.
+- 2026-05-26 — UI polish: frosted glass Dialog shell (warm semi-transparent surfaces, stronger backdrop blur); gradient dissolve softened; message list background transparent.

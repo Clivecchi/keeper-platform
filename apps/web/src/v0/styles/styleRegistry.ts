@@ -60,42 +60,42 @@ export type StyleId = 'neutral' | 'diary-paper'
 export const styleRegistry: StyleDefinition[] = [
   {
     id: 'neutral',
-    name: 'Dusk Glass',
+    name: 'Warm Dark',
     tone: 'neutral',
     tokens: {
-      // Surfaces — deep indigo-violet glass (panel CSS applies alpha for frosted depth)
-      'surface.page': 'hsl(248, 38%, 10%)',
-      'surface.paper': 'hsl(248, 32%, 16%)',
-      'surface.panel': 'hsl(248, 28%, 22%)',
-      'surface.elevated': 'hsl(248, 26%, 28%)',
+      // Surfaces — warm dark register (panel CSS applies alpha so atmosphere breathes through)
+      'surface.page': 'hsl(30, 8%, 10%)',
+      'surface.paper': 'hsl(28, 10%, 14%)',
+      'surface.panel': 'hsl(28, 10%, 12%)',
+      'surface.elevated': 'hsl(35, 12%, 20%)',
 
-      // Ink — warm evening light, readable on dark glass
-      'ink.primary': 'hsl(36, 28%, 91%)',
-      'ink.secondary': 'hsl(34, 20%, 78%)',
-      'ink.tertiary': 'hsl(248, 14%, 62%)',
-      'ink.placeholder': 'hsl(248, 10%, 48%)',
+      // Ink — warm sand hierarchy, legible without effort
+      'ink.primary': 'hsl(38, 25%, 82%)',
+      'ink.secondary': 'hsl(38, 20%, 72%)',
+      'ink.tertiary': 'hsl(38, 15%, 55%)',
+      'ink.placeholder': 'hsl(38, 12%, 45%)',
 
-      // Line colors — glass edges, barely there
-      'line.hairline': 'hsl(248, 14%, 32%)',
-      'line.ruled': 'hsl(248, 14%, 32%)',
+      // Line colors — warm charcoal edges
+      'line.hairline': 'hsl(38, 15%, 30%)',
+      'line.ruled': 'hsl(38, 15%, 30%)',
 
-      // Border colors — soft rim light, not drawn lines
-      'border.soft': 'hsl(248, 18%, 34%)',
-      'border.strong': 'hsl(248, 16%, 42%)',
+      // Border colors — soft warm rim
+      'border.soft': 'hsl(38, 15%, 30%)',
+      'border.strong': 'hsl(38, 20%, 35%)',
 
       // Shadow — depth behind floating panels
-      'shadow.soft': '0 8px 32px hsl(248, 45%, 6%, 0.45), 0 2px 12px hsl(248, 30%, 4%, 0.35)',
+      'shadow.soft': '0 8px 32px hsl(30, 20%, 4%, 0.45), 0 2px 12px hsl(30, 15%, 3%, 0.35)',
 
-      // Interactive — last light of day (warm amber accent)
-      'focus.ring': 'hsl(32, 72%, 62%)',
-      'hover.surface': 'hsl(248, 26%, 26%)',
-      'press.surface': 'hsl(248, 28%, 20%)',
+      // Interactive — platform teal accent
+      'focus.ring': 'hsl(168, 70%, 38%)',
+      'hover.surface': 'hsl(28, 10%, 18%)',
+      'press.surface': 'hsl(28, 10%, 14%)',
 
-      // Dialogue — dusk-native bubbles (warm user / cool agent glass)
-      'dialogue.userBg': 'hsl(22, 52%, 52%)',
-      'dialogue.agentBg': 'hsl(248, 24%, 26%)',
-      'dialogue.areaBg': 'hsl(248, 30%, 18%)',
-      'dialogue.border': 'hsl(248, 16%, 36%)',
+      // Dialogue — teal user / warm charcoal agent (alpha applied in components)
+      'dialogue.userBg': 'hsl(168, 40%, 18%)',
+      'dialogue.agentBg': 'hsl(28, 10%, 14%)',
+      'dialogue.areaBg': 'hsl(28, 10%, 10%)',
+      'dialogue.border': 'hsl(38, 15%, 28%)',
 
       // Border radius
       'radius.sheet': '6px',
@@ -253,13 +253,13 @@ export function tokensToCSSVars(tokens: StyleTokens): Record<string, string> {
     '--theme-space-framePadding': tokens['space.framePadding'],
     '--theme-space-sheetPadding': tokens['space.sheetPadding'],
 
-    /* Accent — referenced by presence, Chronicle feed dot, nav selection */
-    '--theme-accent-primary': inkPrimary,
+    /* Accent — platform teal (Chronicle feed dot, nav add icons, send actions) */
+    '--theme-accent-primary': '168 60% 42%',
     '--theme-accent-subtle': toVar('surface.panel', tokens['surface.panel']),
-    '--theme-accent-fg': inkPrimary,
+    '--theme-accent-fg': '0 0% 98%',
 
-    /* Status — readable on dark glass surfaces */
-    '--theme-status-success': '152 55% 52%',
+    /* Status — readable on warm dark surfaces */
+    '--theme-status-success': '168 60% 42%',
     '--theme-status-warning': '38 88% 58%',
     '--theme-status-error': '0 72% 58%',
 

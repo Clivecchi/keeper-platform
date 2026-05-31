@@ -147,10 +147,10 @@ html[data-density="comfortable"] {
   top: 0;
   z-index: 10;
   padding: 8px 16px;
-  background: hsl(var(--theme-surface-paper) / 0.68);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid hsl(var(--theme-border-soft) / 0.32);
+  background: hsl(var(--theme-surface-paper) / 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid hsl(var(--theme-border-soft) / 0.3);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -173,13 +173,13 @@ html[data-density="comfortable"] {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: hsl(var(--theme-ink-secondary));
+  color: hsl(var(--theme-ink-tertiary));
   flex: 1;
   min-width: 0;
 }
 
 .dialog-breadcrumb span:last-of-type {
-  color: hsl(var(--theme-ink-secondary));
+  color: hsl(var(--theme-ink-primary));
   font-weight: 500;
   text-transform: none;
   letter-spacing: normal;
@@ -230,8 +230,8 @@ html[data-density="comfortable"] {
 }
 
 .sole-badge.active {
-  background: hsl(172 55% 35% / 0.2);
-  color: hsl(172 55% 35%);
+  background: hsl(var(--theme-accent-primary) / 0.2);
+  color: hsl(var(--theme-accent-primary));
 }
 
 .sole-badge.inactive {
@@ -317,22 +317,22 @@ html[data-density="comfortable"] {
   overflow-y: auto;
   scrollbar-width: none;
   scrollbar-color: transparent transparent;
-  /* Frosted glass — warm semi-transparent; atmosphere visible behind messages */
-  background: hsl(var(--theme-dialogue-area-bg) / 0.42);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  /* Oldest messages dissolve into the atmosphere at the top */
+  /* Open atmosphere — messages float through; no panel background */
+  background: transparent;
+  /* Oldest messages dissolve at top; newest fade before Composer at bottom */
   mask-image: linear-gradient(
     to bottom,
     transparent 0%,
     black 16%,
-    black 100%
+    black 70%,
+    transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
     black 16%,
-    black 100%
+    black 70%,
+    transparent 100%
   );
 }
 
@@ -370,12 +370,12 @@ html[data-density="comfortable"] {
 
 .dialog-bottom-zone {
   flex-shrink: 0;
-  /* Composer zone — frosted glass over atmosphere */
-  background: hsl(var(--theme-surface-panel) / 0.58);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  /* A breath, not a line — barely visible top edge */
-  border-top: 1px solid hsl(var(--theme-border-soft) / 0.22);
+  /* Composer zone — frosted glass over atmosphere; input must read clearly above this */
+  background: hsl(var(--theme-surface-panel) / 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid hsl(var(--theme-border-soft) / 0.35);
+  padding: 12px 16px 16px;
 }
 
 /* Override IntegratedServicesBar's inner max-w-3xl when inside KeeperDialogFrame */
@@ -393,27 +393,27 @@ html[data-density="comfortable"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: hsl(var(--theme-surface-panel) / 0.28);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: transparent;
   overflow: hidden;
   position: relative;
 }
 
-/* Idle placeholder — present but barely there */
+/* Idle placeholder — present but receding */
 .dialog-think-idle {
-  font-size: 11px;
+  font-size: 12px;
+  font-style: italic;
   letter-spacing: 0.28em;
-  color: hsl(var(--theme-ink-secondary) / 0.28);
+  color: hsl(var(--theme-ink-placeholder));
   user-select: none;
   pointer-events: none;
 }
 
 /* Active state — breathes gently when Kip is working */
 .dialog-think-pulse {
-  font-size: 11px;
+  font-size: 12px;
+  font-style: italic;
   letter-spacing: 0.28em;
-  color: hsl(var(--theme-ink-secondary) / 0.6);
+  color: hsl(var(--theme-ink-tertiary));
   animation: dialog-think-breathe 1.8s ease-in-out infinite;
   user-select: none;
   pointer-events: none;
@@ -505,8 +505,8 @@ html[data-density="comfortable"] {
  * Scoped to .keeper-board-scope so frame routes stay unchanged.
  */
 .keeper-board-scope .dialog-header-banner {
-  background: hsl(var(--theme-surface-paper) / 0.72);
-  border-bottom-color: hsl(var(--theme-border-soft) / 0.45);
+  background: hsl(var(--theme-surface-paper) / 0.55);
+  border-bottom-color: hsl(var(--theme-border-soft) / 0.3);
 }
 
 .keeper-board-scope .dialog-breadcrumb {
@@ -516,6 +516,7 @@ html[data-density="comfortable"] {
 
 .keeper-board-scope .dialog-breadcrumb span:last-of-type {
   font-size: 17px;
+  color: hsl(var(--theme-ink-primary));
 }
 
 .keeper-board-scope .breadcrumb-sep {
@@ -533,14 +534,12 @@ html[data-density="comfortable"] {
 }
 
 .keeper-board-scope .dialog-message-surface {
-  background: hsl(var(--theme-dialogue-area-bg) / 0.48);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: transparent;
 }
 
 .keeper-board-scope .dialog-bottom-zone {
-  background: hsl(var(--theme-surface-panel) / 0.62);
-  border-top-color: hsl(var(--theme-border-soft) / 0.38);
+  background: hsl(var(--theme-surface-panel) / 0.82);
+  border-top-color: hsl(var(--theme-border-soft) / 0.35);
 }
 
 .keeper-board-scope .kip-message-content {
@@ -565,13 +564,13 @@ html[data-density="comfortable"] {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: hsl(var(--theme-ink-secondary));
+  color: hsl(var(--theme-ink-tertiary));
 }
 
 .keeper-board-scope .keeper-presence-field-value {
   font-size: 16px;
   line-height: 1.55;
-  color: hsl(var(--theme-ink-secondary));
+  color: hsl(var(--theme-ink-primary));
 }
 
 .keeper-board-scope .keeper-presence-field-value-quiet {
@@ -702,4 +701,131 @@ html[data-density="comfortable"] {
 }
 .kip-message-content tr:last-child td {
   border-bottom: none;
+}
+
+/* ─── Board panels — Nav, Chronicle, Composer input ───────────────────────── */
+
+.keeper-nav-panel {
+  background: hsl(var(--theme-surface-panel) / 0.78) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: none !important;
+  border-right: 1px solid hsl(var(--theme-border-soft) / 0.25) !important;
+  border-radius: 8px;
+}
+
+.keeper-chronicle-panel {
+  background: hsl(var(--theme-surface-panel) / 0.76) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: none !important;
+  border-left: 1px solid hsl(var(--theme-border-soft) / 0.25) !important;
+  border-radius: 8px;
+}
+
+.keeper-chronicle-trail-bar {
+  background: hsl(var(--theme-surface-page) / 0.6);
+  border-bottom: 1px solid hsl(var(--theme-border-soft) / 0.35) !important;
+}
+
+.keeper-chronicle-trail-bar button {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.keeper-chronicle-feed-dot {
+  background: hsl(var(--theme-accent-primary));
+  box-shadow: 0 0 6px hsl(var(--theme-accent-primary) / 0.5);
+  animation: chronicle-feed-pulse 3s ease-in-out infinite;
+}
+
+@keyframes chronicle-feed-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Nav SidebarCard — section headers + record hierarchy (nav panel only) */
+.keeper-nav-panel .keeper-sidebar-card {
+  background: hsl(var(--theme-surface-paper) / 0.22) !important;
+  border-color: hsl(var(--theme-border-soft) / 0.2) !important;
+  box-shadow: none;
+}
+
+.keeper-nav-panel .keeper-sidebar-card h3,
+.keeper-nav-panel .keeper-sidebar-card button.text-xl {
+  font-family: 'Courier New', monospace;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: hsl(var(--theme-ink-tertiary)) !important;
+}
+
+.keeper-nav-panel .keeper-sidebar-card p.text-base {
+  font-size: 12px !important;
+  color: hsl(38 12% 52%) !important;
+}
+
+.keeper-nav-panel .keeper-sidebar-card ul button,
+.keeper-nav-panel .keeper-sidebar-card ul span {
+  font-size: 13px !important;
+  color: hsl(var(--theme-ink-primary)) !important;
+}
+
+.keeper-nav-panel .keeper-sidebar-card button.inline-flex.rounded-full {
+  color: hsl(var(--theme-accent-primary)) !important;
+  border-color: hsl(var(--theme-accent-primary) / 0.35) !important;
+  background: hsl(var(--theme-surface-paper) / 0.35) !important;
+}
+
+/* Composer — input field must read lighter than its container */
+.dialog-bottom-zone .keeper-composer-form {
+  border-color: hsl(var(--theme-border-soft) / 0.35) !important;
+  background: hsl(var(--theme-surface-panel) / 0.55) !important;
+  box-shadow: none !important;
+}
+
+.dialog-bottom-zone .keeper-composer-toolbar {
+  border-color: hsl(var(--theme-border-soft) / 0.25) !important;
+  background: hsl(var(--theme-surface-panel) / 0.4) !important;
+}
+
+.dialog-bottom-zone .keeper-composer-input-wrap {
+  background: transparent !important;
+}
+
+.dialog-bottom-zone .keeper-composer-input {
+  background: hsl(var(--theme-surface-elevated) / 0.9) !important;
+  border: 1px solid hsl(var(--theme-border-soft) / 0.5) !important;
+  border-radius: 8px;
+  color: hsl(38 28% 90%) !important;
+  caret-color: hsl(var(--theme-focus-ring));
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 10px 14px;
+}
+
+.dialog-bottom-zone .keeper-composer-input::placeholder {
+  color: hsl(var(--theme-ink-placeholder));
+  opacity: 1;
+}
+
+.dialog-bottom-zone .keeper-composer-input:focus {
+  border-color: hsl(var(--theme-focus-ring) / 0.7) !important;
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--theme-focus-ring) / 0.15);
+}
+
+.dialog-bottom-zone .keeper-composer-send {
+  background: hsl(var(--theme-focus-ring)) !important;
+  color: hsl(0 0% 98%) !important;
+  border-radius: 6px;
+}
+
+.dialog-bottom-zone .keeper-composer-icon-btn {
+  color: hsl(var(--theme-ink-placeholder));
+}
+
+.dialog-bottom-zone .keeper-composer-icon-btn:hover {
+  color: hsl(var(--theme-ink-secondary));
 }

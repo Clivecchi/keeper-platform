@@ -106,9 +106,8 @@ function TrailBar({
 
   return (
     <div
-      className="shrink-0 flex items-center gap-1 px-3 py-2"
+      className="keeper-chronicle-trail-bar shrink-0 flex items-center gap-1 px-3 py-2"
       style={{
-        borderBottom: "1px solid hsl(var(--theme-border-soft) / 0.4)",
         minHeight: 40,
       }}
     >
@@ -150,15 +149,15 @@ function TrailBar({
                 style={{
                   maxWidth: 100,
                   background: isCurrent
-                    ? "hsl(var(--theme-surface-elevated))"
-                    : "hsl(var(--theme-surface-elevated) / 0.35)",
+                    ? "hsl(var(--theme-surface-elevated) / 0.55)"
+                    : "hsl(var(--theme-surface-elevated) / 0.25)",
                   color: isCurrent
                     ? "hsl(var(--theme-ink-primary))"
-                    : "hsl(var(--theme-ink-secondary))",
+                    : "hsl(var(--theme-ink-tertiary))",
                   border: `1px solid ${
                     isCurrent
-                      ? "hsl(var(--theme-border-soft) / 0.65)"
-                      : "hsl(var(--theme-border-soft) / 0.35)"
+                      ? "hsl(var(--theme-border-soft) / 0.45)"
+                      : "hsl(var(--theme-border-soft) / 0.25)"
                   }`,
                 }}
               >
@@ -177,8 +176,8 @@ function TrailBar({
           aria-label="View domain feed"
         >
           <span
-            className="w-1.5 h-1.5 rounded-full animate-pulse"
-            style={{ background: "hsl(var(--theme-accent-primary) / 0.7)" }}
+            className="keeper-chronicle-feed-dot w-1.5 h-1.5 rounded-full"
+            style={{ background: "hsl(var(--theme-accent-primary))" }}
           />
           <span
             className="text-[11px] tabular-nums font-medium"
@@ -556,13 +555,8 @@ export function UniversalViewPanel({
 
   return (
     <div
-      className="flex flex-col h-full min-h-0 overflow-hidden"
+      className="keeper-chronicle-panel flex flex-col h-full min-h-0 overflow-hidden"
       style={{
-        background: "hsl(var(--theme-surface-panel) / 0.93)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        borderRadius: "8px",
-        border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
         color: "hsl(var(--theme-ink-primary))",
       }}
     >

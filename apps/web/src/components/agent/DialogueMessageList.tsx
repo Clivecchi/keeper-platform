@@ -320,17 +320,25 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
               >
                 <div
                   className={clsx(
-                    "rounded-2xl px-4 py-3 text-sm shadow-sm",
-                    message.role === "user" ? "max-w-xl text-white" : agentBubbleFullWidth ? "w-full max-w-none" : "max-w-xl",
+                    "rounded-xl px-4 py-3 text-sm shadow-sm",
+                    message.role === "user" ? "max-w-xl" : agentBubbleFullWidth ? "w-full max-w-none" : "max-w-xl",
                   )}
                   style={{
                     backgroundColor:
                       message.role === "user"
-                        ? "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))"
-                        : "hsl(var(--theme-dialogue-agent-bg, var(--theme-surface-paper)))",
-                    color: message.role === "user" ? undefined : "var(--theme-ink-primary-color)",
-                    border: message.role === "agent" ? "1px solid hsl(var(--theme-border-soft))" : undefined,
-                    boxShadow: message.role === "agent" ? "0 1px 2px hsl(var(--theme-ink-primary) / 0.06)" : undefined,
+                        ? "hsl(var(--theme-dialogue-user-bg) / 0.65)"
+                        : "hsl(var(--theme-dialogue-agent-bg) / 0.72)",
+                    color:
+                      message.role === "user"
+                        ? "hsl(168 10% 88%)"
+                        : "hsl(38 22% 85%)",
+                    border:
+                      message.role === "agent"
+                        ? "1px solid hsl(var(--theme-dialogue-border) / 0.3)"
+                        : "1px solid hsl(var(--theme-focus-ring) / 0.35)",
+                    fontSize: "14px",
+                    lineHeight: message.role === "agent" ? 1.65 : 1.5,
+                    boxShadow: message.role === "agent" ? "none" : undefined,
                   }}
                 >
                   {message.role === "user" ? (

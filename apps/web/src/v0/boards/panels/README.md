@@ -99,7 +99,10 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 - `resolveKindId` includes `dialog` when `selectedDialogId` is set
 - Trail Bar navigation re-dispatches board selection actions so history matches context
 
-## 📆 Update Log
+### 2026-05-30 — Rendr treatment correction (warm dark register)
+- Chronicle panel: `.keeper-chronicle-panel` at 76% opacity, left border only, 12px blur
+- Trail Bar: `.keeper-chronicle-trail-bar` warm strip (60% page opacity); trail pills use tertiary ink when inactive
+- Feed dot: teal pulse via `--theme-accent-primary` and `chronicle-feed-pulse` keyframes
 
 ### 2026-05-24 — Chronicle readability (Trail Bar + panel chrome)
 - Trail Bar pills: larger type, visible borders on inactive steps, stronger current-state contrast

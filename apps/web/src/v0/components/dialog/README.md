@@ -11,10 +11,10 @@ Shared conversation shell used across IDE Board, Agent Board, and Domain Board. 
 ### Named Surfaces — Opacity Hierarchy (most opaque → most transparent)
 | Surface | CSS class | Opacity | Blur | Purpose |
 |---|---|---|---|---|
-| **Banner** | `.dialog-header-banner` | 0.85 | 12px (md) | Orientation — readable, grounded |
-| **Composer** | `.dialog-bottom-zone` | 0.60 | 8px | Where the user speaks — more present than thinking space |
-| **Thinking Space** | `.dialog-think-space` | 0.30 | 4px | Kip's working surface — between message area and composer |
-| **Chat Zone** | `.dialog-message-surface` | 0.12 | 2px | Nearly invisible — atmosphere breathes through |
+| **Banner** | `.dialog-header-banner` | 0.55 | 16px | Orientation — frosted strip, warm secondary text |
+| **Composer** | `.dialog-bottom-zone` | 0.82 | 20px | Where the user speaks — input field lighter still |
+| **Thinking Space** | `.dialog-think-space` | transparent | — | Warm muted italic placeholder; no panel bg |
+| **Chat Zone** | `.dialog-message-surface` | transparent | — | Open atmosphere; top + bottom mask dissolve |
 
 Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:relative, overflow:hidden`) so an absolute-positioned gradient dissolve div can overlay the bottom 80px of the scroll area without scrolling with the content.
 
@@ -45,6 +45,7 @@ All four zones are direct flex children of `.keeper-dialog-frame`. The thinking 
 - [ ] When `isSending` is true, `DialogueMessageList` may render its own thinking indicator inside Zone 2. This coexists with the thinking space pulse — both are intentional at this stage.
 
 ## 📆 Update Log
+- 2026-05-30: Rendr treatment correction — opacity table updated; chat zone open atmosphere; composer 0.82 / banner 0.55; bottom scroll mask 70%→transparent; gradient dissolve overlay softened.
 - 2026-05-26 — UI polish: frosted glass Dialog shell (warm semi-transparent surfaces, stronger backdrop blur); gradient dissolve softened; message list background transparent.
 - 2026-05-01 (Sprint Item 1 — Dialog Frame Surface Design): Refined opacity hierarchy to spec. Banner: 0.88→0.85, blur 16px→12px (md), token corrected to `--theme-surface-paper`. Chat zone: 0.52→0.12, blur 10px→2px. Thinking space: 0.16→0.30. Composer: 0.92→0.60, blur 20px→8px. Added gradient dissolve at bottom of Zone 2 (80px, `transparent → --theme-surface-paper/0.60`). Zone 2 now wrapped in `.dialog-message-zone` (relative/flex:1/overflow:hidden) so the dissolve overlays the visible scroll area without scrolling with content. IDEBoard and DomainBoard center panels confirmed transparent — no changes required.
 - 2026-04-30 (Dialog Frame Surface Design): Overhauled surface system. Four named surfaces with explicit opacity hierarchy. Added `.dialog-think-space` as a flex sibling between Zone 2 and Zone 3 — fixed 52px height, opacity 0.16, never resizes. Chat zone opacity reduced 0.85→0.52 with top-dissolve mask. Composer zone (`dialog-bottom-zone`) switched to `--theme-surface-paper` token at 0.92. Message depth cascade added via `nth-last-child` CSS selectors (three depth levels: 0.68/0.97, 0.35/0.94, 0.12/0.92). `IntegratedServicesBar` moved below `AgentComposer` within Zone 3 (service bar now at floor). Inner message container bottom padding reduced `pb-32→pb-4`. All values use theme tokens — no hardcoded hex.

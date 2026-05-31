@@ -407,7 +407,7 @@ export function KeeperDialogFrame({
               left: 0,
               right: 0,
               height: '80px',
-              background: 'linear-gradient(to bottom, transparent, hsl(var(--theme-surface-panel) / 0.28))',
+              background: 'linear-gradient(to bottom, transparent, hsl(var(--theme-surface-panel) / 0.18))',
               pointerEvents: 'none',
             }}
           />
@@ -430,7 +430,7 @@ export function KeeperDialogFrame({
       {/* ── Zone 3: Composer Zone — where the user speaks ───────────────────── *
        *  Service bar lives below the input field: barely-there, at the floor.  */}
       <div className="dialog-bottom-zone">
-        <div className="mx-auto w-full max-w-3xl px-3 py-3">
+        <div className="mx-auto w-full max-w-3xl">
           <AgentComposer
             agentName={agentName}
             agentId={agentId}

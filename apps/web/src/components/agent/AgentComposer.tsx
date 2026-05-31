@@ -17,17 +17,14 @@ import { useAuth } from "../../context/AuthContext"
 import { apiFetch } from "../../lib/api"
 
 const SURFACE = {
-  inkPrimary: "var(--theme-ink-primary)",
-  inkSecondary: "var(--theme-ink-secondary)",
-  inkTertiary: "var(--theme-ink-tertiary)",
+  inkPrimary: "var(--theme-ink-primary-color)",
+  inkSecondary: "var(--theme-ink-secondary-color)",
+  inkTertiary: "var(--theme-ink-tertiary-color)",
   border: "var(--theme-border-soft)",
-  surfacePaper: "hsl(var(--theme-surface-paper) / 0.95)",
-  /** Toolbar: distinct but subtle, sits above the input */
-  toolbarBg: "hsl(var(--theme-surface-paper) / 0.82)",
-  /** Message area: clearly a typing surface — more opaque than toolbar */
-  inputBg: "hsl(var(--theme-surface-paper) / 0.98)",
-  /** Container: slightly elevated from the bar */
-  containerBorder: "hsl(var(--theme-ink-primary) / 0.12)",
+  surfacePaper: "hsl(var(--theme-surface-panel) / 0.55)",
+  toolbarBg: "hsl(var(--theme-surface-panel) / 0.4)",
+  inputBg: "hsl(var(--theme-surface-elevated) / 0.9)",
+  containerBorder: "hsl(var(--theme-border-soft) / 0.35)",
 }
 
 export type PendingAttachment = {
@@ -224,17 +221,16 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="flex w-full flex-col rounded-xl border-2 transition-colors focus-within:ring-2 focus-within:ring-offset-1"
+        className="keeper-composer-form flex w-full flex-col rounded-xl border transition-colors focus-within:ring-2 focus-within:ring-offset-1"
         style={{
           borderColor: SURFACE.containerBorder,
           backgroundColor: SURFACE.surfacePaper,
-          boxShadow: "0 1px 3px hsl(var(--theme-ink-primary) / 0.06)",
-          ["--tw-ring-color" as string]: "hsl(var(--theme-ink-primary) / 0.2)",
+          ["--tw-ring-color" as string]: "hsl(var(--theme-focus-ring) / 0.15)",
         }}
       >
         {/* Toolbar: Kip Domain (left) | attach | send (right) */}
         <div
-          className="flex items-center justify-between gap-2 rounded-t-[10px] border-b px-3 py-2"
+          className="keeper-composer-toolbar flex items-center justify-between gap-2 rounded-t-[10px] border-b px-3 py-2"
           style={{ borderColor: SURFACE.border, backgroundColor: SURFACE.toolbarBg }}
         >
           <div className="flex shrink-0 items-center">
@@ -277,8 +273,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                   type="button"
                   onClick={() => document.getElementById(fileInputId)?.click()}
                   disabled={!activeSessionId || isSending || disabled || isUploading}
-                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-black/5 disabled:pointer-events-none disabled:opacity-40"
-                  style={{ color: SURFACE.inkSecondary }}
+                  className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-black/5 disabled:pointer-events-none disabled:opacity-40"
+                  style={{ color: SURFACE.inkTertiary }}
                   title="Attach file"
                   aria-label="Attach file"
                 >
@@ -293,8 +289,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             <button
               type="submit"
               disabled={!canSend}
-              className="flex h-8 w-8 items-center justify-center rounded-md transition-opacity disabled:opacity-40"
-              style={{ backgroundColor: SURFACE.inkPrimary, color: "white" }}
+              className="keeper-composer-send flex h-8 w-8 items-center justify-center rounded-md transition-opacity disabled:opacity-40"
+              style={{ backgroundColor: "hsl(var(--theme-focus-ring))", color: "hsl(0 0% 98%)" }}
               aria-label="Send"
             >
               {isSending ? (
@@ -352,8 +348,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
 
         {/* Full-width text input — clearly a place to type */}
         <div
-          className="w-full rounded-b-[10px] px-3 py-2"
-          style={{ backgroundColor: SURFACE.inputBg }}
+          className="keeper-composer-input-wrap w-full rounded-b-[10px] px-3 py-2"
+          style={{ backgroundColor: "transparent" }}
         >
           <textarea
             ref={textareaRef}
@@ -363,12 +359,12 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             placeholder={placeholder}
             disabled={!activeSessionId || isSending || disabled}
             rows={MIN_ROWS}
-            className="w-full min-h-[44px] max-h-[120px] resize-none overflow-y-auto rounded-md border text-sm leading-5 focus:outline-none focus:ring-2 focus:ring-offset-1"
+            className="keeper-composer-input w-full min-h-[44px] max-h-[120px] resize-none overflow-y-auto rounded-md border text-sm leading-5 focus:outline-none"
             style={{
-              color: SURFACE.inkPrimary,
-              backgroundColor: "hsl(var(--theme-surface-paper))",
-              borderColor: SURFACE.border,
-              ["--tw-ring-color" as string]: "hsl(var(--theme-ink-primary) / 0.25)",
+              color: "hsl(38 28% 90%)",
+              backgroundColor: SURFACE.inputBg,
+              borderColor: "hsl(var(--theme-border-soft) / 0.5)",
+              caretColor: "hsl(var(--theme-focus-ring))",
             }}
           />
         </div>
