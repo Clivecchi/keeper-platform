@@ -1937,3 +1937,21 @@ model RequestLog {
 
   @@index([reqId, at])
 }
+
+/// Third-party service connection — credentials live in Nango; platform stores connection reference only.
+model Integration {
+  id                String    @id @default(cuid())
+  service           String
+  nangoConnectionId String?
+  status            String    @default("disconnected")
+  tier              String    @default("platform")
+  scopes            String[]
+  domainId          String?
+  userId            String?
+  metadata          Json?
+  connectedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([service, tier, domainId, userId])
+}

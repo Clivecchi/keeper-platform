@@ -21,6 +21,7 @@
     "@keeper/database": "workspace:*",
     "@keeper/kam": "workspace:*",
     "@keeper/shared": "workspace:*",
+    "@nangohq/node": "^0.70.5",
     "@prisma/client": "^6.11.1",
     "@vercel/blob": "^2.0.0",
     "bcryptjs": "^2.4.3",

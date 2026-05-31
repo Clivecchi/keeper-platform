@@ -11,6 +11,7 @@
 
 import * as React from "react"
 import { KeeperPresence } from "./KeeperPresence"
+import { IntegrationPresence } from "./IntegrationPresence"
 import type { DensityLevel } from "./KeeperPresenceDefaults"
 import type { PresenceLayout } from "./types"
 import type { PresentName, RenderContext } from "../presents/types"
@@ -56,6 +57,10 @@ export function ChroniclePresenceView({
         </p>
       </div>
     )
+  }
+
+  if (objectType === "service") {
+    return <IntegrationPresence serviceSlug={objectId} domainId={domainId} />
   }
 
   return (

@@ -895,19 +895,39 @@ async function enrichBoardDef(
 async function enrichService(
   record: Record<string, unknown>,
   serviceSlug: string,
+  domainId?: string,
 ): Promise<EnrichmentResult> {
   const label =
     serviceSlug.charAt(0).toUpperCase() + serviceSlug.slice(1)
 
   record.name = label
   record.slug = serviceSlug
-  record.status = "connected"
+  record.status = "disconnected"
+
+  if (domainId) {
+    try {
+      const list = (await apiFetch(
+        `/api/integrations?domainId=${encodeURIComponent(domainId)}`,
+      )) as Array<{ service: string; status?: string; connectedAt?: string | null }>
+      const row =
+        list.find((i) => i.service === serviceSlug && i.status) ??
+        list.find((i) => i.service === serviceSlug)
+      if (row?.status) {
+        record.status = row.status
+        if (row.connectedAt) {
+          record.lastActive = row.connectedAt
+        }
+      }
+    } catch {
+      /* Chronicle IntegrationPresence owns connect UI; enrichment stays best-effort */
+    }
+  }
 
   return {
     record,
     meta: { line: "Platform integration" },
     relatedSections: [],
-    hiddenFields: ["slug", "status"],
+    hiddenFields: ["slug"],
   }
 }
 
@@ -1078,7 +1098,7 @@ export async function enrichPresenceRecord(
     case "boardDef":
       return enrichBoardDef(record, objectId)
     case "service":
-      return enrichService(record, objectId)
+      return enrichService(record, objectId, domainId)
     default:
       return { record, relatedSections: [], hiddenFields: [] }
   }
