@@ -95,6 +95,11 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 - Feed indicator is tappable — navigates to domain idle / Recent Moments feed
 - ~950 lines of duplicate view logic removed from UniversalViewPanel
 
+## 📆 Update Log
+
+### 2026-05-31 — Chronicle focus: green trail banner glow
+- When Chronicle has an active record, `.keeper-chronicle-trail-bar` gets green halo via `--theme-status-success` (panel inset treatment glow unchanged)
+
 ### 2026-05-23 — Gate 1: selection drives both panels
 - `resolveKindId` includes `dialog` when `selectedDialogId` is set
 - Trail Bar navigation re-dispatches board selection actions so history matches context

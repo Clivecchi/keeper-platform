@@ -99,7 +99,11 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
         },
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Connect failed")
+      const apiErr = err as Error & { data?: { message?: string; hint?: string } }
+      const parts = [apiErr.data?.message, apiErr.message, apiErr.data?.hint].filter(
+        (p): p is string => typeof p === "string" && p.length > 0,
+      )
+      setError(parts.length > 0 ? parts.join(" — ") : "Connect failed")
     } finally {
       setBusy(false)
     }

@@ -5,7 +5,13 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
-import { isNangoConfigured, nango } from '../lib/nango.js';
+import {
+  buildConnectSessionBody,
+  formatNangoError,
+  isNangoConfigured,
+  nango,
+  resolveNangoIntegrationId,
+} from '../lib/nango.js';
 import type {
   IntegrationRecord,
   IntegrationStatus,
@@ -138,6 +144,7 @@ async function upsertIntegration(params: {
  * Short-lived Nango Connect session token for the frontend.
  */
 router.post('/session', authMiddlewareCompat, async (req: Request, res: Response) => {
+  let serviceSlug = '';
   try {
     if (!isNangoConfigured()) {
       return res.status(503).json({ error: 'Nango is not configured' });
@@ -149,6 +156,7 @@ router.post('/session', authMiddlewareCompat, async (req: Request, res: Response
     }
 
     const { service, userId, domainId } = parsed.data;
+    serviceSlug = service;
     const tier = resolveTier(userId);
     // incomplete — per-domain integration scoping: domainId accepted but not enforced for platform tier
     const scopedDomainId = tier === 'platform' ? null : domainId ?? null;
@@ -164,19 +172,31 @@ router.post('/session', authMiddlewareCompat, async (req: Request, res: Response
 
     const endUserId = scopedUserId ?? req.user?.id ?? 'platform';
     const organizationId = scopedDomainId ?? 'platform';
+    const nangoIntegrationId = resolveNangoIntegrationId(service);
 
-    const { data } = await nango.createConnectSession({
-      tags: {
-        end_user_id: endUserId,
-        organization_id: organizationId,
-      },
-      allowed_integrations: [service],
-    });
+    const { data } = await nango.createConnectSession(
+      buildConnectSessionBody({
+        endUserId,
+        organizationId,
+        allowedIntegrations: [nangoIntegrationId],
+      }),
+    );
 
     return res.status(200).json({ sessionToken: data.token });
   } catch (err) {
     console.error('[integrations/session]', err);
-    return res.status(500).json({ error: 'Failed to create connect session' });
+    const { status, message, detail } = formatNangoError(err);
+    const hint = /invalid_body|end_user|unrecognized_keys.*tags/i.test(message)
+      ? 'Self-hosted Nango expects legacy connect session shape (end_user). Do not set NANGO_CONNECT_SESSION_TAGS until Nango is upgraded.'
+      : status === 404 || /integration|provider|config/i.test(message)
+        ? `Check Nango dashboard integration ID matches ${resolveNangoIntegrationId(serviceSlug || 'service')} (or set NANGO_INTEGRATION_* env overrides).`
+        : undefined;
+    return res.status(status === 500 ? 502 : status).json({
+      error: 'Failed to create connect session',
+      message,
+      hint,
+      ...(process.env.NODE_ENV !== 'production' && detail != null ? { detail } : {}),
+    });
   }
 });
 
@@ -200,8 +220,10 @@ router.post('/webhook', async (req: Request, res: Response) => {
     }
 
     const tags = payload.tags ?? {};
-    const endUserId = tags.end_user_id;
-    const organizationId = tags.organization_id;
+    const endUserId =
+      tags.end_user_id ?? payload.end_user?.id ?? payload.endUser?.id;
+    const organizationId =
+      tags.organization_id ?? payload.organization?.id;
 
     const tier: IntegrationTier =
       endUserId && endUserId !== 'platform' ? 'user' : 'platform';
@@ -252,7 +274,7 @@ router.post('/proxy', authMiddlewareCompat, async (req: Request, res: Response) 
     const response = await nango.proxy({
       method: method.toUpperCase() as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
       endpoint,
-      providerConfigKey: service,
+      providerConfigKey: resolveNangoIntegrationId(service),
       connectionId: integration.nangoConnectionId,
       data,
     });
@@ -292,7 +314,16 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
     return res.status(200).json(rows.map(toIntegrationRecord));
   } catch (err) {
     console.error('[integrations/list]', err);
-    return res.status(500).json({ error: 'Failed to list integrations' });
+    const message = err instanceof Error ? err.message : 'Failed to list integrations';
+    const missingTable =
+      message.includes('Integration') &&
+      (message.includes('does not exist') || message.includes('P2021'));
+    return res.status(missingTable ? 503 : 500).json({
+      error: missingTable
+        ? 'Integration table not migrated — run pnpm db:migrate from repo root'
+        : 'Failed to list integrations',
+      detail: process.env.NODE_ENV !== 'production' ? message : undefined,
+    });
   }
 });
 

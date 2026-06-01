@@ -49,5 +49,10 @@ export interface NangoAuthWebhookPayload {
   connectionId?: string;
   providerConfigKey?: string;
   provider?: string;
+  /** Newer Nango auth webhooks */
   tags?: Record<string, string>;
+  /** Legacy self-hosted Nango auth webhooks */
+  end_user?: { id?: string };
+  endUser?: { id?: string };
+  organization?: { id?: string };
 }

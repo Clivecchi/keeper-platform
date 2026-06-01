@@ -788,7 +788,14 @@ html[data-density="comfortable"] {
   transition: box-shadow 0.25s ease;
 }
 
-/* Chronicle inner glow when a record is active */
+/* Chronicle inner glow when a record is active — green halo behind trail banner */
+.keeper-chronicle-panel.keeper-chronicle-panel--focused .keeper-chronicle-trail-bar {
+  background: hsl(var(--theme-status-success) / 0.08);
+  box-shadow:
+    inset 0 -12px 28px 0 hsl(var(--theme-status-success) / 0.18),
+    0 4px 20px 0 hsl(var(--theme-status-success) / 0.12);
+}
+
 .keeper-chronicle-panel.keeper-chronicle-panel--focused {
   box-shadow: inset 0 0 32px 0px var(--treatment-color-alpha-12);
 }

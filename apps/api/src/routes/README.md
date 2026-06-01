@@ -177,6 +177,14 @@ Using `requestId` prevents duplicate operations:
 - Capability middleware in `../middleware/requireCapability.ts`
 - Services: `RailwayService.ts` (GraphQL v2), `VercelDeploymentService.ts` (deployments only)
 
+### 2026-06-01 — Nango legacy connect session body
+- `POST /session` uses `end_user` / `organization` (not `tags`) for self-hosted Nango on Railway
+- Webhook accepts legacy `end_user` or newer `tags` on auth payloads
+
+### 2026-06-01 — Nango session errors
+- `POST /session` maps service slugs via `resolveNangoIntegrationId()`; returns Nango `message` + `hint` on failure (502)
+- Default `NANGO_HOST` when unset — matches web Connect UI host
+
 ### 2026-05-30 — Nango integration infrastructure (Step 3A)
 - Added `integration-routes.ts`: `POST /session`, `POST /webhook`, `POST /proxy`, `GET /`, `POST /disconnect`
 - Shared Nango client in `../lib/nango.ts` (self-hosted `NANGO_HOST`)
