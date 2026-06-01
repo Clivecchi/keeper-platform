@@ -5,7 +5,7 @@
     "buildCommand": null
   },
   "deploy": {
-    "startCommand": "sh -c 'node packages/database/scripts/resolve-failed-migration.js 20260215_sole_memory_links 2>/dev/null || true && pnpm --filter @keeper/database prisma migrate deploy && echo \"=== Migration complete, running seeds ===\" && pnpm --filter @keeper/database prisma db seed && echo \"=== Seeds complete, starting server ===\" && node apps/api/dist/index.js'",
+    "startCommand": "sh -c 'node packages/database/scripts/resolve-failed-migration.js 20260215_sole_memory_links 2>/dev/null || true && pnpm --filter @keeper/database prisma migrate deploy && echo \"=== Migration complete, running seeds ===\" && pnpm --filter @keeper/database prisma db seed && echo \"=== DB seeds complete, seeding Cloud agent ===\" && cd apps/api && node dist/scripts/seed-cloud-agent.js && echo \"=== Cloud agent seeded, starting server ===\" && node dist/index.js'",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300
   },
@@ -17,3 +17,4 @@
     "NPM_CONFIG_FUND": "false"
   }
 }
+
