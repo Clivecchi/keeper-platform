@@ -7,7 +7,7 @@ import {
   serializePromptPoints,
   type PromptPoint,
 } from "./promptPoints"
-import { ComposedPromptPreview } from "./ComposedPromptPreview"
+import { ComposedPromptPreview } from "./ComposedPromptPreview.tsx"
 
 export interface AgentPromptsSectionProps {
   lensValue: string

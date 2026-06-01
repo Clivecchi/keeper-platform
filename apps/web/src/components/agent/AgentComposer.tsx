@@ -225,7 +225,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
         style={{
           borderColor: SURFACE.containerBorder,
           backgroundColor: SURFACE.surfacePaper,
-          ["--tw-ring-color" as string]: "hsl(var(--theme-focus-ring) / 0.15)",
+          ["--tw-ring-color" as string]: "var(--treatment-color-alpha-20)",
         }}
       >
         {/* Toolbar: Kip Domain (left) | attach | send (right) */}

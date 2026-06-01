@@ -223,6 +223,7 @@ export function tokensToCSSVars(tokens: StyleTokens): Record<string, string> {
   const inkSecondary = toVar('ink.secondary', tokens['ink.secondary'])
   const inkTertiary = toVar('ink.tertiary', tokens['ink.tertiary'])
   const inkPlaceholder = toVar('ink.placeholder', tokens['ink.placeholder'])
+  const treatmentColor = toVar('focus.ring', tokens['focus.ring'])
 
   return {
     '--theme-surface-page': toVar('surface.page', tokens['surface.page']),
@@ -242,9 +243,15 @@ export function tokensToCSSVars(tokens: StyleTokens): Record<string, string> {
     '--theme-border-soft': toVar('border.soft', tokens['border.soft']),
     '--theme-border-strong': toVar('border.strong', tokens['border.strong']),
     '--theme-shadow-soft': tokens['shadow.soft'],
-    '--theme-focus-ring': toVar('focus.ring', tokens['focus.ring']),
+    '--theme-focus-ring': treatmentColor,
     '--theme-hover-surface': toVar('hover.surface', tokens['hover.surface']),
     '--theme-press-surface': toVar('press.surface', tokens['press.surface']),
+
+    /* Treatment focus color — derived from domain Treatment (focus.ring token) */
+    '--treatment-color': treatmentColor,
+    '--treatment-color-alpha-08': `hsl(${treatmentColor} / 0.08)`,
+    '--treatment-color-alpha-12': `hsl(${treatmentColor} / 0.12)`,
+    '--treatment-color-alpha-20': `hsl(${treatmentColor} / 0.20)`,
     '--theme-dialogue-user-bg': toVar('dialogue.userBg', tokens['dialogue.userBg']),
     '--theme-dialogue-agent-bg': toVar('dialogue.agentBg', tokens['dialogue.agentBg']),
     '--theme-dialogue-area-bg': toVar('dialogue.areaBg', tokens['dialogue.areaBg']),

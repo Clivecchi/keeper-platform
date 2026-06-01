@@ -1,0 +1,326 @@
+"use client"
+
+import * as React from "react"
+import { apiFetch } from "../../../lib/apiFetch"
+import { openIntegrationConnect } from "../../../lib/nangoConnect"
+
+export type IntegrationStatus = "connected" | "disconnected" | "error"
+
+export interface IntegrationDto {
+  id: string
+  service: string
+  nangoConnectionId: string | null
+  status: IntegrationStatus
+  tier: string
+  connectedAt: string | null
+}
+
+export function serviceLabel(slug: string): string {
+  return slug.charAt(0).toUpperCase() + slug.slice(1)
+}
+
+export function infraQuery(agentSlug: string, boardId?: string): string {
+  const params = new URLSearchParams({ agentSlug })
+  if (boardId) params.set("boardId", boardId)
+  return params.toString()
+}
+
+export function formatRelativeTime(value: string | number | undefined): string {
+  if (value == null) return "—"
+  const d = typeof value === "number" ? new Date(value) : new Date(value)
+  if (Number.isNaN(d.getTime())) return "—"
+  const diffMs = Date.now() - d.getTime()
+  const mins = Math.floor(diffMs / 60000)
+  if (mins < 1) return "just now"
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 48) return `${hrs}h ago`
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+}
+
+export function formatConnectedAt(iso: string | null): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })
+}
+
+const SERVICE_DESCRIPTIONS: Record<string, string> = {
+  railway: "Monitor deployments, logs, and service health from the IDE Board.",
+  vercel: "Track preview and production deployments, build logs, and project status.",
+  github: "View commits, pull requests, and branches from your connected repository.",
+}
+
+export function useIntegrationConnection(serviceSlug: string, domainId: string) {
+  const [integration, setIntegration] = React.useState<IntegrationDto | null>(null)
+  const [loading, setLoading] = React.useState(true)
+  const [busy, setBusy] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+
+  const refresh = React.useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const list = (await apiFetch(
+        `/api/integrations?domainId=${encodeURIComponent(domainId)}`,
+      )) as IntegrationDto[]
+      const match =
+        list.find((row) => row.service === serviceSlug && row.tier === "platform") ??
+        list.find((row) => row.service === serviceSlug) ??
+        null
+      setIntegration(match)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load integration status")
+      setIntegration(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [domainId, serviceSlug])
+
+  React.useEffect(() => {
+    void refresh()
+  }, [refresh])
+
+  const connect = React.useCallback(async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      await openIntegrationConnect({
+        service: serviceSlug,
+        domainId,
+        onConnected: () => {
+          void refresh()
+        },
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Connect failed")
+    } finally {
+      setBusy(false)
+    }
+  }, [domainId, refresh, serviceSlug])
+
+  const disconnect = React.useCallback(async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      await apiFetch("/api/integrations/disconnect", {
+        method: "POST",
+        body: JSON.stringify({ service: serviceSlug, domainId }),
+      })
+      await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Disconnect failed")
+    } finally {
+      setBusy(false)
+    }
+  }, [domainId, refresh, serviceSlug])
+
+  return {
+    integration,
+    status: integration?.status ?? "disconnected",
+    loading,
+    busy,
+    error,
+    setError,
+    refresh,
+    connect,
+    disconnect,
+  }
+}
+
+export function useResolvedCapabilities(agentSlug: string, boardId: string) {
+  const [capabilities, setCapabilities] = React.useState<string[]>([])
+
+  React.useEffect(() => {
+    let cancelled = false
+    void apiFetch(`/api/capabilities/resolve?${infraQuery(agentSlug, boardId)}`)
+      .then((res: { data?: { capabilities?: string[] } }) => {
+        if (!cancelled) {
+          setCapabilities(Array.isArray(res.data?.capabilities) ? res.data!.capabilities! : [])
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCapabilities([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [agentSlug, boardId])
+
+  return capabilities.filter((c) => c.startsWith("infra."))
+}
+
+export function FeedShimmer({ rows = 3 }: { rows?: number }) {
+  return (
+    <div className="flex flex-col gap-2 py-1">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div
+          key={i}
+          className="h-10 rounded-md animate-pulse"
+          style={{
+            background: "hsl(var(--theme-surface-elevated) / 0.45)",
+            width: i === 0 ? "100%" : i === 1 ? "92%" : "85%",
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+export function CapabilityChips({ capabilities }: { capabilities: string[] }) {
+  if (capabilities.length === 0) return null
+  return (
+    <div className="mt-2 pt-3 border-t border-[hsl(var(--theme-line-hairline))]">
+      <p
+        className="text-[10px] uppercase tracking-wide mb-2"
+        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+      >
+        Active capabilities
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {capabilities.map((cap) => (
+          <span
+            key={cap}
+            className="rounded-full border px-2 py-0.5 text-[10px]"
+            style={{
+              borderColor: "hsl(var(--theme-border-soft) / 0.5)",
+              color: "hsl(var(--theme-ink-secondary))",
+            }}
+          >
+            {cap}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function IntegrationUnconnectedState({
+  serviceSlug,
+  busy,
+  error,
+  onConnect,
+}: {
+  serviceSlug: string
+  busy: boolean
+  error: string | null
+  onConnect: () => void
+}) {
+  const label = serviceLabel(serviceSlug)
+  return (
+    <div className="flex flex-col gap-5 px-4 py-5">
+      <HeroZone title={label} subtitle="Not connected" glow="muted" />
+      <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+        {SERVICE_DESCRIPTIONS[serviceSlug] ?? `Connect ${label} to enable platform integration.`}
+      </p>
+      {error && (
+        <p className="text-[12px]" style={{ color: "hsl(var(--theme-status-error))" }}>
+          {error}
+        </p>
+      )}
+      <ActionButton label={busy ? "Opening…" : `Connect ${label}`} onClick={onConnect} disabled={busy} />
+    </div>
+  )
+}
+
+export function HeroZone({
+  title,
+  subtitle,
+  glow = "muted",
+}: {
+  title: string
+  subtitle: string
+  glow?: "healthy" | "building" | "degraded" | "muted"
+}) {
+  const glowColor =
+    glow === "healthy"
+      ? "hsl(var(--theme-status-success) / 0.45)"
+      : glow === "building"
+        ? "hsl(var(--theme-status-warning) / 0.45)"
+        : glow === "degraded"
+          ? "hsl(var(--theme-status-error) / 0.45)"
+          : "hsl(var(--theme-ink-tertiary) / 0.25)"
+
+  return (
+    <div
+      className="rounded-lg border px-4 py-3"
+      style={{
+        borderColor: "hsl(var(--theme-border-soft) / 0.4)",
+        boxShadow: `0 0 20px 2px ${glowColor}`,
+      }}
+    >
+      <h3 className="text-[15px] font-medium" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+        {title}
+      </h3>
+      <p className="mt-0.5 text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+        {subtitle}
+      </p>
+    </div>
+  )
+}
+
+export function StatusStrip({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      className="text-[12px] leading-relaxed"
+      style={{ color: "hsl(var(--theme-ink-secondary))" }}
+    >
+      {children}
+    </p>
+  )
+}
+
+export function ActionButton({
+  label,
+  onClick,
+  disabled,
+  variant = "default",
+}: {
+  label: string
+  onClick: () => void
+  disabled?: boolean
+  variant?: "default" | "danger"
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => void onClick()}
+      disabled={disabled}
+      className="rounded-md border px-3 py-1.5 text-[12px] transition-opacity disabled:opacity-50"
+      style={{
+        borderColor:
+          variant === "danger"
+            ? "hsl(var(--theme-status-error) / 0.4)"
+            : "hsl(var(--theme-border-soft))",
+        color:
+          variant === "danger"
+            ? "hsl(var(--theme-status-error))"
+            : "hsl(var(--theme-ink-secondary))",
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
+export function FeedError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="flex flex-col gap-2 py-2">
+      <p className="text-[12px]" style={{ color: "hsl(var(--theme-status-error))" }}>
+        {message}
+      </p>
+      <ActionButton label="Retry" onClick={onRetry} />
+    </div>
+  )
+}
+
+export async function confirmDestructiveAction(message: string): Promise<boolean> {
+  if (typeof window === "undefined") return false
+  return window.confirm(message)
+}

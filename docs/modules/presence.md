@@ -52,6 +52,11 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-05-31 — Focus Color System + Integration Chronicle surfaces
+- Focus colors: `--treatment-color` alpha variants in `styleRegistry.ts`; composer glow, nav selection, Chronicle inner glow in `index.css`
+- `integrationChronicle/` — Railway, Vercel, GitHub slot schemas (Hero, Status Strip, Feed, Actions); unconnected Connect via Nango
+- Fixed `AgentPromptsSection` import to `./ComposedPromptPreview.tsx` (Windows case-collision with `composedPromptPreview.ts`)
+
 ### 2026-05-26 — Lens prompt: editable textarea + lens PATCH route
 - `lensSystemPrompt` saves via `PATCH /api/kip/lenses/:lensId` (`systemPrompt`), not agent PATCH
 - Labeled secondary fields; composed prompt re-fetched after agent lens save (`handlePresenceRefresh`)

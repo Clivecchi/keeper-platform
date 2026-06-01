@@ -16,7 +16,8 @@ Schema-driven Chronicle rendering layer. Resolves and applies per-domain, per-ob
 - `promptPoints.ts` — parse/serialize prompt strings ↔ editable points
 - `presenceEnrichment.ts` — fetches records and resolves journey context, paths, sessions per object type
 - `ChroniclePresenceView.tsx` — thin Chronicle wrapper (`layout="focus"`, density `standard`); routes `service` to `IntegrationPresence`
-- `IntegrationPresence.tsx` — Nango Connect UI for Railway/Vercel (GitHub deferred)
+- `IntegrationPresence.tsx` — re-exports `integrationChronicle/` (Railway, Vercel, GitHub Chronicle slots)
+- `integrationChronicle/` — Hero, Status Strip, Primary Feed, Actions; unconnected Connect via Nango
 - `chronicleConfig/` — universal Config Mode save infrastructure (`useChronicleConfig`, save bar, config shell)
 - `cover/DomainFocusPresence.tsx` — Domain Cover + Config orchestration
 - `cover/schemas/domainCoverSchema.ts` — Domain cover slot fill
@@ -57,6 +58,11 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - [ ] `PUT /api/domains/:domainId/presence-schema/:objectType` Design Board write path integration pending
 
 ## 📆 Update Log
+
+### 2026-05-31 — Focus Color System + Integration Chronicle surfaces
+- Focus colors: `--treatment-color` alpha variants in `styleRegistry.ts`; composer glow, nav selection, Chronicle inner glow in `index.css`
+- `integrationChronicle/` — Railway, Vercel, GitHub slot schemas (Hero, Status Strip, Feed, Actions); unconnected Connect via Nango
+- Fixed `AgentPromptsSection` import to `./ComposedPromptPreview.tsx` (Windows case-collision with `composedPromptPreview.ts`)
 
 ### 2026-05-29 — Step 2: Universal Chronicle CRUD
 - Added `chronicleConfig/` — `useChronicleConfig`, `ChronicleSaveBar`, `ChronicleConfigShell`, `handleChronicleSave`

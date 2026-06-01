@@ -162,13 +162,13 @@ export function SidebarCard({
                   onClick={item.onClick}
                   className={`text-left rounded-md px-1.5 py-0.5 -mx-1.5 -my-0.5 transition-colors ${
                     item.isSelected
-                      ? "font-medium"
+                      ? "keeper-nav-item-selected font-medium"
                       : "underline-offset-2 decoration-dotted hover:underline hover:opacity-80"
                   }`}
                   style={{
                     color: SURFACE.inkPrimary,
                     ...(item.isSelected
-                      ? { backgroundColor: "hsl(var(--theme-surface-elevated) / 0.85)" }
+                      ? {}
                       : {}),
                   }}
                 >

@@ -555,7 +555,9 @@ export function UniversalViewPanel({
 
   return (
     <div
-      className="keeper-chronicle-panel flex flex-col h-full min-h-0 overflow-hidden"
+      className={`keeper-chronicle-panel flex flex-col h-full min-h-0 overflow-hidden${
+        currentEntry.kind !== "domain" || currentEntry.id ? " keeper-chronicle-panel--focused" : ""
+      }`}
       style={{
         color: "hsl(var(--theme-ink-primary))",
       }}
