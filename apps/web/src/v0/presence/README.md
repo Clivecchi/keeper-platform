@@ -59,6 +59,10 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-06-02 — Integration Connect errors visible in Chronicle
+- **apiFetch.ts**: Fixed error re-throw so `POST /api/integrations/session` JSON (`message`, `hint`) reaches UI.
+- **integrationChronicle/shared.tsx**: `formatIntegrationConnectError`, alert panel below Connect button on unconnected state.
+
 ### 2026-05-31 — Focus Color System + Integration Chronicle surfaces
 - Focus colors: `--treatment-color` alpha variants in `styleRegistry.ts`; composer glow, nav selection, Chronicle inner glow in `index.css`
 - `integrationChronicle/` — Railway, Vercel, GitHub slot schemas (Hero, Status Strip, Feed, Actions); unconnected Connect via Nango

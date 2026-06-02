@@ -1,9 +1,10 @@
 /**
- * Integration routes — Nango-backed OAuth and proxy for third-party services.
+ * Integration routes — Services (Nango OAuth), Custom (env token verify), proxy, list.
  */
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '@keeper/database';
+import type { IntegrationType } from '../types/integration.js';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import {
   connectSessionFailureHint,
@@ -13,11 +14,17 @@ import {
   isNangoConfigured,
   resolveNangoIntegrationId,
 } from '../lib/nango.js';
+import { verifyRailwayCustomConnect } from '../lib/integrationCustomConnect.js';
 import type {
   IntegrationRecord,
   IntegrationStatus,
   IntegrationTier,
   NangoAuthWebhookPayload,
+} from '../types/integration.js';
+import {
+  isCustomIntegrationType,
+  isServicesIntegrationType,
+  resolvePlatformIntegrationType,
 } from '../types/integration.js';
 
 const router: Router = Router();
@@ -58,6 +65,7 @@ function integrationWhere(
 function toIntegrationRecord(row: {
   id: string;
   service: string;
+  integration_type: IntegrationType;
   nangoConnectionId: string | null;
   status: string;
   tier: string;
@@ -72,6 +80,7 @@ function toIntegrationRecord(row: {
   return {
     id: row.id,
     service: row.service,
+    integration_type: row.integration_type,
     nangoConnectionId: row.nangoConnectionId,
     status: row.status as IntegrationStatus,
     tier: row.tier as IntegrationTier,
@@ -101,6 +110,7 @@ async function findIntegration(
 
 async function upsertIntegration(params: {
   service: string;
+  integration_type: IntegrationType;
   tier: IntegrationTier;
   domainId: string | null;
   userId: string | null;
@@ -124,13 +134,17 @@ async function upsertIntegration(params: {
   if (existing) {
     return prisma.integration.update({
       where: { id: existing.id },
-      data,
+      data: {
+        ...data,
+        integration_type: params.integration_type,
+      },
     });
   }
 
   return prisma.integration.create({
     data: {
       service: params.service,
+      integration_type: params.integration_type,
       tier: params.tier,
       domainId: params.domainId,
       userId: params.userId,
@@ -142,15 +156,11 @@ async function upsertIntegration(params: {
 
 /**
  * POST /api/integrations/session
- * Short-lived Nango Connect session token for the frontend.
+ * Services → Nango Connect session token. Custom → env token verification (no Nango).
  */
 router.post('/session', authMiddlewareCompat, async (req: Request, res: Response) => {
   let serviceSlug = '';
   try {
-    if (!isNangoConfigured()) {
-      return res.status(503).json({ error: 'Nango is not configured' });
-    }
-
     const parsed = sessionBodySchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: 'Invalid request body', details: parsed.error.flatten() });
@@ -158,13 +168,66 @@ router.post('/session', authMiddlewareCompat, async (req: Request, res: Response
 
     const { service, userId, domainId } = parsed.data;
     serviceSlug = service;
+
+    const integrationType = resolvePlatformIntegrationType(service);
+    if (!integrationType) {
+      return res.status(400).json({
+        error: 'Unknown integration service',
+        service,
+      });
+    }
+
     const tier = resolveTier(userId);
     // incomplete — per-domain integration scoping: domainId accepted but not enforced for platform tier
     const scopedDomainId = tier === 'platform' ? null : domainId ?? null;
     const scopedUserId = tier === 'user' ? userId ?? req.user?.id ?? null : null;
 
+    if (isCustomIntegrationType(integrationType)) {
+      if (service !== 'railway') {
+        return res.status(400).json({
+          error: 'Custom connect is only implemented for railway',
+          service,
+        });
+      }
+
+      const verification = await verifyRailwayCustomConnect();
+      if (verification.ok === false) {
+        return res.status(503).json({
+          error: 'Failed to verify Railway integration',
+          message: verification.error,
+          hint: verification.hint,
+          service: 'railway',
+        });
+      }
+
+      await upsertIntegration({
+        service,
+        integration_type: integrationType,
+        tier,
+        domainId: scopedDomainId,
+        userId: scopedUserId,
+        status: 'connected',
+        connectedAt: new Date(),
+        nangoConnectionId: null,
+      });
+
+      return res.status(200).json({ connected: true as const, service: 'railway' });
+    }
+
+    if (!isServicesIntegrationType(integrationType)) {
+      return res.status(400).json({
+        error: 'Connect session not supported for this integration type',
+        integration_type: integrationType,
+      });
+    }
+
+    if (!isNangoConfigured()) {
+      return res.status(503).json({ error: 'Nango is not configured' });
+    }
+
     await upsertIntegration({
       service,
+      integration_type: integrationType,
       tier,
       domainId: scopedDomainId,
       userId: scopedUserId,
@@ -184,10 +247,19 @@ router.post('/session', authMiddlewareCompat, async (req: Request, res: Response
     return res.status(200).json({ sessionToken: data.token });
   } catch (err) {
     console.error('[integrations/session]', err);
+    const integrationType = resolvePlatformIntegrationType(serviceSlug);
+    if (integrationType && isCustomIntegrationType(integrationType)) {
+      const message = err instanceof Error ? err.message : 'Custom connect failed';
+      return res.status(500).json({
+        error: 'Failed to verify custom integration',
+        message,
+        service: serviceSlug,
+      });
+    }
+
     const { status, message, detail } = formatNangoError(err);
     const nangoIntegrationId = resolveNangoIntegrationId(serviceSlug || 'service');
     const hint = connectSessionFailureHint(status, message, nangoIntegrationId);
-    // Upstream Nango errors → 502 so clients do not treat as malformed Keeper input
     const httpStatus = status >= 400 && status < 500 ? 502 : status === 500 ? 502 : status;
     return res.status(httpStatus).json({
       error: 'Failed to create connect session',
@@ -201,7 +273,7 @@ router.post('/session', authMiddlewareCompat, async (req: Request, res: Response
 
 /**
  * POST /api/integrations/webhook
- * Nango auth webhooks — persist connection ID on the Integration record.
+ * Nango auth webhooks — persist connection ID on the Integration record (Services only).
  */
 router.post('/webhook', async (req: Request, res: Response) => {
   try {
@@ -218,6 +290,11 @@ router.post('/webhook', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing connectionId or providerConfigKey' });
     }
 
+    const integrationType = resolvePlatformIntegrationType(service);
+    if (!integrationType || !isServicesIntegrationType(integrationType)) {
+      return res.status(200).json({ received: true, ignored: true, reason: 'not_services_type' });
+    }
+
     const tags = payload.tags ?? {};
     const endUserId =
       tags.end_user_id ?? payload.end_user?.id ?? payload.endUser?.id;
@@ -232,6 +309,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
 
     await upsertIntegration({
       service,
+      integration_type: integrationType,
       tier,
       domainId,
       userId,

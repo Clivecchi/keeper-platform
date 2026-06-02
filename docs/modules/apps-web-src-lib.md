@@ -4,7 +4,6 @@
 Core utility functions and API clients for the Keeper web application, including authentication-aware API calls and service integrations.
 
 ## 🧱 Key Files
-- `nangoConnect.ts` - Integration Connect: Services open Nango UI; Custom (railway) uses token verify only
 - `api.ts` - Core API client with authentication error handling
 - `themeApi.ts` - Theme fetching and management
 - `kipApi.ts` - KIP (Keeper Intelligence Platform) API client

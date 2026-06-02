@@ -22,8 +22,19 @@ export interface OpenIntegrationConnectOptions {
   onConnected?: () => void;
 }
 
+type IntegrationSessionResult =
+  | { sessionToken: string; connected?: undefined }
+  | { connected: true; service: string; sessionToken?: undefined };
+
+function isCustomConnectResult(
+  body: IntegrationSessionResult,
+): body is { connected: true; service: string } {
+  return body.connected === true && typeof body.service === 'string';
+}
+
 /**
- * Request a connect session from Keeper API and open Nango Connect UI.
+ * Request a connect session from Keeper API.
+ * Services (vercel, github) → Nango Connect UI. Custom (railway) → token verify only, no Nango UI.
  */
 export async function openIntegrationConnect({
   service,
@@ -31,14 +42,23 @@ export async function openIntegrationConnect({
   userId,
   onConnected,
 }: OpenIntegrationConnectOptions): Promise<void> {
-  const { sessionToken } = (await apiFetch('/api/integrations/session', {
+  const result = (await apiFetch('/api/integrations/session', {
     method: 'POST',
     body: JSON.stringify({
       service,
       domainId: domainId ?? undefined,
       userId,
     }),
-  })) as { sessionToken: string };
+  })) as IntegrationSessionResult;
+
+  if (isCustomConnectResult(result)) {
+    onConnected?.();
+    return;
+  }
+
+  if (!result.sessionToken) {
+    throw new Error('Connect session response missing sessionToken');
+  }
 
   const nango = getNangoFrontend();
   const connectUI = nango.openConnectUI({
@@ -49,5 +69,5 @@ export async function openIntegrationConnect({
     },
   });
 
-  connectUI.setSessionToken(sessionToken);
+  connectUI.setSessionToken(result.sessionToken);
 }

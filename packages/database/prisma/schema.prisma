@@ -1939,20 +1939,28 @@ model RequestLog {
   @@index([reqId, at])
 }
 
-/// Third-party service connection — credentials live in Nango; platform stores connection reference only.
+/// Third-party service connection — Services use Nango OAuth; Custom uses platform env tokens.
+enum IntegrationType {
+  Services
+  Custom
+  AI_Model
+}
+
+/// Third-party service connection — credentials live in Nango (Services) or env (Custom).
 model Integration {
-  id                String    @id @default(cuid())
+  id                String           @id @default(cuid())
   service           String
+  integration_type  IntegrationType
   nangoConnectionId String?
-  status            String    @default("disconnected")
-  tier              String    @default("platform")
+  status            String           @default("disconnected")
+  tier              String           @default("platform")
   scopes            String[]
   domainId          String?
   userId            String?
   metadata          Json?
   connectedAt       DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@unique([service, tier, domainId, userId])
 }

@@ -54,36 +54,41 @@ export async function apiFetch(input: string | URL, opts: FetchOptions = {}) {
   };
 
   const response = await fetch(url, nextInit);
-  
-  // Parse JSON response
+
   if (!response.ok) {
-    // For error responses, try to parse JSON error message
-    try {
-      const errorData = await response.json();
-      const errorMessage = errorData.message || errorData.error || `HTTP ${response.status}`;
-      const error: any = new Error(errorMessage);
-      error.status = response.status; // Attach status for handleAuthError
-      error.response = response; // Attach response for additional context
-      if (errorData?.error) {
-        error.code = errorData.error;
+    const raw = await response.text();
+    let errorData: Record<string, unknown> | null = null;
+    if (raw) {
+      try {
+        errorData = JSON.parse(raw) as Record<string, unknown>;
+      } catch {
+        errorData = null;
       }
-      error.data = errorData;
-      throw error;
-    } catch (err) {
-      // If JSON parsing fails or we already threw, use status code
-      if (err instanceof Error && err.message.startsWith('HTTP')) {
-        // Re-throw our custom error (already has status attached from above)
-        if (!(err as any).status) {
-          (err as any).status = response.status;
-          (err as any).response = response;
-        }
-        throw err;
-      }
-      const error: any = new Error(`HTTP ${response.status}: ${response.statusText}`);
-      error.status = response.status; // Attach status for handleAuthError
-      error.response = response; // Attach response for additional context
-      throw error;
     }
+
+    const fromBody =
+      typeof errorData?.message === 'string'
+        ? errorData.message
+        : typeof errorData?.error === 'string'
+          ? errorData.error
+          : null;
+    const errorMessage = fromBody ?? `HTTP ${response.status}: ${response.statusText}`;
+
+    const error = new Error(errorMessage) as Error & {
+      status: number;
+      response: Response;
+      code?: string;
+      data?: Record<string, unknown>;
+    };
+    error.status = response.status;
+    error.response = response;
+    if (typeof errorData?.error === 'string') {
+      error.code = errorData.error;
+    }
+    if (errorData) {
+      error.data = errorData;
+    }
+    throw error;
   }
   
   // For successful responses, return parsed JSON

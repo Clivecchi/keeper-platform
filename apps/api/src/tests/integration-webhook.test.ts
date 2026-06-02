@@ -27,7 +27,8 @@ describe('integration webhook @smoke', () => {
     prismaMock.integration.findFirst.mockResolvedValue(null);
     prismaMock.integration.create.mockResolvedValue({
       id: 'int_test',
-      service: 'railway',
+      service: 'github',
+      integration_type: 'Services',
       nangoConnectionId: 'conn_test',
       status: 'connected',
       tier: 'platform',
@@ -53,7 +54,7 @@ describe('integration webhook @smoke', () => {
         operation: 'creation',
         success: true,
         connectionId: 'conn_test',
-        providerConfigKey: 'railway',
+        providerConfigKey: 'github',
         tags: { end_user_id: 'platform', organization_id: 'platform' },
       });
 

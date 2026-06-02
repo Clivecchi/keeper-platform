@@ -19,6 +19,26 @@ export function serviceLabel(slug: string): string {
   return slug.charAt(0).toUpperCase() + slug.slice(1)
 }
 
+/** Maps POST /api/integrations/session error JSON into Chronicle copy (message + hint). */
+export function formatIntegrationConnectError(err: unknown): string {
+  const apiErr = err as Error & {
+    data?: { message?: string; hint?: string; nangoIntegrationId?: string }
+  }
+  const lines: string[] = []
+  const msg = apiErr.data?.message ?? apiErr.message
+  if (typeof msg === "string" && msg.length > 0 && !/^HTTP \d{3}/.test(msg)) {
+    lines.push(msg)
+  }
+  if (typeof apiErr.data?.hint === "string" && apiErr.data.hint.length > 0) {
+    lines.push(apiErr.data.hint)
+  }
+  const nangoId = apiErr.data?.nangoIntegrationId
+  if (typeof nangoId === "string" && nangoId.length > 0) {
+    lines.push(`Nango integration id: ${nangoId}`)
+  }
+  return lines.length > 0 ? lines.join("\n\n") : "Connect failed"
+}
+
 export function infraQuery(agentSlug: string, boardId?: string): string {
   const params = new URLSearchParams({ agentSlug })
   if (boardId) params.set("boardId", boardId)
@@ -99,11 +119,7 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
         },
       })
     } catch (err) {
-      const apiErr = err as Error & { data?: { message?: string; hint?: string } }
-      const parts = [apiErr.data?.message, apiErr.message, apiErr.data?.hint].filter(
-        (p): p is string => typeof p === "string" && p.length > 0,
-      )
-      setError(parts.length > 0 ? parts.join(" — ") : "Connect failed")
+      setError(formatIntegrationConnectError(err))
     } finally {
       setBusy(false)
     }
@@ -223,12 +239,23 @@ export function IntegrationUnconnectedState({
       <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
         {SERVICE_DESCRIPTIONS[serviceSlug] ?? `Connect ${label} to enable platform integration.`}
       </p>
-      {error && (
-        <p className="text-[12px]" style={{ color: "hsl(var(--theme-status-error))" }}>
-          {error}
-        </p>
-      )}
       <ActionButton label={busy ? "Opening…" : `Connect ${label}`} onClick={onConnect} disabled={busy} />
+      {error && (
+        <div
+          role="alert"
+          className="rounded-md border px-3 py-2.5 text-[12px] leading-relaxed whitespace-pre-wrap"
+          style={{
+            borderColor: "hsl(0 70% 50% / 0.45)",
+            background: "hsl(0 70% 50% / 0.08)",
+            color: "hsl(var(--theme-ink-primary))",
+          }}
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: "hsl(0 65% 45%)" }}>
+            Connect failed
+          </p>
+          {error}
+        </div>
+      )}
     </div>
   )
 }

@@ -6,7 +6,7 @@ Express route handlers for all API endpoints. Handles HTTP request/response cycl
 
 ## 🧱 Key Files
 
-- `integration-routes.ts` - Nango-backed integration session, webhook, proxy, list, disconnect
+- `integration-routes.ts` - Integration connect (Services → Nango OAuth; Custom → env verify), webhook, proxy, list, disconnect
 - `railway-routes.ts` - Capability-gated Railway GraphQL proxy (services, deployments, logs, redeploy)
 - `vercel-routes.ts` - Capability-gated Vercel deployment routes (deployments, logs, project)
 - `webhook-routes.ts` - Inbound Railway, Vercel, GitHub webhook receivers (stub processing)
@@ -172,10 +172,24 @@ Using `requestId` prevents duplicate operations:
 
 ## 📆 Update Log
 
+### 2026-06-02 — Integrations Phase A (integration_type + Custom connect)
+- `Integration.integration_type`: `Services` | `Custom` | `AI_Model` (migration `20260602120000_add_integration_type`)
+- `railway` → Custom connect verifies `RAILWAY_TOKEN` + `RAILWAY_PROJECT_ID`; no Nango session
+- `vercel` / `github` → Services; unchanged Nango OAuth session path
+- Webhook ignores non-Services provider keys (e.g. legacy railway Nango events)
+
 ### 2026-05-31 — Infrastructure capabilities (Step 3B)
 - Added `railway-routes.ts`, `vercel-routes.ts`, `webhook-routes.ts`, `capability-routes.ts`
 - Capability middleware in `../middleware/requireCapability.ts`
 - Services: `RailwayService.ts` (GraphQL v2), `VercelDeploymentService.ts` (deployments only)
+
+### 2026-06-01 — Nango legacy connect session body
+- `POST /session` uses `end_user` / `organization` (not `tags`) for self-hosted Nango on Railway
+- Webhook accepts legacy `end_user` or newer `tags` on auth payloads
+
+### 2026-06-01 — Nango session errors
+- `POST /session` maps service slugs via `resolveNangoIntegrationId()`; returns Nango `message` + `hint` on failure (502)
+- Default `NANGO_HOST` when unset — matches web Connect UI host
 
 ### 2026-05-30 — Nango integration infrastructure (Step 3A)
 - Added `integration-routes.ts`: `POST /session`, `POST /webhook`, `POST /proxy`, `GET /`, `POST /disconnect`
@@ -194,4 +208,3 @@ Using `requestId` prevents duplicate operations:
 ### Earlier
 - Basic CRUD operations (mock implementation)
 - Frame routes scaffolding
-
