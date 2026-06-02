@@ -62,6 +62,8 @@ export async function openIntegrationConnect({
 
   const nango = getNangoFrontend();
   const connectUI = nango.openConnectUI({
+    baseURL: NANGO_HOST,
+    apiURL: NANGO_HOST,
     onEvent: (event) => {
       if (event.type === 'connect') {
         onConnected?.();
