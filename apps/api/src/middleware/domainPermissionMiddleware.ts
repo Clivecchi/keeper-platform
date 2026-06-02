@@ -484,8 +484,10 @@ async function ensureDomainContext(req: Request, _res: Response): Promise<Domain
     return typed;
   }
 
-  // Try to resolve domain from URL params when domainContext is missing or incomplete
-  const domainId = req.params?.domainId;
+  // Try to resolve domain from URL params or query (e.g. GET /api/keepers/:id?domainId=)
+  const domainId =
+    (typeof req.params?.domainId === 'string' ? req.params.domainId : undefined) ??
+    (typeof req.query?.domainId === 'string' ? req.query.domainId : undefined);
   if (!domainId) {
     return typed; // No domain ID available — downstream middleware will handle the error
   }

@@ -31,7 +31,9 @@ export function getNango(): Nango {
 export {
   buildConnectSessionBody,
   buildConnectSessionLegacyBody,
+  connectSessionFailureHint,
   createKeeperConnectSession,
+  extractNangoErrorMessage,
   resolveNangoIntegrationId,
   resolveNangoHost,
   formatNangoError,

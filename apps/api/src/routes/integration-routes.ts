@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import {
+  connectSessionFailureHint,
   createKeeperConnectSession,
   formatNangoError,
   getNango,
@@ -184,16 +185,16 @@ router.post('/session', authMiddlewareCompat, async (req: Request, res: Response
   } catch (err) {
     console.error('[integrations/session]', err);
     const { status, message, detail } = formatNangoError(err);
-    const hint = /invalid_body|end_user|unrecognized_keys.*tags/i.test(message)
-      ? 'Self-hosted Nango expects legacy connect session shape (end_user). Do not set NANGO_CONNECT_SESSION_TAGS until Nango is upgraded.'
-      : status === 404 || /integration|provider|config/i.test(message)
-        ? `Check Nango dashboard integration ID matches ${resolveNangoIntegrationId(serviceSlug || 'service')} (or set NANGO_INTEGRATION_* env overrides).`
-        : undefined;
-    return res.status(status === 500 ? 502 : status).json({
+    const nangoIntegrationId = resolveNangoIntegrationId(serviceSlug || 'service');
+    const hint = connectSessionFailureHint(status, message, nangoIntegrationId);
+    // Upstream Nango errors → 502 so clients do not treat as malformed Keeper input
+    const httpStatus = status >= 400 && status < 500 ? 502 : status === 500 ? 502 : status;
+    return res.status(httpStatus).json({
       error: 'Failed to create connect session',
       message,
       hint,
-      ...(process.env.NODE_ENV !== 'production' && detail != null ? { detail } : {}),
+      nangoIntegrationId,
+      ...(detail != null ? { detail } : {}),
     });
   }
 });

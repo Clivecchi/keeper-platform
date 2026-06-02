@@ -139,21 +139,58 @@ export async function createKeeperConnectSession(
   return createLegacyConnectSession(params);
 }
 
+export function extractNangoErrorMessage(data: unknown): string {
+  if (!data || typeof data !== 'object') {
+    return 'Nango request failed';
+  }
+  const root = data as Record<string, unknown>;
+  if (typeof root.message === 'string' && root.message.length > 0) {
+    return root.message;
+  }
+  if (typeof root.error === 'string' && root.error.length > 0) {
+    return root.error;
+  }
+  const nested = root.error;
+  if (nested && typeof nested === 'object') {
+    const e = nested as {
+      message?: string;
+      code?: string;
+      errors?: Array<{ message?: string; path?: Array<string | number> }>;
+    };
+    if (Array.isArray(e.errors) && e.errors.length > 0) {
+      return e.errors
+        .map((item) => {
+          const path = Array.isArray(item.path) ? item.path.join('.') : '';
+          return path ? `${path}: ${item.message ?? 'invalid'}` : (item.message ?? 'invalid');
+        })
+        .join('; ');
+    }
+    if (typeof e.message === 'string' && e.message.length > 0) {
+      return e.message;
+    }
+    if (typeof e.code === 'string' && e.code.length > 0) {
+      return e.code;
+    }
+  }
+  try {
+    return JSON.stringify(data).slice(0, 400);
+  } catch {
+    return 'Nango request failed';
+  }
+}
+
 export function formatNangoError(err: unknown): { status: number; message: string; detail?: unknown } {
   const axiosErr = err as {
-    response?: { status?: number; data?: { error?: string; message?: string } };
+    response?: { status?: number; data?: unknown };
     message?: string;
   };
   if (axiosErr.response) {
     const status = axiosErr.response.status ?? 502;
     const data = axiosErr.response.data;
-    const message =
-      (typeof data === 'object' && data && (data.message ?? data.error)) ||
-      axiosErr.message ||
-      'Nango request failed';
+    const message = extractNangoErrorMessage(data) || axiosErr.message || 'Nango request failed';
     return {
       status: status >= 400 && status < 600 ? status : 502,
-      message: String(message),
+      message,
       detail: data,
     };
   }
@@ -161,4 +198,22 @@ export function formatNangoError(err: unknown): { status: number; message: strin
     return { status: 502, message: err.message };
   }
   return { status: 500, message: 'Nango request failed' };
+}
+
+export function connectSessionFailureHint(
+  nangoStatus: number,
+  message: string,
+  integrationId: string,
+): string | undefined {
+  if (/invalid_body|end_user|unrecognized_keys.*tags/i.test(message)) {
+    return 'Self-hosted Nango expects legacy connect session shape (end_user). Unset NANGO_CONNECT_SESSION_TAGS until Nango is upgraded.';
+  }
+  if (
+    nangoStatus === 400 ||
+    nangoStatus === 404 ||
+    /integration|provider|allowed_integrations|not found|unknown/i.test(message)
+  ) {
+    return `Add integration "${integrationId}" in Nango (services.keeper.domains) or set NANGO_INTEGRATION_* to match the dashboard Integration ID.`;
+  }
+  return undefined;
 }

@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   buildConnectSessionBody,
   buildConnectSessionLegacyBody,
+  connectSessionFailureHint,
+  extractNangoErrorMessage,
   resolveNangoHost,
   resolveNangoIntegrationId,
   DEFAULT_NANGO_HOST,
@@ -47,6 +49,24 @@ describe('nangoConfig @smoke', () => {
       allowed_integrations: ['railway'],
       tags: { end_user_id: 'user-1', organization_id: 'org-1' },
     });
+  });
+
+  it('extractNangoErrorMessage parses Nango invalid_body errors', () => {
+    const msg = extractNangoErrorMessage({
+      error: {
+        code: 'invalid_body',
+        errors: [
+          { code: 'invalid_type', message: 'Required', path: ['end_user'] },
+          { code: 'unrecognized_keys', message: "Unrecognized key(s) in object: 'tags'", path: [] },
+        ],
+      },
+    });
+    expect(msg).toContain('end_user');
+    expect(msg).toContain('tags');
+  });
+
+  it('connectSessionFailureHint suggests Nango dashboard for unknown integration', () => {
+    expect(connectSessionFailureHint(400, 'integration not found', 'railway')).toContain('railway');
   });
 
   it('buildConnectSessionLegacyBody uses end_user for self-hosted Nango', () => {
