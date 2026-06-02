@@ -20,8 +20,9 @@ Shared utilities and service clients used across Express routes and middleware.
 
 ## 📆 Update Log
 
-### 2026-06-01 — Nango connect session body (legacy end_user)
-- `buildConnectSessionBody()` sends `end_user` + `organization` for self-hosted Nango that rejects `tags`
+### 2026-06-01 — Nango connect session typing + legacy HTTP
+- `buildConnectSessionBody()` always returns required `tags` (SDK-compatible)
+- `createKeeperConnectSession()` posts legacy `end_user` body via fetch when `NANGO_CONNECT_SESSION_TAGS` is unset
 - Set `NANGO_CONNECT_SESSION_TAGS=true` only after Nango server is upgraded to tags-based API
 
 ### 2026-06-01 — Nango host default + integration ID mapping

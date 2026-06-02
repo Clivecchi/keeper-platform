@@ -30,12 +30,19 @@ export function getNango(): Nango {
 
 export {
   buildConnectSessionBody,
+  buildConnectSessionLegacyBody,
+  createKeeperConnectSession,
   resolveNangoIntegrationId,
   resolveNangoHost,
   formatNangoError,
   DEFAULT_NANGO_HOST,
 } from './nangoConfig.js';
-export type { NangoConnectSessionBody } from './nangoConfig.js';
+export type {
+  ConnectSessionParams,
+  NangoConnectSessionBody,
+  NangoConnectSessionLegacyBody,
+  NangoConnectSessionResult,
+} from './nangoConfig.js';
 
 /** @deprecated Use getNango() — lazy init avoids import-time failure when env is unset. */
 export const nango = {

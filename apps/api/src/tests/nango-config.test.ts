@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   buildConnectSessionBody,
+  buildConnectSessionLegacyBody,
   resolveNangoHost,
   resolveNangoIntegrationId,
   DEFAULT_NANGO_HOST,
@@ -35,7 +36,7 @@ describe('nangoConfig @smoke', () => {
     expect(resolveNangoIntegrationId('railway')).toBe('railway');
   });
 
-  it('buildConnectSessionBody defaults to legacy end_user shape', () => {
+  it('buildConnectSessionBody always includes required tags for SDK', () => {
     expect(
       buildConnectSessionBody({
         endUserId: 'user-1',
@@ -44,22 +45,21 @@ describe('nangoConfig @smoke', () => {
       }),
     ).toEqual({
       allowed_integrations: ['railway'],
-      end_user: { id: 'user-1' },
-      organization: { id: 'org-1' },
+      tags: { end_user_id: 'user-1', organization_id: 'org-1' },
     });
   });
 
-  it('buildConnectSessionBody uses tags when NANGO_CONNECT_SESSION_TAGS=true', () => {
-    process.env.NANGO_CONNECT_SESSION_TAGS = 'true';
+  it('buildConnectSessionLegacyBody uses end_user for self-hosted Nango', () => {
     expect(
-      buildConnectSessionBody({
+      buildConnectSessionLegacyBody({
         endUserId: 'user-1',
         organizationId: 'org-1',
         allowedIntegrations: ['github'],
       }),
     ).toEqual({
       allowed_integrations: ['github'],
-      tags: { end_user_id: 'user-1', organization_id: 'org-1' },
+      end_user: { id: 'user-1' },
+      organization: { id: 'org-1' },
     });
   });
 });

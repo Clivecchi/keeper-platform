@@ -438,6 +438,9 @@ export declare function updateKipAgent(id: string, data: Partial<{
     permissions: string[];
     config: Record<string, unknown>;
     status: string;
+    model_provider: string;
+    model_settings: Record<string, unknown>;
+    visibility: string;
 }>): Promise<{
     model: string;
     name: string;

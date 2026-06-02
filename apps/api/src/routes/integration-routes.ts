@@ -6,10 +6,10 @@ import { z } from 'zod';
 import { prisma } from '@keeper/database';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import {
-  buildConnectSessionBody,
+  createKeeperConnectSession,
   formatNangoError,
+  getNango,
   isNangoConfigured,
-  nango,
   resolveNangoIntegrationId,
 } from '../lib/nango.js';
 import type {
@@ -174,13 +174,11 @@ router.post('/session', authMiddlewareCompat, async (req: Request, res: Response
     const organizationId = scopedDomainId ?? 'platform';
     const nangoIntegrationId = resolveNangoIntegrationId(service);
 
-    const { data } = await nango.createConnectSession(
-      buildConnectSessionBody({
-        endUserId,
-        organizationId,
-        allowedIntegrations: [nangoIntegrationId],
-      }),
-    );
+    const { data } = await createKeeperConnectSession(getNango(), {
+      endUserId,
+      organizationId,
+      allowedIntegrations: [nangoIntegrationId],
+    });
 
     return res.status(200).json({ sessionToken: data.token });
   } catch (err) {
@@ -271,7 +269,7 @@ router.post('/proxy', authMiddlewareCompat, async (req: Request, res: Response) 
       return res.status(404).json({ error: 'Integration not connected', service });
     }
 
-    const response = await nango.proxy({
+    const response = await getNango().proxy({
       method: method.toUpperCase() as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
       endpoint,
       providerConfigKey: resolveNangoIntegrationId(service),

@@ -1,6 +1,7 @@
 /**
  * Nango host + integration ID resolution (API must match frontend nangoConnect.ts host).
  */
+import type { Nango } from '@nangohq/node';
 import {
   PLATFORM_INTEGRATION_SERVICES,
   type PlatformIntegrationService,
@@ -13,6 +14,29 @@ const NANGO_INTEGRATION_ENV: Record<PlatformIntegrationService, string> = {
   railway: 'NANGO_INTEGRATION_RAILWAY',
   vercel: 'NANGO_INTEGRATION_VERCEL',
   github: 'NANGO_INTEGRATION_GITHUB',
+};
+
+export type ConnectSessionParams = {
+  endUserId: string;
+  organizationId: string;
+  allowedIntegrations: string[];
+};
+
+/** Matches @nangohq/node createConnectSession input (tags required). */
+export type NangoConnectSessionBody = {
+  allowed_integrations: string[];
+  tags: Record<string, string>;
+};
+
+/** Legacy self-hosted Nango — requires end_user, rejects tags-only payloads. */
+export type NangoConnectSessionLegacyBody = {
+  allowed_integrations: string[];
+  end_user: { id: string };
+  organization: { id: string };
+};
+
+export type NangoConnectSessionResult = {
+  data: { token: string; connect_link?: string; expires_at?: string };
 };
 
 export function resolveNangoHost(): string {
@@ -33,38 +57,86 @@ export function resolveNangoIntegrationId(service: string): string {
   return service;
 }
 
-/** Connect session body — legacy self-hosted Nango uses end_user; newer Nango uses tags. */
-export type NangoConnectSessionBody = {
-  allowed_integrations: string[];
-  tags?: Record<string, string>;
-  end_user?: { id: string };
-  organization?: { id: string };
-};
-
 /**
- * Build POST /connect/sessions body for the deployed Nango version.
- * Default: legacy (end_user) — matches self-hosted Nango that rejects `tags`.
- * Set NANGO_CONNECT_SESSION_TAGS=true after upgrading Nango to a tags-based release.
+ * Connect session body for SDK createConnectSession (tags-based Nango).
  */
-export function buildConnectSessionBody(params: {
-  endUserId: string;
-  organizationId: string;
-  allowedIntegrations: string[];
-}): NangoConnectSessionBody {
-  if (process.env.NANGO_CONNECT_SESSION_TAGS === 'true') {
-    return {
-      allowed_integrations: params.allowedIntegrations,
-      tags: {
-        end_user_id: params.endUserId,
-        organization_id: params.organizationId,
-      },
-    };
-  }
+export function buildConnectSessionBody(params: ConnectSessionParams): NangoConnectSessionBody {
+  return {
+    allowed_integrations: params.allowedIntegrations,
+    tags: {
+      end_user_id: params.endUserId,
+      organization_id: params.organizationId,
+    },
+  };
+}
+
+export function buildConnectSessionLegacyBody(
+  params: ConnectSessionParams,
+): NangoConnectSessionLegacyBody {
   return {
     allowed_integrations: params.allowedIntegrations,
     end_user: { id: params.endUserId },
     organization: { id: params.organizationId },
   };
+}
+
+function usesTagsConnectSessionApi(): boolean {
+  return process.env.NANGO_CONNECT_SESSION_TAGS === 'true';
+}
+
+async function createLegacyConnectSession(
+  params: ConnectSessionParams,
+): Promise<NangoConnectSessionResult> {
+  const secretKey = process.env.NANGO_SECRET_KEY?.trim();
+  if (!secretKey) {
+    throw new Error('NANGO_SECRET_KEY is not configured');
+  }
+
+  const response = await fetch(`${resolveNangoHost()}/connect/sessions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(buildConnectSessionLegacyBody(params)),
+  });
+
+  const text = await response.text();
+  let payload: unknown;
+  try {
+    payload = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(`Nango connect session failed (${response.status}): invalid JSON`);
+  }
+
+  if (!response.ok) {
+    const err = new Error(
+      `Nango connect session failed (${response.status})`,
+    ) as Error & { response?: { status: number; data: unknown } };
+    err.response = { status: response.status, data: payload };
+    throw err;
+  }
+
+  const body = payload as { data?: { token?: string } };
+  if (!body.data?.token) {
+    throw new Error('Nango connect session response missing token');
+  }
+
+  return { data: body.data as { token: string } };
+}
+
+/**
+ * Create a Nango connect session — SDK (tags) or legacy HTTP (end_user) per deployment.
+ */
+export async function createKeeperConnectSession(
+  nango: Nango,
+  params: ConnectSessionParams,
+): Promise<NangoConnectSessionResult> {
+  if (usesTagsConnectSessionApi()) {
+    return nango.createConnectSession(buildConnectSessionBody(params));
+  }
+  return createLegacyConnectSession(params);
 }
 
 export function formatNangoError(err: unknown): { status: number; message: string; detail?: unknown } {
