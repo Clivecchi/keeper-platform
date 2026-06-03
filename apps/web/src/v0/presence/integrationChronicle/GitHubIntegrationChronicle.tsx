@@ -135,6 +135,7 @@ export function GitHubIntegrationChronicle({
         serviceSlug="github"
         busy={conn.busy}
         error={conn.error}
+        authConnectUrl={conn.authConnectUrl}
         onConnect={() => void conn.connect()}
       />
     )

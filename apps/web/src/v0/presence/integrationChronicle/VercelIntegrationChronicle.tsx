@@ -134,6 +134,7 @@ export function VercelIntegrationChronicle({
         serviceSlug="vercel"
         busy={conn.busy}
         error={conn.error}
+        authConnectUrl={conn.authConnectUrl}
         onConnect={() => void conn.connect()}
       />
     )

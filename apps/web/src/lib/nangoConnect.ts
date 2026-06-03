@@ -13,16 +13,24 @@ import { apiFetch } from './apiFetch';
 
 const NANGO_HOST = 'https://services.keeper.domains';
 
-/** Shown in Chronicle when window.open is blocked (popup must open on click, before await). */
-export const POPUP_BLOCKED_MESSAGE =
-  'Please allow popups for ke3p.com to connect this service';
+/** Named target so repeat Connect focuses the same window instead of spawning unrelated tabs. */
+export const OAUTH_POPUP_NAME = 'keeper_integration_oauth';
 
 const PLATFORM_INTEGRATION_SERVICES = ['railway', 'vercel', 'github'] as const;
 
 type PlatformIntegrationService = (typeof PLATFORM_INTEGRATION_SERVICES)[number];
 
+/** Shown when window.open is blocked (popup must open on click, before await). */
+export function popupBlockedMessage(): string {
+  const host =
+    typeof window !== 'undefined' && window.location.hostname
+      ? window.location.hostname
+      : 'this site';
+  return `Allow popups for ${host}, or use the authorization link below after you click Connect.`;
+}
+
 /** Matches apps/api resolveNangoIntegrationId — slug or VITE_NANGO_INTEGRATION_* override. */
-function resolveNangoIntegrationId(service: string): string {
+export function resolveNangoIntegrationId(service: string): string {
   if (PLATFORM_INTEGRATION_SERVICES.includes(service as PlatformIntegrationService)) {
     const envKey = `VITE_NANGO_INTEGRATION_${service.toUpperCase()}` as const;
     const override = (import.meta.env as Record<string, string | undefined>)[envKey]?.trim();
@@ -31,28 +39,66 @@ function resolveNangoIntegrationId(service: string): string {
   return service;
 }
 
+export function buildNangoOAuthConnectUrl(
+  providerConfigKey: string,
+  connectSessionToken: string,
+): string {
+  const authUrl = new URL(`${NANGO_HOST}/oauth/connect/${providerConfigKey}`);
+  authUrl.searchParams.set('connect_session_token', connectSessionToken);
+  return authUrl.toString();
+}
+
 function resolveNangoWebsocketUrl(host: string): string {
   const base = new URL(host.replace(/\/+$/, ''));
   base.pathname = '/';
   return base.toString().replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
 }
 
-const POPUP_WIDTH = 500;
-const POPUP_HEIGHT = 700;
+const POPUP_WIDTH = 520;
+const POPUP_HEIGHT = 720;
+
+function writeOAuthPopupPlaceholder(popup: Window, serviceLabel: string): void {
+  try {
+    popup.document.title = `Connect ${serviceLabel} — Keeper`;
+    popup.document.body.innerHTML = `
+      <div style="font-family: system-ui, sans-serif; padding: 2rem; max-width: 28rem; margin: 0 auto; color: #1a1a1a;">
+        <h1 style="font-size: 1.125rem; font-weight: 600;">Connecting ${serviceLabel}</h1>
+        <p style="font-size: 0.875rem; line-height: 1.5; color: #444;">
+          Keeper is starting authorization. This window will redirect to ${serviceLabel} in a moment.
+        </p>
+        <p style="font-size: 0.8125rem; color: #666;">
+          If you see GitHub <em>Settings → Applications</em> instead of an Install/Authorize screen,
+          close that tab and use the authorization link in the Keeper panel.
+        </p>
+      </div>
+    `;
+  } catch {
+    // Cross-origin or blocked document — navigation will still proceed.
+  }
+}
 
 /**
- * Open a blank OAuth popup synchronously in the click handler — before any await.
- * @nangohq/frontend 0.70.5: auth() and Nango constructor do not accept a pre-opened Window;
- * auth() calls window.open('') when invoked (after await). Call this from onClick first, then
- * completeIntegrationConnect().
+ * Open an OAuth popup synchronously in the click handler — before any await.
  */
-export function beginIntegrationOAuthPopup(): Window {
+export function beginIntegrationOAuthPopup(serviceLabel = 'service'): Window {
   const layout = computeLayout({ expectedWidth: POPUP_WIDTH, expectedHeight: POPUP_HEIGHT });
-  const popup = window.open('', '_blank', windowFeaturesToString(layout));
+  const features = windowFeaturesToString(layout);
+  const popup = window.open('about:blank', OAUTH_POPUP_NAME, features);
   if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-    throw new AuthError(POPUP_BLOCKED_MESSAGE, 'blocked_by_browser');
+    throw new AuthError(popupBlockedMessage(), 'blocked_by_browser');
+  }
+  writeOAuthPopupPlaceholder(popup, serviceLabel);
+  try {
+    popup.focus();
+  } catch {
+    // ignore
   }
   return popup;
+}
+
+/** Opens the Nango connect URL in a new tab (fallback when the popup is hard to find). */
+export function openIntegrationOAuthTab(connectUrl: string): void {
+  window.open(connectUrl, OAUTH_POPUP_NAME, 'noopener,noreferrer');
 }
 
 /**
@@ -63,8 +109,7 @@ function runPopupOAuthAuth(
   connectSessionToken: string,
   popup: Window,
 ): Promise<AuthSuccess> {
-  const authUrl = new URL(`${NANGO_HOST}/oauth/connect/${providerConfigKey}`);
-  authUrl.searchParams.set('connect_session_token', connectSessionToken);
+  const authUrl = new URL(buildNangoOAuthConnectUrl(providerConfigKey, connectSessionToken));
 
   return new Promise<AuthSuccess>((resolve, reject) => {
     let settled = false;
@@ -116,7 +161,7 @@ function runPopupOAuthAuth(
         }
         reject(
           new AuthError(
-            'The authorization window was closed before the authorization flow was completed',
+            'The authorization window was closed before the authorization flow was completed. Use the link in Keeper to try again.',
             'window_closed',
           ),
         );
@@ -130,6 +175,8 @@ export interface OpenIntegrationConnectOptions {
   domainId?: string | null;
   userId?: string;
   onConnected?: () => void;
+  /** Called once the connect session token exists — UI can show a manual auth link. */
+  onSessionReady?: (connectUrl: string) => void;
   /** Pre-opened via beginIntegrationOAuthPopup() in the click handler (Services only). */
   oauthPopup?: Window | null;
 }
@@ -153,6 +200,7 @@ export async function openIntegrationConnect({
   domainId,
   userId,
   onConnected,
+  onSessionReady,
   oauthPopup = null,
 }: OpenIntegrationConnectOptions): Promise<void> {
   let popup = oauthPopup;
@@ -177,11 +225,14 @@ export async function openIntegrationConnect({
       throw new Error('Connect session response missing sessionToken');
     }
 
+    const providerConfigKey = resolveNangoIntegrationId(service);
+    const connectUrl = buildNangoOAuthConnectUrl(providerConfigKey, result.sessionToken);
+    onSessionReady?.(connectUrl);
+
     if (!popup) {
-      throw new AuthError(POPUP_BLOCKED_MESSAGE, 'blocked_by_browser');
+      throw new AuthError(popupBlockedMessage(), 'blocked_by_browser');
     }
 
-    const providerConfigKey = resolveNangoIntegrationId(service);
     const authResult = await runPopupOAuthAuth(providerConfigKey, result.sessionToken, popup);
 
     await apiFetch('/api/integrations/oauth-callback', {
@@ -213,3 +264,6 @@ export async function openIntegrationConnect({
     throw new Error('Connect failed');
   }
 }
+
+/** @deprecated Use popupBlockedMessage() for host-aware copy. */
+export const POPUP_BLOCKED_MESSAGE = popupBlockedMessage();

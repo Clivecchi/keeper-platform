@@ -5,6 +5,7 @@ import { apiFetch } from "../../../lib/apiFetch"
 import {
   beginIntegrationOAuthPopup,
   openIntegrationConnect,
+  openIntegrationOAuthTab,
 } from "../../../lib/nangoConnect"
 
 export type IntegrationStatus = "connected" | "disconnected" | "error"
@@ -85,6 +86,7 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
   const [loading, setLoading] = React.useState(true)
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [authConnectUrl, setAuthConnectUrl] = React.useState<string | null>(null)
 
   const refresh = React.useCallback(async () => {
     setLoading(true)
@@ -112,9 +114,10 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
 
   const connect = React.useCallback(() => {
     let oauthPopup: Window | null = null
+    const label = serviceLabel(serviceSlug)
     if (serviceSlug !== "railway") {
       try {
-        oauthPopup = beginIntegrationOAuthPopup()
+        oauthPopup = beginIntegrationOAuthPopup(label)
       } catch (err) {
         setError(formatIntegrationConnectError(err))
         return
@@ -123,13 +126,16 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
 
     setBusy(true)
     setError(null)
+    setAuthConnectUrl(null)
     void (async () => {
       try {
         await openIntegrationConnect({
           service: serviceSlug,
           domainId,
           oauthPopup,
+          onSessionReady: (url) => setAuthConnectUrl(url),
           onConnected: () => {
+            setAuthConnectUrl(null)
             void refresh()
           },
         })
@@ -163,6 +169,7 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
     loading,
     busy,
     error,
+    authConnectUrl,
     setError,
     refresh,
     connect,
@@ -241,21 +248,64 @@ export function IntegrationUnconnectedState({
   serviceSlug,
   busy,
   error,
+  authConnectUrl = null,
   onConnect,
 }: {
   serviceSlug: string
   busy: boolean
   error: string | null
+  authConnectUrl?: string | null
   onConnect: () => void
 }) {
   const label = serviceLabel(serviceSlug)
+  const isOAuthService = serviceSlug !== "railway"
   return (
     <div className="flex flex-col gap-5 px-4 py-5">
       <HeroZone title={label} subtitle="Not connected" glow="muted" />
       <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
         {SERVICE_DESCRIPTIONS[serviceSlug] ?? `Connect ${label} to enable platform integration.`}
       </p>
-      <ActionButton label={busy ? "Opening…" : `Connect ${label}`} onClick={onConnect} disabled={busy} />
+      {isOAuthService && (
+        <p className="text-[12px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+          Connect opens a separate browser window (or tab) for {label} authorization — not your GitHub profile.
+          Complete Install/Authorize there, then return to Keeper.
+        </p>
+      )}
+      <ActionButton
+        label={busy ? `Authorizing ${label}…` : `Connect ${label}`}
+        onClick={onConnect}
+        disabled={busy}
+      />
+      {busy && isOAuthService && (
+        <div
+          className="rounded-md border px-3 py-2.5 text-[12px] leading-relaxed"
+          style={{
+            borderColor: "hsl(var(--theme-border-soft) / 0.5)",
+            background: "hsl(var(--theme-surface-elevated) / 0.35)",
+            color: "hsl(var(--theme-ink-secondary))",
+          }}
+        >
+          <p className="font-medium mb-1" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+            Waiting for {label}
+          </p>
+          <p>
+            Look for a window titled &quot;Connect {label} — Keeper&quot;. If you only see GitHub Settings →
+            Installed Apps with no permissions, that page is not the connect step — use the link below.
+          </p>
+          {authConnectUrl && (
+            <p className="mt-2">
+              <button
+                type="button"
+                className="underline text-left"
+                style={{ color: "hsl(var(--theme-ink-primary))" }}
+                onClick={() => openIntegrationOAuthTab(authConnectUrl)}
+              >
+                Open {label} authorization
+              </button>
+            </p>
+          )}
+        </div>
+      )}
       {error && (
         <div
           role="alert"
