@@ -2,7 +2,10 @@
 
 import * as React from "react"
 import { apiFetch } from "../../../lib/apiFetch"
-import { openIntegrationConnect } from "../../../lib/nangoConnect"
+import {
+  beginIntegrationOAuthPopup,
+  openIntegrationConnect,
+} from "../../../lib/nangoConnect"
 
 export type IntegrationStatus = "connected" | "disconnected" | "error"
 
@@ -107,22 +110,35 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
     void refresh()
   }, [refresh])
 
-  const connect = React.useCallback(async () => {
+  const connect = React.useCallback(() => {
+    let oauthPopup: Window | null = null
+    if (serviceSlug !== "railway") {
+      try {
+        oauthPopup = beginIntegrationOAuthPopup()
+      } catch (err) {
+        setError(formatIntegrationConnectError(err))
+        return
+      }
+    }
+
     setBusy(true)
     setError(null)
-    try {
-      await openIntegrationConnect({
-        service: serviceSlug,
-        domainId,
-        onConnected: () => {
-          void refresh()
-        },
-      })
-    } catch (err) {
-      setError(formatIntegrationConnectError(err))
-    } finally {
-      setBusy(false)
-    }
+    void (async () => {
+      try {
+        await openIntegrationConnect({
+          service: serviceSlug,
+          domainId,
+          oauthPopup,
+          onConnected: () => {
+            void refresh()
+          },
+        })
+      } catch (err) {
+        setError(formatIntegrationConnectError(err))
+      } finally {
+        setBusy(false)
+      }
+    })()
   }, [domainId, refresh, serviceSlug])
 
   const disconnect = React.useCallback(async () => {

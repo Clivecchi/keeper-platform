@@ -64,6 +64,26 @@ export function resolveNangoIntegrationId(service: string): string {
   return service;
 }
 
+/** Inverse of resolveNangoIntegrationId — maps Nango providerConfigKey → Keeper service slug. */
+export function resolveServiceFromProviderConfigKey(
+  providerConfigKey: string,
+): PlatformIntegrationService | null {
+  const key = providerConfigKey.trim();
+  if (!key) return null;
+
+  for (const slug of PLATFORM_INTEGRATION_SERVICES) {
+    if (resolveNangoIntegrationId(slug) === key) {
+      return slug;
+    }
+  }
+
+  if (PLATFORM_INTEGRATION_SERVICES.includes(key as PlatformIntegrationService)) {
+    return key as PlatformIntegrationService;
+  }
+
+  return null;
+}
+
 /**
  * Connect session body for SDK createConnectSession (tags-based Nango).
  */

@@ -35,6 +35,7 @@ export {
   createKeeperConnectSession,
   extractNangoErrorMessage,
   resolveNangoIntegrationId,
+  resolveServiceFromProviderConfigKey,
   resolveNangoHost,
   formatNangoError,
   DEFAULT_NANGO_HOST,

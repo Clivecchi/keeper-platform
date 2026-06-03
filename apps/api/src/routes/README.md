@@ -172,6 +172,10 @@ Using `requestId` prevents duplicate operations:
 
 ## 📆 Update Log
 
+### 2026-06-02 — Popup OAuth callback + webhook providerConfigKey mapping
+- `POST /oauth-callback` (auth): persist connected after popup `nango.auth()` when Nango webhook is not forwarded to Keeper API.
+- `POST /webhook`: map Nango `providerConfigKey` (e.g. `github-app`) → Keeper service slug via `resolveServiceFromProviderConfigKey`.
+
 ### 2026-06-02 — Integrations Phase A (integration_type + Custom connect)
 - `Integration.integration_type`: `Services` | `Custom` | `AI_Model` (migration `20260602120000_add_integration_type`)
 - `railway` → Custom connect verifies `RAILWAY_TOKEN` + `RAILWAY_PROJECT_ID`; no Nango session

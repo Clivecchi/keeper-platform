@@ -63,6 +63,37 @@ describe('integration webhook @smoke', () => {
     expect(prismaMock.integration.create).toHaveBeenCalled();
   });
 
+  it('POST /webhook maps NANGO providerConfigKey override to Keeper service slug', async () => {
+    process.env.NANGO_INTEGRATION_GITHUB = 'github-app';
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/integrations', integrationRoutes);
+
+    const res = await request(app)
+      .post('/api/integrations/webhook')
+      .send({
+        type: 'auth',
+        success: true,
+        connectionId: 'conn_github_app',
+        providerConfigKey: 'github-app',
+        end_user: { id: 'platform' },
+        organization: { id: 'platform' },
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.received).toBe(true);
+    expect(prismaMock.integration.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          service: 'github',
+          status: 'connected',
+          nangoConnectionId: 'conn_github_app',
+        }),
+      }),
+    );
+  });
+
   it('POST /webhook returns 200 and ignores non-auth events', async () => {
     const app = express();
     app.use(express.json());

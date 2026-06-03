@@ -13,6 +13,7 @@ import {
   getNango,
   isNangoConfigured,
   resolveNangoIntegrationId,
+  resolveServiceFromProviderConfigKey,
 } from '../lib/nango.js';
 import { verifyRailwayCustomConnect } from '../lib/integrationCustomConnect.js';
 import type {
@@ -44,6 +45,14 @@ const proxyBodySchema = z.object({
 
 const disconnectBodySchema = z.object({
   service: z.string().min(1),
+  domainId: z.string().optional(),
+  userId: z.string().optional(),
+});
+
+const oauthCallbackBodySchema = z.object({
+  service: z.string().min(1),
+  connectionId: z.string().min(1),
+  providerConfigKey: z.string().optional(),
   domainId: z.string().optional(),
   userId: z.string().optional(),
 });
@@ -272,8 +281,59 @@ router.post('/session', authMiddlewareCompat, async (req: Request, res: Response
 });
 
 /**
+ * POST /api/integrations/oauth-callback
+ * After popup nango.auth() succeeds — persist connection when Nango webhook is not wired to Keeper API.
+ */
+router.post('/oauth-callback', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const parsed = oauthCallbackBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid request body', details: parsed.error.flatten() });
+    }
+
+    const { service, connectionId, providerConfigKey, domainId, userId } = parsed.data;
+    const integrationType = resolvePlatformIntegrationType(service);
+    if (!integrationType || !isServicesIntegrationType(integrationType)) {
+      return res.status(400).json({ error: 'Unknown or non-Services integration service', service });
+    }
+
+    const expectedProviderKey = resolveNangoIntegrationId(service);
+    if (providerConfigKey && providerConfigKey !== expectedProviderKey) {
+      return res.status(400).json({
+        error: 'providerConfigKey does not match service',
+        service,
+        providerConfigKey,
+        expected: expectedProviderKey,
+      });
+    }
+
+    const tier = resolveTier(userId);
+    const scopedDomainId = tier === 'platform' ? null : domainId ?? null;
+    const scopedUserId = tier === 'user' ? userId ?? req.user?.id ?? null : null;
+
+    await upsertIntegration({
+      service,
+      integration_type: integrationType,
+      tier,
+      domainId: scopedDomainId,
+      userId: scopedUserId,
+      nangoConnectionId: connectionId,
+      status: 'connected',
+      connectedAt: new Date(),
+    });
+
+    return res.status(200).json({ ok: true, service, connectionId });
+  } catch (err) {
+    console.error('[integrations/oauth-callback]', err);
+    return res.status(500).json({ error: 'Failed to persist OAuth connection' });
+  }
+});
+
+/**
  * POST /api/integrations/webhook
  * Nango auth webhooks — persist connection ID on the Integration record (Services only).
+ * Configure Nango to POST auth events to Keeper API (e.g. https://api.ke3p.com/api/integrations/webhook),
+ * not only the self-hosted /webhook/{uuid}/{integration} ingress on services.keeper.domains.
  */
 router.post('/webhook', async (req: Request, res: Response) => {
   try {
@@ -285,9 +345,19 @@ router.post('/webhook', async (req: Request, res: Response) => {
     }
 
     const connectionId = payload.connectionId;
-    const service = payload.providerConfigKey;
-    if (!connectionId || !service) {
+    const providerConfigKey = payload.providerConfigKey;
+    if (!connectionId || !providerConfigKey) {
       return res.status(400).json({ error: 'Missing connectionId or providerConfigKey' });
+    }
+
+    const service = resolveServiceFromProviderConfigKey(providerConfigKey);
+    if (!service) {
+      return res.status(200).json({
+        received: true,
+        ignored: true,
+        reason: 'unknown_provider_config_key',
+        providerConfigKey,
+      });
     }
 
     const integrationType = resolvePlatformIntegrationType(service);

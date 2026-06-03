@@ -1,12 +1,21 @@
 /**
  * Nango popup OAuth — self-hosted instance at services.keeper.domains.
- * Uses nango.auth() (/oauth/connect + WebSocket), not Connect UI iframe.
+ * Same /oauth/connect + WebSocket path as nango.auth(); no Connect UI iframe.
  */
-import Nango, { AuthError } from '@nangohq/frontend';
-import { computeLayout, windowFeaturesToString } from '@nangohq/frontend/dist/authModal.js';
+import { AuthError } from '@nangohq/frontend';
+import type { AuthSuccess } from '@nangohq/frontend';
+import {
+  AuthorizationModal,
+  computeLayout,
+  windowFeaturesToString,
+} from '@nangohq/frontend/dist/authModal.js';
 import { apiFetch } from './apiFetch';
 
 const NANGO_HOST = 'https://services.keeper.domains';
+
+/** Shown in Chronicle when window.open is blocked (popup must open on click, before await). */
+export const POPUP_BLOCKED_MESSAGE =
+  'Please allow popups for ke3p.com to connect this service';
 
 const PLATFORM_INTEGRATION_SERVICES = ['railway', 'vercel', 'github'] as const;
 
@@ -22,46 +31,98 @@ function resolveNangoIntegrationId(service: string): string {
   return service;
 }
 
+function resolveNangoWebsocketUrl(host: string): string {
+  const base = new URL(host.replace(/\/+$/, ''));
+  base.pathname = '/';
+  return base.toString().replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
+}
+
 const POPUP_WIDTH = 500;
-const POPUP_HEIGHT = 600;
+const POPUP_HEIGHT = 700;
 
 /**
- * Open OAuth popup synchronously before any await (popup blocker / Safari).
- * @nangohq/frontend 0.70.5 auth() does not accept a pre-opened Window; it calls window.open('')
- * when auth() runs. We open the popup here and temporarily patch window.open so auth() reuses it.
+ * Open a blank OAuth popup synchronously in the click handler — before any await.
+ * @nangohq/frontend 0.70.5: auth() and Nango constructor do not accept a pre-opened Window;
+ * auth() calls window.open('') when invoked (after await). Call this from onClick first, then
+ * completeIntegrationConnect().
  */
-function openOAuthPopupSync(): Window {
+export function beginIntegrationOAuthPopup(): Window {
   const layout = computeLayout({ expectedWidth: POPUP_WIDTH, expectedHeight: POPUP_HEIGHT });
   const popup = window.open('', '_blank', windowFeaturesToString(layout));
   if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-    throw new AuthError('Modal blocked by browser', 'blocked_by_browser');
+    throw new AuthError(POPUP_BLOCKED_MESSAGE, 'blocked_by_browser');
   }
   return popup;
 }
 
 /**
- * Run nango.auth() while reusing a popup opened synchronously on click.
- * SDK 0.70.5 has no API to pass an existing Window into auth().
+ * Popup OAuth — equivalent to nango.auth() with connectSessionToken (AuthorizationModal + WS).
  */
-async function authWithPreopenedPopup(
-  nango: Nango,
+function runPopupOAuthAuth(
   providerConfigKey: string,
+  connectSessionToken: string,
   popup: Window,
-): Promise<void> {
-  const originalOpen = window.open;
-  window.open = ((url?: string | URL, target?: string, features?: string) => {
-    const urlString = url == null ? '' : String(url);
-    if (urlString === '') {
-      return popup;
-    }
-    return originalOpen.call(window, url, target, features);
-  }) as typeof window.open;
+): Promise<AuthSuccess> {
+  const authUrl = new URL(`${NANGO_HOST}/oauth/connect/${providerConfigKey}`);
+  authUrl.searchParams.set('connect_session_token', connectSessionToken);
 
-  try {
-    await nango.auth(providerConfigKey);
-  } finally {
-    window.open = originalOpen;
-  }
+  return new Promise<AuthSuccess>((resolve, reject) => {
+    let settled = false;
+    let closeTimer: ReturnType<typeof setInterval> | null = null;
+
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      if (closeTimer) clearInterval(closeTimer);
+      fn();
+    };
+
+    const modal = new AuthorizationModal({
+      baseUrl: authUrl,
+      debug: false,
+      webSocketUrl: resolveNangoWebsocketUrl(NANGO_HOST),
+      successHandler: (result) => {
+        finish(() => {
+          try {
+            modal.close();
+          } catch {
+            // ignore
+          }
+          resolve(result);
+        });
+      },
+      errorHandler: (errorType, errorDesc) => {
+        finish(() => {
+          try {
+            modal.close();
+          } catch {
+            // ignore
+          }
+          reject(new AuthError(errorDesc, errorType));
+        });
+      },
+    });
+
+    modal.setModal(popup);
+
+    closeTimer = setInterval(() => {
+      if (!popup.closed) return;
+      if (modal.isProcessingMessage) return;
+      finish(() => {
+        try {
+          modal.close();
+        } catch {
+          // ignore
+        }
+        reject(
+          new AuthError(
+            'The authorization window was closed before the authorization flow was completed',
+            'window_closed',
+          ),
+        );
+      });
+    }, 500);
+  });
 }
 
 export interface OpenIntegrationConnectOptions {
@@ -69,6 +130,8 @@ export interface OpenIntegrationConnectOptions {
   domainId?: string | null;
   userId?: string;
   onConnected?: () => void;
+  /** Pre-opened via beginIntegrationOAuthPopup() in the click handler (Services only). */
+  oauthPopup?: Window | null;
 }
 
 type IntegrationSessionResult =
@@ -82,23 +145,18 @@ function isCustomConnectResult(
 }
 
 /**
- * Request a connect session from Keeper API.
- * Services (vercel, github) → popup OAuth via nango.auth(). Custom (railway) → token verify only.
- *
- * Synchronous entry: opens the OAuth popup before returning the async Promise (popup blockers).
- * Invoke from the click handler as `void openIntegrationConnect(...)` without awaiting other work first.
+ * Services (vercel, github) → popup OAuth. Custom (railway) → token verify only.
+ * For Services, pass oauthPopup from beginIntegrationOAuthPopup() called synchronously on click.
  */
-export function openIntegrationConnect(
-  options: OpenIntegrationConnectOptions,
-): Promise<void> {
-  const oauthPopup = typeof window !== 'undefined' ? openOAuthPopupSync() : null;
-  return runIntegrationConnect(options, oauthPopup);
-}
+export async function openIntegrationConnect({
+  service,
+  domainId,
+  userId,
+  onConnected,
+  oauthPopup = null,
+}: OpenIntegrationConnectOptions): Promise<void> {
+  let popup = oauthPopup;
 
-async function runIntegrationConnect(
-  { service, domainId, userId, onConnected }: OpenIntegrationConnectOptions,
-  oauthPopup: Window | null,
-): Promise<void> {
   try {
     const result = (await apiFetch('/api/integrations/session', {
       method: 'POST',
@@ -110,7 +168,7 @@ async function runIntegrationConnect(
     })) as IntegrationSessionResult;
 
     if (isCustomConnectResult(result)) {
-      oauthPopup?.close();
+      popup?.close();
       onConnected?.();
       return;
     }
@@ -119,22 +177,29 @@ async function runIntegrationConnect(
       throw new Error('Connect session response missing sessionToken');
     }
 
-    if (!oauthPopup) {
-      throw new AuthError('OAuth popup is only available in the browser', 'unknown_error');
+    if (!popup) {
+      throw new AuthError(POPUP_BLOCKED_MESSAGE, 'blocked_by_browser');
     }
 
-    const nango = new Nango({
-      host: NANGO_HOST,
-      connectSessionToken: result.sessionToken,
-    });
+    const providerConfigKey = resolveNangoIntegrationId(service);
+    const authResult = await runPopupOAuthAuth(providerConfigKey, result.sessionToken, popup);
 
-    await authWithPreopenedPopup(nango, resolveNangoIntegrationId(service), oauthPopup);
+    await apiFetch('/api/integrations/oauth-callback', {
+      method: 'POST',
+      body: JSON.stringify({
+        service,
+        connectionId: authResult.connectionId,
+        providerConfigKey: authResult.providerConfigKey,
+        domainId: domainId ?? undefined,
+        userId,
+      }),
+    });
 
     onConnected?.();
   } catch (err) {
-    if (oauthPopup && !oauthPopup.closed) {
+    if (popup && !popup.closed) {
       try {
-        oauthPopup.close();
+        popup.close();
       } catch {
         // ignore
       }

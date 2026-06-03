@@ -29,6 +29,9 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 📆 Update Log
 
+### 2026-06-02 — Popup OAuth: sync popup on click + oauth-callback persist
+- **nangoConnect.ts**: `beginIntegrationOAuthPopup()` in click handler (before await); AuthorizationModal + `/oauth/connect` (no iframe); `POST /api/integrations/oauth-callback` after success; popup-blocked copy for ke3p.com.
+
 ### 2026-06-02 — Integrations Phase A: Custom connect (no Nango UI for railway)
 - **nangoConnect.ts**: When `/api/integrations/session` returns `{ connected: true }`, invokes `onConnected` without opening Nango Connect UI.
 
