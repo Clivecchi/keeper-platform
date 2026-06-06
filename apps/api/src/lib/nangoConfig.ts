@@ -14,6 +14,11 @@ const NANGO_INTEGRATION_ENV: Record<PlatformIntegrationService, string> = {
   github: 'NANGO_INTEGRATION_GITHUB',
 };
 
+/** Default Nango dashboard IDs when env overrides are unset (must match web nangoConnect.ts). */
+const DEFAULT_NANGO_INTEGRATION_IDS: Record<PlatformIntegrationService, string> = {
+  github: 'github-app',
+};
+
 export type ConnectSessionParams = {
   endUserId: string;
   organizationId: string;
@@ -50,10 +55,11 @@ export function resolveNangoIntegrationId(service: string): string {
   if (!PLATFORM_INTEGRATION_SERVICES.includes(service as PlatformIntegrationService)) {
     throw new Error(`Service "${service}" is not a Nango integration`);
   }
-  const envKey = NANGO_INTEGRATION_ENV[service as PlatformIntegrationService];
+  const slug = service as PlatformIntegrationService;
+  const envKey = NANGO_INTEGRATION_ENV[slug];
   const override = process.env[envKey]?.trim();
   if (override) return override;
-  return service;
+  return DEFAULT_NANGO_INTEGRATION_IDS[slug];
 }
 
 /** Inverse of resolveNangoIntegrationId — maps Nango providerConfigKey → Keeper service slug. */

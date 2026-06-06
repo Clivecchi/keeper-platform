@@ -33,10 +33,18 @@ describe('nangoConfig @smoke', () => {
     expect(resolveNangoHost()).toBe('https://services.keeper.domains');
   });
 
+  it('resolveNangoIntegrationId defaults to github-app when env unset', () => {
+    expect(resolveNangoIntegrationId('github')).toBe('github-app');
+  });
+
   it('resolveNangoIntegrationId uses env override', () => {
     process.env.NANGO_INTEGRATION_GITHUB = 'github-app';
     expect(resolveNangoIntegrationId('github')).toBe('github-app');
     expect(() => resolveNangoIntegrationId('vercel')).toThrow('not a Nango integration');
+  });
+
+  it('resolveServiceFromProviderConfigKey inverts default github-app', () => {
+    expect(resolveServiceFromProviderConfigKey('github-app')).toBe('github');
   });
 
   it('resolveServiceFromProviderConfigKey inverts env override', () => {

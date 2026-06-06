@@ -20,21 +20,28 @@ const PLATFORM_INTEGRATION_SERVICES = ['github'] as const;
 
 type PlatformIntegrationService = (typeof PLATFORM_INTEGRATION_SERVICES)[number];
 
+/** Default Nango dashboard IDs when env overrides are unset (must match apps/api nangoConfig.ts). */
+const DEFAULT_NANGO_INTEGRATION_IDS: Record<PlatformIntegrationService, string> = {
+  github: 'github-app',
+};
+
 /** Shown when window.open is blocked (popup must open on click, before await). */
 export function popupBlockedMessage(): string {
   const host =
     typeof window !== 'undefined' && window.location.hostname
       ? window.location.hostname
       : 'this site';
-  return `Allow popups for ${host}, or use the authorization link below after you click Connect.`;
+  return `Allow popups for ${host}, then click Connect GitHub again.`;
 }
 
 /** Matches apps/api resolveNangoIntegrationId — slug or VITE_NANGO_INTEGRATION_* override. */
 export function resolveNangoIntegrationId(service: string): string {
   if (PLATFORM_INTEGRATION_SERVICES.includes(service as PlatformIntegrationService)) {
+    const slug = service as PlatformIntegrationService;
     const envKey = `VITE_NANGO_INTEGRATION_${service.toUpperCase()}` as const;
     const override = (import.meta.env as Record<string, string | undefined>)[envKey]?.trim();
     if (override) return override;
+    return DEFAULT_NANGO_INTEGRATION_IDS[slug];
   }
   return service;
 }
@@ -67,8 +74,7 @@ function writeOAuthPopupPlaceholder(popup: Window, serviceLabel: string): void {
           Keeper is starting authorization. This window will redirect to ${serviceLabel} in a moment.
         </p>
         <p style="font-size: 0.8125rem; color: #666;">
-          If you see GitHub <em>Settings → Applications</em> instead of an Install/Authorize screen,
-          close that tab and use the authorization link in the Keeper panel.
+          If authorization does not complete, return here and click Connect again.
         </p>
       </div>
     `;
@@ -94,11 +100,6 @@ export function beginIntegrationOAuthPopup(serviceLabel = 'service'): Window {
     // ignore
   }
   return popup;
-}
-
-/** Opens the Nango connect URL in a new tab (fallback when the popup is hard to find). */
-export function openIntegrationOAuthTab(connectUrl: string): void {
-  window.open(connectUrl, OAUTH_POPUP_NAME, 'noopener,noreferrer');
 }
 
 /**

@@ -5,7 +5,6 @@ import { apiFetch } from "../../../lib/apiFetch"
 import {
   beginIntegrationOAuthPopup,
   openIntegrationConnect,
-  openIntegrationOAuthTab,
 } from "../../../lib/nangoConnect"
 
 export type IntegrationStatus = "connected" | "disconnected" | "error"
@@ -94,32 +93,47 @@ const SERVICE_DESCRIPTIONS: Record<string, string> = {
   github: "View commits, pull requests, and branches from your connected repository.",
 }
 
+const OAUTH_POLL_INTERVAL_MS = 3_000
+const OAUTH_TIMEOUT_MS = 3 * 60 * 1_000
+
+function findIntegrationInList(
+  list: IntegrationDto[],
+  serviceSlug: string,
+): IntegrationDto | null {
+  return (
+    list.find((row) => row.service === serviceSlug && row.tier === "platform") ??
+    list.find((row) => row.service === serviceSlug) ??
+    null
+  )
+}
+
 export function useIntegrationConnection(serviceSlug: string, domainId: string) {
   const [integration, setIntegration] = React.useState<IntegrationDto | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
-  const [authConnectUrl, setAuthConnectUrl] = React.useState<string | null>(null)
+  const connectAttemptRef = React.useRef(0)
+  const oauthPopupRef = React.useRef<Window | null>(null)
+
+  const fetchIntegration = React.useCallback(async (): Promise<IntegrationDto | null> => {
+    const list = (await apiFetch(
+      `/api/integrations?domainId=${encodeURIComponent(domainId)}`,
+    )) as IntegrationDto[]
+    return findIntegrationInList(list, serviceSlug)
+  }, [domainId, serviceSlug])
 
   const refresh = React.useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const list = (await apiFetch(
-        `/api/integrations?domainId=${encodeURIComponent(domainId)}`,
-      )) as IntegrationDto[]
-      const match =
-        list.find((row) => row.service === serviceSlug && row.tier === "platform") ??
-        list.find((row) => row.service === serviceSlug) ??
-        null
-      setIntegration(match)
+      setIntegration(await fetchIntegration())
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load integration status")
       setIntegration(null)
     } finally {
       setLoading(false)
     }
-  }, [domainId, serviceSlug])
+  }, [fetchIntegration])
 
   React.useEffect(() => {
     void refresh()
@@ -127,6 +141,55 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
 
   const integrationType =
     integration?.integration_type ?? resolveServiceIntegrationType(serviceSlug)
+
+  const completeOAuthConnect = React.useCallback(() => {
+    connectAttemptRef.current += 1
+    try {
+      oauthPopupRef.current?.close()
+    } catch {
+      // ignore
+    }
+    oauthPopupRef.current = null
+    setBusy(false)
+    void refresh()
+  }, [refresh])
+
+  React.useEffect(() => {
+    if (!busy || integrationType !== "Services") return
+
+    let cancelled = false
+    const attemptId = connectAttemptRef.current
+    const label = serviceLabel(serviceSlug)
+    const timeoutMessage = `${label} authorization timed out. Please try again.`
+
+    const poll = async () => {
+      if (cancelled || connectAttemptRef.current !== attemptId) return
+      try {
+        const match = await fetchIntegration()
+        if (cancelled || connectAttemptRef.current !== attemptId) return
+        if (match?.status === "connected") {
+          setIntegration(match)
+          completeOAuthConnect()
+        }
+      } catch {
+        // polling errors are non-fatal — next tick retries
+      }
+    }
+
+    void poll()
+    const pollInterval = window.setInterval(() => void poll(), OAUTH_POLL_INTERVAL_MS)
+    const timeout = window.setTimeout(() => {
+      if (cancelled || connectAttemptRef.current !== attemptId) return
+      setError(timeoutMessage)
+      completeOAuthConnect()
+    }, OAUTH_TIMEOUT_MS)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(pollInterval)
+      window.clearTimeout(timeout)
+    }
+  }, [busy, completeOAuthConnect, fetchIntegration, integrationType, serviceSlug])
 
   const connect = React.useCallback(() => {
     let oauthPopup: Window | null = null
@@ -136,34 +199,38 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
     if (connectIntegrationType === "Services") {
       try {
         oauthPopup = beginIntegrationOAuthPopup(label)
+        oauthPopupRef.current = oauthPopup
       } catch (err) {
         setError(formatIntegrationConnectError(err))
         return
       }
     }
 
+    const attemptId = connectAttemptRef.current + 1
+    connectAttemptRef.current = attemptId
     setBusy(true)
     setError(null)
-    setAuthConnectUrl(null)
     void (async () => {
       try {
         await openIntegrationConnect({
           service: serviceSlug,
           domainId,
           oauthPopup,
-          onSessionReady: (url) => setAuthConnectUrl(url),
           onConnected: () => {
-            setAuthConnectUrl(null)
-            void refresh()
+            if (connectAttemptRef.current !== attemptId) return
+            completeOAuthConnect()
           },
         })
       } catch (err) {
+        if (connectAttemptRef.current !== attemptId) return
         setError(formatIntegrationConnectError(err))
       } finally {
+        if (connectAttemptRef.current !== attemptId) return
+        oauthPopupRef.current = null
         setBusy(false)
       }
     })()
-  }, [domainId, integration?.integration_type, refresh, serviceSlug])
+  }, [completeOAuthConnect, domainId, integration?.integration_type, serviceSlug])
 
   const disconnect = React.useCallback(async () => {
     setBusy(true)
@@ -188,7 +255,6 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
     loading,
     busy,
     error,
-    authConnectUrl,
     setError,
     refresh,
     connect,
@@ -268,14 +334,12 @@ export function IntegrationUnconnectedState({
   integrationType,
   busy,
   error,
-  authConnectUrl = null,
   onConnect,
 }: {
   serviceSlug: string
   integrationType: IntegrationType
   busy: boolean
   error: string | null
-  authConnectUrl?: string | null
   onConnect: () => void
 }) {
   const label = serviceLabel(serviceSlug)
@@ -310,21 +374,10 @@ export function IntegrationUnconnectedState({
             Waiting for {label}
           </p>
           <p>
-            Look for a window titled &quot;Connect {label} — Keeper&quot;. If you only see GitHub Settings →
-            Installed Apps with no permissions, that page is not the connect step — use the link below.
+            Look for a window titled &quot;Connect {label} — Keeper&quot;. Complete Authorize there,
+            then return to Keeper. If the window closes or nothing happens within a few minutes,
+            click Connect again.
           </p>
-          {authConnectUrl && (
-            <p className="mt-2">
-              <button
-                type="button"
-                className="underline text-left"
-                style={{ color: "hsl(var(--theme-ink-primary))" }}
-                onClick={() => openIntegrationOAuthTab(authConnectUrl)}
-              >
-                Open {label} authorization
-              </button>
-            </p>
-          )}
         </div>
       )}
       {error && (
