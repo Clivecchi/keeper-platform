@@ -20,6 +20,7 @@
     "node_modules",
     "dist",
     "src/__tests__",
-    "src/tests"
+    "src/tests",
+    "src/scripts/seed-cloud-agent.ts"
   ]
 }
