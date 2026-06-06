@@ -31,7 +31,7 @@ export function popupBlockedMessage(): string {
     typeof window !== 'undefined' && window.location.hostname
       ? window.location.hostname
       : 'this site';
-  return `Allow popups for ${host}, then click Connect GitHub again.`;
+  return `Allow popups for ${host}, or use the authorization link below after you click Connect.`;
 }
 
 /** Matches apps/api resolveNangoIntegrationId — slug or VITE_NANGO_INTEGRATION_* override. */
@@ -74,7 +74,8 @@ function writeOAuthPopupPlaceholder(popup: Window, serviceLabel: string): void {
           Keeper is starting authorization. This window will redirect to ${serviceLabel} in a moment.
         </p>
         <p style="font-size: 0.8125rem; color: #666;">
-          If authorization does not complete, return here and click Connect again.
+          If you see GitHub <em>Settings → Installed GitHub Apps</em> instead of Install/Authorize,
+          close that tab and use the authorization link in the Keeper panel.
         </p>
       </div>
     `;
@@ -100,6 +101,11 @@ export function beginIntegrationOAuthPopup(serviceLabel = 'service'): Window {
     // ignore
   }
   return popup;
+}
+
+/** Opens the Nango connect URL in a new tab (fallback when the popup lands on the wrong GitHub page). */
+export function openIntegrationOAuthTab(connectUrl: string): void {
+  window.open(connectUrl, OAUTH_POPUP_NAME, 'noopener,noreferrer');
 }
 
 /**

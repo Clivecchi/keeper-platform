@@ -6,6 +6,14 @@ const prisma = new PrismaClient();
 // Inlined from apps/web/src/v0/data/domain-frame.default.ts
 // Shape: DomainFrameJson · Keeper JsonFrame Spec v0.1 · March 2026
 // Do not modify the shape here — change domain-frame.default.ts first, then sync.
+const DEFAULT_IDE_BUILD_CONTEXT = {
+  activeRepository: 'Clivecchi/keeper-platform',
+  activeBranch: 'main',
+};
+
+// Inlined from apps/web/src/v0/data/domain-frame.default.ts
+// Shape: DomainFrameJson · Keeper JsonFrame Spec v0.1 · March 2026
+// Do not modify the shape here — change domain-frame.default.ts first, then sync.
 const DEFAULT_DOMAIN_FRAME_JSON = {
   domain: 'default',
   keeper_type: 'platform',
@@ -147,7 +155,7 @@ export default async function seedDomain() {
       createdAt: new Date(),
       updatedAt: new Date(),
       features: {},
-      settings: {},
+      settings: { ideBuildContext: DEFAULT_IDE_BUILD_CONTEXT },
       frame_json: DEFAULT_DOMAIN_FRAME_JSON,
     },
   });

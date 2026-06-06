@@ -3,6 +3,10 @@
 import * as React from "react"
 import type { FieldDefinition } from "../KeeperPresenceDefaults"
 import { resolveFieldLabel } from "../KeeperPresenceDefaults"
+import {
+  DEFAULT_GITHUB_BRANCH,
+  DEFAULT_GITHUB_REPOSITORY,
+} from "../../../lib/githubIntegrationDefaults"
 import { ChronicleConfigShell } from "../chronicleConfig/useChronicleConfig"
 import type { ChronicleSaveStatus } from "../chronicleConfig/types"
 
@@ -73,8 +77,8 @@ export function DomainConfigPresence({
     visibility: "public or private",
     buildContextName: "Build context name",
     buildContextDescription: "What this build context covers",
-    activeRepository: "owner/repo",
-    activeBranch: "main",
+    activeRepository: DEFAULT_GITHUB_REPOSITORY,
+    activeBranch: DEFAULT_GITHUB_BRANCH,
     environment: "development, preview, production…",
   }
 

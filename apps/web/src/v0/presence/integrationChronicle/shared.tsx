@@ -5,6 +5,7 @@ import { apiFetch } from "../../../lib/apiFetch"
 import {
   beginIntegrationOAuthPopup,
   openIntegrationConnect,
+  openIntegrationOAuthTab,
 } from "../../../lib/nangoConnect"
 
 export type IntegrationStatus = "connected" | "disconnected" | "error"
@@ -112,6 +113,7 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
   const [loading, setLoading] = React.useState(true)
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [authConnectUrl, setAuthConnectUrl] = React.useState<string | null>(null)
   const connectAttemptRef = React.useRef(0)
   const oauthPopupRef = React.useRef<Window | null>(null)
 
@@ -210,14 +212,20 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
     connectAttemptRef.current = attemptId
     setBusy(true)
     setError(null)
+    setAuthConnectUrl(null)
     void (async () => {
       try {
         await openIntegrationConnect({
           service: serviceSlug,
           domainId,
           oauthPopup,
+          onSessionReady: (url) => {
+            if (connectAttemptRef.current !== attemptId) return
+            setAuthConnectUrl(url)
+          },
           onConnected: () => {
             if (connectAttemptRef.current !== attemptId) return
+            setAuthConnectUrl(null)
             completeOAuthConnect()
           },
         })
@@ -227,6 +235,7 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
       } finally {
         if (connectAttemptRef.current !== attemptId) return
         oauthPopupRef.current = null
+        setAuthConnectUrl(null)
         setBusy(false)
       }
     })()
@@ -255,6 +264,7 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
     loading,
     busy,
     error,
+    authConnectUrl,
     setError,
     refresh,
     connect,
@@ -334,12 +344,14 @@ export function IntegrationUnconnectedState({
   integrationType,
   busy,
   error,
+  authConnectUrl = null,
   onConnect,
 }: {
   serviceSlug: string
   integrationType: IntegrationType
   busy: boolean
   error: string | null
+  authConnectUrl?: string | null
   onConnect: () => void
 }) {
   const label = serviceLabel(serviceSlug)
@@ -374,10 +386,29 @@ export function IntegrationUnconnectedState({
             Waiting for {label}
           </p>
           <p>
-            Look for a window titled &quot;Connect {label} — Keeper&quot;. Complete Authorize there,
-            then return to Keeper. If the window closes or nothing happens within a few minutes,
-            click Connect again.
+            Look for a window titled &quot;Connect {label} — Keeper&quot;. Complete Install/Authorize
+            there, then return to Keeper.
           </p>
+          {serviceSlug === "github" && (
+            <p className="mt-2">
+              If the popup shows GitHub <strong>Settings → Installed GitHub Apps</strong> instead of
+              an Install screen, the app is already installed but the connect handshake did not finish.
+              Uninstall <em>Keeper Integration</em> from GitHub (Settings → Applications → Installed
+              GitHub Apps), then use the link below to authorize again.
+            </p>
+          )}
+          {authConnectUrl && (
+            <p className="mt-2">
+              <button
+                type="button"
+                className="underline text-left"
+                style={{ color: "hsl(var(--theme-ink-primary))" }}
+                onClick={() => openIntegrationOAuthTab(authConnectUrl)}
+              >
+                Open {label} authorization
+              </button>
+            </p>
+          )}
         </div>
       )}
       {error && (

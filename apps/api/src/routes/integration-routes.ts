@@ -436,9 +436,16 @@ router.post('/proxy', authMiddlewareCompat, async (req: Request, res: Response) 
   } catch (err: unknown) {
     const axiosErr = err as { response?: { status?: number; data?: unknown } };
     if (axiosErr.response) {
+      const upstream = axiosErr.response.data;
+      const upstreamMessage =
+        upstream &&
+        typeof upstream === 'object' &&
+        typeof (upstream as { message?: string }).message === 'string'
+          ? (upstream as { message: string }).message
+          : undefined;
       return res.status(axiosErr.response.status ?? 502).json({
-        error: 'Proxy request failed',
-        data: axiosErr.response.data,
+        error: upstreamMessage ?? 'Proxy request failed',
+        data: upstream,
       });
     }
     console.error('[integrations/proxy]', err);

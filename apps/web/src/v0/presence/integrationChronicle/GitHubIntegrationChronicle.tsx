@@ -3,6 +3,11 @@
 import * as React from "react"
 import { apiFetch } from "../../../lib/apiFetch"
 import {
+  DEFAULT_GITHUB_BRANCH,
+  DEFAULT_GITHUB_REPOSITORY,
+  GITHUB_REPO_PLACEHOLDER,
+} from "../../../lib/githubIntegrationDefaults"
+import {
   ActionButton,
   CapabilityChips,
   FeedError,
@@ -23,6 +28,8 @@ type GitHubCommit = { sha: string; message?: string; date?: string; author?: str
 type GitHubPR = { number: number; title: string; state?: string; updated_at?: string }
 type GitHubBranch = { name: string; protected?: boolean }
 
+const PLACEHOLDER_REPO = GITHUB_REPO_PLACEHOLDER
+
 async function githubProxy<T>(endpoint: string): Promise<T> {
   return apiFetch("/api/integrations/proxy", {
     method: "POST",
@@ -32,6 +39,67 @@ async function githubProxy<T>(endpoint: string): Promise<T> {
       endpoint,
     }),
   }) as Promise<T>
+}
+
+function isUsableRepoSlug(value: string | undefined): value is string {
+  return Boolean(value && value.includes("/") && value !== PLACEHOLDER_REPO)
+}
+
+function formatGitHubProxyError(err: unknown): string {
+  const apiErr = err as Error & {
+    data?: { error?: string; data?: { message?: string; documentation_url?: string } | string }
+  }
+  const nested = apiErr.data?.data
+  if (nested && typeof nested === "object" && typeof nested.message === "string") {
+    return `GitHub: ${nested.message}`
+  }
+  if (typeof nested === "string" && nested.length > 0) {
+    return nested
+  }
+  const msg = apiErr.message
+  if (msg && msg !== "Proxy request failed") return msg
+  return "GitHub feed unavailable — check repository access and try again."
+}
+
+async function loadDomainGitHubContext(
+  domainId: string,
+): Promise<{ repo?: string; branch?: string }> {
+  try {
+    const domainRes = await apiFetch(`/api/domains/${encodeURIComponent(domainId)}`)
+    const domain = (domainRes as { domain?: Record<string, unknown> })?.domain
+    const settings =
+      domain?.settings && typeof domain.settings === "object"
+        ? (domain.settings as Record<string, unknown>)
+        : {}
+    const ideBuild =
+      settings.ideBuildContext && typeof settings.ideBuildContext === "object"
+        ? (settings.ideBuildContext as Record<string, unknown>)
+        : {}
+    const repo =
+      typeof ideBuild.activeRepository === "string" ? ideBuild.activeRepository : undefined
+    const branch =
+      typeof ideBuild.activeBranch === "string" ? ideBuild.activeBranch : undefined
+    return {
+      repo: isUsableRepoSlug(repo) ? repo : undefined,
+      branch: branch?.trim() || undefined,
+    }
+  } catch {
+    return {}
+  }
+}
+
+async function resolveGitHubRepository(
+  domainId: string,
+): Promise<{ fullName: string; branch?: string }> {
+  const domainCtx = await loadDomainGitHubContext(domainId)
+  if (domainCtx.repo) {
+    return { fullName: domainCtx.repo, branch: domainCtx.branch }
+  }
+
+  return {
+    fullName: DEFAULT_GITHUB_REPOSITORY,
+    branch: DEFAULT_GITHUB_BRANCH,
+  }
 }
 
 export function GitHubIntegrationChronicle({
@@ -57,16 +125,15 @@ export function GitHubIntegrationChronicle({
 
   const loadFeed = React.useCallback(async () => {
     if (conn.status !== "connected") return
-    // incomplete — GitHub feed via Nango proxy not active until GitHub connection established
     setFeedLoading(true)
     setFeedError(null)
     try {
+      const { fullName, branch: configuredBranch } = await resolveGitHubRepository(domainId)
       const repoRes = await githubProxy<{ full_name?: string; default_branch?: string }>(
-        "/repos/owner/repo",
+        `/repos/${fullName}`,
       )
-      const fullName = repoRes.full_name ?? "owner/repo"
-      setRepoName(fullName)
-      setBranch(repoRes.default_branch ?? "main")
+      setRepoName(repoRes.full_name ?? fullName)
+      setBranch(configuredBranch ?? repoRes.default_branch ?? "main")
 
       const [commitRes, prRes, branchRes] = await Promise.all([
         githubProxy<Array<{ sha: string; commit?: { message?: string; author?: { date?: string; name?: string } } }>>(
@@ -91,15 +158,11 @@ export function GitHubIntegrationChronicle({
       setPulls(Array.isArray(prRes) ? prRes : [])
       setBranches(Array.isArray(branchRes) ? branchRes : [])
     } catch (err) {
-      setFeedError(
-        err instanceof Error
-          ? err.message
-          : "GitHub feed unavailable — connect GitHub and configure repository access.",
-      )
+      setFeedError(formatGitHubProxyError(err))
     } finally {
       setFeedLoading(false)
     }
-  }, [conn.status])
+  }, [conn.status, domainId])
 
   React.useEffect(() => {
     if (conn.status === "connected") void loadFeed()
@@ -136,6 +199,7 @@ export function GitHubIntegrationChronicle({
         integrationType={conn.integrationType}
         busy={conn.busy}
         error={conn.error}
+        authConnectUrl={conn.authConnectUrl}
         onConnect={() => void conn.connect()}
       />
     )
