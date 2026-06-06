@@ -41,12 +41,12 @@ const ANTHROPIC_MODELS: ModelCatalogEntry[] = [
 ];
 
 const TOGETHER_MODELS: ModelCatalogEntry[] = [
-  { id: 'meta-llama/Llama-2-70b-chat-hf', label: 'Llama 2 70B', provider: 'together', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
-  { id: 'meta-llama/Llama-2-13b-chat-hf', label: 'Llama 2 13B', provider: 'together', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
-  { id: 'meta-llama/Llama-2-7b-chat-hf', label: 'Llama 2 7B', provider: 'together', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
-  { id: 'mistralai/Mixtral-8x7B-Instruct-v0.1', label: 'Mixtral 8x7B', provider: 'together', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
-  { id: 'black-forest-labs/FLUX.1-schnell', label: 'FLUX Schnell', provider: 'together', capabilities: ['image'] },
-  { id: 'black-forest-labs/FLUX.1-dev', label: 'FLUX Dev', provider: 'together', capabilities: ['image'] },
+  { id: 'meta-llama/Llama-2-70b-chat-hf', label: 'Llama 2 70B', provider: 'together-ai', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
+  { id: 'meta-llama/Llama-2-13b-chat-hf', label: 'Llama 2 13B', provider: 'together-ai', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
+  { id: 'meta-llama/Llama-2-7b-chat-hf', label: 'Llama 2 7B', provider: 'together-ai', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
+  { id: 'mistralai/Mixtral-8x7B-Instruct-v0.1', label: 'Mixtral 8x7B', provider: 'together-ai', capabilities: ['text'], defaultSettings: { temperature: 0.7, max_tokens: 2000 } },
+  { id: 'black-forest-labs/FLUX.1-schnell', label: 'FLUX Schnell', provider: 'together-ai', capabilities: ['image'] },
+  { id: 'black-forest-labs/FLUX.1-dev', label: 'FLUX Dev', provider: 'together-ai', capabilities: ['image'] },
 ];
 
 const ELEVENLABS_MODELS: ModelCatalogEntry[] = [
@@ -58,18 +58,18 @@ const ELEVENLABS_MODELS: ModelCatalogEntry[] = [
 export const MODEL_CATALOG: Record<ModelProvider, ModelCatalogEntry[]> = {
   openai: OPENAI_MODELS,
   anthropic: ANTHROPIC_MODELS,
-  together: TOGETHER_MODELS,
+  'together-ai': TOGETHER_MODELS,
   elevenlabs: ELEVENLABS_MODELS,
 };
 
 export const DEFAULT_MODEL_BY_PROVIDER: Record<ModelProvider, string> = {
   openai: 'gpt-4o',
   anthropic: 'claude-sonnet-4-6',
-  together: 'meta-llama/Llama-2-70b-chat-hf',
+  'together-ai': 'meta-llama/Llama-2-70b-chat-hf',
   elevenlabs: 'eleven_multilingual_v2',
 };
 
-export const PROVIDERS: ModelProvider[] = ['openai', 'anthropic', 'together', 'elevenlabs'];
+export const PROVIDERS: ModelProvider[] = ['openai', 'anthropic', 'together-ai', 'elevenlabs'];
 
 /**
  * Build default ModelSettings for a provider (used when no model is specified)

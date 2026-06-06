@@ -152,7 +152,7 @@ const patchAgentSchema = z
     name: z.string().min(1).max(100).optional(),
     purpose: z.string().min(1).max(500).optional(),
     model: z.string().min(1).max(100).optional(),
-    model_provider: z.enum(['openai', 'anthropic', 'together', 'elevenlabs']).optional(),
+    model_provider: z.enum(['openai', 'anthropic', 'together-ai', 'elevenlabs']).optional(),
     memory_enabled: z.union([z.boolean(), z.enum(['true', 'false'])]).optional(),
     visibility: z.enum(['private', 'public', 'shared']).optional(),
     tools: z.union([z.array(z.string()), z.string()]).optional(),

@@ -445,7 +445,7 @@ function agentFieldVisible(
   return Boolean(fieldValues[key])
 }
 
-const MODEL_PROVIDERS: ModelProvider[] = ["openai", "anthropic", "together", "elevenlabs"]
+const MODEL_PROVIDERS: ModelProvider[] = ["openai", "anthropic", "together-ai", "elevenlabs"]
 
 function PresenceFieldEditor({
   fieldKey,
@@ -1512,7 +1512,7 @@ function KeeperPresenceSurface({
     theme_color: "Accent color token or hex…",
     tools: "Capability tags, comma-separated…",
     model: "Model identifier…",
-    model_provider: "openai, anthropic, together…",
+    model_provider: "openai, anthropic, together-ai…",
   }
 
   const handleFieldChange = (key: string, v: string) => {

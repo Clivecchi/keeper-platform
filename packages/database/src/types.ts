@@ -134,7 +134,7 @@ export type AgentClass = 'Standard' | 'Coordinator' | 'Lead' | 'Persona';
 /**
  * Model provider types
  */
-export type ModelProvider = 'openai' | 'anthropic' | 'together' | 'elevenlabs';
+export type ModelProvider = 'openai' | 'anthropic' | 'together-ai' | 'elevenlabs';
 
 /**
  * Model settings configuration

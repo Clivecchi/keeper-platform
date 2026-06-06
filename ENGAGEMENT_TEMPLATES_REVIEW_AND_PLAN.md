@@ -191,7 +191,7 @@ GET    /api/kip/user-keys/providers    // List providers
 
 **Flow:**
 1. User provides provider + API key
-2. Backend validates provider (openai, anthropic, together, elevenlabs)
+2. Backend validates provider (openai, anthropic, together-ai, elevenlabs)
 3. Stores via `KipUserKeyService.setUserKey()`
 4. Returns success/failure
 
@@ -395,7 +395,7 @@ DELETE /api/domains/:id/members/:userId  // Remove member
       options: [
         { value: 'openai', label: 'OpenAI' },
         { value: 'anthropic', label: 'Anthropic' },
-        { value: 'together', label: 'Together AI' },
+        { value: 'together-ai', label: 'Together AI' },
         { value: 'elevenlabs', label: 'ElevenLabs' }
       ]
     },

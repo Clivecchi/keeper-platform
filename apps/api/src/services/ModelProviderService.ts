@@ -421,7 +421,7 @@ export class ModelProviderService {
       } else if (provider === 'anthropic') {
         apiKey = validKey(process.env.ANTHROPIC_API_KEY);
         keySource = apiKey ? 'env' : 'none';
-      } else if (provider === 'together') {
+      } else if (provider === 'together-ai') {
         apiKey = validKey(process.env.TOGETHER_API_KEY);
         keySource = apiKey ? 'env' : 'none';
       }
@@ -435,7 +435,7 @@ export class ModelProviderService {
         apiKey = validKey(process.env.ANTHROPIC_API_KEY);
         if (apiKey) keySource = 'env';
       }
-      if (provider === 'together') {
+      if (provider === 'together-ai') {
         apiKey = validKey(process.env.TOGETHER_API_KEY);
         if (apiKey) keySource = 'env';
       }
@@ -463,9 +463,9 @@ export class ModelProviderService {
     console.log(`[ModelProvider] Using ${keySource} key for ${provider} (user: ${userId || 'none'})`);
 
     // Error taxonomy representative: surface MISSING_API_KEY before we ever hit the SDK.
-    const requiresExplicitKey = provider === 'openai' || provider === 'anthropic' || provider === 'together';
+    const requiresExplicitKey = provider === 'openai' || provider === 'anthropic' || provider === 'together-ai';
     if (requiresExplicitKey && !apiKey) {
-      const envVar = provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : provider === 'together' ? 'TOGETHER_API_KEY' : 'OPENAI_API_KEY';
+      const envVar = provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : provider === 'together-ai' ? 'TOGETHER_API_KEY' : 'OPENAI_API_KEY';
       const message = `Add ${envVar} to your Railway environment variables, or configure a platform/user key.`;
       return {
         success: false,
@@ -544,7 +544,7 @@ export class ModelProviderService {
         return OpenAIProvider.callModel(messages, settings, apiKey || undefined, jsonMode);
       case 'anthropic':
         return AnthropicProvider.callModel(messages, settings, apiKey || undefined, jsonMode);
-      case 'together':
+      case 'together-ai':
         return TogetherProvider.callModel(messages, settings);
       case 'elevenlabs':
         return ElevenLabsProvider.callModel(messages, settings);
@@ -589,16 +589,16 @@ export class ModelProviderService {
     if (apiKey) keySource = 'env';
 
     if (!apiKey && userId) {
-      apiKey = validKey(await KipUserKeyService.getUserKey('together', userId));
+      apiKey = validKey(await KipUserKeyService.getUserKey('together-ai', userId));
       if (apiKey) keySource = 'user';
     }
 
     if (!apiKey) {
-      apiKey = validKey(await PlatformApiKeyService.getKeyForProvider('together'));
+      apiKey = validKey(await PlatformApiKeyService.getKeyForProvider('together-ai'));
       if (apiKey) keySource = 'platform';
     }
 
-    console.log(`[ModelProvider] Using ${keySource} key for together (user: ${userId ?? 'none'})`);
+    console.log(`[ModelProvider] Using ${keySource} key for together-ai (user: ${userId ?? 'none'})`);
 
     if (!apiKey) {
       throw new Error('Together AI API key not configured. Add TOGETHER_API_KEY to your Railway environment variables.');

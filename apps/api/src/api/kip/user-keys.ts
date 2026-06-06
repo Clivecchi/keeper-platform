@@ -55,7 +55,7 @@ export async function setUserKey(req: Request, res: Response) {
       });
     }
 
-    const validProviders: ModelProvider[] = ['openai', 'anthropic', 'together', 'elevenlabs'];
+    const validProviders: ModelProvider[] = ['openai', 'anthropic', 'together-ai', 'elevenlabs'];
     if (!validProviders.includes(provider)) {
       return res.status(400).json({ 
         error: `Invalid provider. Must be one of: ${validProviders.join(', ')}` 
@@ -97,7 +97,7 @@ export async function deleteUserKey(req: Request, res: Response) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const validProviders: ModelProvider[] = ['openai', 'anthropic', 'together', 'elevenlabs'];
+    const validProviders: ModelProvider[] = ['openai', 'anthropic', 'together-ai', 'elevenlabs'];
     if (!validProviders.includes(provider as ModelProvider)) {
       return res.status(400).json({ 
         error: `Invalid provider. Must be one of: ${validProviders.join(', ')}` 

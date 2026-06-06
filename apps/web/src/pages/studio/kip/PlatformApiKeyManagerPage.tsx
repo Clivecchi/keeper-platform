@@ -58,7 +58,7 @@ const PlatformApiKeyManagerPage: React.FC = () => {
       cost: 'High',
       documentation: 'https://docs.anthropic.com/claude/reference'
     },
-    together: {
+    'together-ai': {
       name: 'Together AI',
       description: 'Open-source models (Llama, Mixtral)',
       icon: '🔗',
@@ -74,7 +74,7 @@ const PlatformApiKeyManagerPage: React.FC = () => {
     }
   };
 
-  const allProviders: ModelProvider[] = ['openai', 'anthropic', 'together', 'elevenlabs'];
+  const allProviders: ModelProvider[] = ['openai', 'anthropic', 'together-ai', 'elevenlabs'];
 
   useEffect(() => {
     if (!authLoading && user?.id) {

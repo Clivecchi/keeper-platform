@@ -15,7 +15,7 @@ const router: Router = express.Router();
 
 // Validation schemas
 const PlatformKeyInputSchema = z.object({
-  provider: z.enum(['openai', 'anthropic', 'together', 'elevenlabs']),
+  provider: z.enum(['openai', 'anthropic', 'together-ai', 'elevenlabs']),
   api_key: z.string().min(5, 'API key must be at least 5 characters'),
   label: z.string().optional(),
   is_active: z.boolean().optional()
@@ -147,7 +147,7 @@ router.patch('/:provider/status', async (req, res) => {
     // }
 
     // Validate provider
-    if (!['openai', 'anthropic', 'together', 'elevenlabs'].includes(provider)) {
+    if (!['openai', 'anthropic', 'together-ai', 'elevenlabs'].includes(provider)) {
       return res.status(400).json({ error: 'Invalid provider' });
     }
 
@@ -201,7 +201,7 @@ router.delete('/:provider', async (req, res) => {
     // }
 
     // Validate provider
-    if (!['openai', 'anthropic', 'together', 'elevenlabs'].includes(provider)) {
+    if (!['openai', 'anthropic', 'together-ai', 'elevenlabs'].includes(provider)) {
       return res.status(400).json({ error: 'Invalid provider' });
     }
 

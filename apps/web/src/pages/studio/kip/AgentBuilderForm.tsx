@@ -49,7 +49,7 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
   const providerOptions = [
     { value: 'openai' as ModelProvider, label: 'OpenAI', description: 'GPT models (GPT-4o, GPT-4 Turbo, etc.)' },
     { value: 'anthropic' as ModelProvider, label: 'Anthropic', description: 'Claude models (Claude 3.5 Sonnet, etc.)' },
-    { value: 'together' as ModelProvider, label: 'Together AI', description: 'Llama and Mixtral models' },
+    { value: 'together-ai' as ModelProvider, label: 'Together AI', description: 'Llama and Mixtral models' },
     { value: 'elevenlabs' as ModelProvider, label: 'ElevenLabs', description: 'Voice synthesis models' }
   ];
 

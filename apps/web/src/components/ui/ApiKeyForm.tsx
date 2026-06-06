@@ -51,7 +51,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
       placeholder: 'sk-ant-api03-1234567890abcdef...'
     },
     { 
-      value: 'together' as ModelProvider, 
+      value: 'together-ai' as ModelProvider, 
       label: 'Together AI', 
       description: 'Open-source models - Get your key from api.together.xyz',
       keyFormat: 'api_key', 
@@ -83,7 +83,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
         return key.startsWith('sk-') && key.length > 20;
       case 'anthropic':
         return key.startsWith('sk-ant-') && key.length > 30;
-      case 'together':
+      case 'together-ai':
       case 'elevenlabs':
         return key.length > 10;
       default:

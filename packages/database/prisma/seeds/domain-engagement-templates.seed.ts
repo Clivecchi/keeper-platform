@@ -274,7 +274,7 @@ export default async function seed() {
             options: [
               { value: 'openai', label: 'OpenAI' },
               { value: 'anthropic', label: 'Anthropic' },
-              { value: 'together', label: 'Together AI' },
+              { value: 'together-ai', label: 'Together AI' },
               { value: 'elevenlabs', label: 'ElevenLabs' }
             ]
           }

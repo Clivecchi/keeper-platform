@@ -192,7 +192,7 @@ All phases of the Engagement Template system have been completed according to th
 
 #### **5. domain.admin.editApiKey** (Admin)
 **Fields:**
-- provider (select, required, options: openai/anthropic/together/elevenlabs)
+- provider (select, required, options: openai/anthropic/together-ai/elevenlabs)
 - apiKey (password, required, min 10 chars)
 
 **Action:** Saves API key for model provider

@@ -438,7 +438,7 @@ export const CockpitPanel: React.FC<CockpitPanelProps> = ({
               >
                 <option value="openai">OpenAI</option>
                 <option value="anthropic">Anthropic</option>
-                <option value="together">Together AI</option>
+                <option value="together-ai">Together AI</option>
                 <option value="elevenlabs">ElevenLabs</option>
               </select>
             </div>

@@ -86,7 +86,7 @@ export function AgentConfigPresence({
     lensSystemPrompt: "Agent voice — first person, present tense…",
     model: "Model identifier",
     // incomplete — static model list
-    model_provider: "anthropic, openai, together…",
+    model_provider: "anthropic, openai, together-ai…",
     avatar: "Avatar URL or emoji",
     theme_color: "Theme color token",
     // incomplete — input type

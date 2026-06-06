@@ -8,7 +8,7 @@ DELETE FROM kip_platform_keys;
 INSERT INTO kip_platform_keys (provider, api_key, label, is_active, created_by, created_at, updated_at) VALUES
 ('openai', 'sk-platform-openai-key-placeholder', 'Platform OpenAI Key', true, null, NOW(), NOW()),
 ('anthropic', 'sk-ant-platform-anthropic-key-placeholder', 'Platform Anthropic Key', true, null, NOW(), NOW()),
-('together', 'platform-together-key-placeholder', 'Platform Together AI Key', false, null, NOW(), NOW()),
+('together-ai', 'platform-together-key-placeholder', 'Platform Together AI Key', false, null, NOW(), NOW()),
 ('elevenlabs', 'platform-elevenlabs-key-placeholder', 'Platform ElevenLabs Key', false, null, NOW(), NOW());
 
 -- Verification query

@@ -40,7 +40,7 @@ const UserApiKeyManagerPage: React.FC = () => {
       cost: '$$',
       getKeyUrl: 'https://console.anthropic.com/'
     },
-    together: {
+    'together-ai': {
       name: 'Together AI',
       description: 'Open-source models (Llama, Mixtral)',
       icon: '🔗',
@@ -56,7 +56,7 @@ const UserApiKeyManagerPage: React.FC = () => {
     }
   };
 
-  const allProviders: ModelProvider[] = ['openai', 'anthropic', 'together', 'elevenlabs'];
+  const allProviders: ModelProvider[] = ['openai', 'anthropic', 'together-ai', 'elevenlabs'];
 
   useEffect(() => {
     loadUserKeys();
