@@ -10,6 +10,7 @@ import { ModelProvider, ModelSettings } from '@keeper/database';
 import { KipUserKeyService } from './KipUserKeyService.js';
 import { PlatformApiKeyService } from './PlatformApiKeyService.js';
 import { MODEL_CATALOG, getDefaultSettingsForProvider } from '../config/modelCatalog.js';
+import { getModelCapabilities } from '../config/index.js';
 
 /** OpenAI-style content part for multimodal messages (text + images) */
 export type ModelContentPart =
@@ -130,7 +131,8 @@ class OpenAIProvider {
           frequency_penalty: settings.frequency_penalty,
           presence_penalty: settings.presence_penalty,
         };
-        if (jsonMode) {
+        const capabilities = getModelCapabilities('openai', settings.model);
+        if (jsonMode && capabilities.jsonMode) {
           (createParams as any).response_format = { type: 'json_object' };
         }
         response = await openai.chat.completions.create(

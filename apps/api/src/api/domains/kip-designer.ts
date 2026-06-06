@@ -26,6 +26,7 @@ import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middlewar
 import { requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { FRAME_SCHEMA_MAP } from './frame-schemas.js';
 import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
+import { getModelCapabilities } from '../../config/index.js';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -86,13 +87,31 @@ async function callAnthropic(
 
 // ─── Together AI JSON Mode call ───────────────────────────────────────────────
 
+const TOGETHER_DESIGNER_MODEL = 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo';
+
 async function callTogetherJsonMode(
   systemPrompt: string,
   userPrompt: string,
   schema: object,
   apiKey: string,
 ): Promise<unknown> {
-  logger.info('[designer] Calling Together AI JSON mode with schema');
+  const capabilities = getModelCapabilities('together-ai', TOGETHER_DESIGNER_MODEL);
+  logger.info('[designer] Calling Together AI JSON mode with schema', {
+    jsonModeSupported: capabilities.jsonMode,
+  });
+
+  const body: Record<string, unknown> = {
+    model: TOGETHER_DESIGNER_MODEL,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    max_tokens: 4000,
+    temperature: 0.3,
+  };
+  if (capabilities.jsonMode) {
+    body.response_format = { type: 'json_object', schema };
+  }
 
   const response = await fetch('https://api.together.xyz/v1/chat/completions', {
     method: 'POST',
@@ -100,16 +119,7 @@ async function callTogetherJsonMode(
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      response_format: { type: 'json_object', schema },
-      max_tokens: 4000,
-      temperature: 0.3,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
