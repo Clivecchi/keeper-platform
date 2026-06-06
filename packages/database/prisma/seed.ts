@@ -53,6 +53,10 @@ async function main() {
     const seedKipAgents = await import('./seeds/kip-agents.seed.ts');
     await seedKipAgents.default();
 
+    console.log('☁️  Seeding Cloud platform agent (infra read capabilities)...');
+    const seedCloudAgent = await import('./seeds/cloud-agent.seed.ts');
+    await seedCloudAgent.default();
+
     console.log('🔭 Seeding Kip lenses...');
     const seedLenses = await import('./seeds/lenses.seed.ts');
     await seedLenses.default();
