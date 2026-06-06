@@ -1,32 +1,27 @@
 "use client"
 
 import * as React from "react"
-import { apiFetch } from "../../../lib/apiFetch"
+import { apiFetch } from "../../../../lib/apiFetch"
 import {
   DEFAULT_GITHUB_BRANCH,
   DEFAULT_GITHUB_REPOSITORY,
   GITHUB_REPO_PLACEHOLDER,
-} from "../../../lib/githubIntegrationDefaults"
-import {
-  ActionButton,
-  CapabilityChips,
-  FeedError,
-  FeedShimmer,
-  HeroZone,
-  StatusStrip,
-  confirmDestructiveAction,
-  formatRelativeTime,
-  useIntegrationConnection,
-  useResolvedCapabilities,
-  IntegrationUnconnectedState,
-  formatConnectedAt,
-} from "./shared"
+} from "../../../../lib/githubIntegrationDefaults"
+import { FeedError, FeedShimmer, formatRelativeTime } from "../shared"
 
-type GitHubTab = "commits" | "pulls" | "branches"
+export type GitHubTab = "commits" | "pulls" | "branches"
 
-type GitHubCommit = { sha: string; message?: string; date?: string; author?: string }
-type GitHubPR = { number: number; title: string; state?: string; updated_at?: string }
-type GitHubBranch = { name: string; protected?: boolean }
+export type GitHubCommit = { sha: string; message?: string; date?: string; author?: string }
+export type GitHubPR = { number: number; title: string; state?: string; updated_at?: string }
+export type GitHubBranch = { name: string; protected?: boolean }
+
+export type GitHubFeedData = {
+  repoName: string
+  branch: string
+  commits: GitHubCommit[]
+  pulls: GitHubPR[]
+  branches: GitHubBranch[]
+}
 
 const PLACEHOLDER_REPO = GITHUB_REPO_PLACEHOLDER
 
@@ -45,7 +40,7 @@ function isUsableRepoSlug(value: string | undefined): value is string {
   return Boolean(value && value.includes("/") && value !== PLACEHOLDER_REPO)
 }
 
-function formatGitHubProxyError(err: unknown): string {
+export function formatGitHubProxyError(err: unknown): string {
   const apiErr = err as Error & {
     data?: { error?: string; data?: { message?: string; documentation_url?: string } | string }
   }
@@ -102,43 +97,33 @@ async function resolveGitHubRepository(
   }
 }
 
-export function GitHubIntegrationChronicle({
-  domainId,
-  boardId = "ide",
-  agentSlug = "cloud",
-}: {
-  domainId: string
-  boardId?: string
-  agentSlug?: string
-}) {
-  const conn = useIntegrationConnection("github", domainId)
-  const capabilities = useResolvedCapabilities(agentSlug, boardId)
-  const [tab, setTab] = React.useState<GitHubTab>("commits")
-  const [repoName, setRepoName] = React.useState<string>("—")
-  const [branch, setBranch] = React.useState<string>("main")
-  const [commits, setCommits] = React.useState<GitHubCommit[]>([])
-  const [pulls, setPulls] = React.useState<GitHubPR[]>([])
-  const [branches, setBranches] = React.useState<GitHubBranch[]>([])
-  const [feedLoading, setFeedLoading] = React.useState(false)
-  const [feedError, setFeedError] = React.useState<string | null>(null)
-  const [selectedDetail, setSelectedDetail] = React.useState<string | null>(null)
+export function useGitHubFeedData(domainId: string, connected: boolean) {
+  const [data, setData] = React.useState<GitHubFeedData>({
+    repoName: "—",
+    branch: "main",
+    commits: [],
+    pulls: [],
+    branches: [],
+  })
+  const [loading, setLoading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
 
-  const loadFeed = React.useCallback(async () => {
-    if (conn.status !== "connected") return
-    setFeedLoading(true)
-    setFeedError(null)
+  const reload = React.useCallback(async () => {
+    if (!connected) return
+    setLoading(true)
+    setError(null)
     try {
       const { fullName, branch: configuredBranch } = await resolveGitHubRepository(domainId)
       const repoRes = await githubProxy<{ full_name?: string; default_branch?: string }>(
         `/repos/${fullName}`,
       )
-      setRepoName(repoRes.full_name ?? fullName)
-      setBranch(configuredBranch ?? repoRes.default_branch ?? "main")
+      const repoName = repoRes.full_name ?? fullName
+      const branch = configuredBranch ?? repoRes.default_branch ?? "main"
 
       const [commitRes, prRes, branchRes] = await Promise.all([
-        githubProxy<Array<{ sha: string; commit?: { message?: string; author?: { date?: string; name?: string } } }>>(
-          `/repos/${fullName}/commits?per_page=8`,
-        ).catch(() => []),
+        githubProxy<
+          Array<{ sha: string; commit?: { message?: string; author?: { date?: string; name?: string } } }>
+        >(`/repos/${fullName}/commits?per_page=8`).catch(() => []),
         githubProxy<Array<{ number: number; title: string; state?: string; updated_at?: string }>>(
           `/repos/${fullName}/pulls?state=open&per_page=8`,
         ).catch(() => []),
@@ -147,76 +132,46 @@ export function GitHubIntegrationChronicle({
         ).catch(() => []),
       ])
 
-      setCommits(
-        (Array.isArray(commitRes) ? commitRes : []).map((c) => ({
+      setData({
+        repoName,
+        branch,
+        commits: (Array.isArray(commitRes) ? commitRes : []).map((c) => ({
           sha: c.sha?.slice(0, 7) ?? "—",
           message: c.commit?.message?.split("\n")[0],
           date: c.commit?.author?.date,
           author: c.commit?.author?.name,
         })),
-      )
-      setPulls(Array.isArray(prRes) ? prRes : [])
-      setBranches(Array.isArray(branchRes) ? branchRes : [])
+        pulls: Array.isArray(prRes) ? prRes : [],
+        branches: Array.isArray(branchRes) ? branchRes : [],
+      })
     } catch (err) {
-      setFeedError(formatGitHubProxyError(err))
+      setError(formatGitHubProxyError(err))
     } finally {
-      setFeedLoading(false)
+      setLoading(false)
     }
-  }, [conn.status, domainId])
+  }, [connected, domainId])
 
   React.useEffect(() => {
-    if (conn.status === "connected") void loadFeed()
-  }, [conn.status, loadFeed])
+    if (connected) void reload()
+  }, [connected, reload])
 
-  const handleCreateBranch = React.useCallback(async () => {
-    // incomplete — GitHub PR creation requires human confirmation gate
-    const name = window.prompt("New branch name:")
-    if (!name?.trim()) return
-    conn.setError("Create Branch is not yet wired — // incomplete")
-  }, [conn])
+  return { data, loading, error, reload }
+}
 
-  const handleOpenPR = React.useCallback(async () => {
-    // incomplete — GitHub PR creation requires human confirmation gate
-    const ok = await confirmDestructiveAction(
-      "Open a pull request via Cloud? This action requires confirmation and is not fully wired yet.",
-    )
-    if (!ok) return
-    conn.setError("Open PR is not yet wired — // incomplete")
-  }, [conn])
+export type GitHubFeedProps = {
+  data: GitHubFeedData
+  loading: boolean
+  error: string | null
+  onRetry: () => void
+}
 
-  if (conn.loading) {
-    return (
-      <div className="px-4 py-5">
-        <FeedShimmer rows={4} />
-      </div>
-    )
-  }
-
-  if (conn.status !== "connected") {
-    return (
-      <IntegrationUnconnectedState
-        serviceSlug="github"
-        integrationType={conn.integrationType}
-        busy={conn.busy}
-        error={conn.error}
-        authConnectUrl={conn.authConnectUrl}
-        onConnect={() => void conn.connect()}
-      />
-    )
-  }
+export function GitHubFeed({ data, loading, error, onRetry }: GitHubFeedProps) {
+  const [tab, setTab] = React.useState<GitHubTab>("commits")
+  const [selectedDetail, setSelectedDetail] = React.useState<string | null>(null)
+  const { commits, pulls, branches } = data
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-5">
-      <HeroZone title="GitHub" subtitle={`${repoName} · ${branch}`} glow="healthy" />
-
-      {conn.integration?.connectedAt && (
-        <StatusStrip>Connected {formatConnectedAt(conn.integration.connectedAt)}</StatusStrip>
-      )}
-
-      <StatusStrip>
-        {repoName} · {branch} · Last commit {formatRelativeTime(commits[0]?.date)}
-      </StatusStrip>
-
+    <>
       <div className="flex gap-1">
         {(["commits", "pulls", "branches"] as GitHubTab[]).map((t) => (
           <button
@@ -236,10 +191,10 @@ export function GitHubIntegrationChronicle({
       </div>
 
       <div>
-        {feedLoading ? (
+        {loading ? (
           <FeedShimmer rows={4} />
-        ) : feedError ? (
-          <FeedError message={feedError} onRetry={() => void loadFeed()} />
+        ) : error ? (
+          <FeedError message={error} onRetry={onRetry} />
         ) : tab === "commits" ? (
           <ul className="flex flex-col gap-2">
             {commits.map((c) => (
@@ -304,26 +259,6 @@ export function GitHubIntegrationChronicle({
           {selectedDetail}
         </p>
       )}
-
-      <div className="flex flex-wrap gap-2">
-        <ActionButton
-          label="View on GitHub"
-          onClick={() => {
-            window.open(`https://github.com/${repoName}`, "_blank", "noopener,noreferrer")
-          }}
-        />
-        <ActionButton label="Create Branch" onClick={() => void handleCreateBranch()} />
-        <ActionButton label="Open PR" variant="danger" onClick={() => void handleOpenPR()} />
-        <ActionButton label="Disconnect" onClick={() => void conn.disconnect()} disabled={conn.busy} />
-      </div>
-
-      {conn.error && (
-        <p className="text-[12px]" style={{ color: "hsl(var(--theme-status-error))" }}>
-          {conn.error}
-        </p>
-      )}
-
-      <CapabilityChips capabilities={capabilities} />
-    </div>
+    </>
   )
 }

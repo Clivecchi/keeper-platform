@@ -345,6 +345,7 @@ export function IntegrationUnconnectedState({
   busy,
   error,
   authConnectUrl = null,
+  oauthTroubleshootingCopy,
   onConnect,
 }: {
   serviceSlug: string
@@ -352,6 +353,7 @@ export function IntegrationUnconnectedState({
   busy: boolean
   error: string | null
   authConnectUrl?: string | null
+  oauthTroubleshootingCopy?: React.ReactNode
   onConnect: () => void
 }) {
   const label = serviceLabel(serviceSlug)
@@ -389,14 +391,7 @@ export function IntegrationUnconnectedState({
             Look for a window titled &quot;Connect {label} — Keeper&quot;. Complete Install/Authorize
             there, then return to Keeper.
           </p>
-          {serviceSlug === "github" && (
-            <p className="mt-2">
-              If the popup shows GitHub <strong>Settings → Installed GitHub Apps</strong> instead of
-              an Install screen, the app is already installed but the connect handshake did not finish.
-              Uninstall <em>Keeper Integration</em> from GitHub (Settings → Applications → Installed
-              GitHub Apps), then use the link below to authorize again.
-            </p>
-          )}
+          {oauthTroubleshootingCopy}
           {authConnectUrl && (
             <p className="mt-2">
               <button
