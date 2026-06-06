@@ -11,8 +11,6 @@ import {
 export const DEFAULT_NANGO_HOST = 'https://services.keeper.domains';
 
 const NANGO_INTEGRATION_ENV: Record<PlatformIntegrationService, string> = {
-  railway: 'NANGO_INTEGRATION_RAILWAY',
-  vercel: 'NANGO_INTEGRATION_VERCEL',
   github: 'NANGO_INTEGRATION_GITHUB',
 };
 
@@ -45,22 +43,16 @@ export function resolveNangoHost(): string {
 }
 
 /**
- * Maps Keeper service slug → Nango integration unique ID (providerConfigKey).
+ * Maps Keeper Services-type slug → Nango integration unique ID (providerConfigKey).
  * Override per env when dashboard IDs differ from slugs (e.g. NANGO_INTEGRATION_GITHUB=github-app).
- *
- * Services-type only — POST /api/integrations/session does not call Nango for Custom (railway).
- *
- * Vercel interim state (Phase A): Chronicle Connect for vercel uses this Nango OAuth path.
- * Deployment data still comes from VercelDeploymentService and GET/POST /api/vercel/*, which read
- * VERCEL_TOKEN and VERCEL_PROJECT_ID from the environment — not the Nango connection. Do not
- * change deployment routes until a later phase wires Services connect to per-connection tokens.
  */
 export function resolveNangoIntegrationId(service: string): string {
-  if (PLATFORM_INTEGRATION_SERVICES.includes(service as PlatformIntegrationService)) {
-    const envKey = NANGO_INTEGRATION_ENV[service as PlatformIntegrationService];
-    const override = process.env[envKey]?.trim();
-    if (override) return override;
+  if (!PLATFORM_INTEGRATION_SERVICES.includes(service as PlatformIntegrationService)) {
+    throw new Error(`Service "${service}" is not a Nango integration`);
   }
+  const envKey = NANGO_INTEGRATION_ENV[service as PlatformIntegrationService];
+  const override = process.env[envKey]?.trim();
+  if (override) return override;
   return service;
 }
 

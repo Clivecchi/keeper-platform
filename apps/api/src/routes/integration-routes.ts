@@ -15,7 +15,10 @@ import {
   resolveNangoIntegrationId,
   resolveServiceFromProviderConfigKey,
 } from '../lib/nango.js';
-import { verifyRailwayCustomConnect } from '../lib/integrationCustomConnect.js';
+import {
+  verifyRailwayCustomConnect,
+  verifyVercelCustomConnect,
+} from '../lib/integrationCustomConnect.js';
 import type {
   IntegrationRecord,
   IntegrationStatus,
@@ -192,20 +195,23 @@ router.post('/session', authMiddlewareCompat, async (req: Request, res: Response
     const scopedUserId = tier === 'user' ? userId ?? req.user?.id ?? null : null;
 
     if (isCustomIntegrationType(integrationType)) {
-      if (service !== 'railway') {
-        return res.status(400).json({
-          error: 'Custom connect is only implemented for railway',
-          service,
-        });
-      }
+      const verification =
+        service === 'railway'
+          ? await verifyRailwayCustomConnect()
+          : service === 'vercel'
+            ? await verifyVercelCustomConnect()
+            : {
+                ok: false as const,
+                error: 'Custom connect is not implemented for this service',
+                hint: undefined,
+              };
 
-      const verification = await verifyRailwayCustomConnect();
       if (verification.ok === false) {
         return res.status(503).json({
-          error: 'Failed to verify Railway integration',
+          error: `Failed to verify ${service} integration`,
           message: verification.error,
           hint: verification.hint,
-          service: 'railway',
+          service,
         });
       }
 
@@ -220,7 +226,7 @@ router.post('/session', authMiddlewareCompat, async (req: Request, res: Response
         nangoConnectionId: null,
       });
 
-      return res.status(200).json({ connected: true as const, service: 'railway' });
+      return res.status(200).json({ connected: true as const, service });
     }
 
     if (!isServicesIntegrationType(integrationType)) {

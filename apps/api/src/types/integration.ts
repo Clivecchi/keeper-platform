@@ -9,25 +9,31 @@ export type IntegrationStatus = 'connected' | 'disconnected' | 'error';
 /** Prisma IntegrationType enum — explicit on every Integration row. */
 export type IntegrationType = 'Services' | 'Custom' | 'AI_Model';
 
-export const PLATFORM_INTEGRATION_SERVICES = ['railway', 'vercel', 'github'] as const;
+/** All platform integration slugs surfaced in Chronicle. */
+export const PLATFORM_INTEGRATION_SLUGS = ['railway', 'vercel', 'github'] as const;
+
+export type PlatformIntegrationSlug = (typeof PLATFORM_INTEGRATION_SLUGS)[number];
+
+/** Services-type integrations that use Nango OAuth (not Custom env tokens). */
+export const PLATFORM_INTEGRATION_SERVICES = ['github'] as const;
 
 export type PlatformIntegrationService = (typeof PLATFORM_INTEGRATION_SERVICES)[number];
 
 /** Canonical integration_type per platform service slug (Keeper Integrations Architecture, June 2026). */
 export const PLATFORM_SERVICE_INTEGRATION_TYPE: Record<
-  PlatformIntegrationService,
+  PlatformIntegrationSlug,
   IntegrationType
 > = {
   railway: 'Custom',
-  vercel: 'Services',
+  vercel: 'Custom',
   github: 'Services',
 };
 
 export function resolvePlatformIntegrationType(service: string): IntegrationType | null {
-  if (!PLATFORM_INTEGRATION_SERVICES.includes(service as PlatformIntegrationService)) {
+  if (!PLATFORM_INTEGRATION_SLUGS.includes(service as PlatformIntegrationSlug)) {
     return null;
   }
-  return PLATFORM_SERVICE_INTEGRATION_TYPE[service as PlatformIntegrationService];
+  return PLATFORM_SERVICE_INTEGRATION_TYPE[service as PlatformIntegrationSlug];
 }
 
 export function isServicesIntegrationType(type: IntegrationType): boolean {

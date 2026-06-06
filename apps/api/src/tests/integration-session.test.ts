@@ -125,24 +125,46 @@ describe('POST /api/integrations/session @smoke', () => {
     expect(nangoMock.createKeeperConnectSession).not.toHaveBeenCalled();
   });
 
-  it('vercel (Services) returns Nango sessionToken', async () => {
+  it('vercel (Custom) returns connected without sessionToken and does not call Nango', async () => {
+    process.env.VERCEL_TOKEN = 'test-vercel-token';
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+      }),
+    );
+
     const res = await request(app())
       .post('/api/integrations/session')
       .send({ service: 'vercel' });
 
     expect(res.status).toBe(200);
-    expect(res.body.sessionToken).toBe('nango_sess_token');
-    expect(res.body.connected).toBeUndefined();
-    expect(nangoMock.createKeeperConnectSession).toHaveBeenCalled();
+    expect(res.body).toEqual({ connected: true, service: 'vercel' });
+    expect(res.body.sessionToken).toBeUndefined();
+    expect(nangoMock.createKeeperConnectSession).not.toHaveBeenCalled();
     expect(prismaMock.integration.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           service: 'vercel',
-          integration_type: 'Services',
-          status: 'disconnected',
+          integration_type: 'Custom',
+          status: 'connected',
         }),
       }),
     );
+  });
+
+  it('vercel (Custom) returns 503 when VERCEL_TOKEN is missing', async () => {
+    delete process.env.VERCEL_TOKEN;
+
+    const res = await request(app())
+      .post('/api/integrations/session')
+      .send({ service: 'vercel' });
+
+    expect(res.status).toBe(503);
+    expect(res.body.message).toContain('VERCEL_TOKEN');
+    expect(nangoMock.createKeeperConnectSession).not.toHaveBeenCalled();
   });
 
   it('github (Services) returns Nango sessionToken', async () => {

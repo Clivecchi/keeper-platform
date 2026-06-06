@@ -142,6 +142,7 @@ export function RailwayIntegrationChronicle({
     return (
       <IntegrationUnconnectedState
         serviceSlug="railway"
+        integrationType={conn.integrationType}
         busy={conn.busy}
         error={conn.error}
         onConnect={() => void conn.connect()}

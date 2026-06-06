@@ -16,7 +16,7 @@ const NANGO_HOST = 'https://services.keeper.domains';
 /** Named target so repeat Connect focuses the same window instead of spawning unrelated tabs. */
 export const OAUTH_POPUP_NAME = 'keeper_integration_oauth';
 
-const PLATFORM_INTEGRATION_SERVICES = ['railway', 'vercel', 'github'] as const;
+const PLATFORM_INTEGRATION_SERVICES = ['github'] as const;
 
 type PlatformIntegrationService = (typeof PLATFORM_INTEGRATION_SERVICES)[number];
 
@@ -192,7 +192,7 @@ function isCustomConnectResult(
 }
 
 /**
- * Services (vercel, github) → popup OAuth. Custom (railway) → token verify only.
+ * Services (github) → popup OAuth. Custom (railway, vercel) → token verify only.
  * For Services, pass oauthPopup from beginIntegrationOAuthPopup() called synchronously on click.
  */
 export async function openIntegrationConnect({

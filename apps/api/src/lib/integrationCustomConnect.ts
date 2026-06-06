@@ -94,3 +94,47 @@ export async function verifyRailwayCustomConnect(): Promise<RailwayConnectVerify
     };
   }
 }
+
+export type VercelConnectVerifyResult =
+  | { ok: true }
+  | { ok: false; error: string; hint?: string };
+
+/**
+ * Verify platform Vercel credentials: env token present + lightweight API reachability.
+ */
+export async function verifyVercelCustomConnect(): Promise<VercelConnectVerifyResult> {
+  const token = process.env.VERCEL_TOKEN?.trim();
+  if (!token) {
+    return {
+      ok: false,
+      error: 'VERCEL_TOKEN not found',
+      hint: 'Add VERCEL_TOKEN to the platform environment variables.',
+    };
+  }
+
+  try {
+    const res = await fetch('https://api.vercel.com/v2/user', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.status !== 200) {
+      return {
+        ok: false,
+        error: 'Vercel token invalid',
+        hint: 'Check that VERCEL_TOKEN is correct and has not expired.',
+      };
+    }
+
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return {
+      ok: false,
+      error: `Failed to reach Vercel API: ${message}`,
+      hint: 'Check network connectivity from the API host to api.vercel.com.',
+    };
+  }
+}

@@ -133,6 +133,7 @@ export function GitHubIntegrationChronicle({
     return (
       <IntegrationUnconnectedState
         serviceSlug="github"
+        integrationType={conn.integrationType}
         busy={conn.busy}
         error={conn.error}
         authConnectUrl={conn.authConnectUrl}

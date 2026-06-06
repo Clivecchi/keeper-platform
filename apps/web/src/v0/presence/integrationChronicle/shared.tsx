@@ -10,13 +10,26 @@ import {
 
 export type IntegrationStatus = "connected" | "disconnected" | "error"
 
+export type IntegrationType = "Services" | "Custom" | "AI_Model"
+
 export interface IntegrationDto {
   id: string
   service: string
+  integration_type: IntegrationType
   nangoConnectionId: string | null
   status: IntegrationStatus
   tier: string
   connectedAt: string | null
+}
+
+const PLATFORM_SERVICE_INTEGRATION_TYPE: Record<string, IntegrationType> = {
+  railway: "Custom",
+  vercel: "Custom",
+  github: "Services",
+}
+
+export function resolveServiceIntegrationType(serviceSlug: string): IntegrationType {
+  return PLATFORM_SERVICE_INTEGRATION_TYPE[serviceSlug] ?? "Services"
 }
 
 export function serviceLabel(slug: string): string {
@@ -112,10 +125,15 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
     void refresh()
   }, [refresh])
 
+  const integrationType =
+    integration?.integration_type ?? resolveServiceIntegrationType(serviceSlug)
+
   const connect = React.useCallback(() => {
     let oauthPopup: Window | null = null
     const label = serviceLabel(serviceSlug)
-    if (serviceSlug !== "railway") {
+    const connectIntegrationType =
+      integration?.integration_type ?? resolveServiceIntegrationType(serviceSlug)
+    if (connectIntegrationType === "Services") {
       try {
         oauthPopup = beginIntegrationOAuthPopup(label)
       } catch (err) {
@@ -145,7 +163,7 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
         setBusy(false)
       }
     })()
-  }, [domainId, refresh, serviceSlug])
+  }, [domainId, integration?.integration_type, refresh, serviceSlug])
 
   const disconnect = React.useCallback(async () => {
     setBusy(true)
@@ -165,6 +183,7 @@ export function useIntegrationConnection(serviceSlug: string, domainId: string) 
 
   return {
     integration,
+    integrationType,
     status: integration?.status ?? "disconnected",
     loading,
     busy,
@@ -246,19 +265,21 @@ export function CapabilityChips({ capabilities }: { capabilities: string[] }) {
 
 export function IntegrationUnconnectedState({
   serviceSlug,
+  integrationType,
   busy,
   error,
   authConnectUrl = null,
   onConnect,
 }: {
   serviceSlug: string
+  integrationType: IntegrationType
   busy: boolean
   error: string | null
   authConnectUrl?: string | null
   onConnect: () => void
 }) {
   const label = serviceLabel(serviceSlug)
-  const isOAuthService = serviceSlug !== "railway"
+  const isOAuthService = integrationType === "Services"
   return (
     <div className="flex flex-col gap-5 px-4 py-5">
       <HeroZone title={label} subtitle="Not connected" glow="muted" />

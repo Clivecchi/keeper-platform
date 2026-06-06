@@ -132,9 +132,9 @@ export function VercelIntegrationChronicle({
     return (
       <IntegrationUnconnectedState
         serviceSlug="vercel"
+        integrationType={conn.integrationType}
         busy={conn.busy}
         error={conn.error}
-        authConnectUrl={conn.authConnectUrl}
         onConnect={() => void conn.connect()}
       />
     )

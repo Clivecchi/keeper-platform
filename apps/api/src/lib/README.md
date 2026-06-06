@@ -6,7 +6,7 @@ Shared utilities and service clients used across Express routes and middleware.
 ## 🧱 Key Files
 - `nango.ts` — lazy singleton for `@nangohq/node` (self-hosted Nango)
 - `nangoConfig.ts` — `DEFAULT_NANGO_HOST`, `resolveNangoIntegrationId()`, Nango error formatting
-- `integrationCustomConnect.ts` — Custom integration token verification (Railway GraphQL probe)
+- `integrationCustomConnect.ts` — Custom integration token verification (Railway + Vercel probes)
 - `env.ts` — database/redis disable helpers
 - `redis.ts` — Redis client helpers
 - `errors/DomainError.ts` — domain-scoped API errors
@@ -16,14 +16,14 @@ Shared utilities and service clients used across Express routes and middleware.
 
 ## ⚠️ Notes & ToDo
 - [ ] Confirm Railway `NANGO_SECRET_KEY` is the connect-sessions key from self-hosted Nango (not Nango Cloud)
-- [ ] If dashboard integration IDs differ from `railway` / `vercel` / `github`, set `NANGO_INTEGRATION_*` env overrides
+- [ ] If dashboard integration IDs differ from `github`, set `NANGO_INTEGRATION_*` env overrides
 - [ ] Webhook HMAC verification before public launch
 
 ## 📆 Update Log
 
 ### 2026-06-02 — Integrations Phase A
 - Added `integrationCustomConnect.ts` for Railway env token + reachability check (no `RailwayService` changes)
-- `nangoConfig.ts` documents Vercel interim state (Nango Connect vs `VERCEL_TOKEN` deployment routes)
+- Vercel converted to Custom integration (`VERCEL_TOKEN` verify); Nango is GitHub-only for Services connect
 
 ### 2026-06-01 — Nango connect session typing + legacy HTTP
 - `buildConnectSessionBody()` always returns required `tags` (SDK-compatible)

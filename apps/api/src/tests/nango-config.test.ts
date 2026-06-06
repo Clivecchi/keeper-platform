@@ -36,13 +36,13 @@ describe('nangoConfig @smoke', () => {
   it('resolveNangoIntegrationId uses env override', () => {
     process.env.NANGO_INTEGRATION_GITHUB = 'github-app';
     expect(resolveNangoIntegrationId('github')).toBe('github-app');
-    expect(resolveNangoIntegrationId('railway')).toBe('railway');
+    expect(() => resolveNangoIntegrationId('vercel')).toThrow('not a Nango integration');
   });
 
   it('resolveServiceFromProviderConfigKey inverts env override', () => {
     process.env.NANGO_INTEGRATION_GITHUB = 'github-app';
     expect(resolveServiceFromProviderConfigKey('github-app')).toBe('github');
-    expect(resolveServiceFromProviderConfigKey('vercel')).toBe('vercel');
+    expect(resolveServiceFromProviderConfigKey('vercel')).toBeNull();
   });
 
   it('buildConnectSessionBody always includes required tags for SDK', () => {
