@@ -303,8 +303,7 @@ function extractTextFromContent(content: ModelContentPart[]): string {
 
 /**
  * Together AI Provider Implementation
- * Text model calls (Llama, Mixtral) remain stubbed — not yet activated.
- * Image generation via FLUX is live.
+ * Chat completions via OpenAI-compatible API; image generation via FLUX is live.
  */
 class TogetherProvider {
   private apiKey: string;
@@ -313,22 +312,84 @@ class TogetherProvider {
     this.apiKey = apiKey;
   }
 
-  static async callModel(messages: ModelMessage[], settings: ModelSettings): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
-    console.log(`[TOGETHER STUB] Text model calls not yet activated. Would call ${settings.model} with ${messages.length} messages`);
+  static async callModel(
+    messages: ModelMessage[],
+    settings: ModelSettings,
+    apiKey?: string,
+    jsonMode?: boolean
+  ): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
+    const rawKey = apiKey || process.env.TOGETHER_API_KEY;
+    const finalApiKey = typeof rawKey === 'string' && rawKey.trim().length > 0 ? rawKey.trim() : null;
+    if (!finalApiKey) {
+      throw new ModelProviderException(
+        'MISSING_API_KEY',
+        'Together AI API key is not configured. Add TOGETHER_API_KEY to your Railway environment variables.',
+        { retryable: false }
+      );
+    }
 
-    const raw = messages.find(m => m.role === 'user')?.content;
-    const userMessage = typeof raw === 'string' ? raw : (Array.isArray(raw) ? raw.find(p => p.type === 'text')?.text ?? '[image(s) attached]' : 'Hello');
+    try {
+      const { OpenAI } = await import('openai');
 
-    return {
-      success: true,
-      content: `[MOCK Together Response] I understand you said: "${userMessage}". This is a simulated response from ${settings.model}. Together AI text model routing is not yet activated.`,
-      usage: {
-        prompt_tokens: 40,
-        completion_tokens: 90,
-        total_tokens: 130
-      },
-      model: settings.model
-    };
+      const MODEL_TIMEOUT_MS = 60_000;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
+
+      const together = new OpenAI({
+        apiKey: finalApiKey,
+        baseURL: 'https://api.together.xyz/v1',
+      });
+
+      let response;
+      try {
+        const createParams: Record<string, unknown> = {
+          model: settings.model,
+          messages: messages.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+          temperature: settings.temperature,
+          max_tokens: settings.max_tokens,
+          top_p: settings.top_p,
+          frequency_penalty: settings.frequency_penalty,
+          presence_penalty: settings.presence_penalty,
+          stream: false,
+        };
+        const capabilities = getModelCapabilities('together-ai', settings.model);
+        if (jsonMode && capabilities.jsonMode) {
+          (createParams as any).response_format = { type: 'json_object' };
+        }
+        response = await together.chat.completions.create(
+          createParams as any,
+          { signal: controller.signal },
+        );
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      const choice = response.choices[0];
+      if (!choice?.message?.content) {
+        throw new Error('No response content from Together AI');
+      }
+
+      return {
+        success: true,
+        content: choice.message.content,
+        usage: response.usage ? {
+          prompt_tokens: response.usage.prompt_tokens,
+          completion_tokens: response.usage.completion_tokens,
+          total_tokens: response.usage.total_tokens
+        } : undefined,
+        model: response.model
+      };
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('Together AI API timeout');
+        throw new ModelProviderException('TIMEOUT', 'Together AI model request timed out', { retryable: false });
+      }
+      console.error('Together AI API error:', error);
+      throw normalizeProviderError('together-ai', error);
+    }
   }
 
   async generateImage(brief: ImageGenerationBrief): Promise<ImageGenerationResult> {
@@ -547,7 +608,7 @@ export class ModelProviderService {
       case 'anthropic':
         return AnthropicProvider.callModel(messages, settings, apiKey || undefined, jsonMode);
       case 'together-ai':
-        return TogetherProvider.callModel(messages, settings);
+        return TogetherProvider.callModel(messages, settings, apiKey || undefined, jsonMode);
       case 'elevenlabs':
         return ElevenLabsProvider.callModel(messages, settings);
       default:
