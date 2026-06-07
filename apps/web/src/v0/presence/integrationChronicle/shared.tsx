@@ -21,6 +21,12 @@ export interface IntegrationDto {
   tier: string
   connectedAt: string | null
   metadata?: Record<string, unknown> | null
+  chronicle_blocks?: string[]
+  chronicle_actions?: string[]
+  is_gateway?: boolean
+  display_label?: string | null
+  description?: string | null
+  connect_copy?: string | null
 }
 
 const PLATFORM_SERVICE_INTEGRATION_TYPE: Record<string, IntegrationType> = {

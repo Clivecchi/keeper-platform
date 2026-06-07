@@ -12,6 +12,7 @@ import {
   useIntegrationConnection,
   useResolvedCapabilities,
 } from "./shared"
+import { DeclarationConnectedChronicle } from "./declarationChronicle"
 import { getServiceConfig, useServiceFeedData } from "./serviceConfig"
 
 export function IntegrationChronicle({
@@ -45,6 +46,15 @@ export function IntegrationChronicle({
     )
   }
 
+  const chronicleBlocks = conn.integration?.chronicle_blocks ?? []
+  const useDeclaration = chronicleBlocks.length > 0
+  const displayLabel = useDeclaration
+    ? (conn.integration?.display_label ?? config.label)
+    : config.label
+  const connectCopy = useDeclaration
+    ? (conn.integration?.connect_copy ?? config.connectCopy)
+    : config.connectCopy
+
   if (conn.loading) {
     return (
       <div className="px-4 py-5">
@@ -57,14 +67,30 @@ export function IntegrationChronicle({
     return (
       <IntegrationUnconnectedState
         serviceSlug={serviceSlug}
-        displayLabel={config.label}
+        displayLabel={displayLabel}
         integrationType={conn.integrationType}
         busy={conn.busy}
         error={conn.error}
         authConnectUrl={conn.authConnectUrl}
         oauthTroubleshootingCopy={config.oauthTroubleshootingCopy}
-        connectCopy={config.connectCopy}
+        connectCopy={connectCopy}
         onConnect={() => void conn.connect()}
+      />
+    )
+  }
+
+  if (useDeclaration && conn.integration) {
+    return (
+      <DeclarationConnectedChronicle
+        integration={conn.integration}
+        integrationType={conn.integrationType}
+        config={config}
+        feed={feed}
+        conn={conn}
+        domainId={domainId}
+        boardId={boardId}
+        agentSlug={agentSlug}
+        capabilities={capabilities}
       />
     )
   }

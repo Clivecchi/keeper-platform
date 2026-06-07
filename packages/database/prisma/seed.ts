@@ -69,6 +69,12 @@ async function main() {
     const seedSoleBootstrap = await import('./seeds/sole-bootstrap.seed.ts');
     await seedSoleBootstrap.default();
 
+    console.log('🔗 Seeding Integration Chronicle declarations...');
+    const seedIntegrationDeclarations = await import(
+      './seeds/integration-chronicle-declarations.seed.ts'
+    );
+    await seedIntegrationDeclarations.default();
+
     console.log('🎉 Database seed completed successfully!');
   } catch (error) {
     console.error('❌ Error during seeding:', error);

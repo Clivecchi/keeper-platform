@@ -1959,6 +1959,12 @@ model Integration {
   userId            String?
   metadata          Json?
   connectedAt       DateTime?
+  chronicle_blocks  String[]         @default([])
+  chronicle_actions String[]         @default([])
+  is_gateway        Boolean          @default(false)
+  display_label     String?
+  description       String?
+  connect_copy      String?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 

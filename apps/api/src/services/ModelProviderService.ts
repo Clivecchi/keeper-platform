@@ -6,11 +6,29 @@
  * Handles dynamic provider resolution, retry logic, and unified response format
  */
 
+import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { ModelProvider, ModelSettings } from '@keeper/database';
 import { KipUserKeyService } from './KipUserKeyService.js';
 import { PlatformApiKeyService } from './PlatformApiKeyService.js';
 import { MODEL_CATALOG, getDefaultSettingsForProvider } from '../config/modelCatalog.js';
 import { getModelCapabilities } from '../config/index.js';
+
+const DEFAULT_ELEVENLABS_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
+
+function validProviderKey(k: string | null | undefined): string | null {
+  return typeof k === 'string' && k.trim().length > 0 ? k.trim() : null;
+}
+
+async function readableStreamToBuffer(stream: ReadableStream<Uint8Array>): Promise<Buffer> {
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) chunks.push(value);
+  }
+  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
+}
 
 /** OpenAI-style content part for multimodal messages (text + images) */
 export type ModelContentPart =
@@ -77,6 +95,20 @@ export interface ImageGenerationResult {
   url: string;
   model: string;
   prompt: string;
+}
+
+export interface VoiceSynthesisBrief {
+  text: string;
+  voiceId?: string;
+  model?: string;
+}
+
+export interface VoiceSynthesisResult {
+  audio: Buffer;
+  contentType: string;
+  voiceId: string;
+  model: string;
+  text: string;
 }
 
 const RETRY_TEMPLATE = Object.freeze({
@@ -422,25 +454,84 @@ class TogetherProvider {
 }
 
 /**
- * ElevenLabs Provider Implementation (Stubbed)
+ * ElevenLabs Provider — text-to-speech via @elevenlabs/elevenlabs-js
  */
 class ElevenLabsProvider {
-  static async callModel(messages: ModelMessage[], settings: ModelSettings): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
-    console.log(`[ELEVENLABS STUB] Would call ${settings.model} with ${messages.length} messages`);
-    
-    // TODO: Implement ElevenLabs SDK integration for voice synthesis
-    const raw = messages.find(m => m.role === 'user')?.content;
-    const userMessage = typeof raw === 'string' ? raw : (Array.isArray(raw) ? raw.find(p => p.type === 'text')?.text ?? '[image(s) attached]' : 'Hello');
-    
+  static resolveVoiceId(voiceId?: string): string {
+    return (
+      validProviderKey(voiceId) ||
+      validProviderKey(process.env.ELEVENLABS_DEFAULT_VOICE_ID) ||
+      DEFAULT_ELEVENLABS_VOICE_ID
+    );
+  }
+
+  static async synthesize(
+    brief: VoiceSynthesisBrief,
+    apiKey: string,
+  ): Promise<VoiceSynthesisResult> {
+    const text = brief.text.trim();
+    if (!text) {
+      throw new ModelProviderException('PROVIDER_UNAVAILABLE', 'Text is required for voice synthesis.', {
+        retryable: false,
+      });
+    }
+
+    const voiceId = this.resolveVoiceId(brief.voiceId);
+    const model = validProviderKey(brief.model) || 'eleven_multilingual_v2';
+    const client = new ElevenLabsClient({ apiKey });
+    const stream = await client.textToSpeech.convert(voiceId, {
+      text,
+      modelId: model,
+      outputFormat: 'mp3_44100_128',
+    });
+    const audio = await readableStreamToBuffer(stream);
+
+    return {
+      audio,
+      contentType: 'audio/mpeg',
+      voiceId,
+      model,
+      text,
+    };
+  }
+
+  static async callModel(
+    messages: ModelMessage[],
+    settings: ModelSettings,
+    apiKey?: string,
+  ): Promise<Omit<ModelResponse, 'provider' | 'retries_used' | 'execution_time_ms'>> {
+    const rawKey = apiKey || process.env.ELEVENLABS_API_KEY;
+    const finalApiKey = validProviderKey(rawKey);
+    if (!finalApiKey) {
+      throw new ModelProviderException(
+        'MISSING_API_KEY',
+        'ElevenLabs API key is not configured. Add ELEVENLABS_API_KEY to your Railway environment variables.',
+        { retryable: false },
+      );
+    }
+
+    const raw = messages.find((m) => m.role === 'user')?.content;
+    const userMessage =
+      typeof raw === 'string'
+        ? raw
+        : Array.isArray(raw)
+          ? (raw.find((p) => p.type === 'text')?.text ?? '')
+          : 'Hello';
+
+    const result = await this.synthesize(
+      { text: userMessage, model: settings.model },
+      finalApiKey,
+    );
+
     return {
       success: true,
-      content: `[MOCK ElevenLabs Response] Voice synthesis would be generated for: "${userMessage}". This would return audio data or transcribed speech using ${settings.model}.`,
+      content: result.audio.toString('base64'),
       usage: {
-        prompt_tokens: 30,
-        completion_tokens: 60,
-        total_tokens: 90
+        prompt_tokens: userMessage.length,
+        completion_tokens: 0,
+        total_tokens: userMessage.length,
       },
-      model: settings.model
+      model: result.model,
     };
   }
 }
@@ -487,6 +578,9 @@ export class ModelProviderService {
       } else if (provider === 'together-ai') {
         apiKey = validKey(process.env.TOGETHER_API_KEY);
         keySource = apiKey ? 'env' : 'none';
+      } else if (provider === 'elevenlabs') {
+        apiKey = validKey(process.env.ELEVENLABS_API_KEY);
+        keySource = apiKey ? 'env' : 'none';
       }
     } else {
       // 1. Try environment key first (highest priority, recommended long-term)
@@ -500,6 +594,10 @@ export class ModelProviderService {
       }
       if (provider === 'together-ai') {
         apiKey = validKey(process.env.TOGETHER_API_KEY);
+        if (apiKey) keySource = 'env';
+      }
+      if (provider === 'elevenlabs') {
+        apiKey = validKey(process.env.ELEVENLABS_API_KEY);
         if (apiKey) keySource = 'env';
       }
 
@@ -526,9 +624,20 @@ export class ModelProviderService {
     console.log(`[ModelProvider] Using ${keySource} key for ${provider} (user: ${userId || 'none'})`);
 
     // Error taxonomy representative: surface MISSING_API_KEY before we ever hit the SDK.
-    const requiresExplicitKey = provider === 'openai' || provider === 'anthropic' || provider === 'together-ai';
+    const requiresExplicitKey =
+      provider === 'openai' ||
+      provider === 'anthropic' ||
+      provider === 'together-ai' ||
+      provider === 'elevenlabs';
     if (requiresExplicitKey && !apiKey) {
-      const envVar = provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : provider === 'together-ai' ? 'TOGETHER_API_KEY' : 'OPENAI_API_KEY';
+      const envVar =
+        provider === 'anthropic'
+          ? 'ANTHROPIC_API_KEY'
+          : provider === 'together-ai'
+            ? 'TOGETHER_API_KEY'
+            : provider === 'elevenlabs'
+              ? 'ELEVENLABS_API_KEY'
+              : 'OPENAI_API_KEY';
       const message = `Add ${envVar} to your Railway environment variables, or configure a platform/user key.`;
       return {
         success: false,
@@ -610,7 +719,7 @@ export class ModelProviderService {
       case 'together-ai':
         return TogetherProvider.callModel(messages, settings, apiKey || undefined, jsonMode);
       case 'elevenlabs':
-        return ElevenLabsProvider.callModel(messages, settings);
+        return ElevenLabsProvider.callModel(messages, settings, apiKey || undefined);
       default:
         throw new Error(`Unsupported model provider: ${provider}`);
     }
@@ -669,6 +778,37 @@ export class ModelProviderService {
 
     const provider = new TogetherProvider(apiKey);
     return provider.generateImage(brief);
+  }
+
+  /**
+   * Synthesize speech via ElevenLabs.
+   * Resolves the ElevenLabs API key using the same priority chain as callModel:
+   * ELEVENLABS_API_KEY env var → user key → platform DB key.
+   */
+  static async synthesizeVoice(brief: VoiceSynthesisBrief, userId?: string): Promise<VoiceSynthesisResult> {
+    let apiKey: string | null = validProviderKey(process.env.ELEVENLABS_API_KEY);
+    let keySource = 'none';
+    if (apiKey) keySource = 'env';
+
+    if (!apiKey && userId) {
+      apiKey = validProviderKey(await KipUserKeyService.getUserKey('elevenlabs', userId));
+      if (apiKey) keySource = 'user';
+    }
+
+    if (!apiKey) {
+      apiKey = validProviderKey(await PlatformApiKeyService.getKeyForProvider('elevenlabs'));
+      if (apiKey) keySource = 'platform';
+    }
+
+    console.log(`[ModelProvider] Using ${keySource} key for elevenlabs (user: ${userId ?? 'none'})`);
+
+    if (!apiKey) {
+      throw new Error(
+        'ElevenLabs API key not configured. Add ELEVENLABS_API_KEY to your Railway environment variables.',
+      );
+    }
+
+    return ElevenLabsProvider.synthesize(brief, apiKey);
   }
 } 
 

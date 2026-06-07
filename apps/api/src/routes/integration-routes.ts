@@ -110,6 +110,12 @@ function toIntegrationRecord(row: {
   userId: string | null;
   metadata: unknown;
   connectedAt: Date | null;
+  chronicle_blocks: string[];
+  chronicle_actions: string[];
+  is_gateway: boolean;
+  display_label: string | null;
+  description: string | null;
+  connect_copy: string | null;
   createdAt: Date;
   updatedAt: Date;
 }): IntegrationRecord {
@@ -128,6 +134,12 @@ function toIntegrationRecord(row: {
         ? (row.metadata as Record<string, unknown>)
         : null,
     connectedAt: row.connectedAt?.toISOString() ?? null,
+    chronicle_blocks: row.chronicle_blocks,
+    chronicle_actions: row.chronicle_actions,
+    is_gateway: row.is_gateway,
+    display_label: row.display_label,
+    description: row.description,
+    connect_copy: row.connect_copy,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

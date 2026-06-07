@@ -73,6 +73,12 @@ export interface IntegrationRecord {
   userId: string | null;
   metadata: Record<string, unknown> | null;
   connectedAt: string | null;
+  chronicle_blocks: string[];
+  chronicle_actions: string[];
+  is_gateway: boolean;
+  display_label: string | null;
+  description: string | null;
+  connect_copy: string | null;
   createdAt: string;
   updatedAt: string;
 }
