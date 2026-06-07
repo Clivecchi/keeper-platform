@@ -14,6 +14,13 @@ import {
   useGitHubFeedData,
   type GitHubFeedData,
 } from "./feeds/GitHubFeed"
+import {
+  AIModelFeed,
+  useAIModelFeedData,
+  type AIModelFeedData,
+  type KeyHealth,
+} from "./feeds/AIModelFeed"
+import type { IntegrationType } from "./shared"
 
 export type GlowState = "healthy" | "building" | "degraded" | "muted"
 
@@ -46,6 +53,9 @@ export type ServiceIconProps = { className?: string }
 export type ServiceConfig<TData = unknown> = {
   label: string
   icon: React.ComponentType<ServiceIconProps>
+  integrationType?: IntegrationType
+  isGateway?: boolean
+  connectCopy?: string
   useFeedData: (params: FeedDataParams) => FeedDataState<TData>
   heroSubtitle: (data: TData) => string
   glowFn: (data: TData) => GlowState
@@ -452,6 +462,132 @@ function useGitHubFeedDataSlot(params: FeedDataParams): FeedDataState<GitHubFeed
   return { data, loading, error, reload }
 }
 
+function aiGlow(data: AIModelFeedData): GlowState {
+  if (data.keyHealth?.status === "valid") return "healthy"
+  if (data.keyHealth?.status === "invalid") return "degraded"
+  return "muted"
+}
+
+function aiHeroSubtitle(data: AIModelFeedData): string {
+  const source = data.keyHealth?.source ?? "none"
+  if (data.keyHealth?.status === "valid") {
+    return `Connected via ${source}`
+  }
+  if (data.keyHealth?.status === "invalid") {
+    return "Key invalid — update required"
+  }
+  return "Key required"
+}
+
+function aiStatusLine(data: AIModelFeedData): string {
+  if (data.isGateway) {
+    const catalogMeta = data.integration?.metadata as
+      | { catalog?: { items?: unknown[] } }
+      | undefined
+    const count = catalogMeta?.catalog?.items?.length ?? data.staticModelCount
+    return `${count} models available`
+  }
+  return data.keyHealth?.status === "valid" ? "Ready" : "Key required"
+}
+
+function buildAIModelFeedSlot(serviceSlug: string) {
+  return function AIModelFeedSlot({
+    feed,
+    domainId,
+    boardId,
+    agentSlug,
+  }: {
+    feed: FeedDataState<AIModelFeedData>
+    domainId: string
+    boardId: string
+    agentSlug: string
+  }) {
+    return (
+      <AIModelFeed
+        feed={feed}
+        domainId={domainId}
+        boardId={boardId}
+        agentSlug={agentSlug}
+      />
+    )
+  }
+}
+
+function useAIModelFeedDataSlot(
+  serviceSlug: string,
+  params: FeedDataParams,
+): FeedDataState<AIModelFeedData> {
+  return useAIModelFeedData(serviceSlug, {
+    domainId: params.domainId,
+    connected: params.connected,
+    enabled: params.enabled,
+  })
+}
+
+function buildAiModelActions(serviceSlug: string) {
+  return ({
+    conn,
+    feed,
+  }: {
+    conn: IntegrationConnection
+    feed: FeedDataState<AIModelFeedData>
+  }): ServiceAction[] => [
+    {
+      label: "Test Provider",
+      onClick: () => {
+        void (async () => {
+          try {
+            const body = (await apiFetch(
+              `/api/integrations/${encodeURIComponent(serviceSlug)}/key-health`,
+            )) as KeyHealth
+            feed.data.setTestResult(
+              `Status: ${body.status.toUpperCase()} · Source: ${body.source.toUpperCase()} · Checked ${formatRelativeTime(body.lastChecked)}`,
+            )
+            await feed.reload()
+          } catch (err) {
+            feed.data.setTestResult(
+              err instanceof Error ? err.message : "Health check failed",
+            )
+          }
+        })()
+      },
+    },
+    {
+      label: "Manage Keys",
+      onClick: () => {
+        window.location.href = "/settings/api-keys"
+      },
+    },
+    {
+      label: "Disconnect",
+      onClick: () => void conn.disconnect(),
+      disabled: conn.busy,
+    },
+  ]
+}
+
+function createAIModelConfig(params: {
+  slug: string
+  label: string
+  connectCopy: string
+  isGateway?: boolean
+}): ServiceConfig<AIModelFeedData> {
+  return {
+    label: params.label,
+    icon: (iconProps) => <ServiceInitialIcon label={params.label} {...iconProps} />,
+    integrationType: "AI_Model",
+    isGateway: params.isGateway ?? false,
+    connectCopy: params.connectCopy,
+    useFeedData: (feedParams) =>
+      useAIModelFeedDataSlot(params.slug, feedParams),
+    heroSubtitle: aiHeroSubtitle,
+    glowFn: aiGlow,
+    statusLine: aiStatusLine,
+    FeedComponent: buildAIModelFeedSlot(params.slug),
+    buildActions: buildAiModelActions(params.slug),
+  }
+}
+
 export const SERVICE_CONFIG: Record<string, ServiceConfig<unknown>> = {
   railway: {
     label: "Railway",
@@ -651,6 +787,29 @@ export const SERVICE_CONFIG: Record<string, ServiceConfig<unknown>> = {
       </p>
     ),
   },
+  anthropic: createAIModelConfig({
+    slug: "anthropic",
+    label: "Anthropic",
+    connectCopy:
+      "Connect your Anthropic account to power Kip and other agents with Claude.",
+  }),
+  openai: createAIModelConfig({
+    slug: "openai",
+    label: "OpenAI",
+    connectCopy: "Connect OpenAI to use GPT models across your agents.",
+  }),
+  "together-ai": createAIModelConfig({
+    slug: "together-ai",
+    label: "Together AI",
+    isGateway: true,
+    connectCopy:
+      "Connect Together AI to access 50+ open-source models including Llama and Mistral.",
+  }),
+  elevenlabs: createAIModelConfig({
+    slug: "elevenlabs",
+    label: "ElevenLabs",
+    connectCopy: "Connect ElevenLabs to enable voice capabilities for your agents.",
+  }),
 }
 
 export function getServiceConfig(serviceSlug: string): ServiceConfig<unknown> | null {
@@ -665,10 +824,30 @@ export function useServiceFeedData(
   const railway = useRailwayFeedData({ ...params, enabled: serviceSlug === "railway" })
   const vercel = useVercelFeedData({ ...params, enabled: serviceSlug === "vercel" })
   const github = useGitHubFeedDataSlot({ ...params, enabled: serviceSlug === "github" })
+  const anthropic = useAIModelFeedDataSlot("anthropic", {
+    ...params,
+    enabled: serviceSlug === "anthropic",
+  })
+  const openai = useAIModelFeedDataSlot("openai", {
+    ...params,
+    enabled: serviceSlug === "openai",
+  })
+  const togetherAi = useAIModelFeedDataSlot("together-ai", {
+    ...params,
+    enabled: serviceSlug === "together-ai",
+  })
+  const elevenlabs = useAIModelFeedDataSlot("elevenlabs", {
+    ...params,
+    enabled: serviceSlug === "elevenlabs",
+  })
 
   if (serviceSlug === "railway") return railway
   if (serviceSlug === "vercel") return vercel
   if (serviceSlug === "github") return github
+  if (serviceSlug === "anthropic") return anthropic
+  if (serviceSlug === "openai") return openai
+  if (serviceSlug === "together-ai") return togetherAi
+  if (serviceSlug === "elevenlabs") return elevenlabs
 
   return {
     data: {},

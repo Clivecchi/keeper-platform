@@ -26,17 +26,41 @@ function envKeyForProvider(provider: ModelProvider): string | null {
   }
 }
 
+export type ProviderKeySource = 'env' | 'user' | 'platform' | 'none';
+
+export type ResolvedProviderKey = {
+  key: string | null;
+  source: ProviderKeySource;
+};
+
+export async function resolveProviderApiKeyWithSource(
+  provider: ModelProvider,
+  userId?: string | null,
+): Promise<ResolvedProviderKey> {
+  const envKey = envKeyForProvider(provider);
+  if (envKey) {
+    return { key: envKey, source: 'env' };
+  }
+
+  if (userId) {
+    const userKey = validKey(await KipUserKeyService.getUserKey(provider, userId));
+    if (userKey) {
+      return { key: userKey, source: 'user' };
+    }
+  }
+
+  const platformKey = validKey(await PlatformApiKeyService.getKeyForProvider(provider));
+  if (platformKey) {
+    return { key: platformKey, source: 'platform' };
+  }
+
+  return { key: null, source: 'none' };
+}
+
 export async function resolveProviderApiKey(
   provider: ModelProvider,
   userId?: string | null,
 ): Promise<string | null> {
-  let apiKey = envKeyForProvider(provider);
-  if (apiKey) return apiKey;
-
-  if (userId) {
-    apiKey = validKey(await KipUserKeyService.getUserKey(provider, userId));
-    if (apiKey) return apiKey;
-  }
-
-  return validKey(await PlatformApiKeyService.getKeyForProvider(provider));
+  const resolved = await resolveProviderApiKeyWithSource(provider, userId);
+  return resolved.key;
 }

@@ -429,12 +429,18 @@ export function UniversalNavPanel({
   const showJourneys = def.nav.sections.journeys
   const showKeepers = def.nav.sections.keepers
   const showBoardDefs = def.nav.sections.boardDefs ?? false
-  const integrationItems: SidebarCardItem[] = (def.nav.integrations ?? []).map((item) => ({
+  const integrationDefs = def.nav.integrations ?? []
+  const infrastructureIntegrations = integrationDefs.filter((item) => item.group !== "ai")
+  const aiIntegrations = integrationDefs.filter((item) => item.group === "ai")
+  const toIntegrationItem = (item: (typeof integrationDefs)[number]): SidebarCardItem => ({
     id: item.id,
     label: item.label,
     isSelected: selectedServiceSlug === item.id,
     onClick: () => onServiceOpen?.(item.id),
-  }))
+  })
+  const infrastructureItems = infrastructureIntegrations.map(toIntegrationItem)
+  const aiItems = aiIntegrations.map(toIntegrationItem)
+  const integrationItems: SidebarCardItem[] = [...infrastructureItems, ...aiItems]
 
   // ── designer sections: Board Definitions ─────────────────────────────────
 
@@ -532,12 +538,24 @@ export function UniversalNavPanel({
       case "integrations":
         if (integrationItems.length === 0) return null
         return (
-          <SidebarCard
-            className="keeper-sidebar-card"
-            title="Integrations"
-            description="Platform connections"
-            items={integrationItems}
-          />
+          <div className="flex flex-col gap-3">
+            {infrastructureItems.length > 0 ? (
+              <SidebarCard
+                className="keeper-sidebar-card"
+                title="Integrations"
+                description="Infrastructure"
+                items={infrastructureItems}
+              />
+            ) : null}
+            {aiItems.length > 0 ? (
+              <SidebarCard
+                className="keeper-sidebar-card"
+                title="AI Providers"
+                description="Model connections"
+                items={aiItems}
+              />
+            ) : null}
+          </div>
         )
       case "agents":
         if (!showAgents) return null

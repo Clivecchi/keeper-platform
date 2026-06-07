@@ -32,6 +32,7 @@ import { randomUUID } from 'crypto';
 import domainRoutes from './api/domains/routes.js';
 import governanceRouter from './api/governance/routes.js';
 import { ensureDomainAgentPolicy, ensureAllDomainsHaveAgentPolicy } from './governance/index.js';
+import { ensureAiModelIntegrations } from './lib/ensureAiModelIntegrations.js';
 import flatDomainsRouter from './api/domains.js';
 import domainBoardDataRouter from './api/domains/board-data.js';
 import adminDomainRoutes from './api/admin/domains.js';
@@ -1585,6 +1586,7 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
         if (backfilled > 0) {
           console.log(`[governance] Backfilled ${backfilled} domain(s) with agent policy`);
         }
+        await ensureAiModelIntegrations();
       } catch (e) {
         console.warn('[governance:backfill:startup]', (e as Error)?.message || e);
       }

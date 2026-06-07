@@ -57,11 +57,13 @@ export function IntegrationChronicle({
     return (
       <IntegrationUnconnectedState
         serviceSlug={serviceSlug}
+        displayLabel={config.label}
         integrationType={conn.integrationType}
         busy={conn.busy}
         error={conn.error}
         authConnectUrl={conn.authConnectUrl}
         oauthTroubleshootingCopy={config.oauthTroubleshootingCopy}
+        connectCopy={config.connectCopy}
         onConnect={() => void conn.connect()}
       />
     )

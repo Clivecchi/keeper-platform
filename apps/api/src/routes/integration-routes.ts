@@ -40,8 +40,14 @@ import {
   toPrismaIntegrationMetadata,
   type GatewayIntegrationMetadata,
 } from '../lib/integrationCatalog.js';
-import { resolveProviderApiKey } from '../lib/resolveProviderApiKey.js';
+import {
+  resolveProviderApiKey,
+  resolveProviderApiKeyWithSource,
+} from '../lib/resolveProviderApiKey.js';
 import { verifyAIModelConnect } from '../lib/integrationAiModelConnect.js';
+import { KipUserKeyService } from '../services/KipUserKeyService.js';
+import { PlatformApiKeyService } from '../services/PlatformApiKeyService.js';
+import type { AuthenticatedRequest } from '../middleware/authMiddleware.js';
 
 const router: Router = Router();
 
@@ -71,6 +77,11 @@ const oauthCallbackBodySchema = z.object({
   providerConfigKey: z.string().optional(),
   domainId: z.string().optional(),
   userId: z.string().optional(),
+});
+
+const integrationKeyBodySchema = z.object({
+  key: z.string().min(5),
+  level: z.enum(['user', 'platform']),
 });
 
 function resolveTier(userId?: string): IntegrationTier {
@@ -291,9 +302,6 @@ router.post('/session', authMiddlewareCompat, async (req: Request, res: Response
       return res.status(200).json({
         connected: true as const,
         service,
-        catalogCount: catalogResult.items.length,
-        catalogSource: catalogResult.source,
-        catalogFetchedAt: catalogResult.fetchedAt,
       });
     }
 
@@ -587,6 +595,152 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
         : 'Failed to list integrations',
       detail: process.env.NODE_ENV !== 'production' ? message : undefined,
     });
+  }
+});
+
+/**
+ * GET /api/integrations/:service/key-health
+ * Read-only AI Model key probe — does not mutate Integration records.
+ */
+router.get('/:service/key-health', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const service = req.params.service;
+    const integrationType = resolvePlatformIntegrationType(service);
+    if (integrationType !== 'AI_Model' || !isAIModelIntegrationSlug(service)) {
+      return res.status(400).json({
+        error: 'Key health is only supported for AI Model integrations',
+        service,
+      });
+    }
+
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id ?? null;
+    const provider = service as ModelProvider;
+    const resolved = await resolveProviderApiKeyWithSource(provider, userId);
+    const lastChecked = new Date().toISOString();
+
+    if (!resolved.key) {
+      return res.status(200).json({
+        service,
+        status: 'missing',
+        source: 'none',
+        lastChecked,
+      });
+    }
+
+    const verification = await verifyAIModelConnect(provider, resolved.key);
+    if (verification.ok === true) {
+      return res.status(200).json({
+        service,
+        status: 'valid',
+        source: resolved.source,
+        lastChecked,
+      });
+    }
+
+    return res.status(200).json({
+      service,
+      status: 'invalid',
+      source: resolved.source,
+      lastChecked,
+      errorMessage: verification.error,
+      ...(verification.hint ? { hint: verification.hint } : {}),
+    });
+  } catch (err) {
+    console.error('[integrations/key-health]', err);
+    return res.status(500).json({ error: 'Failed to check key health' });
+  }
+});
+
+/**
+ * POST /api/integrations/:service/key
+ * Validate and save an AI Model API key (user or platform level).
+ */
+router.post('/:service/key', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const service = req.params.service;
+    const integrationType = resolvePlatformIntegrationType(service);
+    if (integrationType !== 'AI_Model' || !isAIModelIntegrationSlug(service)) {
+      return res.status(400).json({
+        error: 'Key update is only supported for AI Model integrations',
+        service,
+      });
+    }
+
+    const parsed = integrationKeyBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid request body', details: parsed.error.flatten() });
+    }
+
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { key, level } = parsed.data;
+    const provider = service as ModelProvider;
+
+    if (level === 'platform') {
+      const roles = authReq.user?.platformRoles ?? [];
+      if (!roles.includes('super-admin')) {
+        return res.status(403).json({ error: 'Admin access required for platform keys' });
+      }
+    }
+
+    const verification = await verifyAIModelConnect(provider, key);
+    if (verification.ok === false) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Key rejected by provider',
+        hint: verification.hint ?? verification.error,
+      });
+    }
+
+    if (level === 'user') {
+      const saved = await KipUserKeyService.setUserKey(provider, userId, key);
+      if (!saved) {
+        return res.status(500).json({ ok: false, error: 'Failed to save user key' });
+      }
+    } else {
+      const result = await PlatformApiKeyService.upsertKey(
+        {
+          provider,
+          api_key: key,
+          label: `${provider} API Key`,
+          is_active: true,
+        },
+        userId,
+      );
+      if (!result.success) {
+        return res.status(500).json({
+          ok: false,
+          error: result.error ?? 'Failed to save platform key',
+        });
+      }
+    }
+
+    const { metadata } = await refreshIntegrationCatalog({ service, apiKey: key });
+
+    await upsertIntegration({
+      service,
+      integration_type: 'AI_Model',
+      tier: 'platform',
+      domainId: null,
+      userId: null,
+      status: 'connected',
+      connectedAt: new Date(),
+      nangoConnectionId: null,
+      metadata,
+    });
+
+    return res.status(200).json({
+      ok: true,
+      source: level,
+    });
+  } catch (err) {
+    console.error('[integrations/key]', err);
+    return res.status(500).json({ ok: false, error: 'Failed to update integration key' });
   }
 });
 

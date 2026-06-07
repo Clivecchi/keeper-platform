@@ -32,6 +32,8 @@ export interface NavSectionsDef {
 export interface NavInstrumentDef {
   id: string
   label: string
+  /** Groups integrations in the left nav (IDE Board). */
+  group?: "infrastructure" | "ai"
 }
 
 export interface NavPanelDef {
@@ -229,9 +231,13 @@ export const IDE_BOARD_DEF: UniversalBoardDef = {
       agents: false,
     },
     integrations: [
-      { id: "vercel", label: "Vercel" },
-      { id: "railway", label: "Railway" },
-      { id: "github", label: "GitHub" },
+      { id: "vercel", label: "Vercel", group: "infrastructure" },
+      { id: "railway", label: "Railway", group: "infrastructure" },
+      { id: "github", label: "GitHub", group: "infrastructure" },
+      { id: "anthropic", label: "Anthropic", group: "ai" },
+      { id: "openai", label: "OpenAI", group: "ai" },
+      { id: "together-ai", label: "Together AI", group: "ai" },
+      { id: "elevenlabs", label: "ElevenLabs", group: "ai" },
     ],
   },
   conversation: {

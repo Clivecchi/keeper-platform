@@ -20,12 +20,17 @@ export interface IntegrationDto {
   status: IntegrationStatus
   tier: string
   connectedAt: string | null
+  metadata?: Record<string, unknown> | null
 }
 
 const PLATFORM_SERVICE_INTEGRATION_TYPE: Record<string, IntegrationType> = {
   railway: "Custom",
   vercel: "Custom",
   github: "Services",
+  openai: "AI_Model",
+  anthropic: "AI_Model",
+  "together-ai": "AI_Model",
+  elevenlabs: "AI_Model",
 }
 
 export function resolveServiceIntegrationType(serviceSlug: string): IntegrationType {
@@ -341,28 +346,36 @@ export function CapabilityChips({ capabilities }: { capabilities: string[] }) {
 
 export function IntegrationUnconnectedState({
   serviceSlug,
+  displayLabel,
   integrationType,
   busy,
   error,
   authConnectUrl = null,
   oauthTroubleshootingCopy,
+  connectCopy,
   onConnect,
 }: {
   serviceSlug: string
+  displayLabel?: string
   integrationType: IntegrationType
   busy: boolean
   error: string | null
   authConnectUrl?: string | null
   oauthTroubleshootingCopy?: React.ReactNode
+  connectCopy?: string
   onConnect: () => void
 }) {
-  const label = serviceLabel(serviceSlug)
+  const label = displayLabel ?? serviceLabel(serviceSlug)
   const isOAuthService = integrationType === "Services"
+  const description =
+    connectCopy ??
+    SERVICE_DESCRIPTIONS[serviceSlug] ??
+    `Connect ${label} to enable platform integration.`
   return (
     <div className="flex flex-col gap-5 px-4 py-5">
       <HeroZone title={label} subtitle="Not connected" glow="muted" />
       <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-        {SERVICE_DESCRIPTIONS[serviceSlug] ?? `Connect ${label} to enable platform integration.`}
+        {description}
       </p>
       {isOAuthService && (
         <p className="text-[12px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
