@@ -3,23 +3,17 @@
  * ==============
  *
  * Exposes the model catalog for frontend model selection.
- * When provider is specified, fetches models dynamically from the provider's API
- * (OpenAI, Anthropic) using stored API keys. Results cached 1 hour.
- * Falls back to static catalog on fetch failure.
+ * Primary source: cached catalog on connected Integration records (Connected Gateway pattern).
+ * Fallback: static entries in modelCatalog.ts when no connected integration or empty cache.
  */
 
 import { Router, type Request, type Response } from 'express';
 import {
-  MODEL_CATALOG,
   DEFAULT_MODEL_BY_PROVIDER,
   PROVIDERS,
-  type ModelCatalogEntry,
 } from '../../config/modelCatalog.js';
 import type { ModelProvider } from '@keeper/database';
-import {
-  fetchProviderModels,
-  getDefaultModelForProvider,
-} from '../../services/ProviderModelsFetcher.js';
+import { resolveModelsForProvider } from '../../lib/integrationCatalog.js';
 
 const router = Router();
 
@@ -28,11 +22,10 @@ const router = Router();
  *
  * Query params:
  *   provider (optional) - Filter by provider (openai, anthropic, together-ai, elevenlabs).
- *     When set, fetches models from provider API; otherwise returns static catalog.
  *
  * Returns:
  *   providers: string[]
- *   models: Array<{ id, displayName, provider }>
+ *   models: Array<{ id, label, provider, source }>
  *   defaults: Record<provider, modelId>
  */
 router.get('/', async (req: Request, res: Response) => {
@@ -50,31 +43,21 @@ router.get('/', async (req: Request, res: Response) => {
 
     const providers = provider ? [provider] : [...PROVIDERS];
 
-    let models: Array<{ id: string; label: string; provider: string }>;
-
-    if (provider) {
-      const dynamic = await fetchProviderModels(provider);
-      models = dynamic.map((m) => ({
-        id: m.id,
-        label: m.displayName,
-        provider: m.provider,
-      }));
-    } else {
-      const staticModels: ModelCatalogEntry[] = providers.flatMap(
-        (p) => MODEL_CATALOG[p] ?? []
-      );
-      models = staticModels.map((m) => ({
-        id: m.id,
-        label: m.label,
-        provider: m.provider,
-      }));
-    }
+    const modelGroups = await Promise.all(
+      providers.map((p) => resolveModelsForProvider(p)),
+    );
+    const models = modelGroups.flat().map((m) => ({
+      id: m.id,
+      label: m.label,
+      provider: m.provider,
+      source: m.source,
+      ...(m.capabilities ? { capabilities: m.capabilities } : {}),
+      ...(m.defaultSettings ? { defaultSettings: m.defaultSettings } : {}),
+    }));
 
     const defaults: Record<string, string> = {};
     for (const p of providers) {
-      defaults[p] = provider
-        ? getDefaultModelForProvider(p)
-        : DEFAULT_MODEL_BY_PROVIDER[p];
+      defaults[p] = DEFAULT_MODEL_BY_PROVIDER[p];
     }
 
     return res.json({

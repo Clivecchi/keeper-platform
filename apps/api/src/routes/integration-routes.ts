@@ -26,10 +26,20 @@ import type {
   NangoAuthWebhookPayload,
 } from '../types/integration.js';
 import {
+  isAIModelIntegrationSlug,
   isCustomIntegrationType,
   isServicesIntegrationType,
   resolvePlatformIntegrationType,
 } from '../types/integration.js';
+import type { ModelProvider } from '@keeper/database';
+import { fetchCatalog } from '../lib/catalogFetcher.js';
+import { getCatalogConfigForService } from '../config/catalogConfigs.js';
+import {
+  buildGatewayMetadata,
+  parseGatewayMetadata,
+} from '../lib/integrationCatalog.js';
+import { resolveProviderApiKey } from '../lib/resolveProviderApiKey.js';
+import { verifyAIModelConnect } from '../lib/integrationAiModelConnect.js';
 
 const router: Router = Router();
 
@@ -37,6 +47,7 @@ const sessionBodySchema = z.object({
   service: z.string().min(1),
   userId: z.string().optional(),
   domainId: z.string().optional(),
+  api_key: z.string().optional(),
 });
 
 const proxyBodySchema = z.object({
@@ -129,6 +140,7 @@ async function upsertIntegration(params: {
   nangoConnectionId?: string | null;
   status: IntegrationStatus;
   connectedAt?: Date | null;
+  metadata?: Record<string, unknown> | null;
 }) {
   const existing = await findIntegration(
     params.service,
@@ -149,6 +161,7 @@ async function upsertIntegration(params: {
       data: {
         ...data,
         integration_type: params.integration_type,
+        ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
       },
     });
   }
@@ -162,8 +175,32 @@ async function upsertIntegration(params: {
       userId: params.userId,
       scopes: [],
       ...data,
+      ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
     },
   });
+}
+
+async function refreshIntegrationCatalog(params: {
+  service: string;
+  apiKey: string;
+}): Promise<{
+  catalogResult: Awaited<ReturnType<typeof fetchCatalog>>;
+  metadata: ReturnType<typeof buildGatewayMetadata>;
+}> {
+  const config = getCatalogConfigForService(params.service);
+  const catalogResult = config
+    ? await fetchCatalog(params.apiKey, config)
+    : {
+        ok: true,
+        items: [],
+        fetchedAt: new Date().toISOString(),
+        source: 'fallback' as const,
+      };
+
+  return {
+    catalogResult,
+    metadata: buildGatewayMetadata(catalogResult),
+  };
 }
 
 /**
@@ -178,7 +215,7 @@ router.post('/session', authMiddlewareCompat, async (req: Request, res: Response
       return res.status(400).json({ error: 'Invalid request body', details: parsed.error.flatten() });
     }
 
-    const { service, userId, domainId } = parsed.data;
+    const { service, userId, domainId, api_key: bodyApiKey } = parsed.data;
     serviceSlug = service;
 
     const integrationType = resolvePlatformIntegrationType(service);
@@ -193,6 +230,56 @@ router.post('/session', authMiddlewareCompat, async (req: Request, res: Response
     // incomplete — per-domain integration scoping: domainId accepted but not enforced for platform tier
     const scopedDomainId = tier === 'platform' ? null : domainId ?? null;
     const scopedUserId = tier === 'user' ? userId ?? req.user?.id ?? null : null;
+
+    if (integrationType === 'AI_Model' && isAIModelIntegrationSlug(service)) {
+      const provider = service as ModelProvider;
+      const apiKey =
+        (typeof bodyApiKey === 'string' && bodyApiKey.trim()) ||
+        (await resolveProviderApiKey(provider, scopedUserId));
+
+      if (!apiKey) {
+        return res.status(503).json({
+          error: `No API key available for ${service}`,
+          hint: `Configure a platform key or set the provider env variable before connecting.`,
+          service,
+        });
+      }
+
+      const verification = await verifyAIModelConnect(provider, apiKey);
+      if (verification.ok === false) {
+        return res.status(503).json({
+          error: `Failed to verify ${service} integration`,
+          message: verification.error,
+          hint: verification.hint,
+          service,
+        });
+      }
+
+      const { metadata, catalogResult } = await refreshIntegrationCatalog({
+        service,
+        apiKey,
+      });
+
+      await upsertIntegration({
+        service,
+        integration_type: integrationType,
+        tier,
+        domainId: scopedDomainId,
+        userId: scopedUserId,
+        status: 'connected',
+        connectedAt: new Date(),
+        nangoConnectionId: null,
+        metadata,
+      });
+
+      return res.status(200).json({
+        connected: true as const,
+        service,
+        catalogCount: catalogResult.items.length,
+        catalogSource: catalogResult.source,
+        catalogFetchedAt: catalogResult.fetchedAt,
+      });
+    }
 
     if (isCustomIntegrationType(integrationType)) {
       const verification =
@@ -484,6 +571,70 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
         : 'Failed to list integrations',
       detail: process.env.NODE_ENV !== 'production' ? message : undefined,
     });
+  }
+});
+
+/**
+ * POST /api/integrations/:service/catalog/refresh
+ * Re-fetch a Connected Gateway catalog and update Integration.metadata.
+ */
+router.post('/:service/catalog/refresh', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const service = req.params.service;
+    const integrationType = resolvePlatformIntegrationType(service);
+    if (integrationType !== 'AI_Model' || !isAIModelIntegrationSlug(service)) {
+      return res.status(400).json({
+        error: 'Catalog refresh is only supported for connected AI Model integrations',
+        service,
+      });
+    }
+
+    const tier: IntegrationTier = 'platform';
+    const integration = await findIntegration(service, tier, null, null);
+    if (!integration || integration.status !== 'connected') {
+      return res.status(404).json({
+        error: 'Integration not connected',
+        service,
+      });
+    }
+
+    const provider = service as ModelProvider;
+    const apiKey = await resolveProviderApiKey(provider, integration.userId);
+    if (!apiKey) {
+      return res.status(503).json({
+        error: `No API key available for ${service}`,
+        service,
+      });
+    }
+
+    const { catalogResult, metadata } = await refreshIntegrationCatalog({
+      service,
+      apiKey,
+    });
+
+    const existingMeta = parseGatewayMetadata(integration.metadata) ?? {};
+    const mergedMetadata = {
+      ...existingMeta,
+      ...metadata,
+    };
+
+    await prisma.integration.update({
+      where: { id: integration.id },
+      data: { metadata: mergedMetadata },
+    });
+
+    return res.status(200).json({
+      ok: true,
+      service,
+      itemCount: catalogResult.items.length,
+      fetchedAt: catalogResult.fetchedAt,
+      source: catalogResult.source,
+      catalogOk: catalogResult.ok,
+      ...(catalogResult.error ? { error: catalogResult.error } : {}),
+    });
+  } catch (err) {
+    console.error('[integrations/catalog/refresh]', err);
+    return res.status(500).json({ error: 'Failed to refresh integration catalog' });
   }
 });
 

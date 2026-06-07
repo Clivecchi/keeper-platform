@@ -14,6 +14,16 @@ export const PLATFORM_INTEGRATION_SLUGS = ['railway', 'vercel', 'github'] as con
 
 export type PlatformIntegrationSlug = (typeof PLATFORM_INTEGRATION_SLUGS)[number];
 
+/** Connected Gateway slugs for AI Model integrations (API key + live catalog). */
+export const AI_MODEL_INTEGRATION_SLUGS = [
+  'openai',
+  'anthropic',
+  'together-ai',
+  'elevenlabs',
+] as const;
+
+export type AIModelIntegrationSlug = (typeof AI_MODEL_INTEGRATION_SLUGS)[number];
+
 /** Services-type integrations that use Nango OAuth (not Custom env tokens). */
 export const PLATFORM_INTEGRATION_SERVICES = ['github'] as const;
 
@@ -30,10 +40,17 @@ export const PLATFORM_SERVICE_INTEGRATION_TYPE: Record<
 };
 
 export function resolvePlatformIntegrationType(service: string): IntegrationType | null {
-  if (!PLATFORM_INTEGRATION_SLUGS.includes(service as PlatformIntegrationSlug)) {
-    return null;
+  if (PLATFORM_INTEGRATION_SLUGS.includes(service as PlatformIntegrationSlug)) {
+    return PLATFORM_SERVICE_INTEGRATION_TYPE[service as PlatformIntegrationSlug];
   }
-  return PLATFORM_SERVICE_INTEGRATION_TYPE[service as PlatformIntegrationSlug];
+  if (AI_MODEL_INTEGRATION_SLUGS.includes(service as AIModelIntegrationSlug)) {
+    return 'AI_Model';
+  }
+  return null;
+}
+
+export function isAIModelIntegrationSlug(service: string): service is AIModelIntegrationSlug {
+  return AI_MODEL_INTEGRATION_SLUGS.includes(service as AIModelIntegrationSlug);
 }
 
 export function isServicesIntegrationType(type: IntegrationType): boolean {

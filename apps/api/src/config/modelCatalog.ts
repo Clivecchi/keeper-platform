@@ -1,9 +1,8 @@
 /**
- * Model Catalog
- * =============
- *
- * Single source of truth for available AI models per provider.
- * Add new models by editing this file — no code changes elsewhere required.
+ * FALLBACK CATALOG — do not use as primary data source.
+ * The live model catalog is fetched from provider APIs and cached in Integration.metadata.
+ * This file is used only when a provider Integration record does not exist or has no cached catalog.
+ * Update this file only when a model needs to be available before the provider is connected.
  */
 
 import type { ModelProvider, ModelSettings } from '@keeper/database';
