@@ -37,6 +37,8 @@ import { getCatalogConfigForService } from '../config/catalogConfigs.js';
 import {
   buildGatewayMetadata,
   parseGatewayMetadata,
+  toPrismaIntegrationMetadata,
+  type GatewayIntegrationMetadata,
 } from '../lib/integrationCatalog.js';
 import { resolveProviderApiKey } from '../lib/resolveProviderApiKey.js';
 import { verifyAIModelConnect } from '../lib/integrationAiModelConnect.js';
@@ -140,7 +142,7 @@ async function upsertIntegration(params: {
   nangoConnectionId?: string | null;
   status: IntegrationStatus;
   connectedAt?: Date | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: GatewayIntegrationMetadata | null;
 }) {
   const existing = await findIntegration(
     params.service,
@@ -161,7 +163,14 @@ async function upsertIntegration(params: {
       data: {
         ...data,
         integration_type: params.integration_type,
-        ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
+        ...(params.metadata !== undefined
+          ? {
+              metadata:
+                params.metadata === null
+                  ? null
+                  : toPrismaIntegrationMetadata(params.metadata),
+            }
+          : {}),
       },
     });
   }
@@ -175,7 +184,14 @@ async function upsertIntegration(params: {
       userId: params.userId,
       scopes: [],
       ...data,
-      ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
+      ...(params.metadata !== undefined
+        ? {
+            metadata:
+              params.metadata === null
+                ? null
+                : toPrismaIntegrationMetadata(params.metadata),
+          }
+        : {}),
     },
   });
 }
@@ -613,14 +629,14 @@ router.post('/:service/catalog/refresh', authMiddlewareCompat, async (req: Reque
     });
 
     const existingMeta = parseGatewayMetadata(integration.metadata) ?? {};
-    const mergedMetadata = {
+    const mergedMetadata: GatewayIntegrationMetadata = {
       ...existingMeta,
       ...metadata,
     };
 
     await prisma.integration.update({
       where: { id: integration.id },
-      data: { metadata: mergedMetadata },
+      data: { metadata: toPrismaIntegrationMetadata(mergedMetadata) },
     });
 
     return res.status(200).json({

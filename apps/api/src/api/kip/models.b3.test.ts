@@ -9,8 +9,9 @@ vi.mock('../../middleware/authMiddleware.js', () => ({
     _res: express.Response,
     next: express.NextFunction,
   ) => {
-    (req as express.Request & { user?: { id: string } }).user = {
+    (req as express.Request & { user?: { id: string; email: string } }).user = {
       id: '491307f3-b331-436c-b53a-09a11ec110cb',
+      email: 'clivecchi@gmail.com',
     };
     next();
   },

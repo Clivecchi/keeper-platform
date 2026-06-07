@@ -4,6 +4,7 @@
 
 import { prisma } from '@keeper/database';
 import type { ModelProvider } from '@keeper/database';
+import { Prisma } from '@prisma/client';
 import type { CatalogFetchResult, CatalogItem } from './catalogFetcher.js';
 import {
   MODEL_CATALOG,
@@ -36,6 +37,13 @@ export type ResolvedCatalogModel = {
   capabilities?: string[];
   defaultSettings?: ModelCatalogEntry['defaultSettings'];
 };
+
+/** Coerce gateway metadata to a Prisma-safe JSON value. */
+export function toPrismaIntegrationMetadata(
+  metadata: GatewayIntegrationMetadata,
+): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(metadata)) as Prisma.InputJsonValue;
+}
 
 export function buildGatewayMetadata(catalogResult: CatalogFetchResult): GatewayIntegrationMetadata {
   return {
