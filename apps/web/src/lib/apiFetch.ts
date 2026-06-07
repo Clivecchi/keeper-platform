@@ -91,8 +91,16 @@ export async function apiFetch(input: string | URL, opts: FetchOptions = {}) {
     throw error;
   }
   
-  // For successful responses, return parsed JSON
-  return response.json();
+  const raw = await response.text();
+  if (!raw.trim()) {
+    throw new Error('Server returned an empty response. Please try again.');
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error('Server returned an invalid response. Please try again.');
+  }
 }
 
 // Log API base in development

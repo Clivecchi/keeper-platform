@@ -45,7 +45,11 @@ function formatModelLabel(model?: string): string {
   const m = model.trim()
   if (m.includes("claude-sonnet-4-6") || m.includes("claude-sonnet-4.6")) return "Sonnet 4.6"
   if (m.includes("claude-opus")) return "Opus"
-  if (m.includes("gpt-4")) return "GPT-4"
+  if (m.includes("gpt-4o-mini")) return "GPT-4o Mini"
+  if (m.includes("gpt-4o")) return "GPT-4o"
+  if (m.includes("gpt-4-turbo")) return "GPT-4 Turbo"
+  if (m === "gpt-4") return "GPT-4"
+  if (m.includes("gpt-3.5")) return "GPT-3.5 Turbo"
   return m.split("/").pop() ?? m
 }
 

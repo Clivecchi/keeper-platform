@@ -37,6 +37,7 @@ import type {
   ModelSettings
 } from '@keeper/database';
 import { ModelProviderService, ModelMessage, ModelContentPart, ModelProviderErrorCode } from '../../services/ModelProviderService.js';
+import { getModelCapabilities } from '../../config/index.js';
 import type { ImageGenerationBrief } from '../../services/ModelProviderService.js';
 import { SoleMemoryService } from '../../services/SoleMemoryService.js';
 import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
@@ -3318,6 +3319,7 @@ export class KipAgentService {
         ...storedSettings,
         model: resolvedModel,
       };
+      const capabilities = getModelCapabilities(modelProvider, modelSettings.model);
       
       // Build conversation messages for the AI model
       const messages: ModelMessage[] = [];
@@ -3349,6 +3351,14 @@ export class KipAgentService {
       messages.push({
         role: 'system',
         content: systemPrompt
+      });
+
+      messages.push({
+        role: 'system',
+        content: [
+          `Runtime model: provider=${modelProvider}, model=${modelSettings.model}.`,
+          'When asked which model, provider, or AI you are running on, answer using exactly these values — do not guess or invent a different model name.',
+        ].join(' '),
       });
 
       if (mode === 'debug' && promptOptions?.debugSummary) {
@@ -3439,6 +3449,11 @@ export class KipAgentService {
         messages.push({
           role: 'system',
           content: [
+            ...(capabilities.jsonMode
+              ? []
+              : [
+                  'CRITICAL: This model does not support API-level JSON mode. You MUST still reply with valid raw JSON only — no prose before or after, no markdown fences. Any non-JSON text will break the system.',
+                ]),
             'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","actions":[...]}',
             `Allowed actions: ${allowList.join(', ')}.`,
             'Each action must include a "type" and optional "payload".',
@@ -3662,14 +3677,15 @@ export class KipAgentService {
         .map((m) => m.content)
         .join('\n\n');
 
-      // Call the model provider (jsonMode when structured response required)
+      // Call the model provider (jsonMode only when structured output is required and the model supports it)
+      const requiresStructuredOutput = !!promptOptions?.environment;
       const response = await ModelProviderService.callModel({
         messages,
         settings: modelSettings,
         provider: modelProvider,
         userId,
         environment: promptOptions?.environment ?? undefined,
-        jsonMode: !!promptOptions?.environment,
+        jsonMode: requiresStructuredOutput && capabilities.jsonMode,
       });
       
       if (response.success) {
