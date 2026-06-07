@@ -13,7 +13,9 @@ import {
   useResolvedCapabilities,
 } from "./shared"
 import { DeclarationConnectedChronicle } from "./declarationChronicle"
+import { IntegrationConfigPresence } from "./IntegrationConfigPresence"
 import { getServiceConfig, useServiceFeedData } from "./serviceConfig"
+import type { AgentCoverMode } from "../cover/coverTypes"
 
 export function IntegrationChronicle({
   serviceSlug,
@@ -30,6 +32,7 @@ export function IntegrationChronicle({
   const conn = useIntegrationConnection(serviceSlug, domainId)
   const capabilities = useResolvedCapabilities(agentSlug, boardId)
   const connected = conn.status === "connected"
+  const [chronicleMode, setChronicleMode] = React.useState<AgentCoverMode>("cover")
 
   const feedParams = React.useMemo(
     () => ({ domainId, boardId, agentSlug, connected }),
@@ -37,6 +40,14 @@ export function IntegrationChronicle({
   )
 
   const feed = useServiceFeedData(serviceSlug, feedParams)
+
+  React.useEffect(() => {
+    setChronicleMode("cover")
+  }, [serviceSlug])
+
+  const openConfigMode = React.useCallback(() => {
+    setChronicleMode("config")
+  }, [])
 
   if (!config) {
     return (
@@ -79,6 +90,20 @@ export function IntegrationChronicle({
     )
   }
 
+  if (chronicleMode === "config" && conn.integrationType === "AI_Model") {
+    return (
+      <div className="relative flex flex-col h-full min-h-0">
+        <IntegrationConfigPresence
+          displayLabel={displayLabel}
+          integrationType={conn.integrationType}
+          description={conn.integration?.description}
+          feed={feed}
+          onBack={() => setChronicleMode("cover")}
+        />
+      </div>
+    )
+  }
+
   if (useDeclaration && conn.integration) {
     return (
       <DeclarationConnectedChronicle
@@ -91,6 +116,7 @@ export function IntegrationChronicle({
         boardId={boardId}
         agentSlug={agentSlug}
         capabilities={capabilities}
+        openConfigMode={openConfigMode}
       />
     )
   }
@@ -103,6 +129,7 @@ export function IntegrationChronicle({
     domainId,
     boardId,
     agentSlug,
+    openConfigMode,
   })
 
   return (

@@ -82,6 +82,41 @@ function mapKeyStatus(status: "valid" | "invalid" | "missing" | undefined): KeyS
   return "missing"
 }
 
+export function integrationKeyStatusLabel(
+  keyStatus: "valid" | "invalid" | "missing" | undefined,
+  integrationType: IntegrationType,
+): string {
+  if (keyStatus === "valid") return "Key valid"
+  if (keyStatus === "invalid") return "Key invalid"
+  if (keyStatus === "missing") return "Key required"
+  return INTEGRATION_TYPE_LABELS[integrationType]
+}
+
+export function IntegrationAIModelConfigBlocks({ feed }: { feed: FeedDataState<unknown> }) {
+  const d = feed.data as AIModelFeedData
+
+  return (
+    <div className="flex flex-col gap-4">
+      <KeyHealthBlock
+        keySource={mapKeySource(d.keyHealth?.source)}
+        keyStatus={mapKeyStatus(d.keyHealth?.status)}
+        lastVerified={d.keyHealth?.lastChecked ?? null}
+        onKeyUpdate={(key) => d.saveKey(key)}
+        keyUpdateBusy={d.keySaveBusy}
+        keyUpdateError={d.keySaveError}
+        errorMessage={d.keyHealth?.errorMessage ?? null}
+      />
+      <LinkedAgentsBlock
+        agents={d.linkedAgents.map((agent) => ({
+          id: agent.id,
+          name: agent.name,
+          model: agent.model,
+        }))}
+      />
+    </div>
+  )
+}
+
 function infraCredentialSource(integrationType: IntegrationType): string {
   if (integrationType === "Services") return "OAuth"
   if (integrationType === "Custom") return "Platform env"
@@ -153,6 +188,7 @@ export function resolveDeclarationActions(
     domainId: string
     boardId: string
     agentSlug: string
+    openConfigMode?: () => void
   },
 ): ServiceAction[] {
   const built = config.buildActions(ctx)
@@ -166,6 +202,14 @@ export function resolveDeclarationActions(
   for (const slug of chronicleActions) {
     const label = CHRONICLE_ACTION_LABELS[slug]
     if (!label) continue
+
+    if (slug === "manage_keys" && ctx.openConfigMode) {
+      resolved.push({
+        label,
+        onClick: ctx.openConfigMode,
+      })
+      continue
+    }
 
     const existing = byLabel.get(label)
     if (existing) {
@@ -402,6 +446,7 @@ export function DeclarationConnectedChronicle({
   boardId,
   agentSlug,
   capabilities,
+  openConfigMode,
 }: {
   integration: IntegrationDto
   integrationType: IntegrationType
@@ -412,6 +457,7 @@ export function DeclarationConnectedChronicle({
   boardId: string
   agentSlug: string
   capabilities: string[]
+  openConfigMode?: () => void
 }) {
   const displayLabel = integration.display_label ?? config.label
   const description = integration.description
@@ -420,8 +466,8 @@ export function DeclarationConnectedChronicle({
   const glow = config.glowFn(feed.data)
 
   const actionCtx = React.useMemo(
-    () => ({ conn, feed, domainId, boardId, agentSlug }),
-    [conn, feed, domainId, boardId, agentSlug],
+    () => ({ conn, feed, domainId, boardId, agentSlug, openConfigMode }),
+    [conn, feed, domainId, boardId, agentSlug, openConfigMode],
   )
   const actions = React.useMemo(
     () => resolveDeclarationActions(chronicleActions, config, actionCtx),

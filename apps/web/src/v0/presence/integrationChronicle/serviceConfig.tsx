@@ -72,6 +72,7 @@ export type ServiceConfig<TData = unknown> = {
     domainId: string
     boardId: string
     agentSlug: string
+    openConfigMode?: () => void
   }) => ServiceAction[]
   oauthTroubleshootingCopy?: React.ReactNode
 }
@@ -528,9 +529,11 @@ function buildAiModelActions(serviceSlug: string) {
   return ({
     conn,
     feed,
+    openConfigMode,
   }: {
     conn: IntegrationConnection
     feed: FeedDataState<AIModelFeedData>
+    openConfigMode?: () => void
   }): ServiceAction[] => [
     {
       label: "Test Provider",
@@ -555,8 +558,9 @@ function buildAiModelActions(serviceSlug: string) {
     {
       label: "Manage Keys",
       onClick: () => {
-        window.location.href = "/settings/api-keys"
+        openConfigMode?.()
       },
+      disabled: !openConfigMode,
     },
     {
       label: "Disconnect",
