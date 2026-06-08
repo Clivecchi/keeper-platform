@@ -57,7 +57,9 @@ async function main() {
 
   const metadata = {
     catalog: { items: sampleItems, fetchedAt, source: 'live' as const },
-    health: { api: 'connected' as const, lastChecked: fetchedAt },
+    health: {
+      api: { status: 'live' as const, last_checked: fetchedAt },
+    },
   };
 
   if (existing) {

@@ -12,6 +12,13 @@ export type IntegrationStatus = "connected" | "disconnected" | "error"
 
 export type IntegrationType = "Services" | "Custom" | "AI_Model"
 
+export type IntegrationHealthLayer = {
+  layer: "api" | "mcp" | "webhooks"
+  label: string
+  status: "live" | "degraded" | "inactive"
+  last_checked: string
+}
+
 export interface IntegrationDto {
   id: string
   service: string
@@ -21,6 +28,7 @@ export interface IntegrationDto {
   tier: string
   connectedAt: string | null
   metadata?: Record<string, unknown> | null
+  health?: IntegrationHealthLayer[] | null
   chronicle_blocks?: string[]
   chronicle_actions?: string[]
   is_gateway?: boolean

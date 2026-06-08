@@ -41,6 +41,12 @@ import {
   type GatewayIntegrationMetadata,
 } from '../lib/integrationCatalog.js';
 import {
+  buildInitialLayerHealth,
+  integrationHealthToDto,
+  mergeLayerHealth,
+  parseIntegrationLayerHealth,
+} from '../lib/integrationHealth.js';
+import {
   resolveProviderApiKey,
   resolveProviderApiKeyWithSource,
 } from '../lib/resolveProviderApiKey.js';
@@ -119,6 +125,12 @@ function toIntegrationRecord(row: {
   createdAt: Date;
   updatedAt: Date;
 }): IntegrationRecord {
+  const metadata =
+    row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+      ? (row.metadata as Record<string, unknown>)
+      : null;
+  const layerHealth = parseIntegrationLayerHealth(metadata);
+
   return {
     id: row.id,
     service: row.service,
@@ -129,10 +141,8 @@ function toIntegrationRecord(row: {
     scopes: row.scopes,
     domainId: row.domainId,
     userId: row.userId,
-    metadata:
-      row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
-        ? (row.metadata as Record<string, unknown>)
-        : null,
+    metadata,
+    health: integrationHealthToDto(row.service, layerHealth),
     connectedAt: row.connectedAt?.toISOString() ?? null,
     chronicle_blocks: row.chronicle_blocks,
     chronicle_actions: row.chronicle_actions,
@@ -156,6 +166,28 @@ async function findIntegration(
   });
 }
 
+function resolveUpsertMetadata(
+  params: {
+    service: string;
+    status: IntegrationStatus;
+    metadata?: GatewayIntegrationMetadata | null;
+  },
+  existingMetadata: unknown,
+): GatewayIntegrationMetadata | null | undefined {
+  if (params.metadata !== undefined) {
+    return params.metadata;
+  }
+
+  const existing = parseGatewayMetadata(existingMetadata) ?? {};
+  const layerHealth = parseIntegrationLayerHealth(existingMetadata);
+  const health = mergeLayerHealth(
+    layerHealth,
+    buildInitialLayerHealth({ service: params.service, status: params.status }),
+  );
+
+  return { ...existing, health };
+}
+
 async function upsertIntegration(params: {
   service: string;
   integration_type: IntegrationType;
@@ -174,6 +206,8 @@ async function upsertIntegration(params: {
     params.userId,
   );
 
+  const resolvedMetadata = resolveUpsertMetadata(params, existing?.metadata);
+
   const data = {
     nangoConnectionId: params.nangoConnectionId ?? null,
     status: params.status,
@@ -186,12 +220,12 @@ async function upsertIntegration(params: {
       data: {
         ...data,
         integration_type: params.integration_type,
-        ...(params.metadata !== undefined
+        ...(resolvedMetadata !== undefined
           ? {
               metadata:
-                params.metadata === null
+                resolvedMetadata === null
                   ? null
-                  : toPrismaIntegrationMetadata(params.metadata),
+                  : toPrismaIntegrationMetadata(resolvedMetadata),
             }
           : {}),
       },
@@ -207,12 +241,12 @@ async function upsertIntegration(params: {
       userId: params.userId,
       scopes: [],
       ...data,
-      ...(params.metadata !== undefined
+      ...(resolvedMetadata !== undefined
         ? {
             metadata:
-              params.metadata === null
+              resolvedMetadata === null
                 ? null
-                : toPrismaIntegrationMetadata(params.metadata),
+                : toPrismaIntegrationMetadata(resolvedMetadata),
           }
         : {}),
     },
@@ -222,6 +256,7 @@ async function upsertIntegration(params: {
 async function refreshIntegrationCatalog(params: {
   service: string;
   apiKey: string;
+  existingMetadata?: unknown;
 }): Promise<{
   catalogResult: Awaited<ReturnType<typeof fetchCatalog>>;
   metadata: ReturnType<typeof buildGatewayMetadata>;
@@ -238,7 +273,7 @@ async function refreshIntegrationCatalog(params: {
 
   return {
     catalogResult,
-    metadata: buildGatewayMetadata(catalogResult),
+    metadata: buildGatewayMetadata(catalogResult, params.existingMetadata),
   };
 }
 
@@ -792,13 +827,10 @@ router.post('/:service/catalog/refresh', authMiddlewareCompat, async (req: Reque
     const { catalogResult, metadata } = await refreshIntegrationCatalog({
       service,
       apiKey,
+      existingMetadata: integration.metadata,
     });
 
-    const existingMeta = parseGatewayMetadata(integration.metadata) ?? {};
-    const mergedMetadata: GatewayIntegrationMetadata = {
-      ...existingMeta,
-      ...metadata,
-    };
+    const mergedMetadata: GatewayIntegrationMetadata = metadata;
 
     await prisma.integration.update({
       where: { id: integration.id },
@@ -841,12 +873,24 @@ router.post('/disconnect', authMiddlewareCompat, async (req: Request, res: Respo
       return res.status(404).json({ error: 'Integration not found', service });
     }
 
+    const disconnectedHealth = resolveUpsertMetadata(
+      { service, status: 'disconnected' },
+      existing.metadata,
+    );
     const updated = await prisma.integration.update({
       where: { id: existing.id },
       data: {
         status: 'disconnected',
         nangoConnectionId: null,
         connectedAt: null,
+        ...(disconnectedHealth !== undefined
+          ? {
+              metadata:
+                disconnectedHealth === null
+                  ? null
+                  : toPrismaIntegrationMetadata(disconnectedHealth),
+            }
+          : {}),
       },
     });
 

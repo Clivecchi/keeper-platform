@@ -9,6 +9,7 @@ import {
   ModelCatalogBlock,
   RepositoryActivityBlock,
   type ConnectionHealth,
+  type ConnectionLayerHealth,
   type DeploymentBlockItem,
   type KeySource,
   type KeyStatus,
@@ -321,6 +322,12 @@ export function DeclarationChronicleBlocks({
           case "connection_status": {
             const isAi = integrationType === "AI_Model"
             const aiData = feed.data as AIModelFeedData
+            const layerHealth: ConnectionLayerHealth[] | undefined = integration.health?.map(
+              (layer) => ({
+                label: layer.label,
+                status: layer.status,
+              }),
+            )
             return (
               <ConnectionStatusBlock
                 key={block}
@@ -335,6 +342,7 @@ export function DeclarationChronicleBlocks({
                       ? glowToConnectionHealth(glow)
                       : statusToConnectionHealth(integration.status)
                 }
+                layers={layerHealth}
               />
             )
           }

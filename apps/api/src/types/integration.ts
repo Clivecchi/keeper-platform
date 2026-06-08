@@ -61,6 +61,15 @@ export function isCustomIntegrationType(type: IntegrationType): boolean {
   return type === 'Custom';
 }
 
+export type IntegrationLayerStatus = 'live' | 'degraded' | 'inactive';
+
+export type IntegrationHealthLayer = {
+  layer: 'api' | 'mcp' | 'webhooks';
+  label: string;
+  status: IntegrationLayerStatus;
+  last_checked: string;
+};
+
 export interface IntegrationRecord {
   id: string;
   service: string;
@@ -72,6 +81,8 @@ export interface IntegrationRecord {
   domainId: string | null;
   userId: string | null;
   metadata: Record<string, unknown> | null;
+  /** Parsed per-layer health from metadata.health (C1). */
+  health: IntegrationHealthLayer[] | null;
   connectedAt: string | null;
   chronicle_blocks: string[];
   chronicle_actions: string[];

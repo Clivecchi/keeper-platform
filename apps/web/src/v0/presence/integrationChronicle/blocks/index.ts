@@ -1,4 +1,10 @@
-export { ConnectionStatusBlock, type ConnectionStatusBlockProps, type ConnectionHealth } from "./ConnectionStatusBlock"
+export {
+  ConnectionStatusBlock,
+  type ConnectionStatusBlockProps,
+  type ConnectionHealth,
+  type ConnectionLayerHealth,
+  type LayerHealthStatus,
+} from "./ConnectionStatusBlock"
 export { KeyHealthBlock, type KeyHealthBlockProps, type KeySource, type KeyStatus } from "./KeyHealthBlock"
 export { ModelCatalogBlock, type ModelCatalogBlockProps } from "./ModelCatalogBlock"
 export {

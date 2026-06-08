@@ -79,6 +79,10 @@ async function main() {
     );
     await seedIntegrationDeclarations.default();
 
+    console.log('🩺 Seeding Integration per-layer health...');
+    const seedIntegrationHealth = await import('./seeds/integration-health.seed.ts');
+    await seedIntegrationHealth.default();
+
     console.log('🔑 Seeding Key EntityKind records...');
     const seedProviderKeys = await import('./seeds/provider-keys.seed.ts');
     await seedProviderKeys.default();

@@ -10,6 +10,8 @@ import {
   MODEL_CATALOG,
   type ModelCatalogEntry,
 } from '../config/modelCatalog.js';
+import type { IntegrationLayerHealthMetadata } from './integrationHealth.js';
+import { apiLayerFromCatalogOk, mergeLayerHealth, parseIntegrationLayerHealth } from './integrationHealth.js';
 
 export type GatewayCatalogMetadata = {
   items: CatalogItem[];
@@ -17,15 +19,9 @@ export type GatewayCatalogMetadata = {
   source: 'live' | 'fallback';
 };
 
-export type GatewayHealthMetadata = {
-  api: 'connected' | 'error' | 'unknown';
-  lastChecked: string;
-  errorMessage?: string;
-};
-
 export type GatewayIntegrationMetadata = {
   catalog?: GatewayCatalogMetadata;
-  health?: GatewayHealthMetadata;
+  health?: IntegrationLayerHealthMetadata;
   [key: string]: unknown;
 };
 
@@ -45,18 +41,20 @@ export function toPrismaIntegrationMetadata(
   return JSON.parse(JSON.stringify(metadata)) as Prisma.InputJsonValue;
 }
 
-export function buildGatewayMetadata(catalogResult: CatalogFetchResult): GatewayIntegrationMetadata {
+export function buildGatewayMetadata(
+  catalogResult: CatalogFetchResult,
+  existingMetadata?: unknown,
+): GatewayIntegrationMetadata {
+  const existingHealth = parseIntegrationLayerHealth(existingMetadata);
   return {
     catalog: {
       items: catalogResult.items,
       fetchedAt: catalogResult.fetchedAt,
       source: catalogResult.source,
     },
-    health: {
-      api: catalogResult.ok ? 'connected' : 'error',
-      lastChecked: new Date().toISOString(),
-      ...(catalogResult.error ? { errorMessage: catalogResult.error } : {}),
-    },
+    health: mergeLayerHealth(existingHealth, {
+      api: apiLayerFromCatalogOk(catalogResult.ok),
+    }),
   };
 }
 
