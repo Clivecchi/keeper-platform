@@ -103,18 +103,50 @@ async function verifyAnthropicKey(apiKey: string): Promise<AiModelConnectVerifyR
   }
 }
 
+async function parseElevenLabsError(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as {
+      detail?: { status?: string; message?: string };
+    };
+    const status = body.detail?.status;
+    const message = body.detail?.message;
+    if (status === 'invalid_api_key') {
+      return 'ElevenLabs API key is invalid';
+    }
+    if (status === 'missing_permissions') {
+      return message ?? 'ElevenLabs API key is missing required permissions';
+    }
+    if (message) return message;
+  } catch {
+    /* non-JSON body */
+  }
+  return `ElevenLabs API returned HTTP ${res.status}`;
+}
+
+/** Verify via /v1/voices — matches TTS usage; restricted keys often lack user_read on /v1/user. */
 async function verifyElevenLabsKey(apiKey: string): Promise<AiModelConnectVerifyResult> {
   try {
-    const res = await fetch('https://api.elevenlabs.io/v1/user', {
+    const res = await fetch('https://api.elevenlabs.io/v1/voices', {
       headers: { 'xi-api-key': apiKey },
     });
+    if (res.ok) {
+      return { ok: true };
+    }
+    const error = await parseElevenLabsError(res);
     if (res.status === 401) {
-      return { ok: false, error: 'ElevenLabs API key is invalid' };
+      return {
+        ok: false,
+        error,
+        hint: error.includes('invalid')
+          ? 'Create a new API key in ElevenLabs and copy the full key at creation time.'
+          : 'Enable Voices Read (or turn off Restrict Key) in your ElevenLabs API key settings.',
+      };
     }
-    if (!res.ok) {
-      return { ok: false, error: `ElevenLabs API returned HTTP ${res.status}` };
-    }
-    return { ok: true };
+    return {
+      ok: false,
+      error,
+      hint: `ElevenLabs API returned HTTP ${res.status}`,
+    };
   } catch (err) {
     return {
       ok: false,
