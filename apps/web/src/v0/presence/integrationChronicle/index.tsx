@@ -12,6 +12,7 @@ export interface IntegrationPresenceProps {
   domainId: string
   boardId?: string
   agentSlug?: string
+  onKeySelect?: (keyId: string) => void
 }
 
 export function IntegrationPresence({
@@ -19,6 +20,7 @@ export function IntegrationPresence({
   domainId,
   boardId = "ide",
   agentSlug = "cloud",
+  onKeySelect,
 }: IntegrationPresenceProps) {
   return (
     <IntegrationChronicle
@@ -26,6 +28,7 @@ export function IntegrationPresence({
       domainId={domainId}
       boardId={boardId}
       agentSlug={agentSlug}
+      onKeySelect={onKeySelect}
     />
   )
 }

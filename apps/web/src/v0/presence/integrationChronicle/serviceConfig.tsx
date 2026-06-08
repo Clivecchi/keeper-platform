@@ -560,7 +560,7 @@ function buildAiModelActions(serviceSlug: string) {
       onClick: () => {
         openConfigMode?.()
       },
-      disabled: !openConfigMode,
+      disabled: false,
     },
     {
       label: "Disconnect",

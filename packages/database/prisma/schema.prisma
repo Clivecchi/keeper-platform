@@ -742,7 +742,7 @@ model kip_sessions {
   kip_agents   kip_agents     @relation(fields: [agent_id], references: [id], onDelete: Cascade)
   users        users?         @relation(fields: [user_id], references: [id])
   dialog       Dialog?        @relation(fields: [dialog_id], references: [id], onDelete: SetNull)
-  session_keys Key[]
+  session_handoff_keys SessionHandoffKey[]
 
   @@index([agent_id])
   @@index([user_id])
@@ -817,11 +817,12 @@ model users {
   kip_sessions                                         kip_sessions[]
   kip_drafts                                           kip_drafts[]
   dialogs                                              Dialog[]
-  claimed_session_handoff_keys                         Key[]                      @relation("UserClaimedSessionHandoffKey")
+  claimed_session_handoff_keys                         SessionHandoffKey[]        @relation("UserClaimedSessionHandoffKey")
+  provider_keys                                        Key[]
 }
 
 /// Domain-issued guest session handoff token (warm return / login promotion).
-model Key {
+model SessionHandoffKey {
   id         String    @id @default(cuid())
   domain_id  String
   session_id String    @db.Uuid
@@ -1135,7 +1136,8 @@ model Domain {
   moments                                                  Moment[]
   kip_drafts                                               kip_drafts[]
   dialogs                                                  Dialog[]
-  session_handoff_keys                                     Key[]
+  session_handoff_keys                                     SessionHandoffKey[]
+  provider_keys                                            Key[]
   policy                                                   DomainPolicy?
   agentPolicy                                              DomainAgentPolicy?
   AgentLens                                                AgentLens[]
@@ -1967,6 +1969,37 @@ model Integration {
   connect_copy      String?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
+  providerKeys      Key[]
 
   @@unique([service, tier, domainId, userId])
+}
+
+/// Provider API key — EntityKind presence layer over kip_user_keys / kip_platform_keys / env.
+model Key {
+  id                String    @id @default(cuid())
+  provider          String
+  key_source        String
+  status            String    @default("unknown")
+  scope             String?
+  last_verified     DateTime?
+  expires_at        DateTime?
+  domain_id         String
+  user_id           String?
+  integration_id    String?
+  chronicle_blocks  String[]  @default([])
+  chronicle_actions String[]  @default([])
+  display_label     String?
+  description       String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  domain      Domain       @relation(fields: [domain_id], references: [id], onDelete: Cascade)
+  user        users?       @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  integration Integration? @relation(fields: [integration_id], references: [id], onDelete: SetNull)
+
+  @@unique([domain_id, provider, key_source, user_id])
+  @@index([domain_id])
+  @@index([provider])
+  @@index([integration_id])
+  @@index([user_id])
 }

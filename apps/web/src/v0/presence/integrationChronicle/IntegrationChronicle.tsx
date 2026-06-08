@@ -22,11 +22,13 @@ export function IntegrationChronicle({
   domainId,
   boardId = "ide",
   agentSlug = "cloud",
+  onKeySelect,
 }: {
   serviceSlug: string
   domainId: string
   boardId?: string
   agentSlug?: string
+  onKeySelect?: (keyId: string) => void
 }) {
   const config = getServiceConfig(serviceSlug)
   const conn = useIntegrationConnection(serviceSlug, domainId)
@@ -117,6 +119,7 @@ export function IntegrationChronicle({
         agentSlug={agentSlug}
         capabilities={capabilities}
         openConfigMode={openConfigMode}
+        onKeySelect={onKeySelect}
       />
     )
   }

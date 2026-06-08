@@ -42,6 +42,7 @@ type TrailKind =
   | "draft"
   | "agent"
   | "service"
+  | "key"
   | "boardDef"
 type TrailDirection = "forward" | "back"
 
@@ -63,6 +64,7 @@ const TRAIL_KIND_TO_OBJECT_TYPE: Record<TrailKind, string> = {
   draft: "draft",
   agent: "agent",
   service: "service",
+  key: "key",
   boardDef: "boardDef",
 }
 
@@ -218,9 +220,10 @@ function ChronicleRecordView({
   layout = "focus",
   onJourneySelect,
   onMomentSelect,
+  onKeySelect,
   onLabelResolved,
   trailKey,
-}: ChronicleRecordViewProps) {
+}: ChronicleRecordViewProps & { onKeySelect?: (id: string) => void }) {
   if (!domainId) {
     return (
       <div className="flex h-full items-center justify-center px-4">
@@ -244,6 +247,7 @@ function ChronicleRecordView({
       onLabelResolved={(label) => onLabelResolved(trailKey, label)}
       onJourneySelect={onJourneySelect}
       onMomentSelect={onMomentSelect}
+      onKeySelect={onKeySelect}
     />
   )
 }
@@ -272,6 +276,7 @@ function PanelBody({
   onMomentSelect,
   onLabelResolved,
 }: PanelBodyProps) {
+  const boardCtx = useUniversalBoardOptional()
   const objectType = TRAIL_KIND_TO_OBJECT_TYPE[entry.kind]
   const objectId = entry.kind === "domain" ? domainId : entry.id
   const layout: PresenceLayout = CONFIG_LAYOUT_KINDS.has(entry.kind) ? "config" : "focus"
@@ -298,6 +303,7 @@ function PanelBody({
         layout={layout}
         onJourneySelect={onJourneySelect}
         onMomentSelect={onMomentSelect}
+        onKeySelect={boardCtx?.actions.onKeySelect}
         onLabelResolved={onLabelResolved}
         trailKey={entry.key}
       />
@@ -391,6 +397,8 @@ export function UniversalViewPanel({
   function resolveKindId(): { kind: TrailKind; id: string | null } {
     if (boardCtx?.selection.selectedBoardDefId)
       return { kind: "boardDef", id: boardCtx.selection.selectedBoardDefId }
+    if (boardCtx?.selection.selectedKeyId)
+      return { kind: "key", id: boardCtx.selection.selectedKeyId }
     if (resolved.selectedServiceSlug)
       return { kind: "service", id: resolved.selectedServiceSlug }
     if (resolved.selectedDialogId)
@@ -491,6 +499,9 @@ export function UniversalViewPanel({
           break
         case "service":
           if (entry.id) actions.onServiceOpen(entry.id)
+          break
+        case "key":
+          if (entry.id) actions.onKeySelect(entry.id)
           break
         case "boardDef":
           if (entry.id) actions.onBoardDefSelect(entry.id)

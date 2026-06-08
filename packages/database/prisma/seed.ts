@@ -75,6 +75,10 @@ async function main() {
     );
     await seedIntegrationDeclarations.default();
 
+    console.log('🔑 Seeding Key EntityKind records...');
+    const seedProviderKeys = await import('./seeds/provider-keys.seed.ts');
+    await seedProviderKeys.default();
+
     console.log('🎉 Database seed completed successfully!');
   } catch (error) {
     console.error('❌ Error during seeding:', error);

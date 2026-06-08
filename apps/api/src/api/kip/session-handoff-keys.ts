@@ -29,7 +29,12 @@ const issueSchema = z.object({
   session_id: z.string().uuid(),
 });
 
-router.post('/', async (req: express.Request, res: Response) => {
+router.post('/', async (req: express.Request, res: Response, next: express.NextFunction) => {
+  // Provider Key EntityKind creation uses the same path with a `provider` field.
+  if (req.body && typeof req.body === 'object' && 'provider' in req.body) {
+    return next();
+  }
+
   const parsed = issueSchema.safeParse(req.body ?? {});
   if (!parsed.success) {
     return res.status(400).json({ success: false, error: 'INVALID_REQUEST', details: parsed.error.flatten() });
@@ -63,7 +68,7 @@ router.post('/', async (req: express.Request, res: Response) => {
       return res.status(403).json({ success: false, error: 'SESSION_DOMAIN_MISMATCH' });
     }
 
-    const existing = await prisma.key.findFirst({
+    const existing = await prisma.sessionHandoffKey.findFirst({
       where: {
         domain_id,
         session_id,
@@ -89,7 +94,7 @@ router.post('/', async (req: express.Request, res: Response) => {
     }
 
     const expiresAt = new Date(Date.now() + parseTtlMs());
-    const key = await prisma.key.create({
+    const key = await prisma.sessionHandoffKey.create({
       data: {
         domain_id,
         session_id,
@@ -124,7 +129,7 @@ router.post('/:id/redeem', authMiddlewareCompat, async (req: AuthenticatedReques
   }
 
   try {
-    const key = await prisma.key.findUnique({
+    const key = await prisma.sessionHandoffKey.findUnique({
       where: { id },
       include: {
         session: {
@@ -183,7 +188,7 @@ router.post('/:id/redeem', authMiddlewareCompat, async (req: AuthenticatedReques
           dialog_id: newDialog.id,
         },
       }),
-      prisma.key.update({
+      prisma.sessionHandoffKey.update({
         where: { id: key.id },
         data: {
           claimed_by: req.user.id,

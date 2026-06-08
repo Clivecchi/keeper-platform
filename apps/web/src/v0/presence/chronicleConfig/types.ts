@@ -14,6 +14,8 @@ export type ChronicleEntityKind =
   | "draft"
   | "dialog"
   | "service"
+  | "integration"
+  | "key"
   | "frame"
   | "boardDef"
 

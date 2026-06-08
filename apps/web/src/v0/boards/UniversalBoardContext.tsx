@@ -33,6 +33,7 @@ export interface UniversalBoardSelection {
   selectedDraftId: string | null
   selectedAgentId: string | null
   selectedServiceSlug: string | null
+  selectedKeyId: string | null
   /** designer mode: the board definition currently selected in the nav — drives right-panel BoardDefView. */
   selectedBoardDefId: string | null
   /** Increment to refetch draft presence in Chronicle after point mutations. */
@@ -50,6 +51,7 @@ export interface UniversalBoardActions {
   onDraftSelect: (id: string) => void
   onAgentSelect: (id: string) => void
   onServiceOpen: (slug: string) => void
+  onKeySelect: (id: string) => void
   clearSelection: () => void
   /** designer mode: selects a board definition — drives right-panel BoardDefView. */
   onBoardDefSelect: (id: string) => void
@@ -99,6 +101,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [selectedDraftId, setSelectedDraftId] = React.useState<string | null>(null)
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null)
   const [selectedServiceSlug, setSelectedServiceSlug] = React.useState<string | null>(null)
+  const [selectedKeyId, setSelectedKeyId] = React.useState<string | null>(null)
   const [selectedBoardDefId, setSelectedBoardDefId] = React.useState<string | null>(null)
   const [draftPresenceRevision, setDraftPresenceRevision] = React.useState(0)
 
@@ -130,6 +133,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedDraftId(null)
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
+    setSelectedKeyId(null)
   }, [])
 
   const onJourneySelect = React.useCallback((id: string) => {
@@ -140,6 +144,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedDraftId(null)
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
+    setSelectedKeyId(null)
   }, [])
 
   const onMomentSelect = React.useCallback((id: string) => {
@@ -150,6 +155,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedDraftId(null)
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
+    setSelectedKeyId(null)
   }, [])
 
   const onKeeperSelect = React.useCallback((id: string) => {
@@ -160,6 +166,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedDraftId(null)
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
+    setSelectedKeyId(null)
   }, [])
 
   const onDraftSelect = React.useCallback((id: string) => {
@@ -170,6 +177,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeeperId(null)
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
+    setSelectedKeyId(null)
   }, [])
 
   const onAgentSelect = React.useCallback((id: string) => {
@@ -180,6 +188,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeeperId(null)
     setSelectedDraftId(null)
     setSelectedServiceSlug(null)
+    setSelectedKeyId(null)
   }, [])
 
   const onServiceOpen = React.useCallback((slug: string) => {
@@ -190,6 +199,18 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeeperId(null)
     setSelectedDraftId(null)
     setSelectedAgentId(null)
+    setSelectedKeyId(null)
+  }, [])
+
+  const onKeySelect = React.useCallback((id: string) => {
+    setSelectedKeyId(id)
+    setSelectedDialogId(null)
+    setSelectedJourneyId(null)
+    setSelectedMomentId(null)
+    setSelectedKeeperId(null)
+    setSelectedDraftId(null)
+    setSelectedAgentId(null)
+    setSelectedServiceSlug(null)
   }, [])
 
   const clearSelection = React.useCallback(() => {
@@ -200,6 +221,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedDraftId(null)
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
+    setSelectedKeyId(null)
     setSelectedBoardDefId(null)
   }, [])
 
@@ -229,6 +251,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         selectedDraftId,
         selectedAgentId,
         selectedServiceSlug,
+        selectedKeyId,
         selectedBoardDefId,
         draftPresenceRevision,
       },
@@ -242,6 +265,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onDraftSelect,
         onAgentSelect,
         onServiceOpen,
+        onKeySelect,
         clearSelection,
         onBoardDefSelect,
         bumpDraftPresence,

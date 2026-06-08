@@ -74,6 +74,7 @@ import voiceRouter from './api/voice/routes.js';
 // Import v0 routes
 import v0MomentsRouter from './routes/v0/moments.js';
 import integrationRoutes from './routes/integration-routes.js';
+import keyEntityRoutes from './routes/key-entity-routes.js';
 import railwayRoutes from './routes/railway-routes.js';
 import vercelRoutes from './routes/vercel-routes.js';
 import webhookRoutes from './routes/webhook-routes.js';
@@ -1162,8 +1163,9 @@ app.options('/api/mcp/*', (_req, res) => {
 app.use('/mcp', mcpRouter);
 app.use('/api/mcp', mcpRouter);
 
-// Guest session handoff keys — POST /api/keys (issue), POST /api/keys/:id/redeem (auth)
+// Key EntityKind + guest session handoff — shared /api/keys mount (POST / discriminates by body)
 app.use('/api/keys', sessionHandoffKeysRouter);
+app.use('/api/keys', keyEntityRoutes);
 
 // Public route: POST /api/kip/companion — guest chat surface (no auth, rate-limited)
 app.use('/api/kip/companion', companionRouter);
