@@ -34,6 +34,7 @@ export interface ChroniclePresenceViewProps {
   onMomentSelect?: (id: string) => void
   onKeeperSelect?: (id: string) => void
   onKeySelect?: (id: string) => void
+  onSessionSelect?: (id: string) => void
 }
 
 export function ChroniclePresenceView({
@@ -52,6 +53,7 @@ export function ChroniclePresenceView({
   onMomentSelect,
   onKeeperSelect,
   onKeySelect,
+  onSessionSelect,
 }: ChroniclePresenceViewProps) {
   if (!domainId) {
     return (
@@ -111,6 +113,7 @@ export function ChroniclePresenceView({
       onJourneySelect={onJourneySelect}
       onMomentSelect={onMomentSelect}
       onKeeperSelect={onKeeperSelect}
+      onSessionSelect={onSessionSelect}
     />
   )
 }

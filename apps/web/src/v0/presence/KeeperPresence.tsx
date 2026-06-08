@@ -75,6 +75,7 @@ export interface KeeperPresenceProps {
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onKeeperSelect?: (id: string) => void
+  onSessionSelect?: (id: string) => void
   /** Display name for domain idle — used when objectType is "domain". */
   domainDisplayName?: string
 }
@@ -639,15 +640,21 @@ function PathCard({
   label,
   preview,
   sub,
+  onClick,
 }: {
   label: string
   preview?: string
   sub?: string
+  onClick?: () => void
 }) {
+  const Wrapper = onClick ? "button" : "div"
   return (
-    <div
-      className="rounded-lg border px-3 py-2.5 mb-2"
+    <Wrapper
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={`w-full text-left rounded-lg border px-3 py-2.5 mb-2${onClick ? " transition-all hover:opacity-90" : ""}`}
       style={{
+        cursor: onClick ? "pointer" : "default",
         borderColor: "hsl(var(--theme-border-soft) / 0.45)",
         background: "hsl(var(--theme-surface-elevated) / 0.28)",
       }}
@@ -674,7 +681,7 @@ function PathCard({
           {sub}
         </p>
       )}
-    </div>
+    </Wrapper>
   )
 }
 
@@ -727,6 +734,138 @@ function JourneyFocusSections({
         </PresenceSection>
       ))}
     </>
+  )
+}
+
+function DialogFocusSections({
+  sections,
+  onSessionSelect,
+}: {
+  sections: RelatedSection[]
+  onSessionSelect?: (id: string) => void
+}) {
+  if (sections.length === 0) return null
+
+  return (
+    <>
+      {sections.map((section) => (
+        <PresenceSection key={section.title} title={section.title}>
+          {section.items.length === 0 ? (
+            <p
+              className="text-[14px] leading-relaxed"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Nothing here yet — open the Dialog to begin.
+            </p>
+          ) : section.title === "Recent Exchanges" ? (
+            section.items.map((item) => (
+              <PathCard
+                key={item.id}
+                label={item.label}
+                preview={item.preview}
+                sub={item.sub}
+                onClick={
+                  item.navigateKind === "session" && onSessionSelect
+                    ? () => onSessionSelect(item.id)
+                    : undefined
+                }
+              />
+            ))
+          ) : (
+            section.items.map((item) => (
+              <PresenceThread
+                key={item.id}
+                label={item.label}
+                sub={item.sub}
+                preview={item.preview}
+                onClick={
+                  item.navigateKind === "session" && onSessionSelect
+                    ? () => onSessionSelect(item.id)
+                    : undefined
+                }
+              />
+            ))
+          )}
+        </PresenceSection>
+      ))}
+    </>
+  )
+}
+
+function DialogFocusPresence({
+  fieldValues,
+  setFieldValues,
+  markEdited,
+  meta,
+  relatedSections,
+  onSessionSelect,
+}: {
+  fieldValues: Record<string, string>
+  setFieldValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  markEdited: () => void
+  meta?: PresenceMeta
+  relatedSections: RelatedSection[]
+  onSessionSelect?: (id: string) => void
+}) {
+  const motion = usePresentMotionValues()
+  const hairline = "hsl(var(--theme-border-soft) / 0.35)"
+  const title = fieldValues.title ?? ""
+  const scope = fieldValues.context?.trim()
+
+  return (
+    <div className="relative flex flex-col h-full min-h-0">
+      <PresentAtmosphereLayer />
+      <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
+        <div style={primaryMotionStyle(motion)}>
+          <AutoResizeTextarea
+            value={title}
+            onChange={(v) => {
+              markEdited()
+              setFieldValues((prev) => ({ ...prev, title: v }))
+            }}
+            placeholder="Untitled dialog"
+            className="text-[20px] font-semibold leading-snug"
+            style={{ color: "hsl(var(--theme-ink-primary))" }}
+          />
+          {meta?.line && (
+            <p
+              className="text-[13px] mt-1.5 leading-snug"
+              style={{ ...contextMotionStyle(motion), color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              {meta.line}
+            </p>
+          )}
+          {scope && (
+            <p
+              className="text-[12px] mt-1 italic leading-snug truncate"
+              style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              title={scope}
+            >
+              {scope}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div
+        className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4"
+        style={secondaryMotionStyle(motion)}
+      >
+        {relatedSections.length === 0 ? (
+          <p
+            className="text-[14px] leading-relaxed"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            Nothing here yet — open the Dialog to begin.
+          </p>
+        ) : (
+          <DialogFocusSections
+            sections={relatedSections}
+            onSessionSelect={onSessionSelect}
+          />
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -862,10 +1001,12 @@ function RelatedSections({
   sections,
   onJourneySelect,
   onMomentSelect,
+  onSessionSelect,
 }: {
   sections: RelatedSection[]
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
+  onSessionSelect?: (id: string) => void
 }) {
   if (sections.length === 0) return null
 
@@ -892,7 +1033,9 @@ function RelatedSections({
                     ? () => onJourneySelect(item.id)
                     : item.navigateKind === "moment" && onMomentSelect
                       ? () => onMomentSelect(item.id)
-                      : undefined
+                      : item.navigateKind === "session" && onSessionSelect
+                        ? () => onSessionSelect(item.id)
+                        : undefined
                 }
               />
             ))
@@ -918,6 +1061,7 @@ export function KeeperPresence({
   onJourneySelect,
   onMomentSelect,
   onKeeperSelect,
+  onSessionSelect,
   domainDisplayName,
   boardId: boardIdProp,
 }: KeeperPresenceProps) {
@@ -1280,6 +1424,7 @@ export function KeeperPresence({
         onLabelResolved={onLabelResolved}
         onJourneySelect={onJourneySelect}
         onMomentSelect={onMomentSelect}
+        onSessionSelect={onSessionSelect}
       />
       </div>
     </PresentMotionProvider>
@@ -1325,6 +1470,7 @@ function KeeperPresenceSurface({
   onLabelResolved,
   onJourneySelect,
   onMomentSelect,
+  onSessionSelect,
 }: {
   loading: boolean
   record: Record<string, unknown> | null
@@ -1364,6 +1510,7 @@ function KeeperPresenceSurface({
   onLabelResolved?: (label: string) => void
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
+  onSessionSelect?: (id: string) => void
 }) {
   const motion = usePresentMotionValues()
 
@@ -1408,6 +1555,19 @@ function KeeperPresenceSurface({
         relatedSections={relatedSections}
         onMomentSelect={onMomentSelect}
         onKeeperSelect={handleKeeperSelect}
+      />
+    )
+  }
+
+  if (objectType === "dialog" && layout === "focus") {
+    return (
+      <DialogFocusPresence
+        fieldValues={fieldValues}
+        setFieldValues={setFieldValues}
+        markEdited={markEdited}
+        meta={meta}
+        relatedSections={relatedSections}
+        onSessionSelect={onSessionSelect}
       />
     )
   }
@@ -1774,6 +1934,7 @@ function KeeperPresenceSurface({
             sections={relatedSections}
             onJourneySelect={onJourneySelect}
             onMomentSelect={onMomentSelect}
+            onSessionSelect={onSessionSelect}
           />
         </div>
 

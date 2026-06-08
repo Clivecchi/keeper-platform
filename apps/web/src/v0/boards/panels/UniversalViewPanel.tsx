@@ -208,6 +208,7 @@ interface ChronicleRecordViewProps {
   layout?: PresenceLayout
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
+  onSessionSelect?: (id: string) => void
   onLabelResolved: (key: string, label: string) => void
   trailKey: string
 }
@@ -222,6 +223,7 @@ function ChronicleRecordView({
   layout = "focus",
   onJourneySelect,
   onMomentSelect,
+  onSessionSelect,
   onKeySelect,
   onLabelResolved,
   trailKey,
@@ -249,6 +251,7 @@ function ChronicleRecordView({
       onLabelResolved={(label) => onLabelResolved(trailKey, label)}
       onJourneySelect={onJourneySelect}
       onMomentSelect={onMomentSelect}
+      onSessionSelect={onSessionSelect}
       onKeySelect={onKeySelect}
     />
   )
@@ -265,6 +268,7 @@ interface PanelBodyProps {
   boardId?: string
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
+  onSessionSelect?: (id: string) => void
   onLabelResolved: (key: string, label: string) => void
 }
 
@@ -276,6 +280,7 @@ function PanelBody({
   boardId,
   onJourneySelect,
   onMomentSelect,
+  onSessionSelect,
   onLabelResolved,
 }: PanelBodyProps) {
   const boardCtx = useUniversalBoardOptional()
@@ -305,6 +310,7 @@ function PanelBody({
         layout={layout}
         onJourneySelect={onJourneySelect}
         onMomentSelect={onMomentSelect}
+        onSessionSelect={onSessionSelect}
         onKeySelect={boardCtx?.actions.onKeySelect}
         onLabelResolved={onLabelResolved}
         trailKey={entry.key}
@@ -394,6 +400,7 @@ export function UniversalViewPanel({
     onJourneySelect ?? boardCtx?.actions.onJourneySelect
   const handleMomentSelect =
     onMomentSelect ?? boardCtx?.actions.onMomentSelect
+  const handleSessionSelect = boardCtx?.actions.onSessionSelect
 
   // Universal priority — same on every board. viewStates does not gate routing.
   function resolveKindId(): { kind: TrailKind; id: string | null } {
@@ -610,6 +617,7 @@ export function UniversalViewPanel({
           boardId={def.boardId}
           onJourneySelect={handleJourneySelect}
           onMomentSelect={handleMomentSelect}
+          onSessionSelect={handleSessionSelect}
           onLabelResolved={handleLabelResolved}
         />
       </div>

@@ -22,7 +22,7 @@ export interface RelatedItem {
   label: string
   sub?: string
   preview?: string
-  navigateKind?: "journey" | "moment" | "keeper"
+  navigateKind?: "journey" | "moment" | "keeper" | "session"
 }
 
 export interface RelatedSection {
@@ -184,6 +184,103 @@ function mapDialogRecord(dialog: Record<string, unknown>): Record<string, unknow
     sessionCount: sessions.length,
     updated_at: dialog.updated_at ?? dialog.updatedAt,
   }
+}
+
+type DialogSessionRow = {
+  id: string
+  session_name?: string | null
+  created_at?: string
+  updated_at?: string
+  kip_messages?: Array<{ role?: string; content?: string; created_at?: string }>
+}
+
+function truncatePreview(text: string, max: number): string {
+  const normalized = text.replace(/\s+/g, " ").trim()
+  if (normalized.length <= max) return normalized
+  return `${normalized.slice(0, max - 1)}…`
+}
+
+function dialogSessionLabel(session: DialogSessionRow): string {
+  if (typeof session.session_name === "string" && session.session_name.trim()) {
+    return session.session_name.trim()
+  }
+  return `Session ${session.id.slice(0, 8)}`
+}
+
+function dialogSessionActivityIso(session: DialogSessionRow): string | undefined {
+  const messages = session.kip_messages ?? []
+  const lastMessage = messages[messages.length - 1]
+  const iso =
+    (typeof lastMessage?.created_at === "string" && lastMessage.created_at) ||
+    (typeof session.updated_at === "string" && session.updated_at) ||
+    (typeof session.created_at === "string" && session.created_at) ||
+    undefined
+  return iso || undefined
+}
+
+function dialogSessionActivityTime(session: DialogSessionRow): number {
+  const iso = dialogSessionActivityIso(session)
+  return iso ? Date.parse(iso) : 0
+}
+
+function normalizeDialogSessions(record: Record<string, unknown>): DialogSessionRow[] {
+  const raw = Array.isArray(record.sessions) ? record.sessions : []
+  return raw
+    .map((row) => {
+      if (!row || typeof row !== "object") return null
+      const s = row as Record<string, unknown>
+      const id = typeof s.id === "string" ? s.id : ""
+      if (!id) return null
+      return {
+        id,
+        session_name: typeof s.session_name === "string" ? s.session_name : null,
+        created_at: typeof s.created_at === "string" ? s.created_at : undefined,
+        updated_at: typeof s.updated_at === "string" ? s.updated_at : undefined,
+        kip_messages: Array.isArray(s.kip_messages)
+          ? (s.kip_messages as DialogSessionRow["kip_messages"])
+          : [],
+      } satisfies DialogSessionRow
+    })
+    .filter((s): s is DialogSessionRow => s !== null)
+    .sort((a, b) => dialogSessionActivityTime(b) - dialogSessionActivityTime(a))
+}
+
+function extractDialogExchangePreview(session: DialogSessionRow): string | undefined {
+  const messages = session.kip_messages ?? []
+  if (messages.length === 0) return undefined
+
+  const lastUser = [...messages]
+    .reverse()
+    .find((m) => m.role === "user" && typeof m.content === "string" && m.content.trim())
+  const lastAgent = [...messages]
+    .reverse()
+    .find(
+      (m) =>
+        (m.role === "assistant" || m.role === "agent") &&
+        typeof m.content === "string" &&
+        m.content.trim(),
+    )
+
+  const userText =
+    typeof lastUser?.content === "string" ? truncatePreview(lastUser.content, 72) : ""
+  const agentText =
+    typeof lastAgent?.content === "string" ? truncatePreview(lastAgent.content, 96) : ""
+
+  if (userText && agentText) {
+    return `"${userText}" → ${agentText}`
+  }
+  if (agentText) return agentText
+  if (userText) return userText
+  return undefined
+}
+
+function dialogSessionSub(session: DialogSessionRow): string | undefined {
+  const count = session.kip_messages?.length ?? 0
+  const activityIso = dialogSessionActivityIso(session)
+  const when = activityIso ? formatRelativeKept(null, activityIso) : undefined
+  const countLabel =
+    count > 0 ? `${count} message${count === 1 ? "" : "s"}` : "No messages yet"
+  return when ? `${countLabel} · ${when}` : countLabel
 }
 
 function mapKeeperRecord(raw: Record<string, unknown>): Record<string, unknown> {
@@ -543,9 +640,42 @@ async function enrichAgent(
 
 async function enrichDialog(record: Record<string, unknown>): Promise<EnrichmentResult> {
   const mapped = mapDialogRecord(record)
+  const sessions = normalizeDialogSessions(record)
+  const relatedSections: RelatedSection[] = []
+
+  const sessionsWithMessages = sessions.filter((s) => (s.kip_messages?.length ?? 0) > 0)
+  const arcItems = sessionsWithMessages.slice(0, 4).map((session) => ({
+    id: session.id,
+    label: dialogSessionLabel(session),
+    sub: dialogSessionSub(session),
+    preview: extractDialogExchangePreview(session),
+    navigateKind: "session" as const,
+  }))
+
+  if (arcItems.length > 0) {
+    relatedSections.push({
+      title: "Recent Exchanges",
+      items: arcItems,
+    })
+  }
+
+  const sessionItems = sessions.slice(0, 5).map((session) => ({
+    id: session.id,
+    label: dialogSessionLabel(session),
+    sub: dialogSessionSub(session),
+    navigateKind: "session" as const,
+  }))
+
+  if (sessionItems.length > 0) {
+    relatedSections.push({
+      title: "Sessions",
+      items: sessionItems,
+    })
+  }
+
   const metaParts = [
-    typeof mapped.sessionCount === "number" && mapped.sessionCount > 0
-      ? `${mapped.sessionCount} session${mapped.sessionCount === 1 ? "" : "s"}`
+    sessions.length > 0
+      ? `${sessions.length} session${sessions.length === 1 ? "" : "s"}`
       : null,
     typeof mapped.updated_at === "string"
       ? formatWhenShort(mapped.updated_at as string)
@@ -555,8 +685,8 @@ async function enrichDialog(record: Record<string, unknown>): Promise<Enrichment
   return {
     record: mapped,
     meta: { line: metaParts.join(" · ") || undefined },
-    relatedSections: [],
-    hiddenFields: ["sessionCount"],
+    relatedSections,
+    hiddenFields: ["sessionCount", "sessions"],
   }
 }
 
