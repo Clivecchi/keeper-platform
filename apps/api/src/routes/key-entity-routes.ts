@@ -124,17 +124,112 @@ async function resolveCredentialForKey(
   return null;
 }
 
+async function syncProviderKeyPresence(
+  domainId: string,
+  provider: ModelProvider,
+  userId: string | null,
+): Promise<void> {
+  const meta = PROVIDER_KEY_META[provider];
+  if (!meta) return;
+
+  const integration = await findPlatformIntegration(provider);
+  const resolved = await resolveProviderApiKeyWithSource(provider, userId ?? undefined);
+  const sources: Array<{
+    key_source: (typeof VALID_SOURCES)[number];
+    status: string;
+    user_id: string | null;
+  }> = [];
+
+  if (resolved.key && resolved.source === 'env') {
+    sources.push({ key_source: 'env', status: 'valid', user_id: null });
+  }
+  if (userId) {
+    const userKey = await KipUserKeyService.getUserKey(provider, userId);
+    if (userKey) {
+      sources.push({ key_source: 'user', status: 'valid', user_id: userId });
+    }
+  }
+  const platformKey = await PlatformApiKeyService.getKeyForProvider(provider);
+  if (platformKey) {
+    sources.push({ key_source: 'platform', status: 'valid', user_id: null });
+  }
+  if (sources.length === 0) {
+    sources.push({
+      key_source: 'user',
+      status: resolved.key ? 'valid' : 'unknown',
+      user_id: userId,
+    });
+  }
+
+  for (const source of sources) {
+    const existing = await prisma.key.findFirst({
+      where: {
+        domain_id: domainId,
+        provider,
+        key_source: source.key_source,
+        user_id: source.user_id,
+      },
+    });
+    const payload = {
+      integration_id: integration?.id ?? null,
+      display_label: `${meta.display_label} Key`,
+      description: meta.description,
+      scope: meta.scope,
+      status: source.status,
+      chronicle_blocks: ['connection_status', 'key_health', 'linked_agents'],
+      chronicle_actions: ['verify', 'rotate', 'revoke'],
+    };
+    if (existing) {
+      await prisma.key.update({ where: { id: existing.id }, data: payload });
+    } else {
+      await prisma.key.create({
+        data: {
+          domain_id: domainId,
+          provider,
+          key_source: source.key_source,
+          user_id: source.user_id,
+          ...payload,
+        },
+      });
+    }
+  }
+}
+
 /**
  * GET /api/keys
  * List Key records for a domain. Optional ?provider= filter.
+ * Optional ?sync=1 — materialize Key presence rows for the provider when none exist yet.
  */
 router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
   try {
     const domainId = typeof req.query.domainId === 'string' ? req.query.domainId : undefined;
     const provider = typeof req.query.provider === 'string' ? req.query.provider : undefined;
+    const shouldSync = req.query.sync === '1' || req.query.sync === 'true';
 
     if (!domainId) {
       return res.status(400).json({ error: 'domainId query parameter is required' });
+    }
+
+    if (
+      shouldSync &&
+      provider &&
+      VALID_PROVIDERS.includes(provider as ModelProvider)
+    ) {
+      const authReq = req as AuthenticatedRequest;
+      const existing = await prisma.key.findFirst({
+        where: {
+          domain_id: domainId,
+          provider,
+          status: { not: 'revoked' },
+        },
+      });
+      if (!existing) {
+        await syncProviderKeyPresence(
+          domainId,
+          provider as ModelProvider,
+          authReq.user?.id ?? null,
+        );
+      }
     }
 
     const rows = await prisma.key.findMany({

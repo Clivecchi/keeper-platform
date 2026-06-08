@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { apiFetch } from "../../../lib/apiFetch"
+import { buildManageKeysHandler } from "./manageKeysNavigation"
 import {
   confirmDestructiveAction,
   formatRelativeTime,
@@ -73,6 +73,7 @@ export type ServiceConfig<TData = unknown> = {
     boardId: string
     agentSlug: string
     openConfigMode?: () => void
+    onKeySelect?: (keyId: string) => void
   }) => ServiceAction[]
   oauthTroubleshootingCopy?: React.ReactNode
 }
@@ -529,11 +530,15 @@ function buildAiModelActions(serviceSlug: string) {
   return ({
     conn,
     feed,
+    domainId,
     openConfigMode,
+    onKeySelect,
   }: {
     conn: IntegrationConnection
     feed: FeedDataState<AIModelFeedData>
+    domainId: string
     openConfigMode?: () => void
+    onKeySelect?: (keyId: string) => void
   }): ServiceAction[] => [
     {
       label: "Test Provider",
@@ -557,9 +562,12 @@ function buildAiModelActions(serviceSlug: string) {
     },
     {
       label: "Manage Keys",
-      onClick: () => {
-        openConfigMode?.()
-      },
+      onClick: buildManageKeysHandler({
+        domainId,
+        provider: serviceSlug,
+        onKeySelect,
+        openConfigMode,
+      }),
       disabled: false,
     },
     {

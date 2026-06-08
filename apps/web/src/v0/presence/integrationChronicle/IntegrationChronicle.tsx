@@ -133,6 +133,7 @@ export function IntegrationChronicle({
     boardId,
     agentSlug,
     openConfigMode,
+    onKeySelect,
   })
 
   return (

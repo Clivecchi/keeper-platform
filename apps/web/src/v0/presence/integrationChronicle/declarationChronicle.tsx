@@ -32,7 +32,7 @@ import type {
   ServiceConfig,
   VercelFeedData,
 } from "./serviceConfig"
-import { apiFetch } from "../../../lib/apiFetch"
+import { buildManageKeysHandler } from "./manageKeysNavigation"
 import type { useIntegrationConnection } from "./shared"
 
 type IntegrationConnection = ReturnType<typeof useIntegrationConnection>
@@ -189,6 +189,7 @@ export function resolveDeclarationActions(
     domainId: string
     boardId: string
     agentSlug: string
+    serviceSlug: string
     openConfigMode?: () => void
     onKeySelect?: (keyId: string) => void
   },
@@ -206,31 +207,18 @@ export function resolveDeclarationActions(
     if (!label) continue
 
     if (slug === "manage_keys" && (ctx.onKeySelect || ctx.openConfigMode)) {
+      const provider =
+        ctx.serviceSlug ||
+        ctx.conn.integration?.service ||
+        ""
       resolved.push({
         label,
-        onClick: () => {
-          void (async () => {
-            if (!ctx.onKeySelect) {
-              ctx.openConfigMode?.()
-              return
-            }
-            try {
-              const keys = (await apiFetch(
-                `/api/keys?domainId=${encodeURIComponent(ctx.domainId)}&provider=${encodeURIComponent(ctx.conn.integration?.service ?? "")}`,
-              )) as Array<{ id: string; key_source: string }>
-              const preferred =
-                keys.find((k) => k.key_source === "env") ??
-                keys.find((k) => k.key_source === "user") ??
-                keys.find((k) => k.key_source === "platform") ??
-                keys[0]
-              if (preferred?.id) {
-                ctx.onKeySelect(preferred.id)
-              }
-            } catch {
-              ctx.openConfigMode?.()
-            }
-          })()
-        },
+        onClick: buildManageKeysHandler({
+          domainId: ctx.domainId,
+          provider,
+          onKeySelect: ctx.onKeySelect,
+          openConfigMode: ctx.openConfigMode,
+        }),
       })
       continue
     }
@@ -492,8 +480,17 @@ export function DeclarationConnectedChronicle({
   const glow = config.glowFn(feed.data)
 
   const actionCtx = React.useMemo(
-    () => ({ conn, feed, domainId, boardId, agentSlug, openConfigMode, onKeySelect }),
-    [conn, feed, domainId, boardId, agentSlug, openConfigMode, onKeySelect],
+    () => ({
+      conn,
+      feed,
+      domainId,
+      boardId,
+      agentSlug,
+      serviceSlug: integration.service,
+      openConfigMode,
+      onKeySelect,
+    }),
+    [conn, feed, domainId, boardId, agentSlug, integration.service, openConfigMode, onKeySelect],
   )
   const actions = React.useMemo(
     () => resolveDeclarationActions(chronicleActions, config, actionCtx),
