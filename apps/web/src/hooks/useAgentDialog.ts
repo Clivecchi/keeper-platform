@@ -167,7 +167,7 @@ export interface UseAgentDialogResult {
   isSending: boolean
   error: string | null
   setError: React.Dispatch<React.SetStateAction<string | null>>
-  /** Resolved agent ID from `KipApi.getLeadAgent(agentSlug)`. */
+  /** Resolved agent ID from slug lookup or `resolvedAgentId`. */
   agentId: string | null
   activeSessionId: string | null
   fetchMessages: (sessionId: string) => Promise<KipMessage[] | undefined>
@@ -287,8 +287,9 @@ export function useAgentDialog({
       setAgentId(resolvedAgentId)
       return
     }
+    setAgentId(null)
     let cancelled = false
-    KipApi.getLeadAgent(agentSlug)
+    KipApi.getAgentBySlug(agentSlug)
       .then((agent) => {
         if (!cancelled) setAgentId(agent.id)
       })
@@ -345,7 +346,7 @@ export function useAgentDialog({
 
   // ide: controlled session bootstrap
   React.useEffect(() => {
-    if (mode !== "ide") return
+    if (mode !== "ide" || manageSessionExternally) return
     if (ideSessionInitDoneRef.current) return
     if (activeSessionId) {
       ideSessionInitDoneRef.current = true
@@ -406,6 +407,7 @@ export function useAgentDialog({
     frameCtx?.selection?.activeKeeperId,
     activeJourneyId,
     onControlledSessionIdChange,
+    manageSessionExternally,
   ])
 
   React.useEffect(() => {

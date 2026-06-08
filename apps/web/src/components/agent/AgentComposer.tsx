@@ -210,9 +210,11 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     ta.style.height = `${newHeight}px`
   }, [inputValue])
 
-  const placeholder = activeSessionId
-    ? "Share your thoughts… (Shift+Enter for new line)"
-    : "Create a session to start chatting"
+  const placeholder = disabled
+    ? "Preparing conversation…"
+    : activeSessionId
+      ? "Share your thoughts… (Shift+Enter for new line)"
+      : "Create a session to start chatting"
 
   const canSend = (inputValue.trim() || attachments.length > 0) && activeSessionId && !isSending && !disabled
 

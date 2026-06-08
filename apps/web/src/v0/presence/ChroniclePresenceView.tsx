@@ -13,6 +13,7 @@ import * as React from "react"
 import { KeeperPresence } from "./KeeperPresence"
 import { IntegrationPresence } from "./IntegrationPresence"
 import { KeyPresence } from "./KeyPresence"
+import { SoleMemoryPresence } from "./SoleMemoryPresence"
 import type { DensityLevel } from "./KeeperPresenceDefaults"
 import type { PresenceLayout } from "./types"
 import type { PresentName, RenderContext } from "../presents/types"
@@ -66,6 +67,16 @@ export function ChroniclePresenceView({
     return (
       <KeyPresence
         keyId={objectId}
+        domainId={domainId}
+        onLabelResolved={onLabelResolved}
+      />
+    )
+  }
+
+  if (objectType === "soleMemory") {
+    return (
+      <SoleMemoryPresence
+        memoryCardId={objectId}
         domainId={domainId}
         onLabelResolved={onLabelResolved}
       />

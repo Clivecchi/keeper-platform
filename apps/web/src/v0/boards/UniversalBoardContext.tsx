@@ -34,6 +34,8 @@ export interface UniversalBoardSelection {
   selectedAgentId: string | null
   selectedServiceSlug: string | null
   selectedKeyId: string | null
+  /** When set, Chronicle shows this SOLE memory card stacked above the current entity (e.g. draft). */
+  selectedSoleMemoryId: string | null
   /** designer mode: the board definition currently selected in the nav — drives right-panel BoardDefView. */
   selectedBoardDefId: string | null
   /** Increment to refetch draft presence in Chronicle after point mutations. */
@@ -52,6 +54,8 @@ export interface UniversalBoardActions {
   onAgentSelect: (id: string) => void
   onServiceOpen: (slug: string) => void
   onKeySelect: (id: string) => void
+  /** Opens a SOLE memory card in Chronicle; pass null to return to the underlying selection. */
+  onSoleMemorySelect: (id: string | null) => void
   clearSelection: () => void
   /** designer mode: selects a board definition — drives right-panel BoardDefView. */
   onBoardDefSelect: (id: string) => void
@@ -102,6 +106,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null)
   const [selectedServiceSlug, setSelectedServiceSlug] = React.useState<string | null>(null)
   const [selectedKeyId, setSelectedKeyId] = React.useState<string | null>(null)
+  const [selectedSoleMemoryId, setSelectedSoleMemoryId] = React.useState<string | null>(null)
   const [selectedBoardDefId, setSelectedBoardDefId] = React.useState<string | null>(null)
   const [draftPresenceRevision, setDraftPresenceRevision] = React.useState(0)
 
@@ -170,6 +175,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [])
 
   const onDraftSelect = React.useCallback((id: string) => {
+    setSelectedSoleMemoryId(null)
     setSelectedDraftId(id)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
@@ -204,6 +210,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const onKeySelect = React.useCallback((id: string) => {
     setSelectedKeyId(id)
+    setSelectedSoleMemoryId(null)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedMomentId(null)
@@ -211,6 +218,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedDraftId(null)
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
+  }, [])
+
+  const onSoleMemorySelect = React.useCallback((id: string | null) => {
+    setSelectedSoleMemoryId(id)
   }, [])
 
   const clearSelection = React.useCallback(() => {
@@ -222,6 +233,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
     setSelectedKeyId(null)
+    setSelectedSoleMemoryId(null)
     setSelectedBoardDefId(null)
   }, [])
 
@@ -252,6 +264,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         selectedAgentId,
         selectedServiceSlug,
         selectedKeyId,
+        selectedSoleMemoryId,
         selectedBoardDefId,
         draftPresenceRevision,
       },
@@ -266,6 +279,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onAgentSelect,
         onServiceOpen,
         onKeySelect,
+        onSoleMemorySelect,
         clearSelection,
         onBoardDefSelect,
         bumpDraftPresence,
@@ -284,6 +298,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       selectedDraftId,
       selectedAgentId,
       selectedServiceSlug,
+      selectedKeyId,
+      selectedSoleMemoryId,
       selectedBoardDefId,
       draftPresenceRevision,
       onSessionSelect,
@@ -295,6 +311,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       onDraftSelect,
       onAgentSelect,
       onServiceOpen,
+      onKeySelect,
+      onSoleMemorySelect,
       clearSelection,
       onBoardDefSelect,
       bumpDraftPresence,

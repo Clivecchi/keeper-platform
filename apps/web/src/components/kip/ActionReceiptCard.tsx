@@ -30,6 +30,7 @@ export interface ActionReceiptCardProps {
   onOpenDraft?: (draftId: string) => void
   onOpenMoment?: (momentId: string) => void
   onOpenJourney?: (journeyId: string) => void
+  onOpenSoleMemory?: (memoryCardId: string) => void
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -236,6 +237,64 @@ function MomentReceiptCard({
   )
 }
 
+function SoleMemoryReceiptCard({
+  topic,
+  message,
+  onOpen,
+}: {
+  topic?: string | null
+  message: string
+  onOpen?: () => void
+}) {
+  const title = topic?.trim() || message.replace(/^Memory saved:\s*/i, "").replace(/^"|"$/g, "") || "Reflection"
+
+  return (
+    <div
+      className="rounded-xl border overflow-hidden"
+      style={{
+        borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))",
+        background: "hsl(var(--theme-surface-paper) / 0.95)",
+      }}
+    >
+      <div
+        className="px-3 py-1.5 border-b flex items-center gap-1.5"
+        style={{
+          borderColor: "hsl(var(--theme-dialogue-border, 35 20% 88%))",
+          background: "hsl(var(--theme-surface-elevated) / 0.6)",
+        }}
+      >
+        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+          SOLE Memory
+        </span>
+        <span
+          className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide"
+          style={{ background: "hsl(38 40% 94%)", color: "hsl(38 50% 30%)", border: "1px solid hsl(38 30% 82%)" }}
+        >
+          Saved
+        </span>
+      </div>
+      <div className="px-3 py-3">
+        <p className="text-[13px] font-semibold leading-snug" style={{ color: "hsl(var(--theme-ink-primary))" }}>
+          {title}
+        </p>
+        <p className="mt-1 text-[11px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+          SOLE memory card recorded
+        </p>
+        {onOpen && (
+          <button
+            type="button"
+            onClick={onOpen}
+            className="mt-2 text-[11px] font-medium hover:opacity-80 transition-opacity"
+            style={{ color: "hsl(var(--theme-dialogue-user-bg, 14 60% 56%))" }}
+          >
+            View in Chronicle →
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main component ────────────────────────────────────────────────────────
 
 export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
@@ -243,6 +302,7 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
   onOpenDraft,
   onOpenMoment,
   onOpenJourney,
+  onOpenSoleMemory,
 }) => {
   const { type, status, message, errorCode, data } = receipt
   const draft = data?.draft
@@ -250,8 +310,20 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
   const journey = data?.journey as { id: string; name: string; forward?: string | null } | undefined
   const path = data?.path as { id: string; name: string; prelude?: string | null } | undefined
   const openUrl = data?.links?.open
+  const memoryCard = data?.memoryCard as { id?: string; topic?: string | null } | undefined
   const isSoleSave = type === "sole.save"
   const isImageGenerate = type === "image.generate"
+
+  // SOLE memory saved — rich card with Chronicle navigation
+  if (status === "success" && isSoleSave && memoryCard?.id) {
+    return (
+      <SoleMemoryReceiptCard
+        topic={memoryCard.topic ?? (typeof data?.topic === "string" ? data.topic : null)}
+        message={message}
+        onOpen={onOpenSoleMemory ? () => onOpenSoleMemory(memoryCard.id!) : undefined}
+      />
+    )
+  }
 
   // Image generation — render the image directly (success only)
   if (isImageGenerate && status === "success") {

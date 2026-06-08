@@ -822,7 +822,8 @@ export function UniversalConversation({
     onRefreshDraftsAfterRun:
       kipMode === "agent" || kipMode === "ide" ? handleRefreshDraftsAfterRun : undefined,
     frameKey: selectedFrameKey ?? undefined,
-    manageSessionExternally: kipMode === "agent" && usingSelectedNonDefaultAgent,
+    manageSessionExternally:
+      kipMode === "ide" || (kipMode === "agent" && usingSelectedNonDefaultAgent),
   })
 
   setMessagesRef.current = setMessages
@@ -868,38 +869,68 @@ export function UniversalConversation({
   })
 
   // ── IDE mode: invoke Cloud / Rendr into the Dialog ───────────────────────
-  const handleToolInvoke = React.useCallback(
-    (tool: ToolSlug) => {
-      setInvokedToolSlug((prev) => (prev === tool ? null : tool))
-      handleSessionChange(null)
-      setMessages(idleMessages)
-    },
-    [handleSessionChange, setMessages, idleMessages],
-  )
+  const handleToolInvoke = React.useCallback((tool: ToolSlug) => {
+    setInvokedToolSlug((prev) => (prev === tool ? null : tool))
+  }, [])
 
+  // IDE Board owns session lifecycle when tools switch (Cloud / Rendr ↔ Kip).
   React.useEffect(() => {
-    if (kipMode !== "ide" || !invokedToolSlug || !agentId) return
+    if (kipMode !== "ide" || !agentId) return
+    if (frameCtx?.isResolving) return
+
+    const resolvedDomainId =
+      domainId && !String(domainId).startsWith("fallback-") ? domainId : undefined
+
     let cancelled = false
     void (async () => {
       try {
         const sessions = await KipApi.getSessionsByAgentId(agentId, { pageSize: 50 })
         if (cancelled) return
-        const sorted = [...sessions].sort((a, b) => {
-          const ta = Date.parse(String(a.updated_at ?? a.created_at ?? "")) || 0
-          const tb = Date.parse(String(b.updated_at ?? b.created_at ?? "")) || 0
-          return tb - ta
-        })
-        const sessionId = sorted[0]?.id ?? null
+
+        const sessionId = pickMostRecentDialogSessionId(sessions)
         if (sessionId) {
           handleSessionChange(sessionId)
           await fetchMessages(sessionId)
+          return
         }
+
+        const sessionName = invokedToolSlug
+          ? TOOL_DISPLAY_NAMES[invokedToolSlug]
+          : `Session · ${new Date().toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`
+
+        const session = await KipApi.createSession(agentId, undefined, sessionName, {
+          domainSlug,
+          ...(resolvedDomainId ? { domainId: resolvedDomainId } : {}),
+          dialogBoard: "ide",
+          dialogFrame: "conversation",
+          dialogSubject: "domain",
+          dialogScope: audience === "admin" ? "admin" : "keeper",
+        })
+        if (cancelled) return
+        handleSessionChange(session.id)
+        setMessages(invokedToolSlug ? [] : idleMessages)
       } catch {
-        /* fresh conversation with invoked agent */
+        /* composer stays disabled until session resolves */
       }
     })()
-    return () => { cancelled = true }
-  }, [kipMode, invokedToolSlug, agentId, handleSessionChange, fetchMessages])
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    kipMode,
+    agentId,
+    effectiveAgentSlug,
+    invokedToolSlug,
+    domainId,
+    domainSlug,
+    audience,
+    frameCtx?.isResolving,
+    handleSessionChange,
+    fetchMessages,
+    setMessages,
+    idleMessages,
+  ])
 
   // ── designer mode: sync liveDomainFrame from shell to context ────────────
   React.useEffect(() => {
@@ -1208,6 +1239,7 @@ export function UniversalConversation({
         onOpenDraft={onDraftSelect}
         onOpenMoment={onMomentSelect}
         onOpenJourney={(id) => onJourneySelect(id)}
+        onOpenSoleMemory={(memoryCardId) => actions.onSoleMemorySelect(memoryCardId)}
         onConfirmDraftUpdate={domainId ? handleConfirmDraftUpdate : undefined}
         onAcceptDraftPoint={domainId ? handleAcceptDraftPoint : undefined}
         acceptedDraftPointIds={acceptedDraftPointIds}

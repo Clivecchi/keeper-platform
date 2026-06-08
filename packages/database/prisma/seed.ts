@@ -57,6 +57,10 @@ async function main() {
     const seedCloudAgent = await import('./seeds/cloud-agent.seed.ts');
     await seedCloudAgent.default();
 
+    console.log('🎨 Seeding Rendr platform agent...');
+    const seedRendrAgent = await import('./seeds/rendr-agent.seed.ts');
+    await seedRendrAgent.default();
+
     console.log('🔭 Seeding Kip lenses...');
     const seedLenses = await import('./seeds/lenses.seed.ts');
     await seedLenses.default();

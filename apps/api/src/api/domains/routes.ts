@@ -331,6 +331,63 @@ router.get('/:domainId/kip/sole-memory-cards', authMiddlewareCompat, requireDoma
   }
 });
 
+// GET /api/domains/:domainId/kip/sole-memory-cards/:id - Single SOLE card (domain anchor or keeper-scoped)
+router.get('/:domainId/kip/sole-memory-cards/:id', authMiddlewareCompat, requireDomainReadCompat, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'AUTH_REQUIRED', message: 'Authentication required' });
+    }
+
+    const { domainId, id } = req.params;
+    const domain = await getDomainService().getDomainById(domainId);
+
+    if (!domain) {
+      return res.status(404).json({ error: 'DOMAIN_NOT_FOUND', message: 'Domain not found' });
+    }
+
+    const permission = await getPermissionService().checkPermission({
+      userId: req.user.id,
+      domainId,
+      permission: 'read',
+    });
+
+    if (!permission.hasPermission) {
+      return res.status(403).json({ error: 'ACCESS_DENIED', message: 'You do not have access to this domain' });
+    }
+
+    const card = await prisma.soleMemoryCard.findFirst({
+      where: {
+        id,
+        OR: [
+          { domainId },
+          { Keeper: { domainId } },
+        ],
+      },
+      include: {
+        SoleReflection: {
+          select: {
+            id: true,
+            agentId: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!card) {
+      return res.status(404).json({ error: 'CARD_NOT_FOUND', message: 'SOLE memory card not found' });
+    }
+
+    return res.json({ success: true, data: card });
+  } catch (error) {
+    console.error('[domains:sole-memory-cards:get:error]', error);
+    return res.status(500).json({
+      error: 'FAILED_TO_LOAD_SOLE',
+      message: 'Failed to load SOLE memory card',
+    });
+  }
+});
+
 // PUT /api/domains/:domainId/kip/sole-memory-cards/:id - Update domain anchor SOLE card
 const updateDomainSoleCardSchema = z.object({
   content: z.string().min(1).optional(),

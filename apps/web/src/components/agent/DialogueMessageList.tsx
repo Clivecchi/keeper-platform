@@ -131,6 +131,8 @@ export interface DialogueMessageListProps {
   onOpenMoment?: (momentId: string) => void
   /** Callback when a journey card is tapped (loads it in the right panel) */
   onOpenJourney?: (journeyId: string) => void
+  /** Callback when a SOLE memory receipt is opened in Chronicle */
+  onOpenSoleMemory?: (memoryCardId: string) => void
   /** Callback when user confirms a proposed draft update (legacy whole-draft flow) */
   onConfirmDraftUpdate?: (draftId: string, payload: { title?: string; summary?: string; status?: string; spec?: unknown }) => void
   /** Callback when user accepts a proposed draft point (Step 3+) */
@@ -163,6 +165,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   onOpenDraft,
   onOpenMoment,
   onOpenJourney,
+  onOpenSoleMemory,
   onConfirmDraftUpdate,
   onAcceptDraftPoint,
   acceptedDraftPointIds,
@@ -440,6 +443,12 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                             onOpenJourney={
                               receipt.data?.journey?.id
                                 ? (journeyId) => onOpenJourney?.(journeyId)
+                                : undefined
+                            }
+                            onOpenSoleMemory={
+                              receipt.type === "sole.save"
+                              && receipt.data?.memoryCard?.id
+                                ? (memoryCardId) => onOpenSoleMemory?.(memoryCardId)
                                 : undefined
                             }
                           />

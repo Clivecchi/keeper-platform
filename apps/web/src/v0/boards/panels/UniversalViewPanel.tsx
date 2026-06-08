@@ -43,6 +43,7 @@ type TrailKind =
   | "agent"
   | "service"
   | "key"
+  | "soleMemory"
   | "boardDef"
 type TrailDirection = "forward" | "back"
 
@@ -65,6 +66,7 @@ const TRAIL_KIND_TO_OBJECT_TYPE: Record<TrailKind, string> = {
   agent: "agent",
   service: "service",
   key: "key",
+  soleMemory: "soleMemory",
   boardDef: "boardDef",
 }
 
@@ -395,6 +397,9 @@ export function UniversalViewPanel({
 
   // Universal priority — same on every board. viewStates does not gate routing.
   function resolveKindId(): { kind: TrailKind; id: string | null } {
+    if (boardCtx?.selection.selectedSoleMemoryId) {
+      return { kind: "soleMemory", id: boardCtx.selection.selectedSoleMemoryId }
+    }
     if (boardCtx?.selection.selectedBoardDefId)
       return { kind: "boardDef", id: boardCtx.selection.selectedBoardDefId }
     if (boardCtx?.selection.selectedKeyId)
@@ -492,7 +497,13 @@ export function UniversalViewPanel({
           if (entry.id) actions.onKeeperSelect(entry.id)
           break
         case "draft":
-          if (entry.id) actions.onDraftSelect(entry.id)
+          if (entry.id) {
+            actions.onSoleMemorySelect(null)
+            actions.onDraftSelect(entry.id)
+          }
+          break
+        case "soleMemory":
+          if (entry.id) actions.onSoleMemorySelect(entry.id)
           break
         case "agent":
           if (entry.id) actions.onAgentSelect(entry.id)
