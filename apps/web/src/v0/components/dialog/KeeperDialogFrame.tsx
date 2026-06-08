@@ -19,6 +19,7 @@ import { DialogueMessageList } from "../../../components/agent/DialogueMessageLi
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedServicesBar"
 import type { AgentBoardMessaging } from "../../data/domain-frame.types"
+import { DialogScrollRail } from "./DialogScrollRail"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -399,6 +400,8 @@ export function KeeperDialogFrame({
               )
           }
         </div>
+
+        <DialogScrollRail scrollRef={scrollRef} />
 
         {/* Gradient dissolve — messages fade before reaching the Composer */}
         {mode !== 'feed' && (
