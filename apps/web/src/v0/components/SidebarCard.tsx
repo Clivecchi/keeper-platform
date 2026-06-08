@@ -50,16 +50,24 @@ export interface SidebarCardItem {
   onClick?: () => void
   /** When true, shows the item as selected in the list (e.g. IDE nav) */
   isSelected?: boolean
-  /** Optional status hint — e.g. "live" | "draft" for frame rows */
+  /** Optional status hint — e.g. "live" | "draft" | "valid" | "warning" | "error" */
   description?: string
+  /** Optional single-letter provider badge shown before the label */
+  iconLetter?: string
 }
 
 function itemBulletStyle(description?: string): React.CSSProperties {
   if (description === "draft") {
     return { backgroundColor: "hsl(38 92% 50%)" }
   }
-  if (description === "live") {
+  if (description === "live" || description === "valid") {
     return { backgroundColor: "hsl(152 69% 43%)" }
+  }
+  if (description === "warning") {
+    return { backgroundColor: "hsl(38 92% 50%)" }
+  }
+  if (description === "error") {
+    return { backgroundColor: "hsl(var(--theme-status-error, 0 72% 51%))" }
   }
   return { backgroundColor: "hsl(var(--theme-line-hairline))" }
 }
@@ -156,6 +164,18 @@ export function SidebarCard({
                       : undefined
                 }
               />
+              {item.iconLetter ? (
+                <span
+                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold"
+                  style={{
+                    background: "hsl(var(--theme-surface-elevated) / 0.5)",
+                    color: "hsl(var(--theme-ink-secondary))",
+                  }}
+                  aria-hidden
+                >
+                  {item.iconLetter}
+                </span>
+              ) : null}
               {item.onClick ? (
                 <button
                   type="button"

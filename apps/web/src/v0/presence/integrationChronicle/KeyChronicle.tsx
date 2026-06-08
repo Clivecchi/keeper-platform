@@ -18,6 +18,7 @@ import {
   formatRelativeTime,
 } from "./shared"
 import type { GlowState } from "./serviceConfig"
+import { providerDisplayLabel, providerIconLetter } from "./keyNavUtils"
 import { useKeyFeedData } from "./feeds/KeyFeed"
 import { KeyConfigPresence } from "./KeyConfigPresence"
 import type { AgentCoverMode } from "../cover/coverTypes"
@@ -128,6 +129,107 @@ function KeyTraitStrip({
   )
 }
 
+function KeyCredentialPanel({
+  keySource,
+  status,
+  onSave,
+  saveBusy,
+  saveError,
+}: {
+  keySource: string
+  status: string
+  onSave: (apiKey: string) => void | Promise<void>
+  saveBusy: boolean
+  saveError: string | null
+}) {
+  const isEnv = keySource === "env"
+  const isValid = status === "valid"
+  const needsCredential =
+    status === "invalid" || status === "revoked" || status === "unknown" || status === "expired"
+  const [keyInput, setKeyInput] = React.useState("")
+  const [showUpdate, setShowUpdate] = React.useState(needsCredential)
+
+  if (isEnv) {
+    return (
+      <div
+        className="rounded-md border px-3 py-3"
+        style={{ borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}
+      >
+        <p
+          className="text-[11px] font-semibold uppercase tracking-wide mb-1.5"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          Environment key
+        </p>
+        <p className="text-[13px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+          {isValid
+            ? "This key is set via environment variable. Update it in Railway to rotate."
+            : "This provider expects an environment variable. Add the API key in Railway, then verify."}
+        </p>
+      </div>
+    )
+  }
+
+  const fieldOpen = needsCredential || showUpdate
+
+  return (
+    <div
+      className="rounded-md border px-3 py-3"
+      style={{ borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}
+    >
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <p
+          className="text-[11px] font-semibold uppercase tracking-wide"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          {needsCredential ? "Add API Key" : "API Key"}
+        </p>
+        {isValid && !needsCredential && (
+          <button
+            type="button"
+            onClick={() => setShowUpdate((open) => !open)}
+            className="text-[12px] underline-offset-2 hover:underline"
+            style={{ color: "hsl(var(--theme-ink-secondary))" }}
+          >
+            {showUpdate ? "Cancel" : "Update Key"}
+          </button>
+        )}
+      </div>
+
+      {fieldOpen ? (
+        <div className="flex flex-col gap-2">
+          <input
+            type="password"
+            value={keyInput}
+            onChange={(e) => setKeyInput(e.target.value)}
+            placeholder="Paste API key"
+            className="w-full rounded-md border px-2.5 py-2 text-[13px] bg-transparent"
+            style={{
+              borderColor: "hsl(var(--theme-border-soft) / 0.55)",
+              color: "hsl(var(--theme-ink-primary))",
+            }}
+          />
+          <ActionButton
+            label={saveBusy ? "Saving…" : needsCredential ? "Save" : "Save Key"}
+            onClick={() => void onSave(keyInput)}
+            disabled={saveBusy || !keyInput.trim()}
+            variant="primary"
+          />
+          {saveError && (
+            <p className="text-[12px]" style={{ color: "hsl(var(--theme-status-error))" }}>
+              {saveError}
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+          Key is connected. Use Update Key to rotate the credential.
+        </p>
+      )}
+    </div>
+  )
+}
+
 function KeyChronicleBlocks({
   blocks,
   feed,
@@ -160,6 +262,7 @@ function KeyChronicleBlocks({
                 onKeyUpdate={(apiKey) => rotate(apiKey)}
                 keyUpdateBusy={rotateBusy}
                 keyUpdateError={keySaveError}
+                readOnly
               />
             )
           case "linked_agents":
@@ -223,11 +326,22 @@ export function KeyChronicle({
     )
   }
 
-  const { key, integrationCapabilities, verify, verifyBusy, revoke } = feed
-  const displayLabel = key.display_label ?? `${key.provider} Key`
+  const {
+    key,
+    integrationCapabilities,
+    verify,
+    verifyBusy,
+    revoke,
+    saveCredential,
+    rotateBusy,
+    keySaveError,
+  } = feed
+  const displayLabel = key.display_label ?? providerDisplayLabel(key.provider)
+  const providerLetter = providerIconLetter(key.provider)
   const blocks = key.chronicle_blocks ?? []
   const actions = key.chronicle_actions ?? []
   const glow = statusToGlow(key.status)
+  const isConnected = key.status === "valid"
 
   if (chronicleMode === "config") {
     return (
@@ -277,16 +391,44 @@ export function KeyChronicle({
 
   return (
     <div className="flex flex-col gap-4 px-4 py-5">
-      <HeroZone
-        title={displayLabel}
-        subtitle={`${key.key_source.toUpperCase()} · ${key.status}`}
-        glow={glow}
-      />
+      <div className="flex items-start gap-3">
+        <span
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[15px] font-semibold"
+          style={{
+            background: "hsl(var(--theme-surface-elevated) / 0.55)",
+            color: "hsl(var(--theme-ink-secondary))",
+            boxShadow: isConnected
+              ? undefined
+              : "0 0 16px 2px hsl(var(--theme-ink-tertiary) / 0.2)",
+          }}
+          aria-hidden
+        >
+          {providerLetter}
+        </span>
+        <div className="min-w-0 flex-1">
+          <HeroZone
+            title={displayLabel}
+            subtitle={`${key.key_source.toUpperCase()} · ${key.status}`}
+            glow={isConnected ? glow : "muted"}
+          />
+        </div>
+      </div>
 
       <KeyIdentityBlock
         displayLabel={displayLabel}
         keySource={key.key_source}
         description={key.description}
+      />
+
+      <KeyCredentialPanel
+        keySource={key.key_source}
+        status={key.status}
+        onSave={async (apiKey) => {
+          await saveCredential(apiKey)
+          await reload()
+        }}
+        saveBusy={rotateBusy}
+        saveError={keySaveError}
       />
 
       <KeyTraitStrip

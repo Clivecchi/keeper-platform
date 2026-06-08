@@ -33,6 +33,7 @@ export type KeyFeedData = {
   keyInput: string
   keySaveError: string | null
   verify: () => Promise<void>
+  saveCredential: (apiKey: string) => Promise<void>
   rotate: (apiKey: string) => Promise<void>
   revoke: () => Promise<void>
   setKeyInput: (value: string) => void
@@ -140,13 +141,50 @@ export function useKeyFeedData(keyId: string, domainId: string): {
         })) as KeyDto
         setKey(result)
         setKeyInput("")
+        await Promise.all([loadAgents(result.provider), loadIntegration(result.provider)])
       } catch (err) {
         setKeySaveError(err instanceof Error ? err.message : "Rotate failed")
       } finally {
         setRotateBusy(false)
       }
     },
-    [key],
+    [key, loadAgents, loadIntegration],
+  )
+
+  const saveCredential = React.useCallback(
+    async (apiKey: string) => {
+      if (!key) return
+      const needsCreate =
+        key.status === "unknown" ||
+        key.status === "invalid" ||
+        key.status === "revoked" ||
+        key.status === "expired"
+      if (needsCreate && key.key_source !== "env") {
+        setRotateBusy(true)
+        setKeySaveError(null)
+        try {
+          const result = (await apiFetch("/api/keys", {
+            method: "POST",
+            body: JSON.stringify({
+              domain_id: domainId,
+              provider: key.provider,
+              key_source: key.key_source === "platform" ? "platform" : "user",
+              api_key: apiKey,
+            }),
+          })) as KeyDto
+          setKey(result)
+          setKeyInput("")
+          await Promise.all([loadAgents(result.provider), loadIntegration(result.provider)])
+        } catch (err) {
+          setKeySaveError(err instanceof Error ? err.message : "Failed to save key")
+        } finally {
+          setRotateBusy(false)
+        }
+        return
+      }
+      await rotate(apiKey)
+    },
+    [key, domainId, loadAgents, loadIntegration, rotate],
   )
 
   const revoke = React.useCallback(async () => {
@@ -175,6 +213,7 @@ export function useKeyFeedData(keyId: string, domainId: string): {
       keyInput,
       keySaveError,
       verify,
+      saveCredential,
       rotate,
       revoke,
       setKeyInput,

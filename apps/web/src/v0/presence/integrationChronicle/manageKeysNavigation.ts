@@ -1,29 +1,4 @@
-import { apiFetch } from "../../../lib/apiFetch"
-
-type KeyListRow = { id: string; key_source: string }
-
-/** Resolve the Key EntityKind id for a provider in the active domain. */
-export async function fetchProviderKeyId(
-  domainId: string,
-  provider: string,
-): Promise<string | null> {
-  const normalized = provider.trim()
-  if (!domainId || !normalized) return null
-
-  const keys = (await apiFetch(
-    `/api/keys?domainId=${encodeURIComponent(domainId)}&provider=${encodeURIComponent(normalized)}&sync=1`,
-  )) as KeyListRow[]
-
-  if (!Array.isArray(keys) || keys.length === 0) return null
-
-  const preferred =
-    keys.find((k) => k.key_source === "env") ??
-    keys.find((k) => k.key_source === "user") ??
-    keys.find((k) => k.key_source === "platform") ??
-    keys[0]
-
-  return preferred?.id ?? null
-}
+import { fetchProviderKeyId } from "./keyNavUtils"
 
 /** Chronicle action handler — fetch provider key then navigate via onKeySelect. */
 export function buildManageKeysHandler(params: {
@@ -44,10 +19,12 @@ export function buildManageKeysHandler(params: {
           params.onKeySelect(keyId)
           return
         }
+        // sync=1 materializes a stub — retry once if the first response was empty
+        const retryId = await fetchProviderKeyId(params.domainId, params.provider)
+        if (retryId) params.onKeySelect(retryId)
       } catch {
-        /* fall through to config mode */
+        /* navigation requires a Key record — sync=1 should have created one */
       }
-      params.openConfigMode?.()
     })()
   }
 }

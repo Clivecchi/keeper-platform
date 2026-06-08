@@ -28,8 +28,15 @@ import type { KipDraftSummary } from "../../lib/kipApi"
 import { SidebarCard } from "../components/SidebarCard"
 import type { SidebarCardItem } from "../components/SidebarCard"
 import type { UniversalBoardDef, NavSectionKey } from "./UniversalBoardDefinition"
-import { useBoardDefs } from "./useBoardDefs"
 import { useUniversalBoardOptional } from "./UniversalBoardContext"
+import { useBoardDefs } from "./useBoardDefs"
+import {
+  fetchDomainKeyNavRows,
+  keyStatusNavHint,
+  providerDisplayLabel,
+  providerIconLetter,
+  type KeyNavRow,
+} from "../presence/integrationChronicle/keyNavUtils"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -49,6 +56,7 @@ export interface UniversalNavPanelProps {
   selectedDraftId?: string | null
   selectedAgentId?: string | null
   selectedServiceSlug?: string | null
+  selectedKeyId?: string | null
 
   // Selection callbacks — fired by this component, handled by the Board
   onDialogSelect?: (id: string) => void
@@ -57,6 +65,7 @@ export interface UniversalNavPanelProps {
   onDraftSelect?: (id: string) => void
   onAgentSelect?: (id: string) => void
   onServiceOpen?: (slug: string) => void
+  onKeySelect?: (id: string) => void
 
   // Collapse state — controlled by the Board
   collapsed?: boolean
@@ -103,7 +112,7 @@ type AgentItem = {
 
 type SectionKey = "dialogs" | "journeys" | "keepers" | "drafts" | "agents"
 
-type NavRenderBlock = SectionKey | "boardDefs" | "integrations"
+type NavRenderBlock = SectionKey | "boardDefs" | "integrations" | "keys"
 
 const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "dialogs",
@@ -111,6 +120,7 @@ const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "keepers",
   "drafts",
   "integrations",
+  "keys",
   "agents",
   "boardDefs",
 ]
@@ -186,12 +196,14 @@ export function UniversalNavPanel({
   selectedDraftId,
   selectedAgentId,
   selectedServiceSlug,
+  selectedKeyId,
   onDialogSelect,
   onJourneySelect,
   onKeeperSelect,
   onDraftSelect,
   onAgentSelect,
   onServiceOpen,
+  onKeySelect,
   collapsed = false,
   onToggleCollapsed,
   dialogListVersion = 0,
@@ -210,6 +222,8 @@ export function UniversalNavPanel({
   const [keepers, setKeepers] = React.useState<KeeperItem[] | null>(null)
   const [drafts, setDrafts] = React.useState<KipDraftSummary[] | null>(null)
   const [agents, setAgents] = React.useState<AgentItem[] | null>(null)
+  const [keys, setKeys] = React.useState<KeyNavRow[] | null>(null)
+  const [keyError, setKeyError] = React.useState<string | null>(null)
 
   // ── Per-section error states ─────────────────────────────────────────────
   const [dialogError, setDialogError] = React.useState<string | null>(null)
@@ -342,6 +356,27 @@ export function UniversalNavPanel({
     return () => { cancelled = true }
   }, [domainId, def.nav.sections.agents])
 
+  const showKeysNav = def.boardId === "ide" && (def.nav.integrations ?? []).some((item) => item.group === "ai")
+
+  // ── Fetch: Keys — IDE Board Layer 3 only ─────────────────────────────────
+  React.useEffect(() => {
+    if (!domainId || !showKeysNav) return
+    let cancelled = false
+    setKeys(null)
+    setKeyError(null)
+    void fetchDomainKeyNavRows(domainId)
+      .then((rows) => {
+        if (!cancelled) setKeys(rows)
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setKeyError(err instanceof Error ? err.message : "Failed to load keys")
+          setKeys([])
+        }
+      })
+    return () => { cancelled = true }
+  }, [domainId, showKeysNav])
+
   // ── Collapsed state — 36px strip with centered expand chevron ────────────
   if (collapsed) {
     return (
@@ -441,6 +476,15 @@ export function UniversalNavPanel({
   const infrastructureItems = infrastructureIntegrations.map(toIntegrationItem)
   const aiItems = aiIntegrations.map(toIntegrationItem)
   const integrationItems: SidebarCardItem[] = [...infrastructureItems, ...aiItems]
+
+  const keyItems: SidebarCardItem[] = (keys ?? []).map((key) => ({
+    id: key.id,
+    label: providerDisplayLabel(key.provider, key.display_label),
+    iconLetter: providerIconLetter(key.provider),
+    description: keyStatusNavHint(key.status),
+    isSelected: key.id === selectedKeyId,
+    onClick: () => onKeySelect?.(key.id),
+  }))
 
   // ── designer sections: Board Definitions ─────────────────────────────────
 
@@ -556,6 +600,23 @@ export function UniversalNavPanel({
               />
             ) : null}
           </div>
+        )
+      case "keys":
+        if (!showKeysNav) return null
+        return (
+          <>
+            <SidebarCard
+              className="keeper-sidebar-card"
+              title="Keys"
+              description={!domainId ? "Loading…" : countLabel(keys?.length ?? null, "key")}
+              items={keyItems.length ? keyItems : undefined}
+            />
+            {keyError && (
+              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                {keyError}
+              </p>
+            )}
+          </>
         )
       case "agents":
         if (!showAgents) return null

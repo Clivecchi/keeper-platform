@@ -15,6 +15,8 @@ export type KeyHealthBlockProps = {
   keyUpdateBusy?: boolean
   keyUpdateError?: string | null
   errorMessage?: string | null
+  /** When true, badges only — inline editor lives elsewhere (Key Chronicle). */
+  readOnly?: boolean
 }
 
 export function KeyHealthBlock({
@@ -25,9 +27,11 @@ export function KeyHealthBlock({
   keyUpdateBusy = false,
   keyUpdateError = null,
   errorMessage = null,
+  readOnly = false,
 }: KeyHealthBlockProps) {
   const [keyInput, setKeyInput] = React.useState("")
-  const showKeyInput = keyStatus === "invalid" || keyStatus === "missing"
+  const showKeyInput =
+    !readOnly && (keyStatus === "invalid" || keyStatus === "missing")
 
   const statusLabel =
     keyStatus === "valid" ? "Valid" : keyStatus === "invalid" ? "Invalid" : "Missing"
