@@ -32,9 +32,8 @@ import { useUniversalBoardOptional } from "./UniversalBoardContext"
 import { useBoardDefs } from "./useBoardDefs"
 import {
   fetchDomainKeyNavRows,
+  keyNavLabel,
   keyStatusNavHint,
-  providerDisplayLabel,
-  providerIconLetter,
   type KeyNavRow,
 } from "../presence/integrationChronicle/keyNavUtils"
 
@@ -479,8 +478,7 @@ export function UniversalNavPanel({
 
   const keyItems: SidebarCardItem[] = (keys ?? []).map((key) => ({
     id: key.id,
-    label: providerDisplayLabel(key.provider, key.display_label),
-    iconLetter: providerIconLetter(key.provider),
+    label: keyNavLabel(key),
     description: keyStatusNavHint(key.status),
     isSelected: key.id === selectedKeyId,
     onClick: () => onKeySelect?.(key.id),

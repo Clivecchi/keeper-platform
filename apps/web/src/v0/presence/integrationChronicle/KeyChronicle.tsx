@@ -142,14 +142,25 @@ function KeyCredentialPanel({
   saveBusy: boolean
   saveError: string | null
 }) {
-  const isEnv = keySource === "env"
-  const isValid = status === "valid"
+  const source = keySource.toLowerCase()
+  const normalizedStatus = (status || "unknown").toLowerCase()
+  const isEnv = source === "env"
+  const isValid = normalizedStatus === "valid"
   const needsCredential =
-    status === "invalid" || status === "revoked" || status === "unknown" || status === "expired"
+    !isValid ||
+    normalizedStatus === "invalid" ||
+    normalizedStatus === "revoked" ||
+    normalizedStatus === "unknown" ||
+    normalizedStatus === "expired"
   const [keyInput, setKeyInput] = React.useState("")
-  const [showUpdate, setShowUpdate] = React.useState(needsCredential)
+  const [showUpdate, setShowUpdate] = React.useState(false)
 
-  if (isEnv) {
+  React.useEffect(() => {
+    setKeyInput("")
+    setShowUpdate(false)
+  }, [keySource, status])
+
+  if (isEnv && isValid) {
     return (
       <div
         className="rounded-md border px-3 py-3"
@@ -165,6 +176,25 @@ function KeyCredentialPanel({
           {isValid
             ? "This key is set via environment variable. Update it in Railway to rotate."
             : "This provider expects an environment variable. Add the API key in Railway, then verify."}
+        </p>
+      </div>
+    )
+  }
+
+  if (isEnv && !isValid) {
+    return (
+      <div
+        className="rounded-md border px-3 py-3"
+        style={{ borderColor: "hsl(var(--theme-border-soft) / 0.45)" }}
+      >
+        <p
+          className="text-[11px] font-semibold uppercase tracking-wide mb-1.5"
+          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+        >
+          Environment key
+        </p>
+        <p className="text-[13px] leading-relaxed" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+          This provider expects an environment variable. Add the API key in Railway, then verify.
         </p>
       </div>
     )
@@ -421,6 +451,7 @@ export function KeyChronicle({
       />
 
       <KeyCredentialPanel
+        key={`${key.id}:${key.status}`}
         keySource={key.key_source}
         status={key.status}
         onSave={async (apiKey) => {

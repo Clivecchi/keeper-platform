@@ -26,6 +26,16 @@ export function providerDisplayLabel(provider: string, displayLabel?: string | n
   return displayLabel?.trim() || PROVIDER_LABELS[provider] || provider
 }
 
+/** Nav label — full provider name from Key record (e.g. "Anthropic Key" → "Anthropic"). */
+export function keyNavLabel(key: KeyNavRow): string {
+  const fromRecord = key.display_label?.trim()
+  if (fromRecord) {
+    const stripped = fromRecord.replace(/\s+Key$/i, "").trim()
+    if (stripped.length > 1) return stripped
+  }
+  return PROVIDER_LABELS[key.provider] || key.provider
+}
+
 export function providerIconLetter(provider: string): string {
   if (provider === "together-ai") return "T"
   return (PROVIDER_LABELS[provider] ?? provider).charAt(0).toUpperCase()

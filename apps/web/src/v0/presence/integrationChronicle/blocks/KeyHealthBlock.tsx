@@ -30,8 +30,7 @@ export function KeyHealthBlock({
   readOnly = false,
 }: KeyHealthBlockProps) {
   const [keyInput, setKeyInput] = React.useState("")
-  const showKeyInput =
-    !readOnly && (keyStatus === "invalid" || keyStatus === "missing")
+  const showKeyInput = !readOnly && keyStatus !== "valid"
 
   const statusLabel =
     keyStatus === "valid" ? "Valid" : keyStatus === "invalid" ? "Invalid" : "Missing"
