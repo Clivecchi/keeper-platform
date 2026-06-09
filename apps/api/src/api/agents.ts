@@ -507,10 +507,12 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
     if (memoryEnabled !== undefined) updatePayload.memory_enabled = memoryEnabled;
 
     let configForMerge: unknown = existing.config;
+    let lensPromptMerged = false;
     if (body.lensSystemPrompt !== undefined) {
       configForMerge = mergeAgentConfigFields(configForMerge, {
         voice_prompt: body.lensSystemPrompt,
       });
+      lensPromptMerged = true;
     }
 
     const mergedConfig = mergeAgentConfigFields(
@@ -523,7 +525,11 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
       },
       configFromBody,
     );
-    if (mergedConfig !== undefined) updatePayload.config = mergedConfig;
+    if (mergedConfig !== undefined) {
+      updatePayload.config = mergedConfig;
+    } else if (lensPromptMerged && configForMerge !== undefined) {
+      updatePayload.config = existingConfigRecord(configForMerge);
+    }
 
     const modelSettingsPatch: Record<string, unknown> = {
       ...(body.model_settings ?? {}),

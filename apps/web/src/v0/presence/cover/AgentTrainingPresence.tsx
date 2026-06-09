@@ -80,55 +80,6 @@ function TrainingIdentityHeader({
   )
 }
 
-/** Scaffold — Kip-suggested diff affordance (not wired to live proposals yet). */
-function ProposalScaffold() {
-  return (
-    <div
-      className="mt-3 rounded-lg border px-3 py-2.5"
-      style={{
-        borderColor: "hsl(var(--theme-status-success, 152 69% 43%) / 0.35)",
-        background: "hsl(var(--theme-surface-elevated) / 0.2)",
-      }}
-    >
-      <p
-        className="text-[11px] font-semibold uppercase tracking-widest mb-2"
-        style={{ color: "hsl(var(--theme-status-success, 152 69% 43%))" }}
-      >
-        Kip suggested
-      </p>
-      <div className="font-mono text-[13px] leading-relaxed space-y-1">
-        <p style={{ color: "hsl(var(--theme-status-success, 152 69% 43%))" }}>
-          + Example addition from Kip (scaffold)
-        </p>
-        <p className="line-through opacity-60" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-          − Example removal (scaffold)
-        </p>
-      </div>
-      <div className="mt-2 flex gap-2">
-        <button
-          type="button"
-          className="text-[12px] font-medium px-2.5 py-1 rounded-md border"
-          style={{
-            borderColor: "hsl(var(--theme-border-soft) / 0.5)",
-            color: "hsl(var(--theme-ink-secondary))",
-          }}
-          onClick={() => {}}
-        >
-          Accept
-        </button>
-        <button
-          type="button"
-          className="text-[12px] font-medium px-2.5 py-1 rounded-md"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          onClick={() => {}}
-        >
-          Dismiss
-        </button>
-      </div>
-    </div>
-  )
-}
-
 function TrainingSectionPanel({
   sectionKey,
   label,
@@ -261,8 +212,6 @@ function TrainingSectionPanel({
               {displayContent}
             </button>
           )}
-
-          <ProposalScaffold />
 
           <div className="mt-3 flex items-center justify-between gap-2">
             <div className="min-w-0" aria-live="polite">
