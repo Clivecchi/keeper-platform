@@ -3833,11 +3833,17 @@ export class KipAgentService {
           }
         }
         
+        const leadAgentConfig = (agent.config || {}) as Record<string, unknown>;
+        const leadVoicePrompt =
+          typeof leadAgentConfig.voice_prompt === 'string'
+            ? leadAgentConfig.voice_prompt.trim()
+            : '';
+
         // Generate response using real AI model with memory context
         const aiResult = await this.callAIModel(agent, input || '', previousMessages, userId, {
           mode: activeMode,
           modeConfig: activeModeConfig,
-          lens: { systemPrompt: lens?.systemPrompt || null },
+          lens: { systemPrompt: leadVoicePrompt || lens?.systemPrompt || null },
           debugSummary,
           maxChars,
           outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',

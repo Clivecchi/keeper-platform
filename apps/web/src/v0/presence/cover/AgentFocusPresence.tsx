@@ -26,6 +26,7 @@ export interface AgentFocusPresenceProps {
   advancedOpen: boolean
   advancedValues: { temperature: string; max_tokens: string }
   onSaveAgent?: () => void | Promise<void>
+  onDismissSaveError?: () => void
   onFieldChange: (key: string, value: string) => void
   onAdvancedOpenChange: (open: boolean) => void
   onAdvancedChange: (key: "temperature" | "max_tokens", value: string) => void
@@ -56,6 +57,7 @@ export function AgentFocusPresence({
   advancedOpen,
   advancedValues,
   onSaveAgent,
+  onDismissSaveError,
   onFieldChange,
   onAdvancedOpenChange,
   onAdvancedChange,
@@ -160,6 +162,7 @@ export function AgentFocusPresence({
             advancedValues={advancedValues}
             onBack={() => setCoverMode("cover")}
             onSave={() => void onSaveAgent?.()}
+            onDismissSaveError={onDismissSaveError}
             onFieldChange={onFieldChange}
             onAdvancedOpenChange={onAdvancedOpenChange}
             onAdvancedChange={onAdvancedChange}

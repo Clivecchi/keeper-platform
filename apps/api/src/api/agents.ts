@@ -508,12 +508,6 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
 
     let configForMerge: unknown = existing.config;
     if (body.lensSystemPrompt !== undefined) {
-      if (isLeadAgentRecord(existing)) {
-        return res.status(400).json({
-          error:
-            'Lead agents do not use per-agent voice prompts. Domain lens is configured at the domain level.',
-        });
-      }
       configForMerge = mergeAgentConfigFields(configForMerge, {
         voice_prompt: body.lensSystemPrompt,
       });

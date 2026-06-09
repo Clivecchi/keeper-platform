@@ -8,6 +8,7 @@ export interface ChronicleSaveBarProps {
   saveMessage: string | null
   isDirty: boolean
   onSave: () => void | Promise<void>
+  onDismissError?: () => void
   saveLabel?: string
 }
 
@@ -19,6 +20,7 @@ export function ChronicleSaveBar({
   saveMessage,
   isDirty,
   onSave,
+  onDismissError,
   saveLabel = "Save",
 }: ChronicleSaveBarProps) {
   return (
@@ -29,7 +31,7 @@ export function ChronicleSaveBar({
         background: "hsl(var(--theme-surface-elevated) / 0.06)",
       }}
     >
-      <div className="min-w-0" aria-live="polite">
+      <div className="min-w-0 flex items-center gap-2" aria-live="polite">
         {saveStatus === "saving" && (
           <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
             Saving…
@@ -44,12 +46,24 @@ export function ChronicleSaveBar({
           </p>
         )}
         {saveStatus === "error" && saveMessage && (
-          <p
-            className="text-[12px] font-medium"
-            style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
-          >
-            {saveMessage}
-          </p>
+          <>
+            <p
+              className="text-[12px] font-medium"
+              style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
+            >
+              {saveMessage}
+            </p>
+            {onDismissError && (
+              <button
+                type="button"
+                onClick={onDismissError}
+                className="shrink-0 text-[11px] font-medium px-1.5 py-0.5 rounded opacity-80 hover:opacity-100"
+                style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+              >
+                Dismiss
+              </button>
+            )}
+          </>
         )}
         {saveStatus === "idle" && isDirty && (
           <p className="text-[12px]" style={{ color: "hsl(var(--theme-ink-secondary))" }}>

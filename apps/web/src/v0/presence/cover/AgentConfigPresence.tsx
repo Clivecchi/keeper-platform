@@ -3,7 +3,7 @@
 import * as React from "react"
 import type { FieldDefinition } from "../KeeperPresenceDefaults"
 import { resolveFieldLabel } from "../KeeperPresenceDefaults"
-import { AgentPromptsSection } from "../AgentPromptsSection"
+import { ComposedPromptPreview } from "../ComposedPromptPreview.tsx"
 import { ChronicleConfigShell } from "../chronicleConfig/useChronicleConfig"
 import type { ChronicleSaveStatus } from "../chronicleConfig/types"
 
@@ -21,6 +21,7 @@ export interface AgentConfigPresenceProps {
   isDirty: boolean
   onBack: () => void
   onSave: () => void | Promise<void>
+  onDismissSaveError?: () => void
   onFieldChange: (key: string, value: string) => void
   onAdvancedOpenChange: (open: boolean) => void
   onAdvancedChange: (key: "temperature" | "max_tokens", value: string) => void
@@ -64,6 +65,7 @@ export function AgentConfigPresence({
   isDirty,
   onBack,
   onSave,
+  onDismissSaveError,
   onFieldChange,
   onAdvancedOpenChange,
   onAdvancedChange,
@@ -83,7 +85,7 @@ export function AgentConfigPresence({
     tagline: "Role line — how this agent is billed",
     purpose: "What this agent is for",
     personality: "Personality traits",
-    lensSystemPrompt: "Agent voice — first person, present tense…",
+    lensSystemPrompt: "How this agent thinks and what it knows…",
     model: "Model identifier",
     // incomplete — static model list
     model_provider: "anthropic, openai, together-ai…",
@@ -105,6 +107,7 @@ export function AgentConfigPresence({
       saveMessage={saveMessage}
       isDirty={isDirty}
       onSave={onSave}
+      onDismissError={onDismissSaveError}
     >
       {/* Domain assignment — incomplete — no save path */}
       <div className="mb-4">
@@ -132,17 +135,43 @@ export function AgentConfigPresence({
 
       {!hiddenFields.includes("lensSystemPrompt") && (
         <div className="mb-4">
-          <p className="keeper-presence-field-label mb-1.5">Agent Voice (Lens Prompt)</p>
-          <AgentPromptsSection
-            lensValue={fieldValues.lensSystemPrompt ?? ""}
-            composedValue={fieldValues.composedSystemPrompt ?? ""}
-            showAgentVoice
-            showComposed={!hiddenFields.includes("composedSystemPrompt")}
-            lensError={fieldErrors.lensSystemPrompt}
-            onLensChange={(v: string) => onFieldChange("lensSystemPrompt", v)}
+          <p className="keeper-presence-field-label mb-1">System Prompt</p>
+          <p
+            className="text-[12px] mb-2 leading-relaxed"
+            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+          >
+            How this agent thinks and what it knows.
+          </p>
+          <textarea
+            value={fieldValues.lensSystemPrompt ?? ""}
+            onChange={(e) => onFieldChange("lensSystemPrompt", e.target.value)}
+            rows={6}
+            placeholder={placeholders.lensSystemPrompt}
+            className="w-full resize-y rounded-md border px-3 py-2.5 font-mono text-[14px] leading-relaxed bg-transparent outline-none"
+            style={{
+              borderColor: "hsl(var(--theme-border-soft) / 0.5)",
+              color: "hsl(var(--theme-ink-primary))",
+              minHeight: "9rem",
+            }}
           />
+          {fieldErrors.lensSystemPrompt ? (
+            <p
+              className="text-[13px] mt-2 leading-relaxed"
+              style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}
+            >
+              {fieldErrors.lensSystemPrompt}
+            </p>
+          ) : null}
         </div>
       )}
+
+      {!hiddenFields.includes("composedSystemPrompt") &&
+        fieldValues.composedSystemPrompt?.trim() && (
+          <div className="mb-4">
+            <p className="keeper-presence-field-label mb-1.5">Runtime assembly</p>
+            <ComposedPromptPreview value={fieldValues.composedSystemPrompt} />
+          </div>
+        )}
 
       <div className="mb-4">
         <button

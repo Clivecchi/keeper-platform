@@ -1222,7 +1222,7 @@ export function KeeperPresence({
       if (objectType !== "agent") return null
       const lensTrimmed = fieldValuesRef.current.lensSystemPrompt?.trim() ?? ""
       if (lensTrimmed.length > 0 && lensTrimmed.length < 10) {
-        return "Lens prompt must be at least 10 characters."
+        return "System prompt must be at least 10 characters."
       }
       return null
     },
@@ -1412,6 +1412,9 @@ export function KeeperPresence({
         onChronicleSave={
           usesExplicitChronicleSave ? () => void handleExplicitSave() : undefined
         }
+        onDismissSaveError={
+          usesExplicitChronicleSave ? chronicleConfig.dismissSaveError : undefined
+        }
         boardId={boardId}
         schema={schema}
         meta={meta}
@@ -1458,6 +1461,7 @@ function KeeperPresenceSurface({
   markEdited,
   isDirty,
   onChronicleSave,
+  onDismissSaveError,
   boardId,
   schema,
   meta,
@@ -1498,6 +1502,7 @@ function KeeperPresenceSurface({
   markEdited: () => void
   isDirty: boolean
   onChronicleSave?: () => void | Promise<void>
+  onDismissSaveError?: () => void
   boardId?: string
   schema: ReturnType<typeof usePresenceSchema>["schema"]
   meta?: PresenceMeta
@@ -1772,6 +1777,7 @@ function KeeperPresenceSurface({
         advancedOpen={advancedOpen}
         advancedValues={advancedValues}
         onSaveAgent={onChronicleSave}
+        onDismissSaveError={onDismissSaveError}
         onFieldChange={handleFieldChange}
         onAdvancedOpenChange={setAdvancedOpen}
         onAdvancedChange={(key, value) => {

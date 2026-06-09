@@ -32,7 +32,7 @@ export function parseChroniclePatchFieldErrors(
       ),
     )
     if (zodLensErr || status === 400) {
-      errors.lensSystemPrompt = "Agent voice must be at least 10 characters."
+      errors.lensSystemPrompt = "System prompt must be at least 10 characters."
     }
   }
 

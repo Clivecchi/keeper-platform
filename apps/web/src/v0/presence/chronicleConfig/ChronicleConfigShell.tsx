@@ -96,6 +96,7 @@ export function ChronicleConfigShell({
   saveMessage,
   isDirty,
   onSave,
+  onDismissError,
   saveLabel,
 }: ChronicleConfigShellProps) {
   return (
@@ -118,6 +119,7 @@ export function ChronicleConfigShell({
         saveMessage={saveMessage}
         isDirty={isDirty}
         onSave={onSave}
+        onDismissError={onDismissError}
         saveLabel={saveLabel}
       />
     </motion.div>

@@ -36,6 +36,7 @@ export interface UseChronicleConfigResult {
   markEdited: () => void
   clearDirty: () => void
   handleSave: () => Promise<void>
+  dismissSaveError: () => void
   setSaveStatus: React.Dispatch<React.SetStateAction<ChronicleSaveStatus>>
   setSaveMessage: React.Dispatch<React.SetStateAction<string | null>>
   setFieldErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>
@@ -74,15 +75,29 @@ export function useChronicleConfig({
     setFieldErrors({})
   }, [])
 
+  const dismissSaveError = React.useCallback(() => {
+    setSaveStatus("idle")
+    setSaveMessage(null)
+  }, [])
+
+  React.useEffect(() => {
+    if (saveStatus !== "saved") return
+    const timer = window.setTimeout(() => {
+      setSaveStatus("idle")
+      setSaveMessage(null)
+    }, 2000)
+    return () => window.clearTimeout(timer)
+  }, [saveStatus])
+
   const handleSave = React.useCallback(async () => {
     if (!entityId || !domainId) return
 
     const validationError = validate?.()
     if (validationError) {
-      if (entityKind === "agent" && validationError.includes("Lens")) {
+      if (entityKind === "agent" && validationError.includes("prompt")) {
         setFieldErrors((prev) => ({
           ...prev,
-          lensSystemPrompt: "Agent voice must be at least 10 characters.",
+          lensSystemPrompt: "System prompt must be at least 10 characters.",
         }))
       }
       setSaveStatus("error")
@@ -175,6 +190,7 @@ export function useChronicleConfig({
     markEdited,
     clearDirty,
     handleSave,
+    dismissSaveError,
     setSaveStatus,
     setSaveMessage,
     fieldErrors,

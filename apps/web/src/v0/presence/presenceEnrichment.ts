@@ -569,9 +569,9 @@ async function enrichAgent(
     }
   }
 
-  if (!isLead && record.config && typeof record.config === "object" && !Array.isArray(record.config)) {
+  if (record.config && typeof record.config === "object" && !Array.isArray(record.config)) {
     const cfg = record.config as Record<string, unknown>
-    if (typeof cfg.voice_prompt === "string" && cfg.voice_prompt.trim()) {
+    if (typeof cfg.voice_prompt === "string") {
       record.lensSystemPrompt = cfg.voice_prompt
     }
   }
@@ -633,7 +633,7 @@ async function enrichAgent(
     meta: { line: metaParts.join(" · ") || undefined },
     relatedSections,
     hiddenFields: isLead
-      ? ["lensId", "lensName", "lensSystemPrompt"]
+      ? ["lensId", "lensName"]
       : ["lensId", "lensName", "composedSystemPrompt"],
   }
 }
