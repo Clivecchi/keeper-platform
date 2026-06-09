@@ -254,7 +254,8 @@ function buildRailwayDeployments(feed: FeedDataState<RailwayFeedData>): Deployme
     feed.data
   return deployments.map((dep) => ({
     id: dep.id,
-    title: services.find((s) => s.id === dep.serviceId)?.name ?? "Service",
+    title:
+      dep.serviceName ?? services.find((s) => s.id === dep.serviceId)?.name ?? "Service",
     status: dep.status ?? "unknown",
     timestampLabel: formatRelativeTime(dep.createdAt),
     logs: expandedId === dep.id ? expandedLogs : undefined,

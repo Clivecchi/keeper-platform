@@ -108,6 +108,8 @@ type RailwayDeployment = {
   status?: string
   createdAt?: string
   serviceId?: string
+  serviceName?: string
+  source?: string
 }
 
 type RailwayService = { id: string; name: string }
@@ -234,7 +236,8 @@ function RailwayDeploymentFeed({
 
   const items: DeploymentFeedItem[] = deployments.map((dep) => ({
     id: dep.id,
-    title: services.find((s) => s.id === dep.serviceId)?.name ?? "Service",
+    title:
+      dep.serviceName ?? services.find((s) => s.id === dep.serviceId)?.name ?? "Service",
     status: dep.status ?? "unknown",
     timestampLabel: formatRelativeTime(dep.createdAt),
   }))

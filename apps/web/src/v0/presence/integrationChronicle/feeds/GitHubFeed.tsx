@@ -120,7 +120,7 @@ export function useGitHubFeedData(domainId: string, connected: boolean) {
       const repoName = repoRes.full_name ?? fullName
       const branch = configuredBranch ?? repoRes.default_branch ?? "main"
 
-      const [commitRes, prRes, branchRes] = await Promise.all([
+      const [commitRes, prRes, branchRes, integrationsRes] = await Promise.all([
         githubProxy<
           Array<{ sha: string; commit?: { message?: string; author?: { date?: string; name?: string } } }>
         >(`/repos/${fullName}/commits?per_page=8`).catch(() => []),
@@ -130,19 +130,67 @@ export function useGitHubFeedData(domainId: string, connected: boolean) {
         githubProxy<Array<{ name: string; protected?: boolean }>>(
           `/repos/${fullName}/branches?per_page=8`,
         ).catch(() => []),
+        apiFetch("/api/integrations").catch(() => []),
       ])
+
+      let commits = (Array.isArray(commitRes) ? commitRes : []).map((c) => ({
+        sha: c.sha?.slice(0, 7) ?? "—",
+        message: c.commit?.message?.split("\n")[0],
+        date: c.commit?.author?.date,
+        author: c.commit?.author?.name,
+      }))
+      let pulls = Array.isArray(prRes) ? prRes : []
+      let branches = Array.isArray(branchRes) ? branchRes : []
+
+      const githubIntegration = (
+        Array.isArray(integrationsRes) ? integrationsRes : []
+      ).find((row) => row && typeof row === "object" && (row as { service?: string }).service === "github") as
+        | { metadata?: { repository_activity?: Record<string, unknown> } }
+        | undefined
+      const activity = githubIntegration?.metadata?.repository_activity
+      if (activity && typeof activity === "object") {
+        const lastPush = activity.lastPush as
+          | { message?: string; author?: string; timestamp?: string; ref?: string }
+          | undefined
+        if (lastPush?.message) {
+          commits = [
+            {
+              sha: "webhook",
+              message: lastPush.message,
+              date: lastPush.timestamp,
+              author: lastPush.author,
+            },
+            ...commits.filter((c) => c.sha !== "webhook"),
+          ]
+        }
+        const lastPr = activity.lastPullRequest as
+          | { number?: number; title?: string; state?: string; updatedAt?: string }
+          | undefined
+        if (lastPr?.title) {
+          const prRow = {
+            number: lastPr.number ?? 0,
+            title: lastPr.title,
+            state: lastPr.state,
+            updated_at: lastPr.updatedAt,
+          }
+          pulls = [prRow, ...pulls.filter((p) => p.number !== prRow.number)]
+        }
+        const branchCount =
+          typeof activity.branchCount === "number" ? activity.branchCount : undefined
+        if (branchCount != null && branches.length < branchCount) {
+          const placeholders = Array.from({ length: branchCount - branches.length }, (_, i) => ({
+            name: `branch-${i + 1}`,
+          }))
+          branches = [...branches, ...placeholders]
+        }
+      }
 
       setData({
         repoName,
         branch,
-        commits: (Array.isArray(commitRes) ? commitRes : []).map((c) => ({
-          sha: c.sha?.slice(0, 7) ?? "—",
-          message: c.commit?.message?.split("\n")[0],
-          date: c.commit?.author?.date,
-          author: c.commit?.author?.name,
-        })),
-        pulls: Array.isArray(prRes) ? prRes : [],
-        branches: Array.isArray(branchRes) ? branchRes : [],
+        commits,
+        pulls,
+        branches,
       })
     } catch (err) {
       setError(formatGitHubProxyError(err))

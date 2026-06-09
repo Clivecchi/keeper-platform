@@ -4,7 +4,7 @@
  * Cloud platform agent seed — infra read capabilities for Railway/Vercel/GitHub Chronicle.
  *
  * Canonical capability list matches apps/api/src/capabilities/infraCapabilities.ts
- * `CLOUD_INFRA_READ_CAPABILITIES`.
+ * `CLOUD_AGENT_CAPABILITIES` (infra read + GitHub MCP tools).
  *
  * Idempotent — creates Cloud agent or ensures read infra capabilities are present.
  */
@@ -18,8 +18,24 @@ export const CLOUD_INFRA_READ_CAPABILITIES = [
   'infra.github.read',
 ] as const;
 
+export const GITHUB_MCP_TOOL_CAPABILITIES = [
+  'github.repo.read',
+  'github.commits.list',
+  'github.branch.create',
+  'github.file.write',
+  'github.pr.create',
+  'github.pr.read',
+  'github.actions.status',
+] as const;
+
+export const CLOUD_AGENT_CAPABILITIES = [
+  ...CLOUD_INFRA_READ_CAPABILITIES,
+  'infra.github.write',
+  ...GITHUB_MCP_TOOL_CAPABILITIES,
+] as const;
+
 function mergeCloudCapabilities(existing: string[]): string[] {
-  return Array.from(new Set([...existing, ...CLOUD_INFRA_READ_CAPABILITIES]));
+  return Array.from(new Set([...existing, ...CLOUD_AGENT_CAPABILITIES]));
 }
 
 export { prisma as cloudAgentPrisma };
@@ -58,7 +74,7 @@ export default async function seedCloudAgent() {
       memory_enabled: true,
       tools: [],
       permissions: [],
-      capabilities: [...CLOUD_INFRA_READ_CAPABILITIES],
+      capabilities: [...CLOUD_AGENT_CAPABILITIES],
       config: {
         persona: null,
         suppress_kip_system_prompt: true,

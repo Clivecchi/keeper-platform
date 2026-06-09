@@ -52,7 +52,10 @@ function buildHealth(service: (typeof SERVICES)[number], status: string, now: st
     } else if (layer === 'webhooks') {
       health.webhooks = { status: 'inactive', last_checked: now };
     } else if (layer === 'mcp') {
-      health.mcp = { status: 'inactive', last_checked: now };
+      health.mcp = {
+        status: service === 'github' ? 'live' : 'inactive',
+        last_checked: now,
+      };
     }
   }
 

@@ -4,6 +4,7 @@
 
 import { RailwayService } from '../services/RailwayService.js';
 import { VercelDeploymentService } from '../services/VercelDeploymentService.js';
+import { GitHubService } from '../services/GitHubService.js';
 
 export type ToolContext = {
   domainId: string | null;
@@ -244,6 +245,152 @@ const tools: Tool[] = [
     async handler(args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'vercel_trigger_redeploy')!, ctx);
       return VercelDeploymentService.create().triggerRedeploy(String(args.deploymentId));
+    },
+  },
+  {
+    name: 'github.repo.read',
+    description:
+      'Read repository contents, file tree, or a specific file by path. Required capability: github.repo.read.',
+    requiredCapability: 'github.repo.read',
+    parameters: {
+      type: 'object',
+      properties: {
+        repository: { type: 'string', description: 'Repository as owner/repo' },
+        owner: { type: 'string', description: 'Repository owner' },
+        repo: { type: 'string', description: 'Repository name' },
+        path: { type: 'string', description: 'File path within the repository' },
+        branch: { type: 'string', description: 'Branch or ref (default main)' },
+        ref: { type: 'string', description: 'Alias for branch' },
+        mode: { type: 'string', enum: ['file', 'tree'], description: 'file or tree listing' },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'github.repo.read')!, ctx);
+      return GitHubService.readRepository(args);
+    },
+  },
+  {
+    name: 'github.commits.list',
+    description: 'List recent commits on a branch. Required capability: github.commits.list.',
+    requiredCapability: 'github.commits.list',
+    parameters: {
+      type: 'object',
+      properties: {
+        repository: { type: 'string', description: 'Repository as owner/repo' },
+        owner: { type: 'string' },
+        repo: { type: 'string' },
+        branch: { type: 'string', description: 'Branch name (default main)' },
+        limit: { type: 'number', description: 'Number of commits, default 10' },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'github.commits.list')!, ctx);
+      return GitHubService.listCommits(args);
+    },
+  },
+  {
+    name: 'github.branch.create',
+    description:
+      'Create a new branch from a base branch. ALWAYS confirm with the user before calling. Required capability: github.branch.create.',
+    requiredCapability: 'github.branch.create',
+    parameters: {
+      type: 'object',
+      required: ['branch'],
+      properties: {
+        repository: { type: 'string', description: 'Repository as owner/repo' },
+        owner: { type: 'string' },
+        repo: { type: 'string' },
+        branch: { type: 'string', description: 'New branch name' },
+        base: { type: 'string', description: 'Base branch (default main)' },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'github.branch.create')!, ctx);
+      return GitHubService.createBranch(args);
+    },
+  },
+  {
+    name: 'github.file.write',
+    description:
+      'Commit a file create or update to a branch. ALWAYS confirm with the user before calling. Required capability: github.file.write.',
+    requiredCapability: 'github.file.write',
+    parameters: {
+      type: 'object',
+      required: ['path', 'content'],
+      properties: {
+        repository: { type: 'string', description: 'Repository as owner/repo' },
+        owner: { type: 'string' },
+        repo: { type: 'string' },
+        path: { type: 'string', description: 'File path within the repository' },
+        branch: { type: 'string', description: 'Target branch' },
+        content: { type: 'string', description: 'UTF-8 file content' },
+        message: { type: 'string', description: 'Commit message' },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'github.file.write')!, ctx);
+      return GitHubService.writeFile(args);
+    },
+  },
+  {
+    name: 'github.pr.create',
+    description:
+      'Open a pull request from head branch to base. ALWAYS confirm with the user before calling. Required capability: github.pr.create.',
+    requiredCapability: 'github.pr.create',
+    parameters: {
+      type: 'object',
+      required: ['title', 'head'],
+      properties: {
+        repository: { type: 'string', description: 'Repository as owner/repo' },
+        owner: { type: 'string' },
+        repo: { type: 'string' },
+        title: { type: 'string', description: 'PR title' },
+        head: { type: 'string', description: 'Head branch' },
+        base: { type: 'string', description: 'Base branch (default main)' },
+        body: { type: 'string', description: 'PR description' },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'github.pr.create')!, ctx);
+      return GitHubService.createPullRequest(args);
+    },
+  },
+  {
+    name: 'github.pr.read',
+    description: 'Read pull request status, reviews, and check state. Required capability: github.pr.read.',
+    requiredCapability: 'github.pr.read',
+    parameters: {
+      type: 'object',
+      required: ['number'],
+      properties: {
+        repository: { type: 'string', description: 'Repository as owner/repo' },
+        owner: { type: 'string' },
+        repo: { type: 'string' },
+        number: { type: 'number', description: 'Pull request number' },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'github.pr.read')!, ctx);
+      return GitHubService.readPullRequest(args);
+    },
+  },
+  {
+    name: 'github.actions.status',
+    description:
+      'Read the most recent GitHub Actions workflow run. Required capability: github.actions.status.',
+    requiredCapability: 'github.actions.status',
+    parameters: {
+      type: 'object',
+      properties: {
+        repository: { type: 'string', description: 'Repository as owner/repo' },
+        owner: { type: 'string' },
+        repo: { type: 'string' },
+        branch: { type: 'string', description: 'Optional branch filter' },
+      },
+    },
+    async handler(args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'github.actions.status')!, ctx);
+      return GitHubService.getActionsStatus(args);
     },
   },
 ];

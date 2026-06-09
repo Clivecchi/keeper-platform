@@ -364,6 +364,10 @@ app.use((req, res, next) => {
 
 // CORS preflight requests are handled by the cors middleware above
 
+// Webhooks need raw body bytes for signature verification — mount before JSON parser
+app.use('/api/webhooks', webhookRoutes);
+console.log('[boot] ✅ mounted /api/webhooks router (raw body)');
+
 // Basic middleware with defensive JSON parsing for MCP compatibility
 // Increased limit to 50mb to support base64-encoded files (25MB file → ~33MB base64)
 app.use(express.json({ limit: '50mb', type: ['application/json', 'text/json', '*/json'] as any }));
@@ -1071,8 +1075,6 @@ app.use('/api/railway', railwayRoutes);
 console.log('[boot] ✅ mounted /api/railway router');
 app.use('/api/vercel', vercelRoutes);
 console.log('[boot] ✅ mounted /api/vercel router');
-app.use('/api/webhooks', webhookRoutes);
-console.log('[boot] ✅ mounted /api/webhooks router');
 app.use('/api/capabilities', capabilityRoutes);
 console.log('[boot] ✅ mounted /api/capabilities router');
 // Mount KAM read-only API

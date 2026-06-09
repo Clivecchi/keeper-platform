@@ -17,9 +17,27 @@ export type InfraCapability = (typeof INFRA_CAPABILITIES)[keyof typeof INFRA_CAP
 /** All six infra capability strings — IDE Board ceiling. */
 export const ALL_INFRA_CAPABILITIES: readonly string[] = Object.values(INFRA_CAPABILITIES);
 
+/** GitHub MCP tool capability strings (C3) — one per registered tool. */
+export const GITHUB_MCP_TOOL_CAPABILITIES: readonly string[] = [
+  'github.repo.read',
+  'github.commits.list',
+  'github.branch.create',
+  'github.file.write',
+  'github.pr.create',
+  'github.pr.read',
+  'github.actions.status',
+];
+
 /** Read-only infra capabilities seeded on Cloud. */
 export const CLOUD_INFRA_READ_CAPABILITIES: readonly string[] = [
   INFRA_CAPABILITIES.RAILWAY_READ,
   INFRA_CAPABILITIES.VERCEL_READ,
   INFRA_CAPABILITIES.GITHUB_READ,
+];
+
+/** Full Cloud infra + GitHub MCP capability set. */
+export const CLOUD_AGENT_CAPABILITIES: readonly string[] = [
+  ...CLOUD_INFRA_READ_CAPABILITIES,
+  INFRA_CAPABILITIES.GITHUB_WRITE,
+  ...GITHUB_MCP_TOOL_CAPABILITIES,
 ];

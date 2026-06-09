@@ -8,6 +8,12 @@ import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import { requireCapability } from '../middleware/requireCapability.js';
 import { INFRA_CAPABILITIES } from '../capabilities/infraCapabilities.js';
 import { VercelDeploymentService } from '../services/VercelDeploymentService.js';
+import {
+  findPlatformIntegration,
+  readLastDeploymentEvent,
+  webhookEventToVercelDeployment,
+  prependWebhookDeployment,
+} from '../lib/integrationWebhookStore.js';
 
 const router = Router();
 
@@ -24,7 +30,11 @@ router.get(
     try {
       const limit = req.query.limit ? Number(req.query.limit) : 10;
       const deployments = await getService().getDeployments(limit);
-      return res.json({ success: true, data: deployments });
+      const integration = await findPlatformIntegration('vercel');
+      const webhookEvent = readLastDeploymentEvent(integration?.metadata);
+      const webhookRow = webhookEvent ? webhookEventToVercelDeployment(webhookEvent) : null;
+      const merged = prependWebhookDeployment(deployments, webhookRow, limit);
+      return res.json({ success: true, data: merged });
     } catch (err) {
       console.error('[vercel/deployments]', err);
       return res.status(502).json({
