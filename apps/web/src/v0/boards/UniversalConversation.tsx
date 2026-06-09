@@ -1071,6 +1071,15 @@ export function UniversalConversation({
           sessionLabel: "Session" as const,
         }
       case "agent":
+        if (selection.trainingMode) {
+          return {
+            primary: "Training",
+            secondary: selectedAgentRecord?.name ?? def.conversation.agentName,
+            prelude: "Exit Training",
+            onPreludeClick: () => actions.onExitTrainingMode(),
+            sessionLabel: "Session" as const,
+          }
+        }
         if (usingSelectedNonDefaultAgent && selectedAgentRecord) {
           return {
             primary: selectedAgentRecord.name,
@@ -1140,6 +1149,8 @@ export function UniversalConversation({
     invokedToolSlug,
     journeyCount,
     momentCount,
+    selection.trainingMode,
+    actions,
   ])
 
   // ── modelProvider — ide mode reads from domain frame ──────────────────────

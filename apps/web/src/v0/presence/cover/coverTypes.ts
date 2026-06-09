@@ -75,7 +75,10 @@ export interface EntityCoverSchema<TRecord = Record<string, unknown>> {
 
 export interface CoverActionHandlers {
   onConfigure: () => void
-  onOpenSession: () => void
+  /** Keys and legacy surfaces — focus conversation composer */
+  onOpenSession?: () => void
+  /** Agent cover — enter board Training Mode */
+  onTrain?: () => void
 }
 
-export type AgentCoverMode = "cover" | "config"
+export type AgentCoverMode = "cover" | "config" | "training"

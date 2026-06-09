@@ -1763,6 +1763,7 @@ function KeeperPresenceSurface({
     return (
       <AgentFocusPresence
         objectId={objectId}
+        domainId={domainId}
         record={record}
         domainSlug={domainSlug}
         domainDisplayName={domainDisplayName}

@@ -138,11 +138,11 @@ export const agentCoverSchema: EntityCoverSchema = {
         onClick: handlers.onConfigure,
       },
       {
-        id: "open-session",
-        label: "Open Session",
+        id: "train",
+        label: "Train",
         variant: "primary" as const,
         icon: "play" as const,
-        onClick: handlers.onOpenSession,
+        onClick: handlers.onTrain ?? handlers.onOpenSession ?? (() => {}),
       },
     ]
 

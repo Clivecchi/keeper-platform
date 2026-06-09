@@ -7,11 +7,13 @@ import type { RelatedSection } from "../presenceEnrichment"
 import { EntityCoverPresence } from "./EntityCoverPresence"
 import { AgentConfigPresence } from "./AgentConfigPresence"
 import { resolveAgentCoverContent } from "./schemas/agentCoverSchema"
-import { focusConversationComposer } from "./openSession"
+import { AgentTrainingPresence } from "./AgentTrainingPresence"
+import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import type { AgentCoverMode } from "./coverTypes"
 
 export interface AgentFocusPresenceProps {
   objectId: string
+  domainId: string
   record: Record<string, unknown>
   domainSlug?: string
   domainDisplayName?: string
@@ -43,6 +45,7 @@ export interface AgentFocusPresenceProps {
  */
 export function AgentFocusPresence({
   objectId,
+  domainId,
   record,
   domainSlug,
   domainDisplayName,
@@ -63,11 +66,26 @@ export function AgentFocusPresence({
   onAdvancedChange,
   renderFieldEditor,
 }: AgentFocusPresenceProps) {
+  const boardCtx = useUniversalBoardOptional()
+  const trainingMode = boardCtx?.selection.trainingMode ?? false
   const [coverMode, setCoverMode] = React.useState<AgentCoverMode>("cover")
+  const [voicePrompt, setVoicePrompt] = React.useState(
+    () => fieldValues.lensSystemPrompt ?? "",
+  )
 
   React.useEffect(() => {
     setCoverMode("cover")
   }, [objectId])
+
+  React.useEffect(() => {
+    setVoicePrompt(fieldValues.lensSystemPrompt ?? "")
+  }, [fieldValues.lensSystemPrompt, objectId])
+
+  React.useEffect(() => {
+    if (!trainingMode && coverMode === "training") {
+      setCoverMode("cover")
+    }
+  }, [trainingMode, coverMode])
 
   const coverContent = React.useMemo(
     () =>
@@ -81,16 +99,34 @@ export function AgentFocusPresence({
         },
         {
           onConfigure: () => setCoverMode("config"),
-          onOpenSession: () => focusConversationComposer(),
+          onTrain: () => boardCtx?.actions.onEnterTrainingMode(),
         },
       ),
-    [record, fieldValues, objectId, domainSlug, domainDisplayName],
+    [record, fieldValues, objectId, domainSlug, domainDisplayName, boardCtx],
   )
+
+  const showTraining = trainingMode && coverMode !== "config"
 
   return (
     <div className="relative flex flex-col h-full min-h-0">
       <AnimatePresence mode="wait">
-        {coverMode === "cover" ? (
+        {showTraining ? (
+          <AgentTrainingPresence
+            key="training"
+            objectId={objectId}
+            domainId={domainId}
+            voicePrompt={voicePrompt}
+            identity={{
+              name: fieldValues.name ?? "",
+              avatar: fieldValues.avatar,
+              status: fieldValues.status,
+            }}
+            onVoicePromptSaved={(next) => {
+              setVoicePrompt(next)
+              onFieldChange("lensSystemPrompt", next)
+            }}
+          />
+        ) : coverMode === "cover" ? (
           <motion.div
             key="cover"
             className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-4"

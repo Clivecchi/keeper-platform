@@ -40,6 +40,8 @@ export interface UniversalBoardSelection {
   selectedBoardDefId: string | null
   /** Increment to refetch draft presence in Chronicle after point mutations. */
   draftPresenceRevision: number
+  /** Agent Board: Chronicle Training Mode — entered via Train on agent cover. */
+  trainingMode: boolean
 }
 
 export interface UniversalBoardActions {
@@ -60,6 +62,8 @@ export interface UniversalBoardActions {
   /** designer mode: selects a board definition — drives right-panel BoardDefView. */
   onBoardDefSelect: (id: string) => void
   bumpDraftPresence: () => void
+  onEnterTrainingMode: () => void
+  onExitTrainingMode: () => void
 }
 
 export interface UniversalBoardContextValue {
@@ -109,6 +113,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [selectedSoleMemoryId, setSelectedSoleMemoryId] = React.useState<string | null>(null)
   const [selectedBoardDefId, setSelectedBoardDefId] = React.useState<string | null>(null)
   const [draftPresenceRevision, setDraftPresenceRevision] = React.useState(0)
+  const [trainingMode, setTrainingMode] = React.useState(false)
 
   // ── Nav state ──────────────────────────────────────────────────────────────
   const [navCollapsed, setNavCollapsed] = React.useState(false)
@@ -187,6 +192,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [])
 
   const onAgentSelect = React.useCallback((id: string) => {
+    setTrainingMode(false)
     setSelectedAgentId(id)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
@@ -224,7 +230,16 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedSoleMemoryId(id)
   }, [])
 
+  const onEnterTrainingMode = React.useCallback(() => {
+    setTrainingMode(true)
+  }, [])
+
+  const onExitTrainingMode = React.useCallback(() => {
+    setTrainingMode(false)
+  }, [])
+
   const clearSelection = React.useCallback(() => {
+    setTrainingMode(false)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedMomentId(null)
@@ -267,6 +282,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         selectedSoleMemoryId,
         selectedBoardDefId,
         draftPresenceRevision,
+        trainingMode,
       },
       actions: {
         onSessionSelect,
@@ -283,6 +299,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         clearSelection,
         onBoardDefSelect,
         bumpDraftPresence,
+        onEnterTrainingMode,
+        onExitTrainingMode,
       },
       navCollapsed,
       onToggleNavCollapsed,
@@ -302,6 +320,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       selectedSoleMemoryId,
       selectedBoardDefId,
       draftPresenceRevision,
+      trainingMode,
       onSessionSelect,
       onSetActiveJourney,
       onDialogSelect,
@@ -316,6 +335,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       clearSelection,
       onBoardDefSelect,
       bumpDraftPresence,
+      onEnterTrainingMode,
+      onExitTrainingMode,
       navCollapsed,
       onToggleNavCollapsed,
     ],

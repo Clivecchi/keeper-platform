@@ -212,6 +212,21 @@ html[data-density="comfortable"] {
   max-width: 100%;
 }
 
+button.dialog-prelude {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+button.dialog-prelude:hover {
+  color: hsl(var(--theme-ink-primary));
+  text-decoration: underline;
+}
+
 /* Session meta — right side of banner */
 .dialog-session-meta {
   display: flex;

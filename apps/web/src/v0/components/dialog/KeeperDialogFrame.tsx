@@ -50,6 +50,8 @@ export interface BannerContext {
   tertiary?: string
   /** Italic sub-line below the breadcrumb — was pathPrelude. */
   prelude?: string
+  /** When set, prelude renders as a tappable control (e.g. Exit Training). */
+  onPreludeClick?: () => void
   /** Editable session label in the expanded meta row — was sessionTitle. */
   sessionLabel?: string
   /**
@@ -306,11 +308,20 @@ export function KeeperDialogFrame({
                         )}
                       </div>
                     )}
-                    {bannerContext?.prelude && (
+                    {bannerContext?.prelude && bannerContext.onPreludeClick ? (
+                      <button
+                        type="button"
+                        className="dialog-prelude text-left"
+                        title={bannerContext.prelude}
+                        onClick={bannerContext.onPreludeClick}
+                      >
+                        {bannerContext.prelude}
+                      </button>
+                    ) : bannerContext?.prelude ? (
                       <p className="dialog-prelude" title={bannerContext.prelude}>
                         {bannerContext.prelude}
                       </p>
-                    )}
+                    ) : null}
                   </div>
 
                   {hasSessionMeta && (
