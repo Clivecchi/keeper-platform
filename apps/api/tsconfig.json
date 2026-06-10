@@ -22,6 +22,7 @@
     "src/__tests__",
     "src/tests",
     "src/**/*.test.ts",
-    "src/scripts/seed-cloud-agent.ts"
+    "src/scripts/seed-cloud-agent.ts",
+    "src/scripts/seed-agent-personalities.ts"
   ]
 }
