@@ -14,6 +14,12 @@ import {
   type CapabilityItem,
   type VoicePromptSectionKey,
 } from "./voicePromptSections"
+import {
+  AgentCharacterInstruction,
+  AgentNameHighlight,
+  AgentSpeaksInstruction,
+  resolveTrainingAgentName,
+} from "./agentNameHighlight"
 
 export type SectionSaveStatus = "idle" | "saving" | "saved" | "error"
 
@@ -32,6 +38,7 @@ interface SectionEditorBaseProps {
   voicePrompt: string
   objectId: string
   domainId: string
+  agentName: string
   onVoicePromptSaved: (next: string) => void
   defaultOpen?: boolean
 }
@@ -147,7 +154,7 @@ function SectionShell({
   )
 }
 
-function FieldLabel({ label, subtitle }: { label: string; subtitle?: string }) {
+function FieldLabel({ label, subtitle }: { label: string; subtitle?: React.ReactNode }) {
   return (
     <div className="mb-1.5">
       <p className="text-[12px] font-semibold" style={{ color: "hsl(var(--theme-ink-primary))" }}>
@@ -163,10 +170,12 @@ function FieldLabel({ label, subtitle }: { label: string; subtitle?: string }) {
 }
 
 export function ProposalScaffold({
-  additions = ["Example addition from Kip (scaffold)"],
+  agentName,
+  additions,
   removals = ["Example removal (scaffold)"],
   onAccept,
 }: {
+  agentName: string
   additions?: string[]
   removals?: string[]
   onAccept?: (addition: string) => void
@@ -174,7 +183,9 @@ export function ProposalScaffold({
   const [dismissed, setDismissed] = React.useState(false)
   if (dismissed) return null
 
-  const nextAddition = additions[0]
+  const name = resolveTrainingAgentName(agentName)
+  const resolvedAdditions = additions ?? [`Example addition from ${name} (scaffold)`]
+  const nextAddition = resolvedAdditions[0]
 
   return (
     <div
@@ -188,10 +199,10 @@ export function ProposalScaffold({
         className="text-[11px] font-semibold uppercase tracking-widest mb-2"
         style={{ color: "hsl(var(--theme-status-success, 152 69% 43%))" }}
       >
-        Kip suggested
+        <AgentNameHighlight name={name} /> suggested
       </p>
       <div className="font-mono text-[13px] leading-relaxed space-y-1">
-        {additions.map((line) => (
+        {resolvedAdditions.map((line) => (
           <p key={`add-${line}`} style={{ color: "hsl(var(--theme-status-success, 152 69% 43%))" }}>
             + {line}
           </p>
@@ -373,7 +384,7 @@ function PlatformDataBlock({ data }: { data: TrainingPlatformData }) {
 }
 
 export function CurrentlySectionEditor(props: SectionEditorBaseProps) {
-  const { label, content, defaultOpen } = props
+  const { label, content, defaultOpen, agentName } = props
   const [draft, setDraft] = React.useState(content)
   const { saveStatus, saveMessage, saveSection } = useSectionSave(props)
 
@@ -394,7 +405,7 @@ export function CurrentlySectionEditor(props: SectionEditorBaseProps) {
         className={monoInputClass}
         style={{ ...inputStyle, minHeight: "9rem" }}
       />
-      <ProposalScaffold />
+      <ProposalScaffold agentName={agentName} />
       <SectionSaveBar
         saveStatus={saveStatus}
         saveMessage={saveMessage}
@@ -407,7 +418,7 @@ export function CurrentlySectionEditor(props: SectionEditorBaseProps) {
 export function IdentitySectionEditor(
   props: SectionEditorBaseProps & { platformData: TrainingPlatformData },
 ) {
-  const { label, content, defaultOpen, platformData } = props
+  const { label, content, defaultOpen, platformData, agentName } = props
   const parsed = React.useMemo(() => parseIdentitySection(content), [content])
   const [voice, setVoice] = React.useState(parsed.voice)
   const [character, setCharacter] = React.useState(parsed.character)
@@ -427,7 +438,7 @@ export function IdentitySectionEditor(
     <SectionShell label={label} defaultOpen={defaultOpen}>
       <FieldLabel
         label="Voice"
-        subtitle="How Kip speaks. First person. One or two sentences."
+        subtitle={<AgentSpeaksInstruction agentName={agentName} />}
       />
       <textarea
         value={voice}
@@ -438,7 +449,7 @@ export function IdentitySectionEditor(
       />
       <FieldLabel
         label="Character"
-        subtitle="Who Kip is. Sincere, playful, sharp — expand on this."
+        subtitle={<AgentCharacterInstruction agentName={agentName} />}
       />
       <textarea
         value={character}
@@ -448,7 +459,7 @@ export function IdentitySectionEditor(
         style={inputStyle}
       />
       <PlatformDataBlock data={platformData} />
-      <ProposalScaffold />
+      <ProposalScaffold agentName={agentName} />
       <SectionSaveBar saveStatus={saveStatus} saveMessage={saveMessage} onSave={handleSave} />
     </SectionShell>
   )
@@ -459,12 +470,14 @@ function RuleListEditor({
   onRulesChange,
   addLabel,
   showProposal,
+  agentName,
   onAcceptProposal,
 }: {
   rules: string[]
   onRulesChange: (next: string[]) => void
   addLabel: string
   showProposal?: boolean
+  agentName?: string
   onAcceptProposal?: (text: string) => void
 }) {
   const [editingIndex, setEditingIndex] = React.useState<number | null>(null)
@@ -586,15 +599,15 @@ function RuleListEditor({
       >
         {addLabel}
       </button>
-      {showProposal && (
-        <ProposalScaffold onAccept={onAcceptProposal} />
+      {showProposal && agentName && (
+        <ProposalScaffold agentName={agentName} onAccept={onAcceptProposal} />
       )}
     </div>
   )
 }
 
 export function BehaviorSectionEditor(props: SectionEditorBaseProps) {
-  const { label, content, defaultOpen } = props
+  const { label, content, defaultOpen, agentName } = props
   const [rules, setRules] = React.useState(() => parseRuleLines(content))
   const { saveStatus, saveMessage, saveSection } = useSectionSave(props)
 
@@ -617,6 +630,7 @@ export function BehaviorSectionEditor(props: SectionEditorBaseProps) {
         onRulesChange={setRules}
         addLabel="Add rule"
         showProposal
+        agentName={agentName}
         onAcceptProposal={handleAcceptProposal}
       />
       <SectionSaveBar saveStatus={saveStatus} saveMessage={saveMessage} onSave={handleSave} />
@@ -627,10 +641,12 @@ export function BehaviorSectionEditor(props: SectionEditorBaseProps) {
 function CapabilityListEditor({
   capabilities,
   onCapabilitiesChange,
+  agentName,
   onAcceptProposal,
 }: {
   capabilities: CapabilityItem[]
   onCapabilitiesChange: (next: CapabilityItem[]) => void
+  agentName: string
   onAcceptProposal?: (text: string) => void
 }) {
   const [editingIndex, setEditingIndex] = React.useState<number | null>(null)
@@ -758,7 +774,10 @@ function CapabilityListEditor({
         Add capability
       </button>
       <ProposalScaffold
-        additions={["**New capability** — Example description from Kip (scaffold)"]}
+        agentName={agentName}
+        additions={[
+          `**New capability** — Example description from ${resolveTrainingAgentName(agentName)} (scaffold)`,
+        ]}
         onAccept={(text) => {
           const parsed = parseCapabilityLines(text)[0]
           if (parsed) onCapabilitiesChange([...capabilities.filter((c) => c.name.trim()), parsed])
@@ -771,7 +790,7 @@ function CapabilityListEditor({
 export function CapabilitiesSectionEditor(
   props: SectionEditorBaseProps & { activeCapabilities: string[] },
 ) {
-  const { label, content, defaultOpen, activeCapabilities } = props
+  const { label, content, defaultOpen, activeCapabilities, agentName } = props
   const [capabilities, setCapabilities] = React.useState(() => parseCapabilityLines(content))
   const { saveStatus, saveMessage, saveSection } = useSectionSave(props)
 
@@ -789,6 +808,7 @@ export function CapabilitiesSectionEditor(
       <CapabilityListEditor
         capabilities={capabilities}
         onCapabilitiesChange={setCapabilities}
+        agentName={agentName}
       />
       <SectionSaveBar saveStatus={saveStatus} saveMessage={saveMessage} onSave={handleSave} />
     </SectionShell>
@@ -796,7 +816,7 @@ export function CapabilitiesSectionEditor(
 }
 
 export function GovernanceSectionEditor(props: SectionEditorBaseProps) {
-  const { label, content, defaultOpen } = props
+  const { label, content, defaultOpen, agentName } = props
   const [draft, setDraft] = React.useState(content)
   const { saveStatus, saveMessage, saveSection } = useSectionSave(props)
 
@@ -817,7 +837,7 @@ export function GovernanceSectionEditor(props: SectionEditorBaseProps) {
         className={monoInputClass}
         style={{ ...inputStyle, minHeight: "12rem" }}
       />
-      <ProposalScaffold />
+      <ProposalScaffold agentName={agentName} />
       <SectionSaveBar
         saveStatus={saveStatus}
         saveMessage={saveMessage}

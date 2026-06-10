@@ -100,6 +100,7 @@ export function AgentTrainingPresence({
     voicePrompt,
     objectId,
     domainId,
+    agentName: identity.name,
     onVoicePromptSaved,
   }
 
