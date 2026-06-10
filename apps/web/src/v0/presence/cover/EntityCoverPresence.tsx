@@ -169,7 +169,6 @@ function IdentitySlot({
   nameOpacity: ReturnType<typeof useCoverMotion>["nameOpacity"]
 }) {
   const voiceText = identity.voiceQuote?.trim()
-  const showPlaceholder = !voiceText
 
   return (
     <div className="px-4 pt-5 pb-4">
@@ -189,32 +188,24 @@ function IdentitySlot({
         </motion.p>
       )}
 
-      <motion.div
-        className="mt-4 flex gap-3"
-        style={{ opacity: nameOpacity }}
-      >
-        <div
-          className="shrink-0 w-0.5 rounded-full self-stretch min-h-[2.5rem]"
-          style={{ background: "hsl(var(--theme-accent-primary, var(--theme-ink-secondary)))" }}
-          aria-hidden
-        />
-        {showPlaceholder ? (
-          <p
-            className="text-[13px] italic leading-relaxed"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            {identity.voicePlaceholder ??
-              "Give this agent a voice — first person, present tense. What do they say when they walk on stage?"}
-          </p>
-        ) : (
+      {voiceText && (
+        <motion.div
+          className="mt-4 flex gap-3"
+          style={{ opacity: nameOpacity }}
+        >
+          <div
+            className="shrink-0 w-0.5 rounded-full self-stretch min-h-[2.5rem]"
+            style={{ background: "hsl(var(--theme-accent-primary, var(--theme-ink-secondary)))" }}
+            aria-hidden
+          />
           <p
             className="text-[13px] italic leading-relaxed"
             style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
             {voiceText}
           </p>
-        )}
-      </motion.div>
+        </motion.div>
+      )}
     </div>
   )
 }

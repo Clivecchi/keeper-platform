@@ -105,3 +105,94 @@ export function patchVoicePromptSection(
   sections[key] = content.trim()
   return serializeVoicePromptSections(sections).trim()
 }
+
+export interface IdentitySectionFields {
+  voice: string
+  character: string
+}
+
+export interface CapabilityItem {
+  name: string
+  description: string
+}
+
+function sectionLooksCorrupt(content: string): boolean {
+  return /^##\s/m.test(content.trim())
+}
+
+export function parseIdentitySection(content: string): {
+  fields: IdentitySectionFields
+  fallback: boolean
+} {
+  const trimmed = content.trim()
+  if (!trimmed) return { fields: { voice: "", character: "" }, fallback: false }
+  if (sectionLooksCorrupt(trimmed)) return { fields: { voice: "", character: "" }, fallback: true }
+
+  const parts = trimmed.split(/\n\n+/).map((p) => p.trim()).filter(Boolean)
+  if (parts.length > 2) return { fields: { voice: "", character: "" }, fallback: true }
+
+  return {
+    fields: { voice: parts[0] ?? "", character: parts[1] ?? "" },
+    fallback: false,
+  }
+}
+
+export function serializeIdentitySection(fields: IdentitySectionFields): string {
+  const voice = fields.voice.trim()
+  const character = fields.character.trim()
+  if (!voice && !character) return ""
+  if (!character) return voice
+  if (!voice) return character
+  return `${voice}\n\n${character}`
+}
+
+export function parseRuleLines(content: string): { rules: string[]; fallback: boolean } {
+  const trimmed = content.trim()
+  if (!trimmed) return { rules: [], fallback: false }
+  if (sectionLooksCorrupt(trimmed)) return { rules: [], fallback: true }
+
+  const byNewline = trimmed.split(/\n+/).map((r) => r.trim()).filter(Boolean)
+  if (byNewline.length > 1) return { rules: byNewline, fallback: false }
+
+  const byParagraph = trimmed.split(/\n\n+/).map((r) => r.trim()).filter(Boolean)
+  return { rules: byParagraph, fallback: false }
+}
+
+export function serializeRuleLines(rules: string[]): string {
+  return rules.map((r) => r.trim()).filter(Boolean).join("\n")
+}
+
+function parseCapabilityLine(line: string): CapabilityItem {
+  const boldMatch = line.match(/^\*\*(.+?)\*\*\s*(?:[—–:-]\s*)?(.*)$/)
+  if (boldMatch) {
+    return { name: boldMatch[1].trim(), description: boldMatch[2].trim() }
+  }
+  const separatorMatch = line.match(/^([^:—–]+)[—–:]\s*(.+)$/)
+  if (separatorMatch) {
+    return { name: separatorMatch[1].trim(), description: separatorMatch[2].trim() }
+  }
+  return { name: line.trim(), description: "" }
+}
+
+export function parseCapabilityLines(content: string): {
+  capabilities: CapabilityItem[]
+  fallback: boolean
+} {
+  const trimmed = content.trim()
+  if (!trimmed) return { capabilities: [], fallback: false }
+  if (sectionLooksCorrupt(trimmed)) return { capabilities: [], fallback: true }
+
+  const lines = trimmed.split(/\n+/).map((l) => l.trim()).filter(Boolean)
+  return { capabilities: lines.map(parseCapabilityLine), fallback: false }
+}
+
+export function serializeCapabilityLines(capabilities: CapabilityItem[]): string {
+  return capabilities
+    .filter((c) => c.name.trim())
+    .map((c) => {
+      const name = c.name.trim()
+      const desc = c.description.trim()
+      return desc ? `**${name}** — ${desc}` : name
+    })
+    .join("\n")
+}

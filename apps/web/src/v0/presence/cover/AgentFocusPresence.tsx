@@ -6,7 +6,7 @@ import type { FieldDefinition } from "../KeeperPresenceDefaults"
 import type { RelatedSection } from "../presenceEnrichment"
 import { EntityCoverPresence } from "./EntityCoverPresence"
 import { AgentConfigPresence } from "./AgentConfigPresence"
-import { resolveAgentCoverContent } from "./schemas/agentCoverSchema"
+import { formatModelLabel, resolveAgentCoverContent } from "./schemas/agentCoverSchema"
 import { AgentTrainingPresence } from "./AgentTrainingPresence"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import type { AgentCoverMode } from "./coverTypes"
@@ -107,6 +107,29 @@ export function AgentFocusPresence({
 
   const showTraining = trainingMode && coverMode !== "config"
 
+  const trainingPlatformData = React.useMemo(
+    () => ({
+      domain: domainDisplayName?.trim() || domainSlug?.trim() || "—",
+      model: formatModelLabel(fieldValues.model),
+      status: fieldValues.status?.trim()
+        ? fieldValues.status.replace(/^\w/, (c) => c.toUpperCase())
+        : "—",
+      visibility: (fieldValues.visibility ?? "private").replace(/^\w/, (c) => c.toUpperCase()),
+      memory:
+        fieldValues.memory_enabled === "true" || fieldValues.memory_enabled === "enabled"
+          ? "Enabled"
+          : "Disabled",
+    }),
+    [
+      domainDisplayName,
+      domainSlug,
+      fieldValues.model,
+      fieldValues.status,
+      fieldValues.visibility,
+      fieldValues.memory_enabled,
+    ],
+  )
+
   return (
     <div className="relative flex flex-col h-full min-h-0">
       <AnimatePresence mode="wait">
@@ -116,6 +139,7 @@ export function AgentFocusPresence({
             objectId={objectId}
             domainId={domainId}
             voicePrompt={voicePrompt}
+            platformData={trainingPlatformData}
             identity={{
               name: fieldValues.name ?? "",
               avatar: fieldValues.avatar,

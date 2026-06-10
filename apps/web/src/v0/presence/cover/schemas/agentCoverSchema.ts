@@ -40,7 +40,7 @@ function formatRoleLine(
   return undefined
 }
 
-function formatModelLabel(model?: string): string {
+export function formatModelLabel(model?: string): string {
   if (!model?.trim()) return "—"
   const m = model.trim()
   if (m.includes("claude-sonnet-4-6") || m.includes("claude-sonnet-4.6")) return "Sonnet 4.6"
@@ -76,14 +76,14 @@ function frameLabelFromId(objectId: string): string {
   return `FRAME ${String(num + 1).padStart(3, "0")}`
 }
 
+const VOICE_QUOTE_MAX = 120
+
 function resolveVoiceQuote(fieldValues: Record<string, string>): string | undefined {
-  const lens = fieldValues.lensSystemPrompt?.trim()
-  if (lens) return lens
   const personality = fieldValues.personality?.trim()
-  if (personality) return personality
-  const purpose = fieldValues.purpose?.trim()
-  if (purpose) return purpose
-  return undefined
+  if (!personality) return undefined
+  return personality.length > VOICE_QUOTE_MAX
+    ? `${personality.slice(0, VOICE_QUOTE_MAX - 1)}…`
+    : personality
 }
 
 export const agentCoverSchema: EntityCoverSchema = {
