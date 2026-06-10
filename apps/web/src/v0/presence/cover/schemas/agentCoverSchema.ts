@@ -53,7 +53,8 @@ export function formatModelLabel(model?: string): string {
   return m.split("/").pop() ?? m
 }
 
-function parseCredits(toolsRaw?: string, permissionsRaw?: string): string[] {
+/** Cover Credits slot + Training Mode active-capabilities block — keep in sync. */
+export function parseAgentCoverCredits(toolsRaw?: string, permissionsRaw?: string): string[] {
   const chips: string[] = []
   const split = (s?: string) =>
     (s ?? "")
@@ -127,7 +128,7 @@ export const agentCoverSchema: EntityCoverSchema = {
       ? (record.permissions as string[]).join(", ")
       : undefined
 
-    const credits = parseCredits(fieldValues.tools, permissionsRaw)
+    const credits = parseAgentCoverCredits(fieldValues.tools, permissionsRaw)
 
     const actions = [
       {

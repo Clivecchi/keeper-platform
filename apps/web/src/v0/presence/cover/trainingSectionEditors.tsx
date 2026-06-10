@@ -284,6 +284,50 @@ function SectionSaveBar({
   )
 }
 
+function ActiveCapabilitiesBlock({ chips }: { chips: string[] }) {
+  return (
+    <div
+      className="mb-4 rounded-md border px-3 py-2.5"
+      style={{
+        borderColor: "hsl(var(--theme-border-soft) / 0.35)",
+        background: "hsl(var(--theme-surface-elevated) / 0.1)",
+      }}
+    >
+      <p
+        className="text-[10px] font-mono uppercase tracking-wider mb-2"
+        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+      >
+        These values come from your agent settings.
+      </p>
+      <FieldLabel
+        label="Active capabilities — from agent record"
+        subtitle="Add or remove these in Configure, not here."
+      />
+      {chips.length === 0 ? (
+        <p className="mt-2 text-[12px] italic" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+          No capabilities declared. Add them in Configure.
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {chips.map((chip) => (
+            <span
+              key={chip}
+              className="rounded px-2 py-0.5 text-[10px] font-mono"
+              style={{
+                border: "1px solid hsl(var(--theme-border-soft) / 0.45)",
+                color: "hsl(var(--theme-ink-tertiary))",
+                background: "hsl(var(--theme-surface-elevated) / 0.35)",
+              }}
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PlatformDataBlock({ data }: { data: TrainingPlatformData }) {
   const chips = [
     { label: "Domain", value: data.domain },
@@ -724,8 +768,10 @@ function CapabilityListEditor({
   )
 }
 
-export function CapabilitiesSectionEditor(props: SectionEditorBaseProps) {
-  const { label, content, defaultOpen } = props
+export function CapabilitiesSectionEditor(
+  props: SectionEditorBaseProps & { activeCapabilities: string[] },
+) {
+  const { label, content, defaultOpen, activeCapabilities } = props
   const [capabilities, setCapabilities] = React.useState(() => parseCapabilityLines(content))
   const { saveStatus, saveMessage, saveSection } = useSectionSave(props)
 
@@ -739,6 +785,7 @@ export function CapabilitiesSectionEditor(props: SectionEditorBaseProps) {
 
   return (
     <SectionShell label={label} defaultOpen={defaultOpen}>
+      <ActiveCapabilitiesBlock chips={activeCapabilities} />
       <CapabilityListEditor
         capabilities={capabilities}
         onCapabilitiesChange={setCapabilities}

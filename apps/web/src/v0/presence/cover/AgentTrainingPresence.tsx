@@ -17,6 +17,7 @@ export interface AgentTrainingPresenceProps {
   domainId: string
   voicePrompt: string
   platformData: TrainingPlatformData
+  activeCapabilities: string[]
   identity: {
     name: string
     avatar?: string
@@ -86,6 +87,7 @@ export function AgentTrainingPresence({
   domainId,
   voicePrompt,
   platformData,
+  activeCapabilities,
   identity,
   onVoicePromptSaved,
 }: AgentTrainingPresenceProps) {
@@ -149,6 +151,7 @@ export function AgentTrainingPresence({
           sectionKey="capabilities"
           label="3. Capabilities"
           content={sections.capabilities}
+          activeCapabilities={activeCapabilities}
           defaultOpen
         />
 

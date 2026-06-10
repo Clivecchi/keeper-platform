@@ -6,7 +6,11 @@ import type { FieldDefinition } from "../KeeperPresenceDefaults"
 import type { RelatedSection } from "../presenceEnrichment"
 import { EntityCoverPresence } from "./EntityCoverPresence"
 import { AgentConfigPresence } from "./AgentConfigPresence"
-import { formatModelLabel, resolveAgentCoverContent } from "./schemas/agentCoverSchema"
+import {
+  formatModelLabel,
+  parseAgentCoverCredits,
+  resolveAgentCoverContent,
+} from "./schemas/agentCoverSchema"
 import { AgentTrainingPresence } from "./AgentTrainingPresence"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import type { AgentCoverMode } from "./coverTypes"
@@ -107,6 +111,13 @@ export function AgentFocusPresence({
 
   const showTraining = trainingMode && coverMode !== "config"
 
+  const trainingActiveCapabilities = React.useMemo(() => {
+    const permissionsRaw = Array.isArray(record.permissions)
+      ? (record.permissions as string[]).join(", ")
+      : undefined
+    return parseAgentCoverCredits(fieldValues.tools, permissionsRaw)
+  }, [fieldValues.tools, record.permissions])
+
   const trainingPlatformData = React.useMemo(
     () => ({
       domain: domainDisplayName?.trim() || domainSlug?.trim() || "—",
@@ -140,6 +151,7 @@ export function AgentFocusPresence({
             domainId={domainId}
             voicePrompt={voicePrompt}
             platformData={trainingPlatformData}
+            activeCapabilities={trainingActiveCapabilities}
             identity={{
               name: fieldValues.name ?? "",
               avatar: fieldValues.avatar,
