@@ -187,14 +187,55 @@ export function KeeperDialogFrame({
   onReturnToFeed,
 }: KeeperDialogFrameProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null)
+  const thinkSpaceRef = React.useRef<HTMLDivElement>(null)
   const [bannerExpanded, setBannerExpanded] = React.useState(false)
+  const [dialogScrollInset, setDialogScrollInset] = React.useState(172)
 
-  // Auto-scroll to bottom when messages change — skip in feed mode or when dialogContent is in use
+  const measureDialogScrollInset = React.useCallback(() => {
+    const thinkHeight = thinkSpaceRef.current?.offsetHeight ?? 52
+    const fadeEl = scrollRef.current?.parentElement?.querySelector(
+      ".dialog-fade-overlay",
+    ) as HTMLElement | null
+    const fadeHeight = fadeEl?.offsetHeight ?? 120
+    setDialogScrollInset(thinkHeight + fadeHeight)
+  }, [])
+
+  React.useLayoutEffect(() => {
+    if (mode === "feed" || dialogContent) return
+    measureDialogScrollInset()
+    window.addEventListener("resize", measureDialogScrollInset)
+    return () => window.removeEventListener("resize", measureDialogScrollInset)
+  }, [mode, dialogContent, measureDialogScrollInset])
+
+  const thinkingLabel = React.useMemo(
+    () =>
+      (agentBoardMessaging?.dialogue.thinking ?? "{agent_name} is thinking…").replace(
+        "{agent_name}",
+        agentName,
+      ),
+    [agentBoardMessaging?.dialogue.thinking, agentName],
+  )
+
+  // Auto-scroll so the newest message clears the Horizon (Thinking space + fade overlay)
   React.useEffect(() => {
-    if (mode === 'feed' || dialogContent) return
+    if (mode === "feed" || dialogContent) return
     const el = scrollRef.current
-    if (el) el.scrollTop = el.scrollHeight
-  }, [messages, isSending, dialogContent, mode])
+    if (!el) return
+
+    const run = () => {
+      measureDialogScrollInset()
+      const thinkHeight = thinkSpaceRef.current?.offsetHeight ?? 52
+      const fadeEl = el.parentElement?.querySelector(
+        ".dialog-fade-overlay",
+      ) as HTMLElement | null
+      const fadeHeight = fadeEl?.offsetHeight ?? 120
+      const clearance = thinkHeight + fadeHeight
+      const maxScroll = el.scrollHeight - el.clientHeight
+      el.scrollTop = Math.max(0, maxScroll - clearance + thinkHeight)
+    }
+
+    requestAnimationFrame(run)
+  }, [messages, isSending, dialogContent, mode, measureDialogScrollInset])
 
   const hasBreadcrumb = bannerContext?.primary || bannerContext?.secondary || bannerContext?.tertiary
   const hasSessionMeta = sessionId !== undefined
@@ -387,7 +428,10 @@ export function KeeperDialogFrame({
           {mode === 'feed'
             ? feedContent
             : dialogContent ?? (
-                <div className="mx-auto w-full max-w-3xl px-4 pb-4 pt-2">
+                <div
+                  className="mx-auto w-full max-w-3xl px-4 pt-2"
+                  style={{ paddingBottom: dialogScrollInset }}
+                >
                   <DialogueMessageList
                     isLoading={false}
                     messages={messages}
@@ -406,6 +450,7 @@ export function KeeperDialogFrame({
                     agentBubbleFullWidth={agentBubbleFullWidth}
                     agentBoardMessaging={agentBoardMessaging}
                     scrollContainerRef={scrollRef}
+                    horizonThinking
                   />
                 </div>
               )
@@ -428,11 +473,17 @@ export function KeeperDialogFrame({
        *  Fixed height: never causes the composer to resize or jump.            *
        *  Only shown in dialog mode — feed mode has no composer below it.       */}
       {mode !== 'feed' && (
-        <div className="dialog-think-space" aria-hidden="true">
-          {isSending
-            ? <span className="dialog-think-pulse">· · ·</span>
-            : <span className="dialog-think-idle">· · ·</span>
-          }
+        <div
+          ref={thinkSpaceRef}
+          className="dialog-think-space"
+          aria-live={isSending ? "polite" : undefined}
+          aria-hidden={!isSending}
+        >
+          {isSending ? (
+            <span className="dialog-think-pulse">{thinkingLabel}</span>
+          ) : (
+            <span className="dialog-think-idle">· · ·</span>
+          )}
         </div>
       )}
 

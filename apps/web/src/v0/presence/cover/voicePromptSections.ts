@@ -116,24 +116,27 @@ export interface CapabilityItem {
   description: string
 }
 
-function sectionLooksCorrupt(content: string): boolean {
-  return /^##\s/m.test(content.trim())
-}
-
-export function parseIdentitySection(content: string): {
-  fields: IdentitySectionFields
-  fallback: boolean
-} {
+export function parseIdentitySection(content: string): IdentitySectionFields {
   const trimmed = content.trim()
-  if (!trimmed) return { fields: { voice: "", character: "" }, fallback: false }
-  if (sectionLooksCorrupt(trimmed)) return { fields: { voice: "", character: "" }, fallback: true }
+  if (!trimmed) return { voice: "", character: "" }
 
-  const parts = trimmed.split(/\n\n+/).map((p) => p.trim()).filter(Boolean)
-  if (parts.length > 2) return { fields: { voice: "", character: "" }, fallback: true }
+  const byDouble = trimmed.split(/\n\n+/).map((p) => p.trim()).filter(Boolean)
+  if (byDouble.length >= 2) {
+    return {
+      voice: byDouble[0] ?? "",
+      character: byDouble.slice(1).join("\n\n"),
+    }
+  }
+
+  const block = byDouble[0] ?? trimmed
+  const newlineIndex = block.indexOf("\n")
+  if (newlineIndex === -1) {
+    return { voice: block, character: "" }
+  }
 
   return {
-    fields: { voice: parts[0] ?? "", character: parts[1] ?? "" },
-    fallback: false,
+    voice: block.slice(0, newlineIndex).trim(),
+    character: block.slice(newlineIndex + 1).trim(),
   }
 }
 
@@ -146,16 +149,10 @@ export function serializeIdentitySection(fields: IdentitySectionFields): string 
   return `${voice}\n\n${character}`
 }
 
-export function parseRuleLines(content: string): { rules: string[]; fallback: boolean } {
+export function parseRuleLines(content: string): string[] {
   const trimmed = content.trim()
-  if (!trimmed) return { rules: [], fallback: false }
-  if (sectionLooksCorrupt(trimmed)) return { rules: [], fallback: true }
-
-  const byNewline = trimmed.split(/\n+/).map((r) => r.trim()).filter(Boolean)
-  if (byNewline.length > 1) return { rules: byNewline, fallback: false }
-
-  const byParagraph = trimmed.split(/\n\n+/).map((r) => r.trim()).filter(Boolean)
-  return { rules: byParagraph, fallback: false }
+  if (!trimmed) return []
+  return trimmed.split(/\n+/).map((r) => r.trim()).filter(Boolean)
 }
 
 export function serializeRuleLines(rules: string[]): string {
@@ -174,16 +171,14 @@ function parseCapabilityLine(line: string): CapabilityItem {
   return { name: line.trim(), description: "" }
 }
 
-export function parseCapabilityLines(content: string): {
-  capabilities: CapabilityItem[]
-  fallback: boolean
-} {
+export function parseCapabilityLines(content: string): CapabilityItem[] {
   const trimmed = content.trim()
-  if (!trimmed) return { capabilities: [], fallback: false }
-  if (sectionLooksCorrupt(trimmed)) return { capabilities: [], fallback: true }
-
-  const lines = trimmed.split(/\n+/).map((l) => l.trim()).filter(Boolean)
-  return { capabilities: lines.map(parseCapabilityLine), fallback: false }
+  if (!trimmed) return []
+  return trimmed
+    .split(/\n+/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map(parseCapabilityLine)
 }
 
 export function serializeCapabilityLines(capabilities: CapabilityItem[]): string {

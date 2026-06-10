@@ -12,7 +12,6 @@ import {
   serializeIdentitySection,
   serializeRuleLines,
   type CapabilityItem,
-  type IdentitySectionFields,
   type VoicePromptSectionKey,
 } from "./voicePromptSections"
 
@@ -285,40 +284,6 @@ function SectionSaveBar({
   )
 }
 
-function FallbackTextareaSection({
-  note,
-  draft,
-  onDraftChange,
-  rows,
-  saveStatus,
-  saveMessage,
-  onSave,
-}: {
-  note: string
-  draft: string
-  onDraftChange: (v: string) => void
-  rows: number
-  saveStatus: SectionSaveStatus
-  saveMessage: string | null
-  onSave: () => void
-}) {
-  return (
-    <>
-      <p className="text-[11px] mb-2 leading-relaxed" style={{ color: "hsl(var(--theme-status-error, 0 72% 51%))" }}>
-        {note}
-      </p>
-      <textarea
-        value={draft}
-        onChange={(e) => onDraftChange(e.target.value)}
-        rows={rows}
-        className={monoInputClass}
-        style={{ ...inputStyle, minHeight: rows >= 8 ? "12rem" : "9rem" }}
-      />
-      <SectionSaveBar saveStatus={saveStatus} saveMessage={saveMessage} onSave={onSave} />
-    </>
-  )
-}
-
 function PlatformDataBlock({ data }: { data: TrainingPlatformData }) {
   const chips = [
     { label: "Domain", value: data.domain },
@@ -400,67 +365,47 @@ export function IdentitySectionEditor(
 ) {
   const { label, content, defaultOpen, platformData } = props
   const parsed = React.useMemo(() => parseIdentitySection(content), [content])
-  const [voice, setVoice] = React.useState(parsed.fields.voice)
-  const [character, setCharacter] = React.useState(parsed.fields.character)
-  const [fallbackDraft, setFallbackDraft] = React.useState(content)
+  const [voice, setVoice] = React.useState(parsed.voice)
+  const [character, setCharacter] = React.useState(parsed.character)
   const { saveStatus, saveMessage, saveSection } = useSectionSave(props)
 
   React.useEffect(() => {
     const next = parseIdentitySection(content)
-    setVoice(next.fields.voice)
-    setCharacter(next.fields.character)
-    setFallbackDraft(content)
+    setVoice(next.voice)
+    setCharacter(next.character)
   }, [content, props.objectId])
 
   const handleSave = () => {
-    if (parsed.fallback) {
-      void saveSection(fallbackDraft)
-      return
-    }
     void saveSection(serializeIdentitySection({ voice, character }))
   }
 
   return (
     <SectionShell label={label} defaultOpen={defaultOpen}>
-      {parsed.fallback ? (
-        <FallbackTextareaSection
-          note="Could not parse into fields. Edit as text."
-          draft={fallbackDraft}
-          onDraftChange={setFallbackDraft}
-          rows={6}
-          saveStatus={saveStatus}
-          saveMessage={saveMessage}
-          onSave={handleSave}
-        />
-      ) : (
-        <>
-          <FieldLabel
-            label="Voice"
-            subtitle="How Kip speaks. First person. One or two sentences."
-          />
-          <textarea
-            value={voice}
-            onChange={(e) => setVoice(e.target.value)}
-            rows={2}
-            className={`${monoInputClass} mb-4`}
-            style={inputStyle}
-          />
-          <FieldLabel
-            label="Character"
-            subtitle="Who Kip is. Sincere, playful, sharp — expand on this."
-          />
-          <textarea
-            value={character}
-            onChange={(e) => setCharacter(e.target.value)}
-            rows={3}
-            className={monoInputClass}
-            style={inputStyle}
-          />
-          <PlatformDataBlock data={platformData} />
-          <ProposalScaffold />
-          <SectionSaveBar saveStatus={saveStatus} saveMessage={saveMessage} onSave={handleSave} />
-        </>
-      )}
+      <FieldLabel
+        label="Voice"
+        subtitle="How Kip speaks. First person. One or two sentences."
+      />
+      <textarea
+        value={voice}
+        onChange={(e) => setVoice(e.target.value)}
+        rows={2}
+        className={`${monoInputClass} mb-4`}
+        style={inputStyle}
+      />
+      <FieldLabel
+        label="Character"
+        subtitle="Who Kip is. Sincere, playful, sharp — expand on this."
+      />
+      <textarea
+        value={character}
+        onChange={(e) => setCharacter(e.target.value)}
+        rows={3}
+        className={monoInputClass}
+        style={inputStyle}
+      />
+      <PlatformDataBlock data={platformData} />
+      <ProposalScaffold />
+      <SectionSaveBar saveStatus={saveStatus} saveMessage={saveMessage} onSave={handleSave} />
     </SectionShell>
   )
 }
@@ -606,22 +551,14 @@ function RuleListEditor({
 
 export function BehaviorSectionEditor(props: SectionEditorBaseProps) {
   const { label, content, defaultOpen } = props
-  const parsed = React.useMemo(() => parseRuleLines(content), [content])
-  const [rules, setRules] = React.useState(parsed.rules)
-  const [fallbackDraft, setFallbackDraft] = React.useState(content)
+  const [rules, setRules] = React.useState(() => parseRuleLines(content))
   const { saveStatus, saveMessage, saveSection } = useSectionSave(props)
 
   React.useEffect(() => {
-    const next = parseRuleLines(content)
-    setRules(next.rules)
-    setFallbackDraft(content)
+    setRules(parseRuleLines(content))
   }, [content, props.objectId])
 
   const handleSave = () => {
-    if (parsed.fallback) {
-      void saveSection(fallbackDraft)
-      return
-    }
     void saveSection(serializeRuleLines(rules))
   }
 
@@ -631,28 +568,14 @@ export function BehaviorSectionEditor(props: SectionEditorBaseProps) {
 
   return (
     <SectionShell label={label} defaultOpen={defaultOpen}>
-      {parsed.fallback ? (
-        <FallbackTextareaSection
-          note="Could not parse into fields. Edit as text."
-          draft={fallbackDraft}
-          onDraftChange={setFallbackDraft}
-          rows={6}
-          saveStatus={saveStatus}
-          saveMessage={saveMessage}
-          onSave={handleSave}
-        />
-      ) : (
-        <>
-          <RuleListEditor
-            rules={rules}
-            onRulesChange={setRules}
-            addLabel="Add rule"
-            showProposal
-            onAcceptProposal={handleAcceptProposal}
-          />
-          <SectionSaveBar saveStatus={saveStatus} saveMessage={saveMessage} onSave={handleSave} />
-        </>
-      )}
+      <RuleListEditor
+        rules={rules}
+        onRulesChange={setRules}
+        addLabel="Add rule"
+        showProposal
+        onAcceptProposal={handleAcceptProposal}
+      />
+      <SectionSaveBar saveStatus={saveStatus} saveMessage={saveMessage} onSave={handleSave} />
     </SectionShell>
   )
 }
@@ -793,7 +716,7 @@ function CapabilityListEditor({
       <ProposalScaffold
         additions={["**New capability** — Example description from Kip (scaffold)"]}
         onAccept={(text) => {
-          const parsed = parseCapabilityLines(text).capabilities[0]
+          const parsed = parseCapabilityLines(text)[0]
           if (parsed) onCapabilitiesChange([...capabilities.filter((c) => c.name.trim()), parsed])
         }}
       />
@@ -803,46 +726,24 @@ function CapabilityListEditor({
 
 export function CapabilitiesSectionEditor(props: SectionEditorBaseProps) {
   const { label, content, defaultOpen } = props
-  const parsed = React.useMemo(() => parseCapabilityLines(content), [content])
-  const [capabilities, setCapabilities] = React.useState(parsed.capabilities)
-  const [fallbackDraft, setFallbackDraft] = React.useState(content)
+  const [capabilities, setCapabilities] = React.useState(() => parseCapabilityLines(content))
   const { saveStatus, saveMessage, saveSection } = useSectionSave(props)
 
   React.useEffect(() => {
-    const next = parseCapabilityLines(content)
-    setCapabilities(next.capabilities)
-    setFallbackDraft(content)
+    setCapabilities(parseCapabilityLines(content))
   }, [content, props.objectId])
 
   const handleSave = () => {
-    if (parsed.fallback) {
-      void saveSection(fallbackDraft)
-      return
-    }
     void saveSection(serializeCapabilityLines(capabilities))
   }
 
   return (
     <SectionShell label={label} defaultOpen={defaultOpen}>
-      {parsed.fallback ? (
-        <FallbackTextareaSection
-          note="Could not parse into fields. Edit as text."
-          draft={fallbackDraft}
-          onDraftChange={setFallbackDraft}
-          rows={6}
-          saveStatus={saveStatus}
-          saveMessage={saveMessage}
-          onSave={handleSave}
-        />
-      ) : (
-        <>
-          <CapabilityListEditor
-            capabilities={capabilities}
-            onCapabilitiesChange={setCapabilities}
-          />
-          <SectionSaveBar saveStatus={saveStatus} saveMessage={saveMessage} onSave={handleSave} />
-        </>
-      )}
+      <CapabilityListEditor
+        capabilities={capabilities}
+        onCapabilitiesChange={setCapabilities}
+      />
+      <SectionSaveBar saveStatus={saveStatus} saveMessage={saveMessage} onSave={handleSave} />
     </SectionShell>
   )
 }

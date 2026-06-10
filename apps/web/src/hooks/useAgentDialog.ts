@@ -428,7 +428,6 @@ export function useAgentDialog({
       }
 
       const ts = Date.now()
-      const thinkingId = `${agentSlug}-thinking-${ts}`
 
       if (mode !== "ide") {
         setMessages((prev) => [
@@ -437,12 +436,6 @@ export function useAgentDialog({
             id: `user-${ts}`,
             role: "user",
             content: content || "[attachment]",
-            createdAt: new Date(ts).toISOString(),
-          },
-          {
-            id: thinkingId,
-            role: "agent",
-            content: `${agentDisplayName} is thinking\u2026`,
             createdAt: new Date(ts).toISOString(),
           },
         ])
@@ -497,12 +490,11 @@ export function useAgentDialog({
           const replyText = extractAgentReplyFromRunResult(result)
           if (replyText) {
             setMessages((prev) => {
-              const withoutThinking = prev.filter((m) => m.id !== thinkingId)
-              const hasUser = withoutThinking.some((m) => m.id === `user-${ts}`)
+              const hasUser = prev.some((m) => m.id === `user-${ts}`)
               const base = hasUser
-                ? withoutThinking
+                ? prev
                 : [
-                    ...withoutThinking,
+                    ...prev,
                     {
                       id: `user-${ts}`,
                       role: "user" as const,
@@ -569,9 +561,15 @@ export function useAgentDialog({
           setMessages((prev) => prev.filter((m) => m.id !== `user-${ts}`))
           setError(reply)
         } else {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === thinkingId ? { ...m, content: reply } : m)),
-          )
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `agent-error-${ts}`,
+              role: "agent" as const,
+              content: reply,
+              createdAt: new Date().toISOString(),
+            },
+          ])
         }
       } finally {
         setIsSending(false)

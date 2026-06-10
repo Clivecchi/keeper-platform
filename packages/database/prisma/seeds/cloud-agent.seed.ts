@@ -49,10 +49,24 @@ export default async function seedCloudAgent() {
   });
 
   if (existing) {
-    const capabilities = mergeCloudCapabilities(existing.capabilities);
+    const full = await prisma.kip_agents.findUnique({
+      where: { id: existing.id },
+      select: { capabilities: true, config: true },
+    });
+    const capabilities = mergeCloudCapabilities(full?.capabilities ?? existing.capabilities);
+    const existingConfig =
+      full?.config && typeof full.config === 'object' && !Array.isArray(full.config)
+        ? (full.config as Record<string, unknown>)
+        : {};
     const agent = await prisma.kip_agents.update({
       where: { id: existing.id },
-      data: { capabilities },
+      data: {
+        capabilities,
+        config: {
+          ...existingConfig,
+          personality: 'Technical Execution Agent. I read, build, and ship.',
+        },
+      },
     });
     console.log(
       `  ✅ Cloud agent updated — id: ${agent.id}, capabilities: ${agent.capabilities.join(', ')}`,
@@ -77,6 +91,7 @@ export default async function seedCloudAgent() {
       capabilities: [...CLOUD_AGENT_CAPABILITIES],
       config: {
         persona: null,
+        personality: 'Technical Execution Agent. I read, build, and ship.',
         suppress_kip_system_prompt: true,
         suppress_sole_memory: true,
         domain: 'default',

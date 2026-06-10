@@ -133,6 +133,7 @@ export function AgentTrainingPresence({
           label="1. Identity"
           content={sections.identity}
           platformData={platformData}
+          defaultOpen
         />
 
         <BehaviorSectionEditor
@@ -140,6 +141,7 @@ export function AgentTrainingPresence({
           sectionKey="behavior"
           label="2. Behavior"
           content={sections.behavior}
+          defaultOpen
         />
 
         <CapabilitiesSectionEditor
@@ -147,6 +149,7 @@ export function AgentTrainingPresence({
           sectionKey="capabilities"
           label="3. Capabilities"
           content={sections.capabilities}
+          defaultOpen
         />
 
         <GovernanceSectionEditor
@@ -154,6 +157,7 @@ export function AgentTrainingPresence({
           sectionKey="governance"
           label="4. Governance"
           content={sections.governance}
+          defaultOpen
         />
       </div>
     </motion.div>

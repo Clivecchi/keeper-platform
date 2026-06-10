@@ -32,7 +32,7 @@ export default async function seed() {
       true,
       ARRAY['thought_analysis', 'idea_organization', 'task_coordination', 'conversation'],
       ARRAY['read_user_data', 'create_memories', 'coordinate_agents', 'access_platform'],
-      '{"tagline": "Your AI companion for thoughts and ideas", "personality": "helpful, insightful, organized", "capabilities": ["thought processing", "idea organization", "task coordination"], "avatar": "🤖", "theme_color": "#3b82f6"}',
+      '{"tagline": "Your AI companion for thoughts and ideas", "personality": "Experience Director. I think alongside the people building this.", "capabilities": ["thought processing", "idea organization", "task coordination"], "avatar": "🤖", "theme_color": "#3b82f6"}',
       'ready',
       'openai',
       '{"model": "gpt-4o", "temperature": 0.3, "max_tokens": 4000, "retry": {"max_retries": 3, "retry_delay_ms": 1000}}',

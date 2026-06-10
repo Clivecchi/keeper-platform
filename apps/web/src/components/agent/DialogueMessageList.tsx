@@ -155,6 +155,16 @@ export interface DialogueMessageListProps {
    * component falls back to listening on its own inner container.
    */
   scrollContainerRef?: React.RefObject<HTMLDivElement>
+  /**
+   * When true, thinking state is owned by KeeperDialogFrame's Thinking Space (Horizon).
+   * Suppresses the in-list thinking footer and any thinking placeholder message bubbles.
+   */
+  horizonThinking?: boolean
+}
+
+function isThinkingPlaceholder(content: string, agentName: string): boolean {
+  const trimmed = content.trim()
+  return trimmed === `${agentName} is thinking…` || trimmed.endsWith(" is thinking…")
 }
 
 export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
@@ -175,19 +185,27 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   agentBoardMessaging,
   agentBubbleFullWidth = true,
   scrollContainerRef,
+  horizonThinking = false,
 }) => {
   const innerContainerRef = useRef<HTMLDivElement>(null)
+
+  const visibleMessages = React.useMemo(() => {
+    if (!horizonThinking) return messages
+    return messages.filter(
+      (m) => !(m.role === "agent" && isThinkingPlaceholder(m.content, agentName)),
+    )
+  }, [messages, horizonThinking, agentName])
 
   // Map<messageId, wrapper DOM element> — used to read positions for opacity computation
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
   // IDs that were present on mount; only new arrivals get entry animations
-  const seenMessageIds = useRef<Set<string>>(new Set(messages.map((m) => m.id)))
+  const seenMessageIds = useRef<Set<string>>(new Set(visibleMessages.map((m) => m.id)))
 
   // Keep seenMessageIds current so re-renders don't re-animate already-shown messages
   useEffect(() => {
-    messages.forEach((m) => seenMessageIds.current.add(m.id))
-  }, [messages])
+    visibleMessages.forEach((m) => seenMessageIds.current.add(m.id))
+  }, [visibleMessages])
 
   // ── Scroll-based atmospheric opacity ──────────────────────────────────────
   // Reads each message wrapper's viewport position and writes --scroll-opacity
@@ -256,7 +274,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   useEffect(() => {
     const raf = requestAnimationFrame(() => computeOpacities())
     return () => cancelAnimationFrame(raf)
-  }, [messages, computeOpacities])
+  }, [visibleMessages, computeOpacities])
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -271,7 +289,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
           <SkeletonBubble alignment="left" />
           <SkeletonBubble alignment="right" />
         </>
-      ) : messages.length === 0 ? (
+      ) : visibleMessages.length === 0 ? (
         <div
           className="rounded-xl border border-dashed p-6 text-center text-sm"
           style={{
@@ -283,7 +301,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
           {(agentBoardMessaging?.dialogue.start_prompt ?? "Say hello to {agent_name} to start the conversation.").replace("{agent_name}", agentName)}
         </div>
       ) : (
-        messages.map((message) => {
+        visibleMessages.map((message) => {
           // Messages present on mount skip the entry animation (initial={false}).
           // Only arrivals after mount animate in.
           const isNew = !seenMessageIds.current.has(message.id)
@@ -470,7 +488,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
           )
         })
       )}
-      {isSending && (
+      {isSending && !horizonThinking && (
         <p className="text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>{(agentBoardMessaging?.dialogue.thinking ?? "{agent_name} is thinking…").replace("{agent_name}", agentName)}</p>
       )}
       {error && (
