@@ -1,3 +1,6 @@
+// RETIRED — integration now renders through KeeperPresence → IntegrationFocusPresence
+// This file is no longer in the render path. Safe to delete after browser verification.
+
 "use client"
 
 /**

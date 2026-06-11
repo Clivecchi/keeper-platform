@@ -11,7 +11,6 @@
 
 import * as React from "react"
 import { KeeperPresence } from "./KeeperPresence"
-import { IntegrationPresence } from "./IntegrationPresence"
 import { SoleMemoryPresence } from "./SoleMemoryPresence"
 import type { DensityLevel } from "./KeeperPresenceDefaults"
 import type { PresenceLayout } from "./types"
@@ -74,18 +73,6 @@ export function ChroniclePresenceView({
     )
   }
 
-  if (objectType === "service") {
-    return (
-      <IntegrationPresence
-        serviceSlug={objectId}
-        domainId={domainId}
-        boardId={boardId}
-        agentSlug="cloud"
-        onKeySelect={onKeySelect}
-      />
-    )
-  }
-
   return (
     <KeeperPresence
       objectType={objectType}
@@ -102,6 +89,7 @@ export function ChroniclePresenceView({
       onJourneySelect={onJourneySelect}
       onMomentSelect={onMomentSelect}
       onKeeperSelect={onKeeperSelect}
+      onKeySelect={onKeySelect}
       onSessionSelect={onSessionSelect}
     />
   )

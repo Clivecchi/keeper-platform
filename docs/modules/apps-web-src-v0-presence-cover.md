@@ -8,9 +8,11 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `coverMotion.ts` — Framer Motion hook (`atmosphereOpacity`, `nameReveal`, `statusPulse`, `heroEntrance`)
 - `EntityCoverPresence.tsx` — Layer 1 universal slot renderer
 - `schemas/agentCoverSchema.ts` — Layer 2 Agent EntityKind fill
-- `schemas/keyCoverSchema.ts` — Layer 2 Key EntityKind fill
 - `AgentFocusPresence.tsx` — Agent Cover Mode + Config Mode orchestration
+- `schemas/keyCoverSchema.ts` — Layer 2 Key EntityKind fill
 - `KeyFocusPresence.tsx` — Key Cover Mode + Config Mode orchestration
+- `schemas/integrationCoverSchema.ts` — Layer 2 Integration (service) cover fill
+- `IntegrationFocusPresence.tsx` — Integration Cover Mode + Config Mode orchestration
 - `AgentConfigPresence.tsx` — Config Mode compressed header + editable fields
 - `AgentTrainingPresence.tsx` — Training Mode structured prompt editor
 - `agentNameHighlight.tsx` — accent highlight for agent name in training instructions
@@ -20,6 +22,7 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 ## 🔄 Data & Behavior
 - Agent selection in nav → `KeeperPresence` (`layout="focus"`) → `AgentFocusPresence`
 - Key selection in nav → `KeeperPresence` (`layout="focus"`) → `KeyFocusPresence`
+- Integration selection in nav → `KeeperPresence` (`layout="focus"`) → `IntegrationFocusPresence`
 - **Cover Mode (default):** `EntityCoverPresence` + `agentCoverSchema.resolve()` from live agent record
 - **Config Mode:** Configure action → `AgentConfigPresence`; back arrow returns to cover without requiring save
 - Save reuses existing `handleSaveAgent` PATCH path in `KeeperPresence` — no third save route
@@ -31,6 +34,12 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - [ ] Domain assignment edit — read-only today; domain switch API pending
 
 ## 📆 Update Log
+
+### 2026-06-10 — Integration Cover Pattern Correction
+- Added `integrationCoverSchema.ts` — five-slot cover fill from live Integration DTO + serviceConfig + capabilities
+- Added `IntegrationFocusPresence.tsx` — universal cover + declaration blocks / legacy feed below
+- Wired `IntegrationFocusPresence` into `KeeperPresence` for `objectType="service"` + `layout="focus"`
+- Retired `ChroniclePresenceView` service early exit; marked `IntegrationPresence` wrappers retired
 
 ### 2026-06-10 — Key Pattern Correction
 - Completed `keyCoverSchema.ts` slot fill (hero source badge, provider identity, credential traits, integration credits, Verify/Update actions)

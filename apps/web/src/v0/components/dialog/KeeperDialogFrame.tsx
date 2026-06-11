@@ -459,30 +459,30 @@ export function KeeperDialogFrame({
 
         <DialogScrollRail scrollRef={scrollRef} />
 
-        {/* Gradient dissolve — messages fade before reaching the Composer */}
+        {/* Horizon band — gradient dissolve; agent status sits on the band, not above it */}
         {mode !== 'feed' && (
-          <div
-            className="dialog-fade-overlay"
-            aria-hidden="true"
-          />
-        )}
-
-        {/* Horizon — top edge of Thinking Space; agent status sits here, left-aligned */}
-        {mode !== 'feed' && isSending && (
-          <div
-            className="dialog-horizon-status"
-            aria-live="polite"
-          >
-            <div className="mx-auto w-full max-w-3xl px-4">
-              <span className="dialog-think-pulse">{thinkingLabel}</span>
-            </div>
+          <div className="dialog-horizon-band">
+            <div
+              className="dialog-fade-overlay"
+              aria-hidden="true"
+            />
+            {isSending && (
+              <div
+                className="dialog-horizon-status"
+                aria-live="polite"
+              >
+                <div className="mx-auto w-full max-w-3xl px-4">
+                  <span className="dialog-think-pulse">{thinkingLabel}</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* ── Thinking Space: reserved for uploads, messaging, composer features ── *
        *  Fixed height: never causes the composer to resize or jump.               *
-       *  Agent thinking status lives on the Horizon above, not in this zone.     */}
+       *  Agent thinking status lives on the Horizon gradient band in Zone 2.   */}
       {mode !== 'feed' && (
         <div
           ref={thinkSpaceRef}

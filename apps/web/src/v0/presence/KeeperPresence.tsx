@@ -32,6 +32,7 @@ import { DraftPointsSection } from "./DraftPointsSection"
 import { AgentFocusPresence } from "./cover/AgentFocusPresence"
 import { DomainFocusPresence } from "./cover/DomainFocusPresence"
 import { KeyFocusPresence } from "./cover/KeyFocusPresence"
+import { IntegrationFocusPresence } from "./cover/IntegrationFocusPresence"
 import { KipApi, type ModelProvider } from "../../lib/kipApi"
 import { parseChroniclePatchFieldErrors } from "./chronicleConfig/chroniclePatch"
 import { useChronicleConfig } from "./chronicleConfig/useChronicleConfig"
@@ -77,6 +78,7 @@ export interface KeeperPresenceProps {
   onMomentSelect?: (id: string) => void
   onKeeperSelect?: (id: string) => void
   onSessionSelect?: (id: string) => void
+  onKeySelect?: (id: string) => void
   /** Display name for domain idle — used when objectType is "domain". */
   domainDisplayName?: string
 }
@@ -1065,6 +1067,7 @@ export function KeeperPresence({
   onMomentSelect,
   onKeeperSelect,
   onSessionSelect,
+  onKeySelect,
   domainDisplayName,
   boardId: boardIdProp,
 }: KeeperPresenceProps) {
@@ -1160,7 +1163,9 @@ export function KeeperPresence({
       ? (record.presenceSchema as Record<string, unknown>)
       : null
 
-  const skipPresenceSchemaFetch = objectType === "key" && layout === "focus"
+  const skipPresenceSchemaFetch =
+    (objectType === "key" && layout === "focus") ||
+    (objectType === "service" && layout === "focus")
   const { schema } = usePresenceSchema(
     objectType,
     domainId,
@@ -1437,6 +1442,7 @@ export function KeeperPresence({
         onJourneySelect={onJourneySelect}
         onMomentSelect={onMomentSelect}
         onSessionSelect={onSessionSelect}
+        onKeySelect={onKeySelect}
       />
       </div>
     </PresentMotionProvider>
@@ -1484,6 +1490,7 @@ function KeeperPresenceSurface({
   onJourneySelect,
   onMomentSelect,
   onSessionSelect,
+  onKeySelect,
 }: {
   loading: boolean
   record: Record<string, unknown> | null
@@ -1525,6 +1532,7 @@ function KeeperPresenceSurface({
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onSessionSelect?: (id: string) => void
+  onKeySelect?: (id: string) => void
 }) {
   const motion = usePresentMotionValues()
 
@@ -1758,6 +1766,19 @@ function KeeperPresenceSurface({
         objectId={objectId}
         domainId={domainId}
         record={record}
+        onLabelResolved={onLabelResolved}
+      />
+    )
+  }
+
+  if (objectType === "service" && layout === "focus") {
+    return (
+      <IntegrationFocusPresence
+        objectId={objectId}
+        domainId={domainId}
+        record={record ?? {}}
+        boardId={boardId}
+        onKeySelect={onKeySelect}
         onLabelResolved={onLabelResolved}
       />
     )

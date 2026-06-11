@@ -350,22 +350,31 @@ button.dialog-prelude:hover {
   min-height: 0;
   overflow: hidden;
   z-index: 1;
+  --dialog-fade-height: 120px;
+  --dialog-horizon-inset: 36px; /* status sits on the gradient band, below message landing line */
 }
 
-/* Bottom dissolve — sibling overlay above messages at the Composer edge */
-.dialog-fade-overlay {
+/* Horizon band — gradient dissolve overlay at the Composer edge */
+.dialog-horizon-band {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 120px;
+  height: var(--dialog-fade-height);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Bottom dissolve — fills the horizon band */
+.dialog-fade-overlay {
+  position: absolute;
+  inset: 0;
   background: linear-gradient(
     to top,
     transparent 0%,
     hsla(30, 12%, 8%, 0.7) 100%
   );
   pointer-events: none;
-  z-index: 3;
 }
 
 .dialog-message-bubble {
@@ -466,13 +475,13 @@ button.dialog-prelude:hover {
  * The most transparent surface. The atmosphere is most visible here.
  * A fixed-height zone that never causes the composer to resize.
  */
-/* Horizon — junction where chat dissolve meets Thinking Space; agent status anchor */
+/* Agent status — anchored inside the horizon gradient, left-aligned */
 .dialog-horizon-status {
   position: absolute;
-  bottom: 120px; /* matches .dialog-fade-overlay height — top of gradient band */
+  top: var(--dialog-horizon-inset);
   left: 0;
   right: 0;
-  z-index: 4;
+  z-index: 1;
   pointer-events: none;
 }
 

@@ -15,13 +15,13 @@ Schema-driven Chronicle rendering layer. Resolves and applies per-domain, per-ob
 - `AgentPromptsSection.tsx` — point-based lens/composed prompt editor (agents)
 - `promptPoints.ts` — parse/serialize prompt strings ↔ editable points
 - `presenceEnrichment.ts` — fetches records and resolves journey context, paths, sessions per object type
-- `ChroniclePresenceView.tsx` — thin Chronicle wrapper (`layout="focus"`, density `standard`); routes `service` to `IntegrationPresence`; `key` flows through `KeeperPresence`
-- `IntegrationPresence.tsx` — re-exports `integrationChronicle/` (Railway, Vercel, GitHub Chronicle slots)
+- `ChroniclePresenceView.tsx` — thin Chronicle wrapper; `soleMemory` only special case; `service` and `key` flow through `KeeperPresence`
+- `IntegrationPresence.tsx` — retired re-export (integration renders via `IntegrationFocusPresence`)
 - `integrationChronicle/` — Hero, Status Strip, Primary Feed, Actions; unconnected Connect via Nango
 - `chronicleConfig/` — universal Config Mode save infrastructure (`useChronicleConfig`, save bar, config shell)
 - `cover/DomainFocusPresence.tsx` — Domain Cover + Config orchestration
-- `cover/KeyFocusPresence.tsx` — Key Cover + Config orchestration
-- `cover/schemas/keyCoverSchema.ts` — Key cover slot fill
+- `cover/IntegrationFocusPresence.tsx` — Integration Cover + Config orchestration
+- `cover/schemas/integrationCoverSchema.ts` — Integration cover slot fill
 
 ## 🔄 Data & Behavior
 Resolution order (highest precedence first):
@@ -59,6 +59,11 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - [ ] `PUT /api/domains/:domainId/presence-schema/:objectType` Design Board write path integration pending
 
 ## 📆 Update Log
+
+### 2026-06-10 — Integration Cover Pattern Correction
+- Removed `ChroniclePresenceView` early exit for `service`; integrations route through `KeeperPresence` → `IntegrationFocusPresence`
+- Added `onKeySelect` to `KeeperPresence` props; forwarded `boardId` to integration focus
+- Retired `IntegrationPresence` wrapper files (marked, not deleted)
 
 ### 2026-06-10 — Key Pattern Correction
 - Removed `ChroniclePresenceView` early exit for `key`; keys now route through `KeeperPresence` → `KeyFocusPresence`
