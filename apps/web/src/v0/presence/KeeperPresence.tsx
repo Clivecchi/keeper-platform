@@ -31,6 +31,7 @@ import type { PresenceLayout } from "./types"
 import { DraftPointsSection } from "./DraftPointsSection"
 import { AgentFocusPresence } from "./cover/AgentFocusPresence"
 import { DomainFocusPresence } from "./cover/DomainFocusPresence"
+import { KeyFocusPresence } from "./cover/KeyFocusPresence"
 import { KipApi, type ModelProvider } from "../../lib/kipApi"
 import { parseChroniclePatchFieldErrors } from "./chronicleConfig/chroniclePatch"
 import { useChronicleConfig } from "./chronicleConfig/useChronicleConfig"
@@ -183,6 +184,8 @@ function primaryField(objectType: string): string {
       return "name"
     case "service":
       return "name"
+    case "key":
+      return "display_label"
     default:
       return "name"
   }
@@ -1739,6 +1742,17 @@ function KeeperPresenceSurface({
         onSave={() => void onChronicleSave?.()}
         onFieldChange={handleFieldChange}
         renderFieldEditor={renderFieldEditor}
+      />
+    )
+  }
+
+  if (objectType === "key" && layout === "focus" && record) {
+    return (
+      <KeyFocusPresence
+        objectId={objectId}
+        domainId={domainId}
+        record={record}
+        onLabelResolved={onLabelResolved}
       />
     )
   }

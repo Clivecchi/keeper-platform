@@ -12,7 +12,6 @@
 import * as React from "react"
 import { KeeperPresence } from "./KeeperPresence"
 import { IntegrationPresence } from "./IntegrationPresence"
-import { KeyPresence } from "./KeyPresence"
 import { SoleMemoryPresence } from "./SoleMemoryPresence"
 import type { DensityLevel } from "./KeeperPresenceDefaults"
 import type { PresenceLayout } from "./types"
@@ -62,16 +61,6 @@ export function ChroniclePresenceView({
           Waiting for domain context…
         </p>
       </div>
-    )
-  }
-
-  if (objectType === "key") {
-    return (
-      <KeyPresence
-        keyId={objectId}
-        domainId={domainId}
-        onLabelResolved={onLabelResolved}
-      />
     )
   }
 

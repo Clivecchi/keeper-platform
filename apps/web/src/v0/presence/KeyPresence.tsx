@@ -1,3 +1,6 @@
+// RETIRED — key now renders through KeeperPresence → KeyFocusPresence → EntityCoverPresence
+// This file is no longer in the render path. Safe to delete after browser verification.
+
 "use client"
 
 import * as React from "react"

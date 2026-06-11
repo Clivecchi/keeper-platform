@@ -21,7 +21,7 @@ Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:rel
 ### Zone Behaviour
 - **Zone 1 (Banner)**: Frosted breadcrumb — `keeperName`, `journeyName`, `pathName`, `pathPrelude`. Hidden in `mode === 'feed'`.
 - **Zone 2 (Chat Zone)**: Scrollable message surface. Renders `DialogueMessageList` by default, or `dialogContent` override. Mask dissolves oldest messages at the top into the atmosphere. Message depth cascade applied via `nth-last-child` CSS selectors — no JavaScript.
-- **Thinking Space**: Fixed-height (52px) sibling zone between chat and composer. Shows `· · ·` idle placeholder; breathes/pulses when `isSending`. Never resizes. Only rendered in dialog mode.
+- **Thinking Space**: Fixed-height (52px) sibling zone between chat and composer. Reserved for uploads, messaging, and composer-adjacent features. Agent thinking status renders on the **Horizon** (top of the fade gradient), not here.
 - **Zone 3 (Composer Zone)**: Contains `AgentComposer` (input field + toolbar) then `IntegratedServicesBar` below it (barely-there service status). Service bar at floor, input field as center of gravity.
 
 ### Message Depth Cascade
@@ -42,9 +42,10 @@ All four zones are direct flex children of `.keeper-dialog-frame`. The thinking 
 ## ⚠️ Notes & ToDo
 - [ ] `dialogContent` replaces the full Zone 2 content — if messages from a dialogContent-mode board need to display, a separate overlay or slot mechanism would be needed.
 - [ ] TODO: Verify that `pathPrelude` truncation in `.dialog-prelude` (ellipsis) works correctly at all breakpoints.
-- [ ] When `isSending` is true, `DialogueMessageList` may render its own thinking indicator inside Zone 2. This coexists with the thinking space pulse — both are intentional at this stage.
+- [ ] When `isSending` is true, thinking status renders on the Horizon (`.dialog-horizon-status`) inside Zone 2; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-06-10: Moved agent thinking indicator from center of Thinking Space to the Horizon (left-aligned at top of fade gradient). Thinking Space cleared for future upload/messaging features; removed idle `· · ·` placeholder.
 - 2026-05-30: Rendr treatment correction — opacity table updated; chat zone open atmosphere; composer 0.82 / banner 0.55; bottom scroll mask 70%→transparent; gradient dissolve overlay softened.
 - 2026-05-26 — UI polish: frosted glass Dialog shell (warm semi-transparent surfaces, stronger backdrop blur); gradient dissolve softened; message list background transparent.
 - 2026-05-01 (Sprint Item 1 — Dialog Frame Surface Design): Refined opacity hierarchy to spec. Banner: 0.88→0.85, blur 16px→12px (md), token corrected to `--theme-surface-paper`. Chat zone: 0.52→0.12, blur 10px→2px. Thinking space: 0.16→0.30. Composer: 0.92→0.60, blur 20px→8px. Added gradient dissolve at bottom of Zone 2 (80px, `transparent → --theme-surface-paper/0.60`). Zone 2 now wrapped in `.dialog-message-zone` (relative/flex:1/overflow:hidden) so the dissolve overlays the visible scroll area without scrolling with content. IDEBoard and DomainBoard center panels confirmed transparent — no changes required.

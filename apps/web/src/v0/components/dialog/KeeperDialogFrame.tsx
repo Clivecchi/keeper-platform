@@ -466,25 +466,29 @@ export function KeeperDialogFrame({
             aria-hidden="true"
           />
         )}
+
+        {/* Horizon — top edge of Thinking Space; agent status sits here, left-aligned */}
+        {mode !== 'feed' && isSending && (
+          <div
+            className="dialog-horizon-status"
+            aria-live="polite"
+          >
+            <div className="mx-auto w-full max-w-3xl px-4">
+              <span className="dialog-think-pulse">{thinkingLabel}</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ── Thinking Space: ambient breath between conversation and composer ── *
-       *  Most transparent surface — the atmosphere is most present here.       *
-       *  Fixed height: never causes the composer to resize or jump.            *
-       *  Only shown in dialog mode — feed mode has no composer below it.       */}
+      {/* ── Thinking Space: reserved for uploads, messaging, composer features ── *
+       *  Fixed height: never causes the composer to resize or jump.               *
+       *  Agent thinking status lives on the Horizon above, not in this zone.     */}
       {mode !== 'feed' && (
         <div
           ref={thinkSpaceRef}
           className="dialog-think-space"
-          aria-live={isSending ? "polite" : undefined}
-          aria-hidden={!isSending}
-        >
-          {isSending ? (
-            <span className="dialog-think-pulse">{thinkingLabel}</span>
-          ) : (
-            <span className="dialog-think-idle">· · ·</span>
-          )}
-        </div>
+          aria-hidden="true"
+        />
       )}
 
       {/* ── Zone 3: Composer Zone — where the user speaks ───────────────────── *

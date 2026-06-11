@@ -15,12 +15,13 @@ Schema-driven Chronicle rendering layer. Resolves and applies per-domain, per-ob
 - `AgentPromptsSection.tsx` — point-based lens/composed prompt editor (agents)
 - `promptPoints.ts` — parse/serialize prompt strings ↔ editable points
 - `presenceEnrichment.ts` — fetches records and resolves journey context, paths, sessions per object type
-- `ChroniclePresenceView.tsx` — thin Chronicle wrapper (`layout="focus"`, density `standard`); routes `service` to `IntegrationPresence`
+- `ChroniclePresenceView.tsx` — thin Chronicle wrapper (`layout="focus"`, density `standard`); routes `service` to `IntegrationPresence`; `key` flows through `KeeperPresence`
 - `IntegrationPresence.tsx` — re-exports `integrationChronicle/` (Railway, Vercel, GitHub Chronicle slots)
 - `integrationChronicle/` — Hero, Status Strip, Primary Feed, Actions; unconnected Connect via Nango
 - `chronicleConfig/` — universal Config Mode save infrastructure (`useChronicleConfig`, save bar, config shell)
 - `cover/DomainFocusPresence.tsx` — Domain Cover + Config orchestration
-- `cover/schemas/domainCoverSchema.ts` — Domain cover slot fill
+- `cover/KeyFocusPresence.tsx` — Key Cover + Config orchestration
+- `cover/schemas/keyCoverSchema.ts` — Key cover slot fill
 
 ## 🔄 Data & Behavior
 Resolution order (highest precedence first):
@@ -58,6 +59,11 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - [ ] `PUT /api/domains/:domainId/presence-schema/:objectType` Design Board write path integration pending
 
 ## 📆 Update Log
+
+### 2026-06-10 — Key Pattern Correction
+- Removed `ChroniclePresenceView` early exit for `key`; keys now route through `KeeperPresence` → `KeyFocusPresence`
+- Added `fetchPresenceRecord` case for `key` (`GET /api/keys/:id`)
+- Retired `KeyPresence.tsx` and `KeyChronicle.tsx` (marked, not deleted)
 
 ### 2026-06-02 — Integration Connect errors visible in Chronicle
 - **apiFetch.ts**: Fixed error re-throw so `POST /api/integrations/session` JSON (`message`, `hint`) reaches UI.

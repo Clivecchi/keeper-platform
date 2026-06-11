@@ -1189,6 +1189,14 @@ export async function fetchPresenceRecord(
     }
     case "service":
       return { slug: objectId, name: objectId }
+    case "key": {
+      try {
+        const row = await apiFetch(`/api/keys/${encodeURIComponent(objectId)}`)
+        return row as Record<string, unknown>
+      } catch {
+        return null
+      }
+    }
     default:
       return null
   }

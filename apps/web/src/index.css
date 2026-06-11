@@ -466,25 +466,22 @@ button.dialog-prelude:hover {
  * The most transparent surface. The atmosphere is most visible here.
  * A fixed-height zone that never causes the composer to resize.
  */
+/* Horizon — junction where chat dissolve meets Thinking Space; agent status anchor */
+.dialog-horizon-status {
+  position: absolute;
+  bottom: 120px; /* matches .dialog-fade-overlay height — top of gradient band */
+  left: 0;
+  right: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
 .dialog-think-space {
   flex-shrink: 0;
   height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: transparent;
   overflow: hidden;
   position: relative;
-}
-
-/* Idle placeholder — present but receding */
-.dialog-think-idle {
-  font-size: 12px;
-  font-style: italic;
-  letter-spacing: 0.28em;
-  color: hsl(var(--theme-ink-placeholder));
-  user-select: none;
-  pointer-events: none;
 }
 
 /* Active state — breathes gently when Kip is working */
