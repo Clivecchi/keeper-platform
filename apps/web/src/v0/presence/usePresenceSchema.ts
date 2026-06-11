@@ -96,11 +96,13 @@ export interface UsePresenceSchemaResult {
  * @param objectType  - e.g. 'journey', 'moment', 'keeper', 'agent', 'draft', 'dialog', 'service'
  * @param domainId    - the domain context
  * @param objectOverride - raw presenceSchema field from the record itself (JSON | null | undefined)
+ * @param skipDomainFetch - when true, skip domain schema fetch and use platform defaults only
  */
 export function usePresenceSchema(
   objectType: string,
   domainId: string | null,
   objectOverride?: Record<string, unknown> | null,
+  skipDomainFetch = false,
 ): UsePresenceSchemaResult {
   const platformDefault = PRESENCE_SCHEMA_DEFAULTS[objectType] ?? {
     objectType,
@@ -122,7 +124,7 @@ export function usePresenceSchema(
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   React.useEffect(() => {
-    if (!domainId) {
+    if (!domainId || skipDomainFetch) {
       setSchema(platformDefault)
       setLoading(false)
       return
@@ -151,7 +153,7 @@ export function usePresenceSchema(
       cancelled = true
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [domainId, objectType])
+  }, [domainId, objectType, skipDomainFetch])
 
   return { schema, loading }
 }

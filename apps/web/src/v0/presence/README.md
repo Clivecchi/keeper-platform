@@ -148,6 +148,10 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - Config layout: surface tint, comfortable density, "Configuring" whisper
 - Enrichment: path prelude, relative kept dates, paths-before-moments section order, structured journey meta
 
+### 2026-06-10 — Key presence-schema 400 fix
+- `usePresenceSchema` accepts optional `skipDomainFetch` to skip `GET /presence-schema/:objectType` when a dedicated focus component owns rendering
+- `KeeperPresence` sets `skipDomainFetch` for `objectType === 'key' && layout === 'focus'` — matches `KeyFocusPresence` branch; avoids 400 from API rejecting unknown `key` objectType
+
 ### 2026-05-23 — Gate 3: Chronicle renders every record with equivalent depth
 - Updated schemas aligned with Domain Board Chronicle field hierarchy (moment journeyName at standard, dialog sessionCount at standard)
 - Added `presenceEnrichment.ts` — record fetch, journey/path breadcrumb, related sections

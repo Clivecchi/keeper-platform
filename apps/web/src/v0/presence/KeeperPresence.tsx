@@ -1160,7 +1160,13 @@ export function KeeperPresence({
       ? (record.presenceSchema as Record<string, unknown>)
       : null
 
-  const { schema } = usePresenceSchema(objectType, domainId, objectSchemaOverride)
+  const skipPresenceSchemaFetch = objectType === "key" && layout === "focus"
+  const { schema } = usePresenceSchema(
+    objectType,
+    domainId,
+    objectSchemaOverride,
+    skipPresenceSchemaFetch,
+  )
 
   const [fieldValues, setFieldValues] = React.useState<Record<string, string>>({})
   const [advancedOpen, setAdvancedOpen] = React.useState(false)
