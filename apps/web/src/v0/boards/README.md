@@ -23,6 +23,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-10 — Board switch + Chronicle live selection
+- `UniversalBoardProvider` keyed by `def.boardId` — selection and session reset when switching IDE / Agent / Design / Domain tabs
+- Chronicle `PanelBody` driven by live context (see `panels/README.md`)
+
 ### 2026-05-28 — Domain board load: single domain fetch + deferred session
 - **UniversalBoard:** `domainId` syncs from `V0Shell` `domainData` — removed duplicate `/api/domains/by-slug` fetch
 - **useAgentDialog:** domain mode waits for resolved `domainId` before `createSession` — avoids double session + message reload

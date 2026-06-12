@@ -13,6 +13,9 @@
  *   Panel Body   — KeeperPresence for every subject type, opacity dissolve on shift
  *   Idle State   — KeeperPresence objectType="domain" (never empty)
  *
+ * Panel Body renders from live board selection (resolveKindId) on every frame.
+ * Trail history is breadcrumb UI only — it does not gate Chronicle content.
+ *
  * Motion — Framer Motion only at this tier:
  *   Lateral slide on Trail Bar history change (200ms entry, 140ms exit)
  *   Opacity dissolve on Panel Body context shift (200ms entry, 140ms exit)
@@ -259,9 +262,12 @@ function ChronicleRecordView({
 
 // ─── PanelBody ────────────────────────────────────────────────────────────────
 // Universal router — KeeperPresence for every trail kind. Opacity dissolve on shift.
+// Renders from live board selection (subject), not lagging trail history.
 
 interface PanelBodyProps {
-  entry: TrailEntry
+  subject: { kind: TrailKind; id: string | null }
+  /** Stable key for motion + label resolution — matches resolveKindId contextKey. */
+  subjectKey: string
   domainId: string | null
   domainName: string
   domainSlug?: string
@@ -269,11 +275,12 @@ interface PanelBodyProps {
   onJourneySelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onSessionSelect?: (id: string) => void
-  onLabelResolved: (key: string, label: string) => void
+  onLabelResolved: (subjectKey: string, label: string) => void
 }
 
 function PanelBody({
-  entry,
+  subject,
+  subjectKey,
   domainId,
   domainName,
   domainSlug,
@@ -284,16 +291,9 @@ function PanelBody({
   onLabelResolved,
 }: PanelBodyProps) {
   const boardCtx = useUniversalBoardOptional()
-  const objectType = TRAIL_KIND_TO_OBJECT_TYPE[entry.kind]
-  // Service slug: live context wins over trail entry.id (trail updates one tick later).
-  const liveServiceSlug = boardCtx?.selection.selectedServiceSlug ?? null
-  const objectId =
-    entry.kind === "domain"
-      ? domainId
-      : entry.kind === "service" && liveServiceSlug
-        ? liveServiceSlug
-        : entry.id
-  const layout: PresenceLayout = CONFIG_LAYOUT_KINDS.has(entry.kind) ? "config" : "focus"
+  const objectType = TRAIL_KIND_TO_OBJECT_TYPE[subject.kind]
+  const objectId = subject.kind === "domain" ? domainId : subject.id
+  const layout: PresenceLayout = CONFIG_LAYOUT_KINDS.has(subject.kind) ? "config" : "focus"
 
   function renderPresence(): React.ReactNode {
     if (!objectId || !domainId) {
@@ -320,7 +320,7 @@ function PanelBody({
         onSessionSelect={onSessionSelect}
         onKeySelect={boardCtx?.actions.onKeySelect}
         onLabelResolved={onLabelResolved}
-        trailKey={entry.key}
+        trailKey={subjectKey}
       />
     )
   }
@@ -328,7 +328,7 @@ function PanelBody({
   return (
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
-        key={entry.key}
+        key={subjectKey}
         initial={{ opacity: 0 }}
         animate={{
           opacity: 1,
@@ -475,14 +475,16 @@ export function UniversalViewPanel({
   }, [contextKey])
 
   const handleLabelResolved = React.useCallback(
-    (key: string, label: string) => {
-      setPanelHistory((prev) =>
-        prev.map((e) => {
-          if (e.key !== key) return e
-          labelCache.current.set(`${e.kind}:${e.id ?? "_"}`, label)
-          return { ...e, label }
-        }),
-      )
+    (subjectKey: string, label: string) => {
+      labelCache.current.set(subjectKey, label)
+      setPanelHistory((prev) => {
+        for (let i = prev.length - 1; i >= 0; i--) {
+          const entryKey = `${prev[i].kind}:${prev[i].id ?? "_"}`
+          if (entryKey !== subjectKey) continue
+          return prev.map((e, idx) => (idx === i ? { ...e, label } : e))
+        }
+        return prev
+      })
     },
     [],
   )
@@ -581,18 +583,14 @@ export function UniversalViewPanel({
     boardCtx?.actions.clearSelection()
   }, [panelHistory, handleNavigate, boardCtx])
 
-  const currentEntry =
-    panelHistory[currentIndex] ?? panelHistory[0] ?? {
-      key: "idle",
-      kind: "domain" as TrailKind,
-      id: null,
-      label: domainName || "Home",
-    }
+  const liveSubject = { kind, id }
+
+  const isFocused = liveSubject.kind !== "domain" || liveSubject.id != null
 
   return (
     <div
       className={`keeper-chronicle-panel flex flex-col h-full min-h-0 overflow-hidden${
-        currentEntry.kind !== "domain" || currentEntry.id ? " keeper-chronicle-panel--focused" : ""
+        isFocused ? " keeper-chronicle-panel--focused" : ""
       }`}
       style={{
         color: "hsl(var(--theme-ink-primary))",
@@ -617,7 +615,8 @@ export function UniversalViewPanel({
         }}
       >
         <PanelBody
-          entry={currentEntry}
+          subject={liveSubject}
+          subjectKey={contextKey}
           domainId={domainId}
           domainName={domainName}
           domainSlug={domainSlug}
