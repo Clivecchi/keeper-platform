@@ -97,6 +97,9 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 
 ## 📆 Update Log
 
+### 2026-06-10 — Integration trail lag fix (service slug)
+- `PanelBody` uses live `selectedServiceSlug` from board context for `objectId` when `entry.kind === "service"`, instead of lagging `entry.id` from trail history
+
 ### 2026-05-31 — Chronicle focus: green trail banner glow
 - When Chronicle has an active record, `.keeper-chronicle-trail-bar` gets green halo via `--theme-status-success` (panel inset treatment glow unchanged)
 

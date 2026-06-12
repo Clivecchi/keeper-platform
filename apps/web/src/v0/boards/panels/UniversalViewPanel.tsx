@@ -285,7 +285,14 @@ function PanelBody({
 }: PanelBodyProps) {
   const boardCtx = useUniversalBoardOptional()
   const objectType = TRAIL_KIND_TO_OBJECT_TYPE[entry.kind]
-  const objectId = entry.kind === "domain" ? domainId : entry.id
+  // Service slug: live context wins over trail entry.id (trail updates one tick later).
+  const liveServiceSlug = boardCtx?.selection.selectedServiceSlug ?? null
+  const objectId =
+    entry.kind === "domain"
+      ? domainId
+      : entry.kind === "service" && liveServiceSlug
+        ? liveServiceSlug
+        : entry.id
   const layout: PresenceLayout = CONFIG_LAYOUT_KINDS.has(entry.kind) ? "config" : "focus"
 
   function renderPresence(): React.ReactNode {
