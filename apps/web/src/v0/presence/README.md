@@ -60,6 +60,12 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-06-10 — Key/Integration manage mode CRUD after verify
+- `KeyHealthBlock`: `allowValidRotate` enables Update key in config/manage surfaces when status is valid; ENV keys show Railway guidance
+- `KeyConfigPresence`: uses `saveCredential`, revoke action, reload after save/verify; back to cover refreshes feed
+- `keyCoverSchema`: Add Key / Manage cover actions; integration cover adds Manage for AI models
+- Integration cover `key_health` block read-only when valid — full CRUD in Manage/config mode
+
 ### 2026-06-10 — Integration Cover Pattern Correction
 - Removed `ChroniclePresenceView` early exit for `service`; integrations route through `KeeperPresence` → `IntegrationFocusPresence`
 - Added `onKeySelect` to `KeeperPresence` props; forwarded `boardId` to integration focus

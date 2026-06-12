@@ -62,11 +62,11 @@ function toCoverActions(
 
   if (
     integrationType === "AI_Model" &&
-    !mapped.some((action) => action.label === "Configure")
+    !mapped.some((action) => action.label === "Manage" || action.label === "Configure")
   ) {
     mapped.push({
-      id: "configure",
-      label: "Configure",
+      id: "manage",
+      label: "Manage",
       variant: "secondary",
       icon: "gear",
       onClick: onConfigure,

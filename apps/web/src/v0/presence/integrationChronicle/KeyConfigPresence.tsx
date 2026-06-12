@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import { KeyHealthBlock, LinkedAgentsBlock } from "./blocks"
-import { ChronicleConfigShell } from "../chronicleConfig/useChronicleConfig"
+import { ActionButton } from "./shared"
+import { ChronicleConfigShell } from "../chronicleConfig/ChronicleConfigShell"
 import type { KeyFeedData } from "./feeds/KeyFeed"
 
 export function KeyConfigPresence({
@@ -16,7 +17,27 @@ export function KeyConfigPresence({
   feed: KeyFeedData
   onBack: () => void
 }) {
-  const { key, linkedAgents, rotate, rotateBusy, keySaveError, verify, verifyBusy } = feed
+  const {
+    key,
+    linkedAgents,
+    saveCredential,
+    rotateBusy,
+    keySaveError,
+    verify,
+    verifyBusy,
+    revoke,
+    reload,
+  } = feed
+
+  const handleCredentialSave = React.useCallback(
+    async (apiKey: string) => {
+      await saveCredential(apiKey)
+      await reload()
+    },
+    [saveCredential, reload],
+  )
+
+  const showRevoke = (key.chronicle_actions ?? []).includes("revoke")
 
   return (
     <ChronicleConfigShell
@@ -28,7 +49,7 @@ export function KeyConfigPresence({
       saveStatus={rotateBusy || verifyBusy ? "saving" : keySaveError ? "error" : "idle"}
       saveMessage={keySaveError}
       isDirty={false}
-      onSave={() => void verify()}
+      onSave={() => void verify().then(() => reload())}
       saveLabel="Verify"
     >
       {description && (
@@ -57,9 +78,10 @@ export function KeyConfigPresence({
                 : "missing"
           }
           lastVerified={key.last_verified}
-          onKeyUpdate={(apiKey) => rotate(apiKey)}
+          onKeyUpdate={handleCredentialSave}
           keyUpdateBusy={rotateBusy}
           keyUpdateError={keySaveError}
+          allowValidRotate
         />
         <div
           className="rounded-md border px-3 py-3"
@@ -103,6 +125,16 @@ export function KeyConfigPresence({
             model: agent.model,
           }))}
         />
+
+        {showRevoke && (
+          <div className="pt-2">
+            <ActionButton
+              label="Revoke key"
+              onClick={() => void revoke().then(() => reload())}
+              disabled={rotateBusy || verifyBusy}
+            />
+          </div>
+        )}
       </div>
     </ChronicleConfigShell>
   )

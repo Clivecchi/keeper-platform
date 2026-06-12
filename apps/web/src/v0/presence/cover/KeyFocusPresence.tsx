@@ -93,7 +93,15 @@ export function KeyFocusPresence({
     return <FeedError message={error} onRetry={() => void reload()} />
   }
 
-  if (coverMode === "config" && feed) {
+  if (coverMode === "config") {
+    if (!feed) {
+      return (
+        <div className="px-4 py-5">
+          <FeedShimmer rows={4} />
+        </div>
+      )
+    }
+
     const displayLabel =
       feed.key.display_label?.trim() ??
       keyRecord.display_label ??
@@ -104,7 +112,10 @@ export function KeyFocusPresence({
         displayLabel={displayLabel}
         description={feed.key.description}
         feed={feed}
-        onBack={() => setCoverMode("cover")}
+        onBack={() => {
+          setCoverMode("cover")
+          void reload()
+        }}
       />
     )
   }

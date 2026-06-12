@@ -107,6 +107,7 @@ export function IntegrationAIModelConfigBlocks({ feed }: { feed: FeedDataState<u
         keyUpdateBusy={d.keySaveBusy}
         keyUpdateError={d.keySaveError}
         errorMessage={d.keyHealth?.errorMessage ?? null}
+        allowValidRotate
       />
       <LinkedAgentsBlock
         agents={d.linkedAgents.map((agent) => ({
@@ -349,16 +350,18 @@ export function DeclarationChronicleBlocks({
           }
           case "key_health": {
             const d = feed.data as AIModelFeedData
+            const keyStatus = mapKeyStatus(d.keyHealth?.status)
             return (
               <KeyHealthBlock
                 key={block}
                 keySource={mapKeySource(d.keyHealth?.source)}
-                keyStatus={mapKeyStatus(d.keyHealth?.status)}
+                keyStatus={keyStatus}
                 lastVerified={d.keyHealth?.lastChecked ?? null}
                 onKeyUpdate={(key) => d.saveKey(key)}
                 keyUpdateBusy={d.keySaveBusy}
                 keyUpdateError={d.keySaveError}
                 errorMessage={d.keyHealth?.errorMessage ?? null}
+                readOnly={keyStatus === "valid"}
               />
             )
           }

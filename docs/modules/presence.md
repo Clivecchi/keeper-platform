@@ -11,9 +11,17 @@ Schema-driven Chronicle rendering layer. Resolves and applies per-domain, per-ob
 - `BoardDefConfigPresence.tsx` — config layout for board definitions (human-readable structure)
 - `KeeperPresenceDefaults.ts` — platform default schemas (journey, moment, keeper, agent, draft, dialog, service, domain, frame, boardDef)
 - `usePresenceSchema.ts` — React hook with 3-level resolution: object override → domain DB → platform default; module-level cache
-- `KeeperPresence.tsx` — schema-driven Chronicle surface; journey focus layout, breadcrumb, related sections, relative timestamps
+- `KeeperPresence.tsx` — schema-driven Chronicle surface; journey focus layout, breadcrumb, related sections, relative timestamps; agent explicit Save + structured prompts
+- `AgentPromptsSection.tsx` — point-based lens/composed prompt editor (agents)
+- `promptPoints.ts` — parse/serialize prompt strings ↔ editable points
 - `presenceEnrichment.ts` — fetches records and resolves journey context, paths, sessions per object type
-- `ChroniclePresenceView.tsx` — thin Chronicle wrapper (`layout="focus"`, density `standard`)
+- `ChroniclePresenceView.tsx` — thin Chronicle wrapper; `soleMemory` only special case; `service` and `key` flow through `KeeperPresence`
+- `IntegrationPresence.tsx` — retired re-export (integration renders via `IntegrationFocusPresence`)
+- `integrationChronicle/` — Hero, Status Strip, Primary Feed, Actions; unconnected Connect via Nango
+- `chronicleConfig/` — universal Config Mode save infrastructure (`useChronicleConfig`, save bar, config shell)
+- `cover/DomainFocusPresence.tsx` — Domain Cover + Config orchestration
+- `cover/IntegrationFocusPresence.tsx` — Integration Cover + Config orchestration
+- `cover/schemas/integrationCoverSchema.ts` — Integration cover slot fill
 
 ## 🔄 Data & Behavior
 Resolution order (highest precedence first):
@@ -25,7 +33,7 @@ Resolution order (highest precedence first):
 - **focus** — story mode (default Chronicle). Journey uses dedicated header, paths with prelude, tappable moments, Set as Active.
 - **config** — shaping mode with elevated surface tint, comfortable field density, and a "Configuring" whisper.
 
-Editable fields debounce at 1000ms and PATCH to the correct object endpoint.
+Editable fields debounce at 1000ms and PATCH to the correct object endpoint for journey, moment, keeper, draft, and dialog. **Agent and domain** use explicit **Save** via `useChronicleConfig` (no autosave).
 
 Enrichment (Domain Board instincts):
 - **Moment** — journey → path breadcrumb in header; narrative + relative timestamp in body
@@ -52,10 +60,62 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-06-10 — Key/Integration manage mode CRUD after verify
+- `KeyHealthBlock`: `allowValidRotate` enables Update key in config/manage surfaces when status is valid; ENV keys show Railway guidance
+- `KeyConfigPresence`: uses `saveCredential`, revoke action, reload after save/verify; back to cover refreshes feed
+- `keyCoverSchema`: Add Key / Manage cover actions; integration cover adds Manage for AI models
+- Integration cover `key_health` block read-only when valid — full CRUD in Manage/config mode
+
+### 2026-06-10 — Integration Cover Pattern Correction
+- Removed `ChroniclePresenceView` early exit for `service`; integrations route through `KeeperPresence` → `IntegrationFocusPresence`
+- Added `onKeySelect` to `KeeperPresence` props; forwarded `boardId` to integration focus
+- Retired `IntegrationPresence` wrapper files (marked, not deleted)
+
+### 2026-06-10 — Key Pattern Correction
+- Removed `ChroniclePresenceView` early exit for `key`; keys now route through `KeeperPresence` → `KeyFocusPresence`
+- Added `fetchPresenceRecord` case for `key` (`GET /api/keys/:id`)
+- Retired `KeyPresence.tsx` and `KeyChronicle.tsx` (marked, not deleted)
+
+### 2026-06-02 — Integration Connect errors visible in Chronicle
+- **apiFetch.ts**: Fixed error re-throw so `POST /api/integrations/session` JSON (`message`, `hint`) reaches UI.
+- **integrationChronicle/shared.tsx**: `formatIntegrationConnectError`, alert panel below Connect button on unconnected state.
+
 ### 2026-05-31 — Focus Color System + Integration Chronicle surfaces
 - Focus colors: `--treatment-color` alpha variants in `styleRegistry.ts`; composer glow, nav selection, Chronicle inner glow in `index.css`
 - `integrationChronicle/` — Railway, Vercel, GitHub slot schemas (Hero, Status Strip, Feed, Actions); unconnected Connect via Nango
 - Fixed `AgentPromptsSection` import to `./ComposedPromptPreview.tsx` (Windows case-collision with `composedPromptPreview.ts`)
+
+### 2026-05-29 — Step 2: Universal Chronicle CRUD
+- Added `chronicleConfig/` — `useChronicleConfig`, `ChronicleSaveBar`, `ChronicleConfigShell`, `handleChronicleSave`
+- Agent Board refactored to use shared hook (same PATCH path, same Save bar behavior)
+- Domain Board: `DomainFocusPresence` + `DomainConfigPresence` + `domainCoverSchema` (Cover/Config modes)
+- IDE Board: build context fields on domain Chronicle (`settings.ideBuildContext` via domain PATCH)
+- Design Board: domain idle uses same domain Chronicle config path; BoardDef remains read-only
+- `ChroniclePresenceView` + `UniversalViewPanel` pass `boardId` for board-specific config fields
+
+### 2026-05-28 — Step 1: Agent Cover Card (universal cover pattern)
+- Added `cover/` — Layer 1 `EntityCoverPresence` (five fixed slots) + Layer 2 `agentCoverSchema`
+- Agent Chronicle: Cover Mode (cinematic) + Config Mode (Configure tap / back arrow); Framer Motion with Theatre handoff names
+- `AgentFocusPresence` replaces inline `AgentIdentityCard` for `objectType="agent"` + `layout="focus"`
+- Config save reuses existing explicit agent PATCH — no new save path
+
+### 2026-05-27 — Agent Save button + structured Prompts surface
+- Replaced agent debounced autosave with explicit **Save** control above tagline; dirty-state hint (`Unsaved changes` / `All changes saved`)
+- Added `AgentPromptsSection` — lens prompt as editable numbered points; composed prompt read-only for Lead agents
+- Added `promptPoints.ts` for prompt string ↔ point list conversion (storage remains plain text)
+
+### 2026-05-27 — Agent Chronicle CRUD Steps 1–5
+- Added `body` FieldRole; extended agent schema (removed `context_scope`); config field enrichment
+- PATCH `/api/agents/:id` accepts personality, avatar, theme_color, model_provider, memory_enabled, visibility, model_settings, lensSystemPrompt (all agents)
+- Unified debounced autosave through single agent PATCH; save indicator; advanced temperature/max_tokens section
+- Lens prompt enrichment + editing enabled for all agents; composed prompt remains Lead-only
+
+### 2026-05-27 — Agent Chronicle CRUD: body role + extended agent schema (Step 1)
+- Added `body` to `FieldRole` for multiline prompt surfaces (`lensSystemPrompt`, `composedSystemPrompt`)
+- Extended agent presence schema: personality, avatar, theme_color, model_provider, memory_enabled, visibility, capability tags; removed `context_scope`
+- `hiddenByDefault` on `model_settings` (advanced section — Step 4)
+- `KeeperPresence` renders body fields, agent quiet/ambient editable controls, and shows empty editable agent fields
+- `enrichAgent()` lifts personality, avatar, theme_color from config; normalizes memory_enabled for toggles
 
 ### 2026-05-26 — Lens prompt: editable textarea + lens PATCH route
 - `lensSystemPrompt` saves via `PATCH /api/kip/lenses/:lensId` (`systemPrompt`), not agent PATCH
@@ -87,12 +147,21 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - BoardDef config: human-readable structure (nav, conversation, chronicle subjects), quiet JSON
 - `DesignBoardFrameDetail` superseded — not mounted; retained in codebase
 
+### 2026-05-30 — Integration presence (Step 3A)
+- `IntegrationPresence.tsx` — Connect / Disconnect / Reconnect via `POST /api/integrations/session` and Nango Connect UI
+- `ChroniclePresenceView` branches `objectType === "service"` to integration surface
+- `presenceEnrichment.enrichService` reads live status from `GET /api/integrations`
+
 ### 2026-05-24 — Universal Chronicle path (Steps 1 + 4)
 - Replaced dead `context` prop with `layout: PresenceLayout` (`focus` | `config`) on `KeeperPresence`
 - Added `types.ts` exporting `PresenceLayout`
 - Journey focus layout: title + inline forward narrative, meta row (keeper, created, moment count), paths with prelude, tappable moments, Set as Active via `UniversalBoardContext`
 - Config layout: surface tint, comfortable density, "Configuring" whisper
 - Enrichment: path prelude, relative kept dates, paths-before-moments section order, structured journey meta
+
+### 2026-06-10 — Key presence-schema 400 fix
+- `usePresenceSchema` accepts optional `skipDomainFetch` to skip `GET /presence-schema/:objectType` when a dedicated focus component owns rendering
+- `KeeperPresence` sets `skipDomainFetch` for `objectType === 'key' && layout === 'focus'` — matches `KeyFocusPresence` branch; avoids 400 from API rejecting unknown `key` objectType
 
 ### 2026-05-23 — Gate 3: Chronicle renders every record with equivalent depth
 - Updated schemas aligned with Domain Board Chronicle field hierarchy (moment journeyName at standard, dialog sessionCount at standard)

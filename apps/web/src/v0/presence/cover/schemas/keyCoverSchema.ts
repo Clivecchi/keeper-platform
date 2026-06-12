@@ -69,22 +69,13 @@ function resolveActions(
     },
   ]
 
-  if (normalizedStatus !== "valid") {
-    actions.push({
-      id: "update",
-      label: "Update Key",
-      variant: "secondary",
-      onClick: handlers.onConfigure,
-    })
-  } else {
-    actions.push({
-      id: "configure",
-      label: "Configure",
-      variant: "secondary",
-      icon: "gear",
-      onClick: handlers.onConfigure,
-    })
-  }
+  actions.push({
+    id: "manage",
+    label: normalizedStatus !== "valid" ? "Add Key" : "Manage",
+    variant: "secondary",
+    icon: normalizedStatus === "valid" ? "gear" : undefined,
+    onClick: handlers.onConfigure,
+  })
 
   return actions
 }
