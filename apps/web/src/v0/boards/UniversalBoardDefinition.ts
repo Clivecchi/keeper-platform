@@ -229,6 +229,7 @@ export const IDE_BOARD_DEF: UniversalBoardDef = {
       keepers: true,
       drafts: true,
       agents: false,
+      boardDefs: false,
     },
     integrations: [
       { id: "vercel", label: "Vercel", group: "infrastructure" },
@@ -270,6 +271,7 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
       keepers: true,
       drafts: true,
       agents: true,
+      boardDefs: false,
     },
     primarySection: "agents",
   },
@@ -305,6 +307,7 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
       keepers: true,
       drafts: false,
       agents: false,
+      boardDefs: false,
     },
   },
   conversation: {

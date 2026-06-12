@@ -18,10 +18,8 @@ export function resolveBoardDefs(fromFrame?: UniversalBoardDef[] | null): Univer
     nav: {
       ...(frameById.get(codeDef.boardId)?.nav ?? {}),
       ...codeDef.nav,
-      sections: {
-        ...(frameById.get(codeDef.boardId)?.nav?.sections ?? {}),
-        ...codeDef.nav.sections,
-      },
+      // Section flags are code-only — frame JSON must not leak boardDefs onto IDE/Agent/Domain.
+      sections: { ...codeDef.nav.sections },
     },
     conversation: {
       ...(frameById.get(codeDef.boardId)?.conversation ?? {}),

@@ -38,6 +38,7 @@
  */
 
 import * as React from "react"
+import { useSearchParams } from "react-router-dom"
 import { useV0Shell } from "../shell/V0ShellContext"
 import { StyleScope } from "../styles/StyleScope"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
@@ -193,6 +194,28 @@ function UniversalBoardShell({
   const effectiveJourneyListVersion = (navVersions?.journeyListVersion ?? 0) + journeyListVersionBump
 
   const slug = domainSlug ?? ""
+
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Designer: URL ?boardDef= drives board-definition selection. Other boards: clear stale def + param.
+  React.useEffect(() => {
+    if (def.boardId === "designer") {
+      const param = searchParams.get("boardDef")
+      if (param && param !== selection.selectedBoardDefId) {
+        actions.onBoardDefSelect(param)
+      }
+      return
+    }
+    if (selection.selectedBoardDefId) {
+      actions.onBoardDefSelect(null)
+    }
+    if (searchParams.has("boardDef")) {
+      const params = new URLSearchParams(searchParams)
+      params.delete("boardDef")
+      setSearchParams(params, { replace: true })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [def.boardId, searchParams.get("boardDef")])
 
   // ── domainId resolution — single point, never delegated to panels ──────────
   // V0Shell owns the by-slug fetch; sync from shell domainData to avoid duplicate round-trips.

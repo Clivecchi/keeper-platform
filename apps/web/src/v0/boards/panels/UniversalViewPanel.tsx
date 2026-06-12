@@ -414,7 +414,7 @@ export function UniversalViewPanel({
     if (boardCtx?.selection.selectedSoleMemoryId) {
       return { kind: "soleMemory", id: boardCtx.selection.selectedSoleMemoryId }
     }
-    if (boardCtx?.selection.selectedBoardDefId)
+    if (boardCtx?.selection.selectedBoardDefId && def.boardId === "designer")
       return { kind: "boardDef", id: boardCtx.selection.selectedBoardDefId }
     if (boardCtx?.selection.selectedKeyId)
       return { kind: "key", id: boardCtx.selection.selectedKeyId }

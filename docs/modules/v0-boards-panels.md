@@ -97,6 +97,9 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 
 ## 📆 Update Log
 
+### 2026-06-10 — Board URL sync (see boards/README)
+- Live-subject Chronicle render; trail breadcrumb-only
+
 ### 2026-06-10 — Rock-solid Nav → Chronicle sync (Phase A + B)
 - **Phase A:** `PanelBody` renders from live `resolveKindId()` (`subject` + `contextKey`), not lagging `panelHistory[currentIndex]`; trail is breadcrumb-only
 - **Phase B:** `UniversalBoardProvider` keyed by `def.boardId` — fresh selection + session state on board tab switch

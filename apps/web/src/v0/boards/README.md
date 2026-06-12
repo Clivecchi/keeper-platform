@@ -23,6 +23,13 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-10 — Board URL sync + boardDefs merge fix
+- `resolveBoardDefs`: nav section flags are code-only (frame JSON could leak `boardDefs` onto IDE)
+- `boardDefs: false` explicit on IDE/Agent/Domain defs; Chronicle `boardDef` kind gated to `designer` board only
+- Top bar board switch preserves query params; clears `boardDef` when leaving Design
+- Board Definitions nav navigates to `?board=designer&boardDef=<id>`; shell syncs URL ↔ selection
+- `UniversalBoard` keyed by `boardId` in V0Shell
+
 ### 2026-06-10 — Board switch + Chronicle live selection
 - `UniversalBoardProvider` keyed by `def.boardId` — selection and session reset when switching IDE / Agent / Design / Domain tabs
 - Chronicle `PanelBody` driven by live context (see `panels/README.md`)

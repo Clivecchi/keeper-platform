@@ -59,8 +59,8 @@ export interface UniversalBoardActions {
   /** Opens a SOLE memory card in Chronicle; pass null to return to the underlying selection. */
   onSoleMemorySelect: (id: string | null) => void
   clearSelection: () => void
-  /** designer mode: selects a board definition — drives right-panel BoardDefView. */
-  onBoardDefSelect: (id: string) => void
+  /** designer mode: selects a board definition — drives right-panel BoardDefView. Pass null to clear. */
+  onBoardDefSelect: (id: string | null) => void
   bumpDraftPresence: () => void
   onEnterTrainingMode: () => void
   onExitTrainingMode: () => void
@@ -252,7 +252,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedBoardDefId(null)
   }, [])
 
-  const onBoardDefSelect = React.useCallback((id: string) => {
+  const onBoardDefSelect = React.useCallback((id: string | null) => {
     setSelectedBoardDefId(id)
   }, [])
 

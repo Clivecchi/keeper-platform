@@ -155,13 +155,14 @@ const BOARD_LINKS: { id: TopBarBoardId; label: string }[] = [
   { id: "agent",    label: "Agent" },
 ]
 
-// Mirrors the navigateBoard() logic in DomainBoard.tsx lines 290–300.
-function boardUrl(id: TopBarBoardId, domainSlug: string): string {
-  const encoded = encodeURIComponent(domainSlug)
-  if (id === "domain")   return `/d/${encoded}?board=domain`
-  if (id === "ide")      return `/d/${encoded}?board=ide`
-  if (id === "designer") return `/d/${encoded}?board=designer`
-  return `/d/${encoded}?board=agent`
+// Builds board URL preserving other query params (theme, style, etc.).
+function boardUrl(id: TopBarBoardId, domainSlug: string, searchParams: URLSearchParams): string {
+  const params = new URLSearchParams(searchParams)
+  params.set("board", id)
+  if (id !== "designer") {
+    params.delete("boardDef")
+  }
+  return `/d/${encodeURIComponent(domainSlug)}?${params.toString()}`
 }
 
 // Derive the active board ID from search params.
@@ -198,7 +199,7 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
   const activeBoardId = resolveActiveBoardId(searchParams)
 
   const handleBoardClick = (id: TopBarBoardId) => {
-    navigate(boardUrl(id, domainSlug))
+    navigate(boardUrl(id, domainSlug, searchParams))
   }
 
   const handleAvatarClick = () => {

@@ -22,6 +22,7 @@
  */
 
 import * as React from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { apiFetch } from "../../lib/api"
 import { KipApi } from "../../lib/kipApi"
 import type { KipDraftSummary } from "../../lib/kipApi"
@@ -186,7 +187,7 @@ function ChevronLeftIcon() {
 
 export function UniversalNavPanel({
   domainId,
-  domainSlug: _domainSlug,
+  domainSlug,
   domainName,
   def,
   selectedDialogId,
@@ -213,6 +214,8 @@ export function UniversalNavPanel({
 
   // ── designer context — must be called before any early returns ─────────────
   const boardCtx = useUniversalBoardOptional()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const allBoardDefs = useBoardDefs()
 
   // ── Section data ────────────────────────────────────────────────────────────
@@ -489,13 +492,19 @@ export function UniversalNavPanel({
   const boardDefItems: SidebarCardItem[] = React.useMemo(() => {
     if (!showBoardDefs) return []
     const activeDef = boardCtx?.selection.selectedBoardDefId ?? null
+    const slug = domainSlug?.trim() || "default"
     return allBoardDefs.map((d) => ({
       id: d.boardId,
       label: d.displayName,
       isSelected: d.boardId === activeDef,
-      onClick: () => boardCtx?.actions.onBoardDefSelect(d.boardId),
+      onClick: () => {
+        const params = new URLSearchParams(searchParams)
+        params.set("board", "designer")
+        params.set("boardDef", d.boardId)
+        navigate(`/d/${encodeURIComponent(slug)}?${params.toString()}`)
+      },
     }))
-  }, [showBoardDefs, boardCtx, allBoardDefs])
+  }, [showBoardDefs, boardCtx, allBoardDefs, domainSlug, navigate, searchParams])
 
   const navBlockOrder = resolveNavBlockOrder(def.nav.primarySection)
 

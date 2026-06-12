@@ -323,7 +323,7 @@ export function V0Shell() {
             themeSlug={activeThemeSlug}
             draftId={draftId}
           >
-            <UniversalBoard def={matchedDef} />
+            <UniversalBoard key={matchedDef.boardId} def={matchedDef} />
             {kipHandoffToast}
           </FrameContextProvider>
         </V0ShellProvider>
