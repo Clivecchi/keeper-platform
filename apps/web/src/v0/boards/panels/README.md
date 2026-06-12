@@ -70,6 +70,10 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 
 ## 📆 Update Log
 
+### 2026-06-10 — Design trail URL sync for boardDef
+- Trail back to domain on Design clears `?boardDef=` via `setSearchParams`
+- Trail navigate to a boardDef entry sets context + URL (matches Design nav pattern)
+
 ### 2026-05-25 — Layer 3: Chronicle frame routing unwind
 - Removed `"frame"` from `TrailKind`, `TRAIL_KIND_TO_OBJECT_TYPE`, and `CONFIG_LAYOUT_KINDS`
 - Removed `selectedFrameKey` branch from `resolveKindId()` and trail back-nav `onFrameSelect` case

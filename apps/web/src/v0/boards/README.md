@@ -23,6 +23,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-10 — Top bar workspace board switch fix
+- Removed context→URL push for `boardDef` (re-added param after top bar cleared it, blocking IDE/Agent/Domain switches)
+- Top bar uses `setSearchParams` for workspace board tabs; strips `boardDef` when leaving Design
+- Trail back-nav on Design clears `boardDef` from URL explicitly
+
 ### 2026-06-10 — Design boardDef nav: context-first selection
 - Board Definitions nav uses **spec/meta** pattern: `onBoardDefSelect` + `setSearchParams` (not `navigate()`)
 - Context is source of truth; URL mirrors selection for deep links only (one-time on mount)

@@ -27,6 +27,7 @@
  */
 
 import * as React from "react"
+import { useSearchParams } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch } from "../../../lib/api"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
@@ -386,6 +387,7 @@ export function UniversalViewPanel({
   onMomentSelect,
 }: UniversalViewPanelProps) {
   const boardCtx = useUniversalBoardOptional()
+  const [, setSearchParams] = useSearchParams()
 
   const resolved = {
     selectedDialogId: boardCtx?.selection.selectedDialogId ?? null,
@@ -531,15 +533,36 @@ export function UniversalViewPanel({
           if (entry.id) actions.onKeySelect(entry.id)
           break
         case "boardDef":
-          if (entry.id) actions.onBoardDefSelect(entry.id)
+          if (entry.id) {
+            actions.onBoardDefSelect(entry.id)
+            setSearchParams(
+              (prev) => {
+                const next = new URLSearchParams(prev)
+                next.set("board", "designer")
+                next.set("boardDef", entry.id)
+                return next
+              },
+              { replace: true },
+            )
+          }
           break
         case "domain":
         default:
           actions.clearSelection()
+          if (def.boardId === "designer") {
+            setSearchParams(
+              (prev) => {
+                const next = new URLSearchParams(prev)
+                next.delete("boardDef")
+                return next
+              },
+              { replace: true },
+            )
+          }
           break
       }
     },
-    [currentIndex, panelHistory, boardCtx],
+    [currentIndex, panelHistory, boardCtx, def.boardId, setSearchParams],
   )
 
   const [feedCount, setFeedCount] = React.useState(0)

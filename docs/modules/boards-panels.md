@@ -70,6 +70,10 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 
 ## 📆 Update Log
 
+### 2026-06-10 — Design trail URL sync for boardDef
+- Trail back to domain on Design clears `?boardDef=` via `setSearchParams`
+- Trail navigate to a boardDef entry sets context + URL (matches Design nav pattern)
+
 ### 2026-05-25 — Layer 3: Chronicle frame routing unwind
 - Removed `"frame"` from `TrailKind`, `TRAIL_KIND_TO_OBJECT_TYPE`, and `CONFIG_LAYOUT_KINDS`
 - Removed `selectedFrameKey` branch from `resolveKindId()` and trail back-nav `onFrameSelect` case
@@ -95,11 +99,29 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 - Feed indicator is tappable — navigates to domain idle / Recent Moments feed
 - ~950 lines of duplicate view logic removed from UniversalViewPanel
 
+## 📆 Update Log
+
+### 2026-06-10 — Board URL sync (see boards/README)
+- Live-subject Chronicle render; trail breadcrumb-only
+
+### 2026-06-10 — Rock-solid Nav → Chronicle sync (Phase A + B)
+- **Phase A:** `PanelBody` renders from live `resolveKindId()` (`subject` + `contextKey`), not lagging `panelHistory[currentIndex]`; trail is breadcrumb-only
+- **Phase B:** `UniversalBoardProvider` keyed by `def.boardId` — fresh selection + session state on board tab switch
+
+### 2026-06-10 — Integration trail lag fix (service slug)
+- Superseded by live-subject render above (service slug patch no longer needed)
+
+### 2026-05-31 — Chronicle focus: green trail banner glow
+- When Chronicle has an active record, `.keeper-chronicle-trail-bar` gets green halo via `--theme-status-success` (panel inset treatment glow unchanged)
+
 ### 2026-05-23 — Gate 1: selection drives both panels
 - `resolveKindId` includes `dialog` when `selectedDialogId` is set
 - Trail Bar navigation re-dispatches board selection actions so history matches context
 
-## 📆 Update Log
+### 2026-05-30 — Rendr treatment correction (warm dark register)
+- Chronicle panel: `.keeper-chronicle-panel` at 76% opacity, left border only, 12px blur
+- Trail Bar: `.keeper-chronicle-trail-bar` warm strip (60% page opacity); trail pills use tertiary ink when inactive
+- Feed dot: teal pulse via `--theme-accent-primary` and `chronicle-feed-pulse` keyframes
 
 ### 2026-05-24 — Chronicle readability (Trail Bar + panel chrome)
 - Trail Bar pills: larger type, visible borders on inactive steps, stronger current-state contrast

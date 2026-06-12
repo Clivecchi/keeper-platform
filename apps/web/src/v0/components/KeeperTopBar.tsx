@@ -3,7 +3,7 @@
 import * as React from "react"
 import clsx from "clsx"
 import { FileText } from "lucide-react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useSearchParams } from "react-router-dom"
 import { useV0Shell } from "../shell/V0ShellContext"
 import { useAuth } from "../../context/AuthContext"
 
@@ -155,16 +155,6 @@ const BOARD_LINKS: { id: TopBarBoardId; label: string }[] = [
   { id: "agent",    label: "Agent" },
 ]
 
-// Builds board URL preserving other query params (theme, style, etc.).
-function boardUrl(id: TopBarBoardId, domainSlug: string, searchParams: URLSearchParams): string {
-  const params = new URLSearchParams(searchParams)
-  params.set("board", id)
-  if (id !== "designer") {
-    params.delete("boardDef")
-  }
-  return `/d/${encodeURIComponent(domainSlug)}?${params.toString()}`
-}
-
 // Derive the active board ID from search params.
 function resolveActiveBoardId(searchParams: URLSearchParams): TopBarBoardId | null {
   const board = searchParams.get("board")?.toLowerCase()
@@ -180,8 +170,7 @@ function resolveActiveBoardId(searchParams: URLSearchParams): TopBarBoardId | nu
 export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: KeeperTopBarProps) {
   const { domainSlug, domainFrame, resolvedAudience } = useV0Shell()
   const { user, logout } = useAuth()
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [profileOpen, setProfileOpen] = React.useState(false)
   const avatarButtonRef = React.useRef<HTMLButtonElement>(null)
 
@@ -199,7 +188,17 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
   const activeBoardId = resolveActiveBoardId(searchParams)
 
   const handleBoardClick = (id: TopBarBoardId) => {
-    navigate(boardUrl(id, domainSlug, searchParams))
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set("board", id)
+        if (id !== "designer") {
+          next.delete("boardDef")
+        }
+        return next
+      },
+      { replace: true },
+    )
   }
 
   const handleAvatarClick = () => {

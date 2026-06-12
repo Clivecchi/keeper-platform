@@ -235,32 +235,23 @@ function UniversalBoardShell({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [def.boardId])
 
-  // Mirror context → URL when selection changes (nav, trail, clearSelection).
+  // Strip ?boardDef= when selection clears on Design — never push boardDef back from context
+  // (nav + trail write URL directly; pushing here fought top-bar workspace board switches).
   React.useEffect(() => {
     if (def.boardId !== "designer") return
-    const param = searchParams.get("boardDef")
-    const selected = selection.selectedBoardDefId
-    if (selected && param !== selected) {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev)
-          next.set("boardDef", selected)
-          return next
-        },
-        { replace: true },
-      )
-    } else if (!selected && param) {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev)
-          next.delete("boardDef")
-          return next
-        },
-        { replace: true },
-      )
-    }
+    if (searchParams.get("board") !== "designer") return
+    if (selection.selectedBoardDefId) return
+    if (!searchParams.has("boardDef")) return
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete("boardDef")
+        return next
+      },
+      { replace: true },
+    )
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [def.boardId, selection.selectedBoardDefId])
+  }, [def.boardId, selection.selectedBoardDefId, searchParams.get("board")])
 
   // ── domainId resolution — single point, never delegated to panels ──────────
   // V0Shell owns the by-slug fetch; sync from shell domainData to avoid duplicate round-trips.
