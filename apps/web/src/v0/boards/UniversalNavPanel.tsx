@@ -12,6 +12,12 @@
  * Visual standard: SidebarCard treatment — rounded card chrome, count descriptions,
  * dot-bullet item lists, + affordance. Meets or exceeds IDEBoardNav quality.
  *
+ * Nav selection modes:
+ * - entity — dialogs, journeys, keepers, drafts, agents, keys, integrations.
+ *   onClick → board context action (same frame). No URL change.
+ * - boardDef — Design-only meta/spec nav (built-in board definitions).
+ *   onClick → onBoardDefSelect + ?boardDef= URL mirror (deep link). Never navigate().
+ *
  * CRITICAL RULES:
  * - This component NEVER calls /api/domains/by-slug. domainId is resolved
  *   by the Board and passed as a prop.
@@ -22,7 +28,7 @@
  */
 
 import * as React from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useSearchParams } from "react-router-dom"
 import { apiFetch } from "../../lib/api"
 import { KipApi } from "../../lib/kipApi"
 import type { KipDraftSummary } from "../../lib/kipApi"
@@ -214,8 +220,7 @@ export function UniversalNavPanel({
 
   // ── designer context — must be called before any early returns ─────────────
   const boardCtx = useUniversalBoardOptional()
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [, setSearchParams] = useSearchParams()
   const allBoardDefs = useBoardDefs()
 
   // ── Section data ────────────────────────────────────────────────────────────
@@ -489,22 +494,32 @@ export function UniversalNavPanel({
 
   // ── designer sections: Board Definitions ─────────────────────────────────
 
+  const selectBoardDef = React.useCallback(
+    (boardDefId: string) => {
+      boardCtx?.actions.onBoardDefSelect(boardDefId)
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          next.set("board", "designer")
+          next.set("boardDef", boardDefId)
+          return next
+        },
+        { replace: true },
+      )
+    },
+    [boardCtx, setSearchParams],
+  )
+
   const boardDefItems: SidebarCardItem[] = React.useMemo(() => {
     if (!showBoardDefs) return []
     const activeDef = boardCtx?.selection.selectedBoardDefId ?? null
-    const slug = domainSlug?.trim() || "default"
     return allBoardDefs.map((d) => ({
       id: d.boardId,
       label: d.displayName,
       isSelected: d.boardId === activeDef,
-      onClick: () => {
-        const params = new URLSearchParams(searchParams)
-        params.set("board", "designer")
-        params.set("boardDef", d.boardId)
-        navigate(`/d/${encodeURIComponent(slug)}?${params.toString()}`)
-      },
+      onClick: () => selectBoardDef(d.boardId),
     }))
-  }, [showBoardDefs, boardCtx, allBoardDefs, domainSlug, navigate, searchParams])
+  }, [showBoardDefs, boardCtx?.selection.selectedBoardDefId, allBoardDefs, selectBoardDef])
 
   const navBlockOrder = resolveNavBlockOrder(def.nav.primarySection)
 

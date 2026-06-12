@@ -197,25 +197,70 @@ function UniversalBoardShell({
 
   const [searchParams, setSearchParams] = useSearchParams()
 
-  // Designer: URL ?boardDef= drives board-definition selection. Other boards: clear stale def + param.
+  // boardDef: context is source of truth; URL mirrors for deep links only.
+  const boardDefDeepLinkApplied = React.useRef(false)
+
   React.useEffect(() => {
-    if (def.boardId === "designer") {
-      const param = searchParams.get("boardDef")
-      if (param && param !== selection.selectedBoardDefId) {
-        actions.onBoardDefSelect(param)
-      }
-      return
+    boardDefDeepLinkApplied.current = false
+  }, [def.boardId])
+
+  // Deep link on first mount of Design board (?board=designer&boardDef=agent).
+  React.useEffect(() => {
+    if (def.boardId !== "designer") return
+    if (boardDefDeepLinkApplied.current) return
+    boardDefDeepLinkApplied.current = true
+    const param = searchParams.get("boardDef")
+    if (param && param !== selection.selectedBoardDefId) {
+      actions.onBoardDefSelect(param)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [def.boardId])
+
+  // Non-designer boards: drop stale boardDef state and URL param.
+  React.useEffect(() => {
+    if (def.boardId === "designer") return
     if (selection.selectedBoardDefId) {
       actions.onBoardDefSelect(null)
     }
     if (searchParams.has("boardDef")) {
-      const params = new URLSearchParams(searchParams)
-      params.delete("boardDef")
-      setSearchParams(params, { replace: true })
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          next.delete("boardDef")
+          return next
+        },
+        { replace: true },
+      )
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [def.boardId, searchParams.get("boardDef")])
+  }, [def.boardId])
+
+  // Mirror context → URL when selection changes (nav, trail, clearSelection).
+  React.useEffect(() => {
+    if (def.boardId !== "designer") return
+    const param = searchParams.get("boardDef")
+    const selected = selection.selectedBoardDefId
+    if (selected && param !== selected) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          next.set("boardDef", selected)
+          return next
+        },
+        { replace: true },
+      )
+    } else if (!selected && param) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          next.delete("boardDef")
+          return next
+        },
+        { replace: true },
+      )
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [def.boardId, selection.selectedBoardDefId])
 
   // ── domainId resolution — single point, never delegated to panels ──────────
   // V0Shell owns the by-slug fetch; sync from shell domainData to avoid duplicate round-trips.

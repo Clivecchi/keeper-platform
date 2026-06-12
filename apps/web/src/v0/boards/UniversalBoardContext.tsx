@@ -12,6 +12,8 @@
  * Selection rules:
  * - Domain entity selections are mutually exclusive:
  *   selecting a Journey clears Keeper, Draft, Agent, Moment, Service.
+ * - Board definition selection (Design nav — spec/meta, not API records) is also
+ *   mutually exclusive with entity selections when a def is chosen.
  * - Session selection is independent: it does not clear entity focus.
  *   The conversation can change sessions while the right panel stays in context.
  * - Collapsed nav panel state lives here — the board owns collapse, not the panel.
@@ -254,6 +256,17 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const onBoardDefSelect = React.useCallback((id: string | null) => {
     setSelectedBoardDefId(id)
+    if (id) {
+      setSelectedSoleMemoryId(null)
+      setSelectedDialogId(null)
+      setSelectedJourneyId(null)
+      setSelectedMomentId(null)
+      setSelectedKeeperId(null)
+      setSelectedDraftId(null)
+      setSelectedAgentId(null)
+      setSelectedServiceSlug(null)
+      setSelectedKeyId(null)
+    }
   }, [])
 
   const bumpDraftPresence = React.useCallback(() => {

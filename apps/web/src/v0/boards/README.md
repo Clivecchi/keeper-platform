@@ -23,6 +23,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-10 — Design boardDef nav: context-first selection
+- Board Definitions nav uses **spec/meta** pattern: `onBoardDefSelect` + `setSearchParams` (not `navigate()`)
+- Context is source of truth; URL mirrors selection for deep links only (one-time on mount)
+- Removed continuous URL→context sync that could re-lock selection after trail/clear
+- `onBoardDefSelect` clears entity selections when a def is chosen
+
 ### 2026-06-10 — Board URL sync + boardDefs merge fix
 - `resolveBoardDefs`: nav section flags are code-only (frame JSON could leak `boardDefs` onto IDE)
 - `boardDefs: false` explicit on IDE/Agent/Domain defs; Chronicle `boardDef` kind gated to `designer` board only
