@@ -16,7 +16,7 @@
  * - entity — dialogs, journeys, keepers, drafts, agents, keys, integrations.
  *   onClick → board context action (same frame). No URL change.
  * - boardDef — Design-only meta/spec nav (built-in board definitions).
- *   onClick → shell selectBoardDefinition (?definition=). Never local setSearchParams.
+ *   onClick → shell selectBoardDefinition (?definition=). Reads selection from V0Shell.boardDefinitionId.
  *
  * CRITICAL RULES:
  * - This component NEVER calls /api/domains/by-slug. domainId is resolved
@@ -28,7 +28,6 @@
  */
 
 import * as React from "react"
-import { useSearchParams } from "react-router-dom"
 import { apiFetch } from "../../lib/api"
 import { KipApi } from "../../lib/kipApi"
 import type { KipDraftSummary } from "../../lib/kipApi"
@@ -448,7 +447,7 @@ export function UniversalNavPanel({
   console.log(
     "[UniversalNavPanel]",
     JSON.stringify({
-      definition: searchParams.get("definition"),
+      definition: boardDefinitionId,
       activeBoardDefId,
     }),
   )

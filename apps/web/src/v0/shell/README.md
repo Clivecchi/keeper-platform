@@ -27,6 +27,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 
 ## 📆 Update Log
 - 2026-06-12: `boardDefinitionId` / `workspaceBoardId` parsed from `location.search` at render (not `searchParams` hook object); nav reads via shell context.
+- 2026-06-12: Design definition selection — all board panels read `boardDefinitionId` from V0Shell (parsed from `location.search`); no panel uses `useSearchParams()` for `?definition=`.
 - 2026-06-12: `UniversalBoard` key is `boardId` only — definition switches no longer remount the board (fixes stale `useSearchParams` on Design nav highlight).
 - 2026-06-12: Design nav uses `setSearchParams(prev => …)` updaters; removed workspaceEpoch remount race.
 - 2026-06-12: Board definition id derived from `location.search` each render; UniversalBoard key includes `?definition=` for definition-to-definition remounts.

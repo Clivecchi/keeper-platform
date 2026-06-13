@@ -425,7 +425,7 @@ function boardNeedsDraftContext(def: UniversalBoardDef): boolean {
 export function UniversalBoard(props: UniversalBoardProps) {
   const needsDraft = boardNeedsDraftContext(props.def)
   return (
-    <UniversalBoardProvider key={props.def.boardId}>
+    <UniversalBoardProvider>
       {needsDraft ? (
         <DesignerDraftProvider>
           <UniversalBoardShell {...props} />

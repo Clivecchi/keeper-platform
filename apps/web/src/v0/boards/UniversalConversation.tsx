@@ -24,7 +24,6 @@
  */
 
 import * as React from "react"
-import { useSearchParams } from "react-router-dom"
 import type { KipDraftStatus } from "../../lib/kipApi"
 import { KipApi } from "../../lib/kipApi"
 import { apiFetch } from "../../lib/api"
@@ -42,7 +41,6 @@ import { BOARD_DEFINITIONS } from "./UniversalBoardDefinition"
 import type { UniversalBoardCenterProps } from "./UniversalBoard"
 import { useUniversalBoard } from "./UniversalBoardContext"
 import { useDesignerDraftOptional } from "./DesignerDraftContext"
-import { parseBoardDefinitionId } from "./workspaceBoardNav"
 import { FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../shell/frameRegistryMap"
 import { loadDomainFrame } from "../data/loadDomainFrame"
 import type { DomainFrameJson } from "../data/domain-frame.types"
@@ -214,8 +212,7 @@ export function UniversalConversation({
   onDraftListRefresh,
   onJourneyListRefresh,
 }: UniversalConversationProps) {
-  const [searchParams] = useSearchParams()
-  const { domainFrame, resolvedAudience: shellAudience } = useV0Shell()
+  const { domainFrame, resolvedAudience: shellAudience, boardDefinitionId } = useV0Shell()
   const frameCtx = useFrameContextOptional()
   const { refreshSession } = useAuth()
   const audience = shellAudience ?? "keeper"
@@ -296,9 +293,9 @@ export function UniversalConversation({
         ? selectedAgentRecord.name
         : def.conversation.agentName
 
-  const selectedFrameKey = null
-  const selectedBoardDefId =
-    kipMode === "designer" ? (parseBoardDefinitionId(searchParams) ?? null) : null
+  const selectedBoardDefId = kipMode === "designer" ? boardDefinitionId : null
+  /** Design board focus — board definition from ?definition= (replaces removed frame nav). */
+  const designerFocusKey = kipMode === "designer" ? selectedBoardDefId : null
   const designerDraftCtx = useDesignerDraftOptional()
 
   // ── agentContext — computed once, shared across all modes ─────────────
@@ -524,7 +521,7 @@ export function UniversalConversation({
   // ── ide / designer / agent mode: post-run callbacks ─────────────────────────
   const onAfterAgentRun = React.useCallback(
     (latestRaw: KipMessage[] | undefined, actionResults: unknown[] | undefined) => {
-      if (kipMode === "designer" && selectedFrameKey) {
+      if (kipMode === "designer" && designerFocusKey) {
         if (Array.isArray(actionResults)) {
           for (const ar of actionResults) {
             const a = ar as {
@@ -534,7 +531,7 @@ export function UniversalConversation({
             if (a.type === "draft.create" && a.result?.draft?.spec_json !== undefined) {
               void handleDesignerDraft(
                 { spec_json: a.result.draft.spec_json },
-                selectedFrameKey,
+                designerFocusKey,
               )
               return
             }
@@ -637,7 +634,7 @@ export function UniversalConversation({
         return
       }
     },
-    [kipMode, selectedFrameKey, handleDesignerDraft, onDraftSelect, onJourneySelect, onMomentSelect, onDraftListRefresh, onJourneyListRefresh, actions],
+    [kipMode, designerFocusKey, handleDesignerDraft, onDraftSelect, onJourneySelect, onMomentSelect, onDraftListRefresh, onJourneyListRefresh, actions],
   )
 
   const onAfterAgentRunWithEcho = React.useCallback(
@@ -808,8 +805,8 @@ export function UniversalConversation({
     agentDisplayName: effectiveAgentDisplayName,
     mode: kipMode,
     dialogBoard: kipMode === "designer" ? "designer" : undefined,
-    dialogFrame: kipMode === "designer" ? (selectedFrameKey ?? undefined) : undefined,
-    dialogSubject: kipMode === "designer" ? "frame" : undefined,
+    dialogFrame: kipMode === "designer" ? (designerFocusKey ?? undefined) : undefined,
+    dialogSubject: kipMode === "designer" ? "boardDef" : undefined,
     domainSlug,
     domainId,
     agentContext,
@@ -825,7 +822,7 @@ export function UniversalConversation({
         : undefined,
     onRefreshDraftsAfterRun:
       kipMode === "agent" || kipMode === "ide" ? handleRefreshDraftsAfterRun : undefined,
-    frameKey: selectedFrameKey ?? undefined,
+    frameKey: designerFocusKey ?? undefined,
     manageSessionExternally:
       kipMode === "ide" || (kipMode === "agent" && usingSelectedNonDefaultAgent),
   })
@@ -943,7 +940,7 @@ export function UniversalConversation({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kipMode, domainFrame])
 
-  // ── designer mode: resume or create session per frame ─────────────────────
+  // ── designer mode: resume or create session per board definition ───────────
   React.useEffect(() => {
     if (kipMode !== "designer") return
     if (designerDraftCtx) {
@@ -952,20 +949,20 @@ export function UniversalConversation({
       designerDraftCtx.setPublishSuccess(false)
     }
 
-    if (!domainId || !selectedFrameKey || !agentId) {
+    if (!domainId || !designerFocusKey || !agentId) {
       handleSessionChange(null)
       setMessages([])
       return
     }
 
     let cancelled = false
-    const frameKey = selectedFrameKey
+    const focusKey = designerFocusKey
     const aid = agentId
 
     void (async () => {
       try {
         const res = (await apiFetch(
-          `/api/domains/${domainId}/kip/dialogs/resolve/active?board=designer&frame=${encodeURIComponent(frameKey)}&available_to=admin`,
+          `/api/domains/${domainId}/kip/dialogs/resolve/active?board=designer&frame=${encodeURIComponent(focusKey)}&available_to=admin`,
         )) as { dialog?: { sessions?: Array<{ id: string; updated_at?: string; created_at?: string }> } }
 
         if (cancelled) return
@@ -977,13 +974,14 @@ export function UniversalConversation({
           return
         }
 
-        const frameDisplayName = FRAME_DISPLAY_NAMES[frameKey] ?? frameKey
-        const session = await KipApi.createSession(aid, undefined, frameDisplayName, {
+        const focusLabel =
+          BOARD_DEFINITIONS[focusKey]?.displayName ?? focusKey
+        const session = await KipApi.createSession(aid, undefined, focusLabel, {
           domainSlug,
           domainId,
           dialogBoard: "designer",
-          dialogFrame: frameKey,
-          dialogSubject: "frame",
+          dialogFrame: focusKey,
+          dialogSubject: "boardDef",
           dialogScope: "admin",
         })
         if (cancelled) return
@@ -1000,7 +998,7 @@ export function UniversalConversation({
     return () => { cancelled = true }
   }, [
     kipMode,
-    selectedFrameKey,
+    designerFocusKey,
     domainId,
     domainSlug,
     agentId,
@@ -1102,9 +1100,9 @@ export function UniversalConversation({
           : null
         return {
           primary: "Design",
-          secondary: selectedFrameKey
-            ? (FRAME_DISPLAY_NAMES[selectedFrameKey] ?? selectedFrameKey)
-            : boardDefLabel ?? "Select a frame",
+          secondary: designerFocusKey
+            ? (BOARD_DEFINITIONS[designerFocusKey]?.displayName ?? designerFocusKey)
+            : boardDefLabel ?? "Select a board definition",
           ...(hasDraftSpec ? { prelude: "Draft in progress" } : {}),
         }
       }
@@ -1147,7 +1145,7 @@ export function UniversalConversation({
     def.displayName,
     usingSelectedNonDefaultAgent,
     domainFrame,
-    selectedFrameKey,
+    designerFocusKey,
     selectedBoardDefId,
     hasDraftSpec,
     invokedToolSlug,
@@ -1167,7 +1165,7 @@ export function UniversalConversation({
     agentId ??
     (usingSelectedNonDefaultAgent && activeDialogAgentId ? activeDialogAgentId : null)
   const composerDisabled =
-    !dialogAgentId || (kipMode === "designer" && !selectedFrameKey)
+    !dialogAgentId || (kipMode === "designer" && !designerFocusKey)
 
   const handleConfirmDraftUpdate = React.useCallback(
     (

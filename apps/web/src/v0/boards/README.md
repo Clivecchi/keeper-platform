@@ -24,6 +24,15 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-12 — Single source for ?definition= (V0Shell boardDefinitionId)
+- `UniversalNavPanel`, `UniversalConversation`, and `UniversalViewPanel` read `boardDefinitionId` from `useV0Shell()` — not `useSearchParams()`
+- V0Shell parses `location.search` each render; avoids stale Design nav highlight / composer focus after definition switches
+- Removed redundant `key` on inner `UniversalBoardProvider` (outer `V0Shell` key on `boardId` is sufficient)
+
+### 2026-06-12 — Design board composer: board definition focus (not frame)
+- Removed stale `selectedFrameKey = null` stub — composer and session bootstrap now use `?definition=` / `designerFocusKey`
+- Designer sessions resolve/create with `dialogSubject: "boardDef"` and `dialogFrame` = board def id
+
 ### 2026-06-12 — UniversalNavPanel render diagnostic for Thinking Space Diag
 - `UniversalNavPanel` logs `[UniversalNavPanel]` with `?definition=` (`useSearchParams`) and `activeBoardDefId` on every render — consumed by Dialog Diag stream
 

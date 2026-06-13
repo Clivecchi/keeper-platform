@@ -27,13 +27,11 @@
  */
 
 import * as React from "react"
-import { useSearchParams } from "react-router-dom"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
 import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch } from "../../../lib/api"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
 import type { UniversalBoardDef } from "../UniversalBoardDefinition"
-import { parseBoardDefinitionId } from "../workspaceBoardNav"
 import { ChroniclePresenceView } from "../../presence/ChroniclePresenceView"
 import type { PresenceLayout } from "../../presence/types"
 
@@ -388,11 +386,10 @@ export function UniversalViewPanel({
   onJourneySelect,
   onMomentSelect,
 }: UniversalViewPanelProps) {
-  const [searchParams] = useSearchParams()
   const boardCtx = useUniversalBoardOptional()
   const shell = useV0ShellOptional()
   const boardDefinitionId =
-    def.boardId === "designer" ? parseBoardDefinitionId(searchParams) : null
+    def.boardId === "designer" ? (shell?.boardDefinitionId ?? null) : null
 
   const resolved = {
     selectedDialogId: boardCtx?.selection.selectedDialogId ?? null,

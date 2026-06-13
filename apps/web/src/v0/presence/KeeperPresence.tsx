@@ -1165,7 +1165,10 @@ export function KeeperPresence({
 
   const skipPresenceSchemaFetch =
     (objectType === "key" && layout === "focus") ||
-    (objectType === "service" && layout === "focus")
+    (objectType === "service" && layout === "focus") ||
+    objectType === "boardDef" ||
+    (objectType === "frame" && layout === "config") ||
+    (objectType === "domain" && layout === "focus")
   const { schema } = usePresenceSchema(
     objectType,
     domainId,

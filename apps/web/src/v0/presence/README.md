@@ -162,6 +162,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - Config layout: surface tint, comfortable density, "Configuring" whisper
 - Enrichment: path prelude, relative kept dates, paths-before-moments section order, structured journey meta
 
+### 2026-06-12 — boardDef / domain presence-schema noise fix
+- `KeeperPresence` skips domain schema fetch for `boardDef`, `frame` config, and `domain` focus — uses platform defaults / dedicated presence components; avoids 400 on `boardDef` and redundant 404 on `domain`
+
 ### 2026-06-10 — Key presence-schema 400 fix
 - `usePresenceSchema` accepts optional `skipDomainFetch` to skip `GET /presence-schema/:objectType` when a dedicated focus component owns rendering
 - `KeeperPresence` sets `skipDomainFetch` for `objectType === 'key' && layout === 'focus'` — matches `KeyFocusPresence` branch; avoids 400 from API rejecting unknown `key` objectType

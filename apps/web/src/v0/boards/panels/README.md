@@ -70,6 +70,9 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 
 ## 📆 Update Log
 
+### 2026-06-12 — Single source for ?definition= (V0Shell boardDefinitionId)
+- Chronicle `resolveKindId` reads `shell.boardDefinitionId` instead of `useSearchParams()`
+
 ### 2026-06-10 — Design trail URL sync for boardDef
 - Trail back to domain on Design clears `?boardDef=` via `setSearchParams`
 - Trail navigate to a boardDef entry sets context + URL (matches Design nav pattern)
