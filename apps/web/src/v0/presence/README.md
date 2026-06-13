@@ -59,6 +59,11 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-06-13 — Orphan cleanup + Key declaration blocks
+- Deleted unused `AgentIdentityCard.tsx`, `integrationChronicle/IntegrationChronicle.tsx`, `integrationChronicle/blocks/BlockPrimitivesPreview.tsx` (no imports)
+- `declarationChronicle.tsx`: `DeclarationChronicleBlocks` supports `variant="key"` with `connection_status`, `key_health`, `linked_agents` from Key feed
+- `KeyFocusPresence` wired to declaration blocks (same pattern as `IntegrationFocusPresence`)
+
 ### 2026-06-12 — Delete retired Key/Integration presence wrappers
 - Removed dead code: `KeyPresence.tsx`, `integrationChronicle/KeyChronicle.tsx`, `integrationChronicle/index.tsx`, `IntegrationPresence.tsx`
 - Render path unchanged: `ChroniclePresenceView` → `KeeperPresence` → `KeyFocusPresence` / `IntegrationFocusPresence`

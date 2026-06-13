@@ -35,6 +35,10 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-06-13 — Key declaration chronicle blocks
+- `KeyFocusPresence` renders `DeclarationChronicleBlocks` (`variant="key"`) from `key.chronicle_blocks` instead of hand-rolled linked agents list
+- Matches `IntegrationFocusPresence` cover + declaration blocks layout
+
 ### 2026-06-12 — Delete retired Key/Integration presence wrappers
 - Deleted `KeyPresence.tsx`, `integrationChronicle/KeyChronicle.tsx` (superseded by `KeyFocusPresence`)
 

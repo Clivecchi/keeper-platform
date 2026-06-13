@@ -3,6 +3,7 @@
 import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { EntityCoverPresence } from "./EntityCoverPresence"
+import { DeclarationChronicleBlocks } from "../integrationChronicle/declarationChronicle"
 import { KeyConfigPresence } from "../integrationChronicle/KeyConfigPresence"
 import { useKeyFeedData } from "../integrationChronicle/feeds/KeyFeed"
 import { FeedError, FeedShimmer } from "../integrationChronicle/shared"
@@ -120,7 +121,8 @@ export function KeyFocusPresence({
     )
   }
 
-  const linkedAgents = feed?.linkedAgents ?? []
+  const chronicleBlocks = feed?.key.chronicle_blocks ?? []
+  const useDeclaration = chronicleBlocks.length > 0
 
   return (
     <div className="relative flex flex-col h-full min-h-0">
@@ -135,37 +137,13 @@ export function KeyFocusPresence({
         >
           <EntityCoverPresence content={coverContent} instanceKey={objectId} />
 
-          {linkedAgents.length > 0 && (
-            <div className="mt-6">
-              <p
-                className="text-[11px] font-semibold uppercase tracking-widest mb-2"
-                style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-              >
-                Linked agents
-              </p>
-              {linkedAgents.map((agent) => (
-                <div
-                  key={agent.id}
-                  className="rounded-lg border px-3 py-2 mb-2"
-                  style={{
-                    borderColor: "hsl(var(--theme-border-soft) / 0.4)",
-                    background: "hsl(var(--theme-surface-elevated) / 0.25)",
-                  }}
-                >
-                  <p
-                    className="text-[13px] font-medium"
-                    style={{ color: "hsl(var(--theme-ink-primary))" }}
-                  >
-                    {agent.name}
-                  </p>
-                  <p
-                    className="text-[11px] mt-0.5"
-                    style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-                  >
-                    {agent.model}
-                  </p>
-                </div>
-              ))}
+          {useDeclaration && feed && (
+            <div className="mt-6 flex flex-col gap-4">
+              <DeclarationChronicleBlocks
+                variant="key"
+                blocks={chronicleBlocks}
+                keyFeed={feed}
+              />
             </div>
           )}
         </motion.div>

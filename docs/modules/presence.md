@@ -59,6 +59,11 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-06-13 — Orphan cleanup + Key declaration blocks
+- Deleted unused `AgentIdentityCard.tsx`, `integrationChronicle/IntegrationChronicle.tsx`, `integrationChronicle/blocks/BlockPrimitivesPreview.tsx` (no imports)
+- `declarationChronicle.tsx`: `DeclarationChronicleBlocks` supports `variant="key"` with `connection_status`, `key_health`, `linked_agents` from Key feed
+- `KeyFocusPresence` wired to declaration blocks (same pattern as `IntegrationFocusPresence`)
+
 ### 2026-06-12 — Delete retired Key/Integration presence wrappers
 - Removed dead code: `KeyPresence.tsx`, `integrationChronicle/KeyChronicle.tsx`, `integrationChronicle/index.tsx`, `IntegrationPresence.tsx`
 - Render path unchanged: `ChroniclePresenceView` → `KeeperPresence` → `KeyFocusPresence` / `IntegrationFocusPresence`
@@ -161,6 +166,9 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - Journey focus layout: title + inline forward narrative, meta row (keeper, created, moment count), paths with prelude, tappable moments, Set as Active via `UniversalBoardContext`
 - Config layout: surface tint, comfortable density, "Configuring" whisper
 - Enrichment: path prelude, relative kept dates, paths-before-moments section order, structured journey meta
+
+### 2026-06-12 — boardDef / domain presence-schema noise fix
+- `KeeperPresence` skips domain schema fetch for `boardDef`, `frame` config, and `domain` focus — uses platform defaults / dedicated presence components; avoids 400 on `boardDef` and redundant 404 on `domain`
 
 ### 2026-06-10 — Key presence-schema 400 fix
 - `usePresenceSchema` accepts optional `skipDomainFetch` to skip `GET /presence-schema/:objectType` when a dedicated focus component owns rendering

@@ -16,6 +16,7 @@ import {
 } from "./blocks"
 import type { AIModelFeedData, KeyHealthSource } from "./feeds/AIModelFeed"
 import type { GitHubFeedData } from "./feeds/GitHubFeed"
+import type { KeyFeedData } from "./feeds/KeyFeed"
 import {
   ActionButton,
   CapabilityChips,
@@ -83,6 +84,46 @@ function mapKeyStatus(status: "valid" | "invalid" | "missing" | undefined): KeyS
   if (status === "invalid") return "invalid"
   return "missing"
 }
+
+function mapKeyEntitySource(source: string): KeySource {
+  if (source === "env") return "ENV"
+  if (source === "user") return "USER"
+  if (source === "platform") return "PLATFORM"
+  return "ENV"
+}
+
+function mapKeyEntityStatus(status: string): KeyStatus {
+  if (status === "valid") return "valid"
+  if (status === "invalid" || status === "revoked") return "invalid"
+  return "missing"
+}
+
+function keyEntityConnectionHealth(status: string): ConnectionHealth {
+  if (status === "valid") return "connected"
+  if (status === "invalid" || status === "revoked") return "error"
+  return "disconnected"
+}
+
+export type IntegrationDeclarationChronicleBlocksProps = {
+  variant?: "integration"
+  blocks: string[]
+  serviceSlug: string
+  integration: IntegrationDto
+  integrationType: IntegrationType
+  config: ServiceConfig<unknown>
+  feed: FeedDataState<unknown>
+  actions: ServiceAction[]
+}
+
+export type KeyDeclarationChronicleBlocksProps = {
+  variant: "key"
+  blocks: string[]
+  keyFeed: KeyFeedData
+}
+
+export type DeclarationChronicleBlocksProps =
+  | IntegrationDeclarationChronicleBlocksProps
+  | KeyDeclarationChronicleBlocksProps
 
 export function integrationKeyStatusLabel(
   keyStatus: "valid" | "invalid" | "missing" | undefined,
@@ -279,23 +320,67 @@ function buildVercelDeployments(feed: FeedDataState<VercelFeedData>): Deployment
   }))
 }
 
-export function DeclarationChronicleBlocks({
+function KeyDeclarationChronicleBlockList({
   blocks,
-  serviceSlug,
-  integration,
-  integrationType,
-  config,
-  feed,
-  actions,
+  keyFeed,
 }: {
   blocks: string[]
-  serviceSlug: string
-  integration: IntegrationDto
-  integrationType: IntegrationType
-  config: ServiceConfig<unknown>
-  feed: FeedDataState<unknown>
-  actions: ServiceAction[]
+  keyFeed: KeyFeedData
 }) {
+  const { key, linkedAgents } = keyFeed
+  const keyStatus = mapKeyEntityStatus(key.status)
+
+  return (
+    <>
+      {blocks.map((block) => {
+        switch (block) {
+          case "connection_status":
+            return (
+              <ConnectionStatusBlock
+                key={block}
+                connectedAt={key.last_verified}
+                credentialSource={mapKeyEntitySource(key.key_source)}
+                health={keyEntityConnectionHealth(key.status)}
+              />
+            )
+          case "key_health":
+            return (
+              <KeyHealthBlock
+                key={block}
+                keySource={mapKeyEntitySource(key.key_source)}
+                keyStatus={keyStatus}
+                lastVerified={key.last_verified}
+                onKeyUpdate={(apiKey) => keyFeed.saveCredential(apiKey)}
+                keyUpdateBusy={keyFeed.rotateBusy}
+                keyUpdateError={keyFeed.keySaveError}
+                readOnly={keyStatus === "valid"}
+              />
+            )
+          case "linked_agents":
+            return (
+              <LinkedAgentsBlock
+                key={block}
+                agents={linkedAgents.map((agent) => ({
+                  id: agent.id,
+                  name: agent.name,
+                  model: agent.model,
+                }))}
+              />
+            )
+          default:
+            return null
+        }
+      })}
+    </>
+  )
+}
+
+export function DeclarationChronicleBlocks(props: DeclarationChronicleBlocksProps) {
+  if (props.variant === "key") {
+    return <KeyDeclarationChronicleBlockList blocks={props.blocks} keyFeed={props.keyFeed} />
+  }
+
+  const { blocks, serviceSlug, integration, integrationType, config, feed, actions } = props
   const redeployAction = findActionBySlug(actions, "redeploy")
   const glow = config.glowFn(feed.data)
 
