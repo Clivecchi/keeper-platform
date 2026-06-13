@@ -34,7 +34,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - Designer sessions resolve/create with `dialogSubject: "boardDef"` and `dialogFrame` = board def id
 
 ### 2026-06-12 — UniversalNavPanel render diagnostic for Thinking Space Diag
-- `UniversalNavPanel` logs `[UniversalNavPanel]` with `?definition=` (`useSearchParams`) and `activeBoardDefId` on every render — consumed by Dialog Diag stream
+- `UniversalNavPanel` logs `[UniversalNavPanel]` with `boardDefinitionId` from V0Shell on every render — consumed by Dialog Diag stream
 
 ### 2026-06-12 — Design board nav: setSearchParams updater + live searchParams reads
 - Removed `workspaceEpoch` remount race (epoch bumped before URL propagated)

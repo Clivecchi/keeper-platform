@@ -217,8 +217,7 @@ export function UniversalNavPanel({
   draftListVersion = 0,
 }: UniversalNavPanelProps) {
 
-  // ── designer board definitions — URL is source of truth (?definition=) ─────
-  const [searchParams] = useSearchParams()
+  // ── designer board definitions — V0Shell.boardDefinitionId from ?definition= ─
   const { selectBoardDefinition, boardDefinitionId } = useV0Shell()
   const allBoardDefs = useBoardDefs()
 
