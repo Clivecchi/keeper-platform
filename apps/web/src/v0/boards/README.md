@@ -24,6 +24,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-12 — Optimistic board definition + router/window desync fix
+- V0Shell holds `pendingBoardDefinitionId` — UI updates immediately on nav click before router catches up
+- When `window.location.search` and React Router `location.search` disagree on `?definition=`, trust window
+- `[BoardDefinitionNav]` log on select + mismatch warning; nav log includes `windowDefinition`
+- All reads via `useBoardDefinitionFromUrl()` → V0Shell effective `boardDefinitionId`
+
 ### 2026-06-12 — useBoardDefinitionFromUrl: live URL reads + navigate writes
 - Added `useBoardDefinitionFromUrl.ts` — reads `?definition=` from `useLocation().search` on every navigation
 - Nav, Conversation, Chronicle, and `UniversalBoardContext` use the hook for reads (not V0Shell context)

@@ -304,8 +304,61 @@ export function V0Shell() {
 
   const urlSearch = readUrlSearchParams(location.search)
   const workspaceBoardId = parseWorkspaceBoardId(urlSearch)
+
+  // Prefer window.location when router search lags (navigate vs setSearchParams desync in prod).
+  const urlBoardDefinitionId = React.useMemo(() => {
+    if (workspaceBoardId !== "designer") return null
+    const routerDef = parseBoardDefinitionId(urlSearch)
+    if (typeof window === "undefined") return routerDef
+    const windowDef = parseBoardDefinitionId(
+      readUrlSearchParams(window.location.search),
+    )
+    if (windowDef && routerDef && windowDef !== routerDef) return windowDef
+    return routerDef ?? windowDef
+  }, [workspaceBoardId, urlSearch])
+
+  const [pendingBoardDefinitionId, setPendingBoardDefinitionId] =
+    React.useState<string | null>(null)
+
   const boardDefinitionId =
-    workspaceBoardId === "designer" ? parseBoardDefinitionId(urlSearch) : null
+    workspaceBoardId === "designer"
+      ? (pendingBoardDefinitionId ?? urlBoardDefinitionId)
+      : null
+
+  React.useEffect(() => {
+    if (pendingBoardDefinitionId === null) return
+    if (urlBoardDefinitionId === pendingBoardDefinitionId) {
+      setPendingBoardDefinitionId(null)
+    }
+  }, [urlBoardDefinitionId, pendingBoardDefinitionId])
+
+  React.useEffect(() => {
+    if (workspaceBoardId !== "designer") {
+      setPendingBoardDefinitionId(null)
+    }
+  }, [workspaceBoardId])
+
+  React.useEffect(() => {
+    if (workspaceBoardId !== "designer") return
+    const routerDef = parseBoardDefinitionId(urlSearch)
+    const windowDef =
+      typeof window !== "undefined"
+        ? parseBoardDefinitionId(readUrlSearchParams(window.location.search))
+        : routerDef
+    if (windowDef && routerDef && windowDef !== routerDef) {
+      console.warn("[BoardDefinitionNav] router/window mismatch", {
+        windowDef,
+        routerDef,
+        pending: pendingBoardDefinitionId,
+        effective: boardDefinitionId,
+      })
+    }
+  }, [
+    workspaceBoardId,
+    urlSearch,
+    pendingBoardDefinitionId,
+    boardDefinitionId,
+  ])
 
   const switchWorkspace = React.useCallback(
     (boardId: WorkspaceBoardId) => {
@@ -319,32 +372,46 @@ export function V0Shell() {
 
   const selectBoardDefinition = React.useCallback(
     (definitionId: string) => {
-      let next = readUrlSearchParams(location.search)
-      if (parseWorkspaceBoardId(next) !== "designer") {
-        next = applyWorkspaceBoardSwitch(next, "designer")
-      }
-      next = applyBoardDefinitionSelection(next, definitionId)
-      const qs = next.toString()
-      navigate(
-        { pathname: location.pathname, search: qs ? `?${qs}` : "" },
+      setPendingBoardDefinitionId(definitionId)
+      setSearchParams(
+        (prev) => {
+          let next = new URLSearchParams(prev)
+          if (parseWorkspaceBoardId(next) !== "designer") {
+            next = applyWorkspaceBoardSwitch(next, "designer")
+          }
+          return applyBoardDefinitionSelection(next, definitionId)
+        },
         { replace: true },
       )
+      console.log(
+        "[BoardDefinitionNav]",
+        JSON.stringify({
+          action: "select",
+          requested: definitionId,
+          windowSearch:
+            typeof window !== "undefined" ? window.location.search : null,
+          routerSearch: location.search,
+        }),
+      )
     },
-    [location.pathname, location.search, navigate],
+    [setSearchParams, location.search],
   )
 
   // Design workspace without ?definition= — default to IDE spec so nav + composer are live.
   React.useEffect(() => {
-    const params = readUrlSearchParams(location.search)
-    if (parseWorkspaceBoardId(params) !== "designer") return
-    if (parseBoardDefinitionId(params)) return
-    const next = applyBoardDefinitionSelection(params, "ide")
-    const qs = next.toString()
-    navigate(
-      { pathname: location.pathname, search: qs ? `?${qs}` : "" },
+    if (workspaceBoardId !== "designer") return
+    if (urlBoardDefinitionId || pendingBoardDefinitionId) return
+    setPendingBoardDefinitionId("ide")
+    setSearchParams(
+      (prev) => applyBoardDefinitionSelection(new URLSearchParams(prev), "ide"),
       { replace: true },
     )
-  }, [location.pathname, location.search, navigate])
+  }, [
+    workspaceBoardId,
+    urlBoardDefinitionId,
+    pendingBoardDefinitionId,
+    setSearchParams,
+  ])
 
   const clearBoardDefinition = React.useCallback(() => {
     setSearchParams(

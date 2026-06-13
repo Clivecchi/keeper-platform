@@ -452,6 +452,10 @@ export function UniversalNavPanel({
       JSON.stringify({
         definition: boardDefinitionId,
         activeBoardDefId,
+        windowDefinition:
+          typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).get("definition")
+            : null,
       }),
     )
   }, [showBoardDefs, boardDefinitionId, activeBoardDefId])
