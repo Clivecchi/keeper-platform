@@ -37,7 +37,7 @@ import type { SidebarCardItem } from "../components/SidebarCard"
 import type { UniversalBoardDef, NavSectionKey } from "./UniversalBoardDefinition"
 import { useBoardDefs } from "./useBoardDefs"
 import { useV0Shell } from "../shell/V0ShellContext"
-import { parseBoardDefinitionId } from "./workspaceBoardNav"
+import { parseBoardDefinitionId, readUrlSearchParams } from "./workspaceBoardNav"
 import {
   fetchDomainKeyNavRows,
   keyNavLabel,
@@ -221,6 +221,10 @@ export function UniversalNavPanel({
 
   // ── designer board definitions — URL is source of truth (?definition=) ─────
   const [searchParams] = useSearchParams()
+  // Re-parse from search string each render — do not rely on URLSearchParams object identity.
+  const boardDefinitionFromUrl = parseBoardDefinitionId(
+    readUrlSearchParams(searchParams.toString()),
+  )
   const { selectBoardDefinition } = useV0Shell()
   const allBoardDefs = useBoardDefs()
 
@@ -444,7 +448,7 @@ export function UniversalNavPanel({
   const showJourneys = def.nav.sections.journeys
   const showKeepers = def.nav.sections.keepers
   const showBoardDefs = def.nav.sections.boardDefs ?? false
-  const activeBoardDefId = showBoardDefs ? parseBoardDefinitionId(searchParams) : null
+  const activeBoardDefId = showBoardDefs ? boardDefinitionFromUrl : null
   const integrationDefs = def.nav.integrations ?? []
   const infrastructureIntegrations = integrationDefs.filter((item) => item.group !== "ai")
   const aiIntegrations = integrationDefs.filter((item) => item.group === "ai")
@@ -475,14 +479,18 @@ export function UniversalNavPanel({
     [selectBoardDefinition],
   )
 
-  const boardDefItems: SidebarCardItem[] = showBoardDefs
-    ? allBoardDefs.map((d) => ({
+  const boardDefItems = React.useMemo<SidebarCardItem[]>(
+    () => {
+      if (!showBoardDefs) return []
+      return allBoardDefs.map((d) => ({
         id: d.boardId,
         label: d.displayName,
         isSelected: d.boardId === activeBoardDefId,
         onClick: () => selectBoardDef(d.boardId),
       }))
-    : []
+    },
+    [showBoardDefs, allBoardDefs, activeBoardDefId, selectBoardDef],
+  )
 
   // ── Collapsed state — 36px strip with centered expand chevron ────────────
   if (collapsed) {
