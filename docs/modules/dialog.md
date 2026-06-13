@@ -5,6 +5,8 @@ Shared conversation shell used across IDE Board, Agent Board, and Domain Board. 
 
 ## 🧱 Key Files
 - `KeeperDialogFrame.tsx` — Main shell component. Assembles four sibling flex zones: Banner (Zone 1), Chat Zone (Zone 2), Thinking Space (new), and Composer Zone (Zone 3).
+- `DialogDiagStream.tsx` — Diag thinking stream: captures console output, board-definition snapshot, copy.
+- `DialogScrollRail.tsx` — Overlay scroll thumb for Zone 2.
 
 ## 🔄 Data & Behavior
 
@@ -21,7 +23,7 @@ Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:rel
 ### Zone Behaviour
 - **Zone 1 (Banner)**: Frosted breadcrumb — `keeperName`, `journeyName`, `pathName`, `pathPrelude`. Hidden in `mode === 'feed'`.
 - **Zone 2 (Chat Zone)**: Scrollable message surface. Renders `DialogueMessageList` by default, or `dialogContent` override. Mask dissolves oldest messages at the top into the atmosphere. Message depth cascade applied via `nth-last-child` CSS selectors — no JavaScript.
-- **Thinking Space**: Fixed-height (52px) sibling zone between chat and composer. Reserved for uploads, messaging, and composer-adjacent features. Agent thinking status renders on the **Horizon** (top of the fade gradient), not here.
+- **Thinking Space**: Fixed-height sibling zone between chat and composer. When Kip is thinking, the **Diag** stream can open from the Horizon — scrolls captured `console.log` output with Copy and Board Definition sync hints. Agent thinking status renders on the **Horizon** (top of the fade gradient), not in the stream label row.
 - **Zone 3 (Composer Zone)**: Contains `AgentComposer` (input field + toolbar) then `IntegratedServicesBar` below it (barely-there service status). Service bar at floor, input field as center of gravity.
 
 ### Message Depth Cascade
@@ -45,6 +47,7 @@ All four zones are direct flex children of `.keeper-dialog-frame`. The thinking 
 - [ ] When `isSending` is true, thinking status renders on the Horizon (`.dialog-horizon-status`) inside Zone 2; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-06-12: Thinking Space **Diag** stream — Horizon toggle while `isSending`; `DialogDiagStream` shows captured console output with Copy; board-definition snapshot from `[UniversalNavPanel]` logs; capture via `lib/consoleDiagCapture.ts`.
 - 2026-06-10: Moved agent thinking indicator onto the Horizon gradient band (`.dialog-horizon-band`), inset inside the fade — not above it. Message landing line stays at the top edge of the band; Thinking Space cleared below.
 - 2026-05-30: Rendr treatment correction — opacity table updated; chat zone open atmosphere; composer 0.82 / banner 0.55; bottom scroll mask 70%→transparent; gradient dissolve overlay softened.
 - 2026-05-26 — UI polish: frosted glass Dialog shell (warm semi-transparent surfaces, stronger backdrop blur); gradient dissolve softened; message list background transparent.

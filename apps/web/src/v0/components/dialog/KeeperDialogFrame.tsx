@@ -19,7 +19,11 @@ import { DialogueMessageList } from "../../../components/agent/DialogueMessageLi
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedServicesBar"
 import type { AgentBoardMessaging } from "../../data/domain-frame.types"
+import { clearConsoleDiagEntries } from "../../../lib/consoleDiagCapture"
+import { DialogDiagStream } from "./DialogDiagStream"
 import { DialogScrollRail } from "./DialogScrollRail"
+
+type ThinkStream = "diag" | null
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -190,6 +194,16 @@ export function KeeperDialogFrame({
   const thinkSpaceRef = React.useRef<HTMLDivElement>(null)
   const [bannerExpanded, setBannerExpanded] = React.useState(false)
   const [dialogScrollInset, setDialogScrollInset] = React.useState(172)
+  const [thinkStream, setThinkStream] = React.useState<ThinkStream>(null)
+
+  React.useEffect(() => {
+    if (isSending) {
+      clearConsoleDiagEntries()
+      setThinkStream("diag")
+      return
+    }
+    setThinkStream(null)
+  }, [isSending])
 
   const measureDialogScrollInset = React.useCallback(() => {
     const thinkHeight = thinkSpaceRef.current?.offsetHeight ?? 52
@@ -205,7 +219,7 @@ export function KeeperDialogFrame({
     measureDialogScrollInset()
     window.addEventListener("resize", measureDialogScrollInset)
     return () => window.removeEventListener("resize", measureDialogScrollInset)
-  }, [mode, dialogContent, measureDialogScrollInset])
+  }, [mode, dialogContent, measureDialogScrollInset, isSending, thinkStream])
 
   const thinkingLabel = React.useMemo(
     () =>
@@ -467,14 +481,26 @@ export function KeeperDialogFrame({
               aria-hidden="true"
             />
             {isSending && (
-              <div
-                className="dialog-horizon-status"
-                aria-live="polite"
-              >
-                <div className="mx-auto w-full max-w-3xl px-4">
-                  <span className="dialog-think-pulse">{thinkingLabel}</span>
+              <>
+                <div
+                  className="dialog-horizon-status"
+                  aria-live="polite"
+                >
+                  <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4">
+                    <span className="dialog-think-pulse">{thinkingLabel}</span>
+                    <div className="dialog-horizon-streams">
+                      <button
+                        type="button"
+                        className={`dialog-horizon-stream${thinkStream === "diag" ? " dialog-horizon-stream--active" : ""}`}
+                        onClick={() => setThinkStream((current) => (current === "diag" ? null : "diag"))}
+                        aria-pressed={thinkStream === "diag"}
+                      >
+                        Diag
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
         )}
@@ -486,9 +512,11 @@ export function KeeperDialogFrame({
       {mode !== 'feed' && (
         <div
           ref={thinkSpaceRef}
-          className="dialog-think-space"
-          aria-hidden="true"
-        />
+          className={`dialog-think-space${isSending && thinkStream === "diag" ? " dialog-think-space--diag" : ""}`}
+          aria-hidden={!(isSending && thinkStream === "diag")}
+        >
+          <DialogDiagStream active={isSending && thinkStream === "diag"} />
+        </div>
       )}
 
       {/* ── Zone 3: Composer Zone — where the user speaks ───────────────────── *

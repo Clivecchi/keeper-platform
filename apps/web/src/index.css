@@ -365,6 +365,10 @@ button.dialog-prelude:hover {
   pointer-events: none;
 }
 
+.dialog-horizon-band:has(.dialog-horizon-streams) {
+  pointer-events: none;
+}
+
 /* Bottom dissolve — fills the horizon band */
 .dialog-fade-overlay {
   position: absolute;
@@ -485,12 +489,188 @@ button.dialog-prelude:hover {
   pointer-events: none;
 }
 
+.dialog-horizon-status:has(.dialog-horizon-streams) {
+  pointer-events: auto;
+}
+
+.dialog-horizon-streams {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  pointer-events: auto;
+}
+
+.dialog-horizon-stream {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid hsl(var(--theme-border-soft) / 0.45);
+  background: hsl(var(--theme-surface-panel) / 0.35);
+  color: hsl(var(--theme-ink-secondary));
+  cursor: pointer;
+  transition: opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.dialog-horizon-stream:hover {
+  opacity: 0.9;
+  color: hsl(var(--theme-ink-primary));
+}
+
+.dialog-horizon-stream--active {
+  border-color: hsl(var(--treatment-color) / 0.55);
+  color: hsl(var(--theme-ink-primary));
+  background: hsl(var(--theme-surface-panel) / 0.55);
+}
+
 .dialog-think-space {
   flex-shrink: 0;
   height: 52px;
   background: transparent;
   overflow: hidden;
   position: relative;
+}
+
+.dialog-think-space--diag {
+  height: 120px;
+}
+
+.dialog-diag-stream {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 4px 52px 4px 12px;
+  color: hsl(var(--theme-ink-secondary));
+}
+
+.dialog-diag-boarddefs {
+  flex-shrink: 0;
+  margin-bottom: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid hsl(var(--theme-border-soft) / 0.35);
+  background: hsl(var(--theme-surface-panel) / 0.22);
+}
+
+.dialog-diag-boarddefs--mismatch {
+  border-color: hsl(var(--destructive) / 0.45);
+}
+
+.dialog-diag-boarddefs-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+}
+
+.dialog-diag-boarddefs-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(var(--theme-ink-tertiary));
+}
+
+.dialog-diag-boarddefs-meta {
+  font-size: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.dialog-diag-boarddefs-meta code {
+  color: hsl(var(--theme-ink-primary));
+}
+
+.dialog-diag-boarddefs-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.dialog-diag-boarddef-pill {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--theme-border-soft) / 0.4);
+  background: transparent;
+  color: hsl(var(--theme-ink-secondary));
+  cursor: pointer;
+}
+
+.dialog-diag-boarddef-pill--active {
+  border-color: hsl(var(--treatment-color) / 0.55);
+  color: hsl(var(--theme-ink-primary));
+}
+
+.dialog-diag-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.dialog-diag-empty {
+  font-size: 11px;
+  font-style: italic;
+  opacity: 0.65;
+  margin: 0;
+}
+
+.dialog-diag-line {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 10px;
+  line-height: 1.35;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  padding: 1px 0;
+}
+
+.dialog-diag-line--warn .dialog-diag-text {
+  color: hsl(38 92% 62%);
+}
+
+.dialog-diag-line--error .dialog-diag-text {
+  color: hsl(var(--destructive));
+}
+
+.dialog-diag-time {
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+
+.dialog-diag-text {
+  min-width: 0;
+  word-break: break-word;
+  color: hsl(var(--theme-ink-secondary));
+}
+
+.dialog-diag-copy {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid hsl(var(--theme-border-soft) / 0.45);
+  background: hsl(var(--theme-surface-panel) / 0.4);
+  color: hsl(var(--theme-ink-secondary));
+  cursor: pointer;
+}
+
+.dialog-diag-copy:hover {
+  color: hsl(var(--theme-ink-primary));
 }
 
 /* Active state — breathes gently when Kip is working */

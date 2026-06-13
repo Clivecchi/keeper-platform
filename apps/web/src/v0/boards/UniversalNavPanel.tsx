@@ -28,6 +28,7 @@
  */
 
 import * as React from "react"
+import { useSearchParams } from "react-router-dom"
 import { apiFetch } from "../../lib/api"
 import { KipApi } from "../../lib/kipApi"
 import type { KipDraftSummary } from "../../lib/kipApi"
@@ -218,7 +219,7 @@ export function UniversalNavPanel({
 }: UniversalNavPanelProps) {
 
   // ── designer board definitions — URL is source of truth (?definition=) ─────
-  // Read from V0Shell (parsed from location.search each render), not local useSearchParams.
+  const [searchParams] = useSearchParams()
   const { selectBoardDefinition, boardDefinitionId } = useV0Shell()
   const allBoardDefs = useBoardDefs()
 
@@ -443,6 +444,15 @@ export function UniversalNavPanel({
   const showKeepers = def.nav.sections.keepers
   const showBoardDefs = def.nav.sections.boardDefs ?? false
   const activeBoardDefId = showBoardDefs ? boardDefinitionId : null
+
+  console.log(
+    "[UniversalNavPanel]",
+    JSON.stringify({
+      definition: searchParams.get("definition"),
+      activeBoardDefId,
+    }),
+  )
+
   const integrationDefs = def.nav.integrations ?? []
   const infrastructureIntegrations = integrationDefs.filter((item) => item.group !== "ai")
   const aiIntegrations = integrationDefs.filter((item) => item.group === "ai")

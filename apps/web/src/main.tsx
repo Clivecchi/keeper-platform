@@ -3,6 +3,9 @@ import('./boot/fetch-shim').catch((e) => {
   console.warn('[fetch-shim] failed to load (continuing):', e);
 });
 import './lib/diagnostics';
+import { installConsoleDiagCapture } from './lib/consoleDiagCapture';
+
+installConsoleDiagCapture();
 
 import { createRoot } from 'react-dom/client'
 import App from './App'

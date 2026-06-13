@@ -24,6 +24,9 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-12 — UniversalNavPanel render diagnostic for Thinking Space Diag
+- `UniversalNavPanel` logs `[UniversalNavPanel]` with `?definition=` (`useSearchParams`) and `activeBoardDefId` on every render — consumed by Dialog Diag stream
+
 ### 2026-06-12 — Design board nav: setSearchParams updater + live searchParams reads
 - Removed `workspaceEpoch` remount race (epoch bumped before URL propagated)
 - Workspace/definition URL writes use `setSearchParams(prev => …)` — no stale `location.search` closures
