@@ -421,7 +421,7 @@ export function V0Shell() {
             draftId={draftId}
           >
             <UniversalBoard
-              key={`${matchedDef.boardId}:${boardDefinitionId ?? ""}`}
+              key={matchedDef.boardId}
               def={matchedDef}
             />
             {kipHandoffToast}
