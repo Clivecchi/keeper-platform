@@ -99,6 +99,24 @@ export function resolveBoardDefinitionId(
   return routerDef ?? windowDef
 }
 
+/** Search params for URL writes — window wins when ?board= diverges from router. */
+export function readAuthoritativeSearchParams(
+  routerSearch: string,
+  windowSearch?: string,
+): URLSearchParams {
+  const routerParams = readUrlSearchParams(routerSearch)
+  if (typeof window === "undefined" || windowSearch === undefined) {
+    return new URLSearchParams(routerParams)
+  }
+  const windowParams = readUrlSearchParams(windowSearch)
+  const routerBoard = parseWorkspaceBoardId(routerParams)
+  const windowBoard = parseWorkspaceBoardId(windowParams)
+  if (windowBoard && routerBoard && windowBoard !== routerBoard) {
+    return new URLSearchParams(windowParams)
+  }
+  return new URLSearchParams(routerParams)
+}
+
 export function clearBoardDefinitionParams(prev: URLSearchParams): URLSearchParams {
   const next = new URLSearchParams(prev)
   next.delete(BOARD_DEFINITION_PARAM)

@@ -1166,8 +1166,7 @@ export function UniversalConversation({
   const dialogAgentId =
     agentId ??
     (usingSelectedNonDefaultAgent && activeDialogAgentId ? activeDialogAgentId : null)
-  const composerDisabled =
-    !dialogAgentId || (kipMode === "designer" && !designerFocusKey)
+  const composerDisabled = !dialogAgentId
 
   const handleConfirmDraftUpdate = React.useCallback(
     (
