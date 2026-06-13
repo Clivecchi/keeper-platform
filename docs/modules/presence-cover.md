@@ -35,6 +35,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-06-12 — Delete retired Key/Integration presence wrappers
+- Deleted `KeyPresence.tsx`, `integrationChronicle/KeyChronicle.tsx` (superseded by `KeyFocusPresence`)
+
 ### 2026-06-10 — Integration Cover Pattern Correction
 - Added `integrationCoverSchema.ts` — five-slot cover fill from live Integration DTO + serviceConfig + capabilities
 - Added `IntegrationFocusPresence.tsx` — universal cover + declaration blocks / legacy feed below

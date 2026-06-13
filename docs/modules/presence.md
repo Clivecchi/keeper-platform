@@ -16,7 +16,6 @@ Schema-driven Chronicle rendering layer. Resolves and applies per-domain, per-ob
 - `promptPoints.ts` — parse/serialize prompt strings ↔ editable points
 - `presenceEnrichment.ts` — fetches records and resolves journey context, paths, sessions per object type
 - `ChroniclePresenceView.tsx` — thin Chronicle wrapper; `soleMemory` only special case; `service` and `key` flow through `KeeperPresence`
-- `IntegrationPresence.tsx` — retired re-export (integration renders via `IntegrationFocusPresence`)
 - `integrationChronicle/` — Hero, Status Strip, Primary Feed, Actions; unconnected Connect via Nango
 - `chronicleConfig/` — universal Config Mode save infrastructure (`useChronicleConfig`, save bar, config shell)
 - `cover/DomainFocusPresence.tsx` — Domain Cover + Config orchestration
@@ -59,6 +58,10 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 - [ ] `PUT /api/domains/:domainId/presence-schema/:objectType` Design Board write path integration pending
 
 ## 📆 Update Log
+
+### 2026-06-12 — Delete retired Key/Integration presence wrappers
+- Removed dead code: `KeyPresence.tsx`, `integrationChronicle/KeyChronicle.tsx`, `integrationChronicle/index.tsx`, `IntegrationPresence.tsx`
+- Render path unchanged: `ChroniclePresenceView` → `KeeperPresence` → `KeyFocusPresence` / `IntegrationFocusPresence`
 
 ### 2026-06-10 — Key/Integration manage mode CRUD after verify
 - `KeyHealthBlock`: `allowValidRotate` enables Update key in config/manage surfaces when status is valid; ENV keys show Railway guidance

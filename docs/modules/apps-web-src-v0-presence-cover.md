@@ -35,6 +35,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-06-12 — Delete retired Key/Integration presence wrappers
+- Deleted `KeyPresence.tsx`, `integrationChronicle/KeyChronicle.tsx` (superseded by `KeyFocusPresence`)
+
 ### 2026-06-10 — Integration Cover Pattern Correction
 - Added `integrationCoverSchema.ts` — five-slot cover fill from live Integration DTO + serviceConfig + capabilities
 - Added `IntegrationFocusPresence.tsx` — universal cover + declaration blocks / legacy feed below
@@ -46,6 +49,10 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - Added `KeyFocusPresence.tsx` — Cover Mode via `EntityCoverPresence`; Config Mode via `KeyConfigPresence`
 - Wired `KeyFocusPresence` into `KeeperPresence` for `objectType="key"` + `layout="focus"`
 - Retired `ChroniclePresenceView` early exit for `key`; marked `KeyPresence` / `KeyChronicle` retired
+
+### 2026-06-10 — Key manage mode after verify
+- Cover actions: Verify + Add Key (invalid) or Manage (valid) → Config Mode
+- Config Mode: rotate/update valid credentials via KeyHealthBlock `allowValidRotate`; revoke when declared
 
 ### 2026-06-09 — Agent name in Training Mode instructions
 - Training prompt UI now uses the active agent's name (Cloud, Rendr, Kip, etc.) instead of hardcoded "Kip"
