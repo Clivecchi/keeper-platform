@@ -17,6 +17,8 @@ import {
   parseBoardDefinitionId,
   parseWorkspaceBoardId,
   readUrlSearchParams,
+  resolveBoardDefinitionId,
+  resolveWorkspaceBoardId,
   type WorkspaceBoardId,
 } from "../boards/workspaceBoardNav"
 import { UniversalBoard } from "../boards/UniversalBoard"
@@ -54,6 +56,36 @@ export function V0Shell() {
   const { isAuthenticated, isAdmin, authResolved } = useAuth()
   const { colorScheme } = useTheme()
   const [searchParams, setSearchParams] = useSearchParams()
+
+  const routerSearch = location.search
+  const windowSearch =
+    typeof window !== "undefined" ? window.location.search : routerSearch
+
+  const [pendingWorkspaceBoardId, setPendingWorkspaceBoardId] =
+    React.useState<WorkspaceBoardId | null>(null)
+  const [pendingBoardDefinitionId, setPendingBoardDefinitionId] =
+    React.useState<string | null>(null)
+
+  const urlWorkspaceBoardId = React.useMemo(
+    () => resolveWorkspaceBoardId(routerSearch, windowSearch),
+    [routerSearch, windowSearch],
+  )
+  const workspaceBoardId = pendingWorkspaceBoardId ?? urlWorkspaceBoardId
+
+  const urlBoardDefinitionId = React.useMemo(
+    () =>
+      resolveBoardDefinitionId(
+        workspaceBoardId,
+        routerSearch,
+        windowSearch,
+      ),
+    [workspaceBoardId, routerSearch, windowSearch],
+  )
+  const boardDefinitionId =
+    workspaceBoardId === "designer"
+      ? (pendingBoardDefinitionId ?? urlBoardDefinitionId)
+      : null
+
   const defaultFrame = isAuthenticated ? "commons" : "cover"
   const frameParam = (searchParams.get("frame") || defaultFrame).toLowerCase() as V0FrameKey
 
@@ -110,9 +142,6 @@ export function V0Shell() {
   const styleId = (searchParams.get("style") || "neutral") as StyleId
   const draftId = searchParams.get("draftId")
 
-  // ?board= parameter — takes precedence over ?frame= when present and recognised.
-  const boardParam = (searchParams.get("board") || "").toLowerCase()
-
   // initialStyleId: passed to StyleOverrideProvider.
   // When any theme slug is active (URL or domain), omit the initial style so
   // StyleOverrideProvider starts clean and StyleScope handles token merging.
@@ -125,8 +154,9 @@ export function V0Shell() {
   // Board defs come from domainFrame.boards (seeded per-domain) with fallback to
   // BOARD_DEFINITIONS_FALLBACK for domains whose frame_json has not yet been seeded.
   const boardDefs: UniversalBoardDef[] = resolveBoardDefs(domainFrame?.boards)
-  const matchedDef: UniversalBoardDef | null =
-    boardParam ? boardDefs.find((d) => d.boardId === boardParam) ?? null : null
+  const matchedDef: UniversalBoardDef | null = workspaceBoardId
+    ? boardDefs.find((d) => d.boardId === workspaceBoardId) ?? null
+    : null
 
   // Resolved once at the Frame level — no child resolves audience independently
   const resolvedAudience = resolveAudience({ isAuthenticated: isAuthenticated ?? false, isAdmin: isAdmin ?? false })
@@ -302,28 +332,12 @@ export function V0Shell() {
     }
   }, [slug])
 
-  const urlSearch = readUrlSearchParams(location.search)
-  const workspaceBoardId = parseWorkspaceBoardId(urlSearch)
-
-  // Prefer window.location when router search lags (navigate vs setSearchParams desync in prod).
-  const urlBoardDefinitionId = React.useMemo(() => {
-    if (workspaceBoardId !== "designer") return null
-    const routerDef = parseBoardDefinitionId(urlSearch)
-    if (typeof window === "undefined") return routerDef
-    const windowDef = parseBoardDefinitionId(
-      readUrlSearchParams(window.location.search),
-    )
-    if (windowDef && routerDef && windowDef !== routerDef) return windowDef
-    return routerDef ?? windowDef
-  }, [workspaceBoardId, urlSearch])
-
-  const [pendingBoardDefinitionId, setPendingBoardDefinitionId] =
-    React.useState<string | null>(null)
-
-  const boardDefinitionId =
-    workspaceBoardId === "designer"
-      ? (pendingBoardDefinitionId ?? urlBoardDefinitionId)
-      : null
+  React.useEffect(() => {
+    if (pendingWorkspaceBoardId === null) return
+    if (urlWorkspaceBoardId === pendingWorkspaceBoardId) {
+      setPendingWorkspaceBoardId(null)
+    }
+  }, [urlWorkspaceBoardId, pendingWorkspaceBoardId])
 
   React.useEffect(() => {
     if (pendingBoardDefinitionId === null) return
@@ -338,13 +352,41 @@ export function V0Shell() {
     }
   }, [workspaceBoardId])
 
+  const reconcileAttemptRef = React.useRef("")
+
   React.useEffect(() => {
+    if (typeof window === "undefined") return
+    const routerQs = readUrlSearchParams(location.search).toString()
+    const windowQs = readUrlSearchParams(window.location.search).toString()
+    if (routerQs === windowQs) {
+      reconcileAttemptRef.current = ""
+      return
+    }
+    if (reconcileAttemptRef.current === windowQs) return
+    reconcileAttemptRef.current = windowQs
+    setSearchParams(readUrlSearchParams(window.location.search), {
+      replace: true,
+    })
+  }, [location.search, setSearchParams])
+
+  React.useEffect(() => {
+    const routerBoard = parseWorkspaceBoardId(
+      readUrlSearchParams(routerSearch),
+    )
+    const windowBoard = parseWorkspaceBoardId(
+      readUrlSearchParams(windowSearch),
+    )
+    if (windowBoard && routerBoard && windowBoard !== routerBoard) {
+      console.warn("[WorkspaceNav] router/window mismatch", {
+        windowBoard,
+        routerBoard,
+        pending: pendingWorkspaceBoardId,
+        effective: workspaceBoardId,
+      })
+    }
     if (workspaceBoardId !== "designer") return
-    const routerDef = parseBoardDefinitionId(urlSearch)
-    const windowDef =
-      typeof window !== "undefined"
-        ? parseBoardDefinitionId(readUrlSearchParams(window.location.search))
-        : routerDef
+    const routerDef = parseBoardDefinitionId(readUrlSearchParams(routerSearch))
+    const windowDef = parseBoardDefinitionId(readUrlSearchParams(windowSearch))
     if (windowDef && routerDef && windowDef !== routerDef) {
       console.warn("[BoardDefinitionNav] router/window mismatch", {
         windowDef,
@@ -354,24 +396,40 @@ export function V0Shell() {
       })
     }
   }, [
+    routerSearch,
+    windowSearch,
     workspaceBoardId,
-    urlSearch,
-    pendingBoardDefinitionId,
     boardDefinitionId,
+    pendingWorkspaceBoardId,
+    pendingBoardDefinitionId,
   ])
 
   const switchWorkspace = React.useCallback(
     (boardId: WorkspaceBoardId) => {
+      setPendingWorkspaceBoardId(boardId)
+      setPendingBoardDefinitionId(null)
       setSearchParams(
-        (prev) => applyWorkspaceBoardSwitch(new URLSearchParams(prev), boardId),
+        (prev) =>
+          applyWorkspaceBoardSwitch(new URLSearchParams(prev), boardId),
         { replace: true },
       )
+      console.log(
+        "[WorkspaceNav]",
+        JSON.stringify({
+          action: "switch",
+          requested: boardId,
+          windowSearch:
+            typeof window !== "undefined" ? window.location.search : null,
+          routerSearch: location.search,
+        }),
+      )
     },
-    [setSearchParams],
+    [setSearchParams, location.search],
   )
 
   const selectBoardDefinition = React.useCallback(
     (definitionId: string) => {
+      setPendingWorkspaceBoardId("designer")
       setPendingBoardDefinitionId(definitionId)
       setSearchParams(
         (prev) => {
@@ -397,7 +455,6 @@ export function V0Shell() {
     [setSearchParams, location.search],
   )
 
-  // Design workspace without ?definition= — default to IDE spec so nav + composer are live.
   React.useEffect(() => {
     if (workspaceBoardId !== "designer") return
     if (urlBoardDefinitionId || pendingBoardDefinitionId) return
@@ -414,6 +471,7 @@ export function V0Shell() {
   ])
 
   const clearBoardDefinition = React.useCallback(() => {
+    setPendingBoardDefinitionId(null)
     setSearchParams(
       (prev) => clearBoardDefinitionParams(new URLSearchParams(prev)),
       { replace: true },

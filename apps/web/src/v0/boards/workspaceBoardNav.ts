@@ -60,6 +60,45 @@ export function readBoardDefinitionId(search: string): string | null {
   return parseBoardDefinitionId(readUrlSearchParams(search))
 }
 
+/**
+ * Resolve ?board= preferring window.location when React Router search lags.
+ * Used for workspace routing and top-bar highlight.
+ */
+export function resolveWorkspaceBoardId(
+  routerSearch: string,
+  windowSearch?: string,
+): WorkspaceBoardId | null {
+  const routerBoard = parseWorkspaceBoardId(readUrlSearchParams(routerSearch))
+  if (typeof window === "undefined" || windowSearch === undefined) {
+    return routerBoard
+  }
+  const windowBoard = parseWorkspaceBoardId(readUrlSearchParams(windowSearch))
+  if (windowBoard && routerBoard && windowBoard !== routerBoard) {
+    return windowBoard
+  }
+  return routerBoard ?? windowBoard
+}
+
+/**
+ * Resolve ?definition= on Design workspace; prefers window when router lags.
+ */
+export function resolveBoardDefinitionId(
+  workspaceBoardId: WorkspaceBoardId | null,
+  routerSearch: string,
+  windowSearch?: string,
+): string | null {
+  if (workspaceBoardId !== "designer") return null
+  const routerDef = parseBoardDefinitionId(readUrlSearchParams(routerSearch))
+  if (typeof window === "undefined" || windowSearch === undefined) {
+    return routerDef
+  }
+  const windowDef = parseBoardDefinitionId(readUrlSearchParams(windowSearch))
+  if (windowDef && routerDef && windowDef !== routerDef) {
+    return windowDef
+  }
+  return routerDef ?? windowDef
+}
+
 export function clearBoardDefinitionParams(prev: URLSearchParams): URLSearchParams {
   const next = new URLSearchParams(prev)
   next.delete(BOARD_DEFINITION_PARAM)

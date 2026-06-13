@@ -26,7 +26,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - [ ] Default keeper/journey creation when none exist for a domain.
 
 ## 📆 Update Log
-- 2026-06-12: Optimistic `pendingBoardDefinitionId` on select; window.location fallback when router search lags; writes use `setSearchParams` updater only.
+- 2026-06-12: Top-bar `switchWorkspace` uses optimistic `pendingWorkspaceBoardId`; `matchedDef` reads effective workspace (not stale `useSearchParams()`); router reconciles from `window.location` when desynced.
 - 2026-06-12: Panel reads use `useBoardDefinitionFromUrl()` hook — V0Shell still exposes `boardDefinitionId` for legacy consumers.
 - 2026-06-12: Design definition selection — all board panels read `boardDefinitionId` from V0Shell (parsed from `location.search`); no panel uses `useSearchParams()` for `?definition=`.
 - 2026-06-12: `UniversalBoard` key is `boardId` only — definition switches no longer remount the board (fixes stale `useSearchParams` on Design nav highlight).
