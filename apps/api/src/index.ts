@@ -1182,7 +1182,7 @@ app.get('/api/kip/agents', async (req: Request, res: Response, next: NextFunctio
     const agent = await prisma.kip_agents.findUnique({
       where: { slug: slug.trim() },
     });
-    if (!agent || agent.visibility !== 'public' || agent.agent_class !== 'Lead') {
+    if (!agent || agent.visibility !== 'public' || agent.role !== 'Lead') {
       return res.status(404).json({ success: false, error: 'Agent not found' });
     }
     return res.json({ success: true, data: agent });

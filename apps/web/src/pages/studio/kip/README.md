@@ -86,7 +86,7 @@ As of Step 11, Kip Studio supports multiple agent classes:
 ### Database Schema
 ```sql
 -- Added in Step 10
-ALTER TABLE kip_agents ADD COLUMN agent_class TEXT DEFAULT 'Standard';
+ALTER TABLE kip_agents ADD COLUMN role TEXT DEFAULT 'Standard';
 -- Values: 'Standard', 'Coordinator', 'Persona'
 ```
 
@@ -115,6 +115,7 @@ ALTER TABLE kip_agents ADD COLUMN agent_class TEXT DEFAULT 'Standard';
 - [ ] Implement agent versioning and rollback capabilities
 
 ## 📆 Update Log
+- 2026-06-12: Renamed `agent_class` → `role` on `KipAgent` / `AgentInput`; type `AgentClass` → `AgentRole` in studio forms and `kipApi.ts`.
 - 2025-01-03: Created AgentsPage.tsx with agent builder and list view
 - 2025-01-03: Created AgentBuilderForm.tsx with comprehensive agent creation form
 - **2025-01-30: ✅ COMPLETED - Full CRUD agent management system:**
@@ -129,16 +130,16 @@ ALTER TABLE kip_agents ADD COLUMN agent_class TEXT DEFAULT 'Standard';
 - **Frontend**: Created `LeadAgentPage.tsx` with full chat interface
 - **Routing**: Added dynamic `/:agentSlug` routes for standalone agent access
 - **Backend**: Enhanced `KipAgentService` with Lead agent response generation
-- **Types**: Added 'Lead' to `AgentClass` type throughout the system
+- **Types**: Added 'Lead' to `AgentRole` type throughout the system
 - **Mock Data**: Added Kip and CeoX Lead agents to development fallbacks
 - **UI/UX**: Branded chat experience with themes, avatars, and real-time interaction
 - **Navigation**: Added Lead agent links to Kip Studio page
 - **Documentation**: Comprehensive testing guide and feature documentation
 
 ### 2025-01-03 - Step 10: Coordinator Agents Implementation
-- **Database**: Added `agent_class` column to `kip_agents` table
+- **Database**: Added `role` column to `kip_agents` table
 - **Backend**: Implemented coordinator logic in `KipAgentService.runAgent()`
-- **Types**: Updated all interfaces to support `AgentClass` type
+- **Types**: Updated all interfaces to support `AgentRole` type
 - **Frontend**: Enhanced `AgentBuilderForm` with agent class selection and bundling
 - **UI**: Added coordinator bundle display in agent cards
 - **Testing**: Created test coordinator agent with bundled sub-agents

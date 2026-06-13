@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { KipApi, AgentInput, KipAgent, AgentClass, ModelProvider } from '../../../lib/kipApi';
+import { KipApi, AgentInput, KipAgent, AgentRole, ModelProvider } from '../../../lib/kipApi';
 import { AgentVisibility } from '../../../types/kip';
 import HelpTooltip from '../../../components/ui/HelpTooltip';
 
@@ -21,7 +21,7 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
     slug: '',
     purpose: '',
     model: 'gpt-4o',
-    agent_class: 'Standard',
+    role: 'Standard',
     context_scope: 'user_input',
     memory_enabled: false,
     tools: [],
@@ -74,10 +74,10 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
   ];
 
   const agentClassOptions = [
-    { value: 'Standard' as AgentClass, label: 'Standard', description: 'Regular agent with specific capabilities' },
-    { value: 'Coordinator' as AgentClass, label: 'Coordinator', description: 'Orchestrates multiple agents' },
-    { value: 'Lead' as AgentClass, label: 'Lead', description: 'Standalone AI interface with chat experience' },
-    { value: 'Persona' as AgentClass, label: 'Persona', description: 'Coming soon...' }
+    { value: 'Standard' as AgentRole, label: 'Standard', description: 'Regular agent with specific capabilities' },
+    { value: 'Coordinator' as AgentRole, label: 'Coordinator', description: 'Orchestrates multiple agents' },
+    { value: 'Lead' as AgentRole, label: 'Lead', description: 'Standalone AI interface with chat experience' },
+    { value: 'Persona' as AgentRole, label: 'Persona', description: 'Coming soon...' }
   ];
 
   // Load available agents for coordinator bundling
@@ -115,7 +115,7 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
         slug: existingAgent.slug,
         purpose: existingAgent.purpose,
         model: existingAgent.model,
-        agent_class: existingAgent.agent_class,
+        role: existingAgent.role,
         context_scope: existingAgent.context_scope || 'user_input',
         memory_enabled: existingAgent.memory_enabled,
         tools: existingAgent.tools,
@@ -183,7 +183,7 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
       };
 
       // Add bundle configuration for Coordinator agents
-      if (formData.agent_class === 'Coordinator') {
+      if (formData.role === 'Coordinator') {
         config.bundle = selectedBundleAgents;
       }
 
@@ -210,7 +210,7 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
           slug: '',
           purpose: '',
           model: 'gpt-4o',
-          agent_class: 'Standard',
+          role: 'Standard',
           context_scope: 'user_input',
           memory_enabled: false,
           tools: [],
@@ -363,15 +363,15 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
 
         {/* Agent Class Field */}
         <div>
-          <label htmlFor="agent_class" className="flex items-center gap-1 text-sm font-medium text-foreground mb-2">
+          <label htmlFor="role" className="flex items-center gap-1 text-sm font-medium text-foreground mb-2">
             Agent Class *
             <HelpTooltip content="Standard agents handle specific tasks. Coordinators can bundle multiple agents together. Lead agents are front-end assistants like Kip that users chat with directly." />
           </label>
           <select
-            id="agent_class"
+            id="role"
             required
-            value={formData.agent_class}
-            onChange={(e) => handleInputChange('agent_class', e.target.value as AgentClass)}
+            value={formData.role}
+            onChange={(e) => handleInputChange('role', e.target.value as AgentRole)}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:ring-1 focus:ring-ring focus:border-ring"
           >
             {agentClassOptions.map((option) => (
@@ -381,7 +381,7 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
             ))}
           </select>
           <p className="text-xs text-muted-foreground mt-1">
-            {agentClassOptions.find(opt => opt.value === formData.agent_class)?.description}
+            {agentClassOptions.find(opt => opt.value === formData.role)?.description}
           </p>
         </div>
 
@@ -463,7 +463,7 @@ const AgentBuilderForm: React.FC<AgentBuilderFormProps> = ({
       </div>
 
       {/* Coordinator Bundle Selection */}
-      {formData.agent_class === 'Coordinator' && (
+      {formData.role === 'Coordinator' && (
         <div>
           <label className="flex items-center gap-1 text-sm font-medium text-foreground mb-2">
             Agent Bundle (Required for Coordinators)

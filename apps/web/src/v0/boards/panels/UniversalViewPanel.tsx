@@ -27,15 +27,11 @@
  */
 
 import * as React from "react"
-import { useSearchParams } from "react-router-dom"
+import { useV0ShellOptional } from "../../shell/V0ShellContext"
 import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch } from "../../../lib/api"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
 import type { UniversalBoardDef } from "../UniversalBoardDefinition"
-import {
-  applyBoardDefSelection,
-  clearBoardDefParam,
-} from "../workspaceBoardNav"
 import { ChroniclePresenceView } from "../../presence/ChroniclePresenceView"
 import type { PresenceLayout } from "../../presence/types"
 
@@ -391,7 +387,7 @@ export function UniversalViewPanel({
   onMomentSelect,
 }: UniversalViewPanelProps) {
   const boardCtx = useUniversalBoardOptional()
-  const [, setSearchParams] = useSearchParams()
+  const shell = useV0ShellOptional()
 
   const resolved = {
     selectedDialogId: boardCtx?.selection.selectedDialogId ?? null,
@@ -538,26 +534,19 @@ export function UniversalViewPanel({
           break
         case "boardDef":
           if (entry.id) {
-            actions.onBoardDefSelect(entry.id)
-            setSearchParams(
-              (prev) => applyBoardDefSelection(prev, entry.id!),
-              { replace: true },
-            )
+            shell?.selectBoardDefinition(entry.id)
           }
           break
         case "domain":
         default:
           actions.clearSelection()
           if (def.boardId === "designer") {
-            setSearchParams(
-              (prev) => clearBoardDefParam(prev),
-              { replace: true },
-            )
+            shell?.clearBoardDefinition()
           }
           break
       }
     },
-    [currentIndex, panelHistory, boardCtx, def.boardId, setSearchParams],
+    [currentIndex, panelHistory, boardCtx, def.boardId, shell],
   )
 
   const [feedCount, setFeedCount] = React.useState(0)

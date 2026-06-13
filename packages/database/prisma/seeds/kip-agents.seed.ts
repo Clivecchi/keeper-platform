@@ -19,7 +19,7 @@ export default async function seed() {
   // ── 1. Kip Lead Agent (critical for Golden Path) ──────────────────────────
   await prisma.$executeRawUnsafe(`
     INSERT INTO kip_agents (
-      slug, name, purpose, model, agent_class, context_scope,
+      slug, name, purpose, model, role, context_scope,
       memory_enabled, tools, permissions, config, status,
       model_provider, model_settings, visibility
     ) VALUES (
@@ -42,7 +42,7 @@ export default async function seed() {
       name = EXCLUDED.name,
       purpose = EXCLUDED.purpose,
       model = EXCLUDED.model,
-      agent_class = EXCLUDED.agent_class,
+      role = EXCLUDED.role,
       context_scope = EXCLUDED.context_scope,
       memory_enabled = EXCLUDED.memory_enabled,
       tools = EXCLUDED.tools,
@@ -59,7 +59,7 @@ export default async function seed() {
   // ── 2. CeoX Lead Agent ────────────────────────────────────────────────────
   await prisma.$executeRawUnsafe(`
     INSERT INTO kip_agents (
-      slug, name, purpose, model, agent_class, context_scope,
+      slug, name, purpose, model, role, context_scope,
       memory_enabled, tools, permissions, config, status,
       model_provider, model_settings, visibility
     ) VALUES (
@@ -82,7 +82,7 @@ export default async function seed() {
       name = EXCLUDED.name,
       purpose = EXCLUDED.purpose,
       model = EXCLUDED.model,
-      agent_class = EXCLUDED.agent_class,
+      role = EXCLUDED.role,
       context_scope = EXCLUDED.context_scope,
       memory_enabled = EXCLUDED.memory_enabled,
       tools = EXCLUDED.tools,
@@ -139,7 +139,7 @@ export default async function seed() {
   // ── 4. CodeCoordinator agent ───────────────────────────────────────────────
   await prisma.$executeRawUnsafe(`
     INSERT INTO kip_agents (
-      slug, name, purpose, model, agent_class, context_scope,
+      slug, name, purpose, model, role, context_scope,
       memory_enabled, tools, permissions, config, status
     ) VALUES (
       'code-coordinator',
@@ -157,7 +157,7 @@ export default async function seed() {
       name = EXCLUDED.name,
       purpose = EXCLUDED.purpose,
       model = EXCLUDED.model,
-      agent_class = EXCLUDED.agent_class,
+      role = EXCLUDED.role,
       context_scope = EXCLUDED.context_scope,
       memory_enabled = EXCLUDED.memory_enabled,
       tools = EXCLUDED.tools,
@@ -170,7 +170,7 @@ export default async function seed() {
 
   // ── 5. Ensure Kip is public (for logged-out visitors on cover) ─────────────────
   await prisma.kip_agents.updateMany({
-    where: { slug: 'kip', agent_class: 'Lead' },
+    where: { slug: 'kip', role: 'Lead' },
     data: { visibility: 'public' },
   });
   console.log('  ✅ Kip visibility ensured (public for cover)');

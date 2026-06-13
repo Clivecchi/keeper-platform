@@ -92,9 +92,9 @@ export type DatabaseHealthResult = {
     error?: string;
 };
 /**
- * Agent class types
+ * Agent role types
  */
-export type AgentClass = 'Standard' | 'Coordinator' | 'Lead' | 'Persona';
+export type AgentRole = 'Standard' | 'Coordinator' | 'Lead' | 'Persona';
 /**
  * Model provider types
  */
@@ -122,7 +122,7 @@ export type AgentInput = {
     name: string;
     purpose: string;
     model: string;
-    agent_class?: AgentClass;
+    role?: AgentRole;
     context_scope?: string;
     memory_enabled?: boolean;
     tools?: string[];

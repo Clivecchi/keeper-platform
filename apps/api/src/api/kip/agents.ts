@@ -125,8 +125,8 @@ type RunAgentOptions = {
   attachments?: AgentAttachmentInput[];
 };
 
-function isOperationalDraftAgent(agent: { agent_class?: string | null; config?: unknown }): boolean {
-  if (agent.agent_class === 'System') return true;
+function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown }): boolean {
+  if (agent.role === 'System') return true;
   const config = agent.config;
   if (config && typeof config === 'object' && !Array.isArray(config)) {
     return (config as Record<string, unknown>).suppress_kip_system_prompt === true;
@@ -134,7 +134,7 @@ function isOperationalDraftAgent(agent: { agent_class?: string | null; config?: 
   return false;
 }
 
-function buildDraftUpdateInstruction(agent: { agent_class?: string | null; config?: unknown }): string {
+function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unknown }): string {
   const proposePoints =
     '- When adding or changing draft CONTENT (points, sections, narrative), use draft.update.propose with payload.id (draft UUID), payload.content (the proposed text), and optional payload.type (moment | decision | context | general — default general). Each call appends one proposed point; the human must Accept in the UI before it is canonical.';
   if (isOperationalDraftAgent(agent)) {
@@ -2446,7 +2446,7 @@ interface TypedAgent {
   id: string;
   slug: string;
   name: string;
-  agent_class: string;
+  role: string;
   model: string;
   memory_enabled?: boolean;
   model_provider?: ModelProvider;
@@ -2677,7 +2677,7 @@ export class KipAgentService {
       id: typedAgent.id,
       slug: typedAgent.slug,
       name: typedAgent.name,
-      agent_class: typedAgent.agent_class || 'Lead',
+      role: typedAgent.role || 'Lead',
       model: typedAgent.model || 'gpt-3.5-turbo',
       memory_enabled: typedAgent.memory_enabled || false,
       model_provider: typedAgent.model_provider || 'openai',
@@ -3774,7 +3774,7 @@ export class KipAgentService {
       let result: unknown;
 
       // Handle Lead agents - interactive chat experience with memory
-      if (agent.agent_class === 'Lead') {
+      if (agent.role === 'Lead') {
         let currentSessionId = sessionId;
         let previousMessages: KipMessageWithRelations[] = [];
         
@@ -4091,7 +4091,7 @@ export class KipAgentService {
         };
       }
       // Handle Coordinator agents
-      else if (agent.agent_class === 'Coordinator') {
+      else if (agent.role === 'Coordinator') {
         const config = agent.config || {};
         const subAgentSlugs = config.bundle || [];
         console.log(`[Coordinator] Running ${subAgentSlugs.length} sub-agents:`, subAgentSlugs);
@@ -4159,7 +4159,7 @@ export class KipAgentService {
             }
           };
         }
-      } else if (agent.agent_class === 'System') {
+      } else if (agent.role === 'System') {
         // System agents (e.g. Cloud) — real AI dialog with session persistence, action execution, no Kip persona overlay.
         let currentSessionId = sessionId ?? undefined;
         let previousMessages: KipMessageWithRelations[] = [];

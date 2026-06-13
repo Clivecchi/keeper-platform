@@ -3,14 +3,8 @@
 import * as React from "react"
 import clsx from "clsx"
 import { FileText } from "lucide-react"
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
-import {
-  applyWorkspaceBoardSwitch,
-  buildWorkspaceBoardPath,
-  parseWorkspaceBoardId,
-  type WorkspaceBoardId,
-} from "../boards/workspaceBoardNav"
 import { useV0Shell } from "../shell/V0ShellContext"
+import type { WorkspaceBoardId } from "../boards/workspaceBoardNav"
 import { useAuth } from "../../context/AuthContext"
 
 // ─── Profile Popover ──────────────────────────────────────────────────────────
@@ -162,11 +156,14 @@ const BOARD_LINKS: { id: WorkspaceBoardId; label: string }[] = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: KeeperTopBarProps) {
-  const { domainSlug, domainFrame, resolvedAudience } = useV0Shell()
+  const {
+    domainSlug,
+    domainFrame,
+    resolvedAudience,
+    workspaceBoardId,
+    switchWorkspace,
+  } = useV0Shell()
   const { user, logout } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [searchParams] = useSearchParams()
   const [profileOpen, setProfileOpen] = React.useState(false)
   const avatarButtonRef = React.useRef<HTMLButtonElement>(null)
 
@@ -181,14 +178,10 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
   const displayName = user?.name?.trim() || user?.email?.trim() || "Guest"
   const roleLabel = getRoleLabel(resolvedAudience)
 
-  const activeBoardId = parseWorkspaceBoardId(searchParams)
+  const activeBoardId = workspaceBoardId
 
   const handleBoardClick = (id: WorkspaceBoardId) => {
-    const nextParams = applyWorkspaceBoardSwitch(
-      new URLSearchParams(location.search),
-      id,
-    )
-    navigate(buildWorkspaceBoardPath(domainSlug, nextParams), { replace: true })
+    switchWorkspace(id)
   }
 
   const handleAvatarClick = () => {

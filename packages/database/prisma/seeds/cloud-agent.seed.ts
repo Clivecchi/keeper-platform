@@ -82,7 +82,7 @@ export default async function seedCloudAgent() {
       model_provider: 'anthropic',
       purpose:
         'Technical agent. Codebase, Railway, Vercel, GitHub. Reads and executes. No persona overlay.',
-      agent_class: 'System',
+      role: 'System',
       status: 'ready',
       visibility: 'private',
       memory_enabled: true,

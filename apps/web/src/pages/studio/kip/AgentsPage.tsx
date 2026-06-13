@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { KipApi, KipAgent, AgentClass } from '../../../lib/kipApi';
+import { KipApi, KipAgent, AgentRole } from '../../../lib/kipApi';
 import AgentBuilderForm from './AgentBuilderForm';
 import AgentKeeperTypeAssignment from '../../../components/studio/AgentKeeperTypeAssignment';
 import {
@@ -133,7 +133,7 @@ const AgentsPage: React.FC = () => {
     }
   };
 
-  const getAgentClassColor = (agentClass: AgentClass) => {
+  const getAgentRoleColor = (agentClass: AgentRole) => {
     switch (agentClass) {
       case 'Standard': return 'text-blue-600 bg-blue-100 border-blue-200';
       case 'Coordinator': return 'text-purple-600 bg-purple-100 border-purple-200';
@@ -217,8 +217,8 @@ const AgentsPage: React.FC = () => {
               <div className="flex justify-between items-start">
                 <div className="flex flex-col space-y-1">
                   <h3 className="font-semibold text-foreground">{agent.name}</h3>
-                  <span className={`self-start px-2 py-1 rounded-full text-xs font-medium border ${getAgentClassColor(agent.agent_class)}`}>
-                    {agent.agent_class}
+                  <span className={`self-start px-2 py-1 rounded-full text-xs font-medium border ${getAgentRoleColor(agent.role)}`}>
+                    {agent.role}
                   </span>
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(agent.status)}`}>
@@ -258,7 +258,7 @@ const AgentsPage: React.FC = () => {
                 const bundle = Array.isArray((agent.config as any)?.bundle)
                   ? ((agent.config as any).bundle as unknown[])
                   : undefined;
-                return agent.agent_class === 'Coordinator' && !!bundle && bundle.length > 0 ? (
+                return agent.role === 'Coordinator' && !!bundle && bundle.length > 0 ? (
                 <div className="space-y-2">
                   <div className="text-xs font-medium text-foreground">Agent Bundle:</div>
                   <div className="flex flex-wrap gap-1">

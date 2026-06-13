@@ -334,7 +334,7 @@ export declare function getAllKipAgents(): Promise<{
     updated_at: Date;
     status: string;
     visibility: string;
-    agent_class: string;
+    role: string;
     context_scope: string | null;
     memory_enabled: boolean;
     tools: string[];
@@ -357,7 +357,7 @@ export declare function getKipAgentBySlug(slug: string): Promise<{
     updated_at: Date;
     status: string;
     visibility: string;
-    agent_class: string;
+    role: string;
     context_scope: string | null;
     memory_enabled: boolean;
     tools: string[];
@@ -380,7 +380,7 @@ export declare function getKipAgentById(id: string): Promise<{
     updated_at: Date;
     status: string;
     visibility: string;
-    agent_class: string;
+    role: string;
     context_scope: string | null;
     memory_enabled: boolean;
     tools: string[];
@@ -396,7 +396,7 @@ export declare function createKipAgent(data: {
     name: string;
     purpose: string;
     model: string;
-    agent_class?: string;
+    role?: string;
     context_scope?: string;
     memory_enabled?: boolean;
     tools?: string[];
@@ -415,7 +415,7 @@ export declare function createKipAgent(data: {
     updated_at: Date;
     status: string;
     visibility: string;
-    agent_class: string;
+    role: string;
     context_scope: string | null;
     memory_enabled: boolean;
     tools: string[];
@@ -431,7 +431,7 @@ export declare function updateKipAgent(id: string, data: Partial<{
     name: string;
     purpose: string;
     model: string;
-    agent_class: string;
+    role: string;
     context_scope: string;
     memory_enabled: boolean;
     tools: string[];
@@ -453,7 +453,7 @@ export declare function updateKipAgent(id: string, data: Partial<{
     updated_at: Date;
     status: string;
     visibility: string;
-    agent_class: string;
+    role: string;
     context_scope: string | null;
     memory_enabled: boolean;
     tools: string[];
@@ -476,7 +476,7 @@ export declare function deleteKipAgent(id: string): Promise<{
     updated_at: Date;
     status: string;
     visibility: string;
-    agent_class: string;
+    role: string;
     context_scope: string | null;
     memory_enabled: boolean;
     tools: string[];

@@ -618,7 +618,7 @@ model kip_agents {
   status                 String                   @default("ready")
   created_at             DateTime                 @default(now())
   updated_at             DateTime                 @default(now())
-  agent_class            String                   @default("Standard")
+  role                   String                   @default("Standard")
   model_provider         String                   @default("openai")
   model_settings         Json                     @default("{}")
   created_by             String?                  @db.Uuid

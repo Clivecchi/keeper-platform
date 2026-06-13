@@ -5,6 +5,8 @@ import type { StyleId } from "../styles/styles"
 import type { PlacementActions, PlacementMode } from "./usePlacementMode"
 import type { AudienceRole, DomainFrameJson } from "../data/domain-frame.types"
 
+import type { WorkspaceBoardId } from "../boards/workspaceBoardNav"
+
 export type V0FrameKey =
   | "cover"
   | "commons"
@@ -56,6 +58,16 @@ export interface V0ShellContextValue {
   closeToBoard: () => void
   /** Re-fetch the domain frame JSON from the API and refresh all state derived from it */
   reloadDomainFrame: () => Promise<void>
+  /** Active workspace from ?board= (null when not on a board surface). */
+  workspaceBoardId: WorkspaceBoardId | null
+  /** Design workspace: selected board definition spec from ?definition= */
+  boardDefinitionId: string | null
+  /** Top bar — switch workspace; clears ?definition= */
+  switchWorkspace: (boardId: WorkspaceBoardId) => void
+  /** Design nav — select a board definition spec (sets ?definition= only). */
+  selectBoardDefinition: (definitionId: string) => void
+  /** Design trail / clear — remove ?definition= */
+  clearBoardDefinition: () => void
 }
 
 const V0ShellContext = React.createContext<V0ShellContextValue | null>(null)

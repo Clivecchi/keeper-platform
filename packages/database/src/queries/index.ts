@@ -314,7 +314,7 @@ export async function createKipAgent(data: {
   name: string;
   purpose: string;
   model: string;
-  agent_class?: string;
+  role?: string;
   context_scope?: string;
   memory_enabled?: boolean;
   tools?: string[];
@@ -338,7 +338,7 @@ export async function updateKipAgent(id: string, data: Partial<{
   name: string;
   purpose: string;
   model: string;
-  agent_class: string;
+  role: string;
   context_scope: string;
   memory_enabled: boolean;
   tools: string[];

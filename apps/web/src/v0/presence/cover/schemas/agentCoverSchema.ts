@@ -98,7 +98,7 @@ export const agentCoverSchema: EntityCoverSchema = {
   ): ResolvedCoverContent {
     const name = fieldValues.name?.trim() || "Untitled agent"
     const agentClass =
-      typeof record.agent_class === "string" ? record.agent_class : undefined
+      typeof record.role === "string" ? record.role : undefined
     const slug = typeof record.slug === "string" ? record.slug : ctx.objectId.slice(0, 8)
 
     const status = fieldValues.status ?? ""

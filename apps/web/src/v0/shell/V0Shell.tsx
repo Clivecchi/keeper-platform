@@ -8,7 +8,17 @@ import type { StyleId } from "../styles/styles"
 import { StyleOverrideProvider } from "../styles/StyleOverrideProvider"
 import { CORE_FRAME_MAP } from "./frameRegistryMap"
 import { resolveBoardDefs } from "../boards/resolveBoardDefs"
-import { clearBoardDefParam, parseWorkspaceBoardId } from "../boards/workspaceBoardNav"
+import {
+  BOARD_DEFINITION_PARAM,
+  applyBoardDefinitionSelection,
+  applyWorkspaceBoardSwitch,
+  buildWorkspaceBoardPath,
+  clearBoardDefinitionParams,
+  migrateLegacyBoardDefParam,
+  parseBoardDefinitionId,
+  parseWorkspaceBoardId,
+  type WorkspaceBoardId,
+} from "../boards/workspaceBoardNav"
 import { UniversalBoard } from "../boards/UniversalBoard"
 import type { UniversalBoardDef } from "../boards/UniversalBoardDefinition"
 import { apiFetch } from "../../lib/api"
@@ -64,16 +74,28 @@ export function V0Shell() {
     }
   }, [isAuthenticated, searchParams, setSearchParams])
 
-  // Stale ?boardDef= on non-Design workspace boards breaks top-bar switches (URL vs UI desync).
+  // Stale definition params on non-Design workspaces break top-bar switches.
   React.useEffect(() => {
     const workspaceBoard = parseWorkspaceBoardId(searchParams)
     if (!workspaceBoard || workspaceBoard === "designer") return
-    if (!searchParams.has("boardDef")) return
+    const hasDef =
+      searchParams.has(BOARD_DEFINITION_PARAM) || searchParams.has("boardDef")
+    if (!hasDef) return
     setSearchParams(
-      (prev) => clearBoardDefParam(prev),
+      (prev) => clearBoardDefinitionParams(prev),
       { replace: true },
     )
   }, [searchParams, setSearchParams])
+
+  // Migrate legacy ?boardDef= → ?definition= on Design workspace.
+  React.useEffect(() => {
+    if (parseWorkspaceBoardId(searchParams) !== "designer") return
+    const migrated = migrateLegacyBoardDefParam(searchParams)
+    if (!migrated) return
+    setSearchParams(migrated, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  const [workspaceEpoch, setWorkspaceEpoch] = React.useState(0)
   const privateFrames = new Set<V0FrameKey>(["commons", "profile", "admin"])
   const guestAgentFrames = new Set<V0FrameKey>(["agent", "kip"])
   const requestedFrame = FRAME_REGISTRY[frameParam] ? frameParam : "cover"
@@ -279,6 +301,74 @@ export function V0Shell() {
     }
   }, [slug])
 
+  const workspaceBoardId = React.useMemo(
+    () => parseWorkspaceBoardId(new URLSearchParams(location.search)),
+    [location.search],
+  )
+
+  const boardDefinitionId = React.useMemo(() => {
+    if (workspaceBoardId !== "designer") return null
+    return parseBoardDefinitionId(new URLSearchParams(location.search))
+  }, [location.search, workspaceBoardId])
+
+  const navigateBoardSearch = React.useCallback(
+    (params: URLSearchParams) => {
+      const path = buildWorkspaceBoardPath(slug, params)
+      const current = `${location.pathname}${location.search}`
+      if (current === path) {
+        setWorkspaceEpoch((n) => n + 1)
+        return
+      }
+      navigate(path, { replace: true })
+    },
+    [slug, location.pathname, location.search, navigate],
+  )
+
+  const switchWorkspace = React.useCallback(
+    (boardId: WorkspaceBoardId) => {
+      const next = applyWorkspaceBoardSwitch(
+        new URLSearchParams(location.search),
+        boardId,
+      )
+      navigateBoardSearch(next)
+    },
+    [location.search, navigateBoardSearch],
+  )
+
+  const selectBoardDefinition = React.useCallback(
+    (definitionId: string) => {
+      let next = new URLSearchParams(location.search)
+      if (parseWorkspaceBoardId(next) !== "designer") {
+        next = applyWorkspaceBoardSwitch(next, "designer")
+      }
+      next = applyBoardDefinitionSelection(next, definitionId)
+      navigateBoardSearch(next)
+    },
+    [location.search, navigateBoardSearch],
+  )
+
+  const clearBoardDefinition = React.useCallback(() => {
+    const next = clearBoardDefinitionParams(new URLSearchParams(location.search))
+    navigateBoardSearch(next)
+  }, [location.search, navigateBoardSearch])
+
+  const shellWorkspaceNav = React.useMemo(
+    () => ({
+      workspaceBoardId,
+      boardDefinitionId,
+      switchWorkspace,
+      selectBoardDefinition,
+      clearBoardDefinition,
+    }),
+    [
+      workspaceBoardId,
+      boardDefinitionId,
+      switchWorkspace,
+      selectBoardDefinition,
+      clearBoardDefinition,
+    ],
+  )
+
   const placement = usePlacementMode({
     domainSlug: resolvedSlug,
     pathname: location.pathname,
@@ -333,6 +423,7 @@ export function V0Shell() {
             navigateToFrame,
             closeToBoard,
             reloadDomainFrame,
+            ...shellWorkspaceNav,
           }}
         >
           <FrameContextProvider
@@ -342,7 +433,10 @@ export function V0Shell() {
             themeSlug={activeThemeSlug}
             draftId={draftId}
           >
-            <UniversalBoard key={matchedDef.boardId} def={matchedDef} />
+            <UniversalBoard
+              key={`${matchedDef.boardId}-${workspaceEpoch}`}
+              def={matchedDef}
+            />
             {kipHandoffToast}
           </FrameContextProvider>
         </V0ShellProvider>
@@ -370,6 +464,7 @@ export function V0Shell() {
           navigateToFrame,
           closeToBoard,
           reloadDomainFrame,
+          ...shellWorkspaceNav,
         }}
       >
         <FrameContextProvider

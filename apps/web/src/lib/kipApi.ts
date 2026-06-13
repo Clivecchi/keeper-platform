@@ -54,7 +54,7 @@ const enrichApiError = (error: unknown, fallback: string): ApiErrorShape => {
   return nextError;
 };
 
-export type AgentClass = 'Standard' | 'Coordinator' | 'Lead' | 'Persona';
+export type AgentRole = 'Standard' | 'Coordinator' | 'Lead' | 'Persona';
 export type ModelProvider = 'openai' | 'anthropic' | 'together-ai' | 'elevenlabs';
 
 export interface ModelSettings {
@@ -76,7 +76,7 @@ export interface KipAgent {
   name: string;
   purpose: string;
   model: string;
-  agent_class: AgentClass;
+  role: AgentRole;
   context_scope?: string | null;
   memory_enabled: boolean;
   tools: string[];
@@ -97,7 +97,7 @@ export interface AgentInput {
   name: string;
   purpose: string;
   model: string;
-  agent_class?: AgentClass;
+  role?: AgentRole;
   context_scope?: string;
   memory_enabled?: boolean;
   tools?: string[];
@@ -314,7 +314,7 @@ const mockAgents: KipAgent[] = [
     name: 'TypeAgent',
     purpose: 'Text analysis and intent extraction for user thoughts and ideas',
     model: 'claude-3-5-sonnet-20241022',
-    agent_class: 'Standard',
+    role: 'Standard',
     context_scope: 'thought_processing',
     memory_enabled: true,
     tools: ['text_analysis', 'intent_extraction', 'sentiment_analysis'],
@@ -337,7 +337,7 @@ const mockAgents: KipAgent[] = [
     name: 'PlatformAgent',
     purpose: 'System orchestration and platform management',
     model: 'gpt-4o',
-    agent_class: 'Standard',
+    role: 'Standard',
     context_scope: 'system_management',
     memory_enabled: false,
     tools: ['system_analysis', 'orchestration', 'monitoring'],
@@ -361,7 +361,7 @@ const mockAgents: KipAgent[] = [
     name: 'CodeAgent',
     purpose: 'Code analysis, generation, and technical assistance',
     model: 'gpt-4o',
-    agent_class: 'Standard',
+    role: 'Standard',
     context_scope: 'development',
     memory_enabled: true,
     tools: ['code_analysis', 'generation', 'debugging', 'optimization'],
@@ -387,7 +387,7 @@ const mockAgents: KipAgent[] = [
     name: 'Kip',
     purpose: 'Your intelligent assistant for thought processing, idea organization, and creative collaboration. Kip helps you capture insights, analyze patterns, and coordinate tasks across the Keeper platform.',
     model: 'claude-3-5-sonnet-20241022',
-    agent_class: 'Lead',
+    role: 'Lead',
     context_scope: 'user_interaction',
     memory_enabled: true,
     tools: ['thought_analysis', 'idea_organization', 'task_coordination', 'conversation'],
@@ -416,7 +416,7 @@ const mockAgents: KipAgent[] = [
     name: 'CeoX',
     purpose: 'Executive AI assistant specialized in strategic thinking, business analysis, and leadership support. CeoX provides high-level insights, strategic recommendations, and executive decision support.',
     model: 'gpt-4o',
-    agent_class: 'Lead',
+    role: 'Lead',
     context_scope: 'executive',
     memory_enabled: true,
     tools: ['strategic_analysis', 'business_intelligence', 'decision_support', 'leadership_coaching'],
@@ -519,7 +519,7 @@ export class KipApi {
   static async getLeadAgent(slug: string): Promise<KipAgent> {
     try {
       const agent = await this.getAgentBySlug(slug);
-      if (agent.agent_class !== 'Lead') {
+      if (agent.role !== 'Lead') {
         throw new Error(`Agent "${slug}" is not a Lead agent`);
       }
       return agent;

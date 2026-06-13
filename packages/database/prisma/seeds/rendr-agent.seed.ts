@@ -41,7 +41,7 @@ export default async function seedRendrAgent() {
       model_provider: 'anthropic',
       purpose:
         'Presence and rendering agent. Translates presenceTreatment into spatial ratio, motion, density, and what comes forward.',
-      agent_class: 'System',
+      role: 'System',
       status: 'ready',
       visibility: 'private',
       memory_enabled: true,

@@ -173,7 +173,7 @@ Do not recreate these problems:
 | Kip Draft reliability | CRUD exists; trigger conditions under-specified | Fix triggers; do not rebuild |
 | Role matrix display bug | `GET /api/admin/roles/users` returns `roles: []` — line 45, explicit comment in `apps/api/src/api/admin/roles.ts` | Fix with Board redesign, not in isolation |
 | Memory Patterns registry | UI scaffolding only — no API or DB table | SOLE is real (service layer); registry is not connected to it |
-| Agent Classes registry | UI scaffolding only — `agent_class` field is real and changes runtime | Persona = not implemented (not disabled); Standard/Lead/Coordinator = real |
+| Agent Classes registry | UI scaffolding only — `role` field is real and changes runtime | Persona = not implemented (not disabled); Standard/Lead/Coordinator = real |
 
 **Engagement Templates:** "Start Journey" failures often mean templates weren't seeded. Check `packages/database/prisma/seeds/journey-path-moment-engagement-templates.seed.ts`.
 

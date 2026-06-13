@@ -24,6 +24,13 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-12 — Workspace nav authority + ?definition= param
+- `?board=` = workspace only (top bar); `?definition=` = Design board spec nav (replaces confusing `?boardDef=`)
+- All workspace URL writes live in `V0Shell` (`switchWorkspace`, `selectBoardDefinition`, `clearBoardDefinition`)
+- Top bar / Design nav / Chronicle trail call shell methods — no distributed `setSearchParams`
+- `workspaceEpoch` remounts board if URL already matches (unsticks desynced UI)
+- Legacy `?boardDef=` migrated to `?definition=` on Design workspace
+
 ### 2026-06-12 — Workspace board nav desync fix
 - Added `workspaceBoardNav.ts` — single helper module for `?board=` / `?boardDef=` updates
 - Top bar uses `navigate()` with preserved query params (replaces `setSearchParams` only)

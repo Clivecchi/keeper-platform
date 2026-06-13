@@ -16,7 +16,7 @@
  * - entity — dialogs, journeys, keepers, drafts, agents, keys, integrations.
  *   onClick → board context action (same frame). No URL change.
  * - boardDef — Design-only meta/spec nav (built-in board definitions).
- *   onClick → onBoardDefSelect + ?boardDef= URL mirror (deep link). Never navigate().
+ *   onClick → shell selectBoardDefinition (?definition=). Never local setSearchParams.
  *
  * CRITICAL RULES:
  * - This component NEVER calls /api/domains/by-slug. domainId is resolved
@@ -28,7 +28,6 @@
  */
 
 import * as React from "react"
-import { useSearchParams } from "react-router-dom"
 import { apiFetch } from "../../lib/api"
 import { KipApi } from "../../lib/kipApi"
 import type { KipDraftSummary } from "../../lib/kipApi"
@@ -37,10 +36,7 @@ import type { SidebarCardItem } from "../components/SidebarCard"
 import type { UniversalBoardDef, NavSectionKey } from "./UniversalBoardDefinition"
 import { useUniversalBoardOptional } from "./UniversalBoardContext"
 import { useBoardDefs } from "./useBoardDefs"
-import {
-  applyBoardDefSelection,
-  clearBoardDefParam,
-} from "./workspaceBoardNav"
+import { useV0Shell } from "../shell/V0ShellContext"
 import {
   fetchDomainKeyNavRows,
   keyNavLabel,
@@ -224,7 +220,7 @@ export function UniversalNavPanel({
 
   // ── designer context — must be called before any early returns ─────────────
   const boardCtx = useUniversalBoardOptional()
-  const [, setSearchParams] = useSearchParams()
+  const { selectBoardDefinition } = useV0Shell()
   const allBoardDefs = useBoardDefs()
 
   // ── Section data ────────────────────────────────────────────────────────────
@@ -500,13 +496,9 @@ export function UniversalNavPanel({
 
   const selectBoardDef = React.useCallback(
     (boardDefId: string) => {
-      boardCtx?.actions.onBoardDefSelect(boardDefId)
-      setSearchParams(
-        (prev) => applyBoardDefSelection(prev, boardDefId),
-        { replace: true },
-      )
+      selectBoardDefinition(boardDefId)
     },
-    [boardCtx, setSearchParams],
+    [selectBoardDefinition],
   )
 
   const boardDefItems: SidebarCardItem[] = React.useMemo(() => {

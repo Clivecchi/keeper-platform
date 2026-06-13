@@ -515,9 +515,9 @@ async function enrichKeeper(
 }
 
 function isLeadAgentRecord(record: Record<string, unknown>): boolean {
-  const agentClass = typeof record.agent_class === "string" ? record.agent_class : ""
+  const agentRole = typeof record.role === "string" ? record.role : ""
   const slug = typeof record.slug === "string" ? record.slug : ""
-  return agentClass === "Lead" || slug === "kip"
+  return agentRole === "Lead" || slug === "kip"
 }
 
 async function enrichAgent(

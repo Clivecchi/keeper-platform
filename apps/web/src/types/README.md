@@ -89,7 +89,7 @@ interface KipAgent {
   name: string;
   purpose: string;
   model: string;
-  agent_class: string;
+  role: string;
   permissions: string[];
   // ... configuration and settings
 }

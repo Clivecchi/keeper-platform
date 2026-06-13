@@ -24,7 +24,7 @@ function formatAgentResponse(agent: {
   slug: string;
   purpose: string;
   model: string;
-  agent_class: string;
+  role: string;
   context_scope: string | null;
   status: string;
   model_provider: string;
@@ -45,7 +45,7 @@ function formatAgentResponse(agent: {
     slug: agent.slug,
     purpose: agent.purpose,
     model: agent.model,
-    agent_class: agent.agent_class,
+    role: agent.role,
     context_scope: agent.context_scope,
     status: agent.status,
     model_provider: agent.model_provider,
@@ -101,8 +101,8 @@ function existingConfigRecord(config: unknown): Record<string, unknown> {
   return {};
 }
 
-function isLeadAgentRecord(agent: { agent_class?: string | null; slug?: string | null }): boolean {
-  return agent.agent_class === 'Lead' || agent.slug === 'kip';
+function isLeadAgentRecord(agent: { role?: string | null; slug?: string | null }): boolean {
+  return agent.role === 'Lead' || agent.slug === 'kip';
 }
 
 function mergeAgentConfigFields(
@@ -409,7 +409,7 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
         slug: agent.slug,
         purpose: agent.purpose,
         model: agent.model,
-        agent_class: agent.agent_class,
+        role: agent.role,
         status: agent.status,
         model_provider: agent.model_provider,
         visibility: agent.visibility,
@@ -579,7 +579,7 @@ router.get('/:id/composed-prompt', authMiddlewareCompat, async (req: Request, re
       return res.status(404).json({ error: 'Agent not found' });
     }
 
-    const isLead = agent.agent_class === 'Lead' || agent.slug === 'kip';
+    const isLead = agent.role === 'Lead' || agent.slug === 'kip';
     if (!isLead) {
       return res.status(404).json({ error: 'Composed prompt not available for this agent' });
     }
@@ -619,7 +619,7 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
       slug: z.string().min(1).max(50),
       purpose: z.string().min(1).max(500),
       model: z.string().min(1),
-      agent_class: z.string().default('Standard'),
+      role: z.string().default('Standard'),
       model_provider: z.string().default('openai'),
       visibility: z.enum(['private', 'public', 'shared']).default('private'),
       tools: z.array(z.string()).default([]),
@@ -635,7 +635,7 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
         slug: data.slug,
         purpose: data.purpose,
         model: data.model,
-        agent_class: data.agent_class,
+        role: data.role,
         model_provider: data.model_provider,
         visibility: data.visibility,
         tools: data.tools,

@@ -147,7 +147,7 @@ export type {
 export type {
   ModelProvider,
   ModelSettings,
-  AgentClass,
+  AgentRole,
   AgentInput,
   AgentResponse,
   AgentVisibility,

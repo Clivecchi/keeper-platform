@@ -38,7 +38,6 @@
  */
 
 import * as React from "react"
-import { useSearchParams } from "react-router-dom"
 import { useV0Shell } from "../shell/V0ShellContext"
 import { StyleScope } from "../styles/StyleScope"
 import { getBlobProxyUrl } from "../../lib/blobProxy"
@@ -52,7 +51,6 @@ import { UniversalBoardProvider, useUniversalBoard } from "./UniversalBoardConte
 import { DesignerDraftProvider } from "./DesignerDraftContext"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import { UniversalConversation } from "./UniversalConversation"
-import { clearBoardDefParam } from "./workspaceBoardNav"
 import { useAuth } from "../../context/AuthContext"
 
 function isResolvedDomainId(id: string | null | undefined): id is string {
@@ -173,7 +171,8 @@ function UniversalBoardShell({
   onDomainClick,
   navVersions,
 }: UniversalBoardProps) {
-  const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
+  const { domainSlug, styleId, themeSlug, domainFrame, domainData, boardDefinitionId } =
+    useV0Shell()
   const { selection, actions, navCollapsed, onToggleNavCollapsed } = useUniversalBoard()
   const { isAdmin } = useAuth()
 
@@ -196,43 +195,21 @@ function UniversalBoardShell({
 
   const slug = domainSlug ?? ""
 
-  const [searchParams, setSearchParams] = useSearchParams()
-
-  // Design board: sync ?boardDef= ↔ selection (URL is authoritative for deep links and trail).
+  // Design workspace: shell-owned URL → context (never write URL from here).
   React.useEffect(() => {
     if (def.boardId !== "designer") return
-    const param = searchParams.get("boardDef")
-    if (param && param !== selection.selectedBoardDefId) {
-      actions.onBoardDefSelect(param)
-      return
+    if (boardDefinitionId !== selection.selectedBoardDefId) {
+      actions.onBoardDefSelect(boardDefinitionId)
     }
-    if (!param && selection.selectedBoardDefId) {
-      actions.onBoardDefSelect(null)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [def.boardId, searchParams.get("boardDef")])
+  }, [def.boardId, boardDefinitionId, selection.selectedBoardDefId, actions])
 
-  // Non-designer boards: drop stale boardDef selection (URL cleanup runs in V0Shell).
+  // Non-designer workspaces: drop stale board-definition selection.
   React.useEffect(() => {
     if (def.boardId === "designer") return
     if (selection.selectedBoardDefId) {
       actions.onBoardDefSelect(null)
     }
   }, [def.boardId, selection.selectedBoardDefId, actions])
-
-  // Strip ?boardDef= when selection clears on Design — never push boardDef back from context
-  // (nav + trail write URL directly; pushing here fought top-bar workspace board switches).
-  React.useEffect(() => {
-    if (def.boardId !== "designer") return
-    if (searchParams.get("board") !== "designer") return
-    if (selection.selectedBoardDefId) return
-    if (!searchParams.has("boardDef")) return
-    setSearchParams(
-      (prev) => clearBoardDefParam(prev),
-      { replace: true },
-    )
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [def.boardId, selection.selectedBoardDefId, searchParams.get("board")])
 
   // ── domainId resolution — single point, never delegated to panels ──────────
   // V0Shell owns the by-slug fetch; sync from shell domainData to avoid duplicate round-trips.

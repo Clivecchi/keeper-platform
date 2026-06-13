@@ -78,7 +78,7 @@ VALUES (
 
 -- 2. KIP AGENTS SEED DATA (for AgentBoard)
 -- Kip - Lead Agent
-INSERT INTO kip_agents (id, slug, name, purpose, model, agent_class, status, model_provider, visibility, tools, permissions, config, created_at, updated_at)
+INSERT INTO kip_agents (id, slug, name, purpose, model, role, status, model_provider, visibility, tools, permissions, config, created_at, updated_at)
 VALUES (
   gen_random_uuid(),
   'kip',
@@ -100,7 +100,7 @@ VALUES (
   updated_at = NOW();
 
 -- Ceox - Personal Lead Agent
-INSERT INTO kip_agents (id, slug, name, purpose, model, agent_class, status, model_provider, visibility, tools, permissions, config, created_at, updated_at)
+INSERT INTO kip_agents (id, slug, name, purpose, model, role, status, model_provider, visibility, tools, permissions, config, created_at, updated_at)
 VALUES (
   gen_random_uuid(),
   'ceox',
@@ -122,7 +122,7 @@ VALUES (
   updated_at = NOW();
 
 -- Kio - Protocol Agent
-INSERT INTO kip_agents (id, slug, name, purpose, model, agent_class, status, model_provider, visibility, tools, permissions, config, created_at, updated_at)
+INSERT INTO kip_agents (id, slug, name, purpose, model, role, status, model_provider, visibility, tools, permissions, config, created_at, updated_at)
 VALUES (
   gen_random_uuid(),
   'kio',
