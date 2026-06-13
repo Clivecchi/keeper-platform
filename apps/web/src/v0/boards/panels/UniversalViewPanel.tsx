@@ -32,6 +32,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch } from "../../../lib/api"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
 import type { UniversalBoardDef } from "../UniversalBoardDefinition"
+import { useBoardDefinitionFromUrl } from "../useBoardDefinitionFromUrl"
 import { ChroniclePresenceView } from "../../presence/ChroniclePresenceView"
 import type { PresenceLayout } from "../../presence/types"
 
@@ -388,8 +389,9 @@ export function UniversalViewPanel({
 }: UniversalViewPanelProps) {
   const boardCtx = useUniversalBoardOptional()
   const shell = useV0ShellOptional()
+  const urlBoardDefinitionId = useBoardDefinitionFromUrl()
   const boardDefinitionId =
-    def.boardId === "designer" ? (shell?.boardDefinitionId ?? null) : null
+    def.boardId === "designer" ? urlBoardDefinitionId : null
 
   const resolved = {
     selectedDialogId: boardCtx?.selection.selectedDialogId ?? null,

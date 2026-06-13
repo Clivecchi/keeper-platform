@@ -70,6 +70,9 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 
 ## 📆 Update Log
 
+### 2026-06-12 — useBoardDefinitionFromUrl for Chronicle boardDef routing
+- Chronicle `resolveKindId` reads `useBoardDefinitionFromUrl()` instead of V0Shell context
+
 ### 2026-06-12 — Single source for ?definition= (V0Shell boardDefinitionId)
 - Chronicle `resolveKindId` reads `shell.boardDefinitionId` instead of `useSearchParams()`
 

@@ -16,7 +16,7 @@
  * - entity — dialogs, journeys, keepers, drafts, agents, keys, integrations.
  *   onClick → board context action (same frame). No URL change.
  * - boardDef — Design-only meta/spec nav (built-in board definitions).
- *   onClick → shell selectBoardDefinition (?definition=). Reads selection from V0Shell.boardDefinitionId.
+ *   onClick → shell selectBoardDefinition (?definition=). Reads selection from useBoardDefinitionFromUrl().
  *
  * CRITICAL RULES:
  * - This component NEVER calls /api/domains/by-slug. domainId is resolved
@@ -35,6 +35,7 @@ import { SidebarCard } from "../components/SidebarCard"
 import type { SidebarCardItem } from "../components/SidebarCard"
 import type { UniversalBoardDef, NavSectionKey } from "./UniversalBoardDefinition"
 import { useBoardDefs } from "./useBoardDefs"
+import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import { useV0Shell } from "../shell/V0ShellContext"
 import {
   fetchDomainKeyNavRows,
@@ -217,8 +218,9 @@ export function UniversalNavPanel({
   draftListVersion = 0,
 }: UniversalNavPanelProps) {
 
-  // ── designer board definitions — V0Shell.boardDefinitionId from ?definition= ─
-  const { selectBoardDefinition, boardDefinitionId } = useV0Shell()
+  // ── designer board definitions — live from location.search ─────────────────
+  const { selectBoardDefinition } = useV0Shell()
+  const boardDefinitionId = useBoardDefinitionFromUrl()
   const allBoardDefs = useBoardDefs()
 
   // ── Section data ────────────────────────────────────────────────────────────
@@ -443,13 +445,16 @@ export function UniversalNavPanel({
   const showBoardDefs = def.nav.sections.boardDefs ?? false
   const activeBoardDefId = showBoardDefs ? boardDefinitionId : null
 
-  console.log(
-    "[UniversalNavPanel]",
-    JSON.stringify({
-      definition: boardDefinitionId,
-      activeBoardDefId,
-    }),
-  )
+  React.useEffect(() => {
+    if (!showBoardDefs) return
+    console.log(
+      "[UniversalNavPanel]",
+      JSON.stringify({
+        definition: boardDefinitionId,
+        activeBoardDefId,
+      }),
+    )
+  }, [showBoardDefs, boardDefinitionId, activeBoardDefId])
 
   const integrationDefs = def.nav.integrations ?? []
   const infrastructureIntegrations = integrationDefs.filter((item) => item.group !== "ai")

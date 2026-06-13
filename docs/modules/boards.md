@@ -24,6 +24,13 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-12 — useBoardDefinitionFromUrl: live URL reads + navigate writes
+- Added `useBoardDefinitionFromUrl.ts` — reads `?definition=` from `useLocation().search` on every navigation
+- Nav, Conversation, Chronicle, and `UniversalBoardContext` use the hook for reads (not V0Shell context)
+- `selectBoardDefinition` uses `navigate()` instead of `setSearchParams` updater (fixes stale second-click)
+- Auto-default `?definition=ide` when opening Design workspace without a definition
+- Nav diagnostic log moved to `useEffect` — logs on definition change only, not every render
+
 ### 2026-06-12 — Single source for ?definition= (V0Shell boardDefinitionId)
 - `UniversalNavPanel`, `UniversalConversation`, and `UniversalViewPanel` read `boardDefinitionId` from `useV0Shell()` — not `useSearchParams()`
 - V0Shell parses `location.search` each render; avoids stale Design nav highlight / composer focus after definition switches
@@ -34,7 +41,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - Designer sessions resolve/create with `dialogSubject: "boardDef"` and `dialogFrame` = board def id
 
 ### 2026-06-12 — UniversalNavPanel render diagnostic for Thinking Space Diag
-- `UniversalNavPanel` logs `[UniversalNavPanel]` with `?definition=` (`useSearchParams`) and `activeBoardDefId` on every render — consumed by Dialog Diag stream
+- `UniversalNavPanel` logs `[UniversalNavPanel]` with `boardDefinitionId` from V0Shell on every render — consumed by Dialog Diag stream
 
 ### 2026-06-12 — Design board nav: setSearchParams updater + live searchParams reads
 - Removed `workspaceEpoch` remount race (epoch bumped before URL propagated)

@@ -319,19 +319,32 @@ export function V0Shell() {
 
   const selectBoardDefinition = React.useCallback(
     (definitionId: string) => {
-      setSearchParams(
-        (prev) => {
-          let next = new URLSearchParams(prev)
-          if (parseWorkspaceBoardId(next) !== "designer") {
-            next = applyWorkspaceBoardSwitch(next, "designer")
-          }
-          return applyBoardDefinitionSelection(next, definitionId)
-        },
+      let next = readUrlSearchParams(location.search)
+      if (parseWorkspaceBoardId(next) !== "designer") {
+        next = applyWorkspaceBoardSwitch(next, "designer")
+      }
+      next = applyBoardDefinitionSelection(next, definitionId)
+      const qs = next.toString()
+      navigate(
+        { pathname: location.pathname, search: qs ? `?${qs}` : "" },
         { replace: true },
       )
     },
-    [setSearchParams],
+    [location.pathname, location.search, navigate],
   )
+
+  // Design workspace without ?definition= — default to IDE spec so nav + composer are live.
+  React.useEffect(() => {
+    const params = readUrlSearchParams(location.search)
+    if (parseWorkspaceBoardId(params) !== "designer") return
+    if (parseBoardDefinitionId(params)) return
+    const next = applyBoardDefinitionSelection(params, "ide")
+    const qs = next.toString()
+    navigate(
+      { pathname: location.pathname, search: qs ? `?${qs}` : "" },
+      { replace: true },
+    )
+  }, [location.pathname, location.search, navigate])
 
   const clearBoardDefinition = React.useCallback(() => {
     setSearchParams(

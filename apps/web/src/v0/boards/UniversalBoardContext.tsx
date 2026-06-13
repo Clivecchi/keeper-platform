@@ -21,7 +21,7 @@
 
 import * as React from "react"
 import { useFrameContextOptional } from "../shell/FrameContext"
-import { useV0ShellOptional } from "../shell/V0ShellContext"
+import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -102,7 +102,6 @@ interface UniversalBoardProviderProps {
 
 export function UniversalBoardProvider({ children }: UniversalBoardProviderProps) {
   const frameCtx = useFrameContextOptional()
-  const shell = useV0ShellOptional()
 
   // ── Selection state ────────────────────────────────────────────────────────
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
@@ -272,8 +271,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   }, [])
 
   // Design workspace: mirror ?definition= into context whenever the URL param changes.
-  const definitionFromUrl =
-    shell?.workspaceBoardId === "designer" ? (shell.boardDefinitionId ?? null) : null
+  const definitionFromUrl = useBoardDefinitionFromUrl()
 
   React.useEffect(() => {
     if (definitionFromUrl === selectedBoardDefId) return
