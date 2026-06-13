@@ -28,6 +28,7 @@
  */
 
 import * as React from "react"
+import { useLocation } from "react-router-dom"
 import { apiFetch } from "../../lib/api"
 import { KipApi } from "../../lib/kipApi"
 import type { KipDraftSummary } from "../../lib/kipApi"
@@ -36,6 +37,7 @@ import type { SidebarCardItem } from "../components/SidebarCard"
 import type { UniversalBoardDef, NavSectionKey } from "./UniversalBoardDefinition"
 import { useBoardDefs } from "./useBoardDefs"
 import { useV0Shell } from "../shell/V0ShellContext"
+import { readBoardDefinitionId } from "./workspaceBoardNav"
 import {
   fetchDomainKeyNavRows,
   keyNavLabel,
@@ -218,7 +220,8 @@ export function UniversalNavPanel({
 }: UniversalNavPanelProps) {
 
   // ── designer board definitions — URL is source of truth (?definition=) ─────
-  const { boardDefinitionId, selectBoardDefinition } = useV0Shell()
+  const location = useLocation()
+  const { selectBoardDefinition } = useV0Shell()
   const allBoardDefs = useBoardDefs()
 
   // ── Section data ────────────────────────────────────────────────────────────
@@ -382,34 +385,6 @@ export function UniversalNavPanel({
     return () => { cancelled = true }
   }, [domainId, showKeysNav])
 
-  // ── Collapsed state — 36px strip with centered expand chevron ────────────
-  if (collapsed) {
-    return (
-      <div
-        className="flex flex-col items-center justify-start pt-3 h-full overflow-hidden"
-        style={{
-          width: 36,
-          minWidth: 36,
-          background: "hsl(var(--theme-surface-panel) / 0.93)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          borderRadius: "8px",
-          border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
-        }}
-      >
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          className="p-1.5 rounded-md transition-opacity hover:opacity-70"
-          style={{ color: "hsl(var(--theme-ink-secondary))" }}
-          aria-label="Expand navigation panel"
-        >
-          <ChevronRightIcon />
-        </button>
-      </div>
-    )
-  }
-
   // ── Derived SidebarCardItem arrays ───────────────────────────────────────
 
   // Dialogs: embed date suffix for recency signal
@@ -501,14 +476,42 @@ export function UniversalNavPanel({
 
   const boardDefItems: SidebarCardItem[] = React.useMemo(() => {
     if (!showBoardDefs) return []
-    const activeDef = boardDefinitionId ?? null
+    const activeDef = readBoardDefinitionId(location.search) ?? null
     return allBoardDefs.map((d) => ({
       id: d.boardId,
       label: d.displayName,
       isSelected: d.boardId === activeDef,
       onClick: () => selectBoardDef(d.boardId),
     }))
-  }, [showBoardDefs, boardDefinitionId, allBoardDefs, selectBoardDef])
+  }, [showBoardDefs, location.search, allBoardDefs, selectBoardDef])
+
+  // ── Collapsed state — 36px strip with centered expand chevron ────────────
+  if (collapsed) {
+    return (
+      <div
+        className="flex flex-col items-center justify-start pt-3 h-full overflow-hidden"
+        style={{
+          width: 36,
+          minWidth: 36,
+          background: "hsl(var(--theme-surface-panel) / 0.93)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          borderRadius: "8px",
+          border: "1px solid hsl(var(--theme-border-soft) / 0.5)",
+        }}
+      >
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          className="p-1.5 rounded-md transition-opacity hover:opacity-70"
+          style={{ color: "hsl(var(--theme-ink-secondary))" }}
+          aria-label="Expand navigation panel"
+        >
+          <ChevronRightIcon />
+        </button>
+      </div>
+    )
+  }
 
   const navBlockOrder = resolveNavBlockOrder(def.nav.primarySection)
 

@@ -24,6 +24,14 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-12 — Board definition highlight follows ?definition= on every URL change
+- `readBoardDefinitionId` / `readWorkspaceBoardId` parse `location.search` (not memoized `searchParams` identity)
+- Sidebar, Chronicle, and center banner re-derive selection from URL on each param change
+- `UniversalBoard` key includes `boardDefinitionId` so definition-to-definition switches remount cleanly
+
+### 2026-06-12 — Nav collapse chevron crash fix
+- `UniversalNavPanel`: moved collapsed early-return after `useCallback`/`useMemo` for board definitions (Rules of Hooks violation crashed page on collapse)
+
 ### 2026-06-12 — URL-only board definition selection (desync fix)
 - Sidebar, Chronicle, and center banner read `boardDefinitionId` from V0Shell URL — not React context
 - Removed context↔URL sync effects that could leave IDE highlighted while `?definition=domain`

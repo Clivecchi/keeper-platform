@@ -44,6 +44,22 @@ export function parseBoardDefinitionId(
   return searchParams.get(LEGACY_BOARD_DEF_PARAM) ?? null
 }
 
+/** Normalize `location.search` (or raw query) into URLSearchParams. */
+export function readUrlSearchParams(search: string): URLSearchParams {
+  const normalized = search.startsWith("?") ? search.slice(1) : search
+  return new URLSearchParams(normalized)
+}
+
+/** Read workspace board from location.search — always re-parse; do not memoize on searchParams object identity. */
+export function readWorkspaceBoardId(search: string): WorkspaceBoardId | null {
+  return parseWorkspaceBoardId(readUrlSearchParams(search))
+}
+
+/** Read Design board-definition id from location.search. */
+export function readBoardDefinitionId(search: string): string | null {
+  return parseBoardDefinitionId(readUrlSearchParams(search))
+}
+
 export function clearBoardDefinitionParams(prev: URLSearchParams): URLSearchParams {
   const next = new URLSearchParams(prev)
   next.delete(BOARD_DEFINITION_PARAM)

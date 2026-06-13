@@ -16,6 +16,9 @@ import {
   migrateLegacyBoardDefParam,
   parseBoardDefinitionId,
   parseWorkspaceBoardId,
+  readBoardDefinitionId,
+  readUrlSearchParams,
+  readWorkspaceBoardId,
   type WorkspaceBoardId,
 } from "../boards/workspaceBoardNav"
 import { UniversalBoard } from "../boards/UniversalBoard"
@@ -300,15 +303,9 @@ export function V0Shell() {
     }
   }, [slug])
 
-  const workspaceBoardId = React.useMemo(
-    () => parseWorkspaceBoardId(searchParams),
-    [searchParams],
-  )
-
-  const boardDefinitionId = React.useMemo(() => {
-    if (workspaceBoardId !== "designer") return null
-    return parseBoardDefinitionId(searchParams)
-  }, [searchParams, workspaceBoardId])
+  const workspaceBoardId = readWorkspaceBoardId(location.search)
+  const boardDefinitionId =
+    workspaceBoardId === "designer" ? readBoardDefinitionId(location.search) : null
 
   const commitBoardSearch = React.useCallback(
     (params: URLSearchParams) => {
@@ -321,26 +318,26 @@ export function V0Shell() {
   const switchWorkspace = React.useCallback(
     (boardId: WorkspaceBoardId) => {
       commitBoardSearch(
-        applyWorkspaceBoardSwitch(new URLSearchParams(searchParams), boardId),
+        applyWorkspaceBoardSwitch(readUrlSearchParams(location.search), boardId),
       )
     },
-    [searchParams, commitBoardSearch],
+    [location.search, commitBoardSearch],
   )
 
   const selectBoardDefinition = React.useCallback(
     (definitionId: string) => {
-      let next = new URLSearchParams(searchParams)
+      let next = readUrlSearchParams(location.search)
       if (parseWorkspaceBoardId(next) !== "designer") {
         next = applyWorkspaceBoardSwitch(next, "designer")
       }
       commitBoardSearch(applyBoardDefinitionSelection(next, definitionId))
     },
-    [searchParams, commitBoardSearch],
+    [location.search, commitBoardSearch],
   )
 
   const clearBoardDefinition = React.useCallback(() => {
-    commitBoardSearch(clearBoardDefinitionParams(new URLSearchParams(searchParams)))
-  }, [searchParams, commitBoardSearch])
+    commitBoardSearch(clearBoardDefinitionParams(readUrlSearchParams(location.search)))
+  }, [location.search, commitBoardSearch])
 
   const shellWorkspaceNav = React.useMemo(
     () => ({
@@ -424,7 +421,7 @@ export function V0Shell() {
             draftId={draftId}
           >
             <UniversalBoard
-              key={`${matchedDef.boardId}-${workspaceEpoch}`}
+              key={`${matchedDef.boardId}-${workspaceEpoch}-${boardDefinitionId ?? ""}`}
               def={matchedDef}
             />
             {kipHandoffToast}

@@ -24,6 +24,7 @@
  */
 
 import * as React from "react"
+import { useLocation } from "react-router-dom"
 import type { KipDraftStatus } from "../../lib/kipApi"
 import { KipApi } from "../../lib/kipApi"
 import { apiFetch } from "../../lib/api"
@@ -41,6 +42,7 @@ import { BOARD_DEFINITIONS } from "./UniversalBoardDefinition"
 import type { UniversalBoardCenterProps } from "./UniversalBoard"
 import { useUniversalBoard } from "./UniversalBoardContext"
 import { useDesignerDraftOptional } from "./DesignerDraftContext"
+import { readBoardDefinitionId } from "./workspaceBoardNav"
 import { FRAME_DISPLAY_NAMES, FRAME_TO_JSON_KEY } from "../shell/frameRegistryMap"
 import { loadDomainFrame } from "../data/loadDomainFrame"
 import type { DomainFrameJson } from "../data/domain-frame.types"
@@ -212,7 +214,8 @@ export function UniversalConversation({
   onDraftListRefresh,
   onJourneyListRefresh,
 }: UniversalConversationProps) {
-  const { domainFrame, resolvedAudience: shellAudience, boardDefinitionId } = useV0Shell()
+  const location = useLocation()
+  const { domainFrame, resolvedAudience: shellAudience } = useV0Shell()
   const frameCtx = useFrameContextOptional()
   const { refreshSession } = useAuth()
   const audience = shellAudience ?? "keeper"
@@ -295,7 +298,7 @@ export function UniversalConversation({
 
   const selectedFrameKey = null
   const selectedBoardDefId =
-    kipMode === "designer" ? (boardDefinitionId ?? null) : null
+    kipMode === "designer" ? (readBoardDefinitionId(location.search) ?? null) : null
   const designerDraftCtx = useDesignerDraftOptional()
 
   // ── agentContext — computed once, shared across all modes ─────────────
