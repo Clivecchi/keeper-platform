@@ -63,9 +63,23 @@ export function resolveChroniclePatchEndpoint(
       return `/api/domains/${encodeURIComponent(domainId)}/kip/dialogs/${encodeURIComponent(entityId)}`
     case "domain":
       return `/api/domains/${encodeURIComponent(entityId)}`
+    case "service":
+    case "integration":
+      return `/api/integrations/${encodeURIComponent(entityId)}`
+    case "key":
+      return `/api/keys/${encodeURIComponent(entityId)}`
     default:
       return ""
   }
+}
+
+/** Integration PATCH is scoped by domainId query param (Chronicle trail id is service slug). */
+export function appendIntegrationChroniclePatchQuery(
+  endpoint: string,
+  domainId: string,
+): string {
+  const separator = endpoint.includes("?") ? "&" : "?"
+  return `${endpoint}${separator}domainId=${encodeURIComponent(domainId)}`
 }
 
 export function resolveChronicleFramePatchEndpoint(domainSlug: string): string {
@@ -215,9 +229,13 @@ export async function handleChronicleSave(
       return { status: "saved", message: "Saved" }
     }
 
-    const endpoint = resolveChroniclePatchEndpoint(entityKind, entityId, ctx.domainId)
+    let endpoint = resolveChroniclePatchEndpoint(entityKind, entityId, ctx.domainId)
     if (!endpoint) {
       return { status: "error", message: "No save path for this entity kind." }
+    }
+
+    if (entityKind === "service" || entityKind === "integration") {
+      endpoint = appendIntegrationChroniclePatchQuery(endpoint, ctx.domainId)
     }
 
     await apiFetch(endpoint, {

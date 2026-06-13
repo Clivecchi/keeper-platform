@@ -6,7 +6,7 @@ Express route handlers for all API endpoints. Handles HTTP request/response cycl
 
 ## 🧱 Key Files
 
-- `integration-routes.ts` - Integration connect (Services → Nango OAuth; Custom → env verify), webhook, proxy, list, disconnect
+- `integration-routes.ts` - Integration connect (Services → Nango OAuth; Custom → env verify), webhook, proxy, list, PATCH metadata, disconnect
 - `railway-routes.ts` - Capability-gated Railway GraphQL proxy (services, deployments, logs, redeploy)
 - `vercel-routes.ts` - Capability-gated Vercel deployment routes (deployments, logs, project)
 - `webhook-routes.ts` - Inbound Railway, Vercel, GitHub webhook receivers (stub processing)
@@ -171,6 +171,12 @@ Using `requestId` prevents duplicate operations:
 - [ ] Add board versioning/history
 
 ## 📆 Update Log
+
+### 2026-06-13 — Integration/Key Chronicle metadata PATCH + declaration backfill
+- `PATCH /api/integrations/:service` — update `display_label`, `description`, `connect_copy` (Chronicle Config Mode)
+- `PATCH /api/keys/:id` — extended with `display_label`, `description`
+- `upsertIntegration` applies shared declaration defaults on create and backfills empty columns on update
+- Migration `20260613120000_backfill_integration_key_chronicle_declarations` backfills existing rows with empty `chronicle_blocks`
 
 ### 2026-06-02 — Popup OAuth callback + webhook providerConfigKey mapping
 - `POST /oauth-callback` (auth): persist connected after popup `nango.auth()` when Nango webhook is not forwarded to Keeper API.

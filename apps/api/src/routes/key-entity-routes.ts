@@ -11,6 +11,10 @@ import { KipUserKeyService } from '../services/KipUserKeyService.js';
 import { PlatformApiKeyService } from '../services/PlatformApiKeyService.js';
 import { verifyAIModelConnect } from '../lib/integrationAiModelConnect.js';
 import { resolveProviderApiKeyWithSource } from '../lib/resolveProviderApiKey.js';
+import {
+  resolveKeyChronicleDefaults,
+  resolveKeyDeclarationBackfill,
+} from '@keeper/shared';
 
 const router: Router = Router();
 
@@ -28,11 +32,17 @@ const createKeySchema = z.object({
   user_id: z.string().optional(),
 });
 
-const patchKeySchema = z.object({
-  status: z.enum(VALID_STATUSES).optional(),
-  scope: z.string().optional(),
-  expires_at: z.string().datetime().nullable().optional(),
-});
+const patchKeySchema = z
+  .object({
+    status: z.enum(VALID_STATUSES).optional(),
+    scope: z.string().optional(),
+    expires_at: z.string().datetime().nullable().optional(),
+    display_label: z.string().min(1).max(200).optional(),
+    description: z.string().max(2000).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field is required',
+  });
 
 const rotateKeySchema = z.object({
   api_key: z.string().min(5),
@@ -134,6 +144,7 @@ async function syncProviderKeyPresence(
 
   const integration = await findPlatformIntegration(provider);
   const resolved = await resolveProviderApiKeyWithSource(provider, userId ?? undefined);
+  const keyDefaults = resolveKeyChronicleDefaults(provider);
   const sources: Array<{
     key_source: (typeof VALID_SOURCES)[number];
     status: string;
@@ -172,12 +183,12 @@ async function syncProviderKeyPresence(
     });
     const payload = {
       integration_id: integration?.id ?? null,
-      display_label: `${meta.display_label} Key`,
+      display_label: keyDefaults.display_label,
       description: meta.description,
       scope: meta.scope,
       status: source.status,
-      chronicle_blocks: ['connection_status', 'key_health', 'linked_agents'],
-      chronicle_actions: ['verify', 'rotate', 'revoke'],
+      chronicle_blocks: [...keyDefaults.chronicle_blocks],
+      chronicle_actions: [...keyDefaults.chronicle_actions],
     };
     if (existing) {
       await prisma.key.update({ where: { id: existing.id }, data: payload });
@@ -335,6 +346,7 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
 
     const integration = await findPlatformIntegration(provider);
     const displayMeta = PROVIDER_KEY_META[provider];
+    const keyDefaults = resolveKeyChronicleDefaults(provider);
 
     const existing = await prisma.key.findFirst({
       where: { domain_id, provider, key_source, user_id: userId },
@@ -349,6 +361,7 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
             last_verified: new Date(),
             expires_at: expires_at ? new Date(expires_at) : undefined,
             integration_id: integration?.id ?? undefined,
+            ...resolveKeyDeclarationBackfill(provider, existing),
           },
         })
       : await prisma.key.create({
@@ -362,12 +375,10 @@ router.post('/', authMiddlewareCompat, async (req: Request, res: Response) => {
             expires_at: expires_at ? new Date(expires_at) : null,
             user_id: userId,
             integration_id: integration?.id ?? null,
-            chronicle_blocks: ['connection_status', 'key_health', 'linked_agents'],
-            chronicle_actions: ['verify', 'rotate', 'revoke'],
-            display_label: displayMeta?.display_label
-              ? `${displayMeta.display_label} Key`
-              : provider,
-            description: displayMeta?.description ?? null,
+            chronicle_blocks: [...keyDefaults.chronicle_blocks],
+            chronicle_actions: [...keyDefaults.chronicle_actions],
+            display_label: keyDefaults.display_label,
+            description: displayMeta?.description ?? keyDefaults.description,
           },
         });
 
@@ -393,7 +404,7 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
       return res.status(404).json({ error: 'Key not found' });
     }
 
-    const { status, scope, expires_at } = parsed.data;
+    const { status, scope, expires_at, display_label, description } = parsed.data;
     const row = await prisma.key.update({
       where: { id: req.params.id },
       data: {
@@ -402,6 +413,8 @@ router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) =
         ...(expires_at !== undefined
           ? { expires_at: expires_at === null ? null : new Date(expires_at) }
           : {}),
+        ...(display_label !== undefined ? { display_label } : {}),
+        ...(description !== undefined ? { description } : {}),
       },
     });
 

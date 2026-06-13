@@ -7,6 +7,10 @@ import { prisma } from '@keeper/database';
 import type { IntegrationType } from '../types/integration.js';
 import { authMiddlewareCompat } from '../middleware/authMiddleware.js';
 import {
+  resolveIntegrationDeclarationBackfill,
+  resolveIntegrationDeclarationForCreate,
+} from '@keeper/shared';
+import {
   connectSessionFailureHint,
   createKeeperConnectSession,
   formatNangoError,
@@ -90,6 +94,16 @@ const integrationKeyBodySchema = z.object({
   level: z.enum(['user', 'platform']),
 });
 
+const patchIntegrationSchema = z
+  .object({
+    display_label: z.string().min(1).max(200).optional(),
+    description: z.string().max(2000).optional(),
+    connect_copy: z.string().max(500).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field is required',
+  });
+
 function resolveTier(userId?: string): IntegrationTier {
   // incomplete — user-level self-serve connections: tier user when userId is set in session
   return userId ? 'user' : 'platform';
@@ -102,6 +116,26 @@ function integrationWhere(
   userId: string | null,
 ) {
   return { service, tier, domainId, userId };
+}
+
+async function resolveIntegrationForMetadataPatch(
+  service: string,
+  domainId?: string,
+) {
+  const platform = await findIntegration(service, 'platform', null, null);
+  if (platform) return platform;
+
+  if (domainId) {
+    return prisma.integration.findFirst({
+      where: { service, domainId },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
+  return prisma.integration.findFirst({
+    where: { service },
+    orderBy: { updatedAt: 'desc' },
+  });
 }
 
 function toIntegrationRecord(row: {
@@ -215,10 +249,12 @@ async function upsertIntegration(params: {
   };
 
   if (existing) {
+    const declarationPatch = resolveIntegrationDeclarationBackfill(params.service, existing);
     return prisma.integration.update({
       where: { id: existing.id },
       data: {
         ...data,
+        ...declarationPatch,
         integration_type: params.integration_type,
         ...(resolvedMetadata !== undefined
           ? {
@@ -232,6 +268,8 @@ async function upsertIntegration(params: {
     });
   }
 
+  const declarationCreate = resolveIntegrationDeclarationForCreate(params.service);
+
   return prisma.integration.create({
     data: {
       service: params.service,
@@ -241,6 +279,7 @@ async function upsertIntegration(params: {
       userId: params.userId,
       scopes: [],
       ...data,
+      ...declarationCreate,
       ...(resolvedMetadata !== undefined
         ? {
             metadata:
@@ -642,6 +681,40 @@ router.get('/', authMiddlewareCompat, async (req: Request, res: Response) => {
         : 'Failed to list integrations',
       detail: process.env.NODE_ENV !== 'production' ? message : undefined,
     });
+  }
+});
+
+/**
+ * PATCH /api/integrations/:service
+ * Update Chronicle declaration metadata (display_label, description, connect_copy).
+ */
+router.patch('/:service', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const service = req.params.service;
+    if (!resolvePlatformIntegrationType(service)) {
+      return res.status(400).json({ error: 'Unknown integration service', service });
+    }
+
+    const parsed = patchIntegrationSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid request body', details: parsed.error.flatten() });
+    }
+
+    const domainId = typeof req.query.domainId === 'string' ? req.query.domainId : undefined;
+    const existing = await resolveIntegrationForMetadataPatch(service, domainId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Integration not found', service });
+    }
+
+    const row = await prisma.integration.update({
+      where: { id: existing.id },
+      data: parsed.data,
+    });
+
+    return res.status(200).json(toIntegrationRecord(row));
+  } catch (err) {
+    console.error('[integrations/patch]', err);
+    return res.status(500).json({ error: 'Failed to update integration' });
   }
 });
 

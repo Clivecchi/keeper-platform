@@ -59,6 +59,12 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-06-13 — Integration/Key Chronicle config save (Phase 3)
+- `chroniclePatch.ts`: `service`/`integration` → `PATCH /api/integrations/:entityId`; `key` → `PATCH /api/keys/:entityId`
+- `IntegrationConfigPresence` / `KeyConfigPresence`: `useChronicleConfig` with real `isDirty`; Save bar for metadata (`display_label`, `description`, `connect_copy` / key fields)
+- Credential actions (verify, rotate, revoke) remain inline block operations, not routed through `handleChronicleSave`
+- Browser verified: display_label save on Anthropic integration and key via IDE board Manage → Config
+
 ### 2026-06-13 — Orphan cleanup + Key declaration blocks
 - Deleted unused `AgentIdentityCard.tsx`, `integrationChronicle/IntegrationChronicle.tsx`, `integrationChronicle/blocks/BlockPrimitivesPreview.tsx` (no imports)
 - `declarationChronicle.tsx`: `DeclarationChronicleBlocks` supports `variant="key"` with `connection_status`, `key_health`, `linked_agents` from Key feed

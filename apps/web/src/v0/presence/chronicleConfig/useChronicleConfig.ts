@@ -99,6 +99,13 @@ export function useChronicleConfig({
           ...prev,
           lensSystemPrompt: "System prompt must be at least 10 characters.",
         }))
+      } else if (
+        (entityKind === "service" ||
+          entityKind === "integration" ||
+          entityKind === "key") &&
+        validationError.toLowerCase().includes("display label")
+      ) {
+        setFieldErrors((prev) => ({ ...prev, display_label: validationError }))
       }
       setSaveStatus("error")
       setSaveMessage(validationError)

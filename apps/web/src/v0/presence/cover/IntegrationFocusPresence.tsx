@@ -172,11 +172,16 @@ export function IntegrationFocusPresence({
     return (
       <div className="relative flex flex-col h-full min-h-0">
         <IntegrationConfigPresence
+          serviceSlug={objectId}
+          domainId={domainId}
           displayLabel={displayLabel}
           integrationType={conn.integrationType}
           description={conn.integration?.description}
+          connectCopy={connectCopy}
           feed={feed}
           onBack={() => setChronicleMode("cover")}
+          onRefresh={() => void conn.refresh()}
+          onLabelResolved={onLabelResolved}
         />
       </div>
     )

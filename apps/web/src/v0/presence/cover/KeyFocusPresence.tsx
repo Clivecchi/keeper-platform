@@ -110,6 +110,8 @@ export function KeyFocusPresence({
 
     return (
       <KeyConfigPresence
+        keyId={feed.key.id}
+        domainId={domainId}
         displayLabel={displayLabel}
         description={feed.key.description}
         feed={feed}
@@ -117,6 +119,8 @@ export function KeyFocusPresence({
           setCoverMode("cover")
           void reload()
         }}
+        onRefresh={() => void reload()}
+        onLabelResolved={onLabelResolved}
       />
     )
   }
