@@ -38,6 +38,10 @@ import type { UniversalBoardDef, NavSectionKey } from "./UniversalBoardDefinitio
 import { useUniversalBoardOptional } from "./UniversalBoardContext"
 import { useBoardDefs } from "./useBoardDefs"
 import {
+  applyBoardDefSelection,
+  clearBoardDefParam,
+} from "./workspaceBoardNav"
+import {
   fetchDomainKeyNavRows,
   keyNavLabel,
   keyStatusNavHint,
@@ -498,12 +502,7 @@ export function UniversalNavPanel({
     (boardDefId: string) => {
       boardCtx?.actions.onBoardDefSelect(boardDefId)
       setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev)
-          next.set("board", "designer")
-          next.set("boardDef", boardDefId)
-          return next
-        },
+        (prev) => applyBoardDefSelection(prev, boardDefId),
         { replace: true },
       )
     },

@@ -8,6 +8,7 @@ import type { StyleId } from "../styles/styles"
 import { StyleOverrideProvider } from "../styles/StyleOverrideProvider"
 import { CORE_FRAME_MAP } from "./frameRegistryMap"
 import { resolveBoardDefs } from "../boards/resolveBoardDefs"
+import { clearBoardDefParam, parseWorkspaceBoardId } from "../boards/workspaceBoardNav"
 import { UniversalBoard } from "../boards/UniversalBoard"
 import type { UniversalBoardDef } from "../boards/UniversalBoardDefinition"
 import { apiFetch } from "../../lib/api"
@@ -52,9 +53,27 @@ export function V0Shell() {
       !searchParams.get("frame") &&
       !searchParams.get("board")
     ) {
-      setSearchParams({ board: "domain" }, { replace: true })
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          next.set("board", "domain")
+          return next
+        },
+        { replace: true },
+      )
     }
   }, [isAuthenticated, searchParams, setSearchParams])
+
+  // Stale ?boardDef= on non-Design workspace boards breaks top-bar switches (URL vs UI desync).
+  React.useEffect(() => {
+    const workspaceBoard = parseWorkspaceBoardId(searchParams)
+    if (!workspaceBoard || workspaceBoard === "designer") return
+    if (!searchParams.has("boardDef")) return
+    setSearchParams(
+      (prev) => clearBoardDefParam(prev),
+      { replace: true },
+    )
+  }, [searchParams, setSearchParams])
   const privateFrames = new Set<V0FrameKey>(["commons", "profile", "admin"])
   const guestAgentFrames = new Set<V0FrameKey>(["agent", "kip"])
   const requestedFrame = FRAME_REGISTRY[frameParam] ? frameParam : "cover"

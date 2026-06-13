@@ -26,6 +26,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - [ ] Default keeper/journey creation when none exist for a domain.
 
 ## 📆 Update Log
+- 2026-06-12: V0Shell strips stale `?boardDef=` when workspace `?board=` is not `designer`; default `?board=domain` redirect preserves other query params.
 - 2026-05-25: Renamed `ExperienceMode` → `PlacementMode` (`usePlacementMode.ts`, `placementMode`, `placementActions`) — shell placement vs domain Experience concept.
 - 2026-05-21: jsonframe Step 4 — guests requesting `?frame=agent|kip` redirect to cover with `companion=1`; `usePlacementMode.openKip` opens companion for guests. `resolveFrame` maps guest agent/kip requests to cover.
 - 2026-03-28: Authenticated users with no `frame` or `board` query params are redirected (replace) to `?board=domain`; `defaultFrame` remains `commons` for explicit `?frame=` navigation.

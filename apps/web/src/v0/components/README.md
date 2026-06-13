@@ -29,6 +29,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-06-12: `KeeperTopBar` workspace tabs use `navigate()` + `workspaceBoardNav` helpers; top bar `z-50` so Brief scrim does not block board links.
 - 2026-06-10: `KeeperTopBar` workspace board tabs use `setSearchParams` (not `navigate`) and strip `?boardDef=` when leaving Design so top-bar switches are not blocked after Design nav selection.
 - 2026-04-28 (Prompt 5): Added `panels/` subdirectory with `KeeperJourneyPanel.tsx` — self-contained Journey view state panel (living document layout). See `panels/README.md`.
 - 2026-04-01: Added `DomainBanner.tsx` (slim Domain Board center header: wordmark, tagline, live pulse from `theme.colors.primary`, journey/moment stats) and `DomainFeed.tsx` (kept moments + public journey activity via existing APIs; empty state from `commons.messaging.feed` when present). Both use `--theme-*` tokens under `StyleScope`.

@@ -5,6 +5,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 🧱 Key Files
 - `boardRegistry.ts` — Registry of all V0 Boards; parallel to `FRAME_REGISTRY` for Frames
+- `workspaceBoardNav.ts` — Shared `?board=` / `?boardDef=` URL helpers for workspace switching
 - `designer/` — The Design Board (Platform Admin tool for editing domain frame JSON with Kip)
 
 ## 🔄 Data & Behavior
@@ -22,6 +23,13 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## 📆 Update Log
+
+### 2026-06-12 — Workspace board nav desync fix
+- Added `workspaceBoardNav.ts` — single helper module for `?board=` / `?boardDef=` updates
+- Top bar uses `navigate()` with preserved query params (replaces `setSearchParams` only)
+- V0Shell strips stale `?boardDef=` when workspace board is not Design
+- Design board syncs `?boardDef=` ↔ selection bidirectionally; non-Design clears stale selection in context
+- Top bar `z-50` so Brief scrim does not block board tabs
 
 ### 2026-06-10 — Top bar workspace board switch fix
 - Removed context→URL push for `boardDef` (re-added param after top bar cleared it, blocking IDE/Agent/Domain switches)

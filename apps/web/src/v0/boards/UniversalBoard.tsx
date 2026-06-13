@@ -52,6 +52,7 @@ import { UniversalBoardProvider, useUniversalBoard } from "./UniversalBoardConte
 import { DesignerDraftProvider } from "./DesignerDraftContext"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import { UniversalConversation } from "./UniversalConversation"
+import { clearBoardDefParam } from "./workspaceBoardNav"
 import { useAuth } from "../../context/AuthContext"
 
 function isResolvedDomainId(id: string | null | undefined): id is string {
@@ -197,43 +198,27 @@ function UniversalBoardShell({
 
   const [searchParams, setSearchParams] = useSearchParams()
 
-  // boardDef: context is source of truth; URL mirrors for deep links only.
-  const boardDefDeepLinkApplied = React.useRef(false)
-
-  React.useEffect(() => {
-    boardDefDeepLinkApplied.current = false
-  }, [def.boardId])
-
-  // Deep link on first mount of Design board (?board=designer&boardDef=agent).
+  // Design board: sync ?boardDef= ↔ selection (URL is authoritative for deep links and trail).
   React.useEffect(() => {
     if (def.boardId !== "designer") return
-    if (boardDefDeepLinkApplied.current) return
-    boardDefDeepLinkApplied.current = true
     const param = searchParams.get("boardDef")
     if (param && param !== selection.selectedBoardDefId) {
       actions.onBoardDefSelect(param)
+      return
+    }
+    if (!param && selection.selectedBoardDefId) {
+      actions.onBoardDefSelect(null)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [def.boardId])
+  }, [def.boardId, searchParams.get("boardDef")])
 
-  // Non-designer boards: drop stale boardDef state and URL param.
+  // Non-designer boards: drop stale boardDef selection (URL cleanup runs in V0Shell).
   React.useEffect(() => {
     if (def.boardId === "designer") return
     if (selection.selectedBoardDefId) {
       actions.onBoardDefSelect(null)
     }
-    if (searchParams.has("boardDef")) {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev)
-          next.delete("boardDef")
-          return next
-        },
-        { replace: true },
-      )
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [def.boardId])
+  }, [def.boardId, selection.selectedBoardDefId, actions])
 
   // Strip ?boardDef= when selection clears on Design — never push boardDef back from context
   // (nav + trail write URL directly; pushing here fought top-bar workspace board switches).
@@ -243,11 +228,7 @@ function UniversalBoardShell({
     if (selection.selectedBoardDefId) return
     if (!searchParams.has("boardDef")) return
     setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev)
-        next.delete("boardDef")
-        return next
-      },
+      (prev) => clearBoardDefParam(prev),
       { replace: true },
     )
   // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -32,6 +32,10 @@ import { motion, AnimatePresence } from "framer-motion"
 import { apiFetch } from "../../../lib/api"
 import { useUniversalBoardOptional } from "../UniversalBoardContext"
 import type { UniversalBoardDef } from "../UniversalBoardDefinition"
+import {
+  applyBoardDefSelection,
+  clearBoardDefParam,
+} from "../workspaceBoardNav"
 import { ChroniclePresenceView } from "../../presence/ChroniclePresenceView"
 import type { PresenceLayout } from "../../presence/types"
 
@@ -536,12 +540,7 @@ export function UniversalViewPanel({
           if (entry.id) {
             actions.onBoardDefSelect(entry.id)
             setSearchParams(
-              (prev) => {
-                const next = new URLSearchParams(prev)
-                next.set("board", "designer")
-                next.set("boardDef", entry.id)
-                return next
-              },
+              (prev) => applyBoardDefSelection(prev, entry.id!),
               { replace: true },
             )
           }
@@ -551,11 +550,7 @@ export function UniversalViewPanel({
           actions.clearSelection()
           if (def.boardId === "designer") {
             setSearchParams(
-              (prev) => {
-                const next = new URLSearchParams(prev)
-                next.delete("boardDef")
-                return next
-              },
+              (prev) => clearBoardDefParam(prev),
               { replace: true },
             )
           }

@@ -3,7 +3,13 @@
 import * as React from "react"
 import clsx from "clsx"
 import { FileText } from "lucide-react"
-import { useSearchParams } from "react-router-dom"
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
+import {
+  applyWorkspaceBoardSwitch,
+  buildWorkspaceBoardPath,
+  parseWorkspaceBoardId,
+  type WorkspaceBoardId,
+} from "../boards/workspaceBoardNav"
 import { useV0Shell } from "../shell/V0ShellContext"
 import { useAuth } from "../../context/AuthContext"
 
@@ -118,8 +124,6 @@ function ProfilePopover({ displayName, roleLabel, onSignOut, onClose, anchorRef 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type TopBarBoardId = "domain" | "ide" | "designer" | "agent"
-
 interface KeeperTopBarProps {
   onDomainClick: () => void
   onBriefClick: () => void
@@ -148,29 +152,21 @@ function getRoleLabel(audience: string | null): string {
 
 // ─── Board nav config ─────────────────────────────────────────────────────────
 
-const BOARD_LINKS: { id: TopBarBoardId; label: string }[] = [
+const BOARD_LINKS: { id: WorkspaceBoardId; label: string }[] = [
   { id: "domain",   label: "Domain" },
   { id: "ide",      label: "IDE" },
   { id: "designer", label: "Design" },
   { id: "agent",    label: "Agent" },
 ]
 
-// Derive the active board ID from search params.
-function resolveActiveBoardId(searchParams: URLSearchParams): TopBarBoardId | null {
-  const board = searchParams.get("board")?.toLowerCase()
-  if (board === "domain")   return "domain"
-  if (board === "ide")      return "ide"
-  if (board === "designer") return "designer"
-  if (board === "agent")    return "agent"
-  return null
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: KeeperTopBarProps) {
   const { domainSlug, domainFrame, resolvedAudience } = useV0Shell()
   const { user, logout } = useAuth()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
   const [profileOpen, setProfileOpen] = React.useState(false)
   const avatarButtonRef = React.useRef<HTMLButtonElement>(null)
 
@@ -185,20 +181,14 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
   const displayName = user?.name?.trim() || user?.email?.trim() || "Guest"
   const roleLabel = getRoleLabel(resolvedAudience)
 
-  const activeBoardId = resolveActiveBoardId(searchParams)
+  const activeBoardId = parseWorkspaceBoardId(searchParams)
 
-  const handleBoardClick = (id: TopBarBoardId) => {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev)
-        next.set("board", id)
-        if (id !== "designer") {
-          next.delete("boardDef")
-        }
-        return next
-      },
-      { replace: true },
+  const handleBoardClick = (id: WorkspaceBoardId) => {
+    const nextParams = applyWorkspaceBoardSwitch(
+      new URLSearchParams(location.search),
+      id,
     )
+    navigate(buildWorkspaceBoardPath(domainSlug, nextParams), { replace: true })
   }
 
   const handleAvatarClick = () => {
@@ -215,7 +205,7 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
 
   return (
     <div
-      className="keeper-platform-top-bar"
+      className="keeper-platform-top-bar relative z-50 shrink-0"
     >
       {/* Row 1: domain identity + user */}
       <div
