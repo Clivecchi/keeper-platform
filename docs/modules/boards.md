@@ -24,6 +24,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-12 — URL-only board definition selection (desync fix)
+- Sidebar, Chronicle, and center banner read `boardDefinitionId` from V0Shell URL — not React context
+- Removed context↔URL sync effects that could leave IDE highlighted while `?definition=domain`
+- V0Shell board nav uses `setSearchParams` only (same source as `matchedDef` routing)
+- Every workspace/definition change bumps `workspaceEpoch` to force board remount
+
 ### 2026-06-12 — Workspace nav authority + ?definition= param
 - `?board=` = workspace only (top bar); `?definition=` = Design board spec nav (replaces confusing `?boardDef=`)
 - All workspace URL writes live in `V0Shell` (`switchWorkspace`, `selectBoardDefinition`, `clearBoardDefinition`)

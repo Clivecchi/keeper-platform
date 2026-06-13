@@ -388,6 +388,7 @@ export function UniversalViewPanel({
 }: UniversalViewPanelProps) {
   const boardCtx = useUniversalBoardOptional()
   const shell = useV0ShellOptional()
+  const boardDefinitionId = shell?.boardDefinitionId ?? null
 
   const resolved = {
     selectedDialogId: boardCtx?.selection.selectedDialogId ?? null,
@@ -416,8 +417,8 @@ export function UniversalViewPanel({
     if (boardCtx?.selection.selectedSoleMemoryId) {
       return { kind: "soleMemory", id: boardCtx.selection.selectedSoleMemoryId }
     }
-    if (boardCtx?.selection.selectedBoardDefId && def.boardId === "designer")
-      return { kind: "boardDef", id: boardCtx.selection.selectedBoardDefId }
+    if (boardDefinitionId && def.boardId === "designer")
+      return { kind: "boardDef", id: boardDefinitionId }
     if (boardCtx?.selection.selectedKeyId)
       return { kind: "key", id: boardCtx.selection.selectedKeyId }
     if (resolved.selectedServiceSlug)

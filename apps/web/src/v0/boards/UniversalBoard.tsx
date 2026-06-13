@@ -171,8 +171,7 @@ function UniversalBoardShell({
   onDomainClick,
   navVersions,
 }: UniversalBoardProps) {
-  const { domainSlug, styleId, themeSlug, domainFrame, domainData, boardDefinitionId } =
-    useV0Shell()
+  const { domainSlug, styleId, themeSlug, domainFrame, domainData } = useV0Shell()
   const { selection, actions, navCollapsed, onToggleNavCollapsed } = useUniversalBoard()
   const { isAdmin } = useAuth()
 
@@ -194,22 +193,6 @@ function UniversalBoardShell({
   const effectiveJourneyListVersion = (navVersions?.journeyListVersion ?? 0) + journeyListVersionBump
 
   const slug = domainSlug ?? ""
-
-  // Design workspace: shell-owned URL → context (never write URL from here).
-  React.useEffect(() => {
-    if (def.boardId !== "designer") return
-    if (boardDefinitionId !== selection.selectedBoardDefId) {
-      actions.onBoardDefSelect(boardDefinitionId)
-    }
-  }, [def.boardId, boardDefinitionId, selection.selectedBoardDefId, actions])
-
-  // Non-designer workspaces: drop stale board-definition selection.
-  React.useEffect(() => {
-    if (def.boardId === "designer") return
-    if (selection.selectedBoardDefId) {
-      actions.onBoardDefSelect(null)
-    }
-  }, [def.boardId, selection.selectedBoardDefId, actions])
 
   // ── domainId resolution — single point, never delegated to panels ──────────
   // V0Shell owns the by-slug fetch; sync from shell domainData to avoid duplicate round-trips.

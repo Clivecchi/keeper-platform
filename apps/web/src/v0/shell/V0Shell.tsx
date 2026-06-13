@@ -12,7 +12,6 @@ import {
   BOARD_DEFINITION_PARAM,
   applyBoardDefinitionSelection,
   applyWorkspaceBoardSwitch,
-  buildWorkspaceBoardPath,
   clearBoardDefinitionParams,
   migrateLegacyBoardDefParam,
   parseBoardDefinitionId,
@@ -302,55 +301,46 @@ export function V0Shell() {
   }, [slug])
 
   const workspaceBoardId = React.useMemo(
-    () => parseWorkspaceBoardId(new URLSearchParams(location.search)),
-    [location.search],
+    () => parseWorkspaceBoardId(searchParams),
+    [searchParams],
   )
 
   const boardDefinitionId = React.useMemo(() => {
     if (workspaceBoardId !== "designer") return null
-    return parseBoardDefinitionId(new URLSearchParams(location.search))
-  }, [location.search, workspaceBoardId])
+    return parseBoardDefinitionId(searchParams)
+  }, [searchParams, workspaceBoardId])
 
-  const navigateBoardSearch = React.useCallback(
+  const commitBoardSearch = React.useCallback(
     (params: URLSearchParams) => {
-      const path = buildWorkspaceBoardPath(slug, params)
-      const current = `${location.pathname}${location.search}`
-      if (current === path) {
-        setWorkspaceEpoch((n) => n + 1)
-        return
-      }
-      navigate(path, { replace: true })
+      setWorkspaceEpoch((n) => n + 1)
+      setSearchParams(params, { replace: true })
     },
-    [slug, location.pathname, location.search, navigate],
+    [setSearchParams],
   )
 
   const switchWorkspace = React.useCallback(
     (boardId: WorkspaceBoardId) => {
-      const next = applyWorkspaceBoardSwitch(
-        new URLSearchParams(location.search),
-        boardId,
+      commitBoardSearch(
+        applyWorkspaceBoardSwitch(new URLSearchParams(searchParams), boardId),
       )
-      navigateBoardSearch(next)
     },
-    [location.search, navigateBoardSearch],
+    [searchParams, commitBoardSearch],
   )
 
   const selectBoardDefinition = React.useCallback(
     (definitionId: string) => {
-      let next = new URLSearchParams(location.search)
+      let next = new URLSearchParams(searchParams)
       if (parseWorkspaceBoardId(next) !== "designer") {
         next = applyWorkspaceBoardSwitch(next, "designer")
       }
-      next = applyBoardDefinitionSelection(next, definitionId)
-      navigateBoardSearch(next)
+      commitBoardSearch(applyBoardDefinitionSelection(next, definitionId))
     },
-    [location.search, navigateBoardSearch],
+    [searchParams, commitBoardSearch],
   )
 
   const clearBoardDefinition = React.useCallback(() => {
-    const next = clearBoardDefinitionParams(new URLSearchParams(location.search))
-    navigateBoardSearch(next)
-  }, [location.search, navigateBoardSearch])
+    commitBoardSearch(clearBoardDefinitionParams(new URLSearchParams(searchParams)))
+  }, [searchParams, commitBoardSearch])
 
   const shellWorkspaceNav = React.useMemo(
     () => ({

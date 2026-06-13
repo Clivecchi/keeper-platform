@@ -212,7 +212,7 @@ export function UniversalConversation({
   onDraftListRefresh,
   onJourneyListRefresh,
 }: UniversalConversationProps) {
-  const { domainFrame, resolvedAudience: shellAudience } = useV0Shell()
+  const { domainFrame, resolvedAudience: shellAudience, boardDefinitionId } = useV0Shell()
   const frameCtx = useFrameContextOptional()
   const { refreshSession } = useAuth()
   const audience = shellAudience ?? "keeper"
@@ -294,7 +294,8 @@ export function UniversalConversation({
         : def.conversation.agentName
 
   const selectedFrameKey = null
-  const selectedBoardDefId = kipMode === "designer" ? (selection.selectedBoardDefId ?? null) : null
+  const selectedBoardDefId =
+    kipMode === "designer" ? (boardDefinitionId ?? null) : null
   const designerDraftCtx = useDesignerDraftOptional()
 
   // ── agentContext — computed once, shared across all modes ─────────────
