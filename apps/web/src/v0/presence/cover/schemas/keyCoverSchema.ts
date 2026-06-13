@@ -2,6 +2,7 @@
  * Layer 2 — Key EntityKind cover schema.
  */
 import {
+  keyChronicleTitle,
   providerDisplayLabel,
   providerIconLetter,
 } from "../../integrationChronicle/keyNavUtils"
@@ -104,7 +105,7 @@ export const keyCoverSchema: EntityCoverSchema<KeyRecord> = {
         roleLabel: sourceLabel,
       },
       identity: {
-        name: record.display_label ?? `${record.provider} Key`,
+        name: keyChronicleTitle(record),
         roleLine: providerDisplayLabel(record.provider),
         voiceQuote: record.description ?? undefined,
       },

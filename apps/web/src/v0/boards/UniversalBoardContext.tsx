@@ -25,6 +25,12 @@ import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export type KeyNavRowPatch = {
+  keyId: string
+  display_label?: string
+  description?: string
+}
+
 export interface UniversalBoardSelection {
   activeSessionId: string | null
   /** Domain-level active journey — persisted via FrameContext; used by Set as Active in Chronicle. */
@@ -43,6 +49,10 @@ export interface UniversalBoardSelection {
   selectedBoardDefId: string | null
   /** Increment to refetch draft presence in Chronicle after point mutations. */
   draftPresenceRevision: number
+  /** Increment to refetch Keys nav list after Key metadata save. */
+  keyNavRevision: number
+  /** Optimistic Keys nav row patch applied before refetch completes. */
+  keyNavRowPatch: KeyNavRowPatch | null
   /** Agent Board: Chronicle Training Mode — entered via Train on agent cover. */
   trainingMode: boolean
 }
@@ -65,6 +75,7 @@ export interface UniversalBoardActions {
   /** designer mode: selects a board definition — drives right-panel BoardDefView. Pass null to clear. */
   onBoardDefSelect: (id: string | null) => void
   bumpDraftPresence: () => void
+  bumpKeyNav: (patch?: KeyNavRowPatch) => void
   onEnterTrainingMode: () => void
   onExitTrainingMode: () => void
 }
@@ -116,6 +127,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [selectedSoleMemoryId, setSelectedSoleMemoryId] = React.useState<string | null>(null)
   const [selectedBoardDefId, setSelectedBoardDefId] = React.useState<string | null>(null)
   const [draftPresenceRevision, setDraftPresenceRevision] = React.useState(0)
+  const [keyNavRevision, setKeyNavRevision] = React.useState(0)
+  const [keyNavRowPatch, setKeyNavRowPatch] = React.useState<KeyNavRowPatch | null>(null)
   const [trainingMode, setTrainingMode] = React.useState(false)
 
   // ── Nav state ──────────────────────────────────────────────────────────────
@@ -282,6 +295,11 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setDraftPresenceRevision((n) => n + 1)
   }, [])
 
+  const bumpKeyNav = React.useCallback((patch?: KeyNavRowPatch) => {
+    setKeyNavRowPatch(patch ?? null)
+    setKeyNavRevision((n) => n + 1)
+  }, [])
+
   const onToggleNavCollapsed = React.useCallback(() => {
     setNavCollapsed((c) => !c)
   }, [])
@@ -304,6 +322,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         selectedSoleMemoryId,
         selectedBoardDefId,
         draftPresenceRevision,
+        keyNavRevision,
+        keyNavRowPatch,
         trainingMode,
       },
       actions: {
@@ -321,6 +341,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         clearSelection,
         onBoardDefSelect,
         bumpDraftPresence,
+        bumpKeyNav,
         onEnterTrainingMode,
         onExitTrainingMode,
       },
@@ -342,6 +363,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       selectedSoleMemoryId,
       selectedBoardDefId,
       draftPresenceRevision,
+      keyNavRevision,
+      keyNavRowPatch,
       trainingMode,
       onSessionSelect,
       onSetActiveJourney,
@@ -357,6 +380,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       clearSelection,
       onBoardDefSelect,
       bumpDraftPresence,
+      bumpKeyNav,
       onEnterTrainingMode,
       onExitTrainingMode,
       navCollapsed,

@@ -22,11 +22,20 @@ const PROVIDER_LABELS: Record<string, string> = {
   elevenlabs: "ElevenLabs",
 }
 
+/** Chronicle cover title — matches keyCoverSchema identity.name. */
+export function keyChronicleTitle(
+  key: Pick<KeyNavRow, "provider" | "display_label">,
+): string {
+  const trimmed = key.display_label?.trim()
+  if (trimmed) return trimmed
+  return `${key.provider} Key`
+}
+
 export function providerDisplayLabel(provider: string, displayLabel?: string | null): string {
   return displayLabel?.trim() || PROVIDER_LABELS[provider] || provider
 }
 
-/** Nav label — full provider name from Key record (e.g. "Anthropic Key" → "Anthropic"). */
+/** @deprecated Use keyChronicleTitle — kept for callers that need provider-only nav labels. */
 export function keyNavLabel(key: KeyNavRow): string {
   const fromRecord = key.display_label?.trim()
   if (fromRecord) {
@@ -47,8 +56,46 @@ export function keyStatusNavHint(status: string): "valid" | "warning" | "error" 
   return "warning"
 }
 
-/** Sync + list Key presence rows for IDE AI providers in the active domain. */
-export async function fetchDomainKeyNavRows(domainId: string): Promise<KeyNavRow[]> {
+function keySourceRank(keySource: string): number {
+  if (keySource === "env") return 0
+  if (keySource === "user") return 1
+  if (keySource === "platform") return 2
+  return 3
+}
+
+/** Pick one Key row per provider — prefers active chronicle key, else env → user → platform. */
+export function pickKeyRowForProvider(
+  rows: KeyNavRow[],
+  provider: string,
+  preferredKeyId?: string | null,
+): KeyNavRow | undefined {
+  const providerRows = rows.filter(
+    (row) => row.provider === provider && row.status !== "revoked",
+  )
+  if (providerRows.length === 0) return undefined
+
+  if (preferredKeyId) {
+    const preferred = providerRows.find((row) => row.id === preferredKeyId)
+    if (preferred) return preferred
+  }
+
+  return [...providerRows].sort(
+    (a, b) => keySourceRank(a.key_source) - keySourceRank(b.key_source),
+  )[0]
+}
+
+/** Collapse domain Key rows to one nav row per IDE AI provider. */
+export function collapseKeyNavRows(
+  rows: KeyNavRow[],
+  preferredKeyId?: string | null,
+): KeyNavRow[] {
+  return IDE_AI_PROVIDERS.map((provider) =>
+    pickKeyRowForProvider(rows, provider, preferredKeyId),
+  ).filter((row): row is KeyNavRow => row != null)
+}
+
+/** Fetch all non-revoked Key rows for a domain (after optional provider sync). */
+export async function fetchAllDomainKeyRows(domainId: string): Promise<KeyNavRow[]> {
   await Promise.all(
     IDE_AI_PROVIDERS.map((provider) =>
       apiFetch(
@@ -62,30 +109,22 @@ export async function fetchDomainKeyNavRows(domainId: string): Promise<KeyNavRow
   )) as KeyNavRow[]
 
   if (!Array.isArray(rows)) return []
+  return rows.filter((row) => row.status !== "revoked")
+}
 
-  const byProvider = new Map<string, KeyNavRow>()
-  for (const row of rows) {
-    if (row.status === "revoked") continue
-    const existing = byProvider.get(row.provider)
-    if (!existing) {
-      byProvider.set(row.provider, row)
-      continue
-    }
-    const rank = (r: KeyNavRow) =>
-      r.key_source === "env" ? 0 : r.key_source === "user" ? 1 : r.key_source === "platform" ? 2 : 3
-    if (rank(row) < rank(existing)) {
-      byProvider.set(row.provider, row)
-    }
-  }
-
-  return IDE_AI_PROVIDERS.map((provider) => byProvider.get(provider)).filter(
-    (row): row is KeyNavRow => row != null,
-  )
+/** Sync + list Key presence rows for IDE AI providers in the active domain. */
+export async function fetchDomainKeyNavRows(
+  domainId: string,
+  options?: { preferredKeyId?: string | null },
+): Promise<KeyNavRow[]> {
+  const rows = await fetchAllDomainKeyRows(domainId)
+  return collapseKeyNavRows(rows, options?.preferredKeyId)
 }
 
 export async function fetchProviderKeyId(
   domainId: string,
   provider: string,
+  preferredKeyId?: string | null,
 ): Promise<string | null> {
   const normalized = provider.trim()
   if (!domainId || !normalized) return null
@@ -96,12 +135,7 @@ export async function fetchProviderKeyId(
 
   if (!Array.isArray(keys) || keys.length === 0) return null
 
-  const preferred =
-    keys.find((k) => k.key_source === "env" && k.status !== "revoked") ??
-    keys.find((k) => k.key_source === "user" && k.status !== "revoked") ??
-    keys.find((k) => k.key_source === "platform" && k.status !== "revoked") ??
-    keys.find((k) => k.status !== "revoked") ??
-    keys[0]
-
-  return preferred?.id ?? null
+  const active = keys.filter((k) => k.status !== "revoked")
+  const picked = pickKeyRowForProvider(active, normalized, preferredKeyId)
+  return picked?.id ?? null
 }

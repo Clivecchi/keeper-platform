@@ -25,6 +25,11 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 
 ## 📆 Update Log
 
+### 2026-06-13 — Keys nav label aligned with Chronicle
+- `keyChronicleTitle()` — same title rule as `keyCoverSchema` identity name
+- `KeyConfigPresence` calls `bumpKeyNav({ keyId, display_label })` after metadata save
+- Nav row selection prefers active `selectedKeyId` via `collapseKeyNavRows`
+
 ### 2026-06-13 — Phase 6 cleanup
 - Removed `FeedComponent` from `serviceConfig.tsx` and legacy `AIModelFeed` cover UI component
 - Trimmed redundant feed state (`keyInput`, `keySaveSuccess`) — metadata save is Config mode only; credentials stay on POST routes

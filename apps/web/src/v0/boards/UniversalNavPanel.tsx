@@ -33,13 +33,15 @@ import { KipApi } from "../../lib/kipApi"
 import type { KipDraftSummary } from "../../lib/kipApi"
 import { SidebarCard } from "../components/SidebarCard"
 import type { SidebarCardItem } from "../components/SidebarCard"
+import type { KeyNavRowPatch } from "./UniversalBoardContext"
 import type { UniversalBoardDef, NavSectionKey } from "./UniversalBoardDefinition"
 import { useBoardDefs } from "./useBoardDefs"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import { useV0Shell } from "../shell/V0ShellContext"
 import {
-  fetchDomainKeyNavRows,
-  keyNavLabel,
+  collapseKeyNavRows,
+  fetchAllDomainKeyRows,
+  keyChronicleTitle,
   keyStatusNavHint,
   type KeyNavRow,
 } from "../presence/integrationChronicle/keyNavUtils"
@@ -82,6 +84,8 @@ export interface UniversalNavPanelProps {
   journeyListVersion?: number
   keeperListVersion?: number
   draftListVersion?: number
+  keyListVersion?: number
+  keyNavRowPatch?: KeyNavRowPatch | null
 }
 
 // ─── Internal Types ──────────────────────────────────────────────────────────
@@ -216,6 +220,8 @@ export function UniversalNavPanel({
   journeyListVersion = 0,
   keeperListVersion = 0,
   draftListVersion = 0,
+  keyListVersion = 0,
+  keyNavRowPatch = null,
 }: UniversalNavPanelProps) {
 
   // ── designer board definitions — live from location.search ─────────────────
@@ -229,8 +235,30 @@ export function UniversalNavPanel({
   const [keepers, setKeepers] = React.useState<KeeperItem[] | null>(null)
   const [drafts, setDrafts] = React.useState<KipDraftSummary[] | null>(null)
   const [agents, setAgents] = React.useState<AgentItem[] | null>(null)
-  const [keys, setKeys] = React.useState<KeyNavRow[] | null>(null)
+  const [allKeyRows, setAllKeyRows] = React.useState<KeyNavRow[] | null>(null)
   const [keyError, setKeyError] = React.useState<string | null>(null)
+
+  const keys = React.useMemo(
+    () => (allKeyRows ? collapseKeyNavRows(allKeyRows, selectedKeyId) : null),
+    [allKeyRows, selectedKeyId],
+  )
+
+  const applyKeyNavRowPatch = React.useCallback(
+    (rows: KeyNavRow[]): KeyNavRow[] => {
+      if (!keyNavRowPatch) return rows
+      return rows.map((row) =>
+        row.id === keyNavRowPatch.keyId
+          ? {
+              ...row,
+              ...(keyNavRowPatch.display_label !== undefined
+                ? { display_label: keyNavRowPatch.display_label }
+                : {}),
+            }
+          : row,
+      )
+    },
+    [keyNavRowPatch],
+  )
 
   // ── Per-section error states ─────────────────────────────────────────────
   const [dialogError, setDialogError] = React.useState<string | null>(null)
@@ -364,25 +392,34 @@ export function UniversalNavPanel({
   }, [domainId, def.nav.sections.agents])
 
   const showKeysNav = def.boardId === "ide" && (def.nav.integrations ?? []).some((item) => item.group === "ai")
+  const keysDomainRef = React.useRef<string | null>(null)
 
   // ── Fetch: Keys — IDE Board Layer 3 only ─────────────────────────────────
   React.useEffect(() => {
     if (!domainId || !showKeysNav) return
     let cancelled = false
-    setKeys(null)
+    if (keysDomainRef.current !== domainId) {
+      keysDomainRef.current = domainId
+      setAllKeyRows(null)
+    }
     setKeyError(null)
-    void fetchDomainKeyNavRows(domainId)
+    void fetchAllDomainKeyRows(domainId)
       .then((rows) => {
-        if (!cancelled) setKeys(rows)
+        if (!cancelled) setAllKeyRows(applyKeyNavRowPatch(rows))
       })
       .catch((err: unknown) => {
         if (!cancelled) {
           setKeyError(err instanceof Error ? err.message : "Failed to load keys")
-          setKeys([])
+          setAllKeyRows([])
         }
       })
     return () => { cancelled = true }
-  }, [domainId, showKeysNav])
+  }, [domainId, showKeysNav, keyListVersion, applyKeyNavRowPatch])
+
+  React.useEffect(() => {
+    if (!keyNavRowPatch) return
+    setAllKeyRows((prev) => (prev ? applyKeyNavRowPatch(prev) : prev))
+  }, [keyListVersion, keyNavRowPatch, applyKeyNavRowPatch])
 
   // ── Derived SidebarCardItem arrays ───────────────────────────────────────
 
@@ -475,7 +512,7 @@ export function UniversalNavPanel({
 
   const keyItems: SidebarCardItem[] = (keys ?? []).map((key) => ({
     id: key.id,
-    label: keyNavLabel(key),
+    label: keyChronicleTitle(key),
     description: keyStatusNavHint(key.status),
     isSelected: key.id === selectedKeyId,
     onClick: () => onKeySelect?.(key.id),

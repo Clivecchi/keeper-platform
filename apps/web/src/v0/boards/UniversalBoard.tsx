@@ -382,6 +382,8 @@ function UniversalBoardShell({
                         journeyListVersion={effectiveJourneyListVersion}
                         keeperListVersion={navVersions?.keeperListVersion}
                         draftListVersion={effectiveDraftListVersion}
+                        keyListVersion={selection.keyNavRevision}
+                        keyNavRowPatch={selection.keyNavRowPatch}
                       />
                     )
               }

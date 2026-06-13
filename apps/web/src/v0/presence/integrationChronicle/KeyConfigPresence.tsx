@@ -4,6 +4,7 @@ import * as React from "react"
 import { KeyHealthBlock, LinkedAgentsBlock } from "./blocks"
 import { ActionButton } from "./shared"
 import { ChronicleConfigShell, useChronicleConfig } from "../chronicleConfig/useChronicleConfig"
+import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import type { KeyFeedData } from "./feeds/KeyFeed"
 
 export type KeyMetadataFields = {
@@ -52,6 +53,8 @@ export function KeyConfigPresence({
     reload,
   } = feed
 
+  const board = useUniversalBoardOptional()
+
   const baselineRef = React.useRef(toMetadataFields(displayLabel, description))
   const [fieldValues, setFieldValues] = React.useState(baselineRef.current)
   const fieldValuesRef = React.useRef(fieldValues)
@@ -92,6 +95,11 @@ export function KeyConfigPresence({
       if (field === "display_label") {
         onLabelResolved?.(value)
       }
+      board?.actions.bumpKeyNav({
+        keyId,
+        ...(field === "display_label" ? { display_label: value } : {}),
+        ...(field === "description" ? { description: value } : {}),
+      })
     },
     onRefresh,
   })
