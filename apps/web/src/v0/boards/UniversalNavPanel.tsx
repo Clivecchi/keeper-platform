@@ -28,7 +28,7 @@
  */
 
 import * as React from "react"
-import { useLocation } from "react-router-dom"
+import { useSearchParams } from "react-router-dom"
 import { apiFetch } from "../../lib/api"
 import { KipApi } from "../../lib/kipApi"
 import type { KipDraftSummary } from "../../lib/kipApi"
@@ -37,7 +37,7 @@ import type { SidebarCardItem } from "../components/SidebarCard"
 import type { UniversalBoardDef, NavSectionKey } from "./UniversalBoardDefinition"
 import { useBoardDefs } from "./useBoardDefs"
 import { useV0Shell } from "../shell/V0ShellContext"
-import { readBoardDefinitionId } from "./workspaceBoardNav"
+import { parseBoardDefinitionId } from "./workspaceBoardNav"
 import {
   fetchDomainKeyNavRows,
   keyNavLabel,
@@ -220,7 +220,7 @@ export function UniversalNavPanel({
 }: UniversalNavPanelProps) {
 
   // ── designer board definitions — URL is source of truth (?definition=) ─────
-  const location = useLocation()
+  const [searchParams] = useSearchParams()
   const { selectBoardDefinition } = useV0Shell()
   const allBoardDefs = useBoardDefs()
 
@@ -444,6 +444,7 @@ export function UniversalNavPanel({
   const showJourneys = def.nav.sections.journeys
   const showKeepers = def.nav.sections.keepers
   const showBoardDefs = def.nav.sections.boardDefs ?? false
+  const activeBoardDefId = showBoardDefs ? parseBoardDefinitionId(searchParams) : null
   const integrationDefs = def.nav.integrations ?? []
   const infrastructureIntegrations = integrationDefs.filter((item) => item.group !== "ai")
   const aiIntegrations = integrationDefs.filter((item) => item.group === "ai")
@@ -474,16 +475,14 @@ export function UniversalNavPanel({
     [selectBoardDefinition],
   )
 
-  const boardDefItems: SidebarCardItem[] = React.useMemo(() => {
-    if (!showBoardDefs) return []
-    const activeDef = readBoardDefinitionId(location.search) ?? null
-    return allBoardDefs.map((d) => ({
-      id: d.boardId,
-      label: d.displayName,
-      isSelected: d.boardId === activeDef,
-      onClick: () => selectBoardDef(d.boardId),
-    }))
-  }, [showBoardDefs, location.search, allBoardDefs, selectBoardDef])
+  const boardDefItems: SidebarCardItem[] = showBoardDefs
+    ? allBoardDefs.map((d) => ({
+        id: d.boardId,
+        label: d.displayName,
+        isSelected: d.boardId === activeBoardDefId,
+        onClick: () => selectBoardDef(d.boardId),
+      }))
+    : []
 
   // ── Collapsed state — 36px strip with centered expand chevron ────────────
   if (collapsed) {

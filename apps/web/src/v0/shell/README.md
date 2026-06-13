@@ -26,6 +26,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - [ ] Default keeper/journey creation when none exist for a domain.
 
 ## 📆 Update Log
+- 2026-06-12: Design nav uses `setSearchParams(prev => …)` updaters; removed workspaceEpoch remount race.
 - 2026-06-12: Board definition id derived from `location.search` each render; UniversalBoard key includes `?definition=` for definition-to-definition remounts.
 - 2026-06-12: Board workspace navigation centralized in V0Shell (`switchWorkspace`, `selectBoardDefinition`); strips stale `?definition=` / legacy `?boardDef=` on non-Design workspaces.
 - 2026-05-25: Renamed `ExperienceMode` → `PlacementMode` (`usePlacementMode.ts`, `placementMode`, `placementActions`) — shell placement vs domain Experience concept.

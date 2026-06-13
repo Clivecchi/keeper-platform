@@ -20,7 +20,12 @@
  */
 
 import * as React from "react"
+import { useSearchParams } from "react-router-dom"
 import { useFrameContextOptional } from "../shell/FrameContext"
+import {
+  parseBoardDefinitionId,
+  parseWorkspaceBoardId,
+} from "./workspaceBoardNav"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -101,6 +106,7 @@ interface UniversalBoardProviderProps {
 
 export function UniversalBoardProvider({ children }: UniversalBoardProviderProps) {
   const frameCtx = useFrameContextOptional()
+  const [searchParams] = useSearchParams()
 
   // ── Selection state ────────────────────────────────────────────────────────
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
@@ -268,6 +274,17 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       setSelectedKeyId(null)
     }
   }, [])
+
+  // Design workspace: mirror ?definition= into context whenever the URL param changes.
+  const definitionFromUrl =
+    parseWorkspaceBoardId(searchParams) === "designer"
+      ? parseBoardDefinitionId(searchParams)
+      : null
+
+  React.useEffect(() => {
+    if (definitionFromUrl === selectedBoardDefId) return
+    onBoardDefSelect(definitionFromUrl)
+  }, [definitionFromUrl, selectedBoardDefId, onBoardDefSelect])
 
   const bumpDraftPresence = React.useCallback(() => {
     setDraftPresenceRevision((n) => n + 1)

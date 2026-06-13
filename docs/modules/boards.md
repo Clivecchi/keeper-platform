@@ -24,6 +24,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-12 — Design board nav: setSearchParams updater + live searchParams reads
+- Removed `workspaceEpoch` remount race (epoch bumped before URL propagated)
+- Workspace/definition URL writes use `setSearchParams(prev => …)` — no stale `location.search` closures
+- Sidebar/Chronicle/center read `parseBoardDefinitionId(searchParams)` each render
+- `UniversalBoard` key tracks `boardId:definition` only; context mirrors URL on param change
+
 ### 2026-06-12 — Board definition highlight follows ?definition= on every URL change
 - `readBoardDefinitionId` / `readWorkspaceBoardId` parse `location.search` (not memoized `searchParams` identity)
 - Sidebar, Chronicle, and center banner re-derive selection from URL on each param change
