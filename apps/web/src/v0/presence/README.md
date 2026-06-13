@@ -59,6 +59,14 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-06-13 — Phase 6 cleanup
+- Removed `FeedComponent` from `serviceConfig.tsx`; legacy cover feed UI deleted; feed hooks credential-only on cover
+- READMEs updated for unified Cover (declaration blocks) + Config (metadata PATCH) pattern
+
+### 2026-06-13 — Cover body unification (Phase 4)
+- `IntegrationFocusPresence`: removed `FeedComponent` fork; always `DeclarationChronicleBlocks` with client-side declaration defaults
+- `KeyFocusPresence`: always renders key declaration blocks (no empty-body when DB blocks missing)
+
 ### 2026-06-13 — Integration/Key Chronicle config save (Phase 3)
 - `chroniclePatch.ts`: `service`/`integration` → `PATCH /api/integrations/:entityId`; `key` → `PATCH /api/keys/:entityId`
 - `IntegrationConfigPresence` / `KeyConfigPresence`: `useChronicleConfig` with real `isDirty`; Save bar for metadata (`display_label`, `description`, `connect_copy` / key fields)

@@ -8,18 +8,16 @@ import {
   infraQuery,
   type useIntegrationConnection,
 } from "./shared"
-import { DeploymentFeed, type DeploymentFeedItem } from "./feeds/DeploymentFeed"
 import {
-  GitHubFeed,
   useGitHubFeedData,
   type GitHubFeedData,
 } from "./feeds/GitHubFeed"
 import {
-  AIModelFeed,
   useAIModelFeedData,
   type AIModelFeedData,
   type KeyHealth,
 } from "./feeds/AIModelFeed"
+import { apiFetch } from "../../../lib/apiFetch"
 import type { IntegrationType } from "./shared"
 
 export type GlowState = "healthy" | "building" | "degraded" | "muted"
@@ -60,12 +58,6 @@ export type ServiceConfig<TData = unknown> = {
   heroSubtitle: (data: TData) => string
   glowFn: (data: TData) => GlowState
   statusLine: (data: TData) => string
-  FeedComponent: React.ComponentType<{
-    feed: FeedDataState<TData>
-    domainId: string
-    boardId: string
-    agentSlug: string
-  }>
   buildActions: (ctx: {
     conn: IntegrationConnection
     feed: FeedDataState<TData>
@@ -223,42 +215,6 @@ function useRailwayFeedData({
   }
 }
 
-function RailwayDeploymentFeed({
-  feed,
-}: {
-  feed: FeedDataState<RailwayFeedData>
-  domainId: string
-  boardId: string
-  agentSlug: string
-}) {
-  const { services, deployments, expandedId, expandedLogs, logsLoading, loadLogsForDeployment } =
-    feed.data
-
-  const items: DeploymentFeedItem[] = deployments.map((dep) => ({
-    id: dep.id,
-    title:
-      dep.serviceName ?? services.find((s) => s.id === dep.serviceId)?.name ?? "Service",
-    status: dep.status ?? "unknown",
-    timestampLabel: formatRelativeTime(dep.createdAt),
-  }))
-
-  return (
-    <DeploymentFeed
-      deployments={items}
-      loading={feed.loading}
-      error={feed.error}
-      onRetry={() => void feed.reload()}
-      expandedId={expandedId}
-      logsLoading={logsLoading}
-      expandedLogs={expandedLogs}
-      onExpand={(id) => {
-        const dep = deployments.find((d) => d.id === id)
-        if (dep) void loadLogsForDeployment(dep)
-      }}
-    />
-  )
-}
-
 // --- Vercel ---
 
 type VercelDeployment = {
@@ -364,103 +320,6 @@ function useVercelFeedData({
   }
 }
 
-function VercelDeploymentFeed({
-  feed,
-}: {
-  feed: FeedDataState<VercelFeedData>
-  domainId: string
-  boardId: string
-  agentSlug: string
-}) {
-  const { deployments, expandedId, buildLogs, logsLoading, loadBuildLogs } = feed.data
-
-  const items: DeploymentFeedItem[] = deployments.map((dep) => ({
-    id: dep.id,
-    title: dep.url ?? dep.id,
-    status: dep.state ?? "—",
-    metaLeft: dep.target === "production" ? "Production" : "Preview",
-    metaRight: dep.meta?.githubCommitRef ?? "—",
-  }))
-
-  return (
-    <DeploymentFeed
-      deployments={items}
-      loading={feed.loading}
-      error={feed.error}
-      onRetry={() => void feed.reload()}
-      expandedId={expandedId}
-      logsLoading={logsLoading}
-      expandedLogs={buildLogs}
-      logsLoadingLabel="Loading build logs…"
-      onExpand={(id) => void loadBuildLogs(id)}
-      renderRow={(item, ctx) => (
-        <>
-          <button
-            type="button"
-            onClick={ctx.onExpand}
-            className="w-full text-left rounded-md border px-3 py-2 text-[12px]"
-            style={{
-              borderColor: "hsl(var(--theme-border-soft) / 0.4)",
-              background: ctx.expanded
-                ? "var(--treatment-color-alpha-08)"
-                : "hsl(var(--theme-surface-panel) / 0.35)",
-            }}
-          >
-            <div className="flex justify-between gap-2">
-              <span className="truncate" style={{ color: "hsl(var(--theme-ink-primary))" }}>
-                {item.title}
-              </span>
-              <span>{item.status}</span>
-            </div>
-            <div
-              className="mt-1 flex justify-between gap-2 text-[11px]"
-              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-            >
-              <span>{item.metaLeft}</span>
-              <span>{item.metaRight}</span>
-            </div>
-          </button>
-          {ctx.expanded && (
-            <div
-              className="mt-1 max-h-36 overflow-y-auto rounded border p-2 font-mono text-[10px]"
-              style={{
-                borderColor: "hsl(var(--theme-border-soft) / 0.35)",
-                color: "hsl(var(--theme-ink-tertiary))",
-              }}
-            >
-              {logsLoading
-                ? "Loading build logs…"
-                : buildLogs.map((line, i) => (
-                    <div key={i} className="py-0.5 whitespace-pre-wrap break-all">
-                      {line.text ?? line.message ?? "—"}
-                    </div>
-                  ))}
-            </div>
-          )}
-        </>
-      )}
-    />
-  )
-}
-
-function GitHubFeedSlot({
-  feed,
-}: {
-  feed: FeedDataState<GitHubFeedData>
-  domainId: string
-  boardId: string
-  agentSlug: string
-}) {
-  return (
-    <GitHubFeed
-      data={feed.data}
-      loading={feed.loading}
-      error={feed.error}
-      onRetry={() => void feed.reload()}
-    />
-  )
-}
-
 function useGitHubFeedDataSlot(params: FeedDataParams): FeedDataState<GitHubFeedData> {
   const active = params.connected && params.enabled
   const { data, loading, error, reload } = useGitHubFeedData(params.domainId, active)
@@ -493,29 +352,6 @@ function aiStatusLine(data: AIModelFeedData): string {
     return `${count} models available`
   }
   return data.keyHealth?.status === "valid" ? "Ready" : "Key required"
-}
-
-function buildAIModelFeedSlot(serviceSlug: string) {
-  return function AIModelFeedSlot({
-    feed,
-    domainId,
-    boardId,
-    agentSlug,
-  }: {
-    feed: FeedDataState<AIModelFeedData>
-    domainId: string
-    boardId: string
-    agentSlug: string
-  }) {
-    return (
-      <AIModelFeed
-        feed={feed}
-        domainId={domainId}
-        boardId={boardId}
-        agentSlug={agentSlug}
-      />
-    )
-  }
 }
 
 function useAIModelFeedDataSlot(
@@ -598,7 +434,6 @@ function createAIModelConfig(params: {
     heroSubtitle: aiHeroSubtitle,
     glowFn: aiGlow,
     statusLine: aiStatusLine,
-    FeedComponent: buildAIModelFeedSlot(params.slug),
     buildActions: buildAiModelActions(params.slug),
   }
 }
@@ -619,12 +454,6 @@ export const SERVICE_CONFIG: Record<string, ServiceConfig<unknown>> = {
       const glow = healthFromDeployments(d.deployments)
       return `${d.services.length} services · Last deploy ${formatRelativeTime(d.deployments[0]?.createdAt)} · ${railwayHealthLabel(glow)}`
     },
-    FeedComponent: RailwayDeploymentFeed as React.ComponentType<{
-      feed: FeedDataState<unknown>
-      domainId: string
-      boardId: string
-      agentSlug: string
-    }>,
     buildActions: ({ conn, feed, agentSlug, boardId }) => {
       const d = feed.data as RailwayFeedData
       return [
@@ -678,12 +507,6 @@ export const SERVICE_CONFIG: Record<string, ServiceConfig<unknown>> = {
       const latest = (data as VercelFeedData).deployments[0]
       return `Latest · ${latest?.target ?? "production"} · ${latest?.state ?? "unknown"} · ${formatRelativeTime(latest?.createdAt)}`
     },
-    FeedComponent: VercelDeploymentFeed as React.ComponentType<{
-      feed: FeedDataState<unknown>
-      domainId: string
-      boardId: string
-      agentSlug: string
-    }>,
     buildActions: ({ conn, feed, agentSlug, boardId }) => {
       const d = feed.data as VercelFeedData
       const latest = d.deployments[0]
@@ -750,12 +573,6 @@ export const SERVICE_CONFIG: Record<string, ServiceConfig<unknown>> = {
       const d = data as GitHubFeedData
       return `${d.repoName} · ${d.branch} · Last commit ${formatRelativeTime(d.commits[0]?.date)}`
     },
-    FeedComponent: GitHubFeedSlot as React.ComponentType<{
-      feed: FeedDataState<unknown>
-      domainId: string
-      boardId: string
-      agentSlug: string
-    }>,
     buildActions: ({ conn, feed }) => {
       const d = feed.data as GitHubFeedData
       return [

@@ -23,7 +23,9 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - Agent selection in nav → `KeeperPresence` (`layout="focus"`) → `AgentFocusPresence`
 - Key selection in nav → `KeeperPresence` (`layout="focus"`) → `KeyFocusPresence`
 - Integration selection in nav → `KeeperPresence` (`layout="focus"`) → `IntegrationFocusPresence`
-- **Cover Mode (default):** `EntityCoverPresence` + `agentCoverSchema.resolve()` from live agent record
+- **Cover Mode (default):** `EntityCoverPresence` + always `DeclarationChronicleBlocks` (Integration/Key); client-side declaration defaults when DB blocks empty
+- **Config Mode:** metadata via `useChronicleConfig` / `chroniclePatch.ts`; credential verify/rotate/disconnect stay inline (not Save bar)
+- **Agent Cover Mode:** `EntityCoverPresence` + `agentCoverSchema.resolve()` from live agent record
 - **Config Mode:** Configure action → `AgentConfigPresence`; back arrow returns to cover without requiring save
 - Save reuses existing `handleSaveAgent` PATCH path in `KeeperPresence` — no third save route
 - All colors via `hsl(var(--theme-*))`; agent `theme_color` drives hero radial accent
@@ -34,6 +36,13 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - [ ] Domain assignment edit — read-only today; domain switch API pending
 
 ## 📆 Update Log
+
+### 2026-06-13 — Phase 6 cleanup (unified pattern docs)
+- Documented unified Cover + Config split: declaration blocks always on cover; metadata PATCH via `chroniclePatch`; credentials separate
+
+### 2026-06-13 — Cover body unification (Phase 4)
+- `IntegrationFocusPresence` / `KeyFocusPresence`: always `DeclarationChronicleBlocks`; removed `FeedComponent` fork
+- Client-side declaration defaults via `resolveChronicleDeclaration.ts` when DB `chronicle_blocks` empty
 
 ### 2026-06-13 — Key declaration chronicle blocks
 - `KeyFocusPresence` renders `DeclarationChronicleBlocks` (`variant="key"`) from `key.chronicle_blocks` instead of hand-rolled linked agents list

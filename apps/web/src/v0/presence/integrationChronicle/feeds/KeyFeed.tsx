@@ -30,13 +30,11 @@ export type KeyFeedData = {
   integrationCapabilities: string[]
   verifyBusy: boolean
   rotateBusy: boolean
-  keyInput: string
   keySaveError: string | null
   verify: () => Promise<void>
   saveCredential: (apiKey: string) => Promise<void>
   rotate: (apiKey: string) => Promise<void>
   revoke: () => Promise<void>
-  setKeyInput: (value: string) => void
   reload: () => Promise<void>
 }
 
@@ -53,7 +51,6 @@ export function useKeyFeedData(keyId: string, domainId: string): {
   const [error, setError] = React.useState<string | null>(null)
   const [verifyBusy, setVerifyBusy] = React.useState(false)
   const [rotateBusy, setRotateBusy] = React.useState(false)
-  const [keyInput, setKeyInput] = React.useState("")
   const [keySaveError, setKeySaveError] = React.useState<string | null>(null)
 
   const loadAgents = React.useCallback(async (provider: string) => {
@@ -140,7 +137,6 @@ export function useKeyFeedData(keyId: string, domainId: string): {
           body: JSON.stringify({ api_key: apiKey }),
         })) as KeyDto
         setKey(result)
-        setKeyInput("")
         await Promise.all([loadAgents(result.provider), loadIntegration(result.provider)])
       } catch (err) {
         setKeySaveError(err instanceof Error ? err.message : "Rotate failed")
@@ -173,7 +169,6 @@ export function useKeyFeedData(keyId: string, domainId: string): {
             }),
           })) as KeyDto
           setKey(result)
-          setKeyInput("")
           await Promise.all([loadAgents(result.provider), loadIntegration(result.provider)])
         } catch (err) {
           setKeySaveError(err instanceof Error ? err.message : "Failed to save key")
@@ -210,13 +205,11 @@ export function useKeyFeedData(keyId: string, domainId: string): {
       integrationCapabilities,
       verifyBusy,
       rotateBusy,
-      keyInput,
       keySaveError,
       verify,
       saveCredential,
       rotate,
       revoke,
-      setKeyInput,
       reload,
     },
     loading,

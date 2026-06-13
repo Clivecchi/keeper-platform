@@ -11,10 +11,13 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 - `ChronicleConfigShell.tsx` — universal Config Mode layout shell
 
 ## 🔄 Data & Behavior
+- **Cover:** Integration and Key always render `DeclarationChronicleBlocks` below `EntityCoverPresence` (see `cover/IntegrationFocusPresence`, `cover/KeyFocusPresence`)
+- **Config metadata:** Agent, Domain, Integration (service), and Key → `useChronicleConfig` + explicit Save bar → `chroniclePatch.ts`
+- **Config credentials:** verify, rotate, paste-key, revoke, disconnect → POST routes on feed hooks / block actions (not `handleChronicleSave`)
 - Agent saves → `PATCH /api/agents/:id` with `domainId` (explicit Save, no autosave)
 - Domain saves → `PATCH /api/domains/:id` plus optional partial `PATCH /api/domains/:slug/frame` for tagline/theme/kip visibility
 - Integration (service) saves → `PATCH /api/integrations/:serviceSlug?domainId=` for `display_label`, `description`, `connect_copy`
-- Key saves → `PATCH /api/keys/:id` for `display_label`, `description` (credential verify/rotate stay on POST routes)
+- Key saves → `PATCH /api/keys/:id` for `display_label`, `description`
 - IDE build context fields persist under `domain.settings.ideBuildContext` via domain PATCH
 - Known gaps flagged in code: unchanged save no-op, static model list, capability textarea, domain assignment read-only, recent sessions not tappable
 
@@ -23,6 +26,9 @@ Universal Chronicle Config Mode infrastructure — one explicit save pattern for
 - [ ] BoardDefConfigPresence remains read-only — no targeted save route for board defs
 
 ## 📆 Update Log
+
+### 2026-06-13 — Phase 6 unified pattern documentation
+- Clarified Cover vs Config: declaration blocks always on cover; metadata via Save bar; credentials on separate POST routes
 
 ### 2026-06-13 — Integration/Key Chronicle metadata save (Phase 3)
 - `chroniclePatch.ts` routes `service` / `integration` → `PATCH /api/integrations/:slug?domainId=` and `key` → `PATCH /api/keys/:id`

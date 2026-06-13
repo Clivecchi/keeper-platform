@@ -10,7 +10,12 @@ import {
   resolveDeclarationActions,
 } from "../integrationChronicle/declarationChronicle"
 import { IntegrationConfigPresence } from "../integrationChronicle/IntegrationConfigPresence"
+import {
+  resolveIntegrationChronicleActions,
+  resolveIntegrationChronicleBlocks,
+} from "../integrationChronicle/resolveChronicleDeclaration"
 import { getServiceConfig, useServiceFeedData } from "../integrationChronicle/serviceConfig"
+import { getIntegrationChronicleDeclaration } from "@keeper/shared"
 import {
   FeedShimmer,
   IntegrationUnconnectedState,
@@ -63,14 +68,20 @@ export function IntegrationFocusPresence({
     setChronicleMode("config")
   }, [])
 
-  const chronicleBlocks = conn.integration?.chronicle_blocks ?? []
-  const useDeclaration = chronicleBlocks.length > 0
-  const displayLabel = useDeclaration
-    ? (conn.integration?.display_label ?? config?.label ?? objectId)
-    : (config?.label ?? objectId)
-  const connectCopy = useDeclaration
-    ? (conn.integration?.connect_copy ?? config?.connectCopy)
-    : config?.connectCopy
+  const declaration = getIntegrationChronicleDeclaration(objectId)
+  const chronicleBlocks = resolveIntegrationChronicleBlocks(
+    objectId,
+    conn.integration?.chronicle_blocks,
+  )
+  const displayLabel =
+    conn.integration?.display_label?.trim() ??
+    declaration?.display_label ??
+    config?.label ??
+    objectId
+  const connectCopy =
+    conn.integration?.connect_copy?.trim() ??
+    declaration?.connect_copy ??
+    config?.connectCopy
 
   React.useEffect(() => {
     if (displayLabel) onLabelResolved?.(displayLabel)
@@ -92,12 +103,15 @@ export function IntegrationFocusPresence({
 
   const resolvedActions = React.useMemo(() => {
     if (!config) return []
-    const chronicleActions = conn.integration?.chronicle_actions ?? []
+    const chronicleActions = resolveIntegrationChronicleActions(
+      objectId,
+      conn.integration?.chronicle_actions,
+    )
     if (chronicleActions.length > 0) {
       return resolveDeclarationActions(chronicleActions, config, actionCtx)
     }
     return config.buildActions(actionCtx)
-  }, [config, conn.integration?.chronicle_actions, actionCtx])
+  }, [config, conn.integration?.chronicle_actions, actionCtx, objectId])
 
   const coverContent = React.useMemo(() => {
     if (!config) {
@@ -187,8 +201,6 @@ export function IntegrationFocusPresence({
     )
   }
 
-  const FeedComponent = config.FeedComponent
-
   return (
     <div className="relative flex flex-col h-full min-h-0">
       <AnimatePresence mode="wait">
@@ -205,7 +217,7 @@ export function IntegrationFocusPresence({
           )}
 
           <div className="mt-6 flex flex-col gap-4">
-            {useDeclaration && conn.integration ? (
+            {conn.integration && chronicleBlocks.length > 0 && (
               <DeclarationChronicleBlocks
                 blocks={chronicleBlocks}
                 serviceSlug={objectId}
@@ -214,13 +226,6 @@ export function IntegrationFocusPresence({
                 config={config}
                 feed={feed}
                 actions={resolvedActions}
-              />
-            ) : (
-              <FeedComponent
-                feed={feed}
-                domainId={domainId}
-                boardId={boardId}
-                agentSlug={AGENT_SLUG}
               />
             )}
 

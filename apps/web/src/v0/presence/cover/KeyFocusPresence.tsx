@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { EntityCoverPresence } from "./EntityCoverPresence"
 import { DeclarationChronicleBlocks } from "../integrationChronicle/declarationChronicle"
 import { KeyConfigPresence } from "../integrationChronicle/KeyConfigPresence"
+import { resolveKeyChronicleBlocks } from "../integrationChronicle/resolveChronicleDeclaration"
 import { useKeyFeedData } from "../integrationChronicle/feeds/KeyFeed"
 import { FeedError, FeedShimmer } from "../integrationChronicle/shared"
 import { resolveKeyCoverContent, type KeyRecord } from "./schemas/keyCoverSchema"
@@ -125,8 +126,10 @@ export function KeyFocusPresence({
     )
   }
 
-  const chronicleBlocks = feed?.key.chronicle_blocks ?? []
-  const useDeclaration = chronicleBlocks.length > 0
+  const chronicleBlocks = resolveKeyChronicleBlocks(
+    feed?.key.provider ?? keyRecord.provider,
+    feed?.key.chronicle_blocks,
+  )
 
   return (
     <div className="relative flex flex-col h-full min-h-0">
@@ -141,7 +144,7 @@ export function KeyFocusPresence({
         >
           <EntityCoverPresence content={coverContent} instanceKey={objectId} />
 
-          {useDeclaration && feed && (
+          {feed && chronicleBlocks.length > 0 && (
             <div className="mt-6 flex flex-col gap-4">
               <DeclarationChronicleBlocks
                 variant="key"
