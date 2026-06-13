@@ -302,9 +302,10 @@ export function V0Shell() {
     }
   }, [slug])
 
-  const workspaceBoardId = parseWorkspaceBoardId(searchParams)
+  const urlSearch = readUrlSearchParams(location.search)
+  const workspaceBoardId = parseWorkspaceBoardId(urlSearch)
   const boardDefinitionId =
-    workspaceBoardId === "designer" ? parseBoardDefinitionId(searchParams) : null
+    workspaceBoardId === "designer" ? parseBoardDefinitionId(urlSearch) : null
 
   const switchWorkspace = React.useCallback(
     (boardId: WorkspaceBoardId) => {

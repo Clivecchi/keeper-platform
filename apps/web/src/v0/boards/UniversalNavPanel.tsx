@@ -28,7 +28,6 @@
  */
 
 import * as React from "react"
-import { useSearchParams } from "react-router-dom"
 import { apiFetch } from "../../lib/api"
 import { KipApi } from "../../lib/kipApi"
 import type { KipDraftSummary } from "../../lib/kipApi"
@@ -37,7 +36,6 @@ import type { SidebarCardItem } from "../components/SidebarCard"
 import type { UniversalBoardDef, NavSectionKey } from "./UniversalBoardDefinition"
 import { useBoardDefs } from "./useBoardDefs"
 import { useV0Shell } from "../shell/V0ShellContext"
-import { parseBoardDefinitionId, readUrlSearchParams } from "./workspaceBoardNav"
 import {
   fetchDomainKeyNavRows,
   keyNavLabel,
@@ -220,12 +218,8 @@ export function UniversalNavPanel({
 }: UniversalNavPanelProps) {
 
   // ── designer board definitions — URL is source of truth (?definition=) ─────
-  const [searchParams] = useSearchParams()
-  // Re-parse from search string each render — do not rely on URLSearchParams object identity.
-  const boardDefinitionFromUrl = parseBoardDefinitionId(
-    readUrlSearchParams(searchParams.toString()),
-  )
-  const { selectBoardDefinition } = useV0Shell()
+  // Read from V0Shell (parsed from location.search each render), not local useSearchParams.
+  const { selectBoardDefinition, boardDefinitionId } = useV0Shell()
   const allBoardDefs = useBoardDefs()
 
   // ── Section data ────────────────────────────────────────────────────────────
@@ -448,7 +442,7 @@ export function UniversalNavPanel({
   const showJourneys = def.nav.sections.journeys
   const showKeepers = def.nav.sections.keepers
   const showBoardDefs = def.nav.sections.boardDefs ?? false
-  const activeBoardDefId = showBoardDefs ? boardDefinitionFromUrl : null
+  const activeBoardDefId = showBoardDefs ? boardDefinitionId : null
   const integrationDefs = def.nav.integrations ?? []
   const infrastructureIntegrations = integrationDefs.filter((item) => item.group !== "ai")
   const aiIntegrations = integrationDefs.filter((item) => item.group === "ai")
