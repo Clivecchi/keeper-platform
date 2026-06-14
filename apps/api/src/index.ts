@@ -79,6 +79,7 @@ import railwayRoutes from './routes/railway-routes.js';
 import vercelRoutes from './routes/vercel-routes.js';
 import webhookRoutes from './routes/webhook-routes.js';
 import capabilityRoutes from './routes/capability-routes.js';
+import capabilityEntityRoutes from './routes/capability-entity-routes.js';
 import agentsRoutes from './api/agents.js';
 import journeysRoutes from './api/journeys.js';
 import publicJourneysRouter from './api/public/journeys.js';
@@ -1076,6 +1077,7 @@ console.log('[boot] ✅ mounted /api/railway router');
 app.use('/api/vercel', vercelRoutes);
 console.log('[boot] ✅ mounted /api/vercel router');
 app.use('/api/capabilities', capabilityRoutes);
+app.use('/api/capabilities', capabilityEntityRoutes);
 console.log('[boot] ✅ mounted /api/capabilities router');
 // Mount KAM read-only API
 app.use('/kam', kamRouter);

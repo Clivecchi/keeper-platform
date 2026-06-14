@@ -91,6 +91,10 @@ async function main() {
     const seedProviderKeys = await import('./seeds/provider-keys.seed.ts');
     await seedProviderKeys.default();
 
+    console.log('🧩 Seeding Capability registry...');
+    const seedCapabilities = await import('./seeds/capabilities.seed.ts');
+    await seedCapabilities.default();
+
     console.log('🎉 Database seed completed successfully!');
   } catch (error) {
     console.error('❌ Error during seeding:', error);

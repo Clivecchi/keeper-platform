@@ -11,6 +11,8 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `AgentFocusPresence.tsx` — Agent Cover Mode + Config Mode orchestration
 - `schemas/keyCoverSchema.ts` — Layer 2 Key EntityKind fill
 - `KeyFocusPresence.tsx` — Key Cover Mode + Config Mode orchestration
+- `schemas/capabilityCoverSchema.ts` — Layer 2 Capability EntityKind fill
+- `CapabilityFocusPresence.tsx` — Capability Cover Mode + Config Mode orchestration
 - `schemas/integrationCoverSchema.ts` — Layer 2 Integration (service) cover fill
 - `IntegrationFocusPresence.tsx` — Integration Cover Mode + Config Mode orchestration
 - `AgentConfigPresence.tsx` — Config Mode compressed header + editable fields
@@ -22,6 +24,7 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 ## 🔄 Data & Behavior
 - Agent selection in nav → `KeeperPresence` (`layout="focus"`) → `AgentFocusPresence`
 - Key selection in nav → `KeeperPresence` (`layout="focus"`) → `KeyFocusPresence`
+- Capability selection in nav → `KeeperPresence` (`layout="focus"`) → `CapabilityFocusPresence`
 - Integration selection in nav → `KeeperPresence` (`layout="focus"`) → `IntegrationFocusPresence`
 - **Cover Mode (default):** `EntityCoverPresence` + always `DeclarationChronicleBlocks` (Integration/Key); client-side declaration defaults when DB blocks empty
 - **Config Mode:** metadata via `useChronicleConfig` / `chroniclePatch.ts`; credential verify/rotate/disconnect stay inline (not Save bar)
@@ -36,6 +39,10 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - [ ] Domain assignment edit — read-only today; domain switch API pending
 
 ## 📆 Update Log
+
+### 2026-06-13 — Capability EntityKind Pass 1
+- Added `capabilityCoverSchema.ts` + `CapabilityFocusPresence.tsx` (Cover ↔ Config, declaration blocks below cover)
+- Enforcement trait: infra → Enforced; tool/permission/action → Display only
 
 ### 2026-06-13 — Phase 6 cleanup (unified pattern docs)
 - Documented unified Cover + Config split: declaration blocks always on cover; metadata PATCH via `chroniclePatch`; credentials separate

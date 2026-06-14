@@ -1,7 +1,10 @@
 import {
   DEFAULT_KEY_CHRONICLE_BLOCKS,
+  DEFAULT_CAPABILITY_CHRONICLE_BLOCKS,
   getIntegrationChronicleDeclaration,
   resolveKeyChronicleDefaults,
+  resolveCapabilityChronicleDefaults,
+  type CapabilityKind,
 } from "@keeper/shared"
 
 /** Client-side chronicle block list — DB value first, then shared declaration defaults. */
@@ -34,4 +37,16 @@ export function resolveKeyChronicleBlocks(
   return defaults.chronicle_blocks.length
     ? [...defaults.chronicle_blocks]
     : [...DEFAULT_KEY_CHRONICLE_BLOCKS]
+}
+
+/** Client-side capability chronicle blocks — DB value first, then shared defaults. */
+export function resolveCapabilityChronicleBlocks(
+  kind: CapabilityKind,
+  dbBlocks: string[] | null | undefined,
+): string[] {
+  if (dbBlocks?.length) return dbBlocks
+  const defaults = resolveCapabilityChronicleDefaults(kind)
+  return defaults.chronicle_blocks.length
+    ? [...defaults.chronicle_blocks]
+    : [...DEFAULT_CAPABILITY_CHRONICLE_BLOCKS]
 }

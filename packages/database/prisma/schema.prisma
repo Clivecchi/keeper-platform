@@ -1138,6 +1138,7 @@ model Domain {
   dialogs                                                  Dialog[]
   session_handoff_keys                                     SessionHandoffKey[]
   provider_keys                                            Key[]
+  capabilities                                             Capability[]
   policy                                                   DomainPolicy?
   agentPolicy                                              DomainAgentPolicy?
   AgentLens                                                AgentLens[]
@@ -2002,4 +2003,23 @@ model Key {
   @@index([provider])
   @@index([integration_id])
   @@index([user_id])
+}
+
+/// Platform capability registry — EntityKind presence (Pass 1: read-only cross-reference to agent arrays).
+model Capability {
+  id                String    @id @default(cuid())
+  slug              String    @unique
+  kind              String
+  display_label     String?
+  description       String?
+  chronicle_blocks  String[]  @default([])
+  chronicle_actions String[]  @default([])
+  domain_id         String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  domain Domain? @relation(fields: [domain_id], references: [id], onDelete: SetNull)
+
+  @@index([kind])
+  @@index([domain_id])
 }

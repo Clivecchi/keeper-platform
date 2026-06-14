@@ -24,6 +24,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-13 — Capabilities nav (IDE board, Pass 1)
+- `UniversalNavPanel`: Capabilities section grouped by kind (Infra / Tool / Permission / Action); labels via `capabilityChronicleTitle()`
+- `UniversalBoardContext`: `selectedCapabilityId`, `onCapabilitySelect`, `bumpCapabilityNav` optimistic patch + revision
+
 ### 2026-06-13 — Keys nav label aligned with Chronicle
 - `keyNavUtils.ts`: `keyChronicleTitle()` shared with cover; `pickKeyRowForProvider` / `collapseKeyNavRows` prefer `selectedKeyId` over env-first collapse
 - `UniversalNavPanel`: Keys nav uses `keyChronicleTitle`; stores all rows and re-collapses when selection changes; refetches on `keyNavRevision`

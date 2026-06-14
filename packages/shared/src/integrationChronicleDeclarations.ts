@@ -176,3 +176,47 @@ export function resolveKeyDeclarationBackfill(
   }
   return patch;
 }
+
+export type CapabilityKind = 'infra' | 'tool' | 'permission' | 'action';
+
+export const DEFAULT_CAPABILITY_CHRONICLE_BLOCKS: readonly string[] = ['definition', 'used_by'];
+
+export const DEFAULT_CAPABILITY_CHRONICLE_ACTIONS: readonly string[] = [];
+
+export type CapabilityChronicleDefaults = {
+  chronicle_blocks: string[];
+  chronicle_actions: string[];
+};
+
+/** Default Chronicle blocks for Capability EntityKind — same for all kinds in Pass 1. */
+export function resolveCapabilityChronicleDefaults(
+  _kind: CapabilityKind,
+): CapabilityChronicleDefaults {
+  return {
+    chronicle_blocks: [...DEFAULT_CAPABILITY_CHRONICLE_BLOCKS],
+    chronicle_actions: [...DEFAULT_CAPABILITY_CHRONICLE_ACTIONS],
+  };
+}
+
+export type CapabilityDeclarationRow = {
+  chronicle_blocks?: string[];
+  chronicle_actions?: string[];
+  display_label?: string | null;
+  description?: string | null;
+};
+
+/** Backfill empty Capability declaration columns (idempotent). */
+export function resolveCapabilityDeclarationBackfill(
+  kind: CapabilityKind,
+  existing: CapabilityDeclarationRow,
+): Partial<CapabilityChronicleDefaults> {
+  const defaults = resolveCapabilityChronicleDefaults(kind);
+  const patch: Partial<CapabilityChronicleDefaults> = {};
+  if (!existing.chronicle_blocks?.length) {
+    patch.chronicle_blocks = defaults.chronicle_blocks;
+  }
+  if (!existing.chronicle_actions?.length) {
+    patch.chronicle_actions = defaults.chronicle_actions;
+  }
+  return patch;
+}

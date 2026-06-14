@@ -45,6 +45,16 @@ import {
   keyStatusNavHint,
   type KeyNavRow,
 } from "../presence/integrationChronicle/keyNavUtils"
+import {
+  applyCapabilityNavRowPatch,
+  capabilityChronicleTitle,
+  CAPABILITY_KIND_LABELS,
+  fetchAllCapabilityRows,
+  groupCapabilitiesByKind,
+  type CapabilityKind,
+  type CapabilityNavRow,
+  type CapabilityNavRowPatch,
+} from "../presence/integrationChronicle/capabilityNavUtils"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -65,6 +75,7 @@ export interface UniversalNavPanelProps {
   selectedAgentId?: string | null
   selectedServiceSlug?: string | null
   selectedKeyId?: string | null
+  selectedCapabilityId?: string | null
 
   // Selection callbacks — fired by this component, handled by the Board
   onDialogSelect?: (id: string) => void
@@ -74,6 +85,7 @@ export interface UniversalNavPanelProps {
   onAgentSelect?: (id: string) => void
   onServiceOpen?: (slug: string) => void
   onKeySelect?: (id: string) => void
+  onCapabilitySelect?: (id: string) => void
 
   // Collapse state — controlled by the Board
   collapsed?: boolean
@@ -86,6 +98,8 @@ export interface UniversalNavPanelProps {
   draftListVersion?: number
   keyListVersion?: number
   keyNavRowPatch?: KeyNavRowPatch | null
+  capabilityListVersion?: number
+  capabilityNavRowPatch?: CapabilityNavRowPatch | null
 }
 
 // ─── Internal Types ──────────────────────────────────────────────────────────
@@ -122,7 +136,7 @@ type AgentItem = {
 
 type SectionKey = "dialogs" | "journeys" | "keepers" | "drafts" | "agents"
 
-type NavRenderBlock = SectionKey | "boardDefs" | "integrations" | "keys"
+type NavRenderBlock = SectionKey | "boardDefs" | "integrations" | "keys" | "capabilities"
 
 const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "dialogs",
@@ -131,6 +145,7 @@ const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "drafts",
   "integrations",
   "keys",
+  "capabilities",
   "agents",
   "boardDefs",
 ]
@@ -207,6 +222,7 @@ export function UniversalNavPanel({
   selectedAgentId,
   selectedServiceSlug,
   selectedKeyId,
+  selectedCapabilityId,
   onDialogSelect,
   onJourneySelect,
   onKeeperSelect,
@@ -214,6 +230,7 @@ export function UniversalNavPanel({
   onAgentSelect,
   onServiceOpen,
   onKeySelect,
+  onCapabilitySelect,
   collapsed = false,
   onToggleCollapsed,
   dialogListVersion = 0,
@@ -222,6 +239,8 @@ export function UniversalNavPanel({
   draftListVersion = 0,
   keyListVersion = 0,
   keyNavRowPatch = null,
+  capabilityListVersion = 0,
+  capabilityNavRowPatch = null,
 }: UniversalNavPanelProps) {
 
   // ── designer board definitions — live from location.search ─────────────────
@@ -237,6 +256,8 @@ export function UniversalNavPanel({
   const [agents, setAgents] = React.useState<AgentItem[] | null>(null)
   const [allKeyRows, setAllKeyRows] = React.useState<KeyNavRow[] | null>(null)
   const [keyError, setKeyError] = React.useState<string | null>(null)
+  const [allCapabilityRows, setAllCapabilityRows] = React.useState<CapabilityNavRow[] | null>(null)
+  const [capabilityError, setCapabilityError] = React.useState<string | null>(null)
 
   const keys = React.useMemo(
     () => (allKeyRows ? collapseKeyNavRows(allKeyRows, selectedKeyId) : null),
@@ -258,6 +279,16 @@ export function UniversalNavPanel({
       )
     },
     [keyNavRowPatch],
+  )
+
+  const capabilitiesByKind = React.useMemo(
+    () => (allCapabilityRows ? groupCapabilitiesByKind(allCapabilityRows) : null),
+    [allCapabilityRows],
+  )
+
+  const applyCapabilityNavPatch = React.useCallback(
+    (rows: CapabilityNavRow[]) => applyCapabilityNavRowPatch(rows, capabilityNavRowPatch),
+    [capabilityNavRowPatch],
   )
 
   // ── Per-section error states ─────────────────────────────────────────────
@@ -415,6 +446,33 @@ export function UniversalNavPanel({
       })
     return () => { cancelled = true }
   }, [domainId, showKeysNav, keyListVersion, applyKeyNavRowPatch])
+
+  const showCapabilitiesNav =
+    def.boardId === "ide" && (def.nav.sections.capabilities ?? false)
+
+  React.useEffect(() => {
+    if (!showCapabilitiesNav) return
+    let cancelled = false
+    setCapabilityError(null)
+    void fetchAllCapabilityRows()
+      .then((rows) => {
+        if (!cancelled) setAllCapabilityRows(applyCapabilityNavPatch(rows))
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setCapabilityError(err instanceof Error ? err.message : "Failed to load capabilities")
+          setAllCapabilityRows([])
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [showCapabilitiesNav, capabilityListVersion, applyCapabilityNavPatch])
+
+  React.useEffect(() => {
+    if (!capabilityNavRowPatch) return
+    setAllCapabilityRows((prev) => (prev ? applyCapabilityNavPatch(prev) : prev))
+  }, [capabilityListVersion, capabilityNavRowPatch, applyCapabilityNavPatch])
 
   React.useEffect(() => {
     if (!keyNavRowPatch) return
@@ -686,6 +744,42 @@ export function UniversalNavPanel({
               </p>
             )}
           </>
+        )
+      case "capabilities":
+        if (!showCapabilitiesNav || !capabilitiesByKind) return null
+        return (
+          <div className="flex flex-col gap-3">
+            <p
+              className="text-[11px] font-medium uppercase tracking-wide px-1"
+              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+            >
+              Capabilities
+            </p>
+            {(["infra", "tool", "permission", "action"] as CapabilityKind[]).map((kind) => {
+              const rows = capabilitiesByKind[kind]
+              if (!rows.length) return null
+              const items: SidebarCardItem[] = rows.map((cap) => ({
+                id: cap.id,
+                label: capabilityChronicleTitle(cap),
+                isSelected: cap.id === selectedCapabilityId,
+                onClick: () => onCapabilitySelect?.(cap.id),
+              }))
+              return (
+                <SidebarCard
+                  key={kind}
+                  className="keeper-sidebar-card"
+                  title={CAPABILITY_KIND_LABELS[kind]}
+                  description={countLabel(rows.length, "capability")}
+                  items={items}
+                />
+              )
+            })}
+            {capabilityError && (
+              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                {capabilityError}
+              </p>
+            )}
+          </div>
         )
       case "agents":
         if (!showAgents) return null

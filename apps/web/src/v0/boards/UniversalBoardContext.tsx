@@ -22,6 +22,7 @@
 import * as React from "react"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
+import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/capabilityNavUtils"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ export interface UniversalBoardSelection {
   selectedAgentId: string | null
   selectedServiceSlug: string | null
   selectedKeyId: string | null
+  selectedCapabilityId: string | null
   /** When set, Chronicle shows this SOLE memory card stacked above the current entity (e.g. draft). */
   selectedSoleMemoryId: string | null
   /** designer mode: the board definition currently selected in the nav — drives right-panel BoardDefView. */
@@ -53,6 +55,10 @@ export interface UniversalBoardSelection {
   keyNavRevision: number
   /** Optimistic Keys nav row patch applied before refetch completes. */
   keyNavRowPatch: KeyNavRowPatch | null
+  /** Increment to refetch Capabilities nav list after Capability metadata save. */
+  capabilityNavRevision: number
+  /** Optimistic Capabilities nav row patch applied before refetch completes. */
+  capabilityNavRowPatch: CapabilityNavRowPatch | null
   /** Agent Board: Chronicle Training Mode — entered via Train on agent cover. */
   trainingMode: boolean
 }
@@ -69,6 +75,7 @@ export interface UniversalBoardActions {
   onAgentSelect: (id: string) => void
   onServiceOpen: (slug: string) => void
   onKeySelect: (id: string) => void
+  onCapabilitySelect: (id: string) => void
   /** Opens a SOLE memory card in Chronicle; pass null to return to the underlying selection. */
   onSoleMemorySelect: (id: string | null) => void
   clearSelection: () => void
@@ -76,6 +83,7 @@ export interface UniversalBoardActions {
   onBoardDefSelect: (id: string | null) => void
   bumpDraftPresence: () => void
   bumpKeyNav: (patch?: KeyNavRowPatch) => void
+  bumpCapabilityNav: (patch?: CapabilityNavRowPatch) => void
   onEnterTrainingMode: () => void
   onExitTrainingMode: () => void
 }
@@ -124,11 +132,15 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null)
   const [selectedServiceSlug, setSelectedServiceSlug] = React.useState<string | null>(null)
   const [selectedKeyId, setSelectedKeyId] = React.useState<string | null>(null)
+  const [selectedCapabilityId, setSelectedCapabilityId] = React.useState<string | null>(null)
   const [selectedSoleMemoryId, setSelectedSoleMemoryId] = React.useState<string | null>(null)
   const [selectedBoardDefId, setSelectedBoardDefId] = React.useState<string | null>(null)
   const [draftPresenceRevision, setDraftPresenceRevision] = React.useState(0)
   const [keyNavRevision, setKeyNavRevision] = React.useState(0)
   const [keyNavRowPatch, setKeyNavRowPatch] = React.useState<KeyNavRowPatch | null>(null)
+  const [capabilityNavRevision, setCapabilityNavRevision] = React.useState(0)
+  const [capabilityNavRowPatch, setCapabilityNavRowPatch] =
+    React.useState<CapabilityNavRowPatch | null>(null)
   const [trainingMode, setTrainingMode] = React.useState(false)
 
   // ── Nav state ──────────────────────────────────────────────────────────────
@@ -160,6 +172,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
     setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
   }, [])
 
   const onJourneySelect = React.useCallback((id: string) => {
@@ -171,6 +184,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
     setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
   }, [])
 
   const onMomentSelect = React.useCallback((id: string) => {
@@ -182,6 +196,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
     setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
   }, [])
 
   const onKeeperSelect = React.useCallback((id: string) => {
@@ -193,6 +208,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
     setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
   }, [])
 
   const onDraftSelect = React.useCallback((id: string) => {
@@ -205,6 +221,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
     setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
   }, [])
 
   const onAgentSelect = React.useCallback((id: string) => {
@@ -217,6 +234,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedDraftId(null)
     setSelectedServiceSlug(null)
     setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
   }, [])
 
   const onServiceOpen = React.useCallback((slug: string) => {
@@ -228,10 +246,25 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedDraftId(null)
     setSelectedAgentId(null)
     setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
   }, [])
 
   const onKeySelect = React.useCallback((id: string) => {
     setSelectedKeyId(id)
+    setSelectedCapabilityId(null)
+    setSelectedSoleMemoryId(null)
+    setSelectedDialogId(null)
+    setSelectedJourneyId(null)
+    setSelectedMomentId(null)
+    setSelectedKeeperId(null)
+    setSelectedDraftId(null)
+    setSelectedAgentId(null)
+    setSelectedServiceSlug(null)
+  }, [])
+
+  const onCapabilitySelect = React.useCallback((id: string) => {
+    setSelectedCapabilityId(id)
+    setSelectedKeyId(null)
     setSelectedSoleMemoryId(null)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
@@ -264,6 +297,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedAgentId(null)
     setSelectedServiceSlug(null)
     setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
     setSelectedSoleMemoryId(null)
     setSelectedBoardDefId(null)
   }, [])
@@ -280,6 +314,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       setSelectedAgentId(null)
       setSelectedServiceSlug(null)
       setSelectedKeyId(null)
+      setSelectedCapabilityId(null)
     }
   }, [])
 
@@ -298,6 +333,11 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const bumpKeyNav = React.useCallback((patch?: KeyNavRowPatch) => {
     setKeyNavRowPatch(patch ?? null)
     setKeyNavRevision((n) => n + 1)
+  }, [])
+
+  const bumpCapabilityNav = React.useCallback((patch?: CapabilityNavRowPatch) => {
+    setCapabilityNavRowPatch(patch ?? null)
+    setCapabilityNavRevision((n) => n + 1)
   }, [])
 
   const onToggleNavCollapsed = React.useCallback(() => {
@@ -319,11 +359,14 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         selectedAgentId,
         selectedServiceSlug,
         selectedKeyId,
+        selectedCapabilityId,
         selectedSoleMemoryId,
         selectedBoardDefId,
         draftPresenceRevision,
         keyNavRevision,
         keyNavRowPatch,
+        capabilityNavRevision,
+        capabilityNavRowPatch,
         trainingMode,
       },
       actions: {
@@ -337,11 +380,13 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onAgentSelect,
         onServiceOpen,
         onKeySelect,
+        onCapabilitySelect,
         onSoleMemorySelect,
         clearSelection,
         onBoardDefSelect,
         bumpDraftPresence,
         bumpKeyNav,
+        bumpCapabilityNav,
         onEnterTrainingMode,
         onExitTrainingMode,
       },
@@ -360,11 +405,14 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       selectedAgentId,
       selectedServiceSlug,
       selectedKeyId,
+      selectedCapabilityId,
       selectedSoleMemoryId,
       selectedBoardDefId,
       draftPresenceRevision,
       keyNavRevision,
       keyNavRowPatch,
+      capabilityNavRevision,
+      capabilityNavRowPatch,
       trainingMode,
       onSessionSelect,
       onSetActiveJourney,
@@ -376,11 +424,13 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       onAgentSelect,
       onServiceOpen,
       onKeySelect,
+      onCapabilitySelect,
       onSoleMemorySelect,
       clearSelection,
       onBoardDefSelect,
       bumpDraftPresence,
       bumpKeyNav,
+      bumpCapabilityNav,
       onEnterTrainingMode,
       onExitTrainingMode,
       navCollapsed,

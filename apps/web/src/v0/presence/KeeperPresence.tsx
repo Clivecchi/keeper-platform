@@ -32,6 +32,7 @@ import { DraftPointsSection } from "./DraftPointsSection"
 import { AgentFocusPresence } from "./cover/AgentFocusPresence"
 import { DomainFocusPresence } from "./cover/DomainFocusPresence"
 import { KeyFocusPresence } from "./cover/KeyFocusPresence"
+import { CapabilityFocusPresence } from "./cover/CapabilityFocusPresence"
 import { IntegrationFocusPresence } from "./cover/IntegrationFocusPresence"
 import { KipApi, type ModelProvider } from "../../lib/kipApi"
 import { parseChroniclePatchFieldErrors } from "./chronicleConfig/chroniclePatch"
@@ -187,6 +188,8 @@ function primaryField(objectType: string): string {
     case "service":
       return "name"
     case "key":
+      return "display_label"
+    case "capability":
       return "display_label"
     default:
       return "name"
@@ -1165,6 +1168,7 @@ export function KeeperPresence({
 
   const skipPresenceSchemaFetch =
     (objectType === "key" && layout === "focus") ||
+    (objectType === "capability" && layout === "focus") ||
     (objectType === "service" && layout === "focus") ||
     objectType === "boardDef" ||
     (objectType === "frame" && layout === "config") ||
@@ -1766,6 +1770,17 @@ function KeeperPresenceSurface({
   if (objectType === "key" && layout === "focus" && record) {
     return (
       <KeyFocusPresence
+        objectId={objectId}
+        domainId={domainId}
+        record={record}
+        onLabelResolved={onLabelResolved}
+      />
+    )
+  }
+
+  if (objectType === "capability" && layout === "focus" && record) {
+    return (
+      <CapabilityFocusPresence
         objectId={objectId}
         domainId={domainId}
         record={record}

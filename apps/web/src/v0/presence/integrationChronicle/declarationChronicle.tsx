@@ -17,6 +17,12 @@ import {
 import type { AIModelFeedData, KeyHealthSource } from "./feeds/AIModelFeed"
 import type { GitHubFeedData } from "./feeds/GitHubFeed"
 import type { KeyFeedData } from "./feeds/KeyFeed"
+import type { CapabilityFeedData } from "./feeds/CapabilityFeed"
+import {
+  CapabilityDefinitionBlock,
+  CapabilityUsedByBlock,
+} from "./blocks/capabilityBlocks"
+import type { CapabilityKind } from "./capabilityNavUtils"
 import {
   ActionButton,
   CapabilityChips,
@@ -121,9 +127,16 @@ export type KeyDeclarationChronicleBlocksProps = {
   keyFeed: KeyFeedData
 }
 
+export type CapabilityDeclarationChronicleBlocksProps = {
+  variant: "capability"
+  blocks: string[]
+  capabilityFeed: CapabilityFeedData
+}
+
 export type DeclarationChronicleBlocksProps =
   | IntegrationDeclarationChronicleBlocksProps
   | KeyDeclarationChronicleBlocksProps
+  | CapabilityDeclarationChronicleBlocksProps
 
 export function integrationKeyStatusLabel(
   keyStatus: "valid" | "invalid" | "missing" | undefined,
@@ -375,9 +388,56 @@ function KeyDeclarationChronicleBlockList({
   )
 }
 
+function CapabilityDeclarationChronicleBlockList({
+  blocks,
+  capabilityFeed,
+}: {
+  blocks: string[]
+  capabilityFeed: CapabilityFeedData
+}) {
+  const { capability } = capabilityFeed
+  const kind = capability.kind as CapabilityKind
+
+  return (
+    <>
+      {blocks.map((block) => {
+        switch (block) {
+          case "definition":
+            return (
+              <CapabilityDefinitionBlock
+                key={block}
+                slug={capability.slug}
+                kind={kind}
+                description={capability.description}
+              />
+            )
+          case "used_by":
+            return (
+              <CapabilityUsedByBlock
+                key={block}
+                usedBy={capability.used_by}
+              />
+            )
+          default:
+            return null
+        }
+      })}
+    </>
+  )
+}
+
 export function DeclarationChronicleBlocks(props: DeclarationChronicleBlocksProps) {
   if (props.variant === "key") {
     return <KeyDeclarationChronicleBlockList blocks={props.blocks} keyFeed={props.keyFeed} />
+  }
+
+  if (props.variant === "capability") {
+    return (
+      <CapabilityDeclarationChronicleBlockList
+        blocks={props.blocks}
+        capabilityFeed={props.capabilityFeed}
+      />
+    )
   }
 
   const { blocks, serviceSlug, integration, integrationType, config, feed, actions } = props

@@ -22,6 +22,8 @@ export interface NavSectionsDef {
   keepers: boolean
   drafts: boolean
   agents: boolean
+  /** IDE Board: platform capability registry grouped by kind. */
+  capabilities?: boolean
   /**
    * designer mode: show the Board Definitions section (all entries from BOARD_DEFINITIONS).
    * Selection fires onBoardDefSelect in UniversalBoardContext.
@@ -229,6 +231,7 @@ export const IDE_BOARD_DEF: UniversalBoardDef = {
       keepers: true,
       drafts: true,
       agents: false,
+      capabilities: true,
       boardDefs: false,
     },
     integrations: [

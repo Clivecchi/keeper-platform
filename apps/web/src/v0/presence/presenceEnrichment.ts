@@ -1197,6 +1197,14 @@ export async function fetchPresenceRecord(
         return null
       }
     }
+    case "capability": {
+      try {
+        const row = await apiFetch(`/api/capabilities/${encodeURIComponent(objectId)}`)
+        return row as Record<string, unknown>
+      } catch {
+        return null
+      }
+    }
     default:
       return null
   }

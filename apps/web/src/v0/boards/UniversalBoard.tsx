@@ -369,6 +369,7 @@ function UniversalBoardShell({
                         selectedAgentId={selection.selectedAgentId}
                         selectedServiceSlug={selection.selectedServiceSlug}
                         selectedKeyId={selection.selectedKeyId}
+                        selectedCapabilityId={selection.selectedCapabilityId}
                         onDialogSelect={actions.onDialogSelect}
                         onJourneySelect={actions.onJourneySelect}
                         onKeeperSelect={actions.onKeeperSelect}
@@ -376,6 +377,7 @@ function UniversalBoardShell({
                         onAgentSelect={actions.onAgentSelect}
                         onServiceOpen={actions.onServiceOpen}
                         onKeySelect={actions.onKeySelect}
+                        onCapabilitySelect={actions.onCapabilitySelect}
                         collapsed={navCollapsed}
                         onToggleCollapsed={onToggleNavCollapsed}
                         dialogListVersion={navVersions?.dialogListVersion}
@@ -384,6 +386,8 @@ function UniversalBoardShell({
                         draftListVersion={effectiveDraftListVersion}
                         keyListVersion={selection.keyNavRevision}
                         keyNavRowPatch={selection.keyNavRowPatch}
+                        capabilityListVersion={selection.capabilityNavRevision}
+                        capabilityNavRowPatch={selection.capabilityNavRowPatch}
                       />
                     )
               }
