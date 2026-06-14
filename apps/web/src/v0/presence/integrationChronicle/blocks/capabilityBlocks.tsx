@@ -70,13 +70,13 @@ export function CapabilityUsedByBlock({
       </p>
       {usedBy.length === 0 ? (
         <p className="text-[13px] italic" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
-          No agents reference this slug in capabilities, tools, or permissions arrays.
+          No agents have a grant for this capability.
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
           {usedBy.map((entry) => (
             <li
-              key={`${entry.agentId}-${entry.column}`}
+              key={`${entry.agentId}-${entry.source}`}
               className="text-[13px] flex flex-wrap items-baseline gap-x-2"
               style={{ color: "hsl(var(--theme-ink-primary))" }}
             >
@@ -85,7 +85,7 @@ export function CapabilityUsedByBlock({
                 className="text-[11px] font-mono"
                 style={{ color: "hsl(var(--theme-ink-tertiary))" }}
               >
-                {entry.agentSlug} · {entry.column}
+                {entry.agentSlug} · {entry.source}
               </span>
             </li>
           ))}

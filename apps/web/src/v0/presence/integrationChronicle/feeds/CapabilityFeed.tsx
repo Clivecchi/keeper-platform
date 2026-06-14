@@ -3,11 +3,17 @@
 import * as React from "react"
 import { apiFetch } from "../../../../lib/apiFetch"
 
+export type CapabilityGrantSource =
+  | "capabilities"
+  | "tools"
+  | "permissions"
+  | "manual"
+
 export type CapabilityUsedByEntry = {
   agentId: string
   agentName: string
   agentSlug: string
-  column: "capabilities" | "tools" | "permissions"
+  source: CapabilityGrantSource
 }
 
 export type CapabilityDto = {

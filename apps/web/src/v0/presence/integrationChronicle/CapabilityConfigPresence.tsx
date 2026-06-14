@@ -3,6 +3,7 @@
 import * as React from "react"
 import { ChronicleConfigShell, useChronicleConfig } from "../chronicleConfig/useChronicleConfig"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
+import { CapabilityUsedByGrantsBlock } from "./blocks/CapabilityUsedByGrantsBlock"
 import type { CapabilityDto } from "./feeds/CapabilityFeed"
 import type { CapabilityKind } from "./capabilityNavUtils"
 
@@ -179,8 +180,16 @@ export function CapabilityConfigPresence({
         <p className="text-[11px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
           Enforcement kind: {(capability.kind as CapabilityKind) === "infra"
             ? "Enforced via requireCapability"
-            : "Display only in Pass 1"}
+            : "Display only — grants are informational in Pass 2a"}
         </p>
+
+        <CapabilityUsedByGrantsBlock
+          capabilityId={capabilityId}
+          usedBy={capability.used_by}
+          onChanged={async () => {
+            await onRefresh?.()
+          }}
+        />
       </div>
     </ChronicleConfigShell>
   )

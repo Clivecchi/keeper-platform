@@ -28,6 +28,11 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 
 ## 📆 Update Log
 
+### 2026-06-14 — AgentCapability grants (Pass 2a)
+- `AgentCapability` join table; backfill from `kip_agents` arrays (source: capabilities/tools/permissions)
+- `used_by` reads `AgentCapability` rows; Config mode grant CRUD via POST/DELETE `/api/capabilities/:id/grants`
+- `CapabilityUsedByGrantsBlock` in Config mode — add/remove agents (source: manual)
+
 ### 2026-06-13 — Capability EntityKind Pass 1 (registry)
 - Added `CapabilityFeed.tsx`, `CapabilityConfigPresence.tsx`, `capabilityNavUtils.ts`, `blocks/capabilityBlocks.tsx` (`definition`, `used_by`)
 - `DeclarationChronicleBlocks` `variant="capability"`; `used_by` cross-references `kip_agents` arrays (read-only)

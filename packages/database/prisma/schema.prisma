@@ -631,6 +631,7 @@ model kip_agents {
   kip_drafts             kip_drafts[]
   Board                  Board[]
   AgentLens              AgentLens[]
+  agent_capabilities     AgentCapability[]
 }
 
 model kip_agent_logs {
@@ -2005,7 +2006,7 @@ model Key {
   @@index([user_id])
 }
 
-/// Platform capability registry — EntityKind presence (Pass 1: read-only cross-reference to agent arrays).
+/// Platform capability registry — EntityKind presence.
 model Capability {
   id                String    @id @default(cuid())
   slug              String    @unique
@@ -2018,8 +2019,25 @@ model Capability {
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
 
-  domain Domain? @relation(fields: [domain_id], references: [id], onDelete: SetNull)
+  domain         Domain?            @relation(fields: [domain_id], references: [id], onDelete: SetNull)
+  agent_grants   AgentCapability[]
 
   @@index([kind])
   @@index([domain_id])
+}
+
+/// Agent ↔ Capability grant join table (Pass 2a). Does not replace kip_agents array columns.
+model AgentCapability {
+  id            String   @id @default(cuid())
+  agent_id      String   @db.Uuid
+  capability_id String
+  source        String
+  created_at    DateTime @default(now())
+
+  agent      kip_agents @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+  capability Capability @relation(fields: [capability_id], references: [id], onDelete: Cascade)
+
+  @@unique([agent_id, capability_id])
+  @@index([capability_id])
+  @@index([agent_id])
 }
