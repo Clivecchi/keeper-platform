@@ -81,6 +81,7 @@ model Keeper {
   SoleVoiceEntry       SoleVoiceEntry[]
   engagement_templates engagement_templates[]
   kip_drafts           kip_drafts[]
+  library_items        LibraryItem[] @relation("LibraryItemAssignedKeeper")
 
   @@index([domainId])
 }
@@ -632,6 +633,7 @@ model kip_agents {
   Board                  Board[]
   AgentLens              AgentLens[]
   agent_capabilities     AgentCapability[]
+  library_items          LibraryItem[]     @relation("LibraryItemAssignedAgent")
 }
 
 model kip_agent_logs {
@@ -1153,6 +1155,7 @@ model Domain {
   SoleMemoryCard                                           SoleMemoryCard[]
   SslCertificate                                           SslCertificate[]
   presenceSchemas                                          PresenceSchema[]
+  library_items                                            LibraryItem[]
 
   @@index([slug])
   @@index([customDomain])
@@ -2040,4 +2043,40 @@ model AgentCapability {
   @@unique([agent_id, capability_id])
   @@index([capability_id])
   @@index([agent_id])
+}
+
+enum LibraryItemSourceType {
+  upload
+  url
+  github
+  gdrive
+}
+
+/// Library EntityKind — domain-scoped reference materials (upload, URL, external sources).
+model LibraryItem {
+  id                  String                @id @default(cuid())
+  domain_id           String
+  source_type         LibraryItemSourceType
+  source_ref          String
+  display_label       String?
+  description         String?
+  agent_perspective   String?
+  /** 1536-d embedding vector — stored as float[] until pgvector extension is enabled on the DB host. */
+  embedding           Float[] @default([])
+  assigned_keeper_id  String?
+  assigned_agent_id   String?               @db.Uuid
+  chronicle_blocks    String[]              @default([])
+  chronicle_actions   String[]              @default([])
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+
+  domain          Domain      @relation(fields: [domain_id], references: [id], onDelete: Cascade)
+  assignedKeeper  Keeper?     @relation("LibraryItemAssignedKeeper", fields: [assigned_keeper_id], references: [id], onDelete: SetNull)
+  assignedAgent   kip_agents? @relation("LibraryItemAssignedAgent", fields: [assigned_agent_id], references: [id], onDelete: SetNull)
+
+  @@index([domain_id])
+  @@index([assigned_keeper_id])
+  @@index([assigned_agent_id])
+  @@index([source_type])
+  @@index([created_at])
 }

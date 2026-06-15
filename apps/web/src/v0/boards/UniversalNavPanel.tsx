@@ -30,10 +30,13 @@
 import * as React from "react"
 import { apiFetch } from "../../lib/api"
 import { KipApi } from "../../lib/kipApi"
+import { useAuth } from "../../context/AuthContext"
+import { useFrameContextOptional } from "../shell/FrameContext"
 import type { KipDraftSummary } from "../../lib/kipApi"
 import { SidebarCard } from "../components/SidebarCard"
 import type { SidebarCardItem } from "../components/SidebarCard"
 import type { KeyNavRowPatch } from "./UniversalBoardContext"
+import { useUniversalBoardOptional } from "./UniversalBoardContext"
 import type { UniversalBoardDef, NavRenderBlock } from "./UniversalBoardDefinition"
 import { useBoardDefs } from "./useBoardDefs"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
@@ -56,6 +59,15 @@ import {
   type CapabilityNavRow,
   type CapabilityNavRowPatch,
 } from "../presence/integrationChronicle/capabilityNavUtils"
+import {
+  applyLibraryNavRowPatch,
+  fetchDomainLibraryNavRows,
+  libraryItemChronicleTitle,
+  librarySourceIconLetter,
+  type LibraryNavRow,
+  type LibraryNavRowPatch,
+} from "../presence/integrationChronicle/libraryNavUtils"
+import { createLibraryItem, uploadLibraryFile } from "../presence/integrationChronicle/libraryNavCreate"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -77,6 +89,7 @@ export interface UniversalNavPanelProps {
   selectedServiceSlug?: string | null
   selectedKeyId?: string | null
   selectedCapabilityId?: string | null
+  selectedLibraryItemId?: string | null
 
   // Selection callbacks — fired by this component, handled by the Board
   onDialogSelect?: (id: string) => void
@@ -87,6 +100,7 @@ export interface UniversalNavPanelProps {
   onServiceOpen?: (slug: string) => void
   onKeySelect?: (id: string) => void
   onCapabilitySelect?: (id: string) => void
+  onLibraryItemSelect?: (id: string) => void
 
   // Collapse state — controlled by the Board
   collapsed?: boolean
@@ -101,6 +115,8 @@ export interface UniversalNavPanelProps {
   keyNavRowPatch?: KeyNavRowPatch | null
   capabilityListVersion?: number
   capabilityNavRowPatch?: CapabilityNavRowPatch | null
+  libraryListVersion?: number
+  libraryNavRowPatch?: LibraryNavRowPatch | null
 }
 
 // ─── Internal Types ──────────────────────────────────────────────────────────
@@ -145,6 +161,7 @@ const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "integrations",
   "keys",
   "capabilities",
+  "library",
   "agents",
   "boardDefs",
   "boards",
@@ -242,6 +259,7 @@ export function UniversalNavPanel({
   selectedServiceSlug,
   selectedKeyId,
   selectedCapabilityId,
+  selectedLibraryItemId,
   onDialogSelect,
   onJourneySelect,
   onKeeperSelect,
@@ -250,6 +268,7 @@ export function UniversalNavPanel({
   onServiceOpen,
   onKeySelect,
   onCapabilitySelect,
+  onLibraryItemSelect,
   collapsed = false,
   onToggleCollapsed,
   dialogListVersion = 0,
@@ -260,7 +279,13 @@ export function UniversalNavPanel({
   keyNavRowPatch = null,
   capabilityListVersion = 0,
   capabilityNavRowPatch = null,
+  libraryListVersion = 0,
+  libraryNavRowPatch = null,
 }: UniversalNavPanelProps) {
+
+  const { user } = useAuth()
+  const frameCtx = useFrameContextOptional()
+  const boardCtx = useUniversalBoardOptional()
 
   // ── designer board definitions — live from location.search ─────────────────
   const { selectBoardDefinition, switchWorkspace, workspaceBoardId } = useV0Shell()
@@ -277,6 +302,10 @@ export function UniversalNavPanel({
   const [keyError, setKeyError] = React.useState<string | null>(null)
   const [allCapabilityRows, setAllCapabilityRows] = React.useState<CapabilityNavRow[] | null>(null)
   const [capabilityError, setCapabilityError] = React.useState<string | null>(null)
+  const [allLibraryRows, setAllLibraryRows] = React.useState<LibraryNavRow[] | null>(null)
+  const [libraryError, setLibraryError] = React.useState<string | null>(null)
+  const [libraryCreating, setLibraryCreating] = React.useState(false)
+  const libraryFileInputRef = React.useRef<HTMLInputElement>(null)
 
   const keys = React.useMemo(
     () => (allKeyRows ? collapseKeyNavRows(allKeyRows, selectedKeyId) : null),
@@ -308,6 +337,11 @@ export function UniversalNavPanel({
   const applyCapabilityNavPatch = React.useCallback(
     (rows: CapabilityNavRow[]) => applyCapabilityNavRowPatch(rows, capabilityNavRowPatch),
     [capabilityNavRowPatch],
+  )
+
+  const applyLibraryNavPatch = React.useCallback(
+    (rows: LibraryNavRow[]) => applyLibraryNavRowPatch(rows, libraryNavRowPatch),
+    [libraryNavRowPatch],
   )
 
   // ── Per-section error states ─────────────────────────────────────────────
@@ -498,6 +532,118 @@ export function UniversalNavPanel({
     setAllKeyRows((prev) => (prev ? applyKeyNavRowPatch(prev) : prev))
   }, [keyListVersion, keyNavRowPatch, applyKeyNavRowPatch])
 
+  const showLibraryNav = def.nav.sections.library ?? false
+
+  React.useEffect(() => {
+    if (!domainId || !showLibraryNav) return
+    let cancelled = false
+    setLibraryError(null)
+    void fetchDomainLibraryNavRows(domainId)
+      .then((rows) => {
+        if (!cancelled) setAllLibraryRows(applyLibraryNavPatch(rows))
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setLibraryError(err instanceof Error ? err.message : "Failed to load library")
+          setAllLibraryRows([])
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [domainId, showLibraryNav, libraryListVersion, applyLibraryNavPatch])
+
+  React.useEffect(() => {
+    if (!libraryNavRowPatch) return
+    setAllLibraryRows((prev) => (prev ? applyLibraryNavPatch(prev) : prev))
+  }, [libraryListVersion, libraryNavRowPatch, applyLibraryNavPatch])
+
+  const activeKeeperIdForLibrary =
+    selectedKeeperId ?? frameCtx?.selection.activeKeeperId ?? null
+  const activeAgentIdForLibrary = selectedAgentId ?? null
+
+  const handleLibraryUploadClick = React.useCallback(() => {
+    libraryFileInputRef.current?.click()
+  }, [])
+
+  const handleLibraryFileChange = React.useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      event.target.value = ""
+      if (!file || !domainId || !user?.id) {
+        if (!user?.id) alert("Sign in to upload library files.")
+        return
+      }
+
+      setLibraryCreating(true)
+      try {
+        const url = await uploadLibraryFile({ domainId, userId: user.id, file })
+        const created = await createLibraryItem({
+          domainId,
+          userId: user.id,
+          sourceType: "upload",
+          sourceRef: url,
+          activeKeeperId: activeKeeperIdForLibrary,
+          activeAgentId: activeAgentIdForLibrary,
+        })
+        onLibraryItemSelect?.(created.id)
+        boardCtx?.actions.bumpLibraryNav()
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Failed to add upload to library")
+      } finally {
+        setLibraryCreating(false)
+      }
+    },
+    [
+      domainId,
+      user?.id,
+      activeKeeperIdForLibrary,
+      activeAgentIdForLibrary,
+      onLibraryItemSelect,
+      boardCtx?.actions,
+    ],
+  )
+
+  const handleLibraryAddUrl = React.useCallback(async () => {
+    if (!domainId || !user?.id) {
+      alert("Sign in to add library links.")
+      return
+    }
+    const url = window.prompt("Paste a URL to add to the library:")
+    if (!url?.trim()) return
+    try {
+      new URL(url.trim())
+    } catch {
+      alert("Enter a valid URL (including https://).")
+      return
+    }
+
+    setLibraryCreating(true)
+    try {
+      const created = await createLibraryItem({
+        domainId,
+        userId: user.id,
+        sourceType: "url",
+        sourceRef: url.trim(),
+        activeKeeperId: activeKeeperIdForLibrary,
+        activeAgentId: activeAgentIdForLibrary,
+      })
+      onLibraryItemSelect?.(created.id)
+      boardCtx?.actions.bumpLibraryNav()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to add URL to library")
+    } finally {
+      setLibraryCreating(false)
+    }
+  }, [
+    domainId,
+    user?.id,
+    activeKeeperIdForLibrary,
+    activeAgentIdForLibrary,
+    onLibraryItemSelect,
+    boardCtx?.actions,
+  ])
+
   // ── Derived SidebarCardItem arrays ───────────────────────────────────────
 
   // Dialogs: embed date suffix for recency signal
@@ -602,6 +748,14 @@ export function UniversalNavPanel({
     description: keyStatusNavHint(key.status),
     isSelected: key.id === selectedKeyId,
     onClick: () => onKeySelect?.(key.id),
+  }))
+
+  const libraryItems: SidebarCardItem[] = (allLibraryRows ?? []).map((row) => ({
+    id: row.id,
+    label: libraryItemChronicleTitle(row),
+    iconLetter: librarySourceIconLetter(row.source_type),
+    isSelected: row.id === selectedLibraryItemId,
+    onClick: () => onLibraryItemSelect?.(row.id),
   }))
 
   // ── designer sections: Board Definitions ─────────────────────────────────
@@ -797,6 +951,49 @@ export function UniversalNavPanel({
             {keyError && (
               <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
                 {keyError}
+              </p>
+            )}
+          </>
+        )
+      case "library":
+        if (!showLibraryNav) return null
+        return (
+          <>
+            <input
+              ref={libraryFileInputRef}
+              type="file"
+              className="hidden"
+              accept="image/*,.txt,.md,.pdf,.json,.csv"
+              onChange={(event) => void handleLibraryFileChange(event)}
+            />
+            <SidebarCard
+              className="keeper-sidebar-card"
+              title="Library"
+              description={
+                libraryCreating
+                  ? "Adding item…"
+                  : !domainId
+                    ? "Loading…"
+                    : countLabel(allLibraryRows?.length ?? null, "item")
+              }
+              items={libraryItems.length ? libraryItems : undefined}
+              collapsible={libraryItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
+              defaultCollapsed={libraryItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
+              onAdd={libraryCreating ? undefined : handleLibraryUploadClick}
+            />
+            {showLibraryNav && !libraryCreating ? (
+              <button
+                type="button"
+                onClick={() => void handleLibraryAddUrl()}
+                className="text-xs px-2 -mt-1 text-left underline-offset-2 hover:underline"
+                style={{ color: "hsl(var(--theme-ink-secondary))" }}
+              >
+                Add URL
+              </button>
+            ) : null}
+            {libraryError && (
+              <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
+                {libraryError}
               </p>
             )}
           </>

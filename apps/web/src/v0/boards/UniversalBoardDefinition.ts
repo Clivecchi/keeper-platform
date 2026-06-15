@@ -14,7 +14,7 @@ export type BoardId = "ide" | "agent" | "domain" | "designer" | (string & {})
 // Left panel — Navigation
 // What sections appear. What board nav integrations are present.
 // Treatment character: orientation and confidence.
-export type NavSectionKey = "dialogs" | "journeys" | "keepers" | "drafts" | "agents" | "boardDefs"
+export type NavSectionKey = "dialogs" | "journeys" | "keepers" | "drafts" | "agents" | "library" | "boardDefs"
 
 /** Left-nav render blocks — entity sections plus board-layer sections. */
 export type NavRenderBlock =
@@ -22,6 +22,7 @@ export type NavRenderBlock =
   | "integrations"
   | "keys"
   | "capabilities"
+  | "library"
   | "boards"
 
 export interface NavSectionsDef {
@@ -30,6 +31,8 @@ export interface NavSectionsDef {
   keepers: boolean
   drafts: boolean
   agents: boolean
+  /** Domain Board: uploaded files and linked sources for the domain library. */
+  library?: boolean
   /** IDE Board: platform capability registry grouped by kind. */
   capabilities?: boolean
   /**
@@ -108,6 +111,7 @@ export type PresenceSubject =
   | "agent"
   | "draft"
   | "service"
+  | "library"
   | "domain"
   | "boardDef"
 
@@ -168,6 +172,11 @@ const UNIVERSAL_VIEW_STATE_DEFAULTS: ContextViewStateDef[] = [
     key: "boardDef",
     presenceTreatment:
       "Board definition in view. Structure and access rules present. Declarative spec forward.",
+  },
+  {
+    key: "library",
+    presenceTreatment:
+      "Library item in view. Source reference and agent perspective forward. Assigned keeper and agent present but quiet.",
   },
   {
     key: "domain",
@@ -331,9 +340,10 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
       keepers: true,
       drafts: false,
       agents: false,
+      library: true,
       boardDefs: false,
     },
-    navBlockOrder: ["keepers", "dialogs", "journeys", "boards"],
+    navBlockOrder: ["keepers", "dialogs", "journeys", "library", "boards"],
     keeperSectionTitle: "Keeper",
   },
   conversation: {

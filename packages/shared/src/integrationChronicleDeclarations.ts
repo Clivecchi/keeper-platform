@@ -220,3 +220,40 @@ export function resolveCapabilityDeclarationBackfill(
   }
   return patch;
 }
+
+export const DEFAULT_LIBRARY_CHRONICLE_BLOCKS: readonly string[] = ['definition', 'agent_perspective'];
+
+export const DEFAULT_LIBRARY_CHRONICLE_ACTIONS: readonly string[] = [];
+
+export type LibraryChronicleDefaults = {
+  chronicle_blocks: string[];
+  chronicle_actions: string[];
+};
+
+/** Default Chronicle blocks for Library EntityKind — Pass 1. */
+export function resolveLibraryChronicleDefaults(): LibraryChronicleDefaults {
+  return {
+    chronicle_blocks: [...DEFAULT_LIBRARY_CHRONICLE_BLOCKS],
+    chronicle_actions: [...DEFAULT_LIBRARY_CHRONICLE_ACTIONS],
+  };
+}
+
+export type LibraryDeclarationRow = {
+  chronicle_blocks?: string[];
+  chronicle_actions?: string[];
+};
+
+/** Backfill empty Library declaration columns (idempotent). */
+export function resolveLibraryDeclarationBackfill(
+  existing: LibraryDeclarationRow,
+): Partial<LibraryChronicleDefaults> {
+  const defaults = resolveLibraryChronicleDefaults();
+  const patch: Partial<LibraryChronicleDefaults> = {};
+  if (!existing.chronicle_blocks?.length) {
+    patch.chronicle_blocks = defaults.chronicle_blocks;
+  }
+  if (!existing.chronicle_actions?.length) {
+    patch.chronicle_actions = defaults.chronicle_actions;
+  }
+  return patch;
+}

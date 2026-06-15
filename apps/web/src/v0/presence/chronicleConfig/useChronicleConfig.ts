@@ -103,7 +103,8 @@ export function useChronicleConfig({
         (entityKind === "service" ||
           entityKind === "integration" ||
           entityKind === "key" ||
-          entityKind === "capability") &&
+          entityKind === "capability" ||
+          entityKind === "library") &&
         validationError.toLowerCase().includes("display label")
       ) {
         setFieldErrors((prev) => ({ ...prev, display_label: validationError }))

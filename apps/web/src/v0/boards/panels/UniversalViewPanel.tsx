@@ -49,6 +49,7 @@ type TrailKind =
   | "service"
   | "key"
   | "capability"
+  | "library"
   | "soleMemory"
   | "boardDef"
 type TrailDirection = "forward" | "back"
@@ -73,6 +74,7 @@ const TRAIL_KIND_TO_OBJECT_TYPE: Record<TrailKind, string> = {
   service: "service",
   key: "key",
   capability: "capability",
+  library: "library",
   soleMemory: "soleMemory",
   boardDef: "boardDef",
 }
@@ -428,6 +430,8 @@ export function UniversalViewPanel({
       return { kind: "key", id: boardCtx.selection.selectedKeyId }
     if (boardCtx?.selection.selectedCapabilityId)
       return { kind: "capability", id: boardCtx.selection.selectedCapabilityId }
+    if (boardCtx?.selection.selectedLibraryItemId)
+      return { kind: "library", id: boardCtx.selection.selectedLibraryItemId }
     if (resolved.selectedServiceSlug)
       return { kind: "service", id: resolved.selectedServiceSlug }
     if (resolved.selectedDialogId)
@@ -542,6 +546,9 @@ export function UniversalViewPanel({
           break
         case "capability":
           if (entry.id) actions.onCapabilitySelect(entry.id)
+          break
+        case "library":
+          if (entry.id) actions.onLibraryItemSelect(entry.id)
           break
         case "boardDef":
           if (entry.id) {

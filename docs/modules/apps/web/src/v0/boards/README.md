@@ -24,6 +24,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-14 — Library EntityKind nav (Domain board, Pass 1)
+- `UniversalBoardDefinition`: `library` nav section on Domain board (`navBlockOrder` includes `library`)
+- `UniversalBoardContext`: `selectedLibraryItemId`, `onLibraryItemSelect`, `bumpLibraryNav` + optimistic row patch
+- `UniversalNavPanel`: Library section with upload (+) and Add URL; labels via shared `libraryItemChronicleTitle()`
+- `UniversalViewPanel`: `library` trail kind routing
+
 ### 2026-06-14 — Nav cleanup (Domain · IDE · Agent boards)
 - Shared nav section titles: larger accent-weight headers in `index.css` (`.keeper-nav-section-title` + SidebarCard titles)
 - `SidebarCard`: optional `collapsible` / `defaultCollapsed` for nav section collapse

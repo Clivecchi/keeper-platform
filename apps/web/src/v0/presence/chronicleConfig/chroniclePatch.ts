@@ -70,6 +70,8 @@ export function resolveChroniclePatchEndpoint(
       return `/api/keys/${encodeURIComponent(entityId)}`
     case "capability":
       return `/api/capabilities/${encodeURIComponent(entityId)}`
+    case "library":
+      return `/api/library-items/${encodeURIComponent(entityId)}`
     default:
       return ""
   }

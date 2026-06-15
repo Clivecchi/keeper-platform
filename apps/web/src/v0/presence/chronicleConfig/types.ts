@@ -17,6 +17,7 @@ export type ChronicleEntityKind =
   | "integration"
   | "key"
   | "capability"
+  | "library"
   | "frame"
   | "boardDef"
 

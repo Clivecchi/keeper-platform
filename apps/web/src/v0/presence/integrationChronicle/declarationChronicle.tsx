@@ -18,6 +18,8 @@ import type { AIModelFeedData, KeyHealthSource } from "./feeds/AIModelFeed"
 import type { GitHubFeedData } from "./feeds/GitHubFeed"
 import type { KeyFeedData } from "./feeds/KeyFeed"
 import type { CapabilityFeedData } from "./feeds/CapabilityFeed"
+import type { LibraryItemFeedData } from "./feeds/LibraryItemFeed"
+import { LibraryAgentPerspectiveBlock, LibraryDefinitionBlock } from "./blocks/libraryBlocks"
 import {
   CapabilityDefinitionBlock,
   CapabilityUsedByBlock,
@@ -133,10 +135,17 @@ export type CapabilityDeclarationChronicleBlocksProps = {
   capabilityFeed: CapabilityFeedData
 }
 
+export type LibraryDeclarationChronicleBlocksProps = {
+  variant: "library"
+  blocks: string[]
+  libraryFeed: LibraryItemFeedData
+}
+
 export type DeclarationChronicleBlocksProps =
   | IntegrationDeclarationChronicleBlocksProps
   | KeyDeclarationChronicleBlocksProps
   | CapabilityDeclarationChronicleBlocksProps
+  | LibraryDeclarationChronicleBlocksProps
 
 export function integrationKeyStatusLabel(
   keyStatus: "valid" | "invalid" | "missing" | undefined,
@@ -426,6 +435,30 @@ function CapabilityDeclarationChronicleBlockList({
   )
 }
 
+function LibraryDeclarationChronicleBlockList({
+  blocks,
+  libraryFeed,
+}: {
+  blocks: string[]
+  libraryFeed: LibraryItemFeedData
+}) {
+  const item = libraryFeed.item
+  return (
+    <>
+      {blocks.map((block) => {
+        switch (block) {
+          case "definition":
+            return <LibraryDefinitionBlock key={block} item={item} />
+          case "agent_perspective":
+            return <LibraryAgentPerspectiveBlock key={block} item={item} />
+          default:
+            return null
+        }
+      })}
+    </>
+  )
+}
+
 export function DeclarationChronicleBlocks(props: DeclarationChronicleBlocksProps) {
   if (props.variant === "key") {
     return <KeyDeclarationChronicleBlockList blocks={props.blocks} keyFeed={props.keyFeed} />
@@ -436,6 +469,15 @@ export function DeclarationChronicleBlocks(props: DeclarationChronicleBlocksProp
       <CapabilityDeclarationChronicleBlockList
         blocks={props.blocks}
         capabilityFeed={props.capabilityFeed}
+      />
+    )
+  }
+
+  if (props.variant === "library") {
+    return (
+      <LibraryDeclarationChronicleBlockList
+        blocks={props.blocks}
+        libraryFeed={props.libraryFeed}
       />
     )
   }

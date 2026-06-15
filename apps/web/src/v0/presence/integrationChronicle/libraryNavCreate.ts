@@ -1,0 +1,79 @@
+import { apiFetch } from "../../../lib/apiFetch"
+
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+
+export type CreateLibraryItemParams = {
+  domainId: string
+  userId: string
+  sourceType: "upload" | "url"
+  sourceRef: string
+  activeKeeperId?: string | null
+  activeAgentId?: string | null
+}
+
+export async function uploadLibraryFile(params: {
+  domainId: string
+  userId: string
+  file: File
+}): Promise<string> {
+  const base64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      const base64Data = result.includes(",") ? result.split(",")[1] : result
+      resolve(base64Data || "")
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(params.file)
+  })
+
+  const safeName = params.file.name.replace(/[^a-zA-Z0-9.-]/g, "_").slice(0, 80)
+  const key = [
+    "uploads",
+    params.userId,
+    "library",
+    "domain",
+    params.domainId,
+    `${Date.now()}-${safeName}`,
+  ].join("/")
+
+  const res = (await apiFetch("/api/uploads/direct", {
+    method: "POST",
+    body: JSON.stringify({
+      key,
+      file: base64,
+      contentType: params.file.type || "application/octet-stream",
+    }),
+  })) as { success?: boolean; data?: { url?: string }; error?: string }
+
+  if (!res?.success || !res?.data?.url) {
+    throw new Error(res?.error || "Upload failed")
+  }
+
+  return res.data.url
+}
+
+export async function createLibraryItem(
+  params: CreateLibraryItemParams,
+): Promise<{ id: string }> {
+  const row = (await apiFetch("/api/library-items", {
+    method: "POST",
+    body: JSON.stringify({
+      domain_id: params.domainId,
+      source_type: params.sourceType,
+      source_ref: params.sourceRef,
+      activeKeeperId: params.activeKeeperId ?? null,
+      activeAgentId: params.activeAgentId ?? null,
+    }),
+  })) as { id?: string; error?: string }
+
+  if (!row?.id) {
+    throw new Error(row?.error || "Failed to create library item")
+  }
+
+  return { id: row.id }
+}
+
+export function isLibraryImageFile(file: File): boolean {
+  return IMAGE_TYPES.includes(file.type)
+}

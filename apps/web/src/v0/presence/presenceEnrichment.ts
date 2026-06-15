@@ -1205,6 +1205,14 @@ export async function fetchPresenceRecord(
         return null
       }
     }
+    case "library": {
+      try {
+        const row = await apiFetch(`/api/library-items/${encodeURIComponent(objectId)}`)
+        return row as Record<string, unknown>
+      } catch {
+        return null
+      }
+    }
     default:
       return null
   }
