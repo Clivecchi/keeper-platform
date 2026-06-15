@@ -34,10 +34,11 @@ import type { KipDraftSummary } from "../../lib/kipApi"
 import { SidebarCard } from "../components/SidebarCard"
 import type { SidebarCardItem } from "../components/SidebarCard"
 import type { KeyNavRowPatch } from "./UniversalBoardContext"
-import type { UniversalBoardDef, NavSectionKey } from "./UniversalBoardDefinition"
+import type { UniversalBoardDef, NavRenderBlock } from "./UniversalBoardDefinition"
 import { useBoardDefs } from "./useBoardDefs"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import { useV0Shell } from "../shell/V0ShellContext"
+import type { WorkspaceBoardId } from "./workspaceBoardNav"
 import {
   collapseKeyNavRows,
   fetchAllDomainKeyRows,
@@ -136,8 +137,6 @@ type AgentItem = {
 
 type SectionKey = "dialogs" | "journeys" | "keepers" | "drafts" | "agents"
 
-type NavRenderBlock = SectionKey | "boardDefs" | "integrations" | "keys" | "capabilities"
-
 const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "dialogs",
   "journeys",
@@ -148,12 +147,32 @@ const DEFAULT_NAV_BLOCK_ORDER: NavRenderBlock[] = [
   "capabilities",
   "agents",
   "boardDefs",
+  "boards",
 ]
 
-function resolveNavBlockOrder(primarySection?: NavSectionKey): NavRenderBlock[] {
-  if (!primarySection) return DEFAULT_NAV_BLOCK_ORDER
-  return [primarySection, ...DEFAULT_NAV_BLOCK_ORDER.filter((block) => block !== primarySection)]
+const WORKSPACE_BOARD_NAV: { id: WorkspaceBoardId; label: string }[] = [
+  { id: "ide", label: "IDE" },
+  { id: "designer", label: "Design" },
+  { id: "agent", label: "Agent" },
+]
+
+function resolveNavBlockOrder(def: UniversalBoardDef): NavRenderBlock[] {
+  if (def.nav.navBlockOrder?.length) {
+    const ordered = def.nav.navBlockOrder
+    const remainder = DEFAULT_NAV_BLOCK_ORDER.filter((block) => !ordered.includes(block))
+    return [...ordered, ...remainder]
+  }
+  if (def.nav.primarySection) {
+    return [
+      def.nav.primarySection,
+      ...DEFAULT_NAV_BLOCK_ORDER.filter((block) => block !== def.nav.primarySection),
+    ]
+  }
+  return DEFAULT_NAV_BLOCK_ORDER
 }
+
+/** Nav sections with more than this many items default collapsed when collapsible. */
+const NAV_COLLAPSE_ITEM_THRESHOLD = 4
 
 // Items shown before expand (onTitleClick toggles full list)
 const PREVIEW_LIMIT: Record<SectionKey, number> = {
@@ -244,7 +263,7 @@ export function UniversalNavPanel({
 }: UniversalNavPanelProps) {
 
   // ── designer board definitions — live from location.search ─────────────────
-  const { selectBoardDefinition } = useV0Shell()
+  const { selectBoardDefinition, switchWorkspace, workspaceBoardId } = useV0Shell()
   const boardDefinitionId = useBoardDefinitionFromUrl()
   const allBoardDefs = useBoardDefs()
 
@@ -422,7 +441,7 @@ export function UniversalNavPanel({
     return () => { cancelled = true }
   }, [domainId, def.nav.sections.agents])
 
-  const showKeysNav = def.boardId === "ide" && (def.nav.integrations ?? []).some((item) => item.group === "ai")
+  const showKeysNav = (def.nav.integrations ?? []).some((item) => item.group === "ai")
   const keysDomainRef = React.useRef<string | null>(null)
 
   // ── Fetch: Keys — IDE Board Layer 3 only ─────────────────────────────────
@@ -568,6 +587,15 @@ export function UniversalNavPanel({
   const aiItems = aiIntegrations.map(toIntegrationItem)
   const integrationItems: SidebarCardItem[] = [...infrastructureItems, ...aiItems]
 
+  const boardNavItems: SidebarCardItem[] = WORKSPACE_BOARD_NAV.map((board) => ({
+    id: board.id,
+    label: board.label,
+    isSelected: workspaceBoardId === board.id,
+    onClick: () => switchWorkspace(board.id),
+  }))
+
+  const keeperSectionTitle = def.nav.keeperSectionTitle ?? "Keepers"
+
   const keyItems: SidebarCardItem[] = (keys ?? []).map((key) => ({
     id: key.id,
     label: keyChronicleTitle(key),
@@ -626,7 +654,7 @@ export function UniversalNavPanel({
     )
   }
 
-  const navBlockOrder = resolveNavBlockOrder(def.nav.primarySection)
+  const navBlockOrder = resolveNavBlockOrder(def)
 
   const renderNavBlock = (block: NavRenderBlock): React.ReactNode => {
     switch (block) {
@@ -674,7 +702,7 @@ export function UniversalNavPanel({
           <>
             <SidebarCard
               className="keeper-sidebar-card"
-              title="Keepers"
+              title={keeperSectionTitle}
               description={!domainId ? "Loading…" : countLabel(keepers?.length ?? null, "keeper")}
               items={slice("keepers", allKeeperItems).length ? slice("keepers", allKeeperItems) : undefined}
               onTitleClick={() => toggleExpanded("keepers")}
@@ -687,6 +715,16 @@ export function UniversalNavPanel({
             )}
           </>
         )
+      case "boards":
+        if (def.boardId !== "domain") return null
+        return (
+          <SidebarCard
+            className="keeper-sidebar-card"
+            title="Boards"
+            description="Workspace"
+            items={boardNavItems}
+          />
+        )
       case "drafts":
         if (!showDrafts) return null
         return (
@@ -695,8 +733,20 @@ export function UniversalNavPanel({
               className="keeper-sidebar-card"
               title="Drafts"
               description={!domainId ? "Loading…" : countLabel(drafts?.length ?? null, "draft")}
-              items={slice("drafts", allDraftItems).length ? slice("drafts", allDraftItems) : undefined}
-              onTitleClick={() => toggleExpanded("drafts")}
+              items={
+                allDraftItems.length > NAV_COLLAPSE_ITEM_THRESHOLD
+                  ? allDraftItems
+                  : slice("drafts", allDraftItems).length
+                    ? slice("drafts", allDraftItems)
+                    : undefined
+              }
+              collapsible={allDraftItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
+              defaultCollapsed={allDraftItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
+              onTitleClick={
+                allDraftItems.length > NAV_COLLAPSE_ITEM_THRESHOLD
+                  ? undefined
+                  : () => toggleExpanded("drafts")
+              }
               onAdd={() => { /* TODO: wire to draft create callback in Moment 2.6 */ }}
             />
             {draftError && (
@@ -716,6 +766,8 @@ export function UniversalNavPanel({
                 title="Integrations"
                 description="Infrastructure"
                 items={infrastructureItems}
+                collapsible={infrastructureItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
+                defaultCollapsed={infrastructureItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
               />
             ) : null}
             {aiItems.length > 0 ? (
@@ -724,6 +776,8 @@ export function UniversalNavPanel({
                 title="AI Providers"
                 description="Model connections"
                 items={aiItems}
+                collapsible={aiItems.length >= NAV_COLLAPSE_ITEM_THRESHOLD}
+                defaultCollapsed={aiItems.length >= NAV_COLLAPSE_ITEM_THRESHOLD}
               />
             ) : null}
           </div>
@@ -737,6 +791,8 @@ export function UniversalNavPanel({
               title="Keys"
               description={!domainId ? "Loading…" : countLabel(keys?.length ?? null, "key")}
               items={keyItems.length ? keyItems : undefined}
+              collapsible={keyItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
+              defaultCollapsed={keyItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
             />
             {keyError && (
               <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
@@ -749,12 +805,7 @@ export function UniversalNavPanel({
         if (!showCapabilitiesNav || !capabilitiesByKind) return null
         return (
           <div className="flex flex-col gap-3">
-            <p
-              className="text-[11px] font-medium uppercase tracking-wide px-1"
-              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-            >
-              Capabilities
-            </p>
+            <p className="keeper-nav-section-title px-1">Capabilities</p>
             {(["infra", "tool", "permission", "action"] as CapabilityKind[]).map((kind) => {
               const rows = capabilitiesByKind[kind]
               if (!rows.length) return null
@@ -771,6 +822,8 @@ export function UniversalNavPanel({
                   title={CAPABILITY_KIND_LABELS[kind]}
                   description={countLabel(rows.length, "capability")}
                   items={items}
+                  collapsible
+                  defaultCollapsed
                 />
               )
             })}

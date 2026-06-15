@@ -16,6 +16,14 @@ export type BoardId = "ide" | "agent" | "domain" | "designer" | (string & {})
 // Treatment character: orientation and confidence.
 export type NavSectionKey = "dialogs" | "journeys" | "keepers" | "drafts" | "agents" | "boardDefs"
 
+/** Left-nav render blocks — entity sections plus board-layer sections. */
+export type NavRenderBlock =
+  | NavSectionKey
+  | "integrations"
+  | "keys"
+  | "capabilities"
+  | "boards"
+
 export interface NavSectionsDef {
   dialogs: boolean
   journeys: boolean
@@ -45,6 +53,13 @@ export interface NavPanelDef {
    * Other boards omit — default nav order unchanged.
    */
   primarySection?: NavSectionKey
+  /**
+   * Full nav block order override. When omitted, UniversalNavPanel uses its default order.
+   * Domain Board: Keeper → Dialogs → Journeys → Boards, then any remaining enabled sections.
+   */
+  navBlockOrder?: NavRenderBlock[]
+  /** Override the Keepers section card title (Domain Board uses "Keeper"). */
+  keeperSectionTitle?: string
   /**
    * Board Nav layer — integration connections (IDE Board: Vercel, Railway, GitHub).
    * Visually distinct from Domain Nav record sections above.
@@ -226,9 +241,9 @@ export const IDE_BOARD_DEF: UniversalBoardDef = {
   access: { isPrivate: true, isAdminOnly: false },
   nav: {
     sections: {
-      dialogs: true,
-      journeys: true,
-      keepers: true,
+      dialogs: false,
+      journeys: false,
+      keepers: false,
       drafts: true,
       agents: false,
       capabilities: true,
@@ -269,14 +284,20 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
   access: { isPrivate: true, isAdminOnly: false },
   nav: {
     sections: {
-      dialogs: true,
-      journeys: true,
-      keepers: true,
-      drafts: true,
+      dialogs: false,
+      journeys: false,
+      keepers: false,
+      drafts: false,
       agents: true,
       boardDefs: false,
     },
     primarySection: "agents",
+    integrations: [
+      { id: "anthropic", label: "Anthropic", group: "ai" },
+      { id: "openai", label: "OpenAI", group: "ai" },
+      { id: "together-ai", label: "Together AI", group: "ai" },
+      { id: "elevenlabs", label: "ElevenLabs", group: "ai" },
+    ],
   },
   conversation: {
     agentSlug: "kip",
@@ -312,6 +333,8 @@ export const DOMAIN_BOARD_DEF: UniversalBoardDef = {
       agents: false,
       boardDefs: false,
     },
+    navBlockOrder: ["keepers", "dialogs", "journeys", "boards"],
+    keeperSectionTitle: "Keeper",
   },
   conversation: {
     agentSlug: "kip",

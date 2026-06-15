@@ -5,6 +5,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 🧱 Key Files
 - `boardRegistry.ts` — Registry of all V0 Boards; parallel to `FRAME_REGISTRY` for Frames
+- `workspaceBoardNav.ts` — Shared `?board=` / `?boardDef=` URL helpers for workspace switching
 - `designer/` — The Design Board (Platform Admin tool for editing domain frame JSON with Kip)
 
 ## 🔄 Data & Behavior
@@ -22,6 +23,107 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - [ ] Level 3: UniversalViewPanel (right panel) reads def.contextSurface; 5-state IDEBoard right becomes default Chronicle behavior
 
 ## 📆 Update Log
+
+### 2026-06-14 — Nav cleanup (Domain · IDE · Agent boards)
+- Shared nav section titles: larger accent-weight headers in `index.css` (`.keeper-nav-section-title` + SidebarCard titles)
+- `SidebarCard`: optional `collapsible` / `defaultCollapsed` for nav section collapse
+- **Domain Board**: nav order Keeper → Dialogs → Journeys → Boards; Boards section switches workspace via `switchWorkspace` (syncs with top bar)
+- **IDE Board**: removed Dialogs, Journeys, Keepers from nav; Capabilities kind groups collapsed by default; Keys / AI Providers collapse when ≥4 items
+- **Agent Board**: removed Journeys, Keepers, Drafts; added Keys + AI Providers (same sources as IDE)
+
+### 2026-06-13 — Capabilities nav (IDE board, Pass 1)
+- `UniversalNavPanel`: Capabilities section grouped by kind (Infra / Tool / Permission / Action); labels via `capabilityChronicleTitle()`
+- `UniversalBoardContext`: `selectedCapabilityId`, `onCapabilitySelect`, `bumpCapabilityNav` optimistic patch + revision
+
+### 2026-06-13 — Keys nav label aligned with Chronicle
+- `keyNavUtils.ts`: `keyChronicleTitle()` shared with cover; `pickKeyRowForProvider` / `collapseKeyNavRows` prefer `selectedKeyId` over env-first collapse
+- `UniversalNavPanel`: Keys nav uses `keyChronicleTitle`; stores all rows and re-collapses when selection changes; refetches on `keyNavRevision`
+- `UniversalBoardContext`: `bumpKeyNav(patch?)` bumps revision + optional optimistic row patch after Key Config save
+
+### 2026-06-12 — Optimistic board definition + router/window desync fix
+- V0Shell holds `pendingBoardDefinitionId` — UI updates immediately on nav click before router catches up
+- When `window.location.search` and React Router `location.search` disagree on `?definition=`, trust window
+- `[BoardDefinitionNav]` log on select + mismatch warning; nav log includes `windowDefinition`
+- All reads via `useBoardDefinitionFromUrl()` → V0Shell effective `boardDefinitionId`
+
+### 2026-06-12 — useBoardDefinitionFromUrl: live URL reads + navigate writes
+- Added `useBoardDefinitionFromUrl.ts` — reads `?definition=` from `useLocation().search` on every navigation
+- Nav, Conversation, Chronicle, and `UniversalBoardContext` use the hook for reads (not V0Shell context)
+- `selectBoardDefinition` uses `navigate()` instead of `setSearchParams` updater (fixes stale second-click)
+- Auto-default `?definition=ide` when opening Design workspace without a definition
+- Nav diagnostic log moved to `useEffect` — logs on definition change only, not every render
+
+### 2026-06-12 — Single source for ?definition= (V0Shell boardDefinitionId)
+- `UniversalNavPanel`, `UniversalConversation`, and `UniversalViewPanel` read `boardDefinitionId` from `useV0Shell()` — not `useSearchParams()`
+- V0Shell parses `location.search` each render; avoids stale Design nav highlight / composer focus after definition switches
+- Removed redundant `key` on inner `UniversalBoardProvider` (outer `V0Shell` key on `boardId` is sufficient)
+
+### 2026-06-12 — Design board composer: board definition focus (not frame)
+- Removed stale `selectedFrameKey = null` stub — composer and session bootstrap now use `?definition=` / `designerFocusKey`
+- Designer sessions resolve/create with `dialogSubject: "boardDef"` and `dialogFrame` = board def id
+
+### 2026-06-12 — UniversalNavPanel render diagnostic for Thinking Space Diag
+- `UniversalNavPanel` logs `[UniversalNavPanel]` with `boardDefinitionId` from V0Shell on every render — consumed by Dialog Diag stream
+
+### 2026-06-12 — Design board nav: setSearchParams updater + live searchParams reads
+- Removed `workspaceEpoch` remount race (epoch bumped before URL propagated)
+- Workspace/definition URL writes use `setSearchParams(prev => …)` — no stale `location.search` closures
+- Sidebar/Chronicle/center read `parseBoardDefinitionId(searchParams)` each render
+- `UniversalBoard` key tracks `boardId:definition` only; context mirrors URL on param change
+
+### 2026-06-12 — Board definition highlight follows ?definition= on every URL change
+- `readBoardDefinitionId` / `readWorkspaceBoardId` parse `location.search` (not memoized `searchParams` identity)
+- Sidebar, Chronicle, and center banner re-derive selection from URL on each param change
+- `UniversalBoard` key includes `boardDefinitionId` so definition-to-definition switches remount cleanly
+
+### 2026-06-12 — Nav collapse chevron crash fix
+- `UniversalNavPanel`: moved collapsed early-return after `useCallback`/`useMemo` for board definitions (Rules of Hooks violation crashed page on collapse)
+
+### 2026-06-12 — URL-only board definition selection (desync fix)
+- Sidebar, Chronicle, and center banner read `boardDefinitionId` from V0Shell URL — not React context
+- Removed context↔URL sync effects that could leave IDE highlighted while `?definition=domain`
+- V0Shell board nav uses `setSearchParams` only (same source as `matchedDef` routing)
+- Every workspace/definition change bumps `workspaceEpoch` to force board remount
+
+### 2026-06-12 — Workspace nav authority + ?definition= param
+- `?board=` = workspace only (top bar); `?definition=` = Design board spec nav (replaces confusing `?boardDef=`)
+- All workspace URL writes live in `V0Shell` (`switchWorkspace`, `selectBoardDefinition`, `clearBoardDefinition`)
+- Top bar / Design nav / Chronicle trail call shell methods — no distributed `setSearchParams`
+- `workspaceEpoch` remounts board if URL already matches (unsticks desynced UI)
+- Legacy `?boardDef=` migrated to `?definition=` on Design workspace
+
+### 2026-06-12 — Workspace board nav desync fix
+- Added `workspaceBoardNav.ts` — single helper module for `?board=` / `?boardDef=` updates
+- Top bar uses `navigate()` with preserved query params (replaces `setSearchParams` only)
+- V0Shell strips stale `?boardDef=` when workspace board is not Design
+- Design board syncs `?boardDef=` ↔ selection bidirectionally; non-Design clears stale selection in context
+- Top bar `z-50` so Brief scrim does not block board tabs
+
+### 2026-06-10 — Top bar workspace board switch fix
+- Removed context→URL push for `boardDef` (re-added param after top bar cleared it, blocking IDE/Agent/Domain switches)
+- Top bar uses `setSearchParams` for workspace board tabs; strips `boardDef` when leaving Design
+- Trail back-nav on Design clears `boardDef` from URL explicitly
+
+### 2026-06-10 — Design boardDef nav: context-first selection
+- Board Definitions nav uses **spec/meta** pattern: `onBoardDefSelect` + `setSearchParams` (not `navigate()`)
+- Context is source of truth; URL mirrors selection for deep links only (one-time on mount)
+- Removed continuous URL→context sync that could re-lock selection after trail/clear
+- `onBoardDefSelect` clears entity selections when a def is chosen
+
+### 2026-06-10 — Board URL sync + boardDefs merge fix
+- `resolveBoardDefs`: nav section flags are code-only (frame JSON could leak `boardDefs` onto IDE)
+- `boardDefs: false` explicit on IDE/Agent/Domain defs; Chronicle `boardDef` kind gated to `designer` board only
+- Top bar board switch preserves query params; clears `boardDef` when leaving Design
+- Board Definitions nav navigates to `?board=designer&boardDef=<id>`; shell syncs URL ↔ selection
+- `UniversalBoard` keyed by `boardId` in V0Shell
+
+### 2026-06-10 — Board switch + Chronicle live selection
+- `UniversalBoardProvider` keyed by `def.boardId` — selection and session reset when switching IDE / Agent / Design / Domain tabs
+- Chronicle `PanelBody` driven by live context (see `panels/README.md`)
+
+### 2026-05-28 — Domain board load: single domain fetch + deferred session
+- **UniversalBoard:** `domainId` syncs from `V0Shell` `domainData` — removed duplicate `/api/domains/by-slug` fetch
+- **useAgentDialog:** domain mode waits for resolved `domainId` before `createSession` — avoids double session + message reload
 
 ### 2026-05-27 — Draft update reliability (IDE + Agent)
 - **UniversalConversation:** wired `onConfirmDraftUpdate` for `draft.update.propose` confirm cards; IDE mode handles `draft.update` receipts (Chronicle + draft list refresh)

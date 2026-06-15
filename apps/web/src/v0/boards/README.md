@@ -24,6 +24,13 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-14 — Nav cleanup (Domain · IDE · Agent boards)
+- Shared nav section titles: larger accent-weight headers in `index.css` (`.keeper-nav-section-title` + SidebarCard titles)
+- `SidebarCard`: optional `collapsible` / `defaultCollapsed` for nav section collapse
+- **Domain Board**: nav order Keeper → Dialogs → Journeys → Boards; Boards section switches workspace via `switchWorkspace` (syncs with top bar)
+- **IDE Board**: removed Dialogs, Journeys, Keepers from nav; Capabilities kind groups collapsed by default; Keys / AI Providers collapse when ≥4 items
+- **Agent Board**: removed Journeys, Keepers, Drafts; added Keys + AI Providers (same sources as IDE)
+
 ### 2026-06-13 — Capabilities nav (IDE board, Pass 1)
 - `UniversalNavPanel`: Capabilities section grouped by kind (Infra / Tool / Permission / Action); labels via `capabilityChronicleTitle()`
 - `UniversalBoardContext`: `selectedCapabilityId`, `onCapabilitySelect`, `bumpCapabilityNav` optimistic patch + revision

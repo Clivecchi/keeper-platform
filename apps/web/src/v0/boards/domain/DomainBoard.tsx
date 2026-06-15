@@ -5,7 +5,7 @@
  *
  * The def is the board. No overrides.
  *
- * Left:   UniversalNavPanel reading DOMAIN_BOARD_DEF.nav (Dialogs, Journeys, Keepers)
+ * Left:   UniversalNavPanel reading DOMAIN_BOARD_DEF.nav (Keeper, Dialogs, Journeys, Boards)
  * Center: UniversalConversation (domain mode)
  * Right:  Chronicle reading DOMAIN_BOARD_DEF.contextSurface
  *

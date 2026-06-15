@@ -1065,13 +1065,18 @@ button.dialog-prelude:hover {
 }
 
 .keeper-nav-panel .keeper-sidebar-card h3,
-.keeper-nav-panel .keeper-sidebar-card button.text-xl {
+.keeper-nav-panel .keeper-sidebar-card button.text-xl,
+.keeper-nav-panel .keeper-nav-section-title {
   font-family: 'Courier New', monospace;
-  font-size: 10px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.12em;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: hsl(38 15% 48%) !important;
+  color: hsl(var(--theme-accent-primary) / 0.92) !important;
+}
+
+.keeper-nav-panel .keeper-sidebar-card .keeper-nav-section-collapse-btn {
+  color: hsl(var(--theme-accent-primary) / 0.75) !important;
 }
 
 .keeper-nav-panel .keeper-sidebar-card p.text-base {

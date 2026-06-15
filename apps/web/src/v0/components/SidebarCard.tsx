@@ -28,7 +28,7 @@
  */
 
 import * as React from "react"
-import { Plus } from "lucide-react"
+import { ChevronDown, Plus } from "lucide-react"
 
 const SURFACE = {
   sideCard: "hsl(var(--theme-surface-paper) / 0.96)",
@@ -83,6 +83,10 @@ export interface SidebarCardProps {
   onAdd?: () => void
   /** When provided, the title becomes clickable to show the full list in workspace */
   onTitleClick?: () => void
+  /** When true, the item list can collapse to title-only (nav sections) */
+  collapsible?: boolean
+  /** Initial collapsed state when collapsible (default false) */
+  defaultCollapsed?: boolean
   /** Override the default background color */
   backgroundColor?: string
   /** Override the default border color */
@@ -101,10 +105,30 @@ export function SidebarCard({
   items,
   onAdd,
   onTitleClick,
+  collapsible = false,
+  defaultCollapsed = false,
   backgroundColor = SURFACE.sideCard,
   borderColor = SURFACE.border,
   className = "",
 }: SidebarCardProps) {
+  const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed)
+
+  React.useEffect(() => {
+    setIsCollapsed(defaultCollapsed)
+  }, [defaultCollapsed])
+
+  const showItems = Boolean(items && items.length > 0 && (!collapsible || !isCollapsed))
+
+  const handleTitleActivate = () => {
+    if (collapsible) {
+      setIsCollapsed((prev) => !prev)
+      return
+    }
+    onTitleClick?.()
+  }
+
+  const titleIsInteractive = collapsible || Boolean(onTitleClick)
+
   return (
     <div
       className={`rounded-2xl border px-5 py-4 shadow-sm ${className}`}
@@ -112,14 +136,24 @@ export function SidebarCard({
     >
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2">
-          {onTitleClick ? (
+          {titleIsInteractive ? (
             <button
               type="button"
-              onClick={onTitleClick}
-              className="text-xl font-semibold text-left underline-offset-2 decoration-dotted hover:underline transition-colors"
+              onClick={handleTitleActivate}
+              className="text-xl font-semibold text-left underline-offset-2 decoration-dotted hover:underline transition-colors flex items-center gap-1.5 min-w-0"
               style={{ color: SURFACE.inkPrimary }}
+              aria-expanded={collapsible ? !isCollapsed : undefined}
             >
-              {title}
+              {collapsible ? (
+                <ChevronDown
+                  className={`keeper-nav-section-collapse-btn h-3.5 w-3.5 shrink-0 transition-transform ${
+                    isCollapsed ? "-rotate-90" : ""
+                  }`}
+                  strokeWidth={2}
+                  aria-hidden
+                />
+              ) : null}
+              <span className="truncate">{title}</span>
             </button>
           ) : (
             <h3 className="text-xl font-semibold" style={{ color: SURFACE.inkPrimary }}>
@@ -149,7 +183,7 @@ export function SidebarCard({
         ) : null}
       </div>
 
-      {items && items.length > 0 && (
+      {showItems && items && (
         <ul className="mt-4 space-y-2.5 text-[1.05rem] leading-snug" style={{ color: SURFACE.inkSecondary }}>
           {items.map((item) => (
             <li key={item.id ?? item.label} className="flex items-center gap-2">
