@@ -199,7 +199,7 @@ const actionSchema = z.object({
 /**
  * Agent output envelope schema (legacy and current formats)
  */
-const agentOutputEnvelopeSchema = z.object({
+export const agentOutputEnvelopeSchema = z.object({
   type: z.literal('agent_output'),
   response: z.string().optional(),
   actions: z.array(actionSchema).optional(),

@@ -38,6 +38,7 @@ import type {
 } from '@keeper/database';
 import { ModelProviderService, ModelMessage, ModelContentPart, ModelProviderErrorCode } from '../../services/ModelProviderService.js';
 import { getModelCapabilities } from '../../config/index.js';
+import { ensureKipAgentOutputEnvelope } from '../../services/structure/ensureStructuredOutput.js';
 import type { ImageGenerationBrief } from '../../services/ModelProviderService.js';
 import { SoleMemoryService } from '../../services/SoleMemoryService.js';
 import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
@@ -542,134 +543,6 @@ function slugifyKey(input: string) {
       .replace(/^-+|-+$/g, '')
       .slice(0, 60) || 'draft'
   );
-}
-
-/**
- * Extract JSON object from mixed response (prose + JSON).
- * Tries: 1) direct parse, 2) find first { ... } containing "response" or "actions".
- */
-function extractJsonFromResponse(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  try {
-    JSON.parse(trimmed);
-    return trimmed;
-  } catch {
-    /* not valid JSON, try extraction */
-  }
-  const jsonMatch = trimmed.match(/\{[\s\S]*"(?:response|actions)"[\s\S]*\}/);
-  if (jsonMatch) {
-    const candidate = jsonMatch[0];
-    try {
-      const obj = JSON.parse(candidate);
-      if (typeof obj === 'object' && obj !== null && (typeof obj.response === 'string' || Array.isArray(obj.actions))) {
-        return candidate;
-      }
-    } catch {
-      /* try to find balanced braces */
-    }
-  }
-  const fromNewline = trimmed.match(/\n\s*(\{[\s\S]*\})\s*$/);
-  if (fromNewline) {
-    try {
-      JSON.parse(fromNewline[1]);
-      return fromNewline[1];
-    } catch {
-      /* ignore */
-    }
-  }
-  return null;
-}
-
-function parseStructuredAgentResponse(
-  raw: string,
-  requestId?: string,
-): { responseText: string; actions: StructuredAgentAction[]; raw: string; ignoredReason?: string; validationError?: ActionValidationError } {
-  const trimmed = raw.trim();
-
-  if (trimmed.startsWith('```')) {
-    const stripped = trimmed.replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();
-    try {
-      const parsed = JSON.parse(stripped);
-      const responseText = typeof parsed?.response === 'string' ? parsed.response : stripped;
-      const actionsResult = safeParseActions(parsed);
-      if (isActionParseSuccess(actionsResult)) {
-        return { responseText, actions: actionsResult.actions, raw };
-      }
-      const legacyActions = Array.isArray(parsed?.actions)
-        ? parsed.actions
-            .filter((action: any) => action && typeof action.type === 'string')
-            .map((action: any) => ({ type: action.type, payload: action.payload ?? null }))
-        : [];
-      return { responseText, actions: legacyActions, raw };
-    } catch {
-      return { responseText: stripped, actions: [], raw, ignoredReason: 'fenced_response' };
-    }
-  }
-
-  const jsonStr = extractJsonFromResponse(trimmed) ?? trimmed;
-  try {
-    const parsed = JSON.parse(jsonStr);
-    const responseText = typeof parsed?.response === 'string' ? parsed.response : raw;
-
-    // Try to parse actions using canonical schema
-    const actionsResult = safeParseActions(parsed);
-    
-    if (!isActionParseSuccess(actionsResult)) {
-      const validationError = actionsResult.error;
-      logger.warn({
-        requestId,
-        reason: 'action_validation_failed',
-        error: validationError.message,
-        context: validationError.context,
-      }, '[kip.actions] failed to parse actions from agent response');
-      
-      // Fallback to legacy parsing for backward compatibility
-      if (parsed?.type !== ACTION_ENVELOPE_TYPE) {
-        return { responseText, actions: [], raw, ignoredReason: 'missing_agent_output_envelope', validationError };
-      }
-
-      const legacyActions = Array.isArray(parsed?.actions)
-        ? parsed.actions
-            .filter((action: any) => action && typeof action.type === 'string')
-            .map((action: any) => ({
-              type: action.type,
-              payload: action.payload ?? null,
-            }))
-        : [];
-
-      return { responseText, actions: legacyActions, raw, validationError };
-    }
-
-    return { responseText, actions: actionsResult.actions, raw };
-  } catch (error) {
-    const fallbackJson = extractJsonFromResponse(raw);
-    if (fallbackJson) {
-      try {
-        const parsed = JSON.parse(fallbackJson);
-        const responseText = typeof parsed?.response === 'string' ? parsed.response : raw;
-        const actionsResult = safeParseActions(parsed);
-        if (isActionParseSuccess(actionsResult)) {
-          return { responseText, actions: actionsResult.actions, raw };
-        }
-        const legacyActions = Array.isArray(parsed?.actions)
-          ? parsed.actions
-              .filter((action: any) => action && typeof action.type === 'string')
-              .map((action: any) => ({ type: action.type, payload: action.payload ?? null }))
-          : [];
-        return { responseText, actions: legacyActions, raw };
-      } catch {
-        /* fall through */
-      }
-    }
-    return {
-      responseText:
-        'I had trouble formatting that response. Please try again — use draft.update.propose for draft points, not custom action types.',
-      actions: [],
-      raw,
-      ignoredReason: 'invalid_json',
-    };
-  }
 }
 
 /**
@@ -3860,12 +3733,16 @@ export class KipAgentService {
         const composedSystemPrompt = aiResult.composedSystemPrompt;
 
         const requestId = randomUUID();
-        let structured = parseStructuredAgentResponse(response, requestId);
+        const allowActions = buildAllowedActions(options?.environment ?? null);
+        let structured = await ensureKipAgentOutputEnvelope(response, {
+          requestId,
+          userId,
+          allowedActions: Array.from(allowActions),
+        });
         console.log('[kip/agents] Raw AI response (first 1000):', response.slice(0, 1000));
         console.log('[actions] Parsed actions:', JSON.stringify(structured.actions));
         console.log('[kip/agents] ignoredReason:', structured.ignoredReason ?? null);
         console.log('[kip/agents] validationError:', structured.validationError?.message ?? null);
-        const allowActions = buildAllowedActions(options?.environment ?? null);
         const actionPack = options?.actionPack ?? buildActionPackFromAllowlist(allowActions);
 
         let finalResponseText = structured.responseText;
@@ -3960,7 +3837,11 @@ export class KipAgentService {
             domainId: options?.domainId ?? null,
           });
           lastResponse = retryResult.content;
-          lastStructured = parseStructuredAgentResponse(lastResponse, requestId);
+          lastStructured = await ensureKipAgentOutputEnvelope(lastResponse, {
+            requestId,
+            userId,
+            allowedActions: Array.from(allowActions),
+          });
           governanceRetryCount++;
         }
 
@@ -4222,8 +4103,13 @@ export class KipAgentService {
         });
 
         const systemRequestId = randomUUID();
-        const structured = parseStructuredAgentResponse(aiResult.content, systemRequestId);
-        const allowActions = buildAllowedActions(options?.environment ?? null);
+        const systemAllowActions = buildAllowedActions(options?.environment ?? null);
+        const structured = await ensureKipAgentOutputEnvelope(aiResult.content, {
+          requestId: systemRequestId,
+          userId,
+          allowedActions: Array.from(systemAllowActions),
+        });
+        const allowActions = systemAllowActions;
         let actionResults: ActionExecutionResult[] = [];
         let finalResponseText = structured.responseText || aiResult.content;
 
