@@ -4,11 +4,7 @@
  *
  * Two-model pattern:
  *   Anthropic (claude-sonnet-4-6) — conversation, brief confirmation of what changed
- *   Together AI (meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo, JSON Mode + schema)
- *     — schema-constrained domain JSON output via response_format
- *
- * Fallback: if TOGETHER_API_KEY is not configured, a second Anthropic call
- * produces the JSON block directly, so the loop always completes.
+ *   Structure service (Together JSON + schema, Anthropic fallback) — domain.frame.* contracts
  *
  * Request:  { message, frameKey, conversationHistory }
  * Response: { response: string, draft?: { spec_json: object } }
@@ -25,9 +21,12 @@ import { logger } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { getFrameSliceFromDomainFrame } from '@keeper/shared';
-import { FRAME_SCHEMA_MAP } from './frame-schemas.js';
 import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
-import { getModelCapabilities } from '../../config/index.js';
+import {
+  getDomainFrameStructureContractId,
+  hasDomainFrameStructureContract,
+} from '../../services/structure/contracts.js';
+import { generateDomainFrameSlice } from '../../services/structure/generateDomainFrameSlice.js';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -84,112 +83,6 @@ async function callAnthropic(
     .filter((b: any) => b.type === 'text')
     .map((b: any) => b.text ?? '')
     .join('');
-}
-
-// ─── Together AI JSON Mode call ───────────────────────────────────────────────
-
-const TOGETHER_DESIGNER_MODEL = 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo';
-
-async function callTogetherJsonMode(
-  systemPrompt: string,
-  userPrompt: string,
-  schema: object,
-  apiKey: string,
-): Promise<unknown> {
-  const capabilities = getModelCapabilities('together-ai', TOGETHER_DESIGNER_MODEL);
-  logger.info('[designer] Calling Together AI JSON mode with schema', {
-    jsonModeSupported: capabilities.jsonMode,
-  });
-
-  const body: Record<string, unknown> = {
-    model: TOGETHER_DESIGNER_MODEL,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
-    max_tokens: 4000,
-    temperature: 0.3,
-  };
-  if (capabilities.jsonMode) {
-    body.response_format = { type: 'json_object', schema };
-  }
-
-  const response = await fetch('https://api.together.xyz/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Together AI error ${response.status}: ${errText}`);
-  }
-
-  const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content;
-  if (!content) throw new Error('Together AI returned no content');
-
-  try {
-    return JSON.parse(content);
-  } catch {
-    throw new Error('Together AI returned non-JSON content');
-  }
-}
-
-// ─── Anthropic JSON fallback ──────────────────────────────────────────────────
-// Used when TOGETHER_API_KEY is not configured or Together AI call fails.
-// Instructs Anthropic to return a raw JSON object only — no prose, no fences.
-
-async function callAnthropicJsonFallback(
-  existingJson: object | null,
-  frameKey: string,
-  domainSlug: string,
-  authoringIntent: string,
-  conversationContext: string,
-  apiKey: string,
-): Promise<unknown> {
-  logger.info('[designer] Calling Anthropic JSON fallback');
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey });
-
-  const systemPrompt = [
-    `You are authoring the \`${frameKey}\` frame JSON block for the Keeper domain "${domainSlug}".`,
-    ``,
-    `Current \`${frameKey}\` content:`,
-    existingJson ? JSON.stringify(existingJson, null, 2) : '{}',
-    ``,
-    `Authoring intent: ${authoringIntent}`,
-    conversationContext ? `\nContext from Kip: ${conversationContext}` : '',
-    ``,
-    `IMPORTANT: Respond ONLY with a valid JSON object — no explanation, no markdown, no code fences.`,
-    `Preserve all existing fields. Update only what was requested.`,
-    `All string values must be meaningful, brand-appropriate content for this domain.`,
-  ].join('\n');
-
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 4000,
-    temperature: 0.2,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: `Produce the updated \`${frameKey}\` frame JSON object.` }],
-  } as any);
-
-  const text = ((response as any).content ?? [])
-    .filter((b: any) => b.type === 'text')
-    .map((b: any) => b.text ?? '')
-    .join('');
-
-  // Strip any accidental markdown fences
-  const stripped = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
-
-  try {
-    return JSON.parse(stripped);
-  } catch {
-    throw new Error('Anthropic JSON fallback returned non-JSON content');
-  }
 }
 
 // ─── Route ────────────────────────────────────────────────────────────────────
@@ -308,7 +201,6 @@ router.post(
 
       // ── Resolve API keys ──
       const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim() || null;
-      const togetherKey = process.env.TOGETHER_API_KEY?.trim() || null;
 
       if (!anthropicKey) {
         return res.status(503).json({
@@ -348,68 +240,31 @@ router.post(
       logger.info({ requestId, domainId, frameKey, userId: req.user.id }, '[designer] Anthropic conversation call');
       const kipResponse = await callAnthropic(kipSystemPrompt, anthropicMessages, anthropicKey);
 
-      // ── Look up frame schema ──
-      const frameSchema = FRAME_SCHEMA_MAP[frameKey] ?? null;
-
-      // ── Decide whether to generate a JSON proposal ──
-      // Produce JSON when: authoring intent detected AND frame has a schema.
-      // Together AI is preferred (schema-constrained); Anthropic is the fallback.
-      const needsJson = wantsJsonProposal(message) && frameSchema !== null;
+      const frameContractId = getDomainFrameStructureContractId(frameKey);
+      const needsJson = wantsJsonProposal(message) && hasDomainFrameStructureContract(frameKey);
 
       let draftSpecJson: unknown | null = null;
 
-      if (needsJson) {
-        const togetherSystemPrompt = [
-          `You are authoring the \`${frameKey}\` frame JSON block for the Keeper domain "${domain.slug}".`,
-          `Your output must strictly match the provided JSON schema — every required field must be present, no extra keys allowed.`,
-          ``,
-          `All string values must be meaningful, brand-appropriate content for this domain. Do not use placeholder text.`,
-          ``,
-          `Current \`${frameKey}\` content:`,
-          currentFrameBlock ? JSON.stringify(currentFrameBlock, null, 2) : '{}',
-          ``,
-          `Authoring intent: ${message}`,
-          ``,
-          `Proposed approach from Kip: ${kipResponse}`,
-          ``,
-          `Produce the complete updated \`${frameKey}\` JSON object. Preserve all existing fields; update only what was requested.`,
-        ].join('\n');
-
-        const togetherUserPrompt = `Produce the updated \`${frameKey}\` frame JSON object.`;
-
-        if (togetherKey) {
-          try {
-            draftSpecJson = await callTogetherJsonMode(
-              togetherSystemPrompt,
-              togetherUserPrompt,
-              frameSchema,
-              togetherKey,
-            );
-            logger.info({ requestId, domainId, frameKey }, '[designer] Together AI JSON mode produced draft');
-          } catch (togetherErr) {
-            logger.warn({ requestId, domainId, err: togetherErr }, '[designer] Together AI failed, falling back to Anthropic JSON');
-          }
-        }
-
-        // Anthropic JSON fallback — runs if Together AI is unavailable or failed
-        if (draftSpecJson === null) {
-          try {
-            draftSpecJson = await callAnthropicJsonFallback(
-              currentFrameBlock
-                && typeof currentFrameBlock === 'object'
-                && !Array.isArray(currentFrameBlock)
-                ? (currentFrameBlock as object)
-                : null,
-              frameKey,
-              domain.slug,
-              message,
-              kipResponse,
-              anthropicKey,
-            );
-            logger.info({ requestId, domainId, frameKey }, '[designer] Anthropic JSON fallback produced draft');
-          } catch (fallbackErr) {
-            logger.warn({ requestId, domainId, err: fallbackErr }, '[designer] Anthropic JSON fallback failed, returning conversation only');
-          }
+      if (needsJson && frameContractId) {
+        const generated = await generateDomainFrameSlice({
+          contractId: frameContractId,
+          frameKey,
+          domainSlug: domain.slug,
+          authoringIntent: message,
+          conversationContext: kipResponse,
+          currentSlice: currentFrameBlock,
+          userId: req.user.id,
+          requestId,
+          anthropicApiKey: anthropicKey,
+        });
+        if (generated.ok && generated.data !== null) {
+          draftSpecJson = generated.data;
+          logger.info(
+            { requestId, domainId, frameKey, source: generated.source },
+            '[designer] structure service produced frame draft',
+          );
+        } else {
+          logger.warn({ requestId, domainId, frameKey }, '[designer] structure service returned no draft');
         }
       }
 

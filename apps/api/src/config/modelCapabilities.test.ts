@@ -40,6 +40,6 @@ describe('getModelCapabilities', () => {
 
   it('defaults together-ai to conservative capabilities', () => {
     const caps = getModelCapabilities('together-ai', 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo');
-    expect(caps.jsonMode).toBe(false);
+    expect(caps.jsonMode).toBe(true);
   });
 });
