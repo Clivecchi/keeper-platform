@@ -41,7 +41,8 @@ async function fetchBlobWithAuth(url: string): Promise<Response> {
 async function loadUploadContent(sourceRef: string): Promise<{
   mime: string | null;
   text: string | null;
-  imageUrl: string | null;
+  imageBase64: string | null;
+  imageMediaType: string | null;
 }> {
   const res = await fetchBlobWithAuth(sourceRef);
   if (!res.ok) {
@@ -50,7 +51,14 @@ async function loadUploadContent(sourceRef: string): Promise<{
   const mime = res.headers.get('content-type')?.split(';')[0]?.trim() ?? guessMimeFromRef(sourceRef);
 
   if (isImageMime(mime)) {
-    return { mime, text: null, imageUrl: sourceRef };
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const mediaType = mime && mime.startsWith('image/') ? mime : 'image/jpeg';
+    return {
+      mime,
+      text: null,
+      imageBase64: buffer.toString('base64'),
+      imageMediaType: mediaType,
+    };
   }
 
   const buffer = Buffer.from(await res.arrayBuffer());
@@ -58,7 +66,8 @@ async function loadUploadContent(sourceRef: string): Promise<{
     return {
       mime,
       text: `[Binary upload — ${Math.round(buffer.length / 1024)}KB, type ${mime ?? 'unknown'}]`,
-      imageUrl: null,
+      imageBase64: null,
+      imageMediaType: null,
     };
   }
 
@@ -68,13 +77,19 @@ async function loadUploadContent(sourceRef: string): Promise<{
       mime === 'application/pdf' ||
       mime.includes('markdown'))
   ) {
-    return { mime, text: buffer.toString('utf8').slice(0, MAX_TEXT_CHARS), imageUrl: null };
+    return {
+      mime,
+      text: buffer.toString('utf8').slice(0, MAX_TEXT_CHARS),
+      imageBase64: null,
+      imageMediaType: null,
+    };
   }
 
   return {
     mime,
     text: `[Uploaded file — ${Math.round(buffer.length / 1024)}KB, type ${mime ?? 'unknown'}]`,
-    imageUrl: null,
+    imageBase64: null,
+    imageMediaType: null,
   };
 }
 
@@ -118,11 +133,26 @@ async function generatePerspectiveText(params: {
   model: string;
   userId?: string | null;
   prompt: string;
-  imageUrl?: string | null;
+  imageBase64?: string | null;
+  imageMediaType?: string | null;
+  documentText?: string | null;
 }): Promise<string> {
   const parts: ModelContentPart[] = [{ type: 'text', text: params.prompt }];
-  if (params.imageUrl) {
-    parts.push({ type: 'image_url', image_url: { url: params.imageUrl } });
+
+  if (params.documentText?.trim()) {
+    parts.push({
+      type: 'text',
+      text: `\n\n--- File content ---\n${params.documentText.trim()}`,
+    });
+  }
+
+  if (params.imageBase64 && params.imageMediaType) {
+    parts.push({
+      type: 'image_url',
+      image_url: {
+        url: `data:${params.imageMediaType};base64,${params.imageBase64}`,
+      },
+    });
   }
 
   const response = await ModelProviderService.callModel({
@@ -134,7 +164,7 @@ async function generatePerspectiveText(params: {
         content:
           'You assess reference materials for a Keeper domain library. Write a concise agent perspective (2–4 sentences): what this item is, why it matters, and how it might be used. Be specific to the content — never generic filler.',
       },
-      { role: 'user', content: parts.length === 1 ? params.prompt : parts },
+      { role: 'user', content: parts },
     ],
     settings: {
       model: params.model,
@@ -168,9 +198,9 @@ export async function contextualizeLibraryItem(params: {
     if (params.sourceType === 'upload') {
       const loaded = await loadUploadContent(params.sourceRef);
       const label = params.displayLabel?.trim() || params.sourceRef.split('/').pop() || 'Upload';
-      const prompt = loaded.imageUrl
+      const prompt = loaded.imageBase64
         ? `Library upload "${label}". Describe what you see in this image and note how it could support this Keeper domain.`
-        : `Library upload "${label}" (${loaded.mime ?? 'unknown type'}).\n\nContent excerpt:\n${loaded.text ?? '[empty]'}\n\nSummarize key points and note how this material could support the domain.`;
+        : `Library upload "${label}" (${loaded.mime ?? 'unknown type'}). Summarize key points from the file content and note how this material could support the domain.`;
 
       perspective = await generatePerspectiveText({
         agentName,
@@ -178,7 +208,9 @@ export async function contextualizeLibraryItem(params: {
         model,
         userId: params.userId,
         prompt,
-        imageUrl: loaded.imageUrl,
+        imageBase64: loaded.imageBase64,
+        imageMediaType: loaded.imageMediaType,
+        documentText: loaded.imageBase64 ? null : loaded.text,
       });
     } else {
       const loaded = await loadUrlContent(params.sourceRef);

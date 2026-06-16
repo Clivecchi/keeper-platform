@@ -296,15 +296,60 @@ class AnthropicProvider {
   }
 }
 
+function parseDataUrlImage(url: string): { mediaType: string; data: string } | null {
+  const match = url.match(/^data:([^;,]+);base64,(.+)$/);
+  if (!match) return null;
+  return { mediaType: match[1], data: match[2] };
+}
+
+type AnthropicMessageContent =
+  | string
+  | Array<
+      | { type: 'text'; text: string }
+      | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
+      | { type: 'image'; source: { type: 'url'; url: string } }
+    >;
+
+function convertModelContentToAnthropic(content: string | ModelContentPart[]): AnthropicMessageContent {
+  if (typeof content === 'string') return content;
+
+  const blocks: Exclude<AnthropicMessageContent, string> = [];
+  for (const part of content) {
+    if (part.type === 'text') {
+      if (part.text.trim()) blocks.push({ type: 'text', text: part.text });
+      continue;
+    }
+    if (part.type === 'image_url') {
+      const parsed = parseDataUrlImage(part.image_url.url);
+      if (parsed) {
+        blocks.push({
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: parsed.mediaType,
+            data: parsed.data,
+          },
+        });
+      } else {
+        blocks.push({
+          type: 'image',
+          source: { type: 'url', url: part.image_url.url },
+        });
+      }
+    }
+  }
+
+  if (blocks.length === 0) return '[Empty]';
+  if (blocks.length === 1 && blocks[0].type === 'text') return blocks[0].text;
+  return blocks;
+}
+
 function convertToAnthropicFormat(messages: ModelMessage[]): {
-  anthropicMessages: Array<{ role: 'user' | 'assistant'; content: string | Array<{ type: 'text'; text: string }> }>;
+  anthropicMessages: Array<{ role: 'user' | 'assistant'; content: AnthropicMessageContent }>;
   systemPrompt: string | null;
 } {
   const systemParts: string[] = [];
-  const anthropicMessages: Array<{
-    role: 'user' | 'assistant';
-    content: string | Array<{ type: 'text'; text: string }>;
-  }> = [];
+  const anthropicMessages: Array<{ role: 'user' | 'assistant'; content: AnthropicMessageContent }> = [];
 
   for (const msg of messages) {
     if (msg.role === 'system') {
@@ -314,8 +359,10 @@ function convertToAnthropicFormat(messages: ModelMessage[]): {
     }
     if (msg.role !== 'user' && msg.role !== 'assistant') continue;
 
-    const text = typeof msg.content === 'string' ? msg.content : extractTextFromContent(msg.content);
-    anthropicMessages.push({ role: msg.role, content: text || '[Empty]' });
+    anthropicMessages.push({
+      role: msg.role,
+      content: convertModelContentToAnthropic(msg.content),
+    });
   }
 
   return {
