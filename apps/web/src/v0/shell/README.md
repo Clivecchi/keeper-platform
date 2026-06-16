@@ -26,6 +26,7 @@ The shell resolves the domain slug, applies the active theme/style, and routes f
 - [ ] Default keeper/journey creation when none exist for a domain.
 
 ## 📆 Update Log
+- 2026-06-15: `FRAME_TO_JSON_KEY` canonical source moved to `@keeper/shared/structure/frameJsonMap`; this file re-exports for backward-compatible imports.
 - 2026-06-12: Removed designer-only auto-default `?definition=ide` (was racing stale router and blocking Design open). All board URL writes use `commitBoardSearch` → `navigate()` from authoritative search params.
 - 2026-06-12: Panel reads use `useBoardDefinitionFromUrl()` hook — V0Shell still exposes `boardDefinitionId` for legacy consumers.
 - 2026-06-12: Design definition selection — all board panels read `boardDefinitionId` from V0Shell (parsed from `location.search`); no panel uses `useSearchParams()` for `?definition=`.

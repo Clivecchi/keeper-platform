@@ -24,6 +24,7 @@ import { z } from 'zod';
 import { logger } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
+import { getFrameSliceFromDomainFrame } from '@keeper/shared';
 import { FRAME_SCHEMA_MAP } from './frame-schemas.js';
 import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
 import { getModelCapabilities } from '../../config/index.js';
@@ -302,8 +303,8 @@ router.post(
         return res.status(404).json({ error: 'DOMAIN_NOT_FOUND' });
       }
 
-      const liveFrameJson = domain.frame_json ?? {};
-      const currentFrameBlock = (liveFrameJson as any)[frameKey] ?? null;
+      const liveFrameJson = (domain.frame_json ?? {}) as Record<string, unknown>;
+      const currentFrameBlock = getFrameSliceFromDomainFrame(liveFrameJson, frameKey);
 
       // ── Resolve API keys ──
       const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim() || null;
@@ -394,7 +395,11 @@ router.post(
         if (draftSpecJson === null) {
           try {
             draftSpecJson = await callAnthropicJsonFallback(
-              currentFrameBlock,
+              currentFrameBlock
+                && typeof currentFrameBlock === 'object'
+                && !Array.isArray(currentFrameBlock)
+                ? (currentFrameBlock as object)
+                : null,
               frameKey,
               domain.slug,
               message,

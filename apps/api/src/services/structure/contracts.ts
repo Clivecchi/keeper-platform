@@ -1,5 +1,6 @@
 import {
   KIP_AGENT_OUTPUT_CONTRACT_ID,
+  toDomainFrameStructureContractId,
   type StructureContractId,
   type StructureContractMeta,
 } from '@keeper/shared';
@@ -32,4 +33,9 @@ export function getStructureContract(
     return STRUCTURE_CONTRACTS[KIP_AGENT_OUTPUT_CONTRACT_ID];
   }
   return null;
+}
+
+/** Resolve `domain.frame.{frameKey}` contract id when the frame is JSON-governed. */
+export function getDomainFrameStructureContractId(frameKey: string): StructureContractId | null {
+  return toDomainFrameStructureContractId(frameKey);
 }

@@ -62,25 +62,11 @@ export const FRAME_DISPLAY_NAMES: Record<string, string> = {
   hub: "Hub",
 }
 
-/**
- * Maps a frame registry key to its corresponding key in DomainFrameJson.
- * Null means no domain JSON block governs that frame.
- */
-export const FRAME_TO_JSON_KEY: Record<string, string | null> = {
-  cover: "cover",
-  commons: "commons",
-  index: null,
-  moment: "moment",
-  moments: "kept_moments",
-  present: null,
-  diagnostics: "diagnostics",
-  feed: "feed",
-  keepers: "keepers",
-  journeys: "journeys",
-  profile: "profile",
-  agent: "agent_board",
-  kip: "kip",
-  admin: "domain_admin",
-  theme: "theme",
-  hub: null,
-}
+/** @deprecated Import from `@keeper/shared` — re-exported for existing web paths. */
+export {
+  FRAME_TO_JSON_KEY,
+  getFrameSliceFromDomainFrame,
+  getJsonSlicePath,
+  isGovernedFrameKey,
+  toDomainFrameStructureContractId,
+} from "@keeper/shared"

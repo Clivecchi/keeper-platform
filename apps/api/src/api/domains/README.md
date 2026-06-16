@@ -36,6 +36,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-06-15: **kip-designer slice fix** — reads frame blocks via `getFrameSliceFromDomainFrame` from `@keeper/shared` (correct `moments` → `kept_moments`, `admin` → `domain_admin`, etc.).
 ### 2026-05-27 — Draft Point model in spec_json
 - `kip-drafts.ts` normalizes `spec_json` on read/write via `@keeper/shared` `normalizeDraftSpecJson`; responses always include `spec.points` (array, may be empty).
 - New/create/update paths persist normalized spec including `points: []` when absent.
