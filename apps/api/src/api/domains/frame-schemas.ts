@@ -969,6 +969,39 @@ export const profileFrameSchema = {
   additionalProperties: false,
 } as const;
 
+// ─── theme ────────────────────────────────────────────────────────────────────
+// Source: DomainFrameTheme (top-level frame_json.theme — brand identity tokens)
+
+export const themeFrameSchema = {
+  type: "object",
+  properties: {
+    wordmark: { type: "string" },
+    tagline: { type: "string" },
+    background: { type: "string" },
+    colors: {
+      type: "object",
+      properties: {
+        primary: { type: "string" },
+        accent: { type: "string" },
+        surface: { type: "string" },
+      },
+      required: ["primary", "accent", "surface"],
+      additionalProperties: false,
+    },
+    fonts: {
+      type: "object",
+      properties: {
+        display: { type: "string" },
+        ui: { type: "string" },
+      },
+      required: ["display", "ui"],
+      additionalProperties: false,
+    },
+  },
+  required: ["wordmark", "tagline", "background", "colors", "fonts"],
+  additionalProperties: false,
+} as const;
+
 // ─── Schema lookup map ────────────────────────────────────────────────────────
 // Keys match V0FrameKey values as sent by the frontend.
 // Frames with no JSON governance are explicitly null — Together AI is skipped.
@@ -986,6 +1019,7 @@ export const FRAME_SCHEMA_MAP: Record<string, object | null> = {
   feed: feedFrameSchema,
   keepers: keepersFrameSchema,
   profile: profileFrameSchema,
+  theme: themeFrameSchema,
   // Frames with no JSON governance — Together AI call is skipped
   index: null,
   present: null,

@@ -13,8 +13,9 @@ describe('domain frame structure contracts', () => {
     expect(ids).toContain('domain.frame.cover');
     expect(ids).toContain('domain.frame.moments');
     expect(ids).toContain('domain.frame.admin');
+    expect(ids).toContain('domain.frame.theme');
     expect(ids.length).toBe(Object.keys(DOMAIN_FRAME_STRUCTURE_CONTRACTS).length);
-    expect(ids.length).toBeGreaterThanOrEqual(12);
+    expect(ids.length).toBeGreaterThanOrEqual(13);
   });
 
   it('resolves contract metadata with jsonSchema', () => {
@@ -30,5 +31,22 @@ describe('domain frame structure contracts', () => {
     expect(getDomainFrameStructureContractId('hub')).toBeNull();
     expect(hasDomainFrameStructureContract('index')).toBe(false);
     expect(hasDomainFrameStructureContract('cover')).toBe(true);
+    expect(hasDomainFrameStructureContract('theme')).toBe(true);
+  });
+
+  it('registers theme contract with DomainFrameTheme jsonSchema', () => {
+    const contract = getStructureContract('domain.frame.theme');
+    expect(contract?.frameKey).toBe('theme');
+    const schema = contract?.jsonSchema as {
+      properties?: Record<string, unknown>;
+      required?: string[];
+    };
+    expect(schema?.required).toEqual(
+      expect.arrayContaining(['wordmark', 'tagline', 'background', 'colors', 'fonts']),
+    );
+    expect(schema?.properties?.colors).toMatchObject({
+      type: 'object',
+      required: ['primary', 'accent', 'surface'],
+    });
   });
 });

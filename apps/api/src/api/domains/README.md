@@ -36,6 +36,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-06-15: **domain.frame.theme** — added `themeFrameSchema` (`DomainFrameTheme`) to `FRAME_SCHEMA_MAP`; Design Board Kip can propose brand token drafts on `?frame=theme`.
 - 2026-06-15: **Design Board structure Phase 3** — frame JSON generation routed through `generateDomainFrameSlice` + `domain.frame.*` contracts (Together schema pass, Anthropic fallback). Removed inline Together/Anthropic helpers from this file.
 - 2026-06-15: **kip-designer slice fix** — reads frame blocks via `getFrameSliceFromDomainFrame` from `@keeper/shared` (correct `moments` → `kept_moments`, `admin` → `domain_admin`, etc.).
 ### 2026-05-27 — Draft Point model in spec_json

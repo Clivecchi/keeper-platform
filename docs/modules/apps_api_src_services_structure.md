@@ -25,6 +25,7 @@ Contract IDs and `FRAME_TO_JSON_KEY` live in `@keeper/shared/structure`. Frame J
 - [ ] Replace permissive `domainFrameSliceSchema` with per-frame Zod from `domain-frame.types.ts`
 
 ## 📆 Update Log
+- 2026-06-15: **domain.frame.theme** — `themeFrameSchema` registered; 13 governed frame contracts including brand identity tokens.
 - 2026-06-15: Phase 3 — `DOMAIN_FRAME_STRUCTURE_CONTRACTS` from `FRAME_SCHEMA_MAP`; `generateDomainFrameSlice`; kip-designer uses structure service; Together jsonMode enabled for Llama 3.1 8B.
 - 2026-06-15: Phase 2 — frame slice map in `@keeper/shared/structure/frameJsonMap`.
 - 2026-06-15: Phase 1 — `kip.agent_output` contract wired into `runAgent`.

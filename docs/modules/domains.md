@@ -36,6 +36,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-06-15: **domain.frame.theme** — added `themeFrameSchema` (`DomainFrameTheme`) to `FRAME_SCHEMA_MAP`; Design Board Kip can propose brand token drafts on `?frame=theme`.
 ### 2026-04-01 — Dialog: persistent conversation container
 - Added `kip-dialogs.ts` with four routes: `POST /:domainId/kip/dialogs`, `GET /:domainId/kip/dialogs`, `GET /:domainId/kip/dialogs/:dialogId`, `PATCH /:domainId/kip/dialogs/:dialogId`, and `GET /:domainId/kip/dialogs/resolve/active`.
 - Modified `kip-designer.ts`: accepts optional `dialog_id` in the request body; after generating the Kip response, finds-or-creates a `Dialog` for the context (domain + board + frame), finds-or-creates a `kip_session` for that Dialog, and persists both the user message and Kip response as `kip_messages`. Returns `dialog_id` and `session_id` in the response.
