@@ -63,7 +63,6 @@ import {
   applyLibraryNavRowPatch,
   fetchDomainLibraryNavRows,
   libraryItemChronicleTitle,
-  librarySourceIconLetter,
   type LibraryNavRow,
   type LibraryNavRowPatch,
 } from "../presence/integrationChronicle/libraryNavUtils"
@@ -176,7 +175,11 @@ const WORKSPACE_BOARD_NAV: { id: WorkspaceBoardId; label: string }[] = [
 function resolveNavBlockOrder(def: UniversalBoardDef): NavRenderBlock[] {
   if (def.nav.navBlockOrder?.length) {
     const ordered = def.nav.navBlockOrder
-    const remainder = DEFAULT_NAV_BLOCK_ORDER.filter((block) => !ordered.includes(block))
+    const remainder = DEFAULT_NAV_BLOCK_ORDER.filter((block) => {
+      if (ordered.includes(block)) return false
+      if (block === "library" && !(def.nav.sections.library ?? false)) return false
+      return true
+    })
     return [...ordered, ...remainder]
   }
   if (def.nav.primarySection) {
@@ -750,13 +753,32 @@ export function UniversalNavPanel({
     onClick: () => onKeySelect?.(key.id),
   }))
 
-  const libraryItems: SidebarCardItem[] = (allLibraryRows ?? []).map((row) => ({
-    id: row.id,
-    label: libraryItemChronicleTitle(row),
-    iconLetter: librarySourceIconLetter(row.source_type),
-    isSelected: row.id === selectedLibraryItemId,
-    onClick: () => onLibraryItemSelect?.(row.id),
-  }))
+  const libraryItems: SidebarCardItem[] = React.useMemo(() => {
+    const rows = (allLibraryRows ?? []).filter(
+      (row) => row.id && row.source_ref?.trim() && libraryItemChronicleTitle(row).trim(),
+    )
+    const items: SidebarCardItem[] = rows.map((row) => ({
+      id: row.id,
+      label: libraryItemChronicleTitle(row),
+      isSelected: row.id === selectedLibraryItemId,
+      onClick: () => onLibraryItemSelect?.(row.id),
+    }))
+    if (showLibraryNav && !libraryCreating) {
+      items.push({
+        id: "__library_add_url__",
+        label: "Add URL…",
+        onClick: () => void handleLibraryAddUrl(),
+      })
+    }
+    return items
+  }, [
+    allLibraryRows,
+    selectedLibraryItemId,
+    onLibraryItemSelect,
+    showLibraryNav,
+    libraryCreating,
+    handleLibraryAddUrl,
+  ])
 
   // ── designer sections: Board Definitions ─────────────────────────────────
 
@@ -958,7 +980,7 @@ export function UniversalNavPanel({
       case "library":
         if (!showLibraryNav) return null
         return (
-          <>
+          <div className="flex flex-col gap-2">
             <input
               ref={libraryFileInputRef}
               type="file"
@@ -974,29 +996,22 @@ export function UniversalNavPanel({
                   ? "Adding item…"
                   : !domainId
                     ? "Loading…"
-                    : countLabel(allLibraryRows?.length ?? null, "item")
+                    : countLabel(
+                        (allLibraryRows ?? []).filter((row) => row.id && row.source_ref?.trim()).length,
+                        "item",
+                      )
               }
               items={libraryItems.length ? libraryItems : undefined}
               collapsible={libraryItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
               defaultCollapsed={libraryItems.length > NAV_COLLAPSE_ITEM_THRESHOLD}
               onAdd={libraryCreating ? undefined : handleLibraryUploadClick}
             />
-            {showLibraryNav && !libraryCreating ? (
-              <button
-                type="button"
-                onClick={() => void handleLibraryAddUrl()}
-                className="text-xs px-2 -mt-1 text-left underline-offset-2 hover:underline"
-                style={{ color: "hsl(var(--theme-ink-secondary))" }}
-              >
-                Add URL
-              </button>
-            ) : null}
             {libraryError && (
               <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
                 {libraryError}
               </p>
             )}
-          </>
+          </div>
         )
       case "capabilities":
         if (!showCapabilitiesNav || !capabilitiesByKind) return null

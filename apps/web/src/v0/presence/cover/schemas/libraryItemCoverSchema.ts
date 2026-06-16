@@ -2,9 +2,8 @@
  * Layer 2 — Library EntityKind cover schema.
  */
 import {
-  deriveLibraryItemName,
   libraryItemChronicleTitle,
-  librarySourceIconLetter,
+  resolveLibraryHeroAvatar,
 } from "../../integrationChronicle/libraryNavUtils"
 import type {
   CoverActionDef,
@@ -46,7 +45,7 @@ function resolveActions(handlers: CoverActionHandlers): CoverActionDef[] {
       label: "Manage",
       variant: "secondary",
       icon: "gear",
-      onClick: handlers.onConfigure,
+      onClick: handlers.onConfigure ?? (() => {}),
     },
   ]
 }
@@ -66,7 +65,7 @@ export const libraryItemCoverSchema: EntityCoverSchema<LibraryItemRecord> = {
 
     return {
       hero: {
-        avatar: librarySourceIconLetter(record.source_type),
+        avatar: resolveLibraryHeroAvatar(record),
         avatarGlow: "active",
         accentColor: "hsl(var(--theme-accent-primary))",
         chromeTitle: sourceTypeLabel(record.source_type),
@@ -75,7 +74,7 @@ export const libraryItemCoverSchema: EntityCoverSchema<LibraryItemRecord> = {
       },
       identity: {
         name: libraryItemChronicleTitle(record),
-        roleLine: deriveLibraryItemName(record),
+        roleLine: sourceTypeLabel(record.source_type).toUpperCase(),
         voiceQuote: record.description ?? undefined,
       },
       traits,

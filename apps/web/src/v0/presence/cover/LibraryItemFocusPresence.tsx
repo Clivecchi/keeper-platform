@@ -54,6 +54,10 @@ export function LibraryItemFocusPresence({
     onLabelResolved?.(libraryItemChronicleTitle(feed.item))
   }, [feed?.item, onLabelResolved])
 
+  const handleConfigure = React.useCallback(() => {
+    setCoverMode("config")
+  }, [])
+
   const itemRecord = React.useMemo(
     () => toLibraryItemRecord(objectId, feed?.item ?? record),
     [feed?.item, record, objectId],
@@ -65,9 +69,9 @@ export function LibraryItemFocusPresence({
         itemRecord,
         {},
         { objectId },
-        { onConfigure: () => setCoverMode("config") },
+        { onConfigure: handleConfigure },
       ),
-    [itemRecord, objectId],
+    [itemRecord, objectId, handleConfigure],
   )
 
   const chronicleBlocks = React.useMemo(
@@ -90,24 +94,37 @@ export function LibraryItemFocusPresence({
   if (coverMode === "config") {
     if (!feed) {
       return (
-        <div className="px-4 py-5">
+        <div className="relative flex flex-col h-full min-h-0 px-4 py-5">
           <FeedShimmer rows={4} />
         </div>
       )
     }
 
     return (
-      <LibraryItemConfigPresence
-        libraryItemId={feed.item.id}
-        domainId={domainId}
-        item={feed.item}
-        onBack={() => {
-          setCoverMode("cover")
-          void reload()
-        }}
-        onRefresh={() => void reload()}
-        onLabelResolved={onLabelResolved}
-      />
+      <div className="relative flex flex-col h-full min-h-0">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="config"
+            className="flex flex-col h-full min-h-0"
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 12 }}
+            transition={{ duration: 0.22 }}
+          >
+            <LibraryItemConfigPresence
+              libraryItemId={feed.item.id}
+              domainId={domainId}
+              item={feed.item}
+              onBack={() => {
+                setCoverMode("cover")
+                void reload()
+              }}
+              onRefresh={() => void reload()}
+              onLabelResolved={onLabelResolved}
+            />
+          </motion.div>
+        </AnimatePresence>
+      </div>
     )
   }
 

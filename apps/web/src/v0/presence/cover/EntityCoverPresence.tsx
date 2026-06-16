@@ -24,6 +24,16 @@ function resolveAccent(themeColor: string): string {
   return `hsl(var(--theme-${t}, var(--theme-accent-primary)))`
 }
 
+function isAvatarImageSrc(value: string): boolean {
+  const v = value.trim()
+  return (
+    v.startsWith("http://") ||
+    v.startsWith("https://") ||
+    v.startsWith("/api/") ||
+    v.startsWith("data:image/")
+  )
+}
+
 function glowColor(glow: CoverHeroContent["avatarGlow"]): string {
   if (glow === "error") return "hsl(var(--theme-status-error, 38 92% 50%))"
   if (glow === "active") return "hsl(var(--theme-status-success, 152 69% 43%))"
@@ -57,6 +67,7 @@ function HeroSlot({
   const accent = resolveAccent(hero.accentColor)
   const displayAvatar = hero.avatar?.trim() || "◇"
   const glow = glowColor(hero.avatarGlow)
+  const avatarIsImage = isAvatarImageSrc(displayAvatar)
 
   return (
     <motion.div
@@ -110,12 +121,12 @@ function HeroSlot({
         )}
 
         <motion.div
-          className="relative flex items-center justify-center rounded-full border"
+          className="relative flex items-center justify-center rounded-full border overflow-hidden"
           style={{
             width: 88,
             height: 88,
             borderColor: `${accent}55`,
-            background: `${accent}12`,
+            background: avatarIsImage ? "hsl(var(--theme-surface-panel))" : `${accent}12`,
             boxShadow: `0 0 32px ${accent}33`,
           }}
         >
@@ -127,17 +138,26 @@ function HeroSlot({
             }}
             aria-hidden
           />
-          <span
-            className="relative text-3xl font-semibold select-none"
-            style={{ color: accent }}
-            aria-hidden={!hero.avatar}
-          >
-            {displayAvatar.length <= 2 ? (
-              displayAvatar
-            ) : (
-              <span className="text-[11px] font-mono truncate px-1">{displayAvatar.slice(0, 8)}</span>
-            )}
-          </span>
+          {avatarIsImage ? (
+            <img
+              src={displayAvatar}
+              alt=""
+              className="relative h-full w-full object-cover"
+              draggable={false}
+            />
+          ) : (
+            <span
+              className="relative text-3xl font-semibold select-none"
+              style={{ color: accent }}
+              aria-hidden={!hero.avatar}
+            >
+              {displayAvatar.length <= 2 ? (
+                displayAvatar
+              ) : (
+                <span className="text-[11px] font-mono truncate px-1">{displayAvatar.slice(0, 8)}</span>
+              )}
+            </span>
+          )}
         </motion.div>
 
         {hero.frameLabel && (
