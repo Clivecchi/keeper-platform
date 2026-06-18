@@ -19,7 +19,6 @@ export { default as CodeSnippetFrame } from './CodeSnippetFrame';
 
 // Agent Home Board frames
 export { default as TopicsFrame } from './TopicsFrame';
-export { default as DraftFrame } from './DraftFrame';
 
 // Re-export types for convenience
 export type {

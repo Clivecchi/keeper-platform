@@ -58,7 +58,6 @@ const PeopleProcessFrame = lazy(() => import('./people-process-frame'));
 
 // Agent Home Board frames
 const TopicsFrame = lazy(() => import('./TopicsFrame'));
-const DraftFrame = lazy(() => import('./DraftFrame'));
 
 // =============================================================================
 // FRAME TYPE REGISTRY (Externalized)
@@ -245,8 +244,6 @@ export const FrameRenderer: React.FC<FrameRendererProps> = ({
       agent_preview: AgentPreviewFrame,
       code_snippet: CodeSnippetFrame,
       topics: TopicsFrame,
-      draft: DraftFrame,
-      drafts: DraftFrame, // alias
       activity: ActivityFeedFrame,
       activity_feed: ActivityFeedFrame,
       directory: PeopleOverviewFrame,
@@ -350,14 +347,14 @@ export const FrameRenderer: React.FC<FrameRendererProps> = ({
  */
 export const getSupportedFrameTypes = (): FrameType[] => {
   // This reflects only legacy map types; Phase 1 types are in the external registry
-  return ['media_card','preview','dialog','config_panel','process_frame','agent_preview','code_snippet','topics','draft'] as FrameType[];
+  return ['media_card','preview','dialog','config_panel','process_frame','agent_preview','code_snippet','topics'] as FrameType[];
 };
 
 /**
  * Check if a frame type is supported
  */
 export const isFrameTypeSupported = (frameType: string): frameType is FrameType => {
-  return getFrameDef(frameType as any) != null || ['media_card','preview','dialog','config_panel','process_frame','agent_preview','code_snippet','topics','draft'].includes(frameType);
+  return getFrameDef(frameType as any) != null || ['media_card','preview','dialog','config_panel','process_frame','agent_preview','code_snippet','topics'].includes(frameType);
 };
 
 /**

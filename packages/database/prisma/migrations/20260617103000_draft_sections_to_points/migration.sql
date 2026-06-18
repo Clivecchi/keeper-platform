@@ -1,0 +1,3 @@
+-- Phase 0: Draft content-shape — points are canonical.
+-- Legacy spec_json.sections rows are converted lazily on read/write via canonicalizeDraftSpecJson.
+-- Optional eager backfill: run `pnpm --filter @keeper/database exec tsx prisma/scripts/backfill-draft-sections-to-points.ts`

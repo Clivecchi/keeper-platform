@@ -57,6 +57,10 @@ model Keeper {
   id                   String                 @id
   title                String
   purpose              String
+  display_label        String?
+  description          String?
+  chronicle_blocks     String[]               @default([])
+  chronicle_actions    String[]               @default([])
   keeperTypeId         String?
   ownerId              String
   theme_id             String?                @db.Uuid
@@ -68,7 +72,6 @@ model Keeper {
   soleDraft            Json?
   soleSubmittedAt      DateTime?
   domainId             String?
-  presenceSchema       Json?
   Journey              Journey[]
   domain               Domain?                @relation(fields: [domainId], references: [id])
   KeeperType           KeeperType?            @relation(fields: [keeperTypeId], references: [id])
@@ -206,21 +209,6 @@ model Topic {
 
   @@index([agentId])
   @@index([boardId])
-}
-
-model Draft {
-  id        String   @id @default(uuid())
-  agentId   String
-  topicId   String?
-  title     String
-  status    String   @default("draft")
-  data      Json?
-  history   Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([agentId])
-  @@index([topicId])
 }
 
 model Task {

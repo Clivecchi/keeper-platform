@@ -11,6 +11,10 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `AgentFocusPresence.tsx` — Agent Cover Mode + Config Mode orchestration
 - `schemas/keyCoverSchema.ts` — Layer 2 Key EntityKind fill
 - `KeyFocusPresence.tsx` — Key Cover Mode + Config Mode orchestration
+- `schemas/capabilityCoverSchema.ts` — Layer 2 Capability EntityKind fill
+- `CapabilityFocusPresence.tsx` — Capability Cover Mode + Config Mode orchestration
+- `schemas/keeperCoverSchema.ts` — Layer 2 Keeper EntityKind fill
+- `KeeperFocusPresence.tsx` — Keeper Cover Mode + Config Mode orchestration
 - `schemas/integrationCoverSchema.ts` — Layer 2 Integration (service) cover fill
 - `IntegrationFocusPresence.tsx` — Integration Cover Mode + Config Mode orchestration
 - `AgentConfigPresence.tsx` — Config Mode compressed header + editable fields
@@ -22,18 +26,41 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 ## 🔄 Data & Behavior
 - Agent selection in nav → `KeeperPresence` (`layout="focus"`) → `AgentFocusPresence`
 - Key selection in nav → `KeeperPresence` (`layout="focus"`) → `KeyFocusPresence`
+- Capability selection in nav → `KeeperPresence` (`layout="focus"`) → `CapabilityFocusPresence`
+- Keeper selection in nav → `KeeperPresence` (`layout="focus"`) → `KeeperFocusPresence`
 - Integration selection in nav → `KeeperPresence` (`layout="focus"`) → `IntegrationFocusPresence`
-- **Cover Mode (default):** `EntityCoverPresence` + `agentCoverSchema.resolve()` from live agent record
+- **Cover Mode (default):** `EntityCoverPresence` + always `DeclarationChronicleBlocks` (Integration/Key); client-side declaration defaults when DB blocks empty
+- **Config Mode:** metadata via `useChronicleConfig` / `chroniclePatch.ts`; credential verify/rotate/disconnect stay inline (not Save bar)
+- **Agent Cover Mode:** `EntityCoverPresence` + `agentCoverSchema.resolve()` from live agent record
 - **Config Mode:** Configure action → `AgentConfigPresence`; back arrow returns to cover without requiring save
 - Save reuses existing `handleSaveAgent` PATCH path in `KeeperPresence` — no third save route
 - All colors via `hsl(var(--theme-*))`; agent `theme_color` drives hero radial accent
 
 ## ⚠️ Notes & ToDo
-- [ ] Journey, Keeper, Moment, Draft cover schemas — add `schemas/*CoverSchema.ts` following agent pattern
+- [ ] Journey, Path, Moment, Draft cover schemas — add `schemas/*CoverSchema.ts` following agent pattern
 - [ ] Theatre.js handoff — motion value names are fixed for Present integration
 - [ ] Domain assignment edit — read-only today; domain switch API pending
 
 ## 📆 Update Log
+
+### 2026-06-17 — Keeper EntityKind (Session C)
+- Added `keeperCoverSchema.ts`, `KeeperFocusPresence.tsx`; blocks: definition, journeys, engagement_templates, sole_memory
+- Nav uses `keeperChronicleTitle`; Config PATCH via `useChronicleConfig` entityKind `keeper`
+
+### 2026-06-13 — Capability EntityKind Pass 1
+- Added `capabilityCoverSchema.ts` + `CapabilityFocusPresence.tsx` (Cover ↔ Config, declaration blocks below cover)
+- Enforcement trait: infra → Enforced; tool/permission/action → Display only
+
+### 2026-06-13 — Phase 6 cleanup (unified pattern docs)
+- Documented unified Cover + Config split: declaration blocks always on cover; metadata PATCH via `chroniclePatch`; credentials separate
+
+### 2026-06-13 — Cover body unification (Phase 4)
+- `IntegrationFocusPresence` / `KeyFocusPresence`: always `DeclarationChronicleBlocks`; removed `FeedComponent` fork
+- Client-side declaration defaults via `resolveChronicleDeclaration.ts` when DB `chronicle_blocks` empty
+
+### 2026-06-13 — Key declaration chronicle blocks
+- `KeyFocusPresence` renders `DeclarationChronicleBlocks` (`variant="key"`) from `key.chronicle_blocks` instead of hand-rolled linked agents list
+- Matches `IntegrationFocusPresence` cover + declaration blocks layout
 
 ### 2026-06-12 — Delete retired Key/Integration presence wrappers
 - Deleted `KeyPresence.tsx`, `integrationChronicle/KeyChronicle.tsx` (superseded by `KeyFocusPresence`)

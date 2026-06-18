@@ -66,6 +66,11 @@ import {
   type LibraryNavRow,
   type LibraryNavRowPatch,
 } from "../presence/integrationChronicle/libraryNavUtils"
+import {
+  applyKeeperNavRowPatch,
+  keeperChronicleTitle,
+  type KeeperNavRowPatch,
+} from "../presence/integrationChronicle/keeperNavUtils"
 import { createLibraryItem, uploadLibraryFile } from "../presence/integrationChronicle/libraryNavCreate"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -116,6 +121,7 @@ export interface UniversalNavPanelProps {
   capabilityNavRowPatch?: CapabilityNavRowPatch | null
   libraryListVersion?: number
   libraryNavRowPatch?: LibraryNavRowPatch | null
+  keeperNavRowPatch?: KeeperNavRowPatch | null
 }
 
 // ─── Internal Types ──────────────────────────────────────────────────────────
@@ -139,6 +145,7 @@ type JourneyItem = {
 type KeeperItem = {
   id: string
   title: string
+  display_label?: string | null
   domainId?: string
 }
 
@@ -284,6 +291,7 @@ export function UniversalNavPanel({
   capabilityNavRowPatch = null,
   libraryListVersion = 0,
   libraryNavRowPatch = null,
+  keeperNavRowPatch = null,
 }: UniversalNavPanelProps) {
 
   const { user } = useAuth()
@@ -345,6 +353,21 @@ export function UniversalNavPanel({
   const applyLibraryNavPatch = React.useCallback(
     (rows: LibraryNavRow[]) => applyLibraryNavRowPatch(rows, libraryNavRowPatch),
     [libraryNavRowPatch],
+  )
+
+  const patchedKeepers = React.useMemo(
+    () =>
+      keepers
+        ? applyKeeperNavRowPatch(
+            keepers.map((k) => ({
+              id: k.id,
+              display_label: k.display_label ?? null,
+              title: k.title,
+            })),
+            keeperNavRowPatch,
+          )
+        : null,
+    [keepers, keeperNavRowPatch],
   )
 
   // ── Per-section error states ─────────────────────────────────────────────
@@ -667,10 +690,10 @@ export function UniversalNavPanel({
     onClick: () => onJourneySelect?.(j.id),
   }))
 
-  // Keepers: title only (no secondary metadata yet)
-  const allKeeperItems: SidebarCardItem[] = (keepers ?? []).map((k) => ({
+  // Keepers: display_label via keeperChronicleTitle (matches Chronicle cover)
+  const allKeeperItems: SidebarCardItem[] = (patchedKeepers ?? []).map((k) => ({
     id: k.id,
-    label: k.title?.trim() || "Untitled keeper",
+    label: keeperChronicleTitle(k),
     isSelected: k.id === selectedKeeperId,
     onClick: () => onKeeperSelect?.(k.id),
   }))
@@ -678,7 +701,13 @@ export function UniversalNavPanel({
   // Drafts: embed keeper name when available — matches IDE Board's label format
   const allDraftItems: SidebarCardItem[] = (drafts ?? []).map((d) => {
     const keeperName = d.keeperId
-      ? (keepers ?? []).find((k) => k.id === d.keeperId)?.title
+      ? keeperChronicleTitle(
+          (patchedKeepers ?? []).find((k) => k.id === d.keeperId) ?? {
+            id: d.keeperId,
+            title: "Keeper",
+            display_label: null,
+          },
+        )
       : null
     return {
       id: d.id,

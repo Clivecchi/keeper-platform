@@ -6,7 +6,7 @@ import { logger } from '@keeper/shared';
 import { authMiddlewareCompat, type AuthenticatedRequest } from '../../middleware/authMiddleware.js';
 import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middleware/domainPermissionMiddleware.js';
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
-import { normalizeDraftSpecJson, mergeDraftSpecPatch } from '@keeper/shared';
+import { normalizeDraftSpecJson, mergeDraftSpecPatch, canonicalizeDraftSpecJson } from '@keeper/shared';
 import { normalizeSummary } from '../kip/actions/schema.js';
 
 /**
@@ -247,7 +247,9 @@ router.post(
         title: body.title,
         summary: body.summary || null,
         status: 'draft',
-        spec_json: normalizeDraftSpecJson(body.spec ?? {}) as object,
+        spec_json: canonicalizeDraftSpecJson(body.spec ?? {}, {
+          proposedBy: req.user.id,
+        }) as object,
         updated_at: now,
         agent_id: body.agentId ?? null,
         keeper_id: keeperId,
@@ -325,7 +327,10 @@ router.patch(
       if (body.summary !== undefined) updatePayload.summary = body.summary ?? null;
       if (body.status !== undefined) updatePayload.status = body.status;
       if (body.spec !== undefined) {
-        updatePayload.spec_json = mergeDraftSpecPatch(existing.spec_json, body.spec ?? {}) as object;
+        updatePayload.spec_json = canonicalizeDraftSpecJson(
+          mergeDraftSpecPatch(existing.spec_json, body.spec ?? {}),
+          { proposedBy: req.user.id },
+        ) as object;
       }
 
       const nextVersion = await prisma.kip_draft_versions.count({ where: { draft_id: existing.id } }).then((n) => n + 1);

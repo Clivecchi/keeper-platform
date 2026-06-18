@@ -15,6 +15,7 @@ import { logger } from '@keeper/shared';
 import {
   appendDraftPointToSpec,
   buildDraftSummaryFromAcceptedPoints,
+  canonicalizeDraftSpecJson,
   createDraftPoint,
   findDraftPoint,
   mergeDraftSpecPatch,
@@ -137,7 +138,7 @@ function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown
 
 function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unknown }): string {
   const proposePoints =
-    '- When adding or changing draft CONTENT (points, sections, narrative), use draft.update.propose with payload.id (draft UUID), payload.content (the proposed text), and optional payload.type (moment | decision | context | general — default general). Each call appends one proposed point; the human must Accept in the UI before it is canonical.';
+    '- When adding or changing draft CONTENT, use draft.update.propose with payload.id (draft UUID), payload.content (the proposed text), and optional payload.type (moment | decision | context | general — default general). Each call appends one proposed point; the human must Accept in the UI before it is canonical.';
   if (isOperationalDraftAgent(agent)) {
     return `${proposePoints}\n- For draft METADATA only (title, summary, status, kind), you may use draft.update directly with payload.id and the changed fields. Never invent action types like add_point — only use actions from the allowlist.`;
   }
@@ -393,10 +394,13 @@ async function processDraftIntent(
     const status = payload.status?.trim() || existingDraft?.status || 'draft';
     const key = slugifyKey(payload.key || title || existingDraft?.key || `draft-${Date.now()}`);
     const summary = payload.summary ?? existingDraft?.summary ?? null;
-    const specToPersist = normalizeSpecPayload(payload.spec ?? existingDraft?.spec_json ?? {}, payload.raw ?? title, {
-      sessionId: ctx.sessionId,
-      requestId: ctx.requestId ?? null,
-    });
+    const specToPersist = canonicalizeDraftSpecJson(
+      normalizeSpecPayload(payload.spec ?? existingDraft?.spec_json ?? {}, payload.raw ?? title, {
+        sessionId: ctx.sessionId,
+        requestId: ctx.requestId ?? null,
+      }),
+      { proposedBy: 'user' },
+    ) as Prisma.JsonValue;
 
     const result = await prisma.$transaction(async (tx) => {
       let draftRecord =
@@ -832,11 +836,22 @@ export async function executeAgentActions(
             const kind = typeof payload.kind === 'string' && payload.kind.trim() ? payload.kind.trim() : 'draft';
             const status = typeof payload.status === 'string' && payload.status.trim() ? payload.status.trim() : 'draft';
             const summary = normalizeSummary(payload.summary);
-            const spec = payload.spec ?? {};
+            const rawSpec = payload.spec ?? {};
             const keeperId = typeof payload.keeperId === 'string' && payload.keeperId.trim() ? payload.keeperId.trim() : (ctx.keeperId ?? null);
 
             const key = slugifyKey(payload.key || title || `draft-${Date.now()}`);
             const now = new Date();
+
+            let proposedBy = 'agent';
+            if (ctx.agentId) {
+              const agent = await tx.kip_agents.findUnique({
+                where: { id: ctx.agentId },
+                select: { slug: true },
+              });
+              proposedBy = agent?.slug ?? ctx.agentId;
+            }
+
+            const canonicalSpec = canonicalizeDraftSpecJson(rawSpec, { proposedBy });
 
             try {
               const existing = await tx.kip_drafts.findFirst({
@@ -853,7 +868,7 @@ export async function executeAgentActions(
                 title,
                 summary,
                 status,
-                spec_json: spec,
+                spec_json: canonicalSpec as object,
                 updated_at: now,
                 agent_id: ctx.agentId ?? null,
                 keeper_id: keeperId,
@@ -1128,8 +1143,11 @@ export async function executeAgentActions(
                 : draft.summary ?? '',
               status: typeof payload.status === 'string' ? payload.status : draft.status,
               spec_json: (payload.spec !== undefined
-                ? mergeDraftSpecPatch(draft.spec_json, payload.spec ?? {})
-                : (draft.spec_json ?? {})) as Prisma.InputJsonValue,
+                ? canonicalizeDraftSpecJson(
+                    mergeDraftSpecPatch(draft.spec_json, payload.spec ?? {}),
+                    { proposedBy: 'agent' },
+                  )
+                : canonicalizeDraftSpecJson(draft.spec_json ?? {})) as Prisma.InputJsonValue,
               updated_at: new Date(),
             };
 
@@ -2981,10 +2999,10 @@ export class KipAgentService {
           '',
           `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
           'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — replaces draft spec when provided).',
-          'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',
-          'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"sections":[{"title":"Section 1","content":"Specific content here"},{"title":"Section 2","content":"More details"}]}}}]}',
+          'draft.create may include spec.points (array of point objects) for initial content, or omit spec and add content later via draft.update.propose. Do not use spec.sections — points are canonical.',
+          'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"points":[]}}}]}',
           draftRules?.autoDraft?.enabled
-            ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.`
+            ? `If autoDraft thresholds are met (points >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.`
             : 'If the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.',
         ]
           .filter(Boolean)
@@ -3358,10 +3376,10 @@ export class KipAgentService {
             '',
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
             'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — replaces draft spec when provided).',
-            'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',
-            'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"sections":[{"title":"Section 1","content":"Specific content here"},{"title":"Section 2","content":"More details"}]}}}]}',
+            'draft.create may include spec.points (array of point objects) for initial content, or omit spec and add content later via draft.update.propose. Do not use spec.sections — points are canonical.',
+            'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"points":[]}}}]}',
             draftRules?.autoDraft?.enabled
-              ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.`
+              ? `If autoDraft thresholds are met (points >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.`
               : 'If the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.',
           ]
             .filter(Boolean)

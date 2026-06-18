@@ -13,6 +13,8 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `KeyFocusPresence.tsx` — Key Cover Mode + Config Mode orchestration
 - `schemas/capabilityCoverSchema.ts` — Layer 2 Capability EntityKind fill
 - `CapabilityFocusPresence.tsx` — Capability Cover Mode + Config Mode orchestration
+- `schemas/keeperCoverSchema.ts` — Layer 2 Keeper EntityKind fill
+- `KeeperFocusPresence.tsx` — Keeper Cover Mode + Config Mode orchestration
 - `schemas/integrationCoverSchema.ts` — Layer 2 Integration (service) cover fill
 - `IntegrationFocusPresence.tsx` — Integration Cover Mode + Config Mode orchestration
 - `AgentConfigPresence.tsx` — Config Mode compressed header + editable fields
@@ -25,6 +27,7 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - Agent selection in nav → `KeeperPresence` (`layout="focus"`) → `AgentFocusPresence`
 - Key selection in nav → `KeeperPresence` (`layout="focus"`) → `KeyFocusPresence`
 - Capability selection in nav → `KeeperPresence` (`layout="focus"`) → `CapabilityFocusPresence`
+- Keeper selection in nav → `KeeperPresence` (`layout="focus"`) → `KeeperFocusPresence`
 - Integration selection in nav → `KeeperPresence` (`layout="focus"`) → `IntegrationFocusPresence`
 - **Cover Mode (default):** `EntityCoverPresence` + always `DeclarationChronicleBlocks` (Integration/Key); client-side declaration defaults when DB blocks empty
 - **Config Mode:** metadata via `useChronicleConfig` / `chroniclePatch.ts`; credential verify/rotate/disconnect stay inline (not Save bar)
@@ -34,11 +37,15 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - All colors via `hsl(var(--theme-*))`; agent `theme_color` drives hero radial accent
 
 ## ⚠️ Notes & ToDo
-- [ ] Journey, Keeper, Moment, Draft cover schemas — add `schemas/*CoverSchema.ts` following agent pattern
+- [ ] Journey, Path, Moment, Draft cover schemas — add `schemas/*CoverSchema.ts` following agent pattern
 - [ ] Theatre.js handoff — motion value names are fixed for Present integration
 - [ ] Domain assignment edit — read-only today; domain switch API pending
 
 ## 📆 Update Log
+
+### 2026-06-17 — Keeper EntityKind (Session C)
+- Added `keeperCoverSchema.ts`, `KeeperFocusPresence.tsx`; blocks: definition, journeys, engagement_templates, sole_memory
+- Nav uses `keeperChronicleTitle`; Config PATCH via `useChronicleConfig` entityKind `keeper`
 
 ### 2026-06-13 — Capability EntityKind Pass 1
 - Added `capabilityCoverSchema.ts` + `CapabilityFocusPresence.tsx` (Cover ↔ Config, declaration blocks below cover)

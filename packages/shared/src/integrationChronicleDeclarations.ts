@@ -257,3 +257,64 @@ export function resolveLibraryDeclarationBackfill(
   }
   return patch;
 }
+
+export const DEFAULT_KEEPER_CHRONICLE_BLOCKS: readonly string[] = [
+  'definition',
+  'journeys',
+  'engagement_templates',
+  'sole_memory',
+];
+
+export const DEFAULT_KEEPER_CHRONICLE_ACTIONS: readonly string[] = [];
+
+export type KeeperChronicleDefaults = {
+  chronicle_blocks: string[];
+  chronicle_actions: string[];
+  display_label: string;
+  description: string;
+};
+
+/** Default Chronicle blocks for Keeper EntityKind. */
+export function resolveKeeperChronicleDefaults(
+  title = 'Keeper',
+  purpose = '',
+): KeeperChronicleDefaults {
+  return {
+    chronicle_blocks: [...DEFAULT_KEEPER_CHRONICLE_BLOCKS],
+    chronicle_actions: [...DEFAULT_KEEPER_CHRONICLE_ACTIONS],
+    display_label: title.trim() || 'Keeper',
+    description: purpose.trim(),
+  };
+}
+
+export type KeeperDeclarationRow = {
+  chronicle_blocks?: string[];
+  chronicle_actions?: string[];
+  display_label?: string | null;
+  description?: string | null;
+  title?: string | null;
+  purpose?: string | null;
+};
+
+/** Backfill empty Keeper declaration columns (idempotent). */
+export function resolveKeeperDeclarationBackfill(
+  existing: KeeperDeclarationRow,
+): Partial<KeeperChronicleDefaults> {
+  const title = existing.display_label?.trim() || existing.title?.trim() || 'Keeper';
+  const purpose = existing.description?.trim() || existing.purpose?.trim() || '';
+  const defaults = resolveKeeperChronicleDefaults(title, purpose);
+  const patch: Partial<KeeperChronicleDefaults> = {};
+  if (!existing.chronicle_blocks?.length) {
+    patch.chronicle_blocks = defaults.chronicle_blocks;
+  }
+  if (!existing.chronicle_actions?.length) {
+    patch.chronicle_actions = defaults.chronicle_actions;
+  }
+  if (!existing.display_label?.trim()) {
+    patch.display_label = defaults.display_label;
+  }
+  if (!existing.description?.trim()) {
+    patch.description = defaults.description;
+  }
+  return patch;
+}

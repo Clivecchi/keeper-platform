@@ -18,13 +18,15 @@ export interface DraftPoint {
   updatedAt: string;
 }
 
+/** @deprecated Legacy sections shape — read compat only; canonical content is `points`. */
 export interface DraftSection {
   title: string;
   content: string;
 }
 
-/** Canonical shape for kip_drafts.spec_json */
+/** Canonical shape for kip_drafts.spec_json — persisted writes use `points` only. */
 export interface DraftSpecJson {
+  /** @deprecated Present only on read when legacy rows not yet backfilled. */
   sections?: DraftSection[];
   points?: DraftPoint[];
 }
@@ -96,25 +98,98 @@ export function parseDraftPoints(spec: unknown): DraftPoint[] {
 }
 
 /**
- * Normalize spec_json for API responses — preserves legacy sections, ensures points array.
+ * Convert legacy sections into draft points (accepted — historical create path).
+ */
+export function sectionsToDraftPoints(
+  sections: DraftSection[],
+  proposedBy = 'migration',
+): DraftPoint[] {
+  const now = new Date().toISOString();
+  return sections
+    .map((section) => {
+      const title = section.title.trim();
+      const body = section.content.trim();
+      const content = [title, body].filter(Boolean).join('\n\n').trim();
+      if (!content) return null;
+      return createDraftPoint({
+        content,
+        type: 'general',
+        proposedBy,
+        status: 'accepted',
+        createdAt: now,
+        updatedAt: now,
+      });
+    })
+    .filter((point): point is DraftPoint => point !== null);
+}
+
+/**
+ * Normalize spec_json for API responses.
+ * Legacy `sections` are merged into `points` when points are empty (read compat).
  */
 export function normalizeDraftSpecJson(spec: unknown): DraftSpecJson {
   if (!isRecord(spec)) {
     return { points: [] };
   }
 
-  const sections = Array.isArray(spec.sections)
+  const legacySections = Array.isArray(spec.sections)
     ? spec.sections
         .map(normalizeDraftSection)
         .filter((section): section is DraftSection => section !== null)
-    : undefined;
+    : [];
 
-  const points = parseDraftPoints(spec);
+  let points = parseDraftPoints(spec);
 
-  return {
-    ...(sections && sections.length > 0 ? { sections } : {}),
-    points,
-  };
+  if (points.length === 0 && legacySections.length > 0) {
+    points = sectionsToDraftPoints(legacySections);
+  }
+
+  const result: DraftSpecJson = { points };
+
+  // Read compat: expose deprecated sections until backfill completes everywhere.
+  if (legacySections.length > 0) {
+    result.sections = legacySections;
+  }
+
+  return result;
+}
+
+/**
+ * Canonical storage shape for writes — points only, no sections.
+ * Converts legacy sections to accepted points when points are empty.
+ * Preserves non-content keys (e.g. purpose, rules, source).
+ */
+export function canonicalizeDraftSpecJson(
+  spec: unknown,
+  options?: { proposedBy?: string },
+): DraftSpecJson & Record<string, unknown> {
+  if (!isRecord(spec)) {
+    return { points: [] };
+  }
+
+  const legacySections = Array.isArray(spec.sections)
+    ? spec.sections
+        .map(normalizeDraftSection)
+        .filter((section): section is DraftSection => section !== null)
+    : [];
+
+  let points = parseDraftPoints(spec);
+
+  if (points.length === 0 && legacySections.length > 0) {
+    points = sectionsToDraftPoints(
+      legacySections,
+      options?.proposedBy ?? 'migration',
+    );
+  }
+
+  const extras: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(spec)) {
+    if (key !== 'sections' && key !== 'points') {
+      extras[key] = value;
+    }
+  }
+
+  return { ...extras, points };
 }
 
 export interface CreateDraftPointInput {
@@ -143,9 +218,8 @@ export function createDraftPoint(input: CreateDraftPointInput): DraftPoint {
 
 /** Merge a new point into spec_json without mutating the input object. */
 export function appendDraftPointToSpec(spec: unknown, point: DraftPoint): DraftSpecJson {
-  const normalized = normalizeDraftSpecJson(spec);
+  const normalized = canonicalizeDraftSpecJson(spec);
   return {
-    ...normalized,
     points: [...(normalized.points ?? []), point],
   };
 }
@@ -156,7 +230,7 @@ export function updateDraftPointInSpec(
   pointId: string,
   patch: Partial<Pick<DraftPoint, 'status' | 'content' | 'type'>>,
 ): { spec: DraftSpecJson; point: DraftPoint | null } {
-  const normalized = normalizeDraftSpecJson(spec);
+  const normalized = canonicalizeDraftSpecJson(spec);
   const points = normalized.points ?? [];
   let updatedPoint: DraftPoint | null = null;
 
@@ -171,7 +245,7 @@ export function updateDraftPointInSpec(
   });
 
   return {
-    spec: { ...normalized, points: nextPoints },
+    spec: { points: nextPoints },
     point: updatedPoint,
   };
 }
@@ -185,25 +259,26 @@ export function findDraftPoint(spec: unknown, pointId: string): DraftPoint | nul
  * Preserves `points` and `sections` when omitted from the patch (common agent/client mistake).
  */
 export function mergeDraftSpecPatch(existingSpec: unknown, patchSpec: unknown): DraftSpecJson {
-  const existing = normalizeDraftSpecJson(existingSpec);
+  const existing = canonicalizeDraftSpecJson(existingSpec);
   if (!isRecord(patchSpec)) return existing;
 
-  const next: DraftSpecJson = {
-    ...(existing.sections?.length ? { sections: existing.sections } : {}),
-    points: existing.points ?? [],
-  };
+  let nextPoints = existing.points ?? [];
 
   if ('sections' in patchSpec) {
-    const sections = normalizeDraftSpecJson(patchSpec).sections;
-    if (sections?.length) next.sections = sections;
-    else delete next.sections;
+    const legacySections = normalizeDraftSpecJson(patchSpec).sections ?? [];
+    if (legacySections.length > 0) {
+      nextPoints = [
+        ...nextPoints,
+        ...sectionsToDraftPoints(legacySections, 'agent'),
+      ];
+    }
   }
 
   if ('points' in patchSpec) {
-    next.points = parseDraftPoints(patchSpec);
+    nextPoints = parseDraftPoints(patchSpec);
   }
 
-  return normalizeDraftSpecJson(next);
+  return canonicalizeDraftSpecJson({ points: nextPoints });
 }
 
 /** Build draft summary text from accepted points (visible Chronicle field). */

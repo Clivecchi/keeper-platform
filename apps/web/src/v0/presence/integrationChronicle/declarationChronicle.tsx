@@ -18,12 +18,19 @@ import type { AIModelFeedData, KeyHealthSource } from "./feeds/AIModelFeed"
 import type { GitHubFeedData } from "./feeds/GitHubFeed"
 import type { KeyFeedData } from "./feeds/KeyFeed"
 import type { CapabilityFeedData } from "./feeds/CapabilityFeed"
+import type { KeeperFeedData } from "./feeds/KeeperFeed"
 import type { LibraryItemFeedData } from "./feeds/LibraryItemFeed"
 import { LibraryAgentPerspectiveBlock, LibraryDefinitionBlock } from "./blocks/libraryBlocks"
 import {
   CapabilityDefinitionBlock,
   CapabilityUsedByBlock,
 } from "./blocks/capabilityBlocks"
+import {
+  KeeperDefinitionBlock,
+  KeeperEngagementTemplatesBlock,
+  KeeperJourneysBlock,
+  KeeperSoleMemoryBlock,
+} from "./blocks/keeperBlocks"
 import type { CapabilityKind } from "./capabilityNavUtils"
 import {
   ActionButton,
@@ -141,11 +148,19 @@ export type LibraryDeclarationChronicleBlocksProps = {
   libraryFeed: LibraryItemFeedData
 }
 
+export type KeeperDeclarationChronicleBlocksProps = {
+  variant: "keeper"
+  blocks: string[]
+  keeperFeed: KeeperFeedData
+  onJourneySelect?: (journeyId: string) => void
+}
+
 export type DeclarationChronicleBlocksProps =
   | IntegrationDeclarationChronicleBlocksProps
   | KeyDeclarationChronicleBlocksProps
   | CapabilityDeclarationChronicleBlocksProps
   | LibraryDeclarationChronicleBlocksProps
+  | KeeperDeclarationChronicleBlocksProps
 
 export function integrationKeyStatusLabel(
   keyStatus: "valid" | "invalid" | "missing" | undefined,
@@ -459,6 +474,52 @@ function LibraryDeclarationChronicleBlockList({
   )
 }
 
+function KeeperDeclarationChronicleBlockList({
+  blocks,
+  keeperFeed,
+  onJourneySelect,
+}: {
+  blocks: string[]
+  keeperFeed: KeeperFeedData
+  onJourneySelect?: (journeyId: string) => void
+}) {
+  const { keeper } = keeperFeed
+  return (
+    <>
+      {blocks.map((block) => {
+        switch (block) {
+          case "definition":
+            return <KeeperDefinitionBlock key={block} keeper={keeper} />
+          case "journeys":
+            return (
+              <KeeperJourneysBlock
+                key={block}
+                journeys={keeper.journeys}
+                onJourneySelect={onJourneySelect}
+              />
+            )
+          case "engagement_templates":
+            return (
+              <KeeperEngagementTemplatesBlock
+                key={block}
+                templates={keeper.engagement_templates}
+              />
+            )
+          case "sole_memory":
+            return (
+              <KeeperSoleMemoryBlock
+                key={block}
+                soleMemoryCount={keeper.stats.soleMemoryCount}
+              />
+            )
+          default:
+            return null
+        }
+      })}
+    </>
+  )
+}
+
 export function DeclarationChronicleBlocks(props: DeclarationChronicleBlocksProps) {
   if (props.variant === "key") {
     return <KeyDeclarationChronicleBlockList blocks={props.blocks} keyFeed={props.keyFeed} />
@@ -478,6 +539,16 @@ export function DeclarationChronicleBlocks(props: DeclarationChronicleBlocksProp
       <LibraryDeclarationChronicleBlockList
         blocks={props.blocks}
         libraryFeed={props.libraryFeed}
+      />
+    )
+  }
+
+  if (props.variant === "keeper") {
+    return (
+      <KeeperDeclarationChronicleBlockList
+        blocks={props.blocks}
+        keeperFeed={props.keeperFeed}
+        onJourneySelect={props.onJourneySelect}
       />
     )
   }

@@ -2,6 +2,7 @@ import {
   DEFAULT_KEY_CHRONICLE_BLOCKS,
   DEFAULT_CAPABILITY_CHRONICLE_BLOCKS,
   DEFAULT_LIBRARY_CHRONICLE_BLOCKS,
+  DEFAULT_KEEPER_CHRONICLE_BLOCKS,
   getIntegrationChronicleDeclaration,
   resolveKeyChronicleDefaults,
   resolveCapabilityChronicleDefaults,
@@ -62,4 +63,12 @@ export function resolveLibraryChronicleBlocks(
   return defaults.chronicle_blocks.length
     ? [...defaults.chronicle_blocks]
     : [...DEFAULT_LIBRARY_CHRONICLE_BLOCKS]
+}
+
+/** Client-side keeper chronicle blocks — DB value first, then shared defaults. */
+export function resolveKeeperChronicleBlocks(
+  dbBlocks: string[] | null | undefined,
+): string[] {
+  if (dbBlocks?.length) return dbBlocks
+  return [...DEFAULT_KEEPER_CHRONICLE_BLOCKS]
 }

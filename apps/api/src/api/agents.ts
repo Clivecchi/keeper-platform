@@ -5,7 +5,6 @@
 
 import { Router, Request, Response } from 'express';
 import { memoryRouter } from './agents/memory.js';
-import { draftsRouter } from './agents/drafts.js';
 import { topicsRouter } from './agents/topics.js';
 import { activityRouter } from './agents/activity.js';
 import { tasksRouter } from './agents/tasks.js';
@@ -174,7 +173,6 @@ const router: Router = Router();
 // Sub-routes
 router.use(memoryRouter);
 router.use(topicsRouter);
-router.use(draftsRouter);
 router.use(activityRouter);
 router.use(tasksRouter);
 router.use(eventsRouter);
@@ -277,8 +275,7 @@ export async function ensureAgentHomeBoard(client: PrismaClient, agentId: string
     { role: 'dialog', name: 'Agent Conversation', frameType: 'dialog', pattern: 'dialogic', orderIndex: 0 },
     { role: 'agent_preview', name: 'Agent Preview', frameType: 'agent_preview', pattern: 'focus', orderIndex: 1 },
     { role: 'topics', name: 'Topics', frameType: 'topics', pattern: 'focus', orderIndex: 2 },
-    { role: 'draft', name: 'Draft', frameType: 'draft', pattern: 'canvas', orderIndex: 3 },
-    { role: 'config_panel', name: 'Configuration', frameType: 'config_panel', pattern: 'wizard', orderIndex: 4 },
+    { role: 'config_panel', name: 'Configuration', frameType: 'config_panel', pattern: 'wizard', orderIndex: 3 },
   ] as const;
 
   // Enforce canonical set: delete extraneous frames and dedupe multiples per role

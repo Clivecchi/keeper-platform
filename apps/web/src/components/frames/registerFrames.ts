@@ -2,14 +2,12 @@ import { registerFrameType } from './registry';
 import {
   DialogPropsSchema,
   TopicsPropsSchema,
-  DraftsPropsSchema,
   ConfigPropsSchema,
   ActivityPropsSchema,
 } from './schemas';
 
 import DialogFrame from './DialogFrame';
 import TopicsFrame from './TopicsFrame';
-import DraftsFrame from './DraftFrame';
 import ConfigPanelFrame from './ConfigPanelFrame';
 import ActivityFrameDefault from './activity-feed-frame';
 import { MemoryFrame } from './MemoryFrame';
@@ -30,13 +28,6 @@ export function registerAllExistingFrames() {
     title: 'Topics',
     Component: TopicsFrame as any,
     zodPropsSchema: TopicsPropsSchema,
-  });
-
-  registerFrameType({
-    type: 'drafts',
-    title: 'Drafts',
-    Component: DraftsFrame as any,
-    zodPropsSchema: DraftsPropsSchema,
   });
 
   registerFrameType({

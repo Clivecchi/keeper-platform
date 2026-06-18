@@ -138,24 +138,6 @@ const createTopicsFrame = (agentId: string): ExtendedFrameInstance =>
     },
   });
 
-const createDraftFrame = (agentId: string): ExtendedFrameInstance =>
-  makeFrameInstance({
-    id: `draft-${agentId}`,
-    entityType: 'agent',
-    entityId: agentId,
-    configId: `draft-config-${agentId}`,
-    FrameConfig: {
-      id: `draft-config-${agentId}`,
-      name: 'Draft',
-      description: 'Edit and manage agent configuration drafts',
-      theme: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      frameType: 'draft',
-      engagementMode: 'canvas',
-    },
-  });
-
 // =============================================================================
 // MAIN COMPONENT
 // =============================================================================

@@ -384,7 +384,7 @@ function UniversalBoardShell({
                         onToggleCollapsed={onToggleNavCollapsed}
                         dialogListVersion={navVersions?.dialogListVersion}
                         journeyListVersion={effectiveJourneyListVersion}
-                        keeperListVersion={navVersions?.keeperListVersion}
+                        keeperListVersion={selection.keeperNavRevision}
                         draftListVersion={effectiveDraftListVersion}
                         keyListVersion={selection.keyNavRevision}
                         keyNavRowPatch={selection.keyNavRowPatch}
@@ -392,6 +392,7 @@ function UniversalBoardShell({
                         capabilityNavRowPatch={selection.capabilityNavRowPatch}
                         libraryListVersion={selection.libraryNavRevision}
                         libraryNavRowPatch={selection.libraryNavRowPatch}
+                        keeperNavRowPatch={selection.keeperNavRowPatch}
                       />
                     )
               }

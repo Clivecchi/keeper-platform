@@ -23,6 +23,7 @@ import * as React from "react"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/capabilityNavUtils"
+import type { KeeperNavRowPatch } from "../presence/integrationChronicle/keeperNavUtils"
 import type { LibraryNavRowPatch } from "../presence/integrationChronicle/libraryNavUtils"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -65,6 +66,10 @@ export interface UniversalBoardSelection {
   libraryNavRevision: number
   /** Optimistic Library nav row patch applied before refetch completes. */
   libraryNavRowPatch: LibraryNavRowPatch | null
+  /** Increment to refetch Keepers nav list after Keeper metadata save. */
+  keeperNavRevision: number
+  /** Optimistic Keepers nav row patch applied before refetch completes. */
+  keeperNavRowPatch: KeeperNavRowPatch | null
   /** Agent Board: Chronicle Training Mode — entered via Train on agent cover. */
   trainingMode: boolean
 }
@@ -92,6 +97,7 @@ export interface UniversalBoardActions {
   bumpKeyNav: (patch?: KeyNavRowPatch) => void
   bumpCapabilityNav: (patch?: CapabilityNavRowPatch) => void
   bumpLibraryNav: (patch?: LibraryNavRowPatch) => void
+  bumpKeeperNav: (patch?: KeeperNavRowPatch) => void
   onEnterTrainingMode: () => void
   onExitTrainingMode: () => void
 }
@@ -153,6 +159,9 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [libraryNavRevision, setLibraryNavRevision] = React.useState(0)
   const [libraryNavRowPatch, setLibraryNavRowPatch] =
     React.useState<LibraryNavRowPatch | null>(null)
+  const [keeperNavRevision, setKeeperNavRevision] = React.useState(0)
+  const [keeperNavRowPatch, setKeeperNavRowPatch] =
+    React.useState<KeeperNavRowPatch | null>(null)
   const [trainingMode, setTrainingMode] = React.useState(false)
 
   // ── Nav state ──────────────────────────────────────────────────────────────
@@ -382,6 +391,11 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setLibraryNavRevision((n) => n + 1)
   }, [])
 
+  const bumpKeeperNav = React.useCallback((patch?: KeeperNavRowPatch) => {
+    setKeeperNavRowPatch(patch ?? null)
+    setKeeperNavRevision((n) => n + 1)
+  }, [])
+
   const onToggleNavCollapsed = React.useCallback(() => {
     setNavCollapsed((c) => !c)
   }, [])
@@ -412,6 +426,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         capabilityNavRowPatch,
         libraryNavRevision,
         libraryNavRowPatch,
+        keeperNavRevision,
+        keeperNavRowPatch,
         trainingMode,
       },
       actions: {
@@ -434,6 +450,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         bumpKeyNav,
         bumpCapabilityNav,
         bumpLibraryNav,
+        bumpKeeperNav,
         onEnterTrainingMode,
         onExitTrainingMode,
       },
@@ -463,6 +480,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       capabilityNavRowPatch,
       libraryNavRevision,
       libraryNavRowPatch,
+      keeperNavRevision,
+      keeperNavRowPatch,
       trainingMode,
       onSessionSelect,
       onSetActiveJourney,
@@ -483,6 +502,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       bumpKeyNav,
       bumpCapabilityNav,
       bumpLibraryNav,
+      bumpKeeperNav,
       onEnterTrainingMode,
       onExitTrainingMode,
       navCollapsed,
