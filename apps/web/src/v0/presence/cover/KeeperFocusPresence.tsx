@@ -6,7 +6,11 @@ import { EntityCoverPresence } from "./EntityCoverPresence"
 import { DeclarationChronicleBlocks } from "../integrationChronicle/declarationChronicle"
 import { KeeperConfigPresence } from "../integrationChronicle/KeeperConfigPresence"
 import { resolveKeeperChronicleBlocks } from "../integrationChronicle/resolveChronicleDeclaration"
-import { useKeeperFeedData } from "../integrationChronicle/feeds/KeeperFeed"
+import {
+  recordToKeeperDto,
+  useKeeperFeedData,
+  type KeeperFeedData,
+} from "../integrationChronicle/feeds/KeeperFeed"
 import { FeedError, FeedShimmer } from "../integrationChronicle/shared"
 import { resolveKeeperCoverContent, type KeeperRecord } from "./schemas/keeperCoverSchema"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
@@ -41,8 +45,19 @@ export function KeeperFocusPresence({
   onLabelResolved,
 }: KeeperFocusPresenceProps) {
   const boardCtx = useUniversalBoardOptional()
-  const { data: feed, loading, error, reload } = useKeeperFeedData(objectId)
+  const { data: feed, loading, error, reload } = useKeeperFeedData(objectId, domainId)
   const [coverMode, setCoverMode] = React.useState<AgentCoverMode>("cover")
+
+  const fallbackKeeper = React.useMemo(
+    () => recordToKeeperDto(objectId, record),
+    [objectId, record],
+  )
+
+  const effectiveFeed = React.useMemo((): KeeperFeedData | null => {
+    if (feed) return feed
+    if (!fallbackKeeper.title && !fallbackKeeper.display_label) return null
+    return { keeper: fallbackKeeper, reload }
+  }, [feed, fallbackKeeper, reload])
 
   React.useEffect(() => {
     setCoverMode("cover")
@@ -54,8 +69,8 @@ export function KeeperFocusPresence({
   }, [feed?.keeper.display_label, onLabelResolved])
 
   const keeperRecord = React.useMemo(
-    () => toKeeperRecord(objectId, feed?.keeper ?? record),
-    [feed?.keeper, record, objectId],
+    () => toKeeperRecord(objectId, effectiveFeed?.keeper ?? record),
+    [effectiveFeed?.keeper, record, objectId],
   )
 
   const coverContent = React.useMemo(
@@ -71,13 +86,13 @@ export function KeeperFocusPresence({
   )
 
   const chronicleBlocks = React.useMemo(
-    () => resolveKeeperChronicleBlocks(feed?.keeper.chronicle_blocks),
-    [feed?.keeper.chronicle_blocks],
+    () => resolveKeeperChronicleBlocks(effectiveFeed?.keeper.chronicle_blocks),
+    [effectiveFeed?.keeper.chronicle_blocks],
   )
 
   const onJourneySelect = boardCtx?.actions.onJourneySelect
 
-  if (loading && !feed && !record.title) {
+  if (loading && !effectiveFeed && !record.title) {
     return (
       <div className="px-4 py-5">
         <FeedShimmer rows={4} />
@@ -85,29 +100,32 @@ export function KeeperFocusPresence({
     )
   }
 
-  if (error && !feed && !record.title) {
+  if (error && !effectiveFeed && !record.title) {
     return <FeedError message={error} onRetry={() => void reload()} />
   }
 
   if (coverMode === "config") {
-    if (!feed) {
+    if (loading && !effectiveFeed) {
       return (
         <div className="px-4 py-5">
           <FeedShimmer rows={3} />
         </div>
       )
     }
+    if (!effectiveFeed) {
+      return <FeedError message={error ?? "Keeper not found"} onRetry={() => void reload()} />
+    }
     return (
       <KeeperConfigPresence
         keeperId={objectId}
         domainId={domainId}
         displayLabel={
-          feed.keeper.display_label?.trim() ??
+          effectiveFeed.keeper.display_label?.trim() ??
           keeperRecord.display_label ??
-          feed.keeper.title
+          effectiveFeed.keeper.title
         }
-        description={feed.keeper.description ?? feed.keeper.purpose}
-        keeper={feed.keeper}
+        description={effectiveFeed.keeper.description ?? effectiveFeed.keeper.purpose}
+        keeper={effectiveFeed.keeper}
         onBack={() => {
           setCoverMode("cover")
           void reload()
@@ -132,12 +150,12 @@ export function KeeperFocusPresence({
           <div className="px-4 pt-4 pb-2">
             <EntityCoverPresence content={coverContent} instanceKey={objectId} />
           </div>
-          {feed && chronicleBlocks.length > 0 && (
+          {effectiveFeed && chronicleBlocks.length > 0 && (
             <div className="px-4 pb-4">
               <DeclarationChronicleBlocks
                 variant="keeper"
                 blocks={chronicleBlocks}
-                keeperFeed={feed}
+                keeperFeed={effectiveFeed}
                 onJourneySelect={onJourneySelect}
               />
             </div>

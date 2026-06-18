@@ -238,7 +238,11 @@ export async function handleChronicleSave(
       return { status: "error", message: "No save path for this entity kind." }
     }
 
-    if (entityKind === "service" || entityKind === "integration") {
+    if (
+      entityKind === "service" ||
+      entityKind === "integration" ||
+      entityKind === "keeper"
+    ) {
       endpoint = appendIntegrationChroniclePatchQuery(endpoint, ctx.domainId)
     }
 

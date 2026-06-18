@@ -7,14 +7,14 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `declarationChronicle.tsx` — `DeclarationChronicleBlocks`, `resolveDeclarationActions`, integration + key block dispatch
 - `serviceConfig.tsx` — per-service feed schemas and action builders
 - `shared.tsx` — connection hooks, hero/status primitives, integration DTO types
-- `feeds/KeyFeed.tsx` — Key EntityKind feed hook (`useKeyFeedData`)
+- `feeds/KeeperFeed.tsx` — Keeper EntityKind feed hook (`useKeeperFeedData`, `recordToKeeperDto`)
 - `feeds/CapabilityFeed.tsx` — Capability EntityKind feed hook (`useCapabilityFeedData`)
 - `feeds/AIModelFeed.tsx` — AI model provider feed
 - `KeyConfigPresence.tsx` — Key Config Mode CRUD surface
 - `CapabilityConfigPresence.tsx` — Capability Config Mode (display_label, description)
 - `capabilityNavUtils.ts` — Nav fetch/group + `capabilityChronicleTitle()` shared with cover
 - `IntegrationConfigPresence.tsx` — AI model integration Config Mode
-- `blocks/` — `ConnectionStatusBlock`, `KeyHealthBlock`, `LinkedAgentsBlock`, etc.
+- `libraryNavCreate.ts` — `uploadLibraryFile`, `createLibraryItem`, `addLibraryUploadFromFile` (Library nav + and composer clip)
 
 ## 🔄 Data & Behavior
 - **Cover (Integration + Key + Capability):** `IntegrationFocusPresence` / `KeyFocusPresence` / `CapabilityFocusPresence` always render `DeclarationChronicleBlocks` below `EntityCoverPresence`; client-side defaults from `@keeper/shared` when DB `chronicle_blocks` is empty (`resolveChronicleDeclaration.ts`)
@@ -27,6 +27,12 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-06-17 — Composer clip → Library upload
+- `addLibraryUploadFromFile` shared by Library nav + and `AgentComposer` clip; sets `display_label` from filename
+
+### 2026-06-17 — Keeper feed domain scoping
+- `useKeeperFeedData(keeperId, domainId)` — GET `/api/keepers/:id?domainId=`; `recordToKeeperDto` for enrichment fallback
 
 ### 2026-06-14 — AgentCapability grants (Pass 2a)
 - `AgentCapability` join table; backfill from `kip_agents` arrays (source: capabilities/tools/permissions)

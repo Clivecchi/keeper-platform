@@ -26,6 +26,7 @@ Before touching any code, read these canonical documents:
 | `docs/keeper-ui-experience.md` | Surfaces, frames, engagement pipeline | Highest — code-backed |
 | `docs/entitykind-implementation-recipe.md` | EntityKind pattern — cover, Chronicle, Config, Nav (Key reference) | Highest — code-backed |
 | `Keeper jsonframe spec.md` | JSON UI Frame build sequence (Steps 1–6) | High — March 2026 — verify exact filename in repo root |
+| `docs/build-handoffs/schema.md` | Cloud → Cursor handoff contract (territory routing, JSON shape) | High — Phase 0 file handoffs; Phase 1 MCP |
 | `.cursor/rules/root-rules.mdc` | Monorepo rules, ops contract, CI/CD | High — technical rules valid; §12 Kip framing outdated |
 | `.cursor/rules/readme-policy.mdc` | README + docs/modules/ sync on folder changes | Always apply |
 | `.cursor/rules/strict-types.mdc` | TypeScript export conventions | Always apply |

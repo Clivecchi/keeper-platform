@@ -14,7 +14,6 @@
 import * as React from "react"
 import { PaperAirplaneIcon, PaperClipIcon, XMarkIcon } from "@heroicons/react/24/outline"
 import { useAuth } from "../../context/AuthContext"
-import { apiFetch } from "../../lib/api"
 
 const SURFACE = {
   inkPrimary: "var(--theme-ink-primary-color)",
@@ -55,7 +54,8 @@ export interface AgentComposerProps {
   inputValue: string
   onInputChange: (value: string) => void
   onSubmit: (e: React.FormEvent, options: { content: string; attachments?: AgentAttachment[] }) => void
-  onFileAttach?: (text: string) => void
+  /** Upload file to domain Library (same path as Library nav +). */
+  onLibraryFileUpload?: (file: File) => Promise<void>
   isSending: boolean
   activeSessionId: string | null
   disabled?: boolean
@@ -74,7 +74,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   journeyId,
   dialogueMode,
   onModeChange,
-  onFileAttach,
+  onLibraryFileUpload,
   inputValue,
   onInputChange,
   onSubmit,
@@ -91,9 +91,13 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const [attachments, setAttachments] = React.useState<PendingAttachment[]>([])
 
   const TEXT_TYPES = ["text/plain", "text/markdown", "text/csv", "application/json"]
-  const TEXT_EXT = /\.(txt|md|json|csv)$/i
-  const isTextFile = (file: File) =>
-    TEXT_TYPES.includes(file.type) || TEXT_EXT.test(file.name) || file.type.startsWith("text/")
+  const TEXT_EXT = /\.(txt|md|json|csv|pdf)$/i
+  const isLibraryFile = (file: File) =>
+    IMAGE_TYPES.includes(file.type) ||
+    TEXT_TYPES.includes(file.type) ||
+    TEXT_EXT.test(file.name) ||
+    file.type.startsWith("text/") ||
+    file.type === "application/pdf"
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -102,21 +106,19 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       return
     }
 
-    if (isTextFile(file)) {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const text = reader.result as string
-        if (text && onFileAttach) {
-          onFileAttach(text)
-        }
-      }
-      reader.readAsText(file)
+    if (!onLibraryFileUpload) {
       e.target.value = ""
       return
     }
 
     if (!user?.id) {
-      alert("Please sign in to attach images, video, or documents.")
+      alert("Please sign in to add files to the library.")
+      e.target.value = ""
+      return
+    }
+
+    if (!domainId) {
+      alert("Open a domain board to add files to the library.")
       e.target.value = ""
       return
     }
@@ -128,47 +130,17 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       return
     }
 
+    if (!isLibraryFile(file)) {
+      alert("Unsupported file type. Use images, PDF, Markdown, text, JSON, or CSV.")
+      e.target.value = ""
+      return
+    }
+
     setIsUploading(true)
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => {
-          const result = reader.result as string
-          const base64Data = result.includes(",") ? result.split(",")[1] : result
-          resolve(base64Data || "")
-        }
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-      })
-
-      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_").slice(0, 80)
-      const parts = ["uploads", user.id, "agent", activeSessionId || "temp"]
-      if (domainId) parts.push("domain", domainId)
-      if (keeperId) parts.push("keeper", keeperId)
-      if (journeyId) parts.push("journey", journeyId)
-      parts.push(`${Date.now()}-${safeName}`)
-      const key = parts.join("/")
-
-      const res = (await apiFetch("/api/uploads/direct", {
-        method: "POST",
-        body: JSON.stringify({
-          key,
-          file: base64,
-          contentType: file.type || "application/octet-stream",
-        }),
-      })) as { success?: boolean; data?: { url?: string }; error?: string }
-
-      if (!res?.success || !res?.data?.url) {
-        throw new Error(res?.error || "Upload failed")
-      }
-
-      const attachmentType = IMAGE_TYPES.includes(file.type) ? "image" : "file"
-      setAttachments((prev) => [
-        ...prev,
-        { id: `${Date.now()}-${file.name}`, name: file.name, url: res.data!.url!, type: attachmentType },
-      ])
+      await onLibraryFileUpload(file)
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Upload failed. Sign in and try again.")
+      alert(err instanceof Error ? err.message : "Failed to add file to library.")
     } finally {
       setIsUploading(false)
       e.target.value = ""
@@ -262,23 +234,23 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            {onFileAttach && (
+            {onLibraryFileUpload && (
               <>
                 <input
                   type="file"
                   id={fileInputId}
                   className="hidden"
-                  accept=".txt,.md,.json,.csv,text/plain,text/markdown,application/json,image/*,video/*,.pdf,.doc,.docx,application/pdf"
-                  onChange={handleFileChange}
+                  accept="image/*,.txt,.md,.pdf,.json,.csv,text/plain,text/markdown,application/json,application/pdf"
+                  onChange={(event) => void handleFileChange(event)}
                 />
                 <button
                   type="button"
                   onClick={() => document.getElementById(fileInputId)?.click()}
-                  disabled={!activeSessionId || isSending || disabled || isUploading}
+                  disabled={isSending || disabled || isUploading}
                   className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-black/5 disabled:pointer-events-none disabled:opacity-40"
                   style={{ color: SURFACE.inkTertiary }}
-                  title="Attach file"
-                  aria-label="Attach file"
+                  title="Add to library"
+                  aria-label="Add file to library"
                 >
                   {isUploading ? (
                     <span className="text-[10px]">…</span>

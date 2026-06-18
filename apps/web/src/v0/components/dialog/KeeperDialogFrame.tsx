@@ -118,7 +118,7 @@ export interface KeeperDialogFrameProps {
   inputValue: string
   onInputChange: (value: string) => void
   onSubmit: AgentComposerProps["onSubmit"]
-  onFileAttach?: (text: string) => void
+  onLibraryFileUpload?: AgentComposerProps["onLibraryFileUpload"]
   activeSessionId: string | null
   disabled?: boolean
 
@@ -182,7 +182,7 @@ export function KeeperDialogFrame({
   inputValue,
   onInputChange,
   onSubmit,
-  onFileAttach,
+  onLibraryFileUpload,
   activeSessionId,
   disabled,
   dialogContent,
@@ -531,7 +531,7 @@ export function KeeperDialogFrame({
             inputValue={inputValue}
             onInputChange={onInputChange}
             onSubmit={onSubmit}
-            onFileAttach={onFileAttach}
+            onLibraryFileUpload={onLibraryFileUpload}
             isSending={isSending}
             activeSessionId={activeSessionId}
             disabled={disabled}

@@ -43,6 +43,10 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 
 ## 📆 Update Log
 
+### 2026-06-17 — Keeper Config feed fix
+- `useKeeperFeedData(keeperId, domainId)` appends `?domainId=` (required by keeper GET/PATCH middleware)
+- `KeeperFocusPresence` falls back to enrichment `record` when feed is still loading; Config no longer stuck on empty shimmer
+
 ### 2026-06-17 — Keeper EntityKind (Session C)
 - Added `keeperCoverSchema.ts`, `KeeperFocusPresence.tsx`; blocks: definition, journeys, engagement_templates, sole_memory
 - Nav uses `keeperChronicleTitle`; Config PATCH via `useChronicleConfig` entityKind `keeper`

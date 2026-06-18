@@ -52,6 +52,7 @@ import { useAgentPostureData } from "../../../hooks/useAgentPostureData"
 import { normalizeActionReceipt } from "../../../components/agent/types"
 import { shortId, extractLinkedCard, patchAcceptedDraftPointInMessages } from "../../../components/agent/helpers"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
+import { addLibraryUploadFromFile } from "../../presence/integrationChronicle/libraryNavCreate"
 
 // =============================================================================
 // Types
@@ -112,7 +113,7 @@ export function AgentBoardFrame({
   const { domainSlug, navigateToFrame, domainFrame, resolvedAudience, frame: shellFrame } = useV0Shell()
   const ab = domainFrame?.agent_board
   const frameCtx = useFrameContextOptional()
-  const { isAuthenticated, isAdmin, refreshSession } = useAuth()
+  const { isAuthenticated, isAdmin, refreshSession, user } = useAuth()
   const [view, setView] = useAgentWorkspaceView()
 
   // ── Agent state ──
@@ -1173,7 +1174,20 @@ export function AgentBoardFrame({
     inputValue,
     onInputChange: setInputValue,
     onSubmit: handleSendMessage,
-    onFileAttach: (text: string) => setInputValue((prev) => (prev ? `${prev}\n\n${text}` : text)),
+    onLibraryFileUpload:
+      domainId && user?.id
+        ? async (file: File) => {
+            const created = await addLibraryUploadFromFile({
+              domainId,
+              userId: user.id,
+              file,
+              activeKeeperId: frameCtx?.selection.activeKeeperId ?? null,
+              activeAgentId: agent?.id ?? null,
+            })
+            boardCtx?.actions.onLibraryItemSelect(created.id)
+            boardCtx?.actions.bumpLibraryNav()
+          }
+        : undefined,
     isSending,
     activeSessionId,
     feedbackSlot: messagesError ? (

@@ -71,7 +71,7 @@ import {
   keeperChronicleTitle,
   type KeeperNavRowPatch,
 } from "../presence/integrationChronicle/keeperNavUtils"
-import { createLibraryItem, uploadLibraryFile } from "../presence/integrationChronicle/libraryNavCreate"
+import { addLibraryUploadFromFile, createLibraryItem } from "../presence/integrationChronicle/libraryNavCreate"
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -603,12 +603,10 @@ export function UniversalNavPanel({
 
       setLibraryCreating(true)
       try {
-        const url = await uploadLibraryFile({ domainId, userId: user.id, file })
-        const created = await createLibraryItem({
+        const created = await addLibraryUploadFromFile({
           domainId,
           userId: user.id,
-          sourceType: "upload",
-          sourceRef: url,
+          file,
           activeKeeperId: activeKeeperIdForLibrary,
           activeAgentId: activeAgentIdForLibrary,
         })

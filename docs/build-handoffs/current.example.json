@@ -1,0 +1,57 @@
+{
+  "version": "1.0",
+  "id": "capability-entitykind-design",
+  "created_at": "2026-06-17T12:00:00.000Z",
+  "created_by": "cloud",
+  "goal": "Design and implement Capability EntityKind — Prisma model, cover schema, and focus orchestrator (recipe steps 1, 2, 4, 5).",
+  "done_when": [
+    "Prisma model exists with chronicle_blocks and chronicle_actions defaults",
+    "Migration applied without flattening Domain → Keeper hierarchy",
+    "Cover renders five slots with real data after reload",
+    "Focus orchestrator follows Key EntityKind pattern",
+    "pnpm run smoke passes"
+  ],
+  "territory": "cursor",
+  "canon": [
+    "AGENTS.md",
+    "docs/entitykind-implementation-recipe.md",
+    "docs/keeper-heart-mind.md"
+  ],
+  "scope": {
+    "touch": [
+      "packages/database/prisma/schema.prisma",
+      "packages/database/prisma/migrations/",
+      "apps/web/src/v0/presence/"
+    ],
+    "do_not_touch": [
+      "apps/api/src/api/journey/domain-integrated-routes.ts"
+    ]
+  },
+  "pattern_ref": "Key EntityKind — entitykind-implementation-recipe.md Section 4 steps 1–5, 7, 9, 11",
+  "rendr_treatment": null,
+  "git": {
+    "branch": "cloud/handoff/capability-entitykind-design",
+    "base": "main",
+    "commit": false,
+    "open_pr": false
+  },
+  "verification": {
+    "commands": ["pnpm run smoke"],
+    "browser": ["/d/default?board=domain"]
+  },
+  "context": {
+    "phase": "Phase 1 — EntityKind extension",
+    "related_handoffs": [],
+    "library_refs": [],
+    "notes": "Mechanical follow-ups (PATCH route, post-save sync) are a separate cloud-territory handoff after this lands."
+  },
+  "execution": {
+    "runtime": "cursor-cloud",
+    "model": "composer-2.5",
+    "mode": "agent",
+    "requires_approval": true,
+    "cursor_run_id": null,
+    "cursor_agent_id": null,
+    "status": "draft"
+  }
+}

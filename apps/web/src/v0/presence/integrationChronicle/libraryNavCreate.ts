@@ -7,6 +7,7 @@ export type CreateLibraryItemParams = {
   userId: string
   sourceType: "upload" | "url"
   sourceRef: string
+  displayLabel?: string | null
   activeKeeperId?: string | null
   activeAgentId?: string | null
 }
@@ -62,6 +63,7 @@ export async function createLibraryItem(
       domain_id: params.domainId,
       source_type: params.sourceType,
       source_ref: params.sourceRef,
+      display_label: params.displayLabel?.trim() || undefined,
       activeKeeperId: params.activeKeeperId ?? null,
       activeAgentId: params.activeAgentId ?? null,
     }),
@@ -76,4 +78,29 @@ export async function createLibraryItem(
 
 export function isLibraryImageFile(file: File): boolean {
   return IMAGE_TYPES.includes(file.type)
+}
+
+/** Composer clip and Library nav + — same upload → LibraryItem path. */
+export async function addLibraryUploadFromFile(params: {
+  domainId: string
+  userId: string
+  file: File
+  displayLabel?: string | null
+  activeKeeperId?: string | null
+  activeAgentId?: string | null
+}): Promise<{ id: string }> {
+  const url = await uploadLibraryFile({
+    domainId: params.domainId,
+    userId: params.userId,
+    file: params.file,
+  })
+  return createLibraryItem({
+    domainId: params.domainId,
+    userId: params.userId,
+    sourceType: "upload",
+    sourceRef: url,
+    displayLabel: params.displayLabel ?? params.file.name,
+    activeKeeperId: params.activeKeeperId,
+    activeAgentId: params.activeAgentId,
+  })
 }

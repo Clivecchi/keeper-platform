@@ -47,6 +47,7 @@ import { loadDomainFrame } from "../data/loadDomainFrame"
 import type { DomainFrameJson } from "../data/domain-frame.types"
 import type { AgentDialogueMessage } from "../../components/agent/types"
 import { normalizeActionReceipt } from "../../components/agent/types"
+import { addLibraryUploadFromFile } from "../presence/integrationChronicle/libraryNavCreate"
 
 type ToolSlug = "cloud" | "rendr"
 
@@ -216,7 +217,7 @@ export function UniversalConversation({
   const { domainFrame, resolvedAudience: shellAudience } = useV0Shell()
   const boardDefinitionId = useBoardDefinitionFromUrl()
   const frameCtx = useFrameContextOptional()
-  const { refreshSession } = useAuth()
+  const { refreshSession, user } = useAuth()
   const audience = shellAudience ?? "keeper"
   const kipMode = def.conversation.kipMode
   const agentEcho = def.conversation.agentEcho === true
@@ -1221,6 +1222,32 @@ export function UniversalConversation({
     [domainId, onDraftListRefresh, onDraftSelect, actions, setMessages, setError],
   )
 
+  const handleLibraryFileUpload = React.useCallback(
+    async (file: File) => {
+      if (!domainId || !user?.id) {
+        throw new Error("Sign in on a domain board to add files to the library.")
+      }
+      const created = await addLibraryUploadFromFile({
+        domainId,
+        userId: user.id,
+        file,
+        activeKeeperId: selection.selectedKeeperId ?? selectedKeeperId ?? null,
+        activeAgentId: selection.selectedAgentId ?? selectedAgentId ?? null,
+      })
+      actions.onLibraryItemSelect(created.id)
+      actions.bumpLibraryNav()
+    },
+    [
+      domainId,
+      user?.id,
+      selection.selectedKeeperId,
+      selection.selectedAgentId,
+      selectedKeeperId,
+      selectedAgentId,
+      actions,
+    ],
+  )
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -1265,7 +1292,7 @@ export function UniversalConversation({
         inputValue={input}
         onInputChange={setInput}
         onSubmit={sendMessage}
-        onFileAttach={(text) => setInput((prev) => (prev ? `${prev}\n\n${text}` : text))}
+        onLibraryFileUpload={domainId && user?.id ? handleLibraryFileUpload : undefined}
         activeSessionId={dialogSessionId}
         disabled={composerDisabled}
       />

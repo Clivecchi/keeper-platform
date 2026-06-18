@@ -4,7 +4,7 @@
 Shared presentational components for the agent/Kip interface. Extracted from the legacy `KipAgentBoardPage` monolith for reuse by the new `AgentBoardFrame` and any future agent surfaces.
 
 ## Key Files
-- `AgentComposer.tsx` -- Cursor-style chat input with tool kit: agent/mode dropdown, config dropdown (model/lens, Open Cockpit), textarea, attach, submit, feedback area. Used by AgentBoardFrame.
+- `AgentComposer.tsx` -- Cursor-style chat input with tool kit: agent/mode dropdown, config dropdown (model/lens, Open Cockpit), textarea, library upload (composer clip), submit, feedback area. Used by AgentBoardFrame and KeeperDialogFrame.
 - `AgentContextBanner.tsx` -- Context-first banner for Agent Board: domain · keeper/journey/studio, Live indicator, Open Cockpit. Agent name lives in AgentComposer.
 - `AgentPostureHeader.tsx` -- Legacy governance stack banner (agent, domain, lens, mode, governance, voice). Used by KipAgentBoardPage.
 - `DraftCard.tsx` -- Inline-editing draft card: title, summary, status pill, sections (add/delete), JSON toggle, bottom toolbar (Save, JSON/Edit, ← Dialogue).
@@ -19,7 +19,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - `helpers.ts` -- Shared formatting utilities: `formatDate`, `formatTime`, `formatRelative`, `shortId`.
 
 ## Data and Behavior
-- `AgentComposer` owns the dialogue input: agent name + mode selector (Domain/Debug), config dropdown (model/lens + Open Cockpit link), textarea, file attach (text files), submit. Receives `onFileAttach`, `onModeChange` (via `useAgentPostureData.setDialogueMode`), `feedbackSlot` for errors/hints.
+- `AgentComposer` owns the dialogue input: agent name + mode selector (Domain/Debug), config dropdown (model/lens + Open Cockpit link), textarea, composer clip (adds file to domain Library — same path as Library nav +), submit. Receives `onLibraryFileUpload`, `onModeChange` (via `useAgentPostureData.setDialogueMode`), `feedbackSlot` for errors/hints.
 - `DialogueMessageList` renders `AgentDialogueMessage[]` with role-based styling (user messages right-aligned, agent messages left-aligned). Supports `LinkedCard` inline rendering and `ActionReceiptCard` for draft/entity creation receipts.
 - `SessionCard` displays `AgentConversationSession` from the `useAgentSessions` hook. Supports edit callbacks and active highlighting.
 - `CockpitPanel` reads `FrameContext` for keeper/journey selection to determine capability indicators (SOLE, journey tracking, etc.). When `allowedActions` is provided (e.g. from AgentBoardFrame), it displays the actual action list (draft.create, moment.create, sole.save, etc.); otherwise falls back to hardcoded capability labels. Option B: fetches keeper-scoped SOLE when `activeKeeperId` is set, domain anchor SOLE when only `domainId` is set.
@@ -29,6 +29,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-06-17: Composer clip uploads to domain Library (`onLibraryFileUpload`) — same as Library nav +; no longer inlines `.md`/text into the message box.
 - 2026-05-30: Rendr treatment correction — warm dark message bubbles (agent 72% / user 65% alpha), teal user text, composer input uses `--theme-surface-elevated` at 90% opacity with teal send button and caret; service bar icons recede via placeholder ink.
 - 2026-05-26 (Agent Echo rename): Echo attribution fallback uses `echoAgentName` prop (board def agentName), not hardcoded "Kip".
 - 2026-05-26 (Agent Board Phase 4 — agent echo): `types.ts` — added `DialogResponseEcho` and optional `echo` on `AgentDialogueMessage`. `DialogueMessageList.tsx` — renders agent echo as subordinate beat beneath agent message (attributed name, smaller type, no avatar). Primary agent bubble rendering unchanged.
