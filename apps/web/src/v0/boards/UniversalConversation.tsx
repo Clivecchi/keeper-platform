@@ -1260,6 +1260,11 @@ export function UniversalConversation({
       })
       actions.onLibraryItemSelect(created.id)
       actions.bumpLibraryNav()
+      return {
+        url: created.url,
+        name: file.name,
+        libraryItemId: created.id,
+      }
     },
     [
       domainId,

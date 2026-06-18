@@ -578,6 +578,116 @@ button.dialog-prelude:hover {
   height: 120px;
 }
 
+.dialog-think-space--uploads {
+  height: auto;
+  min-height: 72px;
+  max-height: 148px;
+}
+
+.dialog-upload-idle {
+  margin: 0;
+  padding: 14px 16px;
+  font-size: 13px;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  color: hsl(var(--theme-ink-tertiary));
+}
+
+.dialog-upload-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+  padding: 8px 12px;
+  overflow: hidden;
+}
+
+.dialog-upload-stream-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dialog-upload-stream-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(var(--theme-ink-tertiary));
+}
+
+.dialog-upload-stream-status {
+  font-size: 11px;
+  color: hsl(var(--theme-ink-secondary));
+}
+
+.dialog-upload-stream-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.dialog-upload-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: min(100%, 220px);
+  padding: 4px 8px 4px 4px;
+  border-radius: 8px;
+  border: 1px solid hsl(var(--theme-border-soft) / 0.45);
+  background: hsl(var(--theme-surface-panel) / 0.55);
+  color: hsl(var(--theme-ink-primary));
+}
+
+.dialog-upload-chip-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.dialog-upload-chip-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: hsl(var(--theme-ink-secondary));
+  margin-left: 4px;
+}
+
+.dialog-upload-chip-name {
+  font-size: 12px;
+  line-height: 1.3;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialog-upload-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: hsl(var(--theme-ink-secondary));
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.dialog-upload-chip-remove:hover {
+  background: hsl(var(--theme-surface-page) / 0.35);
+  color: hsl(var(--theme-ink-primary));
+}
+
 .dialog-diag-stream {
   position: relative;
   display: flex;
@@ -888,6 +998,23 @@ button.dialog-prelude:hover {
 .keeper-board-scope .dialog-scroll-hint-btn {
   font-size: 14px;
   padding: 8px 16px;
+}
+
+.keeper-board-scope .dialog-upload-stream-label {
+  font-size: 11px;
+}
+
+.keeper-board-scope .dialog-upload-chip-name {
+  font-size: 13px;
+}
+
+.keeper-board-scope .dialog-upload-idle {
+  font-size: 14px;
+}
+
+.keeper-dialog-frame[data-has-uploads="true"] .keeper-composer-input {
+  min-height: 56px;
+  max-height: 160px;
 }
 
 /* Chronicle + nav — scale with global base (keeper-board-scope) */

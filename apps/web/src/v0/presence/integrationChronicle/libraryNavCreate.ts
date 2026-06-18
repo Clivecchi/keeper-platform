@@ -88,13 +88,13 @@ export async function addLibraryUploadFromFile(params: {
   displayLabel?: string | null
   activeKeeperId?: string | null
   activeAgentId?: string | null
-}): Promise<{ id: string }> {
+}): Promise<{ id: string; url: string }> {
   const url = await uploadLibraryFile({
     domainId: params.domainId,
     userId: params.userId,
     file: params.file,
   })
-  return createLibraryItem({
+  const row = await createLibraryItem({
     domainId: params.domainId,
     userId: params.userId,
     sourceType: "upload",
@@ -103,4 +103,5 @@ export async function addLibraryUploadFromFile(params: {
     activeKeeperId: params.activeKeeperId,
     activeAgentId: params.activeAgentId,
   })
+  return { id: row.id, url }
 }

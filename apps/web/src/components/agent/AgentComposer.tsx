@@ -26,6 +26,13 @@ const SURFACE = {
   containerBorder: "hsl(var(--theme-border-soft) / 0.35)",
 }
 
+/** Result from composer clip upload — file is stored in Library; shown in Thinking Space until send. */
+export type LibraryUploadResult = {
+  url: string
+  name: string
+  libraryItemId?: string
+}
+
 export type PendingAttachment = {
   id: string
   name: string
@@ -54,8 +61,14 @@ export interface AgentComposerProps {
   inputValue: string
   onInputChange: (value: string) => void
   onSubmit: (e: React.FormEvent, options: { content: string; attachments?: AgentAttachment[] }) => void
-  /** Upload file to domain Library (same path as Library nav +). */
-  onLibraryFileUpload?: (file: File) => Promise<void>
+  /** Upload file to domain Library; return URL so the file can attach to the next message. */
+  onLibraryFileUpload?: (file: File) => Promise<LibraryUploadResult>
+  /** Controlled pending attachments (Thinking Space). When omitted, composer manages its own list. */
+  attachments?: PendingAttachment[]
+  onAttachmentsChange?: React.Dispatch<React.SetStateAction<PendingAttachment[]>>
+  /** Where to render pending attachment chips. Dialog uses `thinking-space`. */
+  attachmentDisplay?: "composer" | "thinking-space"
+  onUploadingChange?: (uploading: boolean) => void
   isSending: boolean
   activeSessionId: string | null
   disabled?: boolean
@@ -67,6 +80,19 @@ const MAX_ROWS = 6
 
 const IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"]
 
+export function inferAttachmentType(file: File): PendingAttachment["type"] {
+  if (IMAGE_TYPES.includes(file.type)) return "image"
+  if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) return "file"
+  if (
+    file.type.startsWith("text/")
+    || file.type === "application/json"
+    || /\.(txt|md|json|csv)$/i.test(file.name)
+  ) {
+    return "text"
+  }
+  return "file"
+}
+
 export const AgentComposer: React.FC<AgentComposerProps> = ({
   agentName,
   domainId,
@@ -75,6 +101,10 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   dialogueMode,
   onModeChange,
   onLibraryFileUpload,
+  attachments: controlledAttachments,
+  onAttachmentsChange,
+  attachmentDisplay = "composer",
+  onUploadingChange,
   inputValue,
   onInputChange,
   onSubmit,
@@ -88,7 +118,10 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
   const { user } = useAuth()
   const [isUploading, setIsUploading] = React.useState(false)
-  const [attachments, setAttachments] = React.useState<PendingAttachment[]>([])
+  const [internalAttachments, setInternalAttachments] = React.useState<PendingAttachment[]>([])
+  const attachments = controlledAttachments ?? internalAttachments
+  const setAttachments = onAttachmentsChange ?? setInternalAttachments
+  const showAttachmentBar = attachmentDisplay === "composer" && attachments.length > 0
 
   const TEXT_TYPES = ["text/plain", "text/markdown", "text/csv", "application/json"]
   const TEXT_EXT = /\.(txt|md|json|csv|pdf)$/i
@@ -137,12 +170,23 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     }
 
     setIsUploading(true)
+    onUploadingChange?.(true)
     try {
-      await onLibraryFileUpload(file)
+      const result = await onLibraryFileUpload(file)
+      setAttachments((prev) => [
+        ...prev,
+        {
+          id: result.libraryItemId ?? crypto.randomUUID(),
+          name: result.name || file.name,
+          url: result.url,
+          type: inferAttachmentType(file),
+        },
+      ])
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to add file to library.")
     } finally {
       setIsUploading(false)
+      onUploadingChange?.(false)
       e.target.value = ""
     }
   }
@@ -249,8 +293,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
                   disabled={isSending || disabled || isUploading}
                   className="keeper-composer-icon-btn flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-black/5 disabled:pointer-events-none disabled:opacity-40"
                   style={{ color: SURFACE.inkTertiary }}
-                  title="Add to library"
-                  aria-label="Add file to library"
+                  title="Attach file"
+                  aria-label="Attach file"
                 >
                   {isUploading ? (
                     <span className="text-[10px]">…</span>
@@ -276,8 +320,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
           </div>
         </div>
 
-        {/* Attachment bar: shows attached files above the input */}
-        {attachments.length > 0 && (
+        {/* Attachment bar — margin / legacy composer only; Dialog uses Thinking Space */}
+        {showAttachmentBar && (
           <div
             className="flex flex-col gap-1.5 px-3 py-2"
             style={{ borderBottom: `1px solid ${SURFACE.border}`, backgroundColor: SURFACE.toolbarBg }}

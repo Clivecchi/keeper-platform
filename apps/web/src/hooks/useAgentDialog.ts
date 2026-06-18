@@ -9,9 +9,11 @@ import type { AgentDialogueMessage, DirectorDelegationBeat } from "../components
 import { extractLinkedCard } from "../components/agent/helpers"
 import { apiFetch } from "../lib/api"
 import {
+  buildDirectorFallbackSynthesisPrompt,
   buildDirectorSynthesisPrompt,
   buildInstrumentDelegationPrompt,
   extractAgentReplyFromRunResult,
+  resolveDirectorInstrument,
   type DirectorDialogConfig,
   type DirectorSendPhase,
 } from "../v0/boards/directorDialog"
@@ -473,7 +475,12 @@ export function useAgentDialog({
       }
 
       const liveDirectorConfig = directorConfigRef.current
-      const instrument = liveDirectorConfig?.activeInstrument ?? null
+      const instrument = liveDirectorConfig
+        ? resolveDirectorInstrument({
+            pinned: liveDirectorConfig.activeInstrument,
+            userMessage: content,
+          })
+        : null
       let delegationBeat: DirectorDelegationBeat | undefined
 
       if (liveDirectorConfig && instrument && content.trim()) {
@@ -505,13 +512,19 @@ export function useAgentDialog({
       onDirectorPhaseChange?.(liveDirectorConfig && instrument ? "director" : null)
 
       const leadInput =
-        delegationBeat && liveDirectorConfig && instrument
-          ? buildDirectorSynthesisPrompt({
-              userMessage: content,
-              instrumentLabel: liveDirectorConfig.instrumentLabels[instrument],
-              instrumentReply: delegationBeat.content,
-              directorName: liveDirectorConfig.directorDisplayName,
-            })
+        liveDirectorConfig && instrument
+          ? delegationBeat
+            ? buildDirectorSynthesisPrompt({
+                userMessage: content,
+                instrumentLabel: liveDirectorConfig.instrumentLabels[instrument],
+                instrumentReply: delegationBeat.content,
+                directorName: liveDirectorConfig.directorDisplayName,
+              })
+            : buildDirectorFallbackSynthesisPrompt({
+                userMessage: content,
+                instrumentLabel: liveDirectorConfig.instrumentLabels[instrument],
+                directorName: liveDirectorConfig.directorDisplayName,
+              })
           : content
 
       try {

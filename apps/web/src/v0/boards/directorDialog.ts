@@ -18,6 +18,19 @@ export const BOARD_INSTRUMENT_LABELS: Record<BoardInstrumentSlug, string> = {
 
 export type DirectorSendPhase = "instrument" | "director"
 
+const INSTRUMENT_ADDRESS_PATTERN = /^(cloud|rendr)\s*[—\-:]/i
+
+/** Pinned chip wins; otherwise honor "Cloud — …" / "Rendr — …" in the message. */
+export function resolveDirectorInstrument(params: {
+  pinned: BoardInstrumentSlug | null
+  userMessage: string
+}): BoardInstrumentSlug | null {
+  if (params.pinned) return params.pinned
+  const match = params.userMessage.trim().match(INSTRUMENT_ADDRESS_PATTERN)
+  if (!match) return null
+  return match[1].toLowerCase() as BoardInstrumentSlug
+}
+
 export function buildInstrumentDelegationPrompt(params: {
   userMessage: string
   instrumentLabel: string
@@ -52,6 +65,26 @@ export function buildDirectorSynthesisPrompt(params: {
     `- Integrate ${params.instrumentLabel}'s input; do not repeat it verbatim.`,
     `- Do NOT correct the user about who they addressed. Never say they are "talking to ${params.directorName}, not ${params.instrumentLabel}".`,
     `- Stay brief when ${params.instrumentLabel} already answered the question.`,
+  ].join("\n")
+}
+
+/** When the instrument was targeted but sub-run returned nothing — still director mode for Kip. */
+export function buildDirectorFallbackSynthesisPrompt(params: {
+  userMessage: string
+  instrumentLabel: string
+  directorName: string
+}): string {
+  return [
+    `[Director synthesis — ${params.directorName}]`,
+    `The user addressed ${params.instrumentLabel} on the IDE board.`,
+    `"${params.userMessage}"`,
+    "",
+    `${params.instrumentLabel} did not return a reply this turn (delegation empty or failed).`,
+    "",
+    `Reply as Lead (${params.directorName}). Answer from your knowledge of ${params.instrumentLabel}'s role.`,
+    `- Do NOT say the user is "talking to ${params.directorName}, not ${params.instrumentLabel}".`,
+    `- Do NOT offer to "hand off" or "coordinate with" ${params.instrumentLabel} — that turn already happened.`,
+    `- Stay brief and practical.`,
   ].join("\n")
 }
 

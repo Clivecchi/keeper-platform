@@ -6,6 +6,7 @@ Shared conversation shell used across IDE Board, Agent Board, and Domain Board. 
 ## 🧱 Key Files
 - `KeeperDialogFrame.tsx` — Main shell. Assembles Header Bar, Dialog Space, Thinking Space, and Composer input floor.
 - `DialogScrollHint.tsx` — “Latest” pill above the Horizon when the user scrolls up.
+- `DialogUploadStream.tsx` — Pending uploads in Thinking Space (Library item created at clip; sent with next message).
 - `DialogDiagStream.tsx` — Diag thinking stream: captures console output, board-definition snapshot, copy.
 - `DialogScrollRail.tsx` — Overlay scroll thumb for Dialog Space.
 
@@ -39,7 +40,7 @@ Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:rel
 - **Header Bar**: Frosted breadcrumb — `keeperName`, `journeyName`, `pathName`, `pathPrelude`. Hidden in `mode === 'feed'`. Chevron expands session meta.
 - **Dialog Space**: Scrollable messages **above** the Horizon. Renders `DialogueMessageList` by default. Long responses fill the space between Header Bar and Horizon, then scroll. `DialogScrollHint` offers “Latest” when scrolled up.
 - **Horizon**: Gradient dissolve at the Composer edge. When working (`isSending`), shows `{agentName} is thinking…` and stream toggles (Diag). Summarizes what Thinking Space streams in detail.
-- **Thinking Space**: Fixed-height sibling between Dialog Space and input. Diag stream today; upload file previews planned. Expands for Diag (`--diag` 120px).
+- **Thinking Space**: Between Dialog Space and input. **Uploads** appear here after clip (Library item created immediately; removed on send). Diag stream when working. Expands with uploads (`--uploads`).
 - **Composer**: `AgentComposer` input + toolbar; `IntegratedServicesBar` below on IDE Board.
 
 ### Readability
@@ -61,7 +62,7 @@ All four zones are direct flex children of `.keeper-dialog-frame`. The thinking 
 - CSS classes live in `apps/web/src/index.css` under the `KeeperDialogFrame` section.
 
 ## ⚠️ Notes & ToDo
-- [ ] Upload flow: show attached files in Thinking Space; grow input height while composing with attachments.
+- [x] Upload flow: files in Thinking Space; Library item at pick; attach on send.
 - [ ] User-facing **Readable** density toggle on boards (wire `keeper-density` beyond Design Board).
 - [ ] Additional Horizon streams beyond Diag (agent chain-of-thought summaries).
 - [ ] `dialogContent` replaces the full Dialog Space content — separate slot if messages needed alongside.
@@ -69,6 +70,7 @@ All four zones are direct flex children of `.keeper-dialog-frame`. The thinking 
 - [ ] When `isSending` is true, thinking status renders on the Horizon inside Dialog Space; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-06-17: Upload → Thinking Space (`DialogUploadStream`); clip adds Library item + stages file until send; composer input grows when uploads present.
 - 2026-06-17: Canonical vocabulary (Header Bar, Dialog Space, Composer states, Horizon, Thinking Space). `DialogScrollHint` “Latest” pill above Horizon. Board-scope readability: 17px composer input, larger Horizon status. `data-composer-state` on shell.
 - 2026-06-12: Thinking Space **Diag** stream — Horizon toggle while `isSending`; `DialogDiagStream` shows captured console output with Copy; board-definition snapshot from `[UniversalNavPanel]` logs; capture via `lib/consoleDiagCapture.ts`.
 - 2026-06-10: Moved agent thinking indicator onto the Horizon gradient band (`.dialog-horizon-band`), inset inside the fade — not above it. Message landing line stays at the top edge of the band; Thinking Space cleared below.

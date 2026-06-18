@@ -1186,6 +1186,11 @@ export function AgentBoardFrame({
             })
             boardCtx?.actions.onLibraryItemSelect(created.id)
             boardCtx?.actions.bumpLibraryNav()
+            return {
+              url: created.url,
+              name: file.name,
+              libraryItemId: created.id,
+            }
           }
         : undefined,
     isSending,

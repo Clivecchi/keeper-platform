@@ -20,7 +20,7 @@
 
 import * as React from "react"
 import { AgentComposer } from "../../../components/agent/AgentComposer"
-import type { AgentComposerProps } from "../../../components/agent/AgentComposer"
+import type { AgentComposerProps, AgentAttachment, PendingAttachment } from "../../../components/agent/AgentComposer"
 import { DialogueMessageList } from "../../../components/agent/DialogueMessageList"
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedServicesBar"
@@ -29,6 +29,7 @@ import { clearConsoleDiagEntries } from "../../../lib/consoleDiagCapture"
 import { DialogDiagStream } from "./DialogDiagStream"
 import { DialogScrollHint } from "./DialogScrollHint"
 import { DialogScrollRail } from "./DialogScrollRail"
+import { DialogUploadStream } from "./DialogUploadStream"
 
 type ThinkStream = "diag" | null
 
@@ -205,6 +206,9 @@ export function KeeperDialogFrame({
   const [bannerExpanded, setBannerExpanded] = React.useState(false)
   const [dialogScrollInset, setDialogScrollInset] = React.useState(172)
   const [thinkStream, setThinkStream] = React.useState<ThinkStream>(null)
+  const [pendingAttachments, setPendingAttachments] = React.useState<PendingAttachment[]>([])
+  const [isFileUploading, setIsFileUploading] = React.useState(false)
+  const hasUploads = pendingAttachments.length > 0 || isFileUploading
 
   React.useEffect(() => {
     if (isSending) {
@@ -229,7 +233,7 @@ export function KeeperDialogFrame({
     measureDialogScrollInset()
     window.addEventListener("resize", measureDialogScrollInset)
     return () => window.removeEventListener("resize", measureDialogScrollInset)
-  }, [mode, dialogContent, measureDialogScrollInset, isSending, thinkStream])
+  }, [mode, dialogContent, measureDialogScrollInset, isSending, thinkStream, hasUploads])
 
   const getLatestScrollTop = React.useCallback(() => {
     const el = scrollRef.current
@@ -245,6 +249,17 @@ export function KeeperDialogFrame({
   }, [])
 
   const composerState: "composing" | "working" = isSending ? "working" : "composing"
+
+  const handleComposerSubmit = React.useCallback(
+    (
+      event: React.FormEvent,
+      options: { content: string; attachments?: AgentAttachment[] },
+    ) => {
+      onSubmit(event, options)
+      setPendingAttachments([])
+    },
+    [onSubmit],
+  )
 
   const thinkingLabel = React.useMemo(
     () =>
@@ -286,6 +301,7 @@ export function KeeperDialogFrame({
     <div
       className="keeper-dialog-frame"
       data-composer-state={mode === "feed" ? undefined : composerState}
+      data-has-uploads={hasUploads ? "true" : undefined}
     >
 
       {/* ── Header Bar — expandable breadcrumb; hidden in feed mode ─────────── */}
@@ -542,10 +558,22 @@ export function KeeperDialogFrame({
       {mode !== 'feed' && (
         <div
           ref={thinkSpaceRef}
-          className={`dialog-think-space${isSending && thinkStream === "diag" ? " dialog-think-space--diag" : ""}`}
-          aria-hidden={!(isSending && thinkStream === "diag")}
+          className={[
+            "dialog-think-space",
+            isSending && thinkStream === "diag" ? " dialog-think-space--diag" : "",
+            hasUploads ? " dialog-think-space--uploads" : "",
+          ].join("")}
+          aria-hidden={!(isSending && thinkStream === "diag") && !hasUploads}
         >
-          <DialogDiagStream active={isSending && thinkStream === "diag"} />
+          {isSending && thinkStream === "diag" ? (
+            <DialogDiagStream active />
+          ) : (
+            <DialogUploadStream
+              attachments={pendingAttachments}
+              isUploading={isFileUploading}
+              onRemove={(id) => setPendingAttachments((prev) => prev.filter((a) => a.id !== id))}
+            />
+          )}
         </div>
       )}
 
@@ -559,8 +587,12 @@ export function KeeperDialogFrame({
             dialogueMode={dialogueMode}
             inputValue={inputValue}
             onInputChange={onInputChange}
-            onSubmit={onSubmit}
+            onSubmit={handleComposerSubmit}
             onLibraryFileUpload={onLibraryFileUpload}
+            attachments={pendingAttachments}
+            onAttachmentsChange={setPendingAttachments}
+            attachmentDisplay="thinking-space"
+            onUploadingChange={setIsFileUploading}
             isSending={isSending}
             activeSessionId={activeSessionId}
             disabled={disabled}
