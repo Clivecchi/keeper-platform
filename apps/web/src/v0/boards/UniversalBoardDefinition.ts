@@ -11,6 +11,16 @@
 
 export type BoardId = "ide" | "agent" | "domain" | "designer" | (string & {})
 
+/** How Dialog coordinates agents on this board — see docs/universal-board-dialog-orchestration.md */
+export type DialogOrchestrationMode =
+  | "solo"
+  | "director"
+  | "roundtable"
+  | "hot_seat"
+  | "chorus"
+
+export type BoardInstrumentSlug = "cloud" | "rendr"
+
 // Left panel — Navigation
 // What sections appear. What board nav integrations are present.
 // Treatment character: orientation and confidence.
@@ -82,6 +92,15 @@ export interface ConversationPanelDef {
   showServiceBar: boolean
   /** Which KipSession mode the conversation uses. Drives context injection and session behavior. */
   kipMode: "ide" | "agent" | "domain" | "designer"
+  /**
+   * Dialog orchestration — who owns the composer and how board instruments participate.
+   * @default "solo" when omitted (legacy boards)
+   */
+  dialogOrchestration?: DialogOrchestrationMode
+  /** Lead agent slug when dialogOrchestration is "director". Defaults to agentSlug / "kip". */
+  directorAgentSlug?: string
+  /** Invokable board instruments for director mode (agent slugs). */
+  boardInstruments?: BoardInstrumentSlug[]
   /**
    * When true, the echo agent may attach an agent echo after a non-default agent's reply.
    * Echo agent — resolved from def.conversation.agentSlug for now; echo registry is a future layer.
@@ -274,6 +293,9 @@ export const IDE_BOARD_DEF: UniversalBoardDef = {
     dialogueMode: "domain",
     showServiceBar: true,
     kipMode: "ide",
+    dialogOrchestration: "director",
+    directorAgentSlug: "kip",
+    boardInstruments: ["cloud", "rendr"],
     allowedCapabilities: IDE_BOARD_ALLOWED_CAPABILITIES,
   },
   contextSurface: {
@@ -314,6 +336,7 @@ export const AGENT_BOARD_DEF: UniversalBoardDef = {
     dialogueMode: "agent",
     showServiceBar: false,
     kipMode: "agent",
+    dialogOrchestration: "solo",
     agentEcho: true,
   },
   contextSurface: {

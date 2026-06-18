@@ -48,6 +48,7 @@ import type { DomainFrameJson } from "../data/domain-frame.types"
 import type { AgentDialogueMessage } from "../../components/agent/types"
 import { normalizeActionReceipt } from "../../components/agent/types"
 import { addLibraryUploadFromFile } from "../presence/integrationChronicle/libraryNavCreate"
+import { BOARD_INSTRUMENT_LABELS } from "./directorDialog"
 
 type ToolSlug = "cloud" | "rendr"
 
@@ -55,11 +56,6 @@ interface SelectedAgentRecord {
   slug: string
   name: string
   purpose: string | null
-}
-
-const TOOL_DISPLAY_NAMES: Record<ToolSlug, string> = {
-  cloud: "Cloud",
-  rendr: "Rendr",
 }
 
 function pickMostRecentDialogSessionId(
@@ -281,20 +277,33 @@ export function UniversalConversation({
     !!selectedAgentRecord &&
     selectedAgentRecord.slug !== defaultAgentSlug
 
-  // IDE mode: Cloud and Rendr invoke alternate agents into the Dialog.
-  const [invokedToolSlug, setInvokedToolSlug] = React.useState<ToolSlug | null>(null)
-  const effectiveAgentSlug =
-    kipMode === "ide" && invokedToolSlug
-      ? invokedToolSlug
-      : usingSelectedNonDefaultAgent && selectedAgentRecord
-        ? selectedAgentRecord.slug
-        : baseAgentSlug
-  const effectiveAgentDisplayName =
-    kipMode === "ide" && invokedToolSlug
-      ? TOOL_DISPLAY_NAMES[invokedToolSlug]
-      : usingSelectedNonDefaultAgent && selectedAgentRecord
-        ? selectedAgentRecord.name
-        : def.conversation.agentName
+  const isDirectorMode =
+    kipMode === "ide" && def.conversation.dialogOrchestration === "director"
+  const directorAgentSlug = def.conversation.directorAgentSlug ?? defaultAgentSlug
+  const activeBoardInstrument = selection.activeBoardInstrument
+
+  const dialogAgentSlug = isDirectorMode
+    ? directorAgentSlug
+    : usingSelectedNonDefaultAgent && selectedAgentRecord
+      ? selectedAgentRecord.slug
+      : baseAgentSlug
+  const dialogAgentDisplayName = isDirectorMode
+    ? defaultAgentName
+    : usingSelectedNonDefaultAgent && selectedAgentRecord
+      ? selectedAgentRecord.name
+      : def.conversation.agentName
+
+  const directorConfig = React.useMemo(
+    () =>
+      isDirectorMode
+        ? {
+            activeInstrument: activeBoardInstrument,
+            instrumentLabels: BOARD_INSTRUMENT_LABELS,
+            directorDisplayName: defaultAgentName,
+          }
+        : undefined,
+    [isDirectorMode, activeBoardInstrument, defaultAgentName],
+  )
 
   const selectedBoardDefId = kipMode === "designer" ? boardDefinitionId : null
   /** Design board focus — board definition from ?definition= (replaces removed frame nav). */
@@ -652,7 +661,7 @@ export function UniversalConversation({
       }
 
       if (!agentEcho || kipMode !== "agent") return
-      if (effectiveAgentSlug === defaultAgentSlug) return
+      if (dialogAgentSlug === defaultAgentSlug) return
       if (!echoAgentId || !echoSessionId) return
 
       const exchange = lastExchangeFromRaw(latestRaw)
@@ -661,10 +670,10 @@ export function UniversalConversation({
       const echoPrompt = [
         `[Agent Echo — supporting role]`,
         `The user asked: "${exchange.userMessage || "[no user message]"}"`,
-        `${effectiveAgentDisplayName} responded: "${exchange.agentMessage}"`,
+        `${dialogAgentDisplayName} responded: "${exchange.agentMessage}"`,
         ``,
         `You are in the supporting role. Do NOT answer the user's question.`,
-        `Read what ${effectiveAgentDisplayName} said and decide:`,
+        `Read what ${dialogAgentDisplayName} said and decide:`,
         `- If it is accurate and complete, return empty. Stay silent. Let the dialog rest.`,
         `- If you have something sharp and brief to add, contribute a Dialog Response.`,
         `Your response is addressed to the exchange, not to the user directly.`,
@@ -691,7 +700,7 @@ export function UniversalConversation({
           let targetIdx = prev.findIndex((m) => m.id === exchange.id)
           if (targetIdx < 0) {
             targetIdx = prev.findLastIndex(
-              (m) => m.role === "agent" && !isThinkingPlaceholder(m.content, effectiveAgentDisplayName),
+              (m) => m.role === "agent" && !isThinkingPlaceholder(m.content, dialogAgentDisplayName),
             )
           }
           if (targetIdx < 0) return prev
@@ -713,14 +722,14 @@ export function UniversalConversation({
       kipMode,
       onAfterAgentRun,
       agentEcho,
-      effectiveAgentSlug,
+      dialogAgentSlug,
       defaultAgentSlug,
       echoAgentId,
       echoSessionId,
       domainSlug,
       domainId,
       agentContext,
-      effectiveAgentDisplayName,
+      dialogAgentDisplayName,
       defaultAgentName,
     ],
   )
@@ -802,10 +811,10 @@ export function UniversalConversation({
     sendMessage,
     fetchMessages,
   } = useAgentDialog({
-    agentSlug: effectiveAgentSlug,
+    agentSlug: dialogAgentSlug,
     resolvedAgentId:
       usingSelectedNonDefaultAgent && activeDialogAgentId ? activeDialogAgentId : undefined,
-    agentDisplayName: effectiveAgentDisplayName,
+    agentDisplayName: dialogAgentDisplayName,
     mode: kipMode,
     dialogBoard: kipMode === "designer" ? "designer" : undefined,
     dialogFrame: kipMode === "designer" ? (designerFocusKey ?? undefined) : undefined,
@@ -828,6 +837,7 @@ export function UniversalConversation({
     frameKey: designerFocusKey ?? undefined,
     manageSessionExternally:
       kipMode === "ide" || (kipMode === "agent" && usingSelectedNonDefaultAgent),
+    directorConfig,
   })
 
   setMessagesRef.current = setMessages
@@ -872,12 +882,24 @@ export function UniversalConversation({
     idleMessages,
   })
 
-  // ── IDE mode: invoke Cloud / Rendr into the Dialog ───────────────────────
-  const handleToolInvoke = React.useCallback((tool: ToolSlug) => {
-    setInvokedToolSlug((prev) => (prev === tool ? null : tool))
-  }, [])
+  // ── IDE director mode: pin Cloud / Rendr for delegation + Chronicle focus ─
+  const handleToolInvoke = React.useCallback(
+    (tool: ToolSlug) => {
+      if (!isDirectorMode) return
+      const next = activeBoardInstrument === tool ? null : tool
+      actions.onSetActiveBoardInstrument(next)
+      if (next) {
+        void KipApi.getAgentBySlug(next)
+          .then((agent) => actions.onAgentSelect(agent.id))
+          .catch(() => {
+            /* Chronicle focus is best-effort */
+          })
+      }
+    },
+    [isDirectorMode, activeBoardInstrument, actions],
+  )
 
-  // IDE Board owns session lifecycle when tools switch (Cloud / Rendr ↔ Kip).
+  // IDE Board owns Kip session lifecycle (instruments do not swap the dialog agent).
   React.useEffect(() => {
     if (kipMode !== "ide" || !agentId) return
     if (frameCtx?.isResolving) return
@@ -898,9 +920,7 @@ export function UniversalConversation({
           return
         }
 
-        const sessionName = invokedToolSlug
-          ? TOOL_DISPLAY_NAMES[invokedToolSlug]
-          : `Session · ${new Date().toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`
+        const sessionName = `Session · ${new Date().toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`
 
         const session = await KipApi.createSession(agentId, undefined, sessionName, {
           domainSlug,
@@ -912,7 +932,7 @@ export function UniversalConversation({
         })
         if (cancelled) return
         handleSessionChange(session.id)
-        setMessages(invokedToolSlug ? [] : idleMessages)
+        setMessages(idleMessages)
       } catch {
         /* composer stays disabled until session resolves */
       }
@@ -924,8 +944,6 @@ export function UniversalConversation({
   }, [
     kipMode,
     agentId,
-    effectiveAgentSlug,
-    invokedToolSlug,
     domainId,
     domainSlug,
     audience,
@@ -1067,12 +1085,10 @@ export function UniversalConversation({
     switch (kipMode) {
       case "ide":
         return {
-          primary: invokedToolSlug
-            ? TOOL_DISPLAY_NAMES[invokedToolSlug]
-            : (keeperName ?? domainName ?? ""),
-          secondary: invokedToolSlug
-            ? "Tool"
-            : (journeyName ?? undefined),
+          primary: defaultAgentName,
+          secondary: activeBoardInstrument
+            ? BOARD_INSTRUMENT_LABELS[activeBoardInstrument]
+            : (journeyName ?? keeperName ?? domainName ?? undefined),
           sessionLabel: "Session" as const,
         }
       case "agent":
@@ -1151,7 +1167,8 @@ export function UniversalConversation({
     designerFocusKey,
     selectedBoardDefId,
     hasDraftSpec,
-    invokedToolSlug,
+    activeBoardInstrument,
+    defaultAgentName,
     journeyCount,
     momentCount,
     selection.trainingMode,
@@ -1270,12 +1287,12 @@ export function UniversalConversation({
         onSaveTitle={kipMode === "ide" ? handleSaveTitle : undefined}
         showServiceBar={def.conversation.showServiceBar}
         onServiceOpen={kipMode === "ide" ? (service) => onServiceOpen(service ?? "vercel") : undefined}
-        onToolInvoke={kipMode === "ide" ? handleToolInvoke : undefined}
-        activeToolSlug={kipMode === "ide" ? invokedToolSlug : null}
+        onToolInvoke={isDirectorMode ? handleToolInvoke : undefined}
+        activeToolSlug={isDirectorMode ? activeBoardInstrument : null}
         messages={messages}
         isSending={isSending}
         error={error}
-        agentName={effectiveAgentDisplayName}
+        agentName={dialogAgentDisplayName}
         echoAgentName={defaultAgentName}
         onOpenDraft={onDraftSelect}
         onOpenMoment={onMomentSelect}

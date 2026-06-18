@@ -25,6 +25,7 @@ import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/capabilityNavUtils"
 import type { KeeperNavRowPatch } from "../presence/integrationChronicle/keeperNavUtils"
 import type { LibraryNavRowPatch } from "../presence/integrationChronicle/libraryNavUtils"
+import type { BoardInstrumentSlug } from "./UniversalBoardDefinition"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,6 +73,8 @@ export interface UniversalBoardSelection {
   keeperNavRowPatch: KeeperNavRowPatch | null
   /** Agent Board: Chronicle Training Mode — entered via Train on agent cover. */
   trainingMode: boolean
+  /** IDE director mode: pinned board instrument for delegation + Chronicle focus. */
+  activeBoardInstrument: BoardInstrumentSlug | null
 }
 
 export interface UniversalBoardActions {
@@ -100,6 +103,7 @@ export interface UniversalBoardActions {
   bumpKeeperNav: (patch?: KeeperNavRowPatch) => void
   onEnterTrainingMode: () => void
   onExitTrainingMode: () => void
+  onSetActiveBoardInstrument: (slug: BoardInstrumentSlug | null) => void
 }
 
 export interface UniversalBoardContextValue {
@@ -163,6 +167,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [keeperNavRowPatch, setKeeperNavRowPatch] =
     React.useState<KeeperNavRowPatch | null>(null)
   const [trainingMode, setTrainingMode] = React.useState(false)
+  const [activeBoardInstrument, setActiveBoardInstrument] =
+    React.useState<BoardInstrumentSlug | null>(null)
 
   // ── Nav state ──────────────────────────────────────────────────────────────
   const [navCollapsed, setNavCollapsed] = React.useState(false)
@@ -331,8 +337,13 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setTrainingMode(false)
   }, [])
 
+  const onSetActiveBoardInstrument = React.useCallback((slug: BoardInstrumentSlug | null) => {
+    setActiveBoardInstrument(slug)
+  }, [])
+
   const clearSelection = React.useCallback(() => {
     setTrainingMode(false)
+    setActiveBoardInstrument(null)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedMomentId(null)
@@ -429,6 +440,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         keeperNavRevision,
         keeperNavRowPatch,
         trainingMode,
+        activeBoardInstrument,
       },
       actions: {
         onSessionSelect,
@@ -453,6 +465,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         bumpKeeperNav,
         onEnterTrainingMode,
         onExitTrainingMode,
+        onSetActiveBoardInstrument,
       },
       navCollapsed,
       onToggleNavCollapsed,
@@ -483,6 +496,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       keeperNavRevision,
       keeperNavRowPatch,
       trainingMode,
+      activeBoardInstrument,
       onSessionSelect,
       onSetActiveJourney,
       onDialogSelect,
@@ -505,6 +519,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       bumpKeeperNav,
       onEnterTrainingMode,
       onExitTrainingMode,
+      onSetActiveBoardInstrument,
       navCollapsed,
       onToggleNavCollapsed,
     ],

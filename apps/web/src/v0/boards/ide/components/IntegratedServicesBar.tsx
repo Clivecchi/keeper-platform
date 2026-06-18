@@ -11,9 +11,9 @@ type ServiceStatus = "connected" | "warning" | "disconnected"
 export interface IntegratedServicesBarProps {
   /** Opens the integrations panel in Chronicle (Railway, Vercel, GitHub). */
   onOpen: (service?: ServiceSlug) => void
-  /** Invokes Cloud or Rendr into the Dialog — shifts the conversation agent. */
+  /** Pins Cloud or Rendr for director delegation + Chronicle focus (does not swap the composer agent). */
   onToolInvoke?: (tool: ToolSlug) => void
-  /** Currently invoked tool slug — highlights the active tool chip. */
+  /** Currently pinned instrument — highlights the active tool chip. */
   activeToolSlug?: ToolSlug | null
   railwayStatus: ServiceStatus
   vercelStatus: ServiceStatus
@@ -197,7 +197,16 @@ function ToolChip({
   return (
     <button
       type="button"
-      aria-label={`Invoke ${label} agent`}
+      aria-label={
+        isActive
+          ? `Unpin ${label} — stop delegating to ${label}`
+          : `Pin ${label} for delegation`
+      }
+      title={
+        isActive
+          ? `Unpin ${label} — Kip keeps the composer`
+          : `Pin ${label} — delegate turns to ${label}, Kip synthesizes`
+      }
       aria-pressed={isActive}
       onClick={(e) => {
         e.stopPropagation()

@@ -24,6 +24,20 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-17 — IDE director dialog orchestration
+- `UniversalBoardDefinition`: IDE preset uses `dialogOrchestration: "director"`; Agent preset stays `solo`
+- `directorDialog.ts`: delegation + synthesis prompts, `DirectorDialogConfig`, `extractAgentReplyFromRunResult`
+- `UniversalConversation`: Kip always owns composer on IDE; Cloud/Rendr chips pin `activeBoardInstrument` + Chronicle focus (no agent swap)
+- `useAgentDialog`: when instrument pinned, runs instrument → Kip synthesis; attaches `delegation` beat on last agent message
+- `DialogueMessageList`: renders instrument delegation above Lead content (echo stays below)
+- `IntegratedServicesBar`: pin/unpin copy for director delegation
+
+### 2026-06-15 — Library Pass 1 polish (nav labels, hero image, config save)
+- `libraryNavUtils`: filename extraction via URL pathname; skip placeholder `display_label` values (e.g. source icon letter); `resolveLibraryHeroAvatar()` for image uploads
+- `UniversalNavPanel`: removed source-type icon letter badges from Library nav rows; consolidated Add URL into card list; filter invalid rows
+- `EntityCoverPresence`: render hero `avatar` as image when value is a URL/data URI
+- `LibraryItemFocusPresence`: stable Manage → config handler; full-height config shell with save bar
+
 ### 2026-06-14 — Library EntityKind nav (Domain board, Pass 1)
 - `UniversalBoardDefinition`: `library` nav section on Domain board (`navBlockOrder` includes `library`)
 - `UniversalBoardContext`: `selectedLibraryItemId`, `onLibraryItemSelect`, `bumpLibraryNav` + optimistic row patch

@@ -11,6 +11,9 @@ export interface DialogResponseEcho {
   attributedTo?: string
 }
 
+/** Board instrument reply shown above Lead content in director mode. */
+export type DirectorDelegationBeat = DialogResponseEcho
+
 export interface AgentDialogueMessage {
   id: string
   role: "user" | "agent"
@@ -18,6 +21,8 @@ export interface AgentDialogueMessage {
   createdAt: string
   /** Optional agent echo — supporting Dialog Response beneath the primary agent message. */
   echo?: DialogResponseEcho
+  /** Director mode — instrument reply above Lead content (Cloud, Rendr, …). */
+  delegation?: DirectorDelegationBeat
   linkedCard?: LinkedCardProps
   actionResults?: Array<{
     type: string
