@@ -24,6 +24,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-17 — Director dialog fixes (delegation beat, Horizon phases, focus)
+- `directorDialog.ts`: stronger delegation/synthesis prompts (no "you're talking to Kip" correction); robust `extractAgentReplyFromRunResult`
+- `useAgentDialog`: `directorConfigRef` + single post-run merge for `delegation` / `actionResults`; `onDirectorPhaseChange` for Horizon
+- `UniversalConversation` → `KeeperDialogFrame`: `thinkingStatusLabel` shows Cloud then Kip while sending
+- `DialogueMessageList`: scroll opacity anchors on bottommost (newest) message, not topmost
+
 ### 2026-06-17 — IDE director dialog orchestration
 - `UniversalBoardDefinition`: IDE preset uses `dialogOrchestration: "director"`; Agent preset stays `solo`
 - `directorDialog.ts`: delegation + synthesis prompts, `DirectorDialogConfig`, `extractAgentReplyFromRunResult`

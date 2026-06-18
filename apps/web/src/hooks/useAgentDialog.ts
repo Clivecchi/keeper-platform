@@ -11,7 +11,9 @@ import { apiFetch } from "../lib/api"
 import {
   buildDirectorSynthesisPrompt,
   buildInstrumentDelegationPrompt,
+  extractAgentReplyFromRunResult,
   type DirectorDialogConfig,
+  type DirectorSendPhase,
 } from "../v0/boards/directorDialog"
 
 /** Mirrors `KipApi.runAgent` `options.agentContext` (no separate exported type in codebase) */
@@ -164,9 +166,11 @@ export interface UseAgentDialogOptions {
   frameKey?: string
   /** IDE director mode: run pinned instrument before Lead synthesis turn. */
   directorConfig?: DirectorDialogConfig
+  /** IDE director mode: Horizon label phases while sending (instrument → Lead). */
+  onDirectorPhaseChange?: (phase: DirectorSendPhase | null) => void
 }
 
-export type { DirectorDialogConfig }
+export type { DirectorDialogConfig, DirectorSendPhase }
 
 export interface UseAgentDialogResult {
   messages: AgentDialogueMessage[]
@@ -184,17 +188,6 @@ export interface UseAgentDialogResult {
     e: FormEvent,
     payload: { content: string; attachments?: AgentAttachment[] },
   ) => Promise<void>
-}
-
-function extractAgentReplyFromRunResult(result: unknown): string | null {
-  const data = (result as { data?: Record<string, unknown> })?.data
-  if (!data || typeof data !== "object") return null
-  const nested = data.data as Record<string, unknown> | undefined
-  const response =
-    (typeof nested?.response === "string" && nested.response.trim()) ||
-    (typeof data.response === "string" && data.response.trim()) ||
-    null
-  return response
 }
 
 export function extractRunAgentPayload(result: unknown): {
@@ -239,6 +232,7 @@ export function useAgentDialog({
   frameKey,
   manageSessionExternally = false,
   directorConfig,
+  onDirectorPhaseChange,
 }: UseAgentDialogOptions): UseAgentDialogResult {
   const [internalSessionId, setInternalSessionId] = React.useState<string | null>(null)
   // Use controlledSessionId when it has been driven to a real value (non-null).
@@ -273,6 +267,9 @@ export function useAgentDialog({
   // history without adding `messages` to its dep array.
   const messagesRef = React.useRef<AgentDialogueMessage[]>(messages)
   messagesRef.current = messages
+
+  const directorConfigRef = React.useRef(directorConfig)
+  directorConfigRef.current = directorConfig
 
   const fetchMessages = React.useCallback(
     async (sessionId: string) => {
@@ -475,17 +472,19 @@ export function useAgentDialog({
         attachments: attachments?.length ? attachments : undefined,
       }
 
-      const instrument = directorConfig?.activeInstrument ?? null
+      const liveDirectorConfig = directorConfigRef.current
+      const instrument = liveDirectorConfig?.activeInstrument ?? null
       let delegationBeat: DirectorDelegationBeat | undefined
 
-      if (directorConfig && instrument && content.trim()) {
+      if (liveDirectorConfig && instrument && content.trim()) {
+        onDirectorPhaseChange?.("instrument")
         try {
           const instAgent = await KipApi.getAgentBySlug(instrument)
-          const instLabel = directorConfig.instrumentLabels[instrument]
+          const instLabel = liveDirectorConfig.instrumentLabels[instrument]
           const instPrompt = buildInstrumentDelegationPrompt({
             userMessage: content,
             instrumentLabel: instLabel,
-            directorName: directorConfig.directorDisplayName,
+            directorName: liveDirectorConfig.directorDisplayName,
           })
           const instResult = await KipApi.runAgent(
             instAgent.id,
@@ -494,7 +493,7 @@ export function useAgentDialog({
             undefined,
             runOpts,
           )
-          const instReply = extractAgentReplyFromRunResult(instResult)?.trim()
+          const instReply = extractAgentReplyFromRunResult(instResult)
           if (instReply) {
             delegationBeat = { content: instReply, attributedTo: instLabel }
           }
@@ -503,13 +502,15 @@ export function useAgentDialog({
         }
       }
 
+      onDirectorPhaseChange?.(liveDirectorConfig && instrument ? "director" : null)
+
       const leadInput =
-        delegationBeat && directorConfig && instrument
+        delegationBeat && liveDirectorConfig && instrument
           ? buildDirectorSynthesisPrompt({
               userMessage: content,
-              instrumentLabel: directorConfig.instrumentLabels[instrument],
+              instrumentLabel: liveDirectorConfig.instrumentLabels[instrument],
               instrumentReply: delegationBeat.content,
-              directorName: directorConfig.directorDisplayName,
+              directorName: liveDirectorConfig.directorDisplayName,
             })
           : content
 
@@ -533,8 +534,36 @@ export function useAgentDialog({
           }
         }
 
-        const latestRaw = await fetchMessages(activeSessionId)
-        if (!latestRaw?.length && mode !== "ide") {
+        let latestRaw: KipMessage[] | undefined
+        try {
+          latestRaw = await KipApi.getSessionMessages(activeSessionId)
+        } catch {
+          latestRaw = await fetchMessages(activeSessionId)
+        }
+
+        const { actions: actionsArr, sessionId: returnedSessionId } = extractRunAgentPayload(result)
+
+        const mergeOntoLastAgent = (list: AgentDialogueMessage[]): AgentDialogueMessage[] => {
+          if (!delegationBeat && !actionsArr?.length) return list
+          const updated = [...list]
+          const lastAgentIdx = updated.findLastIndex((m) => m.role === "agent")
+          if (lastAgentIdx < 0) return list
+          updated[lastAgentIdx] = {
+            ...updated[lastAgentIdx],
+            ...(delegationBeat ? { delegation: delegationBeat } : {}),
+            ...(actionsArr?.length ? { actionResults: actionsArr } : {}),
+          }
+          return updated
+        }
+
+        if (latestRaw?.length || mode === "ide") {
+          const normalized = latestRaw?.length
+            ? latestRaw.map(normalizeMessage)
+            : mode === "ide"
+              ? [greeting]
+              : []
+          setMessages(mergeOntoLastAgent(normalized))
+        } else {
           const replyText = extractAgentReplyFromRunResult(result)
           if (replyText) {
             setMessages((prev) => {
@@ -550,7 +579,7 @@ export function useAgentDialog({
                       createdAt: new Date(ts).toISOString(),
                     },
                   ]
-              return [
+              return mergeOntoLastAgent([
                 ...base,
                 {
                   id: `${agentSlug}-reply-${ts}`,
@@ -558,11 +587,10 @@ export function useAgentDialog({
                   content: replyText,
                   createdAt: new Date().toISOString(),
                 },
-              ]
+              ])
             })
           }
         }
-        const { actions: actionsArr, sessionId: returnedSessionId } = extractRunAgentPayload(result)
 
         if (
           returnedSessionId &&
@@ -578,31 +606,6 @@ export function useAgentDialog({
 
         if (onAfterAgentRun) {
           onAfterAgentRun(latestRaw, actionsArr, result)
-        }
-        if (
-          (mode === "ide" || mode === "agent" || mode === "domain")
-          && actionsArr
-          && actionsArr.length > 0
-        ) {
-          setMessages((prev) => {
-            const updated = [...prev]
-            const lastAgentIdx = updated.findLastIndex((m) => m.role === "agent")
-            if (lastAgentIdx >= 0) {
-              updated[lastAgentIdx] = { ...updated[lastAgentIdx], actionResults: actionsArr }
-            }
-            return updated
-          })
-        }
-
-        if (delegationBeat) {
-          setMessages((prev) => {
-            const updated = [...prev]
-            const lastAgentIdx = updated.findLastIndex((m) => m.role === "agent")
-            if (lastAgentIdx >= 0) {
-              updated[lastAgentIdx] = { ...updated[lastAgentIdx], delegation: delegationBeat }
-            }
-            return updated
-          })
         }
 
         await onRefreshDraftsAfterRun?.(result)
@@ -631,6 +634,7 @@ export function useAgentDialog({
           ])
         }
       } finally {
+        onDirectorPhaseChange?.(null)
         setIsSending(false)
       }
     },
@@ -653,7 +657,7 @@ export function useAgentDialog({
       onAfterAgentRun,
       onRefreshDraftsAfterRun,
       frameKey,
-      directorConfig,
+      onDirectorPhaseChange,
     ],
   )
 

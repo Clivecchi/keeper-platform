@@ -4,12 +4,18 @@
  * KeeperDialogFrame
  *
  * Shared conversation shell used by IDE Board, Agent Board, and Domain Board.
- * Assembles the staged frame layout from Keeper_DialogFrame_Spec_v1.md Path 8:
- *   Zone 1 — Frosted header banner (breadcrumb + path prelude)
- *   Zone 2 — Scrollable message surface with gradient dissolve
- *   Zone 3 — Frosted bottom zone: optional service bar + composer
  *
- * This component owns the shell only. Message logic and API calls live in the Board.
+ * Canonical surfaces (product language):
+ *   Header Bar   — expandable breadcrumb / session meta (`.dialog-header-banner`)
+ *   Dialog Space — scrollable messages above the Horizon (`.dialog-message-zone`)
+ *   Composer     — user input floor; two states via `data-composer-state`:
+ *     composing — input only; Thinking Space idle
+ *     working   — Horizon (status + stream toolbar) + Thinking Space + input
+ *
+ * Horizon sits at the bottom edge of Dialog Space (gradient dissolve). Thinking Space
+ * and the input field are siblings below — grouped logically as Composer when working.
+ *
+ * Message logic and API calls live in the Board; this file owns layout only.
  */
 
 import * as React from "react"
@@ -21,6 +27,7 @@ import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedSer
 import type { AgentBoardMessaging } from "../../data/domain-frame.types"
 import { clearConsoleDiagEntries } from "../../../lib/consoleDiagCapture"
 import { DialogDiagStream } from "./DialogDiagStream"
+import { DialogScrollHint } from "./DialogScrollHint"
 import { DialogScrollRail } from "./DialogScrollRail"
 
 type ThinkStream = "diag" | null
@@ -86,6 +93,8 @@ export interface KeeperDialogFrameProps {
   onServiceOpen?: (service?: ServiceSlug) => void
   onToolInvoke?: (tool: ToolSlug) => void
   activeToolSlug?: ToolSlug | null
+  /** Overrides default "{agentName} is thinking…" on the Horizon while sending. */
+  thinkingStatusLabel?: string
   railwayStatus?: ServiceStatus
   vercelStatus?: ServiceStatus
   githubStatus?: ServiceStatus
@@ -156,6 +165,7 @@ export function KeeperDialogFrame({
   onServiceOpen,
   onToolInvoke,
   activeToolSlug = null,
+  thinkingStatusLabel,
   railwayStatus = "disconnected",
   vercelStatus = "disconnected",
   githubStatus = "disconnected",
@@ -221,13 +231,29 @@ export function KeeperDialogFrame({
     return () => window.removeEventListener("resize", measureDialogScrollInset)
   }, [mode, dialogContent, measureDialogScrollInset, isSending, thinkStream])
 
+  const getLatestScrollTop = React.useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return 0
+    const thinkHeight = thinkSpaceRef.current?.offsetHeight ?? 52
+    const fadeEl = el.parentElement?.querySelector(
+      ".dialog-fade-overlay",
+    ) as HTMLElement | null
+    const fadeHeight = fadeEl?.offsetHeight ?? 120
+    const clearance = thinkHeight + fadeHeight
+    const maxScroll = el.scrollHeight - el.clientHeight
+    return Math.max(0, maxScroll - clearance + thinkHeight)
+  }, [])
+
+  const composerState: "composing" | "working" = isSending ? "working" : "composing"
+
   const thinkingLabel = React.useMemo(
     () =>
-      (agentBoardMessaging?.dialogue.thinking ?? "{agent_name} is thinking…").replace(
+      thinkingStatusLabel
+      ?? (agentBoardMessaging?.dialogue.thinking ?? "{agent_name} is thinking…").replace(
         "{agent_name}",
         agentName,
       ),
-    [agentBoardMessaging?.dialogue.thinking, agentName],
+    [thinkingStatusLabel, agentBoardMessaging?.dialogue.thinking, agentName],
   )
 
   // Auto-scroll so the newest message clears the Horizon (Thinking space + fade overlay)
@@ -257,9 +283,12 @@ export function KeeperDialogFrame({
   const showBanner = mode !== 'feed' && (!!hasBreadcrumb || !!bannerContext?.prelude || !!onReturnToFeed || hasSessionMeta)
 
   return (
-    <div className="keeper-dialog-frame">
+    <div
+      className="keeper-dialog-frame"
+      data-composer-state={mode === "feed" ? undefined : composerState}
+    >
 
-      {/* ── Zone 1: Frosted Header Banner — hidden in feed mode ─────────────── */}
+      {/* ── Header Bar — expandable breadcrumb; hidden in feed mode ─────────── */}
       {showBanner && (
         <div className="dialog-header-banner">
           {bannerContext?.livePulse
@@ -435,8 +464,8 @@ export function KeeperDialogFrame({
         </div>
       )}
 
-      {/* ── Zone 2: Scrollable Message Surface ──────────────────────────────── */}
-      {/* dialog-message-zone owns flex:1 / min-height:0 so the inner surface can be height:100% */}
+      {/* ── Dialog Space — messages scroll above the Horizon ─────────────────── */}
+      {/* `.dialog-message-zone` owns flex:1 / min-height:0 so the inner surface can be height:100% */}
       <div className="dialog-message-zone">
         <div ref={scrollRef} className="dialog-message-surface">
           {mode === 'feed'
@@ -472,8 +501,9 @@ export function KeeperDialogFrame({
         </div>
 
         <DialogScrollRail scrollRef={scrollRef} />
+        <DialogScrollHint scrollRef={scrollRef} getLatestScrollTop={getLatestScrollTop} />
 
-        {/* Horizon band — gradient dissolve; agent status sits on the band, not above it */}
+        {/* Horizon — gradient dissolve at Composer edge; status + stream toolbar when working */}
         {mode !== 'feed' && (
           <div className="dialog-horizon-band">
             <div
@@ -519,8 +549,7 @@ export function KeeperDialogFrame({
         </div>
       )}
 
-      {/* ── Zone 3: Composer Zone — where the user speaks ───────────────────── *
-       *  Service bar lives below the input field: barely-there, at the floor.  */}
+      {/* ── Composer — input floor; Horizon + Thinking Space are the working state above */}
       <div className="dialog-bottom-zone">
         <div className="mx-auto w-full max-w-3xl">
           <AgentComposer

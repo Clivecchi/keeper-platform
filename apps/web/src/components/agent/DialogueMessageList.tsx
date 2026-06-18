@@ -219,17 +219,18 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
     const containerBottom = cr.bottom
     const containerTop = cr.top
 
-    // First pass — identify the topmost fully-visible message so it can hold
-    // full presence when the user scrolls back up to read it.
-    let topmostFullyVisibleId: string | null = null
-    let topmostTop = Infinity
+    // First pass — bottommost fully-visible message holds full presence at the floor.
+    let bottommostFullyVisibleId: string | null = null
+    let bottommostBottom = -Infinity
 
     messageRefs.current.forEach((el, id) => {
       if (!el) return
       const rect = el.getBoundingClientRect()
-      if (rect.top >= containerTop && rect.bottom <= containerBottom && rect.top < topmostTop) {
-        topmostTop = rect.top
-        topmostFullyVisibleId = id
+      if (rect.top >= containerTop && rect.bottom <= containerBottom) {
+        if (rect.bottom > bottommostBottom) {
+          bottommostBottom = rect.bottom
+          bottommostFullyVisibleId = id
+        }
       }
     })
 
@@ -237,7 +238,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
     messageRefs.current.forEach((el, id) => {
       if (!el) return
 
-      if (id === topmostFullyVisibleId) {
+      if (id === bottommostFullyVisibleId) {
         el.style.setProperty("--scroll-opacity", "1")
         return
       }

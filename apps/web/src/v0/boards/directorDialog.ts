@@ -16,6 +16,8 @@ export const BOARD_INSTRUMENT_LABELS: Record<BoardInstrumentSlug, string> = {
   rendr: "Rendr",
 }
 
+export type DirectorSendPhase = "instrument" | "director"
+
 export function buildInstrumentDelegationPrompt(params: {
   userMessage: string
   instrumentLabel: string
@@ -23,10 +25,12 @@ export function buildInstrumentDelegationPrompt(params: {
 }): string {
   return [
     `[Director delegation — ${params.instrumentLabel} on the IDE board]`,
-    `${params.directorName} (Lead) relayed this from the user:`,
+    `The user addressed ${params.instrumentLabel} (instrument pinned on the IDE board).`,
+    `${params.directorName} (Lead) relayed:`,
     `"${params.userMessage}"`,
     "",
-    `Respond as ${params.instrumentLabel} — concise, specific to your role. ${params.directorName} will synthesize for the user.`,
+    `Answer in first person as ${params.instrumentLabel}. One focused paragraph unless they asked for a list.`,
+    `Be specific to your role. ${params.directorName} will synthesize for the user — do not speak as ${params.directorName}.`,
   ].join("\n")
 }
 
@@ -38,23 +42,38 @@ export function buildDirectorSynthesisPrompt(params: {
 }): string {
   return [
     `[Director synthesis — ${params.directorName}]`,
-    `The user asked:`,
+    `The user asked (they may have addressed ${params.instrumentLabel} directly — that is expected when pinned):`,
     `"${params.userMessage}"`,
     "",
     `${params.instrumentLabel} (board instrument) responded:`,
     `"${params.instrumentReply}"`,
     "",
-    `As Lead, reply to the user. Integrate ${params.instrumentLabel}'s input when useful; stay in your voice.`,
+    `Reply to the user as Lead (${params.directorName}).`,
+    `- Integrate ${params.instrumentLabel}'s input; do not repeat it verbatim.`,
+    `- Do NOT correct the user about who they addressed. Never say they are "talking to ${params.directorName}, not ${params.instrumentLabel}".`,
+    `- Stay brief when ${params.instrumentLabel} already answered the question.`,
   ].join("\n")
 }
 
+function readResponseString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null
+}
+
 export function extractAgentReplyFromRunResult(result: unknown): string | null {
-  const data = (result as { data?: Record<string, unknown> })?.data
-  if (!data || typeof data !== "object") return null
-  const nested = data.data as Record<string, unknown> | undefined
-  const response =
-    (typeof nested?.response === "string" && nested.response.trim()) ||
-    (typeof data.response === "string" && data.response.trim()) ||
-    null
-  return response
+  if (!result || typeof result !== "object") return null
+  const root = result as Record<string, unknown>
+
+  const layer1 = root.data
+  if (layer1 && typeof layer1 === "object") {
+    const l1 = layer1 as Record<string, unknown>
+    const layer2 = l1.data
+    if (layer2 && typeof layer2 === "object") {
+      const nested = readResponseString((layer2 as Record<string, unknown>).response)
+      if (nested) return nested
+    }
+    const direct = readResponseString(l1.response)
+    if (direct) return direct
+  }
+
+  return readResponseString(root.response)
 }

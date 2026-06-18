@@ -48,7 +48,11 @@ import type { DomainFrameJson } from "../data/domain-frame.types"
 import type { AgentDialogueMessage } from "../../components/agent/types"
 import { normalizeActionReceipt } from "../../components/agent/types"
 import { addLibraryUploadFromFile } from "../presence/integrationChronicle/libraryNavCreate"
-import { BOARD_INSTRUMENT_LABELS } from "./directorDialog"
+import {
+  BOARD_INSTRUMENT_LABELS,
+  extractAgentReplyFromRunResult,
+  type DirectorSendPhase,
+} from "./directorDialog"
 
 type ToolSlug = "cloud" | "rendr"
 
@@ -68,17 +72,6 @@ function pickMostRecentDialogSessionId(
     return tb - ta
   })
   return sorted[0]?.id ?? null
-}
-
-function extractAgentReplyFromRunResult(result: unknown): string | null {
-  const data = (result as { data?: Record<string, unknown> })?.data
-  if (!data || typeof data !== "object") return null
-  const nested = data.data as Record<string, unknown> | undefined
-  const response =
-    (typeof nested?.response === "string" && nested.response.trim()) ||
-    (typeof data.response === "string" && data.response.trim()) ||
-    null
-  return response
 }
 
 function isThinkingPlaceholder(content: string, agentDisplayName: string): boolean {
@@ -304,6 +297,8 @@ export function UniversalConversation({
         : undefined,
     [isDirectorMode, activeBoardInstrument, defaultAgentName],
   )
+
+  const [directorSendPhase, setDirectorSendPhase] = React.useState<DirectorSendPhase | null>(null)
 
   const selectedBoardDefId = kipMode === "designer" ? boardDefinitionId : null
   /** Design board focus — board definition from ?definition= (replaces removed frame nav). */
@@ -838,7 +833,19 @@ export function UniversalConversation({
     manageSessionExternally:
       kipMode === "ide" || (kipMode === "agent" && usingSelectedNonDefaultAgent),
     directorConfig,
+    onDirectorPhaseChange: isDirectorMode ? setDirectorSendPhase : undefined,
   })
+
+  const horizonThinkingLabel = React.useMemo(() => {
+    if (!isDirectorMode || !isSending) return undefined
+    if (directorSendPhase === "instrument" && activeBoardInstrument) {
+      return `${BOARD_INSTRUMENT_LABELS[activeBoardInstrument]} is thinking…`
+    }
+    if (directorSendPhase === "director") {
+      return `${defaultAgentName} is thinking…`
+    }
+    return undefined
+  }, [isDirectorMode, isSending, directorSendPhase, activeBoardInstrument, defaultAgentName])
 
   setMessagesRef.current = setMessages
 
@@ -1289,6 +1296,7 @@ export function UniversalConversation({
         onServiceOpen={kipMode === "ide" ? (service) => onServiceOpen(service ?? "vercel") : undefined}
         onToolInvoke={isDirectorMode ? handleToolInvoke : undefined}
         activeToolSlug={isDirectorMode ? activeBoardInstrument : null}
+        thinkingStatusLabel={horizonThinkingLabel}
         messages={messages}
         isSending={isSending}
         error={error}

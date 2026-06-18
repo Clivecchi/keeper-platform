@@ -1,30 +1,49 @@
 # Dialog Components
 
 ## 📌 Purpose
-Shared conversation shell used across IDE Board, Agent Board, and Domain Board. Implements the four-zone atmospheric layout: Banner → Chat Zone → Thinking Space → Composer Zone.
+Shared conversation shell used across IDE Board, Agent Board, and Domain Board. Product surfaces: **Header Bar** → **Dialog Space** → **Composer** (with **Horizon** + **Thinking Space** when working).
 
 ## 🧱 Key Files
-- `KeeperDialogFrame.tsx` — Main shell component. Assembles four sibling flex zones: Banner (Zone 1), Chat Zone (Zone 2), Thinking Space (new), and Composer Zone (Zone 3).
+- `KeeperDialogFrame.tsx` — Main shell. Assembles Header Bar, Dialog Space, Thinking Space, and Composer input floor.
+- `DialogScrollHint.tsx` — “Latest” pill above the Horizon when the user scrolls up.
 - `DialogDiagStream.tsx` — Diag thinking stream: captures console output, board-definition snapshot, copy.
-- `DialogScrollRail.tsx` — Overlay scroll thumb for Zone 2.
+- `DialogScrollRail.tsx` — Overlay scroll thumb for Dialog Space.
 
 ## 🔄 Data & Behavior
+
+### Canonical vocabulary (product ↔ code)
+
+| Product name | Role | CSS / attribute |
+|---|---|---|
+| **Header Bar** | Expandable breadcrumb + session meta | `.dialog-header-banner` |
+| **Dialog Space** | Messages and responses scroll here, **above** the Horizon | `.dialog-message-zone` / `.dialog-message-surface` |
+| **Horizon** | Gradient band at the bottom of Dialog Space; when working, shows agent status + stream toolbar (Diag) | `.dialog-horizon-band`, `.dialog-horizon-status` |
+| **Thinking Space** | Scrollable detail below Horizon — agent steps, Diag log, future upload previews | `.dialog-think-space` |
+| **Composer** | User input floor; two states on `.keeper-dialog-frame` | `data-composer-state="composing"` \| `"working"` |
+| **Composing** | Input + toolbar only; Thinking Space idle | default state |
+| **Working** | Horizon active + Thinking Space streams + input (disabled while sending) | `isSending === true` |
+
+Horizon is positioned at the bottom of Dialog Space (for scroll math). Thinking Space and the input field sit below as siblings — grouped **logically** as Composer when working.
 
 ### Named Surfaces — Opacity Hierarchy (most opaque → most transparent)
 | Surface | CSS class | Opacity | Blur | Purpose |
 |---|---|---|---|---|
-| **Banner** | `.dialog-header-banner` | 0.55 | 16px | Orientation — frosted strip, warm secondary text |
+| **Header Bar** | `.dialog-header-banner` | 0.55 | 16px | Orientation — frosted strip, warm secondary text |
 | **Composer** | `.dialog-bottom-zone` | 0.82 | 20px | Where the user speaks — input field lighter still |
-| **Thinking Space** | `.dialog-think-space` | transparent | — | Warm muted italic placeholder; no panel bg |
-| **Chat Zone** | `.dialog-message-surface` | transparent | — | Open atmosphere; top + bottom mask dissolve |
+| **Thinking Space** | `.dialog-think-space` | transparent | — | Agent steps, Diag stream, future upload previews |
+| **Dialog Space** | `.dialog-message-surface` | transparent | — | Open atmosphere; top + bottom mask dissolve |
 
 Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:relative, overflow:hidden`) so an absolute-positioned gradient dissolve div can overlay the bottom 80px of the scroll area without scrolling with the content.
 
-### Zone Behaviour
-- **Zone 1 (Banner)**: Frosted breadcrumb — `keeperName`, `journeyName`, `pathName`, `pathPrelude`. Hidden in `mode === 'feed'`.
-- **Zone 2 (Chat Zone)**: Scrollable message surface. Renders `DialogueMessageList` by default, or `dialogContent` override. Mask dissolves oldest messages at the top into the atmosphere. Message depth cascade applied via `nth-last-child` CSS selectors — no JavaScript.
-- **Thinking Space**: Fixed-height sibling zone between chat and composer. When Kip is thinking, the **Diag** stream can open from the Horizon — scrolls captured `console.log` output with Copy and Board Definition sync hints. Agent thinking status renders on the **Horizon** (top of the fade gradient), not in the stream label row.
-- **Zone 3 (Composer Zone)**: Contains `AgentComposer` (input field + toolbar) then `IntegratedServicesBar` below it (barely-there service status). Service bar at floor, input field as center of gravity.
+### Surface behaviour
+- **Header Bar**: Frosted breadcrumb — `keeperName`, `journeyName`, `pathName`, `pathPrelude`. Hidden in `mode === 'feed'`. Chevron expands session meta.
+- **Dialog Space**: Scrollable messages **above** the Horizon. Renders `DialogueMessageList` by default. Long responses fill the space between Header Bar and Horizon, then scroll. `DialogScrollHint` offers “Latest” when scrolled up.
+- **Horizon**: Gradient dissolve at the Composer edge. When working (`isSending`), shows `{agentName} is thinking…` and stream toggles (Diag). Summarizes what Thinking Space streams in detail.
+- **Thinking Space**: Fixed-height sibling between Dialog Space and input. Diag stream today; upload file previews planned. Expands for Diag (`--diag` 120px).
+- **Composer**: `AgentComposer` input + toolbar; `IntegratedServicesBar` below on IDE Board.
+
+### Readability
+Board scope (`.keeper-board-scope`) bumps message body to 17px and composer input to match. Global `data-density` on `<html>` (`compact` | `default` | `comfortable`) exists for Design Board; a user-facing **Readable** setting for all boards is TODO.
 
 ### Message Depth Cascade
 CSS `nth-last-child` selectors in `index.css` fade and scale messages by age:
@@ -42,11 +61,15 @@ All four zones are direct flex children of `.keeper-dialog-frame`. The thinking 
 - CSS classes live in `apps/web/src/index.css` under the `KeeperDialogFrame` section.
 
 ## ⚠️ Notes & ToDo
-- [ ] `dialogContent` replaces the full Zone 2 content — if messages from a dialogContent-mode board need to display, a separate overlay or slot mechanism would be needed.
+- [ ] Upload flow: show attached files in Thinking Space; grow input height while composing with attachments.
+- [ ] User-facing **Readable** density toggle on boards (wire `keeper-density` beyond Design Board).
+- [ ] Additional Horizon streams beyond Diag (agent chain-of-thought summaries).
+- [ ] `dialogContent` replaces the full Dialog Space content — separate slot if messages needed alongside.
 - [ ] TODO: Verify that `pathPrelude` truncation in `.dialog-prelude` (ellipsis) works correctly at all breakpoints.
-- [ ] When `isSending` is true, thinking status renders on the Horizon (`.dialog-horizon-status`) inside Zone 2; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
+- [ ] When `isSending` is true, thinking status renders on the Horizon inside Dialog Space; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-06-17: Canonical vocabulary (Header Bar, Dialog Space, Composer states, Horizon, Thinking Space). `DialogScrollHint` “Latest” pill above Horizon. Board-scope readability: 17px composer input, larger Horizon status. `data-composer-state` on shell.
 - 2026-06-12: Thinking Space **Diag** stream — Horizon toggle while `isSending`; `DialogDiagStream` shows captured console output with Copy; board-definition snapshot from `[UniversalNavPanel]` logs; capture via `lib/consoleDiagCapture.ts`.
 - 2026-06-10: Moved agent thinking indicator onto the Horizon gradient band (`.dialog-horizon-band`), inset inside the fade — not above it. Message landing line stays at the top edge of the band; Thinking Space cleared below.
 - 2026-05-30: Rendr treatment correction — opacity table updated; chat zone open atmosphere; composer 0.82 / banner 0.55; bottom scroll mask 70%→transparent; gradient dissolve overlay softened.
