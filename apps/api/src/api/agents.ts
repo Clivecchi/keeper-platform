@@ -318,7 +318,6 @@ export async function ensureAgentHomeBoard(client: PrismaClient, agentId: string
       dialog: 'dialogic-default',
       agent_preview: 'preview-default',
       topics: 'topics-default',
-      draft: 'draft-default',
       config_panel: 'config-panel-default',
     };
 
@@ -342,8 +341,6 @@ export async function ensureAgentHomeBoard(client: PrismaClient, agentId: string
             showCapabilities: true, showStatus: true, showMetrics: true, agentId: agent.id, agentName: agent.name, model: agent.model, provider: agent.model_provider, status: agent.status
           } : r.role === 'topics' ? {
             view: 'list', showTags: true, groupBy: 'status', boardId: board!.id
-          } : r.role === 'draft' ? {
-            tabs: ['Form', 'JSON', 'Diff', 'History'], agentId: agent.id
           } : {
             layout: 'tabbed', allowSave: true, validation: true, agentId: agent.id
           },
