@@ -801,6 +801,7 @@ export function UniversalConversation({
     isSending,
     error,
     setError,
+    thinkingSteps,
     agentId,
     activeSessionId: dialogSessionId,
     sendMessage,
@@ -1302,6 +1303,7 @@ export function UniversalConversation({
         onToolInvoke={isDirectorMode ? handleToolInvoke : undefined}
         activeToolSlug={isDirectorMode ? activeBoardInstrument : null}
         thinkingStatusLabel={horizonThinkingLabel}
+        thinkingSteps={thinkingSteps}
         messages={messages}
         isSending={isSending}
         error={error}

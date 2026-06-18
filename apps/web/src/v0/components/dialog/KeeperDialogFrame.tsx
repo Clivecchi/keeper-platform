@@ -29,7 +29,9 @@ import { clearConsoleDiagEntries } from "../../../lib/consoleDiagCapture"
 import { DialogDiagStream } from "./DialogDiagStream"
 import { DialogScrollHint } from "./DialogScrollHint"
 import { DialogScrollRail } from "./DialogScrollRail"
+import { DialogThinkStream } from "./DialogThinkStream"
 import { DialogUploadStream } from "./DialogUploadStream"
+import { latestThinkingSummary, type DialogThinkingStep } from "./dialogThinking"
 
 type ThinkStream = "diag" | null
 
@@ -94,8 +96,10 @@ export interface KeeperDialogFrameProps {
   onServiceOpen?: (service?: ServiceSlug) => void
   onToolInvoke?: (tool: ToolSlug) => void
   activeToolSlug?: ToolSlug | null
-  /** Overrides default "{agentName} is thinking…" on the Horizon while sending. */
+  /** Overrides Horizon summary while sending; otherwise derived from thinkingSteps. */
   thinkingStatusLabel?: string
+  /** Chain-of-thought detail for Thinking Space while sending. */
+  thinkingSteps?: readonly DialogThinkingStep[]
   railwayStatus?: ServiceStatus
   vercelStatus?: ServiceStatus
   githubStatus?: ServiceStatus
@@ -167,6 +171,7 @@ export function KeeperDialogFrame({
   onToolInvoke,
   activeToolSlug = null,
   thinkingStatusLabel,
+  thinkingSteps = [],
   railwayStatus = "disconnected",
   vercelStatus = "disconnected",
   githubStatus = "disconnected",
@@ -209,11 +214,14 @@ export function KeeperDialogFrame({
   const [pendingAttachments, setPendingAttachments] = React.useState<PendingAttachment[]>([])
   const [isFileUploading, setIsFileUploading] = React.useState(false)
   const hasUploads = pendingAttachments.length > 0 || isFileUploading
+  const hasWorkingThinkSpace = isSending || hasUploads
+  const showDiagStream = isSending && thinkStream === "diag"
+  const showThinkStream = isSending && thinkStream !== "diag"
 
   React.useEffect(() => {
     if (isSending) {
       clearConsoleDiagEntries()
-      setThinkStream("diag")
+      setThinkStream(null)
       return
     }
     setThinkStream(null)
@@ -233,7 +241,7 @@ export function KeeperDialogFrame({
     measureDialogScrollInset()
     window.addEventListener("resize", measureDialogScrollInset)
     return () => window.removeEventListener("resize", measureDialogScrollInset)
-  }, [mode, dialogContent, measureDialogScrollInset, isSending, thinkStream, hasUploads])
+  }, [mode, dialogContent, measureDialogScrollInset, isSending, thinkStream, hasWorkingThinkSpace])
 
   const getLatestScrollTop = React.useCallback(() => {
     const el = scrollRef.current
@@ -261,14 +269,22 @@ export function KeeperDialogFrame({
     [onSubmit],
   )
 
-  const thinkingLabel = React.useMemo(
+  const defaultThinkingLabel = React.useMemo(
     () =>
-      thinkingStatusLabel
-      ?? (agentBoardMessaging?.dialogue.thinking ?? "{agent_name} is thinking…").replace(
+      (agentBoardMessaging?.dialogue.thinking ?? "{agent_name} is thinking…").replace(
         "{agent_name}",
         agentName,
       ),
-    [thinkingStatusLabel, agentBoardMessaging?.dialogue.thinking, agentName],
+    [agentBoardMessaging?.dialogue.thinking, agentName],
+  )
+
+  const thinkingLabel = React.useMemo(
+    () =>
+      thinkingStatusLabel
+      ?? (isSending
+        ? latestThinkingSummary(thinkingSteps, defaultThinkingLabel)
+        : defaultThinkingLabel),
+    [thinkingStatusLabel, isSending, thinkingSteps, defaultThinkingLabel],
   )
 
   // Auto-scroll so the newest message clears the Horizon (Thinking space + fade overlay)
@@ -488,7 +504,7 @@ export function KeeperDialogFrame({
             ? feedContent
             : dialogContent ?? (
                 <div
-                  className="mx-auto w-full max-w-3xl px-4 pt-2"
+                  className="mx-auto w-full dialog-column px-4 pt-2"
                   style={{ paddingBottom: dialogScrollInset }}
                 >
                   <DialogueMessageList
@@ -532,8 +548,8 @@ export function KeeperDialogFrame({
                   className="dialog-horizon-status"
                   aria-live="polite"
                 >
-                  <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4">
-                    <span className="dialog-think-pulse">{thinkingLabel}</span>
+                  <div className="dialog-column dialog-horizon-row">
+                    <span className="dialog-think-pulse dialog-horizon-summary">{thinkingLabel}</span>
                     <div className="dialog-horizon-streams">
                       <button
                         type="button"
@@ -560,13 +576,16 @@ export function KeeperDialogFrame({
           ref={thinkSpaceRef}
           className={[
             "dialog-think-space",
-            isSending && thinkStream === "diag" ? " dialog-think-space--diag" : "",
-            hasUploads ? " dialog-think-space--uploads" : "",
+            showDiagStream ? " dialog-think-space--diag" : "",
+            showThinkStream ? " dialog-think-space--working" : "",
+            hasUploads && !isSending ? " dialog-think-space--uploads" : "",
           ].join("")}
-          aria-hidden={!(isSending && thinkStream === "diag") && !hasUploads}
+          aria-hidden={!hasWorkingThinkSpace}
         >
-          {isSending && thinkStream === "diag" ? (
+          {showDiagStream ? (
             <DialogDiagStream active />
+          ) : showThinkStream ? (
+            <DialogThinkStream steps={thinkingSteps} agentName={agentName} />
           ) : (
             <DialogUploadStream
               attachments={pendingAttachments}
@@ -579,7 +598,7 @@ export function KeeperDialogFrame({
 
       {/* ── Composer — input floor; Horizon + Thinking Space are the working state above */}
       <div className="dialog-bottom-zone">
-        <div className="mx-auto w-full max-w-3xl">
+        <div className="mx-auto w-full dialog-column">
           <AgentComposer
             agentName={agentName}
             agentId={agentId}

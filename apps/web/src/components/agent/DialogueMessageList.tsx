@@ -282,7 +282,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   return (
     <div
       ref={innerContainerRef}
-      className="keeper-panel-scroll min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl px-4 py-4"
+      className="keeper-panel-scroll min-h-[24rem] space-y-4 overflow-y-auto rounded-2xl py-4"
       style={{ backgroundColor: "transparent" }}
     >
       {isLoading ? (
@@ -344,10 +344,12 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                   className={clsx(
                     "dialog-message-bubble px-4 py-3 text-sm",
                     message.role === "user"
-                      ? "dialog-message-bubble--user max-w-xl"
+                      ? "dialog-message-bubble--user dialog-message-lane--user"
                       : clsx(
                           "dialog-message-bubble--agent",
-                          agentBubbleFullWidth ? "w-full max-w-none" : "max-w-xl",
+                          agentBubbleFullWidth
+                            ? "dialog-message-lane--agent"
+                            : "dialog-message-lane--agent-narrow",
                         ),
                   )}
                   style={{

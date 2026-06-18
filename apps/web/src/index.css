@@ -134,12 +134,25 @@ html[data-density="comfortable"] {
   overflow: hidden;
   margin: 12px;
   border-radius: 8px;
+  /* Wider dialog column — agent left, user right, ~50% more reading surface */
+  --dialog-column-max: min(96%, 920px);
+  --dialog-column-pad: clamp(12px, 2.2vw, 28px);
+  --dialog-agent-max: 82%;
+  --dialog-agent-max-narrow: min(560px, 70%);
+  --dialog-user-max: 64%;
   /* Frosted glass shell — atmosphere breathes through the Dialog panel */
   background: hsl(var(--theme-surface-panel) / 0.38);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid hsl(var(--theme-border-soft, 35 20% 88%) / 0.28);
   box-shadow: 0 8px 32px hsl(var(--theme-ink-primary, 20 14% 14%) / 0.04);
+}
+
+.dialog-column {
+  width: 100%;
+  max-width: var(--dialog-column-max);
+  margin-inline: auto;
+  padding-inline: var(--dialog-column-pad);
 }
 
 .dialog-header-banner {
@@ -529,6 +542,23 @@ button.dialog-prelude:hover {
   pointer-events: none;
 }
 
+.dialog-horizon-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.dialog-horizon-summary {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  letter-spacing: 0.06em;
+  font-style: normal;
+  font-size: 13px;
+}
+
 .dialog-horizon-status:has(.dialog-horizon-streams) {
   pointer-events: auto;
 }
@@ -576,6 +606,12 @@ button.dialog-prelude:hover {
 
 .dialog-think-space--diag {
   height: 120px;
+}
+
+.dialog-think-space--working {
+  height: auto;
+  min-height: 96px;
+  max-height: 168px;
 }
 
 .dialog-think-space--uploads {
@@ -686,6 +722,103 @@ button.dialog-prelude:hover {
 .dialog-upload-chip-remove:hover {
   background: hsl(var(--theme-surface-page) / 0.35);
   color: hsl(var(--theme-ink-primary));
+}
+
+/* Chain-of-thought trace — default Thinking Space while agent is working */
+.dialog-think-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+  padding: 8px var(--dialog-column-pad, 12px);
+  overflow: hidden;
+}
+
+.dialog-think-stream-idle {
+  margin: 0;
+  padding: 14px var(--dialog-column-pad, 12px);
+  font-size: 13px;
+  font-style: italic;
+  color: hsl(var(--theme-ink-tertiary));
+}
+
+.dialog-think-stream-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dialog-think-stream-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(var(--theme-ink-tertiary));
+}
+
+.dialog-think-stream-count {
+  font-size: 11px;
+  color: hsl(var(--theme-ink-secondary));
+}
+
+.dialog-think-stream-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 4px;
+}
+
+.dialog-think-step {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: hsl(var(--theme-ink-secondary));
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dialog-think-step--active {
+  background: hsl(var(--theme-surface-panel) / 0.45);
+  color: hsl(var(--theme-ink-primary));
+}
+
+.dialog-think-step-index {
+  flex-shrink: 0;
+  width: 18px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: hsl(var(--theme-ink-tertiary));
+  text-align: center;
+}
+
+.dialog-think-step-label {
+  min-width: 0;
+}
+
+.dialog-message-lane--agent {
+  width: 100%;
+  max-width: var(--dialog-agent-max);
+  margin-right: auto;
+}
+
+.dialog-message-lane--agent-narrow {
+  width: 100%;
+  max-width: var(--dialog-agent-max-narrow);
+  margin-right: auto;
+}
+
+.dialog-message-lane--user {
+  max-width: var(--dialog-user-max);
+  margin-left: auto;
 }
 
 .dialog-diag-stream {
@@ -976,7 +1109,19 @@ button.dialog-prelude:hover {
 /* Dialog readability — 55+ audience; composer matches message body size */
 .keeper-board-scope .dialog-think-pulse {
   font-size: 14px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
+}
+
+.keeper-board-scope .dialog-horizon-summary {
+  font-size: 15px;
+}
+
+.keeper-board-scope .dialog-think-step {
+  font-size: 13px;
+}
+
+.keeper-board-scope .dialog-think-stream-idle {
+  font-size: 14px;
 }
 
 .keeper-board-scope .dialog-horizon-stream {

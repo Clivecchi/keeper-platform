@@ -17,6 +17,7 @@ import {
   type DirectorDialogConfig,
   type DirectorSendPhase,
 } from "../v0/boards/directorDialog"
+import { createThinkingStep, type DialogThinkingStep } from "../v0/components/dialog/dialogThinking"
 
 /** Mirrors `KipApi.runAgent` `options.agentContext` (no separate exported type in codebase) */
 export type AgentContext = NonNullable<Parameters<typeof KipApi.runAgent>[4]>["agentContext"]
@@ -182,6 +183,8 @@ export interface UseAgentDialogResult {
   isSending: boolean
   error: string | null
   setError: React.Dispatch<React.SetStateAction<string | null>>
+  /** Chain-of-thought steps for Thinking Space while sending. */
+  thinkingSteps: DialogThinkingStep[]
   /** Resolved agent ID from slug lookup or `resolvedAgentId`. */
   agentId: string | null
   activeSessionId: string | null
@@ -259,6 +262,7 @@ export function useAgentDialog({
   const [input, setInput] = React.useState("")
   const [isSending, setIsSending] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [thinkingSteps, setThinkingSteps] = React.useState<DialogThinkingStep[]>([])
   const [agentId, setAgentId] = React.useState<string | null>(null)
 
   const ideSessionInitDoneRef = React.useRef(false)
@@ -462,6 +466,21 @@ export function useAgentDialog({
       setIsSending(true)
       if (mode === "ide") setError(null)
 
+      let stepIndex = 0
+      const appendThinkingStep = (label: string) => {
+        setThinkingSteps((prev) => [...prev, createThinkingStep(label, stepIndex++)])
+      }
+
+      setThinkingSteps([])
+      appendThinkingStep("Received your message")
+      if (attachments?.length) {
+        appendThinkingStep(
+          attachments.length === 1
+            ? "Reviewing 1 attached file…"
+            : `Reviewing ${attachments.length} attached files…`,
+        )
+      }
+
       const runOpts = {
         domainSlug: domainSlug || undefined,
         domainId: domainId || undefined,
@@ -485,6 +504,7 @@ export function useAgentDialog({
 
       if (liveDirectorConfig && instrument && content.trim()) {
         onDirectorPhaseChange?.("instrument")
+        appendThinkingStep(`Consulting ${liveDirectorConfig.instrumentLabels[instrument]}…`)
         try {
           const instAgent = await KipApi.getAgentBySlug(instrument)
           const instLabel = liveDirectorConfig.instrumentLabels[instrument]
@@ -510,6 +530,7 @@ export function useAgentDialog({
       }
 
       onDirectorPhaseChange?.(liveDirectorConfig && instrument ? "director" : null)
+      appendThinkingStep(`${agentDisplayName} is composing a reply…`)
 
       const leadInput =
         liveDirectorConfig && instrument
@@ -648,6 +669,7 @@ export function useAgentDialog({
         }
       } finally {
         onDirectorPhaseChange?.(null)
+        setThinkingSteps([])
         setIsSending(false)
       }
     },
@@ -682,6 +704,7 @@ export function useAgentDialog({
     isSending,
     error,
     setError,
+    thinkingSteps,
     agentId,
     activeSessionId,
     fetchMessages,
