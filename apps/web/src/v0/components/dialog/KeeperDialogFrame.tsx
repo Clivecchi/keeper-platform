@@ -228,7 +228,7 @@ export function KeeperDialogFrame({
   }, [isSending])
 
   const measureDialogScrollInset = React.useCallback(() => {
-    const thinkHeight = thinkSpaceRef.current?.offsetHeight ?? 52
+    const thinkHeight = thinkSpaceRef.current?.offsetHeight ?? 0
     const fadeEl = scrollRef.current?.parentElement?.querySelector(
       ".dialog-fade-overlay",
     ) as HTMLElement | null
@@ -246,7 +246,7 @@ export function KeeperDialogFrame({
   const getLatestScrollTop = React.useCallback(() => {
     const el = scrollRef.current
     if (!el) return 0
-    const thinkHeight = thinkSpaceRef.current?.offsetHeight ?? 52
+    const thinkHeight = thinkSpaceRef.current?.offsetHeight ?? 0
     const fadeEl = el.parentElement?.querySelector(
       ".dialog-fade-overlay",
     ) as HTMLElement | null
@@ -295,7 +295,7 @@ export function KeeperDialogFrame({
 
     const run = () => {
       measureDialogScrollInset()
-      const thinkHeight = thinkSpaceRef.current?.offsetHeight ?? 52
+      const thinkHeight = thinkSpaceRef.current?.offsetHeight ?? 0
       const fadeEl = el.parentElement?.querySelector(
         ".dialog-fade-overlay",
       ) as HTMLElement | null
@@ -504,7 +504,7 @@ export function KeeperDialogFrame({
             ? feedContent
             : dialogContent ?? (
                 <div
-                  className="mx-auto w-full dialog-column px-4 pt-2"
+                  className="dialog-column pt-2"
                   style={{ paddingBottom: dialogScrollInset }}
                 >
                   <DialogueMessageList
@@ -571,7 +571,7 @@ export function KeeperDialogFrame({
       {/* ── Thinking Space: reserved for uploads, messaging, composer features ── *
        *  Fixed height: never causes the composer to resize or jump.               *
        *  Agent thinking status lives on the Horizon gradient band in Zone 2.   */}
-      {mode !== 'feed' && (
+      {mode !== 'feed' && hasWorkingThinkSpace && (
         <div
           ref={thinkSpaceRef}
           className={[
@@ -580,25 +580,26 @@ export function KeeperDialogFrame({
             showThinkStream ? " dialog-think-space--working" : "",
             hasUploads && !isSending ? " dialog-think-space--uploads" : "",
           ].join("")}
-          aria-hidden={!hasWorkingThinkSpace}
         >
-          {showDiagStream ? (
-            <DialogDiagStream active />
-          ) : showThinkStream ? (
-            <DialogThinkStream steps={thinkingSteps} agentName={agentName} />
-          ) : (
-            <DialogUploadStream
-              attachments={pendingAttachments}
-              isUploading={isFileUploading}
-              onRemove={(id) => setPendingAttachments((prev) => prev.filter((a) => a.id !== id))}
-            />
-          )}
+          <div className="dialog-column dialog-think-space-inner">
+            {showDiagStream ? (
+              <DialogDiagStream active />
+            ) : showThinkStream ? (
+              <DialogThinkStream steps={thinkingSteps} agentName={agentName} />
+            ) : (
+              <DialogUploadStream
+                attachments={pendingAttachments}
+                isUploading={isFileUploading}
+                onRemove={(id) => setPendingAttachments((prev) => prev.filter((a) => a.id !== id))}
+              />
+            )}
+          </div>
         </div>
       )}
 
       {/* ── Composer — input floor; Horizon + Thinking Space are the working state above */}
       <div className="dialog-bottom-zone">
-        <div className="mx-auto w-full dialog-column">
+        <div className="dialog-column">
           <AgentComposer
             agentName={agentName}
             agentId={agentId}

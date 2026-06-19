@@ -70,12 +70,12 @@ export function IntegratedServicesBar({
       }}
     >
       <div
-        className="mx-auto w-full max-w-3xl"
+        className="dialog-column dialog-services-bar-inner"
         style={{
           display: "flex",
           alignItems: "center",
           gap: 0,
-          padding: "5px 16px",
+          padding: "5px 0 6px",
           flexWrap: "wrap",
         }}
       >

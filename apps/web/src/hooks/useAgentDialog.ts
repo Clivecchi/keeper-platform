@@ -12,8 +12,10 @@ import {
   buildDirectorFallbackSynthesisPrompt,
   buildDirectorSynthesisPrompt,
   buildInstrumentDelegationPrompt,
+  buildInstrumentUnavailableDelegationBeat,
   extractAgentReplyFromRunResult,
   resolveDirectorInstrument,
+  sanitizeUserMessageContent,
   type DirectorDialogConfig,
   type DirectorSendPhase,
 } from "../v0/boards/directorDialog"
@@ -40,14 +42,27 @@ function normalizeMessage(message: KipMessage): AgentDialogueMessage {
   const meta = message.metadata as Record<string, unknown> | null | undefined
   const actionResults = Array.isArray(meta?.actionResults) ? meta.actionResults : undefined
   const linkedCard = extractLinkedCard(meta)
+  const rawContent = typeof message.content === "string" ? message.content : ""
   return {
     id: message.id,
     role,
-    content: message.content,
+    content: role === "user" ? sanitizeUserMessageContent(rawContent) : rawContent,
     createdAt: new Date(message.created_at || Date.now()).toISOString(),
     ...(linkedCard ? { linkedCard } : {}),
     ...(actionResults?.length ? { actionResults } : {}),
   }
+}
+
+function patchLastUserContent(
+  list: AgentDialogueMessage[],
+  userContent: string,
+): AgentDialogueMessage[] {
+  if (!userContent.trim()) return list
+  const updated = [...list]
+  const lastUserIdx = updated.findLastIndex((m) => m.role === "user")
+  if (lastUserIdx < 0) return list
+  updated[lastUserIdx] = { ...updated[lastUserIdx], content: userContent }
+  return updated
 }
 
 async function buildIdeSessionName(params: {
@@ -171,6 +186,8 @@ export interface UseAgentDialogOptions {
   directorConfig?: DirectorDialogConfig
   /** IDE director mode: Horizon label phases while sending (instrument → Lead). */
   onDirectorPhaseChange?: (phase: DirectorSendPhase | null) => void
+  /** Auth user id — forwarded to runAgent for instrument delegation. */
+  userId?: string | null
 }
 
 export type { DirectorDialogConfig, DirectorSendPhase }
@@ -238,6 +255,7 @@ export function useAgentDialog({
   manageSessionExternally = false,
   directorConfig,
   onDirectorPhaseChange,
+  userId,
 }: UseAgentDialogOptions): UseAgentDialogResult {
   const [internalSessionId, setInternalSessionId] = React.useState<string | null>(null)
   // Use controlledSessionId when it has been driven to a real value (non-null).
@@ -501,13 +519,14 @@ export function useAgentDialog({
           })
         : null
       let delegationBeat: DirectorDelegationBeat | undefined
+      let instrumentReply: string | undefined
 
       if (liveDirectorConfig && instrument && content.trim()) {
         onDirectorPhaseChange?.("instrument")
         appendThinkingStep(`Consulting ${liveDirectorConfig.instrumentLabels[instrument]}…`)
+        const instLabel = liveDirectorConfig.instrumentLabels[instrument]
         try {
           const instAgent = await KipApi.getAgentBySlug(instrument)
-          const instLabel = liveDirectorConfig.instrumentLabels[instrument]
           const instPrompt = buildInstrumentDelegationPrompt({
             userMessage: content,
             instrumentLabel: instLabel,
@@ -516,16 +535,21 @@ export function useAgentDialog({
           const instResult = await KipApi.runAgent(
             instAgent.id,
             instPrompt,
-            undefined,
+            userId ?? undefined,
             undefined,
             runOpts,
           )
           const instReply = extractAgentReplyFromRunResult(instResult)
           if (instReply) {
+            instrumentReply = instReply
             delegationBeat = { content: instReply, attributedTo: instLabel }
           }
         } catch {
-          /* Lead-only reply when instrument delegation fails */
+          appendThinkingStep(`${instLabel} unavailable this turn`)
+        }
+
+        if (!instrumentReply) {
+          delegationBeat = buildInstrumentUnavailableDelegationBeat({ instrumentLabel: instLabel })
         }
       }
 
@@ -534,11 +558,11 @@ export function useAgentDialog({
 
       const leadInput =
         liveDirectorConfig && instrument
-          ? delegationBeat
+          ? instrumentReply
             ? buildDirectorSynthesisPrompt({
                 userMessage: content,
                 instrumentLabel: liveDirectorConfig.instrumentLabels[instrument],
-                instrumentReply: delegationBeat.content,
+                instrumentReply,
                 directorName: liveDirectorConfig.directorDisplayName,
               })
             : buildDirectorFallbackSynthesisPrompt({
@@ -551,13 +575,13 @@ export function useAgentDialog({
       try {
         let result: Awaited<ReturnType<typeof KipApi.runAgent>>
         try {
-          result = await KipApi.runAgent(agentId, leadInput, undefined, activeSessionId, runOpts)
+          result = await KipApi.runAgent(agentId, leadInput, userId ?? undefined, activeSessionId, runOpts)
         } catch (firstErr: unknown) {
           const status = (firstErr as { status?: number })?.status
           if (mode === "ide" && status === 401 && refreshSession) {
             const refreshed = await refreshSession()
             if (refreshed) {
-              result = await KipApi.runAgent(agentId, leadInput, undefined, activeSessionId, runOpts)
+              result = await KipApi.runAgent(agentId, leadInput, userId ?? undefined, activeSessionId, runOpts)
             } else {
               setMessages((prev) => prev.filter((m) => m.id !== `user-${ts}`))
               setError(`Please sign in to continue the conversation with ${agentDisplayName}.`)
@@ -578,10 +602,11 @@ export function useAgentDialog({
         const { actions: actionsArr, sessionId: returnedSessionId } = extractRunAgentPayload(result)
 
         const mergeOntoLastAgent = (list: AgentDialogueMessage[]): AgentDialogueMessage[] => {
-          if (!delegationBeat && !actionsArr?.length) return list
-          const updated = [...list]
+          const withUser = patchLastUserContent(list, content)
+          if (!delegationBeat && !actionsArr?.length) return withUser
+          const updated = [...withUser]
           const lastAgentIdx = updated.findLastIndex((m) => m.role === "agent")
-          if (lastAgentIdx < 0) return list
+          if (lastAgentIdx < 0) return withUser
           updated[lastAgentIdx] = {
             ...updated[lastAgentIdx],
             ...(delegationBeat ? { delegation: delegationBeat } : {}),
@@ -693,6 +718,7 @@ export function useAgentDialog({
       onRefreshDraftsAfterRun,
       frameKey,
       onDirectorPhaseChange,
+      userId,
     ],
   )
 

@@ -132,14 +132,14 @@ html[data-density="comfortable"] {
   min-height: 0;
   position: relative;
   overflow: hidden;
-  margin: 12px;
+  margin: 8px 10px;
   border-radius: 8px;
-  /* Wider dialog column — agent left, user right, ~50% more reading surface */
-  --dialog-column-max: min(96%, 920px);
-  --dialog-column-pad: clamp(12px, 2.2vw, 28px);
-  --dialog-agent-max: 82%;
-  --dialog-agent-max-narrow: min(560px, 70%);
-  --dialog-user-max: 64%;
+  /* Full-width dialog column — all zones share one edge (messages, horizon, thinking, composer) */
+  --dialog-column-max: 100%;
+  --dialog-column-pad: clamp(18px, 3vw, 36px);
+  --dialog-agent-max: 92%;
+  --dialog-agent-max-narrow: 84%;
+  --dialog-user-max: 78%;
   /* Frosted glass shell — atmosphere breathes through the Dialog panel */
   background: hsl(var(--theme-surface-panel) / 0.38);
   backdrop-filter: blur(16px);
@@ -514,7 +514,7 @@ button.dialog-prelude:hover {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid hsl(var(--theme-border-soft) / 0.35);
-  padding: 12px 16px 16px;
+  padding: 12px 0 8px;
   transition: border-top-color 0.2s ease;
 }
 
@@ -523,9 +523,9 @@ button.dialog-prelude:hover {
   border-top-color: hsl(var(--treatment-color) / 0.55);
 }
 
-/* Override IntegratedServicesBar's inner max-w-3xl when inside KeeperDialogFrame */
-.dialog-bottom-zone [class~="max-w-3xl"] {
-  max-width: none;
+.dialog-services-bar-inner {
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 
 /* ─── Thinking Space — ambient surface between chat and composer ─────────────
@@ -616,113 +616,147 @@ button.dialog-prelude:hover {
 
 .dialog-think-space--uploads {
   height: auto;
-  min-height: 72px;
-  max-height: 148px;
+  min-height: 88px;
+  max-height: 176px;
 }
 
-.dialog-upload-idle {
-  margin: 0;
-  padding: 14px 16px;
-  font-size: 13px;
-  font-style: italic;
-  letter-spacing: 0.04em;
-  color: hsl(var(--theme-ink-tertiary));
+.dialog-think-space-inner {
+  height: 100%;
+  min-height: 0;
 }
 
 .dialog-upload-stream {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   height: 100%;
   min-height: 0;
-  padding: 8px 12px;
+  padding: 10px 0 8px;
   overflow: hidden;
 }
 
-.dialog-upload-stream-head {
+.dialog-upload-progress {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.dialog-upload-stream-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: hsl(var(--theme-ink-tertiary));
-}
-
-.dialog-upload-stream-status {
-  font-size: 11px;
-  color: hsl(var(--theme-ink-secondary));
-}
-
-.dialog-upload-stream-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-height: 0;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.dialog-upload-chip {
-  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  max-width: min(100%, 220px);
-  padding: 4px 8px 4px 4px;
-  border-radius: 8px;
-  border: 1px solid hsl(var(--theme-border-soft) / 0.45);
-  background: hsl(var(--theme-surface-panel) / 0.55);
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid hsl(var(--treatment-color) / 0.35);
+  background: hsl(var(--theme-surface-panel) / 0.72);
   color: hsl(var(--theme-ink-primary));
 }
 
-.dialog-upload-chip-thumb {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  object-fit: cover;
-  flex-shrink: 0;
-}
-
-.dialog-upload-chip-icon {
+.dialog-upload-progress-spinner {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  color: hsl(var(--theme-ink-secondary));
-  margin-left: 4px;
+  border-radius: 50%;
+  border: 2px solid hsl(var(--theme-border-soft) / 0.5);
+  border-top-color: hsl(var(--treatment-color));
+  animation: dialog-upload-spin 0.75s linear infinite;
 }
 
-.dialog-upload-chip-name {
-  font-size: 12px;
-  line-height: 1.3;
-  min-width: 0;
+@keyframes dialog-upload-spin {
+  to { transform: rotate(360deg); }
+}
+
+.dialog-upload-progress-text {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.dialog-upload-tiles {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.dialog-upload-tile {
+  flex-shrink: 0;
+  width: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dialog-upload-tile-preview {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 12px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  border: 1px solid hsl(var(--theme-border-soft) / 0.5);
+  background: hsl(var(--theme-surface-panel) / 0.65);
+  box-shadow: 0 4px 14px hsla(20, 10%, 4%, 0.18);
 }
 
-.dialog-upload-chip-remove {
+.dialog-upload-tile-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dialog-upload-tile-file {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: hsl(var(--theme-ink-secondary));
+}
+
+.dialog-upload-tile-file-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.dialog-upload-tile-ext {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: hsl(var(--theme-ink-primary));
+}
+
+.dialog-upload-tile-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px;
+  width: 22px;
+  height: 22px;
   border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: hsl(var(--theme-ink-secondary));
+  border-radius: 9999px;
+  background: hsl(var(--theme-surface-page) / 0.88);
+  color: hsl(var(--theme-ink-primary));
   cursor: pointer;
-  flex-shrink: 0;
+  box-shadow: 0 1px 4px hsla(20, 10%, 4%, 0.25);
 }
 
-.dialog-upload-chip-remove:hover {
-  background: hsl(var(--theme-surface-page) / 0.35);
-  color: hsl(var(--theme-ink-primary));
+.dialog-upload-tile-remove:hover {
+  background: hsl(var(--theme-surface-elevated));
 }
+
+.dialog-upload-tile-name {
+  font-size: 11px;
+  line-height: 1.25;
+  color: hsl(var(--theme-ink-secondary));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* Legacy chip styles removed — upload tiles above */
 
 /* Chain-of-thought trace — default Thinking Space while agent is working */
 .dialog-think-stream {
@@ -731,13 +765,13 @@ button.dialog-prelude:hover {
   gap: 6px;
   height: 100%;
   min-height: 0;
-  padding: 8px var(--dialog-column-pad, 12px);
+  padding: 8px 0;
   overflow: hidden;
 }
 
 .dialog-think-stream-idle {
   margin: 0;
-  padding: 14px var(--dialog-column-pad, 12px);
+  padding: 10px 0;
   font-size: 13px;
   font-style: italic;
   color: hsl(var(--theme-ink-tertiary));
@@ -827,7 +861,7 @@ button.dialog-prelude:hover {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding: 4px 52px 4px 12px;
+  padding: 4px 0;
   color: hsl(var(--theme-ink-secondary));
 }
 
@@ -1145,16 +1179,12 @@ button.dialog-prelude:hover {
   padding: 8px 16px;
 }
 
-.keeper-board-scope .dialog-upload-stream-label {
-  font-size: 11px;
+.keeper-board-scope .dialog-upload-progress-text {
+  font-size: 15px;
 }
 
-.keeper-board-scope .dialog-upload-chip-name {
-  font-size: 13px;
-}
-
-.keeper-board-scope .dialog-upload-idle {
-  font-size: 14px;
+.keeper-board-scope .dialog-upload-tile-name {
+  font-size: 12px;
 }
 
 .keeper-dialog-frame[data-has-uploads="true"] .keeper-composer-input {

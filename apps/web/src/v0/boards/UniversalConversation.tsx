@@ -835,6 +835,7 @@ export function UniversalConversation({
       kipMode === "ide" || (kipMode === "agent" && usingSelectedNonDefaultAgent),
     directorConfig,
     onDirectorPhaseChange: isDirectorMode ? setDirectorSendPhase : undefined,
+    userId: user?.id ?? null,
   })
 
   const horizonThinkingLabel = React.useMemo(() => {

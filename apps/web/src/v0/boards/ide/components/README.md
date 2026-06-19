@@ -16,6 +16,9 @@ IDE Board-specific UI pieces mounted inside the Universal Board shell — notabl
 
 ## 📆 Update Log
 
+### 2026-06-17 — Dialog column alignment
+- Inner row uses `.dialog-column` so Tools/Services align with composer and message stream (replaces `max-w-3xl`).
+
 ### 2026-05-23 — Gate 2: Tools in Composer
 - Split bar into Tools (Cloud, Rendr — pill chips, invokable) and Services (Railway, Vercel, GitHub — status dots, navigational).
 - Removed Cloud from Services row; Cloud is Tools-only per Gate 2 spec.

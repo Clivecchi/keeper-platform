@@ -70,7 +70,7 @@ All four zones are direct flex children of `.keeper-dialog-frame`. The thinking 
 - [ ] When `isSending` is true, thinking status renders on the Horizon inside Dialog Space; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
-- 2026-06-17: Wider asymmetric Dialog Space (`.dialog-column`, agent 82% left / user 64% right). Horizon summary left-aligned; Diag toolbar right. Thinking Space chain-of-thought (`DialogThinkStream`) with Horizon summary from latest step; Diag is optional toggle.
+- 2026-06-17: Dialog column full frame width; thinking/composer/services share `.dialog-column` edges. Upload tiles (88px previews), progress strip, idle attach hint removed. Tools bar uses `dialog-column`.
 - 2026-06-17: Upload → Thinking Space (`DialogUploadStream`); clip adds Library item + stages file until send; composer input grows when uploads present.
 - 2026-06-17: Canonical vocabulary (Header Bar, Dialog Space, Composer states, Horizon, Thinking Space). `DialogScrollHint` “Latest” pill above Horizon. Board-scope readability: 17px composer input, larger Horizon status. `data-composer-state` on shell.
 - 2026-06-12: Thinking Space **Diag** stream — Horizon toggle while `isSending`; `DialogDiagStream` shows captured console output with Copy; board-definition snapshot from `[UniversalNavPanel]` logs; capture via `lib/consoleDiagCapture.ts`.

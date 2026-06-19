@@ -24,6 +24,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-17 — Director dialog: hide orchestration prompts from user bubble
+- `sanitizeUserMessageContent`: session rows saved as synthesis input show the user's words, not `[Director synthesis — Kip]`
+- `buildInstrumentUnavailableDelegationBeat`: Cloud/Rendr beat in Kip bubble when sub-run fails (structure preserved)
+- `useAgentDialog`: passes `userId` to Cloud runAgent; patches last user message after fetch
+
 ### 2026-06-17 — Director fallback when Cloud sub-run fails
 - `resolveDirectorInstrument`: pinned chip or `Cloud —` / `Rendr —` prefix in message
 - `buildDirectorFallbackSynthesisPrompt`: Kip still in director mode when instrument reply empty — no "you're talking to Kip" / "hand off to Cloud"

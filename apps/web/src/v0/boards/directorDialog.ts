@@ -3,6 +3,8 @@
  * Lead (Kip) owns the composer; board instruments run as delegated sub-turns.
  */
 
+import type { DirectorDelegationBeat } from "../../components/agent/types"
+
 export type BoardInstrumentSlug = "cloud" | "rendr"
 
 export type DirectorDialogConfig = {
@@ -86,6 +88,39 @@ export function buildDirectorFallbackSynthesisPrompt(params: {
     `- Do NOT offer to "hand off" or "coordinate with" ${params.instrumentLabel} — that turn already happened.`,
     `- Stay brief and practical.`,
   ].join("\n")
+}
+
+const DIRECTOR_INTERNAL_PROMPT_PATTERN = /^\[Director (delegation|synthesis)/
+
+/** True when persisted session text is orchestration input, not the user's words. */
+export function isDirectorInternalPrompt(content: string): boolean {
+  return DIRECTOR_INTERNAL_PROMPT_PATTERN.test(content.trim())
+}
+
+/** Recover the user's words from a stored director prompt (quoted line in prompt body). */
+export function userFacingContentFromDirectorPrompt(content: string): string | null {
+  if (!isDirectorInternalPrompt(content)) return null
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length > 2) {
+      return trimmed.slice(1, -1)
+    }
+  }
+  return null
+}
+
+/** Map persisted user rows back to what the human actually typed. */
+export function sanitizeUserMessageContent(content: string): string {
+  return userFacingContentFromDirectorPrompt(content) ?? content
+}
+
+export function buildInstrumentUnavailableDelegationBeat(params: {
+  instrumentLabel: string
+}): DirectorDelegationBeat {
+  return {
+    attributedTo: params.instrumentLabel,
+    content: `${params.instrumentLabel} did not respond this turn. Kip’s reply below draws on platform knowledge.`,
+  }
 }
 
 function readResponseString(value: unknown): string | null {
