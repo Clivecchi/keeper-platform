@@ -228,7 +228,7 @@ export interface BoardAccessDef {
 
 // ─── Primary Interface ────────────────────────────────────────────────────────
 
-/** Infra capability ceiling for IDE Board — keep in sync with apps/api/src/capabilities/infraCapabilities.ts */
+/** Infra + MCP capability ceiling for IDE Board — keep in sync with apps/api/src/capabilities/infraCapabilities.ts IDE_BOARD_MCP_CEILING */
 const IDE_BOARD_ALLOWED_CAPABILITIES: string[] = [
   "infra.railway.read",
   "infra.railway.deploy",
@@ -236,6 +236,18 @@ const IDE_BOARD_ALLOWED_CAPABILITIES: string[] = [
   "infra.vercel.deploy",
   "infra.github.read",
   "infra.github.write",
+  "infra.nango.read",
+  "infra.resend.read",
+  "github.repo.read",
+  "github.commits.list",
+  "github.branch.create",
+  "github.file.write",
+  "github.pr.create",
+  "github.pr.read",
+  "github.actions.status",
+  "integrations.list",
+  "nango.status.read",
+  "resend.status.read",
 ]
 
 /**

@@ -5,6 +5,8 @@
 import { RailwayService } from '../services/RailwayService.js';
 import { VercelDeploymentService } from '../services/VercelDeploymentService.js';
 import { GitHubService } from '../services/GitHubService.js';
+import { IntegrationMcpService } from '../services/IntegrationMcpService.js';
+import { ResendService } from '../services/ResendService.js';
 
 export type ToolContext = {
   domainId: string | null;
@@ -391,6 +393,48 @@ const tools: Tool[] = [
     async handler(args, ctx) {
       warnMissingCapability(tools.find((t) => t.name === 'github.actions.status')!, ctx);
       return GitHubService.getActionsStatus(args);
+    },
+  },
+  {
+    name: 'integrations_list',
+    description:
+      'List platform integration connection status (Railway, Vercel, GitHub). Required capability: integrations.list.',
+    requiredCapability: 'integrations.list',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    async handler(_args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'integrations_list')!, ctx);
+      return IntegrationMcpService.listPlatformIntegrations();
+    },
+  },
+  {
+    name: 'nango_get_status',
+    description:
+      'Read Nango OAuth host configuration and which services use it (GitHub). Required capability: nango.status.read.',
+    requiredCapability: 'nango.status.read',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    async handler(_args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'nango_get_status')!, ctx);
+      return IntegrationMcpService.getNangoStatus();
+    },
+  },
+  {
+    name: 'resend_get_status',
+    description:
+      'Read Resend email API configuration and verified domains (read-only). Required capability: resend.status.read.',
+    requiredCapability: 'resend.status.read',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    async handler(_args, ctx) {
+      warnMissingCapability(tools.find((t) => t.name === 'resend_get_status')!, ctx);
+      return ResendService.getStatus();
     },
   },
 ];

@@ -3,10 +3,10 @@
  * Kept in sync with apps/web UniversalBoardDefinition.ts board defs.
  */
 
-import { ALL_INFRA_CAPABILITIES } from './infraCapabilities.js';
+import { IDE_BOARD_MCP_CEILING } from './infraCapabilities.js';
 
 export const BOARD_CAPABILITY_CEILINGS: Record<string, readonly string[]> = {
-  ide: [...ALL_INFRA_CAPABILITIES],
+  ide: [...IDE_BOARD_MCP_CEILING],
   agent: [],
   domain: [],
   designer: [],

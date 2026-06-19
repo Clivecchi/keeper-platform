@@ -23,6 +23,22 @@ const INFRA_CAPABILITY_SLUGS = [
   'infra.vercel.deploy',
   'infra.github.read',
   'infra.github.write',
+  'infra.nango.read',
+  'infra.resend.read',
+] as const;
+
+/** Mirrors apps/api/src/capabilities/infraCapabilities.ts MCP tool capabilities */
+const MCP_TOOL_CAPABILITY_SLUGS = [
+  'github.repo.read',
+  'github.commits.list',
+  'github.branch.create',
+  'github.file.write',
+  'github.pr.create',
+  'github.pr.read',
+  'github.actions.status',
+  'integrations.list',
+  'nango.status.read',
+  'resend.status.read',
 ] as const;
 
 /** Mirrors apps/api/src/capabilities/agentCapabilityConstants.ts CORE_CAPABILITIES */
@@ -86,6 +102,11 @@ const REGISTRY: RegistryEntry[] = [
     kind: 'infra' as const,
     description:
       'Infrastructure capability — enforced via requireCapability on Railway/Vercel REST routes.',
+  })),
+  ...MCP_TOOL_CAPABILITY_SLUGS.map((slug) => ({
+    slug,
+    kind: 'tool' as const,
+    description: 'MCP tool capability — gated in Cloud agent runs via mcp.call.',
   })),
   ...CORE_CAPABILITY_SLUGS.map((slug) => ({
     slug,

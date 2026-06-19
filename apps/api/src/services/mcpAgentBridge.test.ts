@@ -14,6 +14,20 @@ describe('mcpAgentBridge', () => {
     expect(names).not.toContain('railway_trigger_redeploy');
   });
 
+  it('includes GitHub and integration tools when capabilities allow', () => {
+    const tools = getMcpToolsForCapabilities([
+      'github.repo.read',
+      'integrations.list',
+      'nango.status.read',
+      'resend.status.read',
+    ]);
+    const names = tools.map((tool) => tool.name);
+    expect(names).toContain('github.repo.read');
+    expect(names).toContain('integrations_list');
+    expect(names).toContain('nango_get_status');
+    expect(names).toContain('resend_get_status');
+  });
+
   it('builds MCP system prompt with mcp.call instructions', () => {
     const tools = getMcpToolsForCapabilities(['infra.railway.read']);
     const prompt = buildMcpToolSystemPrompt(tools);

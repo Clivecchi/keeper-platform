@@ -978,6 +978,9 @@ See [MCP_CANARY_VERIFICATION.md](../../../MCP_CANARY_VERIFICATION.md) for full d
 
 **2025-10-22 (v9)**: Added OpenAI Agent Builder MCP compatibility with `tools/list` and `tools/call` methods. These complement existing `list_actions` and `call_action` methods. Tools format uses `input_schema` (instead of `parameters`) with JSON Schema draft-07 `$schema` property. Preserves backward compatibility with legacy action methods. Enhanced logging to clearly show which method variant is being called. Updated error responses to list all available methods.
 
+## 📆 Update Log
+- 2026-06-18: Added `integrations_list`, `nango_get_status`, and `resend_get_status` MCP tools; GitHub tools now pass IDE board capability ceiling via `IDE_BOARD_MCP_CEILING`.
+
 **2025-10-22 (v8)**: Added comprehensive canary verification system to prove MCP requests reach Railway backend. Includes: canary headers (`X-Keeper-Origin`), teapot endpoint (`/_canary` → 418), JSON-RPC canary markers (`__keeper_canary`), trace logging (`[MCP TRACE]`), 404 detection, and defensive JSON parsing. Also added PowerShell test script (`test-mcp-canary.ps1`) for A/B verification (Vercel vs direct Railway).
 
 **2025-10-22 (v7)**: Fixed Vercel routing to forward `POST /mcp` to Railway API. Added exact path rewrite for `/mcp` (not just `/mcp/*`) in `vercel.json`. This resolves 405 Method Not Allowed errors when OpenAI Agent Builder POSTs to the base MCP endpoint. Vercel now correctly proxies both `/mcp` and `/mcp/*` to Railway.

@@ -12,7 +12,19 @@ type InstrumentAgent = NonNullable<
 
 async function ensureCloudAgent(): Promise<InstrumentAgent | null> {
   const existing = await prisma.kip_agents.findUnique({ where: { slug: 'cloud' } });
-  if (existing) return existing;
+  if (existing) {
+    const current = existing.capabilities ?? [];
+    const needsUpdate = CLOUD_AGENT_CAPABILITIES.some((cap) => !current.includes(cap));
+    if (needsUpdate) {
+      return prisma.kip_agents.update({
+        where: { slug: 'cloud' },
+        data: {
+          capabilities: Array.from(new Set([...current, ...CLOUD_AGENT_CAPABILITIES])),
+        },
+      });
+    }
+    return existing;
+  }
 
   try {
     return await prisma.kip_agents.create({

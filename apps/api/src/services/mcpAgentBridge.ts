@@ -1,5 +1,5 @@
 /**
- * Bridges Kip agent runs to in-process MCP tools (Railway, Vercel, GitHub).
+ * Bridges Kip agent runs to in-process MCP tools (Railway, Vercel, GitHub, Nango, Resend).
  */
 
 import { resolveAgentCapabilities } from '../capabilities/resolveCapabilities.js';
@@ -66,7 +66,8 @@ export function buildMcpToolSystemPrompt(tools: McpToolDescriptor[]): string {
     'MCP INFRA TOOLS — live and callable in this session via the mcp.call action:',
     ...lines,
     '',
-    'When the user asks for Railway, Vercel, or GitHub status — call the relevant tool(s) in "actions" using mcp.call BEFORE answering.',
+    'When the user asks for Railway, Vercel, GitHub, integration/Nango, or Resend status — call the relevant tool(s) in "actions" using mcp.call BEFORE answering.',
+    'GitHub repo/commits/PR/actions tools require a connected GitHub integration (Nango OAuth). Use integrations_list or nango_get_status when connection state is unclear.',
     'mcp.call payload schema: { "name": "<tool_name>", "args": { ...optional params } }',
     'Example envelope:',
     '{"type":"agent_output","response":"Checking live deploy status.","actions":[',

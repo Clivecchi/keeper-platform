@@ -16,6 +16,8 @@ export const CLOUD_INFRA_READ_CAPABILITIES = [
   'infra.railway.read',
   'infra.vercel.read',
   'infra.github.read',
+  'infra.nango.read',
+  'infra.resend.read',
 ] as const;
 
 export const GITHUB_MCP_TOOL_CAPABILITIES = [
@@ -28,10 +30,17 @@ export const GITHUB_MCP_TOOL_CAPABILITIES = [
   'github.actions.status',
 ] as const;
 
+export const INTEGRATION_MCP_TOOL_CAPABILITIES = [
+  'integrations.list',
+  'nango.status.read',
+  'resend.status.read',
+] as const;
+
 export const CLOUD_AGENT_CAPABILITIES = [
   ...CLOUD_INFRA_READ_CAPABILITIES,
   'infra.github.write',
   ...GITHUB_MCP_TOOL_CAPABILITIES,
+  ...INTEGRATION_MCP_TOOL_CAPABILITIES,
 ] as const;
 
 function mergeCloudCapabilities(existing: string[]): string[] {
