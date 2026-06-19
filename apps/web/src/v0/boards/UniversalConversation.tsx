@@ -47,7 +47,7 @@ import { loadDomainFrame } from "../data/loadDomainFrame"
 import type { DomainFrameJson } from "../data/domain-frame.types"
 import type { AgentDialogueMessage } from "../../components/agent/types"
 import { normalizeActionReceipt } from "../../components/agent/types"
-import { addLibraryUploadFromFile } from "../presence/integrationChronicle/libraryNavCreate"
+import { commitComposerAttachmentsToLibrary, uploadLibraryFile } from "../presence/integrationChronicle/libraryNavCreate"
 import {
   BOARD_INSTRUMENT_LABELS,
   extractAgentReplyFromRunResult,
@@ -1248,25 +1248,36 @@ export function UniversalConversation({
     [domainId, onDraftListRefresh, onDraftSelect, actions, setMessages, setError],
   )
 
-  const handleLibraryFileUpload = React.useCallback(
+  const handleComposerFileUpload = React.useCallback(
     async (file: File) => {
       if (!domainId || !user?.id) {
-        throw new Error("Sign in on a domain board to add files to the library.")
+        throw new Error("Sign in on a domain board to attach files.")
       }
-      const created = await addLibraryUploadFromFile({
+      const url = await uploadLibraryFile({
         domainId,
         userId: user.id,
         file,
+      })
+      return { url, name: file.name }
+    },
+    [domainId, user?.id],
+  )
+
+  const handleCommitAttachmentsToLibrary = React.useCallback(
+    async (attachments: ReadonlyArray<{ url: string; name: string; libraryItemId?: string }>) => {
+      if (!domainId || !user?.id || attachments.length === 0) return
+      const committed = await commitComposerAttachmentsToLibrary({
+        domainId,
+        userId: user.id,
+        attachments,
         activeKeeperId: selection.selectedKeeperId ?? selectedKeeperId ?? null,
         activeAgentId: selection.selectedAgentId ?? selectedAgentId ?? null,
       })
-      actions.onLibraryItemSelect(created.id)
-      actions.bumpLibraryNav()
-      return {
-        url: created.url,
-        name: file.name,
-        libraryItemId: created.id,
+      const last = committed[committed.length - 1]
+      if (last?.libraryItemId) {
+        actions.onLibraryItemSelect(last.libraryItemId)
       }
+      actions.bumpLibraryNav()
     },
     [
       domainId,
@@ -1325,7 +1336,10 @@ export function UniversalConversation({
         inputValue={input}
         onInputChange={setInput}
         onSubmit={sendMessage}
-        onLibraryFileUpload={domainId && user?.id ? handleLibraryFileUpload : undefined}
+        onComposerFileUpload={domainId && user?.id ? handleComposerFileUpload : undefined}
+        onCommitAttachmentsToLibrary={
+          domainId && user?.id ? handleCommitAttachmentsToLibrary : undefined
+        }
         activeSessionId={dialogSessionId}
         disabled={composerDisabled}
       />

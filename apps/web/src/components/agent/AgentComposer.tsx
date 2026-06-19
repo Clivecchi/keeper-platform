@@ -26,10 +26,14 @@ const SURFACE = {
   containerBorder: "hsl(var(--theme-border-soft) / 0.35)",
 }
 
-/** Result from composer clip upload — file is stored in Library; shown in Thinking Space until send. */
-export type LibraryUploadResult = {
+/** Blob upload result — stages in Thinking Space; Library item created on send. */
+export type ComposerFileUploadResult = {
   url: string
   name: string
+}
+
+/** @deprecated Use ComposerFileUploadResult — library is committed on send. */
+export type LibraryUploadResult = ComposerFileUploadResult & {
   libraryItemId?: string
 }
 
@@ -38,6 +42,8 @@ export type PendingAttachment = {
   name: string
   url: string
   type: "text" | "image" | "file"
+  /** Set when committed to Library on message send. */
+  libraryItemId?: string
 }
 
 /** Attachment sent to the agent API (for vision and context) */
@@ -61,8 +67,10 @@ export interface AgentComposerProps {
   inputValue: string
   onInputChange: (value: string) => void
   onSubmit: (e: React.FormEvent, options: { content: string; attachments?: AgentAttachment[] }) => void
-  /** Upload file to domain Library; return URL so the file can attach to the next message. */
-  onLibraryFileUpload?: (file: File) => Promise<LibraryUploadResult>
+  /** Stage file for the next message (blob upload only — not Library until send). */
+  onComposerFileUpload?: (file: File) => Promise<ComposerFileUploadResult>
+  /** @deprecated Prefer onComposerFileUpload */
+  onLibraryFileUpload?: (file: File) => Promise<ComposerFileUploadResult>
   /** Controlled pending attachments (Thinking Space). When omitted, composer manages its own list. */
   attachments?: PendingAttachment[]
   onAttachmentsChange?: React.Dispatch<React.SetStateAction<PendingAttachment[]>>
@@ -75,8 +83,8 @@ export interface AgentComposerProps {
   feedbackSlot?: React.ReactNode
 }
 
-const MIN_ROWS = 2
-const MAX_ROWS = 6
+const MIN_ROWS = 4
+const MAX_ROWS = 10
 
 const IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"]
 
@@ -100,6 +108,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   journeyId,
   dialogueMode,
   onModeChange,
+  onComposerFileUpload,
   onLibraryFileUpload,
   attachments: controlledAttachments,
   onAttachmentsChange,
@@ -132,6 +141,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     file.type.startsWith("text/") ||
     file.type === "application/pdf"
 
+  const stageFileUpload = onComposerFileUpload ?? onLibraryFileUpload
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) {
@@ -139,19 +150,19 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
       return
     }
 
-    if (!onLibraryFileUpload) {
+    if (!stageFileUpload) {
       e.target.value = ""
       return
     }
 
     if (!user?.id) {
-      alert("Please sign in to add files to the library.")
+      alert("Please sign in to attach files.")
       e.target.value = ""
       return
     }
 
     if (!domainId) {
-      alert("Open a domain board to add files to the library.")
+      alert("Open a domain board to attach files.")
       e.target.value = ""
       return
     }
@@ -172,11 +183,11 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
     setIsUploading(true)
     onUploadingChange?.(true)
     try {
-      const result = await onLibraryFileUpload(file)
+      const result = await stageFileUpload(file)
       setAttachments((prev) => [
         ...prev,
         {
-          id: result.libraryItemId ?? crypto.randomUUID(),
+          id: crypto.randomUUID(),
           name: result.name || file.name,
           url: result.url,
           type: inferAttachmentType(file),
@@ -278,7 +289,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            {onLibraryFileUpload && (
+            {stageFileUpload && (
               <>
                 <input
                   type="file"

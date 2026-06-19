@@ -20,7 +20,7 @@ export const BOARD_INSTRUMENT_LABELS: Record<BoardInstrumentSlug, string> = {
 
 export type DirectorSendPhase = "instrument" | "director"
 
-const INSTRUMENT_ADDRESS_PATTERN = /^(cloud|rendr)\s*[—\-:]/i
+const INSTRUMENT_ADDRESS_PATTERN = /^(cloud|rendr)\s*(?:[—\-:,]|,\s*)/i
 
 /** Pinned chip wins; otherwise honor "Cloud — …" / "Rendr — …" in the message. */
 export function resolveDirectorInstrument(params: {
@@ -83,10 +83,12 @@ export function buildDirectorFallbackSynthesisPrompt(params: {
     "",
     `${params.instrumentLabel} did not return a reply this turn (delegation empty or failed).`,
     "",
-    `Reply as Lead (${params.directorName}). Answer from your knowledge of ${params.instrumentLabel}'s role.`,
+    `Reply as Lead (${params.directorName}). Answer the user's question directly and practically.`,
+    `- Draw on what ${params.instrumentLabel} would typically know or do for this kind of request.`,
     `- Do NOT say the user is "talking to ${params.directorName}, not ${params.instrumentLabel}".`,
-    `- Do NOT offer to "hand off" or "coordinate with" ${params.instrumentLabel} — that turn already happened.`,
-    `- Stay brief and practical.`,
+    `- Do NOT offer to "hand off", "try again", or "coordinate with" ${params.instrumentLabel}.`,
+    `- Do NOT mention delegation, routing, or that ${params.instrumentLabel} failed to respond.`,
+    `- Stay brief and useful.`,
   ].join("\n")
 }
 

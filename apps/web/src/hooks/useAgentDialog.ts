@@ -9,10 +9,6 @@ import type { AgentDialogueMessage, DirectorDelegationBeat } from "../components
 import { extractLinkedCard } from "../components/agent/helpers"
 import { apiFetch } from "../lib/api"
 import {
-  buildDirectorFallbackSynthesisPrompt,
-  buildDirectorSynthesisPrompt,
-  buildInstrumentDelegationPrompt,
-  buildInstrumentUnavailableDelegationBeat,
   extractAgentReplyFromRunResult,
   resolveDirectorInstrument,
   sanitizeUserMessageContent,
@@ -215,6 +211,7 @@ export interface UseAgentDialogResult {
 export function extractRunAgentPayload(result: unknown): {
   actions?: unknown[]
   sessionId?: string
+  directorDelegation?: DirectorDelegationBeat
 } {
   const outer = (result as { data?: Record<string, unknown> })?.data
   const inner =
@@ -223,9 +220,24 @@ export function extractRunAgentPayload(result: unknown): {
       : undefined
   const actions = inner?.actions ?? outer?.actions
   const sessionRaw = inner?.session_id ?? inner?.sessionId ?? outer?.session_id
+  const delegationRaw = inner?.directorDelegation ?? outer?.directorDelegation
+  let directorDelegation: DirectorDelegationBeat | undefined
+  if (delegationRaw && typeof delegationRaw === "object") {
+    const d = delegationRaw as Record<string, unknown>
+    const status = d.status
+    const content = typeof d.content === "string" ? d.content.trim() : ""
+    const isOk = status === undefined || status === "ok"
+    if (isOk && content && !content.includes("did not respond this turn")) {
+      directorDelegation = {
+        content,
+        attributedTo: typeof d.attributedTo === "string" ? d.attributedTo : undefined,
+      }
+    }
+  }
   return {
     actions: Array.isArray(actions) ? actions : undefined,
     sessionId: typeof sessionRaw === "string" && sessionRaw.trim() ? sessionRaw.trim() : undefined,
+    directorDelegation,
   }
 }
 
@@ -518,70 +530,49 @@ export function useAgentDialog({
             userMessage: content,
           })
         : null
-      let delegationBeat: DirectorDelegationBeat | undefined
-      let instrumentReply: string | undefined
 
       if (liveDirectorConfig && instrument && content.trim()) {
         onDirectorPhaseChange?.("instrument")
         appendThinkingStep(`Consulting ${liveDirectorConfig.instrumentLabels[instrument]}…`)
-        const instLabel = liveDirectorConfig.instrumentLabels[instrument]
-        try {
-          const instAgent = await KipApi.getAgentBySlug(instrument)
-          const instPrompt = buildInstrumentDelegationPrompt({
-            userMessage: content,
-            instrumentLabel: instLabel,
-            directorName: liveDirectorConfig.directorDisplayName,
-          })
-          const instResult = await KipApi.runAgent(
-            instAgent.id,
-            instPrompt,
-            userId ?? undefined,
-            undefined,
-            runOpts,
-          )
-          const instReply = extractAgentReplyFromRunResult(instResult)
-          if (instReply) {
-            instrumentReply = instReply
-            delegationBeat = { content: instReply, attributedTo: instLabel }
-          }
-        } catch {
-          appendThinkingStep(`${instLabel} unavailable this turn`)
-        }
-
-        if (!instrumentReply) {
-          delegationBeat = buildInstrumentUnavailableDelegationBeat({ instrumentLabel: instLabel })
-        }
       }
 
-      onDirectorPhaseChange?.(liveDirectorConfig && instrument ? "director" : null)
       appendThinkingStep(`${agentDisplayName} is composing a reply…`)
 
-      const leadInput =
-        liveDirectorConfig && instrument
-          ? instrumentReply
-            ? buildDirectorSynthesisPrompt({
+      const kipRunOpts = {
+        ...runOpts,
+        ...(liveDirectorConfig && instrument && content.trim()
+          ? {
+              directorDelegation: {
+                instrumentSlug: instrument,
                 userMessage: content,
-                instrumentLabel: liveDirectorConfig.instrumentLabels[instrument],
-                instrumentReply,
-                directorName: liveDirectorConfig.directorDisplayName,
-              })
-            : buildDirectorFallbackSynthesisPrompt({
-                userMessage: content,
-                instrumentLabel: liveDirectorConfig.instrumentLabels[instrument],
-                directorName: liveDirectorConfig.directorDisplayName,
-              })
-          : content
+                directorDisplayName: liveDirectorConfig.directorDisplayName,
+              },
+            }
+          : {}),
+      }
 
       try {
         let result: Awaited<ReturnType<typeof KipApi.runAgent>>
         try {
-          result = await KipApi.runAgent(agentId, leadInput, userId ?? undefined, activeSessionId, runOpts)
+          result = await KipApi.runAgent(
+            agentId,
+            content,
+            userId ?? undefined,
+            activeSessionId,
+            kipRunOpts,
+          )
         } catch (firstErr: unknown) {
           const status = (firstErr as { status?: number })?.status
           if (mode === "ide" && status === 401 && refreshSession) {
             const refreshed = await refreshSession()
             if (refreshed) {
-              result = await KipApi.runAgent(agentId, leadInput, userId ?? undefined, activeSessionId, runOpts)
+              result = await KipApi.runAgent(
+                agentId,
+                content,
+                userId ?? undefined,
+                activeSessionId,
+                kipRunOpts,
+              )
             } else {
               setMessages((prev) => prev.filter((m) => m.id !== `user-${ts}`))
               setError(`Please sign in to continue the conversation with ${agentDisplayName}.`)
@@ -599,17 +590,25 @@ export function useAgentDialog({
           latestRaw = await fetchMessages(activeSessionId)
         }
 
-        const { actions: actionsArr, sessionId: returnedSessionId } = extractRunAgentPayload(result)
+        const {
+          actions: actionsArr,
+          sessionId: returnedSessionId,
+          directorDelegation,
+        } = extractRunAgentPayload(result)
+
+        if (liveDirectorConfig && instrument && content.trim()) {
+          onDirectorPhaseChange?.("director")
+        }
 
         const mergeOntoLastAgent = (list: AgentDialogueMessage[]): AgentDialogueMessage[] => {
           const withUser = patchLastUserContent(list, content)
-          if (!delegationBeat && !actionsArr?.length) return withUser
+          if (!directorDelegation && !actionsArr?.length) return withUser
           const updated = [...withUser]
           const lastAgentIdx = updated.findLastIndex((m) => m.role === "agent")
           if (lastAgentIdx < 0) return withUser
           updated[lastAgentIdx] = {
             ...updated[lastAgentIdx],
-            ...(delegationBeat ? { delegation: delegationBeat } : {}),
+            ...(directorDelegation ? { delegation: directorDelegation } : {}),
             ...(actionsArr?.length ? { actionResults: actionsArr } : {}),
           }
           return updated

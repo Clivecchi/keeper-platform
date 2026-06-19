@@ -24,6 +24,15 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-17 — Director UX polish (no failure placeholder, Horizon timing)
+- Failed Cloud/Rendr delegation: no "did not respond" beat in bubble — Kip answers directly with stronger fallback prompt
+- Horizon stays on **Cloud is thinking…** for full API wait (instrument phase until response)
+- API: instrument environment resolves with IDE board capability ceiling for infra reads
+
+### 2026-06-17 — Server-side director delegation
+- Cloud/Rendr sub-runs move to API (`directorDelegation` on Kip run) — fixes failed client delegation and synthesis prompt in user bubble
+- Web: single Kip `runAgent` with user `content` + `directorDelegation`; delegation beat from response
+
 ### 2026-06-17 — Director dialog: hide orchestration prompts from user bubble
 - `sanitizeUserMessageContent`: session rows saved as synthesis input show the user's words, not `[Director synthesis — Kip]`
 - `buildInstrumentUnavailableDelegationBeat`: Cloud/Rendr beat in Kip bubble when sub-run fails (structure preserved)

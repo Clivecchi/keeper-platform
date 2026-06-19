@@ -607,6 +607,12 @@ export class KipApi {
       attachments?: Array<{ url: string; name: string; type: "image" | "file" }>
       /** agentContext — from domain frame JSON, injected into Kip's environment */
       agentContext?: Record<string, unknown>
+      /** IDE director mode — server runs instrument then Lead synthesis. */
+      directorDelegation?: {
+        instrumentSlug: "cloud" | "rendr"
+        userMessage: string
+        directorDisplayName: string
+      }
     },
   ): Promise<AgentResponse> {
     const response = await apiFetch('/api/kip/agents', {
@@ -625,6 +631,7 @@ export class KipApi {
         activeKeeperId: options?.activeKeeperId ?? undefined,
         attachments: options?.attachments ?? undefined,
         agentContext: options?.agentContext ?? undefined,
+        directorDelegation: options?.directorDelegation ?? undefined,
       })
     });
 

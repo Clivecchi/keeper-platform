@@ -25,6 +25,7 @@ import {
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
 import { resolveAgentEnvironment, type AgentEnvironmentContext } from '../../services/kip/resolveAgentEnvironment.js';
+import { resolveAgentCapabilities } from '../../capabilities/resolveCapabilities.js';
 import type { KipEnvironmentContext } from '../../services/kip/buildKipEnvironmentContext.js';
 import type { 
   AgentInput, 
@@ -43,6 +44,15 @@ import { ensureKipAgentOutputEnvelope } from '../../services/structure/ensureStr
 import type { ImageGenerationBrief } from '../../services/ModelProviderService.js';
 import { SoleMemoryService } from '../../services/SoleMemoryService.js';
 import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
+import {
+  buildDirectorFallbackSynthesisPrompt,
+  buildDirectorSynthesisPrompt,
+  buildInstrumentDelegationPrompt,
+  extractReplyFromAgentRunResult,
+  instrumentLabel,
+  type DirectorDelegationResult,
+  type DirectorDelegationRequest,
+} from '../../services/directorDialog.js';
 import {
   preExecGovernanceCheck,
   postExecGovernanceCheck,
@@ -125,6 +135,12 @@ type RunAgentOptions = {
   activeJourneyId?: string | null;
   activeKeeperId?: string | null;
   attachments?: AgentAttachmentInput[];
+  /** IDE director mode — run board instrument before Lead synthesis (server-orchestrated). */
+  directorDelegation?: {
+    instrumentSlug: 'cloud' | 'rendr';
+    userMessage: string;
+    directorDisplayName: string;
+  };
 };
 
 function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown }): boolean {
@@ -537,6 +553,59 @@ function buildActionPackFromAllowlist(allowlist: Set<string>): ActionPack {
 function buildActionPackFromEnvironment(environment?: AgentEnvironmentContext | KipEnvironmentContext | null): ActionPack {
   const allow = buildAllowedActions(environment);
   return buildActionPackFromAllowlist(allow);
+}
+
+async function buildInstrumentRunEnvironment(params: {
+  instAgentId: string;
+  instrumentSlug: 'cloud' | 'rendr';
+  userId?: string;
+  domainId?: string | null;
+  fallback?: AgentEnvironmentContext | KipEnvironmentContext | null;
+}): Promise<AgentEnvironmentContext | KipEnvironmentContext | null | undefined> {
+  let env: AgentEnvironmentContext | null = null;
+  try {
+    env = await resolveAgentEnvironment({
+      agentId: params.instAgentId,
+      userId: params.userId,
+      domainId: params.domainId ?? undefined,
+      intent: 'interactive',
+    });
+  } catch (error) {
+    console.warn('[director] instrument environment resolution failed', {
+      instrument: params.instrumentSlug,
+      error: error instanceof Error ? error.message : error,
+    });
+    return params.fallback ?? null;
+  }
+
+  try {
+    const caps = await resolveAgentCapabilities({
+      agentId: params.instAgentId,
+      agentSlug: params.instrumentSlug,
+      boardId: 'ide',
+    });
+    if (caps?.capabilities.length) {
+      const allow = new Set([
+        ...(env.policyPack?.actions?.allow ?? DEFAULT_POLICY_PACK_V1.actions.allow),
+        ...caps.capabilities,
+      ]);
+      const allowList = Array.from(allow);
+      env.actionPack = buildActionPack(allowList);
+      if (env.policyPack) {
+        env.policyPack = {
+          ...env.policyPack,
+          actions: { allow: allowList },
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('[director] instrument capability merge failed', {
+      instrument: params.instrumentSlug,
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+
+  return env;
 }
 
 function slugifyKey(input: string) {
@@ -2402,6 +2471,13 @@ const AgentRunSchema = z.object({
   activeJourneyId: z.string().nullable().optional(),
   activeKeeperId: z.string().nullable().optional(),
   agentContext: z.record(z.unknown()).optional(),
+  directorDelegation: z
+    .object({
+      instrumentSlug: z.enum(['cloud', 'rendr']),
+      userMessage: z.string().min(1),
+      directorDisplayName: z.string().min(1),
+    })
+    .optional(),
 }).refine(
   (data) => (typeof data.input === 'string' && data.input.trim().length > 0) || (Array.isArray(data.attachments) && data.attachments.length > 0),
   { message: 'Either input text or at least one attachment is required', path: ['input'] }
@@ -3713,7 +3789,10 @@ export class KipAgentService {
           // Save user message to memory if we have a session
           if (currentSessionId) {
             try {
-              const textToSave = input?.trim() || (options?.attachments?.length ? `[${options.attachments.length} attachment(s)]` : '');
+              const textToSave =
+                options?.directorDelegation?.userMessage?.trim()
+                || input?.trim()
+                || (options?.attachments?.length ? `[${options.attachments.length} attachment(s)]` : '');
               await this.saveMessage(currentSessionId, 'user', textToSave, 'user', {
                 timestamp: new Date().toISOString(),
                 agent_id: agentId
@@ -3721,6 +3800,80 @@ export class KipAgentService {
             } catch (error) {
               console.warn('Failed to save user message:', error);
             }
+          }
+        }
+
+        let leadModelInput = input || '';
+        let directorDelegationResult: DirectorDelegationResult | undefined;
+
+        if (options?.directorDelegation) {
+          const dd = options.directorDelegation;
+          const instLabel = instrumentLabel(dd.instrumentSlug);
+          let instrumentReply: string | null = null;
+          try {
+            const instAgent = await getKipAgentBySlug(dd.instrumentSlug);
+            if (!instAgent) {
+              throw new Error(`Board instrument agent "${dd.instrumentSlug}" is not seeded`);
+            }
+            const instPrompt = buildInstrumentDelegationPrompt({
+              userMessage: dd.userMessage,
+              instrumentLabel: instLabel,
+              directorName: dd.directorDisplayName,
+            });
+            const instEnvironment = await buildInstrumentRunEnvironment({
+              instAgentId: instAgent.id,
+              instrumentSlug: dd.instrumentSlug,
+              userId,
+              domainId: options.domainId,
+              fallback: options.environment,
+            });
+            const instRun = await this.runAgent(instAgent.id, instPrompt, userId, undefined, {
+              domainId: options.domainId,
+              domainSlug: options.domainSlug,
+              mode: options.mode,
+              environment: instEnvironment ?? options.environment,
+              activeJourneyId: options.activeJourneyId,
+              activeKeeperId: options.activeKeeperId,
+            });
+            if (!('success' in instRun) || !instRun.success) {
+              const errData = 'data' in instRun ? (instRun.data as Record<string, unknown> | undefined) : undefined;
+              const errMsg =
+                typeof errData?.error === 'string' && errData.error.trim()
+                  ? errData.error
+                  : 'Instrument run failed';
+              throw new Error(errMsg);
+            }
+            instrumentReply = extractReplyFromAgentRunResult(instRun);
+            if (!instrumentReply) {
+              console.warn('[director] instrument returned empty reply', {
+                instrument: dd.instrumentSlug,
+              });
+            }
+          } catch (error) {
+            console.warn('[director] instrument delegation failed', {
+              instrument: dd.instrumentSlug,
+              error: error instanceof Error ? error.message : error,
+            });
+          }
+
+          if (instrumentReply) {
+            directorDelegationResult = {
+              attributedTo: instLabel,
+              content: instrumentReply,
+              status: 'ok',
+            };
+            leadModelInput = buildDirectorSynthesisPrompt({
+              userMessage: dd.userMessage,
+              instrumentLabel: instLabel,
+              instrumentReply,
+              directorName: dd.directorDisplayName,
+            });
+          } else {
+            leadModelInput = buildDirectorFallbackSynthesisPrompt({
+              userMessage: dd.userMessage,
+              instrumentLabel: instLabel,
+              directorName: dd.directorDisplayName,
+            });
           }
         }
         
@@ -3731,7 +3884,7 @@ export class KipAgentService {
             : '';
 
         // Generate response using real AI model with memory context
-        const aiResult = await this.callAIModel(agent, input || '', previousMessages, userId, {
+        const aiResult = await this.callAIModel(agent, leadModelInput, previousMessages, userId, {
           mode: activeMode,
           modeConfig: activeModeConfig,
           lens: { systemPrompt: leadVoicePrompt || lens?.systemPrompt || null },
@@ -3985,7 +4138,10 @@ export class KipAgentService {
             soleStatus,
             model_response_raw: response,
             draftIntent: options?.draftIntentResult ?? null,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            ...(directorDelegationResult?.status === 'ok'
+              ? { directorDelegation: directorDelegationResult }
+              : {}),
           }
         };
       }
@@ -4697,6 +4853,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             activeJourneyId: (req.body as any)?.activeJourneyId ?? null,
             activeKeeperId: (req.body as any)?.activeKeeperId ?? null,
             agentContext: (req.body as any)?.agentContext ?? undefined,
+            directorDelegation: (req.body as { directorDelegation?: unknown })?.directorDelegation,
           });
           if (!validation.success) {
             return respond(400, { 
@@ -4787,28 +4944,38 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             }
           }
 
+          const runAgentOptions: RunAgentOptions = {
+            domainId: validation.data.domainId ?? resolvedDomain.domainId,
+            domainSlug: validation.data.domainSlug ?? resolvedDomain.domainSlug,
+            mode: validation.data.mode as AgentModeKey | undefined,
+            debugBundle: validation.data.debugBundle || null,
+            environment,
+            skipActionTypes: draftIntentResult?.draft ? new Set(['draft.create']) : undefined,
+            actionPack,
+            draftIntentResult,
+            activeJourneyId: validation.data.activeJourneyId ?? null,
+            activeKeeperId: validation.data.activeKeeperId ?? null,
+            attachments: validation.data.attachments?.map((a) => ({
+              url: a.url,
+              name: a.name,
+              type: a.type,
+            })) ?? undefined,
+          };
+          if (validation.data.directorDelegation) {
+            const dd = validation.data.directorDelegation;
+            runAgentOptions.directorDelegation = {
+              instrumentSlug: dd.instrumentSlug,
+              userMessage: dd.userMessage,
+              directorDisplayName: dd.directorDisplayName,
+            } satisfies DirectorDelegationRequest;
+          }
+
           const result = await KipAgentService.runAgent(
             agentId,
             validation.data.input ?? '',
             requestUserId,
             sessionId,
-            {
-              domainId: validation.data.domainId ?? resolvedDomain.domainId,
-              domainSlug: validation.data.domainSlug ?? resolvedDomain.domainSlug,
-              mode: validation.data.mode as AgentModeKey | undefined,
-              debugBundle: validation.data.debugBundle || null,
-              environment,
-              skipActionTypes: draftIntentResult?.draft ? new Set(['draft.create']) : undefined,
-              actionPack,
-              draftIntentResult,
-              activeJourneyId: validation.data.activeJourneyId ?? null,
-              activeKeeperId: validation.data.activeKeeperId ?? null,
-              attachments: validation.data.attachments?.map((a) => ({
-                url: a.url,
-                name: a.name,
-                type: a.type,
-              })) ?? undefined,
-            }
+            runAgentOptions,
           );
 
           if (draftIntentResult && (result as AgentResponse)?.data && typeof (result as AgentResponse).data === 'object') {

@@ -80,6 +80,41 @@ export function isLibraryImageFile(file: File): boolean {
   return IMAGE_TYPES.includes(file.type)
 }
 
+export async function commitComposerAttachmentsToLibrary(params: {
+  domainId: string
+  userId: string
+  attachments: ReadonlyArray<{ url: string; name: string; libraryItemId?: string }>
+  activeKeeperId?: string | null
+  activeAgentId?: string | null
+}): Promise<Array<{ url: string; name: string; libraryItemId: string }>> {
+  const results: Array<{ url: string; name: string; libraryItemId: string }> = []
+  for (const attachment of params.attachments) {
+    if (attachment.libraryItemId) {
+      results.push({
+        url: attachment.url,
+        name: attachment.name,
+        libraryItemId: attachment.libraryItemId,
+      })
+      continue
+    }
+    const row = await createLibraryItem({
+      domainId: params.domainId,
+      userId: params.userId,
+      sourceType: "upload",
+      sourceRef: attachment.url,
+      displayLabel: attachment.name,
+      activeKeeperId: params.activeKeeperId,
+      activeAgentId: params.activeAgentId,
+    })
+    results.push({
+      url: attachment.url,
+      name: attachment.name,
+      libraryItemId: row.id,
+    })
+  }
+  return results
+}
+
 /** Composer clip and Library nav + — same upload → LibraryItem path. */
 export async function addLibraryUploadFromFile(params: {
   domainId: string

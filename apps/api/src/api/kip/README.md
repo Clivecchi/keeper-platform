@@ -27,6 +27,8 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-06-17: **Director delegation hardening** — instrument sub-runs use IDE-scoped env + agent capabilities; only successful Cloud/Rendr beats returned to client (no failure placeholder in UI).
+- 2026-06-17: **IDE director delegation (server)** — POST `action=run` accepts `directorDelegation`; Lead saves the user's message, runs Cloud/Rendr, synthesizes, returns `directorDelegation` beat in response data.
 - 2026-06-15: **Structure pipeline Phase 1** — agent runs use `ensureKipAgentOutputEnvelope` (`services/structure`): prose-wrap for plain replies, Together repair on broken JSON, no cryptic parse error for conversational text. Exported `agentOutputEnvelopeSchema` from `actions/schema.ts`.
 - 2026-06-12: **Agent classification field rename** — `kip_agents.role` is the canonical agent classification field; type renamed to `AgentRole`. Values unchanged.
 - 2026-05-27: **Draft update reliability** — System agents (Cloud) now use `draft.update` directly in prompts; `draftIntent` no longer skips all actions (only duplicate `draft.create`). Payload normalizer maps `draftId` → `id`; `draft.update` preserves summary/spec when omitted. `skipActionTypes` on execution context.

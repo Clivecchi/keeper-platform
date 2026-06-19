@@ -132,7 +132,14 @@ export interface KeeperDialogFrameProps {
   inputValue: string
   onInputChange: (value: string) => void
   onSubmit: AgentComposerProps["onSubmit"]
-  onLibraryFileUpload?: AgentComposerProps["onLibraryFileUpload"]
+  /** Stage blob upload for Thinking Space — Library commit on send via onCommitAttachmentsToLibrary. */
+  onComposerFileUpload?: AgentComposerProps["onComposerFileUpload"]
+  /** @deprecated Use onComposerFileUpload */
+  onLibraryFileUpload?: AgentComposerProps["onComposerFileUpload"]
+  /** Create Library items for staged attachments when the message sends. */
+  onCommitAttachmentsToLibrary?: (
+    attachments: ReadonlyArray<PendingAttachment>,
+  ) => Promise<void>
   activeSessionId: string | null
   disabled?: boolean
 
@@ -198,7 +205,9 @@ export function KeeperDialogFrame({
   inputValue,
   onInputChange,
   onSubmit,
+  onComposerFileUpload,
   onLibraryFileUpload,
+  onCommitAttachmentsToLibrary,
   activeSessionId,
   disabled,
   dialogContent,
