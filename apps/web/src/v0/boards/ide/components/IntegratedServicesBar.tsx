@@ -70,13 +70,14 @@ export function IntegratedServicesBar({
       }}
     >
       <div
-        className="dialog-column dialog-services-bar-inner"
+        className="dialog-services-bar-inner"
         style={{
           display: "flex",
           alignItems: "center",
           gap: 0,
           padding: "5px 0 6px",
           flexWrap: "wrap",
+          width: "100%",
         }}
       >
         {/* Tools — invokable agents, visually distinct from navigational services */}

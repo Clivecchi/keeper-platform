@@ -52,7 +52,7 @@ import { useAgentPostureData } from "../../../hooks/useAgentPostureData"
 import { normalizeActionReceipt } from "../../../components/agent/types"
 import { shortId, extractLinkedCard, patchAcceptedDraftPointInMessages } from "../../../components/agent/helpers"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
-import { addLibraryUploadFromFile } from "../../presence/integrationChronicle/libraryNavCreate"
+import { uploadLibraryFile } from "../../presence/integrationChronicle/libraryNavCreate"
 
 // =============================================================================
 // Types
@@ -1174,23 +1174,15 @@ export function AgentBoardFrame({
     inputValue,
     onInputChange: setInputValue,
     onSubmit: handleSendMessage,
-    onLibraryFileUpload:
+    onComposerFileUpload:
       domainId && user?.id
         ? async (file: File) => {
-            const created = await addLibraryUploadFromFile({
+            const url = await uploadLibraryFile({
               domainId,
               userId: user.id,
               file,
-              activeKeeperId: frameCtx?.selection.activeKeeperId ?? null,
-              activeAgentId: agent?.id ?? null,
             })
-            boardCtx?.actions.onLibraryItemSelect(created.id)
-            boardCtx?.actions.bumpLibraryNav()
-            return {
-              url: created.url,
-              name: file.name,
-              libraryItemId: created.id,
-            }
+            return { url, name: file.name }
           }
         : undefined,
     isSending,

@@ -528,6 +528,13 @@ button.dialog-prelude:hover {
   padding-bottom: 4px;
 }
 
+.dialog-bottom-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
 /* ─── Thinking Space — ambient surface between chat and composer ─────────────
  * The most transparent surface. The atmosphere is most visible here.
  * A fixed-height zone that never causes the composer to resize.
@@ -1166,8 +1173,9 @@ button.dialog-prelude:hover {
 .keeper-board-scope .dialog-bottom-zone .keeper-composer-input {
   font-size: 17px;
   line-height: 1.55;
-  min-height: 52px;
-  padding: 12px 16px;
+  min-height: 108px;
+  max-height: 220px;
+  padding: 14px 18px;
 }
 
 .keeper-board-scope .dialog-bottom-zone .keeper-composer-toolbar {
@@ -1188,8 +1196,8 @@ button.dialog-prelude:hover {
 }
 
 .keeper-dialog-frame[data-has-uploads="true"] .keeper-composer-input {
-  min-height: 56px;
-  max-height: 160px;
+  min-height: 88px;
+  max-height: 180px;
 }
 
 /* Chronicle + nav — scale with global base (keeper-board-scope) */
@@ -1538,8 +1546,10 @@ button.dialog-prelude:hover {
   color: hsl(var(--theme-composer-input-text)) !important;
   caret-color: hsl(var(--theme-composer-caret));
   font-size: 14px;
-  line-height: 1.5;
-  padding: 10px 14px;
+  line-height: 1.55;
+  min-height: 96px;
+  max-height: 200px;
+  padding: 12px 16px;
 }
 
 .dialog-bottom-zone .keeper-composer-input::placeholder {

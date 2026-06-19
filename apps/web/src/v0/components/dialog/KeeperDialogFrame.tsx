@@ -223,7 +223,7 @@ export function KeeperDialogFrame({
   const [pendingAttachments, setPendingAttachments] = React.useState<PendingAttachment[]>([])
   const [isFileUploading, setIsFileUploading] = React.useState(false)
   const hasUploads = pendingAttachments.length > 0 || isFileUploading
-  const hasWorkingThinkSpace = isSending || hasUploads
+  const hasWorkingThinkSpace = isSending || pendingAttachments.length > 0
   const showDiagStream = isSending && thinkStream === "diag"
   const showThinkStream = isSending && thinkStream !== "diag"
 
@@ -250,7 +250,7 @@ export function KeeperDialogFrame({
     measureDialogScrollInset()
     window.addEventListener("resize", measureDialogScrollInset)
     return () => window.removeEventListener("resize", measureDialogScrollInset)
-  }, [mode, dialogContent, measureDialogScrollInset, isSending, thinkStream, hasWorkingThinkSpace])
+  }, [mode, dialogContent, measureDialogScrollInset, isSending, isFileUploading, thinkStream, hasWorkingThinkSpace])
 
   const getLatestScrollTop = React.useCallback(() => {
     const el = scrollRef.current
@@ -268,14 +268,22 @@ export function KeeperDialogFrame({
   const composerState: "composing" | "working" = isSending ? "working" : "composing"
 
   const handleComposerSubmit = React.useCallback(
-    (
+    async (
       event: React.FormEvent,
       options: { content: string; attachments?: AgentAttachment[] },
     ) => {
+      if (onCommitAttachmentsToLibrary && pendingAttachments.length > 0) {
+        try {
+          await onCommitAttachmentsToLibrary(pendingAttachments)
+        } catch (err) {
+          alert(err instanceof Error ? err.message : "Failed to save attachments to Library.")
+          return
+        }
+      }
       onSubmit(event, options)
       setPendingAttachments([])
     },
-    [onSubmit],
+    [onSubmit, onCommitAttachmentsToLibrary, pendingAttachments],
   )
 
   const defaultThinkingLabel = React.useMemo(
@@ -287,14 +295,24 @@ export function KeeperDialogFrame({
     [agentBoardMessaging?.dialogue.thinking, agentName],
   )
 
-  const thinkingLabel = React.useMemo(
-    () =>
-      thinkingStatusLabel
-      ?? (isSending
-        ? latestThinkingSummary(thinkingSteps, defaultThinkingLabel)
-        : defaultThinkingLabel),
-    [thinkingStatusLabel, isSending, thinkingSteps, defaultThinkingLabel],
-  )
+  const horizonStatusLabel = React.useMemo(() => {
+    if (isFileUploading) return "Uploading…"
+    if (isSending) {
+      return (
+        thinkingStatusLabel
+        ?? latestThinkingSummary(thinkingSteps, defaultThinkingLabel)
+      )
+    }
+    return null
+  }, [
+    isFileUploading,
+    isSending,
+    thinkingStatusLabel,
+    thinkingSteps,
+    defaultThinkingLabel,
+  ])
+
+  const showHorizonStatus = horizonStatusLabel !== null
 
   // Auto-scroll so the newest message clears the Horizon (Thinking space + fade overlay)
   React.useEffect(() => {
@@ -551,14 +569,14 @@ export function KeeperDialogFrame({
               className="dialog-fade-overlay"
               aria-hidden="true"
             />
-            {isSending && (
-              <>
-                <div
-                  className="dialog-horizon-status"
-                  aria-live="polite"
-                >
-                  <div className="dialog-column dialog-horizon-row">
-                    <span className="dialog-think-pulse dialog-horizon-summary">{thinkingLabel}</span>
+            {showHorizonStatus && (
+              <div
+                className="dialog-horizon-status"
+                aria-live="polite"
+              >
+                <div className="dialog-column dialog-horizon-row">
+                  <span className="dialog-think-pulse dialog-horizon-summary">{horizonStatusLabel}</span>
+                  {isSending && (
                     <div className="dialog-horizon-streams">
                       <button
                         type="button"
@@ -569,9 +587,9 @@ export function KeeperDialogFrame({
                         Diag
                       </button>
                     </div>
-                  </div>
+                  )}
                 </div>
-              </>
+              </div>
             )}
           </div>
         )}
@@ -598,7 +616,6 @@ export function KeeperDialogFrame({
             ) : (
               <DialogUploadStream
                 attachments={pendingAttachments}
-                isUploading={isFileUploading}
                 onRemove={(id) => setPendingAttachments((prev) => prev.filter((a) => a.id !== id))}
               />
             )}
@@ -608,7 +625,7 @@ export function KeeperDialogFrame({
 
       {/* ── Composer — input floor; Horizon + Thinking Space are the working state above */}
       <div className="dialog-bottom-zone">
-        <div className="dialog-column">
+        <div className="dialog-column dialog-bottom-stack">
           <AgentComposer
             agentName={agentName}
             agentId={agentId}
@@ -617,26 +634,26 @@ export function KeeperDialogFrame({
             inputValue={inputValue}
             onInputChange={onInputChange}
             onSubmit={handleComposerSubmit}
-            onLibraryFileUpload={onLibraryFileUpload}
+            onComposerFileUpload={onComposerFileUpload ?? onLibraryFileUpload}
             attachments={pendingAttachments}
             onAttachmentsChange={setPendingAttachments}
             attachmentDisplay="thinking-space"
             onUploadingChange={setIsFileUploading}
-            isSending={isSending}
+            isSending={isSending || isFileUploading}
             activeSessionId={activeSessionId}
             disabled={disabled}
           />
+          {showServiceBar && (
+            <IntegratedServicesBar
+              onOpen={onServiceOpen ?? (() => {})}
+              onToolInvoke={onToolInvoke}
+              activeToolSlug={activeToolSlug}
+              railwayStatus={railwayStatus}
+              vercelStatus={vercelStatus}
+              githubStatus={githubStatus}
+            />
+          )}
         </div>
-        {showServiceBar && (
-          <IntegratedServicesBar
-            onOpen={onServiceOpen ?? (() => {})}
-            onToolInvoke={onToolInvoke}
-            activeToolSlug={activeToolSlug}
-            railwayStatus={railwayStatus}
-            vercelStatus={vercelStatus}
-            githubStatus={githubStatus}
-          />
-        )}
       </div>
 
     </div>

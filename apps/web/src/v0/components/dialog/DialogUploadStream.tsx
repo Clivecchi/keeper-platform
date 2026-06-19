@@ -6,7 +6,6 @@ import type { PendingAttachment } from "../../../components/agent/AgentComposer"
 
 interface DialogUploadStreamProps {
   attachments: PendingAttachment[]
-  isUploading?: boolean
   onRemove: (id: string) => void
 }
 
@@ -53,37 +52,24 @@ function UploadTile({
 }
 
 /**
- * Thinking Space — staged uploads before send (Library item created at pick).
+ * Thinking Space — staged uploads before send. Status ("Uploading…") lives on the Horizon.
  */
-export function DialogUploadStream({
-  attachments,
-  isUploading = false,
-  onRemove,
-}: DialogUploadStreamProps) {
-  if (attachments.length === 0 && !isUploading) {
+export function DialogUploadStream({ attachments, onRemove }: DialogUploadStreamProps) {
+  if (attachments.length === 0) {
     return null
   }
 
   return (
     <div className="dialog-upload-stream">
-      {isUploading && (
-        <div className="dialog-upload-progress" role="status" aria-live="polite">
-          <span className="dialog-upload-progress-spinner" aria-hidden />
-          <span className="dialog-upload-progress-text">Adding to Library…</span>
-        </div>
-      )}
-
-      {attachments.length > 0 && (
-        <div className="dialog-upload-tiles" aria-label="Files ready to send">
-          {attachments.map((attachment) => (
-            <UploadTile
-              key={attachment.id}
-              attachment={attachment}
-              onRemove={() => onRemove(attachment.id)}
-            />
-          ))}
-        </div>
-      )}
+      <div className="dialog-upload-tiles" aria-label="Files ready to send">
+        {attachments.map((attachment) => (
+          <UploadTile
+            key={attachment.id}
+            attachment={attachment}
+            onRemove={() => onRemove(attachment.id)}
+          />
+        ))}
+      </div>
     </div>
   )
 }
