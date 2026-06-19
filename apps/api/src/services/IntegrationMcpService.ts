@@ -32,15 +32,19 @@ export type PlatformIntegrationStatusRow = {
 async function envStatusForCustomService(
   service: 'railway' | 'vercel',
 ): Promise<Pick<PlatformIntegrationStatusRow, 'status' | 'detail'>> {
-  const verification =
-    service === 'railway' ? await verifyRailwayCustomConnect() : await verifyVercelCustomConnect();
-  if (verification.ok) {
+  if (service === 'railway') {
+    const verification = await verifyRailwayCustomConnect();
+    if (verification.ok === false) {
+      return { status: 'env_missing', detail: verification.error };
+    }
     return { status: 'env_ready', detail: 'Platform env credentials verified' };
   }
-  return {
-    status: 'env_missing',
-    detail: verification.error,
-  };
+
+  const verification = await verifyVercelCustomConnect();
+  if (verification.ok === false) {
+    return { status: 'env_missing', detail: verification.error };
+  }
+  return { status: 'env_ready', detail: 'Platform env credentials verified' };
 }
 
 export class IntegrationMcpService {
