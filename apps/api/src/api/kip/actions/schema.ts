@@ -165,6 +165,13 @@ export const imageGeneratePayloadSchema = z.object({
 
 export type ImageGenerateAction = z.infer<typeof imageGeneratePayloadSchema> & { type: 'image.generate' };
 
+const mcpCallPayloadSchema = z.object({
+  name: z.string().min(1, 'name is required'),
+  args: z.record(z.unknown()).optional().default({}),
+});
+
+export type McpCallAction = z.infer<typeof mcpCallPayloadSchema> & { type: 'mcp.call' };
+
 /**
  * Action payload schemas by type
  */
@@ -185,6 +192,7 @@ const actionPayloadSchemas: Record<string, z.ZodSchema> = {
   'moment.read': momentReadPayloadSchema,
   'keeper.read': keeperReadPayloadSchema,
   'image.generate': imageGeneratePayloadSchema,
+  'mcp.call': mcpCallPayloadSchema,
 };
 
 /**

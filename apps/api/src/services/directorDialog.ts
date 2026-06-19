@@ -86,24 +86,18 @@ export function buildDirectorFallbackSynthesisPrompt(params: {
 }
 
 export function extractReplyFromAgentRunResult(result: unknown): string | null {
-  if (!result || typeof result !== 'object') return null;
-  const root = result as Record<string, unknown>;
-  const layer1 = root.data;
-  if (!layer1 || typeof layer1 !== 'object') return null;
-  const l1 = layer1 as Record<string, unknown>;
-  const layer2 = l1.data;
-  if (layer2 && typeof layer2 === 'object') {
-    const nested = (layer2 as Record<string, unknown>).response;
-    if (typeof nested === 'string' && nested.trim()) return nested.trim();
-  }
-  if (typeof l1.response === 'string' && l1.response.trim()) return l1.response.trim();
-  return null;
+  const visit = (node: unknown, depth = 0): string | null => {
+    if (!node || typeof node !== 'object' || depth > 5) return null;
+    const obj = node as Record<string, unknown>;
+    const response = obj.response;
+    if (typeof response === 'string' && response.trim()) return response.trim();
+    if (obj.data !== undefined) return visit(obj.data, depth + 1);
+    return null;
+  };
+  return visit(result);
 }
 
-export function unavailableDelegationBeat(label: string): DirectorDelegationResult {
-  return {
-    attributedTo: label,
-    content: `${label} did not respond this turn. Kip’s reply below draws on platform knowledge.`,
-    status: 'empty',
-  };
+/** Internal-only — never surface this copy in the Dialog UI. */
+export function isDirectorDelegationFailureContent(content: string): boolean {
+  return /did not respond this turn/i.test(content.trim());
 }

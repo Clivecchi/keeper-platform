@@ -24,6 +24,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-18 — Block delegation failure placeholder in UI
+- `isDirectorDelegationFailureContent` — never render "did not respond this turn" in DialogueMessageList
+- API auto-creates Cloud/Rendr agent records when missing (production seed gap)
+
 ### 2026-06-17 — Director UX polish (no failure placeholder, Horizon timing)
 - Failed Cloud/Rendr delegation: no "did not respond" beat in bubble — Kip answers directly with stronger fallback prompt
 - Horizon stays on **Cloud is thinking…** for full API wait (instrument phase until response)

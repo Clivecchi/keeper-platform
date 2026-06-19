@@ -18,6 +18,7 @@ import { KipResponseCard } from "./KipResponseCard"
 import type { AgentDialogueMessage } from "./types"
 import { normalizeActionReceipt } from "./types"
 import { formatTime } from "./helpers"
+import { isDirectorDelegationFailureContent } from "../../v0/boards/directorDialog"
 import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
 
 // ─── keeper-card parsing ──────────────────────────────────────────────────────
@@ -365,7 +366,8 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                     <p className="whitespace-pre-line">{message.content}</p>
                   ) : (
                     <>
-                      {message.delegation?.content?.trim() && (
+                      {message.delegation?.content?.trim()
+                        && !isDirectorDelegationFailureContent(message.delegation.content) && (
                         <div
                           className="mb-2.5 border-b pb-2.5"
                           style={{ borderColor: "hsl(var(--theme-border-soft) / 0.65)" }}

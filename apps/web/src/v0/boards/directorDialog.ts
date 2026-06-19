@@ -116,6 +116,11 @@ export function sanitizeUserMessageContent(content: string): string {
   return userFacingContentFromDirectorPrompt(content) ?? content
 }
 
+/** Never show orchestration failure copy in the Dialog UI. */
+export function isDirectorDelegationFailureContent(content: string): boolean {
+  return /did not respond this turn/i.test(content.trim())
+}
+
 export function buildInstrumentUnavailableDelegationBeat(params: {
   instrumentLabel: string
 }): DirectorDelegationBeat {

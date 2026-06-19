@@ -10,6 +10,7 @@ import { extractLinkedCard } from "../components/agent/helpers"
 import { apiFetch } from "../lib/api"
 import {
   extractAgentReplyFromRunResult,
+  isDirectorDelegationFailureContent,
   resolveDirectorInstrument,
   sanitizeUserMessageContent,
   type DirectorDialogConfig,
@@ -227,7 +228,7 @@ export function extractRunAgentPayload(result: unknown): {
     const status = d.status
     const content = typeof d.content === "string" ? d.content.trim() : ""
     const isOk = status === undefined || status === "ok"
-    if (isOk && content && !content.includes("did not respond this turn")) {
+    if (isOk && content && !isDirectorDelegationFailureContent(content)) {
       directorDelegation = {
         content,
         attributedTo: typeof d.attributedTo === "string" ? d.attributedTo : undefined,

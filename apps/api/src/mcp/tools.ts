@@ -30,8 +30,8 @@ function warnMissingCapability(tool: Tool, ctx: ToolContext): void {
     return;
   }
   if (!caps.includes(tool.requiredCapability)) {
-    console.warn(
-      `[MCP tools] // incomplete — MCP capability gate not yet enforced; requiredCapability declared for future enforcement — tool=${tool.name} required=${tool.requiredCapability} agentMissing=true`,
+    throw new Error(
+      `Missing capability ${tool.requiredCapability} for MCP tool "${tool.name}"`,
     );
   }
 }

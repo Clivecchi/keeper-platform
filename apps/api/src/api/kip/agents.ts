@@ -53,6 +53,14 @@ import {
   type DirectorDelegationResult,
   type DirectorDelegationRequest,
 } from '../../services/directorDialog.js';
+import { ensureBoardInstrumentAgent } from '../../services/ensureBoardInstrumentAgent.js';
+import {
+  buildMcpFollowUpInput,
+  buildMcpToolSystemPrompt,
+  executeMcpCallAction,
+  hasSuccessfulMcpResults,
+  resolveMcpToolsForAgent,
+} from '../../services/mcpAgentBridge.js';
 import {
   preExecGovernanceCheck,
   postExecGovernanceCheck,
@@ -588,6 +596,7 @@ async function buildInstrumentRunEnvironment(params: {
       const allow = new Set([
         ...(env.policyPack?.actions?.allow ?? DEFAULT_POLICY_PACK_V1.actions.allow),
         ...caps.capabilities,
+        'mcp.call',
       ]);
       const allowList = Array.from(allow);
       env.actionPack = buildActionPack(allowList);
@@ -798,6 +807,7 @@ export async function executeAgentActions(
     'journey.read',
     'moment.read',
     'keeper.read',
+    'mcp.call',
   ]);
 
   for (const coreAction of CORE_ACTIONS) {
@@ -863,7 +873,7 @@ export async function executeAgentActions(
           continue;
         }
 
-        if (!ctx.domainId || !ctx.userId) {
+        if (action.type !== 'mcp.call' && (!ctx.domainId || !ctx.userId)) {
           const reason = 'Missing domain or user context';
           logger.warn({
             requestId,
@@ -1988,6 +1998,74 @@ export async function executeAgentActions(
             } catch (error) {
               const errorMessage = error instanceof Error ? error.message : 'Failed to read keeper';
               logger.error({ requestId, actionType: action.type, error: errorMessage }, '[kip.actions] rejected');
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: errorMessage,
+                errorCode: 'EXECUTION_ERROR',
+              });
+            }
+            break;
+          }
+
+          case 'mcp.call': {
+            const payload = action.payload ?? {};
+            const toolName = typeof payload.name === 'string' ? payload.name.trim() : '';
+            if (!toolName) {
+              results.push({
+                type: action.type,
+                status: 'error',
+                message: 'mcp.call requires payload.name',
+                errorCode: 'VALIDATION_ERROR',
+              });
+              break;
+            }
+
+            const args =
+              payload.args && typeof payload.args === 'object' && !Array.isArray(payload.args)
+                ? (payload.args as Record<string, unknown>)
+                : {};
+
+            let agentCapabilities: string[] = [];
+            if (ctx.agentId) {
+              try {
+                const agentRecord = await prisma.kip_agents.findUnique({
+                  where: { id: ctx.agentId },
+                  select: { slug: true },
+                });
+                const resolved = await resolveAgentCapabilities({
+                  agentId: ctx.agentId,
+                  agentSlug: agentRecord?.slug,
+                  boardId:
+                    agentRecord?.slug === 'cloud' || agentRecord?.slug === 'rendr'
+                      ? 'ide'
+                      : undefined,
+                });
+                agentCapabilities = resolved?.capabilities ?? [];
+              } catch (error) {
+                console.warn('[kip.actions] mcp.call capability resolve failed', {
+                  agentId: ctx.agentId,
+                  error: error instanceof Error ? error.message : error,
+                });
+              }
+            }
+
+            try {
+              const result = await executeMcpCallAction({
+                toolName,
+                args,
+                domainId: ctx.domainId,
+                agentCapabilities,
+              });
+              results.push({
+                type: action.type,
+                status: 'success',
+                message: `MCP ${toolName} completed`,
+                data: { tool: toolName, result },
+              });
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'MCP call failed';
+              logger.error({ requestId, actionType: action.type, toolName, error: errorMessage }, '[kip.actions] mcp.call failed');
               results.push({
                 type: action.type,
                 status: 'error',
@@ -3411,6 +3489,29 @@ export class KipAgentService {
 
         const allowList = Array.from(buildAllowedActions(environmentContext));
 
+        let mcpToolPrompt = '';
+        try {
+          const { tools: mcpTools } = await resolveMcpToolsForAgent({
+            agentId: agent.id,
+            agentSlug: agent.slug,
+          });
+          if (mcpTools.length) {
+            if (!allowList.includes('mcp.call')) {
+              allowList.push('mcp.call');
+            }
+            mcpToolPrompt = buildMcpToolSystemPrompt(mcpTools);
+          }
+        } catch (error) {
+          console.warn('[kip/agents] MCP tool resolution failed', {
+            agentId: agent.id,
+            agentSlug: agent.slug,
+            error: error instanceof Error ? error.message : error,
+          });
+        }
+
+        const suppressKipPromptForActions =
+          (config as Record<string, unknown>)?.suppress_kip_system_prompt === true;
+
         const draftRules = (environmentContext as any)?.policy?.policy?.drafts ?? {};
         const draftKinds = (draftRules?.autoDraft?.kinds as string[] | undefined) ?? ['vehicle_template', 'journey_spec', 'keeper_type_proposal', 'checklist_spec'];
         messages.push({
@@ -3424,6 +3525,12 @@ export class KipAgentService {
             'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","actions":[...]}',
             `Allowed actions: ${allowList.join(', ')}.`,
             'Each action must include a "type" and optional "payload".',
+            ...(suppressKipPromptForActions
+              ? [
+                  mcpToolPrompt,
+                  'You are a System execution agent. Reply in first person. For Railway, Vercel, or GitHub status — use mcp.call with the tools listed above. Do not claim MCP is unavailable when tools are listed.',
+                ]
+              : [
             'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
             'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
             '',
@@ -3457,6 +3564,8 @@ export class KipAgentService {
             draftRules?.autoDraft?.enabled
               ? `If autoDraft thresholds are met (points >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.`
               : 'If the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.',
+            mcpToolPrompt,
+              ]),
           ]
             .filter(Boolean)
             .join('\n'),
@@ -3811,9 +3920,9 @@ export class KipAgentService {
           const instLabel = instrumentLabel(dd.instrumentSlug);
           let instrumentReply: string | null = null;
           try {
-            const instAgent = await getKipAgentBySlug(dd.instrumentSlug);
+            const instAgent = await ensureBoardInstrumentAgent(dd.instrumentSlug);
             if (!instAgent) {
-              throw new Error(`Board instrument agent "${dd.instrumentSlug}" is not seeded`);
+              throw new Error(`Board instrument agent "${dd.instrumentSlug}" is not available`);
             }
             const instPrompt = buildInstrumentDelegationPrompt({
               userMessage: dd.userMessage,
@@ -4278,6 +4387,20 @@ export class KipAgentService {
 
         const systemRequestId = randomUUID();
         const systemAllowActions = buildAllowedActions(options?.environment ?? null);
+        try {
+          const { tools: mcpTools } = await resolveMcpToolsForAgent({
+            agentId: agent.id,
+            agentSlug: agent.slug,
+          });
+          if (mcpTools.length) {
+            systemAllowActions.add('mcp.call');
+          }
+        } catch (error) {
+          console.warn('[System agent] MCP allowlist merge failed', {
+            agentId: agent.id,
+            error: error instanceof Error ? error.message : error,
+          });
+        }
         const structured = await ensureKipAgentOutputEnvelope(aiResult.content, {
           requestId: systemRequestId,
           userId,
@@ -4308,7 +4431,36 @@ export class KipAgentService {
             });
             actionResults = execution.results;
 
-            if (execution.failedMessage) {
+            if (hasSuccessfulMcpResults(actionResults)) {
+              const followUpInput = buildMcpFollowUpInput({
+                originalInput: input || '',
+                agentName: agent.name,
+                actionResults,
+              });
+              const followUpResult = await this.callAIModel(
+                agent,
+                followUpInput,
+                previousMessages,
+                userId,
+                {
+                  mode: 'domain',
+                  modeConfig: systemModeConfig,
+                  lens: { systemPrompt: agentVoicePrompt || null },
+                  environment: options?.environment ?? null,
+                  activeJourneyId: options?.activeJourneyId ?? null,
+                  activeKeeperId: options?.activeKeeperId ?? null,
+                  domainId: options?.domainId ?? null,
+                  attachments: options?.attachments ?? undefined,
+                },
+              );
+              const followUpStructured = await ensureKipAgentOutputEnvelope(followUpResult.content, {
+                requestId: randomUUID(),
+                userId,
+                allowedActions: Array.from(systemAllowActions),
+              });
+              finalResponseText =
+                followUpStructured.responseText?.trim() || followUpResult.content.trim() || finalResponseText;
+            } else if (execution.failedMessage) {
               finalResponseText = structured.responseText
                 ? `${structured.responseText} I attempted to save but it failed: ${execution.failedMessage}`
                 : `I attempted to save but it failed: ${execution.failedMessage}`;
