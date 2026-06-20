@@ -27,7 +27,7 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 ### 2026-06-19 — Board-only engagement (Singular UI)
 - `engagement/` module: `useBoardEngagement`, `BoardEngagementForm`, `PresenceEngagementActions`, `JourneyChronicleEngagement`
 - `UniversalNavPanel`: JOURNEYS `+` → `journey.create` template
-- `KeeperPresence`: journey Chronicle → add moment / path / moment create; moment Chronicle → `moment.update`
+- `KeeperPresence`: journey Chronicle → add moment / path / moment create; moment Chronicle → `MomentFocusPresence` (cover + Config edit)
 - `UniversalBoardContext`: `bumpJourneyNav` refreshes nav after engagement
 
 ### 2026-06-20 — Director continuity ("try again")

@@ -14,7 +14,8 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `CapabilityConfigPresence.tsx` — Capability Config Mode (display_label, description)
 - `capabilityNavUtils.ts` — Nav fetch/group + `capabilityChronicleTitle()` shared with cover
 - `IntegrationConfigPresence.tsx` — AI model integration Config Mode
-- `blocks/` — `ConnectionStatusBlock`, `KeyHealthBlock`, `LinkedAgentsBlock`, etc.
+- `MomentConfigPresence.tsx` — Moment Config Mode (title, narrative) via `useChronicleConfig`
+- `MomentChronicleBlocks.tsx` — Story body below moment cover
 
 ## 🔄 Data & Behavior
 - **Cover (Integration + Key + Capability):** `IntegrationFocusPresence` / `KeyFocusPresence` / `CapabilityFocusPresence` always render `DeclarationChronicleBlocks` below `EntityCoverPresence`; client-side defaults from `@keeper/shared` when DB `chronicle_blocks` is empty (`resolveChronicleDeclaration.ts`)
@@ -27,6 +28,17 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-06-19 — Moment EntityKind migration
+- `MomentConfigPresence` — explicit Save for title/narrative (`PATCH /api/moments/:id`)
+- `MomentChronicleBlocks` — narrative story section below `EntityCoverPresence`
+
+### 2026-06-19 — Journey EntityKind migration
+- `JourneyConfigPresence` — explicit Save for name/forward (`PATCH /api/journeys/:id`)
+- `JourneyChronicleBlocks` — paths and moments lists below `EntityCoverPresence`
+
+### 2026-06-17 — Composer clip → Library upload
+- `addLibraryUploadFromFile` shared by Library nav + and `AgentComposer` clip; sets `display_label` from filename
 
 ### 2026-06-17 — Keeper feed domain scoping
 - `useKeeperFeedData(keeperId, domainId)` — GET `/api/keepers/:id?domainId=`; `recordToKeeperDto` for enrichment fallback

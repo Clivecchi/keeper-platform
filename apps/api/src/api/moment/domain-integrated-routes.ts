@@ -256,36 +256,48 @@ router.post('/',
 /**
  * PUT /api/moments/:id - Update moment
  */
+async function updateMomentById(req: Request, res: Response): Promise<Response> {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const moment = await prisma.moment.update({
+      where: { id: req.params.id },
+      data: req.body,
+      include: {
+        domain: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    });
+
+    return res.json({ moment });
+  } catch (error) {
+    console.error('Error updating moment:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
 router.put('/:id',
   authMiddlewareCompat,
   validationMiddleware(updateMomentSchema),
   requireDomainWriteCompat,
-  async (req: Request, res: Response) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ error: 'Authentication required' });
-      }
+  updateMomentById
+);
 
-      const moment = await prisma.moment.update({
-        where: { id: req.params.id },
-        data: req.body,
-        include: {
-          domain: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-        },
-      });
-
-      return res.json({ moment });
-    } catch (error) {
-      console.error('Error updating moment:', error);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
-  }
+/**
+ * PATCH /api/moments/:id - Partial update (Chronicle Config save)
+ */
+router.patch('/:id',
+  authMiddlewareCompat,
+  validationMiddleware(updateMomentSchema),
+  requireDomainWriteCompat,
+  updateMomentById
 );
 
 /**

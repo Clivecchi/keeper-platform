@@ -58,10 +58,8 @@ import {
   type RenderContext,
 } from "../presents/types"
 import { toPresentInstanceKey } from "../presents/presentInstanceKey"
-import { useAuth } from "../../context/AuthContext"
-import { useBoardEngagement } from "../boards/engagement/useBoardEngagement"
 import { JourneyFocusPresence } from "./cover/JourneyFocusPresence"
-import { PresenceEngagementActions } from "../boards/engagement/PresenceEngagementActions"
+import { MomentFocusPresence } from "./cover/MomentFocusPresence"
 
 export type { PresenceLayout } from "./types"
 
@@ -1015,6 +1013,7 @@ export function KeeperPresence({
     (objectType === "library" && layout === "focus") ||
     (objectType === "keeper" && layout === "focus") ||
     (objectType === "journey" && layout === "focus") ||
+    (objectType === "moment" && layout === "focus") ||
     (objectType === "service" && layout === "focus") ||
     objectType === "boardDef" ||
     (objectType === "frame" && layout === "config") ||
@@ -1162,6 +1161,7 @@ export function KeeperPresence({
   React.useEffect(() => {
     if (usesExplicitChronicleSave) return
     if (objectType === "journey" && layout === "focus") return
+    if (objectType === "moment" && layout === "focus") return
     if (!hasEdited.current || !record || !objectId || !domainId) return
     const endpoint = patchEndpoint(objectType, objectId, domainId)
 
@@ -1389,9 +1389,6 @@ function KeeperPresenceSurface({
   onKeySelect?: (id: string) => void
 }) {
   const motion = usePresentMotionValues()
-  const { isAuthenticated } = useAuth()
-  const boardCtx = useUniversalBoardOptional()
-  const momentEngagement = useBoardEngagement(handlePresenceRefresh)
 
   if (loading) {
     return (
@@ -1434,6 +1431,20 @@ function KeeperPresenceSurface({
         onLabelResolved={onLabelResolved}
         onMomentSelect={onMomentSelect}
         onKeeperSelect={handleKeeperSelect}
+        onEngagementSuccess={handlePresenceRefresh}
+      />
+    )
+  }
+
+  if (objectType === "moment" && layout === "focus" && record) {
+    return (
+      <MomentFocusPresence
+        objectId={objectId}
+        domainId={domainId}
+        record={record}
+        meta={meta}
+        breadcrumb={breadcrumb}
+        onLabelResolved={onLabelResolved}
         onEngagementSuccess={handlePresenceRefresh}
       />
     )
@@ -1796,21 +1807,6 @@ function KeeperPresenceSurface({
           </p>
         )}
 
-        {objectType === "moment" && layout === "focus" && (
-          <PresenceEngagementActions
-            engagement={momentEngagement}
-            keeperTypeName="Moment"
-            entityType="moment"
-            entityId={objectId}
-            domainId={domainId}
-            keeperId={boardCtx?.selection.selectedKeeperId ?? undefined}
-            journeyId={boardCtx?.selection.activeJourneyId ?? undefined}
-            targetType="moment"
-            includeSlugs={["moment.update"]}
-            isAuthenticated={isAuthenticated}
-            className="mt-3"
-          />
-        )}
       </div>
 
       {/* Story body — prose, threads, never labeled form rows */}

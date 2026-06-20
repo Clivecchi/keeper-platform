@@ -14,8 +14,8 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `CapabilityConfigPresence.tsx` — Capability Config Mode (display_label, description)
 - `capabilityNavUtils.ts` — Nav fetch/group + `capabilityChronicleTitle()` shared with cover
 - `IntegrationConfigPresence.tsx` — AI model integration Config Mode
-- `JourneyConfigPresence.tsx` — Journey Config Mode (name, forward) via `useChronicleConfig`
-- `JourneyChronicleBlocks.tsx` — Paths + Moments declaration blocks below journey cover
+- `MomentConfigPresence.tsx` — Moment Config Mode (title, narrative) via `useChronicleConfig`
+- `MomentChronicleBlocks.tsx` — Story body below moment cover
 
 ## 🔄 Data & Behavior
 - **Cover (Integration + Key + Capability):** `IntegrationFocusPresence` / `KeyFocusPresence` / `CapabilityFocusPresence` always render `DeclarationChronicleBlocks` below `EntityCoverPresence`; client-side defaults from `@keeper/shared` when DB `chronicle_blocks` is empty (`resolveChronicleDeclaration.ts`)
@@ -28,6 +28,10 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-06-19 — Moment EntityKind migration
+- `MomentConfigPresence` — explicit Save for title/narrative (`PATCH /api/moments/:id`)
+- `MomentChronicleBlocks` — narrative story section below `EntityCoverPresence`
 
 ### 2026-06-19 — Journey EntityKind migration
 - `JourneyConfigPresence` — explicit Save for name/forward (`PATCH /api/journeys/:id`)
