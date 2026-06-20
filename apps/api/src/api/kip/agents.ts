@@ -21,6 +21,8 @@ import {
   mergeDraftSpecPatch,
   updateDraftPointInSpec,
   type DraftPointType,
+  type DirectorContinuityMessage,
+  resolveDirectorDelegationMessage,
 } from '@keeper/shared';
 import { isDbDisabled } from '../../lib/env.js';
 import { MOCK_AGENTS } from '../../services/kip/mockAgents.js';
@@ -147,6 +149,7 @@ type RunAgentOptions = {
   directorDelegation?: {
     instrumentSlug: 'cloud' | 'rendr';
     userMessage: string;
+    taskMessage?: string;
     directorDisplayName: string;
   };
 };
@@ -2553,6 +2556,7 @@ const AgentRunSchema = z.object({
     .object({
       instrumentSlug: z.enum(['cloud', 'rendr']),
       userMessage: z.string().min(1),
+      taskMessage: z.string().min(1).optional(),
       directorDisplayName: z.string().min(1),
     })
     .optional(),
@@ -3899,8 +3903,7 @@ export class KipAgentService {
           if (currentSessionId) {
             try {
               const textToSave =
-                options?.directorDelegation?.userMessage?.trim()
-                || input?.trim()
+                input?.trim()
                 || (options?.attachments?.length ? `[${options.attachments.length} attachment(s)]` : '');
               await this.saveMessage(currentSessionId, 'user', textToSave, 'user', {
                 timestamp: new Date().toISOString(),
@@ -3918,6 +3921,27 @@ export class KipAgentService {
         if (options?.directorDelegation) {
           const dd = options.directorDelegation;
           const instLabel = instrumentLabel(dd.instrumentSlug);
+          const priorContinuityMessages: DirectorContinuityMessage[] = previousMessages.map((msg) => {
+            const role =
+              msg.sender === 'user' || msg.role === 'user' ? ('user' as const) : ('agent' as const);
+            const raw = typeof msg.content === 'string' ? msg.content : '';
+            return { role, content: raw.trim() };
+          });
+          const resolvedTask = dd.taskMessage?.trim()
+            ? {
+                taskMessage: dd.taskMessage.trim(),
+                continuityCue: dd.taskMessage.trim() !== dd.userMessage.trim() ? dd.userMessage.trim() : null,
+              }
+            : (() => {
+                const resolved = resolveDirectorDelegationMessage({
+                  userMessage: dd.userMessage,
+                  priorMessages: priorContinuityMessages,
+                });
+                return {
+                  taskMessage: resolved.delegationMessage,
+                  continuityCue: resolved.resolvedFromPrior ? resolved.displayMessage : null,
+                };
+              })();
           let instrumentReply: string | null = null;
           try {
             const instAgent = await ensureBoardInstrumentAgent(dd.instrumentSlug);
@@ -3925,9 +3949,10 @@ export class KipAgentService {
               throw new Error(`Board instrument agent "${dd.instrumentSlug}" is not available`);
             }
             const instPrompt = buildInstrumentDelegationPrompt({
-              userMessage: dd.userMessage,
+              userMessage: resolvedTask.taskMessage,
               instrumentLabel: instLabel,
               directorName: dd.directorDisplayName,
+              continuityCue: resolvedTask.continuityCue,
             });
             const instEnvironment = await buildInstrumentRunEnvironment({
               instAgentId: instAgent.id,
@@ -3973,6 +3998,10 @@ export class KipAgentService {
             };
             leadModelInput = buildDirectorSynthesisPrompt({
               userMessage: dd.userMessage,
+              taskMessage:
+                resolvedTask.taskMessage !== dd.userMessage.trim()
+                  ? resolvedTask.taskMessage
+                  : undefined,
               instrumentLabel: instLabel,
               instrumentReply,
               directorName: dd.directorDisplayName,
@@ -3980,6 +4009,10 @@ export class KipAgentService {
           } else {
             leadModelInput = buildDirectorFallbackSynthesisPrompt({
               userMessage: dd.userMessage,
+              taskMessage:
+                resolvedTask.taskMessage !== dd.userMessage.trim()
+                  ? resolvedTask.taskMessage
+                  : undefined,
               instrumentLabel: instLabel,
               directorName: dd.directorDisplayName,
             });
@@ -5118,6 +5151,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
             runAgentOptions.directorDelegation = {
               instrumentSlug: dd.instrumentSlug,
               userMessage: dd.userMessage,
+              taskMessage: dd.taskMessage,
               directorDisplayName: dd.directorDisplayName,
             } satisfies DirectorDelegationRequest;
           }

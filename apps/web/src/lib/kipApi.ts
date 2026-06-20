@@ -611,6 +611,7 @@ export class KipApi {
       directorDelegation?: {
         instrumentSlug: "cloud" | "rendr"
         userMessage: string
+        taskMessage?: string
         directorDisplayName: string
       }
     },

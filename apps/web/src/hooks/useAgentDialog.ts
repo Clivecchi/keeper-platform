@@ -16,6 +16,7 @@ import {
   type DirectorDialogConfig,
   type DirectorSendPhase,
 } from "../v0/boards/directorDialog"
+import { resolveDirectorDelegationMessage } from "@keeper/shared"
 import { createThinkingStep, type DialogThinkingStep } from "../v0/components/dialog/dialogThinking"
 
 /** Mirrors `KipApi.runAgent` `options.agentContext` (no separate exported type in codebase) */
@@ -539,6 +540,20 @@ export function useAgentDialog({
 
       appendThinkingStep(`${agentDisplayName} is composing a reply…`)
 
+      let directorTaskMessage: string | undefined
+      if (liveDirectorConfig && instrument && content.trim()) {
+        const resolved = resolveDirectorDelegationMessage({
+          userMessage: content,
+          priorMessages: messagesRef.current.map((message) => ({
+            role: message.role,
+            content: sanitizeUserMessageContent(message.content),
+          })),
+        })
+        if (resolved.resolvedFromPrior) {
+          directorTaskMessage = resolved.delegationMessage
+        }
+      }
+
       const kipRunOpts = {
         ...runOpts,
         ...(liveDirectorConfig && instrument && content.trim()
@@ -546,6 +561,7 @@ export function useAgentDialog({
               directorDelegation: {
                 instrumentSlug: instrument,
                 userMessage: content,
+                taskMessage: directorTaskMessage,
                 directorDisplayName: liveDirectorConfig.directorDisplayName,
               },
             }

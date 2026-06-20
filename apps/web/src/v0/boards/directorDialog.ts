@@ -3,6 +3,12 @@
  * Lead (Kip) owns the composer; board instruments run as delegated sub-turns.
  */
 
+export {
+  isDirectorContinuityPhrase,
+  resolveDirectorDelegationMessage,
+  type DirectorContinuityMessage,
+} from "@keeper/shared"
+
 import type { DirectorDelegationBeat } from "../../components/agent/types"
 
 export type BoardInstrumentSlug = "cloud" | "rendr"
@@ -66,6 +72,7 @@ export function buildDirectorSynthesisPrompt(params: {
     `Reply to the user as Lead (${params.directorName}).`,
     `- Integrate ${params.instrumentLabel}'s input; do not repeat it verbatim.`,
     `- Do NOT correct the user about who they addressed. Never say they are "talking to ${params.directorName}, not ${params.instrumentLabel}".`,
+    `- Do NOT claim this session starts cold or that earlier thread turns are unavailable — they are in context.`,
     `- Stay brief when ${params.instrumentLabel} already answered the question.`,
   ].join("\n")
 }
@@ -88,6 +95,7 @@ export function buildDirectorFallbackSynthesisPrompt(params: {
     `- Do NOT say the user is "talking to ${params.directorName}, not ${params.instrumentLabel}".`,
     `- Do NOT offer to "hand off", "try again", or "coordinate with" ${params.instrumentLabel}.`,
     `- Do NOT mention delegation, routing, or that ${params.instrumentLabel} failed to respond.`,
+    `- Do NOT claim this session starts cold or that earlier thread turns are unavailable.`,
     `- Stay brief and useful.`,
   ].join("\n")
 }

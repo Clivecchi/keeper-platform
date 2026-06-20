@@ -24,6 +24,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-20 — Director continuity ("try again")
+- `@keeper/shared/directorContinuity` resolves retry/refer-back phrases to the last delegatable user message
+- `useAgentDialog` sends `taskMessage` on director delegation; API re-resolves from session if omitted
+- Kip synthesis prompts forbid claiming the session starts cold
+
 ### 2026-06-18 — Block delegation failure placeholder in UI
 - `isDirectorDelegationFailureContent` — never render "did not respond this turn" in DialogueMessageList
 - API auto-creates Cloud/Rendr agent records when missing (production seed gap)

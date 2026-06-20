@@ -18,6 +18,7 @@ Services encapsulate business logic and data access via Prisma and caches. They 
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2026-06-20: **Director continuity** — `directorDialog.ts` + `@keeper/shared/directorContinuity` resolve "try again" / refer-back into prior delegatable tasks; Kip synthesis forbids "session starts cold" copy.
 - 2026-06-18: Added `IntegrationMcpService.ts` and `ResendService.ts` — platform integration/Nango status and Resend read-only MCP helpers for Cloud.
 - 2026-06-18: **MCP agent bridge** — Cloud/Rendr invoke Railway/Vercel/GitHub MCP tools via `mcp.call` action; capability-gated tool execution + follow-up synthesis with live data.
 - 2026-06-18: **Director delegation reliability** — auto-create Cloud/Rendr agents if missing; recursive response extraction; removed failure placeholder from API surface.
