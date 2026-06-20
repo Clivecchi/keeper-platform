@@ -15,8 +15,8 @@ Loads draft content by ID, debounces autosave updates, keeps drafts, and lists k
 
 ## 📆 Update Log
 
-### 2026-06-19 - Wire moment.update engagement template
-- Kept moments now surface `moment.update` via `EntityEngagementBar` for authenticated members (draft keep flow remains bespoke).
+### 2026-06-19 - Revert standalone engagement wiring
+- Moment update engagement removed from this frame; lives on Universal Board Chronicle (`KeeperPresence`).
 
 ### 2026-01-18 - Route moment navigation through v0 shell
 - Updated in-frame navigation to return to `/d/:slug/board` via shell helpers.

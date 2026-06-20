@@ -179,18 +179,18 @@ function UniversalBoardShell({
   const [domainId, setDomainId] = React.useState<string | null>(null)
   const [domainName, setDomainName] = React.useState<string>("")
   const [draftListVersionBump, setDraftListVersionBump] = React.useState(0)
-  const [journeyListVersionBump, setJourneyListVersionBump] = React.useState(0)
 
   const onDraftListRefresh = React.useCallback(() => {
     setDraftListVersionBump((v) => v + 1)
   }, [])
 
   const onJourneyListRefresh = React.useCallback(() => {
-    setJourneyListVersionBump((v) => v + 1)
-  }, [])
+    actions.bumpJourneyNav()
+  }, [actions])
 
   const effectiveDraftListVersion = (navVersions?.draftListVersion ?? 0) + draftListVersionBump
-  const effectiveJourneyListVersion = (navVersions?.journeyListVersion ?? 0) + journeyListVersionBump
+  const effectiveJourneyListVersion =
+    (navVersions?.journeyListVersion ?? 0) + selection.journeyNavRevision
 
   const slug = domainSlug ?? ""
 

@@ -71,6 +71,8 @@ export interface UniversalBoardSelection {
   keeperNavRevision: number
   /** Optimistic Keepers nav row patch applied before refetch completes. */
   keeperNavRowPatch: KeeperNavRowPatch | null
+  /** Increment to refetch Journeys nav list after engagement creates a journey. */
+  journeyNavRevision: number
   /** Agent Board: Chronicle Training Mode — entered via Train on agent cover. */
   trainingMode: boolean
   /** IDE director mode: pinned board instrument for delegation + Chronicle focus. */
@@ -101,6 +103,7 @@ export interface UniversalBoardActions {
   bumpCapabilityNav: (patch?: CapabilityNavRowPatch) => void
   bumpLibraryNav: (patch?: LibraryNavRowPatch) => void
   bumpKeeperNav: (patch?: KeeperNavRowPatch) => void
+  bumpJourneyNav: () => void
   onEnterTrainingMode: () => void
   onExitTrainingMode: () => void
   onSetActiveBoardInstrument: (slug: BoardInstrumentSlug | null) => void
@@ -166,6 +169,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [keeperNavRevision, setKeeperNavRevision] = React.useState(0)
   const [keeperNavRowPatch, setKeeperNavRowPatch] =
     React.useState<KeeperNavRowPatch | null>(null)
+  const [journeyNavRevision, setJourneyNavRevision] = React.useState(0)
   const [trainingMode, setTrainingMode] = React.useState(false)
   const [activeBoardInstrument, setActiveBoardInstrument] =
     React.useState<BoardInstrumentSlug | null>(null)
@@ -407,6 +411,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setKeeperNavRevision((n) => n + 1)
   }, [])
 
+  const bumpJourneyNav = React.useCallback(() => {
+    setJourneyNavRevision((n) => n + 1)
+  }, [])
+
   const onToggleNavCollapsed = React.useCallback(() => {
     setNavCollapsed((c) => !c)
   }, [])
@@ -439,6 +447,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         libraryNavRowPatch,
         keeperNavRevision,
         keeperNavRowPatch,
+        journeyNavRevision,
         trainingMode,
         activeBoardInstrument,
       },
@@ -463,6 +472,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         bumpCapabilityNav,
         bumpLibraryNav,
         bumpKeeperNav,
+        bumpJourneyNav,
         onEnterTrainingMode,
         onExitTrainingMode,
         onSetActiveBoardInstrument,
@@ -495,6 +505,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       libraryNavRowPatch,
       keeperNavRevision,
       keeperNavRowPatch,
+      journeyNavRevision,
       trainingMode,
       activeBoardInstrument,
       onSessionSelect,
@@ -517,6 +528,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       bumpCapabilityNav,
       bumpLibraryNav,
       bumpKeeperNav,
+      bumpJourneyNav,
       onEnterTrainingMode,
       onExitTrainingMode,
       onSetActiveBoardInstrument,

@@ -58,6 +58,10 @@ import {
   type RenderContext,
 } from "../presents/types"
 import { toPresentInstanceKey } from "../presents/presentInstanceKey"
+import { useAuth } from "../../context/AuthContext"
+import { useBoardEngagement } from "../boards/engagement/useBoardEngagement"
+import { JourneyChronicleEngagement } from "../boards/engagement/JourneyChronicleEngagement"
+import { PresenceEngagementActions } from "../boards/engagement/PresenceEngagementActions"
 
 export type { PresenceLayout } from "./types"
 
@@ -898,6 +902,7 @@ function PresentAtmosphereLayer() {
 
 function JourneyFocusPresence({
   objectId,
+  domainId,
   fieldValues,
   setFieldValues,
   markEdited,
@@ -905,8 +910,10 @@ function JourneyFocusPresence({
   relatedSections,
   onMomentSelect,
   onKeeperSelect,
+  onEngagementSuccess,
 }: {
   objectId: string
+  domainId: string
   fieldValues: Record<string, string>
   setFieldValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
   markEdited: () => void
@@ -914,11 +921,21 @@ function JourneyFocusPresence({
   relatedSections: RelatedSection[]
   onMomentSelect?: (id: string) => void
   onKeeperSelect?: (id: string) => void
+  onEngagementSuccess?: () => void
 }) {
   const boardCtx = useUniversalBoardOptional()
+  const { isAuthenticated } = useAuth()
+  const engagement = useBoardEngagement(() => {
+    onEngagementSuccess?.()
+    boardCtx?.actions.bumpJourneyNav()
+  })
   const motion = usePresentMotionValues()
   const activeJourneyId = boardCtx?.selection.activeJourneyId ?? null
   const handleSetActive = boardCtx?.actions.onSetActiveJourney
+  const activeKeeperId =
+    boardCtx?.selection.selectedKeeperId ??
+    meta?.keeper?.id ??
+    undefined
 
   const title = fieldValues.name ?? ""
   const forward = fieldValues.forward ?? ""
@@ -994,6 +1011,14 @@ function JourneyFocusPresence({
             {momentCount} moment{momentCount === 1 ? "" : "s"}
           </span>
         </div>
+
+        <JourneyChronicleEngagement
+          engagement={engagement}
+          journeyId={objectId}
+          domainId={domainId}
+          keeperId={activeKeeperId}
+          isAuthenticated={isAuthenticated}
+        />
       </div>
 
       <div
@@ -1548,6 +1573,9 @@ function KeeperPresenceSurface({
   onKeySelect?: (id: string) => void
 }) {
   const motion = usePresentMotionValues()
+  const { isAuthenticated } = useAuth()
+  const boardCtx = useUniversalBoardOptional()
+  const momentEngagement = useBoardEngagement(handlePresenceRefresh)
 
   if (loading) {
     return (
@@ -1583,6 +1611,7 @@ function KeeperPresenceSurface({
     return (
       <JourneyFocusPresence
         objectId={objectId}
+        domainId={domainId}
         fieldValues={fieldValues}
         setFieldValues={setFieldValues}
         markEdited={markEdited}
@@ -1590,6 +1619,7 @@ function KeeperPresenceSurface({
         relatedSections={relatedSections}
         onMomentSelect={onMomentSelect}
         onKeeperSelect={handleKeeperSelect}
+        onEngagementSuccess={handlePresenceRefresh}
       />
     )
   }
@@ -1949,6 +1979,22 @@ function KeeperPresenceSurface({
           >
             {saveStatus === "saving" ? "Saving…" : saveMessage}
           </p>
+        )}
+
+        {objectType === "moment" && layout === "focus" && (
+          <PresenceEngagementActions
+            engagement={momentEngagement}
+            keeperTypeName="Moment"
+            entityType="moment"
+            entityId={objectId}
+            domainId={domainId}
+            keeperId={boardCtx?.selection.selectedKeeperId ?? undefined}
+            journeyId={boardCtx?.selection.activeJourneyId ?? undefined}
+            targetType="moment"
+            includeSlugs={["moment.update"]}
+            isAuthenticated={isAuthenticated}
+            className="mt-3"
+          />
         )}
       </div>
 

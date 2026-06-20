@@ -56,6 +56,16 @@ Present, Commons — surfaces/frames, not Prisma models.
 Chronicle = right panel (UniversalViewPanel), not a frame route.
 "View" is overloaded in code. Do not treat it as a hierarchy layer.
 
+### Singular UI (member vs public)
+
+| Audience | Canonical URL | Surface | Wire features here |
+|---|---|---|---|
+| **Member (auth)** | `/d/:slug?board=domain` (or `ide` / `agent` / `designer`) | Universal Board: Nav · Dialog · Chronicle | `UniversalNavPanel`, `KeeperPresence` / Chronicle |
+| **Guest / public story** | Present (target) · Cover today | Narrative read-only — not standalone journey frames | `PresentFrame` — Phase B after board engagement |
+| **Legacy frames** | `?frame=journeys`, `?frame=keepers`, etc. | Standalone v0 frames | **Do not extend for Phase 1 member work.** Redirect or retire over time. |
+
+Authenticated users with no query params redirect to `?board=domain` (see `V0Shell.tsx`). Test member features at `?board=domain`, never `?frame=journeys`.
+
 → Full detail: `docs/keeper-heart-mind.md`
 
 ---
@@ -106,11 +116,12 @@ All six steps are complete. JSON UI Frame v0 is functionally complete per jsonfr
 **Note for domains with existing `frame_json` in DB:** Re-seed or PATCH `frame_json` if you want `interaction_bar.labels` persisted. `loadDomainFrame.ts` merges default labels as fallback.
 
 **Phase 1 (jsonframe Steps 1–6 complete — now in progress):**
+- **Singular UI:** Universal Board only for member work (`?board=*`). Do not wire Phase 1 features to standalone `?frame=*` routes first.
 - Extend Universal Board / Chronicle — do not rebuild IDE or Agent boards from scratch
-- Legacy KeeperJourneysPage / KeeperMomentsPage OR migrate to v0 frames (JourneysFrame v0 is real — extend it)
-- Engagement Templates wired on Moments and Presents
+- Complete Engagement Templates on Board Nav + Chronicle (Journey, Path, Moment) — then Present for public
+- Legacy standalone frames (`JourneysFrame`, etc.) — redirect or retire; not the member workspace
 - Theme creation UI and API
-- Present / SlideType storytelling surfaces
+- Present / SlideType storytelling surfaces (public singular UI — after board engagement)
 - Icon View Switcher (spec'd in jsonframe spec for admin workspace — not yet built as one control)
 
 **Phase 2:** Pool Keeper (proof of concept on working platform)
@@ -206,9 +217,10 @@ These are real, documented, and coming. They are not now:
 6. **Do not commit unless Chuck asks.** When asked: `pnpm run smoke` first, then one clear commit message.
 7. **Update folder READMEs.** Any change to `/components`, `/routes`, `/lib`, `/api` — update that folder's `README.md` and copy to `docs/modules/`. See `.cursor/rules/readme-policy.mdc`.
 8. **End every session** with: what changed, what the next logical task is.
+9. **Singular UI:** Before wiring on `?frame=*`, confirm the feature belongs on Universal Board (`?board=*`). Board wins for Phase 1 unless Chuck specifies otherwise.
 
 ---
 
 *This is an index, not a spec. When in doubt, follow the canonical documents it points to.*
-*Last updated: May 2026 — jsonframe Steps 1–6 complete. Phase 1 platform stack in progress.*
+*Last updated: June 2026 — Singular UI: Universal Board for members; Present for public next.*
 *Maintained by: Cloud · final review: Chuck*

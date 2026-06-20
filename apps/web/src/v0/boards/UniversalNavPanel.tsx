@@ -31,6 +31,8 @@ import * as React from "react"
 import { apiFetch } from "../../lib/api"
 import { KipApi } from "../../lib/kipApi"
 import { useAuth } from "../../context/AuthContext"
+import { useBoardEngagement } from "./engagement/useBoardEngagement"
+import { BoardEngagementForm } from "./engagement/BoardEngagementForm"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import type { KipDraftSummary } from "../../lib/kipApi"
 import { SidebarCard } from "../components/SidebarCard"
@@ -297,6 +299,30 @@ export function UniversalNavPanel({
   const { user } = useAuth()
   const frameCtx = useFrameContextOptional()
   const boardCtx = useUniversalBoardOptional()
+
+  const journeyCreateEngagement = useBoardEngagement(() => {
+    boardCtx?.actions.bumpJourneyNav()
+  })
+
+  const handleJourneyCreate = React.useCallback(() => {
+    if (!domainId || !user) return
+    const keeperId =
+      boardCtx?.selection.selectedKeeperId ??
+      frameCtx?.selection.activeKeeperId ??
+      undefined
+    void journeyCreateEngagement.activateBySlug("journey.create", {
+      entityType: "domain",
+      entityId: domainId,
+      domainId,
+      keeperId,
+    })
+  }, [
+    boardCtx?.selection.selectedKeeperId,
+    domainId,
+    frameCtx?.selection.activeKeeperId,
+    journeyCreateEngagement,
+    user,
+  ])
 
   // ── designer board definitions — live from location.search ─────────────────
   const { selectBoardDefinition, switchWorkspace, workspaceBoardId } = useV0Shell()
@@ -890,8 +916,14 @@ export function UniversalNavPanel({
               description={!domainId ? "Loading…" : countLabel(journeys?.length ?? null, "journey")}
               items={slice("journeys", allJourneyItems).length ? slice("journeys", allJourneyItems) : undefined}
               onTitleClick={() => toggleExpanded("journeys")}
-              onAdd={() => { /* TODO: wire to journey create callback in Moment 2.6 */ }}
+              onAdd={user && domainId ? handleJourneyCreate : undefined}
             />
+            {journeyCreateEngagement.intent && (
+              <BoardEngagementForm
+                engagement={journeyCreateEngagement}
+                className="mt-2"
+              />
+            )}
             {journeyError && (
               <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
                 {journeyError}

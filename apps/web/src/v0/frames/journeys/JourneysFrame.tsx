@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
-import { X, MapPin, ChevronRight, Check } from "lucide-react"
+import { X, MapPin, ChevronRight, Plus, Check } from "lucide-react"
 import type { StyleId } from "../../styles/styles"
 import { DesignFrame } from "../DesignFrame"
 import { ThemeSwitcher } from "../ThemeSwitcher"
@@ -11,9 +11,6 @@ import { useFrameContextOptional } from "../../shell/FrameContext"
 import { apiFetch } from "../../../lib/api"
 import { useAuth } from "../../../context/AuthContext"
 import { getApiBase } from "../../../lib/apiFetch"
-import { EntityEngagementBar } from "../../../components/engagement/EntityEngagementBar"
-import { EngagementForm } from "../../../components/engagement/EngagementForm"
-import type { EngagementContext, EngagementTemplateDefinition } from "../../../components/engagement/EngagementForm"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -81,25 +78,6 @@ export function JourneysFrame({
   const [isLoadingList, setIsLoadingList] = useState(false)
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  type EngagementIntent = {
-    template: EngagementTemplateDefinition
-    context: EngagementContext
-  }
-  const [engagementIntent, setEngagementIntent] = useState<EngagementIntent | null>(null)
-  const [engagementSubmitting, setEngagementSubmitting] = useState(false)
-
-  const handleEngagementActivate = useCallback(
-    (template: EngagementTemplateDefinition, context: EngagementContext) => {
-      setEngagementIntent({ template, context })
-    },
-    [],
-  )
-
-  const handleEngagementCancel = useCallback(() => {
-    setEngagementIntent(null)
-    setEngagementSubmitting(false)
-  }, [])
 
   // ---- fetch journey list ----
   const fetchJourneys = useCallback(async () => {
@@ -242,47 +220,6 @@ export function JourneysFrame({
     [isAuthenticated, effectiveDomainSlug],
   )
 
-  const handleEngagementSubmit = useCallback(
-    async (inputs: Record<string, unknown>) => {
-      if (!engagementIntent) return
-      setEngagementSubmitting(true)
-      try {
-        const response = await apiFetch("/api/engagement/execute", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            templateSlug: engagementIntent.template.slug,
-            context: engagementIntent.context,
-            inputs,
-          }),
-        })
-        if (!response.success) {
-          throw new Error(response.message || response.error || "Action failed")
-        }
-        setEngagementIntent(null)
-        await fetchJourneys()
-        if (selectedJourney?.id) {
-          await fetchDetail(selectedJourney.id)
-        }
-      } catch (submitError) {
-        console.error("[JourneysFrame] engagement submit failed:", submitError)
-      } finally {
-        setEngagementSubmitting(false)
-      }
-    },
-    [engagementIntent, fetchJourneys, fetchDetail, selectedJourney?.id],
-  )
-
-  const handleEngagementSuccess = useCallback(() => {
-    void fetchJourneys()
-    if (selectedJourney?.id) {
-      void fetchDetail(selectedJourney.id)
-    }
-  }, [fetchJourneys, fetchDetail, selectedJourney?.id])
-
-  const activeKeeperId = frameCtx?.selection.activeKeeperId ?? selectedJourney?.keeper?.id ?? undefined
-  const domainId = domain?.id
-
   // Deep-link: ?journey=<id> (e.g. Cover Forward for guests)
   useEffect(() => {
     if (!journeyParam) return
@@ -342,21 +279,6 @@ export function JourneysFrame({
         </div>
       )}
 
-      {engagementIntent && (
-        <div
-          className="mb-4 rounded-xl border p-4"
-          style={{ borderColor: themeBorder, backgroundColor: themeSurface }}
-        >
-          <EngagementForm
-            template={engagementIntent.template}
-            context={engagementIntent.context}
-            onSubmit={handleEngagementSubmit}
-            onCancel={handleEngagementCancel}
-            isLoading={engagementSubmitting}
-          />
-        </div>
-      )}
-
       <div className="grid gap-6 md:grid-cols-[1fr_1.5fr]">
         {/* ---- Left: Journey List ---- */}
         <div className="space-y-3">
@@ -367,21 +289,16 @@ export function JourneysFrame({
             >
               {jf?.labels.section_heading ?? "Your Journeys"}
             </h3>
-            {domainId && isAuthenticated ? (
-              <EntityEngagementBar
-                keeperTypeName="Journey"
-                entityType="domain"
-                entityId={domainId}
-                domainId={domainId}
-                keeperId={activeKeeperId}
-                targetType="domain"
-                includeSlugs={["journey.create"]}
-                isAuthenticated={isAuthenticated}
-                onActivate={handleEngagementActivate}
-                onSuccess={handleEngagementSuccess}
-                buttonClassName="rounded-full border px-3 py-1 text-[10px] font-medium transition-colors hover:opacity-80 bg-transparent"
-              />
-            ) : null}
+            <button
+              type="button"
+              onClick={() => navigateToFrame("commons")}
+              className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[10px] font-medium transition-colors hover:opacity-80"
+              style={{ borderColor: themeBorder, color: themeInk }}
+              title="Start a new journey from Commons"
+            >
+              <Plus className="h-3 w-3" />
+              {jf?.labels.new_button ?? "New"}
+            </button>
           </div>
 
           {isLoadingList ? (
@@ -506,56 +423,6 @@ export function JourneysFrame({
                   </button>
                 )}
               </div>
-
-              {/* Engagement actions */}
-              {domainId && isAuthenticated && !engagementIntent && (
-                <div className="mb-4">
-                  <div className="flex flex-wrap gap-2">
-                    <EntityEngagementBar
-                      keeperTypeName="Journey"
-                      entityType="journey"
-                      entityId={selectedJourney.id}
-                      domainId={domainId}
-                      keeperId={activeKeeperId ?? selectedJourney.keeper?.id}
-                      journeyId={selectedJourney.id}
-                      targetType="journey"
-                      includeSlugs={["journey.addMoment"]}
-                      isAuthenticated={isAuthenticated}
-                      onActivate={handleEngagementActivate}
-                      onSuccess={handleEngagementSuccess}
-                      buttonClassName="rounded-full border px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80 bg-transparent"
-                    />
-                    <EntityEngagementBar
-                      keeperTypeName="Path"
-                      entityType="journey"
-                      entityId={selectedJourney.id}
-                      domainId={domainId}
-                      keeperId={activeKeeperId ?? selectedJourney.keeper?.id}
-                      journeyId={selectedJourney.id}
-                      targetType="journey"
-                      includeSlugs={["path.create"]}
-                      isAuthenticated={isAuthenticated}
-                      onActivate={handleEngagementActivate}
-                      onSuccess={handleEngagementSuccess}
-                      buttonClassName="rounded-full border px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80 bg-transparent"
-                    />
-                    <EntityEngagementBar
-                      keeperTypeName="Moment"
-                      entityType="journey"
-                      entityId={selectedJourney.id}
-                      domainId={domainId}
-                      keeperId={activeKeeperId ?? selectedJourney.keeper?.id}
-                      journeyId={selectedJourney.id}
-                      targetType="journey"
-                      includeSlugs={["moment.create"]}
-                      isAuthenticated={isAuthenticated}
-                      onActivate={handleEngagementActivate}
-                      onSuccess={handleEngagementSuccess}
-                      buttonClassName="rounded-full border px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80 bg-transparent"
-                    />
-                  </div>
-                </div>
-              )}
 
               {/* Meta */}
               <div
