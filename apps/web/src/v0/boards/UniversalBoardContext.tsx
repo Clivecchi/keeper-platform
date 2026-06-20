@@ -26,6 +26,9 @@ import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/cap
 import type { KeeperNavRowPatch } from "../presence/integrationChronicle/keeperNavUtils"
 import type { LibraryNavRowPatch } from "../presence/integrationChronicle/libraryNavUtils"
 import type { BoardInstrumentSlug } from "./UniversalBoardDefinition"
+import type { BoardEngagementIntent } from "./engagement/useBoardEngagement"
+import type { EngagementContext } from "../../components/engagement/EngagementForm"
+import { apiFetch } from "../../lib/api"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -104,6 +107,9 @@ export interface UniversalBoardActions {
   bumpLibraryNav: (patch?: LibraryNavRowPatch) => void
   bumpKeeperNav: (patch?: KeeperNavRowPatch) => void
   bumpJourneyNav: () => void
+  /** Open an engagement form in Chronicle (right panel), not Nav. */
+  requestChronicleEngagement: (slug: string, context: EngagementContext) => Promise<void>
+  closeChronicleEngagement: () => void
   onEnterTrainingMode: () => void
   onExitTrainingMode: () => void
   onSetActiveBoardInstrument: (slug: BoardInstrumentSlug | null) => void
@@ -112,6 +118,8 @@ export interface UniversalBoardActions {
 export interface UniversalBoardContextValue {
   selection: UniversalBoardSelection
   actions: UniversalBoardActions
+  /** Active engagement form — renders in Chronicle, never in Nav. */
+  chronicleEngagement: BoardEngagementIntent | null
   /** Whether the left nav panel is collapsed. Controlled by the board. */
   navCollapsed: boolean
   onToggleNavCollapsed: () => void
@@ -170,6 +178,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [keeperNavRowPatch, setKeeperNavRowPatch] =
     React.useState<KeeperNavRowPatch | null>(null)
   const [journeyNavRevision, setJourneyNavRevision] = React.useState(0)
+  const [chronicleEngagement, setChronicleEngagement] =
+    React.useState<BoardEngagementIntent | null>(null)
   const [trainingMode, setTrainingMode] = React.useState(false)
   const [activeBoardInstrument, setActiveBoardInstrument] =
     React.useState<BoardInstrumentSlug | null>(null)
@@ -415,6 +425,21 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setJourneyNavRevision((n) => n + 1)
   }, [])
 
+  const closeChronicleEngagement = React.useCallback(() => {
+    setChronicleEngagement(null)
+  }, [])
+
+  const requestChronicleEngagement = React.useCallback(
+    async (slug: string, context: EngagementContext) => {
+      const response = await apiFetch(
+        `/api/engagement/templates/${encodeURIComponent(slug)}`,
+      )
+      if (!response.success || !response.data) return
+      setChronicleEngagement({ template: response.data, context })
+    },
+    [],
+  )
+
   const onToggleNavCollapsed = React.useCallback(() => {
     setNavCollapsed((c) => !c)
   }, [])
@@ -473,12 +498,15 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         bumpLibraryNav,
         bumpKeeperNav,
         bumpJourneyNav,
+        requestChronicleEngagement,
+        closeChronicleEngagement,
         onEnterTrainingMode,
         onExitTrainingMode,
         onSetActiveBoardInstrument,
       },
       navCollapsed,
       onToggleNavCollapsed,
+      chronicleEngagement,
     }),
     [
       activeSessionId,
@@ -529,11 +557,14 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       bumpLibraryNav,
       bumpKeeperNav,
       bumpJourneyNav,
+      requestChronicleEngagement,
+      closeChronicleEngagement,
       onEnterTrainingMode,
       onExitTrainingMode,
       onSetActiveBoardInstrument,
       navCollapsed,
       onToggleNavCollapsed,
+      chronicleEngagement,
     ],
   )
 

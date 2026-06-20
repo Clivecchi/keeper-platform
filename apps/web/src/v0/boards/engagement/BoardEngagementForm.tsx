@@ -34,6 +34,7 @@ export function BoardEngagementForm({
         onCancel={cancel}
         isLoading={submitting}
         title=""
+        variant="chronicle"
       />
     </div>
   )

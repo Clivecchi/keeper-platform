@@ -61,6 +61,10 @@ Chronicle = right panel (UniversalViewPanel), not a frame route.
 | Audience | Canonical URL | Surface | Wire features here |
 |---|---|---|---|
 | **Member (auth)** | `/d/:slug?board=domain` (or `ide` / `agent` / `designer`) | Universal Board: Nav · Dialog · Chronicle | `UniversalNavPanel`, `KeeperPresence` / Chronicle |
+
+**Nav vs Chronicle (Universal Board):**
+- **Nav** — list, select, `+` trigger only. Never host engagement forms, Acts, or Config save UI.
+- **Chronicle** — presence, Acts, engagement forms, editable fields, Config mode. Nav `+` → `requestChronicleEngagement` → Chronicle renders the form.
 | **Guest / public story** | Present (target) · Cover today | Narrative read-only — not standalone journey frames | `PresentFrame` — Phase B after board engagement |
 | **Legacy frames** | `?frame=journeys`, `?frame=keepers`, etc. | Standalone v0 frames | **Do not extend for Phase 1 member work.** Redirect or retire over time. |
 
@@ -118,7 +122,7 @@ All six steps are complete. JSON UI Frame v0 is functionally complete per jsonfr
 **Phase 1 (jsonframe Steps 1–6 complete — now in progress):**
 - **Singular UI:** Universal Board only for member work (`?board=*`). Do not wire Phase 1 features to standalone `?frame=*` routes first.
 - Extend Universal Board / Chronicle — do not rebuild IDE or Agent boards from scratch
-- Complete Engagement Templates on Board Nav + Chronicle (Journey, Path, Moment) — then Present for public
+- Complete Engagement Templates on Board — **Nav triggers, Chronicle renders** (Journey, Path, Moment) — then Present for public
 - Legacy standalone frames (`JourneysFrame`, etc.) — redirect or retire; not the member workspace
 - Theme creation UI and API
 - Present / SlideType storytelling surfaces (public singular UI — after board engagement)
@@ -218,6 +222,7 @@ These are real, documented, and coming. They are not now:
 7. **Update folder READMEs.** Any change to `/components`, `/routes`, `/lib`, `/api` — update that folder's `README.md` and copy to `docs/modules/`. See `.cursor/rules/readme-policy.mdc`.
 8. **End every session** with: what changed, what the next logical task is.
 9. **Singular UI:** Before wiring on `?frame=*`, confirm the feature belongs on Universal Board (`?board=*`). Board wins for Phase 1 unless Chuck specifies otherwise.
+10. **Nav triggers, Chronicle acts:** Never render engagement forms or Act surfaces in `UniversalNavPanel`. Nav `+` requests; `UniversalViewPanel` / `KeeperPresence` renders.
 
 ---
 

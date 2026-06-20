@@ -31,8 +31,6 @@ import * as React from "react"
 import { apiFetch } from "../../lib/api"
 import { KipApi } from "../../lib/kipApi"
 import { useAuth } from "../../context/AuthContext"
-import { useBoardEngagement } from "./engagement/useBoardEngagement"
-import { BoardEngagementForm } from "./engagement/BoardEngagementForm"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import type { KipDraftSummary } from "../../lib/kipApi"
 import { SidebarCard } from "../components/SidebarCard"
@@ -300,27 +298,22 @@ export function UniversalNavPanel({
   const frameCtx = useFrameContextOptional()
   const boardCtx = useUniversalBoardOptional()
 
-  const journeyCreateEngagement = useBoardEngagement(() => {
-    boardCtx?.actions.bumpJourneyNav()
-  })
-
   const handleJourneyCreate = React.useCallback(() => {
-    if (!domainId || !user) return
+    if (!domainId || !user || !boardCtx) return
     const keeperId =
-      boardCtx?.selection.selectedKeeperId ??
+      boardCtx.selection.selectedKeeperId ??
       frameCtx?.selection.activeKeeperId ??
       undefined
-    void journeyCreateEngagement.activateBySlug("journey.create", {
+    void boardCtx.actions.requestChronicleEngagement("journey.create", {
       entityType: "domain",
       entityId: domainId,
       domainId,
       keeperId,
     })
   }, [
-    boardCtx?.selection.selectedKeeperId,
+    boardCtx,
     domainId,
     frameCtx?.selection.activeKeeperId,
-    journeyCreateEngagement,
     user,
   ])
 
@@ -918,12 +911,6 @@ export function UniversalNavPanel({
               onTitleClick={() => toggleExpanded("journeys")}
               onAdd={user && domainId ? handleJourneyCreate : undefined}
             />
-            {journeyCreateEngagement.intent && (
-              <BoardEngagementForm
-                engagement={journeyCreateEngagement}
-                className="mt-2"
-              />
-            )}
             {journeyError && (
               <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
                 {journeyError}

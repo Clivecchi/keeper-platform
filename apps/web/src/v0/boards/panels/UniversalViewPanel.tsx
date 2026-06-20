@@ -35,6 +35,7 @@ import type { UniversalBoardDef } from "../UniversalBoardDefinition"
 import { useBoardDefinitionFromUrl } from "../useBoardDefinitionFromUrl"
 import { ChroniclePresenceView } from "../../presence/ChroniclePresenceView"
 import type { PresenceLayout } from "../../presence/types"
+import { ChronicleEngagementSurface } from "../engagement/ChronicleEngagementSurface"
 
 // ─── Trail Types ──────────────────────────────────────────────────────────────
 
@@ -611,6 +612,7 @@ export function UniversalViewPanel({
   const liveSubject = { kind, id }
 
   const isFocused = liveSubject.kind !== "domain" || liveSubject.id != null
+  const chronicleEngagement = boardCtx?.chronicleEngagement ?? null
 
   return (
     <div
@@ -639,18 +641,26 @@ export function UniversalViewPanel({
           flexDirection: "column",
         }}
       >
-        <PanelBody
-          subject={liveSubject}
-          subjectKey={contextKey}
-          domainId={domainId}
-          domainName={domainName}
-          domainSlug={domainSlug}
-          boardId={def.boardId}
-          onJourneySelect={handleJourneySelect}
-          onMomentSelect={handleMomentSelect}
-          onSessionSelect={handleSessionSelect}
-          onLabelResolved={handleLabelResolved}
-        />
+        {chronicleEngagement ? (
+          <ChronicleEngagementSurface
+            intent={chronicleEngagement}
+            onClose={() => boardCtx?.actions.closeChronicleEngagement()}
+            onSuccess={() => boardCtx?.actions.bumpJourneyNav()}
+          />
+        ) : (
+          <PanelBody
+            subject={liveSubject}
+            subjectKey={contextKey}
+            domainId={domainId}
+            domainName={domainName}
+            domainSlug={domainSlug}
+            boardId={def.boardId}
+            onJourneySelect={handleJourneySelect}
+            onMomentSelect={handleMomentSelect}
+            onSessionSelect={handleSessionSelect}
+            onLabelResolved={handleLabelResolved}
+          />
+        )}
       </div>
     </div>
   )

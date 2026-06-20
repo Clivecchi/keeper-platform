@@ -20,7 +20,7 @@ Chronicle is the right panel for all Universal Boards. It is built as a Treatmen
 | Element | Description |
 |---|---|
 | **Trail Bar** | Permanent top. History stack (max 3 visible, `···` compresses older). Feed indicator (soft dot + count, 60s polling, tappable → domain feed). Lateral slide 200ms entry / 140ms exit. |
-| **Panel Body** | Universal — `KeeperPresence` for every subject type. Opacity dissolve on context shift (200ms entry / 140ms exit). Never empty — domain idle uses KeeperPresence. |
+| **Panel Body** | Universal — `KeeperPresence` for every subject type, **or** `ChronicleEngagementSurface` when Nav/board requests an Act form. Opacity dissolve on context shift (200ms entry / 140ms exit). Never empty — domain idle uses KeeperPresence. |
 | **Idle State** | `KeeperPresence` objectType=`domain` — ambient feed (recent moments, moving/present journeys). |
 
 **Panel Body:** Universal path — every selection routes to `ChronicleRecordView` → `ChroniclePresenceView` → `KeeperPresence`. No board-specific renderers.
@@ -69,6 +69,10 @@ Moment breadcrumb shows `Journey title / Path name` above the title. Resolved vi
 - [ ] Rendr integration — spatial ratios and density governed by `presenceTreatment` field
 
 ## 📆 Update Log
+
+### 2026-06-19 — Engagement forms in Chronicle, not Nav
+- `UniversalViewPanel` renders `ChronicleEngagementSurface` when `boardCtx.chronicleEngagement` is set (e.g. Nav Journeys `+` → `journey.create`)
+- Nav only triggers `requestChronicleEngagement`; never hosts inline forms
 
 ### 2026-05-25 — Layer 3: Chronicle frame routing unwind
 - Removed `"frame"` from `TrailKind`, `TRAIL_KIND_TO_OBJECT_TYPE`, and `CONFIG_LAYOUT_KINDS`

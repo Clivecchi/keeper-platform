@@ -75,6 +75,8 @@ export interface EngagementFormProps {
   title?: string;
   /** Optional class name applied to the outer wrapper */
   className?: string;
+  /** `chronicle` uses Universal Board theme tokens */
+  variant?: 'default' | 'chronicle';
 }
 
 export function EngagementForm({
@@ -86,7 +88,9 @@ export function EngagementForm({
   prefillData = {},
   title,
   className = '',
+  variant = 'default',
 }: EngagementFormProps) {
+  const isChronicle = variant === 'chronicle'
   const [inputs, setInputs] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -188,16 +192,30 @@ export function EngagementForm({
     await onSubmit(inputs);
   };
 
+  const hiddenContextFields = new Set(["keeperId", "domainId", "journeyId"])
+  const visibleFields = isChronicle
+    ? template.fields.filter(
+        (field) =>
+          !(
+            hiddenContextFields.has(field.name) &&
+            context[field.name] !== undefined &&
+            context[field.name] !== ""
+          ),
+      )
+    : template.fields
+
   return (
     <form onSubmit={handleSubmit} className={className}>
-      {title !== undefined ? (
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
-      ) : (
-        <h3 className="text-lg font-semibold mb-4">{template.label}</h3>
+      {!isChronicle && (
+        title !== undefined ? (
+          <h3 className="text-lg font-semibold mb-4">{title}</h3>
+        ) : (
+          <h3 className="text-lg font-semibold mb-4">{template.label}</h3>
+        )
       )}
 
       <div className="space-y-4">
-        {template.fields.map(field => (
+        {visibleFields.map(field => (
           <FieldRenderer
             key={field.name}
             field={field}
@@ -205,6 +223,7 @@ export function EngagementForm({
             error={errors[field.name]}
             onChange={(value) => handleInputChange(field.name, value)}
             disabled={isLoading}
+            variant={variant}
           />
         ))}
       </div>
@@ -214,14 +233,39 @@ export function EngagementForm({
           type="button"
           onClick={onCancel}
           disabled={isLoading}
-          className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors disabled:opacity-50"
+          className={
+            isChronicle
+              ? "rounded-full border px-4 py-2 text-[13px] font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
+              : "px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors disabled:opacity-50"
+          }
+          style={
+            isChronicle
+              ? {
+                  borderColor: "hsl(var(--theme-border-soft) / 0.35)",
+                  color: "hsl(var(--theme-ink-primary))",
+                }
+              : undefined
+          }
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isLoading}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+          className={
+            isChronicle
+              ? "rounded-full border px-4 py-2 text-[13px] font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+              : "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+          }
+          style={
+            isChronicle
+              ? {
+                  borderColor: "hsl(var(--theme-border-soft) / 0.35)",
+                  backgroundColor: "hsl(var(--theme-surface-paper) / 0.9)",
+                  color: "hsl(var(--theme-ink-primary))",
+                }
+              : undefined
+          }
         >
           {isLoading ? 'Submitting...' : 'Submit'}
         </button>
@@ -240,19 +284,35 @@ interface FieldRendererProps {
   error?: string;
   onChange: (value: any) => void;
   disabled: boolean;
+  variant?: 'default' | 'chronicle';
 }
 
-function FieldRenderer({ field, value, error, onChange, disabled }: FieldRendererProps) {
-  const inputClasses = `
+function FieldRenderer({ field, value, error, onChange, disabled, variant = 'default' }: FieldRendererProps) {
+  const isChronicle = variant === 'chronicle'
+  const inputClasses = isChronicle
+    ? `w-full px-3 py-2 rounded border bg-transparent text-[14px] focus:outline-none focus:ring-1 disabled:opacity-50 disabled:cursor-not-allowed ${error ? 'border-red-400' : ''}`
+    : `
     w-full px-3 py-2 border rounded
     focus:outline-none focus:ring-2 focus:ring-blue-500
     disabled:bg-gray-100 disabled:cursor-not-allowed
     ${error ? 'border-red-500' : 'border-gray-300'}
   `;
 
+  const inputStyle = isChronicle
+    ? {
+        borderColor: error
+          ? 'hsl(var(--theme-status-error, 0 72% 51%))'
+          : 'hsl(var(--theme-border-soft) / 0.35)',
+        color: 'hsl(var(--theme-ink-primary))',
+      }
+    : undefined
+
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label
+        className={`block text-sm font-medium mb-1 ${isChronicle ? '' : 'text-gray-700'}`}
+        style={isChronicle ? { color: 'hsl(var(--theme-ink-secondary))' } : undefined}
+      >
         {field.label}
         {field.required && <span className="text-red-500 ml-1">*</span>}
       </label>

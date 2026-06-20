@@ -25,8 +25,9 @@ export interface UseBoardEngagementResult {
 
 export function useBoardEngagement(
   onSuccess?: () => void,
+  initialIntent: BoardEngagementIntent | null = null,
 ): UseBoardEngagementResult {
-  const [intent, setIntent] = useState<BoardEngagementIntent | null>(null)
+  const [intent, setIntent] = useState<BoardEngagementIntent | null>(initialIntent)
   const [submitting, setSubmitting] = useState(false)
 
   const activateTemplate = useCallback(
