@@ -60,7 +60,7 @@ import {
 import { toPresentInstanceKey } from "../presents/presentInstanceKey"
 import { useAuth } from "../../context/AuthContext"
 import { useBoardEngagement } from "../boards/engagement/useBoardEngagement"
-import { JourneyChronicleEngagement } from "../boards/engagement/JourneyChronicleEngagement"
+import { JourneyFocusPresence } from "./cover/JourneyFocusPresence"
 import { PresenceEngagementActions } from "../boards/engagement/PresenceEngagementActions"
 
 export type { PresenceLayout } from "./types"
@@ -701,58 +701,6 @@ function PathCard({
   )
 }
 
-function JourneyFocusSections({
-  sections,
-  onMomentSelect,
-}: {
-  sections: RelatedSection[]
-  onMomentSelect?: (id: string) => void
-}) {
-  if (sections.length === 0) return null
-
-  return (
-    <>
-      {sections.map((section) => (
-        <PresenceSection key={section.title} title={section.title}>
-          {section.title === "Paths" ? (
-            section.items.length === 0 ? null : (
-              section.items.map((item) => (
-                <PathCard
-                  key={item.id}
-                  label={item.label}
-                  preview={item.preview}
-                  sub={item.sub}
-                />
-              ))
-            )
-          ) : section.items.length === 0 ? (
-            <p
-              className="text-[14px] leading-relaxed"
-              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-            >
-              Nothing here yet — but this journey is alive.
-            </p>
-          ) : (
-            section.items.map((item) => (
-              <PresenceThread
-                key={item.id}
-                label={item.label}
-                sub={item.sub}
-                preview={item.preview}
-                onClick={
-                  item.navigateKind === "moment" && onMomentSelect
-                    ? () => onMomentSelect(item.id)
-                    : undefined
-                }
-              />
-            ))
-          )}
-        </PresenceSection>
-      ))}
-    </>
-  )
-}
-
 function DialogFocusSections({
   sections,
   onSessionSelect,
@@ -897,140 +845,6 @@ function PresentAtmosphereLayer() {
           "radial-gradient(ellipse at 28% 0%, hsl(var(--theme-accent) / 0.14), transparent 62%)",
       }}
     />
-  )
-}
-
-function JourneyFocusPresence({
-  objectId,
-  domainId,
-  fieldValues,
-  setFieldValues,
-  markEdited,
-  meta,
-  relatedSections,
-  onMomentSelect,
-  onKeeperSelect,
-  onEngagementSuccess,
-}: {
-  objectId: string
-  domainId: string
-  fieldValues: Record<string, string>
-  setFieldValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
-  markEdited: () => void
-  meta?: PresenceMeta
-  relatedSections: RelatedSection[]
-  onMomentSelect?: (id: string) => void
-  onKeeperSelect?: (id: string) => void
-  onEngagementSuccess?: () => void
-}) {
-  const boardCtx = useUniversalBoardOptional()
-  const { isAuthenticated } = useAuth()
-  const engagement = useBoardEngagement(() => {
-    onEngagementSuccess?.()
-    boardCtx?.actions.bumpJourneyNav()
-  })
-  const motion = usePresentMotionValues()
-  const activeJourneyId = boardCtx?.selection.activeJourneyId ?? null
-  const handleSetActive = boardCtx?.actions.onSetActiveJourney
-  const activeKeeperId =
-    boardCtx?.selection.selectedKeeperId ??
-    meta?.keeper?.id ??
-    undefined
-
-  const title = fieldValues.name ?? ""
-  const forward = fieldValues.forward ?? ""
-  const hairline = "hsl(var(--theme-border-soft) / 0.35)"
-  const momentCount = meta?.momentCount ?? 0
-
-  return (
-    <div className="relative flex flex-col h-full min-h-0">
-      <PresentAtmosphereLayer />
-      <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div style={primaryMotionStyle(motion)}>
-              <AutoResizeTextarea
-                value={title}
-                onChange={(v) => {
-                  markEdited()
-                  setFieldValues((prev) => ({ ...prev, name: v }))
-                }}
-                placeholder="Untitled journey"
-                className="text-[20px] font-semibold leading-snug"
-                style={{ color: "hsl(var(--theme-ink-primary))" }}
-              />
-              <AutoResizeTextarea
-                value={forward}
-                onChange={(v) => {
-                  markEdited()
-                  setFieldValues((prev) => ({ ...prev, forward: v }))
-                }}
-                placeholder="Where this journey is headed…"
-                className="text-[14px] leading-relaxed mt-2"
-                style={{ color: "hsl(var(--theme-ink-secondary))" }}
-              />
-            </div>
-          </div>
-          {activeJourneyId !== objectId && handleSetActive && (
-            <button
-              type="button"
-              onClick={() => handleSetActive(objectId)}
-              className="shrink-0 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-opacity hover:opacity-80"
-              style={{
-                borderColor: "hsl(var(--theme-border-soft) / 0.35)",
-                color: "hsl(var(--theme-ink-primary))",
-              }}
-            >
-              Set as Active
-            </button>
-          )}
-        </div>
-
-        <div
-          className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-[12px]"
-          style={{ ...contextMotionStyle(motion), color: "hsl(var(--theme-ink-tertiary))" }}
-        >
-          {meta?.keeper && (
-            meta.keeper.id ? (
-              <button
-                type="button"
-                onClick={() => onKeeperSelect?.(meta.keeper!.id)}
-                className="transition-opacity hover:opacity-80"
-                style={{ color: "hsl(var(--theme-ink-secondary))" }}
-              >
-                {meta.keeper.title}
-              </button>
-            ) : (
-              <span>{meta.keeper.title}</span>
-            )
-          )}
-          {meta?.createdAt && (
-            <span>Created {formatCreatedDate(meta.createdAt)}</span>
-          )}
-          <span>
-            {momentCount} moment{momentCount === 1 ? "" : "s"}
-          </span>
-        </div>
-
-        <JourneyChronicleEngagement
-          engagement={engagement}
-          journeyId={objectId}
-          domainId={domainId}
-          keeperId={activeKeeperId}
-          isAuthenticated={isAuthenticated}
-        />
-      </div>
-
-      <div
-        className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-4"
-        style={secondaryMotionStyle(motion)}
-      >
-        <JourneyFocusSections
-          sections={relatedSections}
-          onMomentSelect={onMomentSelect}
-        />
-      </div>
-    </div>
   )
 }
 
@@ -1200,6 +1014,7 @@ export function KeeperPresence({
     (objectType === "capability" && layout === "focus") ||
     (objectType === "library" && layout === "focus") ||
     (objectType === "keeper" && layout === "focus") ||
+    (objectType === "journey" && layout === "focus") ||
     (objectType === "service" && layout === "focus") ||
     objectType === "boardDef" ||
     (objectType === "frame" && layout === "config") ||
@@ -1346,6 +1161,7 @@ export function KeeperPresence({
 
   React.useEffect(() => {
     if (usesExplicitChronicleSave) return
+    if (objectType === "journey" && layout === "focus") return
     if (!hasEdited.current || !record || !objectId || !domainId) return
     const endpoint = patchEndpoint(objectType, objectId, domainId)
 
@@ -1607,16 +1423,15 @@ function KeeperPresenceSurface({
     )
   }
 
-  if (objectType === "journey" && layout === "focus") {
+  if (objectType === "journey" && layout === "focus" && record) {
     return (
       <JourneyFocusPresence
         objectId={objectId}
         domainId={domainId}
-        fieldValues={fieldValues}
-        setFieldValues={setFieldValues}
-        markEdited={markEdited}
+        record={record}
         meta={meta}
         relatedSections={relatedSections}
+        onLabelResolved={onLabelResolved}
         onMomentSelect={onMomentSelect}
         onKeeperSelect={handleKeeperSelect}
         onEngagementSuccess={handlePresenceRefresh}

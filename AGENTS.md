@@ -61,16 +61,25 @@ Chronicle = right panel (UniversalViewPanel), not a frame route.
 | Audience | Canonical URL | Surface | Wire features here |
 |---|---|---|---|
 | **Member (auth)** | `/d/:slug?board=domain` (or `ide` / `agent` / `designer`) | Universal Board: Nav · Dialog · Chronicle | `UniversalNavPanel`, `KeeperPresence` / Chronicle |
-
-**Nav vs Chronicle (Universal Board):**
-- **Nav** — list, select, `+` trigger only. Never host engagement forms, Acts, or Config save UI.
-- **Chronicle** — presence, Acts, engagement forms, editable fields, Config mode. Nav `+` → `requestChronicleEngagement` → Chronicle renders the form.
 | **Guest / public story** | Present (target) · Cover today | Narrative read-only — not standalone journey frames | `PresentFrame` — Phase B after board engagement |
 | **Legacy frames** | `?frame=journeys`, `?frame=keepers`, etc. | Standalone v0 frames | **Do not extend for Phase 1 member work.** Redirect or retire over time. |
 
+**Nav vs Chronicle (Universal Board):**
+- **Nav** — list, select, `+` trigger only. Never host engagement forms, Acts, or Config save UI.
+- **Chronicle** — declared render surface for presence, Config, and Acts. Nav `+` → `requestChronicleEngagement` → `ChronicleActPresence`.
+
+**Declared UI — Chronicle has three modes (no custom fourth layout):**
+| Mode | Component | Shell |
+|---|---|---|
+| **Focus** | `KeeperPresence` | Cover + declaration blocks |
+| **Config / Manage** | `AgentConfigPresence`, `KeyConfigPresence`, etc. | `ChronicleConfigShell` + Save bar |
+| **Act (engagement create)** | `ChronicleActPresence` | Same `ChronicleConfigShell` + Submit bar |
+
+Do **not** use generic `EngagementForm` chrome on Universal Board Chronicle Acts — it bypasses declared UI. `EngagementForm` is for legacy/narrative surfaces only.
+
 Authenticated users with no query params redirect to `?board=domain` (see `V0Shell.tsx`). Test member features at `?board=domain`, never `?frame=journeys`.
 
-→ Full detail: `docs/keeper-heart-mind.md`
+→ Full detail: `docs/keeper-ui-experience.md`, `docs/entitykind-implementation-recipe.md`, `docs/keeper-heart-mind.md`
 
 ---
 
@@ -222,10 +231,11 @@ These are real, documented, and coming. They are not now:
 7. **Update folder READMEs.** Any change to `/components`, `/routes`, `/lib`, `/api` — update that folder's `README.md` and copy to `docs/modules/`. See `.cursor/rules/readme-policy.mdc`.
 8. **End every session** with: what changed, what the next logical task is.
 9. **Singular UI:** Before wiring on `?frame=*`, confirm the feature belongs on Universal Board (`?board=*`). Board wins for Phase 1 unless Chuck specifies otherwise.
-10. **Nav triggers, Chronicle acts:** Never render engagement forms or Act surfaces in `UniversalNavPanel`. Nav `+` requests; `UniversalViewPanel` / `KeeperPresence` renders.
+10. **Nav triggers, Chronicle acts:** Never render engagement forms or Act surfaces in `UniversalNavPanel`. Nav `+` requests; Chronicle renders via `ChronicleActPresence` / `KeeperPresence`.
+11. **Declared UI:** Chronicle Acts and Config use `ChronicleConfigShell` — same shell family as Agent Manage. No bespoke form layouts; no `EngagementForm` on board Chronicle.
 
 ---
 
 *This is an index, not a spec. When in doubt, follow the canonical documents it points to.*
-*Last updated: June 2026 — Singular UI: Universal Board for members; Present for public next.*
+*Last updated: June 2026 — Declared Chronicle UI: Focus · Config · Act; Nav triggers, Chronicle renders.*
 *Maintained by: Cloud · final review: Chuck*

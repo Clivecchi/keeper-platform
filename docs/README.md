@@ -19,7 +19,7 @@ Docs are maintained as canonical references for architecture, flows, and playboo
 - [ ] TODO: Verify and describe assumptions.
 
 ## 📆 Update Log
-- 2026-06-19: Updated `keeper-ui-experience.md` — Universal Board Nav/Chronicle panel contract, board engagement routing, singular UI table.
+- **2026-06-19**: Updated `keeper-ui-experience.md` — Declared Chronicle UI (Focus · Config · Act), `ChronicleActPresence`, no `EngagementForm` on board Acts.
 - 2026-06-17: Added `build-handoffs/` — v1.0 schema for Cloud → Cursor handoffs (Phase 0 file-based; Phase 1 MCP).
 - 2026-06-13: Added governing EntityKind Implementation Recipe (`entitykind-implementation-recipe.md`) — Key as reference, 12-step checklist, Cloud handoff map.
 - 2026-02-01: Added canonical UI experience doc `keeper-ui-experience.md`.

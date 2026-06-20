@@ -16,7 +16,7 @@ Docs are maintained as canonical references for architecture, flows, and playboo
 - [ ] TODO: Verify and describe assumptions.
 
 ## 📆 Update Log
-- 2026-06-19: Updated `keeper-ui-experience.md` — Universal Board Nav/Chronicle panel contract, board engagement routing, singular UI table.
+- 2026-06-19: Updated `keeper-ui-experience.md` — Declared Chronicle UI (Focus · Config · Act), `ChronicleActPresence`, no `EngagementForm` on board Acts.
 - 2026-02-01: Added canonical UI experience doc `keeper-ui-experience.md`.
 - 2026-01-31: Added canonical architecture doc `keeper-heart-mind.md`.
 - 2026-01-31: Revised `keeper-heart-mind.md` with narrative journeys and mapping.

@@ -8,7 +8,7 @@ Wires KeeperType engagement templates into the Universal Board (Nav + Chronicle)
 
 **Nav triggers, Chronicle renders:** Nav `+` calls `requestChronicleEngagement` on board context. `ChronicleEngagementSurface` → `ChronicleActPresence` (declared shell — same as Config/Manage), never generic `EngagementForm` chrome or inline Nav forms.
 
-Used by `KeeperPresence` journey/moment focus (add moment, path, moment create, moment update) for inline Chronicle forms with `variant="chronicle"`.
+Used by `KeeperPresence` moment focus (`PresenceEngagementActions`). Journey focus uses cover actions in `JourneyFocusPresence` → Act mode (`ChronicleActPresence`).
 
 ## 🧱 Key Files
 - `useBoardEngagement.ts` — Intent state, template activation, execute + refresh callback

@@ -179,6 +179,62 @@ router.get('/:id', authMiddlewareCompat, async (req: Request, res: Response) => 
 });
 
 /**
+ * PATCH /api/journeys/:id - Update journey metadata (Chronicle Config)
+ */
+router.patch('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const updateJourneySchema = z.object({
+      name: z.string().min(2).max(200).optional(),
+      forward: z.string().min(1).max(1000).optional(),
+    });
+
+    const data = updateJourneySchema.parse(req.body);
+
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    const existing = await prisma.journey.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Journey not found' });
+    }
+
+    const journey = await prisma.journey.update({
+      where: { id },
+      data: {
+        ...data,
+        updatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        name: true,
+        forward: true,
+        updatedAt: true,
+      },
+    });
+
+    return res.json({ success: true, data: journey });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Invalid request', details: error.errors });
+    }
+    console.error('Error updating journey:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
  * DELETE /api/journeys/:id - Delete a journey
  */
 router.delete('/:id', authMiddlewareCompat, async (req: Request, res: Response) => {

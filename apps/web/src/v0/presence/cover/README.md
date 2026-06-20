@@ -15,7 +15,8 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `CapabilityFocusPresence.tsx` — Capability Cover Mode + Config Mode orchestration
 - `schemas/keeperCoverSchema.ts` — Layer 2 Keeper EntityKind fill
 - `KeeperFocusPresence.tsx` — Keeper Cover Mode + Config Mode orchestration
-- `schemas/integrationCoverSchema.ts` — Layer 2 Integration (service) cover fill
+- `schemas/journeyCoverSchema.ts` — Layer 2 Journey EntityKind fill
+- `JourneyFocusPresence.tsx` — Journey Cover ↔ Config ↔ Act orchestration
 - `IntegrationFocusPresence.tsx` — Integration Cover Mode + Config Mode orchestration
 - `AgentConfigPresence.tsx` — Config Mode compressed header + editable fields
 - `AgentTrainingPresence.tsx` — Training Mode structured prompt editor
@@ -37,11 +38,16 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - All colors via `hsl(var(--theme-*))`; agent `theme_color` drives hero radial accent
 
 ## ⚠️ Notes & ToDo
-- [ ] Journey, Path, Moment, Draft cover schemas — add `schemas/*CoverSchema.ts` following agent pattern
+- [ ] Journey, Path, Moment, Draft cover schemas — **Journey done** (`journeyCoverSchema.ts`, `JourneyFocusPresence.tsx`); Path, Moment, Draft remain
 - [ ] Theatre.js handoff — motion value names are fixed for Present integration
 - [ ] Domain assignment edit — read-only today; domain switch API pending
 
 ## 📆 Update Log
+
+### 2026-06-19 — Journey EntityKind migration
+- Added `journeyCoverSchema.ts`, `JourneyFocusPresence.tsx` (Cover · Config · Act)
+- Engagement actions in cover actions slot; Act mode via `ChronicleActPresence`
+- `JourneyConfigPresence` + `JourneyChronicleBlocks`; removed legacy `JourneyFocusPresence` from `KeeperPresence.tsx`
 
 ### 2026-06-17 — Keeper Config feed fix
 - `useKeeperFeedData(keeperId, domainId)` appends `?domainId=` (required by keeper GET/PATCH middleware)

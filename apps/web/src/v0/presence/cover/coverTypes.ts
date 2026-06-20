@@ -79,6 +79,13 @@ export interface CoverActionHandlers {
   onOpenSession?: () => void
   /** Agent cover — enter board Training Mode */
   onTrain?: () => void
+  /** Journey cover — mark as domain-active journey */
+  onSetActive?: () => void
+  /** Engagement template Act — opens Chronicle Act mode */
+  onEngagementAct?: (slug: string) => void
 }
 
-export type AgentCoverMode = "cover" | "config" | "training"
+/** Universal EntityKind cover modes (Agent adds `training`). */
+export type EntityCoverMode = "cover" | "config" | "act"
+
+export type AgentCoverMode = EntityCoverMode | "training"

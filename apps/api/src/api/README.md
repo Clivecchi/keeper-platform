@@ -164,4 +164,5 @@ When adding new board types:
 *Last updated: January 2025 - Live Data Integration Complete*
 
 ## 📆 Update Log
+- 2026-06-19: Added `PATCH /api/journeys/:id` for Chronicle Config saves (name, forward) — Journey EntityKind migration.
 - 2026-06-16: Removed legacy `/api/agents/:id/drafts` router (`agents/drafts.ts`) and `Draft` Prisma model; live drafts use `kip_drafts` via `/api/domains/:domainId/kip/drafts` and Kip actions.

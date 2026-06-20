@@ -6,6 +6,7 @@ This document is the canonical, code-backed description of Keeper's user experie
 
 - **Shell + frames**: `apps/web/src/v0/shell/V0Shell.tsx`, `apps/web/src/v0/shell/V0ShellContext.tsx`, `apps/web/src/v0/shell/useExperienceMode.ts`.
 - **Universal Board**: `apps/web/src/v0/boards/UniversalBoard.tsx`, `UniversalNavPanel.tsx`, `panels/UniversalViewPanel.tsx` (Chronicle), `UniversalBoardContext.tsx`, `engagement/ChronicleEngagementSurface.tsx`.
+- **Declared Chronicle UI**: `apps/web/src/v0/presence/chronicleConfig/ChronicleConfigShell.tsx`, `ChronicleActPresence.tsx`, `useChronicleConfig.ts`.
 - **World renderers**: `apps/web/src/worlds/shared/BoardRenderer.tsx`, `apps/web/src/worlds/presentation/NarrativeFrameRenderer.tsx`, `apps/web/src/worlds/workshop/StructuralFrameRenderer.tsx`.
 - **Routing + layouts**: `apps/web/src/App.tsx`, `apps/web/src/pages/d/V0ShellPage.tsx`, `apps/web/src/layouts/BoardPublicLayout.tsx`.
 - **UX modes**: `apps/web/src/context/WorldModeContext.tsx`, `apps/web/src/context/ViewModeContext.tsx`.
@@ -93,7 +94,8 @@ On Universal Board, engagement follows a strict panel contract:
 | Trigger | Nav `+` or Chronicle action bar (`EntityEngagementBar`) | User requests an Act |
 | Request | `UniversalBoardContext.requestChronicleEngagement(slug, context)` | Sets `chronicleEngagement` intent |
 | Render | `UniversalViewPanel` → `ChronicleActPresence` | Declared shell — same as Manage; Act header + themed form in Chronicle |
-| Inline (journey/moment focus) | `KeeperPresence` → `JourneyChronicleEngagement` / `PresenceEngagementActions` | Action bar + `BoardEngagementForm` with `variant="chronicle"` below presence body — still Chronicle, not Nav |
+| Inline (journey focus) | `JourneyFocusPresence` cover actions → Act mode | `ChronicleActPresence` inside focus (same as Agent Configure flow) |
+| Inline (moment focus) | `KeeperPresence` → `PresenceEngagementActions` | Moment update — migrate to cover Act pattern next |
 | Complete | Submit or cancel | `closeChronicleEngagement`, `bumpJourneyNav`, presence refresh |
 
 **Do not** render `EngagementForm` or `BoardEngagementForm` inside `UniversalNavPanel`. Nav is a narrow list surface; forms belong in Chronicle.
@@ -124,7 +126,7 @@ On Universal Board, engagement follows a strict panel contract:
 
 - Themes and style overrides centralize visual identity per surface.
 - World renderers own large-scale tone (narrative vs structural).
-- Board engagement forms use `hsl(var(--theme-*))` tokens via `EngagementForm variant="chronicle"` — no default blue/gray form chrome in Chronicle.
+- Board Chronicle fields use `keeper-presence-field-label` + `hsl(var(--theme-*))` tokens via `ChronicleActPresence` / `ChronicleConfigShell` — not generic `EngagementForm` chrome.
 
 ## 🔗 Narrative UX → Runtime Mapping
 
