@@ -6,13 +6,14 @@ Wires KeeperType engagement templates into the Universal Board (Nav + Chronicle)
 ## 🔄 Data & Behavior
 `useBoardEngagement` loads templates by slug or accepts an activated template from `EntityEngagementBar`, submits via `/api/engagement/execute`, then calls `onSuccess` to bump nav lists or refresh Chronicle presence.
 
-**Nav triggers, Chronicle renders:** Nav `+` calls `requestChronicleEngagement` on board context. `ChronicleEngagementSurface` in `UniversalViewPanel` hosts the Act form — never inline in Nav.
+**Nav triggers, Chronicle renders:** Nav `+` calls `requestChronicleEngagement` on board context. `ChronicleEngagementSurface` → `ChronicleActPresence` (declared shell — same as Config/Manage), never generic `EngagementForm` chrome or inline Nav forms.
 
 Used by `KeeperPresence` journey/moment focus (add moment, path, moment create, moment update) for inline Chronicle forms with `variant="chronicle"`.
 
 ## 🧱 Key Files
 - `useBoardEngagement.ts` — Intent state, template activation, execute + refresh callback
-- `ChronicleEngagementSurface.tsx` — Full Chronicle Act surface (header + themed form)
+- `ChronicleEngagementSurface.tsx` — Board wrapper → `ChronicleActPresence`
+- `ChronicleActPresence.tsx` (in `presence/chronicleConfig/`) — Declared Act surface: `ChronicleConfigShell` + template fields
 - `BoardEngagementForm.tsx` — Inline engagement form for presence focus (chronicle variant)
 - `PresenceEngagementActions.tsx` — Chronicle action bar + inline form wrapper
 
@@ -21,5 +22,5 @@ Used by `KeeperPresence` journey/moment focus (add moment, path, moment create, 
 - [ ] Public Present engagement after member board pass is complete
 
 ## 📆 Update Log
-- **2026-06-19** — Nav `+` triggers `requestChronicleEngagement`; forms render in Chronicle via `ChronicleEngagementSurface`, not inline in Nav.
+- **2026-06-19** — `ChronicleActPresence` uses declared `ChronicleConfigShell` (matches Agent Manage); removed bespoke Act header + `EngagementForm`.
 - **2026-06-19** — Initial board-only engagement wiring for Universal Board singular UI.

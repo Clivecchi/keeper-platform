@@ -75,6 +75,7 @@ export function useBoardEngagement(
         onSuccess?.()
       } catch (error) {
         console.error("[useBoardEngagement] submit failed:", error)
+        throw error
       } finally {
         setSubmitting(false)
       }

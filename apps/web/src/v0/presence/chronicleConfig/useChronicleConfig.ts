@@ -13,6 +13,7 @@ export type { ChronicleSaveStatus, ChronicleEntityKind } from "./types"
 export { handleChronicleSave } from "./chroniclePatch"
 export { ChronicleSaveBar } from "./ChronicleSaveBar"
 export { ChronicleConfigShell } from "./ChronicleConfigShell"
+export { ChronicleActPresence } from "./ChronicleActPresence"
 
 export interface UseChronicleConfigOptions {
   entityKind: ChronicleEntityKind
