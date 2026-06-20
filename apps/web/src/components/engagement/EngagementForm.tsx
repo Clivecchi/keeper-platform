@@ -40,6 +40,7 @@ export interface EngagementTemplateDefinition {
   slug: string;
   label: string;
   type: string;
+  targetType?: string;
   config: {
     visibility: string;
     requiresConfirmation?: boolean;

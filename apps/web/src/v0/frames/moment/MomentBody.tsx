@@ -12,6 +12,7 @@ import { recordTrailEvent } from "../../stores/trailStore"
 import { MomentFeedbackRail } from "./MomentFeedbackRail"
 import { useV0ShellOptional } from "../../shell/V0ShellContext"
 import { useFrameContextOptional } from "../../shell/FrameContext"
+import { EntityEngagementBar } from "../../../components/engagement/EntityEngagementBar"
 
 interface MomentBodyProps {
   /** Theme slug for ruled lines */
@@ -63,6 +64,7 @@ export function MomentBody({
 
   // Context-derived values (authoritative from shell)
   const ctxDomainSlug = frameCtx?.domain?.slug ?? domainSlug
+  const ctxDomainId = frameCtx?.domain?.id
   const ctxJourneyId = frameCtx?.selection.activeJourneyId ?? null
   const ctxKeeperId = frameCtx?.selection.activeKeeperId ?? null
   // Determine if we should show ruled lines (diary-paper theme or style)
@@ -276,6 +278,12 @@ export function MomentBody({
     }
   }, [activeDraftId, content, saveNow, saveRetryToken, title])
 
+  const handleMomentUpdated = async () => {
+    if (activeDraftId) {
+      await loadDraft(activeDraftId)
+    }
+  }
+
   const trimmedContent = content.trim()
   const wordCount = trimmedContent ? trimmedContent.split(/\s+/).filter(Boolean).length : 0
   const saveStatusLabel = isKept
@@ -418,6 +426,26 @@ export function MomentBody({
                 },
               }}
             />
+
+            {isKept && isAuthenticated && activeDraftId && ctxDomainId && (
+              <div className="px-6 md:px-8 pb-4">
+                <EntityEngagementBar
+                  keeperTypeName="Moment"
+                  entityType="moment"
+                  entityId={activeDraftId}
+                  domainId={ctxDomainId}
+                  keeperId={ctxKeeperId ?? undefined}
+                  journeyId={ctxJourneyId ?? undefined}
+                  targetType="moment"
+                  includeSlugs={["moment.update"]}
+                  isAuthenticated={isAuthenticated}
+                  onSuccess={() => {
+                    void handleMomentUpdated()
+                  }}
+                  buttonClassName="rounded-full border px-3 py-1 text-[10px] font-medium transition-colors opacity-80 hover:opacity-100 bg-transparent"
+                />
+              </div>
+            )}
             </div>
           </div>
         </div>
