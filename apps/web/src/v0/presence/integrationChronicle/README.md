@@ -19,7 +19,9 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `DialogConfigPresence.tsx` — Dialog Config Mode (title) via `useChronicleConfig`
 - `DialogChronicleBlocks.tsx` — Recent Exchanges + Sessions below dialog cover
 - `DraftConfigPresence.tsx` — Draft Config Mode (title, status) via `useChronicleConfig`
-- `DraftChronicleBlocks.tsx` — Summary, points (Accept), linked dialog below draft cover
+- `DraftChronicleBlocks.tsx` — Summary, points (Accept + Discuss), versions, linked dialog sessions
+- `DraftVersionStrip.tsx` — Read-only last N versions from `GET .../versions`
+- `DraftSessionsBlock.tsx` — Sessions on linked Dialog; highlights `active_draft_id` below draft cover
 - `PathChronicleBlocks.tsx` — Prelude + moments below path cover
 - `MomentChronicleBlocks.tsx` — Story body below moment cover
 
@@ -34,6 +36,10 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-06-19 — Draft EntityKind Phase 1b
+- `DraftVersionStrip`, `DraftSessionsBlock`, Discuss → Dialog via `draftDiscussAnchor` on board context
+- Shared `DraftPointRow` with `data-gloss-anchor` via `@keeper/shared` `GlossAnchor`
 
 ### 2026-06-19 — Draft EntityKind migration
 - `DraftConfigPresence` — title + status via `useChronicleConfig`; post-save `bumpDraftNav`

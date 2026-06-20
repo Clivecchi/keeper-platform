@@ -59,6 +59,10 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-06-19 — Draft Phase 1b (PointRow + Discuss)
+- `DraftPointRow.tsx` — shared point row with Accept, Discuss, `data-gloss-anchor`
+- `DraftPointsSection.tsx` — delegates to `DraftPointRow`
+
 ### 2026-06-14 — Library EntityKind presence (Pass 1)
 - `LibraryItemFocusPresence` — Cover ↔ Config orchestration; feed via `GET /api/library-items/:id`
 - `LibraryItemConfigPresence` — editable metadata + assignment selects; `onSaved` → `bumpLibraryNav`

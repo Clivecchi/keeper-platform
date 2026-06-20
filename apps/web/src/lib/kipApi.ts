@@ -169,8 +169,20 @@ export interface KipDraft extends KipDraftSummary {
   domain_id?: string;
   owner_id?: string;
   agent_id?: string | null;
+  dialog_id?: string | null;
+  dialogId?: string | null;
   spec?: DraftSpecJson;
   created_at?: string | Date;
+}
+
+export interface KipDraftVersion {
+  id: string;
+  version: number;
+  title: string;
+  summary?: string | null;
+  status: KipDraftStatus;
+  spec?: DraftSpecJson;
+  createdAt: string;
 }
 
 export interface KipEnvironmentBundle {
@@ -807,6 +819,21 @@ export class KipApi {
       };
     }
     throw new Error(pickErrorMessage(response, 'Failed to load draft'));
+  }
+
+  static async listDraftVersions(
+    domainId: string,
+    draftId: string,
+    limit = 5,
+  ): Promise<KipDraftVersion[]> {
+    const response = await apiFetch(
+      `/api/domains/${domainId}/kip/drafts/${draftId}/versions`,
+    );
+    const versions = (response as { versions?: KipDraftVersion[] })?.versions;
+    if (!Array.isArray(versions)) {
+      throw new Error(pickErrorMessage(response, 'Failed to load draft versions'));
+    }
+    return versions.slice(0, limit);
   }
 
   static async createDraft(

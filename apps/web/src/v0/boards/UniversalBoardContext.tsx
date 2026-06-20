@@ -21,6 +21,7 @@
 
 import * as React from "react"
 import { useFrameContextOptional } from "../shell/FrameContext"
+import type { GlossAnchor } from "@keeper/shared"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/capabilityNavUtils"
 import type { KeeperNavRowPatch } from "../presence/integrationChronicle/keeperNavUtils"
@@ -86,6 +87,8 @@ export interface UniversalBoardSelection {
   draftNavRevision: number
   /** Optimistic Drafts nav row patch applied before refetch completes. */
   draftNavRowPatch: DraftNavRowPatch | null
+  /** When set, the next Dialog run includes this anchor in agentContext. */
+  draftDiscussAnchor: GlossAnchor | null
   /** Agent Board: Chronicle Training Mode — entered via Train on agent cover. */
   trainingMode: boolean
   /** IDE director mode: pinned board instrument for delegation + Chronicle focus. */
@@ -119,6 +122,9 @@ export interface UniversalBoardActions {
   bumpKeeperNav: (patch?: KeeperNavRowPatch) => void
   bumpJourneyNav: () => void
   bumpDraftNav: (patch?: DraftNavRowPatch) => void
+  /** Pass a draft point into Dialog context for the next Kip exchange. */
+  requestDiscussDraftPoint: (anchor: GlossAnchor, options?: { dialogId?: string | null }) => void
+  clearDraftDiscussAnchor: () => void
   /** Open an engagement form in Chronicle (right panel), not Nav. */
   requestChronicleEngagement: (slug: string, context: EngagementContext) => Promise<void>
   closeChronicleEngagement: () => void
@@ -194,6 +200,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [draftNavRevision, setDraftNavRevision] = React.useState(0)
   const [draftNavRowPatch, setDraftNavRowPatch] =
     React.useState<DraftNavRowPatch | null>(null)
+  const [draftDiscussAnchor, setDraftDiscussAnchor] =
+    React.useState<GlossAnchor | null>(null)
   const [chronicleEngagement, setChronicleEngagement] =
     React.useState<BoardEngagementIntent | null>(null)
   const [trainingMode, setTrainingMode] = React.useState(false)
@@ -471,6 +479,20 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setDraftNavRevision((n) => n + 1)
   }, [])
 
+  const requestDiscussDraftPoint = React.useCallback(
+    (anchor: GlossAnchor, options?: { dialogId?: string | null }) => {
+      setDraftDiscussAnchor(anchor)
+      if (options?.dialogId) {
+        onDialogSelect(options.dialogId)
+      }
+    },
+    [onDialogSelect],
+  )
+
+  const clearDraftDiscussAnchor = React.useCallback(() => {
+    setDraftDiscussAnchor(null)
+  }, [])
+
   const closeChronicleEngagement = React.useCallback(() => {
     setChronicleEngagement(null)
   }, [])
@@ -522,6 +544,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         journeyNavRevision,
         draftNavRevision,
         draftNavRowPatch,
+        draftDiscussAnchor,
         trainingMode,
         activeBoardInstrument,
       },
@@ -549,6 +572,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         bumpKeeperNav,
         bumpJourneyNav,
         bumpDraftNav,
+        requestDiscussDraftPoint,
+        clearDraftDiscussAnchor,
         requestChronicleEngagement,
         closeChronicleEngagement,
         onEnterTrainingMode,
@@ -588,6 +613,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       journeyNavRevision,
       draftNavRevision,
       draftNavRowPatch,
+      draftDiscussAnchor,
       trainingMode,
       activeBoardInstrument,
       onSessionSelect,
@@ -613,6 +639,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       bumpKeeperNav,
       bumpJourneyNav,
       bumpDraftNav,
+      requestDiscussDraftPoint,
+      clearDraftDiscussAnchor,
       requestChronicleEngagement,
       closeChronicleEngagement,
       onEnterTrainingMode,

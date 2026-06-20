@@ -30,6 +30,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `KeeperPresence`: journey Chronicle → add moment / path / moment create; moment Chronicle → `MomentFocusPresence` (cover + Config edit)
 - `UniversalBoardContext`: `bumpJourneyNav` refreshes nav after engagement
 
+### 2026-06-19 — Draft EntityKind Phase 1b
+- `bumpDraftNav` gains `requestDiscussDraftPoint` / `clearDraftDiscussAnchor` for Dialog anchor context
+- Domain board `onAfterAgentRun` wired for draft receipts + anchor clear
+
 ### 2026-06-19 — Draft EntityKind (Phase 1)
 - `bumpDraftNav` + `draftNavRevision` / `draftNavRowPatch` on board context
 - `UniversalNavPanel` Drafts `+` → `requestChronicleEngagement('draft.create')`

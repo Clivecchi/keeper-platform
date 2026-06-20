@@ -161,6 +161,16 @@ export function DraftFocusPresence({
         ? record.dialogId
         : null
 
+  const handleDiscussPoint = React.useCallback(
+    (discussDraftId: string, pointId: string) => {
+      boardCtx?.actions.requestDiscussDraftPoint(
+        { entityKind: "draft", entityId: discussDraftId, nodeId: pointId },
+        { dialogId },
+      )
+    },
+    [boardCtx, dialogId],
+  )
+
   if (coverMode === "config") {
     return (
       <DraftConfigPresence
@@ -196,14 +206,18 @@ export function DraftFocusPresence({
             </div>
             <div className="px-4 pb-4">
               <DraftChronicleBlocks
+                domainId={domainId}
                 draftId={objectId}
                 spec={spec}
                 summary={typeof record.summary === "string" ? record.summary : null}
+                dialogId={dialogId}
+                presenceRefreshKey={boardCtx?.selection.draftPresenceRevision ?? 0}
                 onAcceptPoint={acceptDraftPoint}
+                onDiscussPoint={handleDiscussPoint}
                 acceptingPointId={acceptingDraftPointId}
                 acceptedPointIds={acceptedDraftPointIds}
-                dialogId={dialogId}
                 onDialogSelect={boardCtx?.actions.onDialogSelect}
+                onSessionSelect={boardCtx?.actions.onSessionSelect}
               />
             </div>
           </motion.div>

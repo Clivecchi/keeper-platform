@@ -33,6 +33,7 @@ import { useFrameContextOptional } from "../shell/FrameContext"
 import { useAuth } from "../../context/AuthContext"
 import { extractLinkedCard } from "../../components/agent/helpers"
 import { useDraftPointAccept } from "../../hooks/useDraftPointAccept"
+import { glossAnchorToDraftDiscuss } from "@keeper/shared"
 import { useAgentDialog, extractRunAgentPayload } from "../../hooks/useAgentDialog"
 import { useDraftContext } from "../../hooks/useDraftContext"
 import { useSelectionSessionResume } from "../../hooks/useSelectionSessionResume"
@@ -309,14 +310,22 @@ export function UniversalConversation({
   // ── agentContext — computed once, shared across all modes ─────────────
   const agentContext = React.useMemo(() => {
     if (!domainFrame) return undefined
-    return {
+    const base = {
       audience,
       model: domainFrame.kip.model,
       forward: domainFrame.forward,
       directions: domainFrame.directions.filter((d) => d.available_to.includes(audience)),
       kip_context: domainFrame.kip_context[audience] ?? "",
     }
-  }, [domainFrame, audience])
+    const anchor = selection.draftDiscussAnchor
+    if (!anchor) return base
+    const draftDiscuss = glossAnchorToDraftDiscuss(anchor)
+    return {
+      ...base,
+      glossAnchor: anchor,
+      ...(draftDiscuss ? { draftDiscuss } : {}),
+    }
+  }, [domainFrame, audience, selection.draftDiscussAnchor])
 
   // ── ide mode: resolved names for banner ───────────────────────────────────
   const activeKeeperId = selectedKeeperId ?? frameCtx?.selection?.activeKeeperId ?? null
@@ -529,6 +538,10 @@ export function UniversalConversation({
   // ── ide / designer / agent mode: post-run callbacks ─────────────────────────
   const onAfterAgentRun = React.useCallback(
     (latestRaw: KipMessage[] | undefined, actionResults: unknown[] | undefined) => {
+      if (selection.draftDiscussAnchor) {
+        actions.clearDraftDiscussAnchor()
+      }
+
       if (kipMode === "designer" && designerFocusKey) {
         if (Array.isArray(actionResults)) {
           for (const ar of actionResults) {
@@ -548,7 +561,7 @@ export function UniversalConversation({
         return
       }
 
-      if (kipMode === "agent" && Array.isArray(actionResults)) {
+      if (kipMode === "agent" || kipMode === "domain") && Array.isArray(actionResults)) {
         for (const ar of actionResults) {
           const receipt = normalizeActionReceipt(
             ar as Parameters<typeof normalizeActionReceipt>[0],
@@ -642,7 +655,7 @@ export function UniversalConversation({
         return
       }
     },
-    [kipMode, designerFocusKey, handleDesignerDraft, onDraftSelect, onJourneySelect, onMomentSelect, onDraftListRefresh, onJourneyListRefresh, actions],
+    [kipMode, designerFocusKey, handleDesignerDraft, onDraftSelect, onJourneySelect, onMomentSelect, onDraftListRefresh, onJourneyListRefresh, actions, selection.draftDiscussAnchor],
   )
 
   const onAfterAgentRunWithEcho = React.useCallback(
@@ -826,9 +839,11 @@ export function UniversalConversation({
     controlledSessionId: activeSessionId,
     onControlledSessionIdChange: handleSessionChange,
     onAfterAgentRun:
-      kipMode === "ide" || kipMode === "designer" || kipMode === "agent"
-        ? onAfterAgentRunWithEcho
-        : undefined,
+      kipMode === "domain"
+        ? onAfterAgentRun
+        : kipMode === "ide" || kipMode === "designer" || kipMode === "agent"
+          ? onAfterAgentRunWithEcho
+          : undefined,
     onRefreshDraftsAfterRun:
       kipMode === "agent" || kipMode === "ide" ? handleRefreshDraftsAfterRun : undefined,
     frameKey: designerFocusKey ?? undefined,
