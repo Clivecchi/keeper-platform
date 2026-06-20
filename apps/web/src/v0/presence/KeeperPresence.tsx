@@ -61,6 +61,7 @@ import { toPresentInstanceKey } from "../presents/presentInstanceKey"
 import { JourneyFocusPresence } from "./cover/JourneyFocusPresence"
 import { MomentFocusPresence } from "./cover/MomentFocusPresence"
 import { PathFocusPresence } from "./cover/PathFocusPresence"
+import { DialogFocusPresence } from "./cover/DialogFocusPresence"
 
 export type { PresenceLayout } from "./types"
 
@@ -654,187 +655,6 @@ function PresenceFieldEditor({
   )
 }
 
-function PathCard({
-  label,
-  preview,
-  sub,
-  onClick,
-}: {
-  label: string
-  preview?: string
-  sub?: string
-  onClick?: () => void
-}) {
-  const Wrapper = onClick ? "button" : "div"
-  return (
-    <Wrapper
-      type={onClick ? "button" : undefined}
-      onClick={onClick}
-      className={`w-full text-left rounded-lg border px-3 py-2.5 mb-2${onClick ? " transition-all hover:opacity-90" : ""}`}
-      style={{
-        cursor: onClick ? "pointer" : "default",
-        borderColor: "hsl(var(--theme-border-soft) / 0.45)",
-        background: "hsl(var(--theme-surface-elevated) / 0.28)",
-      }}
-    >
-      <p
-        className="text-[14px] font-medium leading-snug"
-        style={{ color: "hsl(var(--theme-ink-primary))" }}
-      >
-        {label}
-      </p>
-      {preview && (
-        <p
-          className="text-[13px] leading-relaxed mt-1"
-          style={{ color: "hsl(var(--theme-ink-secondary))" }}
-        >
-          {preview}
-        </p>
-      )}
-      {sub && (
-        <p
-          className="text-[12px] mt-1"
-          style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-        >
-          {sub}
-        </p>
-      )}
-    </Wrapper>
-  )
-}
-
-function DialogFocusSections({
-  sections,
-  onSessionSelect,
-}: {
-  sections: RelatedSection[]
-  onSessionSelect?: (id: string) => void
-}) {
-  if (sections.length === 0) return null
-
-  return (
-    <>
-      {sections.map((section) => (
-        <PresenceSection key={section.title} title={section.title}>
-          {section.items.length === 0 ? (
-            <p
-              className="text-[14px] leading-relaxed"
-              style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-            >
-              Nothing here yet — open the Dialog to begin.
-            </p>
-          ) : section.title === "Recent Exchanges" ? (
-            section.items.map((item) => (
-              <PathCard
-                key={item.id}
-                label={item.label}
-                preview={item.preview}
-                sub={item.sub}
-                onClick={
-                  item.navigateKind === "session" && onSessionSelect
-                    ? () => onSessionSelect(item.id)
-                    : undefined
-                }
-              />
-            ))
-          ) : (
-            section.items.map((item) => (
-              <PresenceThread
-                key={item.id}
-                label={item.label}
-                sub={item.sub}
-                preview={item.preview}
-                onClick={
-                  item.navigateKind === "session" && onSessionSelect
-                    ? () => onSessionSelect(item.id)
-                    : undefined
-                }
-              />
-            ))
-          )}
-        </PresenceSection>
-      ))}
-    </>
-  )
-}
-
-function DialogFocusPresence({
-  fieldValues,
-  setFieldValues,
-  markEdited,
-  meta,
-  relatedSections,
-  onSessionSelect,
-}: {
-  fieldValues: Record<string, string>
-  setFieldValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
-  markEdited: () => void
-  meta?: PresenceMeta
-  relatedSections: RelatedSection[]
-  onSessionSelect?: (id: string) => void
-}) {
-  const motion = usePresentMotionValues()
-  const hairline = "hsl(var(--theme-border-soft) / 0.35)"
-  const title = fieldValues.title ?? ""
-  const scope = fieldValues.context?.trim()
-
-  return (
-    <div className="relative flex flex-col h-full min-h-0">
-      <PresentAtmosphereLayer />
-      <div className="shrink-0 px-4 pt-4 pb-3" style={{ borderBottom: `1px solid ${hairline}` }}>
-        <div style={primaryMotionStyle(motion)}>
-          <AutoResizeTextarea
-            value={title}
-            onChange={(v) => {
-              markEdited()
-              setFieldValues((prev) => ({ ...prev, title: v }))
-            }}
-            placeholder="Untitled dialog"
-            className="text-[20px] font-semibold leading-snug"
-            style={{ color: "hsl(var(--theme-ink-primary))" }}
-          />
-          {meta?.line && (
-            <p
-              className="text-[13px] mt-1.5 leading-snug"
-              style={{ ...contextMotionStyle(motion), color: "hsl(var(--theme-ink-tertiary))" }}
-            >
-              {meta.line}
-            </p>
-          )}
-          {scope && (
-            <p
-              className="text-[12px] mt-1 italic leading-snug truncate"
-              style={{ color: "hsl(var(--theme-ink-secondary))" }}
-              title={scope}
-            >
-              {scope}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div
-        className="keeper-panel-scroll flex-1 min-h-0 overflow-y-auto px-4 pt-3 pb-4"
-        style={secondaryMotionStyle(motion)}
-      >
-        {relatedSections.length === 0 ? (
-          <p
-            className="text-[14px] leading-relaxed"
-            style={{ color: "hsl(var(--theme-ink-tertiary))" }}
-          >
-            Nothing here yet — open the Dialog to begin.
-          </p>
-        ) : (
-          <DialogFocusSections
-            sections={relatedSections}
-            onSessionSelect={onSessionSelect}
-          />
-        )}
-      </div>
-    </div>
-  )
-}
-
 function PresentAtmosphereLayer() {
   const motion = usePresentMotionValues()
   return (
@@ -1024,6 +844,7 @@ export function KeeperPresence({
     (objectType === "journey" && layout === "focus") ||
     (objectType === "moment" && layout === "focus") ||
     (objectType === "path" && layout === "focus") ||
+    (objectType === "dialog" && layout === "focus") ||
     (objectType === "service" && layout === "focus") ||
     objectType === "boardDef" ||
     (objectType === "frame" && layout === "config") ||
@@ -1173,6 +994,7 @@ export function KeeperPresence({
     if (objectType === "journey" && layout === "focus") return
     if (objectType === "moment" && layout === "focus") return
     if (objectType === "path" && layout === "focus") return
+    if (objectType === "dialog" && layout === "focus") return
     if (!hasEdited.current || !record || !objectId || !domainId) return
     const endpoint = patchEndpoint(objectType, objectId, domainId)
 
@@ -1482,15 +1304,17 @@ function KeeperPresenceSurface({
     )
   }
 
-  if (objectType === "dialog" && layout === "focus") {
+  if (objectType === "dialog" && layout === "focus" && record) {
     return (
       <DialogFocusPresence
-        fieldValues={fieldValues}
-        setFieldValues={setFieldValues}
-        markEdited={markEdited}
+        objectId={objectId}
+        domainId={domainId}
+        record={record}
         meta={meta}
         relatedSections={relatedSections}
+        onLabelResolved={onLabelResolved}
         onSessionSelect={onSessionSelect}
+        onEngagementSuccess={handlePresenceRefresh}
       />
     )
   }

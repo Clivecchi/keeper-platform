@@ -16,7 +16,8 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `IntegrationConfigPresence.tsx` — AI model integration Config Mode
 - `JourneyConfigPresence.tsx` — Journey Config Mode (name, forward) via `useChronicleConfig`
 - `JourneyChronicleBlocks.tsx` — Paths + Moments declaration blocks below journey cover
-- `PathConfigPresence.tsx` — Path Config Mode (name, prelude) via `useChronicleConfig`
+- `DialogConfigPresence.tsx` — Dialog Config Mode (title) via `useChronicleConfig`
+- `DialogChronicleBlocks.tsx` — Recent Exchanges + Sessions below dialog cover
 - `PathChronicleBlocks.tsx` — Prelude + moments below path cover
 - `MomentChronicleBlocks.tsx` — Story body below moment cover
 
@@ -31,6 +32,10 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-06-19 — Dialog EntityKind migration
+- `DialogConfigPresence` — explicit Save for title; scope display read-only
+- `DialogChronicleBlocks` — session lists with tappable resume
 
 ### 2026-06-19 — Path EntityKind migration
 - `PathConfigPresence` — explicit Save for name/prelude (`PATCH /api/paths/:id`)
