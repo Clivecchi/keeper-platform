@@ -14,11 +14,11 @@ import { normalizeSummary } from '../kip/actions/schema.js';
  */
 function buildDraftOpenUrl(domainSlug: string, draftId: string): string {
   const webOrigin = process.env.WEB_ORIGIN || process.env.NEXT_PUBLIC_WEB_ORIGIN || 'https://www.ke3p.com';
-  // Use relative URL if we can't determine origin reliably
+  const path = `/d/${domainSlug}/board?board=domain&draftId=${draftId}`;
   if (!webOrigin || webOrigin.includes('localhost') || webOrigin.includes('127.0.0.1')) {
-    return `/d/${domainSlug}/agent?view=drafts&draftId=${draftId}`;
+    return path;
   }
-  return `${webOrigin}/d/${domainSlug}/agent?view=drafts&draftId=${draftId}`;
+  return `${webOrigin}${path}`;
 }
 
 const prisma = new PrismaClient();
@@ -26,17 +26,28 @@ const router = Router();
 
 const draftStatusEnum = z.enum(['draft', 'reviewed', 'approved', 'promoted', 'archived']);
 
+function slugifyDraftKey(title: string): string {
+  const base = title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+  return `${base || 'draft'}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 const createDraftSchema = z.object({
   kind: z.string().min(1, 'kind is required'),
-  key: z.string().min(1, 'key is required'),
+  key: z.string().min(1, 'key is required').optional(),
   title: z.string().min(1, 'title is required'),
   summary: z.string().nullable().optional(),
   spec: z.record(z.any()).optional(),
   agentId: z.string().uuid().optional(),
   keeperId: z.string().min(1).optional(),
+  dialogId: z.string().optional(),
 }).transform((data) => ({
   ...data,
-  // Normalize summary: null/undefined -> empty string (not null)
+  key: data.key?.trim() || slugifyDraftKey(data.title),
   summary: normalizeSummary(data.summary),
 }));
 
@@ -233,6 +244,7 @@ router.post(
       const now = new Date();
 
       const keeperId = body.keeperId ?? null;
+      const dialogId = body.dialogId ?? null;
       const existing = await prisma.kip_drafts.findFirst({
         where: {
           domain_id: domainId,
@@ -253,6 +265,7 @@ router.post(
         updated_at: now,
         agent_id: body.agentId ?? null,
         keeper_id: keeperId,
+        dialog_id: dialogId,
       };
 
       const draft = existing

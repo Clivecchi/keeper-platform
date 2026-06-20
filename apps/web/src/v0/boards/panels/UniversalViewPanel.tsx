@@ -661,7 +661,6 @@ export function UniversalViewPanel({
           <ChronicleEngagementSurface
             intent={chronicleEngagement}
             onClose={() => boardCtx?.actions.closeChronicleEngagement()}
-            onSuccess={() => boardCtx?.actions.bumpJourneyNav()}
           />
         ) : (
           <PanelBody

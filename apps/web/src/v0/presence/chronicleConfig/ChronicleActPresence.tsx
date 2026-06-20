@@ -9,7 +9,13 @@ import type {
 import { ChronicleConfigShell } from "./ChronicleConfigShell"
 import type { ChronicleSaveStatus } from "./types"
 
-const HIDDEN_CONTEXT_FIELDS = new Set(["keeperId", "domainId", "journeyId"])
+const HIDDEN_CONTEXT_FIELDS = new Set([
+  "keeperId",
+  "domainId",
+  "journeyId",
+  "dialogId",
+  "kind",
+])
 
 const INPUT_CLASS =
   "w-full rounded-md border px-3 py-2 text-[13px] bg-transparent outline-none resize-y"

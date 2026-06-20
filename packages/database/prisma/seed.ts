@@ -45,6 +45,10 @@ async function main() {
     const seedJourneyPathMoment = await import('./seeds/journey-path-moment-engagement-templates.seed.ts');
     await seedJourneyPathMoment.default();
 
+    console.log('📝 Seeding Draft Engagement Templates...');
+    const seedDraftEngagement = await import('./seeds/draft-engagement-templates.seed.ts');
+    await seedDraftEngagement.default();
+
     console.log('🎯 Seeding Domain Board Management Templates...');
     const seedDomainBoardEngagement = await import('./seeds/domain-board-engagement-templates.seed.ts');
     await seedDomainBoardEngagement.default();

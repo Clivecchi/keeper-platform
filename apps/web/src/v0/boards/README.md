@@ -30,6 +30,12 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 - `KeeperPresence`: journey Chronicle → add moment / path / moment create; moment Chronicle → `MomentFocusPresence` (cover + Config edit)
 - `UniversalBoardContext`: `bumpJourneyNav` refreshes nav after engagement
 
+### 2026-06-19 — Draft EntityKind (Phase 1)
+- `bumpDraftNav` + `draftNavRevision` / `draftNavRowPatch` on board context
+- `UniversalNavPanel` Drafts `+` → `requestChronicleEngagement('draft.create')`
+- `ChronicleEngagementSurface` routes success by template slug (draft vs journey/path/moment)
+- `onDraftListRefresh` → `bumpDraftNav` (replaces local list bump)
+
 ### 2026-06-20 — Director continuity ("try again")
 - `@keeper/shared/directorContinuity` resolves retry/refer-back phrases to the last delegatable user message
 - `useAgentDialog` sends `taskMessage` on director delegation; API re-resolves from session if omitted

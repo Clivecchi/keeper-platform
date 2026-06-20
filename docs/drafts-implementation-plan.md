@@ -3,6 +3,8 @@
 **Date:** 2026-02-12  
 **Purpose:** Plan to implement draft enhancements discussed in conversation.
 
+> **Superseded for EntityKind / Domain board work:** see [`draft-entitykind-implementation-plan.md`](./draft-entitykind-implementation-plan.md) (2026-06-19). Keeper scoping, versioning, propose/accept, and points canonical shape are largely **done in code**; this file remains historical reference for earlier API/schema notes.
+
 ---
 
 ## Conversation Summary

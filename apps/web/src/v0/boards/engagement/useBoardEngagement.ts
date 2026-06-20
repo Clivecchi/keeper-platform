@@ -10,6 +10,10 @@ export interface BoardEngagementIntent {
   context: EngagementContext
 }
 
+export interface BoardEngagementSuccessResult {
+  data?: unknown
+}
+
 export interface UseBoardEngagementResult {
   intent: BoardEngagementIntent | null
   submitting: boolean
@@ -24,7 +28,7 @@ export interface UseBoardEngagementResult {
 }
 
 export function useBoardEngagement(
-  onSuccess?: () => void,
+  onSuccess?: (result?: BoardEngagementSuccessResult) => void,
   initialIntent: BoardEngagementIntent | null = null,
 ): UseBoardEngagementResult {
   const [intent, setIntent] = useState<BoardEngagementIntent | null>(initialIntent)
@@ -72,7 +76,7 @@ export function useBoardEngagement(
           throw new Error(response.message || response.error || "Action failed")
         }
         setIntent(null)
-        onSuccess?.()
+        onSuccess?.({ data: response.data })
       } catch (error) {
         console.error("[useBoardEngagement] submit failed:", error)
         throw error

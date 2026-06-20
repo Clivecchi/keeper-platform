@@ -12,6 +12,12 @@ export interface ChronicleEngagementSurfaceProps {
   onSuccess?: () => void
 }
 
+function resolveCreatedDraftId(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null
+  const draft = (data as { draft?: { id?: unknown } }).draft
+  return typeof draft?.id === "string" ? draft.id : null
+}
+
 export function ChronicleEngagementSurface({
   intent,
   onClose,
@@ -21,9 +27,22 @@ export function ChronicleEngagementSurface({
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
 
   const engagement = useBoardEngagement(
-    () => {
+    (result) => {
       onSuccess?.()
-      boardCtx?.actions.bumpJourneyNav()
+      const slug = intent.template.slug
+      if (slug.startsWith("draft.")) {
+        boardCtx?.actions.bumpDraftNav()
+        const draftId = resolveCreatedDraftId(result?.data)
+        if (draftId) {
+          boardCtx?.actions.onDraftSelect(draftId)
+        }
+      } else if (
+        slug.startsWith("journey.") ||
+        slug.startsWith("path.") ||
+        slug.startsWith("moment.")
+      ) {
+        boardCtx?.actions.bumpJourneyNav()
+      }
       onClose()
     },
     intent,

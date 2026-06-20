@@ -4,7 +4,8 @@
 Collection of reusable React hooks that encapsulate Keeper-specific behaviors (agent interactions, autosave, viewer context, user settings, etc.).
 
 ## 🧱 Key Files
-- `useAgentDialog.ts` — Parameterized agent session hook. Supports any agent via `agentSlug` / `agentDisplayName`. Replaces and supersedes `useKipSession`. Used by IDE Board, Agent Board, and Domain Board.
+- `useDraftPointAccept.ts` — Shared Accept handler for draft points (Dialog receipts + Chronicle blocks).
+- `useAgentDialog.ts` — Parameterized agent session hook (`agentSlug` / `agentDisplayName`). Used by IDE, Agent, and Domain boards.
 - `useKipSession.ts` — Deprecated alias for `useAgentDialog`. Re-exported for backward compatibility only.
 - `useDraftContext.ts` — Draft–session linking (IDE) and post-run draft list refresh (Agent).
 - `useAgentEvents.ts` – Listens for agent lifecycle events.
@@ -25,6 +26,12 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - [ ] Expose `useAgentEvents` telemetry for analytics dashboards.
 
 ## 📆 Update Log
+
+### 2026-06-19 — Draft point Accept hook
+- Added `useDraftPointAccept` — used by `UniversalConversation` and `DraftFocusPresence`; bumps draft nav + presence on accept.
+
+### 2026-05-28 — Domain mode: defer session until domainId resolves
+- `useAgentDialog` skips `createSession` in domain mode while `domainId` is null or a shell fallback id — pairs with UniversalBoard syncing id from V0Shell.
 
 ### 2026-05-26 — Run-agent payload extraction
 - Added `extractRunAgentPayload` — reads `actions` and `session_id` from nested `data.data` envelope returned by `/api/kip/agents`.

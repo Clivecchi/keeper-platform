@@ -31,7 +31,8 @@ import { getApiBase } from "../../lib/apiFetch"
 import { useV0Shell } from "../shell/V0ShellContext"
 import { useFrameContextOptional } from "../shell/FrameContext"
 import { useAuth } from "../../context/AuthContext"
-import { extractLinkedCard, patchAcceptedDraftPointInMessages } from "../../components/agent/helpers"
+import { extractLinkedCard } from "../../components/agent/helpers"
+import { useDraftPointAccept } from "../../hooks/useDraftPointAccept"
 import { useAgentDialog, extractRunAgentPayload } from "../../hooks/useAgentDialog"
 import { useDraftContext } from "../../hooks/useDraftContext"
 import { useSelectionSessionResume } from "../../hooks/useSelectionSessionResume"
@@ -1213,40 +1214,19 @@ export function UniversalConversation({
     [domainId, onDraftListRefresh, onDraftSelect, actions],
   )
 
-  const [acceptedDraftPointIds, setAcceptedDraftPointIds] = React.useState<Set<string>>(
-    () => new Set(),
-  )
-  const [acceptingDraftPointId, setAcceptingDraftPointId] = React.useState<string | null>(null)
-
-  const handleAcceptDraftPoint = React.useCallback(
-    (draftId: string, pointId: string) => {
-      if (!domainId) return
-      setAcceptingDraftPointId(pointId)
-      setError(null)
-      void KipApi.acceptDraftPoint(domainId, draftId, pointId)
-        .then((res) => {
-          const updatedPoint = res.result?.data?.point
-          setAcceptedDraftPointIds((prev) => new Set(prev).add(pointId))
-          setMessages((prev) =>
-            patchAcceptedDraftPointInMessages(prev, draftId, pointId, updatedPoint),
-          )
-          onDraftListRefresh?.()
-          onDraftSelect(draftId)
-          actions.bumpDraftPresence()
-        })
-        .catch((err: unknown) => {
-          const message =
-            err instanceof Error && err.message
-              ? err.message
-              : "Failed to accept draft point"
-          setError(message)
-        })
-        .finally(() => {
-          setAcceptingDraftPointId(null)
-        })
-    },
-    [domainId, onDraftListRefresh, onDraftSelect, actions, setMessages, setError],
-  )
+  const {
+    acceptedDraftPointIds,
+    acceptingDraftPointId,
+    acceptDraftPoint: handleAcceptDraftPoint,
+  } = useDraftPointAccept({
+    domainId,
+    onDraftListRefresh,
+    onDraftSelect,
+    bumpDraftPresence: actions.bumpDraftPresence,
+    bumpDraftNav: actions.bumpDraftNav,
+    setMessages,
+    setError,
+  })
 
   const handleComposerFileUpload = React.useCallback(
     async (file: File) => {

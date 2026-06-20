@@ -38,6 +38,11 @@ export type KeyNavRowPatch = {
   description?: string
 }
 
+export type DraftNavRowPatch = {
+  draftId: string
+  title?: string
+}
+
 export interface UniversalBoardSelection {
   activeSessionId: string | null
   /** Domain-level active journey — persisted via FrameContext; used by Set as Active in Chronicle. */
@@ -77,6 +82,10 @@ export interface UniversalBoardSelection {
   keeperNavRowPatch: KeeperNavRowPatch | null
   /** Increment to refetch Journeys nav list after engagement creates a journey. */
   journeyNavRevision: number
+  /** Increment to refetch Drafts nav list after create or metadata save. */
+  draftNavRevision: number
+  /** Optimistic Drafts nav row patch applied before refetch completes. */
+  draftNavRowPatch: DraftNavRowPatch | null
   /** Agent Board: Chronicle Training Mode — entered via Train on agent cover. */
   trainingMode: boolean
   /** IDE director mode: pinned board instrument for delegation + Chronicle focus. */
@@ -109,6 +118,7 @@ export interface UniversalBoardActions {
   bumpLibraryNav: (patch?: LibraryNavRowPatch) => void
   bumpKeeperNav: (patch?: KeeperNavRowPatch) => void
   bumpJourneyNav: () => void
+  bumpDraftNav: (patch?: DraftNavRowPatch) => void
   /** Open an engagement form in Chronicle (right panel), not Nav. */
   requestChronicleEngagement: (slug: string, context: EngagementContext) => Promise<void>
   closeChronicleEngagement: () => void
@@ -181,6 +191,9 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [keeperNavRowPatch, setKeeperNavRowPatch] =
     React.useState<KeeperNavRowPatch | null>(null)
   const [journeyNavRevision, setJourneyNavRevision] = React.useState(0)
+  const [draftNavRevision, setDraftNavRevision] = React.useState(0)
+  const [draftNavRowPatch, setDraftNavRowPatch] =
+    React.useState<DraftNavRowPatch | null>(null)
   const [chronicleEngagement, setChronicleEngagement] =
     React.useState<BoardEngagementIntent | null>(null)
   const [trainingMode, setTrainingMode] = React.useState(false)
@@ -453,6 +466,11 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setJourneyNavRevision((n) => n + 1)
   }, [])
 
+  const bumpDraftNav = React.useCallback((patch?: DraftNavRowPatch) => {
+    setDraftNavRowPatch(patch ?? null)
+    setDraftNavRevision((n) => n + 1)
+  }, [])
+
   const closeChronicleEngagement = React.useCallback(() => {
     setChronicleEngagement(null)
   }, [])
@@ -502,6 +520,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         keeperNavRevision,
         keeperNavRowPatch,
         journeyNavRevision,
+        draftNavRevision,
+        draftNavRowPatch,
         trainingMode,
         activeBoardInstrument,
       },
@@ -528,6 +548,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         bumpLibraryNav,
         bumpKeeperNav,
         bumpJourneyNav,
+        bumpDraftNav,
         requestChronicleEngagement,
         closeChronicleEngagement,
         onEnterTrainingMode,
@@ -565,6 +586,8 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       keeperNavRevision,
       keeperNavRowPatch,
       journeyNavRevision,
+      draftNavRevision,
+      draftNavRowPatch,
       trainingMode,
       activeBoardInstrument,
       onSessionSelect,
@@ -589,6 +612,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       bumpLibraryNav,
       bumpKeeperNav,
       bumpJourneyNav,
+      bumpDraftNav,
       requestChronicleEngagement,
       closeChronicleEngagement,
       onEnterTrainingMode,

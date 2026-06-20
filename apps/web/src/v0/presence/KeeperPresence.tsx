@@ -28,7 +28,6 @@ import {
   type FieldDefinition,
 } from "./KeeperPresenceDefaults"
 import type { PresenceLayout } from "./types"
-import { DraftPointsSection } from "./DraftPointsSection"
 import { AgentFocusPresence } from "./cover/AgentFocusPresence"
 import { DomainFocusPresence } from "./cover/DomainFocusPresence"
 import { KeyFocusPresence } from "./cover/KeyFocusPresence"
@@ -62,6 +61,7 @@ import { JourneyFocusPresence } from "./cover/JourneyFocusPresence"
 import { MomentFocusPresence } from "./cover/MomentFocusPresence"
 import { PathFocusPresence } from "./cover/PathFocusPresence"
 import { DialogFocusPresence } from "./cover/DialogFocusPresence"
+import { DraftFocusPresence } from "./cover/DraftFocusPresence"
 
 export type { PresenceLayout } from "./types"
 
@@ -845,6 +845,7 @@ export function KeeperPresence({
     (objectType === "moment" && layout === "focus") ||
     (objectType === "path" && layout === "focus") ||
     (objectType === "dialog" && layout === "focus") ||
+    (objectType === "draft" && layout === "focus") ||
     (objectType === "service" && layout === "focus") ||
     objectType === "boardDef" ||
     (objectType === "frame" && layout === "config") ||
@@ -995,6 +996,7 @@ export function KeeperPresence({
     if (objectType === "moment" && layout === "focus") return
     if (objectType === "path" && layout === "focus") return
     if (objectType === "dialog" && layout === "focus") return
+    if (objectType === "draft" && layout === "focus") return
     if (!hasEdited.current || !record || !objectId || !domainId) return
     const endpoint = patchEndpoint(objectType, objectId, domainId)
 
@@ -1267,7 +1269,6 @@ function KeeperPresenceSurface({
         onLabelResolved={onLabelResolved}
         onPathSelect={onPathSelect}
         onMomentSelect={onMomentSelect}
-        onPathSelect={onPathSelect}
         onKeeperSelect={handleKeeperSelect}
         onEngagementSuccess={handlePresenceRefresh}
       />
@@ -1314,6 +1315,19 @@ function KeeperPresenceSurface({
         relatedSections={relatedSections}
         onLabelResolved={onLabelResolved}
         onSessionSelect={onSessionSelect}
+        onEngagementSuccess={handlePresenceRefresh}
+      />
+    )
+  }
+
+  if (objectType === "draft" && layout === "focus" && record) {
+    return (
+      <DraftFocusPresence
+        objectId={objectId}
+        domainId={domainId}
+        record={record}
+        meta={meta}
+        onLabelResolved={onLabelResolved}
         onEngagementSuccess={handlePresenceRefresh}
       />
     )
@@ -1702,12 +1716,6 @@ function KeeperPresenceSurface({
             />
           </div>
         ))}
-
-        {objectType === "draft" && (
-          <PresenceSection title="Points">
-            <DraftPointsSection spec={record?.spec ?? record?.spec_json} />
-          </PresenceSection>
-        )}
 
         {ambientFields.map(([key, def]) => (
           <div key={key} className="mb-3" style={contextMotionStyle(motion)}>

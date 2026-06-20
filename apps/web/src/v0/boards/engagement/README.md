@@ -22,5 +22,6 @@ Used by `KeeperPresence` moment focus (`PresenceEngagementActions`). Journey foc
 - [ ] Public Present engagement after member board pass is complete
 
 ## 📆 Update Log
+- **2026-06-19** — `useBoardEngagement` passes execute `data` to `onSuccess`; `ChronicleEngagementSurface` bumps draft nav + selects new draft on `draft.create`.
 - **2026-06-19** — `ChronicleActPresence` uses declared `ChronicleConfigShell` (matches Agent Manage); removed bespoke Act header + `EngagementForm`.
 - **2026-06-19** — Initial board-only engagement wiring for Universal Board singular UI.

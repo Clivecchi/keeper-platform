@@ -178,17 +178,17 @@ function UniversalBoardShell({
   const [briefOpen, setBriefOpen] = React.useState(false)
   const [domainId, setDomainId] = React.useState<string | null>(null)
   const [domainName, setDomainName] = React.useState<string>("")
-  const [draftListVersionBump, setDraftListVersionBump] = React.useState(0)
 
   const onDraftListRefresh = React.useCallback(() => {
-    setDraftListVersionBump((v) => v + 1)
-  }, [])
+    actions.bumpDraftNav()
+  }, [actions])
 
   const onJourneyListRefresh = React.useCallback(() => {
     actions.bumpJourneyNav()
   }, [actions])
 
-  const effectiveDraftListVersion = (navVersions?.draftListVersion ?? 0) + draftListVersionBump
+  const effectiveDraftListVersion =
+    (navVersions?.draftListVersion ?? 0) + selection.draftNavRevision
   const effectiveJourneyListVersion =
     (navVersions?.journeyListVersion ?? 0) + selection.journeyNavRevision
 
@@ -386,6 +386,7 @@ function UniversalBoardShell({
                         journeyListVersion={effectiveJourneyListVersion}
                         keeperListVersion={selection.keeperNavRevision}
                         draftListVersion={effectiveDraftListVersion}
+                        draftNavRowPatch={selection.draftNavRowPatch}
                         keyListVersion={selection.keyNavRevision}
                         keyNavRowPatch={selection.keyNavRowPatch}
                         capabilityListVersion={selection.capabilityNavRevision}

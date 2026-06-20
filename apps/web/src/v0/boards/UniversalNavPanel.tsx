@@ -35,7 +35,7 @@ import { useFrameContextOptional } from "../shell/FrameContext"
 import type { KipDraftSummary } from "../../lib/kipApi"
 import { SidebarCard } from "../components/SidebarCard"
 import type { SidebarCardItem } from "../components/SidebarCard"
-import type { KeyNavRowPatch } from "./UniversalBoardContext"
+import type { KeyNavRowPatch, DraftNavRowPatch } from "./UniversalBoardContext"
 import { useUniversalBoardOptional } from "./UniversalBoardContext"
 import type { UniversalBoardDef, NavRenderBlock } from "./UniversalBoardDefinition"
 import { useBoardDefs } from "./useBoardDefs"
@@ -115,6 +115,7 @@ export interface UniversalNavPanelProps {
   journeyListVersion?: number
   keeperListVersion?: number
   draftListVersion?: number
+  draftNavRowPatch?: DraftNavRowPatch | null
   keyListVersion?: number
   keyNavRowPatch?: KeyNavRowPatch | null
   capabilityListVersion?: number
@@ -285,6 +286,7 @@ export function UniversalNavPanel({
   journeyListVersion = 0,
   keeperListVersion = 0,
   draftListVersion = 0,
+  draftNavRowPatch = null,
   keyListVersion = 0,
   keyNavRowPatch = null,
   capabilityListVersion = 0,
@@ -309,6 +311,28 @@ export function UniversalNavPanel({
       entityId: domainId,
       domainId,
       keeperId,
+    })
+  }, [
+    boardCtx,
+    domainId,
+    frameCtx?.selection.activeKeeperId,
+    user,
+  ])
+
+  const handleDraftCreate = React.useCallback(() => {
+    if (!domainId || !user || !boardCtx) return
+    const keeperId =
+      boardCtx.selection.selectedKeeperId ??
+      frameCtx?.selection.activeKeeperId ??
+      undefined
+    const dialogId = boardCtx.selection.selectedDialogId ?? undefined
+    void boardCtx.actions.requestChronicleEngagement("draft.create", {
+      entityType: "domain",
+      entityId: domainId,
+      domainId,
+      keeperId,
+      dialogId,
+      kind: "journey_spec",
     })
   }, [
     boardCtx,
@@ -497,6 +521,18 @@ export function UniversalNavPanel({
       })
     return () => { cancelled = true }
   }, [domainId, def.nav.sections.drafts, draftListVersion])
+
+  const patchedDrafts = React.useMemo(() => {
+    if (!drafts || !draftNavRowPatch) return drafts
+    return drafts.map((draft) =>
+      draft.id === draftNavRowPatch.draftId
+        ? {
+            ...draft,
+            ...(draftNavRowPatch.title ? { title: draftNavRowPatch.title } : {}),
+          }
+        : draft,
+    )
+  }, [drafts, draftNavRowPatch])
 
   // ── Fetch: Agents — only when def.nav.sections.agents is true ───────────
   React.useEffect(() => {
@@ -716,7 +752,7 @@ export function UniversalNavPanel({
   }))
 
   // Drafts: embed keeper name when available — matches IDE Board's label format
-  const allDraftItems: SidebarCardItem[] = (drafts ?? []).map((d) => {
+  const allDraftItems: SidebarCardItem[] = (patchedDrafts ?? []).map((d) => {
     const keeperName = d.keeperId
       ? keeperChronicleTitle(
           (patchedKeepers ?? []).find((k) => k.id === d.keeperId) ?? {
@@ -954,7 +990,7 @@ export function UniversalNavPanel({
             <SidebarCard
               className="keeper-sidebar-card"
               title="Drafts"
-              description={!domainId ? "Loading…" : countLabel(drafts?.length ?? null, "draft")}
+              description={!domainId ? "Loading…" : countLabel(patchedDrafts?.length ?? null, "draft")}
               items={
                 allDraftItems.length > NAV_COLLAPSE_ITEM_THRESHOLD
                   ? allDraftItems
@@ -969,7 +1005,7 @@ export function UniversalNavPanel({
                   ? undefined
                   : () => toggleExpanded("drafts")
               }
-              onAdd={() => { /* TODO: wire to draft create callback in Moment 2.6 */ }}
+              onAdd={handleDraftCreate}
             />
             {draftError && (
               <p className="text-xs px-1 -mt-2" style={{ color: "hsl(var(--destructive))" }}>
