@@ -9,6 +9,7 @@ export type ChronicleEntityKind =
   | "agent"
   | "domain"
   | "journey"
+  | "path"
   | "moment"
   | "keeper"
   | "draft"

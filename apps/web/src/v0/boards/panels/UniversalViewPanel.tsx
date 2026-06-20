@@ -43,6 +43,7 @@ type TrailKind =
   | "domain"
   | "dialog"
   | "journey"
+  | "path"
   | "moment"
   | "keeper"
   | "draft"
@@ -68,6 +69,7 @@ const TRAIL_KIND_TO_OBJECT_TYPE: Record<TrailKind, string> = {
   domain: "domain",
   dialog: "dialog",
   journey: "journey",
+  path: "path",
   moment: "moment",
   keeper: "keeper",
   draft: "draft",
@@ -217,6 +219,7 @@ interface ChronicleRecordViewProps {
   boardId?: string
   layout?: PresenceLayout
   onJourneySelect?: (id: string) => void
+  onPathSelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onSessionSelect?: (id: string) => void
   onLabelResolved: (key: string, label: string) => void
@@ -232,6 +235,7 @@ function ChronicleRecordView({
   boardId,
   layout = "focus",
   onJourneySelect,
+  onPathSelect,
   onMomentSelect,
   onSessionSelect,
   onKeySelect,
@@ -260,6 +264,7 @@ function ChronicleRecordView({
       density="standard"
       onLabelResolved={(label) => onLabelResolved(trailKey, label)}
       onJourneySelect={onJourneySelect}
+      onPathSelect={onPathSelect}
       onMomentSelect={onMomentSelect}
       onSessionSelect={onSessionSelect}
       onKeySelect={onKeySelect}
@@ -280,6 +285,7 @@ interface PanelBodyProps {
   domainSlug?: string
   boardId?: string
   onJourneySelect?: (id: string) => void
+  onPathSelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onSessionSelect?: (id: string) => void
   onLabelResolved: (subjectKey: string, label: string) => void
@@ -293,6 +299,7 @@ function PanelBody({
   domainSlug,
   boardId,
   onJourneySelect,
+  onPathSelect,
   onMomentSelect,
   onSessionSelect,
   onLabelResolved,
@@ -323,6 +330,7 @@ function PanelBody({
         boardId={boardId}
         layout={layout}
         onJourneySelect={onJourneySelect}
+        onPathSelect={onPathSelect}
         onMomentSelect={onMomentSelect}
         onSessionSelect={onSessionSelect}
         onKeySelect={boardCtx?.actions.onKeySelect}
@@ -375,6 +383,7 @@ export interface UniversalViewPanelProps {
   selectedServiceSlug?: string | null
 
   onJourneySelect?: (id: string) => void
+  onPathSelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
 }
 
@@ -416,6 +425,8 @@ export function UniversalViewPanel({
 
   const handleJourneySelect =
     onJourneySelect ?? boardCtx?.actions.onJourneySelect
+  const handlePathSelect =
+    onPathSelect ?? boardCtx?.actions.onPathSelect
   const handleMomentSelect =
     onMomentSelect ?? boardCtx?.actions.onMomentSelect
   const handleSessionSelect = boardCtx?.actions.onSessionSelect
@@ -443,6 +454,8 @@ export function UniversalViewPanel({
       return { kind: "agent", id: resolved.selectedAgentId }
     if (resolved.selectedMomentId)
       return { kind: "moment", id: resolved.selectedMomentId }
+    if (boardCtx?.selection.selectedPathId)
+      return { kind: "path", id: boardCtx.selection.selectedPathId }
     if (resolved.selectedJourneyId)
       return { kind: "journey", id: resolved.selectedJourneyId }
     if (resolved.selectedKeeperId)
@@ -520,6 +533,9 @@ export function UniversalViewPanel({
           break
         case "journey":
           if (entry.id) actions.onJourneySelect(entry.id)
+          break
+        case "path":
+          if (entry.id) actions.onPathSelect(entry.id)
           break
         case "moment":
           if (entry.id) actions.onMomentSelect(entry.id)
@@ -656,6 +672,7 @@ export function UniversalViewPanel({
             domainSlug={domainSlug}
             boardId={def.boardId}
             onJourneySelect={handleJourneySelect}
+            onPathSelect={handlePathSelect}
             onMomentSelect={handleMomentSelect}
             onSessionSelect={handleSessionSelect}
             onLabelResolved={handleLabelResolved}

@@ -22,7 +22,7 @@ export interface RelatedItem {
   label: string
   sub?: string
   preview?: string
-  navigateKind?: "journey" | "moment" | "keeper" | "session"
+  navigateKind?: "journey" | "path" | "moment" | "keeper" | "session"
 }
 
 export interface RelatedSection {
@@ -365,6 +365,60 @@ async function enrichMoment(
   return { record, breadcrumb, meta, relatedSections: [], hiddenFields }
 }
 
+function enrichPath(record: Record<string, unknown>): EnrichmentResult {
+  const journeyName =
+    (typeof record.journeyName === "string" ? record.journeyName : "") ||
+    ((record.Journey as { name?: string } | undefined)?.name ?? "")
+
+  const keeperTitle =
+    (typeof record.keeperTitle === "string" ? record.keeperTitle : "") ||
+    ((record.Keeper as { title?: string } | undefined)?.title ?? "")
+
+  if (journeyName) record.journeyName = journeyName
+  if (keeperTitle) record.keeperTitle = keeperTitle
+
+  const breadcrumb = journeyName ? { journey: journeyName } : undefined
+
+  const momentsRaw = (record.Moment ?? record.moment ?? []) as Array<
+    Record<string, unknown>
+  >
+  const moments = momentsRaw.map((m) => ({
+    id: String(m.id),
+    label: String(m.title ?? "Untitled moment"),
+    preview:
+      typeof m.narrative === "string" ? m.narrative.slice(0, 120) : undefined,
+    sub: formatRelativeKept(
+      m.keptAt as string | null | undefined,
+      (m.updatedAt ?? m.createdAt) as string | undefined,
+    ),
+    navigateKind: "moment" as const,
+  }))
+
+  const momentCount = moments.length
+  const meta: PresenceMeta = {
+    momentCount,
+    line:
+      momentCount > 0
+        ? `${momentCount} moment${momentCount === 1 ? "" : "s"} on this path`
+        : "No moments on this path yet",
+  }
+
+  const relatedSections: RelatedSection[] = [
+    {
+      title: "Moments",
+      items: moments,
+    },
+  ]
+
+  return {
+    record,
+    breadcrumb,
+    meta,
+    relatedSections,
+    hiddenFields: ["journeyName", "keeperTitle"],
+  }
+}
+
 async function enrichJourney(record: Record<string, unknown>): Promise<EnrichmentResult> {
   const paths = normalizeJourneyPaths(record)
   const moments = extractJourneyMoments(record)
@@ -412,6 +466,7 @@ async function enrichJourney(record: Record<string, unknown>): Promise<Enrichmen
           p.momentCount != null
             ? `${p.momentCount} moment${p.momentCount === 1 ? "" : "s"}`
             : undefined,
+        navigateKind: "path" as const,
       })),
     })
   }
@@ -1164,6 +1219,14 @@ export async function fetchPresenceRecord(
         (res as Record<string, unknown>)
       return raw as Record<string, unknown>
     }
+    case "path": {
+      const res = await apiFetch(`/api/paths/${encodeURIComponent(objectId)}`)
+      const raw =
+        (res as { path?: Record<string, unknown> })?.path ??
+        (res as { data?: Record<string, unknown> })?.data ??
+        (res as Record<string, unknown>)
+      return raw as Record<string, unknown>
+    }
     case "keeper":
       return fetchKeeperRecord(objectId, domainId)
     case "agent": {
@@ -1235,6 +1298,8 @@ export async function enrichPresenceRecord(
   switch (objectType) {
     case "moment":
       return enrichMoment(record, domainSlug)
+    case "path":
+      return enrichPath(record)
     case "journey":
       return enrichJourney(record)
     case "keeper":

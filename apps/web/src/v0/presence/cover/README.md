@@ -15,6 +15,8 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `CapabilityFocusPresence.tsx` — Capability Cover Mode + Config Mode orchestration
 - `schemas/keeperCoverSchema.ts` — Layer 2 Keeper EntityKind fill
 - `KeeperFocusPresence.tsx` — Keeper Cover Mode + Config Mode orchestration
+- `schemas/pathCoverSchema.ts` — Layer 2 Path EntityKind fill
+- `PathFocusPresence.tsx` — Path Cover ↔ Config orchestration
 - `schemas/momentCoverSchema.ts` — Layer 2 Moment EntityKind fill
 - `MomentFocusPresence.tsx` — Moment Cover ↔ Config orchestration
 - `IntegrationFocusPresence.tsx` — Integration Cover Mode + Config Mode orchestration
@@ -30,6 +32,7 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - Capability selection in nav → `KeeperPresence` (`layout="focus"`) → `CapabilityFocusPresence`
 - Journey selection in nav → `KeeperPresence` (`layout="focus"`) → `JourneyFocusPresence`
 - Moment selection in nav → `KeeperPresence` (`layout="focus"`) → `MomentFocusPresence`
+- Path selection (from journey Paths list) → `KeeperPresence` → `PathFocusPresence`
 - Integration selection in nav → `KeeperPresence` (`layout="focus"`) → `IntegrationFocusPresence`
 - **Cover Mode (default):** `EntityCoverPresence` + always `DeclarationChronicleBlocks` (Integration/Key); client-side declaration defaults when DB blocks empty
 - **Config Mode:** metadata via `useChronicleConfig` / `chroniclePatch.ts`; credential verify/rotate/disconnect stay inline (not Save bar)
@@ -39,11 +42,17 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - All colors via `hsl(var(--theme-*))`; agent `theme_color` drives hero radial accent
 
 ## ⚠️ Notes & ToDo
-- [ ] Journey, Path, Moment, Draft cover schemas — **Journey + Moment done**; Path, Draft remain
+- [ ] Journey, Path, Moment, Draft cover schemas — **Journey + Path + Moment done**; Draft remains
 - [ ] Theatre.js handoff — motion value names are fixed for Present integration
 - [ ] Domain assignment edit — read-only today; domain switch API pending
 
 ## 📆 Update Log
+
+### 2026-06-19 — Path EntityKind migration
+- Added `pathCoverSchema.ts`, `PathFocusPresence.tsx` (Cover · Config)
+- `PathConfigPresence` — name + prelude via `PATCH /api/paths/:id`
+- `PathChronicleBlocks` — prelude + moments list; journey Paths cards tappable via `onPathSelect`
+- Universal Board: `selectedPathId` + trail kind `path` in Chronicle routing
 
 ### 2026-06-19 — Moment EntityKind migration
 - Added `momentCoverSchema.ts`, `MomentFocusPresence.tsx` (Cover · Config)

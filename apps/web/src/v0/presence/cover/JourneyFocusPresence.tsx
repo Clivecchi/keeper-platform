@@ -27,6 +27,7 @@ export interface JourneyFocusPresenceProps {
   relatedSections: RelatedSection[]
   onLabelResolved?: (label: string) => void
   onMomentSelect?: (id: string) => void
+  onPathSelect?: (id: string) => void
   onKeeperSelect?: (id: string) => void
   onEngagementSuccess?: () => void
 }
@@ -80,6 +81,7 @@ export function JourneyFocusPresence({
   relatedSections,
   onLabelResolved,
   onMomentSelect,
+  onPathSelect,
   onKeeperSelect,
   onEngagementSuccess,
 }: JourneyFocusPresenceProps) {
@@ -238,6 +240,7 @@ export function JourneyFocusPresence({
           <div className="px-4 pb-4">
             <JourneyChronicleBlocks
               sections={relatedSections}
+              onPathSelect={onPathSelect}
               onMomentSelect={onMomentSelect}
             />
           </div>

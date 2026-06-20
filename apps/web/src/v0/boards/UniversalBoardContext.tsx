@@ -44,6 +44,7 @@ export interface UniversalBoardSelection {
   activeJourneyId: string | null
   selectedDialogId: string | null
   selectedJourneyId: string | null
+  selectedPathId: string | null
   selectedMomentId: string | null
   selectedKeeperId: string | null
   selectedDraftId: string | null
@@ -88,6 +89,7 @@ export interface UniversalBoardActions {
   onSetActiveJourney: (id: string) => void
   onDialogSelect: (id: string) => void
   onJourneySelect: (id: string) => void
+  onPathSelect: (id: string) => void
   onMomentSelect: (id: string) => void
   onKeeperSelect: (id: string) => void
   onDraftSelect: (id: string) => void
@@ -155,6 +157,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
   const [selectedDialogId, setSelectedDialogId] = React.useState<string | null>(null)
   const [selectedJourneyId, setSelectedJourneyId] = React.useState<string | null>(null)
+  const [selectedPathId, setSelectedPathId] = React.useState<string | null>(null)
   const [selectedMomentId, setSelectedMomentId] = React.useState<string | null>(null)
   const [selectedKeeperId, setSelectedKeeperId] = React.useState<string | null>(null)
   const [selectedDraftId, setSelectedDraftId] = React.useState<string | null>(null)
@@ -207,6 +210,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const onDialogSelect = React.useCallback((id: string) => {
     setSelectedDialogId(id)
     setSelectedJourneyId(null)
+    setSelectedPathId(null)
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
     setSelectedDraftId(null)
@@ -219,6 +223,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
 
   const onJourneySelect = React.useCallback((id: string) => {
     setSelectedJourneyId(id)
+    setSelectedPathId(null)
     setSelectedDialogId(null)
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
@@ -230,8 +235,22 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedLibraryItemId(null)
   }, [])
 
+  const onPathSelect = React.useCallback((id: string) => {
+    setSelectedPathId(id)
+    setSelectedMomentId(null)
+    setSelectedDialogId(null)
+    setSelectedKeeperId(null)
+    setSelectedDraftId(null)
+    setSelectedAgentId(null)
+    setSelectedServiceSlug(null)
+    setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
+    setSelectedLibraryItemId(null)
+  }, [])
+
   const onMomentSelect = React.useCallback((id: string) => {
     setSelectedMomentId(id)
+    setSelectedPathId(null)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
     setSelectedKeeperId(null)
@@ -247,6 +266,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeeperId(id)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
+    setSelectedPathId(null)
     setSelectedMomentId(null)
     setSelectedDraftId(null)
     setSelectedAgentId(null)
@@ -261,6 +281,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedDraftId(id)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
+    setSelectedPathId(null)
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
     setSelectedAgentId(null)
@@ -275,6 +296,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedAgentId(id)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
+    setSelectedPathId(null)
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
     setSelectedDraftId(null)
@@ -288,6 +310,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedServiceSlug(slug)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
+    setSelectedPathId(null)
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
     setSelectedDraftId(null)
@@ -304,6 +327,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedSoleMemoryId(null)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
+    setSelectedPathId(null)
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
     setSelectedDraftId(null)
@@ -318,6 +342,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedSoleMemoryId(null)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
+    setSelectedPathId(null)
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
     setSelectedDraftId(null)
@@ -332,6 +357,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedSoleMemoryId(null)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
+    setSelectedPathId(null)
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
     setSelectedDraftId(null)
@@ -360,6 +386,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setActiveBoardInstrument(null)
     setSelectedDialogId(null)
     setSelectedJourneyId(null)
+    setSelectedPathId(null)
     setSelectedMomentId(null)
     setSelectedKeeperId(null)
     setSelectedDraftId(null)
@@ -378,6 +405,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       setSelectedSoleMemoryId(null)
       setSelectedDialogId(null)
       setSelectedJourneyId(null)
+      setSelectedPathId(null)
       setSelectedMomentId(null)
       setSelectedKeeperId(null)
       setSelectedDraftId(null)
@@ -453,6 +481,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         activeJourneyId: frameCtx?.selection.activeJourneyId ?? null,
         selectedDialogId,
         selectedJourneyId,
+        selectedPathId,
         selectedMomentId,
         selectedKeeperId,
         selectedDraftId,
@@ -481,6 +510,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onSetActiveJourney,
         onDialogSelect,
         onJourneySelect,
+        onPathSelect,
         onMomentSelect,
         onKeeperSelect,
         onDraftSelect,
@@ -514,6 +544,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       onSetActiveJourney,
       selectedDialogId,
       selectedJourneyId,
+      selectedPathId,
       selectedMomentId,
       selectedKeeperId,
       selectedDraftId,
@@ -540,6 +571,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       onSetActiveJourney,
       onDialogSelect,
       onJourneySelect,
+      onPathSelect,
       onMomentSelect,
       onKeeperSelect,
       onDraftSelect,

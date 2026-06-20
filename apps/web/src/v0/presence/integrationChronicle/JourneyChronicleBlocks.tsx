@@ -26,15 +26,20 @@ function PathCard({
   label,
   preview,
   sub,
+  onClick,
 }: {
   label: string
   preview?: string
   sub?: string
+  onClick?: () => void
 }) {
   return (
-    <div
-      className="w-full text-left rounded-lg border px-3 py-2.5 mb-2"
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left rounded-lg border px-3 py-2.5 mb-2 transition-all hover:opacity-90"
       style={{
+        cursor: onClick ? "pointer" : "default",
         borderColor: "hsl(var(--theme-border-soft) / 0.45)",
         background: "hsl(var(--theme-surface-elevated) / 0.28)",
       }}
@@ -61,7 +66,7 @@ function PathCard({
           {sub}
         </p>
       ) : null}
-    </div>
+    </button>
   )
 }
 
@@ -115,9 +120,11 @@ function MomentThread({
 
 export function JourneyChronicleBlocks({
   sections,
+  onPathSelect,
   onMomentSelect,
 }: {
   sections: RelatedSection[]
+  onPathSelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
 }) {
   if (sections.length === 0) return null
@@ -134,6 +141,11 @@ export function JourneyChronicleBlocks({
                   label={item.label}
                   preview={item.preview}
                   sub={item.sub}
+                  onClick={
+                    item.navigateKind === "path" && onPathSelect
+                      ? () => onPathSelect(item.id)
+                      : undefined
+                  }
                 />
               ))
             )

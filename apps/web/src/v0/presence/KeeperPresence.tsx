@@ -60,6 +60,7 @@ import {
 import { toPresentInstanceKey } from "../presents/presentInstanceKey"
 import { JourneyFocusPresence } from "./cover/JourneyFocusPresence"
 import { MomentFocusPresence } from "./cover/MomentFocusPresence"
+import { PathFocusPresence } from "./cover/PathFocusPresence"
 
 export type { PresenceLayout } from "./types"
 
@@ -80,6 +81,7 @@ export interface KeeperPresenceProps {
   onSaved?: (field: string, value: unknown) => void
   onLabelResolved?: (label: string) => void
   onJourneySelect?: (id: string) => void
+  onPathSelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onKeeperSelect?: (id: string) => void
   onSessionSelect?: (id: string) => void
@@ -172,6 +174,8 @@ function patchEndpoint(
 function primaryField(objectType: string): string {
   switch (objectType) {
     case "journey":
+      return "name"
+    case "path":
       return "name"
     case "moment":
       return "title"
@@ -849,11 +853,13 @@ function PresentAtmosphereLayer() {
 function RelatedSections({
   sections,
   onJourneySelect,
+  onPathSelect,
   onMomentSelect,
   onSessionSelect,
 }: {
   sections: RelatedSection[]
   onJourneySelect?: (id: string) => void
+  onPathSelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onSessionSelect?: (id: string) => void
 }) {
@@ -880,11 +886,13 @@ function RelatedSections({
                 onClick={
                   item.navigateKind === "journey" && onJourneySelect
                     ? () => onJourneySelect(item.id)
-                    : item.navigateKind === "moment" && onMomentSelect
-                      ? () => onMomentSelect(item.id)
-                      : item.navigateKind === "session" && onSessionSelect
-                        ? () => onSessionSelect(item.id)
-                        : undefined
+                    : item.navigateKind === "path" && onPathSelect
+                      ? () => onPathSelect(item.id)
+                      : item.navigateKind === "moment" && onMomentSelect
+                        ? () => onMomentSelect(item.id)
+                        : item.navigateKind === "session" && onSessionSelect
+                          ? () => onSessionSelect(item.id)
+                          : undefined
                 }
               />
             ))
@@ -908,6 +916,7 @@ export function KeeperPresence({
   onSaved,
   onLabelResolved,
   onJourneySelect,
+  onPathSelect,
   onMomentSelect,
   onKeeperSelect,
   onSessionSelect,
@@ -1014,6 +1023,7 @@ export function KeeperPresence({
     (objectType === "keeper" && layout === "focus") ||
     (objectType === "journey" && layout === "focus") ||
     (objectType === "moment" && layout === "focus") ||
+    (objectType === "path" && layout === "focus") ||
     (objectType === "service" && layout === "focus") ||
     objectType === "boardDef" ||
     (objectType === "frame" && layout === "config") ||
@@ -1162,6 +1172,7 @@ export function KeeperPresence({
     if (usesExplicitChronicleSave) return
     if (objectType === "journey" && layout === "focus") return
     if (objectType === "moment" && layout === "focus") return
+    if (objectType === "path" && layout === "focus") return
     if (!hasEdited.current || !record || !objectId || !domainId) return
     const endpoint = patchEndpoint(objectType, objectId, domainId)
 
@@ -1294,6 +1305,7 @@ export function KeeperPresence({
         handlePresenceRefresh={handlePresenceRefresh}
         onLabelResolved={onLabelResolved}
         onJourneySelect={onJourneySelect}
+        onPathSelect={onPathSelect}
         onMomentSelect={onMomentSelect}
         onSessionSelect={onSessionSelect}
         onKeySelect={onKeySelect}
@@ -1342,6 +1354,7 @@ function KeeperPresenceSurface({
   handlePresenceRefresh,
   onLabelResolved,
   onJourneySelect,
+  onPathSelect,
   onMomentSelect,
   onSessionSelect,
   onKeySelect,
@@ -1384,6 +1397,7 @@ function KeeperPresenceSurface({
   handlePresenceRefresh: () => void
   onLabelResolved?: (label: string) => void
   onJourneySelect?: (id: string) => void
+  onPathSelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onSessionSelect?: (id: string) => void
   onKeySelect?: (id: string) => void
@@ -1429,7 +1443,9 @@ function KeeperPresenceSurface({
         meta={meta}
         relatedSections={relatedSections}
         onLabelResolved={onLabelResolved}
+        onPathSelect={onPathSelect}
         onMomentSelect={onMomentSelect}
+        onPathSelect={onPathSelect}
         onKeeperSelect={handleKeeperSelect}
         onEngagementSuccess={handlePresenceRefresh}
       />
@@ -1445,6 +1461,22 @@ function KeeperPresenceSurface({
         meta={meta}
         breadcrumb={breadcrumb}
         onLabelResolved={onLabelResolved}
+        onEngagementSuccess={handlePresenceRefresh}
+      />
+    )
+  }
+
+  if (objectType === "path" && layout === "focus" && record) {
+    return (
+      <PathFocusPresence
+        objectId={objectId}
+        domainId={domainId}
+        record={record}
+        meta={meta}
+        breadcrumb={breadcrumb}
+        relatedSections={relatedSections}
+        onLabelResolved={onLabelResolved}
+        onMomentSelect={onMomentSelect}
         onEngagementSuccess={handlePresenceRefresh}
       />
     )

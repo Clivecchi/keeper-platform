@@ -14,7 +14,10 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `CapabilityConfigPresence.tsx` — Capability Config Mode (display_label, description)
 - `capabilityNavUtils.ts` — Nav fetch/group + `capabilityChronicleTitle()` shared with cover
 - `IntegrationConfigPresence.tsx` — AI model integration Config Mode
-- `MomentConfigPresence.tsx` — Moment Config Mode (title, narrative) via `useChronicleConfig`
+- `JourneyConfigPresence.tsx` — Journey Config Mode (name, forward) via `useChronicleConfig`
+- `JourneyChronicleBlocks.tsx` — Paths + Moments declaration blocks below journey cover
+- `PathConfigPresence.tsx` — Path Config Mode (name, prelude) via `useChronicleConfig`
+- `PathChronicleBlocks.tsx` — Prelude + moments below path cover
 - `MomentChronicleBlocks.tsx` — Story body below moment cover
 
 ## 🔄 Data & Behavior
@@ -28,6 +31,11 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-06-19 — Path EntityKind migration
+- `PathConfigPresence` — explicit Save for name/prelude (`PATCH /api/paths/:id`)
+- `PathChronicleBlocks` — prelude story + tappable moments
+- `JourneyChronicleBlocks` — path cards tappable (`navigateKind: path`)
 
 ### 2026-06-19 — Moment EntityKind migration
 - `MomentConfigPresence` — explicit Save for title/narrative (`PATCH /api/moments/:id`)

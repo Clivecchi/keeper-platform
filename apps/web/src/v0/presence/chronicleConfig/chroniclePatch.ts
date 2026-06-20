@@ -51,6 +51,8 @@ export function resolveChroniclePatchEndpoint(
   switch (entityKind) {
     case "journey":
       return `/api/journeys/${encodeURIComponent(entityId)}`
+    case "path":
+      return `/api/paths/${encodeURIComponent(entityId)}`
     case "moment":
       return `/api/moments/${encodeURIComponent(entityId)}`
     case "keeper":

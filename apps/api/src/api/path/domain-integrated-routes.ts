@@ -254,24 +254,37 @@ router.post(
 /**
  * PUT /api/paths/:id - Update path
  */
+async function updatePathById(req: Request, res: Response): Promise<Response> {
+  try {
+    const path = await prisma.path.update({
+      where: { id: req.params.id },
+      data: req.body,
+    });
+
+    return res.json({ path });
+  } catch (error) {
+    console.error('Error updating path:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
 router.put(
   '/:id',
   authMiddlewareCompat,
   validationMiddleware(updatePathSchema),
   requireDomainWriteCompat,
-  async (req: Request, res: Response) => {
-    try {
-      const path = await prisma.path.update({
-        where: { id: req.params.id },
-        data: req.body,
-      });
+  updatePathById
+);
 
-      return res.json({ path });
-    } catch (error) {
-      console.error('Error updating path:', error);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
-  }
+/**
+ * PATCH /api/paths/:id - Partial update (Chronicle Config save)
+ */
+router.patch(
+  '/:id',
+  authMiddlewareCompat,
+  validationMiddleware(updatePathSchema),
+  requireDomainWriteCompat,
+  updatePathById
 );
 
 /**

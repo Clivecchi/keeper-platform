@@ -29,6 +29,7 @@ export interface ChroniclePresenceViewProps {
   density?: DensityLevel
   onLabelResolved?: (label: string) => void
   onJourneySelect?: (id: string) => void
+  onPathSelect?: (id: string) => void
   onMomentSelect?: (id: string) => void
   onKeeperSelect?: (id: string) => void
   onKeySelect?: (id: string) => void
@@ -48,6 +49,7 @@ export function ChroniclePresenceView({
   density = "standard",
   onLabelResolved,
   onJourneySelect,
+  onPathSelect,
   onMomentSelect,
   onKeeperSelect,
   onKeySelect,
@@ -87,6 +89,7 @@ export function ChroniclePresenceView({
       density={density}
       onLabelResolved={onLabelResolved}
       onJourneySelect={onJourneySelect}
+      onPathSelect={onPathSelect}
       onMomentSelect={onMomentSelect}
       onKeeperSelect={onKeeperSelect}
       onKeySelect={onKeySelect}
