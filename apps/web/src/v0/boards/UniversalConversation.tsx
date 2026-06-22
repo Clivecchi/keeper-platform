@@ -561,7 +561,10 @@ export function UniversalConversation({
         return
       }
 
-      if (kipMode === "agent" || kipMode === "domain") && Array.isArray(actionResults)) {
+      if (
+        (kipMode === "agent" || kipMode === "domain")
+        && Array.isArray(actionResults)
+      ) {
         for (const ar of actionResults) {
           const receipt = normalizeActionReceipt(
             ar as Parameters<typeof normalizeActionReceipt>[0],
