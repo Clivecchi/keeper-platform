@@ -399,6 +399,7 @@ export function UniversalViewPanel({
   selectedAgentId,
   selectedServiceSlug,
   onJourneySelect,
+  onPathSelect,
   onMomentSelect,
 }: UniversalViewPanelProps) {
   const boardCtx = useUniversalBoardOptional()
