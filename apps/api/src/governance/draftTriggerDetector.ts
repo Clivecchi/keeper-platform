@@ -30,7 +30,19 @@ const DRAFT_BLOCKLIST = [
   'plan for tomorrow',
 ];
 
-const ESCAPE_HATCH = 'no draft';
+const ESCAPE_HATCH_PATTERNS = [
+  'no draft',
+  'read only',
+  'read-only',
+  'do not make changes',
+  "don't make changes",
+  'do not attempt to make any changes',
+  "don't attempt to make any changes",
+  'without making changes',
+  'no changes',
+  'only report',
+  'only summarize',
+];
 
 export interface DraftTriggerResult {
   triggered: boolean;
@@ -39,7 +51,8 @@ export interface DraftTriggerResult {
 
 /**
  * Detect if user input should trigger draft.create.
- * Escape hatch ("no draft") takes precedence over blocklist over trigger patterns.
+ * Escape hatch ("no draft", read-only/no-change instructions) takes precedence
+ * over blocklist over trigger patterns.
  */
 export function detectDraftTrigger(userInput: string): DraftTriggerResult {
   const normalized = userInput.toLowerCase().trim();
@@ -47,8 +60,8 @@ export function detectDraftTrigger(userInput: string): DraftTriggerResult {
     return { triggered: false, bypassed: false };
   }
 
-  // Escape hatch: user explicitly says no draft
-  if (normalized.includes(ESCAPE_HATCH)) {
+  // Escape hatch: user explicitly asks for read-only/no-change behavior.
+  if (ESCAPE_HATCH_PATTERNS.some((phrase) => normalized.includes(phrase))) {
     return { triggered: false, bypassed: true };
   }
 

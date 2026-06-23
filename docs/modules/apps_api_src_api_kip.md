@@ -18,7 +18,8 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - When `DISABLE_DB=true` or `DATABASE_URL` is unset, it returns a static mock list instead of touching the DB.
 - POST `/api/kip/agents` (action=run) now resolves env-v1 context via KAM and injects it (with debug canary) into Kip model input without changing response shapes.
   - Env now includes domain slug/name, agent identity, and per-run debug.canary UUID.
-- Kip agent runs instruct the model to return structured JSON (`response` + optional `actions`), validate actions against policy allowlist, and execute draft actions server-side with domain/user scoping and failure guardrails.
+- Failed agent runs return `success: false` with `errorCode` plus provider/model/retryability details when an AI model provider fails, allowing the UI to show overload, timeout, quota, key, and model-configuration guidance.
+- Kip agent runs instruct the model to return structured JSON (`response` + optional `actions`), validate actions against policy allowlist, and execute draft actions server-side with domain/user scoping and failure guardrails. Unsupported or invented action types are logged/skipped instead of surfaced as user-facing policy errors.
 
 ## ⚠️ Notes & ToDo
 - [ ] Expand mock set as needed
@@ -27,6 +28,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-06-24: Unsupported model-invented actions are skipped and filtered from user-visible receipts; prompts instruct Kip to return text-only for Cloud coordination or read-only/no-change requests.
 - 2026-06-24: Kip run-agent failures now return sanitized provider failure details (`KipAgentRunError` + stable error codes) and user-friendly messages for overload, timeout, quota, and missing keys.
 - 2026-06-24: GET agent-by-slug now self-heals canonical Lead agents (`kip`, `ceox`) when DB records drift from expected `role=Lead` and `visibility=public`.
 - 2026-06-22: **Read-action follow-up (Lead agents)** — After read-only actions (`draft.read`, `journey.read`, etc.), server runs a second model turn with live results so Kip answers substantively instead of stopping at deferral text + a Retrieved receipt.
