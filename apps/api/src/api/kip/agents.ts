@@ -4801,7 +4801,6 @@ function buildProviderAgentErrorDetails(
     retryable?: boolean;
     providerStatus?: number;
     errorCode?: ModelProviderErrorCode;
-    keySource?: string;
   }
 ): Record<string, unknown> {
   const code = mapProviderCodeToAgentCode(response.errorCode);
@@ -4821,7 +4820,6 @@ function buildProviderAgentErrorDetails(
     retries: response.retries_used ?? 0,
     retryable: response.retryable ?? (code === 'PROVIDER_UNAVAILABLE' || code === 'TIMEOUT'),
     providerStatus: response.providerStatus,
-    keySource: response.keySource,
     suggestedAction: suggestedActionByCode[code],
   };
 }

@@ -740,7 +740,7 @@ export class ModelProviderService {
       }
     }
     
-    // All retries failed - include key source in error for debugging
+    // All retries failed. Keep provider key-source details in logs/metadata, not the user-facing error text.
     const fallbackErrorMessage = lastError
       ? lastError.message
       : 'Unknown model provider error';
@@ -879,9 +879,8 @@ function normalizeProviderError(provider: ModelProvider, error: unknown): ModelP
   const err = error as any;
   const message = error instanceof Error ? error.message : 'Unknown provider error';
   const providerCode = err?.error?.code || err?.error?.type || err?.code || err?.type;
-  const statusFromMessage = typeof message === 'string'
-    ? Number(message.match(/\b(4\d\d|5\d\d)\b/)?.[1])
-    : undefined;
+  const statusMatch = typeof message === 'string' ? message.match(/\b(4\d\d|5\d\d)\b/) : null;
+  const statusFromMessage = statusMatch ? Number(statusMatch[1]) : undefined;
   const status = err?.status || err?.response?.status || statusFromMessage;
   const lowerMessage = typeof message === 'string' ? message.toLowerCase() : '';
   const providerLabel = getProviderDisplayName(provider);

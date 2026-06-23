@@ -21,6 +21,7 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 ## 📆 Update Log
 ### 2026-06-23 - Categorized Kip dialogue errors
 - Replaced the legacy generic "Something went wrong" dialogue heading with the shared agent error presentation helper, aligning `/kip` with the v0 Agent Board error categories.
+- Cleaned legacy draft/debug payload typing touched during the error-rendering update.
 ### 2026-02-15 - AgentPostureHeader integration
 - Replaced AgentHeader with AgentPostureHeader (governance stack: agent, domain, lens, mode, governance, voice). Added DialogueModeToggle for mode switching. Deprecation planned; prefer v0 AgentBoardFrame.
 ### 2026-01-27 - Public Kip scope
