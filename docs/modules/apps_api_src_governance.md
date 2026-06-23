@@ -5,7 +5,7 @@ Domain governance service layer for agent policy enforcement. Loads AgentContrac
 
 ## 🧱 Key Files
 - `governanceService.ts` - Load domain policy, contract, getAgentPolicyView, logComplianceEvent
-- `draftTriggerDetector.ts` - Detect draft-triggering phrases (plan, spec, design, etc.) with blocklist and "no draft" escape hatch
+- `draftTriggerDetector.ts` - Detect draft-triggering phrases (plan, spec, design, etc.) with blocklist and read-only/no-change escape hatches
 - `governanceMiddleware.ts` - preExecGovernanceCheck, postExecGovernanceCheck, checkRegenerateLimit
 - `types.ts` - AgentPolicyView, EnforcementMode, RuleKey, PreExecGovernanceResult, ComplianceEventInput
 - `index.ts` - Re-exports
@@ -13,7 +13,7 @@ Domain governance service layer for agent policy enforcement. Loads AgentContrac
 ## 🔄 Data & Behavior
 - **loadDomainAgentPolicy**: Fetches DomainAgentPolicy with contract for a domain
 - **getAgentPolicyView**: Merges DomainPolicy (capability) + DomainAgentPolicy (behavior) into AgentPolicyView
-- **detectDraftTrigger**: Substring patterns, blocklist (plan a meeting, meal plan, etc.), escape hatch "no draft"
+- **detectDraftTrigger**: Substring patterns, blocklist (plan a meeting, meal plan, etc.), and escape hatches for "no draft", read-only, and no-change instructions
 - **preExecGovernanceCheck**: Draft Trigger (enforceDraft) and Tool-First (enforceToolFirst) validation; returns pass/violations/regeneratePayload
 - **postExecGovernanceCheck**: Appends failure template when required action fails
 - **checkRegenerateLimit**: Circuit breaker, max 3 regenerations per session/hour
@@ -25,6 +25,9 @@ Domain governance service layer for agent policy enforcement. Loads AgentContrac
 - [ ] Consider async log writes for performance
 
 ## 📆 Update Log
+
+### 2026-06-23 - Read-only draft trigger escape hatch
+- Expanded `draftTriggerDetector` escape hatches so read-only/no-change instructions do not force `draft.create` governance behavior.
 
 ### 2026-02-15 - Wire contract to Kip
 - Added `getContractTextForDomain(domainId)` to load full contract text for prompt injection

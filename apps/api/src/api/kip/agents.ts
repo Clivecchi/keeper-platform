@@ -824,15 +824,15 @@ export async function executeAgentActions(
         }, '[kip.actions] executing');
 
         if (!ctx.allowlist.has(action.type)) {
-          const reason = 'Action not allowed by policy';
+          const reason = `Kip skipped unsupported action "${action.type}". The board can only run actions listed in the current action pack.`;
           logger.warn({
             requestId,
             actionType: action.type,
             reason,
-          }, '[kip.actions] rejected');
+          }, '[kip.actions] skipped: not allowed');
           results.push({ 
             type: action.type,
-            status: 'error', 
+            status: 'skipped', 
             message: reason, 
             errorCode: 'NOT_ALLOWED',
           });
@@ -1649,7 +1649,7 @@ export async function executeAgentActions(
                 errorCode: 'UNHANDLED_ACTION',
               });
             } else {
-              const skipReason = 'Action not allowed by policy';
+              const skipReason = `Kip skipped unsupported action "${action.type}". The board can only run actions listed in the current action pack.`;
               logger.warn({
                 requestId,
                 actionType: action.type,
@@ -2558,6 +2558,8 @@ export class KipAgentService {
           'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","actions":[...]}',
           `Allowed actions: ${allowList.join(', ')}.`,
           'Each action must include a "type" and optional "payload".',
+          'Never invent action types. If the user asks you to coordinate with Cloud, inspect repositories, call external services, or perform work outside Allowed actions, explain the limitation in "response" and return no actions.',
+          'If the user says read-only, no changes, do not make changes, or do not attempt changes, return text only and do not create or update drafts.',
           'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
           'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
           '',
@@ -2819,6 +2821,8 @@ export class KipAgentService {
             'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","actions":[...]}',
             `Allowed actions: ${allowList.join(', ')}.`,
             'Each action must include a "type" and optional "payload".',
+            'Never invent action types. If the user asks you to coordinate with Cloud, inspect repositories, call external services, or perform work outside Allowed actions, explain the limitation in "response" and return no actions.',
+            'If the user says read-only, no changes, do not make changes, or do not attempt changes, return text only and do not create or update drafts.',
             'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
             'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
             '',
@@ -3310,12 +3314,21 @@ export class KipAgentService {
               keeperId: options?.activeKeeperId ?? null,
               requestId,
             });
-            actionResults = execution.results;
+            actionResults = execution.results.filter((result) => {
+              const skippedUnsupportedAction =
+                result.status === 'skipped' &&
+                result.errorCode === 'NOT_ALLOWED';
+              return !skippedUnsupportedAction;
+            });
 
-            if (execution.failedMessage) {
+            const failedDraftAction = execution.results.find((result) =>
+              result.status === 'error' && result.type.startsWith('draft.')
+            );
+            if (failedDraftAction) {
+              const failureMessage = failedDraftAction.message || 'Unknown draft error';
               finalResponseText = structured.responseText
-                ? `${structured.responseText} I attempted to create a draft but saving failed: ${execution.failedMessage}`
-                : `I attempted to create a draft but saving failed: ${execution.failedMessage}`;
+                ? `${structured.responseText} I attempted to update a draft, but the draft action failed: ${failureMessage}`
+                : `I attempted to update a draft, but the draft action failed: ${failureMessage}`;
             }
 
             // Post-exec governance: append failure template if required action failed

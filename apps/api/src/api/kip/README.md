@@ -19,7 +19,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - POST `/api/kip/agents` (action=run) now resolves env-v1 context via KAM and injects it (with debug canary) into Kip model input without changing response shapes.
   - Env now includes domain slug/name, agent identity, and per-run debug.canary UUID.
 - Failed agent runs return `success: false` with `errorCode` plus provider/model/retryability details when an AI model provider fails, allowing the UI to show overload, timeout, quota, key, and model-configuration guidance.
-- Kip agent runs instruct the model to return structured JSON (`response` + optional `actions`), validate actions against policy allowlist, and execute draft actions server-side with domain/user scoping and failure guardrails.
+- Kip agent runs instruct the model to return structured JSON (`response` + optional `actions`), validate actions against policy allowlist, and execute draft actions server-side with domain/user scoping and failure guardrails. Unsupported or invented action types are logged/skipped instead of surfaced as user-facing policy errors.
 
 ## ⚠️ Notes & ToDo
 - [ ] Expand mock set as needed
@@ -28,6 +28,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-06-23: Unsupported model-invented actions are now skipped and filtered from user-visible receipts; prompts now instruct Kip to return text-only for Cloud/external coordination or read-only/no-change requests.
 - 2026-06-23: Kip run-agent failures now include sanitized provider failure details (provider, model, retries, retryable, providerStatus, suggestedAction) and map timeouts/provider overloads into stable `TIMEOUT`/`PROVIDER_UNAVAILABLE` codes.
 - 2026-03-08: **image.generate action (Step 4 of 4)** — Added `image.generate` to Kip's action schema (`actions/schema.ts`): `imageGeneratePayloadSchema` + exported `ImageGenerateAction` type. Added handler in `agents.ts` that reads domain `image_style` from `frame_json.kip.image_style`, assembles a FLUX prompt, and calls `ModelProviderService.generateImage()` directly (no internal fetch). Result is pushed to `ActionExecutionResult.data` as `imageUrl`, `imagePrompt`, `imageModel`, `subject`, `aspectRatio`. Fails gracefully — Kip's text response completes even if image generation fails. Added `image.generate` as a Golden Path action (always allowed). Updated system prompt instructions with `image.generate` description and domain visual character injection. `image_style` and `image_model` from `frame_json.kip` are read per request and surfaced to Kip's context.
 - 2026-03-06: Added `companion.ts` — POST /api/kip/companion. Public guest chat endpoint. Rate-limited (20 req/min/IP via express-rate-limit). Direct Anthropic call using domain frame kip_context.guest as system prompt and kip.model as model. API key resolution: Railway env → domain owner's user key → platform DB key. Registered in index.ts before authMiddlewareCompat. No SOLE, governance, or action packs.
