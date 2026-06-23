@@ -6,6 +6,7 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 ## 🧱 Key Files
 - `useDraftPointAccept.ts` — Shared Accept handler for draft points (Dialog receipts + Chronicle blocks).
 - `useAgentDialog.ts` — Parameterized agent session hook (`agentSlug` / `agentDisplayName`). Used by IDE, Agent, and Domain boards.
+- `useComposerDraftAutosave.ts` — SessionStorage-backed unsent composer recovery for all Kip dialog surfaces.
 - `useKipSession.ts` — Deprecated alias for `useAgentDialog`. Re-exported for backward compatibility only.
 - `useDraftContext.ts` — Draft–session linking (IDE) and post-run draft list refresh (Agent).
 - `useAgentEvents.ts` – Listens for agent lifecycle events.
@@ -26,6 +27,11 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 - [ ] Expose `useAgentEvents` telemetry for analytics dashboards.
 
 ## 📆 Update Log
+
+### 2026-06-22 — Universal composer draft autosave
+- Added `useComposerDraftAutosave.ts` — debounced `sessionStorage` persist keyed by domain, board, agent, and session.
+- Wired into `useAgentDialog` (Universal Board), `AgentBoardFrame`, `CompanionSlide`, and `CoverChatInterface`.
+- Clears stored draft on successful send; restores composer text after failed send.
 
 ### 2026-06-22 — Thinking Space run trace
 - `useAgentDialog` keeps thinking steps after send; maps `actionResults` into trace lines; clears trace on next message only.

@@ -4,6 +4,7 @@ import * as React from "react"
 import type { AudienceRole, DomainFrameCoverChatInterface } from "../../data/domain-frame.types"
 import { getApiBase } from "../../../lib/apiFetch"
 import { issueGuestHandoffKey } from "../../../lib/kipGuestHandoff"
+import { useComposerDraftAutosave } from "../../../hooks/useComposerDraftAutosave"
 
 export interface CoverChatInterfaceProps {
   chat_interface: DomainFrameCoverChatInterface
@@ -40,6 +41,18 @@ export function CoverChatInterface({ chat_interface, domainSlug, audience }: Cov
   const [isSending, setIsSending] = React.useState(false)
   const [companionSessionId, setCompanionSessionId] = React.useState<string | null>(null)
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+
+  const { clearSavedDraft, restoreSavedDraft } = useComposerDraftAutosave({
+    scope: {
+      domainSlug,
+      board: "cover",
+      agentId: "kip",
+      sessionId: companionSessionId,
+    },
+    input: inputValue,
+    setInput: setInputValue,
+    isSending,
+  })
 
   React.useEffect(() => {
     const ta = textareaRef.current
@@ -110,12 +123,14 @@ export function CoverChatInterface({ chat_interface, domainSlug, audience }: Cov
           item.id === thinkingId ? { ...item, content: reply } : item,
         ),
       )
+      clearSavedDraft()
     } catch {
       setItems((prev) =>
         prev.map((item) =>
           item.id === thinkingId ? { ...item, content: "Something went wrong. Try again." } : item,
         ),
       )
+      restoreSavedDraft()
     } finally {
       setIsSending(false)
     }

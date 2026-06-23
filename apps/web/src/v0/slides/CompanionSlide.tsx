@@ -20,6 +20,7 @@ import * as React from "react"
 import type { AudienceRole } from "../data/domain-frame.types"
 import { getApiBase } from "../../lib/apiFetch"
 import { issueGuestHandoffKey } from "../../lib/kipGuestHandoff"
+import { useComposerDraftAutosave } from "../../hooks/useComposerDraftAutosave"
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 
@@ -388,6 +389,18 @@ export function CompanionSlide({
   const [isSending,          setIsSending]          = React.useState(false)
   const [companionSessionId, setCompanionSessionId] = React.useState<string | null>(null)
 
+  const { clearSavedDraft, restoreSavedDraft } = useComposerDraftAutosave({
+    scope: {
+      domainSlug,
+      board: "companion",
+      agentId: "kip",
+      sessionId: companionSessionId,
+    },
+    input: inputValue,
+    setInput: setInputValue,
+    isSending,
+  })
+
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
   const textareaRef    = React.useRef<HTMLTextAreaElement>(null)
 
@@ -487,12 +500,14 @@ export function CompanionSlide({
           ? { ...item, content: reply }
           : item
       ))
+      clearSavedDraft()
     } catch {
       setItems(prev => prev.map(item =>
         item.id === thinkingId && item.kind === "bubble"
           ? { ...item, content: "Something went wrong. Try again." }
           : item
       ))
+      restoreSavedDraft()
     } finally {
       setIsSending(false)
     }

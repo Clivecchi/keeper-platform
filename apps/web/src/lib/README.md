@@ -9,6 +9,7 @@ Core utility functions and API clients for the Keeper web application, including
 - `themeApi.ts` - Theme fetching and management
 - `kipApi.ts` - KIP (Keeper Intelligence Platform) API client
 - `kipDialogSession.ts` - Board-scoped Dialog session resume (`resolve/active`, reuse empty sessions)
+- `composerDraftStorage.ts` - SessionStorage helpers for unsent composer draft autosave
 - `agentRegistry.ts` - Agent registration and discovery
 - `governanceApi.ts` - Domain governance, contracts, compliance metrics
 
@@ -29,6 +30,9 @@ Core utility functions and API clients for the Keeper web application, including
 - [ ] Add request interceptors for logging
 
 ## 📆 Update Log
+
+### 2026-06-22 — Composer draft autosave storage
+- Added `composerDraftStorage.ts` — keyed read/write/clear/migrate for unsent Kip composer text in `sessionStorage`.
 
 ### 2026-06-22 — Dialog-scoped session resume
 - Added `kipDialogSession.ts` with `pickBestDialogSessionId` (prefer sessions with messages, else reuse newest empty) and `resumeOrCreateBoardSession` for IDE/Agent/Domain/Designer boards.

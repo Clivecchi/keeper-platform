@@ -24,6 +24,7 @@ import {
   type DialogThinkingStep,
   type RunAgentActionInput,
 } from "../v0/components/dialog/dialogThinking"
+import { useComposerDraftAutosave } from "./useComposerDraftAutosave"
 
 /** Mirrors `KipApi.runAgent` `options.agentContext` (no separate exported type in codebase) */
 export type AgentContext = NonNullable<Parameters<typeof KipApi.runAgent>[4]>["agentContext"]
@@ -314,6 +315,34 @@ export function useAgentDialog({
 
   const directorConfigRef = React.useRef(directorConfig)
   directorConfigRef.current = directorConfig
+
+  const composerDraftScope = React.useMemo(
+    () =>
+      domainSlug
+        ? {
+            domainSlug,
+            board: dialogBoard ?? mode,
+            agentId: agentId ?? resolvedAgentId ?? agentSlug,
+            sessionId: activeSessionId,
+          }
+        : null,
+    [
+      domainSlug,
+      dialogBoard,
+      mode,
+      agentId,
+      resolvedAgentId,
+      agentSlug,
+      activeSessionId,
+    ],
+  )
+
+  const { clearSavedDraft, restoreSavedDraft } = useComposerDraftAutosave({
+    scope: composerDraftScope,
+    input,
+    setInput,
+    isSending,
+  })
 
   const fetchMessages = React.useCallback(
     async (sessionId: string) => {
@@ -606,6 +635,7 @@ export function useAgentDialog({
             } else {
               setMessages((prev) => prev.filter((m) => m.id !== `user-${ts}`))
               setError(`Please sign in to continue the conversation with ${agentDisplayName}.`)
+              restoreSavedDraft()
               return
             }
           } else {
@@ -705,6 +735,7 @@ export function useAgentDialog({
         }
 
         await onRefreshDraftsAfterRun?.(result)
+        clearSavedDraft()
       } catch (err: unknown) {
         const status = (err as { status?: number })?.status
         const message = err instanceof Error ? err.message : ""
@@ -716,6 +747,7 @@ export function useAgentDialog({
         const reply = status === 401 ? authMsg : failMsg
 
         appendThinkingStep(`Run failed — ${reply}`)
+        restoreSavedDraft()
 
         if (mode === "ide") {
           setMessages((prev) => prev.filter((m) => m.id !== `user-${ts}`))
@@ -757,6 +789,8 @@ export function useAgentDialog({
       frameKey,
       onDirectorPhaseChange,
       userId,
+      clearSavedDraft,
+      restoreSavedDraft,
     ],
   )
 

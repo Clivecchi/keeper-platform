@@ -27,6 +27,7 @@ import { KipApi } from "../../../lib/kipApi"
 import type { KipAgent, KipDraftSummary, KipDraft, KipDraftStatus, KipMessage, ActionPack } from "../../../lib/kipApi"
 import { useAgentSessions } from "../../../hooks/useAgentSessions"
 import { extractRunAgentPayload } from "../../../hooks/useAgentDialog"
+import { useComposerDraftAutosave } from "../../../hooks/useComposerDraftAutosave"
 import { useV0Shell } from "../../shell/V0ShellContext"
 import { useFrameContextOptional } from "../../shell/FrameContext"
 import { useAgentWorkspaceView } from "../../shell/useAgentWorkspaceView"
@@ -177,6 +178,26 @@ export function AgentBoardFrame({
   const activeSessionId =
     (view.kind === "dialogue" ? view.sessionId : undefined) ??
     (sessions.length ? sessions[0].id : null)
+
+  const composerDraftScope = React.useMemo(
+    () =>
+      domainSlug
+        ? {
+            domainSlug,
+            board: "frame-agent",
+            agentId: agent?.id ?? "kip",
+            sessionId: activeSessionId,
+          }
+        : null,
+    [domainSlug, agent?.id, activeSessionId],
+  )
+
+  const { clearSavedDraft, restoreSavedDraft } = useComposerDraftAutosave({
+    scope: composerDraftScope,
+    input: inputValue,
+    setInput: setInputValue,
+    isSending,
+  })
 
   // ── Sync domain from FrameContext ──
   React.useEffect(() => {
@@ -496,6 +517,7 @@ export function AgentBoardFrame({
           } else {
             setMessagesError(ab?.messaging.errors.session_expired ?? "Session expired. Please log in again.")
             setMessages((prev) => prev.filter((m) => m.id !== optimistic.id))
+            restoreSavedDraft()
             return
           }
         } else {
@@ -557,8 +579,10 @@ export function AgentBoardFrame({
         }
       }
       refreshSessions()
+      clearSavedDraft()
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id))
+      restoreSavedDraft()
       const status = (err as { status?: number })?.status
       const message = err instanceof Error ? err.message : undefined
       setMessagesError(
