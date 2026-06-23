@@ -223,9 +223,10 @@ export function KeeperDialogFrame({
   const [pendingAttachments, setPendingAttachments] = React.useState<PendingAttachment[]>([])
   const [isFileUploading, setIsFileUploading] = React.useState(false)
   const hasUploads = pendingAttachments.length > 0 || isFileUploading
-  const hasWorkingThinkSpace = isSending || pendingAttachments.length > 0
+  const hasRunTrace = thinkingSteps.length > 0
+  const hasWorkingThinkSpace = isSending || pendingAttachments.length > 0 || hasRunTrace
   const showDiagStream = isSending && thinkStream === "diag"
-  const showThinkStream = isSending && thinkStream !== "diag"
+  const showThinkStream = thinkStream !== "diag" && (isSending || hasRunTrace)
 
   React.useEffect(() => {
     if (isSending) {
@@ -612,7 +613,7 @@ export function KeeperDialogFrame({
             {showDiagStream ? (
               <DialogDiagStream active />
             ) : showThinkStream ? (
-              <DialogThinkStream steps={thinkingSteps} agentName={agentName} />
+              <DialogThinkStream steps={thinkingSteps} agentName={agentName} isActive={isSending} />
             ) : (
               <DialogUploadStream
                 attachments={pendingAttachments}

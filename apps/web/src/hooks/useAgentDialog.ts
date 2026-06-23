@@ -18,7 +18,12 @@ import {
 } from "../v0/boards/directorDialog"
 import { resolveDirectorDelegationMessage } from "@keeper/shared"
 import { resumeOrCreateBoardSession } from "../lib/kipDialogSession"
-import { createThinkingStep, type DialogThinkingStep } from "../v0/components/dialog/dialogThinking"
+import {
+  actionResultsToThinkingSteps,
+  createThinkingStep,
+  type DialogThinkingStep,
+  type RunAgentActionInput,
+} from "../v0/components/dialog/dialogThinking"
 
 /** Mirrors `KipApi.runAgent` `options.agentContext` (no separate exported type in codebase) */
 export type AgentContext = NonNullable<Parameters<typeof KipApi.runAgent>[4]>["agentContext"]
@@ -634,7 +639,7 @@ export function useAgentDialog({
           updated[lastAgentIdx] = {
             ...updated[lastAgentIdx],
             ...(directorDelegation ? { delegation: directorDelegation } : {}),
-            ...(actionsArr?.length ? { actionResults: actionsArr } : {}),
+            ...(actionsArr?.length ? { actionResults: actionsArr as RunAgentActionInput[] } : {}),
           }
           return updated
         }
@@ -687,6 +692,14 @@ export function useAgentDialog({
           }
         }
 
+        if (actionsArr?.length) {
+          const typedActions = actionsArr as RunAgentActionInput[]
+          const actionSteps = actionResultsToThinkingSteps(typedActions, stepIndex)
+          stepIndex += actionSteps.length
+          setThinkingSteps((prev) => [...prev, ...actionSteps])
+        }
+        appendThinkingStep("Run complete")
+
         if (onAfterAgentRun) {
           onAfterAgentRun(latestRaw, actionsArr, result)
         }
@@ -701,6 +714,8 @@ export function useAgentDialog({
             ? message
             : `${agentDisplayName} couldn't respond. Try again.`
         const reply = status === 401 ? authMsg : failMsg
+
+        appendThinkingStep(`Run failed — ${reply}`)
 
         if (mode === "ide") {
           setMessages((prev) => prev.filter((m) => m.id !== `user-${ts}`))
@@ -718,7 +733,6 @@ export function useAgentDialog({
         }
       } finally {
         onDirectorPhaseChange?.(null)
-        setThinkingSteps([])
         setIsSending(false)
       }
     },

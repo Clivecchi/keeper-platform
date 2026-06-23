@@ -8,6 +8,7 @@ Shared conversation shell used across IDE Board, Agent Board, and Domain Board. 
 - `DialogScrollHint.tsx` — “Latest” pill above the Horizon when the user scrolls up.
 - `DialogUploadStream.tsx` — Pending uploads in Thinking Space (Library item created at clip; sent with next message).
 - `DialogDiagStream.tsx` — Diag thinking stream: captures console output, board-definition snapshot, copy.
+- `DialogThinkStream.tsx` — Run trace in Thinking Space (progress steps + mapped action receipts).
 - `DialogScrollRail.tsx` — Overlay scroll thumb for Dialog Space.
 
 ## 🔄 Data & Behavior
@@ -40,7 +41,7 @@ Zone 2 is wrapped in `.dialog-message-zone` (`flex:1, min-height:0, position:rel
 - **Header Bar**: Frosted breadcrumb — `keeperName`, `journeyName`, `pathName`, `pathPrelude`. Hidden in `mode === 'feed'`. Chevron expands session meta.
 - **Dialog Space**: Scrollable messages **above** the Horizon. Renders `DialogueMessageList` by default. Long responses fill the space between Header Bar and Horizon, then scroll. `DialogScrollHint` offers “Latest” when scrolled up.
 - **Horizon**: Gradient dissolve at the Composer edge. When working (`isSending`), shows `{agentName} is thinking…` and stream toggles (Diag). Summarizes what Thinking Space streams in detail.
-- **Thinking Space**: Between Dialog Space and input. **Uploads** appear here after clip (Library item created immediately; removed on send). Diag stream when working. Expands with uploads (`--uploads`).
+- **Thinking Space**: Between Dialog Space and input. **Uploads** appear here after clip (Library item created immediately; removed on send). **Run trace** while sending and briefly after — progress placeholders plus real action receipts from `actionResults`. Diag stream when working. Expands with uploads (`--uploads`).
 - **Composer**: `AgentComposer` input + toolbar; `IntegratedServicesBar` below on IDE Board.
 
 ### Readability
@@ -64,12 +65,13 @@ All four zones are direct flex children of `.keeper-dialog-frame`. The thinking 
 ## ⚠️ Notes & ToDo
 - [x] Upload flow: files in Thinking Space; Library item at pick; attach on send.
 - [ ] User-facing **Readable** density toggle on boards (wire `keeper-density` beyond Design Board).
-- [ ] Additional Horizon streams beyond Diag (agent chain-of-thought summaries).
+- [ ] Additional Horizon streams beyond Diag (live server-side phase events).
 - [ ] `dialogContent` replaces the full Dialog Space content — separate slot if messages needed alongside.
 - [ ] TODO: Verify that `pathPrelude` truncation in `.dialog-prelude` (ellipsis) works correctly at all breakpoints.
 - [ ] When `isSending` is true, thinking status renders on the Horizon inside Dialog Space; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-06-22: Thinking Space **Run trace** — renamed from "Chain of thought"; keeps steps after send; maps `actionResults` into trace lines via `dialogThinking.ts`.
 - 2026-06-17: Composer clip stages blob only; Library commit on send. Horizon shows "Uploading…". Taller input; composer + Tools share one `.dialog-bottom-stack` column.
 - 2026-06-17: Upload → Thinking Space (`DialogUploadStream`); clip adds Library item + stages file until send; composer input grows when uploads present.
 - 2026-06-17: Canonical vocabulary (Header Bar, Dialog Space, Composer states, Horizon, Thinking Space). `DialogScrollHint` “Latest” pill above Horizon. Board-scope readability: 17px composer input, larger Horizon status. `data-composer-state` on shell.

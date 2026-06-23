@@ -27,6 +27,9 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-06-22 — Thinking Space run trace
+- `useAgentDialog` keeps thinking steps after send; maps `actionResults` into trace lines; clears trace on next message only.
+
 ### 2026-06-22 — Session resume: board-scoped Dialog + no ghost sessions
 - `useAgentDialog` domain/agent/ide bootstrap uses `resumeOrCreateBoardSession` instead of always `createSession`.
 - `useSelectionSessionResume` uses `pickBestDialogSessionId` for Dialog nav and `resumeOrCreateBoardSession` for Agent Board fallback.
