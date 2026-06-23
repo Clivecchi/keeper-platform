@@ -25,6 +25,10 @@ Integration, Key, Capability, Library, and Keeper Chronicle declaration defaults
 
 ## 📆 Update Log
 
+### 2026-06-19 — Draft spec merge safety (points preservation)
+- `mergeDraftSpecPatch` merges points by id; empty `points: []` no longer wipes existing points; non-content spec keys preserved on merge.
+- `appendDraftPointToSpec` / `updateDraftPointInSpec` preserve extra spec keys (paths, purpose, etc.).
+
 ### 2026-06-19 — GlossAnchor types (Phase 1b)
 - Added `glossAnchor.ts` — `GlossAnchor`, `buildGlossAnchorDataAttribute`, `glossAnchorToDraftDiscuss`
 

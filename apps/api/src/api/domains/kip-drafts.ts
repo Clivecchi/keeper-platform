@@ -255,18 +255,39 @@ router.post(
         },
       });
 
+      const specJson = existing
+        ? canonicalizeDraftSpecJson(
+            mergeDraftSpecPatch(existing.spec_json, body.spec ?? {}),
+            { proposedBy: req.user.id },
+          )
+        : canonicalizeDraftSpecJson(body.spec ?? {}, {
+            proposedBy: req.user.id,
+          });
+
       const baseData = {
         title: body.title,
         summary: body.summary || null,
         status: 'draft',
-        spec_json: canonicalizeDraftSpecJson(body.spec ?? {}, {
-          proposedBy: req.user.id,
-        }) as object,
+        spec_json: specJson as object,
         updated_at: now,
         agent_id: body.agentId ?? null,
         keeper_id: keeperId,
         dialog_id: dialogId,
       };
+
+      if (existing) {
+        const nextVersion = await prisma.kip_draft_versions.count({ where: { draft_id: existing.id } }).then((n) => n + 1);
+        await prisma.kip_draft_versions.create({
+          data: {
+            draft_id: existing.id,
+            version: nextVersion,
+            spec_json: existing.spec_json ?? {},
+            title: existing.title,
+            summary: existing.summary ?? null,
+            status: existing.status,
+          },
+        });
+      }
 
       const draft = existing
         ? await prisma.kip_drafts.update({

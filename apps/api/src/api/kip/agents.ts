@@ -166,10 +166,12 @@ function isOperationalDraftAgent(agent: { role?: string | null; config?: unknown
 function buildDraftUpdateInstruction(agent: { role?: string | null; config?: unknown }): string {
   const proposePoints =
     '- When adding or changing draft CONTENT, use draft.update.propose with payload.id (draft UUID), payload.content (the proposed text), and optional payload.type (moment | decision | context | general — default general). Each call appends one proposed point; the human must Accept in the UI before it is canonical.';
+  const preservePoints =
+    '- NEVER wipe draft points. If a draft already exists in draftsDirectory, prefer draft.update (with id) or draft.update.propose — not draft.create with the same kind+key. Existing points are preserved on merge; omit spec.points unless you are appending new points by id.';
   if (isOperationalDraftAgent(agent)) {
-    return `${proposePoints}\n- For draft METADATA only (title, summary, status, kind), you may use draft.update directly with payload.id and the changed fields. Never invent action types like add_point — only use actions from the allowlist.`;
+    return `${proposePoints}\n${preservePoints}\n- For draft METADATA or structure (title, summary, status, paths in spec), use draft.update with payload.id. spec patches merge into the existing draft — points are kept unless you explicitly send replacement points by id. Never invent action types like add_point — only use actions from the allowlist.`;
   }
-  return proposePoints;
+  return `${proposePoints}\n${preservePoints}`;
 }
 
 class AgentExecutionError extends Error {
@@ -421,13 +423,10 @@ async function processDraftIntent(
     const status = payload.status?.trim() || existingDraft?.status || 'draft';
     const key = slugifyKey(payload.key || title || existingDraft?.key || `draft-${Date.now()}`);
     const summary = payload.summary ?? existingDraft?.summary ?? null;
-    const specToPersist = canonicalizeDraftSpecJson(
-      normalizeSpecPayload(payload.spec ?? existingDraft?.spec_json ?? {}, payload.raw ?? title, {
-        sessionId: ctx.sessionId,
-        requestId: ctx.requestId ?? null,
-      }),
-      { proposedBy: 'user' },
-    ) as Prisma.JsonValue;
+    const normalizedIncoming = normalizeSpecPayload(payload.spec ?? {}, payload.raw ?? title, {
+      sessionId: ctx.sessionId,
+      requestId: ctx.requestId ?? null,
+    });
 
     const result = await prisma.$transaction(async (tx) => {
       let draftRecord =
@@ -444,6 +443,17 @@ async function processDraftIntent(
         });
       }
 
+      const resolveSpecToPersist = (existingSpec: Prisma.JsonValue | null): Prisma.JsonValue => {
+        if (draftRecord) {
+          const patch = payload.spec !== undefined ? normalizedIncoming : {};
+          return canonicalizeDraftSpecJson(
+            mergeDraftSpecPatch(existingSpec, patch),
+            { proposedBy: 'user' },
+          ) as Prisma.JsonValue;
+        }
+        return canonicalizeDraftSpecJson(normalizedIncoming, { proposedBy: 'user' }) as Prisma.JsonValue;
+      };
+
       let created = false;
       if (!draftRecord) {
         draftRecord = await tx.kip_drafts.create({
@@ -456,7 +466,7 @@ async function processDraftIntent(
             title,
             summary,
             status,
-            spec_json: specToPersist,
+            spec_json: resolveSpecToPersist(null),
             updated_at: now,
           },
         });
@@ -468,7 +478,7 @@ async function processDraftIntent(
             title,
             summary,
             status,
-            spec_json: specToPersist,
+            spec_json: resolveSpecToPersist(draftRecord.spec_json),
             updated_at: now,
           },
         });
@@ -933,8 +943,6 @@ export async function executeAgentActions(
               proposedBy = agent?.slug ?? ctx.agentId;
             }
 
-            const canonicalSpec = canonicalizeDraftSpecJson(rawSpec, { proposedBy });
-
             try {
               const existing = await tx.kip_drafts.findFirst({
                 where: {
@@ -946,6 +954,13 @@ export async function executeAgentActions(
                 },
               });
 
+              const canonicalSpec = existing
+                ? canonicalizeDraftSpecJson(
+                    mergeDraftSpecPatch(existing.spec_json, rawSpec),
+                    { proposedBy },
+                  )
+                : canonicalizeDraftSpecJson(rawSpec, { proposedBy });
+
               const baseData = {
                 title,
                 summary,
@@ -955,6 +970,20 @@ export async function executeAgentActions(
                 agent_id: ctx.agentId ?? null,
                 keeper_id: keeperId,
               };
+
+              if (existing) {
+                await tx.kip_draft_versions.create({
+                  data: {
+                    draft_id: existing.id,
+                    version: await tx.kip_draft_versions.count({ where: { draft_id: existing.id } }).then((n) => n + 1),
+                    spec_json: (existing.spec_json ?? {}) as Prisma.InputJsonValue,
+                    title: existing.title,
+                    summary: existing.summary ?? null,
+                    status: existing.status,
+                    created_by_session_id: ctx.sessionId ?? null,
+                  },
+                });
+              }
 
               const draft = existing
                 ? await tx.kip_drafts.update({
@@ -995,7 +1024,7 @@ export async function executeAgentActions(
               results.push({
                 type: action.type,
                 status: 'success',
-                message: 'Draft created successfully',
+                message: existing ? 'Draft updated successfully' : 'Draft created successfully',
                 data: {
                   entityIds: [draft.id],
                   draft: {
@@ -3156,7 +3185,8 @@ export class KipAgentService {
           '- Example: {"type":"agent_output","response":"Here\'s your image.","actions":[{"type":"image.generate","payload":{"subject":"a keeper\'s desk at dusk, scattered notes and warm light","mood":"quiet, reflective","style":"cinematic photography","aspect_ratio":"16:9"}}]}',
           '',
           `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
-          'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — replaces draft spec when provided).',
+          'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
+          'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
           'draft.create may include spec.points (array of point objects) for initial content, or omit spec and add content later via draft.update.propose. Do not use spec.sections — points are canonical.',
           'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"points":[]}}}]}',
           draftRules?.autoDraft?.enabled
@@ -3562,7 +3592,8 @@ export class KipAgentService {
             '- Example: {"type":"agent_output","response":"Here\'s your image.","actions":[{"type":"image.generate","payload":{"subject":"a keeper\'s desk at dusk, scattered notes and warm light","mood":"quiet, reflective","style":"cinematic photography","aspect_ratio":"16:9"}}]}',
             '',
             `draft.create payload schema: kind (required, e.g. ${draftKinds.slice(0, 4).join(', ')}), key (required, URL-safe slug), title (required), summary (optional), spec (optional object).`,
-            'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — replaces draft spec when provided).',
+            'draft.update payload schema: id (required, draft UUID), title (optional), summary (optional), status (optional), spec (optional object — merges into existing spec; points preserved when omitted).',
+            'draft.create on an existing kind+key updates that draft and merges spec — never use it to rebuild from scratch when points already exist; use draft.update instead.',
             'draft.create may include spec.points (array of point objects) for initial content, or omit spec and add content later via draft.update.propose. Do not use spec.sections — points are canonical.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"points":[]}}}]}',
             draftRules?.autoDraft?.enabled

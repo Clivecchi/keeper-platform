@@ -27,6 +27,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-06-19: **Draft points preservation** — `draft.create` upsert merges spec (preserves points); version snapshot before overwrite; agent prompts forbid rebuilding existing drafts via create; `processDraftIntent` merges on update.
 - 2026-06-18: **MCP wired into Cloud agent runs** — `mcp.call` action executes Railway/Vercel/GitHub tools in-process; Cloud gets tool catalog in system prompt + follow-up turn with live results.
 - 2026-06-17: **Director delegation hardening** — instrument sub-runs use IDE-scoped env + agent capabilities; only successful Cloud/Rendr beats returned to client (no failure placeholder in UI).
 - 2026-06-17: **IDE director delegation (server)** — POST `action=run` accepts `directorDelegation`; Lead saves the user's message, runs Cloud/Rendr, synthesizes, returns `directorDelegation` beat in response data.

@@ -216,12 +216,51 @@ export function createDraftPoint(input: CreateDraftPointInput): DraftPoint {
   };
 }
 
+function mergeDraftPointsById(existingPoints: DraftPoint[], patchPoints: DraftPoint[]): DraftPoint[] {
+  if (patchPoints.length === 0) return existingPoints;
+
+  const byId = new Map(existingPoints.map((point) => [point.id, point]));
+  for (const patchPoint of patchPoints) {
+    byId.set(patchPoint.id, patchPoint);
+  }
+
+  const ordered: DraftPoint[] = [];
+  const seen = new Set<string>();
+
+  for (const point of existingPoints) {
+    const merged = byId.get(point.id);
+    if (merged) {
+      ordered.push(merged);
+      seen.add(point.id);
+    }
+  }
+
+  for (const patchPoint of patchPoints) {
+    if (!seen.has(patchPoint.id)) {
+      ordered.push(patchPoint);
+    }
+  }
+
+  return ordered;
+}
+
+function withDraftPointsPreservingExtras(spec: unknown, points: DraftPoint[]): DraftSpecJson & Record<string, unknown> {
+  const normalized = canonicalizeDraftSpecJson(spec);
+  const extras: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(normalized)) {
+    if (key !== 'sections' && key !== 'points') {
+      extras[key] = value;
+    }
+  }
+
+  return canonicalizeDraftSpecJson({ ...extras, points });
+}
+
 /** Merge a new point into spec_json without mutating the input object. */
 export function appendDraftPointToSpec(spec: unknown, point: DraftPoint): DraftSpecJson {
   const normalized = canonicalizeDraftSpecJson(spec);
-  return {
-    points: [...(normalized.points ?? []), point],
-  };
+  return withDraftPointsPreservingExtras(spec, [...(normalized.points ?? []), point]);
 }
 
 /** Update a point by id within spec_json.points */
@@ -245,7 +284,7 @@ export function updateDraftPointInSpec(
   });
 
   return {
-    spec: { points: nextPoints },
+    spec: withDraftPointsPreservingExtras(spec, nextPoints),
     point: updatedPoint,
   };
 }
@@ -256,11 +295,25 @@ export function findDraftPoint(spec: unknown, pointId: string): DraftPoint | nul
 
 /**
  * Merge a partial spec patch into existing spec_json.
- * Preserves `points` and `sections` when omitted from the patch (common agent/client mistake).
+ * Preserves `points` when omitted from the patch (common agent/client mistake).
+ * Merges `points` by id when provided; empty patch points never wipe existing points.
+ * Preserves non-content spec keys (paths, purpose, etc.) from both sides.
  */
 export function mergeDraftSpecPatch(existingSpec: unknown, patchSpec: unknown): DraftSpecJson {
   const existing = canonicalizeDraftSpecJson(existingSpec);
   if (!isRecord(patchSpec)) return existing;
+
+  const mergedExtras: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(existing)) {
+    if (key !== 'sections' && key !== 'points') {
+      mergedExtras[key] = value;
+    }
+  }
+  for (const [key, value] of Object.entries(patchSpec)) {
+    if (key !== 'sections' && key !== 'points') {
+      mergedExtras[key] = value;
+    }
+  }
 
   let nextPoints = existing.points ?? [];
 
@@ -275,10 +328,15 @@ export function mergeDraftSpecPatch(existingSpec: unknown, patchSpec: unknown): 
   }
 
   if ('points' in patchSpec) {
-    nextPoints = parseDraftPoints(patchSpec);
+    const patchPoints = parseDraftPoints(patchSpec);
+    if (patchPoints.length === 0 && nextPoints.length > 0) {
+      // Agent sent points: [] — preserve existing rather than wipe.
+    } else if (patchPoints.length > 0) {
+      nextPoints = mergeDraftPointsById(nextPoints, patchPoints);
+    }
   }
 
-  return canonicalizeDraftSpecJson({ points: nextPoints });
+  return canonicalizeDraftSpecJson({ ...mergedExtras, points: nextPoints });
 }
 
 /** Build draft summary text from accepted points (visible Chronicle field). */
