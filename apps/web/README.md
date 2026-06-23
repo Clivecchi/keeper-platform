@@ -22,5 +22,6 @@ Client-rendered UI using React. Styling via Tailwind CSS. Built with Vite. Integ
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
+- 2026-06-22: Phase 0 mobile PWA scaffold — `vite-plugin-pwa`, manifest, service worker, install hooks under `src/mobile/pwa/`.
 - 2026-01-19: Added build-time stamp injection via Vite define for v0 shell stamp.
 - 2025-09-30: Added `.npmrc` to stabilize npm registry access during Vercel builds.

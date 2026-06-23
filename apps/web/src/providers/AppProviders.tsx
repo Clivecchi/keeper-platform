@@ -30,6 +30,7 @@ import { FrameProvider } from '../context/FrameContext';
 import { KeeperProvider } from '../context/KeeperContext';
 import { BoardProvider } from '../context/BoardContext';
 import { TheatreStudioLoader } from '../v0/presents/theatre/TheatreStudioLoader';
+import { PwaProvider } from '../mobile/pwa';
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -48,7 +49,9 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
                   <KeeperProvider>
                     <FrameProvider>
                       <BoardProvider>
-                        {children}
+                        <PwaProvider>
+                          {children}
+                        </PwaProvider>
                       </BoardProvider>
                     </FrameProvider>
                   </KeeperProvider>
