@@ -5,6 +5,7 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 🧱 Key Files
 - `api.ts` - Core API client with authentication error handling
+- `apiFetch.ts` - Authenticated fetch wrapper that preserves parsed JSON error messages, codes, request IDs, and response metadata
 - `themeApi.ts` - Theme fetching and management
 - `kipApi.ts` - KIP (Keeper Intelligence Platform) API client
 - `agentRegistry.ts` - Agent registration and discovery
@@ -12,6 +13,7 @@ Core utility functions and API clients for the Keeper web application, including
 
 ## 🔄 Data & Behavior
 - **API Client**: Centralized fetch wrapper with proper error handling
+- **Kip Errors**: `KipApi.runAgent()` maps backend execution failures into `KipAgentRunError` with stable codes/details for overloads, quota, timeouts, missing keys, and model configuration.
 - **Authentication**: Bearer token management and error prevention
 - **Theme Management**: User theme preferences and fallback handling
 - **Agent Registry**: Dynamic agent discovery and routing
@@ -27,6 +29,10 @@ Core utility functions and API clients for the Keeper web application, including
 - [ ] Add request interceptors for logging
 
 ## 📆 Update Log
+
+### 2026-06-23 - Kip run-agent error normalization
+- `kipApi.ts` now exports `KipAgentRunError`, stable run error codes, and sanitized user-facing messages for provider overload, quota, timeout, missing-key, invalid-model, and misconfiguration cases.
+- `apiFetch.ts` preserves parsed non-200 JSON error payloads (message/code/request id) instead of discarding them when constructing thrown errors.
 
 ### 2026-02-24 - blobProxy: direct URL for public blobs
 - Public blobs (*.public.blob.vercel-storage.com) now use direct URL; proxy returns 500 for these. Fixes domain cover image not showing on www.ke3p.com.

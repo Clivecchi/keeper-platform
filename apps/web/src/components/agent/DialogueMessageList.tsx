@@ -12,6 +12,7 @@ import { DraftUpdateProposeCard } from "../kip/DraftUpdateProposeCard"
 import type { AgentDialogueMessage } from "./types"
 import { normalizeActionReceipt } from "./types"
 import { formatTime } from "./helpers"
+import { getAgentErrorPresentation } from "./errorPresentation"
 import type { AgentBoardMessaging } from "../../v0/data/domain-frame.types"
 
 export interface DialogueMessageListProps {
@@ -155,49 +156,49 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
     {isSending && (
       <p className="text-xs" style={{ color: "var(--theme-ink-tertiary-color)" }}>{(agentBoardMessaging?.dialogue.thinking ?? "{agent_name} is thinking…").replace("{agent_name}", agentName)}</p>
     )}
-    {error && (
-      <div
-        className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
-          error.toLowerCase().includes("credits") ||
-          error.toLowerCase().includes("quota")
-            ? "border-amber-300 bg-amber-50 text-amber-800"
-            : "border-red-200 bg-red-50 text-red-700"
-        }`}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="mt-0.5 h-5 w-5 flex-shrink-0"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-        >
-          {error.toLowerCase().includes("credits") ||
-          error.toLowerCase().includes("quota") ? (
-            <path
-              fillRule="evenodd"
-              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-              clipRule="evenodd"
-            />
-          ) : (
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-              clipRule="evenodd"
-            />
-          )}
-        </svg>
-        <div className="flex flex-col gap-1">
-          <span className="font-medium">
-            {error.toLowerCase().includes("credits") ||
-            error.toLowerCase().includes("quota")
-              ? "AI Model Needs Credits"
-              : "Something went wrong"}
-          </span>
-          <span className="text-xs opacity-80">{error}</span>
-        </div>
-      </div>
-    )}
+    {error && <AgentErrorAlert error={error} />}
   </div>
 )
+
+const AgentErrorAlert: React.FC<{ error: string }> = ({ error }) => {
+  const presentation = getAgentErrorPresentation(error)
+  const isWarning = presentation.tone === "warning"
+
+  return (
+    <div
+      className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
+        isWarning
+          ? "border-amber-300 bg-amber-50 text-amber-800"
+          : "border-red-200 bg-red-50 text-red-700"
+      }`}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="mt-0.5 h-5 w-5 flex-shrink-0"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+      >
+        {isWarning ? (
+          <path
+            fillRule="evenodd"
+            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v4a1 1 0 002 0V6a1 1 0 00-1-1z"
+            clipRule="evenodd"
+          />
+        ) : (
+          <path
+            fillRule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+            clipRule="evenodd"
+          />
+        )}
+      </svg>
+      <div className="flex flex-col gap-1">
+        <span className="font-medium">{presentation.title}</span>
+        <span className="text-xs opacity-80">{presentation.detail}</span>
+      </div>
+    </div>
+  )
+}
 
 const SkeletonBubble: React.FC<{ alignment: "left" | "right" }> = ({
   alignment,

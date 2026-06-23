@@ -8,7 +8,10 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - `AgentContextBanner.tsx` -- Context-first banner for Agent Board: domain · keeper/journey/studio, Live indicator, Open Cockpit. Agent name lives in AgentComposer.
 - `AgentPostureHeader.tsx` -- Legacy governance stack banner (agent, domain, lens, mode, governance, voice). Used by KipAgentBoardPage.
 - `DraftCard.tsx` -- Inline-editing draft card: title, summary, status pill, sections (add/delete), JSON toggle, bottom toolbar (Save, JSON/Edit, ← Dialogue).
+- `JourneyCard.tsx` -- Detail view for a Journey (Draft UI style): title, forward, paths, moments, Set as Active, ← Dialogue.
+- `KeeperCard.tsx` -- Detail view for a Keeper (Draft UI style): title, purpose, domain, Set as Active, ← Dialogue.
 - `DialogueMessageList.tsx` -- Scrollable conversation message list with action receipts, skeleton loading, and error states. Agent name is dynamic (passed as prop, never hardcoded).
+- `errorPresentation.ts` -- Shared category/tone mapping for Kip dialogue errors such as provider overloads, quota, timeouts, missing keys, and invalid models.
 - `SessionCard.tsx` -- Clickable session card for conversation session lists. Compact and full variants.
 - `CockpitPanel.tsx` -- Agent configuration and diagnostics overview: SOLE memory, model config, tools/actions (allowedActions prop), session stats, governance compliance (when showCompliance). Also exports `FrameCard` utility component.
 - `AgentContextBar.tsx` -- Thin persistent bar showing active journey scope, keeper scope, SOLE memory status, and session ID. Displayed above the workspace to make agent operating context visible.
@@ -18,6 +21,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 ## Data and Behavior
 - `AgentComposer` owns the dialogue input: agent name + mode selector (Domain/Debug), config dropdown (model/lens + Open Cockpit link), textarea, file attach (text files), submit. Receives `onFileAttach`, `onModeChange` (via `useAgentPostureData.setDialogueMode`), `feedbackSlot` for errors/hints.
 - `DialogueMessageList` renders `AgentDialogueMessage[]` with role-based styling (user messages right-aligned, agent messages left-aligned). Supports `LinkedCard` inline rendering and `ActionReceiptCard` for draft/entity creation receipts.
+- Dialogue errors route through `getAgentErrorPresentation()` so provider overloads and configuration issues receive informational headings instead of generic failure copy.
 - `SessionCard` displays `AgentConversationSession` from the `useAgentSessions` hook. Supports edit callbacks and active highlighting.
 - `CockpitPanel` reads `FrameContext` for keeper/journey selection to determine capability indicators (SOLE, journey tracking, etc.). When `allowedActions` is provided (e.g. from AgentBoardFrame), it displays the actual action list (draft.create, moment.create, sole.save, etc.); otherwise falls back to hardcoded capability labels. Option B: fetches keeper-scoped SOLE when `activeKeeperId` is set, domain anchor SOLE when only `domainId` is set.
 - `AgentContextBar` is a pure presentational component with no data fetching.
@@ -26,6 +30,9 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
+- 2026-06-23: Added shared agent error presentation helper and updated `DialogueMessageList` to title Kip failures by category (overload, quota, timeout, provider key, invalid model) instead of generic "Something went wrong".
+- 2026-02-28: Added SessionBannerCard — unified session banner for dialogue workspace. Combines session title (editable inline), session ID, Journey/Keeper/SOLE/Session/Model context row, and Change model button. Replaces separate WorkspaceHeader + AgentContextBar in AgentBoardFrame dialogue view.
+- 2026-02-26: CockpitPanel: Dynamic model loading from GET /api/kip/models?provider=X. Fetches from provider API (OpenAI, Anthropic) server-side; loading state; fallback to minimal hardcoded list on fetch failure. Keeps current model selectable when not in fetched list.
 - 2026-02-19: CockpitPanel: Added "Change model" button and modal. Fetches model catalog from GET /api/kip/models. onAgentUpdated callback refreshes parent agent state.
 - 2026-02-18: ActionReceiptCard: entity names (draft title, moment title) now clickable links when onOpenDraft/onOpenMoment provided. DialogueMessageList passes onOpenMoment; AgentBoardFrame wires to navigateToFrame("moment", { draftId }).
 - 2026-02-18: Added AgentComposer (Cursor-style chat tool kit: agent/mode dropdown, config dropdown, attach, submit, feedback area). Simplified AgentContextBanner: removed agent name (moved to composer), kept domain · keeper/journey, Live, Open Cockpit. useAgentPostureData extended with setDialogueMode for mode switching.

@@ -10,6 +10,14 @@ import { getAuthToken } from './authTokenStore';
 
 type FetchOptions = RequestInit & { headers?: Record<string, string> };
 
+type ApiErrorPayload = {
+  message?: string;
+  error?: string | { message?: string; code?: string; type?: string };
+  code?: string;
+  requestId?: string;
+  request_id?: string;
+};
+
 /** Resolve API base: use relative /api when on ke3p.com (Vercel rewrites to Railway); else env or fallback. Exported for api.ts. */
 export function getApiBase(): string {
   if (typeof window !== 'undefined') {
@@ -56,37 +64,46 @@ export async function apiFetch(input: string | URL, opts: FetchOptions = {}) {
   
   // Parse JSON response
   if (!response.ok) {
-    // For error responses, try to parse JSON error message
+    let errorData: ApiErrorPayload | null = null;
     try {
-      const errorData = await response.json();
-      const errorMessage = errorData.message || errorData.error || `HTTP ${response.status}`;
-      const error: any = new Error(errorMessage);
-      error.status = response.status; // Attach status for handleAuthError
-      error.response = response; // Attach response for additional context
-      if (errorData?.error) {
-        error.code = errorData.error;
-      }
-      error.data = errorData;
-      throw error;
-    } catch (err) {
-      // If JSON parsing fails or we already threw, use status code
-      if (err instanceof Error && err.message.startsWith('HTTP')) {
-        // Re-throw our custom error (already has status attached from above)
-        if (!(err as any).status) {
-          (err as any).status = response.status;
-          (err as any).response = response;
-        }
-        throw err;
-      }
-      const error: any = new Error(`HTTP ${response.status}: ${response.statusText}`);
-      error.status = response.status; // Attach status for handleAuthError
-      error.response = response; // Attach response for additional context
-      throw error;
+      errorData = await response.json();
+    } catch {
+      errorData = null;
     }
+
+    const errorMessage = pickApiErrorMessage(errorData, response);
+    const error: any = new Error(errorMessage);
+    error.status = response.status; // Attach status for handleAuthError
+    error.response = response; // Attach response for additional context
+    error.data = errorData;
+    error.requestId = errorData?.requestId || errorData?.request_id || response.headers.get('x-request-id') || undefined;
+    const errorCode = typeof errorData?.error === 'object'
+      ? errorData.error.code || errorData.error.type
+      : errorData?.code || (typeof errorData?.error === 'string' ? errorData.error : undefined);
+    if (errorCode) {
+      error.code = errorCode;
+    }
+    throw error;
   }
   
   // For successful responses, return parsed JSON
   return response.json();
+}
+
+function pickApiErrorMessage(errorData: ApiErrorPayload | null, response: Response): string {
+  if (typeof errorData?.message === 'string' && errorData.message.trim()) {
+    return errorData.message;
+  }
+
+  if (typeof errorData?.error === 'string' && errorData.error.trim()) {
+    return errorData.error;
+  }
+
+  if (typeof errorData?.error === 'object' && typeof errorData.error.message === 'string' && errorData.error.message.trim()) {
+    return errorData.error.message;
+  }
+
+  return `HTTP ${response.status}: ${response.statusText || 'Request failed'}`;
 }
 
 // Log API base in development
