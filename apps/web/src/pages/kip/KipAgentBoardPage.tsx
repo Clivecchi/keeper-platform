@@ -250,6 +250,14 @@ function makeDraftKey(title: string): string {
   return `${slug || 'draft'}-${suffix}`;
 }
 
+function formatDebugPayload(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  return JSON.stringify(value, null, 2) ?? String(value);
+}
+
 type DomainBasics = { domainId: string | null; domainSlug: string | null };
 
 const useDomainIdentifier = (): {
@@ -786,7 +794,6 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
         kind: 'development_journey',
         key: makeDraftKey(title),
         title,
-        summary: null,
         spec: {},
       };
       
@@ -1783,22 +1790,20 @@ export const KipAgentBoard: React.FC<KipAgentBoardProps> = ({
                       </div>
                     </div>
                     
-                    {lastDraftPost.request?.body && (
+                    {Boolean(lastDraftPost.request?.body) && (
                       <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                         <div className="mb-1 font-semibold text-gray-700">Request Payload</div>
                         <pre className="max-h-32 overflow-auto rounded bg-white p-2 text-[10px]">
-                          {JSON.stringify(lastDraftPost.request.body, null, 2)}
+                          {formatDebugPayload(lastDraftPost.request?.body)}
                         </pre>
                       </div>
                     )}
                     
-                    {lastDraftPost.response?.body && (
+                    {Boolean(lastDraftPost.response?.body) && (
                       <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                         <div className="mb-1 font-semibold text-gray-700">Response Body</div>
                         <pre className="max-h-32 overflow-auto rounded bg-white p-2 text-[10px]">
-                          {typeof lastDraftPost.response.body === 'string'
-                            ? lastDraftPost.response.body
-                            : JSON.stringify(lastDraftPost.response.body, null, 2)}
+                          {formatDebugPayload(lastDraftPost.response?.body)}
                         </pre>
                       </div>
                     )}
