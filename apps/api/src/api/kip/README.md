@@ -27,6 +27,7 @@ Expose KIP agent endpoints. Includes a mock fallback for `/api/kip/agents` when 
 - [ ] companion.ts: conversationHistory is unvalidated content from the browser — consider server-side content policy if abuse is detected
 
 ## 📆 Update Log
+- 2026-06-24: Kip run-agent failures now return sanitized provider failure details (`KipAgentRunError` + stable error codes) and user-friendly messages for overload, timeout, quota, and missing keys.
 - 2026-06-24: GET agent-by-slug now self-heals canonical Lead agents (`kip`, `ceox`) when DB records drift from expected `role=Lead` and `visibility=public`.
 - 2026-06-22: **Read-action follow-up (Lead agents)** — After read-only actions (`draft.read`, `journey.read`, etc.), server runs a second model turn with live results so Kip answers substantively instead of stopping at deferral text + a Retrieved receipt.
 - 2026-06-19: **Draft points preservation** — `draft.create` upsert merges spec (preserves points); version snapshot before overwrite; agent prompts forbid rebuilding existing drafts via create; `processDraftIntent` merges on update.

@@ -100,6 +100,7 @@ type AgentErrorCode =
   | 'MISSING_API_KEY'
   | 'INVALID_MODEL'
   | 'PROVIDER_UNAVAILABLE'
+  | 'TIMEOUT'
   | 'QUOTA_EXCEEDED'
   | 'AGENT_MISCONFIGURED'
   | 'UNKNOWN';
@@ -3853,11 +3854,7 @@ export class KipAgentService {
       throw new AgentExecutionError(
         mappedCode,
         response.error || 'AI model call failed',
-        {
-          provider: modelProvider,
-          model: modelSettings.model,
-          retries: response.retries_used
-        }
+        buildProviderAgentErrorDetails(modelProvider, modelSettings.model, response)
       );
     } catch (error) {
       console.error('Error calling AI model:', error);
@@ -4788,10 +4785,45 @@ function mapProviderCodeToAgentCode(code?: ModelProviderErrorCode): AgentErrorCo
       return 'INVALID_MODEL';
     case 'QUOTA_EXCEEDED':
       return 'QUOTA_EXCEEDED';
+    case 'TIMEOUT':
+      return 'TIMEOUT';
     case 'PROVIDER_UNAVAILABLE':
     default:
       return 'PROVIDER_UNAVAILABLE';
   }
+}
+
+function buildProviderAgentErrorDetails(
+  provider: ModelProvider,
+  model: string,
+  response: {
+    retries_used?: number;
+    retryable?: boolean;
+    providerStatus?: number;
+    errorCode?: ModelProviderErrorCode;
+    keySource?: string;
+  }
+): Record<string, unknown> {
+  const code = mapProviderCodeToAgentCode(response.errorCode);
+  const suggestedActionByCode: Record<AgentErrorCode, string> = {
+    MISSING_API_KEY: 'Add or rotate the provider API key, then retry Kip.',
+    INVALID_MODEL: 'Choose a supported model for Kip in Cockpit, then retry.',
+    PROVIDER_UNAVAILABLE: 'Retry shortly; if the provider remains unavailable, switch Kip to another model in Cockpit.',
+    TIMEOUT: 'Retry shortly; if timeouts continue, switch Kip to a faster model or reduce context.',
+    QUOTA_EXCEEDED: 'Add provider credits or switch Kip to a funded provider key.',
+    AGENT_MISCONFIGURED: 'Check the Kip agent configuration.',
+    UNKNOWN: 'Check server logs and retry.',
+  };
+
+  return {
+    provider,
+    model,
+    retries: response.retries_used ?? 0,
+    retryable: response.retryable ?? (code === 'PROVIDER_UNAVAILABLE' || code === 'TIMEOUT'),
+    providerStatus: response.providerStatus,
+    keySource: response.keySource,
+    suggestedAction: suggestedActionByCode[code],
+  };
 }
 
 function resolveAgentErrorCode(error: unknown): AgentErrorCode {

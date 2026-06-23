@@ -55,19 +55,25 @@ export interface ModelResponse {
   retries_used: number;
   execution_time_ms: number;
   errorCode?: ModelProviderErrorCode;
+  retryable?: boolean;
+  providerStatus?: number;
+  keySource?: ModelProviderKeySource;
 }
 
 export type ModelProviderErrorCode = 'MISSING_API_KEY' | 'INVALID_MODEL' | 'PROVIDER_UNAVAILABLE' | 'TIMEOUT' | 'QUOTA_EXCEEDED';
+export type ModelProviderKeySource = 'env' | 'user' | 'platform' | 'none';
 
 class ModelProviderException extends Error {
   code: ModelProviderErrorCode;
   retryable: boolean;
+  status?: number;
 
-  constructor(code: ModelProviderErrorCode, message: string, options?: { retryable?: boolean }) {
+  constructor(code: ModelProviderErrorCode, message: string, options?: { retryable?: boolean; status?: number }) {
     super(message);
     this.name = 'ModelProviderException';
     this.code = code;
     this.retryable = options?.retryable ?? code === 'PROVIDER_UNAVAILABLE';
+    this.status = options?.status;
   }
 }
 
@@ -588,7 +594,7 @@ class ElevenLabsProvider {
  */
 export class ModelProviderService {
   // Track last key source for debugging
-  private static lastKeySource: { provider: ModelProvider; keySource: string; timestamp: string } | null = null;
+  private static lastKeySource: { provider: ModelProvider; keySource: ModelProviderKeySource; timestamp: string } | null = null;
 
   /**
    * Get the last key source used (for debugging)
@@ -612,7 +618,7 @@ export class ModelProviderService {
     // Implement key resolution hierarchy: environment key → platform key → user key
     // NEW ORDER: Prefer ENV over DB for long-term reliability
     let apiKey: string | null = null;
-    let keySource = 'none';
+    let keySource: ModelProviderKeySource = 'none';
 
     // When stabilization mode is enabled, force env-only keys for runtime
     if (process.env.STABILIZE_MODE === '1') {
@@ -694,7 +700,9 @@ export class ModelProviderService {
         provider,
         retries_used: 0,
         execution_time_ms: Date.now() - startTime,
-        errorCode: 'MISSING_API_KEY'
+        errorCode: 'MISSING_API_KEY',
+        retryable: false,
+        keySource
       };
     }
     
@@ -710,7 +718,8 @@ export class ModelProviderService {
           ...response,
           provider,
           retries_used: attempt,
-          execution_time_ms: Date.now() - startTime
+          execution_time_ms: Date.now() - startTime,
+          keySource
         };
       } catch (error) {
         const normalizedError = error instanceof ModelProviderException
@@ -739,12 +748,15 @@ export class ModelProviderService {
     return {
       success: false,
       content: '',
-      error: `${fallbackErrorMessage} (key source: ${keySource})`,
+      error: fallbackErrorMessage,
       model: settings.model,
       provider,
       retries_used: attemptsUsed,
       execution_time_ms: Date.now() - startTime,
-      errorCode: lastError instanceof ModelProviderException ? lastError.code : undefined
+      errorCode: lastError instanceof ModelProviderException ? lastError.code : undefined,
+      retryable: lastError instanceof ModelProviderException ? lastError.retryable : true,
+      providerStatus: lastError instanceof ModelProviderException ? lastError.status : undefined,
+      keySource
     };
   }
 
@@ -866,9 +878,25 @@ function normalizeProviderError(provider: ModelProvider, error: unknown): ModelP
 
   const err = error as any;
   const message = error instanceof Error ? error.message : 'Unknown provider error';
-  const providerCode = err?.error?.code || err?.code;
-  const status = err?.status || err?.response?.status;
+  const providerCode = err?.error?.code || err?.error?.type || err?.code || err?.type;
+  const statusFromMessage = typeof message === 'string'
+    ? Number(message.match(/\b(4\d\d|5\d\d)\b/)?.[1])
+    : undefined;
+  const status = err?.status || err?.response?.status || statusFromMessage;
   const lowerMessage = typeof message === 'string' ? message.toLowerCase() : '';
+  const providerLabel = getProviderDisplayName(provider);
+
+  if (
+    err?.name === 'AbortError' ||
+    lowerMessage.includes('timeout') ||
+    lowerMessage.includes('timed out')
+  ) {
+    return new ModelProviderException(
+      'TIMEOUT',
+      `${providerLabel} did not respond before Kip's timeout. Try again in a moment; if it keeps happening, switch Kip to another model or check provider status.`,
+      { retryable: true, status }
+    );
+  }
 
   // Detect quota / rate-limit errors (HTTP 429 or message containing quota keywords)
   if (
@@ -884,16 +912,52 @@ function normalizeProviderError(provider: ModelProvider, error: unknown): ModelP
       'Please check the API key billing at https://platform.openai.com/account/billing ' +
       'or contact your administrator.';
     console.error(`[ModelProvider] ${provider} quota exceeded:`, message);
-    return new ModelProviderException('QUOTA_EXCEEDED', friendlyMessage, { retryable: false });
+    return new ModelProviderException('QUOTA_EXCEEDED', friendlyMessage, { retryable: false, status });
   }
 
   if (status === 401 || lowerMessage.includes('api key')) {
-    return new ModelProviderException('MISSING_API_KEY', message, { retryable: false });
+    return new ModelProviderException('MISSING_API_KEY', message, { retryable: false, status });
   }
 
   if (providerCode === 'model_not_found' || (lowerMessage.includes('model') && lowerMessage.includes('not'))) {
-    return new ModelProviderException('INVALID_MODEL', message, { retryable: false });
+    return new ModelProviderException('INVALID_MODEL', message, { retryable: false, status });
   }
 
-  return new ModelProviderException('PROVIDER_UNAVAILABLE', message, { retryable: true });
+  if (
+    status === 529 ||
+    status === 503 ||
+    status === 502 ||
+    status === 504 ||
+    providerCode === 'overloaded_error' ||
+    lowerMessage.includes('overloaded') ||
+    lowerMessage.includes('temporarily unavailable') ||
+    lowerMessage.includes('service unavailable')
+  ) {
+    return new ModelProviderException(
+      'PROVIDER_UNAVAILABLE',
+      `${providerLabel} is temporarily overloaded or unavailable. Kip retried the request and the provider still failed. Try again in a moment; if it continues, switch Kip to another model in Cockpit or check provider status.`,
+      { retryable: true, status }
+    );
+  }
+
+  return new ModelProviderException(
+    'PROVIDER_UNAVAILABLE',
+    `${providerLabel} could not complete Kip's request. Try again shortly; if it continues, switch Kip to another model or check provider status.`,
+    { retryable: true, status }
+  );
+}
+
+function getProviderDisplayName(provider: ModelProvider): string {
+  switch (provider) {
+    case 'openai':
+      return 'OpenAI';
+    case 'anthropic':
+      return 'Anthropic';
+    case 'together':
+      return 'Together AI';
+    case 'elevenlabs':
+      return 'ElevenLabs';
+    default:
+      return 'The model provider';
+  }
 }
