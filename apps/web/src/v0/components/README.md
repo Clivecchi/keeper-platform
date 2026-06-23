@@ -17,6 +17,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - `WorkspaceHeader.tsx` – Consistent header for workspace mode panels (eyebrow, title, description, divider).
 - `SidebarWorkspaceLayout.tsx` – Responsive two-column layout shell: sidebar + workspace grid.
 - `PromptedActionCard.tsx` – State-driven action nudge card for sidebar panels. Distinct visual treatment (left accent border, compact layout, inline action links, "?" help affordance). Surfaces unfinished work, pending reviews, and agent insights.
+- `PanelErrorBoundary.tsx` – Per-panel error isolation on Universal Board (Nav · Dialog · Chronicle); theme-token fallback with Try again / Refresh.
 
 ## 🔄 Data & Behavior
 - Cover uses local mock routes and constants for spacing/type scale; mobile-first with a two-column desktop “spread.”
@@ -29,6 +30,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-06-22: Added `PanelErrorBoundary.tsx` — isolates Nav, Dialog, and Chronicle crashes on Universal Board; pairs with composer draft autosave.
 - 2026-06-14: `SidebarCard` — optional `collapsible` / `defaultCollapsed` for nav sections; chevron toggle on title row.
 - 2026-06-12: `KeeperTopBar` calls `switchWorkspace` from V0Shell (single URL authority); active tab from `workspaceBoardId`.
 - 2026-06-10: `KeeperTopBar` workspace board tabs use `setSearchParams` (not `navigate`) and strip `?boardDef=` when leaving Design so top-bar switches are not blocked after Design nav selection.

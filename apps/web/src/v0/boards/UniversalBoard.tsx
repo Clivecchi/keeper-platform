@@ -52,6 +52,7 @@ import { DesignerDraftProvider } from "./DesignerDraftContext"
 import type { UniversalBoardDef } from "./UniversalBoardDefinition"
 import { UniversalConversation } from "./UniversalConversation"
 import { useAuth } from "../../context/AuthContext"
+import { PanelErrorBoundary } from "../components/PanelErrorBoundary"
 
 function isResolvedDomainId(id: string | null | undefined): id is string {
   return !!id && !String(id).startsWith("fallback-")
@@ -319,13 +320,17 @@ function UniversalBoardShell({
   // The render prop is responsible for its own styling (including frosted glass if wanted).
   // If omitted or returns null, Chronicle (UniversalViewPanel) handles the right panel.
   const rightOverrideNode = rightRenderProp ? rightRenderProp(centerProps) : null
-  const rightNode = rightOverrideNode ?? (
-    <UniversalViewPanel
-      def={def}
-      domainId={domainId}
-      domainName={domainName || slug}
-      domainSlug={slug || undefined}
-    />
+  const rightNode = (
+    <PanelErrorBoundary panel="chronicle">
+      {rightOverrideNode ?? (
+        <UniversalViewPanel
+          def={def}
+          domainId={domainId}
+          domainName={domainName || slug}
+          domainSlug={slug || undefined}
+        />
+      )}
+    </PanelErrorBoundary>
   )
 
   return (
@@ -354,58 +359,62 @@ function UniversalBoardShell({
               boardKind={boardKind}
               domainSlug={slug}
               left={
-                leftRenderProp
-                  ? leftRenderProp(leftProps)
-                  : (
-                      <UniversalNavPanel
-                        domainId={domainId}
-                        domainSlug={slug}
-                        domainName={domainName || slug}
-                        def={def}
-                        selectedDialogId={selection.selectedDialogId}
-                        selectedJourneyId={selection.selectedJourneyId}
-                        selectedKeeperId={selection.selectedKeeperId}
-                        selectedDraftId={selection.selectedDraftId}
-                        selectedAgentId={selection.selectedAgentId}
-                        selectedServiceSlug={selection.selectedServiceSlug}
-                        selectedKeyId={selection.selectedKeyId}
-                        selectedCapabilityId={selection.selectedCapabilityId}
-                        selectedLibraryItemId={selection.selectedLibraryItemId}
-                        onDialogSelect={actions.onDialogSelect}
-                        onJourneySelect={actions.onJourneySelect}
-                        onKeeperSelect={actions.onKeeperSelect}
-                        onDraftSelect={actions.onDraftSelect}
-                        onAgentSelect={actions.onAgentSelect}
-                        onServiceOpen={actions.onServiceOpen}
-                        onKeySelect={actions.onKeySelect}
-                        onCapabilitySelect={actions.onCapabilitySelect}
-                        onLibraryItemSelect={actions.onLibraryItemSelect}
-                        collapsed={navCollapsed}
-                        onToggleCollapsed={onToggleNavCollapsed}
-                        dialogListVersion={navVersions?.dialogListVersion}
-                        journeyListVersion={effectiveJourneyListVersion}
-                        keeperListVersion={selection.keeperNavRevision}
-                        draftListVersion={effectiveDraftListVersion}
-                        draftNavRowPatch={selection.draftNavRowPatch}
-                        keyListVersion={selection.keyNavRevision}
-                        keyNavRowPatch={selection.keyNavRowPatch}
-                        capabilityListVersion={selection.capabilityNavRevision}
-                        capabilityNavRowPatch={selection.capabilityNavRowPatch}
-                        libraryListVersion={selection.libraryNavRevision}
-                        libraryNavRowPatch={selection.libraryNavRowPatch}
-                        keeperNavRowPatch={selection.keeperNavRowPatch}
-                      />
-                    )
+                <PanelErrorBoundary panel="nav">
+                  {leftRenderProp
+                    ? leftRenderProp(leftProps)
+                    : (
+                        <UniversalNavPanel
+                          domainId={domainId}
+                          domainSlug={slug}
+                          domainName={domainName || slug}
+                          def={def}
+                          selectedDialogId={selection.selectedDialogId}
+                          selectedJourneyId={selection.selectedJourneyId}
+                          selectedKeeperId={selection.selectedKeeperId}
+                          selectedDraftId={selection.selectedDraftId}
+                          selectedAgentId={selection.selectedAgentId}
+                          selectedServiceSlug={selection.selectedServiceSlug}
+                          selectedKeyId={selection.selectedKeyId}
+                          selectedCapabilityId={selection.selectedCapabilityId}
+                          selectedLibraryItemId={selection.selectedLibraryItemId}
+                          onDialogSelect={actions.onDialogSelect}
+                          onJourneySelect={actions.onJourneySelect}
+                          onKeeperSelect={actions.onKeeperSelect}
+                          onDraftSelect={actions.onDraftSelect}
+                          onAgentSelect={actions.onAgentSelect}
+                          onServiceOpen={actions.onServiceOpen}
+                          onKeySelect={actions.onKeySelect}
+                          onCapabilitySelect={actions.onCapabilitySelect}
+                          onLibraryItemSelect={actions.onLibraryItemSelect}
+                          collapsed={navCollapsed}
+                          onToggleCollapsed={onToggleNavCollapsed}
+                          dialogListVersion={navVersions?.dialogListVersion}
+                          journeyListVersion={effectiveJourneyListVersion}
+                          keeperListVersion={selection.keeperNavRevision}
+                          draftListVersion={effectiveDraftListVersion}
+                          draftNavRowPatch={selection.draftNavRowPatch}
+                          keyListVersion={selection.keyNavRevision}
+                          keyNavRowPatch={selection.keyNavRowPatch}
+                          capabilityListVersion={selection.capabilityNavRevision}
+                          capabilityNavRowPatch={selection.capabilityNavRowPatch}
+                          libraryListVersion={selection.libraryNavRevision}
+                          libraryNavRowPatch={selection.libraryNavRowPatch}
+                          keeperNavRowPatch={selection.keeperNavRowPatch}
+                        />
+                      )}
+                </PanelErrorBoundary>
               }
               center={
-                <div
-                  className="flex h-full min-h-0 flex-col overflow-hidden"
-                  style={{ background: "transparent", borderRadius: "8px" }}
-                >
-                  {center
-                    ? center(centerProps)
-                    : <UniversalConversation def={def} {...centerProps} />}
-                </div>
+                <PanelErrorBoundary panel="dialog">
+                  <div
+                    className="flex h-full min-h-0 flex-col overflow-hidden"
+                    style={{ background: "transparent", borderRadius: "8px" }}
+                  >
+                    {center
+                      ? center(centerProps)
+                      : <UniversalConversation def={def} {...centerProps} />}
+                  </div>
+                </PanelErrorBoundary>
               }
               right={rightNode}
             />

@@ -59,6 +59,10 @@ Presents (Theatre.js): when `layout="focus"`, KeeperPresence plays a Present seq
 
 ## 📆 Update Log
 
+### 2026-06-22 — Chronicle header card visibility
+- `KeeperPresence`: `draftPresenceRevision` reload only when `objectType === "draft"` — accepting draft points in Dialog no longer unmounts journey/domain cover cards
+- See `cover/README.md` for `coverMotion` entrance safety fix on `EntityCoverPresence`
+
 ### 2026-06-19 — Draft Phase 1b (PointRow + Discuss)
 - `DraftPointRow.tsx` — shared point row with Accept, Discuss, `data-gloss-anchor`
 - `DraftPointsSection.tsx` — delegates to `DraftPointRow`

@@ -5,6 +5,7 @@ import {
   animate,
   useMotionValue,
   useTransform,
+  useReducedMotion,
   type MotionValue,
 } from "framer-motion"
 import type { CoverMotionValues } from "./coverTypes"
@@ -24,7 +25,6 @@ const SETTLED: CoverMotionValues = {
 }
 
 export interface UseCoverMotionResult {
-  motion: CoverMotionValues
   /** Raw motion values for Framer Motion bindings */
   values: {
     atmosphereOpacity: MotionValue<number>
@@ -38,7 +38,18 @@ export interface UseCoverMotionResult {
   glowScale: MotionValue<number>
 }
 
+function snapVisibleEntrance(
+  atmosphereOpacity: MotionValue<number>,
+  nameReveal: MotionValue<number>,
+  heroEntrance: MotionValue<number>,
+): void {
+  atmosphereOpacity.set(SETTLED.atmosphereOpacity)
+  nameReveal.set(SETTLED.nameReveal)
+  heroEntrance.set(SETTLED.heroEntrance)
+}
+
 export function useCoverMotion(instanceKey: string): UseCoverMotionResult {
+  const reducedMotion = useReducedMotion()
   const atmosphereOpacity = useMotionValue(INITIAL.atmosphereOpacity)
   const nameReveal = useMotionValue(INITIAL.nameReveal)
   const statusPulse = useMotionValue(INITIAL.statusPulse)
@@ -48,14 +59,17 @@ export function useCoverMotion(instanceKey: string): UseCoverMotionResult {
   const nameOpacity = useTransform(nameReveal, [0, 1], [0, 1])
   const glowScale = useTransform(statusPulse, [0, 1], [0.92, 1.08])
 
-  const [motion, setMotion] = React.useState<CoverMotionValues>(INITIAL)
-
   React.useEffect(() => {
     atmosphereOpacity.set(INITIAL.atmosphereOpacity)
     nameReveal.set(INITIAL.nameReveal)
     statusPulse.set(INITIAL.statusPulse)
     heroEntrance.set(INITIAL.heroEntrance)
-    setMotion(INITIAL)
+
+    if (reducedMotion) {
+      snapVisibleEntrance(atmosphereOpacity, nameReveal, heroEntrance)
+      statusPulse.set(SETTLED.statusPulse)
+      return
+    }
 
     const controls = [
       animate(atmosphereOpacity, SETTLED.atmosphereOpacity, {
@@ -81,29 +95,19 @@ export function useCoverMotion(instanceKey: string): UseCoverMotionResult {
       }),
     ]
 
-    const unsubscribers = [
-      atmosphereOpacity.on("change", (v) =>
-        setMotion((prev) => ({ ...prev, atmosphereOpacity: v })),
-      ),
-      nameReveal.on("change", (v) =>
-        setMotion((prev) => ({ ...prev, nameReveal: v })),
-      ),
-      statusPulse.on("change", (v) =>
-        setMotion((prev) => ({ ...prev, statusPulse: v })),
-      ),
-      heroEntrance.on("change", (v) =>
-        setMotion((prev) => ({ ...prev, heroEntrance: v })),
-      ),
-    ]
+    // If entrance animations are interrupted (remount, strict mode, panel refresh),
+    // never leave the cover card stuck at opacity 0.
+    const safetyTimer = window.setTimeout(() => {
+      snapVisibleEntrance(atmosphereOpacity, nameReveal, heroEntrance)
+    }, 900)
 
     return () => {
+      window.clearTimeout(safetyTimer)
       controls.forEach((c) => c.stop())
-      unsubscribers.forEach((u) => u())
     }
-  }, [instanceKey, atmosphereOpacity, heroEntrance, nameReveal, statusPulse])
+  }, [instanceKey, reducedMotion, atmosphereOpacity, heroEntrance, nameReveal, statusPulse])
 
   return {
-    motion,
     values: { atmosphereOpacity, nameReveal, statusPulse, heroEntrance },
     heroY,
     nameOpacity,

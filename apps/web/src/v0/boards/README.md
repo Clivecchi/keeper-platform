@@ -24,6 +24,10 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-22 — Panel error boundaries + composer draft autosave
+- **UniversalBoard:** wraps Nav, Dialog, and Chronicle in `PanelErrorBoundary` — one panel crash no longer takes down the full board.
+- **Composer autosave:** unsent dialog text persists in `sessionStorage` via `useComposerDraftAutosave` (see hooks README).
+
 ### 2026-06-22 — IDE session resume + draft Dialog link
 - **UniversalConversation:** IDE and Designer session bootstrap use `resumeOrCreateBoardSession` (board-scoped `/kip/dialogs/resolve/active`) instead of agent-wide `getSessionsByAgentId`.
 - Reuses empty Dialog sessions on mount instead of creating a new ghost session each refresh.

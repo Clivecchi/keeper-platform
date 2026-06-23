@@ -353,7 +353,7 @@ function ActionsSlot({ actions }: { actions: CoverActionDef[] }) {
  * Renders hero, identity, traits, credits, and actions in fixed positions.
  */
 export function EntityCoverPresence({ content, instanceKey }: EntityCoverPresenceProps) {
-  const { values, heroY, nameOpacity, glowScale, motion: coverMotionState } = useCoverMotion(instanceKey)
+  const { values, heroY, nameOpacity, glowScale } = useCoverMotion(instanceKey)
 
   return (
     <motion.div
@@ -364,10 +364,6 @@ export function EntityCoverPresence({ content, instanceKey }: EntityCoverPresenc
         opacity: values.atmosphereOpacity,
       }}
       data-cover-mode="cover"
-      data-atmosphere-opacity={coverMotionState.atmosphereOpacity}
-      data-hero-entrance={coverMotionState.heroEntrance}
-      data-name-reveal={coverMotionState.nameReveal}
-      data-status-pulse={coverMotionState.statusPulse}
     >
       <HeroSlot
         hero={content.hero}

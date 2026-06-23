@@ -759,6 +759,10 @@ export function KeeperPresence({
 
   const boardCtx = useUniversalBoardOptional()
   const [presenceRefresh, setPresenceRefresh] = React.useState(0)
+  const draftPresenceRevision =
+    objectType === "draft"
+      ? (boardCtx?.selection.draftPresenceRevision ?? 0)
+      : 0
 
   React.useEffect(() => {
     if (!objectId || !objectType || !domainId) return
@@ -825,7 +829,7 @@ export function KeeperPresence({
       cancelled = true
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [objectId, objectType, domainId, domainSlug, domainDisplayName, objectProp, presenceRefresh, boardCtx?.selection.draftPresenceRevision])
+  }, [objectId, objectType, domainId, domainSlug, domainDisplayName, objectProp, presenceRefresh, draftPresenceRevision])
 
   const handlePresenceRefresh = React.useCallback(() => {
     setPresenceRefresh((n) => n + 1)
