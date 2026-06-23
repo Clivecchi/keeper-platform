@@ -8,6 +8,7 @@ import { requireDomainReadCompat, requireDomainWriteCompat } from '../../middlew
 import { validationMiddleware } from '../../middleware/validationMiddleware.js';
 import { normalizeDraftSpecJson, mergeDraftSpecPatch, canonicalizeDraftSpecJson } from '@keeper/shared';
 import { normalizeSummary } from '../kip/actions/schema.js';
+import { ensureDraftLinkedToSessionDialog } from '../../services/kip/linkDraftToSessionDialog.js';
 
 /**
  * Build draft open URL
@@ -424,6 +425,11 @@ router.post(
       await prisma.kip_sessions.updateMany({
         where: { id: sessionId },
         data: { active_draft_id: draft.id, updated_at: new Date() },
+      });
+
+      await ensureDraftLinkedToSessionDialog(prisma, {
+        draftId: draft.id,
+        sessionId,
       });
 
       return res.json({ success: true, activeDraft: mapDraftSummary(draft) });

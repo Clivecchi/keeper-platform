@@ -24,6 +24,11 @@ V0 Boards are full-viewport surfaces accessed via the `?board=` URL parameter. A
 
 ## 📆 Update Log
 
+### 2026-06-22 — IDE session resume + draft Dialog link
+- **UniversalConversation:** IDE and Designer session bootstrap use `resumeOrCreateBoardSession` (board-scoped `/kip/dialogs/resolve/active`) instead of agent-wide `getSessionsByAgentId`.
+- Reuses empty Dialog sessions on mount instead of creating a new ghost session each refresh.
+- Pairs with API auto-link of `kip_drafts.dialog_id` from the active session so Chronicle Sessions blocks populate.
+
 ### 2026-06-19 — Board-only engagement (Singular UI)
 - `engagement/` module: `useBoardEngagement`, `BoardEngagementForm`, `PresenceEngagementActions`, `JourneyChronicleEngagement`
 - `UniversalNavPanel`: JOURNEYS `+` → `journey.create` template

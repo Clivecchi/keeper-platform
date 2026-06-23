@@ -46,6 +46,11 @@ import { ensureKipAgentOutputEnvelope } from '../../services/structure/ensureStr
 import type { ImageGenerationBrief } from '../../services/ModelProviderService.js';
 import { SoleMemoryService } from '../../services/SoleMemoryService.js';
 import { findOrCreateKipDialog } from '../../services/kipDialogLifecycle.js';
+import { ensureDraftLinkedToSessionDialog } from '../../services/kip/linkDraftToSessionDialog.js';
+import {
+  buildReadActionFollowUpInput,
+  shouldRunReadActionFollowUp,
+} from '../../services/kip/actionFollowUp.js';
 import {
   buildDirectorFallbackSynthesisPrompt,
   buildDirectorSynthesisPrompt,
@@ -500,6 +505,11 @@ async function processDraftIntent(
         });
         setActiveApplied = sessionUpdate.count > 0;
       }
+
+      await ensureDraftLinkedToSessionDialog(tx, {
+        draftId: draftRecord.id,
+        sessionId: ctx.sessionId,
+      });
 
       return { draftRecord, created, setActiveApplied };
     });
@@ -1001,6 +1011,11 @@ export async function executeAgentActions(
                     },
                   });
 
+              await ensureDraftLinkedToSessionDialog(tx, {
+                draftId: draft.id,
+                sessionId: ctx.sessionId,
+              });
+
               // Get domain slug for link generation if not provided
               let domainSlug = ctx.domainSlug;
               if (!domainSlug && ctx.domainId) {
@@ -1119,6 +1134,11 @@ export async function executeAgentActions(
               },
             });
 
+            await ensureDraftLinkedToSessionDialog(tx, {
+              draftId: draft.id,
+              sessionId: ctx.sessionId,
+            });
+
             const typeLabel = point.type === 'general' ? 'point' : point.type;
             results.push({
               type: action.type,
@@ -1205,6 +1225,12 @@ export async function executeAgentActions(
                 updated_at: new Date(),
               },
             });
+
+            await ensureDraftLinkedToSessionDialog(tx, {
+              draftId: draft.id,
+              sessionId: ctx.sessionId,
+            });
+
             results.push({
               type: action.type,
               status: 'success',
@@ -1277,6 +1303,11 @@ export async function executeAgentActions(
             const updated = await tx.kip_drafts.update({
               where: { id: draft.id },
               data: updateData,
+            });
+
+            await ensureDraftLinkedToSessionDialog(tx, {
+              draftId: updated.id,
+              sessionId: ctx.sessionId,
             });
 
             let domainSlug = ctx.domainSlug;
@@ -1487,6 +1518,13 @@ export async function executeAgentActions(
                 updated_at: new Date(),
               },
             });
+
+            if (updated.count > 0) {
+              await ensureDraftLinkedToSessionDialog(tx, {
+                draftId: draft.id,
+                sessionId,
+              });
+            }
 
             results.push({
               type: action.type,
@@ -3279,6 +3317,9 @@ export class KipAgentService {
         'keeper.read — retrieves full Keeper content including associated journeys and counts.',
         'Use when a user asks about a specific Keeper. Payload: { keeperId }',
         '',
+        'draft.read / draft.get — retrieves full draft spec (including points). Payload: { id } or { kind, key }.',
+        'The server runs a follow-up turn with read results — answer the user in that turn; do not emit draft.read alone with a deferral message.',
+        '',
         'You have an index at session start. Use these tools to go deeper when needed.',
         'Do not guess at content you can retrieve. Call the tool and read the territory.',
       ].join('\n'),
@@ -4247,6 +4288,63 @@ export class KipAgentService {
             });
             if (postResult.appendText) {
               finalResponseText = (finalResponseText || '') + postResult.appendText;
+            }
+
+            if (shouldRunReadActionFollowUp(structured.actions, actionResults)) {
+              const followUpInput = buildReadActionFollowUpInput({
+                originalInput: input,
+                agentName: agent.name,
+                actionResults,
+                priorResponseText: finalResponseText,
+              });
+              const followUpResult = await this.callAIModel(
+                agent,
+                followUpInput,
+                previousMessages,
+                userId,
+                {
+                  mode: activeMode,
+                  modeConfig: activeModeConfig,
+                  lens: { systemPrompt: leadVoicePrompt || lens?.systemPrompt || null },
+                  debugSummary,
+                  maxChars,
+                  outputStyle: (activeModeConfig.outputStyle as OutputStyle) || 'normal',
+                  includeFixPlan: activeModeConfig.includeFixPlan,
+                  autoBrief: activeModeConfig.autoBrief,
+                  environment: options?.environment ?? null,
+                  activeJourneyId: options?.activeJourneyId ?? null,
+                  activeKeeperId: options?.activeKeeperId ?? null,
+                  domainId: options?.domainId ?? null,
+                  attachments: options?.attachments ?? undefined,
+                },
+              );
+              const followUpStructured = await ensureKipAgentOutputEnvelope(followUpResult.content, {
+                requestId: randomUUID(),
+                userId,
+                allowedActions: Array.from(allowActions),
+              });
+              finalResponseText =
+                followUpStructured.responseText?.trim()
+                || followUpResult.content.trim()
+                || finalResponseText;
+
+              if (followUpStructured.actions.length) {
+                const followUpExecution = await executeAgentActions(followUpStructured.actions, {
+                  domainId: options?.domainId ?? null,
+                  domainSlug: options?.domainSlug ?? null,
+                  userId,
+                  agentId: agent.id,
+                  allowlist: allowActions,
+                  sessionId: currentSessionId,
+                  keeperId: options?.activeKeeperId ?? null,
+                  requestId,
+                  skipActionTypes: options?.skipActionTypes,
+                });
+                actionResults = [...actionResults, ...followUpExecution.results];
+                if (followUpExecution.failedMessage) {
+                  finalResponseText = `${finalResponseText}\n\n${followUpExecution.failedMessage}`;
+                }
+              }
             }
           }
         }

@@ -17,6 +17,7 @@ import {
   type DirectorSendPhase,
 } from "../v0/boards/directorDialog"
 import { resolveDirectorDelegationMessage } from "@keeper/shared"
+import { resumeOrCreateBoardSession } from "../lib/kipDialogSession"
 import { createThinkingStep, type DialogThinkingStep } from "../v0/components/dialog/dialogThinking"
 
 /** Mirrors `KipApi.runAgent` `options.agentContext` (no separate exported type in codebase) */
@@ -370,15 +371,19 @@ export function useAgentDialog({
             (mode === "agent" ? "Agent Board" : sessionNameDateFallback())
         }
         if (cancelled) return
-        const session = await KipApi.createSession(aid, undefined, name, {
-          domainSlug,
-          ...(domainId ? { domainId } : {}),
-          dialogBoard: dialogBoard ?? mode,
-          dialogFrame: dialogFrame ?? "conversation",
-          dialogSubject: dialogSubject ?? "domain",
+        if (!domainId) return
+        const board = dialogBoard ?? mode
+        const { sessionId } = await resumeOrCreateBoardSession({
+          domainId,
+          agentId: aid,
+          board,
+          frame: dialogFrame ?? "conversation",
+          subject: dialogSubject ?? "domain",
           dialogScope: resolvedAudience === "admin" ? "admin" : "keeper",
+          domainSlug,
+          sessionName: name,
         })
-        if (!cancelled) setInternalSessionId(session.id)
+        if (!cancelled) setInternalSessionId(sessionId)
       } catch {
         /* composer stays disabled */
       }
@@ -417,17 +422,20 @@ export function useAgentDialog({
           activeKeeperId: frameCtx?.selection?.activeKeeperId ?? null,
         })
         if (cancelled) return
-        const session = await KipApi.createSession(aid, undefined, sessionName, {
-          domainSlug,
-          ...(resolvedDomainId ? { domainId: resolvedDomainId } : {}),
-          dialogBoard: dialogBoard ?? "ide",
-          dialogFrame: dialogFrame ?? "conversation",
-          dialogSubject: dialogSubject ?? "domain",
+        if (!resolvedDomainId) return
+        const { sessionId } = await resumeOrCreateBoardSession({
+          domainId: resolvedDomainId,
+          agentId: aid,
+          board: dialogBoard ?? "ide",
+          frame: dialogFrame ?? "conversation",
+          subject: dialogSubject ?? "domain",
           dialogScope: resolvedAudience === "admin" ? "admin" : "keeper",
+          domainSlug,
+          sessionName,
         })
         if (cancelled) return
         ideSessionInitDoneRef.current = true
-        if (!activeSessionIdRef.current) onControlledSessionIdChange?.(session.id)
+        if (!activeSessionIdRef.current) onControlledSessionIdChange?.(sessionId)
       } catch {
         /* composer stays disabled */
       }

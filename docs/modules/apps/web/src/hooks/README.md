@@ -27,6 +27,10 @@ Collection of reusable React hooks that encapsulate Keeper-specific behaviors (a
 
 ## 📆 Update Log
 
+### 2026-06-22 — Session resume: board-scoped Dialog + no ghost sessions
+- `useAgentDialog` domain/agent/ide bootstrap uses `resumeOrCreateBoardSession` instead of always `createSession`.
+- `useSelectionSessionResume` uses `pickBestDialogSessionId` for Dialog nav and `resumeOrCreateBoardSession` for Agent Board fallback.
+
 ### 2026-06-19 — Draft point Accept hook
 - Added `useDraftPointAccept` — used by `UniversalConversation` and `DraftFocusPresence`; bumps draft nav + presence on accept.
 

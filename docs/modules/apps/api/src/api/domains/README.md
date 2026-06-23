@@ -36,6 +36,7 @@ Domain-level REST endpoints for CRUD, permissions, board data, custom domains, a
 - [ ] Confirm auto-assignment rules for non-Kip default agents once multi-agent support ships.
 
 ## 📆 Update Log
+- 2026-06-22: **Draft ↔ Dialog auto-link** — `POST .../sessions/:sessionId/active-draft` sets `kip_drafts.dialog_id` from the session's Dialog when unset (Chronicle Sessions block). Kip draft actions use the same helper server-side.
 - 2026-06-19: **Draft points preservation** — `POST /:domainId/kip/drafts` upsert merges `spec_json` via `mergeDraftSpecPatch` (no wipe on recreate); snapshots prior version on upsert.
 - 2026-06-15: **domain.frame.theme** — added `themeFrameSchema` (`DomainFrameTheme`) to `FRAME_SCHEMA_MAP`; Design Board Kip can propose brand token drafts on `?frame=theme`.
 - 2026-06-15: **Design Board structure Phase 3** — frame JSON generation routed through `generateDomainFrameSlice` + `domain.frame.*` contracts (Together schema pass, Anthropic fallback). Removed inline Together/Anthropic helpers from this file.

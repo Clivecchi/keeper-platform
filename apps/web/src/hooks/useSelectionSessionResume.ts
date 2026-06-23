@@ -3,13 +3,14 @@
 import * as React from "react"
 import { apiFetch } from "../lib/api"
 import { KipApi } from "../lib/kipApi"
-import type { KipSession } from "../lib/kipApi"
+import { pickBestDialogSessionId, resumeOrCreateBoardSession } from "../lib/kipDialogSession"
 import type { AgentDialogueMessage } from "../components/agent/types"
 
 type DialogSessionRow = {
   id: string
   updated_at?: string
   created_at?: string
+  kip_messages?: unknown[]
 }
 
 export interface UseSelectionSessionResumeOptions {
@@ -49,11 +50,7 @@ function sessionTimestamp(session: {
 }
 
 function pickMostRecentSessionId(sessions: DialogSessionRow[]): string | null {
-  if (!sessions.length) return null
-  const sorted = [...sessions].sort(
-    (a, b) => sessionTimestamp(b) - sessionTimestamp(a),
-  )
-  return sorted[0]?.id ?? null
+  return pickBestDialogSessionId(sessions)
 }
 
 function pickMostRecentKipSession(
@@ -147,17 +144,19 @@ export function useSelectionSessionResume({
       setMessages(idleMessages)
     }
 
-    async function createAgentBoardSession(agentForLookup: string): Promise<string | null> {
+    async function resumeAgentBoardSession(agentForLookup: string): Promise<string | null> {
       try {
-        const session = await KipApi.createSession(agentForLookup, undefined, "Agent Board", {
-          domainSlug: domainSlug ?? undefined,
-          domainId,
-          dialogBoard: "agent",
-          dialogFrame: "conversation",
+        const { sessionId } = await resumeOrCreateBoardSession({
+          domainId: domainId!,
+          agentId: agentForLookup,
+          board: "agent",
+          frame: "conversation",
           dialogSubject: "domain",
           dialogScope: "keeper",
+          domainSlug,
+          sessionName: "Agent Board",
         })
-        return session.id
+        return sessionId
       } catch {
         return null
       }
@@ -252,7 +251,7 @@ export function useSelectionSessionResume({
             // Session already active (e.g. just created) — do not wipe in-flight messages.
             return
           }
-          const createdId = await createAgentBoardSession(agentForLookup)
+          const createdId = await resumeAgentBoardSession(agentForLookup)
           if (cancelled || token !== resumeRef.current) return
           if (createdId) {
             onSessionSelect(createdId)

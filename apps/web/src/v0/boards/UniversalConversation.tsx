@@ -51,6 +51,11 @@ import type { AgentDialogueMessage } from "../../components/agent/types"
 import { normalizeActionReceipt } from "../../components/agent/types"
 import { commitComposerAttachmentsToLibrary, uploadLibraryFile } from "../presence/integrationChronicle/libraryNavCreate"
 import {
+  pickBestDialogSessionId,
+  resumeOrCreateBoardSession,
+  resolveActiveDialogSessions,
+} from "../../lib/kipDialogSession"
+import {
   BOARD_INSTRUMENT_LABELS,
   extractAgentReplyFromRunResult,
   type DirectorSendPhase,
@@ -62,18 +67,6 @@ interface SelectedAgentRecord {
   slug: string
   name: string
   purpose: string | null
-}
-
-function pickMostRecentDialogSessionId(
-  sessions: Array<{ id: string; updated_at?: string; created_at?: string }>,
-): string | null {
-  if (!sessions.length) return null
-  const sorted = [...sessions].sort((a, b) => {
-    const ta = Date.parse(String(a.updated_at ?? a.created_at ?? "")) || 0
-    const tb = Date.parse(String(b.updated_at ?? b.created_at ?? "")) || 0
-    return tb - ta
-  })
-  return sorted[0]?.id ?? null
 }
 
 function isThinkingPlaceholder(content: string, agentDisplayName: string): boolean {
@@ -506,11 +499,21 @@ export function UniversalConversation({
     void (async () => {
       try {
         const echoSessionName = "Agent Board Echo"
-        const sessions = await KipApi.getSessionsByAgentId(echoAgentId, { pageSize: 100 })
+        const sessions = await resolveActiveDialogSessions(domainId, {
+          board: "agent",
+          frame: "conversation",
+          dialogScope: "keeper",
+        })
         if (cancelled) return
-        const echoSession = sessions.find(
-          (s) => (s.session_name ?? "").trim() === echoSessionName,
-        )
+        const echoSession = sessions.find((s) => {
+          const name =
+            typeof s.session_name === "string"
+              ? s.session_name.trim()
+              : typeof s.sessionName === "string"
+                ? s.sessionName.trim()
+                : ""
+          return name === echoSessionName
+        })
         if (echoSession?.id) {
           setEchoSessionId(echoSession.id)
           return
@@ -935,32 +938,24 @@ export function UniversalConversation({
     const resolvedDomainId =
       domainId && !String(domainId).startsWith("fallback-") ? domainId : undefined
 
+    if (!resolvedDomainId) return
+
     let cancelled = false
     void (async () => {
       try {
-        const sessions = await KipApi.getSessionsByAgentId(agentId, { pageSize: 50 })
-        if (cancelled) return
-
-        const sessionId = pickMostRecentDialogSessionId(sessions)
-        if (sessionId) {
-          handleSessionChange(sessionId)
-          await fetchMessages(sessionId)
-          return
-        }
-
-        const sessionName = `Session · ${new Date().toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`
-
-        const session = await KipApi.createSession(agentId, undefined, sessionName, {
-          domainSlug,
-          ...(resolvedDomainId ? { domainId: resolvedDomainId } : {}),
-          dialogBoard: "ide",
-          dialogFrame: "conversation",
+        const { sessionId } = await resumeOrCreateBoardSession({
+          domainId: resolvedDomainId,
+          agentId,
+          board: "ide",
+          frame: "conversation",
           dialogSubject: "domain",
           dialogScope: audience === "admin" ? "admin" : "keeper",
+          domainSlug,
+          sessionName: `Session · ${new Date().toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`,
         })
         if (cancelled) return
-        handleSessionChange(session.id)
-        setMessages(idleMessages)
+        handleSessionChange(sessionId)
+        await fetchMessages(sessionId)
       } catch {
         /* composer stays disabled until session resolves */
       }
@@ -978,8 +973,6 @@ export function UniversalConversation({
     frameCtx?.isResolving,
     handleSessionChange,
     fetchMessages,
-    setMessages,
-    idleMessages,
   ])
 
   // ── designer mode: sync liveDomainFrame from shell to context ────────────
@@ -1010,32 +1003,21 @@ export function UniversalConversation({
 
     void (async () => {
       try {
-        const res = (await apiFetch(
-          `/api/domains/${domainId}/kip/dialogs/resolve/active?board=designer&frame=${encodeURIComponent(focusKey)}&available_to=admin`,
-        )) as { dialog?: { sessions?: Array<{ id: string; updated_at?: string; created_at?: string }> } }
-
-        if (cancelled) return
-
-        const sessionId = pickMostRecentDialogSessionId(res.dialog?.sessions ?? [])
-        if (sessionId) {
-          handleSessionChange(sessionId)
-          await fetchMessages(sessionId)
-          return
-        }
-
-        const focusLabel =
-          BOARD_DEFINITIONS[focusKey]?.displayName ?? focusKey
-        const session = await KipApi.createSession(aid, undefined, focusLabel, {
-          domainSlug,
+        const { sessionId } = await resumeOrCreateBoardSession({
           domainId,
-          dialogBoard: "designer",
-          dialogFrame: focusKey,
+          agentId: aid,
+          board: "designer",
+          frame: focusKey,
           dialogSubject: "boardDef",
           dialogScope: "admin",
+          domainSlug,
+          sessionName: BOARD_DEFINITIONS[focusKey]?.displayName ?? focusKey,
         })
+
         if (cancelled) return
-        handleSessionChange(session.id)
-        setMessages([])
+
+        handleSessionChange(sessionId)
+        await fetchMessages(sessionId)
       } catch {
         if (!cancelled) {
           handleSessionChange(null)
