@@ -1,4 +1,4 @@
-export type MobileTabId = "world" | "keep" | "journeys";
+export type MobileTabId = "world" | "keep" | "journeys" | "kip";
 
 export type MobileSurfaceMode = "mobile" | "desktop";
 
@@ -23,6 +23,7 @@ export interface MobileMomentDetail {
   keptAt: string | null;
   createdAt: string;
   updatedAt: string;
+  domainId?: string | null;
   journeyId?: string | null;
   journeyName?: string | null;
   pathName?: string | null;

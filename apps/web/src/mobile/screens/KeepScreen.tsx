@@ -3,7 +3,6 @@
 import * as React from "react";
 import { ChronicleActPresence } from "../../v0/presence/chronicleConfig/ChronicleActPresence";
 import { useBoardEngagement } from "../../v0/boards/engagement/useBoardEngagement";
-import type { EngagementContext } from "../../components/engagement/EngagementForm";
 import { useMobileKeeper } from "../context/MobileKeeperContext";
 import {
   fetchDomainJourneys,
@@ -14,7 +13,6 @@ import type { MobileJourneySummary, MobileKeeperSummary } from "../types";
 export function KeepScreen() {
   const {
     domainId,
-    domainSlug,
     activeJourneyId,
     setActiveJourneyId,
     notifyMomentKept,
@@ -43,7 +41,8 @@ export function KeepScreen() {
         if (cancelled) return;
         setJourneys(journeyList);
         setKeepers(keeperList);
-        if (!activeJourneyId && journeyList[0]?.id) {
+        const storedJourneyId = journeyList.find((j) => j.id === activeJourneyId)?.id;
+        if (!storedJourneyId && journeyList[0]?.id) {
           setActiveJourneyId(journeyList[0].id);
         }
       } catch (err) {
@@ -61,19 +60,18 @@ export function KeepScreen() {
     };
   }, [domainId, activeJourneyId, setActiveJourneyId]);
 
-  const selectedJourney = journeys.find((j) => j.id === activeJourneyId) ?? journeys[0] ?? null;
-  const keeperId =
-    selectedJourney?.keeperId
-    ?? keepers[0]?.id
-    ?? null;
+  const selectedJourney =
+    journeys.find((j) => j.id === activeJourneyId) ?? journeys[0] ?? null;
+  const keeperId = selectedJourney?.keeperId ?? keepers[0]?.id ?? null;
 
   const engagement = useBoardEngagement((result) => {
     notifyMomentKept();
+    const payload = result?.data;
     const createdId =
-      typeof result?.data === "object"
-      && result?.data
-      && typeof (result.data as { moment?: { id?: unknown } }).moment?.id === "string"
-        ? (result.data as { moment: { id: string } }).moment.id
+      payload
+      && typeof payload === "object"
+      && typeof (payload as { moment?: { id?: unknown } }).moment?.id === "string"
+        ? (payload as { moment: { id: string } }).moment.id
         : null;
 
     if (createdId) {
@@ -83,30 +81,34 @@ export function KeepScreen() {
     }
   });
 
+  const { activateBySlug, intent, submitting, cancel } = engagement;
+
   React.useEffect(() => {
     if (!domainId || !selectedJourney?.id || !keeperId) return;
 
-    const context: EngagementContext = {
+    void activateBySlug("moment.create", {
       domainId,
       entityType: "journey",
       entityId: selectedJourney.id,
       journeyId: selectedJourney.id,
       keeperId,
-    };
+    });
+  }, [domainId, selectedJourney?.id, keeperId, activateBySlug]);
 
-    void engagement.activateBySlug("moment.create", context);
-  }, [domainId, selectedJourney?.id, keeperId, engagement.activateBySlug]);
-
-  const handleSubmit = React.useCallback(
+  const submitKeepMoment = React.useCallback(
     async (inputs: Record<string, unknown>) => {
       setSubmitError(null);
+      const payload = { ...inputs };
+      if (typeof payload.content === "string" && payload.narrative === undefined) {
+        payload.narrative = payload.content;
+      }
       try {
-        await engagement.handleSubmit(inputs);
+        await engagement.handleSubmit(payload);
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : "Could not keep this moment");
       }
     },
-    [engagement],
+    [engagement.handleSubmit],
   );
 
   if (!domainId) {
@@ -172,14 +174,14 @@ export function KeepScreen() {
         </select>
       </div>
 
-      {engagement.intent ? (
+      {intent ? (
         <div className="min-h-0 flex-1 overflow-y-auto">
           <ChronicleActPresence
-            template={engagement.intent.template}
-            context={engagement.intent.context}
-            onSubmit={handleSubmit}
-            onClose={() => engagement.cancel()}
-            submitting={engagement.submitting}
+            template={intent.template}
+            context={intent.context}
+            onSubmit={submitKeepMoment}
+            onClose={() => cancel()}
+            submitting={submitting}
             errorMessage={submitError}
           />
         </div>

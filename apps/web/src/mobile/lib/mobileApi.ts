@@ -31,30 +31,27 @@ export async function fetchJourneyWithMoments(journeyId: string): Promise<{
   }>;
 }> {
   const res = (await apiFetch(`/api/journeys/${encodeURIComponent(journeyId)}`)) as {
-    data?: {
-      journey?: {
-        id: string;
-        name: string;
-        keeperId?: string | null;
-        moment?: Array<{
-          id: string;
-          title: string;
-          narrative?: string | null;
-          keptAt?: string | null;
-          createdAt?: string;
-        }>;
-      };
-    };
+    id?: string;
+    name?: string;
+    keeperId?: string | null;
+    moment?: Array<{
+      id: string;
+      title: string;
+      narrative?: string | null;
+      keptAt?: string | null;
+      createdAt?: string;
+    }>;
   };
-  const journey = res?.data?.journey;
-  if (!journey) {
+
+  if (!res?.id) {
     throw new Error("Journey not found");
   }
+
   return {
-    id: journey.id,
-    name: journey.name,
-    keeperId: journey.keeperId ?? null,
-    moment: Array.isArray(journey.moment) ? journey.moment : [],
+    id: res.id,
+    name: res.name ?? "Journey",
+    keeperId: res.keeperId ?? null,
+    moment: Array.isArray(res.moment) ? res.moment : [],
   };
 }
 
@@ -70,6 +67,7 @@ export async function fetchMomentDetail(momentId: string): Promise<MobileMomentD
       journeyId?: string | null;
       Journey?: { name?: string | null } | null;
       Path?: { name?: string | null } | null;
+      domain?: { id?: string } | null;
     };
   };
 
@@ -85,6 +83,7 @@ export async function fetchMomentDetail(momentId: string): Promise<MobileMomentD
     keptAt: moment.keptAt ?? null,
     createdAt: moment.createdAt ?? new Date().toISOString(),
     updatedAt: moment.updatedAt ?? moment.createdAt ?? new Date().toISOString(),
+    domainId: moment.domain?.id ?? null,
     journeyId: moment.journeyId ?? null,
     journeyName: moment.Journey?.name ?? null,
     pathName: moment.Path?.name ?? null,

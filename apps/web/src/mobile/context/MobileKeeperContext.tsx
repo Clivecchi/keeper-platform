@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { MobileTabId } from "../types";
+import { useFrameContextOptional } from "../../v0/shell/FrameContext";
 import {
   markHasKeptMoment,
   readActiveJourneyId,
@@ -16,12 +17,15 @@ export interface MobileKeeperContextValue {
   activeTab: MobileTabId;
   selectedMomentId: string | null;
   activeJourneyId: string | null;
+  kipFocusMomentId: string | null;
   worldRefreshKey: number;
   showInstallPrompt: boolean;
   setActiveTab: (tab: MobileTabId) => void;
   openMoment: (momentId: string) => void;
   closeMoment: () => void;
   setActiveJourneyId: (journeyId: string) => void;
+  openKipWithMoment: (momentId: string) => void;
+  clearKipFocus: () => void;
   refreshWorld: () => void;
   notifyMomentKept: () => void;
 }
@@ -41,20 +45,37 @@ export function MobileKeeperProvider({
   domainName,
   children,
 }: MobileKeeperProviderProps) {
-  const [activeTab, setActiveTab] = React.useState<MobileTabId>("world");
+  const frameCtx = useFrameContextOptional();
+  const [activeTab, setActiveTabState] = React.useState<MobileTabId>("world");
   const [selectedMomentId, setSelectedMomentId] = React.useState<string | null>(null);
+  const [kipFocusMomentId, setKipFocusMomentId] = React.useState<string | null>(null);
   const [activeJourneyId, setActiveJourneyIdState] = React.useState<string | null>(() =>
-    readActiveJourneyId(domainSlug),
+    readActiveJourneyId(domainSlug) ?? frameCtx?.selection.activeJourneyId ?? null,
   );
   const [worldRefreshKey, setWorldRefreshKey] = React.useState(0);
   const [showInstallPrompt, setShowInstallPrompt] = React.useState(() => readHasKeptMoment());
+
+  React.useEffect(() => {
+    if (!frameCtx?.selection.activeJourneyId) return;
+    if (activeJourneyId === frameCtx.selection.activeJourneyId) return;
+    setActiveJourneyIdState(frameCtx.selection.activeJourneyId);
+    writeActiveJourneyId(domainSlug, frameCtx.selection.activeJourneyId);
+  }, [frameCtx?.selection.activeJourneyId, activeJourneyId, domainSlug]);
+
+  const setActiveTab = React.useCallback((tab: MobileTabId) => {
+    setActiveTabState(tab);
+    if (tab !== "kip") {
+      setKipFocusMomentId(null);
+    }
+  }, []);
 
   const setActiveJourneyId = React.useCallback(
     (journeyId: string) => {
       setActiveJourneyIdState(journeyId);
       writeActiveJourneyId(domainSlug, journeyId);
+      frameCtx?.setActiveJourneyId(journeyId);
     },
-    [domainSlug],
+    [domainSlug, frameCtx],
   );
 
   const openMoment = React.useCallback((momentId: string) => {
@@ -63,6 +84,16 @@ export function MobileKeeperProvider({
 
   const closeMoment = React.useCallback(() => {
     setSelectedMomentId(null);
+  }, []);
+
+  const openKipWithMoment = React.useCallback((momentId: string) => {
+    setKipFocusMomentId(momentId);
+    setSelectedMomentId(null);
+    setActiveTabState("kip");
+  }, []);
+
+  const clearKipFocus = React.useCallback(() => {
+    setKipFocusMomentId(null);
   }, []);
 
   const refreshWorld = React.useCallback(() => {
@@ -83,12 +114,15 @@ export function MobileKeeperProvider({
       activeTab,
       selectedMomentId,
       activeJourneyId,
+      kipFocusMomentId,
       worldRefreshKey,
       showInstallPrompt,
       setActiveTab,
       openMoment,
       closeMoment,
       setActiveJourneyId,
+      openKipWithMoment,
+      clearKipFocus,
       refreshWorld,
       notifyMomentKept,
     }),
@@ -99,11 +133,15 @@ export function MobileKeeperProvider({
       activeTab,
       selectedMomentId,
       activeJourneyId,
+      kipFocusMomentId,
       worldRefreshKey,
       showInstallPrompt,
-      setActiveJourneyId,
+      setActiveTab,
       openMoment,
       closeMoment,
+      setActiveJourneyId,
+      openKipWithMoment,
+      clearKipFocus,
       refreshWorld,
       notifyMomentKept,
     ],

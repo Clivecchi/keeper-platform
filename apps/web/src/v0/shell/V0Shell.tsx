@@ -23,6 +23,8 @@ import {
   type WorkspaceBoardId,
 } from "../boards/workspaceBoardNav"
 import { UniversalBoard } from "../boards/UniversalBoard"
+import { MobileKeeperShell } from "../../mobile/MobileKeeperShell"
+import { useMobileSurface } from "../../mobile/hooks/useMobileSurface"
 import type { UniversalBoardDef } from "../boards/UniversalBoardDefinition"
 import { apiFetch } from "../../lib/api"
 import { V0ShellProvider, type V0FrameKey } from "./V0ShellContext"
@@ -181,6 +183,7 @@ export function V0Shell() {
   const buildTime = (import.meta as any).env?.VITE_BUILD_TIME ?? "unknown"
   const debugHudFlag = String((import.meta as any).env?.VITE_SHOW_DEBUG_HUD ?? "").toLowerCase()
   const showDebugHud = debugHudFlag === "1" || debugHudFlag === "true"
+  const mobileSurface = useMobileSurface(isAuthenticated ?? false)
 
   const [kipHandoffNotice, setKipHandoffNotice] = React.useState(false)
 
@@ -520,6 +523,15 @@ export function V0Shell() {
     }
 
     // Authorised — UniversalBoard owns its layout and chrome; V0Shell mounts it with context and steps back
+    const resolvedDomainId =
+      domainData?.id && !String(domainData.id).startsWith("fallback-")
+        ? String(domainData.id)
+        : null
+    const useMobileShell =
+      mobileSurface === "mobile"
+      && matchedDef.boardId === "domain"
+      && isAuthenticated
+
     return (
       <StyleOverrideProvider initialStyleId={initialStyleId}>
         <V0ShellProvider
@@ -548,10 +560,20 @@ export function V0Shell() {
             themeSlug={activeThemeSlug}
             draftId={draftId}
           >
-            <UniversalBoard
-              key={matchedDef.boardId}
-              def={matchedDef}
-            />
+            {useMobileShell ? (
+              <MobileKeeperShell
+                domainSlug={resolvedSlug}
+                domainId={resolvedDomainId}
+                domainName={domainData?.name ?? ""}
+                styleId={styleId}
+                themeSlug={activeThemeSlug}
+              />
+            ) : (
+              <UniversalBoard
+                key={matchedDef.boardId}
+                def={matchedDef}
+              />
+            )}
             {kipHandoffToast}
           </FrameContextProvider>
         </V0ShellProvider>

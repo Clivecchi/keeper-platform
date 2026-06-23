@@ -8,6 +8,7 @@ import { MobileTabBar } from "./components/MobileTabBar";
 import { MobileKeeperProvider, useMobileKeeper } from "./context/MobileKeeperContext";
 import { KeepScreen } from "./screens/KeepScreen";
 import { JourneysScreen } from "./screens/JourneysScreen";
+import { KipScreen } from "./screens/KipScreen";
 import { MomentDetailScreen } from "./screens/MomentDetailScreen";
 import { WorldScreen } from "./screens/WorldScreen";
 import { PwaInstallPrompt } from "./pwa";
@@ -33,6 +34,10 @@ const TAB_COPY: Record<MobileTabId, { title: string; subtitle?: string }> = {
   journeys: {
     title: "Journeys",
     subtitle: "Paths your moments unfold through.",
+  },
+  kip: {
+    title: "Kip",
+    subtitle: "Talk through what you are keeping.",
   },
 };
 
@@ -60,6 +65,7 @@ function MobileKeeperShellBody() {
             {activeTab === "world" ? <WorldScreen /> : null}
             {activeTab === "keep" ? <KeepScreen /> : null}
             {activeTab === "journeys" ? <JourneysScreen /> : null}
+            {activeTab === "kip" ? <KipScreen /> : null}
           </main>
           <MobileTabBar activeTab={activeTab} onTabChange={setActiveTab} />
         </>
