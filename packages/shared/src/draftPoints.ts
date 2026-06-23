@@ -16,6 +16,12 @@ export interface DraftPoint {
   proposedBy: string;
   createdAt: string;
   updatedAt: string;
+  /** Invitation line above opener — optional in spec_json.points */
+  prelude?: string;
+  /** Landing sentiment below opener — optional in spec_json.points */
+  closer?: string;
+  /** Cluster id for path-emergence grouping — optional in spec_json.points */
+  pathGroupId?: string;
 }
 
 /** @deprecated Legacy sections shape — read compat only; canonical content is `points`. */
@@ -78,6 +84,15 @@ function normalizeDraftPoint(value: unknown): DraftPoint | null {
   const createdAt = typeof value.createdAt === 'string' ? value.createdAt : new Date().toISOString();
   const updatedAt = typeof value.updatedAt === 'string' ? value.updatedAt : createdAt;
 
+  const prelude = typeof value.prelude === 'string' ? value.prelude : undefined;
+  const closer = typeof value.closer === 'string' ? value.closer : undefined;
+  const pathGroupId =
+    typeof value.pathGroupId === 'string'
+      ? value.pathGroupId
+      : typeof value.path_group_id === 'string'
+        ? value.path_group_id
+        : undefined;
+
   return {
     id: value.id,
     content: value.content,
@@ -86,6 +101,9 @@ function normalizeDraftPoint(value: unknown): DraftPoint | null {
     proposedBy,
     createdAt,
     updatedAt,
+    ...(prelude ? { prelude } : {}),
+    ...(closer ? { closer } : {}),
+    ...(pathGroupId ? { pathGroupId } : {}),
   };
 }
 

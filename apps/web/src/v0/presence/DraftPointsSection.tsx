@@ -5,23 +5,31 @@ import type { DraftPoint } from "@keeper/shared"
 import { parseDraftPoints } from "@keeper/shared"
 import { AnimatePresence } from "framer-motion"
 import { DraftPointRow } from "./DraftPointRow"
+import {
+  clusterDraftPoints,
+  type DraftPathEmergence,
+} from "./integrationChronicle/draftManuscriptUtils"
 
 export interface DraftPointsSectionProps {
   spec: unknown
   draftId?: string
+  pathEmergence?: DraftPathEmergence[]
   onAcceptPoint?: (draftId: string, pointId: string) => void
   onDiscussPoint?: (draftId: string, pointId: string) => void
   acceptingPointId?: string | null
   acceptedPointIds?: Set<string>
+  manuscript?: boolean
 }
 
 export function DraftPointsSection({
   spec,
   draftId,
+  pathEmergence = [],
   onAcceptPoint,
   onDiscussPoint,
   acceptingPointId = null,
   acceptedPointIds,
+  manuscript = false,
 }: DraftPointsSectionProps) {
   const points = React.useMemo(() => parseDraftPoints(spec), [spec])
   const accepted = points.filter((p) => p.status === "accepted")
@@ -29,7 +37,14 @@ export function DraftPointsSection({
 
   if (!points.length) {
     return (
-      <p className="text-[13px]" style={{ color: "hsl(var(--theme-ink-tertiary))" }}>
+      <p
+        className={manuscript ? "cdraft-empty" : "text-[13px]"}
+        style={
+          manuscript
+            ? undefined
+            : { color: "hsl(var(--theme-ink-tertiary))" }
+        }
+      >
         No points yet — proposed content will accumulate here.
       </p>
     )
@@ -51,7 +66,49 @@ export function DraftPointsSection({
         isAccepting={acceptingPointId === point.id}
         onAcceptPoint={onAcceptPoint}
         onDiscussPoint={onDiscussPoint}
+        manuscript={manuscript}
       />
+    )
+  }
+
+  function renderClustered(list: DraftPoint[]) {
+    const clusters = clusterDraftPoints(list, pathEmergence)
+    return clusters.map((cluster, index) => (
+      <li
+        key={`cluster-${index}`}
+        className={
+          cluster.points.length > 1 || cluster.pathPrelude
+            ? "cdraft-point-cluster"
+            : undefined
+        }
+      >
+        {cluster.pathPrelude ? (
+          <p className="cdraft-path-prelude">{cluster.pathPrelude}</p>
+        ) : null}
+        <ul className={manuscript ? "cdraft-point-list" : "space-y-2"}>
+          {cluster.points.map(renderPoint)}
+        </ul>
+      </li>
+    ))
+  }
+
+  if (manuscript) {
+    return (
+      <div className="cdraft-points-stack">
+        {accepted.length > 0 && (
+          <div>
+            <p className="cdraft-section-label cdraft-section-label--nested">Accepted</p>
+            <ul className="cdraft-cluster-list">{renderClustered(accepted)}</ul>
+          </div>
+        )}
+        {pending.length > 0 && (
+          <div>
+            <AnimatePresence initial={false}>
+              <ul className="cdraft-cluster-list">{renderClustered(pending)}</ul>
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
     )
   }
 

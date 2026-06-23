@@ -4,12 +4,17 @@ import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import type { DraftPoint } from "@keeper/shared"
 import { buildGlossAnchorDataAttribute } from "@keeper/shared"
+import { resolvePointBeats } from "./integrationChronicle/draftManuscriptUtils"
 
-const TYPE_LABELS: Record<DraftPoint["type"], string> = {
-  moment: "Moment",
-  decision: "Decision",
-  context: "Context",
-  general: "Point",
+export interface DraftPointRowProps {
+  point: DraftPoint
+  draftId?: string
+  isAccepted: boolean
+  canAccept: boolean
+  isAccepting: boolean
+  onAcceptPoint?: (draftId: string, pointId: string) => void
+  onDiscussPoint?: (draftId: string, pointId: string) => void
+  manuscript?: boolean
 }
 
 function pointWeight(status: DraftPoint["status"]): string {
@@ -30,16 +35,6 @@ function pointBorder(status: DraftPoint["status"]): string {
     : "hsl(var(--theme-border-soft) / 0.35)"
 }
 
-export interface DraftPointRowProps {
-  point: DraftPoint
-  draftId?: string
-  isAccepted: boolean
-  canAccept: boolean
-  isAccepting: boolean
-  onAcceptPoint?: (draftId: string, pointId: string) => void
-  onDiscussPoint?: (draftId: string, pointId: string) => void
-}
-
 export function DraftPointRow({
   point,
   draftId,
@@ -48,8 +43,112 @@ export function DraftPointRow({
   isAccepting,
   onAcceptPoint,
   onDiscussPoint,
+  manuscript = false,
 }: DraftPointRowProps) {
   const displayStatus = isAccepted ? "accepted" : point.status
+  const [expanded, setExpanded] = React.useState(false)
+  const beats = resolvePointBeats(point)
+  const prevContent = React.useRef(point.content)
+  const prevUpdatedAt = React.useRef(point.updatedAt)
+  const [flashKey, setFlashKey] = React.useState(0)
+
+  React.useEffect(() => {
+    if (
+      prevContent.current !== point.content ||
+      prevUpdatedAt.current !== point.updatedAt
+    ) {
+      prevContent.current = point.content
+      prevUpdatedAt.current = point.updatedAt
+      setFlashKey((k) => k + 1)
+    }
+  }, [point.content, point.updatedAt])
+
+  if (manuscript) {
+    const showFull = expanded || !beats.hasMore
+
+    return (
+      <motion.li
+        layout
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="cdraft-point-card"
+        data-point-id={point.id}
+        data-flash={flashKey}
+        data-gloss-anchor={
+          draftId
+            ? buildGlossAnchorDataAttribute({
+                entityKind: "draft",
+                entityId: draftId,
+                nodeId: point.id,
+              })
+            : undefined
+        }
+      >
+        {isAccepted ? (
+          <span className="cdraft-accepted-badge">Accepted</span>
+        ) : null}
+
+        <div className="cdraft-point-prelude">
+          <span className="cdraft-beat-label">Prelude</span>
+          <p className="cdraft-prelude-text">{beats.prelude}</p>
+        </div>
+
+        <div className="cdraft-point-opener">
+          <p className="cdraft-opener-text">
+            {showFull ? beats.fullContent : beats.opener}
+            {beats.hasMore && !expanded ? (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  className="cdraft-more-link"
+                  onClick={() => setExpanded(true)}
+                >
+                  [more]
+                </button>
+              </>
+            ) : null}
+          </p>
+        </div>
+
+        {beats.closer ? (
+          <p className="cdraft-closer-text">{beats.closer}</p>
+        ) : null}
+
+        {(canAccept || onDiscussPoint) && draftId ? (
+          <div className="cdraft-point-actions">
+            {canAccept && onAcceptPoint ? (
+              <button
+                type="button"
+                onClick={() => onAcceptPoint(draftId, point.id)}
+                disabled={isAccepting}
+                className="cdraft-ghost-btn"
+              >
+                {isAccepting ? "Accepting…" : "Accept"}
+              </button>
+            ) : null}
+            {onDiscussPoint ? (
+              <button
+                type="button"
+                onClick={() => onDiscussPoint(draftId, point.id)}
+                className="cdraft-ghost-btn"
+              >
+                Discuss
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </motion.li>
+    )
+  }
+
+  const TYPE_LABELS: Record<DraftPoint["type"], string> = {
+    moment: "Moment",
+    decision: "Decision",
+    context: "Context",
+    general: "Point",
+  }
 
   return (
     <motion.li

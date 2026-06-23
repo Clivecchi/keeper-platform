@@ -20,6 +20,8 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - `DialogChronicleBlocks.tsx` — Recent Exchanges + Sessions below dialog cover
 - `DraftConfigPresence.tsx` — Draft Config Mode (title, status) via `useChronicleConfig`
 - `DraftChronicleBlocks.tsx` — Summary, points (Accept + Discuss), versions, linked dialog sessions
+- `cdraft.tsx` — Manuscript Chronicle treatment (header, manage bar, warm charcoal canvas)
+- `draftManuscriptUtils.ts` — Point beats (prelude/opener/closer), path-emergence clustering
 - `DraftVersionStrip.tsx` — Read-only last N versions from `GET .../versions`
 - `DraftSessionsBlock.tsx` — Sessions on linked Dialog; highlights `active_draft_id` below draft cover
 - `PathChronicleBlocks.tsx` — Prelude + moments below path cover
@@ -36,6 +38,11 @@ Integration and Key Chronicle feeds, declaration-driven block rendering, and con
 - [ ] Rendr layout grouping for InteractionBar (jsonframe Step 3)
 
 ## 📆 Update Log
+
+### 2026-06-23 — Cdraft manuscript Chronicle treatment
+- `cdraft.tsx` replaces generic `EntityCoverPresence` for Draft focus — warm charcoal canvas, title header, manage bar, session badge
+- `draftManuscriptUtils.ts` — opener truncation (177 chars), prelude/closer beats, path clustering
+- `DraftPointRow` / `DraftPointsSection` manuscript mode — prelude · opener · closer cards, ghost Discuss, amber Accepted badge
 
 ### 2026-06-19 — Draft EntityKind Phase 1b
 - `DraftVersionStrip`, `DraftSessionsBlock`, Discuss → Dialog via `draftDiscussAnchor` on board context

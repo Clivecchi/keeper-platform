@@ -56,6 +56,10 @@ Universal Chronicle cover architecture (Layer 1) and EntityKind cover schemas (L
 - `coverMotion.ts`: removed per-frame React `setState` on pulse animation (reduces update-depth pressure); added reduced-motion snap + 900ms safety fallback so `EntityCoverPresence` never stays at opacity 0 after interrupted entrance
 - `EntityCoverPresence.tsx`: dropped debug `data-*` motion attrs tied to removed motion state
 
+### 2026-06-23 — Cdraft manuscript treatment
+- `DraftFocusPresence` renders `Cdraft` instead of `EntityCoverPresence` + separate blocks stack
+- Manage bar → Config mode (`DraftConfigPresence`)
+
 ### 2026-06-19 — Draft EntityKind cover
 - Added `draftCoverSchema.ts`, `DraftFocusPresence.tsx` (Cover · Config · Present slide)
 - Points Accept in Chronicle via `DraftChronicleBlocks` + shared `useDraftPointAccept`

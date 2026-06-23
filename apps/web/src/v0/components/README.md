@@ -30,6 +30,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-06-23: `KeeperTopBar` header polish — larger wordmark/tagline, safer user-name truncation with right inset, profile popover contrast via header token CSS classes (`index.css`).
 - 2026-06-22: Added `PanelErrorBoundary.tsx` — isolates Nav, Dialog, and Chronicle crashes on Universal Board; pairs with composer draft autosave.
 - 2026-06-14: `SidebarCard` — optional `collapsible` / `defaultCollapsed` for nav sections; chevron toggle on title row.
 - 2026-06-12: `KeeperTopBar` calls `switchWorkspace` from V0Shell (single URL authority); active tab from `workspaceBoardId`.

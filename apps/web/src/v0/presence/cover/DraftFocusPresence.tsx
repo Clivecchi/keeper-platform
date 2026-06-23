@@ -2,18 +2,12 @@
 
 import * as React from "react"
 import { AnimatePresence, motion } from "framer-motion"
-import { parseDraftPoints } from "@keeper/shared"
 import { KipApi } from "../../../lib/kipApi"
 import { useDraftPointAccept } from "../../../hooks/useDraftPointAccept"
 import type { PresenceMeta } from "../presenceEnrichment"
-import { DraftChronicleBlocks } from "../integrationChronicle/DraftChronicleBlocks"
+import { Cdraft } from "../integrationChronicle/cdraft"
 import { DraftConfigPresence } from "../integrationChronicle/DraftConfigPresence"
-import { EntityCoverPresence } from "./EntityCoverPresence"
-import {
-  draftChronicleTitle,
-  resolveDraftCoverContent,
-  type DraftCoverRecord,
-} from "./schemas/draftCoverSchema"
+import { draftChronicleTitle } from "./schemas/draftCoverSchema"
 import { useUniversalBoardOptional } from "../../boards/UniversalBoardContext"
 import type { EntityCoverMode } from "./coverTypes"
 import { PresentMotionProvider } from "../../presents/usePresentMotion"
@@ -25,40 +19,6 @@ export interface DraftFocusPresenceProps {
   meta?: PresenceMeta
   onLabelResolved?: (label: string) => void
   onEngagementSuccess?: () => void
-}
-
-function formatUpdatedLabel(value: unknown): string | undefined {
-  if (typeof value !== "string" || !value) return undefined
-  try {
-    return new Date(value).toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })
-  } catch {
-    return value
-  }
-}
-
-function toDraftCoverRecord(
-  objectId: string,
-  record: Record<string, unknown>,
-  meta: PresenceMeta | undefined,
-  isSessionActive: boolean,
-): DraftCoverRecord {
-  const spec = record.spec ?? record.spec_json
-  return {
-    id: String(record.id ?? objectId),
-    title: typeof record.title === "string" ? record.title : undefined,
-    kind: typeof record.kind === "string" ? record.kind : undefined,
-    status: typeof record.status === "string" ? record.status : undefined,
-    keeperTitle: meta?.keeper?.title,
-    updatedLabel:
-      meta?.line?.split("·").pop()?.trim() ||
-      formatUpdatedLabel(record.updatedAt ?? record.updated_at),
-    points: parseDraftPoints(spec),
-    isSessionActive,
-  }
 }
 
 export function DraftFocusPresence({
@@ -103,11 +63,6 @@ export function DraftFocusPresence({
     [record.title],
   )
 
-  const draftRecord = React.useMemo(
-    () => toDraftCoverRecord(objectId, record, meta, isSessionActive),
-    [objectId, record, meta, isSessionActive],
-  )
-
   const {
     acceptedDraftPointIds,
     acceptingDraftPointId,
@@ -131,29 +86,6 @@ export function DraftFocusPresence({
     if (label) onLabelResolved?.(label)
   }, [fieldValues.title, objectId, onLabelResolved])
 
-  const handleSetActive = React.useCallback(() => {
-    if (!activeSessionId) return
-    void KipApi.setActiveDraft(domainId, activeSessionId, objectId).then(() => {
-      setIsSessionActive(true)
-      onEngagementSuccess?.()
-    })
-  }, [activeSessionId, domainId, objectId, onEngagementSuccess])
-
-  const coverContent = React.useMemo(
-    () =>
-      resolveDraftCoverContent(
-        draftRecord,
-        fieldValues,
-        { objectId },
-        {
-          onConfigure: () => setCoverMode("config"),
-          onSetActive: activeSessionId ? handleSetActive : undefined,
-        },
-      ),
-    [draftRecord, fieldValues, objectId, activeSessionId, handleSetActive],
-  )
-
-  const spec = record.spec ?? record.spec_json
   const dialogId =
     typeof record.dialog_id === "string"
       ? record.dialog_id
@@ -201,25 +133,22 @@ export function DraftFocusPresence({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="px-4 pt-4 pb-2">
-              <EntityCoverPresence content={coverContent} instanceKey={objectId} />
-            </div>
-            <div className="px-4 pb-4">
-              <DraftChronicleBlocks
-                domainId={domainId}
-                draftId={objectId}
-                spec={spec}
-                summary={typeof record.summary === "string" ? record.summary : null}
-                dialogId={dialogId}
-                presenceRefreshKey={boardCtx?.selection.draftPresenceRevision ?? 0}
-                onAcceptPoint={acceptDraftPoint}
-                onDiscussPoint={handleDiscussPoint}
-                acceptingPointId={acceptingDraftPointId}
-                acceptedPointIds={acceptedDraftPointIds}
-                onDialogSelect={boardCtx?.actions.onDialogSelect}
-                onSessionSelect={boardCtx?.actions.onSessionSelect}
-              />
-            </div>
+            <Cdraft
+              draftId={objectId}
+              domainId={domainId}
+              record={record}
+              meta={meta}
+              isSessionActive={isSessionActive}
+              presenceRefreshKey={boardCtx?.selection.draftPresenceRevision ?? 0}
+              dialogId={dialogId}
+              onManage={() => setCoverMode("config")}
+              onAcceptPoint={acceptDraftPoint}
+              onDiscussPoint={handleDiscussPoint}
+              acceptingPointId={acceptingDraftPointId}
+              acceptedPointIds={acceptedDraftPointIds}
+              onDialogSelect={boardCtx?.actions.onDialogSelect}
+              onSessionSelect={boardCtx?.actions.onSessionSelect}
+            />
           </motion.div>
         </AnimatePresence>
       </div>

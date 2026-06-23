@@ -277,7 +277,7 @@ export function tokensToCSSVars(tokens: StyleTokens): Record<string, string> {
 
     /* Platform header bar — warm dark top edge */
     '--theme-header-text-primary': '38 30% 82%',
-    '--theme-header-text-secondary': '38 18% 52%',
+    '--theme-header-text-secondary': '38 20% 62%',
     '--theme-header-sole-text': '168 55% 52%',
     '--theme-header-sole-border': '168 55% 42%',
     '--theme-header-sole-bg': '168 55% 20%',
