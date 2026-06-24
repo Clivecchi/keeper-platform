@@ -952,7 +952,7 @@ function getProviderDisplayName(provider: ModelProvider): string {
       return 'OpenAI';
     case 'anthropic':
       return 'Anthropic';
-    case 'together':
+    case 'together-ai':
       return 'Together AI';
     case 'elevenlabs':
       return 'ElevenLabs';
