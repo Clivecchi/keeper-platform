@@ -97,9 +97,9 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
                 <LinkedCard {...message.linkedCard} variant="inline" />
               </div>
             )}
-            {message.actionResults && message.actionResults.length > 0 && (
+            {message.actionResults && message.actionResults.filter(isVisibleActionResult).length > 0 && (
               <div className="mt-3 space-y-2">
-                {message.actionResults.map((actionResult, idx) => {
+                {message.actionResults.filter(isVisibleActionResult).map((actionResult, idx) => {
                   const receipt = normalizeActionReceipt(actionResult)
                   const isPropose = receipt.type === "draft.update.propose" && receipt.status === "success"
                   const proposeData = receipt.data as {
@@ -198,6 +198,11 @@ const AgentErrorAlert: React.FC<{ error: string }> = ({ error }) => {
       </div>
     </div>
   )
+}
+
+function isVisibleActionResult(actionResult: NonNullable<AgentDialogueMessage["actionResults"]>[number]): boolean {
+  return !(actionResult.status === "skipped" && actionResult.errorCode === "NOT_ALLOWED") &&
+    !(actionResult.status === "error" && actionResult.errorCode === "NOT_ALLOWED")
 }
 
 const SkeletonBubble: React.FC<{ alignment: "left" | "right" }> = ({
