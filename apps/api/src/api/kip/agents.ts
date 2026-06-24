@@ -3648,11 +3648,7 @@ export class KipAgentService {
             'draft.create may include spec.points (array of point objects) for initial content, or omit spec and add content later via draft.update.propose. Do not use spec.sections — points are canonical.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"points":[]}}}]}',
             draftRules?.autoDraft?.enabled
-<<<<<<< HEAD
-              ? `If autoDraft thresholds are met (points >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.`
-=======
-              ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) and the user has not asked for read-only/no-change behavior, ask whether they want this saved as a draft unless they explicitly requested a new draft.`
->>>>>>> 256a634a (Narrow Kip draft triggers)
+              ? `If autoDraft thresholds are met (points >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) and the user has not asked for read-only/no-change behavior, ask whether they want this saved as a draft unless they explicitly requested a new draft.`
               : 'If the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.',
             mcpToolPrompt,
               ]),

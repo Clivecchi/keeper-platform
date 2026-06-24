@@ -17,6 +17,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - `WorkspaceHeader.tsx` – Consistent header for workspace mode panels (eyebrow, title, description, divider).
 - `SidebarWorkspaceLayout.tsx` – Responsive two-column layout shell: sidebar + workspace grid.
 - `PromptedActionCard.tsx` – State-driven action nudge card for sidebar panels. Distinct visual treatment (left accent border, compact layout, inline action links, "?" help affordance). Surfaces unfinished work, pending reviews, and agent insights.
+- `PanelErrorBoundary.tsx` – Per-panel error isolation on Universal Board (Nav · Dialog · Chronicle); theme-token fallback with Try again / Refresh.
 
 ## 🔄 Data & Behavior
 - Cover uses local mock routes and constants for spacing/type scale; mobile-first with a two-column desktop “spread.”
@@ -29,6 +30,13 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-06-24: Margin guest Sign In now returns to `?board=domain` (Domain Board) instead of forcing legacy `?frame=agent`.
+- 2026-06-23: `KeeperTopBar` — top inset padding, restored identity/nav divider line, user block vertically centered with avatar (CSS layout classes).
+- 2026-06-23: `KeeperTopBar` header polish — larger wordmark/tagline, safer user-name truncation with right inset, profile popover contrast via header token CSS classes (`index.css`).
+- 2026-06-22: Added `PanelErrorBoundary.tsx` — isolates Nav, Dialog, and Chronicle crashes on Universal Board; pairs with composer draft autosave.
+- 2026-06-14: `SidebarCard` — optional `collapsible` / `defaultCollapsed` for nav sections; chevron toggle on title row.
+- 2026-06-12: `KeeperTopBar` calls `switchWorkspace` from V0Shell (single URL authority); active tab from `workspaceBoardId`.
+- 2026-06-10: `KeeperTopBar` workspace board tabs use `setSearchParams` (not `navigate`) and strip `?boardDef=` when leaving Design so top-bar switches are not blocked after Design nav selection.
 - 2026-04-28 (Prompt 5): Added `panels/` subdirectory with `KeeperJourneyPanel.tsx` — self-contained Journey view state panel (living document layout). See `panels/README.md`.
 - 2026-04-01: Added `DomainBanner.tsx` (slim Domain Board center header: wordmark, tagline, live pulse from `theme.colors.primary`, journey/moment stats) and `DomainFeed.tsx` (kept moments + public journey activity via existing APIs; empty state from `commons.messaging.feed` when present). Both use `--theme-*` tokens under `StyleScope`.
 - 2026-03-31: Added `StoryScroll` neutral narrative editor (`StoryScroll.tsx`, `StoryScroll.types.ts`, `StoryScroll.example.tsx`) — inline `{fieldId}` prose fields, grace note, crumb bar, internal change buffer; no persistence or domain coupling.
