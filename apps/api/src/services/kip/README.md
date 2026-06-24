@@ -8,6 +8,7 @@ KIP-related service helpers and mock data sources.
 - `modeConfig.ts`
 - `buildKipEnvironmentContext.ts`
 - `resolveAgentEnvironment.ts`
+- `ensureKnownLeadAgent.ts`
 
 ## 🔄 Data & Behavior
 - Provides `MOCK_AGENTS` for `/api/kip/agents` mock fallback.
@@ -20,7 +21,7 @@ KIP-related service helpers and mock data sources.
 - [ ] Behavior to confirm with Kip
 
 ## 📆 Update Log
-- 2026-02-15: buildKipEnvironmentContext and resolveAgentEnvironment now include domainIndex (keepers + journeys) for agent prompt injection.
+- 2026-06-24: Added `ensureKnownLeadAgent` helper to self-heal canonical Lead agents (`kip`, `ceox`) when DB records drift from expected `agent_class=Lead` and `visibility=public`.
 - 2025-12-17: Kip environment builders now attach domain policy (with default policy-v1 fallback) and a capped drafts directory for the authenticated owner so agent runs can enforce policy-aware draft actions.
 - 2025-12-16: Environment builders now accept `sessionId` and surface session-owned `activeDraft` summaries (domain-filtered) so KAM bundles and agent runs carry the active draft pointer safely.
 - 2025-12-17: `resolveAgentEnvironment` now surfaces domain slug/name, agent identity fields, and emits a per-run debug canary UUID.
