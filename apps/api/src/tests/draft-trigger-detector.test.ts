@@ -15,8 +15,13 @@ describe('detectDraftTrigger', () => {
     }
   });
 
-  it('still triggers drafts for planning requests without a read-only escape hatch', () => {
+  it('keeps plain planning conversational unless the user asks for a durable draft', () => {
     expect(detectDraftTrigger('Plan the implementation approach')).toEqual({
+      triggered: false,
+      bypassed: false,
+    });
+
+    expect(detectDraftTrigger('Create a draft of the implementation approach')).toEqual({
       triggered: true,
       bypassed: false,
     });

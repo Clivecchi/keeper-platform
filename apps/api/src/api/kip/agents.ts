@@ -2565,10 +2565,10 @@ export class KipAgentService {
           '',
           'SOLE vs DRAFTS — use the right tool:',
           '- sole.save: for insights, learnings, corrections, capability clarifications. High bar: "Will this matter in 30 days?"',
-          '- draft.create/update: for documents, specs, proposals. Use when user explicitly asks OR uses planning phrases (plan, outline, spec, design, architecture, "let\'s think this through").',
+          '- draft.create/update: for durable documents, specs, and proposals only when the user explicitly asks to create, save, update, or work in a draft/document. Do not create drafts for read-only inspection, coordination, GitHub lookup, Cloud handoff, or "pull data" requests.',
           '',
           'DRAFT BEHAVIOR — when to act vs respond (per Domain Contract):',
-          '- MUST call draft.create when user requests planning, outlining, designing, spec creation, architecture, or says: plan, outline, spec, design, architecture, "let\'s think this through". Work iteratively inside the draft; finalize only when user signals completion.',
+          '- Call draft.create only when the user explicitly asks for a draft/document/spec/proposal to be created or saved. If the user asks for planning, outlining, design, architecture, or "let\'s think this through" without asking to save/create a draft, respond in text first and ask whether they want a draft.',
           '- When the user asks "what can you do?", "tell me your capabilities", or "how can you help" — give a substantive narrative. If they ask to "show" or "demonstrate" (e.g. "show me with action cards"), use sole.save to record key capabilities and present action cards. Never give a minimal response when the user wants a full explanation.',
           '- When the user wants to work on an EXISTING draft, use draft.update or draft.setActive. Never create a duplicate.',
           '- Check draftsDirectory in the environment. If a draft with the same or similar title already exists, use draft.update (with id) or draft.setActive — do NOT create another.',
@@ -2592,7 +2592,7 @@ export class KipAgentService {
           'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',
           'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"sections":[{"title":"Section 1","content":"Specific content here"},{"title":"Section 2","content":"More details"}]}}}]}',
           draftRules?.autoDraft?.enabled
-            ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.`
+            ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) and the user has not asked for read-only/no-change behavior, ask whether they want this saved as a draft unless they explicitly requested a new draft.`
             : 'If the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.',
         ]
           .filter(Boolean)
@@ -2828,10 +2828,10 @@ export class KipAgentService {
             '',
             'SOLE vs DRAFTS — use the right tool:',
             '- sole.save: for insights, learnings, corrections, capability clarifications, anything you want to remember. Use it when the user corrects you or you learn something important. High bar: "Will this matter in 30 days?"',
-            '- draft.create/update: for documents, specs, proposals (journey specs, keeper proposals, checklists). Use when the user explicitly asks OR when they use planning phrases (plan, outline, spec, design, architecture, "let\'s think this through").',
+          '- draft.create/update: for durable documents, specs, and proposals only when the user explicitly asks to create, save, update, or work in a draft/document. Do not create drafts for read-only inspection, coordination, GitHub lookup, Cloud handoff, or "pull data" requests.',
             '',
             'DRAFT BEHAVIOR — when to act vs respond (per Domain Contract):',
-            '- MUST call draft.create when the user requests planning, outlining, designing, spec creation, architecture, or says: plan, outline, spec, design, architecture, "let\'s think this through". Work iteratively inside the draft; finalize only when user signals completion.',
+          '- Call draft.create only when the user explicitly asks for a draft/document/spec/proposal to be created or saved. If the user asks for planning, outlining, design, architecture, or "let\'s think this through" without asking to save/create a draft, respond in text first and ask whether they want a draft.',
             '- When the user asks "what can you do?", "tell me your capabilities", or "how can you help" — give a substantive narrative. If they ask to "show" or "demonstrate" (e.g. "show me with action cards"), use sole.save to record key capabilities and present action cards. Never give a minimal response when the user wants a full explanation.',
             '- When the user wants to work on an EXISTING draft, use draft.update or draft.setActive. Never create a duplicate.',
             '- Check draftsDirectory in the environment. If a draft with the same or similar title already exists, use draft.update (with id) or draft.setActive — do NOT create another.',
@@ -2853,7 +2853,7 @@ export class KipAgentService {
             'draft.create payload MUST include spec.sections: an array of {title, content} with at least 2–3 substantive sections. Use specific details from the conversation, not generic summaries.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"sections":[{"title":"Section 1","content":"Specific content here"},{"title":"Section 2","content":"More details"}]}}}]}',
             draftRules?.autoDraft?.enabled
-              ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.`
+              ? `If autoDraft thresholds are met (sections >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) and the user has not asked for read-only/no-change behavior, ask whether they want this saved as a draft unless they explicitly requested a new draft.`
               : 'If the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.',
           ]
             .filter(Boolean)

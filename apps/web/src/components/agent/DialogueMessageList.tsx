@@ -201,8 +201,8 @@ const AgentErrorAlert: React.FC<{ error: string }> = ({ error }) => {
 }
 
 function isVisibleActionResult(actionResult: NonNullable<AgentDialogueMessage["actionResults"]>[number]): boolean {
-  return !(actionResult.status === "skipped" && actionResult.errorCode === "NOT_ALLOWED") &&
-    !(actionResult.status === "error" && actionResult.errorCode === "NOT_ALLOWED")
+  const receipt = normalizeActionReceipt(actionResult)
+  return receipt.errorCode !== "NOT_ALLOWED"
 }
 
 const SkeletonBubble: React.FC<{ alignment: "left" | "right" }> = ({
