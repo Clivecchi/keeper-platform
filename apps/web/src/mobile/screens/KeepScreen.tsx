@@ -3,7 +3,7 @@
 import * as React from "react";
 import { ChronicleActPresence } from "../../v0/presence/chronicleConfig/ChronicleActPresence";
 import { useBoardEngagement } from "../../v0/boards/engagement/useBoardEngagement";
-import { useMobileKeeper } from "../context/MobileKeeperContext";
+import { useUniversalMobile } from "../hooks/useUniversalMobile";
 import {
   fetchDomainJourneys,
   fetchDomainKeepers,
@@ -18,7 +18,7 @@ export function KeepScreen() {
     notifyMomentKept,
     setActiveTab,
     openMoment,
-  } = useMobileKeeper();
+  } = useUniversalMobile();
 
   const [journeys, setJourneys] = React.useState<MobileJourneySummary[]>([]);
   const [keepers, setKeepers] = React.useState<MobileKeeperSummary[]>([]);

@@ -23,7 +23,8 @@ import {
   type WorkspaceBoardId,
 } from "../boards/workspaceBoardNav"
 import { UniversalBoard } from "../boards/UniversalBoard"
-import { MobileKeeperShell } from "../../mobile/MobileKeeperShell"
+import { UniversalBoardProvider } from "../boards/UniversalBoardContext"
+import { UniversalMobileShell } from "../../mobile/UniversalMobileShell"
 import { useMobileSurface } from "../../mobile/hooks/useMobileSurface"
 import type { UniversalBoardDef } from "../boards/UniversalBoardDefinition"
 import { apiFetch } from "../../lib/api"
@@ -101,15 +102,16 @@ export function V0Shell() {
     const surfaceDesktop = searchParams.get("surface") === "desktop"
     const adminWorkspaceBoards = new Set<WorkspaceBoardId>(["ide", "agent", "designer"])
 
-    // Pocket companion: authenticated mobile users always land on the domain board
-    // unless they explicitly chose another workspace or forced desktop surface.
+    // Universal Mobile: authenticated narrow viewports use the domain board only.
+    // Strip legacy ?frame= params — member work lives on ?board=domain, not standalone frames.
     if (mobileSurface === "mobile" && !surfaceDesktop) {
       if (board && adminWorkspaceBoards.has(board as WorkspaceBoardId)) return
-      if (board !== "domain") {
+      if (board !== "domain" || frame) {
         setSearchParams(
           (prev) => {
             const next = new URLSearchParams(prev)
             next.set("board", "domain")
+            next.delete("frame")
             return next
           },
           { replace: true },
@@ -581,13 +583,12 @@ export function V0Shell() {
             draftId={draftId}
           >
             {useMobileShell ? (
-              <MobileKeeperShell
-                domainSlug={resolvedSlug}
-                domainId={resolvedDomainId}
-                domainName={domainData?.name ?? ""}
-                styleId={styleId}
-                themeSlug={activeThemeSlug}
-              />
+              <UniversalBoardProvider>
+                <UniversalMobileShell
+                  styleId={styleId}
+                  themeSlug={activeThemeSlug}
+                />
+              </UniversalBoardProvider>
             ) : (
               <UniversalBoard
                 key={matchedDef.boardId}

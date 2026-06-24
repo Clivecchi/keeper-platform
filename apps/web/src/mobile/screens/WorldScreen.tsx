@@ -3,12 +3,12 @@
 import * as React from "react";
 import { MomentListCard } from "../components/MomentListCard";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
-import { useMobileKeeper } from "../context/MobileKeeperContext";
+import { useUniversalMobile } from "../hooks/useUniversalMobile";
 import { fetchKeptMomentsForWorld } from "../lib/mobileApi";
 import type { KeptMomentSummary } from "../../v0/api/v0Moments";
 
 export function WorldScreen() {
-  const { domainSlug, worldRefreshKey, openMoment, refreshWorld } = useMobileKeeper();
+  const { domainSlug, worldRefreshKey, openMoment, refreshWorld } = useUniversalMobile();
   const [moments, setMoments] = React.useState<KeptMomentSummary[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);

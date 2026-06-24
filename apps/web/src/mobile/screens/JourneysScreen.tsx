@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { useMobileKeeper } from "../context/MobileKeeperContext";
+import { useUniversalMobile } from "../hooks/useUniversalMobile";
 import { fetchDomainJourneys, fetchJourneyWithMoments } from "../lib/mobileApi";
 import type { MobileJourneySummary } from "../types";
 
 export function JourneysScreen() {
-  const { domainId, openMoment, setActiveJourneyId, setActiveTab } = useMobileKeeper();
+  const { domainId, openMoment, setActiveJourneyId, setActiveTab } = useUniversalMobile();
   const [journeys, setJourneys] = React.useState<MobileJourneySummary[]>([]);
   const [expandedJourneyId, setExpandedJourneyId] = React.useState<string | null>(null);
   const [momentsByJourney, setMomentsByJourney] = React.useState<

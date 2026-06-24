@@ -8,7 +8,7 @@ import { useAgentDialog } from "../../hooks/useAgentDialog";
 import { useV0Shell } from "../../v0/shell/V0ShellContext";
 import { getApiBase } from "../../lib/apiFetch";
 import { apiFetch } from "../../lib/api";
-import { useMobileKeeper } from "../context/MobileKeeperContext";
+import { useUniversalMobile } from "../hooks/useUniversalMobile";
 import { fetchMomentDetail } from "../lib/mobileApi";
 
 export function KipScreen() {
@@ -22,7 +22,7 @@ export function KipScreen() {
     openMoment,
     notifyMomentKept,
     worldRefreshKey,
-  } = useMobileKeeper();
+  } = useUniversalMobile();
   const { domainFrame, resolvedAudience } = useV0Shell();
   const { refreshSession, user } = useAuth();
   const [journeyCount, setJourneyCount] = React.useState<number | null>(null);

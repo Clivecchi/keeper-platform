@@ -103,6 +103,8 @@ export interface UniversalBoardActions {
   onJourneySelect: (id: string) => void
   onPathSelect: (id: string) => void
   onMomentSelect: (id: string) => void
+  /** Clears moment focus only — e.g. mobile moment overlay dismiss. */
+  onMomentClear: () => void
   onKeeperSelect: (id: string) => void
   onDraftSelect: (id: string) => void
   onAgentSelect: (id: string) => void
@@ -281,6 +283,10 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
+  }, [])
+
+  const onMomentClear = React.useCallback(() => {
+    setSelectedMomentId(null)
   }, [])
 
   const onKeeperSelect = React.useCallback((id: string) => {
@@ -555,6 +561,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
         onJourneySelect,
         onPathSelect,
         onMomentSelect,
+        onMomentClear,
         onKeeperSelect,
         onDraftSelect,
         onAgentSelect,
@@ -622,6 +629,7 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
       onJourneySelect,
       onPathSelect,
       onMomentSelect,
+      onMomentClear,
       onKeeperSelect,
       onDraftSelect,
       onAgentSelect,

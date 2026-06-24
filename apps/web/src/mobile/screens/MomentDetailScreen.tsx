@@ -4,7 +4,7 @@ import * as React from "react";
 import { ChronicleActPresence } from "../../v0/presence/chronicleConfig/ChronicleActPresence";
 import { useBoardEngagement } from "../../v0/boards/engagement/useBoardEngagement";
 import { MomentEmotifBar } from "../../v0/frames/moment/MomentEmotifBar";
-import { useMobileKeeper } from "../context/MobileKeeperContext";
+import { useUniversalMobile } from "../hooks/useUniversalMobile";
 import { fetchMomentDetail } from "../lib/mobileApi";
 import type { MobileMomentDetail } from "../types";
 
@@ -29,7 +29,7 @@ function formatWhen(value: string | null): string {
 }
 
 export function MomentDetailScreen({ momentId, onClose }: MomentDetailScreenProps) {
-  const { domainId, refreshWorld, openKipWithMoment } = useMobileKeeper();
+  const { domainId, refreshWorld, openKipWithMoment } = useUniversalMobile();
   const [moment, setMoment] = React.useState<MobileMomentDetail | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);

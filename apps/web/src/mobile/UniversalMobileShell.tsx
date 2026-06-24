@@ -1,12 +1,20 @@
 "use client";
 
+/**
+ * Universal Mobile — domain board shell for narrow viewports.
+ *
+ * Board state: UniversalBoardContext (selection, active journey, moment focus).
+ * Shell UI: UniversalMobileUIContext (tabs, Kip focus chip, PWA prompt).
+ * Same engagement/dialog pipeline as desktop Universal Board.
+ */
 import * as React from "react";
 import "./mobile-shell.css";
 import { StyleScope } from "../v0/styles/StyleScope";
 import type { StyleId } from "../v0/styles/styles";
 import { MobileHeader } from "./components/MobileHeader";
 import { MobileTabBar } from "./components/MobileTabBar";
-import { MobileKeeperProvider, useMobileKeeper } from "./context/MobileKeeperContext";
+import { UniversalMobileUIProvider } from "./context/UniversalMobileUIContext";
+import { useUniversalMobile } from "./hooks/useUniversalMobile";
 import { KeepScreen } from "./screens/KeepScreen";
 import { JourneysScreen } from "./screens/JourneysScreen";
 import { KipScreen } from "./screens/KipScreen";
@@ -15,10 +23,7 @@ import { WorldScreen } from "./screens/WorldScreen";
 import { PwaInstallPrompt } from "./pwa";
 import type { MobileTabId } from "./types";
 
-export interface MobileKeeperShellProps {
-  domainSlug: string;
-  domainId: string | null;
-  domainName: string;
+export interface UniversalMobileShellProps {
   styleId?: StyleId;
   themeSlug?: string | null;
 }
@@ -42,23 +47,21 @@ const TAB_COPY: Record<MobileTabId, { title: string; subtitle?: string }> = {
   },
 };
 
-function MobileKeeperShellBody() {
+function UniversalMobileShellBody() {
   const {
     activeTab,
     selectedMomentId,
-    domainName,
     showInstallPrompt,
     setActiveTab,
     closeMoment,
-  } = useMobileKeeper();
+  } = useUniversalMobile();
 
   const copy = TAB_COPY[activeTab];
-
   const isKipTab = activeTab === "kip";
 
   return (
     <div
-      className="mobile-keeper-shell relative flex h-[100dvh] w-full flex-col overflow-hidden"
+      className="universal-mobile-shell relative flex h-[100dvh] w-full flex-col overflow-hidden"
       style={{ backgroundColor: "hsl(var(--theme-surface-page, 40 20% 97%))" }}
     >
       {!selectedMomentId ? (
@@ -101,24 +104,15 @@ function MobileKeeperShellBody() {
   );
 }
 
-export function MobileKeeperShell({
-  domainSlug,
-  domainId,
-  domainName,
+export function UniversalMobileShell({
   styleId = "neutral",
   themeSlug = null,
-}: MobileKeeperShellProps) {
-  const resolvedName = domainName.trim() || domainSlug;
-
+}: UniversalMobileShellProps) {
   return (
     <StyleScope styleId={styleId} themeSlug={themeSlug}>
-      <MobileKeeperProvider
-        domainSlug={domainSlug}
-        domainId={domainId}
-        domainName={resolvedName}
-      >
-        <MobileKeeperShellBody />
-      </MobileKeeperProvider>
+      <UniversalMobileUIProvider>
+        <UniversalMobileShellBody />
+      </UniversalMobileUIProvider>
     </StyleScope>
   );
 }

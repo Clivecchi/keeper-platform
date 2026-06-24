@@ -1,10 +1,10 @@
-/* Mobile Keeper shell — full-height layout; Kip composer pinned above tab bar */
+/* Universal Mobile shell — full-height layout; Kip composer pinned above tab bar */
 
-.mobile-keeper-shell {
+.universal-mobile-shell {
   --mobile-tab-bar-height: 3.75rem;
 }
 
-.mobile-keeper-shell .mobile-screen-scroll {
+.universal-mobile-shell .mobile-screen-scroll {
   min-height: 0;
   flex: 1 1 auto;
   overflow-y: auto;
@@ -12,7 +12,7 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.mobile-keeper-shell .mobile-kip-screen {
+.universal-mobile-shell .mobile-kip-screen {
   display: flex;
   min-height: 0;
   flex: 1 1 auto;
@@ -20,13 +20,13 @@
   overflow: hidden;
 }
 
-.mobile-keeper-shell .mobile-kip-dialog {
+.universal-mobile-shell .mobile-kip-dialog {
   min-height: 0;
   flex: 1 1 auto;
   overflow: hidden;
 }
 
-.mobile-keeper-shell .keeper-dialog-frame {
+.universal-mobile-shell .keeper-dialog-frame {
   margin: 0;
   height: 100%;
   min-height: 0;
@@ -39,22 +39,22 @@
   background: hsl(var(--theme-surface-page, 40 20% 97%) / 0.92);
 }
 
-.mobile-keeper-shell .dialog-header-banner {
+.universal-mobile-shell .dialog-header-banner {
   padding: 8px 12px;
 }
 
-.mobile-keeper-shell .dialog-bottom-zone {
+.universal-mobile-shell .dialog-bottom-zone {
   flex-shrink: 0;
   padding-bottom: max(0px, env(safe-area-inset-bottom));
   background: hsl(var(--theme-surface-page, 40 20% 97%) / 0.96);
   border-top: 1px solid hsl(var(--theme-border-soft) / 0.35);
 }
 
-.mobile-keeper-shell .dialog-message-zone {
+.universal-mobile-shell .dialog-message-zone {
   min-height: 0;
 }
 
-.mobile-keeper-shell .mobile-kip-focus-bar {
+.universal-mobile-shell .mobile-kip-focus-bar {
   flex-shrink: 0;
   display: flex;
   align-items: center;
