@@ -1,4 +1,4 @@
-/* Universal Mobile shell — full-height layout; Kip composer pinned above tab bar */
+/* Universal Mobile shell — full-height layout; staged Kip dialog */
 
 .universal-mobile-shell {
   --mobile-tab-bar-height: 3.75rem;
@@ -43,15 +43,16 @@
   padding: 8px 12px;
 }
 
+.universal-mobile-shell .dialog-message-zone {
+  min-height: 0;
+}
+
 .universal-mobile-shell .dialog-bottom-zone {
   flex-shrink: 0;
   padding-bottom: max(0px, env(safe-area-inset-bottom));
   background: hsl(var(--theme-surface-page, 40 20% 97%) / 0.96);
   border-top: 1px solid hsl(var(--theme-border-soft) / 0.35);
-}
-
-.universal-mobile-shell .dialog-message-zone {
-  min-height: 0;
+  transition: flex-grow 0.25s ease, padding 0.25s ease;
 }
 
 .universal-mobile-shell .mobile-kip-focus-bar {
@@ -63,4 +64,124 @@
   padding: 0.5rem 1rem;
   border-bottom: 1px solid hsl(var(--theme-border-soft) / 0.35);
   background: hsl(var(--theme-surface-panel) / 0.55);
+}
+
+/* ─── Stage: composing — input dominates ─────────────────────────────────── */
+
+.universal-mobile-shell [data-mobile-dialog-stage="composing"] .dialog-header-banner {
+  display: none;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="composing"] .dialog-message-zone {
+  flex: 0 0 0;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="composing"] .dialog-horizon-band {
+  display: none;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="composing"] .dialog-think-space:not(.dialog-think-space--mobile-composing) {
+  display: none;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="composing"] .dialog-think-space--mobile-composing {
+  flex: 0 0 auto;
+  min-height: 72px;
+  max-height: 28vh;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="composing"] .dialog-bottom-zone {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 0;
+  padding-top: 0.5rem;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="composing"] .dialog-bottom-stack {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="composing"] .keeper-composer-form {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="composing"] .keeper-composer-input-wrap {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Stage: thinking — reassurance workflow ─────────────────────────────── */
+
+.universal-mobile-shell [data-mobile-dialog-stage="thinking"] .dialog-header-banner {
+  flex-shrink: 0;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="thinking"] .dialog-message-zone {
+  flex: 0 0 auto;
+  max-height: 18vh;
+  opacity: 0.45;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="thinking"] .dialog-horizon-band {
+  --dialog-fade-height: 88px;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="thinking"] .dialog-think-space {
+  flex: 1 1 auto;
+  min-height: 120px;
+  max-height: none;
+  opacity: 1;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="thinking"] .dialog-bottom-zone {
+  flex: 0 0 auto;
+  opacity: 0.85;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="thinking"] .dialog-scroll-rail,
+.universal-mobile-shell [data-mobile-dialog-stage="thinking"] .dialog-scroll-hint {
+  display: none;
+}
+
+/* ─── Stage: response — answer fills screen, compact composer ────────────── */
+
+.universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-message-zone {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-think-space {
+  display: none !important;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-horizon-status {
+  display: none;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-fade-overlay {
+  opacity: 0.35;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-bottom-zone {
+  flex: 0 0 auto;
+  padding-top: 8px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="response"] .mobile-kip-response-toolbar {
+  flex-shrink: 0;
+}
+
+.universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-message-surface {
+  scroll-behavior: smooth;
 }

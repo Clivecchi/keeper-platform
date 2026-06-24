@@ -8,6 +8,9 @@ import { useAgentDialog } from "../../hooks/useAgentDialog";
 import { useV0Shell } from "../../v0/shell/V0ShellContext";
 import { getApiBase } from "../../lib/apiFetch";
 import { apiFetch } from "../../lib/api";
+import { MobileKipChronicleView } from "../components/MobileKipChronicleView";
+import { MobileKipResponseToolbar } from "../components/MobileKipResponseToolbar";
+import { useMobileKipDialogStage } from "../hooks/useMobileKipDialogStage";
 import { useUniversalMobile } from "../hooks/useUniversalMobile";
 import { fetchMomentDetail } from "../lib/mobileApi";
 
@@ -25,6 +28,7 @@ export function KipScreen() {
   } = useUniversalMobile();
   const { domainFrame, resolvedAudience } = useV0Shell();
   const { refreshSession, user } = useAuth();
+  const [composerFocused, setComposerFocused] = React.useState(false);
   const [journeyCount, setJourneyCount] = React.useState<number | null>(null);
   const [momentCount, setMomentCount] = React.useState<number | null>(null);
   const [focusMomentTitle, setFocusMomentTitle] = React.useState<string | null>(null);
@@ -108,6 +112,23 @@ export function KipScreen() {
     },
   });
 
+  const {
+    stage,
+    responseView,
+    setResponseView,
+    displayMessages,
+    latestAgentMessage,
+  } = useMobileKipDialogStage({
+    messages,
+    input,
+    isSending,
+    composerFocused,
+  });
+
+  React.useEffect(() => {
+    if (!isSending) setComposerFocused(false);
+  }, [isSending]);
+
   React.useEffect(() => {
     if (!domainSlug) return;
     let cancelled = false;
@@ -171,6 +192,14 @@ export function KipScreen() {
     };
   }, [domainFrame, domainName, journeyCount, momentCount, kipFocusMomentId, focusMomentTitle]);
 
+  const chronicleContent =
+    stage === "response" && responseView === "chronicle" ? (
+      <MobileKipChronicleView
+        message={latestAgentMessage}
+        onOpenMoment={openMoment}
+      />
+    ) : undefined;
+
   return (
     <div className="mobile-kip-screen">
       {kipFocusMomentId ? (
@@ -192,7 +221,14 @@ export function KipScreen() {
       <div className="mobile-kip-dialog">
         <KeeperDialogFrame
           bannerContext={bannerContext}
-          messages={messages}
+          messages={displayMessages}
+          dialogContent={chronicleContent}
+          dialogLayout="mobile-staged"
+          mobileDialogStage={stage}
+          onComposerFocusChange={setComposerFocused}
+          mobileResponseToolbar={
+            <MobileKipResponseToolbar view={responseView} onViewChange={setResponseView} />
+          }
           inputValue={input}
           onInputChange={setInput}
           onSubmit={sendMessage}

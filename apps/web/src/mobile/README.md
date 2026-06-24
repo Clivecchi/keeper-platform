@@ -46,6 +46,10 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 
 ## 📆 Update Log
 
+### 2026-06-22 — Mobile Kip staged dialog (composing · thinking · response)
+- Kip tab uses `dialogLayout="mobile-staged"`: full-screen composing, thinking reassurance, response with compact composer.
+- Response toggle: **Text** (latest exchange) and **Chronicle** (action receipts via `MobileKipChronicleView`).
+
 ### 2026-06-22 — UniversalMobileShell + board context refactor
 - Renamed `MobileKeeperShell` → `UniversalMobileShell`.
 - Removed `MobileKeeperContext`; board state via `UniversalBoardContext`, UI via `UniversalMobileUIContext`.

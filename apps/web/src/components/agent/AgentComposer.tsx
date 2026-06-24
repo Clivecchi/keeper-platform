@@ -80,6 +80,10 @@ export interface AgentComposerProps {
   isSending: boolean
   activeSessionId: string | null
   disabled?: boolean
+  /** Notifies parent when the composer textarea gains or loses focus. */
+  onInputFocusChange?: (focused: boolean) => void
+  /** Expands composer input for mobile staged layout. */
+  composerSize?: "default" | "mobile-expanded" | "mobile-compact"
   feedbackSlot?: React.ReactNode
 }
 
@@ -121,6 +125,8 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   activeSessionId,
   disabled = false,
   feedbackSlot,
+  onInputFocusChange,
+  composerSize = "default",
 }) => {
   const fileInputId = React.useId()
   const formRef = React.useRef<HTMLFormElement>(null)
@@ -384,11 +390,20 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
             ref={textareaRef}
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
+            onFocus={() => onInputFocusChange?.(true)}
+            onBlur={() => onInputFocusChange?.(false)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={!activeSessionId || isSending || disabled}
-            rows={MIN_ROWS}
-            className="keeper-composer-input w-full min-h-[44px] max-h-[120px] resize-none overflow-y-auto rounded-md border text-sm leading-5 focus:outline-none"
+            rows={composerSize === "mobile-expanded" ? 8 : MIN_ROWS}
+            className={[
+              "keeper-composer-input w-full resize-none overflow-y-auto rounded-md border text-sm leading-5 focus:outline-none",
+              composerSize === "mobile-expanded"
+                ? "min-h-[38vh] max-h-[50vh]"
+                : composerSize === "mobile-compact"
+                  ? "min-h-[44px] max-h-[56px]"
+                  : "min-h-[44px] max-h-[120px]",
+            ].join(" ")}
             style={{
               backgroundColor: SURFACE.inputBg,
               borderColor: "hsl(var(--theme-border-soft) / 0.5)",

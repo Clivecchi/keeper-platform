@@ -159,6 +159,13 @@ export interface KeeperDialogFrameProps {
   feedContent?: React.ReactNode
   /** When provided and mode === 'dialog', shows a ← Commons back affordance in the Banner. */
   onReturnToFeed?: () => void
+
+  /** Mobile Universal Kip — three full-screen stages: composing, thinking, response. */
+  dialogLayout?: "default" | "mobile-staged"
+  mobileDialogStage?: "composing" | "thinking" | "response"
+  onComposerFocusChange?: (focused: boolean) => void
+  /** Renders between Dialog Space and Composer in mobile response stage (e.g. Text / Chronicle toggle). */
+  mobileResponseToolbar?: React.ReactNode
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -214,6 +221,10 @@ export function KeeperDialogFrame({
   mode = 'dialog',
   feedContent,
   onReturnToFeed,
+  dialogLayout = "default",
+  mobileDialogStage,
+  onComposerFocusChange,
+  mobileResponseToolbar,
 }: KeeperDialogFrameProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null)
   const thinkSpaceRef = React.useRef<HTMLDivElement>(null)
@@ -341,11 +352,21 @@ export function KeeperDialogFrame({
   // Banner renders in dialog mode when there is context to show
   const showBanner = mode !== 'feed' && (!!hasBreadcrumb || !!bannerContext?.prelude || !!onReturnToFeed || hasSessionMeta)
 
+  const isMobileStaged = dialogLayout === "mobile-staged" && mode !== "feed"
+  const mobileComposerSize =
+    isMobileStaged && mobileDialogStage === "composing"
+      ? "mobile-expanded"
+      : isMobileStaged && mobileDialogStage === "response"
+        ? "mobile-compact"
+        : "default"
+
   return (
     <div
       className="keeper-dialog-frame"
       data-composer-state={mode === "feed" ? undefined : composerState}
       data-has-uploads={hasUploads ? "true" : undefined}
+      data-dialog-layout={isMobileStaged ? "mobile-staged" : undefined}
+      data-mobile-dialog-stage={isMobileStaged ? mobileDialogStage : undefined}
     >
 
       {/* ── Header Bar — expandable breadcrumb; hidden in feed mode ─────────── */}
@@ -596,6 +617,8 @@ export function KeeperDialogFrame({
         )}
       </div>
 
+      {isMobileStaged && mobileDialogStage === "response" ? mobileResponseToolbar : null}
+
       {/* ── Thinking Space: reserved for uploads, messaging, composer features ── *
        *  Fixed height: never causes the composer to resize or jump.               *
        *  Agent thinking status lives on the Horizon gradient band in Zone 2.   */}
@@ -607,6 +630,9 @@ export function KeeperDialogFrame({
             showDiagStream ? " dialog-think-space--diag" : "",
             showThinkStream ? " dialog-think-space--working" : "",
             hasUploads && !isSending ? " dialog-think-space--uploads" : "",
+            isMobileStaged && mobileDialogStage === "composing" && hasUploads
+              ? " dialog-think-space--mobile-composing"
+              : "",
           ].join("")}
         >
           <div className="dialog-column dialog-think-space-inner">
@@ -643,6 +669,8 @@ export function KeeperDialogFrame({
             isSending={isSending || isFileUploading}
             activeSessionId={activeSessionId}
             disabled={disabled}
+            onInputFocusChange={onComposerFocusChange}
+            composerSize={mobileComposerSize}
           />
           {showServiceBar && (
             <IntegratedServicesBar
