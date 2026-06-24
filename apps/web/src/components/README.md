@@ -15,5 +15,6 @@ Components here focus on reusable UI state, composition, and cross-feature inter
 - [ ] Confirm which shared components should be migrated into v0-specific folders.
 
 ## 📆 Update Log
+- 2026-06-24: Default post-login redirect is now `/d/default?board=domain` (Domain Board) instead of Commons, matching V0Shell authenticated landing behavior.
 - 2026-01-25: Added component-level README and made auth form headings optional for login layout refresh.
 - 2026-01-25: Updated auth form default redirect to the Commons board.

@@ -99,6 +99,37 @@ export interface AgentResponse {
   processing_time_ms: number;
 }
 
+export type KipRunErrorCode =
+  | 'MISSING_API_KEY'
+  | 'INVALID_MODEL'
+  | 'PROVIDER_UNAVAILABLE'
+  | 'TIMEOUT'
+  | 'QUOTA_EXCEEDED'
+  | 'AGENT_MISCONFIGURED'
+  | 'UNKNOWN';
+
+export interface KipRunErrorDetails {
+  provider?: ModelProvider;
+  model?: string;
+  retries?: number;
+  retryable?: boolean;
+  providerStatus?: number;
+  suggestedAction?: string;
+  requestId?: string;
+}
+
+export class KipAgentRunError extends Error {
+  code: KipRunErrorCode;
+  details?: KipRunErrorDetails;
+
+  constructor(message: string, code: KipRunErrorCode, details?: KipRunErrorDetails) {
+    super(message);
+    this.name = 'KipAgentRunError';
+    this.code = code;
+    this.details = details;
+  }
+}
+
 export type AgentModeKey = 'domain' | 'debug';
 export type ModeOutputStyle = 'concise' | 'normal' | 'expanded';
 
@@ -425,6 +456,123 @@ const mockAgents: KipAgent[] = [
   }
 ];
 
+function normalizeKipRunErrorCode(code: unknown, message: unknown): KipRunErrorCode {
+  const rawCode = typeof code === 'string' ? code : '';
+  if (
+    rawCode === 'MISSING_API_KEY' ||
+    rawCode === 'INVALID_MODEL' ||
+    rawCode === 'PROVIDER_UNAVAILABLE' ||
+    rawCode === 'TIMEOUT' ||
+    rawCode === 'QUOTA_EXCEEDED' ||
+    rawCode === 'AGENT_MISCONFIGURED'
+  ) {
+    return rawCode;
+  }
+
+  const rawMessage = typeof message === 'string' ? message.toLowerCase() : '';
+  if (rawMessage.includes('overloaded') || rawMessage.includes('529') || rawMessage.includes('temporarily unavailable')) {
+    return 'PROVIDER_UNAVAILABLE';
+  }
+  if (rawMessage.includes('timeout') || rawMessage.includes('timed out')) {
+    return 'TIMEOUT';
+  }
+  if (rawMessage.includes('quota') || rawMessage.includes('credits') || rawMessage.includes('billing')) {
+    return 'QUOTA_EXCEEDED';
+  }
+  if (rawMessage.includes('api key') || rawMessage.includes('anthropic_api_key') || rawMessage.includes('openai_api_key')) {
+    return 'MISSING_API_KEY';
+  }
+  if (rawMessage.includes('model') && rawMessage.includes('not')) {
+    return 'INVALID_MODEL';
+  }
+
+  return 'UNKNOWN';
+}
+
+function normalizeKipRunErrorDetails(details: unknown): KipRunErrorDetails | undefined {
+  if (!details || typeof details !== 'object') {
+    return undefined;
+  }
+
+  const raw = details as Record<string, unknown>;
+  const provider = raw.provider;
+  const providerStatus = raw.providerStatus;
+  const retries = raw.retries;
+  const retryable = raw.retryable;
+  const model = raw.model;
+  const suggestedAction = raw.suggestedAction;
+  const requestId = raw.requestId;
+
+  return {
+    provider: provider === 'openai' || provider === 'anthropic' || provider === 'together' || provider === 'elevenlabs'
+      ? provider
+      : undefined,
+    model: typeof model === 'string' ? model : undefined,
+    retries: typeof retries === 'number' ? retries : undefined,
+    retryable: typeof retryable === 'boolean' ? retryable : undefined,
+    providerStatus: typeof providerStatus === 'number' ? providerStatus : undefined,
+    suggestedAction: typeof suggestedAction === 'string' ? suggestedAction : undefined,
+    requestId: typeof requestId === 'string' ? requestId : undefined,
+  };
+}
+
+function formatKipRunErrorMessage(code: KipRunErrorCode, rawMessage: unknown, details?: KipRunErrorDetails): string {
+  const provider = getProviderLabel(details?.provider);
+  const modelContext = details?.model ? ` Model: ${details.model}.` : '';
+  const retryContext = typeof details?.retries === 'number' && details.retries > 0
+    ? ` Kip retried ${details.retries} ${details.retries === 1 ? 'time' : 'times'}.`
+    : '';
+  const statusContext = details?.providerStatus ? ` Provider status: ${details.providerStatus}.` : '';
+  const suggestedAction = details?.suggestedAction ? ` ${details.suggestedAction}` : '';
+
+  switch (code) {
+    case 'PROVIDER_UNAVAILABLE':
+      return `Kip could not respond because ${provider} is temporarily overloaded or unavailable.${statusContext}${retryContext}${modelContext} Try again in a moment.${suggestedAction}`.trim();
+    case 'TIMEOUT':
+      return `Kip timed out waiting for ${provider}.${retryContext}${modelContext} Try again, or switch to a faster model if it keeps happening.${suggestedAction}`.trim();
+    case 'QUOTA_EXCEEDED':
+      return `Kip cannot respond because the AI provider key is out of credits or quota.${modelContext} Add credits or switch Kip to another configured provider key.${suggestedAction}`.trim();
+    case 'MISSING_API_KEY':
+      return `Kip cannot respond because the AI provider API key is missing or invalid. Add the provider key in Railway or configure a platform/user key.${modelContext}${suggestedAction}`.trim();
+    case 'INVALID_MODEL':
+      return `Kip is configured with a model that ${provider} does not accept.${modelContext} Choose a supported model in Cockpit and retry.${suggestedAction}`.trim();
+    case 'AGENT_MISCONFIGURED':
+      return `Kip is not configured correctly for this board.${suggestedAction || ' Check the Kip agent configuration and try again.'}`.trim();
+    case 'UNKNOWN':
+    default: {
+      const safeMessage = sanitizeKipErrorMessage(rawMessage);
+      return safeMessage || `Kip could not respond. Try again, or check Kip server logs if the problem continues.`;
+    }
+  }
+}
+
+function sanitizeKipErrorMessage(message: unknown): string | null {
+  if (typeof message !== 'string') {
+    return null;
+  }
+
+  const trimmed = message.replace(/\s*\(key source:[^)]+\)\s*/gi, '').trim();
+  if (!trimmed || trimmed.length > 240 || trimmed.startsWith('{') || trimmed.includes('"request_id"')) {
+    return null;
+  }
+  return trimmed;
+}
+
+function getProviderLabel(provider?: ModelProvider): string {
+  switch (provider) {
+    case 'openai':
+      return 'OpenAI';
+    case 'anthropic':
+      return 'Anthropic';
+    case 'together':
+      return 'Together AI';
+    case 'elevenlabs':
+      return 'ElevenLabs';
+    default:
+      return 'the AI provider';
+  }
+}
+
 /**
  * KIP API Client Class
  */
@@ -628,26 +776,14 @@ export class KipApi {
       const errorCode =
         dataAny?.errorCode ||
         dataAny?.data?.errorCode ||
-        '';
-
-      // Provide user-friendly messages for known error codes
-      if (errorCode === 'QUOTA_EXCEEDED') {
-        throw new Error(
-          'Kip is temporarily unavailable — the AI model has run out of credits. ' +
-          'Please add credits to the API key or contact your administrator.'
-        );
-      }
-      if (errorCode === 'MISSING_API_KEY') {
-        throw new Error(
-          innerError && typeof innerError === 'string' && innerError.includes('ANTHROPIC_API_KEY')
-            ? innerError
-            : innerError && typeof innerError === 'string' && innerError.includes('OPENAI_API_KEY')
-              ? innerError
-              : 'Kip cannot respond — the AI model API key is missing or invalid. Add OPENAI_API_KEY or ANTHROPIC_API_KEY to your Railway environment variables.'
-        );
-      }
-
-      throw new Error(innerError);
+        'UNKNOWN';
+      const details = normalizeKipRunErrorDetails(dataAny?.details || dataAny?.data?.details);
+      const normalizedCode = normalizeKipRunErrorCode(errorCode, innerError);
+      throw new KipAgentRunError(
+        formatKipRunErrorMessage(normalizedCode, innerError, details),
+        normalizedCode,
+        details
+      );
     }
 
     return agentResult;

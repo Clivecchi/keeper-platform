@@ -10,6 +10,8 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - `KipAgentBoard` (exported from this page) encapsulates the header, tabs, session column, and dialogue frame so other routes (e.g., v0 AgentFrame) can reuse the exact layout.
 - Relies on `useAgentSessions` to load, normalize, and create `kip_sessions` via `/api/kip/agents?sessions=true&agentId=...` and `action="createSession"`.
 - Dialogue tab fetches `kip_messages` with `/api/kip/agents?messages=true&sessionId=...`, renders metadata cards, and posts user input through `action="run"` when sending messages.
+- Dialogue errors use the shared agent error presentation helper so provider overloads, quota, timeouts, missing keys, and invalid model issues display informational headings.
+- Unsupported `NOT_ALLOWED` action receipts are filtered out of the legacy transcript to match the v0 Agent Board behavior.
 - Cockpit and context cards share the latest session metadata plus placeholder journey/keeper links until those APIs are wired.
 
 ## ⚠️ Notes & ToDo
@@ -18,6 +20,10 @@ Kip-specific board pages that recreate the V0 Agent Board layout (Dialogue, Cock
 - **Deprecation**: KipAgentBoardPage uses AgentPostureHeader; deprecation planned. Prefer v0 AgentBoardFrame at `?frame=agent`.
 
 ## 📆 Update Log
+### 2026-06-23 - Categorized Kip dialogue errors
+- Replaced the legacy generic "Something went wrong" dialogue heading with the shared agent error presentation helper, aligning `/kip` with the v0 Agent Board error categories.
+- Cleaned legacy draft/debug payload typing touched during the error-rendering update.
+- Filtered unsupported `NOT_ALLOWED` action receipts from the legacy Kip board so invented coordination actions do not render as red failure cards.
 ### 2026-02-15 - AgentPostureHeader integration
 - Replaced AgentHeader with AgentPostureHeader (governance stack: agent, domain, lens, mode, governance, voice). Added DialogueModeToggle for mode switching. Deprecation planned; prefer v0 AgentBoardFrame.
 ### 2026-01-27 - Public Kip scope

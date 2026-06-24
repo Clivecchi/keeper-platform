@@ -29,7 +29,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
-- 2026-04-01: Added `DomainBanner.tsx` (slim Domain Board center header: wordmark, tagline, live pulse from `theme.colors.primary`, journey/moment stats) and `DomainFeed.tsx` (kept moments + public journey activity via existing APIs; empty state from `commons.messaging.feed` when present). Both use `--theme-*` tokens under `StyleScope`.
+- 2026-06-24: Margin guest Sign In now returns to `?board=domain` (Domain Board) instead of forcing `?frame=agent` (Agent studio).
 - 2026-03-31: Added `StoryScroll` neutral narrative editor (`StoryScroll.tsx`, `StoryScroll.types.ts`, `StoryScroll.example.tsx`) — inline `{fieldId}` prose fields, grace note, crumb bar, internal change buffer; no persistence or domain coupling.
 - 2026-03-31: Added `DomainBrief.tsx` for Domain Board Brief mode — accordion sections, theme tokens (`--theme-*`) for chrome, domain JSON colors for swatches / section dots / change indicator / active pills.
 - 2026-03-25: CoverFrame: Designer Board preview detection (`buildFrameUrl("cover") === "#"`); skip authenticated cover-image refetch in that shell; prefer `domainFrame.theme` wordmark/tagline for header when in preview so draft JSON drives the right-panel preview.
