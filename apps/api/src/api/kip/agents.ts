@@ -2344,6 +2344,11 @@ const getKipAgentBySlug = async (slug: string) => {
   });
 };
 
+const getKipAgentBySlugForLoad = async (slug: string) => {
+  const { getKipAgentBySlugEnsured } = await import('../../services/kip/ensureKnownLeadAgent.js');
+  return getKipAgentBySlugEnsured(slug);
+};
+
 const createKipAgent = async (data: AgentInput) => {
   return prisma.kip_agents.create({
     data: {
@@ -5126,7 +5131,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
           if (typeof slug !== 'string') {
             return respond(400, { success: false, error: 'Invalid agent slug' });
           }
-          const agent = await getKipAgentBySlug(slug);
+          const agent = await getKipAgentBySlugForLoad(slug);
           if (!agent) {
             return respond(404, { success: false, error: 'Agent not found' });
           }
