@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import "./mobile-shell.css";
 import { StyleScope } from "../v0/styles/StyleScope";
 import type { StyleId } from "../v0/styles/styles";
 import { MobileHeader } from "./components/MobileHeader";
@@ -53,18 +54,34 @@ function MobileKeeperShellBody() {
 
   const copy = TAB_COPY[activeTab];
 
+  const isKipTab = activeTab === "kip";
+
   return (
     <div
-      className="relative flex h-[100dvh] w-full flex-col overflow-hidden"
+      className="mobile-keeper-shell relative flex h-[100dvh] w-full flex-col overflow-hidden"
       style={{ backgroundColor: "hsl(var(--theme-surface-page, 40 20% 97%))" }}
     >
       {!selectedMomentId ? (
         <>
-          <MobileHeader title={copy.title} subtitle={copy.subtitle} />
-          <main className="min-h-0 flex-1 overflow-y-auto">
-            {activeTab === "world" ? <WorldScreen /> : null}
-            {activeTab === "keep" ? <KeepScreen /> : null}
-            {activeTab === "journeys" ? <JourneysScreen /> : null}
+          {!isKipTab ? (
+            <MobileHeader title={copy.title} subtitle={copy.subtitle} />
+          ) : null}
+          <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            {activeTab === "world" ? (
+              <div className="mobile-screen-scroll">
+                <WorldScreen />
+              </div>
+            ) : null}
+            {activeTab === "keep" ? (
+              <div className="mobile-screen-scroll">
+                <KeepScreen />
+              </div>
+            ) : null}
+            {activeTab === "journeys" ? (
+              <div className="mobile-screen-scroll">
+                <JourneysScreen />
+              </div>
+            ) : null}
             {activeTab === "kip" ? <KipScreen /> : null}
           </main>
           <MobileTabBar activeTab={activeTab} onTabChange={setActiveTab} />

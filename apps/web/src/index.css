@@ -1352,6 +1352,7 @@ button.dialog-prelude:hover {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid hsla(38, 20%, 22%, 0.4);
+  padding-top: 10px;
 }
 
 .keeper-platform-top-bar .keeper-topbar-primary {
@@ -1367,32 +1368,88 @@ button.dialog-prelude:hover {
   opacity: 0.92;
 }
 
-.keeper-platform-top-bar .keeper-topbar-row {
-  border-bottom-color: hsla(38, 20%, 22%, 0.25) !important;
-}
-
 .keeper-platform-top-bar .keeper-topbar-identity-row {
-  height: 48px;
-  padding-left: 1.25rem;
-  padding-right: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 6px 1.5rem 10px 1.25rem;
+  border-bottom: 1px solid hsla(38, 22%, 42%, 0.28);
 }
 
 .keeper-platform-top-bar .keeper-topbar-nav-row {
-  height: 34px;
-  padding-left: 1.25rem;
-  padding-right: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 1.5rem 11px 1.25rem;
+}
+
+.keeper-platform-top-bar .keeper-topbar-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
 }
 
 .keeper-platform-top-bar .keeper-topbar-wordmark {
   font-size: 1.125rem;
   letter-spacing: 0.04em;
-  line-height: 1.2;
+  line-height: 1.25;
+}
+
+.keeper-platform-top-bar .keeper-topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  margin-left: auto;
+  position: relative;
+}
+
+.keeper-platform-top-bar .keeper-topbar-user-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
 }
 
 .keeper-platform-top-bar .keeper-topbar-user-name {
   font-size: 0.8125rem;
-  line-height: 1.25;
+  line-height: 1.2;
   max-width: 11rem;
+}
+
+.keeper-platform-top-bar .keeper-topbar-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0;
+  background-color: hsla(35, 12%, 16%, 0.55);
+  border: 1px solid hsla(38, 18%, 28%, 0.3);
+  cursor: pointer;
+}
+
+.keeper-platform-top-bar .keeper-topbar-avatar[data-open="true"] {
+  border-color: hsl(var(--theme-header-sole-border) / 0.45);
+}
+
+.keeper-platform-top-bar .keeper-topbar-avatar[data-guest="true"] {
+  cursor: default;
 }
 
 .keeper-platform-top-bar .keeper-topbar-status-badge {

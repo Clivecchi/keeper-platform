@@ -35,6 +35,10 @@ Mobile-first Keeper experience and Progressive Web App (PWA) infrastructure. Pha
 
 ## 📆 Update Log
 
+### 2026-06-22 — Mobile routing + Kip composer layout
+- Authenticated mobile users auto-route to `?board=domain` (no manual URL needed); `?surface=desktop` or admin boards override.
+- Kip tab: composer pinned above tab bar; dialog fills remaining height; duplicate shell header hidden on Kip.
+
 ### 2026-06-22 — Phase 2: Kip tab, edit, emotifs, refresh
 - Added **Kip** tab with `KipScreen` — reuses `useAgentDialog` + `KeeperDialogFrame` (no Universal Board context required).
 - Moment detail: **Edit** via `moment.update` + `ChronicleActPresence`; **MomentEmotifBar**; **Ask Kip** opens Kip with moment focus.

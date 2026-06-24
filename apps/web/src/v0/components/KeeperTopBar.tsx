@@ -157,14 +157,12 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
       className="keeper-platform-top-bar relative z-50 shrink-0"
     >
       {/* Row 1: domain identity + user */}
-      <div
-        className="keeper-topbar-row keeper-topbar-identity-row flex items-center justify-between gap-4"
-      >
+      <div className="keeper-topbar-identity-row">
         {/* Left: domain name + tagline */}
         <button
           type="button"
           onClick={onDomainClick}
-          className="flex flex-col items-start min-w-0 text-left py-0.5"
+          className="keeper-topbar-identity"
           aria-label={`Domain: ${wordmark}`}
         >
           <span
@@ -174,27 +172,24 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
           </span>
           {tagline ? (
             <span
-              className="keeper-topbar-tagline text-[12px] leading-snug truncate max-w-[320px] mt-1"
+              className="keeper-topbar-tagline text-[12px] leading-snug truncate max-w-[320px]"
             >
               {tagline}
             </span>
           ) : null}
         </button>
 
-        {/* Right: user name, role, avatar */}
-        <div className="flex items-center gap-3 shrink-0 ml-auto" style={{ position: "relative" }}>
-          <div className="text-right min-w-0">
+        {/* Right: user name, role, avatar — vertically centered as one unit */}
+        <div className="keeper-topbar-user">
+          <div className="keeper-topbar-user-meta">
             <p
               className="keeper-topbar-primary keeper-topbar-user-name font-medium truncate"
               title={displayName}
             >
               {displayName}
             </p>
-            <p className="mt-1">
-              <span className="keeper-topbar-status-badge">{roleLabel}</span>
-            </p>
+            <span className="keeper-topbar-status-badge">{roleLabel}</span>
           </div>
-          {/* Avatar circle — clickable for authenticated users */}
           <button
             ref={avatarButtonRef}
             type="button"
@@ -202,17 +197,9 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
             aria-expanded={profileOpen}
             aria-haspopup="menu"
             aria-label="Open profile menu"
-            className="keeper-topbar-secondary flex items-center justify-center rounded-full shrink-0 text-[11px] font-semibold"
-            style={{
-              width: 28,
-              height: 28,
-              backgroundColor: "hsla(35, 12%, 16%, 0.55)",
-              border: profileOpen
-                ? "1px solid hsl(var(--theme-header-sole-border) / 0.45)"
-                : "1px solid hsla(38, 18%, 28%, 0.3)",
-              cursor: resolvedAudience === "guest" ? "default" : "pointer",
-              padding: 0,
-            }}
+            className="keeper-topbar-secondary keeper-topbar-avatar"
+            data-open={profileOpen ? "true" : "false"}
+            data-guest={resolvedAudience === "guest" ? "true" : "false"}
           >
             {initials}
           </button>
@@ -231,9 +218,7 @@ export function KeeperTopBar({ onDomainClick, onBriefClick, isBriefOpen }: Keepe
       </div>
 
       {/* Row 2: board links + Brief */}
-      <div
-        className="keeper-topbar-row keeper-topbar-nav-row flex items-center justify-between"
-      >
+      <div className="keeper-topbar-nav-row">
         {/* Board links */}
         <nav className="flex items-center gap-0.5" aria-label="Board navigation">
           {BOARD_LINKS.map(({ id, label }, idx) => {

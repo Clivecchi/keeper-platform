@@ -91,13 +91,34 @@ export function V0Shell() {
 
   const defaultFrame = isAuthenticated ? "commons" : "cover"
   const frameParam = (searchParams.get("frame") || defaultFrame).toLowerCase() as V0FrameKey
+  const mobileSurface = useMobileSurface(isAuthenticated ?? false)
 
   React.useEffect(() => {
-    if (
-      isAuthenticated &&
-      !searchParams.get("frame") &&
-      !searchParams.get("board")
-    ) {
+    if (!isAuthenticated) return
+
+    const board = searchParams.get("board")
+    const frame = searchParams.get("frame")
+    const surfaceDesktop = searchParams.get("surface") === "desktop"
+    const adminWorkspaceBoards = new Set<WorkspaceBoardId>(["ide", "agent", "designer"])
+
+    // Pocket companion: authenticated mobile users always land on the domain board
+    // unless they explicitly chose another workspace or forced desktop surface.
+    if (mobileSurface === "mobile" && !surfaceDesktop) {
+      if (board && adminWorkspaceBoards.has(board as WorkspaceBoardId)) return
+      if (board !== "domain") {
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev)
+            next.set("board", "domain")
+            return next
+          },
+          { replace: true },
+        )
+      }
+      return
+    }
+
+    if (!frame && !board) {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev)
@@ -107,7 +128,7 @@ export function V0Shell() {
         { replace: true },
       )
     }
-  }, [isAuthenticated, searchParams, setSearchParams])
+  }, [isAuthenticated, mobileSurface, searchParams, setSearchParams])
 
   // Stale ?definition= on non-Design workspaces — use authoritative search.
   React.useEffect(() => {
@@ -183,7 +204,6 @@ export function V0Shell() {
   const buildTime = (import.meta as any).env?.VITE_BUILD_TIME ?? "unknown"
   const debugHudFlag = String((import.meta as any).env?.VITE_SHOW_DEBUG_HUD ?? "").toLowerCase()
   const showDebugHud = debugHudFlag === "1" || debugHudFlag === "true"
-  const mobileSurface = useMobileSurface(isAuthenticated ?? false)
 
   const [kipHandoffNotice, setKipHandoffNotice] = React.useState(false)
 

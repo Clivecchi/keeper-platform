@@ -172,16 +172,16 @@ export function KipScreen() {
   }, [domainFrame, domainName, journeyCount, momentCount, kipFocusMomentId, focusMomentTitle]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col px-2 pb-2 pt-1">
+    <div className="mobile-kip-screen">
       {kipFocusMomentId ? (
-        <div className="mb-2 flex items-center justify-between px-2">
-          <p className="text-xs" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
+        <div className="mobile-kip-focus-bar">
+          <p className="truncate text-xs" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
             Focused on {focusMomentTitle ?? "this moment"}
           </p>
           <button
             type="button"
             onClick={clearKipFocus}
-            className="text-xs underline"
+            className="shrink-0 text-xs underline"
             style={{ color: "hsl(var(--theme-ink-secondary))" }}
           >
             Clear focus
@@ -189,9 +189,7 @@ export function KipScreen() {
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border"
-        style={{ borderColor: "hsl(var(--theme-border-soft) / 0.4)" }}
-      >
+      <div className="mobile-kip-dialog">
         <KeeperDialogFrame
           bannerContext={bannerContext}
           messages={messages}
