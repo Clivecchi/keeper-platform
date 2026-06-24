@@ -23,6 +23,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - `AgentComposer` owns the dialogue input: agent name + mode selector (Domain/Debug), config dropdown (model/lens + Open Cockpit link), textarea, file attach (text files), submit. Receives `onFileAttach`, `onModeChange` (via `useAgentPostureData.setDialogueMode`), `feedbackSlot` for errors/hints.
 - `DialogueMessageList` renders `AgentDialogueMessage[]` with role-based styling (user messages right-aligned, agent messages left-aligned). Supports `LinkedCard` inline rendering and `ActionReceiptCard` for draft/entity creation receipts.
 - Dialogue errors route through `getAgentErrorPresentation()` so provider overloads and configuration issues receive informational headings instead of generic failure copy.
+- Unsupported action receipts (`NOT_ALLOWED`) are filtered from the visible transcript because the server logs/skips them; they should not appear as user-facing failures.
 - `SessionCard` displays `AgentConversationSession` from the `useAgentSessions` hook. Supports edit callbacks and active highlighting.
 - `CockpitPanel` reads `FrameContext` for keeper/journey selection to determine capability indicators (SOLE, journey tracking, etc.). When `allowedActions` is provided (e.g. from AgentBoardFrame), it displays the actual action list (draft.create, moment.create, sole.save, etc.); otherwise falls back to hardcoded capability labels. Option B: fetches keeper-scoped SOLE when `activeKeeperId` is set, domain anchor SOLE when only `domainId` is set.
 - `AgentContextBar` is a pure presentational component with no data fetching.
@@ -32,6 +33,7 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 
 ## Update Log
 - 2026-06-23: Added shared agent error presentation helper and updated `DialogueMessageList` to title Kip failures by category (overload, quota, timeout, provider key, invalid model) instead of generic "Something went wrong".
+- 2026-06-24: Filtered unsupported `NOT_ALLOWED` action receipts from `DialogueMessageList` so invented/unsupported coordination actions do not render as red failure cards.
 - 2026-02-28: Added SessionBannerCard — unified session banner for dialogue workspace. Combines session title (editable inline), session ID, Journey/Keeper/SOLE/Session/Model context row, and Change model button. Replaces separate WorkspaceHeader + AgentContextBar in AgentBoardFrame dialogue view.
 - 2026-02-26: CockpitPanel: Dynamic model loading from GET /api/kip/models?provider=X. Fetches from provider API (OpenAI, Anthropic) server-side; loading state; fallback to minimal hardcoded list on fetch failure. Keeps current model selectable when not in fetched list.
 - 2026-02-19: CockpitPanel: Added "Change model" button and modal. Fetches model catalog from GET /api/kip/models. onAgentUpdated callback refreshes parent agent state.

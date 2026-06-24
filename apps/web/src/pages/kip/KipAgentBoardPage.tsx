@@ -147,14 +147,30 @@ interface AgentDialogueMessage {
   linkedCard?: LinkedCardProps;
   actionResults?: Array<{
     type: string;
-    ok: boolean;
+    ok?: boolean;
+    status?: 'success' | 'error' | 'skipped';
+    message?: string;
+    errorCode?: string;
     result?: {
       draft?: { id: string; title: string; kind: string; key: string };
       links?: { open: string };
+      entityIds?: string[];
+      message?: string;
       [key: string]: unknown;
     };
     error?: { code?: string; message: string; details?: any };
+    data?: {
+      entityIds?: string[];
+      draft?: { id: string; title: string; kind: string; key: string };
+      links?: { open?: string; edit?: string };
+      [key: string]: unknown;
+    };
   }>;
+}
+
+function isVisibleLegacyActionResult(actionResult: NonNullable<AgentDialogueMessage['actionResults']>[number]): boolean {
+  return !(actionResult.status === 'skipped' && actionResult.errorCode === 'NOT_ALLOWED') &&
+    !(actionResult.status === 'error' && actionResult.errorCode === 'NOT_ALLOWED');
 }
 
 
@@ -2177,9 +2193,9 @@ const DialogueMessageList: React.FC<{
                 <LinkedCard {...message.linkedCard} variant="inline" />
               </div>
             )}
-            {message.actionResults && message.actionResults.length > 0 && (
+            {message.actionResults && message.actionResults.filter(isVisibleLegacyActionResult).length > 0 && (
               <div className="mt-3 space-y-2">
-                {message.actionResults.map((actionResult, idx) => {
+                {message.actionResults.filter(isVisibleLegacyActionResult).map((actionResult, idx) => {
                   const receipt = normalizeActionReceipt(actionResult);
                   return (
                     <ActionReceiptCard
