@@ -53,6 +53,7 @@ import kipPlatformKeysRouter from './api/kip/platform-keys.js';
 import kipLensesRouter from './api/kip/lenses.js';
 import kipModeConfigRouter from './api/kip/mode-config.js';
 import kipModelsRouter from './api/kip/models.js';
+import { getKipAgentBySlugEnsured } from './services/kip/ensureKnownLeadAgent.js';
 import { getUserKeys, setUserKey, deleteUserKey, getUserProviders } from './api/kip/user-keys.js';
 import companionRouter from './api/kip/companion.js';
 import sessionHandoffKeysRouter from './api/kip/session-handoff-keys.js';
@@ -1183,9 +1184,7 @@ app.get('/api/kip/agents', async (req: Request, res: Response, next: NextFunctio
     return next();
   }
   try {
-    const agent = await prisma.kip_agents.findUnique({
-      where: { slug: slug.trim() },
-    });
+    const agent = await getKipAgentBySlugEnsured(slug.trim());
     if (!agent || agent.visibility !== 'public' || agent.role !== 'Lead') {
       return res.status(404).json({ success: false, error: 'Agent not found' });
     }

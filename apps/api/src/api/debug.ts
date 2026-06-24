@@ -729,12 +729,38 @@ router.post('/fix-database', async (req, res) => {
         }
       }
     } else {
-      if (fixes && typeof fixes === 'object' && 'actions' in fixes && Array.isArray((fixes as any).actions)) {
+      if (kipAgent.role !== 'Lead' || kipAgent.visibility !== 'public') {
+        try {
+          const repairedKipAgent = await prisma.kip_agents.update({
+            where: { slug: 'kip' },
+            data: {
+              role: 'Lead',
+              visibility: 'public',
+              updated_at: new Date(),
+            },
+          });
+          if (fixes && typeof fixes === 'object' && 'actions' in fixes && Array.isArray((fixes as any).actions)) {
+            (fixes as any).actions.push({
+              action: 'repaired_kip_agent',
+              success: true,
+              agent_id: repairedKipAgent.id,
+              message: 'Updated existing Kip agent to Lead + public visibility',
+            });
+          }
+        } catch (error) {
+          if (fixes && typeof fixes === 'object' && 'errors' in fixes && Array.isArray((fixes as any).errors)) {
+            (fixes as any).errors.push({
+              action: 'repair_kip_agent',
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
+          }
+        }
+      } else if (fixes && typeof fixes === 'object' && 'actions' in fixes && Array.isArray((fixes as any).actions)) {
         (fixes as any).actions.push({
           action: 'kip_agent_exists',
           success: true,
           agent_id: kipAgent.id,
-          message: 'Kip agent already exists'
+          message: 'Kip agent already exists',
         });
       }
     }
@@ -792,12 +818,38 @@ router.post('/fix-database', async (req, res) => {
         }
       }
     } else {
-      if (fixes && typeof fixes === 'object' && 'actions' in fixes && Array.isArray((fixes as any).actions)) {
+      if (ceoxAgent.role !== 'Lead' || ceoxAgent.visibility !== 'public') {
+        try {
+          const repairedCeoxAgent = await prisma.kip_agents.update({
+            where: { slug: 'ceox' },
+            data: {
+              role: 'Lead',
+              visibility: 'public',
+              updated_at: new Date(),
+            },
+          });
+          if (fixes && typeof fixes === 'object' && 'actions' in fixes && Array.isArray((fixes as any).actions)) {
+            (fixes as any).actions.push({
+              action: 'repaired_ceox_agent',
+              success: true,
+              agent_id: repairedCeoxAgent.id,
+              message: 'Updated existing CeoX agent to Lead + public visibility',
+            });
+          }
+        } catch (error) {
+          if (fixes && typeof fixes === 'object' && 'errors' in fixes && Array.isArray((fixes as any).errors)) {
+            (fixes as any).errors.push({
+              action: 'repair_ceox_agent',
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
+          }
+        }
+      } else if (fixes && typeof fixes === 'object' && 'actions' in fixes && Array.isArray((fixes as any).actions)) {
         (fixes as any).actions.push({
           action: 'ceox_agent_exists',
           success: true,
           agent_id: ceoxAgent.id,
-          message: 'CeoX agent already exists'
+          message: 'CeoX agent already exists',
         });
       }
     }

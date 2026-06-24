@@ -100,6 +100,7 @@ type AgentErrorCode =
   | 'MISSING_API_KEY'
   | 'INVALID_MODEL'
   | 'PROVIDER_UNAVAILABLE'
+  | 'TIMEOUT'
   | 'QUOTA_EXCEEDED'
   | 'AGENT_MISCONFIGURED'
   | 'UNKNOWN';
@@ -881,15 +882,15 @@ export async function executeAgentActions(
         }
 
         if (!ctx.allowlist.has(action.type)) {
-          const reason = 'Action not allowed by policy';
+          const reason = `Kip skipped unsupported action "${action.type}". The board can only run actions listed in the current action pack.`;
           logger.warn({
             requestId,
             actionType: action.type,
             reason,
-          }, '[kip.actions] rejected');
+          }, '[kip.actions] skipped: not allowed');
           results.push({ 
             type: action.type,
-            status: 'error', 
+            status: 'skipped', 
             message: reason, 
             errorCode: 'NOT_ALLOWED',
           });
@@ -2269,7 +2270,7 @@ export async function executeAgentActions(
                 errorCode: 'UNHANDLED_ACTION',
               });
             } else {
-              const skipReason = 'Action not allowed by policy';
+              const skipReason = `Kip skipped unsupported action "${action.type}". The board can only run actions listed in the current action pack.`;
               logger.warn({
                 requestId,
                 actionType: action.type,
@@ -2342,6 +2343,11 @@ const getKipAgentBySlug = async (slug: string) => {
   return prisma.kip_agents.findUnique({
     where: { slug }
   });
+};
+
+const getKipAgentBySlugForLoad = async (slug: string) => {
+  const { getKipAgentBySlugEnsured } = await import('../../services/kip/ensureKnownLeadAgent.js');
+  return getKipAgentBySlugEnsured(slug);
 };
 
 const createKipAgent = async (data: AgentInput) => {
@@ -3194,15 +3200,17 @@ export class KipAgentService {
           'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","actions":[...]}',
           `Allowed actions: ${allowList.join(', ')}.`,
           'Each action must include a "type" and optional "payload".',
+          'Never invent action types. If the user asks you to coordinate with Cloud, inspect repositories, call external services, or perform work outside Allowed actions, explain the limitation in "response" and return no actions.',
+          'If the user says read-only, no changes, do not make changes, or do not attempt changes, return text only and do not create or update drafts.',
           'Do not state that drafts were saved unless you return a draft.create or draft.update action.',
           'Avoid repeating the same confirmation or summary multiple times. Each response should add new information or complete a distinct action.',
           '',
           'SOLE vs DRAFTS — use the right tool:',
           '- sole.save: for insights, learnings, corrections, capability clarifications. High bar: "Will this matter in 30 days?"',
-          '- draft.create/update: for documents, specs, proposals. Use when user explicitly asks OR uses planning phrases (plan, outline, spec, design, architecture, "let\'s think this through").',
+          '- draft.create/update: for durable documents, specs, and proposals only when the user explicitly asks to create, save, update, or work in a draft/document. Do not create drafts for read-only inspection, coordination, GitHub lookup, Cloud handoff, or "pull data" requests.',
           '',
           'DRAFT BEHAVIOR — when to act vs respond (per Domain Contract):',
-          '- MUST call draft.create when user requests planning, outlining, designing, spec creation, architecture, or says: plan, outline, spec, design, architecture, "let\'s think this through". Work iteratively inside the draft; finalize only when user signals completion.',
+          '- Call draft.create only when the user explicitly asks for a draft/document/spec/proposal to be created or saved. If the user asks for planning, outlining, design, architecture, or "let\'s think this through" without asking to save/create a draft, respond in text first and ask whether they want a draft.',
           '- When the user asks "what can you do?", "tell me your capabilities", or "how can you help" — give a substantive narrative. If they ask to "show" or "demonstrate" (e.g. "show me with action cards"), use sole.save to record key capabilities and present action cards. Never give a minimal response when the user wants a full explanation.',
           '- When the user wants to work on an EXISTING draft, use draft.update or draft.setActive. Never create a duplicate.',
           '- Check draftsDirectory in the environment. If a draft with the same or similar title already exists, use draft.update (with id) or draft.setActive — do NOT create another.',
@@ -3228,7 +3236,7 @@ export class KipAgentService {
           'draft.create may include spec.points (array of point objects) for initial content, or omit spec and add content later via draft.update.propose. Do not use spec.sections — points are canonical.',
           'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"points":[]}}}]}',
           draftRules?.autoDraft?.enabled
-            ? `If autoDraft thresholds are met (points >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.`
+            ? `If autoDraft thresholds are met (points >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) and the user has not asked for read-only/no-change behavior, ask whether they want this saved as a draft unless they explicitly requested a new draft.`
             : 'If the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.',
         ]
           .filter(Boolean)
@@ -3600,6 +3608,8 @@ export class KipAgentService {
             'Structured response required: reply with raw JSON only (no markdown or code fences). Your entire response MUST be a single JSON object with "type": "agent_output", "response" (string), and optional "actions" (array). Example envelope: {"type":"agent_output","response":"Your message here.","actions":[...]}',
             `Allowed actions: ${allowList.join(', ')}.`,
             'Each action must include a "type" and optional "payload".',
+            'Never invent action types. If the user asks you to coordinate with Cloud, inspect repositories, call external services, or perform work outside Allowed actions, explain the limitation in "response" and return no actions.',
+            'If the user says read-only, no changes, do not make changes, or do not attempt changes, return text only and do not create or update drafts.',
             ...(suppressKipPromptForActions
               ? [
                   mcpToolPrompt,
@@ -3611,10 +3621,10 @@ export class KipAgentService {
             '',
             'SOLE vs DRAFTS — use the right tool:',
             '- sole.save: for insights, learnings, corrections, capability clarifications, anything you want to remember. Use it when the user corrects you or you learn something important. High bar: "Will this matter in 30 days?"',
-            '- draft.create/update: for documents, specs, proposals (journey specs, keeper proposals, checklists). Use when the user explicitly asks OR when they use planning phrases (plan, outline, spec, design, architecture, "let\'s think this through").',
+          '- draft.create/update: for durable documents, specs, and proposals only when the user explicitly asks to create, save, update, or work in a draft/document. Do not create drafts for read-only inspection, coordination, GitHub lookup, Cloud handoff, or "pull data" requests.',
             '',
             'DRAFT BEHAVIOR — when to act vs respond (per Domain Contract):',
-            '- MUST call draft.create when the user requests planning, outlining, designing, spec creation, architecture, or says: plan, outline, spec, design, architecture, "let\'s think this through". Work iteratively inside the draft; finalize only when user signals completion.',
+          '- Call draft.create only when the user explicitly asks for a draft/document/spec/proposal to be created or saved. If the user asks for planning, outlining, design, architecture, or "let\'s think this through" without asking to save/create a draft, respond in text first and ask whether they want a draft.',
             '- When the user asks "what can you do?", "tell me your capabilities", or "how can you help" — give a substantive narrative. If they ask to "show" or "demonstrate" (e.g. "show me with action cards"), use sole.save to record key capabilities and present action cards. Never give a minimal response when the user wants a full explanation.',
             '- When the user wants to work on an EXISTING draft, use draft.update or draft.setActive. Never create a duplicate.',
             '- Check draftsDirectory in the environment. If a draft with the same or similar title already exists, use draft.update (with id) or draft.setActive — do NOT create another.',
@@ -3638,7 +3648,7 @@ export class KipAgentService {
             'draft.create may include spec.points (array of point objects) for initial content, or omit spec and add content later via draft.update.propose. Do not use spec.sections — points are canonical.',
             'Example: {"response":"I\'ve created the draft.","actions":[{"type":"draft.create","payload":{"kind":"journey_spec","key":"my-draft-abc","title":"My Draft","summary":"Brief summary","spec":{"points":[]}}}]}',
             draftRules?.autoDraft?.enabled
-              ? `If autoDraft thresholds are met (points >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) or the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.`
+              ? `If autoDraft thresholds are met (points >= ${draftRules?.autoDraft?.thresholds?.minSections ?? 0}, chars >= ${draftRules?.autoDraft?.thresholds?.minChars ?? 0}) and the user has not asked for read-only/no-change behavior, ask whether they want this saved as a draft unless they explicitly requested a new draft.`
               : 'If the user explicitly asks for a new draft, include draft.create (or draft.update) with a short confirmation message.',
             mcpToolPrompt,
               ]),
@@ -3848,11 +3858,7 @@ export class KipAgentService {
       throw new AgentExecutionError(
         mappedCode,
         response.error || 'AI model call failed',
-        {
-          provider: modelProvider,
-          model: modelSettings.model,
-          retries: response.retries_used
-        }
+        buildProviderAgentErrorDetails(modelProvider, modelSettings.model, response)
       );
     } catch (error) {
       console.error('Error calling AI model:', error);
@@ -4267,12 +4273,21 @@ export class KipAgentService {
               requestId,
               skipActionTypes: options?.skipActionTypes,
             });
-            actionResults = execution.results;
+            actionResults = execution.results.filter((result) => {
+              const skippedUnsupportedAction =
+                result.status === 'skipped' &&
+                result.errorCode === 'NOT_ALLOWED';
+              return !skippedUnsupportedAction;
+            });
 
-            if (execution.failedMessage) {
+            const failedDraftAction = execution.results.find((result) =>
+              result.status === 'error' && result.type.startsWith('draft.')
+            );
+            if (failedDraftAction) {
+              const failureMessage = failedDraftAction.message || 'Unknown draft error';
               finalResponseText = structured.responseText
-                ? `${structured.responseText} I attempted to create a draft but saving failed: ${execution.failedMessage}`
-                : `I attempted to create a draft but saving failed: ${execution.failedMessage}`;
+                ? `${structured.responseText} I attempted to update a draft, but the draft action failed: ${failureMessage}`
+                : `I attempted to update a draft, but the draft action failed: ${failureMessage}`;
             }
 
             // Post-exec governance: append failure template if required action failed
@@ -4783,10 +4798,43 @@ function mapProviderCodeToAgentCode(code?: ModelProviderErrorCode): AgentErrorCo
       return 'INVALID_MODEL';
     case 'QUOTA_EXCEEDED':
       return 'QUOTA_EXCEEDED';
+    case 'TIMEOUT':
+      return 'TIMEOUT';
     case 'PROVIDER_UNAVAILABLE':
     default:
       return 'PROVIDER_UNAVAILABLE';
   }
+}
+
+function buildProviderAgentErrorDetails(
+  provider: ModelProvider,
+  model: string,
+  response: {
+    retries_used?: number;
+    retryable?: boolean;
+    providerStatus?: number;
+    errorCode?: ModelProviderErrorCode;
+  }
+): Record<string, unknown> {
+  const code = mapProviderCodeToAgentCode(response.errorCode);
+  const suggestedActionByCode: Record<AgentErrorCode, string> = {
+    MISSING_API_KEY: 'Add or rotate the provider API key, then retry Kip.',
+    INVALID_MODEL: 'Choose a supported model for Kip in Cockpit, then retry.',
+    PROVIDER_UNAVAILABLE: 'Retry shortly; if the provider remains unavailable, switch Kip to another model in Cockpit.',
+    TIMEOUT: 'Retry shortly; if timeouts continue, switch Kip to a faster model or reduce context.',
+    QUOTA_EXCEEDED: 'Add provider credits or switch Kip to a funded provider key.',
+    AGENT_MISCONFIGURED: 'Check the Kip agent configuration.',
+    UNKNOWN: 'Check server logs and retry.',
+  };
+
+  return {
+    provider,
+    model,
+    retries: response.retries_used ?? 0,
+    retryable: response.retryable ?? (code === 'PROVIDER_UNAVAILABLE' || code === 'TIMEOUT'),
+    providerStatus: response.providerStatus,
+    suggestedAction: suggestedActionByCode[code],
+  };
 }
 
 function resolveAgentErrorCode(error: unknown): AgentErrorCode {
@@ -5126,7 +5174,7 @@ export default async function handler(req: DomainResolvedRequest, res: Response)
           if (typeof slug !== 'string') {
             return respond(400, { success: false, error: 'Invalid agent slug' });
           }
-          const agent = await getKipAgentBySlug(slug);
+          const agent = await getKipAgentBySlugForLoad(slug);
           if (!agent) {
             return respond(404, { success: false, error: 'Agent not found' });
           }

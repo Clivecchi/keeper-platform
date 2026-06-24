@@ -1,30 +1,32 @@
-# kip services
+# Kip Services
 
 ## 📌 Purpose
-KIP-related service helpers and mock data sources.
+Shared server-side helpers for Kip agent runtime — environment resolution, dialog lifecycle, and draft persistence glue.
 
 ## 🧱 Key Files
-- `mockAgents.ts`
-- `modeConfig.ts`
-- `buildKipEnvironmentContext.ts`
-- `resolveAgentEnvironment.ts`
+- `buildKipEnvironmentContext.ts` — Session-bound environment payload for agent runs
+- `resolveAgentEnvironment.ts` — Per-agent capability and policy resolution
+- `linkDraftToSessionDialog.ts` — Sets `kip_drafts.dialog_id` from the active session's Dialog (first link wins)
+- `actionFollowUp.ts` — Second model turn after read-only actions (`draft.read`, etc.) so Kip answers with live results
+- `ensureKnownLeadAgent.ts` — Self-heals canonical Lead agents (`kip`, `ceox`) on slug lookup
+- `modeConfig.ts` — Kip mode configuration helpers
+- `mockAgents.ts` — DB-disabled development agents
 
 ## 🔄 Data & Behavior
-- Provides `MOCK_AGENTS` for `/api/kip/agents` mock fallback.
-- `modeConfig` resolves per-agent Domain/Debug configs and lens defaults (Domain Lens / Debug Investigator Lens) plus persistence in `kip_agents.config`.
-- `buildKipEnvironmentContext` builds a read-only environment bundle (domain, actor roles, UI focus, registries, capabilities) for Kip requests, now including `policy` and a capped `draftsDirectory` for the owner.
-- `resolveAgentEnvironment` uses KAM to produce env-v1 bundles for `/api/kip/agents` runs without writes, including domain slug/name, agent identity, per-run debug canary UUID, policy, and drafts directory (last 25 owner drafts).
+- Draft mutations during agent runs call `ensureDraftLinkedToSessionDialog` so Chronicle Sessions blocks can load linked Dialog sessions.
+- Linking is idempotent: existing `dialog_id` on a draft is never overwritten.
+- `getKipAgentBySlugEnsured` repairs drifted `role` / `visibility` for canonical Lead slugs before agent metadata is returned.
 
 ## ⚠️ Notes & ToDo
-- [ ] Expand mock set as needed
-- [ ] Behavior to confirm with Kip
+- [ ] Consolidate dialog find/create helpers with `kipDialogLifecycle.ts` if duplication grows
 
 ## 📆 Update Log
-- 2026-02-15: buildKipEnvironmentContext and resolveAgentEnvironment now include domainIndex (keepers + journeys) for agent prompt injection.
-- 2025-12-17: Kip environment builders now attach domain policy (with default policy-v1 fallback) and a capped drafts directory for the authenticated owner so agent runs can enforce policy-aware draft actions.
-- 2025-12-16: Environment builders now accept `sessionId` and surface session-owned `activeDraft` summaries (domain-filtered) so KAM bundles and agent runs carry the active draft pointer safely.
-- 2025-12-17: `resolveAgentEnvironment` now surfaces domain slug/name, agent identity fields, and emits a per-run debug canary UUID.
-- 2025-12-16: Added `resolveAgentEnvironment` to return KAM-resolved env-v1 contexts for Kip runs and keep `/api/kip/agents` executions environment-aware.
-- 2025-12-15: Added `buildKipEnvironmentContext` to return stable, read-only environment bundles for Kip domain flows and agent execution.
-- 2025-12-14: Added `modeConfig` helpers to normalize and persist agent mode configs + lens defaults.
-- 2025-08-31: Added mock agents list.
+
+### 2026-06-24 — Lead agent self-heal
+- Added `ensureKnownLeadAgent.ts` — repairs canonical Lead slugs when DB records drift from `role=Lead` and `visibility=public`.
+
+### 2026-06-22 — Auto-link draft to session Dialog
+- Added `ensureDraftLinkedToSessionDialog` — invoked from Kip draft actions, draft intent pipeline, and `POST .../active-draft`.
+
+### 2026-06-22 — Read-action follow-up synthesis (Lead agents)
+- Added `actionFollowUp.ts` — when a turn is read-only (`draft.read`, `journey.read`, etc.), the server runs a second model call with action results so Kip completes the engagement instead of stopping at "Reading the draft now."

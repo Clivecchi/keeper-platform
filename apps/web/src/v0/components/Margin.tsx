@@ -291,8 +291,9 @@ export function Margin() {
 
   const handleSignIn = () => {
     const params = buildPreservedParams(searchParams)
-    params.set("frame", "agent")
-    const nextPath = `/d/${v0Shell.domainSlug}/board?${params.toString()}`
+    params.delete("frame")
+    params.set("board", "domain")
+    const nextPath = `/d/${v0Shell.domainSlug}?${params.toString()}`
     navigate(`/login?next=${encodeURIComponent(nextPath)}`)
   }
 

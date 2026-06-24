@@ -10,12 +10,19 @@ import { getAuthToken } from './authTokenStore';
 
 type FetchOptions = RequestInit & { headers?: Record<string, string> };
 
+type ApiErrorPayload = {
+  message?: string;
+  error?: string | { message?: string; code?: string; type?: string };
+  code?: string;
+  requestId?: string;
+  request_id?: string;
+};
+
 /** Resolve API base: use relative /api when on ke3p.com (Vercel rewrites to Railway); else env or fallback. Exported for api.ts. */
 export function getApiBase(): string {
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
     if (host === 'www.ke3p.com' || host === 'ke3p.com') return ''; // Same-origin: /api → Vercel rewrite
-    if (host === 'localhost' || host === '127.0.0.1') return ''; // Dev: /api → Vite proxy → localhost:3002
   }
   const env = (import.meta as any)?.env?.VITE_API_URL;
   return (env || 'https://api.ke3p.com').replace(/\/$/, '');
@@ -54,53 +61,49 @@ export async function apiFetch(input: string | URL, opts: FetchOptions = {}) {
   };
 
   const response = await fetch(url, nextInit);
-
+  
+  // Parse JSON response
   if (!response.ok) {
-    const raw = await response.text();
-    let errorData: Record<string, unknown> | null = null;
-    if (raw) {
-      try {
-        errorData = JSON.parse(raw) as Record<string, unknown>;
-      } catch {
-        errorData = null;
-      }
+    let errorData: ApiErrorPayload | null = null;
+    try {
+      errorData = await response.json();
+    } catch {
+      errorData = null;
     }
 
-    const fromBody =
-      typeof errorData?.message === 'string'
-        ? errorData.message
-        : typeof errorData?.error === 'string'
-          ? errorData.error
-          : null;
-    const errorMessage = fromBody ?? `HTTP ${response.status}: ${response.statusText}`;
-
-    const error = new Error(errorMessage) as Error & {
-      status: number;
-      response: Response;
-      code?: string;
-      data?: Record<string, unknown>;
-    };
-    error.status = response.status;
-    error.response = response;
-    if (typeof errorData?.error === 'string') {
-      error.code = errorData.error;
-    }
-    if (errorData) {
-      error.data = errorData;
+    const errorMessage = pickApiErrorMessage(errorData, response);
+    const error: any = new Error(errorMessage);
+    error.status = response.status; // Attach status for handleAuthError
+    error.response = response; // Attach response for additional context
+    error.data = errorData;
+    error.requestId = errorData?.requestId || errorData?.request_id || response.headers.get('x-request-id') || undefined;
+    const errorCode = typeof errorData?.error === 'object'
+      ? errorData.error.code || errorData.error.type
+      : errorData?.code || (typeof errorData?.error === 'string' ? errorData.error : undefined);
+    if (errorCode) {
+      error.code = errorCode;
     }
     throw error;
   }
   
-  const raw = await response.text();
-  if (!raw.trim()) {
-    throw new Error('Server returned an empty response. Please try again.');
+  // For successful responses, return parsed JSON
+  return response.json();
+}
+
+function pickApiErrorMessage(errorData: ApiErrorPayload | null, response: Response): string {
+  if (typeof errorData?.message === 'string' && errorData.message.trim()) {
+    return errorData.message;
   }
 
-  try {
-    return JSON.parse(raw);
-  } catch {
-    throw new Error('Server returned an invalid response. Please try again.');
+  if (typeof errorData?.error === 'string' && errorData.error.trim()) {
+    return errorData.error;
   }
+
+  if (typeof errorData?.error === 'object' && typeof errorData.error.message === 'string' && errorData.error.message.trim()) {
+    return errorData.error.message;
+  }
+
+  return `HTTP ${response.status}: ${response.statusText || 'Request failed'}`;
 }
 
 // Log API base in development
