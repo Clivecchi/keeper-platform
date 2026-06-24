@@ -32,7 +32,8 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - [ ] Consider extracting the debug drawer and mode config components if the new Agent Board needs debug mode
 
 ## Update Log
-<<<<<<< HEAD
+- 2026-06-24: Filtered unsupported `NOT_ALLOWED` action receipts from `DialogueMessageList` so invented/unsupported coordination actions do not render as red failure cards.
+- 2026-06-24: Added shared agent error presentation helper; `DialogueMessageList` titles Kip failures by category (overload, quota, timeout, provider key, invalid model) instead of generic "Something went wrong".
 - 2026-06-18: `DialogueMessageList` — hides director delegation beats when content is internal failure copy ("did not respond this turn").
 - 2026-06-17: Clip upload returns Library URL; staged attachments show in Dialog Thinking Space until send (still added to Library + Nav on pick). PDFs attach as `file` type to agent API.
 - 2026-06-17: Composer clip uploads to domain Library (`onLibraryFileUpload`) — same as Library nav +; no longer inlines `.md`/text into the message box.
@@ -41,11 +42,6 @@ Shared presentational components for the agent/Kip interface. Extracted from the
 - 2026-05-26 (Agent Board Phase 4 — agent echo): `types.ts` — added `DialogResponseEcho` and optional `echo` on `AgentDialogueMessage`. `DialogueMessageList.tsx` — renders agent echo as subordinate beat beneath agent message (attributed name, smaller type, no avatar). Primary agent bubble rendering unchanged.
 - 2026-05-02 (Sprint Item 5 — Kip System Prompt / keeper-card): Created `KipResponseCard.tsx` — structured card component for Kip's operational responses. Props: `type`, `title`, `body`, `meta`, `items`. Type "status" suppresses label; "error" shows warm-red label; "summary"/"info" show small-caps label. Uses Cormorant Garamond for title. `DialogueMessageList.tsx` updated: added `parseContentSegments()` helper that splits message content on `\`\`\`keeper-card` fences; valid JSON with `type`+`title` fields renders `KipResponseCard`; invalid JSON or missing fields falls back to standard ReactMarkdown code block. `MD_COMPONENTS` extracted to module constant; `AgentMessageContent` sub-component replaces inline ReactMarkdown call. `packages/database/prisma/seeds/lenses.seed.ts` Domain Lens system prompt extended with keeper-card format instructions — append only, nothing removed. Re-seed required to propagate to live DB.
 - 2026-04-25: AgentComposer: Added image vision unavailability banner — when an image attachment is pending, a yellow notice appears ("Kip can't currently see attached images — describe what you're seeing for best results."). DialogueMessageList: Added `onOpenJourney` prop; wired to ActionReceiptCard so tapping a Journey receipt card loads it in the right panel. IDEBoardConversation now passes `onOpenJourney` → `onKipContextSync({ type: "journey", id })`.
-
-=======
-- 2026-06-23: Added shared agent error presentation helper and updated `DialogueMessageList` to title Kip failures by category (overload, quota, timeout, provider key, invalid model) instead of generic "Something went wrong".
-- 2026-06-24: Filtered unsupported `NOT_ALLOWED` action receipts from `DialogueMessageList` so invented/unsupported coordination actions do not render as red failure cards.
->>>>>>> c324ab9c (Hide unsupported Kip action receipts)
 - 2026-02-28: Added SessionBannerCard — unified session banner for dialogue workspace. Combines session title (editable inline), session ID, Journey/Keeper/SOLE/Session/Model context row, and Change model button. Replaces separate WorkspaceHeader + AgentContextBar in AgentBoardFrame dialogue view.
 - 2026-02-26: CockpitPanel: Dynamic model loading from GET /api/kip/models?provider=X. Fetches from provider API (OpenAI, Anthropic) server-side; loading state; fallback to minimal hardcoded list on fetch failure. Keeps current model selectable when not in fetched list.
 - 2026-02-19: CockpitPanel: Added "Change model" button and modal. Fetches model catalog from GET /api/kip/models. onAgentUpdated callback refreshes parent agent state.

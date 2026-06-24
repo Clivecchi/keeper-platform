@@ -4,21 +4,20 @@
  */
 
 const DRAFT_TRIGGER_PATTERNS = [
-  'plan',
-  'planning',
-  'outline',
-  'outlining',
-  'spec',
-  'specs',
-  'specification',
-  'design',
-  'designing',
-  'structure',
-  'break down',
-  'approach',
-  'walk me through',
-  "let's think this through",
-  'think this through',
+  'create a draft',
+  'save as draft',
+  'draft this',
+  'new draft',
+  'make a draft',
+  'write a draft',
+  'work in a draft',
+  'create a document',
+  'save this document',
+  'create a spec',
+  'write a spec',
+  'save this spec',
+  'create a proposal',
+  'write a proposal',
 ];
 
 const DRAFT_BLOCKLIST = [
@@ -72,7 +71,7 @@ export function detectDraftTrigger(userInput: string): DraftTriggerResult {
     }
   }
 
-  // Trigger patterns: substring match
+  // Trigger patterns: explicit durable artifact intent only.
   for (const pattern of DRAFT_TRIGGER_PATTERNS) {
     if (normalized.includes(pattern)) {
       return { triggered: true, bypassed: false };
