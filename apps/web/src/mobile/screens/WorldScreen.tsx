@@ -59,7 +59,7 @@ export function WorldScreen() {
     return (
       <div className="px-4 py-8">
         <p className="text-sm" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-          Nothing kept yet. When something matters, tap Keep and bring it here.
+          Nothing kept yet. When something matters, open Moment and capture it here.
         </p>
       </div>
     );

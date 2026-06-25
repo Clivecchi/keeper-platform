@@ -47,6 +47,15 @@
   min-height: 0;
 }
 
+/* Horizon gradient — only while Kip is thinking (mobile staged dialog) */
+.universal-mobile-shell [data-dialog-layout="mobile-staged"] .dialog-horizon-band {
+  display: none;
+}
+
+.universal-mobile-shell [data-dialog-layout="mobile-staged"][data-mobile-dialog-stage="thinking"] .dialog-horizon-band {
+  display: block;
+}
+
 .universal-mobile-shell .dialog-bottom-zone {
   flex-shrink: 0;
   padding-bottom: max(0px, env(safe-area-inset-bottom));
@@ -168,8 +177,8 @@
   display: none;
 }
 
-.universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-fade-overlay {
-  opacity: 0.35;
+.universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-horizon-band {
+  display: none;
 }
 
 .universal-mobile-shell [data-mobile-dialog-stage="response"] .dialog-bottom-zone {

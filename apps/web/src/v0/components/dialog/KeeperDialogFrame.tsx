@@ -669,6 +669,7 @@ export function KeeperDialogFrame({
             isSending={isSending || isFileUploading}
             activeSessionId={activeSessionId}
             disabled={disabled}
+            submitOnEnter={!isMobileStaged}
             onInputFocusChange={onComposerFocusChange}
             composerSize={mobileComposerSize}
           />

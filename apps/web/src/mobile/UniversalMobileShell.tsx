@@ -33,9 +33,9 @@ const TAB_COPY: Record<MobileTabId, { title: string; subtitle?: string }> = {
     title: "Your kept moments",
     subtitle: "What you have chosen to keep.",
   },
-  keep: {
-    title: "Keep a moment",
-    subtitle: "Something mattered. Capture it here.",
+  moment: {
+    title: "Capture a moment",
+    subtitle: "Something mattered. Name it and keep it.",
   },
   journeys: {
     title: "Journeys",
@@ -75,7 +75,7 @@ function UniversalMobileShellBody() {
                 <WorldScreen />
               </div>
             ) : null}
-            {activeTab === "keep" ? (
+            {activeTab === "moment" ? (
               <div className="mobile-screen-scroll">
                 <KeepScreen />
               </div>

@@ -4,7 +4,7 @@ import type { MobileTabId } from "../types";
 
 const TABS: Array<{ id: MobileTabId; label: string }> = [
   { id: "world", label: "World" },
-  { id: "keep", label: "Keep" },
+  { id: "moment", label: "Moment" },
   { id: "journeys", label: "Journeys" },
   { id: "kip", label: "Kip" },
 ];

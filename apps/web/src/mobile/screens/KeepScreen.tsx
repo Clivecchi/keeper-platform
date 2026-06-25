@@ -122,7 +122,7 @@ export function KeepScreen() {
   if (loading) {
     return (
       <div className="px-4 py-6 text-sm" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-        Preparing to keep a moment…
+        Preparing to capture a moment…
       </div>
     );
   }
@@ -139,7 +139,7 @@ export function KeepScreen() {
     return (
       <div className="px-4 py-8">
         <p className="text-sm" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-          Start a journey on desktop first, then you can keep moments to it from here.
+          Start a journey on desktop first, then you can capture moments here.
         </p>
       </div>
     );
@@ -187,7 +187,7 @@ export function KeepScreen() {
         </div>
       ) : (
         <div className="text-sm" style={{ color: "hsl(var(--theme-ink-secondary))" }}>
-          Loading keep form…
+          Loading moment form…
         </div>
       )}
     </div>

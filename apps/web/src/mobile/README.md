@@ -45,6 +45,11 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 
 ## 📆 Update Log
 
+### 2026-06-22 — Mobile Kip UX polish
+- Kip composer: Enter = new line on mobile; send only via send button.
+- Horizon gradient hidden except during thinking stage.
+- Tab renamed **Keep** → **Moment** (moment capture via `moment.create`).
+
 ### 2026-06-22 — Keeper turtle app icon
 - Canonical source: `public/icons/keeper-app-icon.png` (cosmic turtle mark).
 - Generated `favicon.ico`, PWA 192/512, maskable 512, and `apple-touch-icon` via `pnpm --filter keeper-web run generate:pwa-icons`.

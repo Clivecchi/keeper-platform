@@ -80,6 +80,8 @@ export interface AgentComposerProps {
   isSending: boolean
   activeSessionId: string | null
   disabled?: boolean
+  /** When false, Enter inserts a new line; send only via the send button. Default true. */
+  submitOnEnter?: boolean
   /** Notifies parent when the composer textarea gains or loses focus. */
   onInputFocusChange?: (focused: boolean) => void
   /** Expands composer input for mobile staged layout. */
@@ -125,6 +127,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   activeSessionId,
   disabled = false,
   feedbackSlot,
+  submitOnEnter = true,
   onInputFocusChange,
   composerSize = "default",
 }) => {
@@ -225,6 +228,7 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!submitOnEnter) return
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       if (formRef.current && (inputValue.trim() || attachments.length > 0) && activeSessionId && !isSending) {
@@ -246,7 +250,9 @@ export const AgentComposer: React.FC<AgentComposerProps> = ({
   const placeholder = disabled
     ? "Preparing conversation…"
     : activeSessionId
-      ? "Share your thoughts… (Shift+Enter for new line)"
+      ? submitOnEnter
+        ? "Share your thoughts… (Shift+Enter for new line)"
+        : "Share your thoughts…"
       : "Create a session to start chatting"
 
   const canSend = (inputValue.trim() || attachments.length > 0) && activeSessionId && !isSending && !disabled

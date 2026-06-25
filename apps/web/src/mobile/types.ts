@@ -1,4 +1,4 @@
-export type MobileTabId = "world" | "keep" | "journeys" | "kip";
+export type MobileTabId = "world" | "moment" | "journeys" | "kip";
 
 export type MobileSurfaceMode = "mobile" | "desktop";
 

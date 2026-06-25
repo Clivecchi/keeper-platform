@@ -189,7 +189,7 @@ export function JourneysScreen() {
                   type="button"
                   onClick={() => {
                     setActiveJourneyId(journey.id);
-                    setActiveTab("keep");
+                    setActiveTab("moment");
                   }}
                   className="mt-3 w-full rounded-xl px-3 py-2 text-xs font-medium"
                   style={{
@@ -197,7 +197,7 @@ export function JourneysScreen() {
                     color: "hsl(var(--theme-surface-page, 40 20% 97%))",
                   }}
                 >
-                  Keep a moment here
+                  Capture a moment here
                 </button>
               </div>
             ) : null}
