@@ -33,7 +33,7 @@ export default defineConfig({
     devServerUrlPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons/keeper-mark.svg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'icons/keeper-app-icon.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Keeper',
         short_name: 'Keeper',
@@ -57,7 +57,7 @@ export default defineConfig({
             type: 'image/png',
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'pwa-512x512-maskable.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',

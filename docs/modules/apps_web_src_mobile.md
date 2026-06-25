@@ -42,9 +42,12 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 
 ## ⚠️ Notes & ToDo
 - [ ] Phase 3: offline draft queue, push notifications, app store wrappers
-- [ ] Replace placeholder keeper-mark icon with final brand asset
 
 ## 📆 Update Log
+
+### 2026-06-22 — Keeper turtle app icon
+- Canonical source: `public/icons/keeper-app-icon.png` (cosmic turtle mark).
+- Generated `favicon.ico`, PWA 192/512, maskable 512, and `apple-touch-icon` via `pnpm --filter keeper-web run generate:pwa-icons`.
 
 ### 2026-06-22 — Mobile Kip staged dialog (composing · thinking · response)
 - Kip tab uses `dialogLayout="mobile-staged"`: full-screen composing, thinking reassurance, response with compact composer.
