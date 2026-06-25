@@ -25,8 +25,8 @@ const createMomentSchema = z.object({
   title: z.string().min(1).max(200),
   narrative: z.string().min(1),
   type: z.enum(['text', 'image', 'video', 'audio', 'link', 'file']).default('text'),
-  journeyId: z.string().uuid(),
-  keeperId: z.string().uuid(),
+  journeyId: z.string().min(1),
+  keeperId: z.string().min(1),
   domainId: z.string().uuid(),
   isPublic: z.boolean().default(false),
   tags: z.array(z.string()).default([]),
@@ -57,8 +57,8 @@ const updateMomentSchema = z.object({
 const momentQuerySchema = z.object({
   search: z.string().optional(),
   domainId: z.string().uuid().optional(),
-  journeyId: z.string().uuid().optional(),
-  pathId: z.string().uuid().optional(),
+  journeyId: z.string().min(1).optional(),
+  pathId: z.string().min(1).optional(),
   limit: z.coerce.number().min(1).max(100).default(20),
   offset: z.coerce.number().min(0).default(0),
 });

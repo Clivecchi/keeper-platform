@@ -16,7 +16,8 @@ const ExecuteTemplateSchema = z.object({
   templateSlug: z.string().min(1),
   context: z.object({
     entityType: z.enum(['domain', 'keeper', 'journey', 'path', 'moment', 'agent', 'board']),
-    entityId: z.string().uuid(),
+    /** Entity IDs in Keeper are often slug-style strings, not UUIDs (e.g. journey-keeper-heart-default). */
+    entityId: z.string().min(1),
     domainId: z.string().uuid().optional(),
   }),
   inputs: z.record(z.any()).default({})

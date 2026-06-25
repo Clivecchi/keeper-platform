@@ -68,17 +68,40 @@ export function useBoardEngagement(
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             templateSlug: intent.template.slug,
-            context: intent.context,
+            context: {
+              entityType: intent.context.entityType,
+              entityId: intent.context.entityId,
+              ...(intent.context.domainId ? { domainId: intent.context.domainId } : {}),
+            },
             inputs,
           }),
         })
         if (!response.success) {
-          throw new Error(response.message || response.error || "Action failed")
+          const detail =
+            Array.isArray(response.details)
+              ? response.details
+                  .map((item: { message?: string; path?: string[] }) =>
+                    item.message ?? item.path?.join(".") ?? "",
+                  )
+                  .filter(Boolean)
+                  .join("; ")
+              : null
+          throw new Error(
+            detail || response.message || response.error || "Action failed",
+          )
         }
         setIntent(null)
         onSuccess?.({ data: response.data })
       } catch (error) {
         console.error("[useBoardEngagement] submit failed:", error)
+        const apiError = error as Error & { data?: { details?: Array<{ message?: string }> } }
+        const detail = apiError.data?.details
+          ?.map((item) => item.message)
+          .filter(Boolean)
+          .join("; ")
+        if (detail && apiError.message === "Invalid request") {
+          throw new Error(detail)
+        }
         throw error
       } finally {
         setSubmitting(false)

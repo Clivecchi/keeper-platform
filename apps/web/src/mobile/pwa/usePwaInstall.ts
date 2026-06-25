@@ -45,11 +45,15 @@ export function usePwaInstall(): PwaInstallState {
   const [canInstall, setCanInstall] = React.useState(false);
   const [isInstalled, setIsInstalled] = React.useState(() => detectStandalone());
   const [isIosSafari] = React.useState(() => detectIosSafari());
+  const [isPromptDismissed, setIsPromptDismissed] = React.useState(
+    () => readDismissedUntil() > Date.now(),
+  );
 
   React.useEffect(() => {
     const dismissedUntil = readDismissedUntil();
     if (dismissedUntil > Date.now()) {
       setCanInstall(false);
+      setIsPromptDismissed(true);
     }
 
     const onBeforeInstallPrompt = (event: Event) => {
@@ -93,6 +97,7 @@ export function usePwaInstall(): PwaInstallState {
 
   const dismissPrompt = React.useCallback(() => {
     setCanInstall(false);
+    setIsPromptDismissed(true);
     writeDismissedUntil(Date.now() + DISMISS_DAYS * 24 * 60 * 60 * 1000);
   }, []);
 
@@ -100,6 +105,7 @@ export function usePwaInstall(): PwaInstallState {
     canInstall,
     isInstalled,
     isIosSafari,
+    isPromptDismissed,
     promptInstall,
     dismissPrompt,
   };

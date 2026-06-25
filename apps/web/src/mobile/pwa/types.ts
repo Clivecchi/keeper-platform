@@ -11,6 +11,7 @@ export interface PwaInstallState {
   canInstall: boolean;
   isInstalled: boolean;
   isIosSafari: boolean;
+  isPromptDismissed: boolean;
   promptInstall: () => Promise<"accepted" | "dismissed" | "unavailable">;
   dismissPrompt: () => void;
 }

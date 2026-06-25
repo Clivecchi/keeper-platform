@@ -4,6 +4,15 @@
   --mobile-tab-bar-height: 3.75rem;
 }
 
+/* Chronicle Act fields — mobile shell is outside board frame but uses same labels */
+.universal-mobile-shell .keeper-presence-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: hsl(var(--theme-ink-tertiary));
+}
+
 .universal-mobile-shell .mobile-screen-scroll {
   min-height: 0;
   flex: 1 1 auto;

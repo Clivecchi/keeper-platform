@@ -109,7 +109,7 @@ export function UniversalMobileShell({
   themeSlug = null,
 }: UniversalMobileShellProps) {
   return (
-    <StyleScope styleId={styleId} themeSlug={themeSlug}>
+    <StyleScope styleId={styleId} themeSlug={themeSlug} className="keeper-board-scope">
       <UniversalMobileUIProvider>
         <UniversalMobileShellBody />
       </UniversalMobileUIProvider>

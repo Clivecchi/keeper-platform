@@ -92,7 +92,10 @@ function ChronicleActField({
 }) {
   return (
     <div className="mb-4">
-      <p className="keeper-presence-field-label mb-1.5">
+      <p
+        className="keeper-presence-field-label mb-1.5"
+        style={{ color: "hsl(var(--theme-ink-tertiary))" }}
+      >
         {field.label}
         {field.required ? (
           <span
@@ -111,6 +114,7 @@ function ChronicleActField({
           placeholder={field.placeholder}
           disabled={disabled}
           rows={4}
+          enterKeyHint="enter"
           className={INPUT_CLASS}
           style={{ ...INPUT_STYLE, minHeight: "6rem" }}
         />

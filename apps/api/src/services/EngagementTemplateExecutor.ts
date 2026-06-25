@@ -348,7 +348,15 @@ export class EngagementTemplateExecutor {
         }
       } else {
         // Use inputs directly as body
-        body = inputs;
+        body = { ...inputs };
+      }
+
+      // moment.create template field is "content"; POST /api/moments expects "narrative"
+      if (body.content !== undefined && body.narrative === undefined) {
+        body.narrative = body.content;
+      }
+      if (body.content !== undefined) {
+        delete body.content;
       }
     }
 

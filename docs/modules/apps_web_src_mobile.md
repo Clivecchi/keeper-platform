@@ -45,6 +45,11 @@ This is not a separate app, not legacy frame routing, and not a parallel API sur
 
 ## 📆 Update Log
 
+### 2026-06-25 — Mobile moment capture + install fixes
+- Fixed **Invalid request** on moment submit — journey/keeper IDs are slug-style strings, not UUIDs; API validation updated.
+- PWA install banner shows on mobile with Android/iOS instructions (above tab bar); no longer gated on first kept moment.
+- Field labels on Moment form use readable theme tokens (not red-on-dark).
+
 ### 2026-06-22 — Mobile Kip UX polish
 - Kip composer: Enter = new line on mobile; send only via send button.
 - Horizon gradient hidden except during thinking stage.

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { MobileTabId } from "../types";
-import { markHasKeptMoment, readHasKeptMoment } from "../lib/mobileStorage";
+import { markHasKeptMoment } from "../lib/mobileStorage";
 
 export interface UniversalMobileUIContextValue {
   activeTab: MobileTabId;
@@ -27,7 +27,10 @@ export function UniversalMobileUIProvider({ children }: UniversalMobileUIProvide
   const [activeTab, setActiveTabState] = React.useState<MobileTabId>("world");
   const [kipFocusMomentId, setKipFocusMomentId] = React.useState<string | null>(null);
   const [worldRefreshKey, setWorldRefreshKey] = React.useState(0);
-  const [showInstallPrompt, setShowInstallPrompt] = React.useState(() => readHasKeptMoment());
+  const [showInstallPrompt, setShowInstallPrompt] = React.useState(() => {
+    if (typeof window === "undefined") return false;
+    return !window.matchMedia("(display-mode: standalone)").matches;
+  });
 
   const setActiveTab = React.useCallback((tab: MobileTabId) => {
     setActiveTabState(tab);
