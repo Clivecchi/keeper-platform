@@ -28,6 +28,8 @@ export interface DialogueMessageListProps {
   onOpenDraft?: (draftId: string) => void
   /** Callback when a moment link is clicked (e.g. in action receipts) */
   onOpenMoment?: (momentId: string) => void
+  /** Callback when a journey link is clicked */
+  onOpenJourney?: (journeyId: string) => void
   /** Callback when user confirms a proposed draft update */
   onConfirmDraftUpdate?: (draftId: string, payload: { title?: string; summary?: string; status?: string; spec?: unknown }) => void
   /** Agent name for empty state and thinking indicator (dynamic, not hardcoded) */
@@ -45,6 +47,7 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
   error,
   onOpenDraft,
   onOpenMoment,
+  onOpenJourney,
   onConfirmDraftUpdate,
   agentName = "Agent",
   agentBoardMessaging,
@@ -97,7 +100,18 @@ export const DialogueMessageList: React.FC<DialogueMessageListProps> = ({
             <p className="whitespace-pre-line">{message.content}</p>
             {message.linkedCard && (
               <div className="mt-3">
-                <LinkedCard {...message.linkedCard} variant="inline" />
+                <LinkedCard
+                  {...message.linkedCard}
+                  variant="inline"
+                  onNavigate={(() => {
+                    const card = message.linkedCard!
+                    const entityType = card.entityType as string
+                    if (entityType === "draft" && onOpenDraft) return () => onOpenDraft(card.entityId)
+                    if (entityType === "moment" && onOpenMoment) return () => onOpenMoment(card.entityId)
+                    if (entityType === "journey" && onOpenJourney) return () => onOpenJourney(card.entityId)
+                    return undefined
+                  })()}
+                />
               </div>
             )}
             {message.actionResults && message.actionResults.filter(isVisibleActionResult).length > 0 && (

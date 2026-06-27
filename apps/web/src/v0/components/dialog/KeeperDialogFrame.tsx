@@ -26,7 +26,7 @@ import { DialogueMessageList } from "../../../components/agent/DialogueMessageLi
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedServicesBar"
 import type { AgentBoardMessaging } from "../../data/domain-frame.types"
-import { clearConsoleDiagEntries } from "../../../lib/consoleDiagCapture"
+import { clearConsoleDiagEntries, installConsoleDiagCapture } from "../../../lib/consoleDiagCapture"
 import { DialogDiagStream } from "./DialogDiagStream"
 import { DialogScrollHint } from "./DialogScrollHint"
 import { DialogScrollRail } from "./DialogScrollRail"
@@ -243,6 +243,10 @@ export function KeeperDialogFrame({
   const hasWorkingThinkSpace = isWorking || hasUploads
   const showDiagStream = isSending && thinkStream === "diag"
   const showThinkStream = !showDiagStream && isSending
+
+  React.useEffect(() => {
+    installConsoleDiagCapture()
+  }, [])
 
   React.useEffect(() => {
     if (isSending) {
@@ -592,10 +596,14 @@ export function KeeperDialogFrame({
             ].join("")}
           >
             <div className="dialog-fade-overlay" aria-hidden="true" />
-            {isWorking && showHorizonStatus && (
+            {isWorking && (
               <div className="dialog-horizon-status" aria-live="polite">
                 <div className="dialog-column dialog-horizon-row">
-                  <span className="dialog-think-pulse dialog-horizon-summary">{horizonStatusLabel}</span>
+                  {showHorizonStatus ? (
+                    <span className="dialog-think-pulse dialog-horizon-summary">{horizonStatusLabel}</span>
+                  ) : (
+                    <span className="dialog-horizon-summary" aria-hidden="true" />
+                  )}
                   {isSending && (
                     <div className="dialog-horizon-streams">
                       <button

@@ -20,7 +20,9 @@
  */
 
 import * as React from "react"
+import { useSearchParams } from "react-router-dom"
 import { useFrameContextOptional } from "../shell/FrameContext"
+import { useV0ShellOptional } from "../shell/V0ShellContext"
 import type { GlossAnchor } from "@keeper/shared"
 import { useBoardDefinitionFromUrl } from "./useBoardDefinitionFromUrl"
 import type { CapabilityNavRowPatch } from "../presence/integrationChronicle/capabilityNavUtils"
@@ -170,6 +172,8 @@ interface UniversalBoardProviderProps {
 
 export function UniversalBoardProvider({ children }: UniversalBoardProviderProps) {
   const frameCtx = useFrameContextOptional()
+  const shell = useV0ShellOptional()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   // ── Selection state ────────────────────────────────────────────────────────
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null)
@@ -209,6 +213,24 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
   const [trainingMode, setTrainingMode] = React.useState(false)
   const [activeBoardInstrument, setActiveBoardInstrument] =
     React.useState<BoardInstrumentSlug | null>(null)
+
+  const urlDraftId = shell?.draftId ?? searchParams.get("draftId")
+
+  React.useEffect(() => {
+    if (!urlDraftId || urlDraftId === selectedDraftId) return
+    setSelectedSoleMemoryId(null)
+    setSelectedDraftId(urlDraftId)
+    setSelectedDialogId(null)
+    setSelectedJourneyId(null)
+    setSelectedPathId(null)
+    setSelectedMomentId(null)
+    setSelectedKeeperId(null)
+    setSelectedAgentId(null)
+    setSelectedServiceSlug(null)
+    setSelectedKeyId(null)
+    setSelectedCapabilityId(null)
+    setSelectedLibraryItemId(null)
+  }, [urlDraftId, selectedDraftId])
 
   // ── Nav state ──────────────────────────────────────────────────────────────
   const [navCollapsed, setNavCollapsed] = React.useState(false)
@@ -316,7 +338,16 @@ export function UniversalBoardProvider({ children }: UniversalBoardProviderProps
     setSelectedKeyId(null)
     setSelectedCapabilityId(null)
     setSelectedLibraryItemId(null)
-  }, [])
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set("draftId", id)
+        if (!next.get("board")) next.set("board", "domain")
+        return next
+      },
+      { replace: true },
+    )
+  }, [setSearchParams])
 
   const onAgentSelect = React.useCallback((id: string) => {
     setTrainingMode(false)

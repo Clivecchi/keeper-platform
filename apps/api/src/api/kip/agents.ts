@@ -656,11 +656,11 @@ function slugifyKey(input: string) {
  */
 function buildDraftOpenUrl(domainSlug: string, draftId: string): string {
   const webOrigin = process.env.WEB_ORIGIN || process.env.NEXT_PUBLIC_WEB_ORIGIN || 'https://www.ke3p.com';
-  // Use relative URL if we can't determine origin reliably
+  const path = `/d/${domainSlug}?board=domain&draftId=${draftId}`;
   if (!webOrigin || webOrigin.includes('localhost') || webOrigin.includes('127.0.0.1')) {
-    return `/d/${domainSlug}/agent?view=drafts&draftId=${draftId}`;
+    return path;
   }
-  return `${webOrigin}/d/${domainSlug}/agent?view=drafts&draftId=${draftId}`;
+  return `${webOrigin}${path}`;
 }
 
 /**
@@ -1472,6 +1472,9 @@ export async function executeAgentActions(
                 summary: draft.summary,
                 status: draft.status,
                 updatedAt: draft.updated_at,
+                links: ctx.domainSlug
+                  ? { open: buildDraftOpenUrl(ctx.domainSlug, draft.id) }
+                  : undefined,
               },
             });
             break;

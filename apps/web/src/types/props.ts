@@ -2,6 +2,7 @@ export type LinkedCardEntityType =
   | 'journey'
   | 'keeper'
   | 'moment'
+  | 'draft'
   | 'board'
   | 'frame'
   | 'theme'

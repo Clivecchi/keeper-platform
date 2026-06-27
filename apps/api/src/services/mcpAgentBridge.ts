@@ -3,6 +3,7 @@
  */
 
 import { resolveAgentCapabilities } from '../capabilities/resolveCapabilities.js';
+import { withAsyncTimeout } from '../lib/fetchWithTimeout.js';
 import { mcpCallAction, type McpContext } from '../mcp/core.js';
 import { getSchema } from '../mcp/tools.js';
 
@@ -89,7 +90,11 @@ export async function executeMcpCallAction(params: {
     domainId: params.domainId ?? null,
     agentCapabilities: params.agentCapabilities,
   };
-  return mcpCallAction(params.toolName, params.args ?? {}, ctx);
+  return withAsyncTimeout(
+    mcpCallAction(params.toolName, params.args ?? {}, ctx),
+    30_000,
+    `MCP ${params.toolName}`,
+  );
 }
 
 export function hasSuccessfulMcpResults(results: McpActionResultLike[]): boolean {

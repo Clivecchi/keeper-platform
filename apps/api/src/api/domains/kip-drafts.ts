@@ -15,7 +15,7 @@ import { ensureDraftLinkedToSessionDialog } from '../../services/kip/linkDraftTo
  */
 function buildDraftOpenUrl(domainSlug: string, draftId: string): string {
   const webOrigin = process.env.WEB_ORIGIN || process.env.NEXT_PUBLIC_WEB_ORIGIN || 'https://www.ke3p.com';
-  const path = `/d/${domainSlug}/board?board=domain&draftId=${draftId}`;
+  const path = `/d/${domainSlug}?board=domain&draftId=${draftId}`;
   if (!webOrigin || webOrigin.includes('localhost') || webOrigin.includes('127.0.0.1')) {
     return path;
   }

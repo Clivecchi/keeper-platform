@@ -76,26 +76,59 @@ export function normalizeActionReceipt(actionResult: {
     [key: string]: unknown
   }
 }): { type: string; status: "success" | "error" | "skipped"; message: string; errorCode?: string; data?: any } {
+  const resolveDraftFromPayload = (
+    payload: Record<string, unknown> | undefined,
+  ): { id: string; title: string; kind: string; key: string } | undefined => {
+    if (!payload) return undefined
+    const nested = payload.draft
+    if (nested && typeof nested === "object" && typeof (nested as { id?: string }).id === "string") {
+      const d = nested as { id: string; title?: string; kind?: string; key?: string }
+      return {
+        id: d.id,
+        title: d.title ?? "Draft",
+        kind: d.kind ?? "draft",
+        key: d.key ?? d.id,
+      }
+    }
+    const draftId =
+      typeof payload.draftId === "string"
+        ? payload.draftId
+        : typeof payload.id === "string"
+          ? payload.id
+          : null
+    if (!draftId) return undefined
+    return {
+      id: draftId,
+      title: typeof payload.title === "string" ? payload.title : "Draft",
+      kind: typeof payload.kind === "string" ? payload.kind : "draft",
+      key: typeof payload.key === "string" ? payload.key : draftId,
+    }
+  }
+
   if (typeof actionResult.status === "string") {
+    const data = actionResult.data as Record<string, unknown> | undefined
+    const draft = resolveDraftFromPayload(data)
     return {
       type: actionResult.type,
       status: actionResult.status,
       message: actionResult.message || "Action completed",
       errorCode: actionResult.errorCode,
-      data: actionResult.data,
+      data: draft && data ? { ...data, draft } : actionResult.data,
     }
   }
 
   if (actionResult.ok) {
+    const resultPayload = (actionResult.result ?? {}) as Record<string, unknown>
+    const draft = resolveDraftFromPayload(resultPayload)
     return {
       type: actionResult.type,
       status: "success",
       message: actionResult.result?.message || "Action completed successfully",
       data: {
         entityIds: actionResult.result?.entityIds,
-        draft: actionResult.result?.draft,
+        draft,
         links: actionResult.result?.links,
-        ...(actionResult.result || {}),
+        ...resultPayload,
       },
     }
   } else {

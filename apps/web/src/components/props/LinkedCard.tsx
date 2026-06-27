@@ -8,13 +8,22 @@ export type LinkedCardVariant = 'context' | 'inline';
 export interface LinkedCardComponentProps extends LinkedCardProps {
   variant?: LinkedCardVariant;
   className?: string;
+  /** When set, renders a button instead of router navigation (in-board selection). */
+  onNavigate?: () => void;
 }
 
 const isExternalHref = (href: string) => /^https?:\/\//i.test(href);
 
 const Wrapper: React.FC<
-  React.PropsWithChildren<{ href: string; isExternal: boolean; className: string }>
-> = ({ href, isExternal, className, children }) => {
+  React.PropsWithChildren<{ href: string; isExternal: boolean; className: string; onNavigate?: () => void }>
+> = ({ href, isExternal, className, children, onNavigate }) => {
+  if (onNavigate) {
+    return (
+      <button type="button" onClick={onNavigate} className={className}>
+        {children}
+      </button>
+    );
+  }
   if (isExternal) {
     return (
       <a
@@ -37,6 +46,7 @@ const Wrapper: React.FC<
 export const LinkedCard: React.FC<LinkedCardComponentProps> = ({
   variant = 'context',
   className,
+  onNavigate,
   ...card
 }) => {
   const previewSnippet = card.preview?.snippet;
@@ -59,7 +69,7 @@ export const LinkedCard: React.FC<LinkedCardComponentProps> = ({
       : 'text-xs text-[#C96E59]';
 
   return (
-    <Wrapper href={card.href} isExternal={isExternalHref(card.href)} className={baseClasses}>
+    <Wrapper href={card.href} isExternal={isExternalHref(card.href)} className={baseClasses} onNavigate={onNavigate}>
       <div className="flex gap-3">
         {hasImage && (
           <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-gray-100">

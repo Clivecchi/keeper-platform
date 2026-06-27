@@ -5,6 +5,8 @@
  * // incomplete — Railway GraphQL schema may require adjustment based on live API response
  */
 
+import { fetchWithTimeout } from '../lib/fetchWithTimeout.js';
+
 const RAILWAY_GRAPHQL_URL = 'https://backboard.railway.app/graphql/v2';
 
 export type RailwayServiceSummary = {
@@ -39,7 +41,7 @@ async function railwayGraphql<T>(
     throw new Error('RAILWAY_PROJECT_ID is not configured');
   }
 
-  const res = await fetch(RAILWAY_GRAPHQL_URL, {
+  const res = await fetchWithTimeout(RAILWAY_GRAPHQL_URL, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

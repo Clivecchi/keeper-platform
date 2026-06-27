@@ -424,10 +424,6 @@ button.dialog-prelude:hover {
   height: var(--dialog-fade-height);
 }
 
-.dialog-horizon-band:has(.dialog-horizon-streams) {
-  pointer-events: none;
-}
-
 /* Bottom dissolve — fills the horizon band; softens the Dialog Space floor */
 .dialog-fade-overlay {
   position: absolute;
@@ -646,7 +642,7 @@ button.dialog-prelude:hover {
   top: var(--dialog-horizon-inset);
   left: 0;
   right: 0;
-  z-index: 1;
+  z-index: 4;
   pointer-events: none;
 }
 
@@ -678,6 +674,8 @@ button.dialog-prelude:hover {
   gap: 6px;
   flex-shrink: 0;
   pointer-events: auto;
+  position: relative;
+  z-index: 5;
 }
 
 .dialog-horizon-stream {

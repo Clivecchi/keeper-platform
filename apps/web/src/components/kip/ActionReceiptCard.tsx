@@ -305,11 +305,19 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
   onOpenSoleMemory,
 }) => {
   const { type, status, message, errorCode, data } = receipt
-  const draft = data?.draft
+  const draft =
+    data?.draft ??
+    (typeof data?.draftId === "string"
+      ? {
+          id: data.draftId,
+          title: typeof data?.title === "string" ? data.title : "Draft",
+          kind: typeof data?.kind === "string" ? data.kind : "draft",
+          key: typeof data?.key === "string" ? data.key : data.draftId,
+        }
+      : undefined)
   const moment = data?.moment as { id: string; title: string; narrative?: string | null; journeyId?: string | null } | undefined
   const journey = data?.journey as { id: string; name: string; forward?: string | null } | undefined
   const path = data?.path as { id: string; name: string; prelude?: string | null } | undefined
-  const openUrl = data?.links?.open
   const memoryCard = data?.memoryCard as { id?: string; topic?: string | null } | undefined
   const isSoleSave = type === "sole.save"
   const isImageGenerate = type === "image.generate"
@@ -462,7 +470,7 @@ export const ActionReceiptCard: React.FC<ActionReceiptCardProps> = ({
           )}
         </div>
       </div>
-      {openUrl && onOpenDraft && draft && (
+      {onOpenDraft && draft?.id && (
         <div className="mt-2">
           <button
             type="button"
