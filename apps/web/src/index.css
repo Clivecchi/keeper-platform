@@ -1179,6 +1179,112 @@ button.dialog-prelude:hover {
   color: hsl(var(--theme-ink-primary));
 }
 
+/* Debug overlay — covers Horizon band, Thinking Space, and Composer */
+.dialog-debug-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  min-height: min(320px, 52vh);
+  max-height: min(480px, 58vh);
+  border-top: 1px solid hsl(var(--theme-border-soft) / 0.55);
+  background: hsl(var(--theme-surface-panel) / 0.97);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 -16px 48px hsl(var(--theme-ink-primary) / 0.12);
+}
+
+.dialog-debug-overlay-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 10px var(--dialog-column-pad, 18px) 8px;
+  border-bottom: 1px solid hsl(var(--theme-border-soft) / 0.35);
+}
+
+.dialog-debug-overlay-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dialog-debug-overlay-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: hsl(var(--theme-ink-primary));
+}
+
+.dialog-debug-overlay-meta {
+  font-size: 10px;
+  color: hsl(var(--theme-ink-tertiary));
+}
+
+.dialog-debug-overlay-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.dialog-debug-overlay-copy {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid hsl(var(--theme-border-soft) / 0.5);
+  background: hsl(var(--theme-surface-elevated) / 0.85);
+  color: hsl(var(--theme-ink-secondary));
+  cursor: pointer;
+}
+
+.dialog-debug-overlay-copy:hover:not(:disabled) {
+  color: hsl(var(--theme-ink-primary));
+}
+
+.dialog-debug-overlay-copy:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dialog-debug-overlay-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid hsl(var(--theme-border-soft) / 0.45);
+  background: hsl(var(--theme-surface-paper) / 0.5);
+  color: hsl(var(--theme-ink-secondary));
+  cursor: pointer;
+}
+
+.dialog-debug-overlay-close:hover {
+  color: hsl(var(--theme-ink-primary));
+  background: hsl(var(--theme-surface-paper) / 0.75);
+}
+
+.dialog-debug-overlay .dialog-diag-boarddefs {
+  margin: 8px var(--dialog-column-pad, 18px) 0;
+}
+
+.dialog-debug-overlay-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px var(--dialog-column-pad, 18px) 12px;
+}
+
 /* Active state — breathes gently when Kip is working */
 .dialog-think-pulse {
   font-size: 12px;

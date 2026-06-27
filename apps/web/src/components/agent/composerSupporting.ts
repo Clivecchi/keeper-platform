@@ -1,9 +1,9 @@
 import type { PendingAttachment } from "./AgentComposer"
 
 /** Minimum size before paste becomes a supporting document instead of inline text. */
-export const PASTE_CAPTURE_MIN_CHARS = 500
-export const PASTE_CAPTURE_MIN_LINES = 8
-export const PASTE_CAPTURE_MIN_LINES_CHARS = 200
+export const PASTE_CAPTURE_MIN_CHARS = 280
+export const PASTE_CAPTURE_MIN_LINES = 5
+export const PASTE_CAPTURE_MIN_LINES_CHARS = 120
 
 export function shouldCapturePaste(text: string): boolean {
   const trimmed = text.trim()

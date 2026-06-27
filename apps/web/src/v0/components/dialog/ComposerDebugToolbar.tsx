@@ -23,8 +23,8 @@ export function ComposerDebugToolbar({ active, onToggle }: ComposerDebugToolbarP
         aria-label={active ? "Hide client console log" : "Show client console log"}
         title={
           active
-            ? "Hide client console log"
-            : "Show client console log — copy from panel"
+            ? "Hide client console log panel"
+            : "Open client console log — copy logs for debugging"
         }
       >
         <BugAntIcon className="h-3.5 w-3.5" aria-hidden />

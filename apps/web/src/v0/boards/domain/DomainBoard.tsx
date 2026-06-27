@@ -52,7 +52,7 @@ function DomainSwitcherStatusPanel({
           top: 72,
           left: 0,
           width: 210,
-          border: "1px solid var(--theme-border-soft)",
+          border: "1px solid hsl(var(--theme-border-soft))",
           backgroundColor: "hsl(var(--theme-surface-paper) / 0.98)",
           backdropFilter: "blur(8px)",
           boxShadow: "0 4px 16px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)",
@@ -63,11 +63,11 @@ function DomainSwitcherStatusPanel({
       >
         <div
           className="flex items-center justify-between px-3 py-2 shrink-0"
-          style={{ borderBottom: "0.5px solid var(--theme-border-soft)" }}
+          style={{ borderBottom: "0.5px solid hsl(var(--theme-border-soft))" }}
         >
           <span
             className="text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: "var(--theme-ink-muted, var(--theme-ink-secondary))" }}
+            style={{ color: "var(--theme-ink-secondary-color)" }}
           >
             Your Domains
           </span>
@@ -78,7 +78,7 @@ function DomainSwitcherStatusPanel({
             style={{
               width: 18,
               height: 18,
-              color: "var(--theme-ink-muted, var(--theme-ink-secondary))",
+              color: "var(--theme-ink-secondary-color)",
             }}
             aria-label="Close domain switcher"
           >
@@ -95,13 +95,13 @@ function DomainSwitcherStatusPanel({
         <div className="px-3 py-4">
           <p
             className="text-[11px] font-medium mb-1"
-            style={{ color: "var(--theme-ink-primary)" }}
+            style={{ color: "var(--theme-ink-primary-color)" }}
           >
             {title}
           </p>
           <p
             className="text-[10px] leading-snug"
-            style={{ color: "var(--theme-ink-muted, var(--theme-ink-secondary))" }}
+            style={{ color: "var(--theme-ink-secondary-color)" }}
           >
             {message}
           </p>
@@ -110,7 +110,7 @@ function DomainSwitcherStatusPanel({
               type="button"
               onClick={onAction}
               className="mt-3 text-[10px] font-medium underline underline-offset-2 transition-opacity hover:opacity-80"
-              style={{ color: "var(--theme-ink-primary)" }}
+              style={{ color: "var(--theme-ink-primary-color)" }}
             >
               {actionLabel}
             </button>

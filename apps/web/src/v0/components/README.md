@@ -30,6 +30,7 @@ View components for the V0 surface: cover frame and moment diary frame, with no 
 - [ ] Consider a selected-route state once navigation is wired.
 
 ## 📆 Update Log
+- 2026-06-27: `DomainSwitcher` — fixed unreadable text (`--theme-ink-*-color` tokens instead of raw HSL component vars); scrollable domain list when long.
 - 2026-06-24: Margin guest Sign In now returns to `?board=domain` (Domain Board) instead of forcing legacy `?frame=agent`.
 - 2026-06-23: `KeeperTopBar` — top inset padding, restored identity/nav divider line, user block vertically centered with avatar (CSS layout classes).
 - 2026-06-23: `KeeperTopBar` header polish — larger wordmark/tagline, safer user-name truncation with right inset, profile popover contrast via header token CSS classes (`index.css`).

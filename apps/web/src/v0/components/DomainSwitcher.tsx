@@ -45,7 +45,7 @@ function DomainCard({
       style={{
         // #6ee7b7 is the "primary" teal border already used throughout the
         // Board chrome (DomainBoard.tsx primary badge, DesignBoardFrameList.tsx).
-        border: isCurrent ? "1.5px solid #6ee7b7" : "1px solid var(--theme-border-soft)",
+        border: isCurrent ? "1.5px solid #6ee7b7" : "1px solid hsl(var(--theme-border-soft))",
         background: "hsl(var(--theme-surface-paper) / 1)",
       }}
       aria-current={isCurrent ? "true" : undefined}
@@ -74,7 +74,7 @@ function DomainCard({
           style={{
             color: domain.coverImageUrl
               ? "#ffffff"
-              : "var(--theme-ink-primary)",
+              : "var(--theme-ink-primary-color)",
             textShadow: domain.coverImageUrl
               ? "0 1px 2px rgba(0,0,0,0.5)"
               : "none",
@@ -88,7 +88,7 @@ function DomainCard({
       <div className="px-2 py-1.5">
         <p
           className="text-[10px] leading-snug truncate"
-          style={{ color: "var(--theme-ink-muted, var(--theme-ink-secondary))" }}
+          style={{ color: "var(--theme-ink-secondary-color)" }}
         >
           {domain.tagline || domain.slug}
         </p>
@@ -131,7 +131,7 @@ export function DomainSwitcher({
           top: 72,        // flush below KeeperTopBar (40px row 1 + 32px row 2)
           left: 0,
           width: 210,
-          border: "1px solid var(--theme-border-soft)",
+          border: "1px solid hsl(var(--theme-border-soft))",
           backgroundColor: "hsl(var(--theme-surface-paper) / 0.98)",
           backdropFilter: "blur(8px)",
           boxShadow:
@@ -144,11 +144,11 @@ export function DomainSwitcher({
         {/* Header */}
         <div
           className="flex items-center justify-between px-3 py-2 shrink-0"
-          style={{ borderBottom: "0.5px solid var(--theme-border-soft)" }}
+          style={{ borderBottom: "0.5px solid hsl(var(--theme-border-soft))" }}
         >
           <span
             className="text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: "var(--theme-ink-muted, var(--theme-ink-secondary))" }}
+            style={{ color: "var(--theme-ink-secondary-color)" }}
           >
             Your Domains
           </span>
@@ -159,7 +159,7 @@ export function DomainSwitcher({
             style={{
               width: 18,
               height: 18,
-              color: "var(--theme-ink-muted, var(--theme-ink-secondary))",
+              color: "var(--theme-ink-secondary-color)",
             }}
             aria-label="Close domain switcher"
           >
@@ -176,7 +176,7 @@ export function DomainSwitcher({
         </div>
 
         {/* Domain cards */}
-        <div className="flex flex-col gap-1.5 p-2">
+        <div className="flex flex-col gap-1.5 p-2 max-h-[min(420px,60vh)] overflow-y-auto">
           {domains.map((domain) => (
             <DomainCard
               key={domain.slug}
@@ -195,7 +195,7 @@ export function DomainSwitcher({
             onClick={onAddDomain}
             className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-left transition-opacity hover:opacity-80"
             style={{
-              border: "1px dashed var(--theme-border-soft)",
+              border: "1px dashed hsl(var(--theme-border-soft))",
               background: "transparent",
             }}
             aria-label="Add a domain"
@@ -206,8 +206,8 @@ export function DomainSwitcher({
               style={{
                 width: 16,
                 height: 16,
-                border: "1px solid var(--theme-border-soft)",
-                color: "var(--theme-ink-muted, var(--theme-ink-secondary))",
+                border: "1px solid hsl(var(--theme-border-soft))",
+                color: "var(--theme-ink-secondary-color)",
               }}
               aria-hidden
             >
@@ -222,7 +222,7 @@ export function DomainSwitcher({
             </span>
             <span
               className="text-[11px]"
-              style={{ color: "var(--theme-ink-muted, var(--theme-ink-secondary))" }}
+              style={{ color: "var(--theme-ink-secondary-color)" }}
             >
               Add a domain
             </span>

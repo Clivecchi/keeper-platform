@@ -7,7 +7,8 @@ Shared conversation shell used across IDE Board, Agent Board, and Domain Board. 
 - `KeeperDialogFrame.tsx` — Main shell. Assembles Header Bar, Dialog Space, Thinking Space, and Composer input floor.
 - `DialogScrollHint.tsx` — “Latest” pill above the Horizon when the user scrolls up.
 - `DialogUploadStream.tsx` — Pending uploads in Thinking Space (Library item created at clip; sent with next message).
-- `DialogDiagStream.tsx` — Diag thinking stream: captures console output, board-definition snapshot, copy.
+- `DialogDebugOverlay.tsx` — Client console log panel (overlay over Horizon + Thinking Space + Composer). Copy + close.
+- `DialogDiagStream.tsx` — Legacy inline diag stream (superseded by overlay).
 - `ComposerDebugToolbar.tsx` — Right-aligned composer footer debug icon; toggles client console log panel on demand.
 - `DialogThinkStream.tsx` — Run trace in Thinking Space (progress steps + mapped action receipts).
 - `DialogScrollRail.tsx` — Overlay scroll thumb for Dialog Space.
@@ -73,6 +74,7 @@ All four zones are direct flex children of `.keeper-dialog-frame`. The thinking 
 - [x] When `isSending` is true, working status renders on the Horizon; `DialogueMessageList` suppresses its in-list indicator via `horizonThinking`.
 
 ## 📆 Update Log
+- 2026-06-27: **Debug overlay** — bug icon opens `DialogDebugOverlay` over Horizon/Thinking/Composer (Copy + X). Logs no longer cleared on send; capture re-wraps console after HMR and includes window errors.
 - 2026-06-27: **Supporting documents** — large paste no longer fills the input or Thinking Space; `AgentComposer` shows Pasted tiles in composer; Library commit skips paste items.
 - 2026-06-27: **Debug always on** — `ComposerDebugToolbar` visible whenever dialog mode is active (not gated on `isSending`). Diag panel opens on demand; logs accumulate client-side until a new agent send clears the buffer. Panel stays open after the reply.
 - 2026-06-27: **Debug toolbar** — Diag toggle moved from Horizon to right-aligned `ComposerDebugToolbar` in `.dialog-composer-footer` (below composer). Toggles `DialogDiagStream` + Copy in Thinking Space. Footer shows on IDE Board (Tools/Services) and on all dialog boards (debug-only row when no service bar).

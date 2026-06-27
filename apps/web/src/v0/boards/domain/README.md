@@ -5,7 +5,7 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 
 ## 🧱 Key Files
 - `DomainBoard.tsx` — Root board component. Owns switcher open state and live domain list fetch for `DomainSwitcher`. Delegates three-column layout to `UniversalBoard`.
-- `domainSwitcherData.ts` — Fetches `GET /api/domains` and maps API rows to `DomainSwitcher` card entries (slug, name, tagline, cover image).
+- `domainSwitcherData.ts` — Fetches `GET /api/domains/my` (user-owned and permitted domains only).
 
 ## 🔄 Data & Behavior
 - **Left panel**: Collapsible board switcher (Domain / Design / Agent) and frame list.
@@ -18,6 +18,11 @@ The public-facing domain overview board. Persisted Kip conversation in the cente
 - [ ] Domain Board session resumption — allow users to return to a prior Domain session via Chronicle trail.
 
 ## 📆 Update Log
+
+### 2026-06-27 — Switcher: user domains + readable text
+- Fetch switched from `GET /api/domains` (all domains) to `GET /api/domains/my` (owned + permitted only).
+- Client filters inactive / soft-deleted rows.
+- `DomainSwitcher` ink/border tokens fixed for dark board theme (`--theme-ink-*-color`, `hsl(var(--theme-border-soft))`).
 
 ### 2026-06-27 — Step 1.1: Real domains in DomainSwitcher
 - Removed `MOCK_DOMAINS` from `DomainBoard.tsx`.

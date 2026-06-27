@@ -27,9 +27,9 @@ import { DialogueMessageList } from "../../../components/agent/DialogueMessageLi
 import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedServicesBar"
 import type { AgentBoardMessaging } from "../../data/domain-frame.types"
-import { clearConsoleDiagEntries, installConsoleDiagCapture } from "../../../lib/consoleDiagCapture"
+import { installConsoleDiagCapture } from "../../../lib/consoleDiagCapture"
 import { ComposerDebugToolbar } from "./ComposerDebugToolbar"
-import { DialogDiagStream } from "./DialogDiagStream"
+import { DialogDebugOverlay } from "./DialogDebugOverlay"
 import { DialogScrollHint } from "./DialogScrollHint"
 import { DialogScrollRail } from "./DialogScrollRail"
 import { DialogThinkStream } from "./DialogThinkStream"
@@ -39,8 +39,6 @@ import {
   dialogicRunSummary,
   type DialogThinkingStep,
 } from "./dialogThinking"
-
-type ThinkStream = "diag" | null
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -237,32 +235,22 @@ export function KeeperDialogFrame({
   const thinkSpaceRef = React.useRef<HTMLDivElement>(null)
   const [bannerExpanded, setBannerExpanded] = React.useState(false)
   const [dialogScrollInset, setDialogScrollInset] = React.useState(172)
-  const [thinkStream, setThinkStream] = React.useState<ThinkStream>(null)
+  const [debugPanelOpen, setDebugPanelOpen] = React.useState(false)
   const [pendingAttachments, setPendingAttachments] = React.useState<PendingAttachment[]>([])
   const [isFileUploading, setIsFileUploading] = React.useState(false)
   const hasUploads =
     pendingAttachments.some((a) => !isPastedSupportingDoc(a)) || isFileUploading
   const isWorking = isSending || isFileUploading
   const hasWorkingThinkSpace = isWorking || hasUploads
-  const showDiagStream = thinkStream === "diag"
-  const showThinkStream = !showDiagStream && isSending
-  const showThinkSpace = mode !== "feed" && (hasWorkingThinkSpace || showDiagStream)
+  const showThinkSpace = mode !== "feed" && hasWorkingThinkSpace
   const showComposerFooter = mode !== "feed"
-  const wasSendingRef = React.useRef(false)
-  const toggleDiagStream = React.useCallback(() => {
-    setThinkStream((current) => (current === "diag" ? null : "diag"))
+  const toggleDebugPanel = React.useCallback(() => {
+    setDebugPanelOpen((open) => !open)
   }, [])
 
   React.useEffect(() => {
     installConsoleDiagCapture()
   }, [])
-
-  React.useEffect(() => {
-    if (isSending && !wasSendingRef.current) {
-      clearConsoleDiagEntries()
-    }
-    wasSendingRef.current = isSending
-  }, [isSending])
 
   const measureDialogScrollInset = React.useCallback(() => {
     const thinkHeight = thinkSpaceRef.current?.offsetHeight ?? 0
@@ -278,7 +266,7 @@ export function KeeperDialogFrame({
     measureDialogScrollInset()
     window.addEventListener("resize", measureDialogScrollInset)
     return () => window.removeEventListener("resize", measureDialogScrollInset)
-  }, [mode, dialogContent, measureDialogScrollInset, isSending, isFileUploading, thinkStream, showThinkSpace])
+  }, [mode, dialogContent, measureDialogScrollInset, isSending, isFileUploading, showThinkSpace])
 
   const getLatestScrollTop = React.useCallback(() => {
     const el = scrollRef.current
@@ -625,8 +613,7 @@ export function KeeperDialogFrame({
           ref={thinkSpaceRef}
           className={[
             "dialog-think-space",
-            showDiagStream ? " dialog-think-space--diag" : "",
-            showThinkStream ? " dialog-think-space--working" : "",
+            isSending ? " dialog-think-space--working" : "",
             hasUploads && !isSending ? " dialog-think-space--uploads" : "",
             isMobileStaged && mobileDialogStage === "composing" && hasUploads
               ? " dialog-think-space--mobile-composing"
@@ -634,9 +621,7 @@ export function KeeperDialogFrame({
           ].join("")}
         >
           <div className="dialog-column dialog-think-space-inner">
-            {showDiagStream ? (
-              <DialogDiagStream active />
-            ) : showThinkStream ? (
+            {isSending ? (
               <DialogThinkStream steps={thinkingSteps} agentName={agentName} isActive={isSending} />
             ) : (
               <DialogUploadStream
@@ -691,13 +676,15 @@ export function KeeperDialogFrame({
                 <div className="dialog-composer-footer-spacer" aria-hidden />
               )}
               <ComposerDebugToolbar
-                active={thinkStream === "diag"}
-                onToggle={toggleDiagStream}
+                active={debugPanelOpen}
+                onToggle={toggleDebugPanel}
               />
             </div>
           )}
         </div>
       </div>
+
+      <DialogDebugOverlay open={debugPanelOpen} onClose={() => setDebugPanelOpen(false)} />
 
     </div>
   )

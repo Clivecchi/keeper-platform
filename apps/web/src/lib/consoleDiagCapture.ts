@@ -20,6 +20,8 @@ const LEVELS: ConsoleDiagLevel[] = ["log", "warn", "error", "info", "debug"]
 let entries: ConsoleDiagEntry[] = []
 let nextId = 0
 let installed = false
+let globalHandlersInstalled = false
+const originals: Partial<Record<ConsoleDiagLevel, (...args: unknown[]) => void>> = {}
 const listeners = new Set<() => void>()
 
 function formatArg(value: unknown): string {
@@ -50,17 +52,36 @@ function pushEntry(level: ConsoleDiagLevel, args: unknown[]): void {
   listeners.forEach((listener) => listener())
 }
 
+function installGlobalErrorCapture(): void {
+  if (globalHandlersInstalled || typeof window === "undefined") return
+  globalHandlersInstalled = true
+
+  window.addEventListener("error", (event) => {
+    const parts = [event.message || "Script error"]
+    if (event.filename) parts.push(`at ${event.filename}:${event.lineno ?? 0}`)
+    pushEntry("error", parts)
+  })
+
+  window.addEventListener("unhandledrejection", (event) => {
+    pushEntry("error", ["Unhandled rejection", event.reason])
+  })
+}
+
 export function installConsoleDiagCapture(): void {
-  if (installed || typeof window === "undefined") return
-  installed = true
+  if (typeof window === "undefined") return
+  installGlobalErrorCapture()
 
   for (const level of LEVELS) {
-    const original = console[level].bind(console)
+    if (!originals[level]) {
+      originals[level] = console[level].bind(console) as (...args: unknown[]) => void
+    }
+    const original = originals[level]!
     console[level] = (...args: unknown[]) => {
       pushEntry(level, args)
       original(...args)
     }
   }
+  installed = true
 }
 
 export function subscribeConsoleDiag(listener: () => void): () => void {

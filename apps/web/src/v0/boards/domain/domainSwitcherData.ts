@@ -15,13 +15,8 @@ interface ApiDomainRow {
   description?: string | null
   customDomain?: string | null
   theme?: unknown
-}
-
-interface DomainsListResponse {
-  domains?: ApiDomainRow[]
-  total?: number
-  page?: number
-  limit?: number
+  isActive?: boolean
+  deletedAt?: string | null
 }
 
 function parseTheme(theme: unknown): { coverImage?: string; tagline?: string } {
@@ -49,8 +44,14 @@ export function mapApiDomainToSwitcherEntry(domain: ApiDomainRow): DomainSwitche
   }
 }
 
-async function fetchDomainsList(): Promise<DomainsListResponse | ApiDomainRow[]> {
-  const path = "/api/domains?limit=100"
+function isVisibleUserDomain(domain: ApiDomainRow): boolean {
+  if (domain.deletedAt) return false
+  if (domain.isActive === false) return false
+  return Boolean(domain.slug?.trim() && domain.name?.trim())
+}
+
+async function fetchUserDomainsList(): Promise<ApiDomainRow[]> {
+  const path = "/api/domains/my"
   const isLocalDev =
     typeof window !== "undefined" &&
     (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
@@ -66,19 +67,16 @@ async function fetchDomainsList(): Promise<DomainsListResponse | ApiDomainRow[]>
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText || "Request failed"}`)
     }
-    return response.json() as Promise<DomainsListResponse | ApiDomainRow[]>
+    const data = (await response.json()) as ApiDomainRow[] | { error?: string }
+    return Array.isArray(data) ? data : []
   }
 
-  return apiFetch(path) as Promise<DomainsListResponse | ApiDomainRow[]>
+  const data = (await apiFetch(path)) as ApiDomainRow[] | { error?: string }
+  return Array.isArray(data) ? data : []
 }
 
 export async function fetchDomainSwitcherEntries(): Promise<DomainSwitcherEntry[]> {
-  const response = await fetchDomainsList()
-  const rows = Array.isArray(response)
-    ? response
-    : Array.isArray(response?.domains)
-      ? response.domains
-      : []
+  const rows = await fetchUserDomainsList()
 
-  return rows.map(mapApiDomainToSwitcherEntry)
+  return rows.filter(isVisibleUserDomain).map(mapApiDomainToSwitcherEntry)
 }
