@@ -620,6 +620,55 @@ button.dialog-prelude:hover {
   );
 }
 
+.dialog-composer-footer {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  border-top: 1px solid hsl(var(--theme-line-hairline));
+}
+
+.dialog-composer-footer-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+.dialog-composer-debug-toolbar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 5px 0 6px;
+}
+
+.dialog-composer-debug-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid hsl(var(--theme-border-soft) / 0.45);
+  background: hsl(var(--theme-surface-paper) / 0.35);
+  color: hsl(var(--theme-ink-secondary));
+  cursor: pointer;
+  transition:
+    background-color 100ms ease,
+    border-color 100ms ease,
+    color 100ms ease;
+}
+
+.dialog-composer-debug-btn:hover {
+  color: hsl(var(--theme-ink-primary));
+  background: hsl(var(--theme-surface-paper) / 0.65);
+}
+
+.dialog-composer-debug-btn--active {
+  border-color: hsl(var(--treatment-color) / 0.55);
+  color: hsl(var(--theme-ink-primary));
+  background: hsl(var(--theme-surface-panel) / 0.55);
+}
+
 .dialog-services-bar-inner {
   padding-top: 4px;
   padding-bottom: 4px;

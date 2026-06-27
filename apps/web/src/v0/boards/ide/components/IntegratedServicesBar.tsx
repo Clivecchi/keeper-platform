@@ -62,7 +62,8 @@ export function IntegratedServicesBar({
       onMouseLeave={() => setBarHovered(false)}
       style={{
         userSelect: "none",
-        borderTop: "1px solid hsl(var(--theme-line-hairline))",
+        flex: 1,
+        minWidth: 0,
         backgroundColor: barHovered
           ? "hsl(var(--theme-surface-paper) / 0.5)"
           : "transparent",

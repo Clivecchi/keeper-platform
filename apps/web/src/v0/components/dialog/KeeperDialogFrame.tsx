@@ -27,6 +27,7 @@ import type { AgentDialogueMessage } from "../../../components/agent/types"
 import { IntegratedServicesBar } from "../../boards/ide/components/IntegratedServicesBar"
 import type { AgentBoardMessaging } from "../../data/domain-frame.types"
 import { clearConsoleDiagEntries, installConsoleDiagCapture } from "../../../lib/consoleDiagCapture"
+import { ComposerDebugToolbar } from "./ComposerDebugToolbar"
 import { DialogDiagStream } from "./DialogDiagStream"
 import { DialogScrollHint } from "./DialogScrollHint"
 import { DialogScrollRail } from "./DialogScrollRail"
@@ -243,6 +244,10 @@ export function KeeperDialogFrame({
   const hasWorkingThinkSpace = isWorking || hasUploads
   const showDiagStream = isSending && thinkStream === "diag"
   const showThinkStream = !showDiagStream && isSending
+  const showComposerFooter = showServiceBar || isSending
+  const toggleDiagStream = React.useCallback(() => {
+    setThinkStream((current) => (current === "diag" ? null : "diag"))
+  }, [])
 
   React.useEffect(() => {
     installConsoleDiagCapture()
@@ -604,18 +609,6 @@ export function KeeperDialogFrame({
                   ) : (
                     <span className="dialog-horizon-summary" aria-hidden="true" />
                   )}
-                  {isSending && (
-                    <div className="dialog-horizon-streams">
-                      <button
-                        type="button"
-                        className={`dialog-horizon-stream${thinkStream === "diag" ? " dialog-horizon-stream--active" : ""}`}
-                        onClick={() => setThinkStream((current) => (current === "diag" ? null : "diag"))}
-                        aria-pressed={thinkStream === "diag"}
-                      >
-                        Diag
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -683,15 +676,27 @@ export function KeeperDialogFrame({
             onInputFocusChange={onComposerFocusChange}
             composerSize={mobileComposerSize}
           />
-          {showServiceBar && (
-            <IntegratedServicesBar
-              onOpen={onServiceOpen ?? (() => {})}
-              onToolInvoke={onToolInvoke}
-              activeToolSlug={activeToolSlug}
-              railwayStatus={railwayStatus}
-              vercelStatus={vercelStatus}
-              githubStatus={githubStatus}
-            />
+          {showComposerFooter && (
+            <div className="dialog-composer-footer">
+              {showServiceBar ? (
+                <IntegratedServicesBar
+                  onOpen={onServiceOpen ?? (() => {})}
+                  onToolInvoke={onToolInvoke}
+                  activeToolSlug={activeToolSlug}
+                  railwayStatus={railwayStatus}
+                  vercelStatus={vercelStatus}
+                  githubStatus={githubStatus}
+                />
+              ) : (
+                <div className="dialog-composer-footer-spacer" aria-hidden />
+              )}
+              {isSending && (
+                <ComposerDebugToolbar
+                  active={thinkStream === "diag"}
+                  onToggle={toggleDiagStream}
+                />
+              )}
+            </div>
           )}
         </div>
       </div>
